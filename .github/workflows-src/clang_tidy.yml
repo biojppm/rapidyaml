@@ -37,7 +37,8 @@ jobs:
         - ! item('static64' 'ReleaseWithDebInfo')
         - ! item('static32' 'ReleaseWithDebInfo')
 
-    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    env:: load('share/env.yaml')
+
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
     - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169

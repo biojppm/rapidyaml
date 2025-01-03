@@ -40,15 +40,7 @@ jobs:
        #- ! item(20 '3.0.0' 'Debug')
         - ! item(20 '3.0.0' 'Release')
 
-    env:
-      STD: "${{matrix.std}}"
-      CXX_: "${{matrix.cxx}}"
-      BT: "${{matrix.bt}}"
-      BITLINKS: "${{matrix.bitlinks}}"
-      VG: "${{matrix.vg}}"
-      SAN: "${{matrix.san}}"
-      LINT: "${{matrix.lint}}"
-      OS: "${{matrix.os}}"
+    env:: load('share/env.yaml')
 
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}

@@ -143,12 +143,13 @@ jobs:
            :tgt 'ALL_BUILD', :bt 'Debug', :vars nil, :commonvars nil}]
 
     env:
-      CXX_: "${{matrix.cxx}}"
-      BT: "${{matrix.bt}}"
-      OS: "${{matrix.os}}"
-      BDIR:   "build/${{matrix.name}}-${{matrix.bt}}"
-      IDIR: "install/${{matrix.name}}-${{matrix.bt}}"
-      PDIR:  "prefix/${{matrix.name}}-${{matrix.bt}}"
+      CXX_: ${{matrix.cxx}}
+      BT:   ${{matrix.bt}}
+      OS:   ${{matrix.os}}
+      BDIR: build/${{matrix.name}}-${{matrix.bt}}
+      IDIR: install/${{matrix.name}}-${{matrix.bt}}
+      PDIR: prefix/${{matrix.name}}-${{matrix.bt}}
+
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
     - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}

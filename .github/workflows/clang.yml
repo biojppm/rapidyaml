@@ -125,11 +125,11 @@ jobs:
       CXX_: ${{matrix.cxx}}
       BT: ${{matrix.bt}}
       BITLINKS: ${{matrix.bitlinks}}
-      CMAKE_FLAGS: -DRYML_WITH_TAB_TOKENS=ON
       VG: ${{matrix.vg}}
       SAN: ${{matrix.san}}
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
+      CMAKE_FLAGS: -DRYML_WITH_TAB_TOKENS=ON
     steps:
     - name: checkout
       uses: actions/checkout@v4

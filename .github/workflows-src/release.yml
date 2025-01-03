@@ -76,7 +76,12 @@ jobs:
     name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
     needs: gettag
     runs-on: ${{matrix.config.os}}
-    env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
+    env:
+      DEV:  OFF
+      BT:   Release
+      OS:   ${{matrix.config.os}}
+      CXX_: ${{matrix.config.cxx}}
+      GEN:  ${{matrix.config.gen}}
 
     strategy:
       fail-fast: false

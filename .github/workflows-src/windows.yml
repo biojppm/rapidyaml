@@ -44,7 +44,8 @@ jobs:
         - ! item(20 2022 'Debug'   2022)
         - ! item(20 2022 'Release' 2022)
 
-    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    env:: load('share/env.yaml')
+
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
     - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
