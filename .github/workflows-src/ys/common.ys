@@ -17,3 +17,6 @@ defn workflow-setup(name=nil overrides={})::
         branches: [master]
       pull_request:
         branches: [master]
+
+defn bash(name):
+  slurp: "bash/$name.bash"

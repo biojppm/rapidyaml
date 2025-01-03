@@ -65,25 +65,9 @@ jobs:
         uses: actions/setup-python@v5
         with: { python-version: 3.9 }
       - name: preinstall
-        run: |
-          if [ "${{matrix.sdir}}" == "test/test_install" ] ; then
-            mkdir -p $BDIR-staging
-            cmake -S . -B $BDIR-staging -DCMAKE_INSTALL_PREFIX=$PDIR -DCMAKE_BUILD_TYPE=${{matrix.bt}} ${{matrix.gen}} ${{matrix.commonvars}}
-            cmake --build $BDIR-staging --config ${{matrix.bt}} --target ${{matrix.tgt}} -j
-            cmake --build $BDIR-staging --config ${{matrix.bt}} --target install
-          fi
+        run:: bash('install-preinstall')
       - name: configure
-        run: |
-          mkdir -p $BDIR
-          mkdir -p $IDIR
-          cmake -S ${{matrix.sdir}} -B $BDIR \
-            -DRYML_BUILD_TESTS=ON \
-            -DRYML_VALGRIND=OFF \
-            -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
-            -DCMAKE_INSTALL_PREFIX=$IDIR \
-            ${{matrix.gen}} \
-            ${{matrix.vars}} \
-            ${{matrix.commonvars}}
+        run:: bash('install-configure')
       - name: build
         run: |
           cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j

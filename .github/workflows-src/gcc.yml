@@ -55,13 +55,7 @@ jobs:
       - run: c4core-install g++-${{matrix.gcc}}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: configure
-        run: |
-          cmake -S . -B build_o2 \
-            -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
-            -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
-            -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O2 -g -DNDEBUG" \
-            -DRYML_BUILD_TESTS:BOOL=ON \
-            -DRYML_DBG:BOOL=OFF
+        run:: bash('gcc-configure')
       - name: build
         run: |
           cmake --build build_o2 --target ryml-test-build -j --verbose
@@ -115,18 +109,7 @@ jobs:
       #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
       #... so we checkout manually:
       - name: checkout
-        run: |
-          set -x
-          echo GITHUB_REF=$GITHUB_REF
-          echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
-          echo branch=$branch
-          git init -q .
-          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
-          git fetch origin $branch
-          git reset --hard FETCH_HEAD
-          git submodule update --init --recursive
+        run:: bash('gcc-checkout')
       - run: c4core-install ${{matrix.cxx}}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
@@ -274,18 +257,7 @@ jobs:
       #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
       #... so we checkout manually:
       - name: checkout
-        run: |
-          set -x
-          echo GITHUB_REF=$GITHUB_REF
-          echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
-          echo branch=$branch
-          git init -q .
-          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
-          git fetch origin $branch
-          git reset --hard FETCH_HEAD
-          git submodule update --init --recursive
+        run:: bash('gcc-checkout')
       - name: install gcc-arm-linux-gnueabihf
         run: |
           c4core-install arm-linux-gnueabihf

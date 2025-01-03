@@ -9,9 +9,7 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: # 4
 
-
 jobs:
-
   gettag:
     runs-on: ubuntu-latest
     steps:
@@ -19,31 +17,10 @@ jobs:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - name: Variables (from tag)
         if: contains(github.ref, 'tags/v')
-        run: |
-          # https://github.community/t/how-to-get-just-the-tag-name/16241/11
-          SRC_TAG=${GITHUB_REF#refs/tags/}
-          SRC_VERSION=${GITHUB_REF#refs/tags/v}
-          cat <<EOF > vars.sh
-          export SRC_TAG=$SRC_TAG
-          export SRC_VERSION=$SRC_VERSION
-          EOF
+        run:: bash('benchmarks-vars-1')
       - name: Variables (from commit, no tag)
         if: ${{ !contains(github.ref, 'tags/v') }}
-        run: |
-          set -x
-          branch_name=${GITHUB_REF#refs/heads/}
-          # builds triggered from PRs have the branch_name like this: refs/pull/150/merge
-          # so filter to eg pr0150_merge
-          branch_name=`echo $branch_name | sed "s:refs/pull/\([0-9]*\)/\(.*\):pr0\1_\2:"`
-          # sanitize the branch name; eg merge/foo-bar -> merge_foo_bar
-          branch_name=`echo $branch_name | sed 's:[/.-]:_:g'`
-          git config --global --add safe.directory $(pwd)
-          SRC_TAG=$(git describe || git rev-parse --short HEAD)  # eg v0.2.0-110-gda837e0
-          SRC_VERSION="${branch_name}-${SRC_TAG}"
-          cat <<EOF > vars.sh
-          export SRC_TAG=$SRC_TAG
-          export SRC_VERSION=$SRC_VERSION
-          EOF
+        run:: bash('benchmarks-vars-2')
       - name: Verify vars.sh
         run: cat vars.sh ; source vars.sh ; echo $SRC_TAG ; echo $SRC_VERSION
       - name: Save vars.sh
@@ -86,14 +63,7 @@ jobs:
         uses: actions/setup-python@v5
         with: { python-version: '3.10' }
       - name: install benchmark plotting dependencies
-        run: |
-          which python
-          which pip
-          python --version
-          pip --version
-          pip install -v -r ext/c4core/cmake/bm-xp/requirements.txt
-          python -c 'import munch ; print("ok!") ; exit(0)'
-          echo $?
+        run:: bash('benchmarks-install')
       - name: shared64-configure---------------------------------------------------
         run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64 ryml-bm-build}
@@ -115,18 +85,8 @@ jobs:
       - {name: shared32-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-run}
       - {name: shared32-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot}
       - name: gather benchmark results
-        run: |
-          set -x
-          source vars.sh
-          echo SRC_TAG=$SRC_TAG
-          echo SRC_VERSION=$SRC_VERSION
-          desc=$SRC_TAG
-          for bl in ${{matrix.bitlinks}} ; do
-            dst=$(echo ryml-benchmark_results/$desc/x86_64/${{matrix.cxx}}-${{matrix.bt}}-c++${{matrix.std}}-$bl | sed 's:++-:xx:g' | sed 's:+:x:g')
-            mkdir -p $dst
-            find build -name bm-results
-            mv -vf build/$bl/bm/bm-results/* $dst/.
-          done
+        run:: bash('benchmarks-run')
+
       - name: upload benchmark result artifacts
         uses: actions/upload-artifact@v3
         with:

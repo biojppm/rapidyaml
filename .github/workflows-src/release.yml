@@ -31,30 +31,10 @@ jobs:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - name: Variables (from tag)
         if: contains(github.ref, 'tags/v')
-        run: |
-          # https://github.community/t/how-to-get-just-the-tag-name/16241/11
-          SRC_TAG=${GITHUB_REF#refs/tags/}
-          SRC_VERSION=${GITHUB_REF#refs/tags/v}
-          cat <<EOF > vars.sh
-          export SRC_TAG=$SRC_TAG
-          export SRC_VERSION=$SRC_VERSION
-          EOF
+        run:: bash('release-vars-1')
       - name: Variables (from commit, no tag)
         if: ${{ !contains(github.ref, 'tags/v') }}
-        run: |
-          set -x
-          branch_name=${GITHUB_REF#refs/heads/}
-          # builds triggered from PRs have the branch_name like this: refs/pull/150/merge
-          # so filter to eg pr0150_merge
-          branch_name=`echo $branch_name | sed "s:refs/pull/\([0-9]*\)/\(.*\):pr0\1_\2:"`
-          # sanitize the branch name; eg merge/foo-bar -> merge_foo_bar
-          branch_name=`echo $branch_name | sed 's:[/.-]:_:g'`
-          SRC_TAG=$(git describe || git rev-parse --short HEAD)  # eg v0.2.0-110-gda837e0
-          SRC_VERSION="${branch_name}-${SRC_TAG}"
-          cat <<EOF > vars.sh
-          export SRC_TAG=$SRC_TAG
-          export SRC_VERSION=$SRC_VERSION
-          EOF
+        run:: bash('release-vars-2')
       - name: Verify vars.sh
         run: cat vars.sh ; source vars.sh ; echo $SRC_TAG ; echo $SRC_VERSION
       - name: Save vars.sh
@@ -82,19 +62,7 @@ jobs:
         run: |
           sudo -E pip install git-archive-all
       - name: Create source packages
-        run: |
-          pwd
-          ls -lFhp
-          source vars.sh
-          echo SRC_TAG=$SRC_TAG
-          echo SRC_VERSION=$SRC_VERSION
-          id=${PROJ_PKG_NAME}${SRC_VERSION}
-          name=${id}-src
-          mkdir -p assets
-          git-archive-all --prefix $name assets/$name.tgz
-          git-archive-all --prefix $name assets/$name.zip
-          python --version
-          python tools/amalgamate.py assets/$id.hpp
+        run:: bash('release-create-source-packages')
       - name: Save source artifacts
         uses: actions/upload-artifact@v3
         with: {name: assets, path: assets}
@@ -133,14 +101,7 @@ jobs:
       - name: shared64-pack
         run: source .github/setenv.sh && c4_package shared64 $GEN
       - name: shared64-normalize
-        run: |
-          set -x
-          source vars.sh
-          mkdir -p assets
-          asset_src=`ls -1 ./build/shared64/*-${{matrix.config.sfxg}}`
-          asset_dst=./assets/${PROJ_PKG_NAME}${SRC_VERSION}-${{matrix.config.sfxp}}
-          [ ! -f $asset_src ] && exit 1
-          cp -fav $asset_src $asset_dst
+        run:: bash('release-shared-normalize')
       - name: Save artifacts
         uses: actions/upload-artifact@v3
         with: {name: assets, path: assets}
@@ -163,16 +124,9 @@ jobs:
         uses: actions/setup-python@v5
         with: { python-version: 3.9 }
       - name: package python src packages
-        run: |
-          python --version
-          pip install -v -r requirements.txt
-          python setup.py sdist --formats=zip
+        run:: bash('release-package-python')
       - name: normalize src package names
-        run: |
-          sdist_orig=`find dist -type f -name 'rapidyaml-*.zip'`
-          [ ! -f $sdist_orig ] && exit 1
-          sdist=`echo $sdist_orig | sed 's:\.zip:-python_src.zip:'`
-          mv -fv $sdist_orig $sdist
+        run:: bash('release-normalize')
       - name: Save artifacts
         uses: actions/upload-artifact@v3
         with: {name: dist, path: dist}
@@ -264,28 +218,7 @@ jobs:
         with:
           python-version: '${{matrix.config.pythonv}}'
       - name: test with python ${{matrix.config.pythonv}}
-        run: |
-          set -x
-          echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
-          # skip 32 bit tests, as Python 32 bits are not available in ubuntu
-          arch="${{matrix.config.cibw_arch}}"
-          if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
-            exit 0
-          fi
-          python --version
-          python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
-          pip --version
-          pip install -v -r requirements.txt
-          pip install -v -r api/python/requirements.txt
-          for whl in dist/* ; do
-            pip install -v $whl
-            pip show -f rapidyaml
-            python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
-            python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
-            python -m pytest -vvv api/python/tests
-            pip uninstall -y -v rapidyaml
-          done
-
+        run:: bash('release-test-with-python')
 
   #----------------------------------------------------------------------------
   release:
@@ -320,15 +253,7 @@ jobs:
       - name: Save vars for following steps
         if: contains(github.ref, 'tags/v')
         id: vars
-        run: |
-          source vars.sh
-          version_body=${{github.workspace}}/changelog/$SRC_VERSION.md
-          if [ ! -f $version_body ] ; then
-            echo "version body file was not found: $version_body"
-            exit 1
-          fi
-          echo "VERSION=$SRC_VERSION >> $GITHUB_OUTPUT"
-          echo "VERSION_BODY=$version_body >> $GITHUB_OUTPUT"
+        run:: bash('release-save-vars')
       - name: Move Python packages to assets folder
         if: contains(github.ref, 'tags/v')
         run: mv -fv dist/*src.zip assets/.
