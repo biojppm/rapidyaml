@@ -69,7 +69,7 @@ jobs:
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: static64-configure---------------------------------------------------
+    - name: static64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
     - name: static64-build
       run: source .github/setenv.sh && c4_build_test static64
@@ -84,7 +84,7 @@ jobs:
           build/static64/coverage3-final_filtered.lcov
     - name: static64-submit-codecov
       run: source .github/setenv.sh && c4_submit_coverage static64 codecov
-    - name: static32-configure---------------------------------------------------
+    - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_test static32

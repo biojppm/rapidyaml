@@ -90,8 +90,7 @@ jobs:
       with:
         python-version: 3.9
     - name: Install requirements
-      run: |
-        sudo -E pip install git-archive-all
+      run: sudo -E pip install git-archive-all
     - name: Create source packages
       run: |
         pwd
@@ -169,7 +168,7 @@ jobs:
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: shared64-configure---------------------------------------------------
+    - name: shared64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
     - name: shared64-build
       run: source .github/setenv.sh && c4_build_target shared64
@@ -330,9 +329,7 @@ jobs:
     - name: create wheel
       uses: pypa/cibuildwheel@v2.17
     - name: rename wheelhouse -> dist
-      run: |
-        mv -fv wheelhouse dist
-        ls -lFhp dist/
+      run: mv -fv wheelhouse dist; ls -lFhp dist/
     - name: Save artifacts for publishing to PyPI
       uses: actions/upload-artifact@v3
       with:
@@ -391,9 +388,7 @@ jobs:
         name: dist
         path: dist
     - name: Verify existing artifacts
-      run: |
-        ls -lFhp assets/
-        ls -lFhp dist/
+      run: ls -lFhp assets/; ls -lFhp dist/
     - name: Restore vars.sh
       if: contains(github.ref, 'tags/v')
       uses: actions/download-artifact@v3

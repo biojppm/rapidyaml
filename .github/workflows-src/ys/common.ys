@@ -9,9 +9,10 @@ defn workflow-setup(name=nil overrides={})::
       # Use a bash shell so we can use the same syntax for environment variable
       # access regardless of the host operating system
       shell: bash -e -x {0}
+
   on::
     merge _ overrides::
-      # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+      # https://github.com/orgs/community/discussions/26276
       workflow_dispatch:
       push:
         branches: [master]

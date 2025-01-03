@@ -11,22 +11,22 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: # 4
 
-
 jobs:
-
   #----------------------------------------------------------------------------
   gcc_canary:
     name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()  # https://stackoverflow.com/a/62112985/721703
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3,
-                   :bitlinks 'shared64 static32',
-                   :img "ubuntu$a(%4)"})
+        item =:
+          \({:std %1, :cxx "g++-$a(%2)", :bt %3,
+             :bitlinks 'shared64 static32',
+             :img "ubuntu$a(%4)"})
         include: &include1
         - ! item(11  14 'Debug'   '22.04')
         - ! item(11  14 'Release' '22.04')
@@ -45,9 +45,10 @@ jobs:
   gcc_O2: # see https://github.com/biojppm/rapidyaml/issues/440
     name: gcc_O2/${{matrix.cxx}}/c++${{matrix.std}}
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -57,26 +58,30 @@ jobs:
     env:: load('share/env.yaml') + {'CXX_' '${{matrix.gcc}}'}
 
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
-    - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    - run: git config --system --add safe.directory '*'
     - run: c4core-install g++-${{matrix.gcc}}
-    - {name: show info, run: source .github/setenv.sh && c4_show_info}
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
     - name: configure
       run:: bash('gcc-configure')
     - name: build
-      run: |
+      run:
         cmake --build build_o2 --target ryml-test-build -j --verbose
     - name: run
-      run: |
+      run:
         cmake --build build_o2 --target ryml-test-run
 
   #----------------------------------------------------------------------------
   gcc_tabtokens:
     name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -90,14 +95,16 @@ jobs:
   gcc_noexceptions:
     name: gcc_noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3,
-                   :bitlinks 'shared64 static32', :img "ubuntu$a(%4)"})
+        item =:
+          \({:std %1, :cxx "g++-$a(%2)", :bt %3,
+             :bitlinks 'shared64 static32', :img "ubuntu$a(%4)"})
         include:
         - ! item(11 5  'Debug'   '18.04')
         - ! item(11 5  'Release' '18.04')
@@ -107,82 +114,102 @@ jobs:
     env:: -{'CXXFLAGS' '-fno-exceptions -fno-rtti'} + load('share/env.yaml')
 
     steps:
-    # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
-    #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
-    #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+    # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs
+    # version
+   #- name: checkout, uses: actions/checkout@v3
+   #  with: {submodules: recursive}
+   #- run: git config --system --add safe.directory '*'
     #... so we checkout manually:
     - name: checkout
       run:: bash('gcc-checkout')
     - run: c4core-install ${{matrix.cxx}}
-    - {name: show info, run: source .github/setenv.sh && c4_show_info}
-    - name: shared64-configure---------------------------------------------------
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+
+    - name: shared64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
-    - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
-    - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-    - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
-    - name: static64-configure---------------------------------------------------
+    - name: shared64-build
+      run: source .github/setenv.sh && c4_build_test shared64
+    - name: shared64-run
+      run: source .github/setenv.sh && c4_run_test shared64
+    - name: shared64-pack
+      run: source .github/setenv.sh && c4_package shared64
+
+    - name: static64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
-    - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-    - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-    - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
-    - name: static32-configure---------------------------------------------------
+    - name: static64-build
+      run: source .github/setenv.sh && c4_build_test static64
+    - name: static64-run
+      run: source .github/setenv.sh && c4_run_test static64
+    - name: static64-pack
+      run: source .github/setenv.sh && c4_package static64
+
+    - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
-    - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-    - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-    - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
-    - name: shared32-configure---------------------------------------------------
+    - name: static32-build
+      run: source .github/setenv.sh && c4_build_test static32
+    - name: static32-run
+      run: source .github/setenv.sh && c4_run_test static32
+    - name: static32-pack
+      run: source .github/setenv.sh && c4_package static32
+
+    - name: shared32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared32
-    - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
-    - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-    - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+    - name: shared32-build
+      run: source .github/setenv.sh && c4_build_test shared32
+    - name: shared32-run
+      run: source .github/setenv.sh && c4_run_test shared32
+    - name: shared32-pack
+      run: source .github/setenv.sh && c4_package shared32
 
   #----------------------------------------------------------------------------
   gcc_extended:
-    name: gcc_extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    name::
+     -'gcc_extended/${{matrix.cxx}}/c++${{matrix.std}}/' +
+      '${{matrix.bt}}/vg${{matrix.vg}}'
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+
     strategy:
       fail-fast: false
       matrix:
-        item-vg =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :vg 'ON',
-                      :img "ubuntu$a(%4)"})
-        item =:    \({:std 11, :cxx "g++-$a(%1)", :bt %2
-                      :img "ubuntu$a(%3)"})
+        item-vg =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :vg 'ON', :img %4})
+        item =: \({:std 11, :cxx "g++-$a(%1)", :bt %2 :img %3})
         include:
         # VALGRIND
-        - ! item-vg(11 14 'Debug'   '22.04')
-        - ! item-vg(11 14 'Release' '22.04')
-        - ! item-vg(14 14 'Debug'   '22.04')
-        - ! item-vg(14 14 'Release' '22.04')
-        - ! item-vg(17 14 'Debug'   '22.04')
-        - ! item-vg(17 14 'Release' '22.04')
-        - ! item-vg(20 14 'Debug'   '22.04')
-        - ! item-vg(20 14 'Release' '22.04')
-        #
-        - ! item(13 'Debug'   '22.04')
-        - ! item(13 'Release' '22.04')
-        - ! item(13 'Debug'   '22.04')  # XXX Duplicate?
-        - ! item(13 'Release' '22.04')  # XXX Duplicate?
-        - ! item(11 'Debug'   '22.04')
-        - ! item(11 'Release' '22.04')
-        - ! item(10 'Debug'   '22.04')
-        - ! item(10 'Release' '22.04')
-        - ! item( 9 'Debug'   '22.04')
-        - ! item( 9 'Release' '22.04')
-        - ! item( 8 'Debug'   '18.04')
-        - ! item( 8 'Release' '18.04')
-        - ! item( 7 'Debug'   '18.04')
-        - ! item( 7 'Release' '18.04')
-        - ! item( 6 'Debug'   '18.04')
-        - ! item( 6 'Release' '18.04')
-        - ! item( 5 'Debug'   '18.04')
-        - ! item( 5 'Release' '18.04')
-        - ! item(4.9 'Debug'   '18.04')
-        - ! item(4.9 'Release' '18.04')
-        - ! item(4.8 'Debug'   '18.04')
-        - ! item(4.8 'Release' '18.04')
+        - ! item-vg(11 14 'Debug'   'ubuntu22.04')
+        - ! item-vg(11 14 'Release' 'ubuntu22.04')
+        - ! item-vg(14 14 'Debug'   'ubuntu22.04')
+        - ! item-vg(14 14 'Release' 'ubuntu22.04')
+        - ! item-vg(17 14 'Debug'   'ubuntu22.04')
+        - ! item-vg(17 14 'Release' 'ubuntu22.04')
+        - ! item-vg(20 14 'Debug'   'ubuntu22.04')
+        - ! item-vg(20 14 'Release' 'ubuntu22.04')
+
+        - ! item(13 'Debug'   'ubuntu22.04')
+        - ! item(13 'Release' 'ubuntu22.04')
+        - ! item(13 'Debug'   'ubuntu22.04')  # XXX Duplicate?
+        - ! item(13 'Release' 'ubuntu22.04')  # XXX Duplicate?
+        - ! item(11 'Debug'   'ubuntu22.04')
+        - ! item(11 'Release' 'ubuntu22.04')
+        - ! item(10 'Debug'   'ubuntu22.04')
+        - ! item(10 'Release' 'ubuntu22.04')
+        - ! item( 9 'Debug'   'ubuntu22.04')
+        - ! item( 9 'Release' 'ubuntu22.04')
+        - ! item( 8 'Debug'   'ubuntu18.04')
+        - ! item( 8 'Release' 'ubuntu18.04')
+        - ! item( 7 'Debug'   'ubuntu18.04')
+        - ! item( 7 'Release' 'ubuntu18.04')
+        - ! item( 6 'Debug'   'ubuntu18.04')
+        - ! item( 6 'Release' 'ubuntu18.04')
+        - ! item( 5 'Debug'   'ubuntu18.04')
+        - ! item( 5 'Release' 'ubuntu18.04')
+        - ! item(4.9 'Debug'   'ubuntu18.04')
+        - ! item(4.9 'Release' 'ubuntu18.04')
+        - ! item(4.8 'Debug'   'ubuntu18.04')
+        - ! item(4.8 'Release' 'ubuntu18.04')
 
     env:: load('share/env.yaml')
 
@@ -190,11 +217,13 @@ jobs:
 
   #----------------------------------------------------------------------------
   gccsan:
-    name: gccsan/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    name:
+      gccsan/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -220,45 +249,67 @@ jobs:
     env:: load('share/env.yaml')
 
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
-    - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    - run: git config --system --add safe.directory '*'
     - run: c4core-install ${{matrix.cxx}}
-    - {name: show info, run: source .github/setenv.sh && c4_show_info}
-    - name: shared64-configure---------------------------------------------------
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+
+    - name: shared64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
-    - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
-    - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-    - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
-    - name: static64-configure---------------------------------------------------
+    - name: shared64-build
+      run: source .github/setenv.sh && c4_build_test shared64
+    - name: shared64-run
+      run: source .github/setenv.sh && c4_run_test shared64
+    - name: shared64-pack
+      run: source .github/setenv.sh && c4_package shared64
+
+    - name: static64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
-    - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-    - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-    - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
-    - name: static32-configure---------------------------------------------------
+    - name: static64-build
+      run: source .github/setenv.sh && c4_build_test static64
+    - name: static64-run
+      run: source .github/setenv.sh && c4_run_test static64
+    - name: static64-pack
+      run: source .github/setenv.sh && c4_package static64
+
+    - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
-    - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-    - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-    - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
-    - name: shared32-configure---------------------------------------------------
+    - name: static32-build
+      run: source .github/setenv.sh && c4_build_test static32
+    - name: static32-run
+      run: source .github/setenv.sh && c4_run_test static32
+    - name: static32-pack
+      run: source .github/setenv.sh && c4_package static32
+
+    - name: shared32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared32
-    - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
-    - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-    - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+    - name: shared32-build
+      run: source .github/setenv.sh && c4_build_test shared32
+    - name: shared32-run
+      run: source .github/setenv.sh && c4_run_test shared32
+    - name: shared32-pack
+      run: source .github/setenv.sh && c4_package shared32
 
   #----------------------------------------------------------------------------
   arm:
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest
+
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :bt %2,
-                   :toolchain 'ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake',
-                   :cxx 'arm-linux-gnueabihf-gcc', :os 'ubuntu-20.04'})
+        item =:
+          \({:std %1, :bt %2,
+             :toolchain 'ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake',
+             :cxx 'arm-linux-gnueabihf-gcc', :os 'ubuntu-20.04'})
         include:
-        # these jobs take much longer, so run only one bitlink pair per job to profit from parallelism
+        # these jobs take much longer, so run only one bitlink pair per job to
+        # profit from parallelism
         - ! item(11 'Debug')
         - ! item(11 'Release')
         - ! item(14 'Debug')
@@ -269,19 +320,24 @@ jobs:
     env:: -{'TOOLCHAIN' '${{matrix.toolchain}}'} + load('share/env.yaml')
 
     steps:
-    # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
-    #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
-    #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-    #... so we checkout manually:
+    # version
+   #- name: checkout
+   #  uses: actions/checkout@v3
+   #  with: {submodules: recursive}
+   #- run: git config --system --add safe.directory '*'
     - name: checkout
       run:: bash('gcc-checkout')
     - name: install gcc-arm-linux-gnueabihf
-      run: |
-        c4core-install arm-linux-gnueabihf
+      run:
+        c4core-install arm-linux-gnueabihf;
         c4core-install qemu
-    - {name: show info, run: source .github/setenv.sh && c4_show_info}
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
     - name: configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test arm
-    - {name: build, run: source .github/setenv.sh && c4_build_test arm}
-    - {name: run, run: source .github/setenv.sh && c4_run_test arm}
-    - {name: pack, run: source .github/setenv.sh && c4_package arm}
+    - name: build
+      run: source .github/setenv.sh && c4_build_test arm
+    - name: run
+      run: source .github/setenv.sh && c4_run_test arm
+    - name: pack
+      run: source .github/setenv.sh && c4_package arm

@@ -9,18 +9,17 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: # 4
 
-
 jobs:
-
-  #----------------------------------------------------------------------------
   coverage:
     name: coverage/c++${{matrix.std}}${{matrix.cmk}}
     if: |
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip coverage')) ||
       contains(github.event.head_commit.message, 'only coverage')
+
     continue-on-error: true
     runs-on: ${{matrix.os}}
+
     strategy:
       fail-fast: false
       matrix:
@@ -34,21 +33,28 @@ jobs:
 
     env: !:merge*
     - ! load('share/env.yaml')
-    - CMAKE_FLAGS: "${{matrix.cmk}}"
-      CODECOV_TOKEN: "${{secrets.CODECOV_TOKEN}}"
-      COVERALLS_REPO_TOKEN: "${{secrets.COVERALLS_REPO_TOKEN}}"
-      # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
+    - CMAKE_FLAGS: ${{matrix.cmk}}
+      CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+      COVERALLS_REPO_TOKEN: ${{secrets.COVERALLS_REPO_TOKEN}}
+      # coveralls disabled:
+      #   https://github.com/lemurheavy/coveralls-public/issues/1665
       # https://docs.coveralls.io/parallel-build-webhook
-      #COVERALLS_PARALLEL: true
+      # COVERALLS_PARALLEL: true
 
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
-    - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
-    - {name: show info, run: source .github/setenv.sh && c4_show_info}
-    - name: static64-configure---------------------------------------------------
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    - name: install requirements
+      run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+    - name: static64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
-    - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-    - {name: static64-run, run: source .github/setenv.sh && c4_build_target static64 ryml-coverage}
+    - name: static64-build
+      run: source .github/setenv.sh && c4_build_test static64
+    - name: static64-run
+      run: source .github/setenv.sh && c4_build_target static64 ryml-coverage
     - name: static64-coverage-artifacts
       uses: actions/upload-artifact@v3
       with:
@@ -56,13 +62,22 @@ jobs:
         path: |
           build/static64/lcov/
           build/static64/coverage3-final_filtered.lcov
-    - {name: static64-submit-codecov, run: source .github/setenv.sh && c4_submit_coverage static64 codecov}
-   # Coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
-   #- {name: static64-submit-coveralls, run: "if [ \"${{matrix.std}}\" == \"17\" ] ; then ( source .github/setenv.sh && c4_submit_coverage static64 coveralls ) ; fi" }
-    - name: static32-configure---------------------------------------------------
+    - name: static64-submit-codecov
+      run: source .github/setenv.sh && c4_submit_coverage static64 codecov
+
+   # Coveralls disabled:
+   #   https://github.com/lemurheavy/coveralls-public/issues/1665
+   #- name: static64-submit-coveralls
+   #  run: if [ ${{matrix.std}} == 17 ] ;
+   #       then ( source .github/setenv.sh &&
+   #       c4_submit_coverage static64 coveralls ) ; fi
+
+    - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
-    - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-    - {name: static32-run, run: source .github/setenv.sh && c4_build_target static32 ryml-coverage}
+    - name: static32-build
+      run: source .github/setenv.sh && c4_build_test static32
+    - name: static32-run
+      run: source .github/setenv.sh && c4_build_target static32 ryml-coverage
     - name: static32-coverage-artifacts
       uses: actions/upload-artifact@v3
       with:
@@ -70,15 +85,21 @@ jobs:
         path: |
           build/static32/lcov
           build/static32/coverage3-final_filtered.lcov
-    - {name: static32-submit-codecov, run: source .github/setenv.sh && c4_submit_coverage static32 codecov}
-   # Coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
-   #- {name: static32-submit-coveralls, run: source .github/setenv.sh && c4_submit_coverage static32 coveralls}
+    - name: static32-submit-codecov
+      run: source .github/setenv.sh && c4_submit_coverage static32 codecov
 
-  # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
+   # Coveralls disabled:
+   #   https://github.com/lemurheavy/coveralls-public/issues/1665
+   #- name: static32-submit-coveralls
+   #  run: source .github/setenv.sh && c4_submit_coverage static32 coveralls
+
+  # coveralls disabled:
+  #   https://github.com/lemurheavy/coveralls-public/issues/1665
   # https://github.com/lemurheavy/coveralls-public/issues/1665
   #coveralls_finish:
   #  needs: [coverage]
   #  runs-on: ubuntu-latest
+  #
   #  steps:
   #  - name: coveralls-notify
   #      #continue-on-error: true

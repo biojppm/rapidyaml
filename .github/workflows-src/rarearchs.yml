@@ -9,51 +9,55 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip rarearchs')) ||
       contains(github.event.head_commit.message, 'only rarearchs')
+
     name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
     runs-on: ubuntu-20.04
+
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :bt %2, :arch %3, :distro %4})
+        item =: \({:std %1, :bt %2, :arch %3, :distro (%4 || 'ubuntu20.04')})
         include:
-        - ! item(11 'Debug'   'aarch64' 'ubuntu20.04')
-        - ! item(11 'Release' 'aarch64' 'ubuntu20.04')
-        - ! item(14 'Debug'   'aarch64' 'ubuntu20.04')
-        - ! item(14 'Release' 'aarch64' 'ubuntu20.04')
-        - ! item(17 'Debug'   'aarch64' 'ubuntu20.04')
-        - ! item(17 'Release' 'aarch64' 'ubuntu20.04')
+        - ! item(11 'Debug'   'aarch64')
+        - ! item(11 'Release' 'aarch64')
+        - ! item(14 'Debug'   'aarch64')
+        - ! item(14 'Release' 'aarch64')
+        - ! item(17 'Debug'   'aarch64')
+        - ! item(17 'Release' 'aarch64')
 
-        - ! item(11 'Debug'   'ppc64le' 'ubuntu20.04')
-        - ! item(11 'Release' 'ppc64le' 'ubuntu20.04')
-        - ! item(14 'Debug'   'ppc64le' 'ubuntu20.04')
-        - ! item(14 'Release' 'ppc64le' 'ubuntu20.04')
-        - ! item(17 'Debug'   'ppc64le' 'ubuntu20.04')
-        - ! item(17 'Release' 'ppc64le' 'ubuntu20.04')
+        - ! item(11 'Debug'   'ppc64le')
+        - ! item(11 'Release' 'ppc64le')
+        - ! item(14 'Debug'   'ppc64le')
+        - ! item(14 'Release' 'ppc64le')
+        - ! item(17 'Debug'   'ppc64le')
+        - ! item(17 'Release' 'ppc64le')
 
-        - ! item(11 'Debug'   's390x'   'ubuntu20.04')
-        - ! item(11 'Release' 's390x'   'ubuntu20.04')
-        - ! item(14 'Debug'   's390x'   'ubuntu20.04')
-        - ! item(14 'Release' 's390x'   'ubuntu20.04')
-        - ! item(17 'Debug'   's390x'   'ubuntu20.04')
-        - ! item(17 'Release' 's390x'   'ubuntu20.04')
+        - ! item(11 'Debug'   's390x')
+        - ! item(11 'Release' 's390x')
+        - ! item(14 'Debug'   's390x')
+        - ! item(14 'Release' 's390x')
+        - ! item(17 'Debug'   's390x')
+        - ! item(17 'Release' 's390x')
 
-       #- ! item(11 'Debug'   'armv6'   'bullseye')
-       #- ! item(11 'Release' 'armv6'   'bullseye')
-       #- ! item(14 'Debug'   'armv6'   'bullseye')
-       #- ! item(14 'Release' 'armv6'   'bullseye')
-       #- ! item(17 'Debug'   'armv6'   'bullseye')
-       #- ! item(17 'Release' 'armv6'   'bullseye')
+       #- ! item(11 'Debug'   'armv6' 'bullseye')
+       #- ! item(11 'Release' 'armv6' 'bullseye')
+       #- ! item(14 'Debug'   'armv6' 'bullseye')
+       #- ! item(14 'Release' 'armv6' 'bullseye')
+       #- ! item(17 'Debug'   'armv6' 'bullseye')
+       #- ! item(17 'Release' 'armv6' 'bullseye')
 
-       #- ! item(11 'Debug'   'armv7'   'ubuntu20.04')
-       #- ! item(11 'Release' 'armv7'   'ubuntu20.04')
-       #- ! item(14 'Debug'   'armv7'   'ubuntu20.04')
-       #- ! item(14 'Release' 'armv7'   'ubuntu20.04')
-       #- ! item(17 'Debug'   'armv7'   'ubuntu20.04')
-       #- ! item(17 'Release' 'armv7'   'ubuntu20.04')
+       #- ! item(11 'Debug'   'armv7')
+       #- ! item(11 'Release' 'armv7')
+       #- ! item(14 'Debug'   'armv7')
+       #- ! item(14 'Release' 'armv7')
+       #- ! item(17 'Debug'   'armv7')
+       #- ! item(17 'Release' 'armv7')
 
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
     - name: test
       uses: uraimo/run-on-arch-action@v2.7.2
       with:

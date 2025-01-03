@@ -13,21 +13,26 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=OFF
   NUM_JOBS_BUILD: # 4
 
-
 # useful to iterate when fixing the release:
-# ver=0.2.1 ; ( set -x ; git tag -d v$ver ; git push origin :v$ver ) ; (set -x ; set -e ; tbump --only-patch --non-interactive $ver ; git add -u ; git commit --amend --no-edit ; git tag --annotate --message "v$ver" "v$ver" ; git push -f --tags origin )
+# ver=0.2.1 ; ( set -x ; git tag -d v$ver ; git push origin :v$ver ) ; (set -x
+# ; set -e ; tbump --only-patch --non-interactive $ver ; git add -u ; git
+# commit --amend --no-edit ; git tag --annotate --message "v$ver" "v$ver" ; git
+# push -f --tags origin )
 
 jobs:
-
   gettag:
     if: |
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip release')) ||
       contains(github.event.head_commit.message, 'only release')
+
     runs-on: ubuntu-latest
+
     steps:
     # use fetch-depth to ensure all tags are fetched
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive, fetch-depth: 0}
     - name: Variables (from tag)
       if: contains(github.ref, 'tags/v')
       run:: bash('release-vars-1')
@@ -47,10 +52,14 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip release')) ||
       contains(github.event.head_commit.message, 'only release')
+
     needs: gettag
     runs-on: ubuntu-latest
+
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
     - name: Download vars.sh
       uses: actions/download-artifact@v3
       with: {name: vars.sh, path: ./}
@@ -58,7 +67,7 @@ jobs:
       uses: actions/setup-python@v5
       with: { python-version: 3.9 }
     - name: Install requirements
-      run: |
+      run:
         sudo -E pip install git-archive-all
     - name: Create source packages
       run:: bash('release-create-source-packages')
@@ -73,9 +82,11 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip release')) ||
       contains(github.event.head_commit.message, 'only release')
+
     name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
     needs: gettag
     runs-on: ${{matrix.config.os}}
+
     env:
       DEV:  OFF
       BT:   Release
@@ -111,15 +122,20 @@ jobs:
            gen: STGZ, mime: x-sh, os: macos-13, cxx: xcode}
 
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
     - name: Download vars.sh
       uses: actions/download-artifact@v3
       with: {name: vars.sh, path: ./}
-    - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
-    - {name: show info, run: source .github/setenv.sh && c4_show_info }
-    - name: shared64-configure---------------------------------------------------
+    - name: install requirements
+      run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+    - name: shared64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
-    - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64}
+    - name: shared64-build
+      run: source .github/setenv.sh && c4_build_target shared64
     - name: shared64-pack
       run: source .github/setenv.sh && c4_package shared64 $GEN
     - name: shared64-normalize
@@ -130,21 +146,26 @@ jobs:
 
   #----------------------------------------------------------------------------
   # create python packages
-  # adapted from https://github.com/pikepdf/pikepdf/blob/master/.github/workflows/build_wheels.yml
+  # adapted from
+  # github.com/pikepdf/pikepdf/blob/master/.github/workflows/build_wheels.yml
 
   python_src:
     if: |
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip release')) ||
       contains(github.event.head_commit.message, 'only release')
+
     name: python/src
     runs-on: ubuntu-latest
+
     steps:
       # use fetch-depth to ensure all tags are fetched
-      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
+      - name: checkout
+        uses: actions/checkout@v4
+        with: {submodules: recursive, fetch-depth: 0}
       - name: install python 3.9
         uses: actions/setup-python@v5
-        with: { python-version: 3.9 }
+        with: {python-version: 3.9}
       - name: package python src packages
         run:: bash('release-package-python')
       - name: normalize src package names
@@ -158,12 +179,19 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip release')) ||
       contains(github.event.head_commit.message, 'only release')
-    name: python/${{matrix.config.cibw_pyv}}/${{matrix.config.osname}}/${{matrix.config.cibw_arch}}
+
+    name::
+     -'python/${{matrix.config.cibw_pyv}}/' +
+      '${{matrix.config.osname}}/${{matrix.config.cibw_arch}}'
     runs-on: ${{matrix.config.os}}
+
     env:
-      CMAKE_FLAGS: "${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF"
-      CIBW_BUILD: "cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}"
-      CIBW_ARCHS: "${{matrix.config.cibw_arch}}"
+      CMAKE_FLAGS:
+        "${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON
+        -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF"
+      CIBW_BUILD:
+        "cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}"
+      CIBW_ARCHS: ${{matrix.config.cibw_arch}}
 
     strategy:
       fail-fast: false
@@ -195,39 +223,85 @@ jobs:
         - ! python('3.6'  36  'x86_64' 'manylinux_x86_64')
         - ! python('3.6'  36  'i686'   'manylinux_i686')
 
-        # the windows builds are disabled because they are causing problems and preventing the release.
+        # the windows builds are disabled because they are causing problems and
+        # preventing the release.
         # the problems are related to CMakeExtension forcing the use of Ninja
-        # which does not play well with the -G 'Visual Studio...' option used below.
+        # which does not play well with the -G 'Visual Studio...' option used
+        # below.
         # fixing this looks like it will be time-intensive.
-        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: AMD64 ,
+        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86   ,
+        #   cibw_platform: win32    , osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: AMD64 ,
+        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86   ,
+        #   cibw_platform: win32    , osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: AMD64 ,
+        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86   ,
+        #   cibw_platform: win32    , osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: AMD64 ,
+        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86   ,
+        #   cibw_platform: win32    , osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: AMD64 ,
+        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86   ,
+        #   cibw_platform: win32    , osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: AMD64 ,
+        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86   ,
+        #   cibw_platform: win32    , osname: win  , os: windows-2019,
+        #   cxx: vs2019},
+        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
         ## macosx builds are generating a SIGSEGV when importing. (!)
-        ## https://github.com/biojppm/rapidyaml/actions/runs/3062528713/jobs/4943611397#step:7:269
-        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+        ## /biojppm/rapidyaml/actions/runs/3062528713/jobs/4943611397#step:7:269
+        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64,
+        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64,
+        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86_64,
+        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86_64,
+        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86_64,
+        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86_64,
+        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
 
     steps:
     # use fetch-depth to ensure all tags are fetched
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive, fetch-depth: 0}
     - name: create wheel
       uses: pypa/cibuildwheel@v2.17
     - name: rename wheelhouse -> dist
-      run: |
-        mv -fv wheelhouse dist
+      run:
+        mv -fv wheelhouse dist;
         ls -lFhp dist/
     - name: Save artifacts for publishing to PyPI
       uses: actions/upload-artifact@v3
@@ -236,7 +310,7 @@ jobs:
     - name: install python ${{matrix.config.pythonv}}
       uses: actions/setup-python@v5
       with:
-        python-version: '${{matrix.config.pythonv}}'
+        python-version: ${{matrix.config.pythonv}}
     - name: test with python ${{matrix.config.pythonv}}
       run:: bash('release-test-with-python')
 
@@ -252,8 +326,11 @@ jobs:
     - cpp
     - python_src
     - python_wheels
+
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
     - name: Gather artifacts - ./assets
       uses: actions/download-artifact@v3
       with: {name: assets, path: assets}
@@ -261,10 +338,10 @@ jobs:
       uses: actions/download-artifact@v3
       with: {name: dist, path: dist}
     - name: Verify existing artifacts
-      run: |
-        ls -lFhp assets/
+      run:
+        ls -lFhp assets/;
         ls -lFhp dist/
-    #
+
     # Github
     - name: Restore vars.sh
       if: contains(github.ref, 'tags/v')
@@ -281,7 +358,7 @@ jobs:
       if: contains(github.ref, 'tags/v')
       id: create_release
       uses: actions/create-release@v1
-      env: { GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}" }
+      env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
       with:
         tag_name: ${{github.ref}}
         release_name: Release ${{steps.vars.outputs.VERSION}}
@@ -291,11 +368,11 @@ jobs:
     - name: Upload assets to Github Release
       if: contains(github.ref, 'tags/v')
       uses: dwenegar/upload-release-assets@v1
-      env: { GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}" }
+      env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
       with:
         release_id: ${{steps.create_release.outputs.id}}
         assets_path: ./assets/
-    #
+
     # PyPI (test)
     - name: Publish python packages to test PyPI
       uses: pypa/gh-action-pypi-publish@v1.4.2
@@ -305,7 +382,7 @@ jobs:
         password: ${{secrets.PYPI_TOKEN_TEST}}
         verbose: true
         skip_existing: true
-    #
+
     # PyPI (production)
     - name: Publish python packages to production PyPI
       if: contains(github.ref, 'tags/v')

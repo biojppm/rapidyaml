@@ -79,7 +79,7 @@ jobs:
         actions-cache-folder: ${{env.EMSCRIPTEN_CACHE_FOLDER}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: static32-configure---------------------------------------------------
+    - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_test static32

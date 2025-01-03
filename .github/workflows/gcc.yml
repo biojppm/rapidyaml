@@ -166,11 +166,9 @@ jobs:
           -DRYML_BUILD_TESTS:BOOL=ON \
           -DRYML_DBG:BOOL=OFF
     - name: build
-      run: |
-        cmake --build build_o2 --target ryml-test-build -j --verbose
+      run: cmake --build build_o2 --target ryml-test-build -j --verbose
     - name: run
-      run: |
-        cmake --build build_o2 --target ryml-test-run
+      run: cmake --build build_o2 --target ryml-test-run
   gcc_tabtokens:
     name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
@@ -337,7 +335,7 @@ jobs:
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: shared64-configure---------------------------------------------------
+    - name: shared64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
     - name: shared64-build
       run: source .github/setenv.sh && c4_build_test shared64
@@ -345,7 +343,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared64
     - name: shared64-pack
       run: source .github/setenv.sh && c4_package shared64
-    - name: static64-configure---------------------------------------------------
+    - name: static64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
     - name: static64-build
       run: source .github/setenv.sh && c4_build_test static64
@@ -353,7 +351,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static64
     - name: static64-pack
       run: source .github/setenv.sh && c4_package static64
-    - name: static32-configure---------------------------------------------------
+    - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_test static32
@@ -361,7 +359,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static32
     - name: static32-pack
       run: source .github/setenv.sh && c4_package static32
-    - name: shared32-configure---------------------------------------------------
+    - name: shared32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared32
     - name: shared32-build
       run: source .github/setenv.sh && c4_build_test shared32
@@ -657,7 +655,7 @@ jobs:
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: shared64-configure---------------------------------------------------
+    - name: shared64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
     - name: shared64-build
       run: source .github/setenv.sh && c4_build_test shared64
@@ -665,7 +663,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared64
     - name: shared64-pack
       run: source .github/setenv.sh && c4_package shared64
-    - name: static64-configure---------------------------------------------------
+    - name: static64-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
     - name: static64-build
       run: source .github/setenv.sh && c4_build_test static64
@@ -673,7 +671,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static64
     - name: static64-pack
       run: source .github/setenv.sh && c4_package static64
-    - name: static32-configure---------------------------------------------------
+    - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_test static32
@@ -681,7 +679,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static32
     - name: static32-pack
       run: source .github/setenv.sh && c4_package static32
-    - name: shared32-configure---------------------------------------------------
+    - name: shared32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared32
     - name: shared32-build
       run: source .github/setenv.sh && c4_build_test shared32
@@ -753,9 +751,7 @@ jobs:
         git reset --hard FETCH_HEAD
         git submodule update --init --recursive
     - name: install gcc-arm-linux-gnueabihf
-      run: |
-        c4core-install arm-linux-gnueabihf
-        c4core-install qemu
+      run: c4core-install arm-linux-gnueabihf; c4core-install qemu
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure---------------------------------------------------

@@ -10,21 +10,20 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: # 4
 
-
 jobs:
-
-  #----------------------------------------------------------------------------
   clang_tidy:
     name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    if: always()  # https://stackoverflow.com/a/62112985/721703
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std 11, :cxx 'clang++-17', :bt %2,
-                   :lint 'clang-tidy', :bitlinks %1})
+        item =:
+          \({:std 11, :cxx 'clang++-17', :bt %2,
+             :lint 'clang-tidy', :bitlinks %1})
         include:
         # clang tidy takes a long time,
         # so don't do multiple bits/linktypes
@@ -40,6 +39,10 @@ jobs:
     env:: load('share/env.yaml')
 
     steps:
-    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
-    - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    # needed for running in the docker image.
+    # see https://github.com/actions/checkout/issues/1169
+    - run: git config --system --add safe.directory '*'
     - :: common-steps

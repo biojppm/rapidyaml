@@ -1,6 +1,8 @@
 # Cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs
 # version.
-#- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+#- name: checkout
+#  uses: actions/checkout@v3
+#  with: {submodules: recursive}
 # Needed for running in the docker image.
 # See https://github.com/actions/checkout/issues/1169
 #- run: git config --system --add safe.directory '*'
