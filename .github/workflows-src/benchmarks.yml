@@ -39,17 +39,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :cxx (%2 || 'g++-10'), :bt 'Release',
+                   :os (%3 || 'ubuntu-20.04'), :bitlinks 'static64 static32'})
         include:
-        - {std: 11, cxx: g++-10, bt: Release, os: ubuntu-20.04, bitlinks: static64 static32}
-        - {std: 17, cxx: g++-10, bt: Release, os: ubuntu-20.04, bitlinks: static64 static32}
-        - {std: 20, cxx: g++-10, bt: Release, os: ubuntu-20.04, bitlinks: static64 static32}
+        - ! item(11)
+        - ! item(17)
+        - ! item(20)
+        - ! item(17 'vs2019' 'windows-2019')
+        - ! item(20 'vs2019' 'windows-2019')
+       #- ! item(17 'vs2019' 'windows-2022')
+       #- ! item(20 'vs2019' 'windows-2022')
+        - {std: 17, cxx: xcode,
+           xcver: 15, bt: Release,
+           os: macos-13, bitlinks: static64}
 
-        - {std: 17, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: static64 static32}
-        - {std: 20, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: static64 static32}
-       #- {std: 17, cxx: vs2022, bt: Release, os: windows-2022, bitlinks: static64 static32}
-       #- {std: 20, cxx: vs2022, bt: Release, os: windows-2022, bitlinks: static64 static32}
-
-        - {std: 17, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: static64}
     env: {BM: ON, STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
     # use fetch-depth to ensure all tags are fetched

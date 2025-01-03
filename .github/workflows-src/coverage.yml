@@ -24,12 +24,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :cxx 'g++-9', :bt 'Coverage', :os 'ubuntu-20.04'})
         include:
-        - {std: 11, cxx: g++-9, bt: Coverage, os: ubuntu-20.04}
-        - {std: 17, cxx: g++-9, bt: Coverage, os: ubuntu-20.04}
+        - ! item(11)
+        - ! item(17)
         # test also with the debug code enabled
-        - {std: 11, cxx: g++-9, bt: Coverage, os: ubuntu-20.04, cmk: "-DRYML_DBG=ON"}
-        - {std: 17, cxx: g++-9, bt: Coverage, os: ubuntu-20.04, cmk: "-DRYML_DBG=ON"}
+        - ! item(11) + {:cmk '-DRYML_DBG=ON'}
+        - ! item(17) + {:cmk '-DRYML_DBG=ON'}
+
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}",
           BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}",
           LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",

@@ -15,41 +15,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :bt %2, :arch %3, :distro %4})
         include:
-        - {std: 11, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
-        - {std: 11, bt: Release, arch: aarch64, distro: ubuntu20.04}
-        - {std: 14, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
-        - {std: 14, bt: Release, arch: aarch64, distro: ubuntu20.04}
-        - {std: 17, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
-        - {std: 17, bt: Release, arch: aarch64, distro: ubuntu20.04}
+        - ! item(11 'Debug'   'aarch64' 'ubuntu20.04')
+        - ! item(11 'Release' 'aarch64' 'ubuntu20.04')
+        - ! item(14 'Debug'   'aarch64' 'ubuntu20.04')
+        - ! item(14 'Release' 'aarch64' 'ubuntu20.04')
+        - ! item(17 'Debug'   'aarch64' 'ubuntu20.04')
+        - ! item(17 'Release' 'aarch64' 'ubuntu20.04')
 
-        - {std: 11, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
-        - {std: 11, bt: Release, arch: ppc64le, distro: ubuntu20.04}
-        - {std: 14, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
-        - {std: 14, bt: Release, arch: ppc64le, distro: ubuntu20.04}
-        - {std: 17, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
-        - {std: 17, bt: Release, arch: ppc64le, distro: ubuntu20.04}
+        - ! item(11 'Debug'   'ppc64le' 'ubuntu20.04')
+        - ! item(11 'Release' 'ppc64le' 'ubuntu20.04')
+        - ! item(14 'Debug'   'ppc64le' 'ubuntu20.04')
+        - ! item(14 'Release' 'ppc64le' 'ubuntu20.04')
+        - ! item(17 'Debug'   'ppc64le' 'ubuntu20.04')
+        - ! item(17 'Release' 'ppc64le' 'ubuntu20.04')
 
-        - {std: 11, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
-        - {std: 11, bt: Release, arch: s390x  , distro: ubuntu20.04}
-        - {std: 14, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
-        - {std: 14, bt: Release, arch: s390x  , distro: ubuntu20.04}
-        - {std: 17, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
-        - {std: 17, bt: Release, arch: s390x  , distro: ubuntu20.04}
+        - ! item(11 'Debug'   's390x'   'ubuntu20.04')
+        - ! item(11 'Release' 's390x'   'ubuntu20.04')
+        - ! item(14 'Debug'   's390x'   'ubuntu20.04')
+        - ! item(14 'Release' 's390x'   'ubuntu20.04')
+        - ! item(17 'Debug'   's390x'   'ubuntu20.04')
+        - ! item(17 'Release' 's390x'   'ubuntu20.04')
 
-       #- {std: 11, bt: Debug  , arch: armv6  , distro: bullseye}
-       #- {std: 11, bt: Release, arch: armv6  , distro: bullseye}
-       #- {std: 14, bt: Debug  , arch: armv6  , distro: bullseye}
-       #- {std: 14, bt: Release, arch: armv6  , distro: bullseye}
-       #- {std: 17, bt: Debug  , arch: armv6  , distro: bullseye}
-       #- {std: 17, bt: Release, arch: armv6  , distro: bullseye}
-       #
-       #- {std: 11, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
-       #- {std: 11, bt: Release, arch: armv7  , distro: ubuntu20.04}
-       #- {std: 14, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
-       #- {std: 14, bt: Release, arch: armv7  , distro: ubuntu20.04}
-       #- {std: 17, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
-       #- {std: 17, bt: Release, arch: armv7  , distro: ubuntu20.04}
+       #- ! item(11 'Debug'   'armv6'   'bullseye')
+       #- ! item(11 'Release' 'armv6'   'bullseye')
+       #- ! item(14 'Debug'   'armv6'   'bullseye')
+       #- ! item(14 'Release' 'armv6'   'bullseye')
+       #- ! item(17 'Debug'   'armv6'   'bullseye')
+       #- ! item(17 'Release' 'armv6'   'bullseye')
+
+       #- ! item(11 'Debug'   'armv7'   'ubuntu20.04')
+       #- ! item(11 'Release' 'armv7'   'ubuntu20.04')
+       #- ! item(14 'Debug'   'armv7'   'ubuntu20.04')
+       #- ! item(14 'Release' 'armv7'   'ubuntu20.04')
+       #- ! item(17 'Debug'   'armv7'   'ubuntu20.04')
+       #- ! item(17 'Release' 'armv7'   'ubuntu20.04')
+
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
     - name: test

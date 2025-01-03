@@ -24,15 +24,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - {std: 11, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 11, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 20, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 20, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 11, cxx: g++-5  , bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 11, cxx: g++-5  , bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.8, bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.8, bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
+        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3,
+                   :bitlinks 'shared64 static32',
+                   :img "ubuntu$a(%4)"})
+        include: &include1
+        - ! item(11  14 'Debug'   '22.04')
+        - ! item(11  14 'Release' '22.04')
+        - ! item(20  14 'Debug'   '22.04')
+        - ! item(20  14 'Release' '22.04')
+        - ! item(11   5 'Debug'   '18.04')
+        - ! item(11   5 'Release' '18.04')
+        - ! item(11 4.8 'Debug'   '18.04')
+        - ! item(11 4.8 'Release' '18.04')
+
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:: gcc-setup + common-steps
 
@@ -73,15 +77,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - {std: 11, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 11, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 20, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 20, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 11, cxx: g++-5  , bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 11, cxx: g++-5  , bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.8, bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.8, bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
+        include: *include1
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}",
           CMAKE_FLAGS: "-DRYML_WITH_TAB_TOKENS=ON",
           VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
@@ -97,11 +93,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3,
+                   :bitlinks 'shared64 static32', :img "ubuntu$a(%4)"})
         include:
-        - {std: 11, cxx: g++-5, bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 11, cxx: g++-5, bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
-        - {std: 20, cxx: g++-14, bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
-        - {std: 20, cxx: g++-14, bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
+        - ! item(11 5  'Debug'   '18.04')
+        - ! item(11 5  'Release' '18.04')
+        - ! item(20 14 'Debug'   '22.04')
+        - ! item(20 14 'Release' '22.04')
+
     env: {CXXFLAGS: "-fno-exceptions -fno-rtti", STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
     # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
@@ -143,39 +142,44 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item-vg =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :vg 'ON',
+                      :img "ubuntu$a(%4)"})
+        item =:    \({:std 11, :cxx "g++-$a(%1)", :bt %2
+                      :img "ubuntu$a(%3)"})
         include:
-        #                                     VALGRIND
-        - {std: 11, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
-        - {std: 11, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
-        - {std: 14, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
-        - {std: 14, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
-        - {std: 17, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
-        - {std: 17, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
-        - {std: 20, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
-        - {std: 20, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
+        # VALGRIND
+        - ! item-vg(11 14 'Debug'   '22.04')
+        - ! item-vg(11 14 'Release' '22.04')
+        - ! item-vg(14 14 'Debug'   '22.04')
+        - ! item-vg(14 14 'Release' '22.04')
+        - ! item-vg(17 14 'Debug'   '22.04')
+        - ! item-vg(17 14 'Release' '22.04')
+        - ! item-vg(20 14 'Debug'   '22.04')
+        - ! item-vg(20 14 'Release' '22.04')
         #
-        - {std: 11, cxx: g++-13 , bt: Debug  , img: ubuntu22.04}
-        - {std: 11, cxx: g++-13 , bt: Release, img: ubuntu22.04}
-        - {std: 11, cxx: g++-13 , bt: Debug  , img: ubuntu22.04}
-        - {std: 11, cxx: g++-13 , bt: Release, img: ubuntu22.04}
-        - {std: 11, cxx: g++-11 , bt: Debug  , img: ubuntu22.04}
-        - {std: 11, cxx: g++-11 , bt: Release, img: ubuntu22.04}
-        - {std: 11, cxx: g++-10 , bt: Debug  , img: ubuntu22.04}
-        - {std: 11, cxx: g++-10 , bt: Release, img: ubuntu22.04}
-        - {std: 11, cxx: g++-9  , bt: Debug  , img: ubuntu22.04}
-        - {std: 11, cxx: g++-9  , bt: Release, img: ubuntu22.04}
-        - {std: 11, cxx: g++-8  , bt: Debug  , img: ubuntu18.04}
-        - {std: 11, cxx: g++-8  , bt: Release, img: ubuntu18.04}
-        - {std: 11, cxx: g++-7  , bt: Debug  , img: ubuntu18.04}
-        - {std: 11, cxx: g++-7  , bt: Release, img: ubuntu18.04}
-        - {std: 11, cxx: g++-6  , bt: Debug  , img: ubuntu18.04}
-        - {std: 11, cxx: g++-6  , bt: Release, img: ubuntu18.04}
-        - {std: 11, cxx: g++-5  , bt: Debug  , img: ubuntu18.04}
-        - {std: 11, cxx: g++-5  , bt: Release, img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.9, bt: Debug  , img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.9, bt: Release, img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.8, bt: Debug  , img: ubuntu18.04}
-        - {std: 11, cxx: g++-4.8, bt: Release, img: ubuntu18.04}
+        - ! item(13 'Debug'   '22.04')
+        - ! item(13 'Release' '22.04')
+        - ! item(13 'Debug'   '22.04')  # XXX Duplicate?
+        - ! item(13 'Release' '22.04')  # XXX Duplicate?
+        - ! item(11 'Debug'   '22.04')
+        - ! item(11 'Release' '22.04')
+        - ! item(10 'Debug'   '22.04')
+        - ! item(10 'Release' '22.04')
+        - ! item( 9 'Debug'   '22.04')
+        - ! item( 9 'Release' '22.04')
+        - ! item( 8 'Debug'   '18.04')
+        - ! item( 8 'Release' '18.04')
+        - ! item( 7 'Debug'   '18.04')
+        - ! item( 7 'Release' '18.04')
+        - ! item( 6 'Debug'   '18.04')
+        - ! item( 6 'Release' '18.04')
+        - ! item( 5 'Debug'   '18.04')
+        - ! item( 5 'Release' '18.04')
+        - ! item(4.9 'Debug'   '18.04')
+        - ! item(4.9 'Release' '18.04')
+        - ! item(4.8 'Debug'   '18.04')
+        - ! item(4.8 'Release' '18.04')
+
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:: gcc-setup + common-steps
 
@@ -189,23 +193,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :cxx 'g++-14', :bt %2, :bitlinks 'static64'})
         include:
-        - {std: 11, cxx: g++-14, bt: asan, bitlinks: static64}
-        - {std: 14, cxx: g++-14, bt: asan, bitlinks: static64}
-        - {std: 17, cxx: g++-14, bt: asan, bitlinks: static64}
-        - {std: 20, cxx: g++-14, bt: asan, bitlinks: static64}
-        - {std: 11, cxx: g++-14, bt: lsan, bitlinks: static64}
-        - {std: 14, cxx: g++-14, bt: lsan, bitlinks: static64}
-        - {std: 17, cxx: g++-14, bt: lsan, bitlinks: static64}
-        - {std: 20, cxx: g++-14, bt: lsan, bitlinks: static64}
-        - {std: 11, cxx: g++-14, bt: tsan, bitlinks: static64}
-        - {std: 14, cxx: g++-14, bt: tsan, bitlinks: static64}
-        - {std: 17, cxx: g++-14, bt: tsan, bitlinks: static64}
-        - {std: 20, cxx: g++-14, bt: tsan, bitlinks: static64}
-        - {std: 11, cxx: g++-14, bt: ubsan, bitlinks: static64}
-        - {std: 14, cxx: g++-14, bt: ubsan, bitlinks: static64}
-        - {std: 17, cxx: g++-14, bt: ubsan, bitlinks: static64}
-        - {std: 20, cxx: g++-14, bt: ubsan, bitlinks: static64}
+        - ! item(11 'asan')
+        - ! item(14 'asan')
+        - ! item(17 'asan')
+        - ! item(20 'asan')
+        - ! item(11 'lsan')
+        - ! item(14 'lsan')
+        - ! item(17 'lsan')
+        - ! item(20 'lsan')
+        - ! item(11 'tsan')
+        - ! item(14 'tsan')
+        - ! item(17 'tsan')
+        - ! item(20 'tsan')
+        - ! item(11 'ubsan')
+        - ! item(14 'ubsan')
+        - ! item(17 'ubsan')
+        - ! item(20 'ubsan')
+
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
@@ -242,14 +248,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :bt %2,
+                   :toolchain 'ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake',
+                   :cxx 'arm-linux-gnueabihf-gcc', :os 'ubuntu-20.04'})
         include:
         # these jobs take much longer, so run only one bitlink pair per job to profit from parallelism
-        - {std: 11, bt: Debug  , toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
-        - {std: 11, bt: Release, toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
-        - {std: 14, bt: Debug  , toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
-        - {std: 14, bt: Release, toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
-        - {std: 17, bt: Debug  , toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
-        - {std: 17, bt: Release, toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
+        - ! item(11 'Debug')
+        - ! item(11 'Release')
+        - ! item(14 'Debug')
+        - ! item(14 'Release')
+        - ! item(17 'Debug')
+        - ! item(17 'Release')
+
     env: {TOOLCHAIN: "${{matrix.toolchain}}", STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
     # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version

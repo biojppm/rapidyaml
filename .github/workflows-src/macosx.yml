@@ -24,16 +24,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :cxx 'xcode', :xcver %2, :bt %3,
+                   :os 'macos-13', :bitlinks 'shared64 static64'})
         include:
-        - {std: 11, cxx: xcode, xcver: 15, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
-        - {std: 11, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: shared64 static64}
-        - {std: 17, cxx: xcode, xcver: 15, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
-        - {std: 17, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: shared64 static64}
-        #
-        - {std: 11, cxx: xcode, xcver: 14, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
-        - {std: 11, cxx: xcode, xcver: 14, bt: Release, os: macos-13, bitlinks: shared64 static64}
-        - {std: 17, cxx: xcode, xcver: 14, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
-        - {std: 17, cxx: xcode, xcver: 14, bt: Release, os: macos-13, bitlinks: shared64 static64}
+        - ! item(11 15 'Debug')
+        - ! item(11 15 'Release')
+        - ! item(17 15 'Debug')
+        - ! item(17 15 'Release')
+
+        - ! item(11 14 'Debug')
+        - ! item(11 14 'Release')
+        - ! item(17 14 'Debug')
+        - ! item(17 14 'Release')
+
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}

@@ -77,16 +77,34 @@ jobs:
     needs: gettag
     runs-on: ${{matrix.config.os}}
     env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
+
     strategy:
       fail-fast: false
       matrix:
         config:
-        #  name of the artifact    | suffix (gen)    | suffix (package)         | cpack gen | mime type                      | os              | cxx
-        - {name: Ubuntu 22.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-22.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-22.04             }
-        - {name: Ubuntu 20.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-20.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-20.04             }
-       #- {name: Ubuntu 18.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-18.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-18.04             }
-        - {name: Windows VS2019 zip, sfxg: win64.zip , sfxp: windows-vs2019.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}
-        - {name: MacOSX sh         , sfxg: apple64.sh, sfxp: macosx-xcode.sh    , gen: STGZ , mime: x-sh                     , os: macos-13    , cxx: xcode }
+        #  name of the artifact | suffix (gen) | suffix (package) |
+        #  cpack gen | mime type | os | cxx
+        - {name: Ubuntu 22.04 deb,
+           sfxg: unix64.deb,
+           sfxp: ubuntu-22.04.deb,
+           gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-22.04}
+        - {name: Ubuntu 20.04 deb,
+           sfxg: unix64.deb,
+           sfxp: ubuntu-20.04.deb,
+           gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-20.04}
+       #- {name: Ubuntu 18.04 deb,
+       #   sfxg: unix64.deb,
+       #   sfxp: ubuntu-18.04.deb,
+       #   gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-18.04}
+        - {name: Windows VS2019 zip,
+           sfxg: win64.zip,
+           sfxp: windows-vs2019.zip,
+           gen: ZIP, mime: zip, os: windows-2019, cxx: vs2019}
+        - {name: MacOSX sh,
+           sfxg: apple64.sh,
+           sfxp: macosx-xcode.sh,
+           gen: STGZ, mime: x-sh, os: macos-13, cxx: xcode}
+
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
     - name: Download vars.sh
@@ -147,32 +165,30 @@ jobs:
       matrix:
         # Local function to expand python entries:
         python =:
-          fn(s):
-            w =: s:words
-            =>::
-              pythonv:: w.0
-              cibw_pyv:: w.1:N
-              cibw_arch:: w.2
-              cibw_platform:: w.3
-              osname: linux
-              os: ubuntu-20.04
+          fn(*w)::
+            pythonv:: w.0
+            cibw_pyv:: w.1
+            cibw_arch:: w.2
+            cibw_platform:: w.3
+            osname: linux
+            os: ubuntu-20.04
         config:
-       #- !:python 3.13 313 x86_64 manylinux_x86_64
-       #- !:python 3.13 313 i686   manylinux_i686
-        - !:python 3.12 312 x86_64 manylinux_x86_64
-        - !:python 3.12 312 i686   manylinux_i686
-        - !:python 3.11 311 x86_64 manylinux_x86_64
-        - !:python 3.11 311 i686   manylinux_i686
-        - !:python 3.10 310 x86_64 manylinux_x86_64
-        - !:python 3.10 310 i686   manylinux_i686
-        - !:python 3.9  39  x86_64 manylinux_x86_64
-        - !:python 3.9  39  i686   manylinux_i686
-        - !:python 3.8  38  x86_64 manylinux_x86_64
-        - !:python 3.8  38  i686   manylinux_i686
-        - !:python 3.7  37  x86_64 manylinux_x86_64
-        - !:python 3.7  37  i686   manylinux_i686
-        - !:python 3.6  36  x86_64 manylinux_x86_64
-        - !:python 3.6  36  i686   manylinux_i686
+       #- ! python('3.13' 313 'x86_64' 'manylinux_x86_64')
+       #- ! python('3.13' 313 'i686'   'manylinux_i686')
+        - ! python('3.12' 312 'x86_64' 'manylinux_x86_64')
+        - ! python('3.12' 312 'i686'   'manylinux_i686')
+        - ! python('3.11' 311 'x86_64' 'manylinux_x86_64')
+        - ! python('3.11' 311 'i686'   'manylinux_i686')
+        - ! python('3.10' 310 'x86_64' 'manylinux_x86_64')
+        - ! python('3.10' 310 'i686'   'manylinux_i686')
+        - ! python('3.9'  39  'x86_64' 'manylinux_x86_64')
+        - ! python('3.9'  39  'i686'   'manylinux_i686')
+        - ! python('3.8'  38  'x86_64' 'manylinux_x86_64')
+        - ! python('3.8'  38  'i686'   'manylinux_i686')
+        - ! python('3.7'  37  'x86_64' 'manylinux_x86_64')
+        - ! python('3.7'  37  'i686'   'manylinux_i686')
+        - ! python('3.6'  36  'x86_64' 'manylinux_x86_64')
+        - ! python('3.6'  36  'i686'   'manylinux_i686')
 
         # the windows builds are disabled because they are causing problems and preventing the release.
         # the problems are related to CMakeExtension forcing the use of Ninja

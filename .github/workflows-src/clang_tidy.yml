@@ -23,16 +23,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std 11, :cxx 'clang++-17', :bt %2,
+                   :lint 'clang-tidy', :bitlinks %1})
         include:
-        # clang tidy takes a long time, so don't do multiple bits/linktypes
-        - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: shared64}
-        - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: shared32}
-        - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: static64}
-        - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: static32}
-        - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared64}
-        - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared32}
-        - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: static64}
-        - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: static32}
+        # clang tidy takes a long time,
+        # so don't do multiple bits/linktypes
+        - ! item('shared64' 'Debug')
+        - ! item('shared32' 'Debug')
+        - ! item('static64' 'Debug')
+        - ! item('static32' 'Debug')
+        - ! item('shared64' 'ReleaseWithDebInfo')
+        - ! item('shared32' 'ReleaseWithDebInfo')
+        - ! item('static64' 'ReleaseWithDebInfo')
+        - ! item('static32' 'ReleaseWithDebInfo')
+
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}

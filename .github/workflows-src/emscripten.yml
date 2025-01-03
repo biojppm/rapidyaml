@@ -28,15 +28,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :cxx 'em++', :emver %2, :bt %3,
+                   :os 'ubuntu-latest', :bitlinks :static32})
         include:
-       #- {std: 11, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
-        - {std: 11, cxx: em++, emver: 2.0.34, bt: Release, os: ubuntu-latest, bitlinks: static32}
-       #- {std: 20, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
-        - {std: 20, cxx: em++, emver: 2.0.34, bt: Release, os: ubuntu-latest, bitlinks: static32}
-       #- {std: 11, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
-        - {std: 11, cxx: em++, emver: 3.0.0 , bt: Release, os: ubuntu-latest, bitlinks: static32}
-       #- {std: 20, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
-        - {std: 20, cxx: em++, emver: 3.0.0 , bt: Release, os: ubuntu-latest, bitlinks: static32}
+       #- ! item(11 '2.0.34' 'Debug')
+        - ! item(11 '2.0.34' 'Release')
+       #- ! item(20 '2.0.34' 'Debug')
+        - ! item(20 '2.0.34' 'Release')
+       #- ! item(11 '3.0.0' 'Debug')
+        - ! item(11 '3.0.0' 'Release')
+       #- ! item(20 '3.0.0' 'Debug')
+        - ! item(20 '3.0.0' 'Release')
+
     env:
       STD: "${{matrix.std}}"
       CXX_: "${{matrix.cxx}}"
@@ -46,6 +49,7 @@ jobs:
       SAN: "${{matrix.san}}"
       LINT: "${{matrix.lint}}"
       OS: "${{matrix.os}}"
+
     steps:
     - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
     - name: setup emscripten cache
