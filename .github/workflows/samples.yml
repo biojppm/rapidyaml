@@ -44,7 +44,8 @@ jobs:
           - {bt: Release, os: macos-latest}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}",
           VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
-          CMANY: ON, RYMLSHA: "${{github.event.pull_request.head.sha}}" }
+          CMANY: ON, RYMLSHA: "${{github.event.pull_request.head.sha}}",
+          PULL_REQUEST_HEAD_REPO: "${{github.event.pull_request.head.repo.full_name}}"}
     steps:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0 } }  # use fetch-depth to ensure all tags are fetched
       - {name: python3, uses: actions/setup-python@v5, with: {python-version: 3.9}}
