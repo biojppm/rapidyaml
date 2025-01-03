@@ -98,7 +98,7 @@ jobs:
 #    - name: install mingw
 #      uses: egor-tensin/setup-mingw@v2
 #      with:
-#        platform: "${{matrix.platform}}"
+#        platform: ${{matrix.platform}}
 #    - name: shared64-configure------------------------------------------------
 #      run: source .github/setenv.sh && c4_cfg_test shared64
 #    - name: shared64-build

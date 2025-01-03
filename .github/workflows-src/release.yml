@@ -14,10 +14,13 @@ env:
   NUM_JOBS_BUILD: # 4
 
 # useful to iterate when fixing the release:
-# ver=0.2.1 ; ( set -x ; git tag -d v$ver ; git push origin :v$ver ) ; (set -x
-# ; set -e ; tbump --only-patch --non-interactive $ver ; git add -u ; git
-# commit --amend --no-edit ; git tag --annotate --message "v$ver" "v$ver" ; git
-# push -f --tags origin )
+# ver=0.2.1
+# (set -xe; git tag -d v$ver; git push origin :v$ver)
+# (set -xe
+#  tbump --only-patch --non-interactive $ver
+#  git add -u; git commit --amend --no-edit
+#  git tag --annotate --message "v$ver" "v$ver"
+#  git push -f --tags origin )
 
 jobs:
   gettag:
@@ -187,10 +190,10 @@ jobs:
 
     env:
       CMAKE_FLAGS:
-        "${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON
-        -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF"
+        ${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON
+        -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
       CIBW_BUILD:
-        "cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}"
+        cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
       CIBW_ARCHS: ${{matrix.config.cibw_arch}}
 
     strategy:
@@ -358,7 +361,8 @@ jobs:
       if: contains(github.ref, 'tags/v')
       id: create_release
       uses: actions/create-release@v1
-      env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         tag_name: ${{github.ref}}
         release_name: Release ${{steps.vars.outputs.VERSION}}
@@ -368,7 +372,8 @@ jobs:
     - name: Upload assets to Github Release
       if: contains(github.ref, 'tags/v')
       uses: dwenegar/upload-release-assets@v1
-      env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         release_id: ${{steps.create_release.outputs.id}}
         assets_path: ./assets/

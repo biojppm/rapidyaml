@@ -92,8 +92,9 @@ jobs:
 
   #----------------------------------------------------------------------------
   clang_extended:
-    name: "clang_extended/${{matrix.cxx}}/\
-           c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}"
+    name:
+      "clang_extended/${{matrix.cxx}}/\
+       c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}"
     continue-on-error: true
     if: always()
     runs-on: ubuntu-latest

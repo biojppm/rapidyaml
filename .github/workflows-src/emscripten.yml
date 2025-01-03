@@ -49,12 +49,14 @@ jobs:
     - name: setup emscripten cache
       id: cache-system-libraries
       uses: actions/cache@v4
-      with: {path: "${{env.EMSCRIPTEN_CACHE_FOLDER}}",
-             key: "${{matrix.emver}}-${{runner.os}}"}
+      with:
+        path: ${{env.EMSCRIPTEN_CACHE_FOLDER}}
+        key: ${{matrix.emver}}-${{runner.os}}
     - name: setup emscripten
       uses: mymindstorm/setup-emsdk@v11
-      with: {version: "${{matrix.emver}}",
-             actions-cache-folder: "${{env.EMSCRIPTEN_CACHE_FOLDER}}"}
+      with:
+        version: ${{matrix.emver}}
+        actions-cache-folder: ${{env.EMSCRIPTEN_CACHE_FOLDER}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
 
