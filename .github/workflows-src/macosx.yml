@@ -22,18 +22,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx 'xcode', :xcver %2, :bt %3,
-                   :os 'macos-13', :bitlinks 'shared64 static64'})
-        include:
-        - ! item(11 15 'Debug')
-        - ! item(11 15 'Release')
-        - ! item(17 15 'Debug')
-        - ! item(17 15 'Release')
-
-        - ! item(11 14 'Debug')
-        - ! item(11 14 'Release')
-        - ! item(17 14 'Debug')
-        - ! item(17 14 'Release')
+        include::
+          ? for
+              xcver [15 14]
+              std [11 17]
+              bt qw(Debug Release)
+          : !
+            std:: std
+            cxx: xcode
+            xcver:: xcver
+            bt:: bt
+            os: macos-13
+            bitlinks: shared64 static64
 
     env:: load('share/env.yaml')
 

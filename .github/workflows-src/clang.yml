@@ -23,11 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         item =: \({:std %1, :cxx %2, :bt %3, :bitlinks 'shared64 static32'})
-        include: &include1
-        - ! item(20 'clang++-17' 'Debug')
-        - ! item(20 'clang++-17' 'Release')
-        - ! item(11 'clang++-9'  'Debug')
-        - ! item(11 'clang++-9'  'Release')
+        include:: &include1 -[
+          item(20 'clang++-17' 'Debug')
+          item(20 'clang++-17' 'Release')
+          item(11 'clang++-9'  'Debug')
+          item(11 'clang++-9'  'Release') ]
 
     env:: load('share/env.yaml')
 
@@ -164,24 +164,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx 'clang++-17', :bt %2, :bitlinks 'static64'})
-        include:
-        - ! item(11 'asan')
-        - ! item(14 'asan')
-        - ! item(17 'asan')
-        - ! item(20 'asan')
-        - ! item(11 'lsan')
-        - ! item(14 'lsan')
-        - ! item(17 'lsan')
-        - ! item(20 'lsan')
-        - ! item(11 'tsan')
-        - ! item(14 'tsan')
-        - ! item(17 'tsan')
-        - ! item(20 'tsan')
-        - ! item(11 'ubsan')
-        - ! item(14 'ubsan')
-        - ! item(17 'ubsan')
-        - ! item(20 'ubsan')
+        include::
+          ? for
+              san qw(asan lsan tsan ubsan)
+              std [11 14 17 20]
+          : !
+            std:: std
+            cxx: clang++-17
+            bt:: san
+            bitlinks: static64
 
     env:: load('share/env.yaml')
 

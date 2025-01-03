@@ -227,24 +227,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx 'g++-14', :bt %2, :bitlinks 'static64'})
-        include:
-        - ! item(11 'asan')
-        - ! item(14 'asan')
-        - ! item(17 'asan')
-        - ! item(20 'asan')
-        - ! item(11 'lsan')
-        - ! item(14 'lsan')
-        - ! item(17 'lsan')
-        - ! item(20 'lsan')
-        - ! item(11 'tsan')
-        - ! item(14 'tsan')
-        - ! item(17 'tsan')
-        - ! item(20 'tsan')
-        - ! item(11 'ubsan')
-        - ! item(14 'ubsan')
-        - ! item(17 'ubsan')
-        - ! item(20 'ubsan')
+        include::
+          ? for
+              san qw(asan lsan tsan ubsan)
+              std qw(11 14 17 20)
+          : !
+            std:: std:N
+            cxx: g++-14
+            bt:: san
+            bitlinks: static64
 
     env:: load('share/env.yaml')
 

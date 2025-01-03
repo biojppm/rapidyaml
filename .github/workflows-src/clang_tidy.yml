@@ -21,20 +21,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        item =:
-          \({:std 11, :cxx 'clang++-17', :bt %2,
-             :lint 'clang-tidy', :bitlinks %1})
-        include:
-        # clang tidy takes a long time,
-        # so don't do multiple bits/linktypes
-        - ! item('shared64' 'Debug')
-        - ! item('shared32' 'Debug')
-        - ! item('static64' 'Debug')
-        - ! item('static32' 'Debug')
-        - ! item('shared64' 'ReleaseWithDebInfo')
-        - ! item('shared32' 'ReleaseWithDebInfo')
-        - ! item('static64' 'ReleaseWithDebInfo')
-        - ! item('static32' 'ReleaseWithDebInfo')
+        include::
+          ? for
+              bt qw(Debug ReleaseWithDebInfo)
+              bl qw(shared64 shared32 static64 static32)
+          : !
+            std: 11
+            cxx: clang++-17
+            bt:: bt
+            lint: clang-tidy
+            bitlinks:: bl
 
     env:: load('share/env.yaml')
 

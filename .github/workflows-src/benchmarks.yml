@@ -49,12 +49,12 @@ jobs:
       fail-fast: false
       matrix:
         item =:
-          \({:std %1, :cxx (%2 || 'g++-10'), :bt 'Release',
-             :os (%3 || 'ubuntu-20.04'), :bitlinks 'static64 static32'})
+          \({:std %1, :cxx %2, :bt 'Release',
+             :os %3, :bitlinks 'static64 static32'})
         include:
-        - ! item(11)
-        - ! item(17)
-        - ! item(20)
+        - ! item(11 'g++-10' 'ubuntu-20.04')
+        - ! item(17 'g++-10' 'ubuntu-20.04')
+        - ! item(20 'g++-10' 'ubuntu-20.04')
         - ! item(17 'vs2019' 'windows-2019')
         - ! item(20 'vs2019' 'windows-2019')
        #- ! item(17 'vs2019' 'windows-2022')
