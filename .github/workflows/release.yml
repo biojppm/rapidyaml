@@ -86,7 +86,7 @@ jobs:
     steps:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: Download vars.sh
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with: {name: vars.sh, path: ./}
       - name: Install python 3.9
         uses: actions/setup-python@v5
@@ -136,7 +136,7 @@ jobs:
     steps:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: Download vars.sh
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with: {name: vars.sh, path: ./}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
@@ -302,10 +302,10 @@ jobs:
     steps:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: Gather artifacts - ./assets
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with: {name: assets, path: assets}
       - name: Gather artifacts - ./dist
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with: {name: dist, path: dist}
       - name: Verify existing artifacts
         run: |
@@ -315,7 +315,7 @@ jobs:
       # Github
       - name: Restore vars.sh
         if: contains(github.ref, 'tags/v')
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with: {name: vars.sh, path: ./}
       - name: Save vars for following steps
         if: contains(github.ref, 'tags/v')
