@@ -405,6 +405,26 @@ INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
 
 //-----------------------------------------------------------------------------
 
+TEST(double_quoted, issue486)
+{
+    csubstr srcs[] = {
+        "foo: \"test,\nbar\"", // this is invalid YAML, but ryml can parse it (but won't in the future)
+        "foo: \"test,\n bar\"" // ... this is valid
+    };
+    auto check = [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("foo"));
+        ASSERT_TRUE(t["foo"].has_val());
+        ASSERT_TRUE(t["foo"].is_val_dquo());
+        ASSERT_EQ(t["foo"].val(), "test, bar");
+    };
+    for(csubstr src : srcs)
+    {
+        check(parse_in_arena(src));
+        test_check_emit_check(src, check);
+    }
+}
+
 TEST(double_quoted, leading_whitespace)
 {
     csubstr val = "\n \tfoo";
