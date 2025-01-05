@@ -23,9 +23,11 @@ force:
 	touch *.yml
 
 ../workflows/%: % $(YS)
+	@[ -f $@ ] && chmod a+w $@
 	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows-ys/$<" > $@
 	@echo >> $@
 	ys -Y $< >> $@
+	@chmod a-w $@
 
 # Auto install a specific version of ys (under /tmp):
 $(YS):
