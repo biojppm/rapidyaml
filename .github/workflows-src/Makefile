@@ -19,6 +19,21 @@ test: force build
 	@git diff --exit-code ../workflows && \
 	  echo -e '\nPASS - No normative changes to .github/workflows'
 
+DIFF_ORIG_COMMIT ?= HEAD
+diff:
+	@for f in $(SOURCE_FILES); do \
+	  f=$${f##*/}; \
+	  diff -u --color=auto \
+	    <(yq -P 'sort_keys(..)' \
+	         -o=props <(git show $(DIFF_ORIG_COMMIT):.github/workflows/$$f) | \
+		 grep -Ev '(^$$|^#)' \
+	     ) \
+	    <(yq -P 'sort_keys(..)' \
+	         -o=props ../workflows/$$f | \
+		 grep -Ev '(^$$|^#)'\
+	     ); \
+	  done
+
 force:
 	touch *.yml
 
