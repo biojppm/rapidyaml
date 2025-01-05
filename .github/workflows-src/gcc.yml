@@ -230,12 +230,8 @@ jobs:
         include::
           ? for
               san qw(asan lsan tsan ubsan)
-              std qw(11 14 17 20)
-          : !
-            std:: std:N
-            cxx: g++-14
-            bt:: san
-            bitlinks: static64
+              std [11 14 17 20]
+          : ! { std:: std, cxx: g++-14, bt:: san, bitlinks: static64 }
 
     env:: load('share/env.yaml')
 
