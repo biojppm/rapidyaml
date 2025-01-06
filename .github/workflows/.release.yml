@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-ys/release.yml
+# DO NOT EDIT - GENERATED FROM .github/workflows/release.ys
 
 name: release
 defaults:

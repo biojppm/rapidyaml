@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-ys/emscripten.yml
+# DO NOT EDIT - GENERATED FROM .github/workflows/emscripten.ys
 
 name: emscripten
 defaults:

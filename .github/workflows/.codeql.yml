@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-ys/codeql.yml
+# DO NOT EDIT - GENERATED FROM .github/workflows/codeql.ys
 
 name: CodeQL
 'on':

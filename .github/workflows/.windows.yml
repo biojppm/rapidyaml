@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-ys/windows.yml
+# DO NOT EDIT - GENERATED FROM .github/workflows/windows.ys
 
 name: windows
 defaults:
