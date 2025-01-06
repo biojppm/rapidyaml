@@ -50,14 +50,12 @@ jobs:
   #----------------------------------------------------------------------------
   clang_extended:
     :: setup-job('clang')
-    name: "extended/${{matrix.cxx}}/c++${{matrix.std}}/\
-           ${{matrix.bt}}/vg${{matrix.vg}}"
+    name: extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std 11, :cxx "clang++-$a(%1)"
-                   :bt %2, :vg 'on', :img "$a(%3)"})
+        item =: \({:std 11, :cxx "clang++-$a(%1)", :bt %2, :vg 'on', :img "$a(%3)"})
         include:
         - ! item(17 'Debug' '22.04')
         - ! item(17 'Release' '22.04')

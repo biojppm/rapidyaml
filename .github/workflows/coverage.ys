@@ -6,7 +6,7 @@
 jobs:
   coverage:
     :: setup-job('coverage')
-    name: coverage/c++${{matrix.std}}${{matrix.cmk}}
+    name: coverage/c++${{matrix.std}}${{matrix.namesfx}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
@@ -16,8 +16,8 @@ jobs:
         - ! item(11)
         - ! item(17)
         # test also with the debug code enabled
-        - ! item(11) + {:cmk '-DRYML_DBG=ON'}
-        - ! item(17) + {:cmk '-DRYML_DBG=ON'}
+        - ! item(11) + {:cmk '-DRYML_DBG=ON', :namesfx '/dbg'}
+        - ! item(17) + {:cmk '-DRYML_DBG=ON', :namesfx '/dbg'}
     env: !:merge*
     - ! load('share/env.yaml')
     - CMAKE_FLAGS: ${{matrix.cmk}}
@@ -27,11 +27,8 @@ jobs:
       #   https://github.com/lemurheavy/coveralls-public/issues/1665
       # https://docs.coveralls.io/parallel-build-webhook
       # COVERALLS_PARALLEL: true
-
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
+    - :: checkout-action
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
@@ -47,18 +44,16 @@ jobs:
       with:
         name: coverage-static64
         path: |
-          build/static64/lcov/
+          build/static64/lcov
           build/static64/coverage3-final_filtered.lcov
     - name: static64-submit-codecov
       run: source .github/setenv.sh && c4_submit_coverage static64 codecov
-
    # Coveralls disabled:
    #   https://github.com/lemurheavy/coveralls-public/issues/1665
    #- name: static64-submit-coveralls
    #  run: if [ ${{matrix.std}} == 17 ] ;
    #       then ( source .github/setenv.sh &&
    #       c4_submit_coverage static64 coveralls ) ; fi
-
     - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
@@ -74,7 +69,6 @@ jobs:
           build/static32/coverage3-final_filtered.lcov
     - name: static32-submit-codecov
       run: source .github/setenv.sh && c4_submit_coverage static32 codecov
-
    # Coveralls disabled:
    #   https://github.com/lemurheavy/coveralls-public/issues/1665
    #- name: static32-submit-coveralls

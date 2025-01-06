@@ -14,8 +14,9 @@ export YSPATH := $(shell pwd -P)/ys
 
 build: $(TARGET_FILES)
 
+
 test: force build
-	@git diff --exit-code .*.yml && \
+	@git diff --exit-code $(TARGET_FILES) && \
 	  echo -e '\nPASS - No normative changes to .github/workflows/*.yml'
 
 DIFF_ORIG_COMMIT ?= HEAD
@@ -40,15 +41,18 @@ force:
 	touch *.ys
 
 %.yml: %.ys $(YS) $(INPUT_FILES)
-	@[ -f $@ ] && chmod a+w $@
+	@echo "$@"
+	if [ -f "$@" ] ; then chmod a+w $@ ; fi
 	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows/$<" > $@
 	@echo >> $@
-	ys -Y $< >> $@
+	$(YS) -Y $< >> $@
 	@chmod a-w $@
 	@echo "    `wc -ml $<`"
 	@echo "    `wc -ml $@`"
 
-# Auto install a specific version of ys (under /tmp):
+
+# Auto install a specific version of ys
+install-ys: $(YS)
 $(YS):
 	curl -s https://yamlscript.org/install | \
 	  BIN=1 VERSION=$(YS_VERSION) PREFIX=$(YS_PREFIX) bash

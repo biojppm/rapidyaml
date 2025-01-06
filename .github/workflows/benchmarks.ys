@@ -8,21 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - :: checkout-action
-    - name: Variables (from tag)
-      if: contains(github.ref, 'tags/v')
-      run:: bash('benchmarks-vars-1')
-    - name: Variables (from commit, no tag)
-      if: ${{ !contains(github.ref, 'tags/v') }}
-      run:: bash('benchmarks-vars-2')
-    - name: Verify vars.sh
-      run:
-        cat vars.sh ;
-        source vars.sh ;
-        echo $SRC_TAG ;
-        echo $SRC_VERSION
-    - name: Save vars.sh
-      uses: actions/upload-artifact@v3
-      with: {name: vars.sh, path: ./vars.sh}
+    - :: version-discover
 
   benchmarks:
     name: bm/c++${{matrix.std}}/${{matrix.cxx}}/${{matrix.bt}}
@@ -32,9 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        item =:
-          \({:std %1, :cxx %2, :bt 'Release',
-             :os %3, :bitlinks 'static64 static32'})
+        item =: \({:std %1, :cxx %2, :bt 'Release', :os %3, :bitlinks 'static64 static32'})
         include:
         - ! item(11 'g++-10' 'ubuntu-20.04')
         - ! item(17 'g++-10' 'ubuntu-20.04')
@@ -43,17 +27,13 @@ jobs:
         - ! item(20 'vs2019' 'windows-2019')
        #- ! item(17 'vs2019' 'windows-2022')
        #- ! item(20 'vs2019' 'windows-2022')
-        - {std: 17, cxx: xcode,
-           xcver: 15, bt: Release,
-           os: macos-13, bitlinks: static64}
+        - {std: 17, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: static64}
     env:: -{'BM' 'ON'} + load('share/env.yaml')
     steps:
     - :: checkout-action
+    - :: version-get-vars
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
-    - name: Download vars.sh
-      uses: actions/download-artifact@v3
-      with: {name: vars.sh, path: ./}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: Install python 3.10 for plotting
@@ -61,56 +41,48 @@ jobs:
       with: { python-version: '3.10' }
     - name: install benchmark plotting dependencies
       run:: bash('benchmarks-install')
+    - name: set build env vars
+      run: |
+        echo "NUM_JOBS_BUILD=1" >> $GITHUB_ENV
+        echo "CMAKE_FLAGS=\"-DPython_EXECUTABLE=$(which python)\"" >> $GITHUB_ENV
+    - name: check build env vars
+      run: |
+        echo NUM_JOBS_BUILD=$NUM_JOBS_BUILD
+        echo "CMAKE_FLAGS=\"$CMAKE_FLAGS\""
     - name: shared64-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" &&
-           source .github/setenv.sh && c4_cfg_test shared64
+      run: source .github/setenv.sh && c4_cfg_test shared64
     - name: shared64-build
       run: source .github/setenv.sh && c4_build_target shared64 ryml-bm-build
     - name: shared64-run
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target shared64 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-run
     - name: shared64-plot
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot
-
+      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot
     - name: static64-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" &&
-           source .github/setenv.sh && c4_cfg_test static64
+      run: source .github/setenv.sh && c4_cfg_test static64
     - name: static64-build
       run: source .github/setenv.sh && c4_build_target static64 ryml-bm-build
     - name: static64-run
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target static64 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-run
     - name: static64-plot
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target static64 ryml-bm-plot
-
+      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-plot
     - name: static32-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" &&
-           source .github/setenv.sh && c4_cfg_test static32
+      run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_target static32 ryml-bm-build
     - name: static32-run
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target static32 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-run
     - name: static32-plot
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target static32 ryml-bm-plot
-
+      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-plot
     - name: shared32-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" &&
-           source .github/setenv.sh && c4_cfg_test shared32
+      run: source .github/setenv.sh && c4_cfg_test shared32
     - name: shared32-build
       run: source .github/setenv.sh && c4_build_target shared32 ryml-bm-build
     - name: shared32-run
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target shared32 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-run
     - name: shared32-plot
-      run: export NUM_JOBS_BUILD=1 &&
-           source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot
+      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot
     - name: gather benchmark results
       run:: bash('benchmarks-run')
-
     - name: upload benchmark result artifacts
       uses: actions/upload-artifact@v3
       with:

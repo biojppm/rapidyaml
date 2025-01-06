@@ -51,9 +51,8 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
       CMANY: 'ON'
-      RYMLSHA: ${{github.event.pull_request.head.sha}}
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -79,4 +78,14 @@ jobs:
     - name: custom_c4core
       run: cd samples/custom_c4core && ./run.sh $BT
     - name: fetch_content
-      run: cd samples/fetch_content && ./run.sh $BT $RYMLSHA
+      run: |
+        # run this sample only if the branch exists on the repo
+        set -xe
+        cd samples/fetch_content
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        echo branch=$branch
+        if [ ! -z "$(git ls-remote $repo | grep $branch)" ] ; then
+           ./run.sh $BT $branch "$repo"
+        fi

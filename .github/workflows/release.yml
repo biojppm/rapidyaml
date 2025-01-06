@@ -31,7 +31,7 @@ jobs:
     continue-on-error: false
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -39,17 +39,24 @@ jobs:
     - name: Variables (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        set -exo pipefail
         # https://github.community/t/how-to-get-just-the-tag-name/16241/11
         SRC_TAG=${GITHUB_REF#refs/tags/}
         SRC_VERSION=${GITHUB_REF#refs/tags/v}
-        cat <<EOF > vars.sh
+        SRC_VERSION_BODY=`pwd`/changelog/$SRC_VERSION.md
+        if [ ! -f $SRC_VERSION_BODY ] ; then
+          echo "version body file was not found: $SRC_VERSION_BODY"
+          exit 1
+        fi
+        cat <<EOF >> vars.sh
         export SRC_TAG=$SRC_TAG
         export SRC_VERSION=$SRC_VERSION
+        export SRC_VERSION_BODY=$SRC_VERSION_BODY
         EOF
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}
       run: |
-        set -x
+        set -exo pipefail
         branch_name=${GITHUB_REF#refs/heads/}
         # builds triggered from PRs have the branch_name like this: refs/pull/150/merge
         # so filter to eg pr0150_merge
@@ -62,13 +69,29 @@ jobs:
         export SRC_TAG=$SRC_TAG
         export SRC_VERSION=$SRC_VERSION
         EOF
-    - name: Verify vars.sh
-      run: cat vars.sh ; source vars.sh ; echo $SRC_TAG ; echo $SRC_VERSION
     - name: Save vars.sh
       uses: actions/upload-artifact@v3
       with:
         name: vars.sh
         path: ./vars.sh
+    - name: Show vars.sh
+      run: cat vars.sh
+    - name: Source vars.sh
+      run: source vars.sh
+    - name: Env (common)
+      run: |
+        source vars.sh
+        echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+        echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+    - name: Env (from tag)
+      if: contains(github.ref, 'tags/v')
+      run: |
+        echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+    - name: Variables (from commit, no tag)
+      if: ${{ !contains(github.ref, 'tags/v') }}
+      run: echo 'nothing to do'
+    - name: Verify vars.sh
+      run: env | grep SRC
   src:
     if: |
       (!contains(github.event.head_commit.message, 'skip all')) ||
@@ -78,7 +101,7 @@ jobs:
     needs: gettag
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -88,6 +111,24 @@ jobs:
       with:
         name: vars.sh
         path: ./
+    - name: Show vars.sh
+      run: cat vars.sh
+    - name: Source vars.sh
+      run: source vars.sh
+    - name: Env (common)
+      run: |
+        source vars.sh
+        echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+        echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+    - name: Env (from tag)
+      if: contains(github.ref, 'tags/v')
+      run: |
+        echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+    - name: Variables (from commit, no tag)
+      if: ${{ !contains(github.ref, 'tags/v') }}
+      run: echo 'nothing to do'
+    - name: Verify vars.sh
+      run: env | grep SRC
     - name: Install python 3.9
       uses: actions/setup-python@v5
       with:
@@ -159,7 +200,7 @@ jobs:
           os: macos-13
           cxx: xcode
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -169,6 +210,24 @@ jobs:
       with:
         name: vars.sh
         path: ./
+    - name: Show vars.sh
+      run: cat vars.sh
+    - name: Source vars.sh
+      run: source vars.sh
+    - name: Env (common)
+      run: |
+        source vars.sh
+        echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+        echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+    - name: Env (from tag)
+      if: contains(github.ref, 'tags/v')
+      run: |
+        echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+    - name: Variables (from commit, no tag)
+      if: ${{ !contains(github.ref, 'tags/v') }}
+      run: echo 'nothing to do'
+    - name: Verify vars.sh
+      run: env | grep SRC
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
@@ -202,7 +261,7 @@ jobs:
     name: python/src
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -328,7 +387,7 @@ jobs:
           osname: linux
           os: ubuntu-20.04
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -381,7 +440,7 @@ jobs:
     - python_src
     - python_wheels
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -397,25 +456,30 @@ jobs:
         name: dist
         path: dist
     - name: Verify existing artifacts
-      run: ls -lFhp assets/; ls -lFhp dist/
-    - name: Restore vars.sh
-      if: contains(github.ref, 'tags/v')
+      run: ls -lFhp assets/ dist/
+    - name: Download vars.sh
       uses: actions/download-artifact@v3
       with:
         name: vars.sh
         path: ./
-    - name: Save vars for following steps
-      if: contains(github.ref, 'tags/v')
-      id: vars
+    - name: Show vars.sh
+      run: cat vars.sh
+    - name: Source vars.sh
+      run: source vars.sh
+    - name: Env (common)
       run: |
         source vars.sh
-        version_body=${{github.workspace}}/changelog/$SRC_VERSION.md
-        if [ ! -f $version_body ] ; then
-          echo "version body file was not found: $version_body"
-          exit 1
-        fi
-        echo "VERSION=$SRC_VERSION >> $GITHUB_OUTPUT"
-        echo "VERSION_BODY=$version_body >> $GITHUB_OUTPUT"
+        echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+        echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+    - name: Env (from tag)
+      if: contains(github.ref, 'tags/v')
+      run: |
+        echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+    - name: Variables (from commit, no tag)
+      if: ${{ !contains(github.ref, 'tags/v') }}
+      run: echo 'nothing to do'
+    - name: Verify vars.sh
+      run: env | grep SRC
     - name: Move Python packages to assets folder
       if: contains(github.ref, 'tags/v')
       run: mv -fv dist/*src.zip assets/.
@@ -427,8 +491,8 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         tag_name: ${{github.ref}}
-        release_name: Release ${{steps.vars.outputs.VERSION}}
-        body_path: ${{steps.vars.outputs.VERSION_BODY}}
+        release_name: Release ${{steps.vars.outputs.SRC_VERSION}}
+        body_path: ${{steps.vars.outputs.SRC_VERSION_BODY}}
         draft: true
         prerelease: ${{contains(github.ref, 'rc')}}
     - name: Upload assets to Github Release

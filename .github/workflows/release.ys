@@ -29,17 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - :: checkout-action
-    - name: Variables (from tag)
-      if: contains(github.ref, 'tags/v')
-      run:: bash('release-vars-1')
-    - name: Variables (from commit, no tag)
-      if: ${{ !contains(github.ref, 'tags/v') }}
-      run:: bash('release-vars-2')
-    - name: Verify vars.sh
-      run: cat vars.sh ; source vars.sh ; echo $SRC_TAG ; echo $SRC_VERSION
-    - name: Save vars.sh
-      uses: actions/upload-artifact@v3
-      with: {name: vars.sh, path: ./vars.sh}
+    - :: version-discover
 
   #----------------------------------------------------------------------------
   # create source packages
@@ -50,15 +40,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - :: checkout-action
-    - name: Download vars.sh
-      uses: actions/download-artifact@v3
-      with: {name: vars.sh, path: ./}
+    - :: version-get-vars
     - name: Install python 3.9
       uses: actions/setup-python@v5
       with: { python-version: 3.9 }
     - name: Install requirements
-      run:
-        sudo -E pip install git-archive-all
+      run: sudo -E pip install git-archive-all
     - name: Create source packages
       run:: bash('release-create-source-packages')
     - name: Save source artifacts
@@ -107,9 +94,7 @@ jobs:
            gen: STGZ, mime: x-sh, os: macos-13, cxx: xcode}
     steps:
     - :: checkout-action
-    - name: Download vars.sh
-      uses: actions/download-artifact@v3
-      with: {name: vars.sh, path: ./}
+    - :: version-get-vars
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
@@ -298,18 +283,9 @@ jobs:
       uses: actions/download-artifact@v3
       with: {name: dist, path: dist}
     - name: Verify existing artifacts
-      run:
-        ls -lFhp assets/;
-        ls -lFhp dist/
+      run: ls -lFhp assets/ dist/
     # Github
-    - name: Restore vars.sh
-      if: contains(github.ref, 'tags/v')
-      uses: actions/download-artifact@v3
-      with: {name: vars.sh, path: ./}
-    - name: Save vars for following steps
-      if: contains(github.ref, 'tags/v')
-      id: vars
-      run:: bash('release-save-vars')
+    - :: version-get-vars
     - name: Move Python packages to assets folder
       if: contains(github.ref, 'tags/v')
       run: mv -fv dist/*src.zip assets/.
@@ -321,8 +297,8 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         tag_name: ${{github.ref}}
-        release_name: Release ${{steps.vars.outputs.VERSION}}
-        body_path: ${{steps.vars.outputs.VERSION_BODY}}
+        release_name: Release ${{steps.vars.outputs.SRC_VERSION}}
+        body_path: ${{steps.vars.outputs.SRC_VERSION_BODY}}
         draft: true
         prerelease: ${{contains(github.ref, 'rc')}}
     - name: Upload assets to Github Release

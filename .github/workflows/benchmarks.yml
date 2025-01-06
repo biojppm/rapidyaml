@@ -21,7 +21,7 @@ jobs:
   gettag:
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -29,37 +29,59 @@ jobs:
     - name: Variables (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        set -exo pipefail
         # https://github.community/t/how-to-get-just-the-tag-name/16241/11
         SRC_TAG=${GITHUB_REF#refs/tags/}
         SRC_VERSION=${GITHUB_REF#refs/tags/v}
-        cat <<EOF > vars.sh
+        SRC_VERSION_BODY=`pwd`/changelog/$SRC_VERSION.md
+        if [ ! -f $SRC_VERSION_BODY ] ; then
+          echo "version body file was not found: $SRC_VERSION_BODY"
+          exit 1
+        fi
+        cat <<EOF >> vars.sh
         export SRC_TAG=$SRC_TAG
         export SRC_VERSION=$SRC_VERSION
+        export SRC_VERSION_BODY=$SRC_VERSION_BODY
         EOF
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}
       run: |
-        set -x
+        set -exo pipefail
         branch_name=${GITHUB_REF#refs/heads/}
         # builds triggered from PRs have the branch_name like this: refs/pull/150/merge
         # so filter to eg pr0150_merge
         branch_name=`echo $branch_name | sed "s:refs/pull/\([0-9]*\)/\(.*\):pr0\1_\2:"`
         # sanitize the branch name; eg merge/foo-bar -> merge_foo_bar
         branch_name=`echo $branch_name | sed 's:[/.-]:_:g'`
-        git config --global --add safe.directory $(pwd)
         SRC_TAG=$(git describe || git rev-parse --short HEAD)  # eg v0.2.0-110-gda837e0
         SRC_VERSION="${branch_name}-${SRC_TAG}"
         cat <<EOF > vars.sh
         export SRC_TAG=$SRC_TAG
         export SRC_VERSION=$SRC_VERSION
         EOF
-    - name: Verify vars.sh
-      run: cat vars.sh ; source vars.sh ; echo $SRC_TAG ; echo $SRC_VERSION
     - name: Save vars.sh
       uses: actions/upload-artifact@v3
       with:
         name: vars.sh
         path: ./vars.sh
+    - name: Show vars.sh
+      run: cat vars.sh
+    - name: Source vars.sh
+      run: source vars.sh
+    - name: Env (common)
+      run: |
+        source vars.sh
+        echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+        echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+    - name: Env (from tag)
+      if: contains(github.ref, 'tags/v')
+      run: |
+        echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+    - name: Variables (from commit, no tag)
+      if: ${{ !contains(github.ref, 'tags/v') }}
+      run: echo 'nothing to do'
+    - name: Verify vars.sh
+      run: env | grep SRC
   benchmarks:
     name: bm/c++${{matrix.std}}/${{matrix.cxx}}/${{matrix.bt}}
     needs: gettag
@@ -115,18 +137,36 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 0
-    - name: install requirements
-      run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: Download vars.sh
       uses: actions/download-artifact@v3
       with:
         name: vars.sh
         path: ./
+    - name: Show vars.sh
+      run: cat vars.sh
+    - name: Source vars.sh
+      run: source vars.sh
+    - name: Env (common)
+      run: |
+        source vars.sh
+        echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+        echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+    - name: Env (from tag)
+      if: contains(github.ref, 'tags/v')
+      run: |
+        echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+    - name: Variables (from commit, no tag)
+      if: ${{ !contains(github.ref, 'tags/v') }}
+      run: echo 'nothing to do'
+    - name: Verify vars.sh
+      run: env | grep SRC
+    - name: install requirements
+      run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: Install python 3.10 for plotting
@@ -142,38 +182,46 @@ jobs:
         pip install -v -r ext/c4core/cmake/bm-xp/requirements.txt
         python -c 'import munch ; print("ok!") ; exit(0)'
         echo $?
+    - name: set build env vars
+      run: |
+        echo "NUM_JOBS_BUILD=1" >> $GITHUB_ENV
+        echo "CMAKE_FLAGS=\"-DPython_EXECUTABLE=$(which python)\"" >> $GITHUB_ENV
+    - name: check build env vars
+      run: |
+        echo NUM_JOBS_BUILD=$NUM_JOBS_BUILD
+        echo "CMAKE_FLAGS=\"$CMAKE_FLAGS\""
     - name: shared64-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test shared64
+      run: source .github/setenv.sh && c4_cfg_test shared64
     - name: shared64-build
       run: source .github/setenv.sh && c4_build_target shared64 ryml-bm-build
     - name: shared64-run
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared64 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-run
     - name: shared64-plot
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot
+      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot
     - name: static64-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test static64
+      run: source .github/setenv.sh && c4_cfg_test static64
     - name: static64-build
       run: source .github/setenv.sh && c4_build_target static64 ryml-bm-build
     - name: static64-run
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static64 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-run
     - name: static64-plot
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static64 ryml-bm-plot
+      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-plot
     - name: static32-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test static32
+      run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_target static32 ryml-bm-build
     - name: static32-run
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static32 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-run
     - name: static32-plot
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static32 ryml-bm-plot
+      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-plot
     - name: shared32-configure-------------------------------------------------
-      run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test shared32
+      run: source .github/setenv.sh && c4_cfg_test shared32
     - name: shared32-build
       run: source .github/setenv.sh && c4_build_target shared32 ryml-bm-build
     - name: shared32-run
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-run
+      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-run
     - name: shared32-plot
-      run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot
+      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot
     - name: gather benchmark results
       run: |
         set -x

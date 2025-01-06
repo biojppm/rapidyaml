@@ -4,6 +4,7 @@
 :: workflow-setup()
 
 jobs:
+
   #----------------------------------------------------------------------------
   gcc_canary:
     :: setup-job('gcc')
@@ -43,7 +44,13 @@ jobs:
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure
-      run:: bash('gcc-configure')
+      run: |
+        cmake -S . -B build_o2 \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+          -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O2 -g -DNDEBUG" \
+          -DRYML_BUILD_TESTS:BOOL=ON \
+          -DRYML_DBG:BOOL=OFF
     - name: build
       run: cmake --build build_o2 --target ryml-test-build -j --verbose
     - name: run
@@ -82,9 +89,7 @@ jobs:
   #----------------------------------------------------------------------------
   gcc_extended:
     :: setup-job('gcc')
-    name::
-     -'gcc_extended/${{matrix.cxx}}/c++${{matrix.std}}/' +
-      '${{matrix.bt}}/vg${{matrix.vg}}'
+    name: extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     strategy:
       fail-fast: false
@@ -129,8 +134,7 @@ jobs:
   #----------------------------------------------------------------------------
   gccsan:
     :: setup-job('gcc')
-    name: "gccsan/${{matrix.cxx}}/c++${{matrix.std}}/\
-           ${{matrix.bt}}/vg${{matrix.vg}}"
+    name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('22.04')
     strategy:
       fail-fast: false
@@ -146,14 +150,13 @@ jobs:
   #----------------------------------------------------------------------------
   arm:
     :: setup-job('gcc') + runs-on-docker-c4core('18.04')
-    runs-on: ubuntu-latest
+    name: arm/c++${{matrix.std}}/${{matrix.bt}}
     strategy:
       fail-fast: false
       matrix:
         item =:
-          \({:std %1, :bt %2,
-             :toolchain 'ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake',
-             :cxx 'arm-linux-gnueabihf-gcc', :os 'ubuntu-20.04'})
+          \({:std %1, :bt %2, :cxx 'arm-linux-gnueabihf-gcc',
+             :toolchain 'ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake'})
         include:
         # these jobs take much longer, so run only one bitlink pair per job to
         # profit from parallelism

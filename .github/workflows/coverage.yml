@@ -24,7 +24,7 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip coverage')) ||
       contains(github.event.head_commit.message, 'only coverage')
     continue-on-error: true
-    name: coverage/c++${{matrix.std}}${{matrix.cmk}}
+    name: coverage/c++${{matrix.std}}${{matrix.namesfx}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
@@ -43,11 +43,13 @@ jobs:
           bt: Coverage
           os: ubuntu-20.04
           cmk: -DRYML_DBG=ON
+          namesfx: /dbg
         - std: 17
           cxx: g++-9
           bt: Coverage
           os: ubuntu-20.04
           cmk: -DRYML_DBG=ON
+          namesfx: /dbg
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -61,10 +63,11 @@ jobs:
       CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
       COVERALLS_REPO_TOKEN: ${{secrets.COVERALLS_REPO_TOKEN}}
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
@@ -80,7 +83,7 @@ jobs:
       with:
         name: coverage-static64
         path: |
-          build/static64/lcov/
+          build/static64/lcov
           build/static64/coverage3-final_filtered.lcov
     - name: static64-submit-codecov
       run: source .github/setenv.sh && c4_submit_coverage static64 codecov

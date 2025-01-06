@@ -79,7 +79,7 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive

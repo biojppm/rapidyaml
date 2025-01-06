@@ -81,22 +81,54 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (manually)
       run: |
-        set -xe
-        env
+        set -xeo pipefail
+        env | sort
         echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
         echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
         git init -q .
-        git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-        git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
         git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
@@ -158,7 +190,7 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (action + docker)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -243,22 +275,54 @@ jobs:
       OS: ${{matrix.os}}
       CMAKE_FLAGS: -DRYML_WITH_TAB_TOKENS=ON
     steps:
-    - name: checkout
+    - name: checkout (manually)
       run: |
-        set -xe
-        env
+        set -xeo pipefail
+        env | sort
         echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
         echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
         git init -q .
-        git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-        git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
         git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
@@ -338,22 +402,54 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (manually)
       run: |
-        set -xe
-        env
+        set -xeo pipefail
+        env | sort
         echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
         echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
         git init -q .
-        git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-        git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
         git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
@@ -395,7 +491,7 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip gcc')) ||
       contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    name: gcc_extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    name: extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
     runs-on: ubuntu-latest
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
@@ -540,22 +636,54 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (manually)
       run: |
-        set -xe
-        env
+        set -xeo pipefail
+        env | sort
         echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
         echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
         git init -q .
-        git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-        git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
         git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
@@ -597,7 +725,7 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip gcc')) ||
       contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    name: gccsan/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
     runs-on: ubuntu-latest
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     strategy:
@@ -678,7 +806,7 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (action + docker)
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -727,41 +855,35 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     container: ghcr.io/biojppm/c4core/ubuntu18.04:latest
-    name: arm/c++${{matrix.cxx}}/${{matrix.bt}}
+    name: arm/c++${{matrix.std}}/${{matrix.bt}}
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
           bt: Debug
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
           cxx: arm-linux-gnueabihf-gcc
-          os: ubuntu-20.04
+          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
         - std: 11
           bt: Release
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
           cxx: arm-linux-gnueabihf-gcc
-          os: ubuntu-20.04
+          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
         - std: 14
           bt: Debug
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
           cxx: arm-linux-gnueabihf-gcc
-          os: ubuntu-20.04
+          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
         - std: 14
           bt: Release
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
           cxx: arm-linux-gnueabihf-gcc
-          os: ubuntu-20.04
+          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
         - std: 17
           bt: Debug
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
           cxx: arm-linux-gnueabihf-gcc
-          os: ubuntu-20.04
+          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
         - std: 17
           bt: Release
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
           cxx: arm-linux-gnueabihf-gcc
-          os: ubuntu-20.04
+          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
     env:
       TOOLCHAIN: ${{matrix.toolchain}}
       STD: ${{matrix.std}}
@@ -773,22 +895,54 @@ jobs:
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
     steps:
-    - name: checkout
+    - name: checkout (manually)
       run: |
-        set -xe
-        env
+        set -xeo pipefail
+        env | sort
         echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
         echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
         git init -q .
-        git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-        git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
         git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
     - name: install gcc-arm-linux-gnueabihf
       run: c4core-install arm-linux-gnueabihf; c4core-install qemu
     - name: show info
