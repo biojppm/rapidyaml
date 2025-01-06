@@ -12,7 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :bitlinks 'shared64 static32', :img "$a(%4)"})
+        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3
+                   :bitlinks 'shared64 static32', :img "$a(%4)"})
         include: &include1
         - ! item(11  14 'Debug'   '22.04')
         - ! item(11  14 'Release' '22.04')
@@ -68,7 +69,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :bitlinks 'shared64 static32', :img "$a(%4)"})
+        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3
+                   :bitlinks 'shared64 static32', :img "$a(%4)"})
         include:
         - ! item(11 5  'Debug'   '18.04')
         - ! item(11 5  'Release' '18.04')
@@ -127,7 +129,8 @@ jobs:
   #----------------------------------------------------------------------------
   gccsan:
     :: setup-job('gcc')
-    name: gccsan/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    name: "gccsan/${{matrix.cxx}}/c++${{matrix.std}}/\
+           ${{matrix.bt}}/vg${{matrix.vg}}"
     :: runs-on-docker-c4core('22.04')
     strategy:
       fail-fast: false
