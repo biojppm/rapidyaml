@@ -5,15 +5,9 @@
 
 jobs:
   rarearchs:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip rarearchs')) ||
-      contains(github.event.head_commit.message, 'only rarearchs')
-
+    :: setup-job('rarearchs')
     name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
-    continue-on-error: true
     runs-on: ubuntu-22.04
-
     strategy:
       fail-fast: false
       matrix:
@@ -26,16 +20,12 @@ jobs:
             std:: std
             bt:: bt
             arch:: arch
-            distro: ubuntu20.04
-
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
+    - :: checkout-action
     - name: test
-      uses: uraimo/run-on-arch-action@v2.7.2
+      uses: uraimo/run-on-arch-action@v2.8.1
       with:
         arch: ${{matrix.arch}}
-        distro: ${{matrix.distro}}
+        distro: ubuntu22.04
         install:: bash('rarearchs-test-install')
         run:: bash('rarearchs-test-run')

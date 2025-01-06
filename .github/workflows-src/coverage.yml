@@ -3,23 +3,11 @@
 :: use(common)
 :: workflow-setup()
 
-env:
-  PROJ_PFX_TARGET: ryml-
-  PROJ_PFX_CMAKE: RYML_
-  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
-  NUM_JOBS_BUILD: # 4
-
 jobs:
   coverage:
+    :: setup-job('coverage')
     name: coverage/c++${{matrix.std}}${{matrix.cmk}}
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip coverage')) ||
-      contains(github.event.head_commit.message, 'only coverage')
-
-    continue-on-error: true
     runs-on: ${{matrix.os}}
-
     strategy:
       fail-fast: false
       matrix:
@@ -30,7 +18,6 @@ jobs:
         # test also with the debug code enabled
         - ! item(11) + {:cmk '-DRYML_DBG=ON'}
         - ! item(17) + {:cmk '-DRYML_DBG=ON'}
-
     env: !:merge*
     - ! load('share/env.yaml')
     - CMAKE_FLAGS: ${{matrix.cmk}}
@@ -107,4 +94,3 @@ jobs:
   #      with:
   #        github-token: ${{ secrets.github_token }}
   #        parallel-finished: true
-

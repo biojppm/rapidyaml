@@ -2,25 +2,12 @@
 
 :: use(common)
 :: workflow-setup()
-common-steps =: load('share/steps.yaml')
-
-env:
-  PROJ_PFX_TARGET: ryml-
-  PROJ_PFX_CMAKE: RYML_
-  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
-  NUM_JOBS_BUILD: # 4
 
 jobs:
   vs:
+    :: setup-job('windows')
     name: ${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip windows')) ||
-      contains(github.event.head_commit.message, 'only windows')
-
-    continue-on-error: true
     runs-on: ${{matrix.os}}
-
     strategy:
       fail-fast: false
       matrix:
@@ -32,28 +19,22 @@ jobs:
        #- ! item(11 2017 'Release' 2016)
        #- ! item(14 2017 'Debug'   2016)
        #- ! item(14 2017 'Release' 2016)
-
         - ! item(11 2019 'Debug'   2019)
         - ! item(11 2019 'Release' 2019)
         - ! item(17 2019 'Debug'   2019)
         - ! item(17 2019 'Release' 2019)
-
         - ! item(11 2022 'Debug'   2022)
         - ! item(11 2022 'Release' 2022)
         - ! item(17 2022 'Debug'   2022)
         - ! item(17 2022 'Release' 2022)
         - ! item(20 2022 'Debug'   2022)
         - ! item(20 2022 'Release' 2022)
-
     env:: load('share/env.yaml')
-
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
+    - :: checkout-action
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
-    - :: common-steps.drop(1)
+    - :: run-steps
 
 # TODO:
 #  mingw:

@@ -1,15 +1,15 @@
 !yamlscript/v0
 
+
+#----------------------------------------------------------
 defn workflow-setup(name=nil overrides={})::
   name =: name || FILE.replace(/.*\//).replace(/\.yml$/)
-
   name:: name
   defaults:
     run:
       # Use a bash shell so we can use the same syntax for environment variable
       # access regardless of the host operating system
       shell: bash -e -x {0}
-
   on::
     merge _ overrides::
       # https://github.com/orgs/community/discussions/26276
@@ -18,6 +18,113 @@ defn workflow-setup(name=nil overrides={})::
         branches: [master]
       pull_request:
         branches: [master]
+  env:
+    PROJ_PFX_TARGET: ryml-
+    PROJ_PFX_CMAKE: RYML_
+    CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+    NUM_JOBS_BUILD: # 4
 
+
+#----------------------------------------------------------
 defn bash(name):
   slurp: "bash/$name.bash"
+
+
+#----------------------------------------------------------
+defn setup-job(name)::
+  # if: always()  # https://stackoverflow.com/a/62112985/721703
+  if:: |
+    (!contains(github.event.head_commit.message, 'skip all')) ||
+    (!contains(github.event.head_commit.message, 'skip $name')) ||
+    contains(github.event.head_commit.message, 'only $name')
+  continue-on-error: true
+
+
+#----------------------------------------------------------
+defn runs-on-docker-c4core(which)::
+  runs-on: ubuntu-latest
+  container:: "ghcr.io/biojppm/c4core/ubuntu$which:latest"
+
+
+#----------------------------------------------------------
+checkout-action =::
+- name: checkout
+  uses: actions/checkout@v4
+  # use fetch-depth to ensure all tags are fetched
+  with: {submodules: recursive, fetch-depth: 0}
+
+
+#----------------------------------------------------------
+checkout-action-docker =::
+- name: checkout
+  uses: actions/checkout@v4
+  # use fetch-depth to ensure all tags are fetched
+  with: {submodules: recursive, fetch-depth: 0}
+# needed for running in the docker image.
+# see https://github.com/actions/checkout/issues/1169
+- run: git config --system --add safe.directory '*'
+
+
+#----------------------------------------------------------
+checkout-manual =::
+# This provides a manual checkout because the nodejs version
+# prevents use of checkout@v3 or v4 action on ubuntu18.04.
+- name: checkout
+  run: |
+    set -xe
+    env
+    echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+    echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+    echo GITHUB_REF=$GITHUB_REF
+    echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+    branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+    echo branch=$branch
+    git init -q .
+    git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+    git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+    git fetch origin $branch
+    git reset --hard FETCH_HEAD
+    git submodule update --init --recursive
+
+
+#----------------------------------------------------------
+install-cxx =::
+- run: c4core-install ${{matrix.cxx}}
+
+
+#----------------------------------------------------------
+run-steps =::
+- name: show info
+  run: source .github/setenv.sh && c4_show_info
+- name: shared64-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test shared64
+- name: shared64-build
+  run: source .github/setenv.sh && c4_build_test shared64
+- name: shared64-run
+  run: source .github/setenv.sh && c4_run_test shared64
+- name: shared64-pack
+  run: source .github/setenv.sh && c4_package shared64
+- name: static64-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test static64
+- name: static64-build
+  run: source .github/setenv.sh && c4_build_test static64
+- name: static64-run
+  run: source .github/setenv.sh && c4_run_test static64
+- name: static64-pack
+  run: source .github/setenv.sh && c4_package static64
+- name: static32-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test static32
+- name: static32-build
+  run: source .github/setenv.sh && c4_build_test static32
+- name: static32-run
+  run: source .github/setenv.sh && c4_run_test static32
+- name: static32-pack
+  run: source .github/setenv.sh && c4_package static32
+- name: shared32-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test shared32
+- name: shared32-build
+  run: source .github/setenv.sh && c4_build_test shared32
+- name: shared32-run
+  run: source .github/setenv.sh && c4_run_test shared32
+- name: shared32-pack
+  run: source .github/setenv.sh && c4_package shared32

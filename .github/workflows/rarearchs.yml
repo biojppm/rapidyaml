@@ -12,14 +12,19 @@ defaults:
   pull_request:
     branches:
     - master
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: null
 jobs:
   rarearchs:
     if: |
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip rarearchs')) ||
       contains(github.event.head_commit.message, 'only rarearchs')
-    name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
+    name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -28,85 +33,68 @@ jobs:
         - std: 11
           bt: Debug
           arch: aarch64
-          distro: ubuntu20.04
         - std: 11
           bt: Release
           arch: aarch64
-          distro: ubuntu20.04
         - std: 14
           bt: Debug
           arch: aarch64
-          distro: ubuntu20.04
         - std: 14
           bt: Release
           arch: aarch64
-          distro: ubuntu20.04
         - std: 17
           bt: Debug
           arch: aarch64
-          distro: ubuntu20.04
         - std: 17
           bt: Release
           arch: aarch64
-          distro: ubuntu20.04
         - std: 11
           bt: Debug
           arch: ppc64le
-          distro: ubuntu20.04
         - std: 11
           bt: Release
           arch: ppc64le
-          distro: ubuntu20.04
         - std: 14
           bt: Debug
           arch: ppc64le
-          distro: ubuntu20.04
         - std: 14
           bt: Release
           arch: ppc64le
-          distro: ubuntu20.04
         - std: 17
           bt: Debug
           arch: ppc64le
-          distro: ubuntu20.04
         - std: 17
           bt: Release
           arch: ppc64le
-          distro: ubuntu20.04
         - std: 11
           bt: Debug
           arch: s390x
-          distro: ubuntu20.04
         - std: 11
           bt: Release
           arch: s390x
-          distro: ubuntu20.04
         - std: 14
           bt: Debug
           arch: s390x
-          distro: ubuntu20.04
         - std: 14
           bt: Release
           arch: s390x
-          distro: ubuntu20.04
         - std: 17
           bt: Debug
           arch: s390x
-          distro: ubuntu20.04
         - std: 17
           bt: Release
           arch: s390x
-          distro: ubuntu20.04
     steps:
     - name: checkout
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0
     - name: test
-      uses: uraimo/run-on-arch-action@v2.7.2
+      uses: uraimo/run-on-arch-action@v2.8.1
       with:
         arch: ${{matrix.arch}}
-        distro: ${{matrix.distro}}
+        distro: ubuntu22.04
         install: |
           set -x
           start_time=$SECONDS

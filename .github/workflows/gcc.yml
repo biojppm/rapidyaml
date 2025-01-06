@@ -19,11 +19,14 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   gcc_canary:
-    name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip gcc')) ||
+      contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    if: always()
+    name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
@@ -32,42 +35,42 @@ jobs:
           cxx: g++-14
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-14
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 20
           cxx: g++-14
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 20
           cxx: g++-14
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-5
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-5
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.8
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.8
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -80,7 +83,10 @@ jobs:
     steps:
     - name: checkout
       run: |
-        set -x
+        set -xe
+        env
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
@@ -127,9 +133,12 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   gcc_O2:
-    name: gcc_O2/${{matrix.cxx}}/c++${{matrix.std}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip gcc')) ||
+      contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    if: always()
+    name: gcc_O2/${{matrix.gcc}}/c++${{matrix.std}}
     runs-on: ubuntu-latest
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     strategy:
@@ -153,6 +162,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0
     - run: git config --system --add safe.directory '*'
     - run: c4core-install g++-${{matrix.gcc}}
     - name: show info
@@ -170,11 +180,14 @@ jobs:
     - name: run
       run: cmake --build build_o2 --target ryml-test-run
   gcc_tabtokens:
-    name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip gcc')) ||
+      contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    if: always()
+    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
@@ -183,42 +196,42 @@ jobs:
           cxx: g++-14
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-14
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 20
           cxx: g++-14
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 20
           cxx: g++-14
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-5
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-5
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.8
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.8
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -232,7 +245,10 @@ jobs:
     steps:
     - name: checkout
       run: |
-        set -x
+        set -xe
+        env
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
@@ -279,11 +295,14 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   gcc_noexceptions:
-    name: gcc_noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip gcc')) ||
+      contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    if: always()
+    name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
@@ -292,22 +311,22 @@ jobs:
           cxx: g++-5
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-5
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu18.04
+          img: '18.04'
         - std: 20
           cxx: g++-14
           bt: Debug
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
         - std: 20
           cxx: g++-14
           bt: Release
           bitlinks: shared64 static32
-          img: ubuntu22.04
+          img: '22.04'
     env:
       CXXFLAGS: -fno-exceptions -fno-rtti
       STD: ${{matrix.std}}
@@ -321,7 +340,10 @@ jobs:
     steps:
     - name: checkout
       run: |
-        set -x
+        set -xe
+        env
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
@@ -335,7 +357,7 @@ jobs:
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: shared64-configure-------------------------------------------------
+    - name: shared64-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
     - name: shared64-build
       run: source .github/setenv.sh && c4_build_test shared64
@@ -343,7 +365,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared64
     - name: shared64-pack
       run: source .github/setenv.sh && c4_package shared64
-    - name: static64-configure-------------------------------------------------
+    - name: static64-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
     - name: static64-build
       run: source .github/setenv.sh && c4_build_test static64
@@ -351,7 +373,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static64
     - name: static64-pack
       run: source .github/setenv.sh && c4_package static64
-    - name: static32-configure-------------------------------------------------
+    - name: static32-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_test static32
@@ -359,7 +381,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static32
     - name: static32-pack
       run: source .github/setenv.sh && c4_package static32
-    - name: shared32-configure-------------------------------------------------
+    - name: shared32-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared32
     - name: shared32-build
       run: source .github/setenv.sh && c4_build_test shared32
@@ -368,11 +390,14 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   gcc_extended:
-    name: gcc_extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip gcc')) ||
+      contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    if: always()
+    name: gcc_extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
@@ -381,130 +406,130 @@ jobs:
           cxx: g++-14
           bt: Debug
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-14
           bt: Release
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 14
           cxx: g++-14
           bt: Debug
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 14
           cxx: g++-14
           bt: Release
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 17
           cxx: g++-14
           bt: Debug
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 17
           cxx: g++-14
           bt: Release
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 20
           cxx: g++-14
           bt: Debug
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 20
           cxx: g++-14
           bt: Release
           vg: 'ON'
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-13
           bt: Debug
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-13
           bt: Release
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
-          cxx: g++-13
+          cxx: g++-12
           bt: Debug
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
-          cxx: g++-13
+          cxx: g++-12
           bt: Release
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-11
           bt: Debug
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-11
           bt: Release
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-10
           bt: Debug
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-10
           bt: Release
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-9
           bt: Debug
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-9
           bt: Release
-          img: ubuntu22.04
+          img: '22.04'
         - std: 11
           cxx: g++-8
           bt: Debug
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-8
           bt: Release
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-7
           bt: Debug
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-7
           bt: Release
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-6
           bt: Debug
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-6
           bt: Release
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-5
           bt: Debug
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-5
           bt: Release
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.9
           bt: Debug
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.9
           bt: Release
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.8
           bt: Debug
-          img: ubuntu18.04
+          img: '18.04'
         - std: 11
           cxx: g++-4.8
           bt: Release
-          img: ubuntu18.04
+          img: '18.04'
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -517,7 +542,10 @@ jobs:
     steps:
     - name: checkout
       run: |
-        set -x
+        set -xe
+        env
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
@@ -564,9 +592,12 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   gccsan:
-    name: gccsan/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip gcc')) ||
+      contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    if: always()
+    name: gccsan/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
     runs-on: ubuntu-latest
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     strategy:
@@ -651,11 +682,12 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0
     - run: git config --system --add safe.directory '*'
     - run: c4core-install ${{matrix.cxx}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: shared64-configure-------------------------------------------------
+    - name: shared64-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared64
     - name: shared64-build
       run: source .github/setenv.sh && c4_build_test shared64
@@ -663,7 +695,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared64
     - name: shared64-pack
       run: source .github/setenv.sh && c4_package shared64
-    - name: static64-configure-------------------------------------------------
+    - name: static64-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static64
     - name: static64-build
       run: source .github/setenv.sh && c4_build_test static64
@@ -671,7 +703,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static64
     - name: static64-pack
       run: source .github/setenv.sh && c4_package static64
-    - name: static32-configure-------------------------------------------------
+    - name: static32-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
       run: source .github/setenv.sh && c4_build_test static32
@@ -679,7 +711,7 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static32
     - name: static32-pack
       run: source .github/setenv.sh && c4_package static32
-    - name: shared32-configure-------------------------------------------------
+    - name: shared32-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test shared32
     - name: shared32-build
       run: source .github/setenv.sh && c4_build_test shared32
@@ -688,8 +720,11 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   arm:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip gcc')) ||
+      contains(github.event.head_commit.message, 'only gcc')
     continue-on-error: true
-    if: always()
     runs-on: ubuntu-latest
     container: ghcr.io/biojppm/c4core/ubuntu18.04:latest
     strategy:
@@ -739,7 +774,10 @@ jobs:
     steps:
     - name: checkout
       run: |
-        set -x
+        set -xe
+        env
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
         echo GITHUB_REF=$GITHUB_REF
         echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366

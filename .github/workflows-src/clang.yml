@@ -2,23 +2,13 @@
 
 :: use(common)
 :: workflow-setup()
-common-steps =: load('share/steps.yaml')
-
-env:
-  PROJ_PFX_TARGET: ryml-
-  PROJ_PFX_CMAKE: RYML_
-  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
-  NUM_JOBS_BUILD: # 4
 
 jobs:
   #----------------------------------------------------------------------------
   clang_canary:
-    name: clang_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    continue-on-error: true
-    if: always()  # https://stackoverflow.com/a/62112985/721703
-    runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
-
+    :: setup-job('clang')
+    name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('22.04')
     strategy:
       fail-fast: false
       matrix:
@@ -28,84 +18,44 @@ jobs:
           item(20 'clang++-17' 'Release')
           item(11 'clang++-9'  'Debug')
           item(11 'clang++-9'  'Release') ]
-
     env:: load('share/env.yaml')
-
-    steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
-    - run: git config --system --add safe.directory '*'
-    - :: common-steps
+    steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
   clang_tabtokens:
-    name: clang_tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    continue-on-error: true
-    if: always()
-    runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
-
+    :: setup-job('clang')
+    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('22.04')
     strategy:
       fail-fast: false
       matrix:
         include: *include1
-
     env:: load('share/env.yaml') +
           {'CMAKE_FLAGS' '-DRYML_WITH_TAB_TOKENS=ON'}
-
-    steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
-    # needed for running in the docker image.
-    # see https://github.com/actions/checkout/issues/1169
-    - run: git config --system --add safe.directory '*'
-    - run: c4core-install $CXX_
-    - :: common-steps.drop(1)
+    steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
   clang_noexceptions:
-    name: clang_noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    continue-on-error: true
-    if: always()
-    runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
-
+    :: setup-job('clang')
+    name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('22.04')
     strategy:
       fail-fast: false
       matrix:
         include: *include1
-
     env:: -{'CXXFLAGS' '-fno-exceptions -fno-rtti'} +
           load('share/env.yaml')
-
-    steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
-    # needed for running in the docker image.
-    # see https://github.com/actions/checkout/issues/1169
-    - run: git config --system --add safe.directory '*'
-    - run: c4core-install ${{matrix.cxx}}
-    - :: common-steps.drop(1)
+    steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
   clang_extended:
-    name:
-      "clang_extended/${{matrix.cxx}}/\
-       c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}"
-    continue-on-error: true
-    if: always()
-    runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
-
+    :: setup-job('clang')
+    name: extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
     strategy:
       fail-fast: false
       matrix:
-        item =:
-          \({:std 11, :cxx "clang++-$a(%1)", :bt %2,
-             :vg 'on', :img "ubuntu$a(%3)"})
+        item =: \({:std 11, :cxx "clang++-$a(%1)", :bt %2, :vg 'on', :img "$a(%3)"})
         include:
         - ! item(17 'Debug' '22.04')
         - ! item(17 'Release' '22.04')
@@ -139,29 +89,14 @@ jobs:
         - ! item(4.0 'Release' '18.04')
         - ! item(3.9 'Debug' '18.04')
         - ! item(3.9 'Release' '18.04')
-
     env:: load('share/env.yaml')
-
-    steps:
-    # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs
-    # version
-    #- name: checkout
-    #  uses: actions/checkout@v3
-    #  with: {submodules: recursive}
-    #... so we checkout manually:
-    - name: checkout
-      run:: bash('clang-checkout')
-    - run: c4core-install ${{matrix.cxx}}
-    - :: common-steps.drop(1)
+    steps:: checkout-manual + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
   clangsan:
-    name: clang/${{matrix.bt}}/c++${{matrix.std}}
-    continue-on-error: true
-    if: always()
-    runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
-
+    :: setup-job('clang')
+    name: san/${{matrix.bt}}/c++${{matrix.std}}
+    :: runs-on-docker-c4core('22.04')
     strategy:
       fail-fast: false
       matrix:
@@ -174,18 +109,8 @@ jobs:
             cxx: clang++-17
             bt:: san
             bitlinks: static64
-
     env:: load('share/env.yaml')
-
-    steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
-    # needed for running in the docker image.
-    # see https://github.com/actions/checkout/issues/1169
-    - run: git config --system --add safe.directory '*'
-    - run: c4core-install ${{matrix.cxx}}
-    - :: common-steps.drop(1)
+    steps:: checkout-action-docker + install-cxx + run-steps
 
 # #----------------------------------------------------------------------------
 # # https://blog.kitware.com

@@ -24,18 +24,11 @@ env:
 
 jobs:
   gettag:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
-
+    :: setup-job('release')
+    continue-on-error: false
     runs-on: ubuntu-latest
-
     steps:
-    # use fetch-depth to ensure all tags are fetched
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive, fetch-depth: 0}
+    - :: checkout-action
     - name: Variables (from tag)
       if: contains(github.ref, 'tags/v')
       run:: bash('release-vars-1')
@@ -51,18 +44,12 @@ jobs:
   #----------------------------------------------------------------------------
   # create source packages
   src:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
-
+    :: setup-job('release')
+    continue-on-error: false
     needs: gettag
     runs-on: ubuntu-latest
-
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
+    - :: checkout-action
     - name: Download vars.sh
       uses: actions/download-artifact@v3
       with: {name: vars.sh, path: ./}
@@ -81,22 +68,17 @@ jobs:
   #----------------------------------------------------------------------------
   # create c++ packages
   cpp:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
-
+    :: setup-job('release')
+    continue-on-error: false
     name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
     needs: gettag
     runs-on: ${{matrix.config.os}}
-
     env:
       DEV:  OFF
       BT:   Release
       OS:   ${{matrix.config.os}}
       CXX_: ${{matrix.config.cxx}}
       GEN:  ${{matrix.config.gen}}
-
     strategy:
       fail-fast: false
       matrix:
@@ -123,11 +105,8 @@ jobs:
            sfxg: apple64.sh,
            sfxp: macosx-xcode.sh,
            gen: STGZ, mime: x-sh, os: macos-13, cxx: xcode}
-
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
+    - :: checkout-action
     - name: Download vars.sh
       uses: actions/download-artifact@v3
       with: {name: vars.sh, path: ./}
@@ -153,19 +132,12 @@ jobs:
   # github.com/pikepdf/pikepdf/blob/master/.github/workflows/build_wheels.yml
 
   python_src:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
-
+    :: setup-job('release')
+    continue-on-error: false
     name: python/src
     runs-on: ubuntu-latest
-
     steps:
-      # use fetch-depth to ensure all tags are fetched
-      - name: checkout
-        uses: actions/checkout@v4
-        with: {submodules: recursive, fetch-depth: 0}
+      - :: checkout-action
       - name: install python 3.9
         uses: actions/setup-python@v5
         with: {python-version: 3.9}
@@ -178,16 +150,12 @@ jobs:
         with: {name: dist, path: dist}
 
   python_wheels:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
-
+    :: setup-job('release')
+    continue-on-error: false
     name::
      -'python/${{matrix.config.cibw_pyv}}/' +
       '${{matrix.config.osname}}/${{matrix.config.cibw_arch}}'
     runs-on: ${{matrix.config.os}}
-
     env:
       CMAKE_FLAGS:
         ${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON
@@ -195,7 +163,6 @@ jobs:
       CIBW_BUILD:
         cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
       CIBW_ARCHS: ${{matrix.config.cibw_arch}}
-
     strategy:
       fail-fast: false
       matrix:
@@ -225,7 +192,6 @@ jobs:
         - ! python('3.7'  37  'i686'   'manylinux_i686')
         - ! python('3.6'  36  'x86_64' 'manylinux_x86_64')
         - ! python('3.6'  36  'i686'   'manylinux_i686')
-
         # the windows builds are disabled because they are causing problems and
         # preventing the release.
         # the problems are related to CMakeExtension forcing the use of Ninja
@@ -294,12 +260,8 @@ jobs:
         #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
         #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86_64,
         #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-
     steps:
-    # use fetch-depth to ensure all tags are fetched
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive, fetch-depth: 0}
+    - :: checkout-action
     - name: create wheel
       uses: pypa/cibuildwheel@v2.17
     - name: rename wheelhouse -> dist
@@ -319,21 +281,16 @@ jobs:
 
   #----------------------------------------------------------------------------
   release:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
+    :: setup-job('release')
+    continue-on-error: false
     runs-on: ubuntu-latest
     needs:
     - src
     - cpp
     - python_src
     - python_wheels
-
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
+    - :: checkout-action
     - name: Gather artifacts - ./assets
       uses: actions/download-artifact@v3
       with: {name: assets, path: assets}
@@ -344,7 +301,6 @@ jobs:
       run:
         ls -lFhp assets/;
         ls -lFhp dist/
-
     # Github
     - name: Restore vars.sh
       if: contains(github.ref, 'tags/v')
@@ -377,7 +333,6 @@ jobs:
       with:
         release_id: ${{steps.create_release.outputs.id}}
         assets_path: ./assets/
-
     # PyPI (test)
     - name: Publish python packages to test PyPI
       uses: pypa/gh-action-pypi-publish@v1.4.2
@@ -387,7 +342,6 @@ jobs:
         password: ${{secrets.PYPI_TOKEN_TEST}}
         verbose: true
         skip_existing: true
-
     # PyPI (production)
     - name: Publish python packages to production PyPI
       if: contains(github.ref, 'tags/v')

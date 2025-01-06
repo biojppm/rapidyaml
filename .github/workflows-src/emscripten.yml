@@ -3,28 +3,15 @@
 :: use(common)
 :: workflow-setup()
 
-env:
-  PROJ_PFX_TARGET: ryml-
-  PROJ_PFX_CMAKE: RYML_
-  CMAKE_FLAGS: '-DRYML_TEST_SUITE=OFF'
-  NUM_JOBS_BUILD: # 4
-  EMSCRIPTEN_CACHE_FOLDER: 'emsdk-cache'
-
 jobs:
   emscripten:
+    name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: setup-job('emscripten')
     # this job is always causing trouble, with failures showing unreadable code
     # dumps. eg https://github.com/biojppm/rapidyaml/actions/runs/10368522906
     # Disabling until we can find a proper way to investigate these failures:
     if: ${{ false }}
-    #if: |
-    #  (!contains(github.event.head_commit.message, 'skip all')) ||
-    #  (!contains(github.event.head_commit.message, 'skip emscripten')) ||
-    #  contains(github.event.head_commit.message, 'only emscripten')
-
-    name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}
-    continue-on-error: true
     runs-on: ${{matrix.os}}
-
     strategy:
       fail-fast: false
       matrix:
@@ -39,9 +26,8 @@ jobs:
         - ! item(11 '3.0.0' 'Release')
        #- ! item(20 '3.0.0' 'Debug')
         - ! item(20 '3.0.0' 'Release')
-
-    env:: load('share/env.yaml')
-
+    env:: load('share/env.yaml') + {'EMSCRIPTEN_CACHE_FOLDER' 'emsdk-cache'}
+         + {'CMAKE_FLAGS' '-DRYML_TEST_SUITE=OFF'}
     steps:
     - name: checkout
       uses: actions/checkout@v4
@@ -59,7 +45,6 @@ jobs:
         actions-cache-folder: ${{env.EMSCRIPTEN_CACHE_FOLDER}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-
     - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build

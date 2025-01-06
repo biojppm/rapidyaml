@@ -2,23 +2,11 @@
 
 :: use(common)
 :: workflow-setup()
-common-steps =: load('share/steps.yaml')
-
-env:
-  PROJ_PFX_TARGET: ryml-
-  PROJ_PFX_CMAKE: RYML_
-  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
-  NUM_JOBS_BUILD: # 4
 
 jobs:
   macosx:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip macosx')) ||
-      contains(github.event.head_commit.message, 'only macosx')
-    continue-on-error: true
-    runs-on: ${{matrix.os}}
-
+    :: setup-job('macosx')
+    runs-on: macos-13
     strategy:
       fail-fast: false
       matrix:
@@ -32,19 +20,14 @@ jobs:
             cxx: xcode
             xcver:: xcver
             bt:: bt
-            os: macos-13
             bitlinks: shared64 static64
-
     env:: load('share/env.yaml')
-
     steps:
-    - name: checkout
-      uses: actions/checkout@v4
-      with: {submodules: recursive}
+    - :: checkout-action
     - name: xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: ${{matrix.xcver}}
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
-    - :: common-steps.drop(1)
+    - :: run-steps

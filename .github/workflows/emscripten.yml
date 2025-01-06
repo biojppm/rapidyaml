@@ -15,13 +15,12 @@ defaults:
 env:
   PROJ_PFX_TARGET: ryml-
   PROJ_PFX_CMAKE: RYML_
-  CMAKE_FLAGS: -DRYML_TEST_SUITE=OFF
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: null
-  EMSCRIPTEN_CACHE_FOLDER: emsdk-cache
 jobs:
   emscripten:
-    if: ${{ false }}
     name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}
+    if: ${{ false }}
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -61,6 +60,8 @@ jobs:
       SAN: ${{matrix.san}}
       LINT: ${{matrix.lint}}
       OS: ${{matrix.os}}
+      EMSCRIPTEN_CACHE_FOLDER: emsdk-cache
+      CMAKE_FLAGS: -DRYML_TEST_SUITE=OFF
     steps:
     - name: checkout
       uses: actions/checkout@v4
