@@ -727,6 +727,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     container: ghcr.io/biojppm/c4core/ubuntu18.04:latest
+    name: arm/c++${{matrix.cxx}}/${{matrix.bt}}
     strategy:
       fail-fast: false
       matrix:
