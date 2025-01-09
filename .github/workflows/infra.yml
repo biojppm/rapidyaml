@@ -1,0 +1,45 @@
+# DO NOT EDIT - GENERATED FROM .github/workflows/infra.ys
+
+name: infra
+defaults:
+  run:
+    shell: bash -e -x {0}
+'on':
+  workflow_dispatch: null
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: null
+jobs:
+  check_workflows:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip infra')) ||
+      contains(github.event.head_commit.message, 'only infra')
+    continue-on-error: true
+    runs-on: ubuntu-22.04
+    steps:
+    - name: checkout (action)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: install ys
+      run: make -C .github/workflows install-ys
+    - name: generate workflows
+      run: make -C .github/workflows build
+    - name: test workflows
+      run: |
+        make -C .github/workflows test
+        status=$?
+        if [ $status != 0 ] ; then
+          echo "ERROR: generated workflows are out of date"
+        fi
+        exit $status

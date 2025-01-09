@@ -1,0 +1,25 @@
+!yamlscript/v0:
+
+:: use(common)
+:: workflow-setup()
+
+jobs:
+
+  #----------------------------------------------------------------------------
+  check_workflows:
+    :: setup-job('infra')
+    runs-on: ubuntu-22.04
+    steps:
+      - :: checkout-action
+      - name: install ys
+        run: make -C .github/workflows install-ys
+      - name: generate workflows
+        run: make -C .github/workflows build
+      - name: test workflows
+        run: |
+          make -C .github/workflows test
+          status=$?
+          if [ $status != 0 ] ; then
+            echo "ERROR: generated workflows are out of date"
+          fi
+          exit $status
