@@ -395,13 +395,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set key scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set key scalar plain: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_key_scalar_(scalar, ':');
         _enable_(KEY|KEY_PLAIN);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set val scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set val scalar plain: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_val_scalar_(scalar, ':');
         _enable_(VAL|VAL_PLAIN);
     }
@@ -409,13 +409,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set key scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set key scalar dquot: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_key_scalar_(scalar, '"');
         _enable_(KEY|KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set val scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set val scalar dquot: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_val_scalar_(scalar, '"');
         _enable_(VAL|VAL_DQUO);
     }
@@ -423,13 +423,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set key scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set key scalar squot: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_key_scalar_(scalar, '\'');
         _enable_(KEY|KEY_SQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set val scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set val scalar squot: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_val_scalar_(scalar, '\'');
         _enable_(VAL|VAL_SQUO);
     }
@@ -437,13 +437,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set key scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set key scalar literal: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_key_scalar_(scalar, '|');
         _enable_(KEY|KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set val scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set val scalar literal: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_val_scalar_(scalar, '|');
         _enable_(VAL|VAL_LITERAL);
     }
@@ -451,13 +451,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set key scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set key scalar folded: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_key_scalar_(scalar, '>');
         _enable_(KEY|KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("node[{}]: set val scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
+        _c4dbgpf("node[{}]: set val scalar folded: [{}]~~~{}~~~", m_curr->node_id, scalar.len, scalar);
         _send_val_scalar_(scalar, '>');
         _enable_(VAL|VAL_FOLDED);
     }
