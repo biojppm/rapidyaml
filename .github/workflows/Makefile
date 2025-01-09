@@ -41,14 +41,12 @@ force:
 	touch *.ys
 
 %.yml: %.ys $(YS) $(INPUT_FILES)
-	@echo "$@"
-	if [ -f "$@" ] ; then chmod a+w $@ ; fi
+	@if [ -f "$@" ] ; then chmod a+w $@ ; fi
 	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows/$<" > $@
 	@echo >> $@
 	$(YS) -Y $< >> $@
 	@chmod a-w $@
-	@echo "    `wc -ml $<`"
-	@echo "    `wc -ml $@`"
+	@wc -lm --total=never $< $@
 
 
 # Auto install a specific version of ys
