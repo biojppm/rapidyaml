@@ -1,0 +1,185 @@
+!yamlscript/v0:
+
+:: use(common)
+:: workflow-setup()
+
+jobs:
+
+  #----------------------------------------------------------------------------
+  gcc_canary:
+    :: setup-job('gcc')
+    name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    strategy:
+      fail-fast: false
+      matrix:
+        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3
+                   :bitlinks 'shared64 static32', :img "$a(%4)"})
+        include: &include1
+        - ! item(11  14 'Debug'   '22.04')
+        - ! item(11  14 'Release' '22.04')
+        - ! item(20  14 'Debug'   '22.04')
+        - ! item(20  14 'Release' '22.04')
+        - ! item(11   5 'Debug'   '18.04')
+        - ! item(11   5 'Release' '18.04')
+        - ! item(11 4.8 'Debug'   '18.04')
+        - ! item(11 4.8 'Release' '18.04')
+    env:: load('share/env.yaml')
+    steps:: checkout-manual + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
+  gcc_O2: # see https://github.com/biojppm/rapidyaml/issues/440
+    :: setup-job('gcc')
+    name: gcc_O2/${{matrix.gcc}}/c++${{matrix.std}}
+    :: runs-on-docker-c4core('22.04')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - {std: 11, gcc: 12 , bt: Release}
+    env:: load('share/env.yaml') + {'CXX_' '${{matrix.gcc}}'}
+    steps:
+    - :: checkout-action-docker
+    - run: c4core-install g++-${{matrix.gcc}}
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+    - name: configure
+      run: |
+        cmake -S . -B build_o2 \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+          -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O2 -g -DNDEBUG" \
+          -DRYML_BUILD_TESTS:BOOL=ON \
+          -DRYML_DBG:BOOL=OFF
+    - name: build
+      run: cmake --build build_o2 --target ryml-test-build -j --verbose
+    - name: run
+      run: cmake --build build_o2 --target ryml-test-run
+
+  #----------------------------------------------------------------------------
+  gcc_tabtokens:
+    :: setup-job('gcc')
+    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+    env:: load('share/env.yaml') + {'CMAKE_FLAGS' '-DRYML_WITH_TAB_TOKENS=ON'}
+    steps:: checkout-manual + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
+  gcc_noexceptions:
+    :: setup-job('gcc')
+    name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    strategy:
+      fail-fast: false
+      matrix:
+        item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3
+                   :bitlinks 'shared64 static32', :img "$a(%4)"})
+        include:
+        - ! item(11 5  'Debug'   '18.04')
+        - ! item(11 5  'Release' '18.04')
+        - ! item(20 14 'Debug'   '22.04')
+        - ! item(20 14 'Release' '22.04')
+    env:: -{'CXXFLAGS' '-fno-exceptions -fno-rtti'} + load('share/env.yaml')
+    steps:: checkout-manual + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
+  gcc_extended:
+    :: setup-job('gcc')
+    name: extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    strategy:
+      fail-fast: false
+      matrix:
+        item-vg =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :vg 'ON', :img %4})
+        item =: \({:std 11, :cxx "g++-$a(%1)", :bt %2 :img %3})
+        include:
+        # VALGRIND
+        - ! item-vg(11 14 'Debug'   '22.04')
+        - ! item-vg(11 14 'Release' '22.04')
+        - ! item-vg(14 14 'Debug'   '22.04')
+        - ! item-vg(14 14 'Release' '22.04')
+        - ! item-vg(17 14 'Debug'   '22.04')
+        - ! item-vg(17 14 'Release' '22.04')
+        - ! item-vg(20 14 'Debug'   '22.04')
+        - ! item-vg(20 14 'Release' '22.04')
+        - ! item(13 'Debug'   '22.04')
+        - ! item(13 'Release' '22.04')
+        - ! item(12 'Debug'   '22.04')
+        - ! item(12 'Release' '22.04')
+        - ! item(11 'Debug'   '22.04')
+        - ! item(11 'Release' '22.04')
+        - ! item(10 'Debug'   '22.04')
+        - ! item(10 'Release' '22.04')
+        - ! item( 9 'Debug'   '22.04')
+        - ! item( 9 'Release' '22.04')
+        - ! item( 8 'Debug'   '18.04')
+        - ! item( 8 'Release' '18.04')
+        - ! item( 7 'Debug'   '18.04')
+        - ! item( 7 'Release' '18.04')
+        - ! item( 6 'Debug'   '18.04')
+        - ! item( 6 'Release' '18.04')
+        - ! item( 5 'Debug'   '18.04')
+        - ! item( 5 'Release' '18.04')
+        - ! item(4.9 'Debug'   '18.04')
+        - ! item(4.9 'Release' '18.04')
+        - ! item(4.8 'Debug'   '18.04')
+        - ! item(4.8 'Release' '18.04')
+    env:: load('share/env.yaml')
+    steps:: checkout-manual + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
+  gccsan:
+    :: setup-job('gcc')
+    name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
+    :: runs-on-docker-c4core('22.04')
+    strategy:
+      fail-fast: false
+      matrix:
+        include::
+          ? for
+              san qw(asan lsan tsan ubsan)
+              std [11 14 17 20]
+          : ! { std:: std, cxx: g++-14, bt:: san, bitlinks: static64 }
+    env:: load('share/env.yaml')
+    steps:: checkout-action-docker + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
+  arm:
+    :: setup-job('gcc') + runs-on-docker-c4core('18.04')
+    name: arm/c++${{matrix.std}}/${{matrix.bt}}
+    strategy:
+      fail-fast: false
+      matrix:
+        item =:
+          \({:std %1, :bt %2, :cxx 'arm-linux-gnueabihf-gcc',
+             :toolchain 'ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake'})
+        include:
+        # these jobs take much longer, so run only one bitlink pair per job to
+        # profit from parallelism
+        - ! item(11 'Debug')
+        - ! item(11 'Release')
+        - ! item(14 'Debug')
+        - ! item(14 'Release')
+        - ! item(17 'Debug')
+        - ! item(17 'Release')
+    env:: -{'TOOLCHAIN' '${{matrix.toolchain}}'} + load('share/env.yaml')
+    steps:
+    - :: checkout-manual
+    - name: install gcc-arm-linux-gnueabihf
+      run:
+        c4core-install arm-linux-gnueabihf;
+        c4core-install qemu
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+    - name: configure---------------------------------------------------
+      run: source .github/setenv.sh && c4_cfg_test arm
+    - name: build
+      run: source .github/setenv.sh && c4_build_test arm
+    - name: run
+      run: source .github/setenv.sh && c4_run_test arm
+    - name: pack
+      run: source .github/setenv.sh && c4_package arm

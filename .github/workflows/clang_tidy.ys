@@ -1,0 +1,25 @@
+!yamlscript/v0:
+
+:: use(common)
+:: workflow-setup()
+
+jobs:
+  clang_tidy:
+    :: setup-job('clang_tidy')
+    name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('22.04')
+    strategy:
+      fail-fast: false
+      matrix:
+        include::
+          ? for
+              bt qw(Debug ReleaseWithDebInfo)
+              bl qw(shared64 shared32 static64 static32)
+          : !
+            std: 11
+            cxx: clang++-17
+            bt:: bt
+            lint: clang-tidy
+            bitlinks:: bl
+    env:: load('share/env.yaml')
+    steps:: checkout-action-docker + install-cxx + run-steps

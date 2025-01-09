@@ -1,0 +1,239 @@
+!yamlscript/v0
+
+
+#----------------------------------------------------------
+defn workflow-setup(name=nil overrides={})::
+  name =: name || FILE.replace(/.*\//).replace(/\.ys$/)
+  name:: name
+  defaults:
+    run:
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash -e -x {0}
+  on::
+    merge _ overrides::
+      # https://github.com/orgs/community/discussions/26276
+      workflow_dispatch:
+      push:
+        branches: [master]
+      pull_request:
+        branches: [master]
+  env:
+    PROJ_PFX_TARGET: ryml-
+    PROJ_PFX_CMAKE: RYML_
+    CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+    NUM_JOBS_BUILD: # 4
+
+
+#----------------------------------------------------------
+defn bash(name):
+  slurp: "bash/$name.bash"
+
+
+#----------------------------------------------------------
+defn setup-job(name)::
+  # if: always()  # https://stackoverflow.com/a/62112985/721703
+  if:: |
+    (!contains(github.event.head_commit.message, 'skip all')) ||
+    (!contains(github.event.head_commit.message, 'skip $name')) ||
+    contains(github.event.head_commit.message, 'only $name')
+  continue-on-error: true
+
+
+#----------------------------------------------------------
+defn runs-on-docker-c4core(which)::
+  runs-on: ubuntu-latest
+  container:: "ghcr.io/biojppm/c4core/ubuntu$which:latest"
+
+
+#----------------------------------------------------------
+checkout-action =::
+- name: checkout (action)
+  uses: actions/checkout@v4
+  # use fetch-depth to ensure all tags are fetched
+  with: {submodules: recursive, fetch-depth: 0}
+
+
+#----------------------------------------------------------
+checkout-action-docker =::
+- name: checkout (action + docker)
+  uses: actions/checkout@v4
+  # use fetch-depth to ensure all tags are fetched
+  with: {submodules: recursive, fetch-depth: 0}
+# needed for running in the docker image.
+# see https://github.com/actions/checkout/issues/1169
+- run: git config --system --add safe.directory '*'
+
+
+#----------------------------------------------------------
+
+checkout-manual =::
+# This provides a manual checkout, needed because the nodejs version
+# prevents use of checkout@v3/v4 action on ubuntu18.04
+- name: checkout (manually)
+  run: |
+    set -xeo pipefail
+    env | sort
+    echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+    echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+    echo GITHUB_REF=$GITHUB_REF
+    echo GITHUB_REF_NAME=$GITHUB_REF_NAME
+    echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+    repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+    # check the branch
+    # https://stackoverflow.com/questions/58033366
+    branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+    echo branch=$branch
+    # does the branch exist in the repo?
+    if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+        echo "branch $branch does not exist on $repo"
+        # refs/pull/485/merge -> pull/485/head
+        branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+        echo "... falling back to $branch"
+        # does the fallback exist?
+        if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            exit 1
+        else
+            echo "branch $branch exists on $repo"
+            localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+            branch=$branch:$localbranch
+            echo "naming locally as $branch"
+        fi
+    fi
+    # finally, create the local repo
+    git init -q .
+    # needed for running in the docker image.
+    # see https://github.com/actions/checkout/issues/1169
+    git config --system --add safe.directory '*'
+    # finally, do it!
+    git remote add origin $repo
+    git fetch origin $branch
+    git reset --hard FETCH_HEAD
+    git submodule update --init --recursive
+    # show the log
+    git log --graph --date=relative --date-order --color=always \
+            --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+        | head -30 \
+        || echo -n
+    # show the last commit
+    git log --name-status HEAD^..HEAD
+
+
+#----------------------------------------------------------
+
+version-env =::
+- name: Env (common)
+  run: |
+    source vars.sh
+    echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+    echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+- name: Env (from tag)
+  if: contains(github.ref, 'tags/v')
+  run: |
+    echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+- name: Variables (from commit, no tag)
+  if: ${{ !contains(github.ref, 'tags/v') }}
+  run: echo 'nothing to do'
+
+
+version-discover =::
+- name: Variables (from tag)
+  if: contains(github.ref, 'tags/v')
+  run: |
+    set -exo pipefail
+    # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+    SRC_TAG=${GITHUB_REF#refs/tags/}
+    SRC_VERSION=${GITHUB_REF#refs/tags/v}
+    SRC_VERSION_BODY=`pwd`/changelog/$SRC_VERSION.md
+    if [ ! -f $SRC_VERSION_BODY ] ; then
+      echo "version body file was not found: $SRC_VERSION_BODY"
+      exit 1
+    fi
+    cat <<EOF >> vars.sh
+    export SRC_TAG=$SRC_TAG
+    export SRC_VERSION=$SRC_VERSION
+    export SRC_VERSION_BODY=$SRC_VERSION_BODY
+    EOF
+- name: Variables (from commit, no tag)
+  if: ${{ !contains(github.ref, 'tags/v') }}
+  run: |
+    set -exo pipefail
+    branch_name=${GITHUB_REF#refs/heads/}
+    # builds triggered from PRs have the branch_name like this: refs/pull/150/merge
+    # so filter to eg pr0150_merge
+    branch_name=`echo $branch_name | sed "s:refs/pull/\([0-9]*\)/\(.*\):pr0\1_\2:"`
+    # sanitize the branch name; eg merge/foo-bar -> merge_foo_bar
+    branch_name=`echo $branch_name | sed 's:[/.-]:_:g'`
+    SRC_TAG=$(git describe || git rev-parse --short HEAD)  # eg v0.2.0-110-gda837e0
+    SRC_VERSION="${branch_name}-${SRC_TAG}"
+    cat <<EOF > vars.sh
+    export SRC_TAG=$SRC_TAG
+    export SRC_VERSION=$SRC_VERSION
+    EOF
+- name: Save vars.sh
+  uses: actions/upload-artifact@v3
+  with: {name: vars.sh, path: ./vars.sh}
+- name: Show vars.sh
+  run: cat vars.sh
+- name: Source vars.sh
+  run: source vars.sh
+- :: version-env
+- name: Verify vars.sh
+  run: env | grep SRC
+
+
+version-get-vars =::
+- name: Download vars.sh
+  uses: actions/download-artifact@v3
+  with: {name: vars.sh, path: ./}
+- name: Show vars.sh
+  run: cat vars.sh
+- name: Source vars.sh
+  run: source vars.sh
+- :: version-env
+- name: Verify vars.sh
+  run: env | grep SRC
+
+
+#----------------------------------------------------------
+install-cxx =::
+- run: c4core-install ${{matrix.cxx}}
+
+
+#----------------------------------------------------------
+run-steps =::
+- name: show info
+  run: source .github/setenv.sh && c4_show_info
+- name: shared64-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test shared64
+- name: shared64-build
+  run: source .github/setenv.sh && c4_build_test shared64
+- name: shared64-run
+  run: source .github/setenv.sh && c4_run_test shared64
+- name: shared64-pack
+  run: source .github/setenv.sh && c4_package shared64
+- name: static64-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test static64
+- name: static64-build
+  run: source .github/setenv.sh && c4_build_test static64
+- name: static64-run
+  run: source .github/setenv.sh && c4_run_test static64
+- name: static64-pack
+  run: source .github/setenv.sh && c4_package static64
+- name: static32-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test static32
+- name: static32-build
+  run: source .github/setenv.sh && c4_build_test static32
+- name: static32-run
+  run: source .github/setenv.sh && c4_run_test static32
+- name: static32-pack
+  run: source .github/setenv.sh && c4_package static32
+- name: shared32-configure---------------------------------------------------
+  run: source .github/setenv.sh && c4_cfg_test shared32
+- name: shared32-build
+  run: source .github/setenv.sh && c4_build_test shared32
+- name: shared32-run
+  run: source .github/setenv.sh && c4_run_test shared32
+- name: shared32-pack
+  run: source .github/setenv.sh && c4_package shared32

@@ -1,0 +1,33 @@
+!yamlscript/v0:
+
+:: use(common)
+:: workflow-setup()
+
+jobs:
+  macosx:
+    :: setup-job('macosx')
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        include::
+          ? for
+              xcver [15 14]
+              std [11 17]
+              bt qw(Debug Release)
+          : !
+            std:: std
+            cxx: xcode
+            xcver:: xcver
+            bt:: bt
+            bitlinks: shared64 static64
+    env:: load('share/env.yaml')
+    steps:
+    - :: checkout-action
+    - name: xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{matrix.xcver}}
+    - name: install requirements
+      run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - :: run-steps

@@ -1,20 +1,13 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 project(ryml-quickstart LANGUAGES CXX)
 
-if(RYML_BRANCH_NAME STREQUAL "")
-    find_program(GIT git REQUIRED)
-    execute_process(COMMAND git rev-parse --abbrev-ref HEAD
-        OUTPUT_VARIABLE RYML_BRANCH_NAME
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-endif()
-if(RYML_BRANCH_NAME STREQUAL HEAD)
-    set(RYML_BRANCH_NAME master)
-endif()
+set(RYML_REPO_URL https://github.com/biojppm/rapidyaml CACHE STRING "")
+set(RYML_BRANCH_NAME master CACHE STRING "")
+message(STATUS "FetchContent from repo: ${RYML_REPO_URL}")
 message(STATUS "FetchContent from branch: ${RYML_BRANCH_NAME}")
-
 include(FetchContent)
 FetchContent_Declare(ryml
-    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_REPOSITORY ${RYML_REPO_URL}
     GIT_TAG ${RYML_BRANCH_NAME}
     GIT_SHALLOW FALSE  # ensure submodules are checked out
 )
