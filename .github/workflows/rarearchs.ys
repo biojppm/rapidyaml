@@ -5,7 +5,7 @@
 
 jobs:
   rarearchs:
-    :: setup-job('rarearchs')
+    :: setup-job('rarearchs' 'rarearchs')
     name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-22.04
     strategy:

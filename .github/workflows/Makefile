@@ -19,6 +19,7 @@ test: force build
 	@git diff --exit-code $(TARGET_FILES) && \
 	  echo -e '\nPASS - No normative changes to .github/workflows/*.yml'
 
+
 DIFF_ORIG_COMMIT ?= HEAD
 diff:
 	@for s in $(SOURCE_FILES); do \
@@ -37,8 +38,10 @@ diff:
 	     ); \
 	  done
 
+
 force:
 	touch *.ys
+
 
 %.yml: %.ys $(YS) $(INPUT_FILES)
 	@if [ -f "$@" ] ; then chmod a+w $@ ; fi
@@ -55,6 +58,7 @@ $(YS):
 	curl -s https://yamlscript.org/install | \
 	  BIN=1 VERSION=$(YS_VERSION) PREFIX=$(YS_PREFIX) bash
 
+
 stats:
-	@echo "ys : $$(wc -l *.ys)"
-	@echo "yml: $$(wc -l *.yml)"
+	@echo "ys : $$(wc -lm *.ys)"
+	@echo "yml: $$(wc -lm *.yml)"

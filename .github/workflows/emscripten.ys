@@ -6,7 +6,7 @@
 jobs:
   emscripten:
     name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}
-    :: setup-job('emscripten')
+    :: setup-job('emscripten' 'emscripten')
     # this job is always causing trouble, with failures showing unreadable code
     # dumps. eg https://github.com/biojppm/rapidyaml/actions/runs/10368522906
     # Disabling until we can find a proper way to investigate these failures:

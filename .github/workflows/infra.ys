@@ -4,11 +4,16 @@
 :: workflow-setup()
 
 jobs:
+  log-github-event:
+    name: log github event
+    runs-on: ubuntu-24.04
+    steps:
+      - name: log github event
+        run: echo "${{toJSON(github.event)}}"
 
-  #----------------------------------------------------------------------------
   check_workflows:
-    :: setup-job('infra')
-    runs-on: ubuntu-22.04
+    :: setup-job('infra' 'check_workflows')
+    runs-on: ubuntu-24.04
     steps:
       - :: checkout-action
       - name: install ys
@@ -17,6 +22,8 @@ jobs:
         run: make -C .github/workflows build
       - name: test workflows
         run: |
+          wc --version
+          wc --help
           make -C .github/workflows test
           status=$?
           if [ $status != 0 ] ; then

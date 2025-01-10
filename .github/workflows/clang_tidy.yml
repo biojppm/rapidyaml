@@ -19,13 +19,10 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   clang_tidy:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip clang_tidy')) ||
-      contains(github.event.head_commit.message, 'only clang_tidy')
-    continue-on-error: true
+    if: always()
+    continue-on-error: false
     name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     strategy:
       fail-fast: false

@@ -5,7 +5,7 @@
 
 jobs:
   clang_tidy:
-    :: setup-job('clang_tidy')
+    :: setup-job('clang_tidy' 'clang_tidy')
     name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
     strategy:

@@ -19,11 +19,8 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   rarearchs:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip rarearchs')) ||
-      contains(github.event.head_commit.message, 'only rarearchs')
-    continue-on-error: true
+    if: always()
+    continue-on-error: false
     name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-22.04
     strategy:

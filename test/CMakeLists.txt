@@ -299,10 +299,10 @@ if(RYML_TEST_FUZZ)
     function(ryml_add_fuzz_test name)
         c4_add_executable(ryml-test-fuzz-${name}
             SOURCES
-            test_fuzz/test_fuzz_common.hpp
-            test_fuzz/test_fuzz_${name}.cpp
-            test_fuzz/test_fuzz_main.cpp
-            ${ARGN}
+                test_fuzz/test_fuzz_common.hpp
+                test_fuzz/test_fuzz_${name}.cpp
+                test_fuzz/test_fuzz_main.cpp
+                ${ARGN}
             INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
             LIBS ryml c4fs
             FOLDER test/fuzz)
@@ -315,6 +315,7 @@ if(RYML_TEST_FUZZ)
             string(REPLACE "/" "_" fuzz_name "${file}")
             add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name}
                 COMMAND ${tgtexe} ${dir}/${file})
+            set_tests_properties(ryml-test-fuzz-${name_}-${fuzz_name} PROPERTIES TIMEOUT 10)
         endfunction()
         foreach(fuzz_file ${fuzz_files})
             ryml_add_fuzz_test_file(${name} ${corpus_artifacts_dir} ${fuzz_file})

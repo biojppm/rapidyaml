@@ -19,11 +19,8 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   samples:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip samples')) ||
-      contains(github.event.head_commit.message, 'only samples')
-    continue-on-error: true
+    if: always()
+    continue-on-error: false
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false

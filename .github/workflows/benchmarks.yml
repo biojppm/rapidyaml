@@ -60,7 +60,7 @@ jobs:
         export SRC_VERSION=$SRC_VERSION
         EOF
     - name: Save vars.sh
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: vars.sh
         path: ./vars.sh
@@ -83,49 +83,36 @@ jobs:
     - name: Verify vars.sh
       run: env | grep SRC
   benchmarks:
-    name: bm/c++${{matrix.std}}/${{matrix.cxx}}/${{matrix.bt}}
+    name: bm/c++${{matrix.std}}/${{matrix.comp}}/${{matrix.bt}}
     needs: gettag
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip benchmarks')) ||
-      contains(github.event.head_commit.message, 'only benchmarks')
-    continue-on-error: true
+    if: always()
+    continue-on-error: false
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
         include:
-        - std: 11
-          cxx: g++-10
-          bt: Release
-          os: ubuntu-20.04
-          bitlinks: static64 static32
         - std: 17
-          cxx: g++-10
-          bt: Release
-          os: ubuntu-20.04
-          bitlinks: static64 static32
-        - std: 20
-          cxx: g++-10
-          bt: Release
-          os: ubuntu-20.04
-          bitlinks: static64 static32
+          comp: gcc14
+          os: ubuntu-24.04
+          cmkflags: -DCMAKE_CXX_COMPILER=g++-14     -DCMAKE_C_COMPILER=gcc-14
         - std: 17
-          cxx: vs2019
-          bt: Release
+          comp: clang18
+          os: ubuntu-24.04
+          cmkflags: -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang-18
+        - std: 17
+          comp: vs2019
           os: windows-2019
-          bitlinks: static64 static32
-        - std: 20
-          cxx: vs2019
-          bt: Release
-          os: windows-2019
-          bitlinks: static64 static32
+          cmkflags: -G 'Visual Studio 16 2019' -A x64
         - std: 17
-          cxx: xcode
-          xcver: 15
-          bt: Release
+          comp: vs2022
+          os: windows-2022
+          cmkflags: -G 'Visual Studio 17 2022' -A x64
+        - std: 17
+          comp: xcode15
           os: macos-13
-          bitlinks: static64
+          xcver: 15
+          cmkflags: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
     env:
       BM: 'ON'
       STD: ${{matrix.std}}
@@ -143,7 +130,7 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - name: Download vars.sh
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: vars.sh
         path: ./
@@ -182,47 +169,21 @@ jobs:
         pip install -v -r ext/c4core/cmake/bm-xp/requirements.txt
         python -c 'import munch ; print("ok!") ; exit(0)'
         echo $?
-    - name: set build env vars
+    - name: configure-------------------------------------------------
       run: |
-        echo "NUM_JOBS_BUILD=1" >> $GITHUB_ENV
-        echo "CMAKE_FLAGS=\"-DPython_EXECUTABLE=$(which python)\"" >> $GITHUB_ENV
-    - name: check build env vars
-      run: |
-        echo NUM_JOBS_BUILD=$NUM_JOBS_BUILD
-        echo "CMAKE_FLAGS=\"$CMAKE_FLAGS\""
-    - name: shared64-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared64
-    - name: shared64-build
-      run: source .github/setenv.sh && c4_build_target shared64 ryml-bm-build
-    - name: shared64-run
-      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-run
-    - name: shared64-plot
-      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot
-    - name: static64-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static64
-    - name: static64-build
-      run: source .github/setenv.sh && c4_build_target static64 ryml-bm-build
-    - name: static64-run
-      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-run
-    - name: static64-plot
-      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-plot
-    - name: static32-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static32
-    - name: static32-build
-      run: source .github/setenv.sh && c4_build_target static32 ryml-bm-build
-    - name: static32-run
-      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-run
-    - name: static32-plot
-      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-plot
-    - name: shared32-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared32
-    - name: shared32-build
-      run: source .github/setenv.sh && c4_build_target shared32 ryml-bm-build
-    - name: shared32-run
-      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-run
-    - name: shared32-plot
-      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot
-    - name: gather benchmark results
+        cmake -S . -B build \
+            ${{matrix.cmkflags}} \
+            -DPython_EXECUTABLE="$(which python)" \
+            -DC4_CXX_STANDARD=${{matrix.std}} \
+            -DRYML_CXX_STANDARD=${{matrix.std}} \
+            -DRYML_BUILD_BENCHMARKS=ON
+    - name: build
+      run: cmake --build build --config Release --parallel --verbose --target ryml-bm-build
+    - name: run
+      run: cmake --build build --config Release --verbose --target ryml-bm-run
+    - name: plot
+      run: cmake --build build --config Release --verbose --target ryml-bm-plot
+    - name: gather benchmark results-------------------------------------------
       run: |
         set -x
         source vars.sh
@@ -236,7 +197,7 @@ jobs:
           mv -vf build/$bl/bm/bm-results/* $dst/.
         done
     - name: upload benchmark result artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ryml-benchmark_results
+        name: ryml-benchmark_results-${{strategy.job-index}}
         path: ryml-benchmark_results/

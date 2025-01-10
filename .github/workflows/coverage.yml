@@ -19,11 +19,8 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   coverage:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip coverage')) ||
-      contains(github.event.head_commit.message, 'only coverage')
-    continue-on-error: true
+    if: always()
+    continue-on-error: false
     name: coverage/c++${{matrix.std}}${{matrix.namesfx}}
     runs-on: ${{matrix.os}}
     strategy:
@@ -79,9 +76,9 @@ jobs:
     - name: static64-run
       run: source .github/setenv.sh && c4_build_target static64 ryml-coverage
     - name: static64-coverage-artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: coverage-static64
+        name: coverage-static64-${{strategy.job-index}}
         path: |
           build/static64/lcov
           build/static64/coverage3-final_filtered.lcov
@@ -94,9 +91,9 @@ jobs:
     - name: static32-run
       run: source .github/setenv.sh && c4_build_target static32 ryml-coverage
     - name: static32-coverage-artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: coverage-static32-cxx${{matrix.std}}
+        name: coverage-static32-cxx${{matrix.std}}-${{strategy.job-index}}
         path: |
           build/static32/lcov
           build/static32/coverage3-final_filtered.lcov
