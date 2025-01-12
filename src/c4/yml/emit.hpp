@@ -75,9 +75,9 @@ typedef enum {
 struct EmitOptions
 {
     typedef enum : uint32_t {
-        DEFAULT_FLAGS = 0,
-        JSON_ERR_ON_TAG = 1 << 0,
-        JSON_ERR_ON_ANCHOR = 1 << 1,
+        DEFAULT_FLAGS = 0u,
+        JSON_ERR_ON_TAG = 1u << 0u,
+        JSON_ERR_ON_ANCHOR = 1u << 1u,
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
     } EmitOptionFlags_e;
 
@@ -896,6 +896,6 @@ C4_SUPPRESS_WARNING_GCC_CLANG_POP
 #undef RYML_DEPRECATE_EMIT
 #undef RYML_DEPRECATE_EMITRS
 
-#include "c4/yml/emit.def.hpp"
+#include "c4/yml/emit.def.hpp" // NOLINT
 
 #endif /* _C4_YML_EMIT_HPP_ */

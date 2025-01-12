@@ -494,6 +494,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_CXX_FLAGS_DEBUG="-m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_DEBUG="-m${{matrix.bits}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -519,6 +520,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -544,6 +546,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -569,6 +572,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -594,6 +598,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \

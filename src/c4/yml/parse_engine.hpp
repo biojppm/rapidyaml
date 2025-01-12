@@ -15,6 +15,7 @@
 #   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
 #endif
 
+// NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -214,8 +215,8 @@ struct RYML_EXPORT ParserOptions
 private:
 
     typedef enum : uint32_t {
-        SCALAR_FILTERING = (1u << 0),
-        LOCATIONS = (1u << 1),
+        SCALAR_FILTERING = (1u << 0u),
+        LOCATIONS = (1u << 1u),
         DEFAULTS = SCALAR_FILTERING,
     } Flags_e;
 
@@ -302,9 +303,9 @@ public:
     ParseEngine(EventHandler *evt_handler, ParserOptions opts={});
     ~ParseEngine();
 
-    ParseEngine(ParseEngine &&);
+    ParseEngine(ParseEngine &&) noexcept;
     ParseEngine(ParseEngine const&);
-    ParseEngine& operator=(ParseEngine &&);
+    ParseEngine& operator=(ParseEngine &&) noexcept;
     ParseEngine& operator=(ParseEngine const&);
 
     /** @} */
@@ -628,7 +629,7 @@ private:
     void   _scan_line();
     substr _peek_next_line(size_t pos=npos) const;
 
-    inline bool _at_line_begin() const
+    bool _at_line_begin() const
     {
         return m_evt_handler->m_curr->line_contents.rem.begin() == m_evt_handler->m_curr->line_contents.full.begin();
     }
@@ -726,7 +727,7 @@ private:
 public:
 
     /** @cond dev */
-    EventHandler *C4_RESTRICT m_evt_handler;
+    EventHandler *C4_RESTRICT m_evt_handler; // NOLINT
     /** @endcond */
 
 private:
@@ -764,12 +765,14 @@ RYML_EXPORT C4_NO_INLINE size_t _find_last_newline_and_larger_indentation(csubst
  * resulting number of nodes, notably if the YAML uses implicit
  * maps as flow seq members as in `[these: are, individual:
  * maps]`. */
-RYML_EXPORT id_type estimate_tree_capacity(csubstr src);
+RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-redundant-declaration)
 
 /** @} */
 
 } // namespace yml
 } // namespace c4
+
+// NOLINTEND(hicpp-signed-bitwise)
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)

@@ -30,20 +30,20 @@ void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
         {
             // this is more portable than using fprintf("%.*s:") which
             // is not available in some embedded platforms
-            fwrite(loc.name.str, 1, loc.name.len, f);
-            fputc(':', f);
+            fwrite(loc.name.str, 1, loc.name.len, f); // NOLINT
+            fputc(':', f); // NOLINT
         }
-        fprintf(f, "%zu:", loc.line);
+        fprintf(f, "%zu:", loc.line); // NOLINT
         if(loc.col)
-            fprintf(f, "%zu:", loc.col);
+            fprintf(f, "%zu:", loc.col); // NOLINT
         if(loc.offset)
-            fprintf(f, " (%zuB):", loc.offset);
-        fputc(' ', f);
+            fprintf(f, " (%zuB):", loc.offset); // NOLINT
+        fputc(' ', f); // NOLINT
     }
     RYML_ASSERT(!csubstr(msg, length).ends_with('\0'));
-    fwrite(msg, 1, length, f);
-    fputc('\n', f);
-    fflush(f);
+    fwrite(msg, 1, length, f); // NOLINT
+    fputc('\n', f); // NOLINT
+    fflush(f); // NOLINT
 }
 
 [[noreturn]] void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
@@ -76,7 +76,7 @@ void free_impl(void *mem, size_t /*length*/, void * /*user_data*/)
 
 
 
-Callbacks::Callbacks()
+Callbacks::Callbacks() noexcept
     :
     m_user_data(nullptr),
     #ifndef RYML_NO_DEFAULT_CALLBACKS

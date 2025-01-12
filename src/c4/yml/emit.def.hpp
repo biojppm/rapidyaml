@@ -717,7 +717,7 @@ again:
         _rymlindent_nextline();
         this->Writer::_do_write(s.range(i, pos));
         i = pos;
-        goto again;
+        goto again; // NOLINT
     }
     // consume the newlines after the indented block
     // to prevent them from being escaped
@@ -898,7 +898,7 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
     for(size_t i = 0; i < s.len; ++i)
     {
         const char curr = s.str[i];
-        switch(curr)
+        switch(curr) // NOLINT
         {
         case '"':
         case '\\':

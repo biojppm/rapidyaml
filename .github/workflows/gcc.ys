@@ -186,3 +186,38 @@ jobs:
       run: source .github/setenv.sh && c4_run_test arm
     - name: pack
       run: source .github/setenv.sh && c4_package arm
+
+  #----------------------------------------------------------------------------
+  #analyzer:
+  #  :: setup-job('gcc' 'analyzer')
+  #  name: analyzer/${{matrix.bits}}bit/${{matrix.bt}}
+  #  :: runs-on-docker-c4core('${{matrix.img}}')
+  #  strategy:
+  #    fail-fast: false
+  #    matrix:
+  #      include:
+  #      - {std: 11, gcc: 14, bits: 64, bt: Debug  , img: 22.04}
+  #      - {std: 11, gcc: 14, bits: 64, bt: Release, img: 22.04}
+  #      - {std: 11, gcc: 14, bits: 32, bt: Debug  , img: 22.04}
+  #      - {std: 11, gcc: 14, bits: 32, bt: Release, img: 22.04}
+  #  steps:
+  #    - :: checkout-action-docker
+  #    - name: install
+  #      run: c4core-install g++-${{matrix.gcc}}
+  #    - name: configure
+  #      run: |
+  #        cmake -S . -B build \
+  #           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  #           -DCMAKE_GCC_COMPILER=g++-${{matrix.gcc}} \
+  #           -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+  #           -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
+  #           -DRYML_DEV=ON \
+  #           -DRYML_VALGRIND=OFF \
+  #           -DRYML_BUILD_TESTS=ON \
+  #           -DRYML_BUILD_BENCHMARKS=OFF \
+  #           -DRYML_DBG=OFF \
+  #           -DRYML_FANALYZER=ON
+  #    - name: build
+  #      run: cmake --build build --target ryml-test-build --parallel --verbose
+  #    - name: run
+  #      run: cmake --build build --target ryml-test-run --verbose

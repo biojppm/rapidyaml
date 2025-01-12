@@ -67,7 +67,7 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
 
     #define _prflag(fl, txt)                                    \
     do {                                                        \
-        if((flags & fl) == (fl))                                \
+        if((flags & (fl)) == (fl))                              \
         {                                                       \
             if(gotone)                                          \
             {                                                   \
@@ -80,7 +80,7 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
                 memcpy(buf.str + pos, fltxt.str, fltxt.len);    \
             pos += fltxt.len;                                   \
             gotone = true;                                      \
-            flags = (flags & ~fl); /*remove the flag*/          \
+            flags = (flags & ~(fl)); /*remove the flag*/        \
         }                                                       \
     } while(0)
 

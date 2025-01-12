@@ -110,17 +110,17 @@ struct NodeScalar
 public:
 
     /// initialize as an empty scalar
-    inline NodeScalar() noexcept : tag(), scalar(), anchor() {}
+    NodeScalar() noexcept : tag(), scalar(), anchor() {} // NOLINT
 
     /// initialize as an untagged scalar
     template<size_t N>
-    inline NodeScalar(const char (&s)[N]) noexcept : tag(), scalar(s), anchor() {}
-    inline NodeScalar(csubstr      s    ) noexcept : tag(), scalar(s), anchor() {}
+    NodeScalar(const char (&s)[N]) noexcept : tag(), scalar(s), anchor() {}
+    NodeScalar(csubstr      s    ) noexcept : tag(), scalar(s), anchor() {}
 
     /// initialize as a tagged scalar
     template<size_t N, size_t M>
-    inline NodeScalar(const char (&t)[N], const char (&s)[N]) noexcept : tag(t), scalar(s), anchor() {}
-    inline NodeScalar(csubstr      t    , csubstr      s    ) noexcept : tag(t), scalar(s), anchor() {}
+    NodeScalar(const char (&t)[N], const char (&s)[N]) noexcept : tag(t), scalar(s), anchor() {}
+    NodeScalar(csubstr      t    , csubstr      s    ) noexcept : tag(t), scalar(s), anchor() {}
 
 public:
 
@@ -256,7 +256,7 @@ public:
     Tree(Tree     && that) noexcept;
 
     Tree& operator= (Tree const& that);
-    Tree& operator= (Tree     && that) RYML_NOEXCEPT;
+    Tree& operator= (Tree     && that) noexcept;
 
     /** @} */
 
@@ -271,13 +271,13 @@ public:
      * @note does NOT clear the arena
      * @see clear_arena() */
     void clear();
-    inline void clear_arena() { m_arena_pos = 0; }
+    void clear_arena() { m_arena_pos = 0; }
 
-    inline bool   empty() const { return m_size == 0; }
+    bool empty() const { return m_size == 0; }
 
-    inline id_type size() const { return m_size; }
-    inline id_type capacity() const { return m_cap; }
-    inline id_type slack() const { RYML_ASSERT(m_cap >= m_size); return m_cap - m_size; }
+    id_type size() const { return m_size; }
+    id_type capacity() const { return m_cap; }
+    id_type slack() const { RYML_ASSERT(m_cap >= m_size); return m_cap - m_size; }
 
     Callbacks const& callbacks() const { return m_callbacks; }
     void callbacks(Callbacks const& cb) { m_callbacks = cb; }
@@ -301,7 +301,7 @@ public:
 
     //! get a pointer to a node's NodeData.
     //! i can be NONE, in which case a nullptr is returned
-    inline NodeData *get(id_type node)
+    NodeData *get(id_type node) // NOLINT(readability-make-member-function-const)
     {
         if(node == NONE)
             return nullptr;
@@ -310,7 +310,7 @@ public:
     }
     //! get a pointer to a node's NodeData.
     //! i can be NONE, in which case a nullptr is returned.
-    inline NodeData const *get(id_type node) const
+    NodeData const *get(id_type node) const
     {
         if(node == NONE)
             return nullptr;
@@ -320,10 +320,10 @@ public:
 
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    inline NodeData       * _p(id_type node)       { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
+    NodeData       * _p(id_type node)       { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; } // NOLINT(readability-make-member-function-const)
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    inline NodeData const * _p(id_type node) const { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
+    NodeData const * _p(id_type node) const { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
 
     //! Get the id of the root node
     id_type root_id()       { if(m_cap == 0) { reserve(16); } _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
@@ -483,7 +483,7 @@ public:
         return false;
     }
 
-    RYML_DEPRECATED("use has_other_siblings()") bool has_siblings(id_type /*node*/) const { return true; }
+    RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
 
     /** @} */
 
@@ -712,7 +712,7 @@ public:
 public:
 
     /** remove an entire branch at once: ie remove the children and the node itself */
-    inline void remove(id_type node)
+    void remove(id_type node)
     {
         remove_children(node);
         _release(node);
@@ -822,16 +822,16 @@ public:
     /** get the current size of the tree's internal arena */
     RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
     /** get the current size of the tree's internal arena */
-    inline size_t arena_size() const { return m_arena_pos; }
+    size_t arena_size() const { return m_arena_pos; }
     /** get the current capacity of the tree's internal arena */
-    inline size_t arena_capacity() const { return m_arena.len; }
+    size_t arena_capacity() const { return m_arena.len; }
     /** get the current slack of the tree's internal arena */
-    inline size_t arena_slack() const { _RYML_CB_ASSERT(m_callbacks, m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
+    size_t arena_slack() const { _RYML_CB_ASSERT(m_callbacks, m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
     /** get the current arena */
     csubstr arena() const { return m_arena.first(m_arena_pos); }
     /** get the current arena */
-    substr arena() { return m_arena.first(m_arena_pos); }
+    substr arena() { return m_arena.first(m_arena_pos); } // NOLINT(readability-make-member-function-const)
 
     /** return true if the given substring is part of the tree's string arena */
     bool in_arena(csubstr s) const
@@ -936,7 +936,7 @@ public:
     {
         return to_arena(to_csubstr(s));
     }
-    C4_ALWAYS_INLINE csubstr to_arena(std::nullptr_t)
+    C4_ALWAYS_INLINE static csubstr to_arena(std::nullptr_t)
     {
         return csubstr{};
     }
@@ -1053,7 +1053,7 @@ public:
         size_t  path_pos;
         csubstr path;
 
-        inline operator bool() const { return target != NONE; }
+        operator bool() const { return target != NONE; }
 
         lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
         lookup_result(csubstr path_, id_type start) : target(NONE), closest(start), path_pos(0), path(path_) {}
@@ -1089,7 +1089,7 @@ private:
         NodeType type;
         _lookup_path_token() : value(), type() {}
         _lookup_path_token(csubstr v, NodeType t) : value(v), type(t) {}
-        inline operator bool() const { return type != NOTYPE; }
+        operator bool() const { return type != NOTYPE; }
         bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
     };
 
@@ -1101,7 +1101,7 @@ private:
     id_type _next_node       (lookup_result *r, _lookup_path_token *parent) const;
     id_type _next_node_modify(lookup_result *r, _lookup_path_token *parent);
 
-    void   _advance(lookup_result *r, size_t more) const;
+    static void _advance(lookup_result *r, size_t more);
 
     _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent) const;
 
@@ -1123,7 +1123,7 @@ public:
     #else
     void _check_next_flags(id_type node, type_bits f)
     {
-        auto n = _p(node);
+        NodeData *n = _p(node);
         type_bits o = n->m_type; // old
         C4_UNUSED(o);
         if(f & MAP)
@@ -1154,14 +1154,14 @@ public:
     }
     #endif
 
-    inline void _set_flags(id_type node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
-    inline void _set_flags(id_type node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
+    void _set_flags(id_type node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
+    void _set_flags(id_type node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
 
-    inline void _add_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    inline void _add_flags(id_type node, type_bits  f) { NodeData *d = _p(node);                f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
+    void _add_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
+    void _add_flags(id_type node, type_bits  f) { NodeData *d = _p(node);                f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
 
-    inline void _rem_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    inline void _rem_flags(id_type node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
+    void _rem_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
+    void _rem_flags(id_type node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
 
     void _set_key(id_type node, csubstr key, type_bits more_flags=0)
     {
@@ -1252,12 +1252,12 @@ public:
     void _swap_hierarchy(id_type n_, id_type m_);
     void _copy_hierarchy(id_type dst_, id_type src_);
 
-    inline void _copy_props(id_type dst_, id_type src_)
+    void _copy_props(id_type dst_, id_type src_)
     {
         _copy_props(dst_, this, src_);
     }
 
-    inline void _copy_props_wo_key(id_type dst_, id_type src_)
+    void _copy_props_wo_key(id_type dst_, id_type src_)
     {
         _copy_props_wo_key(dst_, this, src_);
     }
@@ -1296,12 +1296,12 @@ public:
         dst.m_val  = src.m_val;
     }
 
-    inline void _clear_type(id_type node)
+    void _clear_type(id_type node)
     {
         _p(node)->m_type = NOTYPE;
     }
 
-    inline void _clear(id_type node)
+    void _clear(id_type node)
     {
         auto *C4_RESTRICT n = _p(node);
         n->m_type = NOTYPE;
@@ -1312,13 +1312,13 @@ public:
         n->m_last_child = NONE;
     }
 
-    inline void _clear_key(id_type node)
+    void _clear_key(id_type node)
     {
         _p(node)->m_key.clear();
         _rem_flags(node, KEY);
     }
 
-    inline void _clear_val(id_type node)
+    void _clear_val(id_type node)
     {
         _p(node)->m_val.clear();
         _rem_flags(node, VAL);

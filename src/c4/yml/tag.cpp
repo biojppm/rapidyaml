@@ -230,7 +230,7 @@ bool TagDirective::create_from_str(csubstr directive_, Tree *tree)
         _RYML_CB_ERR(tree->callbacks(), "invalid tag directive");
     }
     next_node_id = tree->size();
-    if(tree->size() > 0)
+    if(!tree->empty())
     {
         const id_type prev = tree->size() - 1;
         if(tree->is_root(prev) && tree->type(prev) != NOTYPE && !tree->is_stream(prev))

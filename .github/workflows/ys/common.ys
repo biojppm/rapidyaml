@@ -278,6 +278,7 @@ defn run-manual-with-flags(cxx cc buildtype flags="")::
       -DCMAKE_C_COMPILER=$cc-${{matrix.cxx}} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_CXX_FLAGS_$(buildtype:uc)="$flags" \
+      -DCMAKE_C_FLAGS_$(buildtype:uc)="$flags" \
       -DC4_CXX_STANDARD=${{matrix.std}} \
       -DRYML_CXX_STANDARD=${{matrix.std}} \
       -DRYML_BUILD_TESTS=ON \

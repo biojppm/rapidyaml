@@ -126,6 +126,15 @@ ryml_add_test_case_group(anchor)
 ryml_add_test_case_group(indentation)
 ryml_add_test_case_group(number)
 ryml_add_test_case_group(github_issues)
+# workaround for a false positive warning in gcc14 --std=c++20 -O2
+if(CMAKE_COMPILER_IS_GNUCXX
+        AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13)
+        AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15))
+    get_target_property(std ryml-test-scalar_plain CXX_STANDARD)
+    if(std EQUAL 20)
+        c4_target_compile_flags(ryml-test-scalar_plain PUBLIC GCC -Wno-array-bounds -Wno-stringop-overflow)
+    endif()
+endif()
 
 
 #-------------------------------------------------------------------------

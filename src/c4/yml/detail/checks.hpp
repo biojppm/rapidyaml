@@ -30,7 +30,7 @@ inline void check_invariants(Tree const& t, id_type node)
 {
     if(node == NONE)
     {
-        if(t.size() == 0) return;
+        if(t.empty()) return;
         node = t.root_id();
     }
 

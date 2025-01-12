@@ -114,9 +114,12 @@ Tree::Tree(Tree const& that) : Tree(that.m_callbacks)
 
 Tree& Tree::operator= (Tree const& that)
 {
-    _free();
-    m_callbacks = that.m_callbacks;
-    _copy(that);
+    if(&that != this)
+    {
+        _free();
+        m_callbacks = that.m_callbacks;
+        _copy(that);
+    }
     return *this;
 }
 
@@ -125,11 +128,14 @@ Tree::Tree(Tree && that) noexcept : Tree(that.m_callbacks)
     _move(that);
 }
 
-Tree& Tree::operator= (Tree && that) RYML_NOEXCEPT
+Tree& Tree::operator= (Tree && that) noexcept
 {
-    _free();
-    m_callbacks = that.m_callbacks;
-    _move(that);
+    if(&that != this)
+    {
+        _free();
+        m_callbacks = that.m_callbacks;
+        _move(that);
+    }
     return *this;
 }
 
@@ -1466,7 +1472,7 @@ csubstr Tree::lookup_result::unresolved() const
     return path.sub(path_pos);
 }
 
-void Tree::_advance(lookup_result *r, size_t more) const
+void Tree::_advance(lookup_result *r, size_t more)
 {
     r->path_pos += more;
     if(r->path.sub(r->path_pos).begins_with('.'))
@@ -1760,7 +1766,7 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 }
 
 
-} // namespace ryml
+} // namespace yml
 } // namespace c4
 
 

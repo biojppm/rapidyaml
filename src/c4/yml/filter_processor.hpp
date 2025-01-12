@@ -63,7 +63,7 @@ struct FilterProcessorSrcDst
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
     C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
 
-    C4_ALWAYS_INLINE void set_at(size_t pos, char c) noexcept
+    C4_ALWAYS_INLINE void set_at(size_t pos, char c) noexcept // NOLINT(readability-make-member-function-const)
     {
         RYML_ASSERT(pos < wpos);
         dst.str[pos] = c;

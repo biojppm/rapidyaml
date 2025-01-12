@@ -1,0 +1,110 @@
+Checks:
+  - '*' # enable everything
+  # but disable the following:
+  - -altera-id-dependent-backward-branch # backward branch (for loop) is ID-dependent due to variable reference to 'n' and may cause performance degradation
+  - -altera-struct-pack-align # accessing fields in struct 'base64_wrapper_<char>' is inefficient due to poor alignment; currently aligned to 8 bytes, but recommended alignment is 16 bytes
+  - -altera-unroll-loops # kernel performance could be improved by unrolling this loop with a '#pragma unroll' directive
+  - -bugprone-branch-clone # repeated branch body in conditional chain
+  - -bugprone-easily-swappable-parameters # 2 adjacent parameters of 'Tree' of similar type are easily swapped by mistake
+  - -bugprone-reserved-identifier # warnings on identifiers with leading _
+  - -bugprone-switch-missing-default-case # switching on non-enum value without default case may not cover all cases
+  - -cert-dcl37-c # warnings on identifiers with leading _
+  - -cert-dcl51-cpp # warnings on identifiers with leading _
+  - -cert-dcl59-cpp,fuchsia-header-anon-namespaces # do not use unnamed namespaces in header files
+  - -clang-analyzer-optin.core.EnumCastOutOfRange # The value '44' provided to the cast expression is not in the valid range of values for the enum
+  - -clang-diagnostic-pragma-system-header-outside-header # #pragma system_header ignored in main file
+  - -clang-diagnostic-unknown-warning-option # unknown compiler options
+  - -cppcoreguidelines-avoid-c-arrays # allow C arrays
+  - -cppcoreguidelines-avoid-do-while # avoid do-while loops
+  - -cppcoreguidelines-avoid-magic-numbers
+  - -cppcoreguidelines-avoid-non-const-global-variables # variable 's_default_callbacks' is non-const and globally accessible, consider making it const
+  - -cppcoreguidelines-init-variables # variable 'node' is not initialized
+  - -cppcoreguidelines-macro-to-enum # replace macro with enum
+  - -cppcoreguidelines-macro-usage # function-like macro 'c4append_' used; consider a 'constexpr' template function
+  - -cppcoreguidelines-no-malloc # do not manage memory manually; consider a container or a smart pointer
+  - -cppcoreguidelines-owning-memory # initializing non-owner 'void *' with a newly created 'gsl::owner<>'
+  - -cppcoreguidelines-pro-bounds-array-to-pointer-decay
+  - -cppcoreguidelines-pro-bounds-constant-array-index # do not use array subscript when the index is not an integer constant expression
+  - -cppcoreguidelines-pro-bounds-pointer-arithmetic # do not use pointer arithmetic
+  - -cppcoreguidelines-pro-type-cstyle-cast # do not use C-style cast to convert between unrelated types
+  - -cppcoreguidelines-pro-type-member-init # constructor does not initialize these fields: len
+  - -cppcoreguidelines-pro-type-vararg # do not call c-style vararg functions
+  - -cppcoreguidelines-use-default-member-init # use default member initializer for 'm_pos'
+  - -fuchsia-default-arguments-calls # calling a function that uses a default argument is disallowed
+  - -fuchsia-default-arguments-declarations # declaring a parameter with a default argument is disallowed
+  - -fuchsia-overloaded-operator # overloading 'operator[]' is disallowed
+  - -fuchsia-statically-constructed-objects # static objects are disallowed; if possible, use a constexpr constructor instead
+  - -fuchsia-trailing-return # a trailing return type is disallowed for this function declaration
+  - -google-build-namespaces # do not use unnamed namespaces in header files
+  - -google-build-using-namespace # do not use namespace using-directives; use using-declarations instead
+  - -google-explicit-constructor # single-argument constructors must be marked explicit to avoid unintentional implicit conversions
+  - -google-readability-braces-around-statements # statement should be inside braces
+  - -google-readability-casting # C-style casts are discouraged; use static_cast
+  - -google-readability-function-size # function '_handle_map_block' exceeds recommended size/complexity thresholds
+  - -google-readability-namespace-comments # anonymous namespace not terminated with a closing comment
+  - -google-readability-todo # missing username/bug in TODO
+  - -hicpp-avoid-c-arrays # allow C arrays
+  - -hicpp-braces-around-statements # statement should be inside braces
+  - -hicpp-deprecated-headers # inclusion of deprecated C++ header 'stdlib.h'; consider using 'cstdlib' instead
+  - -hicpp-explicit-conversions # single-argument constructors must be marked explicit to avoid unintentional implicit conversions
+  - -hicpp-function-size # function '_handle_map_block' exceeds recommended size/complexity thresholds
+  - -hicpp-member-init # constructor does not initialize these fields: len
+  - -hicpp-named-parameter # all parameters should be named in a function
+  - -hicpp-no-array-decay # do not implicitly decay an array into a pointer; consider using gsl::array_view or an explicit cast instead
+  - -hicpp-no-malloc # do not manage memory manually; consider a container or a smart pointer
+  - -hicpp-uppercase-literal-suffix # integer literal has suffix 'u', which is not uppercase
+  - -hicpp-use-auto,modernize-use-auto # use auto when initializing with a cast to avoid duplicating the type name
+  - -hicpp-vararg # do not call c-style vararg functions
+  - -llvm-else-after-return,readability-else-after-return # do not use 'else' after 'return'
+  - -llvm-header-guard # header guard does not follow preferred style
+  - -llvm-include-order # #includes are not sorted properly
+  - -llvm-namespace-comment # anonymous namespace not terminated with a closing comment
+  - -llvmlibc-callee-namespace # ... must resolve to a function declared within the namespace defined by the ... macro
+  - -llvmlibc-implementation-in-namespace # the outermost namespace should be the 'LIBC_NAMESPACE' macro
+  - -llvmlibc-inline-function-decl # '_is_idchar' must be tagged with the LIBC_INLINE macro; the macro should be placed at the beginning of the declaration
+  - -llvmlibc-restrict-system-libc-headers # system include stdlib.h not allowed
+  - -misc-const-correctness # variable 's2c' of type 'char' can be declared 'const'
+  - -misc-include-cleaner #  no header providing ... is directly included
+  - -misc-no-recursion # function 'reserve' is within a recursive call chain
+  - -misc-non-private-member-variables-in-classes # member variable 'data' has public visibility
+  - -modernize-avoid-c-arrays # allow C arrays
+  - -modernize-concat-nested-namespaces # nested namespaces can be concatenated
+  - -modernize-deprecated-headers # inclusion of deprecated C++ header 'stdlib.h'; consider using 'cstdlib' instead
+  - -modernize-deprecated-headers # inclusion of deprecated C++ header 'stdlib.h'; consider using 'cstdlib' instead
+  - -modernize-loop-convert # use range-based for loop instead
+  - -modernize-macro-to-enum # replace macro with enum
+  - -modernize-return-braced-init-list # avoid repeating the return type from the declaration; use a braced initializer list instead
+  - -modernize-type-traits # use c++17 style variable templates
+  - -modernize-use-auto # use auto when initializing with a cast to avoid duplicating the type name
+  - -modernize-use-default-member-init # use default member initializer for 'm_pos'
+  - -modernize-use-nodiscard # function 'valid' should be marked nodiscard
+  - -modernize-use-trailing-return-type # don't care about this
+  - -modernize-use-using # use 'using' instead of 'typedef'
+  - -performance-enum-size # enum '_ppstate' uses a larger base type ('int', size: 4 bytes) than necessary for its value set, consider using 'std::uint8_t' (1 byte) as the base type to reduce its size
+  - -readability-avoid-nested-conditional-operator # conditional operator is used as sub-expression of parent conditional operator, refrain from using nested conditional operators
+  - -readability-avoid-unconditional-preprocessor-if # preprocessor condition is always 'false', consider removing both the condition and its contents
+  - -readability-braces-around-statements # statement should be inside braces
+  - -readability-else-after-return # do not use 'else' after 'return'
+  - -readability-function-cognitive-complexity # function ... has cognitive complexity of ... (threshold ...)
+  - -readability-function-size # function '_handle_map_block' exceeds recommended size/complexity thresholds
+  - -readability-identifier-length # variable name 'c' is too short, expected at least 3 characters
+  - -readability-implicit-bool-conversion # implicit conversion 'NodeData *' -> 'bool'
+  - -readability-inconsistent-declaration-parameter-name # definition with different parameter names
+  - -readability-isolate-declaration # multiple declarations in a single statement reduces readability
+  - -readability-magic-numbers # 16 is a magic number; consider replacing it with a named constant
+  - -readability-named-parameter # all parameters should be named in a function
+  - -readability-redundant-access-specifiers # redundant access specifier has the same accessibility as the previous access specifier
+  - -readability-redundant-member-init # initializer for member 'm_arena' is redundant
+  - -readability-simplify-boolean-expr # boolean expression can be simplified by DeMorgan's theorem
+  - -readability-suspicious-call-argument # 1st argument 'after' (passed to 'node') looks like it might be swapped with the 2nd, 'node' (passed to 'sib')
+  - -readability-uppercase-literal-suffix # integer literal has suffix 'u', which is not uppercase
+  - -readability-use-anyofallof # replace loop by 'std::all_of()'
+
+# Turn all the warnings from the checks above into errors.
+WarningsAsErrors: '*'
+
+#CheckOptions:
+#  - { key: readability-identifier-naming.ClassCase,             value: CamelCase  }
+#  - { key: readability-identifier-naming.MethodCase,            value: CamelCase  }
+#  - { key: readability-identifier-naming.MemberPrefix,          value: m_         }
+#  - { key: readability-identifier-naming.MemberCase,            value: lower_case }

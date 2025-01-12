@@ -56,10 +56,12 @@
 #   endif
 #endif
 
+// NOLINTBEGIN(hicpp-signed-bitwise,cppcoreguidelines-avoid-goto,hicpp-avoid-goto,hicpp-multiway-paths-covered)
+
 namespace c4 {
 namespace yml {
 
-namespace {
+namespace { // NOLINT
 
 C4_HOT C4_ALWAYS_INLINE bool _is_blck_token(csubstr s) noexcept
 {
@@ -260,7 +262,7 @@ ParseEngine<EventHandler>::ParseEngine(EventHandler *evt_handler, ParserOptions 
 }
 
 template<class EventHandler>
-ParseEngine<EventHandler>::ParseEngine(ParseEngine &&that)
+ParseEngine<EventHandler>::ParseEngine(ParseEngine &&that) noexcept
     : m_options(that.m_options)
     , m_file(that.m_file)
     , m_buf(that.m_buf)
@@ -298,7 +300,7 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine const& that)
 }
 
 template<class EventHandler>
-ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine &&that)
+ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine &&that) noexcept
 {
     _free();
     m_options = (that.m_options);
@@ -318,20 +320,23 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine &&th
 template<class EventHandler>
 ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine const& that)
 {
-    _free();
-    m_options = (that.m_options);
-    m_file = (that.m_file);
-    m_buf = (that.m_buf);
-    m_evt_handler = that.m_evt_handler;
-    m_pending_anchors = that.m_pending_anchors;
-    m_pending_tags = that.m_pending_tags;
-    if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
-        _resize_locations(that.m_newline_offsets_capacity);
-    _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_capacity);
-    _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_size);
-    memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
-    m_newline_offsets_size = that.m_newline_offsets_size;
-    m_newline_offsets_buf = that.m_newline_offsets_buf;
+    if(&that != this)
+    {
+        _free();
+        m_options = (that.m_options);
+        m_file = (that.m_file);
+        m_buf = (that.m_buf);
+        m_evt_handler = that.m_evt_handler;
+        m_pending_anchors = that.m_pending_anchors;
+        m_pending_tags = that.m_pending_tags;
+        if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
+            _resize_locations(that.m_newline_offsets_capacity);
+        _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_capacity);
+        _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_size);
+        memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
+        m_newline_offsets_size = that.m_newline_offsets_size;
+        m_newline_offsets_buf = that.m_newline_offsets_buf;
+    }
     return *this;
 }
 
@@ -359,7 +364,7 @@ void ParseEngine<EventHandler>::_free()
         m_newline_offsets = nullptr;
         m_newline_offsets_size = 0u;
         m_newline_offsets_capacity = 0u;
-        m_newline_offsets_buf = 0u;
+        m_newline_offsets_buf = nullptr;
     }
 }
 
@@ -385,9 +390,9 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_relocate_arena(csubstr prev_arena, substr next_arena)
 {
     #define _ryml_relocate(s)                                   \
-    if(s.is_sub(prev_arena))                                    \
+    if((s).is_sub(prev_arena))                                  \
     {                                                           \
-        s.str = next_arena.str + (s.str - prev_arena.str);      \
+        (s).str = next_arena.str + ((s).str - prev_arena.str);  \
     }
     _ryml_relocate(m_buf);
     _ryml_relocate(m_newline_offsets_buf);
@@ -420,33 +425,33 @@ void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
         size_t offs = 3u + to_chars(substr{}, st->pos.line) + to_chars(substr{}, st->pos.col);
         if(m_file.len)
         {
-            detail::_dump(dumpfn, "{}:", m_file);
+            detail::_dump(std::forward<DumpFn>(dumpfn), "{}:", m_file);
             offs += m_file.len + 1;
         }
-        detail::_dump(dumpfn, "{}:{}: ", st->pos.line, st->pos.col);
+        detail::_dump(std::forward<DumpFn>(dumpfn), "{}:{}: ", st->pos.line, st->pos.col);
         csubstr maybe_full_content = (contents.len < 80u ? contents : contents.first(80u));
         csubstr maybe_ellipsis = (contents.len < 80u ? csubstr{} : csubstr("..."));
-        detail::_dump(dumpfn, "{}{}  (size={})\n", maybe_full_content, maybe_ellipsis, contents.len);
+        detail::_dump(std::forward<DumpFn>(dumpfn), "{}{}  (size={})\n", maybe_full_content, maybe_ellipsis, contents.len);
         // highlight the remaining portion of the previous line
         size_t firstcol = (size_t)(lc.rem.begin() - lc.full.begin());
         size_t lastcol = firstcol + lc.rem.len;
         for(size_t i = 0; i < offs + firstcol; ++i)
-            dumpfn(" ");
-        dumpfn("^");
+            std::forward<DumpFn>(dumpfn)(" ");
+        std::forward<DumpFn>(dumpfn)("^");
         for(size_t i = 1, e = (lc.rem.len < 80u ? lc.rem.len : 80u); i < e; ++i)
-            dumpfn("~");
-        detail::_dump(dumpfn, "{}  (cols {}-{})\n", maybe_ellipsis, firstcol+1, lastcol+1);
+            std::forward<DumpFn>(dumpfn)("~");
+        detail::_dump(std::forward<DumpFn>(dumpfn), "{}  (cols {}-{})\n", maybe_ellipsis, firstcol+1, lastcol+1);
     }
     else
     {
-        dumpfn("\n");
+        std::forward<DumpFn>(dumpfn)("\n");
     }
 
 #ifdef RYML_DBG
     // next line: print the state flags
     {
         char flagbuf_[128];
-        detail::_dump(dumpfn, "top state: {}\n", detail::_parser_flags_to_str(flagbuf_, m_evt_handler->m_curr->flags));
+        detail::_dump(std::forward<DumpFn>(dumpfn), "top state: {}\n", detail::_parser_flags_to_str(flagbuf_, m_evt_handler->m_curr->flags));
     }
 #endif
 }
@@ -4071,7 +4076,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line)
 {
     _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, str, indentation, line);
-    if(C4_UNLIKELY(dst->num_entries >= C4_COUNTOF(dst->annotations)))
+    if(C4_UNLIKELY(dst->num_entries >= C4_COUNTOF(dst->annotations))) // NOLINT(bugprone-sizeof-expression)
         _c4err("too many annotations");
     dst->annotations[dst->num_entries].str = str;
     dst->annotations[dst->num_entries].indentation = indentation;
@@ -6533,7 +6538,7 @@ mapblck_start:
             addrem_flags(RNXT, RVAL);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
-            addrem_flags(RSEQ|FLOW|RVAL, RMAP|BLCK|RNXT|BLCK);
+            addrem_flags(RSEQ|FLOW|RVAL, RMAP|BLCK|RNXT);
             _set_indentation(m_evt_handler->m_curr->indref + 1u);
             _line_progressed(1);
             goto mapblck_finish;
@@ -8124,6 +8129,8 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
 
 } // namespace yml
 } // namespace c4
+
+// NOLINTEND(hicpp-signed-bitwise,cppcoreguidelines-avoid-goto,hicpp-avoid-goto,hicpp-multiway-paths-covered)
 
 #undef _c4dbgnextline
 

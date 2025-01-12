@@ -304,7 +304,7 @@ struct RYML_EXPORT Location
     csubstr name;
 
     operator bool () const { return !name.empty() || line != 0 || offset != 0 || col != 0; }
-    operator LineCol const& () const { return reinterpret_cast<LineCol const&>(*this); }
+    operator LineCol const& () const { return reinterpret_cast<LineCol const&>(*this); } // NOLINT
 
     Location() = default;
     Location(                         size_t l, size_t c) : offset( ), line(l), col(c), name( ) {}
@@ -381,7 +381,7 @@ struct RYML_EXPORT Callbacks
     /** Construct an object with the default callbacks. If
      * @ref RYML_NO_DEFAULT_CALLBACKS is defined, the object will have null
      * members.*/
-    Callbacks();
+    Callbacks() noexcept;
 
     /** Construct an object with the given callbacks.
      *
@@ -499,7 +499,7 @@ struct FilterResult
 {
     C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
     C4_ALWAYS_INLINE size_t required_len() const noexcept { return str.len; }
-    C4_ALWAYS_INLINE csubstr get() { RYML_ASSERT(valid()); return str; }
+    C4_ALWAYS_INLINE csubstr get() const { RYML_ASSERT(valid()); return str; }
     csubstr str;
 };
 /** Abstracts the fact that a scalar filter result may not fit in the
@@ -508,7 +508,7 @@ struct FilterResultExtending
 {
     C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
     C4_ALWAYS_INLINE size_t required_len() const noexcept { return reqlen; }
-    C4_ALWAYS_INLINE csubstr get() { RYML_ASSERT(valid()); return str; }
+    C4_ALWAYS_INLINE csubstr get() const { RYML_ASSERT(valid()); return str; }
     csubstr str;
     size_t reqlen;
 };
@@ -567,7 +567,7 @@ struct _SubstrWriter
     //! get the part written so far
     csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
     //! get the part that is still free to write to (the remainder)
-    substr rem() { return pos < buf.len ? buf.sub(pos) : buf.last(0); }
+    substr rem() const { return pos < buf.len ? buf.sub(pos) : buf.last(0); }
 
     size_t advance(size_t more) { pos += more; return pos; }
 };
