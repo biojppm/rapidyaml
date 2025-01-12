@@ -66,6 +66,9 @@ struct LineContents
             ++e;
         RYML_ASSERT(e >= offset);
         const substr stripped_ = buf.range(offset, e);
+        #if defined(__GNUC__) && __GNUC__ == 11
+        C4_DONT_OPTIMIZE(stripped_);
+        #endif
         // advance pos to include the first line ending
         if(e < buf.len && buf.str[e] == '\r')
             ++e;

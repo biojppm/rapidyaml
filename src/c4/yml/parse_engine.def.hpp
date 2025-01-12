@@ -102,6 +102,14 @@ inline bool _is_doc_token(csubstr s) noexcept
     // The current version does not suffer this problem, but it may
     // appear again.
     //
+    //
+    // UPDATE. The problem appeared again in gcc12 and gcc13 with -Os
+    // (but not any other optimization level, nor any other compiler
+    // or version), because the assignment to s is being hoisted out
+    // of the loop which calls this function. Then the length doesn't
+    // enter the s.len >= 3 when it should. Adding a
+    // C4_DONT_OPTIMIZE(var) makes the problem go away.
+    //
     if(s.len >= 3)
     {
         switch(s.str[0])
@@ -1938,6 +1946,9 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
     while( ! _finished_file())
     {
         const csubstr line = m_evt_handler->m_curr->line_contents.rem;
+        #if defined(__GNUC__) && __GNUC__ == 11
+        C4_DONT_OPTIMIZE(line); // prevent erroneous hoist of the assignment out of the loop
+        #endif
         bool line_is_blank = true;
         _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", m_evt_handler->m_curr->pos.line, line);
         for(size_t i = 0; i < line.len; ++i)
@@ -2087,6 +2098,9 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
     {
         // peek next line, but do not advance immediately
         lc.reset_with_next_line(m_buf, m_evt_handler->m_curr->pos.offset);
+        #if defined(__GNUC__) && (__GNUC__ == 12 || __GNUC__ == 13)
+        C4_DONT_OPTIMIZE(lc.rem);
+        #endif
         _c4dbgpf("blck: peeking at [{}]~~~{}~~~", lc.stripped.len, lc.stripped);
         // evaluate termination conditions
         if(indentation != npos)
