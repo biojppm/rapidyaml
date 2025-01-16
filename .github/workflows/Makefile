@@ -1,8 +1,7 @@
 SHELL := bash
 
-YS_VERSION := 0.1.87
 YS_PREFIX := /tmp/rapidyaml
-YS := $(YS_PREFIX)/bin/ys-$(YS_VERSION)
+YS := $(YS_PREFIX)/bin/ys
 
 INPUT_FILES := $(wildcard */*)
 SOURCE_FILES := $(wildcard *.ys)
@@ -53,7 +52,7 @@ force:
 install-ys: $(YS)
 $(YS):
 	curl -s https://yamlscript.org/install | \
-	  BIN=1 VERSION=$(YS_VERSION) PREFIX=$(YS_PREFIX) bash
+	  BIN=1 PREFIX=$(YS_PREFIX) bash
 
 stats:
 	@echo "ys : $$(wc -l *.ys)"
