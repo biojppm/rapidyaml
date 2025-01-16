@@ -1,6 +1,6 @@
 SHELL := bash
 
-YS_VERSION := 0.1.87
+YS_VERSION := 0.1.88
 YS_PREFIX := /tmp/rapidyaml
 YS := $(YS_PREFIX)/bin/ys-$(YS_VERSION)
 

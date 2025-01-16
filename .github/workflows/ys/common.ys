@@ -1,5 +1,6 @@
 !yamlscript/v0
 
+ns: common
 
 #----------------------------------------------------------
 defn workflow-setup(name=nil overrides={})::
