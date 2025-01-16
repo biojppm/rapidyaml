@@ -1,6 +1,6 @@
 !yamlscript/v0:
 
-:: use(common)
+:use common: :all
 :workflow-setup 'release'::
   push:
     tags: [v0.*, v1.*, v2.*]
