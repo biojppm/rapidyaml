@@ -19,11 +19,8 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   macosx:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip macosx')) ||
-      contains(github.event.head_commit.message, 'only macosx')
-    continue-on-error: true
+    if: always()
+    continue-on-error: false
     runs-on: macos-13
     strategy:
       fail-fast: false

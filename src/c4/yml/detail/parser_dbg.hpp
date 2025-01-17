@@ -13,19 +13,15 @@
 //-----------------------------------------------------------------------------
 // some debugging scaffolds
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4068/*unknown pragma*/)
-#endif
+// NOLINTBEGIN(*)
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_MSVC(4068/*unknown pragma*/)
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-//#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
 #pragma GCC system_header
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Werror"
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+C4_SUPPRESS_WARNING_GCC("-Wunknown-pragmas")
+C4_SUPPRESS_WARNING_CLANG("-Wgnu-zero-variadic-macro-arguments")
+// NOLINTEND(*)
 
 
 #ifndef RYML_DBG
@@ -89,7 +85,7 @@ C4_NO_INLINE void _dbg_printf(c4::csubstr fmt, Args const& ...args)
         C4_CHECK(needed_size <= buf.len);
     }
 }
-inline void __c4presc(const char *s, size_t len, bool keep_newlines=false)
+inline C4_NO_INLINE void __c4presc(const char *s, size_t len, bool keep_newlines=false)
 {
     RYML_ASSERT(s || !len);
     size_t prev = 0;
@@ -145,11 +141,7 @@ inline void __c4presc(csubstr s, bool keep_newlines=false)
 
 #endif // RYML_DBG
 
-#pragma clang diagnostic pop
-#pragma GCC diagnostic pop
-
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
+C4_SUPPRESS_WARNING_MSVC_POP
 
 #endif /* _C4_YML_DETAIL_PARSER_DBG_HPP_ */

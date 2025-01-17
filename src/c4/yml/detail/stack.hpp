@@ -69,9 +69,12 @@ public:
 
     stack& operator= (stack const& that) RYML_NOEXCEPT
     {
-        _cb(that.m_callbacks);
-        resize(that.m_size);
-        _cp(&that);
+        if(&that != this)
+        {
+            _cb(that.m_callbacks);
+            resize(that.m_size);
+            _cp(&that);
+        }
         return *this;
     }
 

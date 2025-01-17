@@ -19,58 +19,19 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   clang_tidy:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip clang_tidy')) ||
-      contains(github.event.head_commit.message, 'only clang_tidy')
-    continue-on-error: true
-    name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: ubuntu-latest
+    if: always()
+    continue-on-error: false
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+    name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
-          cxx: clang++-17
+          clang: 18
           bt: Debug
-          lint: clang-tidy
-          bitlinks: shared64
-        - std: 11
-          cxx: clang++-17
-          bt: Debug
-          lint: clang-tidy
-          bitlinks: shared32
-        - std: 11
-          cxx: clang++-17
-          bt: Debug
-          lint: clang-tidy
-          bitlinks: static64
-        - std: 11
-          cxx: clang++-17
-          bt: Debug
-          lint: clang-tidy
-          bitlinks: static32
-        - std: 11
-          cxx: clang++-17
-          bt: ReleaseWithDebInfo
-          lint: clang-tidy
-          bitlinks: shared64
-        - std: 11
-          cxx: clang++-17
-          bt: ReleaseWithDebInfo
-          lint: clang-tidy
-          bitlinks: shared32
-        - std: 11
-          cxx: clang++-17
-          bt: ReleaseWithDebInfo
-          lint: clang-tidy
-          bitlinks: static64
-        - std: 11
-          cxx: clang++-17
-          bt: ReleaseWithDebInfo
-          lint: clang-tidy
-          bitlinks: static32
+          bits: 64
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -87,38 +48,20 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - run: git config --system --add safe.directory '*'
-    - run: c4core-install ${{matrix.cxx}}
-    - name: show info
-      run: source .github/setenv.sh && c4_show_info
-    - name: shared64-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared64
-    - name: shared64-build
-      run: source .github/setenv.sh && c4_build_test shared64
-    - name: shared64-run
-      run: source .github/setenv.sh && c4_run_test shared64
-    - name: shared64-pack
-      run: source .github/setenv.sh && c4_package shared64
-    - name: static64-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static64
-    - name: static64-build
-      run: source .github/setenv.sh && c4_build_test static64
-    - name: static64-run
-      run: source .github/setenv.sh && c4_run_test static64
-    - name: static64-pack
-      run: source .github/setenv.sh && c4_package static64
-    - name: static32-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static32
-    - name: static32-build
-      run: source .github/setenv.sh && c4_build_test static32
-    - name: static32-run
-      run: source .github/setenv.sh && c4_run_test static32
-    - name: static32-pack
-      run: source .github/setenv.sh && c4_package static32
-    - name: shared32-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared32
-    - name: shared32-build
-      run: source .github/setenv.sh && c4_build_test shared32
-    - name: shared32-run
-      run: source .github/setenv.sh && c4_run_test shared32
-    - name: shared32-pack
-      run: source .github/setenv.sh && c4_package shared32
+    - name: install
+      run: c4core-install clang++-${{matrix.clang}}
+    - name: configure
+      run: |
+        cmake -S . -B build \
+           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+           -DCMAKE_CXX_COMPILER=clang++-${{matrix.clang}} \
+           -DCMAKE_C_COMPILER=clang-${{matrix.clang}} \
+           -DCLANG_TIDY=/usr/bin/clang-tidy-${{matrix.clang}} \
+           -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
+           -DRYML_DEV=ON \
+           -DRYML_VALGRIND=OFF \
+           -DRYML_BUILD_TESTS=OFF \
+           -DRYML_BUILD_BENCHMARKS=OFF \
+           -DRYML_DBG=OFF
+    - name: clang-tidy
+      run: cmake --build build --target ryml-clang-tidy --verbose

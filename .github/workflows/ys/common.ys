@@ -8,8 +8,8 @@ defn workflow-setup(name=nil overrides={})::
   name:: name
   defaults:
     run:
-      # Use a bash shell so we can use the same syntax for environment variable
-      # access regardless of the host operating system
+      # Use a bash shell so we can use the same syntax for environment
+      # variable access regardless of the host operating system
       shell: bash -e -x {0}
   on::
     merge _ overrides::
@@ -32,18 +32,28 @@ defn bash(name):
 
 
 #----------------------------------------------------------
-defn setup-job(name)::
-  # if: always()  # https://stackoverflow.com/a/62112985/721703
-  if:: |
-    (!contains(github.event.head_commit.message, 'skip all')) ||
-    (!contains(github.event.head_commit.message, 'skip $name')) ||
-    contains(github.event.head_commit.message, 'only $name')
-  continue-on-error: true
+defn setup-job(workflowname jobname)::
+  if: always()  # https://stackoverflow.com/a/62112985/721703
+  #if:: |
+  #  ${{
+  #  (
+  #    !contains(github.event.head_commit.message, '[skip all]')
+  #    &&
+  #    !contains(github.event.head_commit.message, '[skip $workflowname]')
+  #    &&
+  #    !contains(github.event.head_commit.message, '[skip $workflowname.$jobname]')
+  #  )
+  #  ||
+  #  contains(github.event.head_commit.message, '[only $workflowname]')
+  #  ||
+  #  contains(github.event.head_commit.message, '[only $workflowname.$jobname]')
+  #  }}
+  continue-on-error: false
 
 
 #----------------------------------------------------------
 defn runs-on-docker-c4core(which)::
-  runs-on: ubuntu-latest
+  runs-on: ubuntu-24.04
   container:: "ghcr.io/biojppm/c4core/ubuntu$which:latest"
 
 
@@ -173,7 +183,7 @@ version-discover =::
     export SRC_VERSION=$SRC_VERSION
     EOF
 - name: Save vars.sh
-  uses: actions/upload-artifact@v3
+  uses: actions/upload-artifact@v4
   with: {name: vars.sh, path: ./vars.sh}
 - name: Show vars.sh
   run: cat vars.sh
@@ -186,7 +196,7 @@ version-discover =::
 
 version-get-vars =::
 - name: Download vars.sh
-  uses: actions/download-artifact@v3
+  uses: actions/download-artifact@v4
   with: {name: vars.sh, path: ./}
 - name: Show vars.sh
   run: cat vars.sh
@@ -238,3 +248,79 @@ run-steps =::
   run: source .github/setenv.sh && c4_run_test shared32
 - name: shared32-pack
   run: source .github/setenv.sh && c4_package shared32
+
+
+#----------------------------------------------------------
+
+
+defn run-gcc-manual-with-flags(buildtype flags=""):
+  run-manual-with-flags('g++' 'gcc' buildtype flags)
+
+
+defn run-clang-manual-with-flags(buildtype flags=""):
+  run-manual-with-flags('clang++' 'clang' buildtype flags)
+
+
+defn run-manual-with-flags(cxx cc buildtype flags="")::
+# $(buildtype:uc)
+# also in that case you could $uc(buildtype)
+# $(<expr>) is the more general syntax for any expr
+# $name and ${name} for simple var expansion
+# those are the 4 interpolation forms
+- name:: "---------------------------------------------------------"
+  run:: |
+    echo "$buildtype ::: $flags"
+- name:: "configure $buildtype ::: $flags"
+  run:: |
+    rm -rf build/$buildtype
+    export C4_EXTERN_DIR=`pwd`/build/extern
+    cmake -S . -B build/$buildtype \
+      -DCMAKE_CXX_COMPILER=$cxx-${{matrix.cxx}} \
+      -DCMAKE_C_COMPILER=$cc-${{matrix.cxx}} \
+      -DCMAKE_BUILD_TYPE=$buildtype \
+      -DCMAKE_CXX_FLAGS_$(buildtype:uc)="$flags" \
+      -DCMAKE_C_FLAGS_$(buildtype:uc)="$flags" \
+      -DC4_CXX_STANDARD=${{matrix.std}} \
+      -DRYML_CXX_STANDARD=${{matrix.std}} \
+      -DRYML_BUILD_TESTS=ON \
+      -DRYML_VALGRIND=${{matrix.vg}} \
+      -DRYML_DEV=ON \
+      -DRYML_BUILD_BENCHMARKS=OFF \
+      -DRYML_DBG=OFF
+- name:: "build $buildtype ::: $flags"
+  run:: |
+    cmake --build build/$buildtype --target ryml-test-build --parallel --verbose
+- name:: "run $buildtype ::: $flags"
+  run:: |
+    cmake --build build/$buildtype --target ryml-test-run
+
+
+defn run-vs-manual-with-flags(gen arch buildtype shared flags="")::
+- name:: "---------------------------------------------------------"
+  run:: |
+    echo "$buildtype ::: $flags shared=$shared"
+- name:: "configure $buildtype ::: $flags shared=$shared"
+  # WATCHOUT: the flags require a leading space, or
+  # git bash will interpret the first / as the root path
+  # and wrongly expand it to c:/Program Files/git/
+  run:: |
+    rm -rf build/$buildtype
+    export C4_EXTERN_DIR=`pwd`/build/extern
+    cmake -S . -B build/$buildtype \
+      -G "$gen" -A $arch \
+      -DCMAKE_BUILD_TYPE=$buildtype \
+      -DCMAKE_CXX_FLAGS_$(buildtype:uc)=" $flags" \
+      -DCMAKE_C_FLAGS_$(buildtype:uc)=" $flags" \
+      -DBUILD_SHARED_LIBS=$shared \
+      -DC4_CXX_STANDARD=${{matrix.std}} \
+      -DRYML_CXX_STANDARD=${{matrix.std}} \
+      -DRYML_BUILD_TESTS=ON \
+      -DRYML_DEV=ON \
+      -DRYML_BUILD_BENCHMARKS=OFF \
+      -DRYML_DBG=OFF
+- name:: "build $buildtype ::: $flags shared=$shared"
+  run:: |
+    cmake --build build/$buildtype --target ryml-test-build --parallel --verbose
+- name:: "run $buildtype ::: $flags shared=$shared"
+  run:: |
+    cmake --build build/$buildtype --target ryml-test-run

@@ -126,6 +126,15 @@ ryml_add_test_case_group(anchor)
 ryml_add_test_case_group(indentation)
 ryml_add_test_case_group(number)
 ryml_add_test_case_group(github_issues)
+# workaround for a false positive warning in gcc14 --std=c++20 -O2
+if(CMAKE_COMPILER_IS_GNUCXX
+        AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13)
+        AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15))
+    get_target_property(std ryml-test-scalar_plain CXX_STANDARD)
+    if(std EQUAL 20)
+        c4_target_compile_flags(ryml-test-scalar_plain PUBLIC GCC -Wno-array-bounds -Wno-stringop-overflow)
+    endif()
+endif()
 
 
 #-------------------------------------------------------------------------
@@ -299,10 +308,10 @@ if(RYML_TEST_FUZZ)
     function(ryml_add_fuzz_test name)
         c4_add_executable(ryml-test-fuzz-${name}
             SOURCES
-            test_fuzz/test_fuzz_common.hpp
-            test_fuzz/test_fuzz_${name}.cpp
-            test_fuzz/test_fuzz_main.cpp
-            ${ARGN}
+                test_fuzz/test_fuzz_common.hpp
+                test_fuzz/test_fuzz_${name}.cpp
+                test_fuzz/test_fuzz_main.cpp
+                ${ARGN}
             INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
             LIBS ryml c4fs
             FOLDER test/fuzz)
@@ -315,6 +324,7 @@ if(RYML_TEST_FUZZ)
             string(REPLACE "/" "_" fuzz_name "${file}")
             add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name}
                 COMMAND ${tgtexe} ${dir}/${file})
+            set_tests_properties(ryml-test-fuzz-${name_}-${fuzz_name} PROPERTIES TIMEOUT 10)
         endfunction()
         foreach(fuzz_file ${fuzz_files})
             ryml_add_fuzz_test_file(${name} ${corpus_artifacts_dir} ${fuzz_file})

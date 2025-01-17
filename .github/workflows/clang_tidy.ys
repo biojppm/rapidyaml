@@ -5,21 +5,30 @@
 
 jobs:
   clang_tidy:
-    :: setup-job('clang_tidy')
+    :: setup-job('clang_tidy' 'clang_tidy') + runs-on-docker-c4core('22.04')
     name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
-    :: runs-on-docker-c4core('22.04')
     strategy:
       fail-fast: false
       matrix:
-        include::
-          ? for
-              bt qw(Debug ReleaseWithDebInfo)
-              bl qw(shared64 shared32 static64 static32)
-          : !
-            std: 11
-            cxx: clang++-17
-            bt:: bt
-            lint: clang-tidy
-            bitlinks:: bl
+        include:
+        - {std: 11, clang: 18, bt: Debug, bits: 64}
     env:: load('share/env.yaml')
-    steps:: checkout-action-docker + install-cxx + run-steps
+    steps:
+      - :: checkout-action-docker
+      - name: install
+        run: c4core-install clang++-${{matrix.clang}}
+      - name: configure
+        run: |
+          cmake -S . -B build \
+             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+             -DCMAKE_CXX_COMPILER=clang++-${{matrix.clang}} \
+             -DCMAKE_C_COMPILER=clang-${{matrix.clang}} \
+             -DCLANG_TIDY=/usr/bin/clang-tidy-${{matrix.clang}} \
+             -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
+             -DRYML_DEV=ON \
+             -DRYML_VALGRIND=OFF \
+             -DRYML_BUILD_TESTS=OFF \
+             -DRYML_BUILD_BENCHMARKS=OFF \
+             -DRYML_DBG=OFF
+      - name: clang-tidy
+        run: cmake --build build --target ryml-clang-tidy --verbose

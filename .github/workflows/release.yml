@@ -24,10 +24,7 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   gettag:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
+    if: always()
     continue-on-error: false
     runs-on: ubuntu-latest
     steps:
@@ -70,7 +67,7 @@ jobs:
         export SRC_VERSION=$SRC_VERSION
         EOF
     - name: Save vars.sh
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: vars.sh
         path: ./vars.sh
@@ -93,10 +90,7 @@ jobs:
     - name: Verify vars.sh
       run: env | grep SRC
   src:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
+    if: always()
     continue-on-error: false
     needs: gettag
     runs-on: ubuntu-latest
@@ -107,7 +101,7 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - name: Download vars.sh
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: vars.sh
         path: ./
@@ -150,15 +144,12 @@ jobs:
         python --version
         python tools/amalgamate.py assets/$id.hpp
     - name: Save source artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: assets
-        path: assets
+        name: assets-src
+        path: assets/
   cpp:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
+    if: always()
     continue-on-error: false
     name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
     needs: gettag
@@ -206,7 +197,7 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - name: Download vars.sh
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: vars.sh
         path: ./
@@ -248,15 +239,12 @@ jobs:
         [ ! -f $asset_src ] && exit 1
         cp -fav $asset_src $asset_dst
     - name: Save artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: assets
-        path: assets
+        name: assets-${{matrix.config.sfxp}}
+        path: assets/
   python_src:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
+    if: always()
     continue-on-error: false
     name: python/src
     runs-on: ubuntu-latest
@@ -282,17 +270,14 @@ jobs:
         sdist=`echo $sdist_orig | sed 's:\.zip:-python_src.zip:'`
         mv -fv $sdist_orig $sdist
     - name: Save artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: dist
-        path: dist
+        name: dist-python_src
+        path: dist/
   python_wheels:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
+    if: always()
     continue-on-error: false
-    name: python/${{matrix.config.cibw_pyv}}/${{matrix.config.osname}}/${{matrix.config.cibw_arch}}
+    name: ${{matrix.config.name}}
     runs-on: ${{matrix.config.os}}
     env:
       CMAKE_FLAGS: ${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
@@ -306,84 +291,112 @@ jobs:
           cibw_pyv: 312
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          name: python/3.12/linux/x86_64
+          sfx: python3.12_linuxx86_64
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.12'
           cibw_pyv: 312
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          name: python/3.12/linux/i686
+          sfx: python3.12_linuxi686
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.11'
           cibw_pyv: 311
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          name: python/3.11/linux/x86_64
+          sfx: python3.11_linuxx86_64
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.11'
           cibw_pyv: 311
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          name: python/3.11/linux/i686
+          sfx: python3.11_linuxi686
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.10'
           cibw_pyv: 310
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          name: python/3.10/linux/x86_64
+          sfx: python3.10_linuxx86_64
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.10'
           cibw_pyv: 310
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          name: python/3.10/linux/i686
+          sfx: python3.10_linuxi686
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.9'
           cibw_pyv: 39
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          name: python/3.9/linux/x86_64
+          sfx: python3.9_linuxx86_64
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.9'
           cibw_pyv: 39
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          name: python/3.9/linux/i686
+          sfx: python3.9_linuxi686
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.8'
           cibw_pyv: 38
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          name: python/3.8/linux/x86_64
+          sfx: python3.8_linuxx86_64
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.8'
           cibw_pyv: 38
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          name: python/3.8/linux/i686
+          sfx: python3.8_linuxi686
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.7'
           cibw_pyv: 37
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          name: python/3.7/linux/x86_64
+          sfx: python3.7_linuxx86_64
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.7'
           cibw_pyv: 37
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          name: python/3.7/linux/i686
+          sfx: python3.7_linuxi686
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.6'
           cibw_pyv: 36
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          name: python/3.6/linux/x86_64
+          sfx: python3.6_linuxx86_64
           osname: linux
           os: ubuntu-20.04
         - pythonv: '3.6'
           cibw_pyv: 36
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          name: python/3.6/linux/i686
+          sfx: python3.6_linuxi686
           osname: linux
           os: ubuntu-20.04
     steps:
@@ -395,12 +408,14 @@ jobs:
     - name: create wheel
       uses: pypa/cibuildwheel@v2.17
     - name: rename wheelhouse -> dist
-      run: mv -fv wheelhouse dist; ls -lFhp dist/
+      run: mv -fv wheelhouse dist
+    - name: Verify artifacts
+      run: ls -lFhp dist/
     - name: Save artifacts for publishing to PyPI
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: dist
-        path: dist
+        name: dist-${{matrix.config.sfx}}
+        path: dist/
     - name: install python ${{matrix.config.pythonv}}
       uses: actions/setup-python@v5
       with:
@@ -427,11 +442,8 @@ jobs:
           python -m pytest -vvv api/python/tests
           pip uninstall -y -v rapidyaml
         done
-  release:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip release')) ||
-      contains(github.event.head_commit.message, 'only release')
+  merge_artifacts:
+    if: always()
     continue-on-error: false
     runs-on: ubuntu-latest
     needs:
@@ -440,25 +452,34 @@ jobs:
     - python_src
     - python_wheels
     steps:
+    - name: Merge assets artifacts
+      uses: actions/upload-artifact/merge@v4
+      with:
+        name: assets
+        pattern: assets-*
+        separate-directories: true
+        delete-merged: true
+    - name: Merge dist artifacts
+      uses: actions/upload-artifact/merge@v4
+      with:
+        name: dist
+        pattern: dist-*
+        separate-directories: true
+        delete-merged: true
+  release:
+    if: always()
+    continue-on-error: false
+    runs-on: ubuntu-latest
+    needs:
+    - merge_artifacts
+    steps:
     - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 0
-    - name: Gather artifacts - ./assets
-      uses: actions/download-artifact@v3
-      with:
-        name: assets
-        path: assets
-    - name: Gather artifacts - ./dist
-      uses: actions/download-artifact@v3
-      with:
-        name: dist
-        path: dist
-    - name: Verify existing artifacts
-      run: ls -lFhp assets/ dist/
     - name: Download vars.sh
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: vars.sh
         path: ./
@@ -480,6 +501,22 @@ jobs:
       run: echo 'nothing to do'
     - name: Verify vars.sh
       run: env | grep SRC
+    - name: Verify existing artifacts
+      run: |
+        ls -lFhp .
+        ls -lFhp assets*/ dist*/ || echo 'none found'
+    - name: Gather artifacts - ./assets
+      uses: actions/download-artifact@v4
+      with:
+        pattern: assets
+    - name: Gather artifacts - ./dist
+      uses: actions/download-artifact@v4
+      with:
+        pattern: dist
+    - name: Verify existing artifacts
+      run: |
+        ls -lFhp .
+        ls -lFhp assets*/ dist*/ || echo 'none found'
     - name: Move Python packages to assets folder
       if: contains(github.ref, 'tags/v')
       run: mv -fv dist/*src.zip assets/.

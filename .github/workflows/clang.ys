@@ -5,8 +5,8 @@
 
 jobs:
   #----------------------------------------------------------------------------
-  clang_canary:
-    :: setup-job('clang')
+  canary:
+    :: setup-job('clang' 'canary')
     name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
     strategy:
@@ -14,16 +14,14 @@ jobs:
       matrix:
         item =: \({:std %1, :cxx %2, :bt %3, :bitlinks 'shared64 static32'})
         include:: &include1 -[
-          item(20 'clang++-17' 'Debug')
-          item(20 'clang++-17' 'Release')
-          item(11 'clang++-9'  'Debug')
-          item(11 'clang++-9'  'Release') ]
+          item(20 'clang++-18' 'Debug'  )
+          item(20 'clang++-18' 'Release') ]
     env:: load('share/env.yaml')
     steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
-  clang_tabtokens:
-    :: setup-job('clang')
+  tabtokens:
+    :: setup-job('clang' 'tabtokens')
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
     strategy:
@@ -35,8 +33,8 @@ jobs:
     steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
-  clang_noexceptions:
-    :: setup-job('clang')
+  noexceptions:
+    :: setup-job('clang' 'noexceptions')
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
     strategy:
@@ -48,53 +46,67 @@ jobs:
     steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
-  clang_extended:
-    :: setup-job('clang')
-    name: extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+  extended:
+    :: setup-job('clang' 'extended')
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std 11, :cxx "clang++-$a(%1)", :bt %2, :vg 'on', :img "$a(%3)"})
         include:
-        - ! item(17 'Debug' '22.04')
-        - ! item(17 'Release' '22.04')
-        - ! item(16 'Debug' '22.04')
-        - ! item(16 'Release' '22.04')
-        # install of clang15 fails on ubuntu18.04
-        - ! item(15 'Debug' '22.04')
-        - ! item(15 'Release' '22.04')
-        # install of clang14 fails on ubuntu18.04
-        - ! item(14 'Debug' '22.04')
-        - ! item(14 'Release' '22.04')
-        - ! item(13 'Debug' '18.04')
-        - ! item(13 'Release' '18.04')
-        - ! item(12 'Debug' '18.04')
-        - ! item(12 'Release' '18.04')
-        - ! item(11 'Debug' '18.04')
-        - ! item(11 'Release' '18.04')
-        - ! item(10 'Debug' '18.04')
-        - ! item(10 'Release' '18.04')
-        - ! item( 9 'Debug' '18.04')
-        - ! item( 9 'Release' '18.04')
-        - ! item( 8 'Debug' '18.04')
-        - ! item( 8 'Release' '18.04')
-        - ! item( 7 'Debug' '18.04')
-        - ! item( 7 'Release' '18.04')
-        - ! item(6.0 'Debug' '18.04')
-        - ! item(6.0 'Release' '18.04')
-        - ! item(5.0 'Debug' '18.04')
-        - ! item(5.0 'Release' '18.04')
-        - ! item(4.0 'Debug' '18.04')
-        - ! item(4.0 'Release' '18.04')
-        - ! item(3.9 'Debug' '18.04')
-        - ! item(3.9 'Release' '18.04')
+        # with valgrind: only latest clang
+        - {std: 20, cxx: 18   , bits: 64, vg: ON , img: 22.04}
+        - {std: 20, cxx: 18   , bits: 32, vg: ON , img: 22.04}
+        - {std: 17, cxx: 18   , bits: 64, vg: ON , img: 22.04}
+        - {std: 17, cxx: 18   , bits: 32, vg: ON , img: 22.04}
+        - {std: 14, cxx: 18   , bits: 64, vg: ON , img: 22.04}
+        - {std: 14, cxx: 18   , bits: 32, vg: ON , img: 22.04}
+        - {std: 11, cxx: 18   , bits: 64, vg: ON , img: 22.04}
+        - {std: 11, cxx: 18   , bits: 32, vg: ON , img: 22.04}
+        # without valgrind
+        - {std: 11, cxx: 17   , bits: 64, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 17   , bits: 32, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 16   , bits: 64, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 16   , bits: 32, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 15   , bits: 64, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 15   , bits: 32, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 14   , bits: 64, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 14   , bits: 32, vg: OFF, img: 22.04}
+        - {std: 11, cxx: 13   , bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: 13   , bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx: 12   , bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: 12   , bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx: 11   , bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: 10   , bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: 10   , bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx:  9   , bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx:  9   , bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx:  8   , bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx:  8   , bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx:  7   , bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx:  7   , bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '6.0', bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '6.0', bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '5.0', bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '5.0', bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '4.0', bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '4.0', bits: 32, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '3.9', bits: 64, vg: OFF, img: 18.04}
+        - {std: 11, cxx: '3.9', bits: 32, vg: OFF, img: 18.04}
     env:: load('share/env.yaml')
-    steps:: checkout-manual + install-cxx + run-steps
+    steps:
+      - :: checkout-manual
+      - name: install
+        run: c4core-install clang++-${{matrix.cxx}}
+      - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
 
   #----------------------------------------------------------------------------
   clangsan:
-    :: setup-job('clang')
+    :: setup-job('clang' 'clangsan')
     name: san/${{matrix.bt}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('22.04')
     strategy:

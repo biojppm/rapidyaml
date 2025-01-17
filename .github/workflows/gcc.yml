@@ -18,36 +18,33 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: null
 jobs:
-  gcc_canary:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip gcc')) ||
-      contains(github.event.head_commit.message, 'only gcc')
-    continue-on-error: true
+  canary:
+    if: always()
+    continue-on-error: false
     name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
-          cxx: g++-14
+          cxx: g++-13
           bt: Debug
           bitlinks: shared64 static32
           img: '22.04'
         - std: 11
-          cxx: g++-14
+          cxx: g++-13
           bt: Release
           bitlinks: shared64 static32
           img: '22.04'
         - std: 20
-          cxx: g++-14
+          cxx: g++-13
           bt: Debug
           bitlinks: shared64 static32
           img: '22.04'
         - std: 20
-          cxx: g++-14
+          cxx: g++-13
           bt: Release
           bitlinks: shared64 static32
           img: '22.04'
@@ -164,83 +161,33 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
-  gcc_O2:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip gcc')) ||
-      contains(github.event.head_commit.message, 'only gcc')
-    continue-on-error: true
-    name: gcc_O2/${{matrix.gcc}}/c++${{matrix.std}}
-    runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - std: 11
-          gcc: 12
-          bt: Release
-    env:
-      STD: ${{matrix.std}}
-      CXX_: ${{matrix.gcc}}
-      BT: ${{matrix.bt}}
-      BITLINKS: ${{matrix.bitlinks}}
-      VG: ${{matrix.vg}}
-      SAN: ${{matrix.san}}
-      LINT: ${{matrix.lint}}
-      OS: ${{matrix.os}}
-    steps:
-    - name: checkout (action + docker)
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        fetch-depth: 0
-    - run: git config --system --add safe.directory '*'
-    - run: c4core-install g++-${{matrix.gcc}}
-    - name: show info
-      run: source .github/setenv.sh && c4_show_info
-    - name: configure
-      run: |
-        cmake -S . -B build_o2 \
-          -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
-          -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
-          -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O2 -g -DNDEBUG" \
-          -DRYML_BUILD_TESTS:BOOL=ON \
-          -DRYML_DBG:BOOL=OFF
-    - name: build
-      run: cmake --build build_o2 --target ryml-test-build -j --verbose
-    - name: run
-      run: cmake --build build_o2 --target ryml-test-run
-  gcc_tabtokens:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip gcc')) ||
-      contains(github.event.head_commit.message, 'only gcc')
-    continue-on-error: true
+  tabtokens:
+    if: always()
+    continue-on-error: false
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
-          cxx: g++-14
+          cxx: g++-13
           bt: Debug
           bitlinks: shared64 static32
           img: '22.04'
         - std: 11
-          cxx: g++-14
+          cxx: g++-13
           bt: Release
           bitlinks: shared64 static32
           img: '22.04'
         - std: 20
-          cxx: g++-14
+          cxx: g++-13
           bt: Debug
           bitlinks: shared64 static32
           img: '22.04'
         - std: 20
-          cxx: g++-14
+          cxx: g++-13
           bt: Release
           bitlinks: shared64 static32
           img: '22.04'
@@ -358,20 +305,37 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
-  gcc_noexceptions:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip gcc')) ||
-      contains(github.event.head_commit.message, 'only gcc')
-    continue-on-error: true
+  noexceptions:
+    if: always()
+    continue-on-error: false
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
+          cxx: g++-13
+          bt: Debug
+          bitlinks: shared64 static32
+          img: '22.04'
+        - std: 11
+          cxx: g++-13
+          bt: Release
+          bitlinks: shared64 static32
+          img: '22.04'
+        - std: 20
+          cxx: g++-13
+          bt: Debug
+          bitlinks: shared64 static32
+          img: '22.04'
+        - std: 20
+          cxx: g++-13
+          bt: Release
+          bitlinks: shared64 static32
+          img: '22.04'
+        - std: 11
           cxx: g++-5
           bt: Debug
           bitlinks: shared64 static32
@@ -381,26 +345,26 @@ jobs:
           bt: Release
           bitlinks: shared64 static32
           img: '18.04'
-        - std: 20
-          cxx: g++-14
+        - std: 11
+          cxx: g++-4.8
           bt: Debug
           bitlinks: shared64 static32
-          img: '22.04'
-        - std: 20
-          cxx: g++-14
+          img: '18.04'
+        - std: 11
+          cxx: g++-4.8
           bt: Release
           bitlinks: shared64 static32
-          img: '22.04'
+          img: '18.04'
     env:
+      STD: ${{matrix.std}}
+      CXX_: ${{matrix.cxx}}
+      BT: ${{matrix.bt}}
+      BITLINKS: ${{matrix.bitlinks}}
+      VG: ${{matrix.vg}}
+      SAN: ${{matrix.san}}
+      LINT: ${{matrix.lint}}
+      OS: ${{matrix.os}}
       CXXFLAGS: -fno-exceptions -fno-rtti
-      STD: ${{matrix.std}}
-      CXX_: ${{matrix.cxx}}
-      BT: ${{matrix.bt}}
-      BITLINKS: ${{matrix.bitlinks}}
-      VG: ${{matrix.vg}}
-      SAN: ${{matrix.san}}
-      LINT: ${{matrix.lint}}
-      OS: ${{matrix.os}}
     steps:
     - name: checkout (manually)
       run: |
@@ -485,147 +449,220 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
-  gcc_extended:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip gcc')) ||
-      contains(github.event.head_commit.message, 'only gcc')
-    continue-on-error: true
-    name: extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
-    runs-on: ubuntu-latest
+  misbuild:
+    if: always()
+    continue-on-error: false
+    name: misbuild#${{matrix.issue}}/gcc${{matrix.gcc}}/c++${{matrix.std}}
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
       fail-fast: false
       matrix:
         include:
-        - std: 11
-          cxx: g++-14
-          bt: Debug
-          vg: 'ON'
-          img: '22.04'
-        - std: 11
-          cxx: g++-14
+        - issue: 440
+          std: 11
+          gcc: 12
           bt: Release
-          vg: 'ON'
-          img: '22.04'
-        - std: 14
-          cxx: g++-14
-          bt: Debug
-          vg: 'ON'
-          img: '22.04'
-        - std: 14
-          cxx: g++-14
+          img: 22.04
+          cxxflags: -O2 -DNDEBUG -g
+        - issue: 486
+          std: 11
+          gcc: 11
           bt: Release
-          vg: 'ON'
-          img: '22.04'
-        - std: 17
-          cxx: g++-14
-          bt: Debug
-          vg: 'ON'
-          img: '22.04'
-        - std: 17
-          cxx: g++-14
-          bt: Release
-          vg: 'ON'
-          img: '22.04'
+          img: 22.04
+          cxxflags: -O3 -DNDEBUG
+    env:
+      STD: ${{matrix.std}}
+      CXX_: ${{matrix.gcc}}
+      BT: ${{matrix.bt}}
+      BITLINKS: ${{matrix.bitlinks}}
+      VG: ${{matrix.vg}}
+      SAN: ${{matrix.san}}
+      LINT: ${{matrix.lint}}
+      OS: ${{matrix.os}}
+    steps:
+    - name: checkout (action + docker)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - run: git config --system --add safe.directory '*'
+    - run: c4core-install g++-${{matrix.gcc}}
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+    - name: configure (issue \#${{matrix.issue}})
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="${{matrix.cxxflags}}" \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_DBG=OFF
+    - name: build (issue \#${{matrix.issue}})
+      run: cmake --build build --target ryml-test-build --parallel --verbose
+    - name: run (issue \#${{matrix.issue}})
+      run: cmake --build build --target ryml-test-run
+  extended:
+    if: always()
+    continue-on-error: false
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
+    runs-on: ubuntu-24.04
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
         - std: 20
-          cxx: g++-14
-          bt: Debug
+          cxx: 14
+          bits: 64
           vg: 'ON'
-          img: '22.04'
+          img: 22.04
         - std: 20
-          cxx: g++-14
-          bt: Release
+          cxx: 14
+          bits: 32
           vg: 'ON'
-          img: '22.04'
+          img: 22.04
+        - std: 17
+          cxx: 14
+          bits: 64
+          vg: 'ON'
+          img: 22.04
+        - std: 17
+          cxx: 14
+          bits: 32
+          vg: 'ON'
+          img: 22.04
+        - std: 14
+          cxx: 14
+          bits: 64
+          vg: 'ON'
+          img: 22.04
+        - std: 14
+          cxx: 14
+          bits: 32
+          vg: 'ON'
+          img: 22.04
         - std: 11
-          cxx: g++-13
-          bt: Debug
-          img: '22.04'
+          cxx: 14
+          bits: 64
+          vg: 'ON'
+          img: 22.04
         - std: 11
-          cxx: g++-13
-          bt: Release
-          img: '22.04'
+          cxx: 14
+          bits: 32
+          vg: 'ON'
+          img: 22.04
         - std: 11
-          cxx: g++-12
-          bt: Debug
-          img: '22.04'
+          cxx: 13
+          bits: 64
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-12
-          bt: Release
-          img: '22.04'
+          cxx: 13
+          bits: 32
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-11
-          bt: Debug
-          img: '22.04'
+          cxx: 12
+          bits: 64
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-11
-          bt: Release
-          img: '22.04'
+          cxx: 12
+          bits: 32
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-10
-          bt: Debug
-          img: '22.04'
+          cxx: 11
+          bits: 64
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-10
-          bt: Release
-          img: '22.04'
+          cxx: 11
+          bits: 32
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-9
-          bt: Debug
-          img: '22.04'
+          cxx: 10
+          bits: 64
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-9
-          bt: Release
-          img: '22.04'
+          cxx: 10
+          bits: 32
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-8
-          bt: Debug
-          img: '18.04'
+          cxx: 9
+          bits: 64
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-8
-          bt: Release
-          img: '18.04'
+          cxx: 9
+          bits: 32
+          vg: 'OFF'
+          img: 22.04
         - std: 11
-          cxx: g++-7
-          bt: Debug
-          img: '18.04'
+          cxx: 8
+          bits: 64
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-7
-          bt: Release
-          img: '18.04'
+          cxx: 8
+          bits: 32
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-6
-          bt: Debug
-          img: '18.04'
+          cxx: 7
+          bits: 64
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-6
-          bt: Release
-          img: '18.04'
+          cxx: 7
+          bits: 32
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-5
-          bt: Debug
-          img: '18.04'
+          cxx: 6
+          bits: 64
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-5
-          bt: Release
-          img: '18.04'
+          cxx: 6
+          bits: 32
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-4.9
-          bt: Debug
-          img: '18.04'
+          cxx: 5
+          bits: 64
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-4.9
-          bt: Release
-          img: '18.04'
+          cxx: 5
+          bits: 32
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-4.8
-          bt: Debug
-          img: '18.04'
+          cxx: 4.9
+          bits: 64
+          vg: 'OFF'
+          img: 18.04
         - std: 11
-          cxx: g++-4.8
-          bt: Release
-          img: '18.04'
+          cxx: 4.9
+          bits: 32
+          vg: 'OFF'
+          img: 18.04
+        - std: 11
+          cxx: 4.8
+          bits: 64
+          vg: 'OFF'
+          img: 18.04
+        - std: 11
+          cxx: 4.8
+          bits: 32
+          vg: 'OFF'
+          img: 18.04
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -684,49 +721,143 @@ jobs:
             || echo -n
         # show the last commit
         git log --name-status HEAD^..HEAD
-    - run: c4core-install ${{matrix.cxx}}
-    - name: show info
-      run: source .github/setenv.sh && c4_show_info
-    - name: shared64-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared64
-    - name: shared64-build
-      run: source .github/setenv.sh && c4_build_test shared64
-    - name: shared64-run
-      run: source .github/setenv.sh && c4_run_test shared64
-    - name: shared64-pack
-      run: source .github/setenv.sh && c4_package shared64
-    - name: static64-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static64
-    - name: static64-build
-      run: source .github/setenv.sh && c4_build_test static64
-    - name: static64-run
-      run: source .github/setenv.sh && c4_run_test static64
-    - name: static64-pack
-      run: source .github/setenv.sh && c4_package static64
-    - name: static32-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static32
-    - name: static32-build
-      run: source .github/setenv.sh && c4_build_test static32
-    - name: static32-run
-      run: source .github/setenv.sh && c4_run_test static32
-    - name: static32-pack
-      run: source .github/setenv.sh && c4_package static32
-    - name: shared32-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared32
-    - name: shared32-build
-      run: source .github/setenv.sh && c4_build_test shared32
-    - name: shared32-run
-      run: source .github/setenv.sh && c4_run_test shared32
-    - name: shared32-pack
-      run: source .github/setenv.sh && c4_package shared32
+    - name: install
+      run: c4core-install g++-${{matrix.cxx}}
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Debug ::: -m${{matrix.bits}}"
+    - name: 'configure Debug ::: -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Debug
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Debug \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS_DEBUG="-m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_DEBUG="-m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Debug ::: -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Debug --target ryml-test-build --parallel --verbose
+    - name: 'run Debug ::: -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Debug --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -O2 -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -O3 -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
   gccsan:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip gcc')) ||
-      contains(github.event.head_commit.message, 'only gcc')
-    continue-on-error: true
+    if: always()
+    continue-on-error: false
     name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     strategy:
       fail-fast: false
@@ -848,12 +979,9 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   arm:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip gcc')) ||
-      contains(github.event.head_commit.message, 'only gcc')
-    continue-on-error: true
-    runs-on: ubuntu-latest
+    if: always()
+    continue-on-error: false
+    runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu18.04:latest
     name: arm/c++${{matrix.std}}/${{matrix.bt}}
     strategy:

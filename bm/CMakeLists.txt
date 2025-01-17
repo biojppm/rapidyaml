@@ -95,6 +95,12 @@ c4_download_remote_proj(rapidjson rapidjson_dir
     GIT_REPOSITORY https://github.com/Tencent/rapidjson
     GIT_TAG version1.1.0)
 set(RYML_RAPIDJSON_INC_DIR ${rapidjson_dir}/include)
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/rapidjson.was.patched)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E echo "cd ${rapidjson_dir} ; git --git-dir= apply ${CMAKE_CURRENT_LIST_DIR}/rapidjson.fix.diff"
+        COMMAND git --git-dir= apply ${CMAKE_CURRENT_LIST_DIR}/rapidjson.fix.diff
+        COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/rapidjson.was.patched
+        WORKING_DIRECTORY ${rapidjson_dir})
+endif()
 
 # sajson is header only
 set(sajson_dir ${_ed}/sajson)

@@ -1,114 +1,41 @@
-!yamlscript/v0:
+!yamlscript/v0:  # data mode
 
 :use common: :all
 :: workflow-setup()
 
-jobs:
-  vs:
-    :: setup-job('windows')
-    name: ${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: ${{matrix.os}}
+items =::
+    runs-on: windows-${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx "vs$a(%2)", :bt %3, :os "windows-$a(%4)",
-                   :bitlinks 'shared64 static32'})
         include:
-        # vs2017 is only availble in windows-2016
-       #- ! item(11 2017 'Debug'   2016)
-       #- ! item(11 2017 'Release' 2016)
-       #- ! item(14 2017 'Debug'   2016)
-       #- ! item(14 2017 'Release' 2016)
-        - ! item(11 2019 'Debug'   2019)
-        - ! item(11 2019 'Release' 2019)
-        - ! item(17 2019 'Debug'   2019)
-        - ! item(17 2019 'Release' 2019)
-        - ! item(11 2022 'Debug'   2022)
-        - ! item(11 2022 'Release' 2022)
-        - ! item(17 2022 'Debug'   2022)
-        - ! item(17 2022 'Release' 2022)
-        - ! item(20 2022 'Debug'   2022)
-        - ! item(20 2022 'Release' 2022)
-    env:: load('share/env.yaml')
-    steps:
-    - :: checkout-action
-    - name: install requirements
-      run: source .github/reqs.sh && c4_install_test_requirements $OS
-    - :: run-steps
+        - {std: 11, name: vs2019/64, os: 2019, gen: Visual Studio 16 2019, arch:   x64}
+        - {std: 11, name: vs2019/32, os: 2019, gen: Visual Studio 16 2019, arch: Win32}
+        - {std: 17, name: vs2019/64, os: 2019, gen: Visual Studio 16 2019, arch:   x64}
+        - {std: 17, name: vs2019/32, os: 2019, gen: Visual Studio 16 2019, arch: Win32}
+        - {std: 11, name: vs2022/64, os: 2022, gen: Visual Studio 17 2022, arch:   x64}
+        - {std: 11, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
+        - {std: 17, name: vs2022/64, os: 2022, gen: Visual Studio 17 2022, arch:   x64}
+        - {std: 17, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
+        - {std: 20, name: vs2022/64, os: 2022, gen: Visual Studio 17 2022, arch:   x64}
+        - {std: 20, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
 
-# TODO:
-#  mingw:
-#    name: mingw/${{matrix.platform}}/c++${{matrix.std}}/${{matrix.bt}}
-#    if: |
-#      (!contains(github.event.head_commit.message, 'skip all')) ||
-#      (!contains(github.event.head_commit.message, 'skip windows')) ||
-#      contains(github.event.head_commit.message, 'only windows')
-#
-#    continue-on-error: true
-#    runs-on: ${{matrix.os}}
-#
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        include:
-#        - {std: 11, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Debug,
-#           os: windows-latest, bitlinks: shared32 static32}
-#        - {std: 11, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Debug,
-#           os: windows-latest, bitlinks: shared64 static64}
-#        - {std: 11, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Release,
-#           os: windows-latest, bitlinks: shared32 static32}
-#        - {std: 11, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Release,
-#           os: windows-latest, bitlinks: shared64 static64}
-#        - {std: 17, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Debug,
-#           os: windows-latest, bitlinks: shared32 static32}
-#        - {std: 17, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Debug,
-#           os: windows-latest, bitlinks: shared64 static64}
-#        - {std: 17, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Release,
-#           os: windows-latest, bitlinks: shared32 static32}
-#        - {std: 17, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Release,
-#           os: windows-latest, bitlinks: shared64 static64}
-#
-#    env:: load('share/env.yaml')
-#
-#    steps:
-#    - name: checkout
-#      uses: actions/checkout@v4
-#      with: {submodules: recursive}
-#    - name: install requirements
-#      run: source .github/reqs.sh && c4_install_test_requirements $OS
-#    - name: install mingw
-#      uses: egor-tensin/setup-mingw@v2
-#      with:
-#        platform: ${{matrix.platform}}
-#    - name: shared64-configure------------------------------------------------
-#      run: source .github/setenv.sh && c4_cfg_test shared64
-#    - name: shared64-build
-#      run: source .github/setenv.sh && c4_build_test shared64
-#    - name: shared64-run
-#      run: source .github/setenv.sh && c4_run_test shared64
-#    - name: shared64-pack
-#      run: source .github/setenv.sh && c4_package shared64
-#    - name: static64-configure------------------------------------------------
-#      run: source .github/setenv.sh && c4_cfg_test static64
-#    - name: static64-build
-#      run: source .github/setenv.sh && c4_build_test static64
-#    - name: static64-run
-#      run: source .github/setenv.sh && c4_run_test static64
-#    - name: static64-pack
-#      run: source .github/setenv.sh && c4_package static64
-#    - name: shared32-configure------------------------------------------------
-#      run: source .github/setenv.sh && c4_cfg_test shared32
-#    - name: shared32-build
-#      run: source .github/setenv.sh && c4_build_test shared32
-#    - name: shared32-run
-#      run: source .github/setenv.sh && c4_run_test shared32
-#    - name: shared32-pack
-#      run: source .github/setenv.sh && c4_package shared32
-#    - name: static32-configure------------------------------------------------
-#      run: source .github/setenv.sh && c4_cfg_test static32
-#    - name: static32-build
-#      run: source .github/setenv.sh && c4_build_test static32
-#    - name: static32-run
-#      run: source .github/setenv.sh && c4_run_test static32
-#    - name: static32-pack
-#      run: source .github/setenv.sh && c4_package static32
+jobs:
+  vsdebug:
+    :: setup-job('windows' 'vsdebug')
+    name: ${{matrix.name}}bit/c++${{matrix.std}}/debug
+    :: items
+    steps:
+    - :: checkout-action       #   generator         architecture      buildtype shared cflags
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'ON'  '/MDd /Zi /Ob0 /Od /RTC1')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'OFF' '/MDd /Zi /Ob0 /Od /RTC1')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /Os /DNDEBUG')
+  vsrelease:
+    :: setup-job('windows' 'vsrelease')
+    name: ${{matrix.name}}bit/c++${{matrix.std}}/release
+    :: items
+    steps:
+    - :: checkout-action       #   generator         architecture      buildtype shared cflags
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O1 /Ob1 /DNDEBUG')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O2 /Ob2 /DNDEBUG')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O3 /Ob3 /DNDEBUG')

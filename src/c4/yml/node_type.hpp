@@ -28,7 +28,7 @@ using type_bits = uint32_t;
 
 /** a bit mask for marking node types and styles */
 typedef enum : type_bits {
-    #define __(v) (type_bits(1) << v) // a convenience define, undefined below
+    #define __(v) (type_bits(1) << v) // a convenience define, undefined below // NOLINT
     NOTYPE  = 0,         ///< no node type or style is set
     KEY     = __(0),     ///< is member of a map, must have non-empty key
     VAL     = __(1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ

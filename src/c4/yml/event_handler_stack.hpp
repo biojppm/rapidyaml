@@ -5,6 +5,10 @@
 #include "c4/yml/detail/stack.hpp"
 #endif
 
+#ifndef _C4_YML_NODE_TYPE_HPP_
+#include "c4/yml/node_type.hpp"
+#endif
+
 #ifndef _C4_YML_DETAIL_PARSER_DBG_HPP_
 #include "c4/yml/detail/parser_dbg.hpp"
 #endif
@@ -18,6 +22,8 @@
 #include "c4/yml/detail/print.hpp"
 #endif
 #endif
+
+// NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -182,5 +188,7 @@ protected:
 
 } // namespace yml
 } // namespace c4
+
+// NOLINTEND(hicpp-signed-bitwise)
 
 #endif /* _C4_YML_EVENT_HANDLER_STACK_HPP_ */

@@ -11,23 +11,19 @@ jobs:
     - :: version-discover
 
   benchmarks:
-    name: bm/c++${{matrix.std}}/${{matrix.cxx}}/${{matrix.bt}}
+    name: bm/c++${{matrix.std}}/${{matrix.comp}}/${{matrix.bt}}
     needs: gettag
-    :: setup-job('benchmarks')
+    :: setup-job('benchmarks' 'benchmarks')
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx %2, :bt 'Release', :os %3, :bitlinks 'static64 static32'})
         include:
-        - ! item(11 'g++-10' 'ubuntu-20.04')
-        - ! item(17 'g++-10' 'ubuntu-20.04')
-        - ! item(20 'g++-10' 'ubuntu-20.04')
-        - ! item(17 'vs2019' 'windows-2019')
-        - ! item(20 'vs2019' 'windows-2019')
-       #- ! item(17 'vs2019' 'windows-2022')
-       #- ! item(20 'vs2019' 'windows-2022')
-        - {std: 17, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: static64}
+        - {std: 17, comp: gcc14  , os: ubuntu-24.04, cmkflags: -DCMAKE_CXX_COMPILER=g++-14     -DCMAKE_C_COMPILER=gcc-14}
+        - {std: 17, comp: clang18, os: ubuntu-24.04, cmkflags: -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang-18}
+        - {std: 17, comp: vs2019 , os: windows-2019, cmkflags: -G 'Visual Studio 16 2019' -A x64}
+        - {std: 17, comp: vs2022 , os: windows-2022, cmkflags: -G 'Visual Studio 17 2022' -A x64}
+        - {std: 17, comp: xcode15, os: macos-13, xcver: 15, cmkflags: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64}
     env:: -{'BM' 'ON'} + load('share/env.yaml')
     steps:
     - :: checkout-action
@@ -40,51 +36,43 @@ jobs:
       uses: actions/setup-python@v5
       with: { python-version: '3.10' }
     - name: install benchmark plotting dependencies
-      run:: bash('benchmarks-install')
-    - name: set build env vars
       run: |
-        echo "NUM_JOBS_BUILD=1" >> $GITHUB_ENV
-        echo "CMAKE_FLAGS=\"-DPython_EXECUTABLE=$(which python)\"" >> $GITHUB_ENV
-    - name: check build env vars
+        which python
+        which pip
+        python --version
+        pip --version
+        pip install -v -r ext/c4core/cmake/bm-xp/requirements.txt
+        python -c 'import munch ; print("ok!") ; exit(0)'
+        echo $?
+    - name: configure-------------------------------------------------
       run: |
-        echo NUM_JOBS_BUILD=$NUM_JOBS_BUILD
-        echo "CMAKE_FLAGS=\"$CMAKE_FLAGS\""
-    - name: shared64-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared64
-    - name: shared64-build
-      run: source .github/setenv.sh && c4_build_target shared64 ryml-bm-build
-    - name: shared64-run
-      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-run
-    - name: shared64-plot
-      run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot
-    - name: static64-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static64
-    - name: static64-build
-      run: source .github/setenv.sh && c4_build_target static64 ryml-bm-build
-    - name: static64-run
-      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-run
-    - name: static64-plot
-      run: source .github/setenv.sh && c4_run_target static64 ryml-bm-plot
-    - name: static32-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static32
-    - name: static32-build
-      run: source .github/setenv.sh && c4_build_target static32 ryml-bm-build
-    - name: static32-run
-      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-run
-    - name: static32-plot
-      run: source .github/setenv.sh && c4_run_target static32 ryml-bm-plot
-    - name: shared32-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared32
-    - name: shared32-build
-      run: source .github/setenv.sh && c4_build_target shared32 ryml-bm-build
-    - name: shared32-run
-      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-run
-    - name: shared32-plot
-      run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot
-    - name: gather benchmark results
-      run:: bash('benchmarks-run')
+        cmake -S . -B build \
+            ${{matrix.cmkflags}} \
+            -DPython_EXECUTABLE="$(which python)" \
+            -DC4_CXX_STANDARD=${{matrix.std}} \
+            -DRYML_CXX_STANDARD=${{matrix.std}} \
+            -DRYML_BUILD_BENCHMARKS=ON
+    - name: build
+      run: cmake --build build --config Release --parallel --verbose --target ryml-bm-build
+    - name: run
+      run: cmake --build build --config Release --verbose --target ryml-bm-run
+    - name: plot
+      run: cmake --build build --config Release --verbose --target ryml-bm-plot
+    - name: gather benchmark results-------------------------------------------
+      run: |
+        set -x
+        source vars.sh
+        echo SRC_TAG=$SRC_TAG
+        echo SRC_VERSION=$SRC_VERSION
+        desc=$SRC_TAG
+        for bl in ${{matrix.bitlinks}} ; do
+          dst=$(echo ryml-benchmark_results/$desc/x86_64/${{matrix.cxx}}-${{matrix.bt}}-c++${{matrix.std}}-$bl | sed 's:++-:xx:g' | sed 's:+:x:g')
+          mkdir -p $dst
+          find build -name bm-results
+          mv -vf build/$bl/bm/bm-results/* $dst/.
+        done
     - name: upload benchmark result artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ryml-benchmark_results
+        name: ryml-benchmark_results-${{strategy.job-index}}
         path: ryml-benchmark_results/

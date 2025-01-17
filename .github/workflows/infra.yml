@@ -18,13 +18,16 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: null
 jobs:
+  log-github-event:
+    name: log github event
+    runs-on: ubuntu-24.04
+    steps:
+    - name: log github event
+      run: echo "${{toJSON(github.event)}}"
   check_workflows:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip infra')) ||
-      contains(github.event.head_commit.message, 'only infra')
-    continue-on-error: true
-    runs-on: ubuntu-22.04
+    if: always()
+    continue-on-error: false
+    runs-on: ubuntu-24.04
     steps:
     - name: checkout (action)
       uses: actions/checkout@v4
@@ -37,6 +40,8 @@ jobs:
       run: make -C .github/workflows build
     - name: test workflows
       run: |
+        wc --version
+        wc --help
         make -C .github/workflows test
         status=$?
         if [ $status != 0 ] ; then

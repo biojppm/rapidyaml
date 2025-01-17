@@ -5,7 +5,7 @@
 
 jobs:
   macosx:
-    :: setup-job('macosx')
+    :: setup-job('macosx' 'macosx')
     runs-on: macos-13
     strategy:
       fail-fast: false
