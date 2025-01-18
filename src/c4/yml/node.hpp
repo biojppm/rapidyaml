@@ -44,15 +44,13 @@ template<class K> C4_ALWAYS_INLINE Key<K> key(K & k) { return Key<K>{k}; }
 C4_ALWAYS_INLINE Key<fmt::const_base64_wrapper> key(fmt::const_base64_wrapper w) { return {w}; }
 C4_ALWAYS_INLINE Key<fmt::base64_wrapper> key(fmt::base64_wrapper w) { return {w}; }
 
+
 template<class T> void write(NodeRef *n, T const& v);
 
-template<class T>
-typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
-read(NodeRef const& n, T *v);
-
-template<class T>
-typename std::enable_if<   std::is_floating_point<T>::value, bool>::type
-read(NodeRef const& n, T *v);
+template<class T> inline bool read(ConstNodeRef const& C4_RESTRICT n, T *v);
+template<class T> inline bool read(NodeRef const& C4_RESTRICT n, T *v);
+template<class T> inline bool readkey(ConstNodeRef const& C4_RESTRICT n, T *v);
+template<class T> inline bool readkey(NodeRef const& C4_RESTRICT n, T *v);
 
 /** @} */
 
@@ -328,8 +326,7 @@ public:
 
     template<class U=Impl>
     C4_ALWAYS_INLINE auto doc(id_type i) RYML_NOEXCEPT -> _C4_IF_MUTABLE(Impl) { RYML_ASSERT(tree_); return {tree__, tree__->doc(i)}; } /**< Forward to @ref Tree::doc(). Node must be readable. */
-    /** succeeds even when the node may have invalid or seed id */
-    C4_ALWAYS_INLINE ConstImpl doc(id_type i) const RYML_NOEXCEPT { RYML_ASSERT(tree_); return {tree_, tree_->doc(i)}; }                /**< Forward to @ref Tree::doc(). Node must be readable. */
+    C4_ALWAYS_INLINE ConstImpl doc(id_type i) const RYML_NOEXCEPT { RYML_ASSERT(tree_); return {tree_, tree_->doc(i)}; }                /**< Forward to @ref Tree::doc(). Node must be readable. succeeds even when the node may have invalid or seed id */
 
     template<class U=Impl>
     C4_ALWAYS_INLINE auto parent() RYML_NOEXCEPT -> _C4_IF_MUTABLE(Impl) { _C4RR(); return {tree__, tree__->parent(id__)}; } /**< Forward to @ref Tree::parent(). Node must be readable. */
@@ -633,41 +630,10 @@ public:
     ConstImpl const& operator>> (Key<T> v) const
     {
         _C4RR();
-        if(key().empty() || ! from_chars(key(), &v.k))
+        if( ! readkey((ConstImpl const&)*this, &v.k))
             _RYML_CB_ERR(tree_->m_callbacks, "could not deserialize key");
         return *((ConstImpl const*)this);
     }
-
-    /** deserialize the node's key as base64. lightweight wrapper over @ref deserialize_key() */
-    ConstImpl const& operator>> (Key<fmt::base64_wrapper> w) const
-    {
-        deserialize_key(w.wrapper);
-        return *((ConstImpl const*)this);
-    }
-
-    /** deserialize the node's val as base64. lightweight wrapper over @ref deserialize_val() */
-    ConstImpl const& operator>> (fmt::base64_wrapper w) const
-    {
-        deserialize_val(w);
-        return *((ConstImpl const*)this);
-    }
-
-    /** decode the base64-encoded key and assign the
-     * decoded blob to the given buffer/
-     * @return the size of base64-decoded blob */
-    size_t deserialize_key(fmt::base64_wrapper v) const
-    {
-        _C4RR();
-        return from_chars(key(), &v);
-    }
-    /** decode the base64-encoded key and assign the
-     * decoded blob to the given buffer/
-     * @return the size of base64-decoded blob */
-    size_t deserialize_val(fmt::base64_wrapper v) const
-    {
-        _C4RR();
-        return from_chars(val(), &v);
-    };
 
     /** look for a child by name, if it exists assign to var. return
      * true if the child existed. */
@@ -701,6 +667,42 @@ public:
             return false;
         }
     }
+
+    /** @name deserialization_base64 */
+    /** @{ */
+
+    /** deserialize the node's key as base64. lightweight wrapper over @ref deserialize_key() */
+    ConstImpl const& operator>> (Key<fmt::base64_wrapper> w) const
+    {
+        deserialize_key(w.wrapper);
+        return *((ConstImpl const*)this);
+    }
+
+    /** deserialize the node's val as base64. lightweight wrapper over @ref deserialize_val() */
+    ConstImpl const& operator>> (fmt::base64_wrapper w) const
+    {
+        deserialize_val(w);
+        return *((ConstImpl const*)this);
+    }
+
+    /** decode the base64-encoded key and assign the
+     * decoded blob to the given buffer/
+     * @return the size of base64-decoded blob */
+    size_t deserialize_key(fmt::base64_wrapper v) const
+    {
+        _C4RR();
+        return from_chars(key(), &v);
+    }
+    /** decode the base64-encoded key and assign the
+     * decoded blob to the given buffer/
+     * @return the size of base64-decoded blob */
+    size_t deserialize_val(fmt::base64_wrapper v) const
+    {
+        _C4RR();
+        return from_chars(val(), &v);
+    };
+
+    /** @} */
 
     /** @} */
 
@@ -1603,117 +1605,33 @@ inline ConstNodeRef& ConstNodeRef::operator= (NodeRef && that) noexcept // NOLIN
  */
 
 template<class T>
-inline void write(NodeRef *n, T const& v)
+C4_ALWAYS_INLINE void write(NodeRef *n, T const& v)
 {
     n->set_val_serialized(v);
 }
 
-namespace detail {
-// SFINAE overloads for skipping leading + which cannot be read by the charconv functions
 template<class T>
-C4_ALWAYS_INLINE auto read_skip_plus(csubstr val, T *v)
-    -> typename std::enable_if<std::is_arithmetic<T>::value, bool>::type
+C4_ALWAYS_INLINE bool read(ConstNodeRef const& C4_RESTRICT n, T *v)
 {
-    if(val.begins_with('+'))
-        val = val.sub(1);
-    return from_chars(val, v);
-}
-template<class T>
-C4_ALWAYS_INLINE auto read_skip_plus(csubstr val, T *v)
-    -> typename std::enable_if< ! std::is_arithmetic<T>::value, bool>::type
-{
-    return from_chars(val, v);
-}
-} // namespace detail
-
-/** convert the val of a scalar node to a particular type, by
- * forwarding its val to @ref from_chars<T>(). The full string is
- * used.
- * @return false if the conversion failed */
-template<class T>
-inline auto read(NodeRef const& n, T *v)
-    -> typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
-{
-    csubstr val = n.val();
-    if(val.empty())
-        return false;
-    return detail::read_skip_plus(val, v);
-}
-/** convert the val of a scalar node to a particular type, by
- * forwarding its val to @ref from_chars<T>(). The full string is
- * used.
- * @return false if the conversion failed */
-template<class T>
-inline auto read(ConstNodeRef const& n, T *v)
-    -> typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
-{
-    csubstr val = n.val();
-    if(val.empty())
-        return false;
-    return detail::read_skip_plus(val, v);
+    return read(n.m_tree, n.m_id, v);
 }
 
-/** convert the val of a scalar node to a floating point type, by
- * forwarding its val to @ref from_chars_float<T>().
- *
- * @return false if the conversion failed
- *
- * @warning Unlike non-floating types, only the leading part of the
- * string that may constitute a number is processed. This happens
- * because the float parsing is delegated to fast_float, which is
- * implemented that way. Consequently, for example, all of `"34"`,
- * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
- * about the contents of the data, you can use
- * csubstr::first_real_span() to check before calling `>>`, for
- * example like this:
- *
- * ```cpp
- * csubstr val = node.val();
- * if(val.first_real_span() == val)
- *     node >> v;
- * else
- *     ERROR("not a real")
- * ```
- */
 template<class T>
-typename std::enable_if<std::is_floating_point<T>::value, bool>::type
-inline read(NodeRef const& n, T *v)
+C4_ALWAYS_INLINE bool read(NodeRef const& C4_RESTRICT n, T *v)
 {
-    csubstr val = n.val();
-    if(val.empty())
-        return false;
-    return from_chars_float(val, v);
+    return read(n.tree(), n.id(), v);
 }
-/** convert the val of a scalar node to a floating point type, by
- * forwarding its val to @ref from_chars_float<T>().
- *
- * @return false if the conversion failed
- *
- * @warning Unlike non-floating types, only the leading part of the
- * string that may constitute a number is processed. This happens
- * because the float parsing is delegated to fast_float, which is
- * implemented that way. Consequently, for example, all of `"34"`,
- * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
- * about the contents of the data, you can use
- * csubstr::first_real_span() to check before calling `>>`, for
- * example like this:
- *
- * ```cpp
- * csubstr val = node.val();
- * if(val.first_real_span() == val)
- *     node >> v;
- * else
- *     ERROR("not a real")
- * ```
- */
+
 template<class T>
-typename std::enable_if<std::is_floating_point<T>::value, bool>::type
-inline read(ConstNodeRef const& n, T *v)
+C4_ALWAYS_INLINE bool readkey(ConstNodeRef const& C4_RESTRICT n, T *v)
 {
-    csubstr val = n.val();
-    if(val.empty())
-        return false;
-    return from_chars_float(val, v);
+    return readkey(n.m_tree, n.m_id, v);
+}
+
+template<class T>
+C4_ALWAYS_INLINE bool readkey(NodeRef const& C4_RESTRICT n, T *v)
+{
+    return readkey(n.tree(), n.id(), v);
 }
 
 /** @} */

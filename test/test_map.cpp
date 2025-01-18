@@ -839,12 +839,12 @@ f:
 g:
 foo: bar
 )",
-N(MB, L{N(KP|VP, "key", "val"), N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, "c", {}), N(KP|VP, "d", {}), N(KP|VP, "e", {}), N(KP|VP, "f", {}), N(KP|VP, "g", {}), N(KP|VP, "foo", "bar"),})
+N(MB, L{N(KP|VP, "key", "val"), N(KP|VN, "a", {}), N(KP|VN, "b", {}), N(KP|VN, "c", {}), N(KP|VN, "d", {}), N(KP|VN, "e", {}), N(KP|VN, "f", {}), N(KP|VN, "g", {}), N(KP|VP, "foo", "bar"),})
 );
 
 ADD_CASE_TO_GROUP("simple map expl, null values 1",
 R"({key: val, a, b, c, d, e: , f: , g: , foo: bar})",
-N(MFS, L{N(KP|VP, "key", "val"), N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, "c", {}), N(KP|VP, "d", {}), N(KP|VP, "e", {}), N(KP|VP, "f", {}), N(KP|VP, "g", {}), N(KP|VP, "foo", "bar"),})
+N(MFS, L{N(KP|VP, "key", "val"), N(KP|VN, "a", {}), N(KP|VN, "b", {}), N(KP|VN, "c", {}), N(KP|VN, "d", {}), N(KP|VN, "e", {}), N(KP|VN, "f", {}), N(KP|VN, "g", {}), N(KP|VP, "foo", "bar"),})
 );
 
 ADD_CASE_TO_GROUP("simple map expl, null values 2",
@@ -856,11 +856,11 @@ R"(
 - {a, b: 1, c: 2}
 )",
 N(SB, L{
-   N(MFS, L{N(KP|VP, "a", {})}),
-   N(MFS, L{N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, "c", {})}),
-   N(MFS, L{N(KP|VP, "a", "1"), N(KP|VP, "b", "2"), N(KP|VP, "c", {})}),
-   N(MFS, L{N(KP|VP, "a", "1"), N(KP|VP, "b", {}), N(KP|VP, "c", "2")}),
-   N(MFS, L{N(KP|VP, "a", {}), N(KP|VP, "b", "1"), N(KP|VP, "c", "2")}),
+   N(MFS, L{N(KP|VN, "a", {})}),
+   N(MFS, L{N(KP|VN, "a", {}), N(KP|VN, "b", {}), N(KP|VN, "c", {})}),
+   N(MFS, L{N(KP|VP, "a", "1"), N(KP|VP, "b", "2"), N(KP|VN, "c", {})}),
+   N(MFS, L{N(KP|VP, "a", "1"), N(KP|VN, "b", {}), N(KP|VP, "c", "2")}),
+   N(MFS, L{N(KP|VN, "a", {}), N(KP|VP, "b", "1"), N(KP|VP, "c", "2")}),
  })
 );
 
@@ -874,12 +874,12 @@ R"(
 - {:foo:foo:, :bar:bar:, :baz:baz:}
 )",
 N(SB, L{
-  N(MFS, L{N(KP|VP, "foo", {}), N(KP|VP, "bar", {}), N(KP|VP, "baz", {})}),
-  N(MFS, L{N(KP|VP, "foo", {}), N(KP|VP, "bar", {}), N(KP|VP, "baz", {})}),
-  N(MFS, L{N(KP|VP, "foo:foo", {}), N(KP|VP, "bar:bar", {}), N(KP|VP, "baz:baz", {})}),
-  N(MFS, L{N(KP|VP, "foo:foo", {}), N(KP|VP, "bar:bar", {}), N(KP|VP, "baz:baz", {})}),
-  N(MFS, L{N(KP|VP, ":foo:foo", {}), N(KP|VP, ":bar:bar", {}), N(KP|VP, ":baz:baz", {})}),
-  N(MFS, L{N(KP|VP, ":foo:foo", {}), N(KP|VP, ":bar:bar", {}), N(KP|VP, ":baz:baz", {})}),
+  N(MFS, L{N(KP|VN, "foo", {}), N(KP|VN, "bar", {}), N(KP|VN, "baz", {})}),
+  N(MFS, L{N(KP|VN, "foo", {}), N(KP|VN, "bar", {}), N(KP|VN, "baz", {})}),
+  N(MFS, L{N(KP|VN, "foo:foo", {}), N(KP|VN, "bar:bar", {}), N(KP|VN, "baz:baz", {})}),
+  N(MFS, L{N(KP|VN, "foo:foo", {}), N(KP|VN, "bar:bar", {}), N(KP|VN, "baz:baz", {})}),
+  N(MFS, L{N(KP|VN, ":foo:foo", {}), N(KP|VN, ":bar:bar", {}), N(KP|VN, ":baz:baz", {})}),
+  N(MFS, L{N(KP|VN, ":foo:foo", {}), N(KP|VN, ":bar:bar", {}), N(KP|VN, ":baz:baz", {})}),
 })
 );
 
@@ -1122,23 +1122,23 @@ e3 ,f3: val3 , 0003
 h3 ,i3: val3 ,0003
 })",
 N(MFS, L{ // this is crazy...
-        N(KP|VP, "a0", {}),
-        N(KP|VP, "b0", "val0"), N(KP|VP, "0000 c0", {}),
-        N(KP|VP, "d0", "val0"), N(KP|VP, "0000 e0", {}),
-        N(KP|VP, "f0", "val0"), N(KP|VP, "0000 h0", {}),
-        N(KP|VP, "i0", "val0"), N(KP|VP, "0000 a1", {}),
-        N(KP|VP, "b1", "val1"), N(KP|VP, "0001 c1", {}),
-        N(KP|VP, "d1", "val1"), N(KP|VP, "0001 e1", {}),
-        N(KP|VP, "f1", "val1"), N(KP|VP, "0001 h1", {}),
-        N(KP|VP, "i1", "val1"), N(KP|VP, "0001 a2", {}),
-        N(KP|VP, "b2", "val2"), N(KP|VP, "0002 c2", {}),
-        N(KP|VP, "d2", "val2"), N(KP|VP, "0002 e2", {}),
-        N(KP|VP, "f2", "val2"), N(KP|VP, "0002 h2", {}),
-        N(KP|VP, "i2", "val2"), N(KP|VP, "0002 a3", {}),
-        N(KP|VP, "b3", "val3"), N(KP|VP, "0003 c3", {}),
-        N(KP|VP, "d3", "val3"), N(KP|VP, "0003 e3", {}),
-        N(KP|VP, "f3", "val3"), N(KP|VP, "0003 h3", {}),
-        N(KP|VP, "i3", "val3"), N(KP|VP, "0003", {}),
+        N(KP|VN, "a0", {}),
+        N(KP|VP, "b0", "val0"), N(KP|VN, "0000 c0", {}),
+        N(KP|VP, "d0", "val0"), N(KP|VN, "0000 e0", {}),
+        N(KP|VP, "f0", "val0"), N(KP|VN, "0000 h0", {}),
+        N(KP|VP, "i0", "val0"), N(KP|VN, "0000 a1", {}),
+        N(KP|VP, "b1", "val1"), N(KP|VN, "0001 c1", {}),
+        N(KP|VP, "d1", "val1"), N(KP|VN, "0001 e1", {}),
+        N(KP|VP, "f1", "val1"), N(KP|VN, "0001 h1", {}),
+        N(KP|VP, "i1", "val1"), N(KP|VN, "0001 a2", {}),
+        N(KP|VP, "b2", "val2"), N(KP|VN, "0002 c2", {}),
+        N(KP|VP, "d2", "val2"), N(KP|VN, "0002 e2", {}),
+        N(KP|VP, "f2", "val2"), N(KP|VN, "0002 h2", {}),
+        N(KP|VP, "i2", "val2"), N(KP|VN, "0002 a3", {}),
+        N(KP|VP, "b3", "val3"), N(KP|VN, "0003 c3", {}),
+        N(KP|VP, "d3", "val3"), N(KP|VN, "0003 e3", {}),
+        N(KP|VP, "f3", "val3"), N(KP|VN, "0003 h3", {}),
+        N(KP|VP, "i3", "val3"), N(KP|VN, "0003", {}),
 })
 );
 
@@ -1236,8 +1236,8 @@ R"(
 : b
 )",
 N(MB, L{
-    N(KP|VP, "", "a"),
-    N(KP|VP, "", "b"),
+    N(KN|VP, "", "a"),
+    N(KN|VP, "", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, empty keys 2JQS, v2",
@@ -1248,8 +1248,8 @@ R"(
   b
 )",
 N(MB, L{
-    N(KP|VP, "", "a"),
-    N(KP|VP, "", "b"),
+    N(KN|VP, "", "a"),
+    N(KN|VP, "", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, empty keys 4ABK, v1",
@@ -1258,8 +1258,8 @@ R"({
 : b,
 })",
 N(MFS, L{
-    N(KP|VP, "", "a"),
-    N(KP|VP, "", "b"),
+    N(KN|VP, "", "a"),
+    N(KN|VP, "", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, empty keys 4ABK, v2",
@@ -1270,8 +1270,8 @@ R"({
   b,
 })",
 N(MFS, L{
-    N(KP|VP, "", "a"),
-    N(KP|VP, "", "b"),
+    N(KN|VP, "", "a"),
+    N(KN|VP, "", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, empty keys 4ABK, v3",

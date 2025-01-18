@@ -1324,7 +1324,7 @@ a: 1
 &anchor c: 3
 )",
 N(MB, L{
-    N(KP|VP, "a", "1"), N(KP|VP, "b", {}), N(KP|VP, "c", AR(KEYANCH, "anchor"), "3")
+    N(KP|VP, "a", "1"), N(KP|VN, "b", {}), N(KP|VP, "c", AR(KEYANCH, "anchor"), "3")
   })
 );
 

@@ -1300,7 +1300,7 @@ R"(
 ? b
 )",
 N(STREAM, L{
-    N(DOC|MB, TL("!!set", L{N(KP|VP, "a", /*"~"*/{}), N(KP|VP, "b", /*"~"*/{})})),
+    N(DOC|MB, TL("!!set", L{N(KP|VN, "a", /*"~"*/{}), N(KP|VN, "b", /*"~"*/{})})),
 })
 );
 
@@ -1311,7 +1311,7 @@ R"(
 ? b
 )",
 N(STREAM, L{
-    N(DOC|MB, TL("!!set", L{N(KP|VP, "a", /*"~"*/{}), N(KP|VP, "b", /*"~"*/{})})),
+    N(DOC|MB, TL("!!set", L{N(KP|VN, "a", /*"~"*/{}), N(KP|VN, "b", /*"~"*/{})})),
 })
 );
 

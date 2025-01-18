@@ -37,57 +37,16 @@ C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
 namespace c4 {
 namespace yml {
 
-/** encode a floating point value to a string. */
-template<class T>
-size_t to_chars_float(substr buf, T val)
-{
-    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
-    static_assert(std::is_floating_point<T>::value, "must be floating point");
-    if(C4_UNLIKELY(std::isnan(val)))
-        return to_chars(buf, csubstr(".nan"));
-    else if(C4_UNLIKELY(val == std::numeric_limits<T>::infinity()))
-        return to_chars(buf, csubstr(".inf"));
-    else if(C4_UNLIKELY(val == -std::numeric_limits<T>::infinity()))
-        return to_chars(buf, csubstr("-.inf"));
-    return to_chars(buf, val);
-    C4_SUPPRESS_WARNING_GCC_CLANG_POP
-}
+template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type;
+template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type;
+template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_floating_point<T>::value, bool>::type;
 
+template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type;
+template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type;
+template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_floating_point<T>::value, bool>::type;
 
-/** decode a floating point from string. Accepts special values: .nan,
- * .inf, -.inf */
-template<class T>
-bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
-{
-    static_assert(std::is_floating_point<T>::value, "must be floating point");
-    if(C4_LIKELY(from_chars(buf, val)))
-    {
-        return true;
-    }
-    else if(C4_UNLIKELY(buf.begins_with('+')))
-    {
-        return from_chars(buf.sub(1), val);
-    }
-    else if(C4_UNLIKELY(buf == ".nan" || buf == ".NaN" || buf == ".NAN"))
-    {
-        *val = std::numeric_limits<T>::quiet_NaN();
-        return true;
-    }
-    else if(C4_UNLIKELY(buf == ".inf" || buf == ".Inf" || buf == ".INF"))
-    {
-        *val = std::numeric_limits<T>::infinity();
-        return true;
-    }
-    else if(C4_UNLIKELY(buf == "-.inf" || buf == "-.Inf" || buf == "-.INF"))
-    {
-        *val = -std::numeric_limits<T>::infinity();
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
+template<class T> size_t to_chars_float(substr buf, T val);
+template<class T> bool from_chars_float(csubstr buf, T *C4_RESTRICT val);
 
 
 //-----------------------------------------------------------------------------
@@ -425,14 +384,14 @@ public:
     /** true when the node has an anchor named a */
     C4_ALWAYS_INLINE bool has_anchor(id_type node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
 
-    /** true if the node key does not have any KEYQUO flags, and its scalar verifies scalar_is_null().
-     * @warning the node must verify .has_key() (asserted) (ie must be a member of a map)
+    /** true if the node key is empty, or its scalar verifies @ref scalar_is_null().
+     * @warning the node must verify @ref Tree::has_key() (asserted) (ie must be a member of a map)
      * @see https://github.com/biojppm/rapidyaml/issues/413 */
-    C4_ALWAYS_INLINE bool key_is_null(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && scalar_is_null(n->m_key.scalar); }
-    /** true if the node key does not have any VALQUO flags, and its scalar verifies scalar_is_null().
-     * @warning the node must verify .has_val() (asserted) (ie must be a scalar / must not be a container)
+    C4_ALWAYS_INLINE bool key_is_null(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && (n->m_type.key_is_null() || scalar_is_null(n->m_key.scalar)); }
+    /** true if the node val is empty, or its scalar verifies @ref scalar_is_null().
+     * @warning the node must verify @ref Tree::has_val() (asserted) (ie must be a scalar / must not be a container)
      * @see https://github.com/biojppm/rapidyaml/issues/413 */
-    C4_ALWAYS_INLINE bool val_is_null(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && scalar_is_null(n->m_val.scalar); }
+    C4_ALWAYS_INLINE bool val_is_null(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && (n->m_type.val_is_null() || scalar_is_null(n->m_val.scalar)); }
 
     /// true if the key was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
@@ -846,12 +805,12 @@ public:
      * existing arena, and thus change the contents of individual
      * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
      * cost, ensure that the arena is reserved to an appropriate size
-     * using .reserve_arena()
+     * using @ref Tree::reserve_arena().
      *
      * @see alloc_arena() */
     template<class T>
-    typename std::enable_if<std::is_floating_point<T>::value, csubstr>::type
-    to_arena(T const& C4_RESTRICT a)
+    auto to_arena(T const& C4_RESTRICT a)
+        -> typename std::enable_if<std::is_floating_point<T>::value, csubstr>::type
     {
         substr rem(m_arena.sub(m_arena_pos));
         size_t num = to_chars_float(rem, a);
@@ -872,12 +831,12 @@ public:
      * existing arena, and thus change the contents of individual
      * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
      * cost, ensure that the arena is reserved to an appropriate size
-     * using .reserve_arena()
+     * using @ref Tree::reserve_arena().
      *
      * @see alloc_arena() */
     template<class T>
-    typename std::enable_if<!std::is_floating_point<T>::value, csubstr>::type
-    to_arena(T const& C4_RESTRICT a)
+    auto to_arena(T const& C4_RESTRICT a)
+        -> typename std::enable_if<!std::is_floating_point<T>::value, csubstr>::type
     {
         substr rem(m_arena.sub(m_arena_pos));
         size_t num = to_chars(rem, a);
@@ -898,7 +857,7 @@ public:
      * existing arena, and thus change the contents of individual
      * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
      * cost, ensure that the arena is reserved to an appropriate size
-     * using .reserve_arena()
+     * using @ref Tree::reserve_arena().
      *
      * @see alloc_arena() */
     csubstr to_arena(csubstr a)
@@ -948,9 +907,11 @@ public:
      * existing arena, and thus change the contents of individual
      * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
      * cost, ensure that the arena is reserved to an appropriate size
-     * using .reserve_arena()
+     * before using @ref Tree::reserve_arena()
      *
-     * @see alloc_arena() */
+     * @see reserve_arena()
+     * @see alloc_arena()
+     */
     substr copy_to_arena(csubstr s)
     {
         substr cp = alloc_arena(s.len);
@@ -959,7 +920,7 @@ public:
         #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC_PUSH
         C4_SUPPRESS_WARNING_GCC("-Wstringop-overflow=") // no need for terminating \0
-        C4_SUPPRESS_WARNING_GCC( "-Wrestrict") // there's an assert to ensure no violation of restrict behavior
+        C4_SUPPRESS_WARNING_GCC("-Wrestrict") // there's an assert to ensure no violation of restrict behavior
         #endif
         if(s.len)
             memcpy(cp.str, s.str, s.len);
@@ -1362,7 +1323,213 @@ public:
 
 };
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** @defgroup doc_serialization_helpers Serialization helpers
+ *
+ * @{
+ */
+
+
+// NON-ARITHMETIC -------------------------------------------------------------
+
+/** convert the val of a scalar node to a particular non-arithmetic
+ * non-float type, by forwarding its val to @ref from_chars<T>(). The
+ * full string is used.
+ * @return false if the conversion failed, or if the key was empty and unquoted */
+template<class T>
+inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v)
+    -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type
+{
+    return C4_LIKELY(!(tree->type(id) & VALNIL)) ? from_chars(tree->val(id), v) : false;
+}
+
+/** convert the key of a node to a particular non-arithmetic
+ * non-float type, by forwarding its key to @ref from_chars<T>(). The
+ * full string is used.
+ * @return false if the conversion failed, or if the key was empty and unquoted */
+template<class T>
+inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v)
+    -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type
+{
+    return C4_LIKELY(!(tree->type(id) & KEYNIL)) ? from_chars(tree->key(id), v) : false;
+}
+
+
+// INTEGRAL, NOT FLOATING -------------------------------------------------------------
+
+/** convert the val of a scalar node to a particular arithmetic
+ * integral non-float type, by forwarding its val to @ref
+ * from_chars<T>(). The full string is used.
+ *
+ * @return false if the conversion failed */
+template<class T>
+inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v)
+    -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type
+{
+    using U = typename std::remove_cv<T>::type;
+    enum { ischar = std::is_same<char, U>::value || std::is_same<signed char, U>::value || std::is_same<unsigned char, U>::value };
+    csubstr val = tree->val(id);
+    NodeType ty = tree->type(id);
+    if(C4_UNLIKELY((ty & VALNIL) || val.empty()))
+        return false;
+    // quote integral numbers if they have a leading 0
+    // https://github.com/biojppm/rapidyaml/issues/291
+    char first = val[0];
+    if(ty.is_val_quoted() && (first != '0' && !ischar))
+        return false;
+    else if(first == '+')
+        val = val.sub(1);
+    return from_chars(val, v);
+}
+
+/** convert the key of a node to a particular arithmetic
+ * integral non-float type, by forwarding its val to @ref
+ * from_chars<T>(). The full string is used.
+ *
+ * @return false if the conversion failed */
+template<class T>
+inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v)
+    -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type
+{
+    using U = typename std::remove_cv<T>::type;
+    enum { ischar = std::is_same<char, U>::value || std::is_same<signed char, U>::value || std::is_same<unsigned char, U>::value };
+    csubstr key = tree->key(id);
+    NodeType ty = tree->type(id);
+    if((ty & KEYNIL) || key.empty())
+        return false;
+    // quote integral numbers if they have a leading 0
+    // https://github.com/biojppm/rapidyaml/issues/291
+    char first = key[0];
+    if(ty.is_key_quoted() && (first != '0' && !ischar))
+        return false;
+    else if(first == '+')
+        key = key.sub(1);
+    return from_chars(key, v);
+}
+
+
+// FLOATING -------------------------------------------------------------
+
+/** encode a floating point value to a string. */
+template<class T>
+size_t to_chars_float(substr buf, T val)
+{
+    static_assert(std::is_floating_point<T>::value, "must be floating point");
+    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
+    if(C4_UNLIKELY(std::isnan(val)))
+        return to_chars(buf, csubstr(".nan"));
+    else if(C4_UNLIKELY(val == std::numeric_limits<T>::infinity()))
+        return to_chars(buf, csubstr(".inf"));
+    else if(C4_UNLIKELY(val == -std::numeric_limits<T>::infinity()))
+        return to_chars(buf, csubstr("-.inf"));
+    return to_chars(buf, val);
+    C4_SUPPRESS_WARNING_GCC_CLANG_POP
+}
+
+
+/** decode a floating point from string. Accepts special values: .nan,
+ * .inf, -.inf */
+template<class T>
+bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
+{
+    static_assert(std::is_floating_point<T>::value, "must be floating point");
+    if(buf.begins_with('+'))
+    {
+        buf = buf.sub(1);
+    }
+    if(C4_LIKELY(from_chars(buf, val)))
+    {
+        return true;
+    }
+    else if(C4_UNLIKELY(buf == ".nan" || buf == ".NaN" || buf == ".NAN"))
+    {
+        *val = std::numeric_limits<T>::quiet_NaN();
+        return true;
+    }
+    else if(C4_UNLIKELY(buf == ".inf" || buf == ".Inf" || buf == ".INF"))
+    {
+        *val = std::numeric_limits<T>::infinity();
+        return true;
+    }
+    else if(C4_UNLIKELY(buf == "-.inf" || buf == "-.Inf" || buf == "-.INF"))
+    {
+        *val = -std::numeric_limits<T>::infinity();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+/** convert the val of a scalar node to a floating point type, by
+ * forwarding its val to @ref from_chars_float<T>().
+ *
+ * @return false if the conversion failed
+ *
+ * @warning Unlike non-floating types, only the leading part of the
+ * string that may constitute a number is processed. This happens
+ * because the float parsing is delegated to fast_float, which is
+ * implemented that way. Consequently, for example, all of `"34"`,
+ * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
+ * about the contents of the data, you can use
+ * csubstr::first_real_span() to check before calling `>>`, for
+ * example like this:
+ *
+ * ```cpp
+ * csubstr val = node.val();
+ * if(val.first_real_span() == val)
+ *     node >> v;
+ * else
+ *     ERROR("not a real")
+ * ```
+ */
+template<class T>
+typename std::enable_if<std::is_floating_point<T>::value, bool>::type
+inline read(Tree const* C4_RESTRICT tree, id_type id, T *v)
+{
+    csubstr val = tree->val(id);
+    return C4_LIKELY(!val.empty()) ? from_chars_float(val, v) : false;
+}
+
+/** convert the key of a scalar node to a floating point type, by
+ * forwarding its key to @ref from_chars_float<T>().
+ *
+ * @return false if the conversion failed
+ *
+ * @warning Unlike non-floating types, only the leading part of the
+ * string that may constitute a number is processed. This happens
+ * because the float parsing is delegated to fast_float, which is
+ * implemented that way. Consequently, for example, all of `"34"`,
+ * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
+ * about the contents of the data, you can use
+ * csubstr::first_real_span() to check before calling `>>`, for
+ * example like this:
+ *
+ * ```cpp
+ * csubstr key = node.key();
+ * if(key.first_real_span() == key)
+ *     node >> v;
+ * else
+ *     ERROR("not a real")
+ * ```
+ */
+template<class T>
+typename std::enable_if<std::is_floating_point<T>::value, bool>::type
+inline readkey(Tree const* C4_RESTRICT tree, id_type id, T *v)
+{
+    csubstr key = tree->key(id);
+    return C4_LIKELY(!key.empty()) ? from_chars_float(key, v) : false;
+}
+
 /** @} */
+
+/** @} */
+
 
 } // namespace yml
 } // namespace c4

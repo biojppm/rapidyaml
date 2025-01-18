@@ -412,7 +412,7 @@ ADD_CASE_TO_GROUP("github3-problem2-ex1",
 R"(
 audio resource:
 )",
-N(MB, L{N(KP|VP, "audio resource", /*"~"*/{})})
+N(MB, L{N(KP|VN, "audio resource", /*"~"*/{})})
 );
 
 ADD_CASE_TO_GROUP("github3-problem2-ex2",
@@ -421,7 +421,7 @@ audio resource:
 more:
   example: y
 )",
-N(MB, L{N(KP|VP, "audio resource", /*"~"*/{}), N(KP|MB, "more", L{N(KP|VP, "example", "y")})})
+N(MB, L{N(KP|VN, "audio resource", /*"~"*/{}), N(KP|MB, "more", L{N(KP|VP, "example", "y")})})
 );
 
 ADD_CASE_TO_GROUP("github3-problem3",

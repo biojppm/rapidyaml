@@ -30,6 +30,8 @@ TEST(NodeType, type_str_preset)
     EXPECT_EQ(to_csubstr(NodeType(DOC).type_str()), "DOC");
     EXPECT_EQ(to_csubstr(NodeType(STREAM).type_str()), "STREAM");
     EXPECT_EQ(to_csubstr(NodeType(NOTYPE).type_str()), "NOTYPE");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|KEYNIL).type_str()), "KEYVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|VALNIL).type_str()), "KEYVAL***");
     EXPECT_EQ(to_csubstr(NodeType(KEYVAL|KEYREF).type_str()), "KEYVAL***");
     EXPECT_EQ(to_csubstr(NodeType(KEYVAL|VALREF).type_str()), "KEYVAL***");
     EXPECT_EQ(to_csubstr(NodeType(KEYVAL|KEYANCH).type_str()), "KEYVAL***");
@@ -99,6 +101,7 @@ TEST(NodeType, type_str)
     teststr(STREAM, "STREAM")
     teststr(DOC, "DOC")
     teststr(KEY, "KEY")
+    teststr(KEYNIL, "KNIL")
     teststr(KEYTAG, "KTAG")
     teststr(KEYANCH, "KANCH")
     teststr(KEYREF, "KREF")
@@ -109,6 +112,7 @@ TEST(NodeType, type_str)
     teststr(KEY_PLAIN, "KPLAIN")
     teststr(KEY_UNFILT, "KUNFILT")
     teststr(VAL, "VAL")
+    teststr(VALNIL, "VNIL")
     teststr(VALTAG, "VTAG")
     teststr(VALANCH, "VANCH")
     teststr(VALREF, "VREF")
@@ -328,6 +332,20 @@ TEST(NodeType, is_val)
     EXPECT_FALSE(NodeType(KEYSEQ).is_val());
 }
 
+TEST(NodeType, has_null_val)
+{
+    EXPECT_FALSE(NodeType(NOTYPE).val_is_null());
+    EXPECT_FALSE(NodeType(VAL).val_is_null());
+    EXPECT_FALSE(NodeType(KEY|KEYNIL).val_is_null());
+    EXPECT_TRUE(NodeType(VAL|VALNIL).val_is_null());
+    EXPECT_FALSE(NodeType(KEYVAL).val_is_null());
+    EXPECT_FALSE(NodeType(KEYMAP).val_is_null());
+    EXPECT_FALSE(NodeType(KEYSEQ).val_is_null());
+    EXPECT_TRUE(NodeType(KEYVAL|VALNIL).val_is_null());
+    EXPECT_TRUE(NodeType(KEYMAP|VALNIL).val_is_null());
+    EXPECT_TRUE(NodeType(KEYSEQ|VALNIL).val_is_null());
+}
+
 TEST(NodeType, has_key)
 {
     EXPECT_FALSE(NodeType(NOTYPE).has_key());
@@ -336,6 +354,20 @@ TEST(NodeType, has_key)
     EXPECT_TRUE(NodeType(KEYVAL).has_key());
     EXPECT_TRUE(NodeType(KEYMAP).has_key());
     EXPECT_TRUE(NodeType(KEYSEQ).has_key());
+}
+
+TEST(NodeType, key_is_null)
+{
+    EXPECT_FALSE(NodeType(NOTYPE).key_is_null());
+    EXPECT_FALSE(NodeType(KEY).key_is_null());
+    EXPECT_TRUE(NodeType(KEY|KEYNIL).key_is_null());
+    EXPECT_FALSE(NodeType(VAL|VALNIL).key_is_null());
+    EXPECT_FALSE(NodeType(KEYVAL).key_is_null());
+    EXPECT_FALSE(NodeType(KEYMAP).key_is_null());
+    EXPECT_FALSE(NodeType(KEYSEQ).key_is_null());
+    EXPECT_TRUE(NodeType(KEYVAL|KEYNIL).key_is_null());
+    EXPECT_TRUE(NodeType(KEYMAP|KEYNIL).key_is_null());
+    EXPECT_TRUE(NodeType(KEYSEQ|KEYNIL).key_is_null());
 }
 
 TEST(NodeType, is_keyval)
