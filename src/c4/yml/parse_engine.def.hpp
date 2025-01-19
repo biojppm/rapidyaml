@@ -4064,17 +4064,16 @@ bool ParseEngine<EventHandler>::_locations_dirty() const
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_flow_skip_whitespace()
 {
+    // don't assign to csubstr rem: otherwise, gcc12,13,14 -O3 -m32 misbuilds
     if(m_evt_handler->m_curr->line_contents.rem.len > 0)
     {
-        csubstr rem = m_evt_handler->m_curr->line_contents.rem;
-        if(rem.str[0] == ' ' || rem.str[0] == '\t')
+        if(m_evt_handler->m_curr->line_contents.rem.str[0] == ' ' || m_evt_handler->m_curr->line_contents.rem.str[0] == '\t')
         {
-            _c4dbgpf("starts with whitespace: '{}'", _c4prc(rem.str[0]));
+            _c4dbgpf("starts with whitespace: '{}'", _c4prc(m_evt_handler->m_curr->line_contents.rem.str[0]));
             _skipchars(" \t");
-            rem = m_evt_handler->m_curr->line_contents.rem;
         }
         // comments
-        if(rem.begins_with('#'))
+        if(m_evt_handler->m_curr->line_contents.rem.begins_with('#'))
         {
             _c4dbgpf("it's a comment: {}", m_evt_handler->m_curr->line_contents.rem);
             _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
@@ -4925,14 +4924,14 @@ seqflow_start:
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->indref != npos);
 
     _handle_flow_skip_whitespace();
-    csubstr rem = m_evt_handler->m_curr->line_contents.rem;
-    if(!rem.len)
+    // don't assign to csubstr rem: otherwise, gcc12,13,14 -O3 -m32 misbuilds
+    if(!m_evt_handler->m_curr->line_contents.rem.len)
         goto seqflow_again;
 
     if(has_any(RVAL))
     {
         _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, has_none(RNXT));
-        const char first = rem.str[0];
+        const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
         ScannedScalar sc;
         if(first == '\'')
         {
@@ -5048,7 +5047,7 @@ seqflow_start:
     {
         _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, has_any(RNXT));
         _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, has_none(RVAL));
-        const char first = rem.str[0];
+        const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
         if(first == ',')
         {
             _c4dbgp("seqflow[RNXT]: expect next val");
