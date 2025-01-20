@@ -572,6 +572,84 @@ block:
     });
 }
 
+
+//-----------------------------------------------------------------------------
+
+TEST(empty_scalar, issue471_val)
+{
+    csubstr flow = R"({
+  a: ,
+  b:
+})";
+    csubstr blck = R"(
+a:
+b:
+)";
+    for(csubstr yaml : {flow, blck})
+    {
+        test_check_emit_check(yaml, [](Tree const& t){
+            EXPECT_TRUE(t[0].val_is_null());
+            EXPECT_TRUE(t[1].val_is_null());
+            ExpectError::check_error(&t, [&] { std::string s; t["a"] >> s; });
+            ExpectError::check_error(&t, [&] { int s; t["a"] >> s; });
+            ExpectError::check_error(&t, [&] { float s; t["a"] >> s; });
+        });
+    }
+}
+TEST(empty_scalar, issue471_key)
+{
+    csubstr flow = R"({
+  : a,
+  : b
+})";
+    csubstr blck = R"(
+: a
+: b
+)";
+    for(csubstr yaml : {flow, blck})
+    {
+        test_check_emit_check(yaml, [](Tree const& t){
+            EXPECT_TRUE(t[0].key_is_null());
+            EXPECT_TRUE(t[1].key_is_null());
+            ExpectError::check_error(&t, [&] { std::string s; t[0] >> key(s); });
+            ExpectError::check_error(&t, [&] { int s; t[0] >> key(s); });
+            ExpectError::check_error(&t, [&] { float s; t[0] >> key(s); });
+        });
+    }
+}
+
+TEST(empty_scalar, issue259)
+{
+    csubstr yaml = R"(
+{
+? explicit key1 : explicit value,
+? explicit key2 : , # Explicit empty
+? explicit key3,     # Empty value
+simple key1 : explicit value,
+simple key2 : ,     # Explicit empty
+simple key3,         # Empty value
+}
+)";
+    test_check_emit_check(yaml, [](Tree const& t){
+        EXPECT_EQ(t["explicit key1"].key(), "explicit key1");
+        EXPECT_EQ(t["explicit key1"].val(), "explicit value");
+        EXPECT_EQ(t["explicit key2"].key(), "explicit key2");
+        EXPECT_EQ(t["explicit key2"].val(), "");
+        EXPECT_TRUE(t["explicit key2"].val_is_null());
+        EXPECT_EQ(t["explicit key3"].key(), "explicit key3");
+        EXPECT_EQ(t["explicit key3"].val(), "");
+        EXPECT_TRUE(t["explicit key3"].val_is_null());
+        EXPECT_EQ(t["simple key1"].key(), "simple key1");
+        EXPECT_EQ(t["simple key1"].val(), "explicit value");
+        EXPECT_EQ(t["simple key2"].key(), "simple key2");
+        EXPECT_EQ(t["simple key2"].val(), "");
+        EXPECT_TRUE(t["simple key2"].val_is_null());
+        EXPECT_EQ(t["simple key3"].key(), "simple key3");
+        EXPECT_EQ(t["simple key3"].val(), "");
+        EXPECT_TRUE(t["simple key3"].val_is_null());
+    });
+}
+
 }
 
 
