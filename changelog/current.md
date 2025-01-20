@@ -10,6 +10,15 @@
   - add workarounds for problems with codegen of gcc 11,12,13.
   - improve CI coverage of gcc and clang optimization levels.
 - [BREAKING] Fix [#477](https://github.com/biojppm/rapidyaml/issues/477) ([PR#479](https://github.com/biojppm/rapidyaml/pull/479)): changed `read<std::map>()` to overwrite existing entries. The provided implementations had an inconsistency between `std::map` (which wasn't overwriting) and `std::vector` (which *was* overwriting).
+- [PR#492](https://github.com/biojppm/rapidyaml/pull/492): fix emit of explicit keys when indented:
+  ```yaml
+  fixed:
+      ? explicit key
+      : value
+  previously:
+      ? explicit key
+  : value   # this was not indented
+  ```
 
 
 ## Thanks

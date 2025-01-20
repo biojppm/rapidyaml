@@ -359,6 +359,316 @@ TEST(emit, no_node)
     test_emits(t, NONE, expected, expected_json);
 }
 
+TEST(emit, empty_key_squo)
+{
+    {
+        SCOPED_TRACE("one only");
+        const Tree t = parse_in_arena(R"(
+? ''
+: literal
+)");
+        std::string expected = "'': literal\n";
+        std::string expected_json = R"({"": "literal"})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("nested");
+        const Tree t = parse_in_arena(R"(
+level1:
+  ? ''
+  : literal
+)");
+        std::string expected = "level1:\n  '': literal\n";
+        std::string expected_json = R"({"level1": {"": "literal"}})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    const Tree t = parse_in_arena(R"(
+? ''
+: literal
+level1:
+  ? ''
+  : literal
+  level2:
+    ? ''
+    : literal
+    level3:
+      ? ''
+      : literal
+)");
+    {
+        SCOPED_TRACE("level3");
+        std::string expected = "level3:\n  '': literal\n";
+        std::string expected_json = R"("level3": {"": "literal"})";
+        test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level2");
+        std::string expected = "level2:\n  '': literal\n  level3:\n    '': literal\n";
+        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level1");
+        std::string expected = "level1:\n  '': literal\n  level2:\n    '': literal\n    level3:\n      '': literal\n";
+        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        test_emits(t, t["level1"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level0");
+        std::string expected = "'': literal\nlevel1:\n  '': literal\n  level2:\n    '': literal\n    level3:\n      '': literal\n";
+        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        test_emits(t, NONE, expected, expected_json);
+    }
+}
+
+TEST(emit, empty_key_dquo)
+{
+    {
+        SCOPED_TRACE("one only");
+        const Tree t = parse_in_arena(R"(
+? ""
+: literal
+)");
+        std::string expected = "\"\": literal\n";
+        std::string expected_json = R"({"": "literal"})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("nested");
+        const Tree t = parse_in_arena(R"(
+level1:
+  ? ""
+  : literal
+)");
+        std::string expected = "level1:\n  \"\": literal\n";
+        std::string expected_json = R"({"level1": {"": "literal"}})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    const Tree t = parse_in_arena(R"(
+? ""
+: literal
+level1:
+  ? ""
+  : literal
+  level2:
+    ? ""
+    : literal
+    level3:
+      ? ""
+      : literal
+)");
+    {
+        SCOPED_TRACE("level3");
+        std::string expected = "level3:\n  \"\": literal\n";
+        std::string expected_json = R"("level3": {"": "literal"})";
+        test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level2");
+        std::string expected = "level2:\n  \"\": literal\n  level3:\n    \"\": literal\n";
+        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level1");
+        std::string expected = "level1:\n  \"\": literal\n  level2:\n    \"\": literal\n    level3:\n      \"\": literal\n";
+        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        test_emits(t, t["level1"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level0");
+        std::string expected = "\"\": literal\nlevel1:\n  \"\": literal\n  level2:\n    \"\": literal\n    level3:\n      \"\": literal\n";
+        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        test_emits(t, NONE, expected, expected_json);
+    }
+}
+
+TEST(emit, empty_key_plain)
+{
+    {
+        SCOPED_TRACE("one only");
+        const Tree t = parse_in_arena(R"(
+?
+: literal
+)");
+        std::string expected = ": literal\n";
+        std::string expected_json = R"({"": "literal"})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("nested");
+        const Tree t = parse_in_arena(R"(
+level1:
+  ?
+  : literal
+)");
+        std::string expected = "level1:\n  : literal\n";
+        std::string expected_json = R"({"level1": {"": "literal"}})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    const Tree t = parse_in_arena(R"(
+?
+: literal
+level1:
+  ?
+  : literal
+  level2:
+    ?
+    : literal
+    level3:
+      ?
+      : literal
+)");
+    {
+        SCOPED_TRACE("level3");
+        std::string expected = "level3:\n  : literal\n";
+        std::string expected_json = R"("level3": {"": "literal"})";
+        test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level2");
+        std::string expected = "level2:\n  : literal\n  level3:\n    : literal\n";
+        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level1");
+        std::string expected = "level1:\n  : literal\n  level2:\n    : literal\n    level3:\n      : literal\n";
+        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        test_emits(t, t["level1"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level0");
+        std::string expected = ": literal\nlevel1:\n  : literal\n  level2:\n    : literal\n    level3:\n      : literal\n";
+        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        test_emits(t, NONE, expected, expected_json);
+    }
+}
+
+TEST(emit, empty_key_literal)
+{
+    {
+        SCOPED_TRACE("one only");
+        const Tree t = parse_in_arena(R"(
+? |-
+: literal
+)");
+        std::string expected = "? |-\n: literal\n";
+        std::string expected_json = R"({"": "literal"})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("nested");
+        const Tree t = parse_in_arena(R"(
+level1:
+  ? |-
+  : literal
+)");
+        std::string expected = "level1:\n  ? |-\n  : literal\n";
+        std::string expected_json = R"({"level1": {"": "literal"}})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    const Tree t = parse_in_arena(R"(
+? |-
+: literal
+level1:
+  ? |-
+  : literal
+  level2:
+    ? |-
+    : literal
+    level3:
+      ? |-
+      : literal
+)");
+    {
+        SCOPED_TRACE("level3");
+        std::string expected = "level3:\n  ? |-\n  : literal\n";
+        std::string expected_json = R"("level3": {"": "literal"})";
+        test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level2");
+        std::string expected = "level2:\n  ? |-\n  : literal\n  level3:\n    ? |-\n    : literal\n";
+        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level1");
+        std::string expected = "level1:\n  ? |-\n  : literal\n  level2:\n    ? |-\n    : literal\n    level3:\n      ? |-\n      : literal\n";
+        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        test_emits(t, t["level1"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level0");
+        std::string expected = "? |-\n: literal\nlevel1:\n  ? |-\n  : literal\n  level2:\n    ? |-\n    : literal\n    level3:\n      ? |-\n      : literal\n";
+        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        test_emits(t, NONE, expected, expected_json);
+    }
+}
+
+TEST(emit, empty_key_folded)
+{
+    {
+        SCOPED_TRACE("one only");
+        const Tree t = parse_in_arena(R"(
+? >-
+: folded
+)");
+        std::string expected = "? >-\n: folded\n";
+        std::string expected_json = R"({"": "folded"})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("nested");
+        const Tree t = parse_in_arena(R"(
+level1:
+  ? >-
+  : folded
+)");
+        std::string expected = "level1:\n  ? >-\n  : folded\n";
+        std::string expected_json = R"({"level1": {"": "folded"}})";
+        test_emits(t, t.root_id(), expected, expected_json);
+    }
+    const Tree t = parse_in_arena(R"(
+? >-
+: folded
+level1:
+  ? >-
+  : folded
+  level2:
+    ? >-
+    : folded
+    level3:
+      ? >-
+      : folded
+)");
+    {
+        SCOPED_TRACE("level3");
+        std::string expected = "level3:\n  ? >-\n  : folded\n";
+        std::string expected_json = R"("level3": {"": "folded"})";
+        test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level2");
+        std::string expected = "level2:\n  ? >-\n  : folded\n  level3:\n    ? >-\n    : folded\n";
+        std::string expected_json = "\"level2\": {\"\": \"folded\",\"level3\": {\"\": \"folded\"}}";
+        test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level1");
+        std::string expected = "level1:\n  ? >-\n  : folded\n  level2:\n    ? >-\n    : folded\n    level3:\n      ? >-\n      : folded\n";
+        std::string expected_json = "\"level1\": {\"\": \"folded\",\"level2\": {\"\": \"folded\",\"level3\": {\"\": \"folded\"}}}";
+        test_emits(t, t["level1"].id(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("level0");
+        std::string expected = "? >-\n: folded\nlevel1:\n  ? >-\n  : folded\n  level2:\n    ? >-\n    : folded\n    level3:\n      ? >-\n      : folded\n";
+        std::string expected_json = "{\"\": \"folded\",\"level1\": {\"\": \"folded\",\"level2\": {\"\": \"folded\",\"level3\": {\"\": \"folded\"}}}}";
+        test_emits(t, NONE, expected, expected_json);
+    }
+}
+
 TEST(emit, existing_seq_node_flow)
 {
     Tree nct = parse_in_arena("[foo, bar, [nested, seq], {nested: map}]");
