@@ -147,18 +147,19 @@ void Emitter<Writer>::_emit_yaml(id_type id)
 template<class Writer>
 void Emitter<Writer>::_write_doc(id_type id)
 {
-    RYML_ASSERT(m_tree->is_doc(id));
-    RYML_ASSERT(!m_tree->has_key(id));
+    const NodeType ty = m_tree->type(id);
+    RYML_ASSERT(ty.is_doc());
+    RYML_ASSERT(!ty.has_key());
     if(!m_tree->is_root(id))
     {
         RYML_ASSERT(m_tree->is_stream(m_tree->parent(id)));
         this->Writer::_do_write("---");
     }
     //
-    if(!m_tree->has_val(id)) // this is more frequent
+    if(!ty.has_val()) // this is more frequent
     {
-        const bool tag = m_tree->has_val_tag(id);
-        const bool anchor = m_tree->has_val_anchor(id);
+        const bool tag = ty.has_val_tag();
+        const bool anchor = ty.has_val_anchor();
         if(!tag && !anchor)
         {
             ;
@@ -199,20 +200,20 @@ void Emitter<Writer>::_write_doc(id_type id)
     }
     else // docval
     {
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_val(id));
+        _RYML_CB_ASSERT(m_tree->callbacks(), ty.has_val());
         // some plain scalars such as '...' and '---' must not
         // appear at 0-indentation
         const csubstr val = m_tree->val(id);
         const bool preceded_by_3_dashes = !m_tree->is_root(id);
-        const type_bits style_marks = m_tree->type(id) & (KEY_STYLE|VAL_STYLE);
-        const bool is_plain = m_tree->type(id).is_val_plain();
+        const type_bits style_marks = ty & VAL_STYLE;
+        const bool is_plain = ty.is_val_plain();
         const bool is_ambiguous = (is_plain || !style_marks)
             && ((val.begins_with("...") || val.begins_with("---"))
                 ||
                 (val.find('\n') != npos));
         if(preceded_by_3_dashes)
         {
-            if(val.len == 0 && !m_tree->has_val_anchor(id) && !m_tree->has_val_tag(id))
+            if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag())
             {
                 this->Writer::_do_write('\n');
                 return;
@@ -607,7 +608,7 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, i
     }
 
     // ensure the style flags only have one of KEY or VAL
-    _RYML_CB_ASSERT(m_tree->callbacks(), ((flags & SCALAR_STYLE) == 0) || (((flags&KEY_STYLE) == 0) != ((flags&VAL_STYLE) == 0)));
+    _RYML_CB_ASSERT(m_tree->callbacks(), ((flags & SCALAR_STYLE) == 0) || (((flags & KEY_STYLE) == 0) != ((flags & VAL_STYLE) == 0)));
     type_bits style_marks = flags & SCALAR_STYLE;
     if(!style_marks)
         style_marks = scalar_style_choose(sc.scalar);

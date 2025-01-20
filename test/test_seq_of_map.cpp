@@ -301,9 +301,9 @@ c : [
   :
 ]})",
 N(MFS, L{
-  N(KP|SFS, "a", L{N(MFS, L{N(KP|VP, "", "foo")}),}),
-  N(KP|SFS, "b", L{N(MFS, L{N(KP|VP, "", "foo")}),}),
-  N(KP|SFS, "c", L{N(MFS, L{N(KP|VP, "", {})}), N(MFS, L{N(KP|VP, "", {})}),}),
+  N(KP|SFS, "a", L{N(MFS, L{N(KN|VP, "", "foo")}),}),
+  N(KP|SFS, "b", L{N(MFS, L{N(KN|VP, "", "foo")}),}),
+  N(KP|SFS, "c", L{N(MFS, L{N(KN|VN, "", {})}), N(MFS, L{N(KN|VN, "", {})}),}),
 })
 );
 

@@ -134,18 +134,18 @@ R"(
 )",
 N(STREAM, L{
         N(DOC|MB, L{
-                N(KP|VP, "a", {}),
-                N(KP|VP, "b", {}),
-                N(KP|VP, "", {})
+                N(KP|VN, "a", {}),
+                N(KP|VN, "b", {}),
+                N(KN|VN, "", {})
             }),
         N(DOC|MB, TL("!!set", L{
-                    N(KP|VP, "a", {}),
-                    N(KP|VP, "b", {}),
+                    N(KP|VN, "a", {}),
+                    N(KP|VN, "b", {}),
                 })),
         N(DOC|MB, TL("!!set", L{
-                    N(KP|VP, "a", {}),
-                    N(KP|VP, "b", {}),
-                    N(KP|VP, "", {})
+                    N(KP|VN, "a", {}),
+                    N(KP|VN, "b", {}),
+                    N(KN|VN, "", {})
                 })),
     })
 );
@@ -157,9 +157,9 @@ R"(
 ?
 )",
 N(MB, L{
-  N(KP|VP, "", {}),
-  N(KP|VP, "", {}),
-  N(KP|VP, "", {}),
+  N(KN|VN, "", {}),
+  N(KN|VN, "", {}),
+  N(KN|VN, "", {}),
 })
 );
 
@@ -181,18 +181,18 @@ R"(
 )",
 N(STREAM, L{
         N(DOC|MB, L{
-                N(KP|VP, "a", {}),
-                N(KP|VP, "b", {}),
-                N(KP|VP, "", {})
+                N(KP|VN, "a", {}),
+                N(KP|VN, "b", {}),
+                N(KN|VN, "", {})
             }),
         N(DOC|MB, TL("!!set", L{
-                    N(KP|VP, "a", {}),
-                    N(KP|VP, "b", {}),
+                    N(KP|VN, "a", {}),
+                    N(KP|VN, "b", {}),
                 })),
         N(DOC|MB, TL("!!set", L{
-                    N(KP|VP, "a", {}),
-                    N(KP|VP, "b", {}),
-                    N(KP|VP, "", {})
+                    N(KP|VN, "a", {}),
+                    N(KP|VN, "b", {}),
+                    N(KN|VN, "", {})
                 })),
     })
 );
@@ -390,11 +390,11 @@ c:
 e:
 )",
 N(MB, L{
-        N(KP|VP, "a", {}),
-        N(KP|VP, "b", {}),
-        N(KP|VP, "c", {}),
-        N(KP|VP, "d", {}),
-        N(KP|VP, "e", {}),
+        N(KP|VN, "a", {}),
+        N(KP|VN, "b", {}),
+        N(KP|VN, "c", {}),
+        N(KP|VN, "d", {}),
+        N(KP|VN, "e", {}),
     })
 );
 
@@ -409,11 +409,11 @@ a: 1
 )",
 N(MB, L{
         N(KP|VP, "a", "1"),
-        N(KP|VP, "b", {}),
+        N(KP|VN, "b", {}),
         N(KP|VP, "c", AR(KEYANCH, "anchor"), "3"),
-        N(KP|VP, "d", {}),
+        N(KP|VN, "d", {}),
         N(KP|VP, TS("!!str", "e"), "4"),
-        N(KP|VP, "f", {}),
+        N(KP|VN, "f", {}),
     })
 );
 

@@ -338,7 +338,7 @@ R"(-
 - # with comments
 - # more comments
 )",
-N(SB, L{N{VP, ""}, N{VP, ""}, N{VP, ""}, N{VP, ""}, N{VP, ""}, N{VP, ""}})
+N(SB, L{VN, VN, VN, VN, VN, VN})
 );
 
 ADD_CASE_TO_GROUP("simple seq, empty elements with non-empty first",
@@ -350,7 +350,7 @@ R"(
 - # with comments
 - # more comments
 )",
-N(SB, L{N{VP, "non-empty"}, N{VP, ""}, N{VP, ""}, N{VP, ""}, N{VP, ""}, N{VP, ""}})
+N(SB, L{N{VP, "non-empty"}, VN, VN, VN, VN, VN})
 );
 
 ADD_CASE_TO_GROUP("simple seq, scalars with special chars, comma",
@@ -602,9 +602,8 @@ N(SFS, L{
    N(VP, ":^"),
    N(VP, ":$"),
    N(VP, ":`"),
-   N(MFS, L{N(KP|VP, "", "")}),
-   _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VP, "", "")}),
-                                    N(VP, ":\t")),
+   N(MFS, L{KN|VN}),
+   _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{KN|VN}), N(VP, ":\t")),
    N(VP, "x:a"),
    N(VP, "x:0"),
    N(VP, "x::"),
@@ -615,9 +614,8 @@ N(SFS, L{
    N(VP, "x:^"),
    N(VP, "x:$"),
    N(VP, "x:`"),
-   N(MFS, L{N(KP|VP, "x", "")}),
-   _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VP, "x", "")}),
-                                    N(VP, "x:\t")),
+   N(MFS, L{N(KP|VN, "x", "")}),
+   _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VN, "x", "")}), N(VP, "x:\t")),
    N(VP, ":z:a"),
    N(VP, ":z:0"),
    N(VP, ":z::"),
@@ -628,9 +626,8 @@ N(SFS, L{
    N(VP, ":z:^"),
    N(VP, ":z:$"),
    N(VP, ":z:`"),
-   N(MFS, L{N(KP|VP, ":z", "")}),
-   _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VP, ":z", "")}),
-                                    N(VP, ":z:\t")),
+   N(MFS, L{N(KP|VN, ":z", "")}),
+   _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VN, ":z", "")}), N(VP, ":z:\t")),
  })
 );
 
@@ -675,7 +672,7 @@ R"(- :a
 N(SB, L{
  N(VP, ":a"),
  N(VP, ":0"),
- N(MB, L{N(KP|VP, ":", {})}),
+ N(MB, L{N(KP|VN, ":", {})}),
  N(VP, ":-"),
  N(VP, ":*"),
  N(VP, ":@"),
@@ -683,12 +680,12 @@ N(SB, L{
  N(VP, ":^"),
  N(VP, ":$"),
  N(VP, ":`"),
- N(MB, L{N(KP|VP, "", "")}),
-// _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MB, L{N(KP|VP, "", "")}),
+ N(MB, L{KN|VN}),
+// _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MB, L{KN|VN}),
 //                                  N(VP, ":")),
  N(VP, "x:a"),
  N(VP, "x:0"),
- N(MB, L{N(KP|VP, "x:", {})}),
+ N(MB, L{N(KP|VN, "x:", {})}),
  N(VP, "x:-"),
  N(VP, "x:*"),
  N(VP, "x:@"),
@@ -696,12 +693,12 @@ N(SB, L{
  N(VP, "x:^"),
  N(VP, "x:$"),
  N(VP, "x:`"),
- N(MB, L{N(KP|VP, "x", "")}),
-// _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MB, L{N(KP|VP, "x", "")}),
+ N(MB, L{N(KP|VN, "x", {})}),
+// _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MB, L{N(KP|VN, "x", "")}),
 //                                  N(VP, "x:")),
  N(VP, ":z:a"),
  N(VP, ":z:0"),
- N(MB, L{N(KP|VP, ":z:", {})}),
+ N(MB, L{N(KP|VN, ":z:", {})}),
  N(VP, ":z:-"),
  N(VP, ":z:*"),
  N(VP, ":z:@"),
@@ -709,8 +706,8 @@ N(SB, L{
  N(VP, ":z:^"),
  N(VP, ":z:$"),
  N(VP, ":z:`"),
- N(MB, L{N(KP|VP, ":z", "")}),
-// _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MB, L{N(KP|VP, ":z", "")}),
+ N(MB, L{N(KP|VN, ":z", "")}),
+// _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MB, L{N(KP|VN, ":z", "")}),
 //                                  N(VP, ":z:")),
 })
 );

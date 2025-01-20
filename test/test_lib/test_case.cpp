@@ -547,6 +547,28 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_FALSE(n.val_ref().empty());
         EXPECT_FALSE(n.has_val_anchor());
     }
+    if(n.has_key())
+    {
+        if(n.is_key_quoted())
+        {
+            EXPECT_FALSE(n.key_is_null());
+        }
+        if(n.key_is_null())
+        {
+            EXPECT_FALSE(n.is_key_quoted());
+        }
+    }
+    if(n.has_val() && n.is_val_quoted())
+    {
+        if(n.is_val_quoted())
+        {
+            EXPECT_FALSE(n.val_is_null());
+        }
+        if(n.val_is_null())
+        {
+            EXPECT_FALSE(n.is_val_quoted());
+        }
+    }
     // ... add more tests here
 
     // now recurse into the children

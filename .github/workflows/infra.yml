@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: log github event
-      run: echo "${{toJSON(github.event)}}"
+      run: echo "${{toJSON(github.event)}}" || echo >/dev/null
   check_workflows:
     if: always()
     continue-on-error: false

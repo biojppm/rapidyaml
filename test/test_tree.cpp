@@ -1922,6 +1922,131 @@ TEST(NodeType, has_key)
     EXPECT_TRUE(NodeType(KEYSEQ).has_key());
 }
 
+TEST(Tree, key_val_is_null)
+{
+    Tree t = parse_in_arena(R"(
+map: {foo: bar, : knil, vnil: }
+seq: [foo, bar]
+: knil
+vnil:
+squoted: ''
+dquoted: ""
+literal: |
+folded: >
+)");
+    const NodeRef mroot = t.rootref();
+    const NodeRef mmap = t["map"];
+    const NodeRef mfoo = t["map"]["foo"];
+    const NodeRef mfooknil = t["map"][1];
+    const NodeRef mfoovnil = t["map"]["vnil"];
+    const NodeRef mseq = t["seq"];
+    const NodeRef mknil = t[2];
+    const NodeRef mvnil = t["vnil"];
+    const NodeRef msquo = t["squoted"];
+    const NodeRef mdquo = t["dquoted"];
+    const NodeRef mliteral = t["literal"];
+    const NodeRef mfolded = t["folded"];
+    const ConstNodeRef root = mroot;
+    const ConstNodeRef map = mmap;
+    const ConstNodeRef foo = mfoo;
+    const ConstNodeRef fooknil = mfooknil;
+    const ConstNodeRef foovnil = mfoovnil;
+    const ConstNodeRef seq = mseq;
+    const ConstNodeRef knil = mknil;
+    const ConstNodeRef vnil = mvnil;
+    const ConstNodeRef squo = msquo;
+    const ConstNodeRef dquo = mdquo;
+    const ConstNodeRef literal = mliteral;
+    const ConstNodeRef folded = mfolded;
+    const size_t root_id = root.id();
+    const size_t map_id = map.id();
+    const size_t foo_id = foo.id();
+    const size_t fooknil_id = fooknil.id();
+    const size_t foovnil_id = foovnil.id();
+    const size_t seq_id = seq.id();
+    const size_t knil_id = knil.id();
+    const size_t vnil_id = vnil.id();
+    const size_t squo_id = squo.id();
+    const size_t dquo_id = dquo.id();
+    const size_t literal_id = literal.id();
+    const size_t folded_id = folded.id();
+    //
+    verify_assertion(t, [&](Tree const&){ return t.key_is_null(root_id); });
+    verify_assertion(t, [&](Tree const&){ return t.val_is_null(root_id); });
+    EXPECT_FALSE(t.key_is_null(map_id));
+    verify_assertion(t, [&](Tree const&){ return t.val_is_null(map_id); });
+    EXPECT_FALSE(t.key_is_null(foo_id));
+    EXPECT_FALSE(t.val_is_null(foo_id));
+    EXPECT_TRUE (t.key_is_null(fooknil_id));
+    EXPECT_FALSE(t.val_is_null(fooknil_id));
+    EXPECT_FALSE(t.key_is_null(foovnil_id));
+    EXPECT_TRUE (t.val_is_null(foovnil_id));
+    EXPECT_FALSE(t.key_is_null(seq_id));
+    verify_assertion(t, [&](Tree const&){ return t.val_is_null(seq_id); });
+    EXPECT_TRUE (t.key_is_null(knil_id));
+    EXPECT_FALSE(t.val_is_null(knil_id));
+    EXPECT_FALSE(t.key_is_null(vnil_id));
+    EXPECT_TRUE (t.val_is_null(vnil_id));
+    EXPECT_FALSE(t.key_is_null(squo_id));
+    EXPECT_FALSE(t.val_is_null(squo_id));
+    EXPECT_FALSE(t.key_is_null(dquo_id));
+    EXPECT_FALSE(t.val_is_null(dquo_id));
+    EXPECT_FALSE(t.key_is_null(literal_id));
+    EXPECT_FALSE(t.val_is_null(literal_id));
+    EXPECT_FALSE(t.key_is_null(folded_id));
+    EXPECT_FALSE(t.val_is_null(folded_id));
+    //
+    verify_assertion(t, [&](Tree const&){ return root.key_is_null(); });
+    verify_assertion(t, [&](Tree const&){ return root.val_is_null(); });
+    EXPECT_FALSE(map.key_is_null());
+    verify_assertion(t, [&](Tree const&){ return map.val_is_null(); });
+    EXPECT_FALSE(foo.key_is_null());
+    EXPECT_FALSE(foo.val_is_null());
+    EXPECT_TRUE (fooknil.key_is_null());
+    EXPECT_FALSE(fooknil.val_is_null());
+    EXPECT_FALSE(foovnil.key_is_null());
+    EXPECT_TRUE (foovnil.val_is_null());
+    EXPECT_FALSE(seq.key_is_null());
+    verify_assertion(t, [&](Tree const&){ seq.val_is_null(); });
+    EXPECT_TRUE (knil.key_is_null());
+    EXPECT_FALSE(knil.val_is_null());
+    EXPECT_FALSE(vnil.key_is_null());
+    EXPECT_TRUE (vnil.val_is_null());
+    EXPECT_FALSE(squo.key_is_null());
+    EXPECT_FALSE(squo.val_is_null());
+    EXPECT_FALSE(dquo.key_is_null());
+    EXPECT_FALSE(dquo.val_is_null());
+    EXPECT_FALSE(literal.key_is_null());
+    EXPECT_FALSE(literal.val_is_null());
+    EXPECT_FALSE(folded.key_is_null());
+    EXPECT_FALSE(folded.val_is_null());
+    //
+    verify_assertion(t, [&](Tree const&){ return mroot.key_is_null(); });
+    verify_assertion(t, [&](Tree const&){ return mroot.val_is_null(); });
+    EXPECT_FALSE(mmap.key_is_null());
+    verify_assertion(t, [&](Tree const&){ return mmap.val_is_null(); });
+    EXPECT_FALSE(mfoo.key_is_null());
+    EXPECT_FALSE(mfoo.val_is_null());
+    EXPECT_TRUE (mfooknil.key_is_null());
+    EXPECT_FALSE(mfooknil.val_is_null());
+    EXPECT_FALSE(mfoovnil.key_is_null());
+    EXPECT_TRUE (mfoovnil.val_is_null());
+    EXPECT_FALSE(mseq.key_is_null());
+    verify_assertion(t, [&](Tree const&){ mseq.val_is_null(); });
+    EXPECT_TRUE (mknil.key_is_null());
+    EXPECT_FALSE(mknil.val_is_null());
+    EXPECT_FALSE(mvnil.key_is_null());
+    EXPECT_TRUE (mvnil.val_is_null());
+    EXPECT_FALSE(msquo.key_is_null());
+    EXPECT_FALSE(msquo.val_is_null());
+    EXPECT_FALSE(mdquo.key_is_null());
+    EXPECT_FALSE(mdquo.val_is_null());
+    EXPECT_FALSE(mliteral.key_is_null());
+    EXPECT_FALSE(mliteral.val_is_null());
+    EXPECT_FALSE(mfolded.key_is_null());
+    EXPECT_FALSE(mfolded.val_is_null());
+}
+
 TEST(Tree, has_key)
 {
     Tree t = parse_in_arena(R"(---

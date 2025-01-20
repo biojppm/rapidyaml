@@ -127,10 +127,9 @@ struct Scalar
             #ifdef RYML_DBG
             char buf1[128];
             char buf2[128];
-            char buf3[128];
             #endif
-            _nfo_logf("node[{}]: set key flags: {}: {}->{}", node, flags.type_str(buf1), flags.type_str(buf2), flags.type_str(buf3));
-            tree->_add_flags(node, flags & KEY_STYLE);
+            _nfo_logf("node[{}]: set key flags: {}<-{}", node, NodeType(flags & (KEY_STYLE|KEYNIL)).type_str(buf1), flags.type_str(buf2));
+            tree->_add_flags(node, flags & (KEY_STYLE|KEYNIL));
         }
     }
     void add_val_props(Tree *tree, id_type node) const
@@ -156,10 +155,9 @@ struct Scalar
             #ifdef RYML_DBG
             char buf1[128];
             char buf2[128];
-            char buf3[128];
             #endif
-            _nfo_logf("node[{}]: set val flags: {}: {}->{}", node, flags.type_str(buf1), flags.type_str(buf2), flags.type_str(buf3));
-            tree->_add_flags(node, flags & VAL_STYLE);
+            _nfo_logf("node[{}]: set val flags: {}<-{}", node, NodeType(flags & (VAL_STYLE|VALNIL)).type_str(buf1), flags.type_str(buf2));
+            tree->_add_flags(node, flags & (VAL_STYLE|VALNIL));
         }
     }
     csubstr filtered_scalar(Tree *tree) const
@@ -353,6 +351,8 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 ASSERT_TRUE(line.begins_with(':'));
                 curr.scalar = line.sub(1);
                 curr.flags = SCALAR_PLAIN;
+                if(!line.sub(1).len)
+                    curr.flags |= KEYNIL|VALNIL;
             }
             _nfo_logf("parsed scalar: '{}'", curr.scalar.maybe_get());
             if(m_stack.empty())

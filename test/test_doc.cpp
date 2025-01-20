@@ -57,7 +57,7 @@ CASE_GROUP(SIMPLE_DOC)
 ADD_CASE_TO_GROUP("one empty doc",
 R"(---
 )",
-    N(STREAM, L{DOC|VP})
+    N(STREAM, L{DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("one empty doc, indented",
@@ -106,7 +106,7 @@ R"(...
 ...
 ---
 )",
-    N(STREAM, L{DOC|VP})
+    N(STREAM, L{DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("three terminations and one explicit, v1",
@@ -115,7 +115,7 @@ R"(...
 ---
 ...
 )",
-    N(STREAM, L{DOC|VP})
+    N(STREAM, L{DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("three terminations and one explicit, v2",
@@ -124,7 +124,7 @@ R"(...
 ...
 ...
 )",
-    N(STREAM, L{DOC|VP})
+    N(STREAM, L{DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("three terminations and one explicit, v3",
@@ -133,14 +133,14 @@ R"(---
 ...
 ...
 )",
-    N(STREAM, L{DOC|VP})
+    N(STREAM, L{DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("one empty doc, explicit termination",
 R"(---
 ...
 )",
-    N(STREAM, L{DOC|VP})
+    N(STREAM, L{DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("one empty doc, explicit termination, first indented",
@@ -154,7 +154,7 @@ ADD_CASE_TO_GROUP("two empty docs",
 R"(---
 ---
 )",
-    N(STREAM, L{DOC|VP, DOC|VP})
+    N(STREAM, L{DOC|VN, DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("two empty docs, with termination",
@@ -162,7 +162,7 @@ R"(---
 ...
 ---
 )",
-    N(STREAM, L{DOC|VP, DOC|VP})
+    N(STREAM, L{DOC|VN, DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("doc with single scalar",
@@ -183,7 +183,7 @@ R"(---
 ---
 ---
 )",
-    N(STREAM, L{DOC|VP, DOC|VP, DOC|VP, DOC|VP})
+    N(STREAM, L{DOC|VN, DOC|VN, DOC|VN, DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("simple doc, empty docs, indented",
@@ -207,7 +207,7 @@ R"(---
 ---
 ...
 )",
-    N(STREAM, L{DOC|VP, DOC|VP, DOC|VP, DOC|VP})
+    N(STREAM, L{DOC|VN, DOC|VN, DOC|VN, DOC|VN})
 );
 
 ADD_CASE_TO_GROUP("simple doc, empty docs, term, indented",
@@ -336,9 +336,9 @@ R"(
 )",
     N(STREAM, L{
       N(DOC|MB, TL("!!set", L{
-        N(KP|VP, "Mark McGwire", {}),
-        N(KP|VP, "Sammy Sosa", {}),
-        N(KP|VP, "Ken Griff", {}),
+        N(KP|VN, "Mark McGwire", {}),
+        N(KP|VN, "Sammy Sosa", {}),
+        N(KP|VN, "Ken Griff", {}),
       }))
    })
 );

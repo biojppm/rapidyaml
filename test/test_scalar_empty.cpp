@@ -343,8 +343,8 @@ TEST(empty_scalar, build_zero_length_string)
 
     std::string yaml = emitrs_yaml<std::string>(tr);
     #ifdef RYML_DBG
-    print_tree(tr);
     printf("~~~~~\n%.*s~~~~\n", (int)yaml.size(), yaml.c_str());
+    print_tree(tr);
     #endif
 
     {

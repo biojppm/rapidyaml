@@ -88,6 +88,7 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
     _prflag(DOC, "DOC");
     // key properties
     _prflag(KEY, "KEY");
+    _prflag(KEYNIL, "KNIL");
     _prflag(KEYTAG, "KTAG");
     _prflag(KEYANCH, "KANCH");
     _prflag(KEYREF, "KREF");
@@ -99,6 +100,7 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
     _prflag(KEY_UNFILT, "KUNFILT");
     // val properties
     _prflag(VAL, "VAL");
+    _prflag(VALNIL, "VNIL");
     _prflag(VALTAG, "VTAG");
     _prflag(VALANCH, "VANCH");
     _prflag(VALREF, "VREF");

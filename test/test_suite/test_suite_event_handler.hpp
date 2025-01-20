@@ -393,6 +393,19 @@ public:
     /** @{ */
 
 
+    C4_ALWAYS_INLINE void set_key_scalar_plain_empty() noexcept
+    {
+        _c4dbgpf("node[{}]: set key scalar plain as empty", m_curr->node_id);
+        _send_key_scalar_({}, ':');
+        _enable_(KEY|KEY_PLAIN|KEYNIL);
+    }
+    C4_ALWAYS_INLINE void set_val_scalar_plain_empty() noexcept
+    {
+        _c4dbgpf("node[{}]: set val scalar plain as empty", m_curr->node_id);
+        _send_val_scalar_({}, ':');
+        _enable_(VAL|VAL_PLAIN|VALNIL);
+    }
+
     C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set key scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));

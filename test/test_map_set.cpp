@@ -54,7 +54,7 @@ R"(!!set
 ? b
 ?
 )",
-N(MB, TL("!!set", L{N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, {}, "")}))
+N(MB, TL("!!set", L{N(KP|VN, "a", {}), N(KP|VN, "b", {}), N(KN|VN, {}, "")}))
 );
 
 ADD_CASE_TO_GROUP("doc as set, implicit",
@@ -62,7 +62,7 @@ R"(!!set
 ? a
 ? b
 )",
-N(MB, TL("!!set", L{N(KP|VP, "a", {}), N(KP|VP, "b", {})}))
+N(MB, TL("!!set", L{N(KP|VN, "a", {}), N(KP|VN, "b", {})}))
 );
 
 ADD_CASE_TO_GROUP("doc as set",
@@ -73,9 +73,9 @@ R"(--- !!set
 )",
 N(STREAM, L{
   N(DOC|MB, TL("!!set", L{
-    N(KP|VP, "aa", /*"~"*/{}),
-    N(KP|VP, "bb", /*"~"*/{}),
-    N(KP|VP, "cc", /*"~"*/{})
+    N(KP|VN, "aa", /*"~"*/{}),
+    N(KP|VN, "bb", /*"~"*/{}),
+    N(KP|VN, "cc", /*"~"*/{})
   }))
 })
 );
@@ -89,9 +89,9 @@ R"(
 )",
 N(STREAM, L{
   N(DOC|MB, TL("!!set", L{
-    N(KP|VP, "Mark McGwire", /*"~"*/{}),
-    N(KP|VP, "Sammy Sosa", /*"~"*/{}),
-    N(KP|VP, "Ken Griff", /*"~"*/{}),
+    N(KP|VN, "Mark McGwire", /*"~"*/{}),
+    N(KP|VN, "Sammy Sosa", /*"~"*/{}),
+    N(KP|VN, "Ken Griff", /*"~"*/{}),
   }))
 })
 );
@@ -105,9 +105,9 @@ R"(
 )",
 N(STREAM, L{
   N(DOC|MB, L{
-    N(KP|VP, "Mark McGwire", /*"~"*/{}),
-    N(KP|VP, "Sammy Sosa", /*"~"*/{}),
-    N(KP|VP, "Ken Griff", /*"~"*/{}),
+    N(KP|VN, "Mark McGwire", /*"~"*/{}),
+    N(KP|VN, "Sammy Sosa", /*"~"*/{}),
+    N(KP|VN, "Ken Griff", /*"~"*/{}),
   })
 })
 );
@@ -119,9 +119,9 @@ R"(!!set
 ? Ken Griff
 )",
 N(MB, TL("!!set", L{
-  N(KP|VP, "Mark McGwire", /*"~"*/{}),
-  N(KP|VP, "Sammy Sosa", /*"~"*/{}),
-  N(KP|VP, "Ken Griff", /*"~"*/{}),
+  N(KP|VN, "Mark McGwire", /*"~"*/{}),
+  N(KP|VN, "Sammy Sosa", /*"~"*/{}),
+  N(KP|VN, "Ken Griff", /*"~"*/{}),
 }))
 );
 
@@ -132,9 +132,9 @@ R"(
 ? Ken Griff
 )",
 N(MB, L{
-  N(KP|VP, "Mark McGwire", /*"~"*/{}),
-  N(KP|VP, "Sammy Sosa", /*"~"*/{}),
-  N(KP|VP, "Ken Griff", /*"~"*/{}),
+  N(KP|VN, "Mark McGwire", /*"~"*/{}),
+  N(KP|VN, "Sammy Sosa", /*"~"*/{}),
+  N(KP|VN, "Ken Griff", /*"~"*/{}),
 })
 );
 

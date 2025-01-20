@@ -4,12 +4,12 @@
 :: workflow-setup()
 
 jobs:
-  log-github-event:
-    name: log github event
-    runs-on: ubuntu-24.04
-    steps:
-      - name: log github event
-        run: echo "${{toJSON(github.event)}}"
+  #log-github-event:
+  #  name: log github event
+  #  runs-on: ubuntu-24.04
+  #  steps:
+  #    - name: log github event
+  #      run: echo "${{toJSON(github.event)}}" || echo >/dev/null
 
   check_workflows:
     :: setup-job('infra' 'check_workflows')

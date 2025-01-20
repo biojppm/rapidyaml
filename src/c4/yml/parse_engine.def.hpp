@@ -1039,7 +1039,7 @@ ended_scalar:
 
     _c4dbgpf("scalar was [{}]~~~{}~~~", sc->scalar.len, sc->scalar);
 
-    return true;
+    return sc->scalar.len > 0u;
 }
 
 template<class EventHandler>
@@ -1509,15 +1509,15 @@ void ParseEngine<EventHandler>::_end_map_blck()
     {
         _c4dbgp("mapblck: set missing val");
         _handle_annotations_before_blck_val_scalar();
-        m_evt_handler->set_val_scalar_plain({});
+        m_evt_handler->set_val_scalar_plain_empty();
     }
     else if(has_any(QMRK))
     {
         _c4dbgp("mapblck: set missing keyval");
         _handle_annotations_before_blck_key_scalar();
-        m_evt_handler->set_key_scalar_plain({});
+        m_evt_handler->set_key_scalar_plain_empty();
         _handle_annotations_before_blck_val_scalar();
-        m_evt_handler->set_val_scalar_plain({});
+        m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_map();
 }
@@ -1529,7 +1529,7 @@ void ParseEngine<EventHandler>::_end_seq_blck()
     {
         _c4dbgp("seqblck: set missing val");
         _handle_annotations_before_blck_val_scalar();
-        m_evt_handler->set_val_scalar_plain({});
+        m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_seq();
 }
@@ -1594,7 +1594,7 @@ void ParseEngine<EventHandler>::_end2_doc()
     if(m_doc_empty)
     {
         _c4dbgp("doc was empty; add empty val");
-        m_evt_handler->set_val_scalar_plain({});
+        m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_doc();
 }
@@ -1606,7 +1606,7 @@ void ParseEngine<EventHandler>::_end2_doc_expl()
     if(m_doc_empty)
     {
         _c4dbgp("doc: no children; add empty val");
-        m_evt_handler->set_val_scalar_plain({});
+        m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_doc_expl();
 }
@@ -1693,7 +1693,7 @@ void ParseEngine<EventHandler>::_end_stream()
             {
                 m_evt_handler->begin_doc();
                 _handle_annotations_before_blck_val_scalar();
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->end_doc();
             }
         }
@@ -4733,7 +4733,7 @@ seqimap_start:
         else if(first == ',' || first == ']')
         {
             _c4dbgp("seqimap[RVAL]: finish without val.");
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->end_map();
             goto seqimap_finish;
         }
@@ -4835,8 +4835,8 @@ seqimap_start:
         else if(first == ',' || first == ']')
         {
             _c4dbgp("seqimap[QMRK]: finish without key.");
-            m_evt_handler->set_key_scalar_plain({});
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->end_map();
             goto seqimap_finish;
         }
@@ -4876,7 +4876,7 @@ seqimap_start:
         else if(first == ',' || first == ']')
         {
             _c4dbgp("seqimap[RKCL]: found ','. finish without val");
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->end_map();
             goto seqimap_finish;
         }
@@ -4998,7 +4998,7 @@ seqflow_start:
             if(_maybe_scan_following_comma())
             {
                 _c4dbgp("seqflow[RVAL]: empty scalar!");
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->add_sibling();
             }
         }
@@ -5011,7 +5011,7 @@ seqflow_start:
             if(_maybe_scan_following_comma())
             {
                 _c4dbgp("seqflow[RVAL]: empty scalar!");
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->add_sibling();
             }
         }
@@ -5021,7 +5021,7 @@ seqflow_start:
             addrem_flags(RNXT, RVAL);
             m_evt_handler->begin_map_val_flow();
             _set_indentation(m_evt_handler->m_parent->indref);
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             addrem_flags(RSEQIMAP|RVAL, RSEQ|RNXT);
             _line_progressed(1);
             goto seqflow_finish;
@@ -5160,10 +5160,18 @@ mapflow_start:
         else if(first == ':')
         {
             _c4dbgp("mapflow[RKEY]: setting empty key");
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             addrem_flags(RVAL, RKEY|QMRK);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
+        }
+        else if(first == ',')
+        {
+            _c4dbgp("mapflow[RKEY]: empty key+val!");
+            m_evt_handler->set_key_scalar_plain_empty();
+            m_evt_handler->set_val_scalar_plain_empty();
+            addrem_flags(RNXT, RKEY|QMRK);
+            // keep going in this function
         }
         else if(first == '}') // this happens on a trailing comma like ", }"
         {
@@ -5241,7 +5249,7 @@ mapflow_start:
         {
             _c4dbgp("mapflow[RKCL]: end with missing val!");
             addrem_flags(RVAL, RKCL);
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->end_map();
             _line_progressed(1);
             goto mapflow_finish;
@@ -5249,7 +5257,7 @@ mapflow_start:
         else if(first == ',')
         {
             _c4dbgp("mapflow[RKCL]: got comma. val is missing");
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->add_sibling();
             addrem_flags(RKEY, RKCL);
             _line_progressed(1);
@@ -5315,10 +5323,17 @@ mapflow_start:
         else if(first == '}')
         {
             _c4dbgp("mapflow[RVAL]: end!");
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->end_map();
             _line_progressed(1);
             goto mapflow_finish;
+        }
+        else if(first == ',')
+        {
+            _c4dbgp("mapflow[RVAL]: empty val!");
+            m_evt_handler->set_val_scalar_plain_empty();
+            addrem_flags(RNXT, RVAL);
+            // keep going in this function
         }
         else if(first == '*')
         {
@@ -5407,7 +5422,7 @@ mapflow_start:
         else if(first == ':')
         {
             _c4dbgp("mapflow[QMRK]: setting empty key");
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             addrem_flags(RVAL, QMRK);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -5415,11 +5430,18 @@ mapflow_start:
         else if(first == '}') // this happens on a trailing comma like ", }"
         {
             _c4dbgp("mapflow[QMRK]: end!");
-            m_evt_handler->set_key_scalar_plain({});
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->end_map();
             _line_progressed(1);
             goto mapflow_finish;
+        }
+        else if(first == ',')
+        {
+            _c4dbgp("mapflow[QMRK]: empty key+val!");
+            m_evt_handler->set_key_scalar_plain_empty();
+            m_evt_handler->set_val_scalar_plain_empty();
+            addrem_flags(RNXT, QMRK);
         }
         else if(first == '&')
         {
@@ -5673,7 +5695,7 @@ seqblck_start:
                 else if(m_evt_handler->m_parent && m_evt_handler->m_parent->indref == startindent && has_any(RMAP|BLCK, m_evt_handler->m_parent))
                 {
                     _c4dbgp("seqblck[RVAL]: empty val + end indentless seq + set key");
-                    m_evt_handler->set_val_scalar_plain({});
+                    m_evt_handler->set_val_scalar_plain_empty();
                     m_evt_handler->end_seq();
                     m_evt_handler->add_sibling();
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref);  // KEY!
@@ -5715,7 +5737,7 @@ seqblck_start:
             {
                 _c4dbgp("seqblck[RVAL]: prev val was empty");
                 _handle_annotations_before_blck_val_scalar();
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 // keep in RVAL, but for the next sibling
                 m_evt_handler->add_sibling();
             }
@@ -5740,7 +5762,7 @@ seqblck_start:
             _handle_annotations_before_start_mapblck(startline);
             m_evt_handler->begin_map_val_block();
             _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             addrem_flags(RMAP|RVAL, RSEQ|RNXT);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -6107,7 +6129,7 @@ mapblck_start:
         {
             _c4dbgp("mapblck[RKEY]: setting empty key");
             _handle_annotations_before_blck_key_scalar();
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             addrem_flags(RVAL, RKEY);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -6243,7 +6265,7 @@ mapblck_start:
         {
             _c4dbgp("mapblck[RKCL]: got '?'. val was empty");
             _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_was_inside_qmrk);
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->add_sibling();
             addrem_flags(QMRK, RKCL);
             _line_progressed(1);
@@ -6285,7 +6307,7 @@ mapblck_start:
         {
             _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->indentation_eq());
             _c4dbgp("mapblck[RKCL]: missing :");
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->add_sibling();
             m_was_inside_qmrk = false;
             addrem_flags(RKEY, RKCL);
@@ -6426,7 +6448,7 @@ mapblck_start:
                 else
                 {
                     _c4dbgp("mapblck[RVAL]: prev val empty+this is a key");
-                    m_evt_handler->set_val_scalar_plain({});
+                    m_evt_handler->set_val_scalar_plain_empty();
                     m_evt_handler->add_sibling();
                     csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
                     m_evt_handler->set_key_scalar_squoted(maybe_filtered);
@@ -6466,7 +6488,7 @@ mapblck_start:
                 else
                 {
                     _c4dbgp("mapblck[RVAL]: prev val empty+this is a key");
-                    m_evt_handler->set_val_scalar_plain({});
+                    m_evt_handler->set_val_scalar_plain_empty();
                     m_evt_handler->add_sibling();
                     csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
                     m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
@@ -6528,7 +6550,7 @@ mapblck_start:
                 {
                     _c4dbgp("mapblck[RVAL]: prev val empty+this is a key");
                     _handle_annotations_before_blck_val_scalar();
-                    m_evt_handler->set_val_scalar_plain({});
+                    m_evt_handler->set_val_scalar_plain_empty();
                     m_evt_handler->add_sibling();
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref); // KEY!
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
@@ -6630,7 +6652,7 @@ mapblck_start:
             if(startindent == m_evt_handler->m_curr->indref)
             {
                 _c4dbgp("mapblck[RVAL]: anchor for next key. val is missing!");
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->add_sibling();
                 addrem_flags(RKEY, RVAL);
             }
@@ -6646,7 +6668,7 @@ mapblck_start:
             {
                 _c4dbgp("mapblck[RVAL]: tag for next key. val is missing!");
                 _handle_annotations_before_blck_val_scalar();
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->add_sibling();
                 addrem_flags(RKEY, RVAL);
             }
@@ -6660,7 +6682,7 @@ mapblck_start:
             {
                 _c4dbgp("mapblck[RVAL]: got '?'. val was empty");
                 _handle_annotations_before_blck_val_scalar();
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->add_sibling();
                 addrem_flags(QMRK, RVAL);
             }
@@ -6687,9 +6709,9 @@ mapblck_start:
             if(startindent == m_evt_handler->m_curr->indref)
             {
                 _c4dbgp("mapblck[RVAL]: got ':'. val was empty, next key as well");
-                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->add_sibling();
-                m_evt_handler->set_key_scalar_plain({});
+                m_evt_handler->set_key_scalar_plain_empty();
                 _line_progressed(1);
                 _maybe_skip_whitespace_tokens();
                 goto mapblck_again;
@@ -6981,7 +7003,7 @@ mapblck_start:
                 _c4dbgp("mapblck[QMRK]: empty key");
                 addrem_flags(RVAL, QMRK);
                 _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->set_key_scalar_plain({});
+                m_evt_handler->set_key_scalar_plain_empty();
                 _line_progressed(1);
                 _maybe_skip_whitespace_tokens();
             }
@@ -6992,7 +7014,7 @@ mapblck_start:
                 _handle_annotations_before_start_mapblck_as_key();
                 m_evt_handler->begin_map_key_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
-                m_evt_handler->set_key_scalar_plain({});
+                m_evt_handler->set_key_scalar_plain_empty();
                 _line_progressed(1);
                 _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
@@ -7081,8 +7103,8 @@ mapblck_start:
         else if(first == '?')
         {
             _c4dbgp("mapblck[QMRK]: another QMRK '?'");
-            m_evt_handler->set_key_scalar_plain({});
-            m_evt_handler->set_val_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
+            m_evt_handler->set_val_scalar_plain_empty();
             m_evt_handler->add_sibling();
             _line_progressed(1);
         }
@@ -7404,7 +7426,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             _maybe_begin_doc();
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_block();
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             m_doc_empty = false;
             _save_indentation();
         }
@@ -7707,7 +7729,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->_push();
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
             _save_indentation();
             _line_progressed(1);
@@ -7899,7 +7921,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_block();
-            m_evt_handler->set_key_scalar_plain({});
+            m_evt_handler->set_key_scalar_plain_empty();
             addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
             _save_indentation();
             _line_progressed(1);

@@ -150,12 +150,14 @@ C4_SUPPRESS_WARNING_GCC("-Wunused-const-variable")
 #endif
 
 constexpr const NodeType_e KP = (KEY|KEY_PLAIN);   ///< key, plain scalar
+constexpr const NodeType_e KN = (KEY|KEY_PLAIN|KEYNIL); ///< key, plain scalar, nil
 constexpr const NodeType_e KS = (KEY|KEY_SQUO);    ///< key, single-quoted scalar
 constexpr const NodeType_e KD = (KEY|KEY_DQUO);    ///< key, double-quoted scalar
 constexpr const NodeType_e KL = (KEY|KEY_LITERAL); ///< key, block-literal scalar
 constexpr const NodeType_e KF = (KEY|KEY_FOLDED);  ///< key, block-folded scalar
 
 constexpr const NodeType_e VP = (VAL|VAL_PLAIN);   ///< val, plain scalar
+constexpr const NodeType_e VN = (VAL|VAL_PLAIN|VALNIL); ///< val, plain scalar, nil
 constexpr const NodeType_e VS = (VAL|VAL_SQUO);    ///< val, single-quoted scalar
 constexpr const NodeType_e VD = (VAL|VAL_DQUO);    ///< val, double-quoted scalar
 constexpr const NodeType_e VL = (VAL|VAL_LITERAL); ///< val, block-literal scalar
