@@ -18,12 +18,6 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: null
 jobs:
-  log-github-event:
-    name: log github event
-    runs-on: ubuntu-24.04
-    steps:
-    - name: log github event
-      run: echo "${{toJSON(github.event)}}" || echo >/dev/null
   check_workflows:
     if: always()
     continue-on-error: false
