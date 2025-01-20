@@ -384,6 +384,7 @@ void ParseEngine<EventHandler>::_reset()
 {
     m_pending_anchors = {};
     m_pending_tags = {};
+    m_doc_empty = true;
     if(m_options.locations())
     {
         _prepare_locations();

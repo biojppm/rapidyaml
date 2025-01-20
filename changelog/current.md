@@ -19,6 +19,7 @@
       ? explicit key
   : value   # this was not indented
   ```
+- [PR#492](https://github.com/biojppm/rapidyaml/pull/492):  fix parser reset for full reuse (`m_doc_empty` was not resetted), which would cause problems under specific scenarios in subsequent reuse.
 
 
 ## Thanks
