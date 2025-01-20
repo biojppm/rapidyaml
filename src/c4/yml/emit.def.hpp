@@ -778,7 +778,10 @@ void Emitter<Writer>::_write_scalar_literal(csubstr s, id_type ilevel, bool expl
     for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
         this->Writer::_do_write('\n');
     if(explicit_key)
+    {
         this->Writer::_do_write('\n');
+        this->_indent(ilevel);
+    }
 }
 
 template<class Writer>
@@ -856,7 +859,10 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, id_type ilevel, bool expli
     for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
         this->Writer::_do_write('\n');
     if(explicit_key)
+    {
         this->Writer::_do_write('\n');
+        this->_indent(ilevel);
+    }
 }
 
 template<class Writer>
