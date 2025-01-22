@@ -959,6 +959,7 @@ INPUT                  = \
                          ../ext/c4core/src/c4/charconv.hpp \
                          ../ext/c4core/src/c4/format.hpp \
                          ../ext/c4core/src/c4/base64.hpp \
+                         ../ext/c4core/src/c4/utf.hpp \
                          ../ext/c4core/src/c4/std/string.hpp \
                          ../ext/c4core/src/c4/std/string_view.hpp \
                          ../ext/c4core/src/c4/std/vector.hpp \

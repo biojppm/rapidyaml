@@ -2246,6 +2246,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+/** @cond dev */
 
 // a debugging scaffold:
 #if 0
@@ -8200,6 +8201,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
     _end_stream();
     m_evt_handler->finish_parse();
 }
+/** @endcond */
 
 } // namespace yml
 } // namespace c4

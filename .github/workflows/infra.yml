@@ -42,3 +42,57 @@ jobs:
           echo "ERROR: generated workflows are out of date"
         fi
         exit $status
+  check_doc:
+    if: always()
+    continue-on-error: false
+    runs-on: ubuntu-24.04
+    env:
+      DOXY_VERSION: 1.12.0
+      DOXY_DIR: /tmp/doxydir/bin
+    steps:
+    - name: checkout (action)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: install python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.9
+    - name: install requirements
+      run: pip install -r doc/requirements.txt
+    - name: install wget
+      run: |
+        sudo apt-get update
+        sudo apt install -y wget
+    - name: install doxygen
+      run: |
+        ver=$DOXY_VERSION
+        uver=$(echo $ver | sed "s:\.:_:g")
+        name=$(dirname $DOXY_DIR)
+        dst=$(dirname $name)
+        url="https://github.com/doxygen/doxygen/releases/download/Release_$uver/doxygen-$ver.linux.bin.tar.gz"
+        ( \
+          cd $dst ; \
+          wget $url ; \
+          tar xvfz $(basename $url) ; \
+          ls -lFhp | grep dox ; \
+          mv -v doxygen-$ver $name ; \
+        )
+    - name: doxygen version
+      run: |
+        export PATH=$DOXY_DIR:$PATH
+        which doxygen
+        doxygen --version
+    - name: check doxygen docs
+      run: |
+        export PATH=$DOXY_DIR:$PATH
+        # put doxygen to fail if there are warnings
+        sed "s/WARN_AS_ERROR.*= .*/WARN_AS_ERROR = FAIL_ON_WARNINGS_PRINT/g" -i doc/Doxyfile
+        make -C doc doxy
+    - name: check sphinx
+      run: |
+        # put doxygen to not fail if there are warnings.
+        sed "s/WARN_AS_ERROR.*= .*/WARN_AS_ERROR = NO/g" -i doc/Doxyfile
+        export PATH=$DOXY_DIR:$PATH
+        make -C doc html

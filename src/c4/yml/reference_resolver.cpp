@@ -12,6 +12,8 @@
 namespace c4 {
 namespace yml {
 
+/** @cond dev */
+
 id_type ReferenceResolver::count_anchors_and_refs_(id_type n)
 {
     id_type c = 0;
@@ -291,6 +293,7 @@ void ReferenceResolver::resolve(Tree *t_)
     _c4dbgp("resolving references: finished");
 }
 
+/** @endcond */
 
 } // namespace ryml
 } // namespace c4

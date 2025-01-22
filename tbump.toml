@@ -50,6 +50,9 @@ search = ".*{current_version}.*"
 src = "doc/sphinx_*.rst"
 search = ".*{current_version}.*"
 [[file]]
+src = "doc/index.rst"
+search = ".*{current_version}.*"
+[[file]]
 src = "src/c4/yml/version.hpp"
 search = "#define RYML_VERSION ['\"]{current_version}['\"]"
 [[file]]

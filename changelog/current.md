@@ -19,10 +19,14 @@
       ? explicit key
   : value   # this was not indented
   ```
-- [PR#492](https://github.com/biojppm/rapidyaml/pull/492):  fix parser reset for full reuse (`m_doc_empty` was not resetted), which would cause problems under specific scenarios in subsequent reuse.
+- [PR#492](https://github.com/biojppm/rapidyaml/pull/492): fix parser reset for full reuse (`m_doc_empty` was not resetted), which would cause problems under specific scenarios in subsequent reuse.
+- [PR#485](https://github.com/biojppm/rapidyaml/pull/485): improve the CI workflows (thanks to @ingydotnet):
+  - amazing code reuse and organization, thanks to the use of YamlScript to generate the final workflows
+  - all optimization levels are now covered for gcc, clang and Visual Studio.
 
 
 ## Thanks
 
+- @ingydotnet
 - @Delian0
 - @perlpunk
