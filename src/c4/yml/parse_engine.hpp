@@ -366,6 +366,10 @@ public:
     /** Get the latest YAML buffer parsed by this object. */
     csubstr source() const { return m_buf; }
 
+    /** Get the encoding of the latest YAML buffer parsed by this object.
+     * If no encoding was specified, UTF8 is assumed as per the YAML standard. */
+    Encoding_e encoding() const { return m_encoding != NOBOM ? m_encoding : UTF8; }
+
     id_type stack_capacity() const { RYML_ASSERT(m_evt_handler); return m_evt_handler->m_stack.capacity(); }
     size_t locations_capacity() const { return m_newline_offsets_capacity; }
 
@@ -714,6 +718,8 @@ private:
     void _handle_annotations_and_indentation_after_start_mapblck(size_t key_indentation, size_t key_line);
     size_t _select_indentation_from_annotations(size_t val_indentation, size_t val_line);
     void _handle_directive(csubstr rem);
+    bool _handle_bom();
+    void _handle_bom(Encoding_e enc);
 
     void _check_tag(csubstr tag);
 
@@ -737,6 +743,8 @@ private:
 
     bool m_was_inside_qmrk;
     bool m_doc_empty = true;
+
+    Encoding_e m_encoding = UTF8;
 
 private:
 

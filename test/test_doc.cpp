@@ -1,5 +1,6 @@
 #include "./test_lib/test_group.hpp"
 #include "./test_lib/test_group.def.hpp"
+#include <c4/utf.hpp>
 
 namespace c4 {
 namespace yml {
@@ -44,6 +45,326 @@ scalar
         ASSERT_TRUE(t.docref(0).is_val());
         EXPECT_EQ(t.docref(0).val(), csubstr("scalar %YAML 1.2"));
     });
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+struct bomspec
+{
+    csubstr name; Encoding_e encoding; csubstr bom;
+    void checkchars() const
+    {
+        if(name == "NOBOM")
+            return;
+        if(!name.begins_with('!'))
+        {
+            EXPECT_EQ(c4::first_non_bom(bom), bom.len);
+            EXPECT_EQ(c4::get_bom(bom), bom);
+            EXPECT_EQ(c4::skip_bom(bom), "");
+        }
+        else
+        {
+            EXPECT_EQ(c4::first_non_bom(bom), 0u);
+            EXPECT_EQ(c4::get_bom(bom), "");
+            EXPECT_EQ(c4::skip_bom(bom), bom);
+        }
+        switch(encoding)
+        {
+        case UTF32BE:
+            ASSERT_EQ(bom.len, 4u);
+            if(!name.begins_with('!'))
+            {
+                EXPECT_EQ(bom.str[0], '\x00');
+                EXPECT_EQ(bom.str[1], '\x00');
+                EXPECT_EQ(bom.str[2], '\xfe');
+                EXPECT_EQ(bom.str[3], '\xff');
+            }
+            else
+            {
+                EXPECT_EQ(bom.str[0], '\x00');
+                EXPECT_EQ(bom.str[1], '\x00');
+                EXPECT_EQ(bom.str[2], '\x00');
+                EXPECT_GE(bom.str[3], 0);
+                EXPECT_LE(bom.str[3], 0x7f);
+            }
+            break;
+        case UTF32LE:
+            ASSERT_EQ(bom.len, 4u);
+            if(!name.begins_with('!'))
+            {
+                EXPECT_EQ(bom.str[0], '\xff');
+                EXPECT_EQ(bom.str[1], '\xfe');
+                EXPECT_EQ(bom.str[2], '\x00');
+                EXPECT_EQ(bom.str[3], '\x00');
+            }
+            else
+            {
+                EXPECT_GE(bom.str[0], 0);
+                EXPECT_LE(bom.str[0], 0x7f);
+                EXPECT_EQ(bom.str[1], '\x00');
+                EXPECT_EQ(bom.str[2], '\x00');
+                EXPECT_EQ(bom.str[3], '\x00');
+            }
+            break;
+        case UTF16BE:
+            ASSERT_EQ(bom.len, 2u);
+            if(!name.begins_with('!'))
+            {
+                EXPECT_EQ(bom.str[0], '\xfe');
+                EXPECT_EQ(bom.str[1], '\xff');
+            }
+            else
+            {
+                EXPECT_EQ(bom.str[0], '\x00');
+                EXPECT_GE(bom.str[1], 0);
+                EXPECT_LE(bom.str[1], 0x7f);
+            }
+            break;
+        case UTF16LE:
+            ASSERT_EQ(bom.len, 2u);
+            if(!name.begins_with('!'))
+            {
+                EXPECT_EQ(bom.str[0], '\xff');
+                EXPECT_EQ(bom.str[1], '\xfe');
+            }
+            else
+            {
+                EXPECT_GE(bom.str[0], 0);
+                EXPECT_LE(bom.str[0], 0x7f);
+                EXPECT_EQ(bom.str[1], '\x00');
+            }
+            break;
+        case UTF8:
+            ASSERT_EQ(bom.len, 3u);
+            EXPECT_EQ(bom.str[0], '\xef');
+            EXPECT_EQ(bom.str[1], '\xbb');
+            EXPECT_EQ(bom.str[2], '\xbf');
+            break;
+        default:
+            break;
+        }
+    }
+};
+const bomspec boms[] = {
+    {"NOBOM"       , UTF8, ""},
+    {"UTF8"        , UTF8, "\xef\xbb\xbf"},
+    {"UTF16BE"     , UTF16BE, "\xfe\xff"},
+    {"!UTF16BE-a"  , UTF16BE, csubstr("\x00""a", 2)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF16BE-b"  , UTF16BE, csubstr("\x00""b", 2)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF16BE-0"  , UTF16BE, csubstr("\x00""0", 2)}, // bare string causes problems in gcc5 and earlier
+    {"UTF16LE"     , UTF16LE, "\xff\xfe"},
+    {"!UTF16LE-a"  , UTF16LE, csubstr("a""\x00" , 2)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF16LE-b"  , UTF16LE, csubstr("b""\x00" , 2)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF16LE-0"  , UTF16LE, csubstr("0""\x00" , 2)}, // bare string causes problems in gcc5 and earlier
+    {"UTF32BE"     , UTF32BE, csubstr("\x00\x00\xfe\xff", 4)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF32BE-a"  , UTF32BE, csubstr("\x00\x00\x00""a" , 4)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF32BE-b"  , UTF32BE, csubstr("\x00\x00\x00""b" , 4)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF32BE-0"  , UTF32BE, csubstr("\x00\x00\x00""0" , 4)}, // bare string causes problems in gcc5 and earlier
+    {"UTF32LE"     , UTF32LE, csubstr("\xff\xfe\x00\x00", 4)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF32LE-a"  , UTF32LE, csubstr("a""\x00\x00\x00" , 4)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF32LE-b"  , UTF32LE, csubstr("b""\x00\x00\x00" , 4)}, // bare string causes problems in gcc5 and earlier
+    {"!UTF32LE-0"  , UTF32LE, csubstr("0""\x00\x00\x00" , 4)}, // bare string causes problems in gcc5 and earlier
+};
+template<class CreateFn, class TestFn>
+void test_boms(CreateFn &&createfn, TestFn &&testfn)
+{
+    Parser::handler_type handler;
+    Parser parser(&handler);
+    for(const bomspec bom : boms)
+    {
+        std::string buf = std::forward<CreateFn>(createfn)(bom);
+        SCOPED_TRACE(bom.name);
+        SCOPED_TRACE(buf);
+        bom.checkchars();
+        Tree tree = parse_in_arena(&parser, to_csubstr(buf));
+        std::forward<TestFn>(testfn)(parser, tree, bom);
+    }
+}
+template<class CreateFn, class TestFn>
+void test_boms_json(CreateFn &&createfn, TestFn &&testfn)
+{
+    Parser::handler_type handler;
+    Parser parser(&handler);
+    for(const bomspec bom : boms)
+    {
+        std::string buf = std::forward<CreateFn>(createfn)(bom);
+        SCOPED_TRACE(bom.name);
+        SCOPED_TRACE(buf);
+        bom.checkchars();
+        Tree tree = parse_json_in_arena(&parser, to_csubstr(buf));
+        std::forward<TestFn>(testfn)(parser, tree, bom);
+    }
+}
+template<class CreateFn, class TestFn>
+void test_boms2(CreateFn &&createfn, TestFn &&testfn)
+{
+    for(const bomspec bom1 : boms)
+    {
+        SCOPED_TRACE(bom1.name);
+        bom1.checkchars();
+        for(const bomspec bom2 : boms)
+        {
+            SCOPED_TRACE(bom2.name);
+            bom2.checkchars();
+            std::string buf = std::forward<CreateFn>(createfn)(bom1, bom2);
+            SCOPED_TRACE(buf);
+            if(bom1.encoding == bom2.encoding || bom2.bom.empty())
+            {
+                Parser::handler_type handler;
+                Parser parser(&handler);
+                Tree tree = parse_in_arena(&parser, to_csubstr(buf));
+                std::forward<TestFn>(testfn)(parser, tree, bom1);
+            }
+            else
+            {
+                pfn_error orig = get_callbacks().m_error;
+                ExpectError::check_error([&]{
+                    Tree tree;
+                    Parser::handler_type handler;
+                    Parser parser(&handler);
+                    ASSERT_EQ((pfn_error)tree.callbacks().m_error, (pfn_error)parser.callbacks().m_error);
+                    ASSERT_NE((pfn_error)tree.callbacks().m_error, orig);
+                    parse_in_arena(&parser, to_csubstr(buf), &tree);
+                });
+            }
+        }
+    }
+}
+
+TEST(byte_order_mark, only_bom)
+{
+    test_boms(
+        [](bomspec bom){
+            return std::string(bom.bom.str, bom.bom.len);
+        },
+        [](Parser const& parser, Tree const&, bomspec bom){
+            EXPECT_EQ(parser.encoding(), bom.encoding);
+        });
+}
+
+TEST(byte_order_mark, bom_and_scalar)
+{
+    test_boms(
+        [](bomspec bom){
+            std::string yaml(bom.bom.str, bom.bom.len);
+            yaml.append("this is a scalar");
+            return yaml;
+        },
+        [](Parser const& parser, Tree const& tree, bomspec bom){
+            EXPECT_EQ(parser.encoding(), bom.encoding);
+            EXPECT_EQ(tree.rootref().val(), "this is a scalar");
+        });
+}
+
+TEST(byte_order_mark, scalar_and_bom)
+{
+    auto mkyaml = [](bomspec bom){
+        std::string yaml("this is a scalar");
+        yaml.append(bom.bom.str, bom.bom.len);
+        return yaml;
+    };
+    test_boms(mkyaml,
+        [&](Parser const& parser, Tree const& tree, bomspec bom){
+            EXPECT_EQ(parser.encoding(), UTF8);
+            EXPECT_EQ(tree.rootref().val(), mkyaml(bom));
+        });
+}
+
+TEST(byte_order_mark, scalar_bom_scalar)
+{
+    auto mkyaml = [](bomspec bom){
+        std::string yaml("this is a scalar");
+        yaml.append(bom.bom.str, bom.bom.len);
+        yaml.append("and it continues");
+        return yaml;
+    };
+    test_boms(mkyaml,
+        [&](Parser const& parser, Tree const& tree, bomspec bom){
+            EXPECT_EQ(parser.encoding(), UTF8);
+            EXPECT_EQ(tree.rootref().val(), mkyaml(bom));
+        });
+}
+
+TEST(byte_order_mark, bom_and_seq)
+{
+    auto mkyaml = [](bomspec bom){
+        std::string yaml(bom.bom.str, bom.bom.len);
+        yaml.append("[]");
+        return yaml;
+    };
+    auto test = [&](Parser const& parser, Tree const&, bomspec bom){
+        EXPECT_EQ(parser.encoding(), bom.encoding);
+    };
+    test_boms(mkyaml, test);
+    test_boms_json(mkyaml, test);
+}
+
+TEST(byte_order_mark, bom_and_map)
+{
+    auto mkyaml = [](bomspec bom){
+        std::string yaml(bom.bom.str, bom.bom.len);
+        yaml.append("{}");
+        return yaml;
+    };
+    auto test = [&](Parser const& parser, Tree const&, bomspec bom){
+        EXPECT_EQ(parser.encoding(), bom.encoding);
+    };
+    test_boms(mkyaml, test);
+    test_boms_json(mkyaml, test);
+}
+
+TEST(byte_order_mark, bom_and_doc)
+{
+    auto mkyaml = [](bomspec bom){
+        std::string yaml(bom.bom.str, bom.bom.len);
+        yaml.append("---\nabc");
+        return yaml;
+    };
+    auto test = [&](Parser const& parser, Tree const& tree, bomspec bom){
+        EXPECT_EQ(parser.encoding(), bom.encoding);
+        EXPECT_EQ(tree.docref(0).val(), "abc");
+    };
+    test_boms(mkyaml, test);
+}
+
+TEST(byte_order_mark, bom_doc_bom)
+{
+    auto mkyaml = [](bomspec bom1, bomspec bom2){
+        std::string yaml(bom1.bom.str, bom1.bom.len);
+        yaml.append("---\n");
+        yaml.append(bom2.bom.str, bom2.bom.len);
+        yaml.append("abc");
+        std::cout << bom1.name << " vs " << bom2.name << "\n" << yaml  << "\n";
+        return yaml;
+    };
+    auto test = [&](Parser const& parser, Tree const& tree, bomspec bom){
+        EXPECT_EQ(parser.encoding(), bom.encoding);
+        EXPECT_EQ(tree.docref(0).val(), "abc");
+    };
+    test_boms2(mkyaml, test);
+}
+
+TEST(byte_order_mark, bom_scalar_doc_bom_scalar)
+{
+    auto mkyaml = [](bomspec bom1, bomspec bom2){
+        std::string yaml(bom1.bom.str, bom1.bom.len);
+        yaml.append("abc\n");
+        yaml.append("---\n");
+        yaml.append(bom2.bom.str, bom2.bom.len);
+        yaml.append("def\n");
+        std::cout << bom1.name << " vs " << bom2.name << "\n" << yaml  << "\n";
+        return yaml;
+    };
+    auto test = [&](Parser const& parser, Tree const& tree, bomspec bom){
+        EXPECT_EQ(parser.encoding(), bom.encoding);
+        ASSERT_EQ(tree.rootref().num_children(), 2);
+        EXPECT_EQ(tree.docref(0).val(), "abc");
+        EXPECT_EQ(tree.docref(1).val(), "def");
+    };
+    test_boms2(mkyaml, test);
 }
 
 
