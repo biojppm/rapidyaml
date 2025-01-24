@@ -315,7 +315,8 @@ jobs:
     - name: Verify existing artifacts
       run: |
         ls -lFhp .
-        ls -lFhp assets*/ dist*/ || echo 'none found'
+        ls -lFhp assets*/ || echo 'none found'
+        ls -lFhp dist*/ || echo 'none found'
     - name: Gather artifacts - ./assets
       uses: actions/download-artifact@v4
       with: {pattern: assets}
@@ -325,7 +326,26 @@ jobs:
     - name: Verify existing artifacts
       run: |
         ls -lFhp .
-        ls -lFhp assets*/ dist*/ || echo 'none found'
+        ls -lFhp assets*/ || echo 'none found'
+        ls -lFhp dist*/ || echo 'none found'
+        ( \
+          cd assets ; \
+          for asset in assets-*/ ; do \
+            ls -lFhpA $asset/ ; \
+            mv -v $asset/* . ; \
+            rmdir $asset ; \
+          done ;
+        )
+        ( \
+          cd dist ; \
+          for dist in dist-*/ ; do \
+            ls -lFhpA $dist/ ; \
+            mv -v $dist/* . ; \
+            rmdir $dist ; \
+          done ; \
+        )
+        ls -lFhp assets*/ || echo 'none found'
+        ls -lFhp dist*/ || echo 'none found'
     - name: Move Python packages to assets folder
       if: contains(github.ref, 'tags/v')
       run: mv -fv dist/*src.zip assets/.

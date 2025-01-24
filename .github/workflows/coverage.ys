@@ -6,85 +6,83 @@
 jobs:
   coverage:
     :: setup-job('coverage' 'coverage')
-    name: coverage/c++${{matrix.std}}${{matrix.namesfx}}
-    runs-on: ${{matrix.os}}
+    name: cov/c++${{matrix.std}}/${{matrix.namesfx}}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        item =: \({:std %1, :cxx 'g++-9', :bt 'Coverage', :os 'ubuntu-20.04'})
         include:
-        - ! item(11)
-        - ! item(17)
         # test also with the debug code enabled
-        - ! item(11) + {:cmk '-DRYML_DBG=ON', :namesfx '/dbg'}
-        - ! item(17) + {:cmk '-DRYML_DBG=ON', :namesfx '/dbg'}
-    env: !:merge*
-    - ! load('share/env.yaml')
-    - CMAKE_FLAGS: ${{matrix.cmk}}
+        - {std: 11, namesfx: 64bit    , cmk: "-DCMAKE_CXX_FLAGS=-m64"}
+        - {std: 11, namesfx: 64bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m64 -DRYML_DBG=ON"}
+        - {std: 17, namesfx: 64bit    , cmk: "-DCMAKE_CXX_FLAGS=-m64"}
+        - {std: 17, namesfx: 64bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m64 -DRYML_DBG=ON"}
+        - {std: 11, namesfx: 32bit    , cmk: "-DCMAKE_CXX_FLAGS=-m32"}
+        - {std: 11, namesfx: 32bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m32 -DRYML_DBG=ON"}
+        - {std: 17, namesfx: 32bit    , cmk: "-DCMAKE_CXX_FLAGS=-m32"}
+        - {std: 17, namesfx: 32bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m32 -DRYML_DBG=ON"}
+    env:
+      GCC_VERSION: 13 # the default compiler
+      LCOV_ARGS: -v --ignore-errors mismatch,mismatch --ignore-errors unused,unused
+      BUILD_ID: cpp${{matrix.std}}_${{matrix.namesfx}}
       CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
-      COVERALLS_REPO_TOKEN: ${{secrets.COVERALLS_REPO_TOKEN}}
-      # coveralls disabled:
-      #   https://github.com/lemurheavy/coveralls-public/issues/1665
-      # https://docs.coveralls.io/parallel-build-webhook
-      # COVERALLS_PARALLEL: true
     steps:
     - :: checkout-action
-    - name: install requirements
-      run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - name: install compiler
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y \
+            build-essential \
+            cmake \
+            git \
+            lcov \
+            linux-libc-dev:i386 \
+            libc6:i386 \
+            libc6-dev:i386 \
+            libc6-dbg:i386 \
+            g++-$GCC_VERSION \
+            g++-$GCC_VERSION-multilib
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: static64-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static64
-    - name: static64-build
-      run: source .github/setenv.sh && c4_build_test static64
-    - name: static64-run
-      run: source .github/setenv.sh && c4_build_target static64 ryml-coverage
-    - name: static64-coverage-artifacts
+    - name: configure
+      run: |
+        cmake -B build/$BUILD_ID \
+            -DCMAKE_BUILD_TYPE=Coverage \
+            -DRYML_BUILD_TESTS=ON \
+            -DRYML_COVERAGE_LCOV_ARGS=" $LCOV_ARGS " \
+            -DRYML_COVERAGE_CODECOV=ON \
+            ${{matrix.cmk}}
+    - name: build
+      run: |
+        cmake --build build/$BUILD_ID --verbose --target ryml-test-build --parallel
+    - name: run
+      run: |
+        cmake --build build/$BUILD_ID --verbose --target ryml-coverage
+    - name: upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-static64-${{strategy.job-index}}
+        name: coverage-${{env.BUILD_ID}}
         path: |
-          build/static64/lcov
-          build/static64/coverage3-final_filtered.lcov
-    - name: static64-submit-codecov
-      run: source .github/setenv.sh && c4_submit_coverage static64 codecov
-   # Coveralls disabled:
-   #   https://github.com/lemurheavy/coveralls-public/issues/1665
-   #- name: static64-submit-coveralls
-   #  run: if [ ${{matrix.std}} == 17 ] ;
-   #       then ( source .github/setenv.sh &&
-   #       c4_submit_coverage static64 coveralls ) ; fi
-    - name: static32-configure-------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test static32
-    - name: static32-build
-      run: source .github/setenv.sh && c4_build_test static32
-    - name: static32-run
-      run: source .github/setenv.sh && c4_build_target static32 ryml-coverage
-    - name: static32-coverage-artifacts
-      uses: actions/upload-artifact@v4
+          build/$BUILD_ID/lcov
+          build/$BUILD_ID/coverage3-final_filtered.lcov
+    - name: upload codecov
+      run: |
+        cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
+    # https://docs.coveralls.io/parallel-builds
+    - name: upload coveralls
+      uses: coverallsapp/github-action@v2
       with:
-        name: coverage-static32-cxx${{matrix.std}}-${{strategy.job-index}}
-        path: |
-          build/static32/lcov
-          build/static32/coverage3-final_filtered.lcov
-    - name: static32-submit-codecov
-      run: source .github/setenv.sh && c4_submit_coverage static32 codecov
-   # Coveralls disabled:
-   #   https://github.com/lemurheavy/coveralls-public/issues/1665
-   #- name: static32-submit-coveralls
-   #  run: source .github/setenv.sh && c4_submit_coverage static32 coveralls
+        github-token: ${{secrets.COVERALLS_REPO_TOKEN}}
+        parallel: true
+        files: build/${{env.BUILD_ID}}/coverage3-final_filtered.lcov
 
-  # coveralls disabled:
-  #   https://github.com/lemurheavy/coveralls-public/issues/1665
-  # https://github.com/lemurheavy/coveralls-public/issues/1665
-  #coveralls_finish:
-  #  needs: [coverage]
-  #  runs-on: ubuntu-latest
-  #
-  #  steps:
-  #  - name: coveralls-notify
-  #      #continue-on-error: true
-  #      uses: coverallsapp/github-action@master
-  #      with:
-  #        github-token: ${{ secrets.github_token }}
-  #        parallel-finished: true
+  coveralls_finish:
+    needs: coverage
+    if: ${{always()}}
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@v2
+      with:
+        parallel-finished: true
