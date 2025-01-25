@@ -6,7 +6,7 @@ YS := $(YS_PREFIX)/bin/ys-$(YS_VERSION)
 
 INPUT_FILES := $(wildcard */*)
 SOURCE_FILES := $(wildcard *.ys)
-TARGET_FILES := $(SOURCE_FILES:%.ys=%.yml)
+TARGET_FILES := $(SOURCE_FILES:%.ys=../workflows/%.yml)
 
 export PATH := $(YS_PREFIX)/bin:$(PATH)
 export YSPATH := $(shell pwd -P)/ys
@@ -24,7 +24,7 @@ DIFF_ORIG_COMMIT ?= HEAD
 diff:
 	@for s in $(SOURCE_FILES); do \
 	  s=$${s##*/}; \
-	  t=$${s%.yml}; \
+	  t=../workflows/$${s%.yml}; \
 	  [[ $$(git show $(DIFF_ORIG_COMMIT):.github/workflows/.$$t \
 	          2>/dev/null) ]] && t=.$$t; \
 	  diff -u --color=auto \
@@ -43,12 +43,14 @@ force:
 	touch *.ys
 
 
-%.yml: %.ys $(YS) $(INPUT_FILES)
+../workflows/%.yml: %.ys $(YS) $(INPUT_FILES)
+	@chmod u+w ../workflows
 	@if [ -f "$@" ] ; then chmod a+w $@ ; fi
 	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows/$<" > $@
 	@echo >> $@
 	$(YS) -Y $< >> $@
 	@chmod a-w $@
+	@chmod u-w ../workflows
 	@wc -lm --total=never $< $@
 
 
