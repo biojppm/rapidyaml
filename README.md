@@ -6,9 +6,8 @@
 [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/)
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 
-<!-- [![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml) -->
+[![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml)
 [![Codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
-
 
 Or ryml, for short. ryml is a C++ library to parse and emit YAML,
 and do it fast, on everything from x64 to bare-metal chips without
@@ -762,6 +761,11 @@ following situations:
   reflects the usual practice of having at most 1 or 2 tag directives;
   also, be aware that this feature is under consideration for removal
   in YAML 1.3.
+* Byte Order Marks: while ryml correctly handles BOMs at the beginning
+  of the stream or documents (as per the standard), BOMs inside
+  scalars are ignored. The [standard mandates that they should be
+  quoted](https://yaml.org/spec/1.2.2/#52-character-encodings) when
+  emitted, this is not done.
 * ryml tends to be on the permissive side in several cases where the
   YAML standard dictates that there should be an error; in many of these
   cases, ryml will tolerate the input. This may be good or bad, but in

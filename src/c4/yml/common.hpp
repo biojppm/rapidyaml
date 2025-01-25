@@ -423,6 +423,20 @@ struct RYML_EXPORT Callbacks
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+typedef enum {
+    NOBOM,
+    UTF8,
+    UTF16LE,
+    UTF16BE,
+    UTF32LE,
+    UTF32BE,
+} Encoding_e;
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 /// @cond dev
 
 // BEWARE! MSVC requires that [[noreturn]] appears before RYML_EXPORT
@@ -476,7 +490,6 @@ do                                                                      \
     } while(0)
 
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -524,7 +537,7 @@ namespace detail {
 template<int8_t signedval, uint8_t unsignedval>
 struct _charconstant_t
     : public std::conditional<std::is_signed<char>::value,
-                              std::integral_constant<int8_t, signedval>,
+                              std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
                               std::integral_constant<uint8_t, unsignedval>>::type
 {};
 #define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value

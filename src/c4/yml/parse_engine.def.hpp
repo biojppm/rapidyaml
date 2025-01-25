@@ -5,13 +5,13 @@
 #include "c4/error.hpp"
 #include "c4/charconv.hpp"
 #include "c4/utf.hpp"
-#include <c4/dump.hpp>
 
 #include <ctype.h>
 
 #include "c4/yml/detail/parser_dbg.hpp"
 #include "c4/yml/filter_processor.hpp"
 #ifdef RYML_DBG
+#include <c4/dump.hpp>
 #include "c4/yml/detail/print.hpp"
 #endif
 
@@ -261,6 +261,9 @@ ParseEngine<EventHandler>::ParseEngine(EventHandler *evt_handler, ParserOptions 
     , m_evt_handler(evt_handler)
     , m_pending_anchors()
     , m_pending_tags()
+    , m_was_inside_qmrk(false)
+    , m_doc_empty(false)
+    , m_encoding(NOBOM)
     , m_newline_offsets()
     , m_newline_offsets_size(0)
     , m_newline_offsets_capacity(0)
@@ -277,6 +280,9 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine &&that) noexcept
     , m_evt_handler(that.m_evt_handler)
     , m_pending_anchors(that.m_pending_anchors)
     , m_pending_tags(that.m_pending_tags)
+    , m_was_inside_qmrk(false)
+    , m_doc_empty(false)
+    , m_encoding(NOBOM)
     , m_newline_offsets(that.m_newline_offsets)
     , m_newline_offsets_size(that.m_newline_offsets_size)
     , m_newline_offsets_capacity(that.m_newline_offsets_capacity)
@@ -293,6 +299,9 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine const& that)
     , m_evt_handler(that.m_evt_handler)
     , m_pending_anchors(that.m_pending_anchors)
     , m_pending_tags(that.m_pending_tags)
+    , m_was_inside_qmrk(false)
+    , m_doc_empty(false)
+    , m_encoding(NOBOM)
     , m_newline_offsets()
     , m_newline_offsets_size()
     , m_newline_offsets_capacity()
@@ -317,6 +326,9 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine &&th
     m_evt_handler = that.m_evt_handler;
     m_pending_anchors = that.m_pending_anchors;
     m_pending_tags = that.m_pending_tags;
+    m_was_inside_qmrk = that.m_was_inside_qmrk;
+    m_doc_empty = that.m_doc_empty;
+    m_encoding = that.m_encoding;
     m_newline_offsets = (that.m_newline_offsets);
     m_newline_offsets_size = (that.m_newline_offsets_size);
     m_newline_offsets_capacity = (that.m_newline_offsets_capacity);
@@ -337,6 +349,9 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine cons
         m_evt_handler = that.m_evt_handler;
         m_pending_anchors = that.m_pending_anchors;
         m_pending_tags = that.m_pending_tags;
+        m_was_inside_qmrk = that.m_was_inside_qmrk;
+        m_doc_empty = that.m_doc_empty;
+        m_encoding = that.m_encoding;
         if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
             _resize_locations(that.m_newline_offsets_capacity);
         _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_capacity);
@@ -357,6 +372,9 @@ void ParseEngine<EventHandler>::_clr()
     m_evt_handler = {};
     m_pending_anchors = {};
     m_pending_tags = {};
+    m_was_inside_qmrk = false;
+    m_doc_empty = true;
+    m_encoding = NOBOM;
     m_newline_offsets = {};
     m_newline_offsets_size = {};
     m_newline_offsets_capacity = {};
@@ -385,11 +403,12 @@ void ParseEngine<EventHandler>::_reset()
     m_pending_anchors = {};
     m_pending_tags = {};
     m_doc_empty = true;
+    m_was_inside_qmrk = false;
+    m_encoding = NOBOM;
     if(m_options.locations())
     {
         _prepare_locations();
     }
-    m_was_inside_qmrk = false;
 }
 
 
@@ -2246,6 +2265,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+/** @cond dev */
 
 // a debugging scaffold:
 #if 0
@@ -4347,6 +4367,72 @@ void ParseEngine<EventHandler>::_handle_directive(csubstr rem)
         m_evt_handler->add_directive(trimmed);
         _line_progressed(pos);
         _skip_comment();
+    }
+}
+
+template<class EventHandler>
+bool ParseEngine<EventHandler>::_handle_bom()
+{
+    const csubstr rem = m_evt_handler->m_curr->line_contents.rem;
+    if(rem.len)
+    {
+        const csubstr rest = rem.sub(1);
+        // https://yaml.org/spec/1.2.2/#52-character-encodings
+        #define _rymlisascii(c) ((c) > '\0' && (c) <= '\x7f') // is the character ASCII?
+        if(rem.begins_with({"\x00\x00\xfe\xff", 4}) || (rem.begins_with({"\x00\x00\x00", 3}) && rem.len >= 4u && _rymlisascii(rem.str[3])))
+        {
+            _c4dbgp("byte order mark: UTF32BE");
+            _handle_bom(UTF32BE);
+            _line_progressed(4);
+            return true;
+        }
+        else if(rem.begins_with("\xff\xfe\x00\x00") || (rest.begins_with({"\x00\x00\x00", 3}) && rem.len >= 4u && _rymlisascii(rem.str[0])))
+        {
+            _c4dbgp("byte order mark: UTF32LE");
+            _handle_bom(UTF32LE);
+            _line_progressed(4);
+            return true;
+        }
+        else if(rem.begins_with("\xfe\xff") || (rem.begins_with('\x00') && rem.len >= 2u && _rymlisascii(rem.str[1])))
+        {
+            _c4dbgp("byte order mark: UTF16BE");
+            _handle_bom(UTF16BE);
+            _line_progressed(2);
+            return true;
+        }
+        else if(rem.begins_with("\xff\xfe") || (rest.begins_with('\x00') && rem.len >= 2u && _rymlisascii(rem.str[0])))
+        {
+            _c4dbgp("byte order mark: UTF16LE");
+            _handle_bom(UTF16LE);
+            _line_progressed(2);
+            return true;
+        }
+        else if(rem.begins_with("\xef\xbb\xbf"))
+        {
+            _c4dbgp("byte order mark: UTF8");
+            _handle_bom(UTF8);
+            _line_progressed(3);
+            return true;
+        }
+        #undef _rymlisascii
+    }
+    return false;
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_handle_bom(Encoding_e enc)
+{
+    if(m_encoding == NOBOM)
+    {
+        const bool is_beginning_of_file = m_evt_handler->m_curr->line_contents.rem.str == m_buf.str;
+        if(enc == UTF8 || is_beginning_of_file)
+            m_encoding = enc;
+        else
+            _c4err("non-UTF8 byte order mark can appear only at the beginning of the file");
+    }
+    else if(enc != m_encoding)
+    {
+        _c4err("byte order mark can only be set once");
     }
 }
 
@@ -7201,6 +7287,10 @@ void ParseEngine<EventHandler>::_handle_unk_json()
         _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         _line_progressed(1);
     }
+    else if(_handle_bom())
+    {
+        _c4dbgp("byte order mark");
+    }
     else
     {
         _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks,  ! has_any(SSCL));
@@ -7287,8 +7377,15 @@ void ParseEngine<EventHandler>::_handle_unk()
 
     if(m_evt_handler->m_curr->line_contents.indentation == 0u && _at_line_begin())
     {
-        const char first = rem.str[0];
         _c4dbgp("rtop: zero indent + at line begin");
+        if(_handle_bom())
+        {
+            _c4dbgp("byte order mark!");
+            rem = m_evt_handler->m_curr->line_contents.rem;
+            if(!rem.len)
+                return;
+        }
+        const char first = rem.str[0];
         if(first == '-')
         {
             _c4dbgp("rtop: suspecting doc");
@@ -8200,6 +8297,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
     _end_stream();
     m_evt_handler->finish_parse();
 }
+/** @endcond */
 
 } // namespace yml
 } // namespace c4

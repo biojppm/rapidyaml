@@ -216,7 +216,7 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     : m_got_an_error(false)
     , m_tree(tree)
     , m_glob_prev(get_callbacks())
-    , m_tree_prev(tree ? tree->callbacks() : Callbacks{})
+    , m_tree_prev(tree ? tree->callbacks() : m_glob_prev)
     , expected_location(loc)
 {
     auto err = [](const char* msg, size_t len, Location errloc, void *this_)  {
@@ -230,20 +230,23 @@ ExpectError::ExpectError(Tree *tree, Location loc)
         );
         C4_UNREACHABLE_AFTER_ERR();
     };
+    pfn_error perr = err;
     #ifdef RYML_NO_DEFAULT_CALLBACKS
-    c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, err);
-    c4::yml::Callbacks gcb((void*)this, nullptr, nullptr, err);
+    c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, perr);
+    c4::yml::Callbacks gcb((void*)this, nullptr, nullptr, perr);
     #else
-    c4::yml::Callbacks tcb((void*)this, tree ? m_tree_prev.m_allocate : nullptr, tree ? m_tree_prev.m_free : nullptr, err);
-    c4::yml::Callbacks gcb((void*)this, m_glob_prev.m_allocate, m_glob_prev.m_free, err);
+    c4::yml::Callbacks tcb((void*)this, tree ? m_tree_prev.m_allocate : nullptr, tree ? m_tree_prev.m_free : nullptr, perr);
+    c4::yml::Callbacks gcb((void*)this, m_glob_prev.m_allocate, m_glob_prev.m_free, perr);
     #endif
     if(tree)
     {
-        _c4dbgp("setting error callback: tree");
+        _c4dbgpf("setting error callback: tree err={}", c4::fmt::hex(perr));
         tree->callbacks(tcb);
+        EXPECT_EQ(tree->callbacks().m_error, perr);
     }
-    _c4dbgp("setting error callback: global");
+    _c4dbgpf("setting error callback: global err={}", c4::fmt::hex(perr));
     set_callbacks(gcb);
+    EXPECT_EQ(get_callbacks().m_error, perr);
 }
 
 ExpectError::~ExpectError()

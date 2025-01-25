@@ -514,6 +514,7 @@ void Tree::_rem_hierarchy(id_type i)
 }
 
 //-----------------------------------------------------------------------------
+/** @cond dev */
 id_type Tree::_do_reorder(id_type *node, id_type count)
 {
     // swap this node if it's not in place
@@ -533,6 +534,7 @@ id_type Tree::_do_reorder(id_type *node, id_type count)
     }
     return count;
 }
+/** @endcond */
 
 void Tree::reorder()
 {
@@ -542,6 +544,7 @@ void Tree::reorder()
 
 
 //-----------------------------------------------------------------------------
+/** @cond dev */
 void Tree::_swap(id_type n_, id_type m_)
 {
     _RYML_CB_ASSERT(m_callbacks, (parent(n_) != NONE) || type(n_) == NOTYPE);
@@ -773,6 +776,7 @@ void Tree::_swap_props(id_type n_, id_type m_)
     std::swap(n.m_key, m.m_key);
     std::swap(n.m_val, m.m_val);
 }
+/** @endcond */
 
 //-----------------------------------------------------------------------------
 void Tree::move(id_type node, id_type after)

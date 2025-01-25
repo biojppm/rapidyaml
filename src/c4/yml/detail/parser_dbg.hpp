@@ -73,7 +73,7 @@ inline void _dbg_dumper(csubstr s)
 inline substr _dbg_buf() noexcept
 {
     static char writebuf[2048];
-    return writebuf;
+    return substr{writebuf, sizeof(writebuf)}; // g++-5 has trouble with return writebuf;
 }
 template<class ...Args>
 C4_NO_INLINE void _dbg_printf(c4::csubstr fmt, Args const& ...args)

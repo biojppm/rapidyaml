@@ -21,9 +21,11 @@ RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT
 /** This is the main ryml parser, where the parser events are handled
  * to create a ryml tree.
  *
- * @warning Because the ryml @ref Tree does not accept containers as
- * keys, this class cannot successfully parse YAML source with this
- * feature. See @ref ParseEngine for more details.
+ * @warning This class cannot parse YAML where there are container
+ * keys. This is not a limitation of the @ref ParseEngine, but of the
+ * @ref EventHandlerTree, which is present because the @ref Tree does
+ * not accept containers as keys. However, the @ref ParseEngine *can*
+ * parse container keys; consult its documentation for more details.
  *
  * @see ParserOptions
  * @see ParseEngine
@@ -36,12 +38,12 @@ using Parser = RYML_EXPORT ParseEngine<EventHandlerTree>;
 
 /** @defgroup doc_parse_in_place__with_existing_parser Parse in place with existing parser
  *
- * @brief parse a mutable YAML source buffer. Scalars requiring
- * filtering are mutated in place (except in the rare cases where the
- * filtered scalar is longer than the original scalar, or where
- * filtering was disabled before the call). These overloads accept an
- * existing parser object, and provide the opportunity to use special
- * parser options.
+ * @brief parse a mutable YAML source buffer (re)using an existing
+ * parser. Scalars requiring filtering are mutated in place (except in
+ * the rare cases where the filtered scalar is longer than the
+ * original scalar, or where filtering was disabled before the
+ * call). These overloads accept an existing parser object, and
+ * provide the opportunity to use special parser options.
  *
  * @see ParserOptions
  *
@@ -51,27 +53,27 @@ using Parser = RYML_EXPORT ParseEngine<EventHandlerTree>;
 // this is vertically aligned to highlight the parameter differences.
 
 RYML_EXPORT void parse_in_place(Parser *parser, csubstr filename, substr yaml, Tree *t, id_type node_id); /**< (1) parse YAML into an existing tree node.
-                                                                                                          *
-                                                                                                          * The filename will be used in any error messages
-                                                                                                          * arising during the parse. The callbacks in the
-                                                                                                          * tree are kept, and used to allocate
-                                                                                                          * the tree members, if any allocation is required. */
+                                                                                                           *
+                                                                                                           * The filename will be used in any error messages
+                                                                                                           * arising during the parse. The callbacks in the
+                                                                                                           * tree are kept, and used to allocate
+                                                                                                           * the tree members, if any allocation is required. */
 RYML_EXPORT void parse_in_place(Parser *parser,                   substr yaml, Tree *t, id_type node_id); /**< (2) like (1) but no filename will be reported */
-RYML_EXPORT void parse_in_place(Parser *parser, csubstr filename, substr yaml, Tree *t                 ); /**< (3) parse YAML into an existing tree, into its root node.
-                                                                                                          *
-                                                                                                          * The filename will be used in any error messages
-                                                                                                          * arising during the parse. The callbacks in the
-                                                                                                          * tree are kept, and used to allocate
-                                                                                                          * the tree members, if any allocation is required. */
+RYML_EXPORT void parse_in_place(Parser *parser, csubstr filename, substr yaml, Tree *t                 ); /**< (3) parse YAML into the root node of an existing tree.
+                                                                                                           *
+                                                                                                           * The filename will be used in any error messages
+                                                                                                           * arising during the parse. The callbacks in the
+                                                                                                           * tree are kept, and used to allocate
+                                                                                                           * the tree members, if any allocation is required. */
 RYML_EXPORT void parse_in_place(Parser *parser,                   substr yaml, Tree *t                 ); /**< (4) like (3) but no filename will be reported */
 RYML_EXPORT void parse_in_place(Parser *parser, csubstr filename, substr yaml, NodeRef node            ); /**< (5) like (1) but the node is given as a NodeRef */
 RYML_EXPORT void parse_in_place(Parser *parser,                   substr yaml, NodeRef node            ); /**< (6) like (5) but no filename will be reported */
 RYML_EXPORT Tree parse_in_place(Parser *parser, csubstr filename, substr yaml                          ); /**< (7) create a new tree, and parse YAML into its root node.
-                                                                                                          *
-                                                                                                          * The filename will be used in any error messages
-                                                                                                          * arising during the parse. The tree is created with
-                                                                                                          * the callbacks currently in the parser.
-                                                                                                          */
+                                                                                                           *
+                                                                                                           * The filename will be used in any error messages
+                                                                                                           * arising during the parse. The tree is created with
+                                                                                                           * the callbacks currently in the parser.
+                                                                                                           */
 RYML_EXPORT Tree parse_in_place(Parser *parser,                   substr yaml                          ); /**< (8) like (7) but no filename will be reported */
 
 
@@ -287,6 +289,7 @@ RYML_EXPORT void parse_json_in_arena(csubstr filename, csubstr json, NodeRef nod
 RYML_EXPORT void parse_json_in_arena(                  csubstr json, NodeRef node            ); ///< (6) like (5) but no filename will be reported
 RYML_EXPORT Tree parse_json_in_arena(csubstr filename, csubstr json                          ); ///< (7) create a new tree, and parse JSON into its root node.
 RYML_EXPORT Tree parse_json_in_arena(                  csubstr json                          ); ///< (8) like (7) but no filename will be reported
+
 
 /* READ THE DEPRECATION NOTE!
  *
