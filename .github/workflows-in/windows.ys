@@ -1,4 +1,4 @@
-!yamlscript/v0:  # data mode
+!YS v0:  # data mode
 
 :use common: :all
 :: workflow-setup()
