@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <c4/substr.hpp>
+#include <c4/charconv.hpp>
 #include <c4/dump.hpp>
 #include <c4/yml/export.hpp>
 
