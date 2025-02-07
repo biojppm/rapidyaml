@@ -1,5 +1,10 @@
 ## Fixes
 
+- [PR#496](https://github.com/biojppm/rapidyaml/pull/496) and [c4core PR#148](https://github.com/biojppm/c4core/pull/148): Add CI-proven support for CPU architectures:
+  - mips, mipsel, mips64, mips64el
+  - sparc, sparc64
+  - riscv64
+  - loongarch64
 - Fix [#480](https://github.com/biojppm/rapidyaml/issues/480) ([PR#489](https://github.com/biojppm/rapidyaml/pull/489)):
   - Deserializing an empty quoted string *will not* cause an error.
   - Deserializing an empty string *will* cause an error.

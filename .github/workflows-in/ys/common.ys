@@ -324,3 +324,33 @@ defn run-vs-manual-with-flags(gen arch buildtype shared flags="")::
 - name:: "run $buildtype ::: $flags shared=$shared"
   run:: |
     cmake --build build/$buildtype --target ryml-test-run
+
+
+#----------------------------------------------------------
+
+defn xcompile-steps(arch buildtype std flags="")::
+- name: "-------------------------------------------------"
+  run:: "echo $arch/c++$std/$buildtype"
+- name:: "configure $arch/c++$std/$buildtype"
+  run:: |
+    touch build
+    rm -rf build
+    export C4_EXTERN_DIR=`pwd`/build/extern
+    cmake -S . -B build \
+        -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+        -DCMAKE_BUILD_TYPE=$buildtype \
+        -DCMAKE_CXX_FLAGS=" $flags" \
+        -DCMAKE_C_FLAGS=" $flags" \
+        -DC4_CXX_STANDARD=$std \
+        -DCXX_STANDARD=$std \
+        -DRYML_DEV=ON \
+        -DRYML_BUILD_BENCHMARKS=OFF \
+        -DRYML_SANITIZE=OFF \
+        -DRYML_LINT=OFF \
+        -DRYML_VALGRIND=OFF
+- name:: "build $arch/c++$std/$buildtype"
+  run: |
+    cmake --build build --parallel --target ryml-test-build --verbose
+- name:: "test $arch/c++$std/$buildtype"
+  run: |
+    cmake --build build --target ryml-test-run
