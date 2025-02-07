@@ -18,128 +18,167 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: null
 jobs:
-  rarearchs:
+  xcompile:
     if: always()
     continue-on-error: false
-    name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: ubuntu-22.04
+    name: ${{matrix.arch}}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include:
-        - std: 11
-          bt: Debug
-          arch: aarch64
-        - std: 11
-          bt: Release
-          arch: aarch64
-        - std: 14
-          bt: Debug
-          arch: aarch64
-        - std: 14
-          bt: Release
-          arch: aarch64
-        - std: 17
-          bt: Debug
-          arch: aarch64
-        - std: 17
-          bt: Release
-          arch: aarch64
-        - std: 11
-          bt: Debug
-          arch: ppc64le
-        - std: 11
-          bt: Release
-          arch: ppc64le
-        - std: 14
-          bt: Debug
-          arch: ppc64le
-        - std: 14
-          bt: Release
-          arch: ppc64le
-        - std: 17
-          bt: Debug
-          arch: ppc64le
-        - std: 17
-          bt: Release
-          arch: ppc64le
-        - std: 11
-          bt: Debug
-          arch: s390x
-        - std: 11
-          bt: Release
-          arch: s390x
-        - std: 14
-          bt: Debug
-          arch: s390x
-        - std: 14
-          bt: Release
-          arch: s390x
-        - std: 17
-          bt: Debug
-          arch: s390x
-        - std: 17
-          bt: Release
-          arch: s390x
+        - arch: aarch64
+          tc: aarch64-linux-gnu
+        - arch: armv7
+          tc: arm-linux-gnueabihf
+          flags: -march=armv7+fp
+        - arch: armv6
+          tc: arm-linux-gnueabi
+          flags: -march=armv6+fp
+        - arch: armv5
+          tc: arm-linux-gnueabi
+          flags: -march=armv5te+fp
+        - arch: armv4
+          tc: arm-linux-gnueabi
+          flags: -march=armv4
+        - arch: loongarch64
+          tc: loongarch64-linux-gnu
+          version: -14
+        - arch: mips
+          tc: mips-linux-gnu
+        - arch: mipsel
+          tc: mipsel-linux-gnu
+        - arch: mips64
+          tc: mips64-linux-gnuabi64
+        - arch: mips64el
+          tc: mips64el-linux-gnuabi64
+        - arch: riscv64
+          tc: riscv64-linux-gnu
+        - arch: s390x
+          tc: s390x-linux-gnu
+        - arch: ppc
+          tc: powerpc-linux-gnu
+        - arch: ppc64
+          tc: powerpc64-linux-gnu
+        - arch: ppc64le
+          tc: powerpc64le-linux-gnu
+        - arch: sparc64
+          tc: sparc64-linux-gnu
     steps:
     - name: checkout (action)
       uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 0
-    - name: test
-      uses: uraimo/run-on-arch-action@v2.8.1
-      with:
-        arch: ${{matrix.arch}}
-        distro: ubuntu22.04
-        install: |
-          set -x
-          start_time=$SECONDS
-          time apt-get update -y
-          time apt-get install -y \
-            git \
-            build-essential
-          # arm platforms need an up-to-date cmake:
-          # https://gitlab.kitware.com/cmake/cmake/-/issues/20568
-          if [ "${{matrix.arch}}" == "armv6" ] || [ "${{matrix.arch}}" == "armv7" ] ; then
-            time apt-get install -y \
-              gpg \
-              wget \
-              apt-transport-https
-            wget --no-check-certificate -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
-            time apt-get update -y
-            rm /usr/share/keyrings/kitware-archive-keyring.gpg
-            time apt-get install kitware-archive-keyring
-            time apt-get update -y
-          fi
-          time apt-get install -y cmake cmake-data
-          cmake --version
-          echo "install took $((SECONDS - start_time))"
-        run: |
-          set -x
-          start_time=$SECONDS
-          uname -a
-          pwd
-          ls -lFhp .
-          #
-          bdir=build_${{matrix.arch}}_${{matrix.bt}}_${{matrix.std}}
-          idir=install_${{matrix.arch}}_${{matrix.bt}}_${{matrix.std}}
-          mkdir -p $bdir
-          #
-          time cmake -S . -B $bdir \
-            -DCMAKE_INSTALL_PREFIX=$idir \
-            -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
-            -DC4_CXX_STANDARD=${{matrix.std}} \
-            -DCXX_STANDARD=${{matrix.std}} \
+    - name: install
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+            gcc${{matrix.version}}-${{matrix.tc}} \
+            g++${{matrix.version}}-${{matrix.tc}} \
+            qemu-user-static
+    - name: info
+      run: |
+        ${{matrix.tc}}-g++${{matrix.version}} --version
+        ${{matrix.tc}}-g++${{matrix.version}} -dM -E - </dev/null | sort
+        ${{matrix.tc}}-g++${{matrix.version}} ${{matrix.flags}} -dM -E - </dev/null | sort
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++11/Debug
+    - name: configure ${{matrix.arch}}/c++11/Debug
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=11 \
+            -DCXX_STANDARD=11 \
             -DRYML_DEV=ON \
-            -DRYML_TEST_SUITE=ON \
             -DRYML_BUILD_BENCHMARKS=OFF \
             -DRYML_SANITIZE=OFF \
             -DRYML_LINT=OFF \
             -DRYML_VALGRIND=OFF
-          #
-          time cmake --build $bdir -j 3 --target ryml-test-build
-          #
-          time cmake --build $bdir -j 3 --target ryml-test-run
-          echo "run took $((SECONDS - start_time))"
+    - name: build ${{matrix.arch}}/c++11/Debug
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++11/Debug
+      run: |
+        cmake --build build --target ryml-test-run
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++11/Release
+    - name: configure ${{matrix.arch}}/c++11/Release
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=11 \
+            -DCXX_STANDARD=11 \
+            -DRYML_DEV=ON \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_SANITIZE=OFF \
+            -DRYML_LINT=OFF \
+            -DRYML_VALGRIND=OFF
+    - name: build ${{matrix.arch}}/c++11/Release
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++11/Release
+      run: |
+        cmake --build build --target ryml-test-run
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++20/Debug
+    - name: configure ${{matrix.arch}}/c++20/Debug
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=20 \
+            -DCXX_STANDARD=20 \
+            -DRYML_DEV=ON \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_SANITIZE=OFF \
+            -DRYML_LINT=OFF \
+            -DRYML_VALGRIND=OFF
+    - name: build ${{matrix.arch}}/c++20/Debug
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++20/Debug
+      run: |
+        cmake --build build --target ryml-test-run
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++20/Release
+    - name: configure ${{matrix.arch}}/c++20/Release
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=20 \
+            -DCXX_STANDARD=20 \
+            -DRYML_DEV=ON \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_SANITIZE=OFF \
+            -DRYML_LINT=OFF \
+            -DRYML_VALGRIND=OFF
+    - name: build ${{matrix.arch}}/c++20/Release
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++20/Release
+      run: |
+        cmake --build build --target ryml-test-run

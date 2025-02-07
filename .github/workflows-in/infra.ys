@@ -17,14 +17,14 @@ jobs:
     steps:
       - :: checkout-action
       - name: install ys
-        run: make -C .github/workflows install-ys
+        run: make -C .github/workflows-in install-ys
       - name: generate workflows
-        run: make -C .github/workflows build
+        run: make -C .github/workflows-in build
       - name: test workflows
         run: |
           wc --version
           wc --help
-          make -C .github/workflows test
+          make -C .github/workflows-in test
           status=$?
           if [ $status != 0 ] ; then
             echo "ERROR: generated workflows are out of date"

@@ -21,6 +21,7 @@ items =::
         - {std: 20, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
 
 jobs:
+
   vsdebug:
     :: setup-job('windows' 'vsdebug')
     name: ${{matrix.name}}bit/c++${{matrix.std}}/debug
@@ -30,6 +31,7 @@ jobs:
     - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'ON'  '/MDd /Zi /Ob0 /Od /RTC1')
     - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'OFF' '/MDd /Zi /Ob0 /Od /RTC1')
     - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /Os /DNDEBUG')
+
   vsrelease:
     :: setup-job('windows' 'vsrelease')
     name: ${{matrix.name}}bit/c++${{matrix.std}}/release

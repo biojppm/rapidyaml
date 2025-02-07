@@ -44,13 +44,11 @@ force:
 
 
 ../workflows/%.yml: %.ys $(YS) $(INPUT_FILES)
-	@chmod u+w ../workflows
 	@if [ -f "$@" ] ; then chmod a+w $@ ; fi
 	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows/$<" > $@
 	@echo >> $@
 	$(YS) -Y $< >> $@
 	@chmod a-w $@
-	@chmod u-w ../workflows
 	@wc -lm --total=never $< $@
 
 

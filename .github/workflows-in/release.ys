@@ -283,7 +283,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   merge_artifacts:
-    :: setup-job('release' 'release')
+    :: setup-job('release' 'merge_artifacts')
     runs-on: ubuntu-latest
     needs: [src, cpp, python_src, python_wheels]
     steps:
