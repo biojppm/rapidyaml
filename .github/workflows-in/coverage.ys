@@ -64,8 +64,8 @@ jobs:
       with:
         name: coverage-${{env.BUILD_ID}}
         path: |
-          build/$BUILD_ID/lcov
-          build/$BUILD_ID/coverage3-final_filtered.lcov
+          build/${{env.BUILD_ID}}/lcov
+          build/${{env.BUILD_ID}}/coverage3-final_filtered.lcov
     - name: upload codecov
       run: |
         cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
