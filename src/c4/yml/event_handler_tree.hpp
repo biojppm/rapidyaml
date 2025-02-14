@@ -47,7 +47,7 @@ public:
     size_t m_num_directives;
     bool m_yaml_directive;
 
-    #if RYML_DBG
+    #ifdef RYML_DBG
     #define _enable_(bits) _enable__<bits>(); _c4dbgpf("node[{}]: enable {}", m_curr->node_id, #bits)
     #define _disable_(bits) _disable__<bits>(); _c4dbgpf("node[{}]: disable {}", m_curr->node_id, #bits)
     #else

@@ -29,6 +29,7 @@
 - [PR#485](https://github.com/biojppm/rapidyaml/pull/485): improve the CI workflows (thanks to @ingydotnet):
   - amazing code reuse and organization, thanks to the use of YamlScript to generate the final workflows
   - all optimization levels are now covered for gcc, clang and Visual Studio.
+- [PR#499](https://github.com/biojppm/rapidyaml/pull/499): fix warnings with `-Wundef`.
 
 
 ## Thanks

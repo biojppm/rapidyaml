@@ -16,7 +16,11 @@
 #include "test_lib/test_case.hpp"
 #include <gtest/gtest.h>
 
-#define RYML_NFO (0 || RYML_DBG)
+#if (0 || defined(RYML_DBG))
+#define RYML_NFO (1)
+#else
+#define RYML_NFO (0)
+#endif
 
 #if RYML_NFO
 #define _nfo_print_tree(title, tree) do { c4::log("{}:{}: " title ":", __FILE__, __LINE__); print_tree(tree); c4::yml::emit_yaml(tree, stdout); fflush(stdout); } while(0)
