@@ -13,6 +13,7 @@ defaults:
     branches:
     - master
 env:
+  PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
   PROJ_PFX_CMAKE: RYML_
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON

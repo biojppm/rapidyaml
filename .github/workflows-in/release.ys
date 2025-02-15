@@ -23,9 +23,9 @@ env:
 #  git push -f --tags origin )
 
 jobs:
+
   gettag:
     :: setup-job('release' 'gettag')
-    continue-on-error: false
     runs-on: ubuntu-latest
     steps:
     - :: checkout-action
@@ -35,7 +35,6 @@ jobs:
   # create source packages
   src:
     :: setup-job('release' 'src')
-    continue-on-error: false
     needs: gettag
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +46,19 @@ jobs:
     - name: Install requirements
       run: sudo -E pip install git-archive-all
     - name: Create source packages
-      run:: bash('release-create-source-packages')
+      run: |
+        pwd
+        ls -lFhp
+        source vars.sh
+        echo SRC_TAG=$SRC_TAG
+        echo SRC_VERSION=$SRC_VERSION
+        id=${PROJ_PKG_NAME}${SRC_VERSION}
+        name=${id}-src
+        mkdir -p assets
+        git-archive-all --prefix $name assets/$name.tgz
+        git-archive-all --prefix $name assets/$name.zip
+        python --version
+        python tools/amalgamate.py assets/$id.hpp
     - name: Save source artifacts
       uses: actions/upload-artifact@v4
       with: {name: assets-src, path: assets/}
@@ -56,7 +67,6 @@ jobs:
   # create c++ packages
   cpp:
     :: setup-job('release' 'cpp')
-    continue-on-error: false
     name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
     needs: gettag
     runs-on: ${{matrix.config.os}}
@@ -118,7 +128,6 @@ jobs:
 
   python_src:
     :: setup-job('release' 'python_src')
-    continue-on-error: false
     name: python/src
     runs-on: ubuntu-latest
     steps:
@@ -136,7 +145,6 @@ jobs:
 
   python_wheels:
     :: setup-job('release' 'python_wheels')
-    continue-on-error: false
     name: ${{matrix.config.name}}
     runs-on: ${{matrix.config.os}}
     env:
@@ -305,7 +313,6 @@ jobs:
   #----------------------------------------------------------------------------
   release:
     :: setup-job('release' 'release')
-    continue-on-error: false
     runs-on: ubuntu-latest
     needs: [merge_artifacts]
     steps:
@@ -350,6 +357,7 @@ jobs:
       if: contains(github.ref, 'tags/v')
       run: mv -fv dist/*src.zip assets/.
     # Github
+    - :: version-get-vars
     - name: Create Github Release
       if: contains(github.ref, 'tags/v')
       id: create_release
@@ -358,8 +366,8 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         tag_name: ${{github.ref}}
-        release_name: Release ${{steps.vars.outputs.SRC_VERSION}}
-        body_path: ${{steps.vars.outputs.SRC_VERSION_BODY}}
+        release_name: Release ${{env.SRC_VERSION}}
+        body_path: ${{env.SRC_VERSION_BODY}}
         draft: true
         prerelease: ${{contains(github.ref, 'rc')}}
     - name: Upload assets to Github Release

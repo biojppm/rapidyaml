@@ -13,6 +13,7 @@ defaults:
     branches:
     - master
 env:
+  PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
   PROJ_PFX_CMAKE: RYML_
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
@@ -76,6 +77,7 @@ jobs:
     - name: Env (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        source vars.sh
         echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}
@@ -146,6 +148,7 @@ jobs:
     - name: Env (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        source vars.sh
         echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}

@@ -83,6 +83,7 @@ jobs:
     - name: Env (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        source vars.sh
         echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}
@@ -117,6 +118,7 @@ jobs:
     - name: Env (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        source vars.sh
         echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}
@@ -213,6 +215,7 @@ jobs:
     - name: Env (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        source vars.sh
         echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}
@@ -495,6 +498,7 @@ jobs:
     - name: Env (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
+        source vars.sh
         echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
     - name: Variables (from commit, no tag)
       if: ${{ !contains(github.ref, 'tags/v') }}
@@ -540,6 +544,30 @@ jobs:
     - name: Move Python packages to assets folder
       if: contains(github.ref, 'tags/v')
       run: mv -fv dist/*src.zip assets/.
+    - name: Download vars.sh
+      uses: actions/download-artifact@v4
+      with:
+        name: vars.sh
+        path: ./
+    - name: Show vars.sh
+      run: cat vars.sh
+    - name: Source vars.sh
+      run: source vars.sh
+    - name: Env (common)
+      run: |
+        source vars.sh
+        echo "SRC_TAG=$SRC_TAG" >> $GITHUB_ENV
+        echo "SRC_VERSION=$SRC_VERSION" >> $GITHUB_ENV
+    - name: Env (from tag)
+      if: contains(github.ref, 'tags/v')
+      run: |
+        source vars.sh
+        echo "SRC_VERSION_BODY=$SRC_VERSION_BODY" >> $GITHUB_ENV
+    - name: Variables (from commit, no tag)
+      if: ${{ !contains(github.ref, 'tags/v') }}
+      run: echo 'nothing to do'
+    - name: Verify vars.sh
+      run: env | grep SRC
     - name: Create Github Release
       if: contains(github.ref, 'tags/v')
       id: create_release
@@ -548,8 +576,8 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         tag_name: ${{github.ref}}
-        release_name: Release ${{steps.vars.outputs.SRC_VERSION}}
-        body_path: ${{steps.vars.outputs.SRC_VERSION_BODY}}
+        release_name: Release ${{env.SRC_VERSION}}
+        body_path: ${{env.SRC_VERSION_BODY}}
         draft: true
         prerelease: ${{contains(github.ref, 'rc')}}
     - name: Upload assets to Github Release
