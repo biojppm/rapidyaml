@@ -3,10 +3,10 @@
 
 /** @file version.hpp */
 
-#define RYML_VERSION "0.7.2"
+#define RYML_VERSION "0.8.0"
 #define RYML_VERSION_MAJOR 0
-#define RYML_VERSION_MINOR 7
-#define RYML_VERSION_PATCH 2
+#define RYML_VERSION_MINOR 8
+#define RYML_VERSION_PATCH 0
 
 #include <c4/substr.hpp>
 #include <c4/yml/export.hpp>
