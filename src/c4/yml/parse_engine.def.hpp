@@ -5801,6 +5801,7 @@ seqblck_start:
         {
             _c4dbgp("seqblck[RVAL]: start child seqflow");
             addrem_flags(RNXT, RVAL);
+            _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
             addrem_flags(FLOW|RVAL, BLCK|RNXT);
             _line_progressed(1);

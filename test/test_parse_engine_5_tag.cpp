@@ -517,6 +517,110 @@ ENGINE_TEST_ERR(DirectiveMultipleYAML_3,
                 "---\n"
                 "bar")
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(TagEmptySeq0,
+            ("!!seq []\n", "!!seq []"),
+            "+STR\n+DOC\n+SEQ [] <tag:yaml.org,2002:seq>\n-SEQ\n-DOC\n-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_tag("!!seq"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagEmptySeq1,
+            (""
+             "- !!seq []\n"
+             ""),
+            "+STR\n+DOC\n+SEQ\n+SEQ [] <tag:yaml.org,2002:seq>\n-SEQ\n-SEQ\n-DOC\n-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+    ___(ps.set_val_tag("!!seq"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagEmptySeq2,
+            (""
+             "!!seq\n"
+             "- !!seq []\n"
+             ""),
+            "+STR\n+DOC\n+SEQ <tag:yaml.org,2002:seq>\n+SEQ [] <tag:yaml.org,2002:seq>\n-SEQ\n-SEQ\n-DOC\n-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_tag("!!seq"));
+    ___(ps.begin_seq_val_block());
+    ___(ps.set_val_tag("!!seq"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(TagEmptyMap0,
+            ("!!map {}\n", "!!map {}"),
+            "+STR\n+DOC\n+MAP {} <tag:yaml.org,2002:map>\n-MAP\n-DOC\n-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_tag("!!map"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagEmptyMap1,
+            (""
+             "- !!map {}\n"
+             ""),
+            "+STR\n+DOC\n+SEQ\n+MAP {} <tag:yaml.org,2002:map>\n-MAP\n-SEQ\n-DOC\n-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+    ___(ps.set_val_tag("!!map"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagEmptyMap2,
+            (""
+             "!!seq\n"
+             "- !!map {}\n"
+             ""),
+            "+STR\n+DOC\n+SEQ <tag:yaml.org,2002:seq>\n+MAP {} <tag:yaml.org,2002:map>\n-MAP\n-SEQ\n-DOC\n-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_tag("!!seq"));
+    ___(ps.begin_seq_val_block());
+    ___(ps.set_val_tag("!!map"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 } // namespace yml
 } // namespace c4
 
