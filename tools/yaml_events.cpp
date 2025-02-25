@@ -167,41 +167,35 @@ std::string load_file(csubstr filename)
     if(!fs::path_exists(filename.str))
     {
         std::fprintf(stderr, "cannot find file: %s (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str());
-        error("file not found");
+        err_basic(RYML_LOC_HERE(), "file not found");
     }
     return fs::file_get_contents<std::string>(filename.str);
 }
 
-void report_error(const char* msg, size_t length, Location loc, FILE *f)
+[[noreturn]] C4_NO_INLINE void throwerr(const char *msg, size_t len)
 {
-    if(!loc.name.empty())
-    {
-        fwrite(loc.name.str, 1, loc.name.len, f);
-        fputc(':', f);
-    }
-    fprintf(f, "%zu:", loc.line);
-    if(loc.col)
-        fprintf(f, "%zu:", loc.col);
-    if(loc.offset)
-        fprintf(f, " (%zuB):", loc.offset);
-    fputc(' ', f);
-    fprintf(f, "%.*s\n", static_cast<int>(length), msg);
-    fflush(f);
+    C4_IF_EXCEPTIONS(
+        throw std::runtime_error({msg, len});
+        ,
+        jmp_msg.assign(msg, len);
+        std::longjmp(jmp_env, 1);
+        );
+    C4_UNREACHABLE_AFTER_ERR();
 }
 
 Callbacks create_custom_callbacks()
 {
-    Callbacks callbacks = {};
-    callbacks.m_error = [](const char *msg, size_t msg_len, Location location, void *)
-    {
-        report_error(msg, msg_len, location, stderr);
-        C4_IF_EXCEPTIONS(
-            throw std::runtime_error({msg, msg_len});
-            ,
-            jmp_msg.assign(msg, msg_len);
-            std::longjmp(jmp_env, 1);
-        );
-    };
-    return callbacks;
+    return Callbacks{}
+        .set_error_basic([](const char *msg, size_t msg_len, Location const& cpploc, void *){
+            err_basic_print(msg, msg_len, cpploc, stderr);
+            throwerr(msg, msg_len);
+        })
+        .set_error_parse([](const char *msg, size_t msg_len, Location const& cpploc, Location const& ymlloc, void *){
+            err_parse_print(msg, msg_len, cpploc, ymlloc, stderr);
+            throwerr(msg, msg_len);
+        })
+        .set_error_visit([](const char *msg, size_t msg_len, Location const& cpploc, Tree const* tree, id_type id, void *){
+            err_visit_print(msg, msg_len, cpploc, tree, id, stderr);
+            throwerr(msg, msg_len);
+        });
 }
-
