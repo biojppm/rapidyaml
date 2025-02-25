@@ -1162,6 +1162,314 @@ TEST(block_literal, indentation_indicator_1)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+TEST(block_literal, ys00)
+{
+    csubstr yaml = R"(
+each [k ENV:keys]:
+  when (k =~ /^YAMLLM_/) && not(env-vars.get(k)):
+    die: |
+      Invalid env var '$k'.
+      Not one of:
+      $(env-vars:keys.join("\n"))
+)";
+    test_check_emit_check(yaml, [&](Tree const& t){
+        EXPECT_EQ(t[0].key(), "each [k ENV:keys]");
+        EXPECT_EQ(t[0][0].key(), "when (k =~ /^YAMLLM_/) && not(env-vars.get(k))");
+        EXPECT_EQ(t[0][0][0].key(), "die");
+        EXPECT_EQ(t[0][0][0].val(), R"(Invalid env var '$k'.
+Not one of:
+$(env-vars:keys.join("\n"))
+)");
+    });
+}
+
+TEST(block_literal, ys01)
+{
+    csubstr yaml = R"(
+defn run(prompt session=nil):
+  when session:
+    write session _ :append true: |+
+      Q: $(orig-prompt:trim)
+      A ($api-model):
+      $(answer:trim)
+)";
+    test_check_emit_check(yaml, [&](Tree const& t){
+        EXPECT_EQ(t[0].key(), "defn run(prompt session=nil)");
+        EXPECT_EQ(t[0][0].key(), "when session");
+        EXPECT_EQ(t[0][0][0].key(), "write session _ :append true");
+        EXPECT_EQ(t[0][0][0].val(), R"(Q: $(orig-prompt:trim)
+A ($api-model):
+$(answer:trim)
+)");
+    });
+}
+
+TEST(block_literal, ys02)
+{
+    csubstr yaml = R"__(#!/usr/bin/env ys-0
+
+defn run(prompt session=nil):
+  session-text =:
+    when session && session:fs-e:
+
+  answer =:
+    cond:
+      api-model =~ /^dall-e/:
+        openai-image(prompt).data.0.url
+      api-model.in?(anthropic-models):
+        anthropic(prompt):anthropic-message:format
+      api-model.in?(groq-models):
+        groq(prompt).choices.0.message.content:format
+      api-model.in?(openai-models):
+        openai-chat(prompt).choices.0.message.content:format
+      else: die()
+
+  say: answer
+
+  when session:
+    write session _ :append true: |+
+      Q: $(orig-prompt:trim)
+      A ($api-model):
+      $(answer:trim)
+
+defn get-session-file(prompt):
+  name =:
+    prompt
+    .replace(/[^\w]/ '-')
+    .replace(/--+/ '-')
+    .replace(/^-?(.*?)-?$/ '$1')
+  name .=: subs(0 min(name:len 60)):lc
+  name |||=: sh("date +%Y%m%d-%H%M%S").out:chomp
+  local =: CWD + '/.yamllm'
+  home =: ENV.HOME + '/.yamllm'
+  cond:
+    local:fs-d && local:fs-w: "$local/$name.txt"
+    home:fs-d && home:fs-w: "$home/$name.txt"
+    else: "yamllm+$name.txt"
+
+
+defn anthropic(prompt):
+  api-url =: 'https://api.anthropic.com/v1/messages'
+
+  api-key =: config.api-key.anthropic ||
+    die("\nAPI key not in 'config.api-key.anthropic'.
+         \nGet one here:\ https://console.anthropic.com/settings/keys")
+
+  request =::
+    :headers:
+      :x-api-key:: api-key
+      :anthropic-version: 2023-06-01
+      :content-type: application/json
+    :body::
+      json/dump::
+        :model:: api-model
+        max_tokens: 1024
+        :messages:
+        - :role: user
+          :content:: prompt
+
+  when ENV.YAMLLM_DEBUG:
+    say: request:yaml/dump
+
+  response =:
+    try:
+      http/post api-url: request
+      catch e:
+        e =: ex-data(e)
+        say:
+          yaml/dump::
+            status:: e.status
+            body:: e.body:json/load
+            api-key:: api-key
+        exit: 1
+
+  when ENV.YAMLLM_DEBUG:
+    say: response:yaml/dump
+
+  when response.status != 200:
+    die(response)
+
+  json/load: response.body
+
+defn anthropic-message(response):
+  =>: response.content.0.text
+
+defn groq(prompt):
+  api-url =: 'https://api.groq.com/openai/v1/chat/completions'
+
+  api-key =: config.api-key.groq ||
+    die("\nAPI key not in 'config.api-key.groq'.
+    \nGet one here:\ https://console.groq.com/keys")
+
+  request =::
+    :headers:
+      :Content-Type: application/json
+      :Authorization:: "Bearer $api-key"
+    :body::
+      json/dump::
+        :model:: api-model
+        :messages:
+        - :role: user
+          :content:: prompt
+        :temperature:: (ENV.YAMLLM_TEMP || 0.8):N
+        ! keyword('top_p'):: (ENV.YAMLLM_TOPP || 1.0):N
+
+  when ENV.YAMLLM_DEBUG:
+    say: request:yaml/dump
+
+  response =:
+    try:
+      http/post api-url: request
+      catch e:
+        e =: ex-data(e)
+        say:
+          yaml/dump::
+            status:: e.status
+            body:: e.body:json/load
+            api-key:: api-key
+        exit: 1
+
+  when ENV.YAMLLM_DEBUG:
+    say: response:yaml/dump
+
+  when response.status != 200:
+    die(response)
+
+  json/load: response.body
+
+
+defn openai-chat(prompt):
+  api-url =: 'https://api.openai.com/v1/chat/completions'
+
+  api-key =: config.api-key.openai ||
+    die("\nAPI key not in 'config.api-key.openai'.
+    \nGet one here:\ https://platform.openai.com/api-keys")
+
+  request =::
+    :headers:
+      :Content-Type: application/json
+      :Authorization:: "Bearer $api-key"
+    :body::
+      json/dump::
+        :model:: api-model
+        :messages:
+        - :role: user
+          :content:: prompt
+          :temperature:: (ENV.YAMLLM_TEMP || 0.8):N
+
+  when ENV.YAMLLM_DEBUG:
+    say: request:yaml/dump
+
+  response =:
+    try:
+      http/post api-url: request
+      catch e:
+        e =: ex-data(e)
+        say:
+          yaml/dump::
+            status:: e.status
+            body:: e.body:json/load
+            api-key:: api-key
+        exit: 1
+
+  when ENV.YAMLLM_DEBUG:
+    say: response:yaml/dump
+
+  when response.status != 200:
+    die(response)
+
+  json/load: response.body
+
+defn openai-image(prompt):
+  api-url =: 'https://api.openai.com/v1/images/generations'
+
+  api-key =: config.api-key.openai ||
+    die("\nAPI key not in 'config.api-key.openai'.
+    \nGet one here:\ https://platform.openai.com/api-keys")
+
+  request =::
+    :headers:
+      :Content-Type: application/json
+      :Authorization:: "Bearer $api-key"
+    :body::
+      json/dump::
+        :model:: api-model
+        :prompt:: prompt
+        :n: 1
+        :size:: ENV.YAMLLM_IMAGE_SIZE || '1024x1024'
+
+  when ENV.YAMLLM_DEBUG:
+    say: request:yaml/dump
+
+  response =:
+    try:
+      http/post api-url: request
+      catch e:
+        e =: ex-data(e)
+        say:
+          yaml/dump::
+            status:: e.status
+            body:: e.body:json/load
+            api-key:: api-key
+        exit: 1
+
+  when ENV.YAMLLM_DEBUG:
+    say: response:yaml/dump
+
+  when response.status != 200:
+    die(response)
+
+  json/load: response.body
+
+defn get-prompt(prompt):
+  env =: ENV.YAMLLM_PROMPT
+  if prompt:
+    if env:
+      then: die("Can't specify prompt string when using YAMLLM_PROMPT var.")
+      else: prompt:expand-file-paths
+    if env:
+      then: env:read
+      else: nil
+
+defn expand-file-paths(prompt):
+  replace prompt /%%%(\S+)%%%\s*/:
+    fn(m):
+      if m.1:fs-e:
+        then: "\n```\n$(m.1:read:chomp)\n```\n"
+        else: m.0
+
+defn ask-for-prompt():
+  loop:
+    print: "Q: "
+    q =: read-line()
+    Q =: q
+    # ctl-d returns nil to exit:
+    q =:
+      if q:
+        q:expand-file-paths
+        exit()
+    when q.? && not(session-file:deref):
+      reset! session-file: get-session-file(Q)
+    if q:empty?:
+      recur:
+      else: q
+)__";
+    test_check_emit_check(yaml, [&](Tree const& t){
+        EXPECT_EQ(t[0].key(), "defn run(prompt session=nil)");
+        EXPECT_EQ(t[0][0].key(), "when session");
+        EXPECT_EQ(t[0][0][0].key(), "write session _ :append true");
+        EXPECT_EQ(t[0][0][0].val(), R"(Q: $(orig-prompt:trim)
+A ($api-model):
+$(answer:trim)
+)");
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 
 CASE_GROUP(BLOCK_LITERAL)
 {
