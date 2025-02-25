@@ -1611,9 +1611,10 @@ void ParseEngine<EventHandler>::_end2_doc()
 {
     _c4dbgp("doc: end");
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, has_any(RDOC));
-    if(m_doc_empty)
+    if(m_doc_empty || (m_pending_tags.num_entries || m_pending_anchors.num_entries))
     {
         _c4dbgp("doc was empty; add empty val");
+        _handle_annotations_before_blck_val_scalar();
         m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_doc();
@@ -1623,9 +1624,10 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_end2_doc_expl()
 {
     _c4dbgp("doc: end");
-    if(m_doc_empty)
+    if(m_doc_empty || (m_pending_tags.num_entries || m_pending_anchors.num_entries))
     {
         _c4dbgp("doc: no children; add empty val");
+        _handle_annotations_before_blck_val_scalar();
         m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_doc_expl();
@@ -1647,6 +1649,14 @@ void ParseEngine<EventHandler>::_maybe_end_doc()
     {
         _c4dbgp("doc must be finished");
         _end2_doc();
+    }
+    else if(m_doc_empty && (m_pending_tags.num_entries || m_pending_anchors.num_entries))
+    {
+        _c4dbgp("no doc to finish, but pending annotations");
+        m_evt_handler->begin_doc();
+        _handle_annotations_before_blck_val_scalar();
+        m_evt_handler->set_val_scalar_plain_empty();
+        m_evt_handler->end_doc();
     }
 }
 

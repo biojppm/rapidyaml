@@ -621,6 +621,98 @@ ENGINE_TEST(TagEmptyMap2,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(TagYs0,
+            (""
+             "!yamlscript/v0/bare\n"
+             "--- !code\n"
+             "--- !data\n"
+             "--- !code\n"
+             "--- !data\n"
+             "",
+             ""
+             "--- !yamlscript/v0/bare \n"
+             "--- !code \n"
+             "--- !data \n"
+             "--- !code \n"
+             "--- !data \n"
+             ""),
+            "+STR\n"
+            "+DOC\n"
+            "=VAL <!yamlscript/v0/bare> :\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL <!code> :\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL <!data> :\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL <!code> :\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL <!data> :\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_tag("!yamlscript/v0/bare"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_tag("!code"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_tag("!data"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_tag("!code"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_tag("!data"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagYs1,
+            (""
+             "!yamlscript/v0/bare\n"
+             "--- !code\n"
+             "42\n"
+             "",
+             ""
+             "--- !yamlscript/v0/bare \n"
+             "--- !code 42\n"
+             ""),
+            "+STR\n"
+            "+DOC\n"
+            "=VAL <!yamlscript/v0/bare> :\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL <!code> :42\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_tag("!yamlscript/v0/bare"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_tag("!code"));
+    ___(ps.set_val_scalar_plain("42"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
 } // namespace yml
 } // namespace c4
 
