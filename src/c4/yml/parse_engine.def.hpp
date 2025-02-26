@@ -6810,14 +6810,26 @@ mapblck_start:
                 m_evt_handler->set_val_scalar_plain_empty();
                 m_evt_handler->add_sibling();
                 m_evt_handler->set_key_scalar_plain_empty();
-                _line_progressed(1);
-                _maybe_skip_whitespace_tokens();
-                goto mapblck_again;
+            }
+            else if(startindent > m_evt_handler->m_curr->indref)
+            {
+                _c4dbgp("mapblck[RVAL]: start val mapblck");
+                addrem_flags(RNXT, RVAL);
+                _handle_annotations_before_start_mapblck(startline);
+                m_evt_handler->begin_map_val_block();
+                _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
+                m_evt_handler->set_key_scalar_plain_empty();
+                _set_indentation(m_evt_handler->m_curr->line_contents.indentation);
+                // keep the child state on RVAL
+                addrem_flags(RVAL, RNXT);
             }
             else
             {
                 _c4err("parse error");
             }
+            _line_progressed(1);
+            _maybe_skip_whitespace_tokens();
+            goto mapblck_again;
         }
         else if(first == '.')
         {
@@ -7170,6 +7182,7 @@ mapblck_start:
             {
                 _c4dbgp("mapblck[QMRK]: start child seqblck (!)");
                 addrem_flags(RKCL, RKEY|QMRK);
+                _handle_annotations_before_blck_key_scalar();
                 m_evt_handler->begin_seq_key_block();
                 addrem_flags(RVAL|RSEQ, RMAP|RKCL|QMRK);
                 _set_indentation(startindent);
@@ -7531,13 +7544,16 @@ void ParseEngine<EventHandler>::_handle_unk()
         if(m_doc_empty)
         {
             _c4dbgp("it's a map with an empty key");
+            const size_t startindent = m_evt_handler->m_curr->line_contents.indentation; // save
+            const size_t startline = m_evt_handler->m_curr->pos.line; // save
             m_evt_handler->check_trailing_doc_token();
             _maybe_begin_doc();
-            _handle_annotations_before_blck_val_scalar();
+            _handle_annotations_before_start_mapblck(startline);
             m_evt_handler->begin_map_val_block();
+            _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
             m_evt_handler->set_key_scalar_plain_empty();
             m_doc_empty = false;
-            _save_indentation();
+            _set_indentation(startindent);
         }
         else
         {
