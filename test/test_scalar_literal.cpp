@@ -1162,6 +1162,53 @@ TEST(block_literal, indentation_indicator_1)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+TEST(block_literal, ys00)
+{
+    csubstr yaml = R"(
+each [k ENV:keys]:
+  when (k =~ /^YAMLLM_/) && not(env-vars.get(k)):
+    die: |
+      Invalid env var '$k'.
+      Not one of:
+      $(env-vars:keys.join("\n"))
+)";
+    test_check_emit_check(yaml, [&](Tree const& t){
+        EXPECT_EQ(t[0].key(), "each [k ENV:keys]");
+        EXPECT_EQ(t[0][0].key(), "when (k =~ /^YAMLLM_/) && not(env-vars.get(k))");
+        EXPECT_EQ(t[0][0][0].key(), "die");
+        EXPECT_EQ(t[0][0][0].val(), R"(Invalid env var '$k'.
+Not one of:
+$(env-vars:keys.join("\n"))
+)");
+    });
+}
+
+TEST(block_literal, ys01)
+{
+    csubstr yaml = R"(
+defn run(prompt session=nil):
+  when session:
+    write session _ :append true: |+
+      Q: $(orig-prompt:trim)
+      A ($api-model):
+      $(answer:trim)
+)";
+    test_check_emit_check(yaml, [&](Tree const& t){
+        EXPECT_EQ(t[0].key(), "defn run(prompt session=nil)");
+        EXPECT_EQ(t[0][0].key(), "when session");
+        EXPECT_EQ(t[0][0][0].key(), "write session _ :append true");
+        EXPECT_EQ(t[0][0][0].val(), R"(Q: $(orig-prompt:trim)
+A ($api-model):
+$(answer:trim)
+)");
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 
 CASE_GROUP(BLOCK_LITERAL)
 {
