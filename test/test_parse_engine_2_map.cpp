@@ -132,6 +132,55 @@ ENGINE_TEST_ERRLOC(SimpleMapFlowErr1, Location(5,1,6), "{a: b")
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine0Err, Location(5,1,6), "a: b: c")
+ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine1Err, Location(5,1,6), "a: b: ")
+ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine2Err, Location(5,1,6), "a: b:")
+ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine3Err, Location(2,1,3), ": : :")
+ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine4Err, Location(2,1,3), ": : : :")
+ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine5Err, Location(9,1,10), "'a': 'b': 'c'")
+ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine6Err, Location(9,1,10), "\"a\": \"b\": \"c\"")
+ENGINE_TEST(SimpleMapBlockSameLine7, (HAS_MULTILINE_SCALAR,
+            ""
+            "? |-\n"
+            " a\n"
+            ": b: c\n"
+            "",
+            ""
+            "? |-\n"
+            "  a\n"
+            ":\n"
+            "  b: c\n"
+            ""
+            ),
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL |a\n"
+            "+MAP\n"
+            "=VAL :b\n"
+            "=VAL :c\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_literal("a"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("b"));
+    ___(ps.set_val_scalar_plain("c"));
+    ___(ps.end_map());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
 ENGINE_TEST(SimpleMapBlock,
             ("foo: bar\nfoo2: bar2\nfoo3: bar3\n"),
             "+STR\n"

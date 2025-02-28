@@ -704,6 +704,7 @@ private:
         size_t num_entries;
     };
 
+    void _handle_colon();
     void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line);
     void _clear_annotations(Annotation *C4_RESTRICT dst);
     bool _has_pending_annotations() const { return m_pending_tags.num_entries || m_pending_anchors.num_entries; }
@@ -743,6 +744,7 @@ private:
 
     bool m_was_inside_qmrk;
     bool m_doc_empty = true;
+    size_t m_prev_colon = npos;
 
     Encoding_e m_encoding = UTF8;
 
