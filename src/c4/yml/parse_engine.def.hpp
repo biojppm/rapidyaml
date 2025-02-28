@@ -263,6 +263,7 @@ ParseEngine<EventHandler>::ParseEngine(EventHandler *evt_handler, ParserOptions 
     , m_pending_tags()
     , m_was_inside_qmrk(false)
     , m_doc_empty(false)
+    , m_prev_colon(npos)
     , m_encoding(NOBOM)
     , m_newline_offsets()
     , m_newline_offsets_size(0)
@@ -282,6 +283,7 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine &&that) noexcept
     , m_pending_tags(that.m_pending_tags)
     , m_was_inside_qmrk(false)
     , m_doc_empty(false)
+    , m_prev_colon(npos)
     , m_encoding(NOBOM)
     , m_newline_offsets(that.m_newline_offsets)
     , m_newline_offsets_size(that.m_newline_offsets_size)
@@ -301,6 +303,7 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine const& that)
     , m_pending_tags(that.m_pending_tags)
     , m_was_inside_qmrk(false)
     , m_doc_empty(false)
+    , m_prev_colon(npos)
     , m_encoding(NOBOM)
     , m_newline_offsets()
     , m_newline_offsets_size()
@@ -328,6 +331,7 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine &&th
     m_pending_tags = that.m_pending_tags;
     m_was_inside_qmrk = that.m_was_inside_qmrk;
     m_doc_empty = that.m_doc_empty;
+    m_prev_colon = that.m_prev_colon;
     m_encoding = that.m_encoding;
     m_newline_offsets = (that.m_newline_offsets);
     m_newline_offsets_size = (that.m_newline_offsets_size);
@@ -351,6 +355,7 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine cons
         m_pending_tags = that.m_pending_tags;
         m_was_inside_qmrk = that.m_was_inside_qmrk;
         m_doc_empty = that.m_doc_empty;
+        m_prev_colon = that.m_prev_colon;
         m_encoding = that.m_encoding;
         if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
             _resize_locations(that.m_newline_offsets_capacity);
@@ -374,6 +379,7 @@ void ParseEngine<EventHandler>::_clr()
     m_pending_tags = {};
     m_was_inside_qmrk = false;
     m_doc_empty = true;
+    m_prev_colon = npos;
     m_encoding = NOBOM;
     m_newline_offsets = {};
     m_newline_offsets_size = {};
@@ -404,6 +410,7 @@ void ParseEngine<EventHandler>::_reset()
     m_pending_tags = {};
     m_doc_empty = true;
     m_was_inside_qmrk = false;
+    m_prev_colon = npos;
     m_encoding = NOBOM;
     if(m_options.locations())
     {
@@ -4117,6 +4124,18 @@ void ParseEngine<EventHandler>::_handle_flow_skip_whitespace()
 
 
 template<class EventHandler>
+void ParseEngine<EventHandler>::_handle_colon()
+{
+    size_t curr = m_evt_handler->m_curr->pos.line;
+    if(m_prev_colon != npos)
+    {
+        if(curr == m_prev_colon)
+            _c4err("two colons on same line");
+    }
+    m_prev_colon = curr;
+}
+
+template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line)
 {
     _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, str, indentation, line);
@@ -5705,6 +5724,7 @@ seqblck_start:
                 _c4dbgp("seqblck[RVAL]: start mapblck, set scalar as key");
                 addrem_flags(RNXT, RVAL);
                 _handle_annotations_before_start_mapblck(startline);
+                _handle_colon();
                 m_evt_handler->begin_map_val_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
@@ -5731,6 +5751,7 @@ seqblck_start:
                 _c4dbgp("seqblck[RVAL]: start mapblck, set scalar as key");
                 addrem_flags(RNXT, RVAL);
                 _handle_annotations_before_start_mapblck(startline);
+                _handle_colon();
                 m_evt_handler->begin_map_val_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
@@ -5781,6 +5802,7 @@ seqblck_start:
                     _c4dbgp("seqblck[RVAL]: start mapblck, set scalar as key");
                     addrem_flags(RNXT, RVAL);
                     _handle_annotations_before_start_mapblck(startline);
+                    _handle_colon();
                     m_evt_handler->begin_map_val_block();
                     _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref);  // KEY!
@@ -5858,6 +5880,7 @@ seqblck_start:
             _c4dbgp("seqblck[RVAL]: start child mapblck with empty key");
             addrem_flags(RNXT, RVAL);
             _handle_annotations_before_start_mapblck(startline);
+            _handle_colon();
             m_evt_handler->begin_map_val_block();
             _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
             m_evt_handler->set_key_scalar_plain_empty();
@@ -6534,6 +6557,7 @@ mapblck_start:
                     _c4dbgp("mapblck[RVAL]: start new block map, set scalar as key");
                     _handle_annotations_before_start_mapblck(startline);
                     addrem_flags(RNXT, RVAL);
+                    _handle_colon();
                     m_evt_handler->begin_map_val_block();
                     _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                     csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
@@ -6574,6 +6598,7 @@ mapblck_start:
                     _c4dbgp("mapblck[RVAL]: start new block map, set scalar as key");
                     _handle_annotations_before_start_mapblck(startline);
                     addrem_flags(RNXT, RVAL);
+                    _handle_colon();
                     m_evt_handler->begin_map_val_block();
                     _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                     csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
@@ -6635,6 +6660,7 @@ mapblck_start:
                     _c4dbgpf("mapblck[RVAL]: start new block map, set scalar as key {}", m_evt_handler->m_curr->indref);
                     addrem_flags(RNXT, RVAL);
                     _handle_annotations_before_start_mapblck(startline);
+                    _handle_colon();
                     m_evt_handler->begin_map_val_block();
                     _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref); // KEY!
@@ -6816,6 +6842,7 @@ mapblck_start:
                 _c4dbgp("mapblck[RVAL]: start val mapblck");
                 addrem_flags(RNXT, RVAL);
                 _handle_annotations_before_start_mapblck(startline);
+                _handle_colon();
                 m_evt_handler->begin_map_val_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_plain_empty();
@@ -7549,6 +7576,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             m_evt_handler->check_trailing_doc_token();
             _maybe_begin_doc();
             _handle_annotations_before_start_mapblck(startline);
+            _handle_colon();
             m_evt_handler->begin_map_val_block();
             _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
             m_evt_handler->set_key_scalar_plain_empty();
@@ -7645,6 +7673,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             {
                 _c4dbgp("runk: start new block map, set scalar as key");
                 _handle_annotations_before_start_mapblck(startline);
+                _handle_colon();
                 m_evt_handler->begin_map_val_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc);
@@ -7674,6 +7703,7 @@ void ParseEngine<EventHandler>::_handle_unk()
                 _c4dbgp("runk: start new block map, set double-quoted scalar as key");
                 _handle_annotations_before_start_mapblck(startline);
                 m_evt_handler->begin_map_val_block();
+                _handle_colon();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc);
                 m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
@@ -7742,6 +7772,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             {
                 _c4dbgp("runk: start new block map, set scalar as key");
                 _handle_annotations_before_start_mapblck(startline);
+                _handle_colon();
                 m_evt_handler->begin_map_val_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, startindent);

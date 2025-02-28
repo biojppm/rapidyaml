@@ -54,8 +54,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("Y79Y_008-error"          , "TBD"),
     _("Y79Y_009-error"          , "should not accept tab after ?"),
     _("YJV2-error"              , "should not accept [-]"),
-    _("ZCZ6-error"              , "should not accept invalid mapping in plain single line value"),
-    _("ZL4Z-error"              , "TBD"),
     _("ZXT5-error"              , "TBD"),
 
 
