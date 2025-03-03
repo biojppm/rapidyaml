@@ -237,24 +237,24 @@ C4_NORETURN C4_NO_INLINE void err_visit(Location const& cpploc, Tree const* tree
 // using fwrite() is more portable than using fprintf("%.*s") which
 // is not available in some embedded platforms
 
+C4_NO_INLINE static void dump2file(csubstr s, FILE *f)
+{
+    if(s.len)
+        fwrite(s.str, 1, s.len, f); // NOLINT
+}
+
 void location_print(Location const& loc, FILE *f)
 {
     if(!f)
         f = stderr;
-    location_msg(loc, [f](csubstr s){
-        if(s.len)
-            fwrite(s.str, 1, s.len, f); // NOLINT
-    });
+    location_msg(loc, [f](csubstr s){ dump2file(s, f); });
 }
 
 void err_basic_print(const char* msg, size_t length, Location const& cpploc, FILE *f)
 {
     if(!f)
         f = stderr;
-    err_basic_fmt(msg, length, cpploc, [f](csubstr s){
-        if(s.len)
-            fwrite(s.str, 1, s.len, f); // NOLINT
-    });
+    err_basic_fmt(msg, length, cpploc, [f](csubstr s){ dump2file(s, f); });
     fputc('\n', f); // NOLINT
     fflush(f); // NOLINT
 }
@@ -263,10 +263,7 @@ void err_parse_print(const char* msg, size_t length, Location const& cpploc, Loc
 {
     if(!f)
         f = stderr;
-    err_parse_fmt(msg, length, cpploc, ymlloc, [f](csubstr s){
-        if(s.len)
-            fwrite(s.str, 1, s.len, f); // NOLINT
-    });
+    err_parse_fmt(msg, length, cpploc, ymlloc, [f](csubstr s){ dump2file(s, f); });
     fputc('\n', f); // NOLINT
     fflush(f); // NOLINT
 }
@@ -275,10 +272,7 @@ void err_visit_print(const char* msg, size_t length, Location const& cpploc, Tre
 {
     if(!f)
         f = stderr;
-    err_visit_fmt(msg, length, cpploc, tree, id, [f](csubstr s){
-        if(s.len)
-            fwrite(s.str, 1, s.len, f); // NOLINT
-    });
+    err_visit_fmt(msg, length, cpploc, tree, id, [f](csubstr s){ dump2file(s, f); });
     fputc('\n', f); // NOLINT
     fflush(f); // NOLINT
 }
