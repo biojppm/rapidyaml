@@ -242,7 +242,8 @@ void location_print(Location const& loc, FILE *f)
     if(!f)
         f = stderr;
     location_msg(loc, [f](csubstr s){
-        fwrite(s.str, 1, s.len, f); // NOLINT
+        if(s.len)
+            fwrite(s.str, 1, s.len, f); // NOLINT
     });
 }
 
@@ -251,7 +252,8 @@ void err_basic_print(const char* msg, size_t length, Location const& cpploc, FIL
     if(!f)
         f = stderr;
     err_basic_fmt(msg, length, cpploc, [f](csubstr s){
-        fwrite(s.str, 1, s.len, f); // NOLINT
+        if(s.len)
+            fwrite(s.str, 1, s.len, f); // NOLINT
     });
     fputc('\n', f); // NOLINT
     fflush(f); // NOLINT
@@ -262,7 +264,8 @@ void err_parse_print(const char* msg, size_t length, Location const& cpploc, Loc
     if(!f)
         f = stderr;
     err_parse_fmt(msg, length, cpploc, ymlloc, [f](csubstr s){
-        fwrite(s.str, 1, s.len, f); // NOLINT
+        if(s.len)
+            fwrite(s.str, 1, s.len, f); // NOLINT
     });
     fputc('\n', f); // NOLINT
     fflush(f); // NOLINT
@@ -273,7 +276,8 @@ void err_visit_print(const char* msg, size_t length, Location const& cpploc, Tre
     if(!f)
         f = stderr;
     err_visit_fmt(msg, length, cpploc, tree, id, [f](csubstr s){
-        fwrite(s.str, 1, s.len, f); // NOLINT
+        if(s.len)
+            fwrite(s.str, 1, s.len, f); // NOLINT
     });
     fputc('\n', f); // NOLINT
     fflush(f); // NOLINT

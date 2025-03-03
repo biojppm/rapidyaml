@@ -402,8 +402,9 @@ using pfn_error RYML_DEPRECATED("use a more specific error type: `basic`, `parse
 /// @endcond
 
 
-/** a c-style callbacks class. Can be used globally by the library
- * and/or locally by @ref Tree and @ref Parser objects. */
+/** A c-style callbacks class to customize behavior on errors or
+ * allocation. Can be used globally by the library and/or locally by
+ * @ref Tree and @ref Parser objects. */
 struct RYML_EXPORT Callbacks
 {
     void *          m_user_data;   ///< data to be forwarded in every call to a callback
@@ -652,7 +653,6 @@ C4_NO_INLINE void location_msg(Location const& loc, DumpFn &&dumpfn)
 }
 
 
-
 /** print a formatted output message reporting a basic error to the given output file */
 RYML_EXPORT void err_basic_print(const char* msg, size_t length, Location const& cpploc, FILE *f=nullptr);
 /** format a message reporting a basic error, where @p dumpfn is a
@@ -681,9 +681,9 @@ C4_NO_INLINE void err_basic_fmt(const char* msg, size_t length, Location const& 
     std::forward<DumpFn>(dumpfn)(csubstr{msg, length});
 }
 /** report a basic error to its respective handler, with a non-formatted error message. */
-C4_NORETURN C4_NO_INLINE void err_basic(Callbacks const& callbacks, Location const& cpploc, const char* msg_);
+RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_basic(Callbacks const& callbacks, Location const& cpploc, const char* msg_);
 /** report a basic error to its respective handler, with a non-formatted error message. Like (1), but use the current global callbacks. */
-C4_NORETURN C4_NO_INLINE void err_basic(Location const& cpploc, const char* msg);
+RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_basic(Location const& cpploc, const char* msg);
 /** report a basic error to its respective handler, with a formatted error message. */
 template<class ...Args>
 C4_NORETURN C4_NO_INLINE void err_basic_msg(Callbacks const& callbacks, Location const& cpploc, const char *fmt, Args const& ...args)
@@ -734,9 +734,9 @@ C4_NO_INLINE void err_parse_fmt(const char* msg, size_t length, Location const& 
     std::forward<DumpFn>(dumpfn)(" (detected here)");
 }
 /** report a parse error to its respective handler, with a non-formatted error message */
-C4_NORETURN C4_NO_INLINE void err_parse(Callbacks const& callbacks, Location const& cpploc, Location const& ymlloc, const char *msg_);
+RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_parse(Callbacks const& callbacks, Location const& cpploc, Location const& ymlloc, const char *msg_);
 /** report a parse error to its respective handler, with a non-formatted error message. Like (1), but use the current global callbacks. */
-C4_NORETURN C4_NO_INLINE void err_parse(Location const& cpploc, Location const& ymlloc, const char *msg);
+RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_parse(Location const& cpploc, Location const& ymlloc, const char *msg);
 /** report a parse error to its respective handler, with a formatted error message */
 template<class ...Args>
 C4_NORETURN C4_NO_INLINE void err_parse_msg(Callbacks const& callbacks, Location const& cpploc, Location const& ymlloc, const char *fmt, Args const& ...args)
@@ -809,9 +809,9 @@ C4_NO_INLINE void err_visit_fmt(const char* msg, size_t length, Location const& 
     }
 }
 /** report a visit error to its respective handler, with a non-formatted error message */
-C4_NORETURN C4_NO_INLINE void err_visit(Callbacks const& callbacks, Location const& cpploc, Tree const* tree, id_type node, const char *msg_);
+RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_visit(Callbacks const& callbacks, Location const& cpploc, Tree const* tree, id_type node, const char *msg_);
 /** report a visit error to its respective handler, with a non-formatted error message. Like (1), but use the current global callbacks. */
-C4_NORETURN C4_NO_INLINE void err_visit(Location const& cpploc, Tree const* tree, id_type node, const char *msg);
+RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_visit(Location const& cpploc, Tree const* tree, id_type node, const char *msg);
 /** report a visit error to its respective handler, with a formatted error message */
 template<class ...Args>
 C4_NORETURN C4_NO_INLINE void err_visit_msg(Callbacks const& callbacks, Location const& cpploc, Tree const* tree, id_type node, const char *fmt, Args const& ...args)
@@ -861,6 +861,9 @@ struct RYML_EXPORT BasicException : public std::exception
  * err_parse_fmt(), or use @ref err_parse_print() to print it directly
  * without creating an intermediate string.
  *
+ * @note This exception derives from @ref BasicException and can be
+ * catched using either type.
+ *
  * @note Available only if @ref
  * RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, and @ref
  * RYML_NO_DEFAULT_CALLBACKS is NOT defined. */
@@ -875,6 +878,9 @@ struct RYML_EXPORT ParseException : public BasicException
  * obtain the full error message containing context, use @ref
  * err_visit_fmt(), or use @ref err_visit_print() to print it directly
  * without creating an intermediate string.
+ *
+ * @note This exception derives from @ref BasicException and can be
+ * catched using either type.
  *
  * @note Available only if @ref
  * RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, and @ref
