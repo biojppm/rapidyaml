@@ -103,7 +103,9 @@ inline void PrintTo(Callbacks const& cb, ::std::ostream* os)
         << "userdata." << (void*)cb.m_user_data << ','
         << "allocate." << RYML_GNUC_EXTENSION (void*)cb.m_allocate << ','
         << "free." << RYML_GNUC_EXTENSION (void*)cb.m_free << ','
-        << "error." << RYML_GNUC_EXTENSION (void*)cb.m_error << '}';
+        << "error_basic." << RYML_GNUC_EXTENSION (void*)cb.m_error_basic << '}'
+        << "error_parse." << RYML_GNUC_EXTENSION (void*)cb.m_error_parse << '}'
+        << "error_visit." << RYML_GNUC_EXTENSION (void*)cb.m_error_visit << '}';
 #undef RYML_GNUC_EXTENSION
 }
 
@@ -225,14 +227,14 @@ void test_check_emit_check(csubstr yaml, CheckFn &&check_fn)
 
 inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
 {
-    RYML_CHECK(!subject.overlaps(to_csubstr(*dst)));
+    RYML_CHECK_BASIC(!subject.overlaps(to_csubstr(*dst)));
     size_t ret = subject.replace_all(to_substr(*dst), pattern, repl);
     if(ret != dst->size())
     {
         dst->resize(ret);
         ret = subject.replace_all(to_substr(*dst), pattern, repl);
     }
-    RYML_CHECK(ret == dst->size());
+    RYML_CHECK_BASIC(ret == dst->size());
     return c4::to_substr(*dst);
 }
 
@@ -253,13 +255,28 @@ struct ExpectError
     ExpectError(Tree *tree, Location loc={});
     ~ExpectError();
 
-    static void check_error(            std::function<void()> fn, Location expected={}) { check_error((const Tree*)nullptr, fn, expected); }
-    static void check_error(Tree *tree, std::function<void()> fn, Location expected={});
-    static void check_error(Tree const *tree, std::function<void()> fn, Location expected={});
-    static void check_assertion(            std::function<void()> fn, Location expected={}) { check_assertion(nullptr, fn, expected); }
-    static void check_assertion(Tree *tree, std::function<void()> fn, Location expected={});
-    static void check_success(            std::function<void()> fn) { check_success(nullptr, fn); };
-    static void check_success(Tree *tree, std::function<void()> fn);
+    using fntestref = std::function<void()> const&;
+
+    static void check_success(            fntestref fn) { check_success(nullptr, fn); };
+    static void check_success(Tree *tree, fntestref fn);
+
+    static void check_error_basic(            fntestref fn) { check_error_basic((const Tree*)nullptr, fn); }
+    static void check_error_basic(Tree *tree, fntestref fn);
+    static void check_error_basic(Tree const *tree, fntestref fn);
+    static void check_assert_basic(            fntestref fn) { check_assert_parse(nullptr, fn); }
+    static void check_assert_basic(Tree *tree, fntestref fn);
+
+    static void check_error_parse(            fntestref fn, Location const& expected={}) { check_error_parse((const Tree*)nullptr, fn, expected); }
+    static void check_error_parse(Tree *tree, fntestref fn, Location const& expected={});
+    static void check_error_parse(Tree const *tree, fntestref fn, Location const& expected={});
+    static void check_assert_parse(            fntestref fn, Location const& expected={}) { check_assert_parse(nullptr, fn, expected); }
+    static void check_assert_parse(Tree *tree, fntestref fn, Location const& expected={});
+
+    static void check_error_visit(            fntestref fn, id_type id=npos) { check_error_visit((const Tree*)nullptr, fn, id); }
+    static void check_error_visit(Tree *tree, fntestref fn, id_type id=npos);
+    static void check_error_visit(Tree const *tree, fntestref fn, id_type id=npos);
+    static void check_assert_visit(            fntestref fn, id_type id=npos) { check_assert_visit(nullptr, fn, id); }
+    static void check_assert_visit(Tree *tree, fntestref fn, id_type id=npos);
 };
 
 

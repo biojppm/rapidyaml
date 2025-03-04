@@ -69,6 +69,9 @@ void sample_tags();                 ///< deal with YAML type tags
 void sample_tag_directives();       ///< deal with YAML tag namespace directives
 void sample_docs();                 ///< deal with YAML docs
 void sample_error_handler();        ///< set a custom error handler
+void sample_error_basic();
+void sample_error_parse();
+void sample_error_visit();
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
 void sample_static_trees();         ///< how to use static trees in ryml
@@ -109,6 +112,9 @@ int main()
     sample::sample_tag_directives();
     sample::sample_docs();
     sample::sample_error_handler();
+    sample::sample_error_basic();
+    sample::sample_error_parse();
+    sample::sample_error_visit();
     sample::sample_global_allocator();
     sample::sample_per_tree_allocator();
     sample::sample_static_trees();
@@ -189,45 +195,51 @@ namespace sample {
  *
  * @{ */
 
+
 //-----------------------------------------------------------------------------
 // first, some helpers used in this quickstart
 
 /** @defgroup doc_sample_helpers Sample helpers
- * @brief Functions and classes used in the examples of this sample.
+ *
+ * @brief Helper utilities used in the sample.
+ *
  * @addtogroup doc_sample_helpers
+ *
  * @{ */
 
 
-bool report_check(int line, const char *predicate, bool result);
-
-
-// GCC 4.8 has a problem with the CHECK() macro
-#ifndef _DOXYGEN_
-#if (defined(__GNUC__) && (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
-/// a quick'n'dirty assertion to verify a predicate
-#define CHECK CheckPredicate{__FILE__, __LINE__}
-struct CheckPredicate
+/** an example error handler, required for some of the quickstart
+ * examples.
+ * @ingroup doc_sample_helpers */
+struct ErrorHandlerExample
 {
-    const char *file;
-    const int line;
-    void operator() (bool predicate) const
-    {
-        if (!report_check(line, nullptr, predicate))
-        {
-#ifdef RYML_DBG
-            RYML_DEBUG_BREAK();
-#endif
-        }
-    }
+    ryml::Callbacks defaults;
+    ErrorHandlerExample() : defaults(ryml::get_callbacks()) {}
+public:
+    // utilities used below
+    template<class Fn> bool check_error_occurs(Fn &&fn) const;
+    template<class Fn> bool check_assertion_occurs(Fn &&fn) const;
+    void check_enabled() const;
+    void check_disabled() const;
+    ryml::Callbacks callbacks();
+public:
+    // these are the functions that we want to execute on error
+    [[noreturn]] void on_error_basic(const char* msg, size_t len, ryml::Location const& cpploc);
+    [[noreturn]] void on_error_parse(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Location const& ymlloc);
+    [[noreturn]] void on_error_visit(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Tree const* tree, ryml::id_type id);
+public:
+    // these are the functions that we set ryml to call
+    [[noreturn]] static void s_error_basic(const char* msg, size_t len, ryml::Location const& cpploc, void *this_);
+    [[noreturn]] static void s_error_parse(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Location const& ymlloc, void *this_);
+    [[noreturn]] static void s_error_visit(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Tree const* tree, ryml::id_type id, void *this_);
 };
-#else
-/** a quick'n'dirty assertion to verify a predicate */
-#define CHECK(predicate) do { if(!report_check(__LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
-#endif
-#else
-// enable doxygen to link to the functions called inside CHECK()
-#define CHECK(predicate) assert(predicate)
-#endif
+
+/** Shows how to create a scoped error handler. */
+struct ScopedErrorHandlerExample : public ErrorHandlerExample
+{
+    ScopedErrorHandlerExample() : ErrorHandlerExample() { ryml::set_callbacks(callbacks()); check_enabled(); }
+    ~ScopedErrorHandlerExample() { ryml::set_callbacks(this->defaults); check_disabled(); }
+};
 
 
 // helper functions for sample_parse_file()
@@ -237,25 +249,33 @@ template<class CharContainer> void          file_put_contents(const char *filena
 void                                        file_put_contents(const char *filename, const char *buf, size_t sz, const char* access);
 
 
-/** this is an example error handler, required for some of the
- * quickstart examples. */
-struct ErrorHandlerExample
-{
-    ryml::Callbacks callbacks();
-    C4_NORETURN void on_error(const char* msg, size_t len, ryml::Location loc);
-    C4_NORETURN static void s_error(const char* msg, size_t len, ryml::Location loc, void *this_);
-    template<class Fn> C4_NODISCARD bool check_error_occurs(Fn &&fn) const;
-    template<class Fn> C4_NODISCARD bool check_assertion_occurs(Fn &&fn) const;
-    void check_effect(bool committed) const;
-    ErrorHandlerExample() : defaults(ryml::get_callbacks()) {}
-    ryml::Callbacks defaults;
-};
-/** Shows how to easily create a scoped error handler. */
-struct ScopedErrorHandlerExample : public ErrorHandlerExample
-{
-    ScopedErrorHandlerExample() : ErrorHandlerExample() { ryml::set_callbacks(callbacks()); check_effect(true); }
-    ~ScopedErrorHandlerExample() { ryml::set_callbacks(defaults); check_effect(false); }
-};
+bool report_check(int line, const char *predicate, bool result);
+
+
+#if defined(__DOXYGEN__) || defined(_DOXYGEN_)
+/// a quick'n'dirty assertion to verify a predicate
+#   define CHECK(predicate) assert(predicate)  // enable doxygen to link to the functions called inside CHECK()
+#else
+#   if !(defined(__GNUC__) && (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
+    /// a quick'n'dirty assertion to verify a predicate
+#       define CHECK(predicate) do { if(!report_check(__LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
+#   else // GCC 4.8 has a problem with the CHECK() macro
+/// a quick'n'dirty assertion to verify a predicate
+#       define CHECK CheckPredicate{__FILE__, __LINE__}
+        struct CheckPredicate
+        {
+            const char *file;
+            const int line;
+            void operator() (bool result) const
+            {
+                if (!report_check(line, nullptr, result))
+                {
+                    RYML_DEBUG_BREAK();
+                }
+            }
+        };
+#   endif // GCC 4.8
+#endif // doxygen
 
 /** @} */ // doc_sample_helpers
 
@@ -762,7 +782,7 @@ john: doe)";
     //------------------------------------------------------------------
     // .operator[]() vs .at()
 
-    // (Const)NodeRef::operator[]() is an analogue to std::vector::operator[].
+    // (Const)NodeRef::operator[] is an analogue to std::vector::operator[].
     // (Const)NodeRef::at() is an analogue to std::vector::at()
     //
     // at() will always check the subject node is .readable().
@@ -772,7 +792,7 @@ john: doe)";
     {
         // in this example we will be checking errors, so set up a
         // temporary error handler to catch them:
-        ScopedErrorHandlerExample errh;
+        ScopedErrorHandlerExample errh; // calls ryml::set_callbacks()
         // instantiate the tree after errh
         ryml::Tree err_tree = ryml::parse_in_arena("{foo: bar}");
         // ... so that the tree uses the current callbacks:
@@ -4711,24 +4731,160 @@ d: 3
 // ryml provides a default error handler, which calls
 // std::abort(). You can use the cmake option and the macro
 // RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS to have the default error
-// handler throw a std::runtime_error instead.
+// handler throw exceptions instead.
 
 /** demonstrates how to set a custom error handler for ryml */
 void sample_error_handler()
 {
-    ErrorHandlerExample errh;
-
+    ErrorHandlerExample errh; // browse this class to understand more details
+    errh.check_disabled();
     // set a global error handler. Note the error callback must never
     // return: it must either throw an exception, use setjmp() and
     // longjmp(), or abort. Otherwise, the parser will enter into an
     // infinite loop, or the program may crash.
     ryml::set_callbacks(errh.callbacks());
-    errh.check_effect(/*committed*/true);
+    errh.check_enabled();
     CHECK(errh.check_error_occurs([&]{
         ryml::Tree tree = ryml::parse_in_arena("errorhandler.yml", "[a: b\n}");
     }));
     ryml::set_callbacks(errh.defaults); // restore defaults.
-    errh.check_effect(/*committed*/false);
+    errh.check_disabled();
+}
+
+
+//-----------------------------------------------------------------------------
+
+void sample_error_basic()
+{
+    auto cause_basic_error = []{
+        ryml::TagDirective tag = {};
+        return tag.create_from_str("%%%TAG abc");
+    };
+    {
+        ScopedErrorHandlerExample errh; // set the example callbacks (scoped)
+        CHECK(errh.check_error_occurs(cause_basic_error));
+    }
+#ifdef _RYML_WITH_EXCEPTIONS
+    bool gotit = false;
+    try
+    {
+        cause_basic_error();
+    }
+    catch(ryml::BasicException const& exc)
+    {
+        gotit = true;
+        ryml::csubstr msg = ryml::to_csubstr(exc.what());
+        CHECK(!exc.cpploc.name.empty());
+        CHECK(!msg.empty());
+    }
+    CHECK(gotit);
+#endif
+}
+
+void sample_error_parse()
+{
+    ryml::csubstr ymlfile = "file.yml";
+    auto cause_parse_error = [&]{
+        return ryml::parse_in_arena(ymlfile, "{a: b [");
+    };
+    ErrorHandlerExample errh;
+    {
+        ryml::set_callbacks(errh.callbacks());
+        CHECK(errh.check_error_occurs(cause_parse_error));
+        ryml::set_callbacks(errh.defaults);
+    }
+    {
+        ryml::Callbacks cb = errh.callbacks();
+        cb.m_error_parse = nullptr;
+        ryml::set_callbacks(cb);
+        CHECK(ryml::get_callbacks().m_error_parse == nullptr);
+        CHECK(errh.check_error_occurs(cause_parse_error));
+        ryml::set_callbacks(errh.defaults);
+    }
+#ifdef _RYML_WITH_EXCEPTIONS
+    bool gotit = false;
+    try
+    {
+        cause_parse_error();
+    }
+    catch(ryml::ParseException const& exc)
+    {
+        gotit = true;
+        ryml::csubstr msg = ryml::to_csubstr(exc.what());
+        CHECK(!exc.cpploc.name.empty());
+        CHECK(exc.ymlloc.name == ymlfile);
+        CHECK(!msg.empty());
+    }
+    CHECK(gotit);
+    gotit = false;
+    try
+    {
+        cause_parse_error();
+    }
+    catch(ryml::BasicException const& exc) // use references! don't slice the exception
+    {
+        gotit = true;
+        ryml::csubstr msg = ryml::to_csubstr(exc.what());
+        CHECK(!exc.cpploc.name.empty());
+        CHECK(!msg.empty());
+    }
+    CHECK(gotit);
+#endif
+}
+
+void sample_error_visit()
+{
+    ryml::Tree tree;
+    auto cause_visit_error = [&]{
+        tree.callbacks(ryml::get_callbacks());
+        ryml::parse_in_arena("float: 123.456", &tree);
+        int intval = 0;
+        tree["float"] >> intval; // cannot deserialize 123.456 to int
+    };
+    ErrorHandlerExample errh;
+    {
+        ryml::set_callbacks(errh.callbacks());
+        CHECK(errh.check_error_occurs(cause_visit_error));
+        ryml::set_callbacks(errh.defaults);
+    }
+    {
+        ryml::Callbacks cb = errh.callbacks();
+        cb.m_error_visit = nullptr;
+        ryml::set_callbacks(cb);
+        CHECK(ryml::get_callbacks().m_error_visit == nullptr);
+        CHECK(errh.check_error_occurs(cause_visit_error));
+        ryml::set_callbacks(errh.defaults);
+    }
+#ifdef _RYML_WITH_EXCEPTIONS
+    bool gotit = false;
+    try
+    {
+        cause_visit_error();
+    }
+    catch(ryml::VisitException const& exc)
+    {
+        gotit = true;
+        ryml::csubstr msg = ryml::to_csubstr(exc.what());
+        CHECK(!exc.cpploc.name.empty());
+        CHECK(exc.tree == &tree);
+        CHECK(exc.node == tree["float"].id());
+        CHECK(!msg.empty());
+    }
+    CHECK(gotit);
+    gotit = false;
+    try
+    {
+        cause_visit_error();
+    }
+    catch(ryml::BasicException const& exc) // use references! don't slice the exception
+    {
+        gotit = true;
+        ryml::csubstr msg = ryml::to_csubstr(exc.what());
+        CHECK(!exc.cpploc.name.empty());
+        CHECK(!msg.empty());
+    }
+    CHECK(gotit);
+#endif
 }
 
 
@@ -4793,7 +4949,10 @@ struct GlobalAllocatorExample
     // bridge
     ryml::Callbacks callbacks()
     {
-        return ryml::Callbacks(this, &GlobalAllocatorExample::s_allocate, &GlobalAllocatorExample::s_free, nullptr);
+        ryml::Callbacks cb = {};
+        return cb.set_user_data(this)
+            .set_allocate(&GlobalAllocatorExample::s_allocate)
+            .set_free(&GlobalAllocatorExample::s_free);
     }
     static void* s_allocate(size_t len, void* /*hint*/, void *this_)
     {
@@ -4801,7 +4960,7 @@ struct GlobalAllocatorExample
     }
     static void s_free(void *mem, size_t len, void *this_)
     {
-        return ((GlobalAllocatorExample*)this_)->free(mem, len);
+        ((GlobalAllocatorExample*)this_)->free(mem, len);
     }
 
     // checking
@@ -5219,81 +5378,150 @@ int report_checks()
     return num_failed_checks;
 }
 
+
 // methods for the example error handler
 
-// this macro selects code for when exceptions are enabled/disabled
-C4_IF_EXCEPTIONS_( /*nothing for exceptions*/ ,
-                   /*environment for setjmp*/
-                   static std::jmp_buf s_jmp_env;
-                   static std::string s_jmp_msg;
-                   )
+#ifndef C4_EXCEPTIONS
+/*environment for setjmp*/
+static std::jmp_buf s_jmp_env;
+static std::string s_jmp_msg;
+#endif
 
-// checking
+/** checking that an assertion occurs while calling fn. assertions are
+ * enabled if @ref RYML_USE_ASSERT is defined.
+ * @ingroup doc_sample_helpers */
 template<class Fn>
-C4_NODISCARD bool ErrorHandlerExample::check_error_occurs(Fn &&fn) const
+bool ErrorHandlerExample::check_assertion_occurs(Fn &&fn) const
 {
-    bool expected_error_occurred = false;
-    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env) == 0)) // selectively picks based on availability of exceptions
-    {
-        fn();
-    }
-    C4_IF_EXCEPTIONS_(catch(...), else)
-    {
-        expected_error_occurred = true;
-    }
-    return expected_error_occurred;
-}
-template<class Fn>
-C4_NODISCARD bool ErrorHandlerExample::check_assertion_occurs(Fn &&fn) const
-{
-#if RYML_USE_ASSERT
-    return check_error_occurs(fn);
-#else
+    #if RYML_USE_ASSERT
+    return check_error_occurs(std::forward<Fn>(fn));
+    #else
     (void)fn; // do nothing otherwise, as there would be undefined behavior
     return true;
-#endif
+    #endif
 }
-
-/** this C-style callback is the one stored and used by ryml. It is a
- * trampoline function calling on_error() */
-C4_NORETURN void ErrorHandlerExample::s_error(const char* msg, size_t len, ryml::Location loc, void *this_)
+/** checking that an error occurs while calling fn
+ * @ingroup doc_sample_helpers */
+template<class Fn>
+bool ErrorHandlerExample::check_error_occurs(Fn &&fn) const
 {
-    ((ErrorHandlerExample*)this_)->on_error(msg, len, loc);
-}
-/** this is the where the callback implementation goes. Remember that it must not return. */
-C4_NORETURN void ErrorHandlerExample::on_error(const char* msg, size_t len, ryml::Location loc)
-{
-    std::string full_msg = ryml::formatrs<std::string>(
-        "{}:{}:{} ({}B): ERROR: {}",
-        loc.name, loc.line, loc.col, loc.offset, ryml::csubstr(msg, len));
-    C4_IF_EXCEPTIONS(
-        // this will execute if exceptions are enabled.
-        throw std::runtime_error(full_msg);
-        ,
-        // this will execute if exceptions are disabled. It will
-        // jump to the function calling the corresponding setjmp().
-        s_jmp_msg = full_msg;
-        std::longjmp(s_jmp_env, 1);
-    );
-}
-
-/** a helper to create the Callbacks object with the custom error handler */
-ryml::Callbacks ErrorHandlerExample::callbacks()
-{
-    return ryml::Callbacks(this, nullptr, nullptr, ErrorHandlerExample::s_error);
-}
-
-void ErrorHandlerExample::check_effect(bool committed) const
-{
-    ryml::Callbacks const& current = ryml::get_callbacks();
-    if(committed)
+    bool got_error = false;
+    #ifdef C4_EXCEPTIONS
+    try
     {
-        CHECK((ryml::pfn_error)current.m_error == &s_error);
+        std::forward<Fn>(fn)();
+    }
+    catch(std::exception const&)
+    {
+        got_error = true;
+    }
+    #else
+    if(setjmp(s_jmp_env) == 0)
+    {
+        std::forward<Fn>(fn)();
     }
     else
     {
-        CHECK((ryml::pfn_error)current.m_error != &s_error);
+        got_error = true;
     }
+    #endif
+    return got_error;
+}
+
+/** interrupt execution
+ * @ingroup doc_sample_helpers */
+[[noreturn]] void stopexec(std::string const& s)
+{
+    #ifdef C4_EXCEPTIONS
+    throw std::runtime_error(s);
+    #else
+    s_jmp_msg = s;
+    std::longjmp(s_jmp_env, 1);  // jump to the corresponding call to setjmp().
+    #endif
+}
+/** this is where the callback implementation goes. Remember that it must not return.
+ * @ingroup doc_sample_helpers
+ * */
+[[noreturn]] void ErrorHandlerExample::on_error_basic(const char* msg, size_t len, ryml::Location const& cpploc)
+{
+    // build a full error message with location context
+    std::string pmsg;
+    ryml::err_basic_fmt(msg, len, cpploc, [&pmsg](ryml::csubstr s){
+        pmsg.append(s.str, s.len);
+    });
+    stopexec(pmsg);
+}
+/** this is where the callback implementation goes. Remember that it must not return.
+ * @ingroup doc_sample_helpers
+ * */
+[[noreturn]] void ErrorHandlerExample::on_error_parse(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Location const& ymlloc)
+{
+    // build a full error message with location context
+    std::string pmsg;
+    ryml::err_parse_fmt(msg, len, cpploc, ymlloc, [&pmsg](ryml::csubstr s){
+        pmsg.append(s.str, s.len);
+    });
+    stopexec(pmsg);
+}
+/** this is where the callback implementation goes. Remember that it must not return.
+ * @ingroup doc_sample_helpers
+ * */
+[[noreturn]] void ErrorHandlerExample::on_error_visit(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Tree const* tree, ryml::id_type id)
+{
+    // build a full error message with location context
+    std::string pmsg;
+    ryml::err_visit_fmt(msg, len, cpploc, tree, id, [&pmsg](ryml::csubstr s){
+        pmsg.append(s.str, s.len);
+    });
+    stopexec(pmsg);
+}
+
+/** trampoline function to call the object's method */
+[[noreturn]] void ErrorHandlerExample::s_error_basic(const char* msg, size_t len, ryml::Location const& cpploc, void *this_)
+{
+    static_cast<ErrorHandlerExample*>(this_)->on_error_basic(msg, len, cpploc);
+}
+/** trampoline function to call the object's method */
+[[noreturn]] void ErrorHandlerExample::s_error_parse(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Location const& ymlloc, void *this_)
+{
+    static_cast<ErrorHandlerExample*>(this_)->on_error_parse(msg, len, cpploc, ymlloc);
+}
+/** trampoline function to call the object's method */
+[[noreturn]] void ErrorHandlerExample::s_error_visit(const char* msg, size_t len, ryml::Location const& cpploc, ryml::Tree const* tree, ryml::id_type id, void *this_)
+{
+    static_cast<ErrorHandlerExample*>(this_)->on_error_visit(msg, len, cpploc, tree, id);
+}
+
+
+/** a helper to create the Callbacks object for the custom error handler
+ * @ingroup doc_sample_helpers
+ * */
+ryml::Callbacks ErrorHandlerExample::callbacks()
+{
+    return ryml::Callbacks{}
+        .set_user_data(this)
+        .set_error_basic(&ErrorHandlerExample::s_error_basic)
+        .set_error_parse(&ErrorHandlerExample::s_error_parse)
+        .set_error_visit(&ErrorHandlerExample::s_error_visit);
+}
+
+/** test that this handler is currently set */
+void ErrorHandlerExample::check_enabled() const
+{
+    ryml::Callbacks const& current = ryml::get_callbacks();
+    CHECK((ryml::pfn_error_basic)current.m_error_basic == &s_error_basic);
+    CHECK((ryml::pfn_error_parse)current.m_error_parse == &s_error_parse);
+    CHECK((ryml::pfn_error_visit)current.m_error_visit == &s_error_visit);
+    CHECK(current.m_allocate == defaults.m_allocate);
+    CHECK(current.m_free == defaults.m_free);
+}
+/** test that this handler is currently set */
+void ErrorHandlerExample::check_disabled() const
+{
+    ryml::Callbacks const& current = ryml::get_callbacks();
+    CHECK((ryml::pfn_error_basic)current.m_error_basic != &s_error_basic);
+    CHECK((ryml::pfn_error_parse)current.m_error_parse != &s_error_parse);
+    CHECK((ryml::pfn_error_visit)current.m_error_visit != &s_error_visit);
     CHECK(current.m_allocate == defaults.m_allocate);
     CHECK(current.m_free == defaults.m_free);
 }
@@ -5306,18 +5534,18 @@ C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen: this function may be unsafe
 template<class CharContainer>
 size_t file_get_contents(const char *filename, CharContainer *v)
 {
-    std::FILE *fp = std::fopen(filename, "rb");
-    RYML_CHECK_MSG(fp != nullptr, "could not open file");
-    std::fseek(fp, 0, SEEK_END);
-    long sz = std::ftell(fp);
+    std::FILE *fp = std::fopen(filename, "rb"); // NOLINT
+    RYML_CHECK_BASIC_MSG(fp != nullptr, "could not open file: {}", filename);
+    std::fseek(fp, 0, SEEK_END); // NOLINT
+    long sz = std::ftell(fp); // NOLINT
     v->resize(static_cast<typename CharContainer::size_type>(sz));
     if(sz)
     {
-        std::rewind(fp);
+        std::rewind(fp); // NOLINT
         size_t ret = std::fread(&(*v)[0], 1, v->size(), fp);
-        RYML_CHECK(ret == (size_t)sz);
+        RYML_CHECK_BASIC(ret == (size_t)sz);
     }
-    std::fclose(fp);
+    std::fclose(fp); // NOLINT
     return v->size();
 }
 
@@ -5341,9 +5569,9 @@ void file_put_contents(const char *filename, CharContainer const& v, const char*
 void file_put_contents(const char *filename, const char *buf, size_t sz, const char* access)
 {
     std::FILE *fp = std::fopen(filename, access);
-    RYML_CHECK_MSG(fp != nullptr, "could not open file");
-    std::fwrite(buf, 1, sz, fp);
-    std::fclose(fp);
+    RYML_CHECK_BASIC_MSG(fp != nullptr, "could not open file: {}", filename);
+    std::fwrite(buf, 1, sz, fp); // NOLINT
+    std::fclose(fp); // NOLINT
 }
 C4_SUPPRESS_WARNING_MSVC_POP
 

@@ -91,7 +91,7 @@ if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
 else()
     if(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
-        target_compile_definitions(ryml PRIVATE RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
+        target_compile_definitions(ryml PUBLIC RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
     endif()
 endif()
 

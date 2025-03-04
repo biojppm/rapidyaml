@@ -81,7 +81,7 @@ csubstr parse_args(int argc, const char *argv[])
     if(argc < 2)
     {
         printf(usage, argv[0]);
-        yml::error("unknown argument");
+        yml::err_basic(RYML_LOC_HERE(), "unknown argument");
     }
     csubstr file = to_csubstr(argv[argc - 1]);
     for(int i = 1; i+1 < argc; ++i)
@@ -98,7 +98,7 @@ csubstr parse_args(int argc, const char *argv[])
         else
         {
             printf(usage, argv[0]);
-            yml::error("unknown argument");
+            yml::err_basic(RYML_LOC_HERE(), "unknown argument");
         }
     }
     return file;
@@ -121,7 +121,7 @@ void load_file(csubstr filename, std::string *buf)
         if(!fs::path_exists(filename.str))
         {
             std::fprintf(stderr, "cannot find file: %s (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str());
-            yml::error("file not found");
+            yml::err_basic(RYML_LOC_HERE(), "file not found");
         }
         fs::file_get_contents<std::string>(filename.str, buf);
     }
@@ -148,37 +148,38 @@ void emit_json_docs(yml::Tree const& tree, std::string *dst=nullptr)
             emitnode(doc);
 }
 
-void report_error(const char* msg, size_t length, yml::Location loc, FILE *f)
+void report_error(const char* msg, size_t length, FILE *f)
 {
-    if(!loc.name.empty())
-    {
-        fwrite(loc.name.str, 1, loc.name.len, f);
-        fputc(':', f);
-    }
-    fprintf(f, "%zu:", loc.line);
-    if(loc.col)
-        fprintf(f, "%zu:", loc.col);
-    if(loc.offset)
-        fprintf(f, " (%zuB):", loc.offset);
-    fputc(' ', f);
-    fprintf(f, "%.*s\n", static_cast<int>(length), msg);
+    fwrite(msg, 1, length, f);
     fflush(f);
+}
+
+[[noreturn]] void throwerr(const char *msg, size_t len)
+{
+    C4_IF_EXCEPTIONS(
+        throw std::runtime_error({msg, len});
+        ,
+        jmp_msg.assign(msg, len);
+        std::longjmp(jmp_env, 1);
+        );
+    C4_UNREACHABLE_AFTER_ERR();
 }
 
 yml::Callbacks create_custom_callbacks()
 {
-    yml::Callbacks callbacks = {};
-    callbacks.m_error = [](const char *msg, size_t msg_len, yml::Location location, void *)
-    {
-        report_error(msg, msg_len, location, stderr);
-        C4_IF_EXCEPTIONS(
-            throw std::runtime_error({msg, msg_len});
-            ,
-            jmp_msg.assign(msg, msg_len);
-            std::longjmp(jmp_env, 1);
-        );
-    };
-    return callbacks;
+    return yml::Callbacks{}
+        .set_error_basic([](const char *msg, size_t msg_len, yml::Location const& cpploc, void *){
+            yml::err_basic_print(msg, msg_len, cpploc, stderr);
+            throwerr(msg, msg_len);
+        })
+        .set_error_parse([](const char *msg, size_t msg_len, yml::Location const& cpploc, yml::Location const& ymlloc, void *){
+            yml::err_parse_print(msg, msg_len, cpploc, ymlloc, stderr);
+            throwerr(msg, msg_len);
+        })
+        .set_error_visit([](const char *msg, size_t msg_len, yml::Location const& cpploc, yml::Tree const* tree, yml::id_type id, void *){
+            yml::err_visit_print(msg, msg_len, cpploc, tree, id, stderr);
+            throwerr(msg, msg_len);
+        });
 }
 
 

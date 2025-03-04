@@ -24,9 +24,9 @@ struct ReferenceYaml
     ReferenceYaml(                                       std::string const& p, std::string const& e) : test_case_flags(), expected_error_location(), parsed(p), emitted(e) {}
     ReferenceYaml(TestCaseFlags_e tf,                    std::string const& p, std::string const& e) : test_case_flags(tf), expected_error_location(), parsed(p), emitted(e) {}
     ReferenceYaml(TestCaseFlags_e tf,                    std::string const& p                      ) : test_case_flags(tf), expected_error_location(), parsed(p), emitted(p) {}
-    ReferenceYaml(                    Location linecol_, std::string const& p                      ) : test_case_flags(), expected_error_location(linecol_), parsed(p), emitted(p) { RYML_ASSERT(linecol_); }
-    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p, std::string const& e) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(e) { RYML_ASSERT(linecol_); }
-    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p                      ) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(p) { RYML_ASSERT(linecol_); }
+    ReferenceYaml(                    Location linecol_, std::string const& p                      ) : test_case_flags(), expected_error_location(linecol_), parsed(p), emitted(p) { RYML_ASSERT_BASIC(linecol_); }
+    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p, std::string const& e) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(e) { RYML_ASSERT_BASIC(linecol_); }
+    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p                      ) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(p) { RYML_ASSERT_BASIC(linecol_); }
     TestCaseFlags_e test_case_flags;
     Location expected_error_location;
     std::string parsed;
@@ -52,7 +52,7 @@ C4_NO_INLINE void test_new_parser_tree_from_events(ReferenceYaml const& yaml)
 {
     if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
     {
-        ExpectError::check_error([&]{
+        ExpectError::check_error_parse([&]{
             Tree tree = {};
             EventHandlerTree handler(&tree, tree.root_id());
             EventProducerFn<EventHandlerTree> event_producer;

@@ -40,7 +40,7 @@ size_t preprocess_rxmap(csubstr s, substr buf)
 
     if(s.begins_with('{'))
     {
-        RYML_CHECK(s.ends_with('}'));
+        RYML_CHECK_BASIC(s.ends_with('}'));
         s = s.offs(1, 1);
     }
 

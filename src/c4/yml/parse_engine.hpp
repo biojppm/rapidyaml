@@ -203,6 +203,8 @@ namespace yml {
 class Tree;
 class NodeRef;
 class ConstNodeRef;
+struct FilterResult;
+struct FilterResultExtending;
 
 
 //-----------------------------------------------------------------------------
@@ -358,7 +360,7 @@ public:
     ParserOptions const& options() const { return m_options; }
 
     /** Get the current callbacks in the parser. */
-    Callbacks const& callbacks() const { RYML_ASSERT(m_evt_handler); return m_evt_handler->m_stack.m_callbacks; }
+    Callbacks const& callbacks() const { RYML_ASSERT_BASIC(m_evt_handler); return m_evt_handler->m_stack.m_callbacks; }
 
     /** Get the name of the latest file parsed by this object. */
     csubstr filename() const { return m_file; }
@@ -370,7 +372,7 @@ public:
      * If no encoding was specified, UTF8 is assumed as per the YAML standard. */
     Encoding_e encoding() const { return m_encoding != NOBOM ? m_encoding : UTF8; }
 
-    id_type stack_capacity() const { RYML_ASSERT(m_evt_handler); return m_evt_handler->m_stack.capacity(); }
+    id_type stack_capacity() const { RYML_ASSERT_BASIC(m_evt_handler); return m_evt_handler->m_stack.capacity(); }
     size_t locations_capacity() const { return m_newline_offsets_capacity; }
 
     RYML_DEPRECATED("filter arena no longer needed")
@@ -682,12 +684,12 @@ private:
     void _clr();
 
     #ifdef RYML_DBG
-    template<class ...Args> void _dbg(csubstr fmt, Args const& C4_RESTRICT ...args) const;
+    template<class ...Args> C4_NO_INLINE void _dbg(csubstr fmt, Args const& ...args) const;
+    template<class DumpFn>  C4_NO_INLINE void _fmt_msg(DumpFn &&dumpfn) const;
     #endif
-    template<class ...Args> void _err(csubstr fmt, Args const& C4_RESTRICT ...args) const;
-    template<class ...Args> void _errloc(csubstr fmt, Location const& loc, Args const& C4_RESTRICT ...args) const;
+    template<class ...Args> C4_NORETURN C4_NO_INLINE void _err(Location const& cpploc, const char *fmt, Args const& ...args) const;
+    template<class ...Args> C4_NORETURN C4_NO_INLINE void _err(Location const& cpploc, Location const& srcloc, const char *fmt, Args const& ...args) const;
 
-    template<class DumpFn>  void _fmt_msg(DumpFn &&dumpfn) const;
 
 private:
 

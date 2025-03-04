@@ -71,19 +71,24 @@ YamlTag_e to_tag(csubstr tag)
     if(tag.begins_with("!!"))
         tag = tag.sub(2);
     else if(tag.begins_with('!'))
+    {
         return TAG_NONE;
-    else if(tag.begins_with("tag:yaml.org,2002:"))
-    {
-        RYML_ASSERT(csubstr("tag:yaml.org,2002:").len == 18);
-        tag = tag.sub(18);
     }
-    else if(tag.begins_with("<tag:yaml.org,2002:"))
+    else
     {
-        RYML_ASSERT(csubstr("<tag:yaml.org,2002:").len == 19);
-        tag = tag.sub(19);
-        if(!tag.len)
-            return TAG_NONE;
-        tag = tag.offs(0, 1);
+        csubstr pfx = "<tag:yaml.org,2002:";
+        csubstr pfx2 = pfx.sub(1);
+        if(tag.begins_with(pfx2))
+        {
+            tag = tag.sub(pfx2.len);
+        }
+        else if(tag.begins_with(pfx))
+        {
+            tag = tag.sub(pfx.len);
+            if(!tag.len)
+                return TAG_NONE;
+            tag = tag.offs(0, 1);
+        }
     }
 
     if(tag == "map")
@@ -201,9 +206,9 @@ csubstr from_tag(YamlTag_e tag)
 }
 
 
-bool TagDirective::create_from_str(csubstr directive_)
+bool TagDirective::create_from_str(csubstr directive)
 {
-    csubstr directive = directive_;
+    RYML_CHECK_BASIC(directive.begins_with("%TAG "));
     directive = directive.sub(4);
     if(!directive.begins_with(' '))
         return false;
@@ -224,10 +229,10 @@ bool TagDirective::create_from_str(csubstr directive_)
 
 bool TagDirective::create_from_str(csubstr directive_, Tree *tree)
 {
-    _RYML_CB_CHECK(tree->callbacks(), directive_.begins_with("%TAG "));
+    _RYML_CB_CHECK_BASIC(tree->callbacks(), directive_.begins_with("%TAG "));
     if(!create_from_str(directive_))
     {
-        _RYML_CB_ERR(tree->callbacks(), "invalid tag directive");
+        _RYML_CB_ERR_BASIC(tree->callbacks(), "invalid tag directive");
     }
     next_node_id = tree->size();
     if(!tree->empty())
@@ -243,14 +248,14 @@ bool TagDirective::create_from_str(csubstr directive_, Tree *tree)
 size_t TagDirective::transform(csubstr tag, substr output, Callbacks const& callbacks) const
 {
     _c4dbgpf("%TAG: handle={} prefix={} next_node={}. tag={}", handle, prefix, next_node_id, tag);
-    _RYML_CB_ASSERT(callbacks, tag.len >= handle.len);
+    _RYML_CB_ASSERT_BASIC(callbacks, tag.len >= handle.len);
     csubstr rest = tag.sub(handle.len);
     _c4dbgpf("%TAG: rest={}", rest);
     if(rest.begins_with('<'))
     {
         _c4dbgpf("%TAG: begins with <. rest={}", rest);
         if(C4_UNLIKELY(!rest.ends_with('>')))
-            _RYML_CB_ERR(callbacks, "malformed tag");
+            _RYML_CB_ERR_BASIC(callbacks, "malformed tag");
         rest = rest.offs(1, 1);
         if(rest.begins_with(prefix))
         {
@@ -274,13 +279,13 @@ size_t TagDirective::transform(csubstr tag, substr output, Callbacks const& call
     {
         // need to decode URI % sequences
         size_t pos = rest.find('%');
-        _RYML_CB_ASSERT(callbacks, pos != npos);
+        _RYML_CB_ASSERT_BASIC(callbacks, pos != npos);
         do {
             size_t next = rest.first_not_of("0123456789abcdefABCDEF", pos+1);
             if(next == npos)
                 next = rest.len;
-            _RYML_CB_CHECK(callbacks, pos+1 < next);
-            _RYML_CB_CHECK(callbacks, pos+1 + 2 <= next);
+            _RYML_CB_CHECK_BASIC(callbacks, pos+1 < next);
+            _RYML_CB_CHECK_BASIC(callbacks, pos+1 + 2 <= next);
             size_t delta = next - (pos+1);
             len -= delta;
             pos = rest.find('%', pos+1);
@@ -293,27 +298,27 @@ size_t TagDirective::transform(csubstr tag, substr output, Callbacks const& call
             appendchar('<');
             appendstr(prefix);
             pos = rest.find('%');
-            _RYML_CB_ASSERT(callbacks, pos != npos);
+            _RYML_CB_ASSERT_BASIC(callbacks, pos != npos);
             do {
                 size_t next = rest.first_not_of("0123456789abcdefABCDEF", pos+1);
                 if(next == npos)
                     next = rest.len;
-                _RYML_CB_CHECK(callbacks, pos+1 < next);
-                _RYML_CB_CHECK(callbacks, pos+1 + 2 <= next);
+                _RYML_CB_CHECK_BASIC(callbacks, pos+1 < next);
+                _RYML_CB_CHECK_BASIC(callbacks, pos+1 + 2 <= next);
                 uint8_t val;
                 if(C4_UNLIKELY(!read_hex(rest.range(pos+1, next), &val) || val > 127))
-                    _RYML_CB_ERR(callbacks, "invalid URI character");
+                    _RYML_CB_ERR_BASIC(callbacks, "invalid URI character");
                 appendstr(rest.range(prev, pos));
                 appendchar(static_cast<char>(val));
                 prev = next;
                 pos = rest.find('%', pos+1);
             } while(pos != npos);
-            _RYML_CB_ASSERT(callbacks, pos == npos);
-            _RYML_CB_ASSERT(callbacks, prev > 0);
-            _RYML_CB_ASSERT(callbacks, rest.len >= prev);
+            _RYML_CB_ASSERT_BASIC(callbacks, pos == npos);
+            _RYML_CB_ASSERT_BASIC(callbacks, prev > 0);
+            _RYML_CB_ASSERT_BASIC(callbacks, rest.len >= prev);
             appendstr(rest.sub(prev));
             appendchar('>');
-            _RYML_CB_ASSERT(callbacks, wpos == len);
+            _RYML_CB_ASSERT_BASIC(callbacks, wpos == len);
         }
     }
     return len;

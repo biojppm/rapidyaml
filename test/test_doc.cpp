@@ -220,13 +220,13 @@ void test_boms2(CreateFn &&createfn, TestFn &&testfn)
             }
             else
             {
-                pfn_error orig = get_callbacks().m_error;
-                ExpectError::check_error([&]{
+                pfn_error_parse orig = get_callbacks().m_error_parse;
+                ExpectError::check_error_parse([&]{
                     Tree tree;
                     Parser::handler_type handler;
                     Parser parser(&handler);
-                    ASSERT_EQ((pfn_error)tree.callbacks().m_error, (pfn_error)parser.callbacks().m_error);
-                    ASSERT_NE((pfn_error)tree.callbacks().m_error, orig);
+                    ASSERT_EQ((pfn_error_parse)tree.callbacks().m_error_parse, (pfn_error_parse)parser.callbacks().m_error_parse);
+                    ASSERT_NE((pfn_error_parse)tree.callbacks().m_error_parse, orig);
                     parse_in_arena(&parser, to_csubstr(buf), &tree);
                 });
             }
