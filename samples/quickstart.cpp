@@ -4777,10 +4777,6 @@ void sample_error_basic()
         CHECK(!exc.cpploc.name.empty());
         CHECK(!msg.empty());
     }
-    catch(...)
-    {
-        gotit = false;
-    }
     CHECK(gotit);
 #endif
 }
@@ -4819,10 +4815,6 @@ void sample_error_parse()
         CHECK(exc.ymlloc.name == ymlfile);
         CHECK(!msg.empty());
     }
-    catch(...)
-    {
-        gotit = false;
-    }
     CHECK(gotit);
     gotit = false;
     try
@@ -4836,10 +4828,6 @@ void sample_error_parse()
         CHECK(!exc.cpploc.name.empty());
         CHECK(!msg.empty());
     }
-    catch(...)
-    {
-        gotit = false;
-    }
     CHECK(gotit);
 #endif
 }
@@ -4852,7 +4840,6 @@ void sample_error_visit()
         ryml::parse_in_arena("float: 123.456", &tree);
         int intval = 0;
         tree["float"] >> intval; // cannot deserialize 123.456 to int
-        return intval;
     };
     ErrorHandlerExample errh;
     {

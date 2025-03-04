@@ -681,9 +681,9 @@ C4_NO_INLINE void err_basic_fmt(const char* msg, size_t length, Location const& 
     std::forward<DumpFn>(dumpfn)(csubstr{msg, length});
 }
 /** report a basic error to its respective handler, with a non-formatted error message. */
-RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_basic(Callbacks const& callbacks, Location const& cpploc, const char* msg_);
+C4_NORETURN RYML_EXPORT C4_NO_INLINE void err_basic(Callbacks const& callbacks, Location const& cpploc, const char* msg_);
 /** report a basic error to its respective handler, with a non-formatted error message. Like (1), but use the current global callbacks. */
-RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_basic(Location const& cpploc, const char* msg);
+C4_NORETURN RYML_EXPORT C4_NO_INLINE void err_basic(Location const& cpploc, const char* msg);
 /** report a basic error to its respective handler, with a formatted error message. */
 template<class ...Args>
 C4_NORETURN C4_NO_INLINE void err_basic_msg(Callbacks const& callbacks, Location const& cpploc, const char *fmt, Args const& ...args)
@@ -734,9 +734,9 @@ C4_NO_INLINE void err_parse_fmt(const char* msg, size_t length, Location const& 
     std::forward<DumpFn>(dumpfn)(" (detected here)");
 }
 /** report a parse error to its respective handler, with a non-formatted error message */
-RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_parse(Callbacks const& callbacks, Location const& cpploc, Location const& ymlloc, const char *msg_);
+C4_NORETURN RYML_EXPORT C4_NO_INLINE void err_parse(Callbacks const& callbacks, Location const& cpploc, Location const& ymlloc, const char *msg_);
 /** report a parse error to its respective handler, with a non-formatted error message. Like (1), but use the current global callbacks. */
-RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_parse(Location const& cpploc, Location const& ymlloc, const char *msg);
+C4_NORETURN RYML_EXPORT C4_NO_INLINE void err_parse(Location const& cpploc, Location const& ymlloc, const char *msg);
 /** report a parse error to its respective handler, with a formatted error message */
 template<class ...Args>
 C4_NORETURN C4_NO_INLINE void err_parse_msg(Callbacks const& callbacks, Location const& cpploc, Location const& ymlloc, const char *fmt, Args const& ...args)
@@ -809,9 +809,9 @@ C4_NO_INLINE void err_visit_fmt(const char* msg, size_t length, Location const& 
     }
 }
 /** report a visit error to its respective handler, with a non-formatted error message */
-RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_visit(Callbacks const& callbacks, Location const& cpploc, Tree const* tree, id_type node, const char *msg_);
+C4_NORETURN RYML_EXPORT C4_NO_INLINE void err_visit(Callbacks const& callbacks, Location const& cpploc, Tree const* tree, id_type node, const char *msg_);
 /** report a visit error to its respective handler, with a non-formatted error message. Like (1), but use the current global callbacks. */
-RYML_EXPORT C4_NORETURN C4_NO_INLINE void err_visit(Location const& cpploc, Tree const* tree, id_type node, const char *msg);
+C4_NORETURN RYML_EXPORT C4_NO_INLINE void err_visit(Location const& cpploc, Tree const* tree, id_type node, const char *msg);
 /** report a visit error to its respective handler, with a formatted error message */
 template<class ...Args>
 C4_NORETURN C4_NO_INLINE void err_visit_msg(Callbacks const& callbacks, Location const& cpploc, Tree const* tree, id_type node, const char *fmt, Args const& ...args)

@@ -111,7 +111,7 @@ C4_NO_INLINE void _dbg_printf(csubstr fmt, Args const& ...args)
 inline C4_NO_INLINE void __c4presc(csubstr s, bool keep_newlines=false)
 {
     if(!_dbg_enabled())
-        return;
+        return; // LCOV_EXCL_LINE
     RYML_ASSERT_BASIC(s.str || !s.len);
     size_t prev = 0;
     for(size_t i = 0; i < s.len; ++i)

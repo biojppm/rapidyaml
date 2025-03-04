@@ -166,8 +166,8 @@ std::string load_file(csubstr filename)
     }
     if(!fs::path_exists(filename.str))
     {
-        std::fprintf(stderr, "cannot find file: %s (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str());
-        err_basic(RYML_LOC_HERE(), "file not found");
+        std::fprintf(stderr, "cannot find file: %s (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str()); // LCOV_EXCL_LINE
+        err_basic(RYML_LOC_HERE(), "file not found"); // LCOV_EXCL_LINE
     }
     return fs::file_get_contents<std::string>(filename.str);
 }

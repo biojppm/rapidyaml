@@ -118,9 +118,9 @@ Callbacks::Callbacks(void *user_data, pfn_allocate alloc_, pfn_free free_, pfn_e
     #else
     m_allocate(alloc_),
     m_free(free_),
-    m_error_basic(error_)
-    m_error_parse(nullptr)
-    m_error_visit(nullptr)
+    m_error_basic(error_),
+    m_error_parse(nullptr),
+    m_error_visit(nullptr),
     #endif
 {
     RYML_CHECK_BASIC(m_allocate);
@@ -203,7 +203,7 @@ C4_NORETURN C4_NO_INLINE void err_parse(Callbacks const& callbacks, Location con
         callbacks.m_error_parse(msg.str, msg.len, cpploc, ymlloc, callbacks.m_user_data);
     // fall to basic error if there is no parse handler set
     else if(callbacks.m_error_basic)
-        callbacks.m_error_basic(msg.str, msg.len, cpploc, callbacks.m_user_data);
+        callbacks.m_error_basic(msg.str, msg.len, ymlloc, callbacks.m_user_data);
     abort(); // the call above should not return, so force it here in case it does // LCOV_EXCL_LINE
     C4_UNREACHABLE_AFTER_ERR();
 }
@@ -237,11 +237,13 @@ C4_NORETURN C4_NO_INLINE void err_visit(Location const& cpploc, Tree const* tree
 // using fwrite() is more portable than using fprintf("%.*s") which
 // is not available in some embedded platforms
 
-C4_NO_INLINE static void dump2file(csubstr s, FILE *f)
+namespace { // anon
+C4_NO_INLINE void dump2file(csubstr s, FILE *f)
 {
     if(s.len)
         fwrite(s.str, 1, s.len, f); // NOLINT
 }
+} // namespace anon
 
 void location_print(Location const& loc, FILE *f)
 {

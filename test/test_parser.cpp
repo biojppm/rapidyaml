@@ -27,7 +27,8 @@ void mklarge(Parser *p, Callbacks const& cb)
     ASSERT_TRUE(p->m_evt_handler);
     Parser::handler_type *evt_handler = p->m_evt_handler;
     p->~Parser();
-    evt_handler->m_stack.m_callbacks = cb;
+    if(&cb != &evt_handler->m_stack.m_callbacks)
+        evt_handler->m_stack.m_callbacks = cb;
     new ((void*)p) Parser(evt_handler, p->options());
     p->reserve_stack(20); // cause an allocation
     p->reserve_locations(128); // cause an allocation
