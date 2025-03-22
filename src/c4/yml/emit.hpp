@@ -162,7 +162,7 @@ public:
     {
         if(!detail::is_set_(n))
             return {};
-        _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+        _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
         return this->emit_as(type, *n.tree(), n.id(), error_on_excess);
     }
 
@@ -751,7 +751,7 @@ substr emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts, CharOwningCon
 {
     if(!detail::is_set_(n))
         return {};
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_yaml(*n.tree(), n.id(), opts, cont, append);
 }
 /** (2) like (1), but use default emit options */
@@ -760,7 +760,7 @@ substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 {
     if(!detail::is_set_(n))
         return {};
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_yaml(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
 /** (1) emit+resize: JSON to the given `std::string`/`std::vector`-like container,
@@ -771,7 +771,7 @@ substr emitrs_json(ConstNodeRef const& n, EmitOptions const& opts, CharOwningCon
 {
     if(!detail::is_set_(n))
         return {};
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_json(*n.tree(), n.id(), opts, cont, append);
 }
 /** (2) like (1), but use default emit options */
@@ -780,7 +780,7 @@ substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 {
     if(!detail::is_set_(n))
         return {};
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_json(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
 
@@ -791,7 +791,7 @@ CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={
 {
     if(!detail::is_set_(n))
         return {};
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     CharOwningContainer c;
     emitrs_yaml(*n.tree(), n.id(), opts, &c);
     return c;
@@ -802,7 +802,7 @@ CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={
 {
     if(!detail::is_set_(n))
         return {};
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     CharOwningContainer c;
     emitrs_json(*n.tree(), n.id(), opts, &c);
     return c;
