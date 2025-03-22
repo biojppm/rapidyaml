@@ -369,7 +369,7 @@ TEST(github, 31)
     }
 
     {
-        ExpectError::check_assertion(&tree, [&](){
+        ExpectError::check_assert_basic(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= MAP;
@@ -377,7 +377,7 @@ TEST(github, 31)
     }
 
     {
-        ExpectError::check_assertion(&tree, [&](){
+        ExpectError::check_assert_basic(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= SEQ;
@@ -385,7 +385,7 @@ TEST(github, 31)
     }
 
     {
-        ExpectError::check_assertion(&tree, [&](){
+        ExpectError::check_assert_basic(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi |= MAP;
             lumi << "Lumi";
@@ -706,7 +706,7 @@ R"(
 - key1: true1
  MessageID1:          'MapRegion_HyrulePrairie1 '
 )",
-  LineCol(4, 1)
+  Location(4, 1)
 );
 
 ADD_CASE_TO_GROUP("github35/expected_error12", EXPECT_PARSE_ERROR,
@@ -715,7 +715,7 @@ R"(
 - key2: true2
  MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-  LineCol(4, 1)
+  Location(4, 1)
 );
 
 ADD_CASE_TO_GROUP("github35/expected_error21", EXPECT_PARSE_ERROR,
@@ -724,7 +724,7 @@ R"(
 - key1: true1
     MessageID1:          'MapRegion_HyrulePrairie1 '
 )",
-  LineCol(4, 15)
+  Location(4, 15)
 );
 
 ADD_CASE_TO_GROUP("github35/expected_error22", EXPECT_PARSE_ERROR,
@@ -733,7 +733,7 @@ R"(
 - key2: true2
     MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-  LineCol(4, 15)
+  Location(4, 15)
 );
 
 ADD_CASE_TO_GROUP("github128/1", RESOLVE_REFS | EXPECT_RESOLVE_ERROR, "a: *invalid");
