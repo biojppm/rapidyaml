@@ -194,8 +194,8 @@ struct CaseAdderGcc4_8
     const int line;
 
     template<typename... Args>
-    void operator ()(Args... parameters) const {
-        group_cases->emplace_back(csubstr(file), line, parameters...);
+    void operator ()(Args &&... parameters) const {
+        group_cases->emplace_back(csubstr(file), line, std::forward<Args>(parameters)...);
     }
 };
 
