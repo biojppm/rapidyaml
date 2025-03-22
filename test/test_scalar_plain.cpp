@@ -309,13 +309,13 @@ TEST(plain_scalar, issue153_map)
 TEST(plain_scalar, test_suite_BS4K)
 {
     Tree t;
-    ExpectError::check_error(&t, [&]{
+    ExpectError::check_error_parse(&t, [&]{
         t = parse_in_arena(R"(word1  # comment
 word2
 word3
 )");
     });
-    ExpectError::check_error(&t, [&]{
+    ExpectError::check_error_parse(&t, [&]{
         t = parse_in_arena(R"(word1  # comment
 word2
 )");
@@ -1013,7 +1013,7 @@ R"(- Several lines of text,
   - and some "quotes" of various 'types'.
   But this: must cause a parse error.
 )",
-  LineCol(4, 11)
+  Location(4, 11)
 );
 
 ADD_CASE_TO_GROUP("plain scalar, do not accept ': ' start line", EXPECT_PARSE_ERROR,
@@ -1024,7 +1024,7 @@ R"(
   But this must cause a parse error -
   : foo bar
 )",
-  LineCol(6, 3)
+  Location(6, 3)
 );
 
 ADD_CASE_TO_GROUP("plain scalar, do not accept ': ' at line end", EXPECT_PARSE_ERROR,
@@ -1033,7 +1033,7 @@ R"(- Several lines of text,
   - and some "quotes" of various 'types'.
   But this must cause a parse error: 
 )",
-  LineCol(4, 36)
+  Location(4, 36)
 );
 
 ADD_CASE_TO_GROUP("plain scalar, do not accept ':' at line end", EXPECT_PARSE_ERROR,
@@ -1043,7 +1043,7 @@ R"(- Several lines of text,
   But this must cause a parse error:
   - well, did it?
 )",
-  LineCol(4, 36)
+  Location(4, 36)
 );
 
 ADD_CASE_TO_GROUP("plain scalar, accept ' #' at line start",
@@ -1117,7 +1117,7 @@ R"([
   a plain scalar
     with several lines
 )",
-  LineCol(4, 1)
+  Location(4, 1)
 );
 
 ADD_CASE_TO_GROUP("plain scalar, explicit, early end, map", EXPECT_PARSE_ERROR,
@@ -1125,7 +1125,7 @@ R"({foo:
   a plain scalar
     with several lines
 )",
-  LineCol(4, 1)
+  Location(4, 1)
 );
 
 ADD_CASE_TO_GROUP("plain scalar, multiple docs",

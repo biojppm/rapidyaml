@@ -63,7 +63,7 @@ public:
     TestCaseNode(TestCaseNode const& that) noexcept { _copy(that); }
 
     TestCaseNode& operator= (TestCaseNode     && that) noexcept { _move(std::move(that)); return *this; }
-    TestCaseNode& operator= (TestCaseNode const& that) noexcept { _copy(that); return *this; }
+    TestCaseNode& operator= (TestCaseNode const& that) noexcept { if(&that != this) _copy(that); return *this; }
 
     ~TestCaseNode() = default;
 
@@ -82,7 +82,7 @@ public:
     template<size_t N> explicit TestCaseNode(const char (&v)[N]   , AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
                        explicit TestCaseNode(TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|VAL|VALTAG)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
                        explicit TestCaseNode(std::nullptr_t       , AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(        ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
-                       explicit TestCaseNode(                       AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); RYML_ASSERT(arv.type == VALREF); }
+                       explicit TestCaseNode(                       AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); _RYML_ASSERT_BASIC(arv.type == VALREF); }
 
 
     // val, explicit type
@@ -105,7 +105,7 @@ public:
                                  explicit TestCaseNode(std::nullptr_t       , TaggedScalar const& v) : type((KEYVAL       |VALTAG    )), key(        ), key_tag(     ), key_anchor(   ), val(v.scalar), val_tag(v.tag), val_anchor(   ), children(), parent(nullptr) { _set_parent(); }
                                  explicit TestCaseNode(TaggedScalar const& k, std::nullptr_t       ) : type((KEYVAL|KEYTAG           )), key(k.scalar), key_tag(k.tag), key_anchor(   ), val(        ), val_tag(     ), val_anchor(   ), children(), parent(nullptr) { _set_parent(); }
                                  explicit TestCaseNode(std::nullptr_t       , std::nullptr_t       ) : type((KEYVAL                  )), key(        ), key_tag(     ), key_anchor(   ), val(        ), val_tag(     ), val_anchor(   ), children(), parent(nullptr) { _set_parent(); }
-                                 explicit TestCaseNode(AnchorRef  const& ark, AnchorRef  const& arv) : type((KEYVAL|ark.type|arv.type)), key(ark.str ), key_tag(     ), key_anchor(ark), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); RYML_ASSERT(ark.type == KEYREF); RYML_ASSERT(arv.type == VALREF); }
+                                 explicit TestCaseNode(AnchorRef  const& ark, AnchorRef  const& arv) : type((KEYVAL|ark.type|arv.type)), key(ark.str ), key_tag(     ), key_anchor(ark), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); _RYML_ASSERT_BASIC(ark.type == KEYREF); _RYML_ASSERT_BASIC(arv.type == VALREF); }
     // keyval, with val anchor/ref
     template<size_t N, size_t M> explicit TestCaseNode(const char (&k)[N]   , const char (&v)[M]   , AnchorRef const& arv) : type((arv.type|KEYVAL              )), key(k       ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
     template<size_t N>           explicit TestCaseNode(const char (&k)[N]   , TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|KEYVAL|VALTAG       )), key(k       ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }

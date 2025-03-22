@@ -123,13 +123,13 @@ void test_bom2(bom2spec const& spec, CreateFn &&createfn, TestFn &&testfn, bom2_
     }
     else
     {
-        pfn_error orig = get_callbacks().m_error;
-        ExpectError::check_error([&]{
+        pfn_error_basic orig = get_callbacks().m_error_basic;
+        ExpectError::check_error_basic([&]{
             Parser::handler_type handler;
             Parser parser(&handler);
             Tree tree;
-            ASSERT_EQ((pfn_error)tree.callbacks().m_error, (pfn_error)parser.callbacks().m_error);
-            ASSERT_NE((pfn_error)tree.callbacks().m_error, orig);
+            ASSERT_EQ((pfn_error_basic)tree.callbacks().m_error_basic, (pfn_error_basic)parser.callbacks().m_error_basic);
+            ASSERT_NE((pfn_error_basic)tree.callbacks().m_error_basic, orig);
             parse_in_arena(&parser, to_csubstr(buf), &tree);
             print_tree(tree);
         });

@@ -1,6 +1,9 @@
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/test_group.hpp"
 #include "./test_lib/test_group.def.hpp"
+#ifndef RYML_SINGLE_HEADER
+#include <c4/yml/parse_engine.def.hpp>
+#endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
@@ -732,7 +735,7 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
     SCOPED_TRACE(case_name);
     SCOPED_TRACE(yaml);
     Tree tree;
-    ExpectError::check_error(&tree, [&](){
+    ExpectError::check_error_parse(&tree, [&](){
         parse_in_arena(yaml, &tree);
     }, loc);
 }

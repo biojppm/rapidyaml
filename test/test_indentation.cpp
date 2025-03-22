@@ -36,7 +36,7 @@ R"(a: plain
 scalar
 follows
 )",
-LineCol(2, 7)
+Location(2, 7)
 );
 
 ADD_CASE_TO_GROUP("plain scalar indentation, 2",
@@ -52,7 +52,7 @@ R"(- plain
 scalar
 follows
 )",
-LineCol(2, 1)
+Location(2, 1)
 );
 
 ADD_CASE_TO_GROUP("plain scalar indentation, 3",

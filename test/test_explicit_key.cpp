@@ -271,7 +271,7 @@ R"(
 - ? : 
 - ? :
 )",
-  LineCol(2, 5)
+  Location(2, 5)
 );
 
 ADD_CASE_TO_GROUP("explicit key 2nd", HAS_CONTAINER_KEYS,
@@ -279,7 +279,7 @@ R"(
 a simple key: a value
 ? an explicit key: another value
 )",
-  LineCol(3, 19)
+  Location(3, 19)
 );
 
 ADD_CASE_TO_GROUP("explicit key 1st", HAS_CONTAINER_KEYS,
@@ -287,7 +287,7 @@ R"(
 ? an explicit key: another value
 a simple key: a value
 )",
-  LineCol(2, 19)
+  Location(2, 19)
 );
 
 ADD_CASE_TO_GROUP("explicit key nested in a map, 1st", HAS_CONTAINER_KEYS,
@@ -297,7 +297,7 @@ map:
   a simple key: a value
 ? an explicit key deindented: its value
 )",
-  LineCol(3, 21)
+  Location(3, 21)
 );
 
 ADD_CASE_TO_GROUP("explicit key nested in a seq, 1st", HAS_CONTAINER_KEYS,
@@ -306,7 +306,7 @@ R"(
   a simple key: a value
 - ? another explicit key: its value
 )",
-  LineCol(2, 21)
+  Location(2, 21)
 );
 
 ADD_CASE_TO_GROUP("explicit block key, literal, clip",

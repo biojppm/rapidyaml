@@ -1,6 +1,7 @@
 #ifdef RYML_SINGLE_HEADER
 #include "ryml_all.hpp"
 #else
+#include "c4/yml/error.hpp"
 #include "c4/yml/filter_processor.hpp"
 #include "c4/yml/event_handler_tree.hpp"
 #include "c4/yml/parse_engine.hpp"

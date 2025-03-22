@@ -7,7 +7,7 @@ namespace yml {
 TEST(simple_seq, bad_seq1)
 {
     Tree tree;
-    ExpectError::check_error(&tree, [&]{
+    ExpectError::check_error_parse(&tree, [&]{
         parse_in_arena(R"(
 ---
 [ a, b, c ] ]
@@ -18,7 +18,7 @@ TEST(simple_seq, bad_seq1)
 TEST(simple_seq, bad_seq2)
 {
     Tree tree;
-    ExpectError::check_error(&tree, [&]{
+    ExpectError::check_error_parse(&tree, [&]{
         parse_in_arena(R"(
 ---
 [ [ a, b, c ]
@@ -48,7 +48,7 @@ TEST(simple_seq, many_unmatched_brackets)
         Location loc = {};
         loc.line = 1;
         loc.col = num_brackets + 1u;
-        ExpectError::check_error(&tree, [&]{
+        ExpectError::check_error_parse(&tree, [&]{
             parse_in_place(to_substr(src), &tree);
         }, loc);
     }
@@ -157,7 +157,7 @@ TEST(simple_seq, block_tab_tokens__3_tabs_everywhere)
 }
 TEST(simple_seq, block_tab_tokens__4_tabs_indentation_error)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_in_arena(R"(
 	-	0	0	
 	-	1	1	
@@ -210,14 +210,14 @@ TEST(simple_seq, unterminated_seqimap)
     {
         SCOPED_TRACE("space after");
         Tree t;
-        ExpectError::check_error(&t, [&]{
+        ExpectError::check_error_parse(&t, [&]{
             parse_in_arena("[a: ");
         });
     }
     {
         SCOPED_TRACE("no space after");
         Tree t;
-        ExpectError::check_error(&t, [&]{
+        ExpectError::check_error_parse(&t, [&]{
             parse_in_arena("[a:");
         });
     }
@@ -1043,58 +1043,58 @@ ADD_CASE_TO_GROUP("simple seq, invalid character 1", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 }
 )",
-  LineCol(2, 1)
+  Location(2, 1)
 );
 
 ADD_CASE_TO_GROUP("simple seq, invalid character 2", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 ]
 )",
-  LineCol(2, 1)
+  Location(2, 1)
 );
 
 ADD_CASE_TO_GROUP("simple seq, invalid character 3", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 :
 )",
-  LineCol(2, 1)
+  Location(2, 1)
 );
 
 ADD_CASE_TO_GROUP("simple seq, invalid character 4", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 abcdef!
 )",
-  LineCol(2, 1)
+  Location(2, 1)
 );
 
 ADD_CASE_TO_GROUP("simple seq flow, missing val, 1", EXPECT_PARSE_ERROR,
 R"([,]
 )",
-  LineCol(1, 2)
+  Location(1, 2)
 );
 
 ADD_CASE_TO_GROUP("simple seq flow, missing val, 2", EXPECT_PARSE_ERROR,
 R"([ ,]
 )",
-  LineCol(1, 3)
+  Location(1, 3)
 );
 
 ADD_CASE_TO_GROUP("simple seq flow, missing val, 3", EXPECT_PARSE_ERROR,
 R"([ , ]
 )",
-  LineCol(1, 3)
+  Location(1, 3)
 );
 
 ADD_CASE_TO_GROUP("simple seq flow, missing val, 4", EXPECT_PARSE_ERROR,
 R"([ , val]
 )",
-  LineCol(1, 3)
+  Location(1, 3)
 );
 
 ADD_CASE_TO_GROUP("simple seq flow, missing val, 5", EXPECT_PARSE_ERROR,
 R"([ , , ]
 )",
-  LineCol(1, 3)
+  Location(1, 3)
 );
 
 ADD_CASE_TO_GROUP("simple seq flow, seqimap, at line end",
