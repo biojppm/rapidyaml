@@ -32,6 +32,7 @@ jobs:
     :: setup-job('gcc' 'tabtokens')
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +45,7 @@ jobs:
     :: setup-job('gcc' 'noexceptions')
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -56,6 +58,7 @@ jobs:
     :: setup-job('gcc' 'misbuild')
     name: misbuild#${{matrix.issue}}/gcc${{matrix.gcc}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -130,6 +133,7 @@ jobs:
     :: setup-job('gcc' 'extended')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
     :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -172,6 +176,7 @@ jobs:
     :: setup-job('gcc' 'gccsan')
     name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('22.04')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -187,6 +192,7 @@ jobs:
   arm:
     :: setup-job('gcc' 'arm') + runs-on-docker-c4core('18.04')
     name: arm/c++${{matrix.std}}/${{matrix.bt}}
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
