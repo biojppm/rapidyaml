@@ -7,6 +7,7 @@
 #else
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/parse.hpp>
+#include <c4/yml/error.def.hpp>
 #include <c4/yml/emit.hpp>
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
