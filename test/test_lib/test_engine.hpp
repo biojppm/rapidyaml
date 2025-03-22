@@ -32,7 +32,7 @@ struct OptionalScalar
     operator csubstr() const { return get(); }
     operator bool() const { return was_set; }
     void operator= (csubstr v) { val = v; was_set = true; }
-    csubstr get() const { RYML_ASSERT(was_set); return val; }
+    csubstr get() const { _RYML_ASSERT_BASIC(was_set); return val; }
     csubstr maybe_get() const { return was_set ? val : csubstr(""); }
 };
 
@@ -54,17 +54,17 @@ struct EngineEvtTestCase
     EngineEvtTestCase(                                       std::string p, std::string e, std::string ev) : test_case_flags(  ), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
     EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev) : test_case_flags(tf), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
     EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p               , std::string ev) : test_case_flags(tf), expected_error_location(        ), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
-    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { RYML_ASSERT(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { RYML_ASSERT(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { RYML_ASSERT(linecol_); }
+    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
 
     EngineEvtTestCase(                                       std::string s               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(        ), parsed(s           ), emitted(std::move(s)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
     EngineEvtTestCase(                                       std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
     EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
     EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(        ), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(           p), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
+    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(           p), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
     TestCaseFlags_e test_case_flags;
     Location expected_error_location;
     std::string parsed;
@@ -165,7 +165,7 @@ struct TransformToSourceBufferOrArena
         size_t pos = src.find(s);
         if(pos != csubstr::npos)
         {
-            RYML_ASSERT(pos + s.len <= src.len);
+            _RYML_ASSERT_BASIC(pos + s.len <= src.len);
             return src.sub(pos, s.len);
         }
         substr dst = handler->alloc_arena(s.len);
@@ -237,7 +237,7 @@ C4_NO_INLINE void test_engine_tree_from_events(EngineEvtTestCase const& tc)
 {
     if(tc.test_case_flags & HAS_CONTAINER_KEYS)
     {
-        ExpectError::check_error([&]{
+        ExpectError::check_error_parse([&]{
             Tree tree = {};
             EventHandlerTree handler(&tree, tree.root_id());
             EventProducerFn<EventHandlerTree> event_producer;
