@@ -168,6 +168,7 @@ jobs:
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -312,6 +313,7 @@ jobs:
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -456,6 +458,7 @@ jobs:
     name: misbuild#${{matrix.issue}}/gcc${{matrix.gcc}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -513,6 +516,7 @@ jobs:
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -707,6 +711,7 @@ jobs:
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -873,6 +878,7 @@ jobs:
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -1193,6 +1199,7 @@ jobs:
     name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -1318,6 +1325,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu18.04:latest
     name: arm/c++${{matrix.std}}/${{matrix.bt}}
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
