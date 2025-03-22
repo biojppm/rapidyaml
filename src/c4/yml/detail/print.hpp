@@ -72,7 +72,7 @@ inline id_type print_node(Tree const& p, id_type node, int level, id_type count,
     }
     char typebuf[128];
     csubstr typestr = p.type(node).type_str(typebuf);
-    RYML_CHECK(typestr.str);
+    _RYML_CHECK_BASIC(typestr.str);
     printf(" %.*s", (int)typestr.len, typestr.str);
     if(p.has_key(node))
     {

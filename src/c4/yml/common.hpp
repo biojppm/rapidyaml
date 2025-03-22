@@ -6,18 +6,7 @@
 #include <cstddef>
 #include <c4/substr.hpp>
 #include <c4/charconv.hpp>
-#include <c4/dump.hpp>
 #include <c4/yml/export.hpp>
-
-#if defined(C4_MSVC) || defined(C4_MINGW)
-#include <malloc.h>
-#elif (defined(__clang__) && defined(_MSC_VER)) || \
-      defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-#include <stdlib.h>
-#else
-#include <alloca.h>
-#endif
-
 
 
 //-----------------------------------------------------------------------------
@@ -32,10 +21,19 @@
 #define RYML_DEFAULT_TREE_ARENA_CAPACITY (0)
 #endif
 
+
+#ifndef RYML_LOCATIONS_SMALL_THRESHOLD
+/// threshold at which a location search will revert from linear to
+/// binary search.
+#define RYML_LOCATIONS_SMALL_THRESHOLD (30)
+#endif
+
+
 #ifndef RYML_ERRMSG_SIZE
 /// size for the error message buffer
 #define RYML_ERRMSG_SIZE (1024)
 #endif
+
 
 #ifndef RYML_LOGBUF_SIZE
 /// size for the buffer used to format individual values to string
@@ -46,6 +44,18 @@
 #define RYML_LOGBUF_SIZE (256)
 #endif
 
+
+#ifndef RYML_LOGBUF_SIZE
+/// size for the buffer used to format individual values to string
+/// while preparing an error message. This is only used for formatting
+/// individual values in the message; final messages will be larger
+/// than this value (see @ref RYML_ERRMSG_SIZE). This size is also
+/// used for the detailed debug log messages when RYML_DBG is defined.
+#define RYML_LOGBUF_SIZE (256)
+#endif
+static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
+
+
 #ifndef RYML_LOGBUF_SIZE_MAX
 /// size for the fallback larger log buffer. When @ref
 /// RYML_LOGBUF_SIZE is not large enough to convert a value to string,
@@ -54,12 +64,6 @@
 /// overflow. If the printed value requires more than
 /// RYML_LOGBUF_SIZE_MAX, the value is silently skipped.
 #define RYML_LOGBUF_SIZE_MAX (1024)
-#endif
-
-#ifndef RYML_LOCATIONS_SMALL_THRESHOLD
-/// threshold at which a location search will revert from linear to
-/// binary search.
-#define RYML_LOCATIONS_SMALL_THRESHOLD (30)
 #endif
 
 
@@ -120,6 +124,14 @@
  * @see sample::sample_tree_arena
  */
 
+/** @defgroup doc_error_handling Error handling
+ *
+ * Utilities to report handle errors, and to build and report error
+ * messages.
+ *
+ * @see sample::sample_error_handler
+ */
+
 /** @defgroup doc_callbacks Callbacks for errors and allocation
  *
  * Functions called by ryml to allocate/free memory and to report
@@ -167,12 +179,12 @@
 #   define RYML_USE_ASSERT
 
 /** (Undefined by default) Define this macro to disable ryml's default
- * implementation of the callback functions; see @ref c4::yml::Callbacks  */
+ * implementation of the callback functions. See @ref doc_callbacks.  */
 #   define RYML_NO_DEFAULT_CALLBACKS
 
 /** (Undefined by default) When this macro is defined (and
  * @ref RYML_NO_DEFAULT_CALLBACKS is not defined), the default error
- * handler will throw C++ exceptions of type `std::runtime_error`. */
+ * handler will throw exceptions. See @ref doc_error_handling. */
 #   define RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS
 
 /** Conditionally expands to `noexcept` when @ref RYML_USE_ASSERT is 0 and
@@ -184,48 +196,19 @@
 
 //-----------------------------------------------------------------------------
 
+/** @cond dev */
 
-/** @cond dev*/
 #ifndef RYML_USE_ASSERT
 #   define RYML_USE_ASSERT C4_USE_ASSERT
 #endif
 
 #if RYML_USE_ASSERT
-#   define RYML_ASSERT(cond) RYML_CHECK(cond)
-#   define RYML_ASSERT_MSG(cond, msg) RYML_CHECK_MSG(cond, msg)
-#   define _RYML_CB_ASSERT(cb, cond) _RYML_CB_CHECK((cb), (cond))
-#   define _RYML_CB_ASSERT_(cb, cond, loc) _RYML_CB_CHECK((cb), (cond), (loc))
 #   define RYML_NOEXCEPT
 #else
-#   define RYML_ASSERT(cond)
-#   define RYML_ASSERT_MSG(cond, msg)
-#   define _RYML_CB_ASSERT(cb, cond)
-#   define _RYML_CB_ASSERT_(cb, cond, loc)
 #   define RYML_NOEXCEPT noexcept
 #endif
 
 #define RYML_DEPRECATED(msg) C4_DEPRECATED(msg)
-
-#define RYML_CHECK(cond)                                                \
-    do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
-        {                                                               \
-            RYML_DEBUG_BREAK();                                         \
-            c4::yml::error("check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
-            C4_UNREACHABLE_AFTER_ERR();                                 \
-        }                                                               \
-    } while(0)
-
-#define RYML_CHECK_MSG(cond, msg)                                       \
-    do                                                                  \
-    {                                                                   \
-        if(C4_UNLIKELY(!(cond)))                                        \
-        {                                                               \
-            RYML_DEBUG_BREAK();                                         \
-            c4::yml::error(msg ": check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
-            C4_UNREACHABLE_AFTER_ERR();                                 \
-        }                                                               \
-    } while(0)
 
 #if defined(RYML_DBG) && !defined(NDEBUG) && !defined(C4_NO_DEBUG_BREAK)
 #   define RYML_DEBUG_BREAK()                               \
@@ -234,7 +217,7 @@
         {                                                   \
             C4_DEBUG_BREAK();                               \
         }                                                   \
-    } while(0)
+    } while(false)
 #else
 #   define RYML_DEBUG_BREAK()
 #endif
@@ -250,6 +233,8 @@ namespace c4 {
 namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
+class Tree;
 
 
 #ifndef RYML_ID_TYPE
@@ -281,32 +266,25 @@ enum : size_t {
 };
 
 
+typedef enum Encoding_ {
+    NOBOM,         //!< No Byte Order Mark was found
+    UTF8,          //!< UTF8
+    UTF16LE,       //!< UTF16, Little-Endian
+    UTF16BE,       //!< UTF16, Big-Endian
+    UTF32LE,       //!< UTF32, Little-Endian
+    UTF32BE,       //!< UTF32, Big-Endian
+} Encoding_e;
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-//! holds a position into a source buffer
-struct RYML_EXPORT LineCol
-{
-    //! number of bytes from the beginning of the source buffer
-    size_t offset;
-    //! line
-    size_t line;
-    //! column
-    size_t col;
 
-    LineCol() = default;
-    //! construct from line and column
-    LineCol(size_t l, size_t c) : offset(0), line(l), col(c) {}
-    //! construct from offset, line and column
-    LineCol(size_t o, size_t l, size_t c) : offset(o), line(l), col(c) {}
-};
-static_assert(std::is_trivially_copyable<LineCol>::value, "LineCol not trivially copyable");
-static_assert(std::is_trivially_default_constructible<LineCol>::value, "LineCol not trivially default constructible");
-static_assert(std::is_standard_layout<LineCol>::value, "Location not trivial");
-
-
-//! a source file position
+/** holds a source or yaml file position; See also @ref
+ * location_format() and @ref location_format_with_context().
+ *
+ * @ingroup doc_error_handling */
 struct RYML_EXPORT Location
 {
     //! number of bytes from the beginning of the source buffer
@@ -318,18 +296,55 @@ struct RYML_EXPORT Location
     //! file name
     csubstr name;
 
-    operator bool () const { return !name.empty() || line != 0 || offset != 0 || col != 0; }
-    operator LineCol const& () const { return reinterpret_cast<LineCol const&>(*this); } // NOLINT
+    operator bool () const noexcept { return !name.empty() || line != npos || offset != npos || col != npos; }
 
-    Location() = default;
-    Location(                         size_t l, size_t c) : offset( ), line(l), col(c), name( ) {}
-    Location(               size_t b, size_t l, size_t c) : offset(b), line(l), col(c), name( ) {}
-    Location(    csubstr n,           size_t l, size_t c) : offset( ), line(l), col(c), name(n) {}
-    Location(    csubstr n, size_t b, size_t l, size_t c) : offset(b), line(l), col(c), name(n) {}
-    Location(const char *n,           size_t l, size_t c) : offset( ), line(l), col(c), name(to_csubstr(n)) {}
-    Location(const char *n, size_t b, size_t l, size_t c) : offset(b), line(l), col(c), name(to_csubstr(n)) {}
+    C4_NO_INLINE Location() noexcept : offset(npos), line(npos), col(npos), name() {};
+    C4_NO_INLINE Location(                         size_t l          ) noexcept : offset(npos), line(l), col(npos), name() {}
+    C4_NO_INLINE Location(                         size_t l, size_t c) noexcept : offset(npos), line(l), col(c   ), name() {}
+    C4_NO_INLINE Location(               size_t b, size_t l, size_t c) noexcept : offset(b   ), line(l), col(c   ), name() {}
+    C4_NO_INLINE Location(    csubstr n,           size_t l          ) noexcept : offset(npos), line(l), col(npos), name(n) {}
+    C4_NO_INLINE Location(    csubstr n,           size_t l, size_t c) noexcept : offset(npos), line(l), col(c   ), name(n) {}
+    C4_NO_INLINE Location(    csubstr n, size_t b, size_t l, size_t c) noexcept : offset(b   ), line(l), col(c   ), name(n) {}
+    C4_NO_INLINE Location(const char *n,           size_t l          ) noexcept : offset(npos), line(l), col(npos), name(to_csubstr(n)) {}
+    C4_NO_INLINE Location(const char *n,           size_t l, size_t c) noexcept : offset(npos), line(l), col(c   ), name(to_csubstr(n)) {}
+    C4_NO_INLINE Location(const char *n, size_t b, size_t l, size_t c) noexcept : offset(b   ), line(l), col(c   ), name(to_csubstr(n)) {}
 };
 static_assert(std::is_standard_layout<Location>::value, "Location not trivial");
+
+/// @cond dev
+#define RYML_LOC_HERE() (::c4::yml::Location(__FILE__, static_cast<size_t>(__LINE__)))
+/// @endcond
+
+
+/** Data for a basic error.
+ * @ingroup doc_error_handling */
+struct RYML_EXPORT ErrorDataBasic
+{
+    Location location; ///< location where the error was detected (may be from YAML or C++ source code)
+    ErrorDataBasic() noexcept = default;
+    ErrorDataBasic(Location const& cpploc_) noexcept : location(cpploc_) {}
+};
+
+/** Data for a parse error.
+ * @ingroup doc_error_handling */
+struct RYML_EXPORT ErrorDataParse
+{
+    Location cpploc; ///< location in the C++ source file where the error was detected.
+    Location ymlloc; ///< location in the YAML source buffer where the error was detected.
+    ErrorDataParse() noexcept = default;
+    ErrorDataParse(Location const& cpploc_, Location const& ymlloc_) noexcept : cpploc(cpploc_), ymlloc(ymlloc_) {}
+};
+
+/** Data for a visit error.
+ * @ingroup doc_error_handling */
+struct RYML_EXPORT ErrorDataVisit
+{
+    Location cpploc;  ///< location in the C++ source file where the error was detected.
+    Tree const* tree; ///< tree where the error was detected
+    id_type node;     ///< node where the error was detected
+    ErrorDataVisit() noexcept = default;
+    ErrorDataVisit(Location const& cpploc_, Tree const *tree_ , id_type node_) noexcept : cpploc(cpploc_), tree(tree_), node(node_) {}
+};
 
 
 //-----------------------------------------------------------------------------
@@ -348,30 +363,21 @@ struct Callbacks;
  * mandatory to call this function prior to using any other library
  * facility.
  *
- * @warning This function is NOT thread-safe.
- *
- * @warning the error callback must never return: see @ref pfn_error
- * for more details */
+ * @warning This function is NOT thread-safe, because it sets global static data
+ * */
 RYML_EXPORT void set_callbacks(Callbacks const& c);
 
 /** get the global callbacks
- * @warning This function is not thread-safe. */
+ *
+ * @warning This function is NOT thread-safe, because it reads global static data
+ * */
 RYML_EXPORT Callbacks const& get_callbacks();
 
-/** set the global callbacks back to their defaults ()
- * @warning This function is not thread-safe. */
-RYML_EXPORT void reset_callbacks();
-
-
-/** the type of the function used to report errors
+/** set the global callbacks back to their defaults.
  *
- * @warning When given by the user, this function MUST interrupt
- * execution, typically by either throwing an exception, or using
- * `std::longjmp()` ([see
- * documentation](https://en.cppreference.com/w/cpp/utility/program/setjmp))
- * or by calling `std::abort()`. If the function returned, the parser
- * would enter into an infinite loop, or the program may crash. */
-using pfn_error = void (*) (const char* msg, size_t msg_len, Location location, void *user_data);
+ * @warning This function is NOT thread-safe, because it sets global static data
+ * */
+RYML_EXPORT void reset_callbacks();
 
 
 /** the type of the function used to allocate memory; ryml will only
@@ -384,41 +390,99 @@ using pfn_allocate = void* (*)(size_t len, void* hint, void *user_data);
 using pfn_free = void (*)(void* mem, size_t size, void *user_data);
 
 
-/** a c-style callbacks class. Can be used globally by the library
- * and/or locally by @ref Tree and @ref Parser objects. */
+/** the type of the function used to report basic errors.
+ *
+ * @warning Must not return. When implemented by the user, this
+ * function MUST interrupt execution (and ideally be marked with
+ * `[[noreturn]]`). If the function returned, the caller could enter
+ * into an infinite loop, or the program may crash. It is up to the
+ * user to choose the interruption mechanism; typically by either
+ * throwing an exception, or using `std::longjmp()` ([see
+ * documentation](https://en.cppreference.com/w/cpp/utility/program/setjmp))
+ * or ultimately by calling `std::abort()`. */
+using pfn_error_basic = void (*) (csubstr msg, ErrorDataBasic const& errdata, void *user_data);
+/** the type of the function used to report parse errors.
+ *
+ * @warning Must not return. When implemented by the user, this
+ * function MUST interrupt execution (and ideally be marked with
+ * `[[noreturn]]`). If the function returned, the caller could enter
+ * into an infinite loop, or the program may crash. It is up to the
+ * user to choose the interruption mechanism; typically by either
+ * throwing an exception, or using `std::longjmp()` ([see
+ * documentation](https://en.cppreference.com/w/cpp/utility/program/setjmp))
+ * or ultimately by calling `std::abort()`. */
+using pfn_error_parse = void (*) (csubstr msg, ErrorDataParse const& errdata, void *user_data);
+/** the type of the function used to report visit errors.
+ *
+ * @warning Must not return. When implemented by the user, this
+ * function MUST interrupt execution (and ideally be marked with
+ * `[[noreturn]]`). If the function returned, the caller could enter
+ * into an infinite loop, or the program may crash. It is up to the
+ * user to choose the interruption mechanism; typically by either
+ * throwing an exception, or using `std::longjmp()` ([see
+ * documentation](https://en.cppreference.com/w/cpp/utility/program/setjmp))
+ * or ultimately by calling `std::abort()`. */
+using pfn_error_visit = void (*) (csubstr msg, ErrorDataVisit const& errdata, void *user_data);
+
+/// @cond dev
+using pfn_error RYML_DEPRECATED("use a more specific error type: `basic`, `parse` or `visit`") = void (*) (const char* msg, size_t msg_len, Location const& cpploc, void *user_data);
+/// @endcond
+
+
+/** A c-style callbacks class to customize behavior on errors or
+ * allocation. Can be used globally by the library and/or locally by
+ * @ref Tree and @ref Parser objects. */
 struct RYML_EXPORT Callbacks
 {
-    void *       m_user_data;
-    pfn_allocate m_allocate;
-    pfn_free     m_free;
-    pfn_error    m_error;
+    void *          m_user_data;   ///< data to be forwarded in every call to a callback
+    pfn_allocate    m_allocate;    ///< a pointer to an allocate handler function
+    pfn_free        m_free;        ///< a pointer to a free handler function
+    pfn_error_basic m_error_basic; ///< a pointer to a basic error handler function
+    pfn_error_parse m_error_parse; ///< a pointer to a parse error handler function
+    pfn_error_visit m_error_visit; ///< a pointer to a visit error handler function
+
+public:
 
     /** Construct an object with the default callbacks. If
-     * @ref RYML_NO_DEFAULT_CALLBACKS is defined, the object will have null
+     * @ref RYML_NO_DEFAULT_CALLBACKS is defined, the object will be set with null
      * members.*/
     Callbacks() noexcept;
 
-    /** Construct an object with the given callbacks.
-     *
-     * @param user_data Data to be forwarded in every call to a callback.
-     *
-     * @param alloc A pointer to an allocate function. Unless
-     *        @ref RYML_NO_DEFAULT_CALLBACKS is defined, when this
-     *        parameter is null, will fall back to ryml's default
-     *        alloc implementation.
-     *
-     * @param free A pointer to a free function. Unless
-     *        @ref RYML_NO_DEFAULT_CALLBACKS is defined, when this
-     *        parameter is null, will fall back to ryml's default free
-     *        implementation.
-     *
-     * @param error A pointer to an error function, which must never
-     *        return (see @ref pfn_error). Unless
-     *        @ref RYML_NO_DEFAULT_CALLBACKS is defined, when this
-     *        parameter is null, will fall back to ryml's default
-     *        error implementation.
-     */
-    Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error error);
+    RYML_DEPRECATED("use the default constructor, followed by the appropriate setters")
+    Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error_basic error_basic);
+
+public:
+
+    /** Set the user data. */
+    Callbacks& set_user_data(void* user_data);
+
+    /** Set or reset the allocate callback. When the parameter is
+     * null, m_allocate will fall back to ryml's default allocate
+     * implementation, unless @ref RYML_NO_DEFAULT_CALLBACKS is
+     * defined. */
+    Callbacks& set_allocate(pfn_allocate allocate=nullptr);
+
+    /** Set or reset the free callback. When the parameter is null,
+     * m_free will fall back to ryml's default free implementation,
+     * unless @ref RYML_NO_DEFAULT_CALLBACKS is defined. */
+    Callbacks& set_free(pfn_free free=nullptr);
+
+    /** Set or reset the error_basic callback. When the parameter is null,
+     * m_error_basic will fall back to ryml's default error_basic implementation,
+     * unless @ref RYML_NO_DEFAULT_CALLBACKS is defined. */
+    Callbacks& set_error_basic(pfn_error_basic error_basic=nullptr);
+
+    /** Set or reset the error_parse callback. When the parameter is null,
+     * m_error_parse will fall back to ryml's default error_parse implementation,
+     * unless @ref RYML_NO_DEFAULT_CALLBACKS is defined. */
+    Callbacks& set_error_parse(pfn_error_parse error_parse=nullptr);
+
+    /** Set or reset the error_visit callback. When the parameter is null,
+     * m_error_visit will fall back to ryml's default error_visit implementation,
+     * unless @ref RYML_NO_DEFAULT_CALLBACKS is defined. */
+    Callbacks& set_error_visit(pfn_error_visit error_visit=nullptr);
+
+public:
 
     bool operator!= (Callbacks const& that) const { return !operator==(that); }
     bool operator== (Callbacks const& that) const
@@ -426,7 +490,9 @@ struct RYML_EXPORT Callbacks
         return (m_user_data == that.m_user_data &&
                 m_allocate == that.m_allocate &&
                 m_free == that.m_free &&
-                m_error == that.m_error);
+                m_error_basic == that.m_error_basic &&
+                m_error_parse == that.m_error_parse &&
+                m_error_visit == that.m_error_visit);
     }
 };
 
@@ -438,214 +504,15 @@ struct RYML_EXPORT Callbacks
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-typedef enum {
-    NOBOM,
-    UTF8,
-    UTF16LE,
-    UTF16BE,
-    UTF32LE,
-    UTF32BE,
-} Encoding_e;
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 /// @cond dev
 
-// BEWARE! MSVC requires that [[noreturn]] appears before RYML_EXPORT
-[[noreturn]] RYML_EXPORT void error(Callbacks const& cb, const char *msg, size_t msg_len, Location loc);
-[[noreturn]] RYML_EXPORT void error(const char *msg, size_t msg_len, Location loc);
-
-[[noreturn]] inline void error(const char *msg, size_t msg_len)
-{
-    error(msg, msg_len, Location{});
-}
-template<size_t N>
-[[noreturn]] inline void error(const char (&msg)[N], Location loc)
-{
-    error(msg, N-1, loc);
-}
-template<size_t N>
-[[noreturn]] inline void error(const char (&msg)[N])
-{
-    error(msg, N-1, Location{});
-}
-
-#define _RYML_CB_ERR(cb, msg_literal)                                   \
-    _RYML_CB_ERR_(cb, msg_literal, c4::yml::Location(__FILE__, 0, __LINE__, 0))
-#define _RYML_CB_CHECK(cb, cond)                                        \
-    _RYML_CB_CHECK_(cb, cond, c4::yml::Location(__FILE__, 0, __LINE__, 0))
-#define _RYML_CB_ERR_(cb, msg_literal, loc)                             \
-do                                                                      \
-{                                                                       \
-    const char msg[] = msg_literal;                                     \
-    RYML_DEBUG_BREAK();                                                 \
-    c4::yml::error((cb), msg, sizeof(msg)-1, loc);                      \
-    C4_UNREACHABLE_AFTER_ERR();                                         \
-} while(0)
-#define _RYML_CB_CHECK_(cb, cond, loc)                                  \
-    do                                                                  \
-    {                                                                   \
-        if(C4_UNLIKELY(!(cond)))                                        \
-        {                                                               \
-            const char msg[] = "check failed: " #cond;                  \
-            RYML_DEBUG_BREAK();                                         \
-            c4::yml::error((cb), msg, sizeof(msg)-1, loc);              \
-            C4_UNREACHABLE_AFTER_ERR();                                 \
-        }                                                               \
-    } while(0)
 #define _RYML_CB_ALLOC_HINT(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
 #define _RYML_CB_ALLOC(cb, T, num) _RYML_CB_ALLOC_HINT((cb), T, (num), nullptr)
 #define _RYML_CB_FREE(cb, buf, T, num)                              \
     do {                                                            \
         (cb).m_free((buf), (num) * sizeof(T), (cb).m_user_data);    \
         (buf) = nullptr;                                            \
-    } while(0)
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-typedef enum {
-    BLOCK_LITERAL, //!< keep newlines (|)
-    BLOCK_FOLD     //!< replace newline with single space (>)
-} BlockStyle_e;
-
-typedef enum {
-    CHOMP_CLIP,    //!< single newline at end (default)
-    CHOMP_STRIP,   //!< no newline at end     (-)
-    CHOMP_KEEP     //!< all newlines from end (+)
-} BlockChomp_e;
-
-
-/** Abstracts the fact that a scalar filter result may not fit in the
- * intended memory. */
-struct FilterResult
-{
-    C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
-    C4_ALWAYS_INLINE size_t required_len() const noexcept { return str.len; }
-    C4_ALWAYS_INLINE csubstr get() const { RYML_ASSERT(valid()); return str; }
-    csubstr str;
-};
-/** Abstracts the fact that a scalar filter result may not fit in the
- * intended memory. */
-struct FilterResultExtending
-{
-    C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
-    C4_ALWAYS_INLINE size_t required_len() const noexcept { return reqlen; }
-    C4_ALWAYS_INLINE csubstr get() const { RYML_ASSERT(valid()); return str; }
-    csubstr str;
-    size_t reqlen;
-};
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-
-namespace detail {
-// is there a better way to do this?
-template<int8_t signedval, uint8_t unsignedval>
-struct _charconstant_t
-    : public std::conditional<std::is_signed<char>::value,
-                              std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
-                              std::integral_constant<uint8_t, unsignedval>>::type
-{};
-#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
-} // namespace detail
-
-
-namespace detail {
-struct _SubstrWriter
-{
-    substr buf;
-    size_t pos;
-    _SubstrWriter(substr buf_, size_t pos_=0) : buf(buf_), pos(pos_) { C4_ASSERT(buf.str); }
-    void append(csubstr s)
-    {
-        C4_ASSERT(!s.overlaps(buf));
-        C4_ASSERT(s.str || !s.len);
-        if(s.len && pos + s.len <= buf.len)
-        {
-            C4_ASSERT(s.str);
-            memcpy(buf.str + pos, s.str, s.len);
-        }
-        pos += s.len;
-    }
-    void append(char c)
-    {
-        C4_ASSERT(buf.str);
-        if(pos < buf.len)
-            buf.str[pos] = c;
-        ++pos;
-    }
-    void append_n(char c, size_t numtimes)
-    {
-        C4_ASSERT(buf.str);
-        if(numtimes && pos + numtimes < buf.len)
-            memset(buf.str + pos, c, numtimes);
-        pos += numtimes;
-    }
-    size_t slack() const { return pos <= buf.len ? buf.len - pos : 0; }
-    size_t excess() const { return pos > buf.len ? pos - buf.len : 0; }
-    //! get the part written so far
-    csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
-    //! get the part that is still free to write to (the remainder)
-    substr rem() const { return pos < buf.len ? buf.sub(pos) : buf.last(0); }
-
-    size_t advance(size_t more) { pos += more; return pos; }
-};
-} // namespace detail
-
-
-namespace detail {
-// dumpfn is a function abstracting prints to terminal (or to string).
-template<class DumpFn, class ...Args>
-C4_NO_INLINE void _dump(DumpFn &&dumpfn, csubstr fmt, Args&& ...args)
-{
-    DumpResults results;
-    // try writing everything:
-    {
-        // buffer for converting individual arguments. it is defined
-        // in a child scope to free it in case the buffer is too small
-        // for any of the arguments.
-        char writebuf[RYML_LOGBUF_SIZE];
-        results = format_dump_resume(std::forward<DumpFn>(dumpfn), writebuf, fmt, std::forward<Args>(args)...);
-    }
-    // if any of the arguments failed to fit the buffer, allocate a
-    // larger buffer (up to a limit) and resume writing.
-    //
-    // results.bufsize is set to the size of the largest element
-    // serialized. Eg int(1) will require 1 byte.
-    if(C4_UNLIKELY(results.bufsize > RYML_LOGBUF_SIZE))
-    {
-        const size_t bufsize = results.bufsize <= RYML_LOGBUF_SIZE_MAX ? results.bufsize : RYML_LOGBUF_SIZE_MAX;
-        #ifdef C4_MSVC
-        substr largerbuf = {static_cast<char*>(_alloca(bufsize)), bufsize};
-        #else
-        substr largerbuf = {static_cast<char*>(alloca(bufsize)), bufsize};
-        #endif
-        results = format_dump_resume(std::forward<DumpFn>(dumpfn), results, largerbuf, fmt, std::forward<Args>(args)...);
-    }
-}
-template<class ...Args>
-C4_NORETURN C4_NO_INLINE void _report_err(Callbacks const& C4_RESTRICT callbacks, csubstr fmt, Args const& C4_RESTRICT ...args)
-{
-    char errmsg[RYML_ERRMSG_SIZE] = {0};
-    detail::_SubstrWriter writer(errmsg);
-    auto dumpfn = [&writer](csubstr s){ writer.append(s); };
-    _dump(dumpfn, fmt, args...);
-    writer.append('\n');
-    const size_t len = writer.pos < RYML_ERRMSG_SIZE ? writer.pos : RYML_ERRMSG_SIZE;
-    callbacks.m_error(errmsg, len, {}, callbacks.m_user_data);
-    C4_UNREACHABLE_AFTER_ERR();
-}
-} // namespace detail
-
+    } while(false)
 
 inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 {
@@ -662,7 +529,6 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     default: return csubstr(&c, 1);
     }
 }
-
 /// @endcond
 
 C4_SUPPRESS_WARNING_GCC_POP

@@ -29,9 +29,9 @@ int32_t estimate_events_ints_size(csubstr src)
     {
         switch(src.str[i])
         {
-        // this has strings preceding/following it
-        case ':':
+        case ':': // this has strings preceding/following it
         case ',': // overestimate, assume map
+        case '%': // assume TAGD->string + TAGV->string
             count += 6;
             break;
         // these have (or are likely to have) a string following it

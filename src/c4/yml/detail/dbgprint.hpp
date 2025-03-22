@@ -35,7 +35,7 @@
     do {                                                            \
         _c4dbgpf_("{}: [{}]~~~", msg, scalar.len);                  \
         if(_dbg_enabled()) {                                        \
-            __c4presc((scalar).str, (scalar).len, (keep_newlines)); \
+            __c4presc((scalar), (keep_newlines)); \
         }                                                           \
         _c4dbgq("~~~");                                             \
     } while(0)
@@ -46,81 +46,116 @@
 
 #ifdef RYML_DBG
 
+
+#if defined(C4_MSVC) || defined(C4_MINGW)
+#include <malloc.h>
+#elif (defined(__clang__) && defined(_MSC_VER)) || \
+      defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#include <stdlib.h>
+#else
+#include <alloca.h>
+#endif
+
+
+#define RYML_LOGBUF_SIZE_MAX RYML_ERRMSG_SIZE
+
 #include <c4/dump.hpp>
 namespace c4 {
 inline bool& _dbg_enabled() { static bool enabled = true; return enabled; }
-inline void _dbg_set_enabled(bool yes) { _dbg_enabled() = yes; }
-inline void _dbg_dumper(csubstr s)
+inline C4_NO_INLINE void _dbg_set_enabled(bool yes) { _dbg_enabled() = yes; }
+inline C4_NO_INLINE void _dbg_dumper(csubstr s)
 {
-    if(s.str)
+    _RYML_ASSERT_BASIC(s.str || !s.len);
+    if(s.len)
         fwrite(s.str, 1, s.len, stdout);
 }
-inline substr _dbg_buf() noexcept
+template<class DumpFn, class ...Args>
+C4_NO_INLINE void _dbg_dump(DumpFn &&dumpfn, csubstr fmt, Args&& ...args)
 {
-    static char writebuf[2048];
-    return substr{writebuf, sizeof(writebuf)}; // g++-5 has trouble with return writebuf;
-}
-template<class ...Args>
-C4_NO_INLINE void _dbg_printf(c4::csubstr fmt, Args const& ...args)
-{
-    if(_dbg_enabled())
+    DumpResults results;
+    // try writing everything:
     {
-        substr buf = _dbg_buf();
-        const size_t needed_size = c4::format_dump(&_dbg_dumper, buf, fmt, args...);
-        C4_CHECK(needed_size <= buf.len);
+        // buffer for converting individual arguments. it is defined
+        // in a child scope to free it in case the buffer is too small
+        // for any of the arguments.
+        char writebuf[RYML_LOGBUF_SIZE];
+        results = format_dump_resume(std::forward<DumpFn>(dumpfn), writebuf, fmt, std::forward<Args>(args)...);
+    }
+    // if any of the arguments failed to fit the buffer, allocate a
+    // larger buffer (up to a limit) and resume writing.
+    //
+    // results.bufsize is set to the size of the largest element
+    // serialized. Eg int(1) will require 1 byte.
+    if(C4_UNLIKELY(results.bufsize > RYML_LOGBUF_SIZE))
+    {
+        const size_t bufsize = results.bufsize <= RYML_LOGBUF_SIZE_MAX ? results.bufsize : RYML_LOGBUF_SIZE_MAX;
+        #ifdef C4_MSVC
+        substr largerbuf = {static_cast<char*>(_alloca(bufsize)), bufsize};
+        #else
+        substr largerbuf = {static_cast<char*>(alloca(bufsize)), bufsize};
+        #endif
+        results = format_dump_resume(std::forward<DumpFn>(dumpfn), results, largerbuf, fmt, std::forward<Args>(args)...);
     }
 }
-inline C4_NO_INLINE void __c4presc(const char *s, size_t len, bool keep_newlines=false)
+template<class ...Args>
+C4_NO_INLINE void _dbg_printf(csubstr fmt, Args const& ...args)
 {
-    RYML_ASSERT(s || !len);
+    if(_dbg_enabled())
+        _dbg_dump(&_dbg_dumper, fmt, args...);
+}
+inline C4_NO_INLINE void __c4presc(csubstr s, bool keep_newlines=false)
+{
+    if(!_dbg_enabled())
+        return; // LCOV_EXCL_LINE
+    _RYML_ASSERT_BASIC(s.str || !s.len);
     size_t prev = 0;
-    for(size_t i = 0; i < len; ++i)
+    for(size_t i = 0; i < s.len; ++i)
     {
-        switch(s[i])
+        switch(s.str[i])
         {
-        case '\n'  : _dbg_printf("{}{}{}", csubstr(s+prev, i-prev), csubstr("\\n"), csubstr(keep_newlines ? "\n":"")); prev = i+1; break;
-        case '\t'  : _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\t")); prev = i+1; break;
-        case '\0'  : _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\0")); prev = i+1; break;
-        case '\r'  : _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\r")); prev = i+1; break;
-        case '\f'  : _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\f")); prev = i+1; break;
-        case '\b'  : _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\b")); prev = i+1; break;
-        case '\v'  : _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\v")); prev = i+1; break;
-        case '\a'  : _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\a")); prev = i+1; break;
-        case '\x1b': _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\x1b")); prev = i+1; break;
+        case '\n'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\n"); if(keep_newlines) { _dbg_dumper("\n"); } prev = i+1; break;
+        case '\t'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\t"); prev = i+1; break;
+        case '\0'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\0"); prev = i+1; break;
+        case '\r'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\r"); prev = i+1; break;
+        case '\f'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\f"); prev = i+1; break;
+        case '\b'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\b"); prev = i+1; break;
+        case '\v'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\v"); prev = i+1; break;
+        case '\a'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\a"); prev = i+1; break;
+        case '\x1b': _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\x1b"); prev = i+1; break;
         case -0x3e/*0xc2u*/:
-            if(i+1 < len)
+            if(i+1 < s.len)
             {
-                if(s[i+1] == -0x60/*0xa0u*/)
+                if(s.str[i+1] == -0x60/*0xa0u*/)
                 {
-                    _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\_")); prev = i+1;
+                    _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\_"); prev = i+1;
                 }
-                else if(s[i+1] == -0x7b/*0x85u*/)
+                else if(s.str[i+1] == -0x7b/*0x85u*/)
                 {
-                    _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\N")); prev = i+1;
+                    _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\N"); prev = i+1;
                 }
             }
             break;
         case -0x1e/*0xe2u*/:
-            if(i+2 < len && s[i+1] == -0x80/*0x80u*/)
+            if(i+2 < s.len && s.str[i+1] == -0x80/*0x80u*/)
             {
-                if(s[i+2] == -0x58/*0xa8u*/)
+                if(s.str[i+2] == -0x58/*0xa8u*/)
                 {
-                    _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\L")); prev = i+1;
+                    _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\L"); prev = i+1;
                 }
-                else if(s[i+2] == -0x57/*0xa9u*/)
+                else if(s.str[i+2] == -0x57/*0xa9u*/)
                 {
-                    _dbg_printf("{}{}", csubstr(s+prev, i-prev), csubstr("\\P")); prev = i+1;
+                    _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\P"); prev = i+1;
                 }
             }
             break;
         }
     }
-    if(len > prev)
-        _dbg_printf("{}", csubstr(s+prev, len-prev));
+    if(s.len > prev)
+        _dbg_dumper(s.sub(prev));
 }
-inline void __c4presc(csubstr s, bool keep_newlines=false)
+inline C4_NO_INLINE void __c4presc(const char *s, size_t len, bool keep_newlines=false)
 {
-    __c4presc(s.str, s.len, keep_newlines);
+    __c4presc(csubstr(s, len), keep_newlines);
 }
 } // namespace c4
 

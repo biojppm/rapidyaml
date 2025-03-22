@@ -73,13 +73,13 @@ public:
     void reset(Tree *tree, id_type id)
     {
         if(C4_UNLIKELY(!tree))
-            _RYML_CB_ERR(m_stack.m_callbacks, "null tree");
+            _RYML_ERR_BASIC_(m_stack.m_callbacks, "null tree");
         if(C4_UNLIKELY(id >= tree->capacity()))
-            _RYML_CB_ERR(tree->callbacks(), "invalid node");
+            _RYML_ERR_BASIC_(tree->callbacks(), "invalid node");
         if(C4_UNLIKELY(!tree->is_root(id)))
             if(C4_UNLIKELY(tree->is_map(tree->parent(id))))
                 if(C4_UNLIKELY(!tree->has_key(id)))
-                    _RYML_CB_ERR(tree->callbacks(), "destination node belongs to a map and has no key");
+                    _RYML_ERR_BASIC_(tree->callbacks(), "destination node belongs to a map and has no key");
         m_tree = tree;
         m_id = id;
         if(m_tree->is_root(id))
@@ -97,6 +97,7 @@ public:
         m_yaml_directive = false;
     }
 
+    Callbacks const& callbacks() const { return m_stack.m_callbacks; }
     /** @} */
 
 public:
@@ -104,17 +105,17 @@ public:
     /** @name parse events
      * @{ */
 
-    void start_parse(const char* filename, detail::pfn_relocate_arena relocate_arena, void *relocate_arena_data)
+    void start_parse(const char* filename, csubstr ymlsrc, detail::pfn_relocate_arena relocate_arena, void *relocate_arena_data)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree != nullptr);
-        this->_stack_start_parse(filename, relocate_arena, relocate_arena_data);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree != nullptr);
+        this->_stack_start_parse(filename, ymlsrc, relocate_arena, relocate_arena_data);
     }
 
     void finish_parse()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree != nullptr);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree != nullptr);
         if(m_num_directives && !m_tree->is_stream(m_tree->root_id()))
-            _RYML_CB_ERR_(m_stack.m_callbacks, "directives cannot be used without a document", {});
+            _RYML_ERR_BASIC_(m_stack.m_callbacks, "directives cannot be used without a document");
         this->_stack_finish_parse();
         /* This pointer is temporary. Remember that:
          *
@@ -182,14 +183,14 @@ public:
     void begin_doc_expl()
     {
         _c4dbgp("begin_doc_expl");
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->root_id() == m_curr->node_id);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->root_id() == m_curr->node_id, m_tree, m_curr->node_id);
         if(!m_tree->is_stream(m_tree->root_id())) //if(_should_push_on_begin_doc())
         {
             _c4dbgp("ensure stream");
             _set_root_as_stream();
             id_type first = m_tree->first_child(m_tree->root_id());
-            _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()));
-            _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u);
+            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()), m_tree, m_curr->node_id);
+            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u, m_tree, m_curr->node_id);
             if(m_tree->is_container(first) || m_tree->is_val(first))
             {
                 _c4dbgp("push!");
@@ -233,17 +234,17 @@ public:
 
     void begin_map_key_flow()
     {
-        _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
+        _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
     void begin_map_key_block()
     {
-        _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
+        _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
 
     void begin_map_val_flow()
     {
         _c4dbgpf("node[{}]: begin_map_val_flow", m_curr->node_id);
-        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
+        _RYML_CHECK_BASIC_(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(MAP|FLOW_SL);
         _save_loc();
         _push();
@@ -251,7 +252,7 @@ public:
     void begin_map_val_block()
     {
         _c4dbgpf("node[{}]: begin_map_val_block", m_curr->node_id);
-        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
+        _RYML_CHECK_BASIC_(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(MAP|BLOCK);
         _save_loc();
         _push();
@@ -272,17 +273,17 @@ public:
 
     void begin_seq_key_flow()
     {
-        _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
+        _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
     void begin_seq_key_block()
     {
-        _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
+        _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
 
     void begin_seq_val_flow()
     {
         _c4dbgpf("node[{}]: begin_seq_val_flow", m_curr->node_id);
-        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
+        _RYML_CHECK_BASIC_(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(SEQ|FLOW_SL);
         _save_loc();
         _push();
@@ -290,7 +291,7 @@ public:
     void begin_seq_val_block()
     {
         _c4dbgpf("node[{}]: begin_seq_val_block", m_curr->node_id);
-        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
+        _RYML_CHECK_BASIC_(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(SEQ|BLOCK);
         _save_loc();
         _push();
@@ -311,9 +312,9 @@ public:
 
     void add_sibling()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id), m_tree, m_parent->node_id);
         NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
         _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
         if(prev != m_tree->m_buf)
@@ -329,11 +330,11 @@ public:
     void actually_val_is_first_key_of_new_map_flow()
     {
         if(C4_UNLIKELY(m_tree->is_container(m_curr->node_id)))
-            _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(m_parent->node_id));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->is_container(m_curr->node_id));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->has_key(m_curr->node_id));
+            _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_seq(m_parent->node_id), m_tree, m_parent->node_id);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->is_container(m_curr->node_id), m_tree, m_curr->node_id);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->has_key(m_curr->node_id), m_tree, m_curr->node_id);
         const NodeData tmp = _val2key_(*m_curr->tr_data);
         _disable_(_VALMASK|VAL_STYLE);
         m_curr->tr_data->m_val = {};
@@ -350,7 +351,7 @@ public:
      */
     void actually_val_is_first_key_of_new_map_block()
     {
-        _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
+        _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
 
     /** @} */
@@ -463,18 +464,18 @@ public:
     void set_key_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !_has_any_(KEYREF));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, !_has_any_(KEYREF));
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), !anchor.begins_with('&'), m_curr->pos);
         _enable_(KEYANCH);
         m_curr->tr_data->m_key.anchor = anchor;
     }
     void set_val_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !_has_any_(VALREF));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, !_has_any_(VALREF));
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), !anchor.begins_with('&'), m_curr->pos);
         _enable_(VALANCH);
         m_curr->tr_data->m_val.anchor = anchor;
     }
@@ -482,10 +483,10 @@ public:
     void set_key_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         if(C4_UNLIKELY(_has_any_(KEYANCH)))
-            _RYML_CB_ERR_(m_tree->callbacks(), "key cannot have both anchor and ref", m_curr->pos);
-        _RYML_CB_ASSERT(m_tree->callbacks(), ref.begins_with('*'));
+            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "key cannot have both anchor and ref");
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), ref.begins_with('*'), m_curr->pos);
         _enable_(KEY|KEYREF);
         m_curr->tr_data->m_key.anchor = ref.sub(1);
         m_curr->tr_data->m_key.scalar = ref;
@@ -493,10 +494,10 @@ public:
     void set_val_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         if(C4_UNLIKELY(_has_any_(VALANCH)))
-            _RYML_CB_ERR_(m_tree->callbacks(), "val cannot have both anchor and ref", m_curr->pos);
-        _RYML_CB_ASSERT(m_tree->callbacks(), ref.begins_with('*'));
+            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "val cannot have both anchor and ref");
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), ref.begins_with('*'), m_curr->pos);
         _enable_(VAL|VALREF);
         m_curr->tr_data->m_val.anchor = ref.sub(1);
         m_curr->tr_data->m_val.scalar = ref;
@@ -532,17 +533,17 @@ public:
     C4_NO_INLINE void add_directive(csubstr directive)
     {
         _c4dbgpf("% directive! {}", directive);
-        _RYML_CB_ASSERT(m_tree->callbacks(), directive.begins_with('%'));
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), directive.begins_with('%'), m_curr->pos);
         if(directive.begins_with("%TAG"))
         {
             if(C4_UNLIKELY(!m_tree->add_tag_directive(directive)))
-                _RYML_CB_ERR_(m_stack.m_callbacks, "failed to add directive", m_curr->pos);
+                _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "failed to add directive");
         }
         else if(directive.begins_with("%YAML"))
         {
             _c4dbgpf("%YAML directive! ignoring...: {}", directive);
             if(C4_UNLIKELY(m_yaml_directive))
-                _RYML_CB_ERR_(m_stack.m_callbacks, "multiple yaml directives", m_curr->pos);
+                _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "multiple yaml directives");
             m_yaml_directive = true;
         }
         else
@@ -561,7 +562,7 @@ public:
 
     substr alloc_arena(size_t len)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         csubstr prev = m_tree->arena();
         substr out = m_tree->alloc_arena(len);
         substr curr = m_tree->arena();
@@ -572,7 +573,7 @@ public:
 
     substr alloc_arena(size_t len, substr *relocated)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         csubstr prev = m_tree->arena();
         if(!prev.is_super(*relocated))
             return alloc_arena(len);
@@ -590,7 +591,7 @@ public:
     /** @cond dev */
     void _reset_parser_state(state* st, id_type parse_root, id_type node)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _set_state_(st, node);
         const NodeType type = m_tree->type(node);
         #ifdef RYML_DBG
@@ -628,7 +629,7 @@ public:
         }
         else
         {
-            _RYML_CB_ERR(m_tree->callbacks(), "cannot append to node");
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "cannot append to node");
         }
         if(type.is_doc())
         {
@@ -691,12 +692,12 @@ public:
     void _set_root_as_stream()
     {
         _c4dbgp("set root as stream");
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->root_id() == 0u);
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_curr->node_id == 0u);
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->root_id() == 0u, m_tree, m_tree->root_id());
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_curr->node_id == 0u, m_tree, m_curr->node_id);
         m_tree->set_root_as_stream();
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_stream(m_tree->root_id()));
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_children(m_tree->root_id()));
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_doc(m_tree->first_child(m_tree->root_id())));
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_stream(m_tree->root_id()), m_tree, m_tree->root_id());
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_children(m_tree->root_id()), m_tree, m_tree->root_id());
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_doc(m_tree->first_child(m_tree->root_id())), m_tree, m_tree->root_id());
         _set_state_(m_curr, m_tree->root_id());
     }
 
@@ -717,8 +718,8 @@ public:
     void _remove_speculative()
     {
         _c4dbgp("remove speculative node");
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
-        _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->empty());
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
         const id_type last_added = m_tree->size() - 1;
         if(m_tree->has_parent(last_added))
             if(m_tree->_p(last_added)->m_type == NOTYPE)
@@ -727,10 +728,10 @@ public:
 
     void _remove_speculative_with_parent()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
-        _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->empty());
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
         const id_type last_added = m_tree->size() - 1;
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_parent(last_added));
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(last_added), m_tree, last_added);
         if(m_tree->_p(last_added)->m_type == NOTYPE)
         {
             _c4dbgpf("remove speculative node with parent. parent={} node={} parent(node)={}", m_parent->node_id, last_added, m_tree->parent(last_added));
@@ -740,8 +741,8 @@ public:
 
     C4_ALWAYS_INLINE void _save_loc()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->_p(m_curr->node_id)->m_val.scalar.len == 0);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), m_tree->_p(m_curr->node_id)->m_val.scalar.len == 0);
         m_tree->_p(m_curr->node_id)->m_val.scalar.str = m_curr->line_contents.rem.str;
     }
 

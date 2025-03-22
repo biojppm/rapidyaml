@@ -1,11 +1,10 @@
 #ifndef _C4_YML_WRITER_HPP_
 #define _C4_YML_WRITER_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
-#include "./common.hpp"
+#ifndef _C4_YML_ERROR_HPP_
+#include "./error.hpp"
 #endif
 
-#include <c4/substr.hpp>
 #include <stdio.h>  // fwrite(), fputc()
 #include <string.h> // memcpy()
 
@@ -142,7 +141,7 @@ struct WriterBuf
         if(m_pos <= m_buf.len)
             return m_buf.first(m_pos);
         else if(error_on_excess)
-            c4::yml::error("not enough space in the given buffer");
+            c4::yml::err_basic(RYML_LOC_HERE(), "not enough space in the given buffer");
         substr sp;
         sp.str = nullptr;
         sp.len = m_pos;
@@ -152,7 +151,7 @@ struct WriterBuf
     template<size_t N>
     void _do_write(const char (&a)[N])
     {
-        RYML_ASSERT( ! m_buf.overlaps(a));
+        _RYML_ASSERT_BASIC( ! m_buf.overlaps(a));
         if(m_pos + N-1 <= m_buf.len)
             memcpy(&(m_buf[m_pos]), a, N-1);
         m_pos += N-1;
@@ -162,7 +161,7 @@ struct WriterBuf
     {
         if(sp.empty())
             return;
-        RYML_ASSERT( ! sp.overlaps(m_buf));
+        _RYML_ASSERT_BASIC( ! sp.overlaps(m_buf));
         if(m_pos + sp.len <= m_buf.len)
             memcpy(&(m_buf[m_pos]), sp.str, sp.len);
         m_pos += sp.len;
