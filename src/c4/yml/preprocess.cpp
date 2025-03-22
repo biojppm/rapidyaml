@@ -1,4 +1,5 @@
 #include "c4/yml/preprocess.hpp"
+#include "c4/yml/error.hpp"
 #include "c4/yml/detail/dbgprint.hpp"
 
 /** @file preprocess.hpp Functions for preprocessing YAML prior to parsing. */
@@ -40,7 +41,7 @@ size_t preprocess_rxmap(csubstr s, substr buf)
 
     if(s.begins_with('{'))
     {
-        RYML_CHECK(s.ends_with('}'));
+        _RYML_CHECK_BASIC(s.ends_with('}'));
         s = s.offs(1, 1);
     }
 
