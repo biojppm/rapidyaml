@@ -103,7 +103,7 @@ struct Scalar
     OptionalScalar ref    = {};
     OptionalScalar tag    = {};
     NodeType       flags = {};
-    inline operator bool() const { if(anchor || tag) { RYML_ASSERT(scalar); } return scalar.was_set; }
+    inline operator bool() const { if(anchor || tag) { _RYML_ASSERT_BASIC(scalar); } return scalar.was_set; }
     void add_key_props(Tree *tree, id_type node) const
     {
         if(ref)
@@ -190,7 +190,7 @@ csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalSca
     if(tokens.begins_with('<'))
     {
         size_t pos = tokens.find('>');
-        RYML_ASSERT(pos != (size_t)csubstr::npos);
+        _RYML_ASSERT_BASIC(pos != (size_t)csubstr::npos);
         *tag = tokens.first(pos + 1);
         tokens = tokens.right_of(pos).triml(' ');
         _nfo_logf("tag: {}", tag->maybe_get());
@@ -201,15 +201,15 @@ csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalSca
 bool compare_events(csubstr ref_evts, csubstr emt_evts, bool ignore_container_style=false, bool ignore_scalar_style=false)
 {
     auto diff_line_with_optional_ending = [](csubstr ref, csubstr emt, csubstr optional_ending){
-        RYML_ASSERT(ref != emt);
+        _RYML_ASSERT_BASIC(ref != emt);
         ref = ref.stripr(optional_ending).trimr(' ');
         emt = emt.stripr(optional_ending).trimr(' ');
         bool diff = ref != emt;
         return diff;
     };
     auto diff_val_with_scalar_wildcard = [](csubstr ref, csubstr emt){
-        RYML_ASSERT(ref.begins_with("=VAL "));
-        RYML_ASSERT(emt.begins_with("=VAL "));
+        _RYML_ASSERT_BASIC(ref.begins_with("=VAL "));
+        _RYML_ASSERT_BASIC(emt.begins_with("=VAL "));
         ref = ref.sub(5);
         emt = emt.sub(5);
         OptionalScalar reftag = {}, refanchor = {};
@@ -220,10 +220,10 @@ bool compare_events(csubstr ref_evts, csubstr emt_evts, bool ignore_container_st
             return true;
         ref = parse_anchor_and_tag(ref, &refanchor, &reftag).triml(' ');
         emt = parse_anchor_and_tag(emt, &emtanchor, &emttag).triml(' ');
-        RYML_ASSERT(ref.len > 0);
-        RYML_ASSERT(emt.len > 0);
-        RYML_ASSERT(ref[0] == ':' || ref[0] == '\'' || ref[0] == '"' || ref[0] == '|' || ref[0] == '>');
-        RYML_ASSERT(emt[0] == ':' || emt[0] == '\'' || emt[0] == '"' || emt[0] == '|' || emt[0] == '>');
+        _RYML_ASSERT_BASIC(ref.len > 0);
+        _RYML_ASSERT_BASIC(emt.len > 0);
+        _RYML_ASSERT_BASIC(ref[0] == ':' || ref[0] == '\'' || ref[0] == '"' || ref[0] == '|' || ref[0] == '>');
+        _RYML_ASSERT_BASIC(emt[0] == ':' || emt[0] == '\'' || emt[0] == '"' || emt[0] == '|' || emt[0] == '>');
         ref = ref.sub(1);
         emt = emt.sub(1);
         if(ref != emt)

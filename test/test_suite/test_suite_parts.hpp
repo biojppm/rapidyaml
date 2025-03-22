@@ -5,6 +5,7 @@
 #include <ryml_all.hpp>
 #else
 #include <c4/yml/common.hpp>
+#include <c4/yml/error.hpp>
 #include <c4/span.hpp>
 #endif
 #include <c4/log/log.hpp>
