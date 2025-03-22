@@ -24,6 +24,7 @@ jobs:
     :: setup-job('clang' 'tabtokens')
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +38,7 @@ jobs:
     :: setup-job('clang' 'noexceptions')
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -50,6 +52,7 @@ jobs:
     :: setup-job('clang' 'extended')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
     :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -109,6 +112,7 @@ jobs:
     :: setup-job('clang' 'clangsan')
     name: san/${{matrix.bt}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('22.04')
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -118,7 +122,7 @@ jobs:
               std [11 14 17 20]
           : !
             std:: std
-            cxx: clang++-17
+            cxx: clang++-18
             bt:: san
             bitlinks: static64
     env:: load('share/env.yaml')

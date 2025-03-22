@@ -13,14 +13,12 @@ jobs:
       matrix:
         include:
         # test also with the debug code enabled
-        - {std: 11, namesfx: 64bit    , cmk: "-DCMAKE_CXX_FLAGS=-m64"}
-        - {std: 11, namesfx: 64bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m64 -DRYML_DBG=ON"}
-        - {std: 17, namesfx: 64bit    , cmk: "-DCMAKE_CXX_FLAGS=-m64"}
-        - {std: 17, namesfx: 64bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m64 -DRYML_DBG=ON"}
-        - {std: 11, namesfx: 32bit    , cmk: "-DCMAKE_CXX_FLAGS=-m32"}
-        - {std: 11, namesfx: 32bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m32 -DRYML_DBG=ON"}
-        - {std: 17, namesfx: 32bit    , cmk: "-DCMAKE_CXX_FLAGS=-m32"}
-        - {std: 17, namesfx: 32bit_dbg, cmk: "-DCMAKE_CXX_FLAGS=-m32 -DRYML_DBG=ON"}
+        - {std: 11, namesfx: 64bit      , cmk: "-DCMAKE_CXX_FLAGS=-m64"}
+        - {std: 11, namesfx: 64bit_noexc, cmk: "-DCMAKE_CXX_FLAGS='-m64 -fno-exceptions -fno-rtti'"}
+        - {std: 11, namesfx: 64bit_exc  , cmk: "-DCMAKE_CXX_FLAGS='-m64' -DRYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON"}
+        - {std: 11, namesfx: 64bit_dbg  , cmk: "-DCMAKE_CXX_FLAGS=-m64 -DRYML_DBG=ON"}
+        - {std: 11, namesfx: 32bit      , cmk: "-DCMAKE_CXX_FLAGS=-m32"}
+        - {std: 11, namesfx: 32bit_dbg  , cmk: "-DCMAKE_CXX_FLAGS=-m32 -DRYML_DBG=ON"}
     env:
       GCC_VERSION: 13 # the default compiler
       LCOV_ARGS: -v --ignore-errors mismatch,mismatch --ignore-errors unused,unused
