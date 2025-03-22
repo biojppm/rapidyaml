@@ -122,7 +122,7 @@ using csubstr = c4::csubstr;
 %exception {
     try {
         $action
-    } catch(std::exception &e) {
+    } catch(std::exception const& e) {
         SWIG_exception(SWIG_RuntimeError, e.what());
     } catch(...) {
         SWIG_exception(SWIG_UnknownError, "unknown error");
@@ -150,7 +150,7 @@ char * emit_yaml_malloc(c4::yml::Tree const& t, size_t id)
     c4::substr ret = c4::yml::emit_yaml(t, id, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
-        // Use new[] to parse with delete[] in SWIG.
+        // Use new[]+delete[] in SWIG.
         char * alloc = new char[ret.len + 1]; // we'll return a c-string and not a csubstr
         c4::substr alloced_buf(alloc, ret.len);
         ret = c4::yml::emit_yaml(t, id, alloced_buf, /*error_on_excess*/true);
@@ -165,7 +165,7 @@ char * emit_json_malloc(c4::yml::Tree const& t, size_t id)
     c4::substr ret = c4::yml::emit_json(t, id, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
-        // Use new[] to parse with delete[] in SWIG.
+        // Use new[]+delete[] in SWIG.
         char * alloc = new char[ret.len + 1]; // we'll return a c-string and not a csubstr
         c4::substr alloced_buf(alloc, ret.len);
         ret = c4::yml::emit_json(t, id, alloced_buf, /*error_on_excess*/true);
@@ -292,7 +292,8 @@ def parse(buf, **kwargs):
     return parse_in_arena(tree, id)
 
 def parse_in_arena(buf, tree=None):
-    """parse immutable YAML in the trees arena. Copy the YAML into a buffer
+    """
+    parse immutable YAML in the trees arena. Copy the YAML into a buffer
     in the C++ tree's arena, then parse the YAML from the trees arena.
 
     :param buf:
@@ -307,7 +308,8 @@ def parse_in_arena(buf, tree=None):
     return _call_parse(parse_csubstr, buf, tree)
 
 def parse_in_place(buf, tree=None):
-    """parse in place a mutable buffer containing YAML. The resulting tree
+    """
+    parse in place a mutable buffer containing YAML. The resulting tree
     will point into the given buffer.
 
     :param buf:
