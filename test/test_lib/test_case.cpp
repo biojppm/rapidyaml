@@ -1,6 +1,7 @@
 #include "./test_lib/test_case.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
+#include "c4/yml/error.def.hpp"
 #include "c4/format.hpp"
 #include "c4/span.hpp"
 #include "c4/yml/std/std.hpp"
@@ -164,42 +165,73 @@ void test_arena_not_shared(Tree const& a, Tree const& b)
 
 // ensure coverage of the default callback report
 #ifndef RYML_NO_DEFAULT_CALLBACKS
-extern void report_error_impl(const char* msg, size_t len, Location loc, FILE *file);
+extern void report_error_parse_impl(csubstr msg, Location loc, FILE *file);
 #endif
 
-std::string format_error(const char* msg, size_t len, Location loc)
+std::string format_error_basic(csubstr msg, ErrorDataBasic const& errdata)
 {
-    // ensure coverage of the default callback report
-    #ifndef RYML_NO_DEFAULT_CALLBACKS
-    report_error_impl(msg, len, loc, nullptr);
-    #endif
     std::string out;
-    if(!loc)
-    {
-        out.assign(msg, len);
-        return out;
-    }
-    if(!loc.name.empty())
-        c4::formatrs_append(&out, "{}:", loc.name);
-    c4::formatrs_append(&out, "{}:{}:", loc.line, loc.col);
-    if(loc.offset)
-        c4::formatrs_append(&out, " (@{}B):", loc.offset);
-    c4::formatrs_append(&out, "{}:", csubstr(msg, len));
+    err_basic_format([&](csubstr s){
+        out.append(s.str, s.len);
+    }, msg, errdata);
     return out;
 }
 
-struct ExpectedError C4_IF_EXCEPTIONS_( : public std::runtime_error, )
+std::string format_error_parse(csubstr msg, ErrorDataParse const& errdata)
 {
-    C4_IF_EXCEPTIONS_( ,
-        std::string smsg;
-        const char *what() const { return smsg.c_str(); }
-        ExpectedError() = default;
-    )
-    Location error_location;
-    ExpectedError(const char* msg, size_t len, Location loc)
-        : C4_IF_EXCEPTIONS_(std::runtime_error(format_error(msg, len, loc)),
-                            smsg(format_error(msg, len, loc)))
-        , error_location(loc)
+    std::string out;
+    err_parse_format([&](csubstr s){
+        out.append(s.str, s.len);
+    }, msg, errdata);
+    return out;
+}
+
+std::string format_error_visit(csubstr msg, ErrorDataVisit const& errdata)
+{
+    std::string out;
+    err_visit_format([&](csubstr s){
+        out.append(s.str, s.len);
+    }, msg, errdata);
+    return out;
+}
+
+struct ExpectedErrorBasic C4_IF_EXCEPTIONS_( : public std::exception, )
+{
+    std::string smsg;
+    C4_IF_EXCEPTIONS_(const char *what() const noexcept override { return smsg.c_str(); }, )
+    ExpectedErrorBasic() = default;
+    ExpectedErrorBasic(csubstr msg, ErrorDataBasic const& errdata_)
+        :
+        C4_IF_EXCEPTIONS_(std::exception() C4_COMMA,)
+        smsg(format_error_basic(msg, errdata_))
+    {
+    }
+    ExpectedErrorBasic(std::string s)
+        :
+        C4_IF_EXCEPTIONS_(std::exception() C4_COMMA,)
+        smsg(std::move(s))
+    {
+    }
+};
+
+struct ExpectedErrorParse : public ExpectedErrorBasic
+{
+    ErrorDataParse errdata;
+    ExpectedErrorParse() = default;
+    ExpectedErrorParse(csubstr msg, ErrorDataParse const& errdata_)
+        : ExpectedErrorBasic(format_error_parse(msg, errdata_))
+        , errdata(errdata_)
+    {
+    }
+};
+
+struct ExpectedErrorVisit : public ExpectedErrorBasic
+{
+    ErrorDataVisit errdata;
+    ExpectedErrorVisit() = default;
+    ExpectedErrorVisit(csubstr msg, ErrorDataVisit const& errdata_)
+        : ExpectedErrorBasic(format_error_visit(msg, errdata_))
+        , errdata(errdata_)
     {
     }
 };
@@ -208,8 +240,10 @@ struct ExpectedError C4_IF_EXCEPTIONS_( : public std::runtime_error, )
 //-----------------------------------------------------------------------------
 C4_IF_EXCEPTIONS_(
     ,
-    std::jmp_buf s_jmp_env_expect_error = {};
-    ExpectedError s_jmp_err = {};
+    std::jmp_buf s_jmp_env_expect_error;
+    ExpectedErrorBasic s_jmp_err_basic = {};
+    ExpectedErrorParse s_jmp_err_parse = {};
+    ExpectedErrorVisit s_jmp_err_visit = {};
     )
 
 ExpectError::ExpectError(Tree *tree, Location loc)
@@ -219,34 +253,56 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     , m_tree_prev(tree ? tree->callbacks() : m_glob_prev)
     , expected_location(loc)
 {
-    auto err = [](const char* msg, size_t len, Location errloc, void *this_)  {
-        _c4dbgpf("called error callback! (withlocation={})", bool(errloc));
+    auto errb = [](csubstr msg, ErrorDataBasic const& errdata, void *this_) {
+        _c4dbgp("called basic error callback!");
         ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
         C4_IF_EXCEPTIONS(
-            throw ExpectedError(msg, len, errloc);
+            throw ExpectedErrorBasic(msg, errdata);
             ,
-            s_jmp_err = ExpectedError(msg, len, errloc);
+            s_jmp_err_basic = ExpectedErrorBasic(msg, errdata);
             std::longjmp(s_jmp_env_expect_error, 1);
         );
         C4_UNREACHABLE_AFTER_ERR();
     };
-    pfn_error perr = err;
-    #ifdef RYML_NO_DEFAULT_CALLBACKS
-    c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, perr);
-    c4::yml::Callbacks gcb((void*)this, nullptr, nullptr, perr);
-    #else
-    c4::yml::Callbacks tcb((void*)this, tree ? m_tree_prev.m_allocate : nullptr, tree ? m_tree_prev.m_free : nullptr, perr);
-    c4::yml::Callbacks gcb((void*)this, m_glob_prev.m_allocate, m_glob_prev.m_free, perr);
-    #endif
+    auto errp = [](csubstr msg, ErrorDataParse const& errdata, void *this_) {
+        _c4dbgpf("called parse error callback! (withlocation={})", bool(errdata.ymlloc));
+        ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
+        C4_IF_EXCEPTIONS(
+            throw ExpectedErrorParse(msg, errdata);
+            ,
+            s_jmp_err_parse = ExpectedErrorParse(msg, errdata);
+            std::longjmp(s_jmp_env_expect_error, 1);
+        );
+        C4_UNREACHABLE_AFTER_ERR();
+    };
+    auto errv = [](csubstr msg, ErrorDataVisit const& errdata, void *this_) {
+        _c4dbgp("called visit error callback!");
+        ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
+        C4_IF_EXCEPTIONS(
+            throw ExpectedErrorVisit(msg, errdata);
+            ,
+            s_jmp_err_visit = ExpectedErrorVisit(msg, errdata);
+            std::longjmp(s_jmp_env_expect_error, 1);
+        );
+        C4_UNREACHABLE_AFTER_ERR();
+    };
+    c4::yml::Callbacks tcb;
+    c4::yml::Callbacks gcb;
+    tcb.set_user_data((void*)this).set_error_basic(errb).set_error_parse(errp).set_error_visit(errv);
+    gcb.set_user_data((void*)this).set_error_basic(errb).set_error_parse(errp).set_error_visit(errv);
     if(tree)
     {
-        _c4dbgpf("setting error callback: tree err={}", c4::fmt::hex(perr));
+        _c4dbgpf("setting error callback: tree err={}", c4::fmt::hex((void const*)&errp));
         tree->callbacks(tcb);
-        EXPECT_EQ(tree->callbacks().m_error, perr);
+        EXPECT_EQ(tree->callbacks().m_error_basic, errb);
+        EXPECT_EQ(tree->callbacks().m_error_parse, errp);
+        EXPECT_EQ(tree->callbacks().m_error_visit, errv);
     }
-    _c4dbgpf("setting error callback: global err={}", c4::fmt::hex(perr));
+    _c4dbgpf("setting error callback: global err={}", c4::fmt::hex((void const*)&errp));
     set_callbacks(gcb);
-    EXPECT_EQ(get_callbacks().m_error, perr);
+    EXPECT_EQ(get_callbacks().m_error_basic, errb);
+    EXPECT_EQ(get_callbacks().m_error_parse, errp);
+    EXPECT_EQ(get_callbacks().m_error_visit, errv);
 }
 
 ExpectError::~ExpectError()
@@ -260,7 +316,7 @@ ExpectError::~ExpectError()
     set_callbacks(m_tree_prev);
 }
 
-void ExpectError::check_success(Tree *tree, std::function<void()> fn)
+void ExpectError::check_success(Tree *tree, fntestref fn)
 {
     Location expected_location = {};
     auto context = ExpectError(tree, expected_location);
@@ -270,44 +326,89 @@ void ExpectError::check_success(Tree *tree, std::function<void()> fn)
         fn();
         _c4dbgp("check expected success: success!");
     }
-    C4_IF_EXCEPTIONS_(catch(ExpectedError const&), else)
+    C4_IF_EXCEPTIONS_(catch(ExpectedErrorParse const&), else)
     {
         FAIL() << "check expected success: failed!";
     }
     ASSERT_FALSE(context.m_got_an_error);
 }
 
-void ExpectError::check_error(Tree const* tree, std::function<void()> fn, Location expected_location)
+void ExpectError::check_error_basic(Tree const* tree, fntestref fn)
 {
-    check_error(const_cast<Tree*>(tree), fn, expected_location);
+    check_error_basic(const_cast<Tree*>(tree), fn);
 }
 
-void ExpectError::check_error(Tree *tree, std::function<void()> fn, Location expected_location)
+void ExpectError::check_error_parse(Tree const* tree, fntestref fn, Location const& expected_location)
 {
-    auto context = ExpectError(tree, expected_location);
+    check_error_parse(const_cast<Tree*>(tree), fn, expected_location);
+}
+
+void ExpectError::check_error_visit(Tree const* tree, fntestref fn, id_type expected_id)
+{
+    check_error_visit(const_cast<Tree*>(tree), fn, expected_id);
+}
+
+void ExpectError::check_error_basic(Tree *tree, fntestref fn)
+{
+    auto context = ExpectError(tree);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
-        _c4dbgp("check expected error");
+        _c4dbgp("check expected basic error");
         fn();
-        _c4dbgp("check expected error: failed!");
+        _c4dbgp("check expected basic error: failed!");
     }
-    C4_IF_EXCEPTIONS_(catch(ExpectedError const& e), else)
+    C4_IF_EXCEPTIONS_(catch(ExpectedErrorBasic const& e), else)
     {
-        C4_IF_EXCEPTIONS_( , ExpectedError const& e = s_jmp_err);
+        C4_IF_EXCEPTIONS_( , ExpectedErrorBasic const& e = s_jmp_err_basic);
+        (void)e;
         #if defined(RYML_DBG)
         std::cout << "---------------\n";
-        std::cout << "got an expected error:\n" << e.what() << "\n";
+        std::cout << "got an expected parse error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
         #endif
-        if(context.expected_location)
+    }
+    C4_IF_EXCEPTIONS_(catch(...)
+    {
+        _c4dbgp("---------------\n"
+                "got an unexpected exception!\n"
+                "---------------\n");
+    }, )
+    EXPECT_TRUE(context.m_got_an_error);
+}
+
+void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& expected_location)
+{
+    ExpectError context(tree, expected_location);
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
+        _c4dbgp("check expected parse error");
+        fn();
+        _c4dbgp("check expected parse error: failed!");
+    }
+    C4_IF_EXCEPTIONS_(catch(ExpectedErrorParse const& e), else)
+    {
+        C4_IF_EXCEPTIONS_( , ExpectedErrorParse const& e = s_jmp_err_parse);
+        (void)e;
+        #if defined(RYML_DBG)
+        std::cout << "---------------\n";
+        std::cout << "got an expected parse error:\n" << e.what() << "\n";
+        std::cout << "---------------\n";
+        #endif
+        if(expected_location)
         {
             _c4dbgp("checking expected location...");
-            EXPECT_EQ(static_cast<bool>(e.error_location), static_cast<bool>(context.expected_location));
-            EXPECT_EQ(e.error_location.line, context.expected_location.line);
-            EXPECT_EQ(e.error_location.col, context.expected_location.col);
-            if(context.expected_location.offset)
+            EXPECT_EQ(static_cast<bool>(e.errdata.ymlloc), static_cast<bool>(context.expected_location));
+            if(context.expected_location.line != npos)
             {
-                EXPECT_EQ(e.error_location.offset, context.expected_location.offset);
+                EXPECT_EQ(e.errdata.ymlloc.line, context.expected_location.line);
+            }
+            if(context.expected_location.col != npos)
+            {
+                EXPECT_EQ(e.errdata.ymlloc.col, context.expected_location.col);
+            }
+            if(context.expected_location.offset != npos)
+            {
+                EXPECT_EQ(e.errdata.ymlloc.offset, context.expected_location.offset);
             }
         }
     }
@@ -320,14 +421,74 @@ void ExpectError::check_error(Tree *tree, std::function<void()> fn, Location exp
     EXPECT_TRUE(context.m_got_an_error);
 }
 
-void ExpectError::check_assertion(Tree *tree, std::function<void()> fn, Location expected_location)
+void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
+{
+    auto context = ExpectError(tree);
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
+        _c4dbgp("check expected visit error");
+        fn();
+        _c4dbgp("check expected visit error: failed!");
+    }
+    C4_IF_EXCEPTIONS_(catch(ExpectedErrorVisit const& e), else)
+    {
+        C4_IF_EXCEPTIONS_( , ExpectedErrorVisit const& e = s_jmp_err_visit);
+        (void)e;
+        #if defined(RYML_DBG)
+        std::cout << "---------------\n";
+        std::cout << "got an expected visit error:\n" << e.what() << "\n";
+        std::cout << "---------------\n";
+        #endif
+        EXPECT_EQ(e.errdata.tree, tree);
+        if(id != npos)
+        {
+            EXPECT_EQ(e.errdata.node, id);
+        }
+    }
+    C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
+    {
+        std::cout << "---------------\n";
+        std::cout << "got an unexpected exception!:\n" << exc.what() << "\n";
+        std::cout << "---------------\n";
+    }, )
+    C4_IF_EXCEPTIONS_(catch(...)
+    {
+        std::cout << "---------------\n";
+        std::cout << "got an unexpected exception!\n";
+        std::cout << "---------------\n";
+    }, )
+    EXPECT_TRUE(context.m_got_an_error);
+}
+
+void ExpectError::check_assert_basic(Tree *tree, fntestref fn)
 {
     #if RYML_USE_ASSERT
-    ExpectError::check_error(tree, fn, expected_location);
+    ExpectError::check_error_basic(tree, fn);
+    #else
+    C4_UNUSED(tree);
+    C4_UNUSED(fn);
+    #endif
+}
+
+void ExpectError::check_assert_parse(Tree *tree, fntestref fn, Location const& expected_location)
+{
+    #if RYML_USE_ASSERT
+    ExpectError::check_error_parse(tree, fn, expected_location);
     #else
     C4_UNUSED(tree);
     C4_UNUSED(fn);
     C4_UNUSED(expected_location);
+    #endif
+}
+
+void ExpectError::check_assert_visit(Tree *tree, fntestref fn, id_type id)
+{
+    #if RYML_USE_ASSERT
+    ExpectError::check_error_visit(tree, fn, id);
+    #else
+    C4_UNUSED(tree);
+    C4_UNUSED(fn);
+    C4_UNUSED(id);
     #endif
 }
 
@@ -348,7 +509,7 @@ void print_path(ConstNodeRef const& n)
         else
         {
             int ret = snprintf(buf, sizeof(buf), "/%zu", p.has_parent() ? (size_t)p.parent().child_pos(p) : (size_t)0);
-            RYML_ASSERT(ret >= 0);
+            _RYML_ASSERT_BASIC(ret >= 0);
             len += static_cast<size_t>(ret);
         }
         p = p.parent();
@@ -362,18 +523,18 @@ void print_path(ConstNodeRef const& n)
         {
             size_t tl = p.key().len;
             int ret = snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
-            RYML_ASSERT(ret >= 0);
+            _RYML_ASSERT_BASIC(ret >= 0);
             pos -= static_cast<size_t>(ret);
         }
         else if(p.has_parent())
         {
             pos = (size_t)p.parent().child_pos(p);
             int ret = snprintf(buf, 0, "/%zu", pos);
-            RYML_ASSERT(ret >= 0);
+            _RYML_ASSERT_BASIC(ret >= 0);
             size_t tl = static_cast<size_t>(ret);
-            RYML_ASSERT(pos >= tl);
+            _RYML_ASSERT_BASIC(pos >= tl);
             ret = snprintf(buf + static_cast<size_t>(pos - tl), tl, "/%zu", pos);
-            RYML_ASSERT(ret >= 0);
+            _RYML_ASSERT_BASIC(ret >= 0);
             pos -= static_cast<size_t>(ret);
         }
         p = p.parent();
@@ -711,7 +872,7 @@ CaseData* get_data(csubstr name)
     {
         cd = &m[name];
         Case const* c = get_case(name);
-        RYML_CHECK(c->src.find("\n\r") == csubstr::npos);
+        _RYML_CHECK_BASIC(c->src.find("\n\r") == csubstr::npos);
         {
             std::string tmp;
             replace_all("\r", "", c->src, &tmp);
