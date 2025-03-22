@@ -10,8 +10,8 @@ function(amalgamate_ryml header_dir header_file)
         LIST_DIRECTORIES FALSE
         CONFIGURE_DEPENDS "${rymldir}/src" "${rymldir}/src_extra")
     add_custom_command(OUTPUT "${singleheader}"
-        COMMAND "${Python3_EXECUTABLE}" "${amscript}" -e ints -- "${singleheader}"
-        COMMENT "${Python3_EXECUTABLE} ${amscript} -e ints -- ${singleheader}"
+        COMMAND "${Python3_EXECUTABLE}" "${amscript}" -e ints ints_utils -- "${singleheader}"
+        COMMENT "${Python3_EXECUTABLE} ${amscript} -e ints ints_utils -- ${singleheader}"
         DEPENDS ${srcfiles} "${amscript}" "${rymldir}/ext/c4core/cmake/amalgamate_utils.py")
     set(${header_dir} "${singleheaderdir}" PARENT_SCOPE)
     set(${header_file} "${singleheader}" PARENT_SCOPE)
