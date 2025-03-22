@@ -34,46 +34,49 @@ bool report_errors = true;
 bool report_errors = false;
 #endif
 
-inline void report_error(const char* msg, size_t length, c4::yml::Location loc, FILE *f)
+// watchout: VS2022 requires C4_NORETURN to come before inline
+[[noreturn]] void throwerr(c4::csubstr msg)
 {
-    if(!report_errors)
-        return;
-    if(!loc.name.empty())
-    {
-        fwrite(loc.name.str, 1, loc.name.len, f);
-        fputc(':', f);
-    }
-    fprintf(f, "%zu:", loc.line);
-    if(loc.col)
-        fprintf(f, "%zu:", loc.col);
-    if(loc.offset)
-        fprintf(f, " (%zuB):", loc.offset);
-    fputc(' ', f);
-    fprintf(f, "%.*s\n", static_cast<int>(length), msg);
-    fflush(f);
+    C4_IF_EXCEPTIONS(
+        throw std::runtime_error({msg.str, msg.len});
+        ,
+        jmp_msg.assign(msg.str, msg.len);
+        std::longjmp(jmp_env, 1);
+        );
+    C4_UNREACHABLE_AFTER_ERR();
 }
 
-// watchout: VS2022 requires C4_NORETURN to come before inline
-C4_NORETURN inline void errcallback(const char *msg, size_t msg_len, c4::yml::Location location, void *)
+void dump2stderr(c4::csubstr s)
 {
-    report_error(msg, msg_len, location, stderr);
-    C4_IF_EXCEPTIONS(
-        throw std::runtime_error({msg, msg_len});
-        ,
-        jmp_msg.assign(msg, msg_len);
-        std::longjmp(jmp_env, 1);
-    );
+    if(s.len)
+    {
+        fwrite(s.str, 1, s.len, stderr);
+        fflush(stderr);
+    }
 }
 
 inline c4::yml::Callbacks create_custom_callbacks()
 {
     c4::set_error_flags(c4::ON_ERROR_CALLBACK);
     c4::set_error_callback([](const char *msg, size_t msg_len){
-        errcallback(msg, msg_len, {}, nullptr);
+        throwerr(c4::csubstr{msg, msg_len});
     });
-    c4::yml::Callbacks callbacks = {};
-    callbacks.m_error = errcallback;
-    return callbacks;
+    return c4::yml::Callbacks{}
+        .set_error_basic([](c4::csubstr msg, c4::yml::ErrorDataBasic const& errdata, void *){
+            if(report_errors)
+                c4::yml::err_basic_format(dump2stderr, msg, errdata);
+            throwerr(msg);
+        })
+        .set_error_parse([](c4::csubstr msg, c4::yml::ErrorDataParse const& errdata, void *){
+            if(report_errors)
+                c4::yml::err_parse_format(dump2stderr, msg, errdata);
+            throwerr(msg);
+        })
+        .set_error_visit([](c4::csubstr msg, c4::yml::ErrorDataVisit const& errdata, void *){
+            if(report_errors)
+                c4::yml::err_visit_format(dump2stderr, msg, errdata);
+            throwerr(msg);
+        });
 }
 
 namespace c4 {
@@ -87,7 +90,7 @@ inline int fuzztest_parse_emit(uint32_t case_number, csubstr src)
     bool parse_success = false;
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
-        RYML_ASSERT(tree.empty());
+        _RYML_ASSERT_BASIC(tree.empty());
         _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         parse_in_arena(src, &tree);
         parse_success = true;
