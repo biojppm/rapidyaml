@@ -242,7 +242,7 @@ USAGE: bm <case.yml>
         }
         if(what & kReserveTree)
         {
-            RYML_CHECK(capacity > 0);
+            _RYML_CHECK_BASIC(capacity > 0);
             ryml_tree.reserve(capacity);
         }
         if(what & kReserveTree)
