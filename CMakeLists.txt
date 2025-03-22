@@ -44,6 +44,8 @@ c4_add_library(ryml
         c4/yml/common.cpp
         c4/yml/emit.def.hpp
         c4/yml/emit.hpp
+        c4/yml/error.hpp
+        c4/yml/error.def.hpp
         c4/yml/event_handler_stack.hpp
         c4/yml/event_handler_tree.hpp
         c4/yml/filter_processor.hpp
@@ -91,7 +93,7 @@ if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
 else()
     if(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
-        target_compile_definitions(ryml PRIVATE RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
+        target_compile_definitions(ryml PUBLIC RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
     endif()
 endif()
 
