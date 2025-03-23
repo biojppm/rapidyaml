@@ -16,8 +16,7 @@
   * @ref doc_callbacks - how to set up error/allocation/deallocation
     callbacks either globally for the library, or for specific objects
     such as @ref c4::yml::Tree or @ref c4::yml::Parser 
-* rapidyaml uses these facilities from [c4core](https://github.com/biojppm/c4core), so their documentation
-  is also shown here:
+* rapidyaml uses these facilities from [c4core](https://github.com/biojppm/c4core), so their documentation is also shown here:
   * @ref doc_substr
   * @ref doc_charconv
   * @ref doc_format_utils
