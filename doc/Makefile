@@ -7,6 +7,9 @@ SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
+CLANG         ?= clang++
+DOXYGEN       ?= doxygen #/home/jpmag/proj/doxygen/install/linux-x86_64-gxx14.2-Release/bin/doxygen
+DOXYGEN_OPTS  ?= #-t
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -28,7 +31,11 @@ doxy:
 	@# ensure submodules are checked out
 	if [ ! -f $(shell pwd)/../ext/c4core/cmake/c4Project.cmake ] ; then echo "ERROR: submodules not present" ; exit 1 ; fi
 	if [ ! -f $(shell pwd)/../ext/c4core/src/c4/charconv.hpp ] ; then echo "ERROR: submodules not present" ; exit 1 ; fi
-	doxygen Doxyfile
+	## use cmake to generate a compile database
+	#cmake -S .. -B "$(BUILDDIR)/proj" -DCMAKE_CXX_COMPILER=$(CLANG) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	#ln -fs "$(BUILDDIR)/proj/compile_commands.json" .
+	## finally, run doxygen
+	$(DOXYGEN) $(DOXYGEN_OPTS) Doxyfile
 
 clean:
 	rm -rf doxygen/
