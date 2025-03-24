@@ -29,9 +29,19 @@ struct RYML_EXPORT ReferenceResolver
      *
      * So, depending on the number of anchor/alias nodes, this is a
      * potentially expensive operation, with a best-case linear
-     * complexity (from the initial traversal).
+     * complexity (from the initial traversal). This potential cost is
+     * one of the reasons for requiring an explicit call.
      *
-     * @todo verify sanity against anchor-ref attacks (https://en.wikipedia.org/wiki/Billion_laughs_attack )
+     * The @ref Tree has an `Tree::resolve()` overload set forwarding
+     * here. Previously this operation was done there, using a
+     * discarded object; using this separate class offers opportunity
+     * for reuse of the object.
+     *
+     * @warning resolving references opens an attack vector when the
+     * data is malicious or severely malformed, as the tree can expand
+     * exponentially. See for example the [Billion Laughs
+     * Attack](https://en.wikipedia.org/wiki/Billion_laughs_attack).
+     *
      */
     void resolve(Tree *t_);
 
@@ -50,6 +60,7 @@ public:
     };
 
     void reset_(Tree *t_);
+    void resolve_();
     void gather_anchors_and_refs_();
     void gather_anchors_and_refs__(id_type n);
     id_type count_anchors_and_refs_(id_type n);

@@ -73,7 +73,7 @@ void ReferenceResolver::gather_anchors_and_refs__(id_type n)
         }
         else if(m_tree->is_key_ref(n))
         {
-            _c4dbgpf("node[{}]: key ref: '{}'", n, m_tree->key_ref(n));
+            _c4dbgpf("node[{}]: instance[{}]: key ref: '{}', key='{}'", n, m_refs.size(), m_tree->key_ref(n), m_tree->has_key(n) ? m_tree->key(n) : csubstr{"-"});
             _RYML_CB_ASSERT(m_tree->m_callbacks, m_tree->key(n) != "<<");
             _RYML_CB_CHECK(m_tree->m_callbacks, (!m_tree->has_key(n)) || m_tree->key(n).ends_with(m_tree->key_ref(n)));
             m_refs.push({KEYREF, n, NONE, NONE, NONE, NONE});
@@ -150,6 +150,9 @@ id_type ReferenceResolver::lookup_(RefData *C4_RESTRICT ra)
     while(ra->prev_anchor != NONE)
     {
         ra = &m_refs[ra->prev_anchor];
+        _c4dbgpf("instance[{}:node{}]: lookup '{}' at [{}:node{}]: keyref='{}' valref='{}'", instance, node, refname, ra-m_refs.m_stack, ra->node,
+                 (m_tree->has_key_anchor(ra->node) ? m_tree->key_anchor(ra->node) : csubstr("~")),
+                 (m_tree->has_val_anchor(ra->node) ? m_tree->val_anchor(ra->node) : csubstr("~")));
         if(m_tree->has_anchor(ra->node, refname))
             return ra->node;
     }
@@ -167,18 +170,8 @@ void ReferenceResolver::reset_(Tree *t_)
     m_tree = t_;
 }
 
-void ReferenceResolver::resolve(Tree *t_)
+void ReferenceResolver::resolve_()
 {
-    _c4dbgp("resolving references...");
-
-    reset_(t_);
-
-    _c4dbg_tree("unresolved tree", *m_tree);
-
-    gather_anchors_and_refs_();
-    if(m_refs.empty())
-        return;
-
     /* from the specs: "an alias node refers to the most recent
      * node in the serialization having the specified anchor". So
      * we need to start looking upward from ref nodes.
@@ -273,17 +266,46 @@ void ReferenceResolver::resolve(Tree *t_)
                 }
             }
         }
+        _c4dbg_tree("after insertion", *m_tree);
     }
-    _c4dbgp("modifying tree: finished");
+}
+
+void ReferenceResolver::resolve(Tree *t_)
+{
+    _c4dbgp("resolving references...");
+
+    reset_(t_);
+
+    _c4dbg_tree("unresolved tree", *m_tree);
+
+    gather_anchors_and_refs_();
+    if(m_refs.empty())
+        return;
+    resolve_();
+    _c4dbg_tree("resolved tree", *m_tree);
 
     // clear anchors and refs
     _c4dbgp("clearing anchors/refs");
     for(auto const& C4_RESTRICT ar : m_refs)
     {
-        m_tree->rem_anchor_ref(ar.node);
-        if(ar.parent_ref != NONE)
-            if(m_tree->type(ar.parent_ref) != NOTYPE)
-                m_tree->remove(ar.parent_ref);
+        _c4dbgp("clearing anchors/refs");
+        auto clear_ = [this]{
+            for(auto const& C4_RESTRICT ar : m_refs)
+            {
+                m_tree->rem_anchor_ref(ar.node);
+                if(ar.parent_ref != NONE)
+                    if(m_tree->type(ar.parent_ref) != NOTYPE)
+                        m_tree->remove(ar.parent_ref);
+            }
+        };
+        clear_();
+        // some of the elements injected during the resolution may
+        // have nested anchors; these anchors will have been newly
+        // injected during the resolution; collect again, and clear
+        // again, to ensure those are also cleared:
+        gather_anchors_and_refs_();
+        clear_();
+        _c4dbgp("clearing anchors/refs: finished");
     }
     _c4dbgp("clearing anchors/refs: finished");
 
