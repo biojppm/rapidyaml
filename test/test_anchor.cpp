@@ -553,6 +553,26 @@ top62:
     ASSERT_EQ(t["top62"]["key62"].has_key_anchor(), false);
 }
 
+TEST(simple_anchor, merge_seqs)
+{
+    const Tree src = parse_in_arena(R"([0, 1])");
+    {
+        Tree dst = parse_in_arena(R"([2, 3])");
+        dst.duplicate_children_no_rep(&src, 0, 0, NONE);
+        EXPECT_EQ(emitrs_yaml<std::string>(dst), "[0,1,2,3]");
+    }
+    {
+        Tree dst = parse_in_arena(R"([2, 3])");
+        dst.duplicate_children_no_rep(&src, 0, 0, 1);
+        EXPECT_EQ(emitrs_yaml<std::string>(dst), "[2,0,1,3]");
+    }
+    {
+        Tree dst = parse_in_arena(R"([2, 3])");
+        dst.duplicate_children_no_rep(&src, 0, 0, 2);
+        EXPECT_EQ(emitrs_yaml<std::string>(dst), "[2,3,0,1]");
+    }
+}
+
 TEST(simple_anchor, issue_400)
 {
     csubstr yaml = R"(

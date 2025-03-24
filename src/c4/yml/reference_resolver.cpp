@@ -240,6 +240,7 @@ void ReferenceResolver::resolve_()
                 _RYML_CB_ASSERT(m_tree->m_callbacks, m_tree->has_key_anchor(refdata.target) || m_tree->has_val_anchor(refdata.target));
                 if(m_tree->has_val_anchor(refdata.target) && m_tree->val_anchor(refdata.target) == m_tree->key_ref(refdata.node))
                 {
+                    _c4dbgpf("instance[{}:node{}] target.anchor==val.anchor=={}", i, refdata.node, m_tree->val_anchor(refdata.target));
                     _RYML_CB_CHECK(m_tree->m_callbacks, !m_tree->is_container(refdata.target));
                     _RYML_CB_CHECK(m_tree->m_callbacks, m_tree->has_val(refdata.target));
                     const type_bits existing_style_flags = VAL_STYLE & m_tree->_p(refdata.target)->m_type.type;
@@ -249,6 +250,7 @@ void ReferenceResolver::resolve_()
                 }
                 else
                 {
+                    _c4dbgpf("instance[{}:node{}] don't inherit container flags", i, refdata.node);
                     _RYML_CB_CHECK(m_tree->m_callbacks, m_tree->key_anchor(refdata.target) == m_tree->key_ref(refdata.node));
                     m_tree->_p(refdata.node)->m_key.scalar = m_tree->key(refdata.target);
                     // keys cannot be containers, so don't inherit container flags
@@ -262,6 +264,7 @@ void ReferenceResolver::resolve_()
                 _RYML_CB_ASSERT(m_tree->m_callbacks, refdata.type.is_val_ref());
                 if(m_tree->has_key_anchor(refdata.target) && m_tree->key_anchor(refdata.target) == m_tree->val_ref(refdata.node))
                 {
+                    _c4dbgpf("instance[{}:node{}] target.anchor==key.anchor=={}", i, refdata.node, m_tree->val_anchor(refdata.target));
                     _RYML_CB_CHECK(m_tree->m_callbacks, !m_tree->is_container(refdata.target));
                     _RYML_CB_CHECK(m_tree->m_callbacks, m_tree->has_val(refdata.target));
                     // keys cannot be containers, so don't inherit container flags
@@ -272,6 +275,7 @@ void ReferenceResolver::resolve_()
                 }
                 else
                 {
+                    _c4dbgpf("instance[{}:node{}] duplicate contents", i, refdata.node);
                     m_tree->duplicate_contents(refdata.target, refdata.node);
                 }
             }
