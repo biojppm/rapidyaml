@@ -980,6 +980,8 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
     id_type prev = after;
     for(id_type i = src->first_child(node); i != NONE; i = src->next_sibling(i))
     {
+        _c4dbgpf("duplicate_no_rep: {} -> {}/{}", i, parent, prev);
+        _RYML_CB_CHECK(m_callbacks, this != src || (parent != i && !is_ancestor(parent, i)));
         if(is_seq(parent))
         {
             prev = duplicate(i, parent, prev);
@@ -1000,6 +1002,7 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
             }
             if(rep == NONE) // there is no repetition; just duplicate
             {
+                _c4dbgpf("duplicate_no_rep: no repetition, just duplicate i={} parent={} prev={}", i, parent, prev);
                 prev = duplicate(src, i, parent, prev);
             }
             else  // yes, there is a repetition
@@ -1110,19 +1113,19 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
 
 //-----------------------------------------------------------------------------
 
-void Tree::resolve()
+void Tree::resolve(bool clear_anchors)
 {
     if(m_size == 0)
         return;
     ReferenceResolver rr;
-    resolve(&rr);
+    resolve(&rr, clear_anchors);
 }
 
-void Tree::resolve(ReferenceResolver *C4_RESTRICT rr)
+void Tree::resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors)
 {
     if(m_size == 0)
         return;
-    rr->resolve(this);
+    rr->resolve(this, clear_anchors);
 }
 
 
@@ -1232,6 +1235,19 @@ id_type Tree::depth_asc(id_type node) const
         node = parent(node);
     }
     return depth;
+}
+
+bool Tree::is_ancestor(id_type node, id_type ancestor) const
+{
+    _RYML_CB_ASSERT(m_callbacks, node != NONE);
+    id_type p = parent(node);
+    while(p != NONE)
+    {
+        if(p == ancestor)
+            return true;
+        p = parent(p);
+    }
+    return false;
 }
 
 

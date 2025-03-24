@@ -12,13 +12,18 @@ namespace yml {
  * @{
  */
 
-/** Reusable object to resolve references/aliases in the tree. */
+/** Reusable object to resolve references/aliases in a @ref Tree. */
 struct RYML_EXPORT ReferenceResolver
 {
     ReferenceResolver() = default;
 
     /** Resolve references: for each reference, look for a matching
      * anchor, and copy its contents to the ref node.
+     *
+     * @p tree the subject tree
+     *
+     * @p clear_anchors whether to clear existing anchors after
+     * resolving
      *
      * This method first does a full traversal of the tree to gather
      * all anchors and references in a separate collection, then it
@@ -43,7 +48,7 @@ struct RYML_EXPORT ReferenceResolver
      * Attack](https://en.wikipedia.org/wiki/Billion_laughs_attack).
      *
      */
-    void resolve(Tree *t_);
+    void resolve(Tree *tree, bool clear_anchors=true);
 
 public:
 
@@ -65,9 +70,7 @@ public:
     void gather_anchors_and_refs__(id_type n);
     id_type count_anchors_and_refs_(id_type n);
 
-    id_type lookup_(RefData *C4_RESTRICT ra);
-
-public:
+    id_type lookup_(RefData const* C4_RESTRICT ra);
 
     Tree *C4_RESTRICT m_tree;
     /** We're using this stack purely as an array. */

@@ -302,6 +302,7 @@ public:
 
     C4_ALWAYS_INLINE bool is_root()    const RYML_NOEXCEPT { _C4RR(); return tree_->is_root(id_); } /**< Forward to @ref Tree::is_root(). Node must be readable. */
     C4_ALWAYS_INLINE bool has_parent() const RYML_NOEXCEPT { _C4RR(); return tree_->has_parent(id_); } /**< Forward to @ref Tree::has_parent()  Node must be readable. */
+    C4_ALWAYS_INLINE bool is_ancestor(ConstImpl const& ancestor) const RYML_NOEXCEPT { _C4RR(); return tree_->is_ancestor(id_, ancestor.m_id); } /**< Forward to @ref Tree::is_ancestor()  Node must be readable. */
 
     C4_ALWAYS_INLINE bool has_child(ConstImpl const& n) const RYML_NOEXCEPT { _C4RR(); return n.readable() ? tree_->has_child(id_, n.m_id) : false; } /**< Forward to @ref Tree::has_child(). Node must be readable. */
     C4_ALWAYS_INLINE bool has_child(id_type node) const RYML_NOEXCEPT { _C4RR(); return tree_->has_child(id_, node); } /**< Forward to @ref Tree::has_child(). Node must be readable. */

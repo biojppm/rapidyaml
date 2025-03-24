@@ -553,6 +553,183 @@ top62:
     ASSERT_EQ(t["top62"]["key62"].has_key_anchor(), false);
 }
 
+TEST(simple_anchor, issue_400)
+{
+    csubstr yaml = R"(
+a: &a
+  x: 1
+b: &b
+  ref: *a
+c:
+  ref: *b
+)";
+    {
+        Tree t = parse_in_arena(yaml);
+        t.resolve();
+        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a:
+  x: 1
+b:
+  ref:
+    x: 1
+c:
+  ref:
+    ref:
+      x: 1
+)");
+    }
+}
+
+TEST(simple_anchor, billion_laughs)
+{
+    // https://en.wikipedia.org/wiki/Billion_laughs_attack
+    csubstr yaml = R"(a: &a ["lol","lol"]
+b: &b [*a,*a]
+c: &c [*b,*b]
+)";
+    {
+        Tree t = parse_in_arena(yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+    }
+    {
+        Tree t = parse_in_arena(yaml);
+        t.resolve(true);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: ["lol","lol"]
+b: [["lol","lol"],["lol","lol"]]
+c: [[["lol","lol"],["lol","lol"]],[["lol","lol"],["lol","lol"]]]
+)");
+    }
+    {
+        Tree t = parse_in_arena(yaml);
+        t.resolve(false);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: &a ["lol","lol"]
+b: &b [&a ["lol","lol"],&a ["lol","lol"]]
+c: &c [&b [&a ["lol","lol"],&a ["lol","lol"]],&b [&a ["lol","lol"],&a ["lol","lol"]]]
+)");
+    }
+}
+
+TEST(simple_anchor, resolve_nested)
+{
+    csubstr yaml = R"(a: &a
+  b:
+    <<: *a
+)";
+    {
+        Tree t = parse_in_arena(yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+    }
+    {
+        Tree t = parse_in_arena(yaml);
+        ExpectError::check_error(&t, [&]{
+            t.resolve(true);
+        });
+    }
+    {
+        Tree t = parse_in_arena(yaml);
+        ExpectError::check_error(&t, [&]{
+            t.resolve(false);
+        });
+    }
+}
+
+TEST(simple_anchor, resolve_nested_2)
+{
+    csubstr yaml = R"(a0: &a0
+  b0: &b0
+    c0: &c0 v0
+a1: &a1
+  ref: *a0
+a2: &a2
+  ref: *a1
+a3: &a3
+  ref: *a2
+a4: &a4
+  ref: *a3
+a5: &a5
+  ref: *a4
+)";
+    {
+        Tree t = parse_in_arena(yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+    }
+    {
+        Tree t = parse_in_arena(yaml);
+        t.resolve(true);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0:
+  b0:
+    c0: v0
+a1:
+  ref:
+    b0:
+      c0: v0
+a2:
+  ref:
+    ref:
+      b0:
+        c0: v0
+a3:
+  ref:
+    ref:
+      ref:
+        b0:
+          c0: v0
+a4:
+  ref:
+    ref:
+      ref:
+        ref:
+          b0:
+            c0: v0
+a5:
+  ref:
+    ref:
+      ref:
+        ref:
+          ref:
+            b0:
+              c0: v0
+)");
+    }
+    {
+        Tree t = parse_in_arena(yaml);
+        t.resolve(false);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0: &a0
+  b0: &b0
+    c0: &c0 v0
+a1: &a1
+  ref: &a0
+    b0: &b0
+      c0: &c0 v0
+a2: &a2
+  ref: &a1
+    ref: &a0
+      b0: &b0
+        c0: &c0 v0
+a3: &a3
+  ref: &a2
+    ref: &a1
+      ref: &a0
+        b0: &b0
+          c0: &c0 v0
+a4: &a4
+  ref: &a3
+    ref: &a2
+      ref: &a1
+        ref: &a0
+          b0: &b0
+            c0: &c0 v0
+a5: &a5
+  ref: &a4
+    ref: &a3
+      ref: &a2
+        ref: &a1
+          ref: &a0
+            b0: &b0
+              c0: &c0 v0
+)");
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1311,8 +1488,8 @@ N(SB, L{
       N(KP|VP, "k6", "w6"),
       N(KP|VP, "k8", "w8"),
   }),
-  N(MB, L{N(KP|VP, "k1", AR(KEYANCH, "a1"), "v1"), N(KP|VP, "k2", AR(KEYANCH, "a2"), "v2"), N(KP|VP, "k3", AR(KEYANCH, "a3"), "v3")}),
-  N(MB, L{N(KP|VP, "k8", AR(KEYANCH, "a8"), "v8")}),
+  N(MB, L{N(KP|VP, "k1", "v1"), N(KP|VP, "k2", "v2"), N(KP|VP, "k3", "v3")}),
+  N(MB, L{N(KP|VP, "k8", "v8")}),
   N(MB, L{N(KP|VP, "k10", "v10")}),
 })
 );
