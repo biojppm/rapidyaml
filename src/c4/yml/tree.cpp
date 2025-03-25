@@ -980,50 +980,65 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
     id_type prev = after;
     for(id_type i = src->first_child(node); i != NONE; i = src->next_sibling(i))
     {
+        _c4dbgpf("duplicate_no_rep: {} -> {}/{}", i, parent, prev);
+        _RYML_CB_CHECK(m_callbacks, this != src || (parent != i && !is_ancestor(parent, i)));
         if(is_seq(parent))
         {
-            prev = duplicate(i, parent, prev);
+            _c4dbgpf("duplicate_no_rep: {} is seq", parent);
+            prev = duplicate(src, i, parent, prev);
         }
         else
         {
+            _c4dbgpf("duplicate_no_rep: {} is map", parent);
             _RYML_CB_ASSERT(m_callbacks, is_map(parent));
             // does the parent already have a node with key equal to that of the current duplicate?
-            id_type rep = NONE, rep_pos = NONE;
-            for(id_type j = first_child(parent), jcount = 0; j != NONE; ++jcount, j = next_sibling(j))
+            id_type dstnode_dup = NONE, dstnode_dup_pos = NONE;
             {
-                if(key(j) == key(i))
+                csubstr srckey = src->key(i);
+                for(id_type j = first_child(parent), jcount = 0; j != NONE; ++jcount, j = next_sibling(j))
                 {
-                    rep = j;
-                    rep_pos = jcount;
-                    break;
+                    if(key(j) == srckey)
+                    {
+                        _c4dbgpf("duplicate_no_rep: found matching key '{}' src={}/{} dst={}/{}", srckey, node, i, parent, j);
+                        dstnode_dup = j;
+                        dstnode_dup_pos = jcount;
+                        break;
+                    }
                 }
             }
-            if(rep == NONE) // there is no repetition; just duplicate
+            _c4dbgpf("duplicate_no_rep: dstnode_dup={} dstnode_dup_pos={} after_pos={}", dstnode_dup, dstnode_dup_pos, after_pos);
+            if(dstnode_dup == NONE) // there is no repetition; just duplicate
             {
+                _c4dbgpf("duplicate_no_rep: no repetition, just duplicate i={} parent={} prev={}", i, parent, prev);
                 prev = duplicate(src, i, parent, prev);
             }
             else  // yes, there is a repetition
             {
-                if(after_pos != NONE && rep_pos < after_pos)
+                if(after_pos != NONE && dstnode_dup_pos <= after_pos)
                 {
-                    // rep is located before the node which will be inserted,
+                    // the dst duplicate is located before the node which will be inserted,
                     // and will be overridden by the duplicate. So replace it.
-                    remove(rep);
+                    _c4dbgpf("duplicate_no_dstnode_dup: replace {}/{} with {}/{}", parent, dstnode_dup, node, i);
+                    if(prev == dstnode_dup)
+                        prev = prev_sibling(dstnode_dup);
+                    remove(dstnode_dup);
                     prev = duplicate(src, i, parent, prev);
                 }
                 else if(prev == NONE)
                 {
-                    // first iteration with prev = after = NONE and repetition
-                    prev = rep;
+                    _c4dbgpf("duplicate_no_dstnode_dup: {}=prev <- {}", prev, dstnode_dup);
+                    // first iteration with prev = after = NONE and dstnode_dupetition
+                    prev = dstnode_dup;
                 }
-                else if(rep != prev)
+                else if(dstnode_dup != prev)
                 {
-                    // rep is located after the node which will be inserted
-                    // and overrides it. So move the rep into this node's place.
-                    move(rep, prev);
-                    prev = rep;
+                    // dstnode_dup is located after the node which will be inserted
+                    // and overrides it. So move the dstnode_dup into this node's place.
+                    _c4dbgpf("duplicate_no_dstnode_dup: move({}, {})", dstnode_dup, prev);
+                    move(dstnode_dup, prev);
+                    prev = dstnode_dup;
                 }
-            } // there's a repetition
+            } // there's a dstnode_dupetition
         }
     }
 
@@ -1110,19 +1125,19 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
 
 //-----------------------------------------------------------------------------
 
-void Tree::resolve()
+void Tree::resolve(bool clear_anchors)
 {
     if(m_size == 0)
         return;
     ReferenceResolver rr;
-    resolve(&rr);
+    resolve(&rr, clear_anchors);
 }
 
-void Tree::resolve(ReferenceResolver *C4_RESTRICT rr)
+void Tree::resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors)
 {
     if(m_size == 0)
         return;
-    rr->resolve(this);
+    rr->resolve(this, clear_anchors);
 }
 
 
@@ -1232,6 +1247,19 @@ id_type Tree::depth_asc(id_type node) const
         node = parent(node);
     }
     return depth;
+}
+
+bool Tree::is_ancestor(id_type node, id_type ancestor) const
+{
+    _RYML_CB_ASSERT(m_callbacks, node != NONE);
+    id_type p = parent(node);
+    while(p != NONE)
+    {
+        if(p == ancestor)
+            return true;
+        p = parent(p);
+    }
+    return false;
 }
 
 

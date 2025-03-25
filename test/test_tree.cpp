@@ -3595,6 +3595,223 @@ seq: &seq [*valref, bar]
     verify_assertion(t, [&](Tree const&){ return t.depth_desc(NONE); });
 }
 
+TEST(Tree, is_ancestor)
+{
+    Tree t = parse_in_arena(R"(a0:
+  a1:
+    a2:
+      a3: a
+b0:
+  b1:
+    b2:
+      b3: b
+)");
+    const size_t map_id = t.root_id();
+    const size_t a0_id = t.first_child(map_id);
+    const size_t a1_id = t.first_child(a0_id);
+    const size_t a2_id = t.first_child(a1_id);
+    const size_t a3_id = t.first_child(a2_id);
+    const size_t b0_id = t.first_child(map_id);
+    const size_t b1_id = t.first_child(b0_id);
+    const size_t b2_id = t.first_child(b1_id);
+    const size_t b3_id = t.first_child(b2_id);
+    ConstNodeRef map = t.cref(map_id);
+    ConstNodeRef a0 = t.cref(a0_id);
+    ConstNodeRef a1 = t.cref(a1_id);
+    ConstNodeRef a2 = t.cref(a2_id);
+    ConstNodeRef a3 = t.cref(a3_id);
+    ConstNodeRef b0 = t.cref(b0_id);
+    ConstNodeRef b1 = t.cref(b1_id);
+    ConstNodeRef b2 = t.cref(b2_id);
+    ConstNodeRef b3 = t.cref(b3_id);
+    NodeRef mmap = t.ref(map_id);
+    NodeRef ma0 = t.ref(a0_id);
+    NodeRef ma1 = t.ref(a1_id);
+    NodeRef ma2 = t.ref(a2_id);
+    NodeRef ma3 = t.ref(a3_id);
+    NodeRef mb0 = t.ref(b0_id);
+    NodeRef mb1 = t.ref(b1_id);
+    NodeRef mb2 = t.ref(b2_id);
+    NodeRef mb3 = t.ref(b3_id);
+    //
+    EXPECT_TRUE(t.is_ancestor(a0_id, map_id));
+    EXPECT_TRUE(t.is_ancestor(a1_id, map_id));
+    EXPECT_TRUE(t.is_ancestor(a2_id, map_id));
+    EXPECT_TRUE(t.is_ancestor(a3_id, map_id));
+    EXPECT_FALSE(t.is_ancestor(a0_id, a0_id));
+    EXPECT_TRUE(t.is_ancestor(a1_id, a0_id));
+    EXPECT_TRUE(t.is_ancestor(a2_id, a0_id));
+    EXPECT_TRUE(t.is_ancestor(a3_id, a0_id));
+    EXPECT_FALSE(t.is_ancestor(a1_id, a1_id));
+    EXPECT_TRUE(t.is_ancestor(a2_id, a1_id));
+    EXPECT_TRUE(t.is_ancestor(a3_id, a1_id));
+    EXPECT_FALSE(t.is_ancestor(a2_id, a2_id));
+    EXPECT_TRUE(t.is_ancestor(a3_id, a2_id));
+    EXPECT_FALSE(t.is_ancestor(a3_id, a3_id));
+    EXPECT_TRUE(t.is_ancestor(b0_id, map_id));
+    EXPECT_TRUE(t.is_ancestor(b1_id, map_id));
+    EXPECT_TRUE(t.is_ancestor(b2_id, map_id));
+    EXPECT_TRUE(t.is_ancestor(b3_id, map_id));
+    EXPECT_FALSE(t.is_ancestor(b0_id, b0_id));
+    EXPECT_TRUE(t.is_ancestor(b1_id, b0_id));
+    EXPECT_TRUE(t.is_ancestor(b2_id, b0_id));
+    EXPECT_TRUE(t.is_ancestor(b3_id, b0_id));
+    EXPECT_FALSE(t.is_ancestor(b1_id, b1_id));
+    EXPECT_TRUE(t.is_ancestor(b2_id, b1_id));
+    EXPECT_TRUE(t.is_ancestor(b3_id, b1_id));
+    EXPECT_FALSE(t.is_ancestor(b2_id, b2_id));
+    EXPECT_TRUE(t.is_ancestor(b3_id, b2_id));
+    EXPECT_FALSE(t.is_ancestor(b3_id, b3_id));
+    //
+    EXPECT_FALSE(t.is_ancestor(map_id, a0_id));
+    EXPECT_FALSE(t.is_ancestor(map_id, a1_id));
+    EXPECT_FALSE(t.is_ancestor(map_id, a2_id));
+    EXPECT_FALSE(t.is_ancestor(map_id, a3_id));
+    EXPECT_FALSE(t.is_ancestor(a0_id, a0_id));
+    EXPECT_FALSE(t.is_ancestor(a0_id, a1_id));
+    EXPECT_FALSE(t.is_ancestor(a0_id, a2_id));
+    EXPECT_FALSE(t.is_ancestor(a0_id, a3_id));
+    EXPECT_FALSE(t.is_ancestor(a1_id, a1_id));
+    EXPECT_FALSE(t.is_ancestor(a1_id, a2_id));
+    EXPECT_FALSE(t.is_ancestor(a1_id, a3_id));
+    EXPECT_FALSE(t.is_ancestor(a2_id, a2_id));
+    EXPECT_FALSE(t.is_ancestor(a2_id, a3_id));
+    EXPECT_FALSE(t.is_ancestor(a3_id, a3_id));
+    EXPECT_FALSE(t.is_ancestor(map_id, b0_id));
+    EXPECT_FALSE(t.is_ancestor(map_id, b1_id));
+    EXPECT_FALSE(t.is_ancestor(map_id, b2_id));
+    EXPECT_FALSE(t.is_ancestor(map_id, b3_id));
+    EXPECT_FALSE(t.is_ancestor(b0_id, b0_id));
+    EXPECT_FALSE(t.is_ancestor(b0_id, b1_id));
+    EXPECT_FALSE(t.is_ancestor(b0_id, b2_id));
+    EXPECT_FALSE(t.is_ancestor(b0_id, b3_id));
+    EXPECT_FALSE(t.is_ancestor(b1_id, b1_id));
+    EXPECT_FALSE(t.is_ancestor(b1_id, b2_id));
+    EXPECT_FALSE(t.is_ancestor(b1_id, b3_id));
+    EXPECT_FALSE(t.is_ancestor(b2_id, b2_id));
+    EXPECT_FALSE(t.is_ancestor(b2_id, b3_id));
+    EXPECT_FALSE(t.is_ancestor(b3_id, b3_id));
+    //
+    verify_assertion(t, [&](Tree const&){ return t.is_ancestor(NONE, map_id); });
+    //
+    EXPECT_TRUE(a0.is_ancestor(map));
+    EXPECT_TRUE(a1.is_ancestor(map));
+    EXPECT_TRUE(a2.is_ancestor(map));
+    EXPECT_TRUE(a3.is_ancestor(map));
+    EXPECT_FALSE(a0.is_ancestor(a0));
+    EXPECT_TRUE(a1.is_ancestor(a0));
+    EXPECT_TRUE(a2.is_ancestor(a0));
+    EXPECT_TRUE(a3.is_ancestor(a0));
+    EXPECT_FALSE(a1.is_ancestor(a1));
+    EXPECT_TRUE(a2.is_ancestor(a1));
+    EXPECT_TRUE(a3.is_ancestor(a1));
+    EXPECT_FALSE(a2.is_ancestor(a2));
+    EXPECT_TRUE(a3.is_ancestor(a2));
+    EXPECT_FALSE(a3.is_ancestor(a3));
+    EXPECT_TRUE(b0.is_ancestor(map));
+    EXPECT_TRUE(b1.is_ancestor(map));
+    EXPECT_TRUE(b2.is_ancestor(map));
+    EXPECT_TRUE(b3.is_ancestor(map));
+    EXPECT_FALSE(b0.is_ancestor(b0));
+    EXPECT_TRUE(b1.is_ancestor(b0));
+    EXPECT_TRUE(b2.is_ancestor(b0));
+    EXPECT_TRUE(b3.is_ancestor(b0));
+    EXPECT_FALSE(b1.is_ancestor(b1));
+    EXPECT_TRUE(b2.is_ancestor(b1));
+    EXPECT_TRUE(b3.is_ancestor(b1));
+    EXPECT_FALSE(b2.is_ancestor(b2));
+    EXPECT_TRUE(b3.is_ancestor(b2));
+    EXPECT_FALSE(b3.is_ancestor(b3));
+    //
+    EXPECT_FALSE(map.is_ancestor(a0));
+    EXPECT_FALSE(map.is_ancestor(a1));
+    EXPECT_FALSE(map.is_ancestor(a2));
+    EXPECT_FALSE(map.is_ancestor(a3));
+    EXPECT_FALSE(a0.is_ancestor(a0));
+    EXPECT_FALSE(a0.is_ancestor(a1));
+    EXPECT_FALSE(a0.is_ancestor(a2));
+    EXPECT_FALSE(a0.is_ancestor(a3));
+    EXPECT_FALSE(a1.is_ancestor(a1));
+    EXPECT_FALSE(a1.is_ancestor(a2));
+    EXPECT_FALSE(a1.is_ancestor(a3));
+    EXPECT_FALSE(a2.is_ancestor(a2));
+    EXPECT_FALSE(a2.is_ancestor(a3));
+    EXPECT_FALSE(a3.is_ancestor(a3));
+    EXPECT_FALSE(map.is_ancestor(b0));
+    EXPECT_FALSE(map.is_ancestor(b1));
+    EXPECT_FALSE(map.is_ancestor(b2));
+    EXPECT_FALSE(map.is_ancestor(b3));
+    EXPECT_FALSE(b0.is_ancestor(b0));
+    EXPECT_FALSE(b0.is_ancestor(b1));
+    EXPECT_FALSE(b0.is_ancestor(b2));
+    EXPECT_FALSE(b0.is_ancestor(b3));
+    EXPECT_FALSE(b1.is_ancestor(b1));
+    EXPECT_FALSE(b1.is_ancestor(b2));
+    EXPECT_FALSE(b1.is_ancestor(b3));
+    EXPECT_FALSE(b2.is_ancestor(b2));
+    EXPECT_FALSE(b2.is_ancestor(b3));
+    EXPECT_FALSE(b3.is_ancestor(b3));
+    //
+    EXPECT_TRUE(ma0.is_ancestor(mmap));
+    EXPECT_TRUE(ma1.is_ancestor(mmap));
+    EXPECT_TRUE(ma2.is_ancestor(mmap));
+    EXPECT_TRUE(ma3.is_ancestor(mmap));
+    EXPECT_FALSE(ma0.is_ancestor(ma0));
+    EXPECT_TRUE(ma1.is_ancestor(ma0));
+    EXPECT_TRUE(ma2.is_ancestor(ma0));
+    EXPECT_TRUE(ma3.is_ancestor(ma0));
+    EXPECT_FALSE(ma1.is_ancestor(ma1));
+    EXPECT_TRUE(ma2.is_ancestor(ma1));
+    EXPECT_TRUE(ma3.is_ancestor(ma1));
+    EXPECT_FALSE(ma2.is_ancestor(ma2));
+    EXPECT_TRUE(ma3.is_ancestor(ma2));
+    EXPECT_FALSE(ma3.is_ancestor(ma3));
+    EXPECT_TRUE(mb0.is_ancestor(mmap));
+    EXPECT_TRUE(mb1.is_ancestor(mmap));
+    EXPECT_TRUE(mb2.is_ancestor(mmap));
+    EXPECT_TRUE(mb3.is_ancestor(mmap));
+    EXPECT_FALSE(mb0.is_ancestor(mb0));
+    EXPECT_TRUE(mb1.is_ancestor(mb0));
+    EXPECT_TRUE(mb2.is_ancestor(mb0));
+    EXPECT_TRUE(mb3.is_ancestor(mb0));
+    EXPECT_FALSE(mb1.is_ancestor(mb1));
+    EXPECT_TRUE(mb2.is_ancestor(mb1));
+    EXPECT_TRUE(mb3.is_ancestor(mb1));
+    EXPECT_FALSE(mb2.is_ancestor(mb2));
+    EXPECT_TRUE(mb3.is_ancestor(mb2));
+    EXPECT_FALSE(mb3.is_ancestor(mb3));
+    //
+    EXPECT_FALSE(mmap.is_ancestor(ma0));
+    EXPECT_FALSE(mmap.is_ancestor(ma1));
+    EXPECT_FALSE(mmap.is_ancestor(ma2));
+    EXPECT_FALSE(mmap.is_ancestor(ma3));
+    EXPECT_FALSE(ma0.is_ancestor(ma0));
+    EXPECT_FALSE(ma0.is_ancestor(ma1));
+    EXPECT_FALSE(ma0.is_ancestor(ma2));
+    EXPECT_FALSE(ma0.is_ancestor(ma3));
+    EXPECT_FALSE(ma1.is_ancestor(ma1));
+    EXPECT_FALSE(ma1.is_ancestor(ma2));
+    EXPECT_FALSE(ma1.is_ancestor(ma3));
+    EXPECT_FALSE(ma2.is_ancestor(ma2));
+    EXPECT_FALSE(ma2.is_ancestor(ma3));
+    EXPECT_FALSE(ma3.is_ancestor(ma3));
+    EXPECT_FALSE(mmap.is_ancestor(mb0));
+    EXPECT_FALSE(mmap.is_ancestor(mb1));
+    EXPECT_FALSE(mmap.is_ancestor(mb2));
+    EXPECT_FALSE(mmap.is_ancestor(mb3));
+    EXPECT_FALSE(mb0.is_ancestor(mb0));
+    EXPECT_FALSE(mb0.is_ancestor(mb1));
+    EXPECT_FALSE(mb0.is_ancestor(mb2));
+    EXPECT_FALSE(mb0.is_ancestor(mb3));
+    EXPECT_FALSE(mb1.is_ancestor(mb1));
+    EXPECT_FALSE(mb1.is_ancestor(mb2));
+    EXPECT_FALSE(mb1.is_ancestor(mb3));
+    EXPECT_FALSE(mb2.is_ancestor(mb2));
+    EXPECT_FALSE(mb2.is_ancestor(mb3));
+    EXPECT_FALSE(mb3.is_ancestor(mb3));
+    //
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

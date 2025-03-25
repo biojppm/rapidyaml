@@ -1,6 +1,8 @@
 
-## Fixes
+### Fixes
 
+- Fix [#400](https://github.com/biojppm/rapidyaml/issues/400) ([PR#506](https://github.com/biojppm/rapidyaml/pull/506)): clear anchors after resolving.
+- Fix [#484](https://github.com/biojppm/rapidyaml/issues/484) ([PR#506](https://github.com/biojppm/rapidyaml/pull/506)): fix merge key order for last element to be overriden.
 - [PR#503](https://github.com/biojppm/rapidyaml/pull/503): ensure parse error on `a: b: c` and similar cases containing nested maps opening on the same line.
 - [PR#502](https://github.com/biojppm/rapidyaml/pull/502): fix parse errors or missing tags:
   - missing tags in empty documents:

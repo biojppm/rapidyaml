@@ -63,9 +63,20 @@ TEST(merge, basic)
     test_merge(
         {
             "{a: 0, b: 1}",
-            "{a: 1, c: 20}"
+            "{a: 1,     c: 20}"
         },
         "{a: 1, b: 1, c: 20}"
+    );
+}
+
+TEST(merge, basic_inv)
+{
+    test_merge(
+        {
+            "{a: 1,     c: 20}",
+            "{a: 0, b: 1}"
+        },
+        "{a: 0, c: 20, b: 1}"
     );
 }
 

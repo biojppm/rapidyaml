@@ -416,6 +416,9 @@ public:
 
     bool has_parent(id_type node) const { return _p(node)->m_parent != NONE; }
 
+    /** true when ancestor is parent or parent of a parent of node */
+    bool is_ancestor(id_type node, id_type ancestor) const;
+
     /** true when key and val are empty, and has no children */
     bool empty(id_type node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
 
@@ -559,33 +562,23 @@ public:
      * position in the tree's node array. */
     void reorder();
 
-    /** Resolve references (aliases <- anchors) in the tree.
-     *
-     * Dereferencing is opt-in; after parsing, Tree::resolve() has to
-     * be called explicitly for obtaining resolved references in the
-     * tree. This method will @ref ReferenceResolver::resolve()
-     * to resolve all references and substitute the anchored values in
-     * place of the reference.
-     *
-     * This method first does a full traversal of the tree to gather all
-     * anchors and references in a separate collection, then it goes through
-     * that collection to locate the names, which it does by obeying the YAML
-     * standard diktat that "an alias node refers to the most recent node in
-     * the serialization having the specified anchor"
-     *
-     * So, depending on the number of anchor/alias nodes, this is a
-     * potentially expensive operation, with a best-case linear complexity
-     * (from the initial traversal). This potential cost is the reason for
-     * requiring an explicit call.
-     *
-     * @see ReferenceResolver::resolve()
-     */
-    void resolve(ReferenceResolver *C4_RESTRICT rr);
-
-    /** Resolve references using a throw-away resolver. */
-    void resolve();
-
     /** @} */
+
+public:
+
+    /** @name anchors and references/aliases */
+    /** @{ */
+
+    /** Resolve references (aliases <- anchors), by forwarding to @ref
+     * ReferenceResolver::resolve(); refer to @ref
+     * ReferenceResolver::resolve() for further details. */
+    void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors=true);
+
+    /** Resolve references (aliases <- anchors), by forwarding to @ref
+     * ReferenceResolver::resolve(); refer to @ref
+     * ReferenceResolver::resolve() for further details. This overload
+     * uses a throwaway resolver object. */
+    void resolve(bool clear_anchors=true);
 
 public:
 
@@ -756,9 +749,6 @@ public:
      * @return the index of the last duplicated child */
     id_type duplicate_children(Tree const* src, id_type node, id_type parent, id_type after);
 
-    void duplicate_contents(id_type node, id_type where);
-    void duplicate_contents(Tree const* src, id_type node, id_type where);
-
     /** duplicate the node's children (but not the node) in a new parent, but
      * omit repetitions where a duplicated node has the same key (in maps) or
      * value (in seqs). If one of the duplicated children has the same key
@@ -766,6 +756,9 @@ public:
      * that is placed closest to the end will prevail. */
     id_type duplicate_children_no_rep(id_type node, id_type parent, id_type after);
     id_type duplicate_children_no_rep(Tree const* src, id_type node, id_type parent, id_type after);
+
+    void duplicate_contents(id_type node, id_type where);
+    void duplicate_contents(Tree const* src, id_type node, id_type where);
 
 public:
 
