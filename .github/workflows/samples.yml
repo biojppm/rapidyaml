@@ -28,9 +28,9 @@ jobs:
       matrix:
         include:
         - bt: Debug
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - bt: Release
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - bt: Debug
           os: windows-2019
         - bt: Release

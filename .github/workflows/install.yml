@@ -32,36 +32,36 @@ jobs:
         include:
         - name: find_package/linux
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: g++-10
-          gen: -DCMAKE_CXX_COMPILER=g++-10
+          os: ubuntu-24.04
+          cxx: g++-13
+          gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Release
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
           commonvars: null
         - name: find_package/linux
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: g++-10
-          gen: -DCMAKE_CXX_COMPILER=g++-10
+          os: ubuntu-24.04
+          cxx: g++-13
+          gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Debug
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
           commonvars: null
         - name: find_package/linux/libcxx
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: clang++-9
-          gen: -DCMAKE_CXX_COMPILER=clang++-9
+          os: ubuntu-24.04
+          cxx: clang++-14
+          gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Release
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: find_package/linux/libcxx
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: clang++-9
-          gen: -DCMAKE_CXX_COMPILER=clang++-9
+          os: ubuntu-24.04
+          cxx: clang++-14
+          gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Debug
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
@@ -104,36 +104,36 @@ jobs:
           commonvars: null
         - name: find_library/linux
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: g++-10
-          gen: -DCMAKE_CXX_COMPILER=g++-10
+          os: ubuntu-24.04
+          cxx: g++-13
+          gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Release
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
           commonvars: null
         - name: find_library/linux
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: g++-10
-          gen: -DCMAKE_CXX_COMPILER=g++-10
+          os: ubuntu-24.04
+          cxx: g++-13
+          gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Debug
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
           commonvars: null
         - name: find_library/linux/libcxx
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: clang++-9
-          gen: -DCMAKE_CXX_COMPILER=clang++-9
+          os: ubuntu-24.04
+          cxx: clang++-14
+          gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Release
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: find_library/linux/libcxx
           sdir: test/test_install
-          os: ubuntu-20.04
-          cxx: clang++-9
-          gen: -DCMAKE_CXX_COMPILER=clang++-9
+          os: ubuntu-24.04
+          cxx: clang++-14
+          gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Debug
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
@@ -176,36 +176,36 @@ jobs:
           commonvars: null
         - name: singleheader/linux
           sdir: test/test_singleheader
-          os: ubuntu-20.04
-          cxx: g++-10
-          gen: -DCMAKE_CXX_COMPILER=g++-10
+          os: ubuntu-24.04
+          cxx: g++-13
+          gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Release
           vars: null
           commonvars: null
         - name: singleheader/linux
           sdir: test/test_singleheader
-          os: ubuntu-20.04
-          cxx: g++-10
-          gen: -DCMAKE_CXX_COMPILER=g++-10
+          os: ubuntu-24.04
+          cxx: g++-13
+          gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Debug
           vars: null
           commonvars: null
         - name: singleheader/linux/libcxx
           sdir: test/test_singleheader
-          os: ubuntu-20.04
-          cxx: clang++-9
-          gen: -DCMAKE_CXX_COMPILER=clang++-9
+          os: ubuntu-24.04
+          cxx: clang++-14
+          gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Release
           vars: null
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: singleheader/linux/libcxx
           sdir: test/test_singleheader
-          os: ubuntu-20.04
-          cxx: clang++-9
-          gen: -DCMAKE_CXX_COMPILER=clang++-9
+          os: ubuntu-24.04
+          cxx: clang++-14
+          gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Debug
           vars: null

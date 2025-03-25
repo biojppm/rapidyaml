@@ -29,3 +29,4 @@
       !tag : !tag
     ```
 - [PR#501](https://github.com/biojppm/rapidyaml/pull/501): fix missing tag in `- !!seq []`.
+- [PR#508](https://github.com/biojppm/rapidyaml/pull/508): fix build with cmake 4.

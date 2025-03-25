@@ -138,22 +138,14 @@ jobs:
 #         include:
 #         # these jobs take much longer, so run only one bitlink pair per job
 #         # to profit from parallelism
-#         - {std: 11, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
-#           os: ubuntu-20.04}
-#         - {std: 11, cxx: clang++-10, bt: Release, bitlinks: shared64,
-#           os: ubuntu-20.04}
-#         - {std: 14, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
-#           os: ubuntu-20.04}
-#         - {std: 14, cxx: clang++-10, bt: Release, bitlinks: shared64,
-#           os: ubuntu-20.04}
-#         - {std: 17, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
-#           os: ubuntu-20.04}
-#         - {std: 17, cxx: clang++-10, bt: Release, bitlinks: shared64,
-#           os: ubuntu-20.04}
-#         - {std: 20, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
-#           os: ubuntu-20.04}
-#         - {std: 20, cxx: clang++-10, bt: Release, bitlinks: shared64,
-#           os: ubuntu-20.04}
+#         - {std: 11, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-24.04}
+#         - {std: 11, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-24.04}
+#         - {std: 14, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-24.04}
+#         - {std: 14, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-24.04}
+#         - {std: 17, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-24.04}
+#         - {std: 17, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-24.04}
+#         - {std: 20, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-24.04}
+#         - {std: 20, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-24.04}
 #
 #     env:: load('share/env.yaml')
 #
