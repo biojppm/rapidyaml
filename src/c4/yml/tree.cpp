@@ -1014,11 +1014,13 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
             }
             else  // yes, there is a repetition
             {
-                if(after_pos != NONE && dstnode_dup_pos < after_pos)
+                if(after_pos != NONE && dstnode_dup_pos <= after_pos)
                 {
                     // the dst duplicate is located before the node which will be inserted,
                     // and will be overridden by the duplicate. So replace it.
                     _c4dbgpf("duplicate_no_dstnode_dup: replace {}/{} with {}/{}", parent, dstnode_dup, node, i);
+                    if(prev == dstnode_dup)
+                        prev = prev_sibling(dstnode_dup);
                     remove(dstnode_dup);
                     prev = duplicate(src, i, parent, prev);
                 }

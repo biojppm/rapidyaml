@@ -750,6 +750,84 @@ a5: &a5
     }
 }
 
+TEST(simple_anchor, issue_484_0)
+{
+    csubstr yaml = R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  !!merge <<: *base_1
+  !!merge <<: *base_2
+k2:
+  !!merge <<: *base_2
+  !!merge <<: *base_1
+)";
+    Tree t = parse_in_arena(yaml);
+    EXPECT_EQ(t["k1"][0].val(), "*base_1");
+    EXPECT_EQ(t["k1"][1].val(), "*base_2");
+    EXPECT_EQ(t["k2"][0].val(), "*base_2");
+    EXPECT_EQ(t["k2"][1].val(), "*base_1");
+    t.resolve();
+    EXPECT_EQ(t["k1"]["a"].val(), "10");
+    EXPECT_EQ(t["k1"]["b"].val(), "20");
+    EXPECT_EQ(t["k2"]["a"].val(), "10");
+    EXPECT_EQ(t["k2"]["b"].val(), "10");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(base_1:
+  a: 10
+  b: 10
+base_2:
+  b: 20
+k1:
+  a: 10
+  b: 20
+k2:
+  a: 10
+  b: 10
+)");
+}
+
+TEST(simple_anchor, issue_484_1)
+{
+    csubstr yaml = R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  a: 30
+k1:
+  <<: *base_1
+  <<: *base_2
+k2:
+  <<: *base_2
+  <<: *base_1
+)";
+    Tree t = parse_in_arena(yaml);
+    EXPECT_EQ(t["k1"][0].val(), "*base_1");
+    EXPECT_EQ(t["k1"][1].val(), "*base_2");
+    EXPECT_EQ(t["k2"][0].val(), "*base_2");
+    EXPECT_EQ(t["k2"][1].val(), "*base_1");
+    t.resolve();
+    EXPECT_EQ(t["k1"]["a"].val(), "30");
+    EXPECT_EQ(t["k1"]["b"].val(), "10");
+    EXPECT_EQ(t["k2"]["a"].val(), "10");
+    EXPECT_EQ(t["k2"]["b"].val(), "10");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(base_1:
+  a: 10
+  b: 10
+base_2:
+  a: 30
+k1:
+  b: 10
+  a: 30
+k2:
+  a: 10
+  b: 10
+)");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1546,6 +1624,28 @@ R"(
 N(MB, L{
       N(KD|VP, TS("!!str", "foo"), TS("!!str", "bar")),
       N(KP|VD, "baz", "foo"),
+  })
+);
+
+ADD_CASE_TO_GROUP("github 484, resolved", RESOLVE_REFS,
+R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  !!merge <<: *base_1
+  !!merge <<: *base_2
+k2:
+  !!merge <<: *base_2
+  !!merge <<: *base_1
+)",
+N(MB, L{
+      N(KP|MB, "base_1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "base_2", L{/*                 */N(KP|VP, "b", "20")}),
+      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "20")}),
+      N(KP|MB, "k2", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
   })
 );
 
