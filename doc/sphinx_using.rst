@@ -2,6 +2,18 @@ Using ryml in your project
 ==========================
 
 
+Note that ryml uses submodules. Take care to use the `--recursive` flag
+when cloning the repo, to ensure ryml's submodules are checked out as well:
+
+.. code:: bash
+
+   git clone --recursive https://github.com/biojppm/rapidyaml
+
+If you omit `--recursive`, after cloning you
+will have to do `git submodule update --init --recursive`
+to ensure ryml's submodules are checked out.
+
+
 Quickstart build samples
 ------------------------
 
@@ -10,7 +22,7 @@ All the samples use `the same quickstart executable
 source <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/quickstart.cpp>`__, but are built in different ways,
 showing several alternatives to integrate ryml into your project. We
 also encourage you to refer to the `quickstart
-docs <doxygen/group__doc__quickstart.html>`__, which extensively cover
+docs <doxygen/group__doc__quickstart.html>`__, which extensively covers
 the functionality that you may want out of ryml.
 
 If you're in a rush to start, try this:
@@ -164,17 +176,6 @@ installed either manually or through package managers.
 
 Currently `cmake <https://cmake.org/>`_ is required to build ryml; we
 recommend a recent cmake version, at least 3.13.
-
-Note that ryml uses submodules. Take care to use the `--recursive` flag
-when cloning the repo, to ensure ryml's submodules are checked out as well:
-
-.. code:: bash
-
-   git clone --recursive https://github.com/biojppm/rapidyaml
-
-If you omit `--recursive`, after cloning you
-will have to do `git submodule update --init --recursive`
-to ensure ryml's submodules are checked out.
 
 
 Forcing ryml to use a different c4core version

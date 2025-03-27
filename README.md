@@ -431,6 +431,17 @@ CHECK(loc.col == 4u);
 
 ## Using ryml in your project
 
+Note that ryml uses submodules. Take care to use the `--recursive`
+flag when cloning the repo, to ensure ryml's submodules are checked
+out as well:
+```bash
+git clone --recursive https://github.com/biojppm/rapidyaml
+```
+If you omit `--recursive`, after cloning you will have to do `git
+submodule update --init --recursive` to ensure ryml's submodules are
+checked out.
+
+
 ### Single header file
 ryml is provided chiefly as a cmake library project, but it can also
 be used as a single header file, and there is a [tool to
@@ -490,14 +501,6 @@ installed either manually or through package managers.
 Currently [cmake](https://cmake.org/) is required to build ryml; we
 recommend a recent cmake version, at least 3.13.
 
-Note that ryml uses submodules. Take care to use the `--recursive` flag
-when cloning the repo, to ensure ryml's submodules are checked out as well:
-```bash
-git clone --recursive https://github.com/biojppm/rapidyaml
-```
-If you omit `--recursive`, after cloning you
-will have to do `git submodule update --init --recursive`
-to ensure ryml's submodules are checked out.
 
 ### Package managers
 
