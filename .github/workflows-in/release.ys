@@ -82,14 +82,14 @@ jobs:
         config:
         #  name of the artifact | suffix (gen) | suffix (package) |
         #  cpack gen | mime type | os | cxx
+        - {name: Ubuntu 24.04 deb,
+           sfxg: unix64.deb,
+           sfxp: ubuntu-24.04.deb,
+           gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-24.04}
         - {name: Ubuntu 22.04 deb,
            sfxg: unix64.deb,
            sfxp: ubuntu-22.04.deb,
            gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-22.04}
-        - {name: Ubuntu 20.04 deb,
-           sfxg: unix64.deb,
-           sfxp: ubuntu-20.04.deb,
-           gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-20.04}
        #- {name: Ubuntu 18.04 deb,
        #   sfxg: unix64.deb,
        #   sfxp: ubuntu-18.04.deb,
@@ -156,7 +156,7 @@ jobs:
       matrix:
         # Local function to expand python entries:
         python =:
-          fn(a0 a1 a2 a3)::
+          fn(a0 a1 a2 a3 os)::
             pythonv:: a0
             cibw_pyv:: a1
             cibw_arch:: a2
@@ -164,24 +164,24 @@ jobs:
             name:: "python/$a0/linux/$a2"
             sfx:: "python$a0_linux$a2" # suffix
             osname: linux
-            os: ubuntu-20.04
+            os:: os
         config:
-       #- ! python('3.13' 313 'x86_64' 'manylinux_x86_64')
-       #- ! python('3.13' 313 'i686'   'manylinux_i686')
-        - ! python('3.12' 312 'x86_64' 'manylinux_x86_64')
-        - ! python('3.12' 312 'i686'   'manylinux_i686')
-        - ! python('3.11' 311 'x86_64' 'manylinux_x86_64')
-        - ! python('3.11' 311 'i686'   'manylinux_i686')
-        - ! python('3.10' 310 'x86_64' 'manylinux_x86_64')
-        - ! python('3.10' 310 'i686'   'manylinux_i686')
-        - ! python('3.9'  39  'x86_64' 'manylinux_x86_64')
-        - ! python('3.9'  39  'i686'   'manylinux_i686')
-        - ! python('3.8'  38  'x86_64' 'manylinux_x86_64')
-        - ! python('3.8'  38  'i686'   'manylinux_i686')
-        - ! python('3.7'  37  'x86_64' 'manylinux_x86_64')
-        - ! python('3.7'  37  'i686'   'manylinux_i686')
-        - ! python('3.6'  36  'x86_64' 'manylinux_x86_64')
-        - ! python('3.6'  36  'i686'   'manylinux_i686')
+        #- ! python('3.13' 313 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+        #- ! python('3.13' 313 'i686'   'manylinux_i686'   'ubuntu-24.04')
+        - ! python('3.12' 312 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+        - ! python('3.12' 312 'i686'   'manylinux_i686'   'ubuntu-24.04')
+        - ! python('3.11' 311 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+        - ! python('3.11' 311 'i686'   'manylinux_i686'   'ubuntu-24.04')
+        - ! python('3.10' 310 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+        - ! python('3.10' 310 'i686'   'manylinux_i686'   'ubuntu-24.04')
+        - ! python('3.9'  39  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+        - ! python('3.9'  39  'i686'   'manylinux_i686'   'ubuntu-24.04')
+        - ! python('3.8'  38  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+        - ! python('3.8'  38  'i686'   'manylinux_i686'   'ubuntu-24.04')
+        - ! python('3.7'  37  'x86_64' 'manylinux_x86_64' 'ubuntu-22.04')
+        - ! python('3.7'  37  'i686'   'manylinux_i686'   'ubuntu-22.04')
+        #- ! python('3.6'  36  'x86_64' 'manylinux_x86_64' 'ubuntu-22.04')
+        #- ! python('3.6'  36  'i686'   'manylinux_i686'   'ubuntu-22.04')
         # the windows builds are disabled because they are causing problems and
         # preventing the release.
         # the problems are related to CMakeExtension forcing the use of Ninja

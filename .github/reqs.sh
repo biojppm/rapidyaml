@@ -166,7 +166,7 @@ function c4_install_test_requirements_ubuntu_impl()
         sudo pip3 install --force-reinstall importlib_metadata
         sudo pip3 install --force-reinstall setuptools
         sudo pip3 install setuptools-rust
-        sudo pip3 install --upgrade pip
+        sudo pip3 install --upgrade pip || echo "could not upgrade pip"
         sudo pip3 install $PIP_PKG
     fi
 }
@@ -345,7 +345,7 @@ function _c4_addclang()
     clversion=$1
     case $clversion in
         # in 18.04, clang9 and later require PPAs
-        9 | 10 | 11 | 12 | 13 | 14 | 15)
+        9 | 10 | 11 | 12 | 13)
             _add_apt clang-$clversion "deb http://apt.llvm.org/$UBUNTU_RELEASE_NAME/ llvm-toolchain-$UBUNTU_RELEASE_NAME-$clversion main"
             # libstdc++ is required
             _c4_addgcc 11

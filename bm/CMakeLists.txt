@@ -7,6 +7,10 @@ find_package(Python REQUIRED COMPONENTS Interpreter)
 # thirdparty libs that will be compared with ryml
 
 set(_ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
+if(NOT (CMAKE_VERSION VERSION_LESS "4.0.0"))
+    c4_log(STATUS "setting CMAKE_POLICY_VERSION_MINIMUM=3.5 to compile benchmarked libs")
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+endif()
 
 # libyaml
 c4_require_subproject(libyaml REMOTE

@@ -166,18 +166,18 @@ jobs:
       fail-fast: false
       matrix:
         config:
+        - name: Ubuntu 24.04 deb
+          sfxg: unix64.deb
+          sfxp: ubuntu-24.04.deb
+          gen: DEB
+          mime: vnd.debian.binary-package
+          os: ubuntu-24.04
         - name: Ubuntu 22.04 deb
           sfxg: unix64.deb
           sfxp: ubuntu-22.04.deb
           gen: DEB
           mime: vnd.debian.binary-package
           os: ubuntu-22.04
-        - name: Ubuntu 20.04 deb
-          sfxg: unix64.deb
-          sfxp: ubuntu-20.04.deb
-          gen: DEB
-          mime: vnd.debian.binary-package
-          os: ubuntu-20.04
         - name: Windows VS2019 zip
           sfxg: win64.zip
           sfxp: windows-vs2019.zip
@@ -297,7 +297,7 @@ jobs:
           name: python/3.12/linux/x86_64
           sfx: python3.12_linuxx86_64
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.12'
           cibw_pyv: 312
           cibw_arch: i686
@@ -305,7 +305,7 @@ jobs:
           name: python/3.12/linux/i686
           sfx: python3.12_linuxi686
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.11'
           cibw_pyv: 311
           cibw_arch: x86_64
@@ -313,7 +313,7 @@ jobs:
           name: python/3.11/linux/x86_64
           sfx: python3.11_linuxx86_64
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.11'
           cibw_pyv: 311
           cibw_arch: i686
@@ -321,7 +321,7 @@ jobs:
           name: python/3.11/linux/i686
           sfx: python3.11_linuxi686
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.10'
           cibw_pyv: 310
           cibw_arch: x86_64
@@ -329,7 +329,7 @@ jobs:
           name: python/3.10/linux/x86_64
           sfx: python3.10_linuxx86_64
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.10'
           cibw_pyv: 310
           cibw_arch: i686
@@ -337,7 +337,7 @@ jobs:
           name: python/3.10/linux/i686
           sfx: python3.10_linuxi686
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.9'
           cibw_pyv: 39
           cibw_arch: x86_64
@@ -345,7 +345,7 @@ jobs:
           name: python/3.9/linux/x86_64
           sfx: python3.9_linuxx86_64
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.9'
           cibw_pyv: 39
           cibw_arch: i686
@@ -353,7 +353,7 @@ jobs:
           name: python/3.9/linux/i686
           sfx: python3.9_linuxi686
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.8'
           cibw_pyv: 38
           cibw_arch: x86_64
@@ -361,7 +361,7 @@ jobs:
           name: python/3.8/linux/x86_64
           sfx: python3.8_linuxx86_64
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.8'
           cibw_pyv: 38
           cibw_arch: i686
@@ -369,7 +369,7 @@ jobs:
           name: python/3.8/linux/i686
           sfx: python3.8_linuxi686
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-24.04
         - pythonv: '3.7'
           cibw_pyv: 37
           cibw_arch: x86_64
@@ -377,7 +377,7 @@ jobs:
           name: python/3.7/linux/x86_64
           sfx: python3.7_linuxx86_64
           osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-22.04
         - pythonv: '3.7'
           cibw_pyv: 37
           cibw_arch: i686
@@ -385,23 +385,7 @@ jobs:
           name: python/3.7/linux/i686
           sfx: python3.7_linuxi686
           osname: linux
-          os: ubuntu-20.04
-        - pythonv: '3.6'
-          cibw_pyv: 36
-          cibw_arch: x86_64
-          cibw_platform: manylinux_x86_64
-          name: python/3.6/linux/x86_64
-          sfx: python3.6_linuxx86_64
-          osname: linux
-          os: ubuntu-20.04
-        - pythonv: '3.6'
-          cibw_pyv: 36
-          cibw_arch: i686
-          cibw_platform: manylinux_i686
-          name: python/3.6/linux/i686
-          sfx: python3.6_linuxi686
-          osname: linux
-          os: ubuntu-20.04
+          os: ubuntu-22.04
     steps:
     - name: checkout (action)
       uses: actions/checkout@v4

@@ -27,23 +27,23 @@ jobs:
           -['find_package' 'find_library' 'singleheader' 'linux/libcxx']
         t-t-i t-t-s =: -['test/test_install' 'test/test_singleheader']
         include:: -[
-          {:name "$fp/linux", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'g++-10',
-           :gen '-DCMAKE_CXX_COMPILER=g++-10', :tgt 'all', :bt 'Release',
+          {:name "$fp/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
+           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Release',
            :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
            :commonvars nil}
-          {:name "$fp/linux", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'g++-10',
-           :gen '-DCMAKE_CXX_COMPILER=g++-10', :tgt 'all', :bt 'Debug',
+          {:name "$fp/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
+           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Debug',
            :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
            :commonvars nil}
-          {:name "$fp/$lcxx", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'clang++-9',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-9', :tgt 'all', :bt 'Release',
+          {:name "$fp/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
+           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Release',
            :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
            :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$fp/$lcxx", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'clang++-9',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-9', :tgt 'all', :bt 'Debug',
+          {:name "$fp/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
+           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Debug',
            :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
            :commonvars '-DRYML_USE_LIBCXX=ON'}
@@ -72,23 +72,23 @@ jobs:
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
            :commonvars nil}
 
-          {:name "$fl/linux", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'g++-10',
-           :gen '-DCMAKE_CXX_COMPILER=g++-10', :tgt 'all', :bt 'Release',
+          {:name "$fl/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
+           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Release',
            :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
            :commonvars nil}
-          {:name "$fl/linux", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'g++-10',
-           :gen '-DCMAKE_CXX_COMPILER=g++-10', :tgt 'all', :bt 'Debug',
+          {:name "$fl/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
+           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Debug',
            :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
            :commonvars nil}
-          {:name "$fl/$lcxx", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'clang++-9',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-9', :tgt 'all', :bt 'Release',
+          {:name "$fl/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
+           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Release',
            :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
            :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$fl/$lcxx", :sdir t-t-i, :os 'ubuntu-20.04', :cxx 'clang++-9',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-9', :tgt 'all', :bt 'Debug',
+          {:name "$fl/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
+           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Debug',
            :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
            :commonvars '-DRYML_USE_LIBCXX=ON'}
@@ -117,17 +117,17 @@ jobs:
                   -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
            :commonvars nil}
 
-          {:name "$sh/linux", :sdir t-t-s, :os 'ubuntu-20.04', :cxx 'g++-10',
-           :gen '-DCMAKE_CXX_COMPILER=g++-10',
+          {:name "$sh/linux", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'g++-13',
+           :gen '-DCMAKE_CXX_COMPILER=g++-13',
            :tgt 'all', :bt 'Release', :vars nil, :commonvars nil}
-          {:name "$sh/linux", :sdir t-t-s, :os 'ubuntu-20.04', :cxx 'g++-10',
-           :gen '-DCMAKE_CXX_COMPILER=g++-10',
+          {:name "$sh/linux", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'g++-13',
+           :gen '-DCMAKE_CXX_COMPILER=g++-13',
            :tgt 'all', :bt 'Debug', :vars nil, :commonvars nil}
-          {:name "$sh/$lcxx", :sdir t-t-s, :os 'ubuntu-20.04', :cxx 'clang++-9',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-9', :tgt 'all', :bt 'Release',
+          {:name "$sh/$lcxx", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'clang++-14',
+           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Release',
            :vars nil, :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$sh/$lcxx", :sdir t-t-s, :os 'ubuntu-20.04', :cxx 'clang++-9',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-9', :tgt 'all', :bt 'Debug',
+          {:name "$sh/$lcxx", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'clang++-14',
+           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Debug',
            :vars nil, :commonvars '-DRYML_USE_LIBCXX=ON'}
           {:name "$sh/macos", :sdir t-t-s, :os 'macos-13', :cxx 'xcode',
            :gen '-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64',
