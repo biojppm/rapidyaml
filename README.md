@@ -526,6 +526,7 @@ Currently [cmake](https://cmake.org/) is required to build ryml; we
 recommend a recent cmake version, at least 3.13.
 
 
+
 ### Package managers
 
 ryml is available in most package managers (thanks to all the
@@ -601,6 +602,9 @@ ryml:
   * `RYML_USE_ASSERT` - enable assertions in the code regardless of
     build type. This is disabled by default. Failed assertions will
     trigger a call to the error callback.
+  * `RYML_SHORT_CHECK_MSG` - Use shorter error message from
+    checks/asserts: do not show the check condition in the error
+    message.
   * `RYML_STANDALONE=ON/OFF`. ryml uses
     [c4core](https://github.com/biojppm/c4core), a C++ library with low-level
     multi-platform utilities for C++. When `RYML_STANDALONE=ON`, c4core is

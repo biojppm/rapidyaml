@@ -191,6 +191,11 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
  * is empty otherwise. The user is unable to override this macro. */
 #   define RYML_NOEXCEPT
 
+/** (Undefined by default) Use shorter error message from
+ * checks/asserts: do not show the check condition in the error
+ * message. */
+#   defined RYML_SHORT_CHECK_MSG
+
 #endif
 
 
@@ -209,18 +214,6 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 #endif
 
 #define RYML_DEPRECATED(msg) C4_DEPRECATED(msg)
-
-#if defined(RYML_DBG) && !defined(NDEBUG) && !defined(C4_NO_DEBUG_BREAK)
-#   define RYML_DEBUG_BREAK()                               \
-    do {                                                    \
-        if(c4::get_error_flags() & c4::ON_ERROR_DEBUGBREAK) \
-        {                                                   \
-            C4_DEBUG_BREAK();                               \
-        }                                                   \
-    } while(false)
-#else
-#   define RYML_DEBUG_BREAK()
-#endif
 
 /** @endcond */
 

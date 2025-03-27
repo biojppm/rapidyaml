@@ -11,6 +11,17 @@
 #if (defined(C4_EXCEPTIONS) && (!defined(RYML_NO_DEFAULT_CALLBACKS) && defined(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS))) || defined(__DOXYGEN__)
 #define _RYML_WITH_EXCEPTIONS
 #endif
+#if defined(RYML_DBG) && !defined(NDEBUG) && !defined(C4_NO_DEBUG_BREAK)
+#   define RYML_DEBUG_BREAK()                               \
+    do {                                                    \
+        if(c4::get_error_flags() & c4::ON_ERROR_DEBUGBREAK) \
+        {                                                   \
+            C4_DEBUG_BREAK();                               \
+        }                                                   \
+    } while(false)
+#else
+#   define RYML_DEBUG_BREAK()
+#endif
 /// @endcond
 
 #ifdef _RYML_WITH_EXCEPTIONS
@@ -496,17 +507,17 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
 
 #if RYML_USE_ASSERT
 #   define _RYML_ASSERT_BASIC(cond) _RYML_CHECK_BASIC(cond)
-#   define _RYML_ASSERT_BASIC_(cb, cond) _RYML_CHECK_BASIC_((cb), (cond))
-#   define _RYML_ASSERT_BASIC_MSG(cond, ...) _RYML_CHECK_BASIC_MSG((cond), __VA_ARGS__)
-#   define _RYML_ASSERT_BASIC_MSG_(cb, cond, ...) _RYML_CHECK_BASIC_MSG_((cb), (cond), __VA_ARGS__)
-#   define _RYML_ASSERT_PARSE(cond, ymlloc) _RYML_CHECK_PARSE(cond)
-#   define _RYML_ASSERT_PARSE_(cb, cond, ymlloc) _RYML_CHECK_PARSE_((cb), (cond), (ymlloc))
-#   define _RYML_ASSERT_PARSE_MSG(cond, ymlloc, ...) _RYML_CHECK_PARSE_MSG((cond), (ymlloc))
-#   define _RYML_ASSERT_PARSE_MSG_(cb, cond, ymlloc, ...) _RYML_CHECK_PARSE_MSG_((cb), (cond), (ymlloc), __VA_ARGS__)
-#   define _RYML_ASSERT_VISIT(cond, tree, node) _RYML_CHECK_VISIT((cond), (tree), (node))
-#   define _RYML_ASSERT_VISIT_(cb, cond, tree, node) _RYML_CHECK_VISIT_((cb), (cond), (tree), (node))
-#   define _RYML_ASSERT_VISIT_MSG(cond, tree, node, ...) _RYML_CHECK_VISIT_MSG((cond), (tree), (node), __VA_ARGS__)
-#   define _RYML_ASSERT_VISIT_MSG_(cb, cond, tree, node, ...) _RYML_CHECK_VISIT_MSG_((cb), (cond), (tree), (node), __VA_ARGS__)
+#   define _RYML_ASSERT_BASIC_(cb, cond) _RYML_CHECK_BASIC_((cb), cond)
+#   define _RYML_ASSERT_BASIC_MSG(cond, ...) _RYML_CHECK_BASIC_MSG(cond, __VA_ARGS__)
+#   define _RYML_ASSERT_BASIC_MSG_(cb, cond, ...) _RYML_CHECK_BASIC_MSG_((cb), cond, __VA_ARGS__)
+#   define _RYML_ASSERT_PARSE(cond, ymlloc) _RYML_CHECK_PARSE(cond, (ymlloc))
+#   define _RYML_ASSERT_PARSE_(cb, cond, ymlloc) _RYML_CHECK_PARSE_((cb), cond, (ymlloc))
+#   define _RYML_ASSERT_PARSE_MSG(cond, ymlloc, ...) _RYML_CHECK_PARSE_MSG(cond, (ymlloc), __VA_ARGS__)
+#   define _RYML_ASSERT_PARSE_MSG_(cb, cond, ymlloc, ...) _RYML_CHECK_PARSE_MSG_((cb), cond, (ymlloc), __VA_ARGS__)
+#   define _RYML_ASSERT_VISIT(cond, tree, node) _RYML_CHECK_VISIT(cond, (tree), (node))
+#   define _RYML_ASSERT_VISIT_(cb, cond, tree, node) _RYML_CHECK_VISIT_((cb), cond, (tree), (node))
+#   define _RYML_ASSERT_VISIT_MSG(cond, tree, node, ...) _RYML_CHECK_VISIT_MSG(cond, (tree), (node), __VA_ARGS__)
+#   define _RYML_ASSERT_VISIT_MSG_(cb, cond, tree, node, ...) _RYML_CHECK_VISIT_MSG_((cb), cond, (tree), (node), __VA_ARGS__)
 #else
 #   define _RYML_ASSERT_BASIC(cond)
 #   define _RYML_ASSERT_BASIC_(cb, cond)
@@ -521,7 +532,6 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
 #   define _RYML_ASSERT_VISIT_MSG(cont, tree, node, ...)
 #   define _RYML_ASSERT_VISIT_MSG_(cb, cont, tree, node, ...)
 #endif
-
 
 #define _RYML_ERR_BASIC(...)                                            \
     do                                                                  \
@@ -569,12 +579,20 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
     } while(false)
 
 
+#ifndef RYML_SHORT_CHECK_MSG
+#define _RYML_MAYBE_MSG(cond) ": " #cond
+#define _RYML_MAYBE_MSG_(cond) ": " #cond ": "
+#else
+#define _RYML_MAYBE_MSG(cond)
+#define _RYML_MAYBE_MSG_(cond) ": "
+#endif
+
 #define _RYML_CHECK_BASIC(cond)                                         \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed"); \
+            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -583,7 +601,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed"); \
+            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -592,7 +610,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed"); \
+            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -603,7 +621,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed"); \
+            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -612,7 +630,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed"); \
+            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -621,7 +639,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed"); \
+            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -632,7 +650,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed: " __VA_ARGS__); \
+            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -641,7 +659,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed: " __VA_ARGS__); \
+            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -650,7 +668,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed: " __VA_ARGS__); \
+            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -661,7 +679,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed: " __VA_ARGS__); \
+            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -670,7 +688,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed: " __VA_ARGS__); \
+            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -679,7 +697,7 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed: " __VA_ARGS__); \
+            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
