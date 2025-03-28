@@ -949,20 +949,21 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = \
-                         ./doxy_main.md \
-                         ../src \
-                         ../test/test_suite/test_suite_event_handler.hpp \
-                         ../test/test_suite/test_suite_event_handler.cpp \
-                         ../samples/quickstart.cpp \
-                         ../ext/c4core/src/c4/substr.hpp \
-                         ../ext/c4core/src/c4/charconv.hpp \
-                         ../ext/c4core/src/c4/format.hpp \
-                         ../ext/c4core/src/c4/base64.hpp \
-                         ../ext/c4core/src/c4/utf.hpp \
-                         ../ext/c4core/src/c4/std/string.hpp \
-                         ../ext/c4core/src/c4/std/string_view.hpp \
-                         ../ext/c4core/src/c4/std/vector.hpp \
+INPUT = \
+  ./doxy_main.md \
+  ./doxy_changelog.md \
+  ../src \
+  ../test/test_suite/test_suite_event_handler.hpp \
+  ../test/test_suite/test_suite_event_handler.cpp \
+  ../samples/quickstart.cpp \
+  ../ext/c4core/src/c4/substr.hpp \
+  ../ext/c4core/src/c4/charconv.hpp \
+  ../ext/c4core/src/c4/format.hpp \
+  ../ext/c4core/src/c4/base64.hpp \
+  ../ext/c4core/src/c4/utf.hpp \
+  ../ext/c4core/src/c4/std/string.hpp \
+  ../ext/c4core/src/c4/std/string_view.hpp \
+  ../ext/c4core/src/c4/std/vector.hpp \
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1099,7 +1100,7 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           =
+EXAMPLE_PATH           = ../changelog
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
@@ -1223,7 +1224,7 @@ STRIP_CODE_COMMENTS    = NO
 # entity all documented functions referencing it will be listed.
 # The default value is: NO.
 
-REFERENCED_BY_RELATION = YES
+REFERENCED_BY_RELATION = NO
 
 # If the REFERENCES_RELATION tag is set to YES then for each documented function
 # all documented entities called/used by that function will be listed.

@@ -1,6 +1,6 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/rarearchs.ys
+# DO NOT EDIT - GENERATED FROM .github/workflows/embedded.ys
 
-name: rarearchs
+name: embedded
 defaults:
   run:
     shell: bash -e -x {0}
@@ -19,7 +19,7 @@ env:
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
   NUM_JOBS_BUILD: null
 jobs:
-  xcompile:
+  canary:
     if: always()
     continue-on-error: false
     name: ${{matrix.arch}}
@@ -30,6 +30,134 @@ jobs:
         include:
         - arch: aarch64
           tc: aarch64-linux-gnu
+    steps:
+    - name: checkout (action)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: install
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+            gcc${{matrix.version}}-${{matrix.tc}} \
+            g++${{matrix.version}}-${{matrix.tc}} \
+            qemu-user-static
+    - name: info
+      run: |
+        ${{matrix.tc}}-g++${{matrix.version}} --version
+        ${{matrix.tc}}-g++${{matrix.version}} -dM -E - </dev/null | sort
+        ${{matrix.tc}}-g++${{matrix.version}} ${{matrix.flags}} -dM -E - </dev/null | sort
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++11/Debug
+    - name: configure ${{matrix.arch}}/c++11/Debug
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=11 \
+            -DCXX_STANDARD=11 \
+            -DRYML_DEV=ON \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_SANITIZE=OFF \
+            -DRYML_LINT=OFF \
+            -DRYML_VALGRIND=OFF
+    - name: build ${{matrix.arch}}/c++11/Debug
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++11/Debug
+      run: |
+        cmake --build build --target ryml-test-run
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++11/Release
+    - name: configure ${{matrix.arch}}/c++11/Release
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=11 \
+            -DCXX_STANDARD=11 \
+            -DRYML_DEV=ON \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_SANITIZE=OFF \
+            -DRYML_LINT=OFF \
+            -DRYML_VALGRIND=OFF
+    - name: build ${{matrix.arch}}/c++11/Release
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++11/Release
+      run: |
+        cmake --build build --target ryml-test-run
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++20/Debug
+    - name: configure ${{matrix.arch}}/c++20/Debug
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=20 \
+            -DCXX_STANDARD=20 \
+            -DRYML_DEV=ON \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_SANITIZE=OFF \
+            -DRYML_LINT=OFF \
+            -DRYML_VALGRIND=OFF
+    - name: build ${{matrix.arch}}/c++20/Debug
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++20/Debug
+      run: |
+        cmake --build build --target ryml-test-run
+    - name: '-------------------------------------------------'
+      run: echo ${{matrix.arch}}/c++20/Release
+    - name: configure ${{matrix.arch}}/c++20/Release
+      run: |
+        touch build
+        rm -rf build
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
+            -DC4_CXX_STANDARD=20 \
+            -DCXX_STANDARD=20 \
+            -DRYML_DEV=ON \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_SANITIZE=OFF \
+            -DRYML_LINT=OFF \
+            -DRYML_VALGRIND=OFF
+    - name: build ${{matrix.arch}}/c++20/Release
+      run: |
+        cmake --build build --parallel --target ryml-test-build --verbose
+    - name: test ${{matrix.arch}}/c++20/Release
+      run: |
+        cmake --build build --target ryml-test-run
+  xcompile:
+    needs: canary
+    if: always()
+    continue-on-error: false
+    name: ${{matrix.arch}}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
         - arch: armv7
           tc: arm-linux-gnueabihf
           flags: -march=armv7+fp
