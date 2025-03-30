@@ -7,4 +7,4 @@ cd $(dirname $0)
 # configure the sample
 cmake -S . -B ./build/$cfg -DCMAKE_BUILD_TYPE=$cfg
 # build and run the sample
-cmake --build ./build/$cfg --config $cfg --target run
+cmake --build ./build/$cfg --config $cfg --parallel --target run
