@@ -8,13 +8,11 @@ file(STRINGS ${MANIFEST} files)
 foreach(file ${files})
     if(EXISTS ${file})
         message(STATUS "Removing file: '${file}'")
-
         exec_program(
             ${CMAKE_COMMAND} ARGS "-E remove ${file}"
             OUTPUT_VARIABLE stdout
             RETURN_VALUE result
         )
-        
         if(NOT "${result}" STREQUAL 0)
             message(FATAL_ERROR "Failed to remove file: '${file}'.")
         endif()

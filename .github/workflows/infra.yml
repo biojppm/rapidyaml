@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/infra.ys
+# DO NOT EDIT - GENERATED FROM infra.ys
 
 name: infra
 defaults:
@@ -43,6 +43,32 @@ jobs:
           echo "ERROR: generated workflows are out of date"
         fi
         exit $status
+    - name: check cmake presets
+      run: |
+        make -C proj presets-check || \
+          ( echo "ERROR: generated presets are out of date" ; exit 1 )
+  check_c4core_src:
+    if: always()
+    continue-on-error: false
+    runs-on: ubuntu-24.04
+    steps:
+    - name: checkout (action)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: install colordiff
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y colordiff
+    - name: check src list
+      run: |
+        make -C ext c4core-check-list || \
+          ( echo "ERROR: c4core source lists out of date" ; exit 1 )
+    - name: check src sync
+      run: |
+        make -C ext c4core-check-sync || \
+          ( echo "ERROR: c4core source sync out of date" ; exit 1 )
   check_doc:
     if: always()
     continue-on-error: false

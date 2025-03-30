@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/embedded.ys
+# DO NOT EDIT - GENERATED FROM embedded.ys
 
 name: embedded
 defaults:
@@ -57,7 +57,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
@@ -83,7 +83,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
@@ -139,7 +139,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
@@ -165,7 +165,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
@@ -260,7 +260,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
@@ -286,7 +286,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
@@ -376,7 +376,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
@@ -402,7 +402,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \

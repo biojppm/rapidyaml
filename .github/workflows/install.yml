@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/install.ys
+# DO NOT EDIT - GENERATED FROM install.ys
 
 name: test_install
 defaults:
@@ -232,6 +232,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+    - name: checkout c4core
+      run: |
+        cd ext
+        ./c4core.sh
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info

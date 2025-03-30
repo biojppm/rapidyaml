@@ -235,10 +235,6 @@ option(RYML_TEST_SUITE "Enable cases from yaml-test-suite, https://github.com/ya
 if(RYML_TEST_SUITE)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
-    c4_require_subproject(c4log REMOTE
-        GIT_REPOSITORY https://github.com/biojppm/c4log
-        GIT_TAG master)
-
     set(tsdir ${ed}/yaml-test-suite)
     c4_download_remote_proj(yaml-test-suite suite_dir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
