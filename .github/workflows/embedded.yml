@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/embedded.ys
+# DO NOT EDIT - GENERATED FROM embedded.ys
 
 name: embedded
 defaults:
@@ -52,17 +52,17 @@ jobs:
         ${{matrix.tc}}-g++${{matrix.version}} -dM -E - </dev/null | sort
         ${{matrix.tc}}-g++${{matrix.version}} ${{matrix.flags}} -dM -E - </dev/null | sort
     - name: '-------------------------------------------------'
-      run: echo ${{matrix.arch}}/c++${{matrix.std}}std/Debug
+      run: echo ${{matrix.arch}}/c++${{matrix.std}}/Debug
     - name: configure ${{matrix.arch}}/c++${{matrix.std}}/Debug
       run: |
         touch build
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}} " \
-            -DCMAKE_C_FLAGS=" ${{matrix.flags}} " \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
             -DC4_CXX_STANDARD=${{matrix.std}} \
             -DCXX_STANDARD=${{matrix.std}} \
             -DRYML_DEV=ON \
@@ -85,17 +85,17 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build --target ryml-test-run
     - name: '-------------------------------------------------'
-      run: echo ${{matrix.arch}}/c++${{matrix.std}}std/Release
+      run: echo ${{matrix.arch}}/c++${{matrix.std}}/Release
     - name: configure ${{matrix.arch}}/c++${{matrix.std}}/Release
       run: |
         touch build
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}} " \
-            -DCMAKE_C_FLAGS=" ${{matrix.flags}} " \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
             -DC4_CXX_STANDARD=${{matrix.std}} \
             -DCXX_STANDARD=${{matrix.std}} \
             -DRYML_DEV=ON \
@@ -280,17 +280,17 @@ jobs:
         ${{matrix.tc}}-g++${{matrix.version}} -dM -E - </dev/null | sort
         ${{matrix.tc}}-g++${{matrix.version}} ${{matrix.flags}} -dM -E - </dev/null | sort
     - name: '-------------------------------------------------'
-      run: echo ${{matrix.arch}}/c++${{matrix.std}}std/Debug
+      run: echo ${{matrix.arch}}/c++${{matrix.std}}/Debug
     - name: configure ${{matrix.arch}}/c++${{matrix.std}}/Debug
       run: |
         touch build
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}} " \
-            -DCMAKE_C_FLAGS=" ${{matrix.flags}} " \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
             -DC4_CXX_STANDARD=${{matrix.std}} \
             -DCXX_STANDARD=${{matrix.std}} \
             -DRYML_DEV=ON \
@@ -313,17 +313,17 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build --target ryml-test-run
     - name: '-------------------------------------------------'
-      run: echo ${{matrix.arch}}/c++${{matrix.std}}std/Release
+      run: echo ${{matrix.arch}}/c++${{matrix.std}}/Release
     - name: configure ${{matrix.arch}}/c++${{matrix.std}}/Release
       run: |
         touch build
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}} " \
-            -DCMAKE_C_FLAGS=" ${{matrix.flags}} " \
+            -DCMAKE_CXX_FLAGS=" ${{matrix.flags}}" \
+            -DCMAKE_C_FLAGS=" ${{matrix.flags}}" \
             -DC4_CXX_STANDARD=${{matrix.std}} \
             -DCXX_STANDARD=${{matrix.std}} \
             -DRYML_DEV=ON \

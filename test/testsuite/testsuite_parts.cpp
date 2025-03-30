@@ -107,7 +107,7 @@ const AllowedFailure allowed_failures[] = {
     _("VJP3_01-out_yaml-events" , "out-yaml test spec is missing a --- document token, which is required in the events"),
 };
 
-constexpr const AllowedFailure container_key_cases[] = {
+constexpr const AllowedFailure g_container_key_cases[] = {
 
     // these cases have container keys, and cannot be parsed into the
     // ryml tree. However, they CAN be parsed by the ryml parse engine.

@@ -9,7 +9,21 @@
 #include <vector>
 #include <iostream>
 
+
+// warning suppressions for googlebenchmark code
+#if defined(__clang__)
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   if __GNUC__ >= 15
+#       pragma GCC diagnostic ignored "-Wunused-const-variable"
+#   endif
+#endif
 #include <benchmark/benchmark.h>
+#if defined(__clang__)
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
+
 
 // warning suppressions for thirdparty code
 #if defined(_MSC_VER)
@@ -35,6 +49,9 @@
 #   if __clang_major__ >= 8
 #       pragma clang diagnostic ignored "-Wimplicit-int-conversion"
 #   endif
+#   if __clang_major__ >= 21
+#       pragma clang diagnostic ignored "-Wnontrivial-memcall"
+#   endif
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -49,6 +66,9 @@
 #   pragma GCC diagnostic ignored "-Wold-style-cast"
 #   if __GNUC__ >= 8
 #       pragma GCC diagnostic ignored "-Wclass-memaccess" // rapidjson/document.h:1952:24
+#   endif
+#   if __GNUC__ >= 15
+#       pragma GCC diagnostic ignored "-Wunused-const-variable"
 #   endif
 #endif
 #include "./libyaml.hpp"

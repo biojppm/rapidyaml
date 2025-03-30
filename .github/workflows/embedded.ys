@@ -8,27 +8,29 @@
 
 ::
 
-  defn xcompile-steps(arch buildtype)::
+  defn xcompile-steps(arch buildtype std flags="")::
   - name: "-------------------------------------------------"
-    run:: "echo $arch/c++${{matrix.std}}std/$buildtype"
-  - name:: "configure $arch/c++${{matrix.std}}/$buildtype"
+    run:: "echo $arch/c++$std/$buildtype"
+  - name:: "configure $arch/c++$std/$buildtype"
     run:: |
       touch build
       rm -rf build
       export C4_EXTERN_DIR=`pwd`/build/extern
       cmake -S . -B build \
-          -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+          -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
           -DCMAKE_BUILD_TYPE=$buildtype \
-          -DCMAKE_CXX_FLAGS=" ${{matrix.flags}} " \
-          -DCMAKE_C_FLAGS=" ${{matrix.flags}} " \
-          -DC4_CXX_STANDARD=${{matrix.std}} \
-          -DCXX_STANDARD=${{matrix.std}} \
+          -DCMAKE_CXX_FLAGS=" $flags" \
+          -DCMAKE_C_FLAGS=" $flags" \
+          -DC4_CXX_STANDARD=$std \
+          -DCXX_STANDARD=$std \
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_SANITIZE=OFF \
           -DRYML_LINT=OFF \
           -DRYML_VALGRIND=OFF
-  - name:: "build $arch/c++${{matrix.std}}/$buildtype"
+  #- name: Collect Workflow Telemetry   # investigate occasional timeouts while building in aarch64/c++11/Release
+  #  uses: catchpoint/workflow-telemetry-action@v2
+  - name:: "build $arch/c++$std/$buildtype"
     run::
       if (== buildtype "Release"):
         do:: |
@@ -75,8 +77,8 @@
           ${{matrix.tc}}-g++${{matrix.version}} --version
           ${{matrix.tc}}-g++${{matrix.version}} -dM -E - </dev/null | sort
           ${{matrix.tc}}-g++${{matrix.version}} ${{matrix.flags}} -dM -E - </dev/null | sort
-      - :: xcompile-steps("${{matrix.arch}}" "Debug"  )
-      - :: xcompile-steps("${{matrix.arch}}" "Release")
+      - :: xcompile-steps("${{matrix.arch}}" "Debug"   "${{matrix.std}}" "${{matrix.flags}}")
+      - :: xcompile-steps("${{matrix.arch}}" "Release" "${{matrix.std}}" "${{matrix.flags}}")
 
   =>: nil
 
