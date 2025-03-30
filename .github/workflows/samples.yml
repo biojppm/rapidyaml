@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/samples.ys
+# DO NOT EDIT - GENERATED FROM samples.ys
 
 name: samples
 defaults:
@@ -61,6 +61,10 @@ jobs:
         python-version: 3.9
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - name: checkout c4core
+      run: |
+        cd ext
+        ./c4core.sh
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: singleheader
