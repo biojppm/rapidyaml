@@ -3,8 +3,6 @@
 
 /** @file tree.hpp */
 
-#include "c4/error.hpp"
-#include "c4/types.hpp"
 #ifndef _C4_YML_FWD_HPP_
 #include "c4/yml/fwd.hpp"
 #endif
@@ -106,7 +104,7 @@ public:
             scalar = ref;
     }
 };
-C4_MUST_BE_TRIVIAL_COPY(NodeScalar);
+static_assert(std::is_trivially_copyable<NodeScalar>::value, "must be trivially copyable");
 
 
 //-----------------------------------------------------------------------------
@@ -193,7 +191,7 @@ struct NodeData
     id_type    m_next_sibling;
     id_type    m_prev_sibling;
 };
-C4_MUST_BE_TRIVIAL_COPY(NodeData);
+static_assert(std::is_trivially_copyable<NodeData>::value, "must be trivially copyable");
 
 
 //-----------------------------------------------------------------------------
