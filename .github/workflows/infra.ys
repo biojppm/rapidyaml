@@ -30,6 +30,32 @@ jobs:
             echo "ERROR: generated workflows are out of date"
           fi
           exit $status
+          make -C proj workflows-check || \
+            ( echo "ERROR: generated workflows are out of date" ; exit 1 )
+      - name: check cmake presets
+        run: |
+          make -C proj presets-check || \
+            ( echo "ERROR: generated presets are out of date" ; exit 1 )
+
+
+  check_c4core_src:
+    :: setup-job('infra' 'check_c4core_src')
+    runs-on: ubuntu-24.04
+    steps:
+      - :: checkout-action
+      - name: install colordiff
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y colordiff
+      - name: check src list
+        run: |
+          make -C ext c4core-check-list || \
+            ( echo "ERROR: c4core source lists out of date" ; exit 1 )
+      - name: check src sync
+        run: |
+          make -C ext c4core-check-sync || \
+            ( echo "ERROR: c4core source sync out of date" ; exit 1 )
+
 
   check_doc:
     :: setup-job('infra' 'check_doxygen')
