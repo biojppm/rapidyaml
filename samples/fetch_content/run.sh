@@ -15,4 +15,4 @@ cmake -S . -B ./build/$cfg \
       -DRYML_BRANCH_NAME=$branch \
       -DRYML_REPO_URL=$repo
 # build and run the sample
-cmake --build ./build/$cfg --config $cfg --target run
+cmake --build ./build/$cfg --config $cfg --parallel --target run
