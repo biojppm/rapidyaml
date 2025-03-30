@@ -7,4 +7,4 @@ cd $(dirname $0)
 # configure the sample
 cmake -S . -B ./build/$cfg-shared -DCMAKE_BUILD_TYPE=$cfg -DBUILD_SHARED_LIBS=ON
 # build and run the sample
-cmake --build ./build/$cfg-shared --config $cfg --target run
+cmake --build ./build/$cfg-shared --config $cfg --parallel --target run

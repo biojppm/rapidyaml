@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.12)
-include(./ext/c4core/cmake/c4Project.cmake)
+cmake_minimum_required(VERSION 3.13)
+include(./proj/c4proj/c4Project.cmake)
 project(ryml
     DESCRIPTION "Rapid YAML parsing and emitting"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-include(./compat.cmake)
+include(./proj/compat.cmake)
 
 c4_project(VERSION 0.10.0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
@@ -28,63 +28,76 @@ option(RYML_INSTALL "Enable install target" ON)
 
 #-------------------------------------------------------
 
-c4_require_subproject(c4core INCORPORATE
-    SUBDIRECTORY ${RYML_EXT_DIR}/c4core
-    OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
-)
-
 c4_add_library(ryml
     SOURCES
-        ryml.hpp
-        ryml_std.hpp
+        c4/yml/common.cpp
+        c4/yml/common.hpp
         c4/yml/detail/checks.hpp
         c4/yml/detail/dbgprint.hpp
+        c4/yml/detail/parser_dbg.hpp
         c4/yml/detail/print.hpp
         c4/yml/detail/stack.hpp
-        c4/yml/common.hpp
-        c4/yml/common.cpp
         c4/yml/emit.def.hpp
         c4/yml/emit.hpp
         c4/yml/error.hpp
         c4/yml/error.def.hpp
         c4/yml/event_handler_stack.hpp
         c4/yml/event_handler_tree.hpp
+        c4/yml/export.hpp
         c4/yml/filter_processor.hpp
         c4/yml/fwd.hpp
-        c4/yml/export.hpp
-        c4/yml/node.hpp
         c4/yml/node.cpp
-        c4/yml/node_type.hpp
+        c4/yml/node.hpp
         c4/yml/node_type.cpp
-        c4/yml/parser_state.hpp
-        c4/yml/parse.hpp
+        c4/yml/node_type.hpp
         c4/yml/parse.cpp
-        c4/yml/parse_engine.hpp
+        c4/yml/parse.hpp
         c4/yml/parse_engine.def.hpp
-        c4/yml/preprocess.hpp
+        c4/yml/parse_engine.hpp
+        c4/yml/parser_state.hpp
         c4/yml/preprocess.cpp
-        c4/yml/reference_resolver.hpp
+        c4/yml/preprocess.hpp
         c4/yml/reference_resolver.cpp
+        c4/yml/reference_resolver.hpp
         c4/yml/std/map.hpp
         c4/yml/std/std.hpp
         c4/yml/std/string.hpp
         c4/yml/std/vector.hpp
-        c4/yml/tag.hpp
         c4/yml/tag.cpp
-        c4/yml/tree.hpp
+        c4/yml/tag.hpp
         c4/yml/tree.cpp
-        c4/yml/version.hpp
+        c4/yml/tree.hpp
         c4/yml/version.cpp
+        c4/yml/version.hpp
         c4/yml/writer.hpp
         c4/yml/yml.hpp
+        ryml.hpp
+        ryml_std.hpp
         ryml.natvis
     SOURCE_ROOT ${RYML_SRC_DIR}
     INC_DIRS
         $<BUILD_INTERFACE:${RYML_SRC_DIR}>
         $<INSTALL_INTERFACE:include>
-    LIBS c4core
-    INCORPORATE c4core
     )
+
+if(NOT RYML_STANDALONE)
+    target_link_libraries(ryml PUBLIC c4core)
+else()
+    file(STRINGS ext/c4core.src.txt c4core_src)
+    file(STRINGS ext/c4core.dev.txt c4core_dev)
+    _c4_transform_to_full_path(c4core_src _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
+    _c4_transform_to_full_path(c4core_dev _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev)
+    target_sources(ryml PRIVATE ${c4core_src})
+    target_sources(ryml PRIVATE ${c4core_dev})
+    target_include_directories(ryml PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev>
+    )
+    list(FILTER c4core_src EXCLUDE REGEX .*cpp)
+    list(FILTER c4core_dev EXCLUDE REGEX .*cpp)
+    c4_install_files("${c4core_src}" ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
+    c4_install_files("${c4core_dev}" ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev)
+endif()
 
 if(RYML_WITH_TAB_TOKENS)
     target_compile_definitions(ryml PUBLIC RYML_WITH_TAB_TOKENS)
@@ -121,9 +134,29 @@ endif()
 
 if(RYML_INSTALL)
     c4_install_target(ryml)
-    c4_install_exports(DEPENDENCIES c4core)
+    if(RYML_STANDALONE)
+        c4_install_exports()
+    else()
+        c4_install_exports(DEPENDENCIES c4core)
+    endif()
     c4_pack_project()
 endif()
+
+# generate and install the install manifest
+# https://stackoverflow.com/questions/66752091/is-there-a-way-in-cmake-to-save-away-the-install-manifest-txt-for-later
+install(CODE "
+string(REPLACE \"\$\{CMAKE_INSTALL_PREFIX\}/\" \"\" ryml_manifest \"\$\{CMAKE_INSTALL_MANIFEST_FILES\}\")\n\
+list(APPEND ryml_manifest share/ryml/MANIFEST.txt)\n\
+list(SORT ryml_manifest)\n\
+string(REPLACE \";\" \"\\n\" ryml_manifest \"\$\{ryml_manifest\}\")\n\
+file(WRITE ${CMAKE_BINARY_DIR}/MANIFEST.txt \"\$\{ryml_manifest\}\")
+")
+install(FILES "${CMAKE_BINARY_DIR}/MANIFEST.txt" DESTINATION ${CMAKE_INSTALL_PREFIX}/share/ryml)
+
+# add a target to uninstall
+add_custom_target(ryml-uninstall
+    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/proj/uninstall.cmake"
+)
 
 
 #-------------------------------------------------------
@@ -139,10 +172,6 @@ if(RYML_BUILD_TOOLS)
 endif()
 
 c4_add_dev_targets()
-
-add_custom_target(ryml-uninstall
-    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake"
-)
 
 
 #-------------------------------------------------------
