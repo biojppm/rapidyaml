@@ -27,11 +27,6 @@ option(RYML_INSTALL "Enable install target" ON)
 
 #-------------------------------------------------------
 
-c4_require_subproject(c4core INCORPORATE
-    SUBDIRECTORY ${RYML_EXT_DIR}/c4core
-    OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
-)
-
 c4_add_library(ryml
     SOURCES
         ryml.hpp
@@ -79,9 +74,41 @@ c4_add_library(ryml
     INC_DIRS
         $<BUILD_INTERFACE:${RYML_SRC_DIR}>
         $<INSTALL_INTERFACE:include>
-    LIBS c4core
-    INCORPORATE c4core
     )
+
+if(NOT RYML_STANDALONE)
+    c4_require_subproject(c4core INCORPORATE
+        SUBDIRECTORY ${RYML_EXT_DIR}/c4core
+        OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
+    )
+    target_link_libraries(ryml PUBLIC c4core)
+else()
+    target_sources(ryml PRIVATE
+        src/c4/base64.cpp
+        src/c4/base64.hpp
+        src/c4/charconv.hpp
+        src/c4/compiler.hpp
+        src/c4/cpu.hpp
+        src/c4/export.hpp
+        src/c4/format.cpp
+        src/c4/format.hpp
+        src/c4/gcc-4.8.hpp
+        src/c4/language.hpp
+        src/c4/memory_util.hpp
+        src/c4/memory_util.cpp
+        src/c4/platform.hpp
+        src/c4/substr_fwd.hpp
+        src/c4/substr.hpp
+        src/c4/utf.cpp
+        src/c4/utf.hpp
+        src/c4/version.cpp
+        src/c4/version.hpp
+        #
+        src/c4/dump.hpp
+        src/c4/error.cpp
+        src/c4/error.hpp
+    )
+endif()
 
 if(RYML_WITH_TAB_TOKENS)
     target_compile_definitions(ryml PUBLIC RYML_WITH_TAB_TOKENS)
