@@ -156,104 +156,68 @@ jobs:
       matrix:
         # Local function to expand python entries:
         python =:
-          fn(a0 a1 a2 a3 os)::
-            pythonv:: a0
-            cibw_pyv:: a1
-            cibw_arch:: a2
-            cibw_platform:: a3
-            name:: "python/$a0/linux/$a2"
-            sfx:: "python$a0_linux$a2" # suffix
-            osname: linux
+          fn(pyv cibwpyv cibwarch cibwplatform os cmkflags)::  # NOTE: cannot use _ in names?
+            name:: "python/$pyv/$cibwplatform"
+            sfx:: "python$pyv-$cibwplatform" # suffix
             os:: os
+            pythonv:: pyv
+            cibw_pyv:: cibwpyv
+            cibw_arch:: cibwarch
+            cibw_platform:: cibwplatform
+            cmakeflags:: cmkflags
         config:
-        #- ! python('3.13' 313 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
-        #- ! python('3.13' 313 'i686'   'manylinux_i686'   'ubuntu-24.04')
-        - ! python('3.12' 312 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
-        - ! python('3.12' 312 'i686'   'manylinux_i686'   'ubuntu-24.04')
-        - ! python('3.11' 311 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
-        - ! python('3.11' 311 'i686'   'manylinux_i686'   'ubuntu-24.04')
-        - ! python('3.10' 310 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
-        - ! python('3.10' 310 'i686'   'manylinux_i686'   'ubuntu-24.04')
-        - ! python('3.9'  39  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
-        - ! python('3.9'  39  'i686'   'manylinux_i686'   'ubuntu-24.04')
-        - ! python('3.8'  38  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
-        - ! python('3.8'  38  'i686'   'manylinux_i686'   'ubuntu-24.04')
-        - ! python('3.7'  37  'x86_64' 'manylinux_x86_64' 'ubuntu-22.04')
-        - ! python('3.7'  37  'i686'   'manylinux_i686'   'ubuntu-22.04')
-        #- ! python('3.6'  36  'x86_64' 'manylinux_x86_64' 'ubuntu-22.04')
-        #- ! python('3.6'  36  'i686'   'manylinux_i686'   'ubuntu-22.04')
-        # the windows builds are disabled because they are causing problems and
-        # preventing the release.
-        # the problems are related to CMakeExtension forcing the use of Ninja
-        # which does not play well with the -G 'Visual Studio...' option used
-        # below.
-        # fixing this looks like it will be time-intensive.
-        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: AMD64 ,
-        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86   ,
-        #   cibw_platform: win32    , osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: AMD64 ,
-        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86   ,
-        #   cibw_platform: win32    , osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: AMD64 ,
-        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86   ,
-        #   cibw_platform: win32    , osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: AMD64 ,
-        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86   ,
-        #   cibw_platform: win32    , osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: AMD64 ,
-        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86   ,
-        #   cibw_platform: win32    , osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: AMD64 ,
-        #   cibw_platform: win_amd64, osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86   ,
-        #   cibw_platform: win32    , osname: win  , os: windows-2019,
-        #   cxx: vs2019},
-        #   cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-        ## macosx builds are generating a SIGSEGV when importing. (!)
-        ## /biojppm/rapidyaml/actions/runs/3062528713/jobs/4943611397#step:7:269
-        #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64,
-        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64,
-        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86_64,
-        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86_64,
-        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86_64,
-        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-        #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86_64,
-        #   cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+        #           pyv   pyv  arch     platform           os            cmakeflags
+        - ! python('3.13' 313 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
+        - ! python('3.13' 313 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
+        #- ! python('3.13' 313 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.13' 313 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.13' 313 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
+        #
+        - ! python('3.12' 312 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
+        - ! python('3.12' 312 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
+        #- ! python('3.12' 312 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.12' 312 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.12' 312 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
+        #
+        - ! python('3.11' 311 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
+        - ! python('3.11' 311 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
+        #- ! python('3.11' 311 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.11' 311 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.11' 311 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
+        #
+        - ! python('3.10' 310 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
+        - ! python('3.10' 310 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
+        #- ! python('3.10' 310 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.10' 310 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.10' 310 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
+        #
+        - ! python('3.9'  39  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
+        - ! python('3.9'  39  'i686'   'manylinux_i686'   'ubuntu-24.04' '')
+        #- ! python('3.9' 39  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.9' 39  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.9' 39  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
+        #
+        - ! python('3.8'  38  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
+        - ! python('3.8'  38  'i686'   'manylinux_i686'   'ubuntu-24.04' '')
+        #- ! python('3.8' 38  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.8' 38  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.8' 38  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
+        #
+        - ! python('3.7'  37  'x86_64' 'manylinux_x86_64' 'ubuntu-22.04' '')
+        - ! python('3.7'  37  'i686'   'manylinux_i686'   'ubuntu-22.04' '')
+        #- ! python('3.7' 37  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.7' 37  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.7' 37  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
+        #
+        - ! python('3.6'  36  'x86_64' 'manylinux_x86_64' 'ubuntu-20.04' '') # setup-python 3.6 requires ubuntu 20.04 
+        - ! python('3.6'  36  'i686'   'manylinux_i686'   'ubuntu-20.04' '') # setup-python 3.6 requires ubuntu 20.04
+        #- ! python('3.6' 36  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
+        #- ! python('3.6' 36  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
+        #- ! python('3.6' 36  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
     steps:
     - :: checkout-action
     - name: create wheel
-      uses: pypa/cibuildwheel@v2.17
+      uses: pypa/cibuildwheel@v2.23
     - name: rename wheelhouse -> dist
       run: mv -fv wheelhouse dist
     - name: Verify artifacts
