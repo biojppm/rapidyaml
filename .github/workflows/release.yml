@@ -307,22 +307,6 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
-        - name: python/3.13/win_amd64
-          sfx: python3.13-win_amd64
-          os: windows-2022
-          pythonv: '3.13'
-          cibw_pyv: 313
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.13/win32
-          sfx: python3.13-win32
-          os: windows-2022
-          pythonv: '3.13'
-          cibw_pyv: 313
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
         - name: python/3.12/manylinux_x86_64
           sfx: python3.12-manylinux_x86_64
           os: ubuntu-24.04
@@ -339,22 +323,6 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
-        - name: python/3.12/win_amd64
-          sfx: python3.12-win_amd64
-          os: windows-2022
-          pythonv: '3.12'
-          cibw_pyv: 312
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.12/win32
-          sfx: python3.12-win32
-          os: windows-2022
-          pythonv: '3.12'
-          cibw_pyv: 312
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
         - name: python/3.11/manylinux_x86_64
           sfx: python3.11-manylinux_x86_64
           os: ubuntu-24.04
@@ -371,22 +339,6 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
-        - name: python/3.11/win_amd64
-          sfx: python3.11-win_amd64
-          os: windows-2022
-          pythonv: '3.11'
-          cibw_pyv: 311
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.11/win32
-          sfx: python3.11-win32
-          os: windows-2022
-          pythonv: '3.11'
-          cibw_pyv: 311
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
         - name: python/3.10/manylinux_x86_64
           sfx: python3.10-manylinux_x86_64
           os: ubuntu-24.04
@@ -403,22 +355,6 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
-        - name: python/3.10/win_amd64
-          sfx: python3.10-win_amd64
-          os: windows-2022
-          pythonv: '3.10'
-          cibw_pyv: 310
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.10/win32
-          sfx: python3.10-win32
-          os: windows-2022
-          pythonv: '3.10'
-          cibw_pyv: 310
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
         - name: python/3.9/manylinux_x86_64
           sfx: python3.9-manylinux_x86_64
           os: ubuntu-24.04
@@ -435,22 +371,6 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
-        - name: python/3.9/win_amd64
-          sfx: python3.9-win_amd64
-          os: windows-2022
-          pythonv: '3.9'
-          cibw_pyv: 39
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.9/win32
-          sfx: python3.9-win32
-          os: windows-2022
-          pythonv: '3.9'
-          cibw_pyv: 39
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
         - name: python/3.8/manylinux_x86_64
           sfx: python3.8-manylinux_x86_64
           os: ubuntu-24.04
@@ -467,22 +387,6 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
-        - name: python/3.8/win_amd64
-          sfx: python3.8-win_amd64
-          os: windows-2022
-          pythonv: '3.8'
-          cibw_pyv: 38
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.8/win32
-          sfx: python3.8-win32
-          os: windows-2022
-          pythonv: '3.8'
-          cibw_pyv: 38
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
         - name: python/3.7/manylinux_x86_64
           sfx: python3.7-manylinux_x86_64
           os: ubuntu-22.04
@@ -499,22 +403,6 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
-        - name: python/3.7/win_amd64
-          sfx: python3.7-win_amd64
-          os: windows-2022
-          pythonv: '3.7'
-          cibw_pyv: 37
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.7/win32
-          sfx: python3.7-win32
-          os: windows-2022
-          pythonv: '3.7'
-          cibw_pyv: 37
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
         - name: python/3.6/manylinux_x86_64
           sfx: python3.6-manylinux_x86_64
           os: ubuntu-20.04
@@ -531,6 +419,175 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
+    steps:
+    - name: checkout (action)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: create wheel
+      uses: pypa/cibuildwheel@v2.23
+    - name: rename wheelhouse -> dist
+      run: mv -fv wheelhouse dist
+    - name: Verify artifacts
+      run: ls -lFhp dist/
+    - name: Save artifacts for publishing to PyPI
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-${{matrix.config.sfx}}
+        path: dist/
+    - name: install python ${{matrix.config.pythonv}}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{matrix.config.pythonv}}
+    - name: test with python ${{matrix.config.pythonv}}
+      run: |
+        set -x
+        echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
+        # skip 32 bit tests, as Python 32 bits are not available in ubuntu
+        arch="${{matrix.config.cibw_arch}}"
+        if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
+          exit 0
+        fi
+        python --version
+        python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
+        pip --version
+        pip install -v -r requirements.txt
+        pip install -v -r api/python/requirements.txt
+        for whl in dist/* ; do
+          pip install -v $whl
+          pip show -f rapidyaml
+          python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
+          python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
+          python -m pytest -vvv api/python/tests
+          pip uninstall -y -v rapidyaml
+        done
+  python_wheels_win:
+    if: always()
+    continue-on-error: false
+    name: ${{matrix.config.name}}
+    runs-on: ${{matrix.config.os}}
+    env:
+      CMAKE_FLAGS: ${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
+      CIBW_BUILD: cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
+      CIBW_ARCHS: ${{matrix.config.cibw_arch}}
+      CIBW_BUILD_VERBOSITY: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - name: python/3.13/win_amd64
+          sfx: python3.13-win_amd64
+          os: windows-2022
+          pythonv: '3.13'
+          cibw_pyv: 313
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.13/win32
+          sfx: python3.13-win32
+          os: windows-2022
+          pythonv: '3.13'
+          cibw_pyv: 313
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
+        - name: python/3.12/win_amd64
+          sfx: python3.12-win_amd64
+          os: windows-2022
+          pythonv: '3.12'
+          cibw_pyv: 312
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.12/win32
+          sfx: python3.12-win32
+          os: windows-2022
+          pythonv: '3.12'
+          cibw_pyv: 312
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
+        - name: python/3.11/win_amd64
+          sfx: python3.11-win_amd64
+          os: windows-2022
+          pythonv: '3.11'
+          cibw_pyv: 311
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.11/win32
+          sfx: python3.11-win32
+          os: windows-2022
+          pythonv: '3.11'
+          cibw_pyv: 311
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
+        - name: python/3.10/win_amd64
+          sfx: python3.10-win_amd64
+          os: windows-2022
+          pythonv: '3.10'
+          cibw_pyv: 310
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.10/win32
+          sfx: python3.10-win32
+          os: windows-2022
+          pythonv: '3.10'
+          cibw_pyv: 310
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
+        - name: python/3.9/win_amd64
+          sfx: python3.9-win_amd64
+          os: windows-2022
+          pythonv: '3.9'
+          cibw_pyv: 39
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.9/win32
+          sfx: python3.9-win32
+          os: windows-2022
+          pythonv: '3.9'
+          cibw_pyv: 39
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
+        - name: python/3.8/win_amd64
+          sfx: python3.8-win_amd64
+          os: windows-2022
+          pythonv: '3.8'
+          cibw_pyv: 38
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.8/win32
+          sfx: python3.8-win32
+          os: windows-2022
+          pythonv: '3.8'
+          cibw_pyv: 38
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
+        - name: python/3.7/win_amd64
+          sfx: python3.7-win_amd64
+          os: windows-2022
+          pythonv: '3.7'
+          cibw_pyv: 37
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.7/win32
+          sfx: python3.7-win32
+          os: windows-2022
+          pythonv: '3.7'
+          cibw_pyv: 37
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
         - name: python/3.6/win_amd64
           sfx: python3.6-win_amd64
           os: windows-2022
@@ -554,7 +611,6 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - name: setup Visual Studio env
-      if: ${{ matrix.config.vsenvarch != '' }}
       uses: TheMrMilchmann/setup-msvc-dev@v3
       with:
         arch: ${{matrix.config.vsenvarch}}
@@ -604,6 +660,7 @@ jobs:
     - cpp
     - python_src
     - python_wheels
+    - python_wheels_win
     steps:
     - name: Merge assets artifacts
       uses: actions/upload-artifact/merge@v4

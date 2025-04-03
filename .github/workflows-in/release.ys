@@ -171,55 +171,126 @@ jobs:
         #           pyv   pyv  arch     platform           os            vsenvarch cmakeflags
         - ! python('3.13' 313 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' ''    '')
         - ! python('3.13' 313 'i686'   'manylinux_i686'   'ubuntu-24.04' ''    '')
-        - ! python('3.13' 313 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.13' 313 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.13' 313 'x86_64' 'macosx_x86_64'    'macos-13'    ''    '')
         #
         - ! python('3.12' 312 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' ''    '')
         - ! python('3.12' 312 'i686'   'manylinux_i686'   'ubuntu-24.04' ''    '')
-        - ! python('3.12' 312 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.12' 312 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.12' 312 'x86_64' 'macosx_x86_64'    'macos-13'    ''     '')
         #
         - ! python('3.11' 311 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' ''    '')
         - ! python('3.11' 311 'i686'   'manylinux_i686'   'ubuntu-24.04' ''    '')
-        - ! python('3.11' 311 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.11' 311 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.11' 311 'x86_64' 'macosx_x86_64'    'macos-13'    ''     '')
         #
         - ! python('3.10' 310 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' ''    '')
         - ! python('3.10' 310 'i686'   'manylinux_i686'   'ubuntu-24.04' ''    '')
-        - ! python('3.10' 310 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.10' 310 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.10' 310 'x86_64' 'macosx_x86_64'    'macos-13'    ''     '')
         #
         - ! python('3.9'  39  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' ''    '')
         - ! python('3.9'  39  'i686'   'manylinux_i686'   'ubuntu-24.04' ''    '')
-        - ! python('3.9'  39  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.9'  39  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.9'  39  'x86_64' 'macosx_x86_64'    'macos-13'    ''     '')
         #
         - ! python('3.8'  38  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' ''    '')
         - ! python('3.8'  38  'i686'   'manylinux_i686'   'ubuntu-24.04' ''    '')
-        - ! python('3.8'  38  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.8'  38  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.8'  38  'x86_64' 'macosx_x86_64'    'macos-13'    ''    '')
         #
         - ! python('3.7'  37  'x86_64' 'manylinux_x86_64' 'ubuntu-22.04' ''    '')
         - ! python('3.7'  37  'i686'   'manylinux_i686'   'ubuntu-22.04' ''    '')
-        - ! python('3.7'  37  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.7'  37  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.7'  37  'x86_64' 'macosx_x86_64'    'macos-13'    ''     '')
         #
         - ! python('3.6'  36  'x86_64' 'manylinux_x86_64' 'ubuntu-20.04' ''    '') # setup-python 3.6 requires ubuntu 20.04
         - ! python('3.6'  36  'i686'   'manylinux_i686'   'ubuntu-20.04' ''    '') # setup-python 3.6 requires ubuntu 20.04
-        - ! python('3.6'  36  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
-        - ! python('3.6'  36  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
         #- ! python('3.6'  36  'x86_64' 'macosx_x86_64'    'macos-13'    ''     '')
     steps:
     - :: checkout-action
+    - name: create wheel
+      uses: pypa/cibuildwheel@v2.23
+    - name: rename wheelhouse -> dist
+      run: mv -fv wheelhouse dist
+    - name: Verify artifacts
+      run: ls -lFhp dist/
+    - name: Save artifacts for publishing to PyPI
+      uses: actions/upload-artifact@v4
+      with: {name: 'dist-${{matrix.config.sfx}}', path: dist/}
+    # run the tests
+    - name: install python ${{matrix.config.pythonv}}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{matrix.config.pythonv}}
+    - name: test with python ${{matrix.config.pythonv}}
+      run: |
+        set -x
+        echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
+        # skip 32 bit tests, as Python 32 bits are not available in ubuntu
+        arch="${{matrix.config.cibw_arch}}"
+        if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
+          exit 0
+        fi
+        python --version
+        python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
+        pip --version
+        pip install -v -r requirements.txt
+        pip install -v -r api/python/requirements.txt
+        for whl in dist/* ; do
+          pip install -v $whl
+          pip show -f rapidyaml
+          python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
+          python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
+          python -m pytest -vvv api/python/tests
+          pip uninstall -y -v rapidyaml
+        done
+
+  python_wheels_win:
+    :: setup-job('release' 'python_wheels_win')
+    name: ${{matrix.config.name}}
+    runs-on: ${{matrix.config.os}}
+    env:
+      CMAKE_FLAGS: ${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
+      CIBW_BUILD: cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
+      CIBW_ARCHS: ${{matrix.config.cibw_arch}}
+      CIBW_BUILD_VERBOSITY: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        # Local function to expand python entries:
+        python =:
+          fn(pyv cibwpyv cibwarch cibwplatform os vsenvarch cmkflags)::  # NOTE: cannot use _ in names?
+            name:: "python/$pyv/$cibwplatform"
+            sfx:: "python$pyv-$cibwplatform" # suffix
+            os:: os
+            pythonv:: pyv
+            cibw_pyv:: cibwpyv
+            cibw_arch:: cibwarch
+            cibw_platform:: cibwplatform
+            #cmakeflags:: cmkflags
+            vsenvarch:: vsenvarch
+        config:
+        #           pyv   pyv  arch     platform           os            vsenvarch cmakeflags
+        - ! python('3.13' 313 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.13' 313 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+        #
+        - ! python('3.12' 312 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.12' 312 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+        #
+        - ! python('3.11' 311 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.11' 311 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+        #
+        - ! python('3.10' 310 'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.10' 310 'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+        #
+        - ! python('3.9'  39  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.9'  39  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+        #
+        - ! python('3.8'  38  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.8'  38  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+        #
+        - ! python('3.7'  37  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.7'  37  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+        #
+        - ! python('3.6'  36  'AMD64'  'win_amd64'        'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+        - ! python('3.6'  36  'x86'    'win32'            'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+    steps:
+    - :: checkout-action
     - name: setup Visual Studio env
-      if: ${{ matrix.config.vsenvarch != '' }}
       uses: TheMrMilchmann/setup-msvc-dev@v3
       with:
         arch: ${{matrix.config.vsenvarch}}
@@ -264,7 +335,7 @@ jobs:
   merge_artifacts:
     :: setup-job('release' 'merge_artifacts')
     runs-on: ubuntu-latest
-    needs: [src, cpp, python_src, python_wheels]
+    needs: [src, cpp, python_src, python_wheels, python_wheels_win]
     steps:
       - name: Merge assets artifacts
         uses: actions/upload-artifact/merge@v4
