@@ -1,3 +1,93 @@
+!yamlscript/v0
+
+
+defn pywhl(pyv cibwpyv cibwarch cibwplatform os vsenvarch='' cmkflags='')::  # NOTE: cannot use _ in names?
+    name:: "python/$pyv/$cibwplatform"
+    sfx:: "python$pyv-$cibwplatform" # suffix
+    os:: os
+    pythonv:: pyv
+    cibw_pyv:: cibwpyv #pyv.replace(/\.//) # WTF??
+    cibw_arch:: cibwarch
+    cibw_platform:: cibwplatform
+    #cmakeflags:: cmkflags
+    vsenvarch:: vsenvarch
+
+
+python-wheel-matrix =::
+#          pyv        arch     platform           os
+- ! pywhl('3.13' 313 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+- ! pywhl('3.13' 313 'i686'   'manylinux_i686'   'ubuntu-24.04')
+- ! pywhl('3.13' 313 'x86_64' 'macosx_x86_64'    'macos-13'    )
+#
+- ! pywhl('3.12' 312 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+- ! pywhl('3.12' 312 'i686'   'manylinux_i686'   'ubuntu-24.04')
+- ! pywhl('3.12' 312 'x86_64' 'macosx_x86_64'    'macos-13'    )
+#
+- ! pywhl('3.11' 311 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+- ! pywhl('3.11' 311 'i686'   'manylinux_i686'   'ubuntu-24.04')
+- ! pywhl('3.11' 311 'x86_64' 'macosx_x86_64'    'macos-13'    )
+#
+- ! pywhl('3.10' 310 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04')
+- ! pywhl('3.10' 310 'i686'   'manylinux_i686'   'ubuntu-24.04')
+- ! pywhl('3.10' 310 'x86_64' 'macosx_x86_64'    'macos-13'    )
+#
+- ! pywhl('3.9'  39 'x86_64'  'manylinux_x86_64' 'ubuntu-24.04')
+- ! pywhl('3.9'  39 'i686'    'manylinux_i686'   'ubuntu-24.04')
+- ! pywhl('3.9'  39 'x86_64'  'macosx_x86_64'    'macos-13'    )
+#
+- ! pywhl('3.8'  38 'x86_64'  'manylinux_x86_64' 'ubuntu-24.04')
+- ! pywhl('3.8'  38 'i686'    'manylinux_i686'   'ubuntu-24.04')
+- ! pywhl('3.8'  38 'x86_64'  'macosx_x86_64'    'macos-13'    )
+#
+- ! pywhl('3.7'  37 'x86_64'  'manylinux_x86_64' 'ubuntu-22.04')
+- ! pywhl('3.7'  37 'i686'    'manylinux_i686'   'ubuntu-22.04')
+- ! pywhl('3.7'  37 'x86_64'  'macosx_x86_64'    'macos-13'    )
+#
+- ! pywhl('3.6'  36 'x86_64'  'manylinux_x86_64' 'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+- ! pywhl('3.6'  36 'i686'    'manylinux_i686'   'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+- ! pywhl('3.6'  36 'x86_64'  'macosx_x86_64'    'macos-13'    )
+
+
+python-wheel-matrix-win =::
+#          pyv        arch     platform     os       vsenvarch   cmakeflags
+- ! pywhl('3.13' 313 'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+- ! pywhl('3.13' 313 'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+#
+- ! pywhl('3.12' 312 'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+- ! pywhl('3.12' 312 'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+#
+- ! pywhl('3.11' 311 'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+- ! pywhl('3.11' 311 'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+#
+- ! pywhl('3.10' 310 'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+- ! pywhl('3.10' 310 'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+#
+- ! pywhl('3.9'  39  'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+- ! pywhl('3.9'  39  'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+#
+- ! pywhl('3.8'  38  'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+- ! pywhl('3.8'  38  'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+#
+- ! pywhl('3.7'  37  'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+#- ! pywhl('3.7'  37  'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+#
+- ! pywhl('3.6'  36  'AMD64'  'win_amd64'  'windows-2022' 'x64' '-G "Visual Studio 17 2022" -A x64')
+- ! pywhl('3.6'  36  'x86'    'win32'      'windows-2022' 'x86' '-G "Visual Studio 17 2022" -A Win32')
+
+
+setup-env =::
+- name: setup env (non-win)
+  run: echo 'nothing to do'
+
+
+setup-env-win =::
+- name: setup env (Visual Studio)
+  uses: TheMrMilchmann/setup-msvc-dev@v3
+  with:
+    arch: ${{matrix.config.vsenvarch}}
+
+
+---
 !yamlscript/v0:
 
 :use common: :all
@@ -5,6 +95,72 @@
   push:
     tags: [v0.*, v1.*, v2.*]
     branches: [master]
+::
+  defn define-workflow-python-wheels(name matrix setup-env)::
+      :: setup-job('release' name)
+      name: ${{matrix.config.name}}
+      runs-on: ${{matrix.config.os}}
+      env:
+        CMAKE_FLAGS: ${{matrix.config.cmakeflags}} -DCMAKE_VERBOSE_MAKEFILES=ON -DRYML_DEV=OFF -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
+        CIBW_BUILD: cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
+        CIBW_ARCHS: ${{matrix.config.cibw_arch}}
+        CIBW_BUILD_VERBOSITY: 2
+      strategy:
+        fail-fast: false
+        matrix:
+          config:: matrix
+      steps:
+      - :: checkout-action
+      - :: setup-env
+      - name: create wheel
+        uses: pypa/cibuildwheel@v2.23
+      - name: rename wheelhouse -> dist
+        run: mv -fv wheelhouse dist
+      - name: Verify artifacts
+        run: ls -lFhp dist/
+      - name: Save artifacts for publishing to PyPI
+        uses: actions/upload-artifact@v4
+        with: {name: 'dist-${{matrix.config.sfx}}', path: dist/}
+      # run the tests
+      - name: install python ${{matrix.config.pythonv}}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{matrix.config.pythonv}}
+      - name: test with python ${{matrix.config.pythonv}}
+        run: |
+          set -x
+          echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
+          # skip 32 bit tests, as Python 32 bits are not available in ubuntu
+          arch="${{matrix.config.cibw_arch}}"
+          if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
+            exit 0
+          fi
+          python --version
+          python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
+          pip --version
+          pip install -v -r requirements.txt
+          pip install -v -r api/python/requirements.txt
+          for whl in dist/* ; do
+            # verify that we can import the wheel files without installing the wheel
+            unzip -l $whl
+            mkdir -p tmpwhl
+            cd tmpwhl
+            unzip ../$whl
+            ls -lFpAR .
+            ( export PYTHONPATH=`pwd`/ryml ; python -c 'import ryml' )
+            cd ..
+            rm -rf tmpwhl
+            # verify that we can install the wheel and then import it
+            pip install -v $whl
+            pip show -f rapidyaml
+            python -c 'import ryml'
+            python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
+            python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
+            python -m pytest -vvv api/python/tests
+            pip uninstall -y -v rapidyaml
+          done
+
+  =>: nil # this is needed to expose the function above
 
 env:
   PROJ_PKG_NAME: rapidyaml-
@@ -101,7 +257,7 @@ jobs:
         - {name: MacOSX sh,
            sfxg: apple64.sh,
            sfxp: macosx-xcode.sh,
-           gen: STGZ, mime: x-sh, os: macos-13, cxx: xcode}
+           gen: STGZ, mime: x-sh, os: macos-latest, cxx: xcode}
     steps:
     - :: checkout-action
     - :: version-get-vars
@@ -123,8 +279,6 @@ jobs:
 
   #----------------------------------------------------------------------------
   # create python packages
-  # adapted from
-  # github.com/pikepdf/pikepdf/blob/master/.github/workflows/build_wheels.yml
 
   python_src:
     :: setup-job('release' 'python_src')
@@ -144,120 +298,16 @@ jobs:
         with: {name: dist-python_src, path: dist/}
 
   python_wheels:
-    :: setup-job('release' 'python_wheels')
-    name: ${{matrix.config.name}}
-    runs-on: ${{matrix.config.os}}
-    env:
-      CMAKE_FLAGS: ${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
-      CIBW_BUILD: cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
-      CIBW_ARCHS: ${{matrix.config.cibw_arch}}
-    strategy:
-      fail-fast: false
-      matrix:
-        # Local function to expand python entries:
-        python =:
-          fn(pyv cibwpyv cibwarch cibwplatform os cmkflags)::  # NOTE: cannot use _ in names?
-            name:: "python/$pyv/$cibwplatform"
-            sfx:: "python$pyv-$cibwplatform" # suffix
-            os:: os
-            pythonv:: pyv
-            cibw_pyv:: cibwpyv
-            cibw_arch:: cibwarch
-            cibw_platform:: cibwplatform
-            cmakeflags:: cmkflags
-        config:
-        #           pyv   pyv  arch     platform           os            cmakeflags
-        - ! python('3.13' 313 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
-        - ! python('3.13' 313 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
-        #- ! python('3.13' 313 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.13' 313 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.13' 313 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-        #
-        - ! python('3.12' 312 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
-        - ! python('3.12' 312 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
-        #- ! python('3.12' 312 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.12' 312 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.12' 312 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-        #
-        - ! python('3.11' 311 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
-        - ! python('3.11' 311 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
-        #- ! python('3.11' 311 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.11' 311 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.11' 311 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-        #
-        - ! python('3.10' 310 'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
-        - ! python('3.10' 310 'i686'   'manylinux_i686'   'ubuntu-24.04' '')
-        #- ! python('3.10' 310 'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.10' 310 'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.10' 310 'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-        #
-        - ! python('3.9'  39  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
-        - ! python('3.9'  39  'i686'   'manylinux_i686'   'ubuntu-24.04' '')
-        #- ! python('3.9' 39  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.9' 39  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.9' 39  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-        #
-        - ! python('3.8'  38  'x86_64' 'manylinux_x86_64' 'ubuntu-24.04' '')
-        - ! python('3.8'  38  'i686'   'manylinux_i686'   'ubuntu-24.04' '')
-        #- ! python('3.8' 38  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.8' 38  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.8' 38  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-        #
-        - ! python('3.7'  37  'x86_64' 'manylinux_x86_64' 'ubuntu-22.04' '')
-        - ! python('3.7'  37  'i686'   'manylinux_i686'   'ubuntu-22.04' '')
-        #- ! python('3.7' 37  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.7' 37  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.7' 37  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-        #
-        - ! python('3.6'  36  'x86_64' 'manylinux_x86_64' 'ubuntu-20.04' '') # setup-python 3.6 requires ubuntu 20.04 
-        - ! python('3.6'  36  'i686'   'manylinux_i686'   'ubuntu-20.04' '') # setup-python 3.6 requires ubuntu 20.04
-        #- ! python('3.6' 36  'AMD64'  'win_amd64'        'windows-2022' '-G "Visual Studio 16 2019" -A x64')
-        #- ! python('3.6' 36  'x86'    'win32'            'windows-2022' '-G "Visual Studio 16 2019" -A Win32')
-        #- ! python('3.6' 36  'x86_64' 'macosx_x86_64'    'macosx-10.15' '')
-    steps:
-    - :: checkout-action
-    - name: create wheel
-      uses: pypa/cibuildwheel@v2.23
-    - name: rename wheelhouse -> dist
-      run: mv -fv wheelhouse dist
-    - name: Verify artifacts
-      run: ls -lFhp dist/
-    - name: Save artifacts for publishing to PyPI
-      uses: actions/upload-artifact@v4
-      with: {name: 'dist-${{matrix.config.sfx}}', path: dist/}
-    # run the tests
-    - name: install python ${{matrix.config.pythonv}}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{matrix.config.pythonv}}
-    - name: test with python ${{matrix.config.pythonv}}
-      run: |
-        set -x
-        echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
-        # skip 32 bit tests, as Python 32 bits are not available in ubuntu
-        arch="${{matrix.config.cibw_arch}}"
-        if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
-          exit 0
-        fi
-        python --version
-        python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
-        pip --version
-        pip install -v -r requirements.txt
-        pip install -v -r api/python/requirements.txt
-        for whl in dist/* ; do
-          pip install -v $whl
-          pip show -f rapidyaml
-          python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
-          python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
-          python -m pytest -vvv api/python/tests
-          pip uninstall -y -v rapidyaml
-        done
+    :: define-workflow-python-wheels('python_wheels' python-wheel-matrix setup-env)
+
+  python_wheels_win:
+    :: define-workflow-python-wheels('python_wheels_win' python-wheel-matrix-win setup-env-win)
 
   #----------------------------------------------------------------------------
   merge_artifacts:
     :: setup-job('release' 'merge_artifacts')
     runs-on: ubuntu-latest
-    needs: [src, cpp, python_src, python_wheels]
+    needs: [src, cpp, python_src, python_wheels, python_wheels_win]
     steps:
       - name: Merge assets artifacts
         uses: actions/upload-artifact/merge@v4

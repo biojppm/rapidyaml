@@ -135,7 +135,7 @@ if(RYML_BUILD_API_PYTHON)
         c4_set_folder_remote_project_targets("test" ryml-api-test-python3)
         function(add_python_test script)
             get_filename_component(script_name ${script} NAME_WE)
-            set(script ${pydir}/ryml/tests/${script})
+            set(script ${pydir}/tests/${script})
             set(tn ryml-api-test-python3-${script_name})
             set(cmd python ${script})
             add_custom_target(${tn}
@@ -145,6 +145,7 @@ if(RYML_BUILD_API_PYTHON)
             add_test(NAME ${tn}-run
                 COMMAND ${cmd})
         endfunction()
+        add_python_test(test_readme.py)
         add_python_test(test_parse.py)
     endif()
 

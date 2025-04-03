@@ -1,5 +1,8 @@
 import ryml
-from ryml.ryml import _same_ptr, _same_mem
+try:
+    from ryml.ryml import _same_ptr, _same_mem
+except:
+    from ryml import _same_ptr, _same_mem
 import unittest
 
 
