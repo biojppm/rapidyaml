@@ -22,7 +22,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
     {
         auto flags = c->flags;
-        ExpectError::check_error(&cd->parsed_tree, [this, cd, flags](){
+        ExpectError::check_error_parse(&cd->parsed_tree, [this, cd, flags](){
             parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
             if(flags & RESOLVE_REFS)
                 cd->parsed_tree.resolve();

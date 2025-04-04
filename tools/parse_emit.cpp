@@ -6,6 +6,7 @@
 #include <c4/yml/parse.hpp>
 #include <c4/yml/emit.hpp>
 #include <c4/yml/common.hpp>
+#include <c4/yml/error.def.hpp>
 #endif
 #include <c4/fs/fs.hpp>
 
@@ -85,7 +86,7 @@ Args parse_args(int argc, const char *argv[])
     if(argc < 2)
     {
         print_usage(argv[0]);
-        c4::yml::error("missing filename (use - to read from stdin)");
+        _RYML_ERR_BASIC("missing filename (use - to read from stdin)");
     }
     Args args = {};
     args.filename = c4::to_csubstr(argv[argc - 1]);
@@ -99,7 +100,7 @@ Args parse_args(int argc, const char *argv[])
             if(arg0_is(argshort, arglong))
             {
                 if(i + 1 >= argc)
-                    c4::yml::error("missing argument value");
+                    _RYML_ERR_BASIC("missing argument value: {}", arg);
                 return true;
             }
             return false;
@@ -115,7 +116,7 @@ Args parse_args(int argc, const char *argv[])
         else
         {
             print_usage(argv[0]);
-            c4::yml::error("unknown argument");
+            _RYML_ERR_BASIC("unknown argument: {}", arg);
         }
     }
     timing_enabled = args.timed_sections;
@@ -136,11 +137,7 @@ void read_file(csubstr filename, std::string *buf)
     }
     else
     {
-        if(!fs::path_exists(filename.str))
-        {
-            std::fprintf(stderr, "cannot find file: %s (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str()); // NOLINT
-            yml::error("file not found");
-        }
+        _RYML_CHECK_BASIC_MSG(fs::path_exists(filename.str), "file not found: {} (cwd={})", filename, fs::cwd<std::string>());
         fs::file_get_contents<std::string>(filename.str, buf);
     }
 }
@@ -167,37 +164,42 @@ void emit_json_docs(yml::Tree const& tree, std::string *dst=nullptr)
             emitnode(doc);
 }
 
-void report_error(const char* msg, size_t length, yml::Location loc, FILE *f)
+
+void dump2stderr(csubstr s)
 {
-    if(!loc.name.empty())
+    if(s.len)
     {
-        fwrite(loc.name.str, 1, loc.name.len, f); // NOLINT
-        fputc(':', f); // NOLINT
+        fwrite(s.str, 1, s.len, stderr); // NOLINT
+        fflush(stderr); // NOLINT
     }
-    fprintf(f, "%zu:", loc.line); // NOLINT
-    if(loc.col)
-        fprintf(f, "%zu:", loc.col); // NOLINT
-    if(loc.offset)
-        fprintf(f, " (%zuB):", loc.offset); // NOLINT
-    fputc(' ', f); // NOLINT
-    fprintf(f, "%.*s\n", static_cast<int>(length), msg); // NOLINT
-    fflush(f); // NOLINT
+}
+
+[[noreturn]] void throwerr(csubstr msg)
+{
+    C4_IF_EXCEPTIONS(
+        throw std::runtime_error({msg.str, msg.len});
+        ,
+        jmp_msg.assign(msg.str, msg.len);
+        std::longjmp(jmp_env, 1);
+        );
+    C4_UNREACHABLE_AFTER_ERR();
 }
 
 yml::Callbacks create_custom_callbacks()
 {
-    yml::Callbacks callbacks = {};
-    callbacks.m_error = [](const char *msg, size_t msg_len, yml::Location location, void *)
-    {
-        report_error(msg, msg_len, location, stderr);
-        C4_IF_EXCEPTIONS(
-            throw std::runtime_error({msg, msg_len});
-            ,
-            jmp_msg.assign(msg, msg_len);
-            std::longjmp(jmp_env, 1);
-        );
-    };
-    return callbacks;
+    return yml::Callbacks{}
+        .set_error_basic([](csubstr msg, yml::ErrorDataBasic const& errdata, void *){
+            yml::err_basic_format(dump2stderr, msg, errdata);
+            throwerr(msg);
+        })
+        .set_error_parse([](csubstr msg, yml::ErrorDataParse const& errdata, void *){
+            yml::err_parse_format(dump2stderr, msg, errdata);
+            throwerr(msg);
+        })
+        .set_error_visit([](csubstr msg, yml::ErrorDataVisit const& errdata, void *){
+            yml::err_visit_format(dump2stderr, msg, errdata);
+            throwerr(msg);
+        });
 }
 
 #define TS(name) timed_section C4_XCAT(__, C4_XCAT(name, __LINE__))(#name)
@@ -229,14 +231,13 @@ struct timed_section
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-void process_file(Args const& args)
+void process_file(Args const& args, std::string *contents)
 {
     TS(objects);
-    std::string contents;
     yml::Tree tree(yml::get_callbacks());
     {
         TS(read_file);
-        read_file(args.filename, &contents);
+        read_file(args.filename, contents);
     }
     if(args.reserve_size)
     {
@@ -245,15 +246,15 @@ void process_file(Args const& args)
         if(args.reserve_size)
         {
             TS(estimate_capacity);
-            cap = yml::estimate_tree_capacity(to_csubstr(contents));
+            cap = yml::estimate_tree_capacity(to_csubstr(*contents));
         }
-        if(timing_enabled)
+        if(args.timed_sections)
             fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap); // NOLINT
         tree.reserve(cap);
     }
     {
         TS(parse_yml);
-        yml::parse_in_place(args.filename, to_substr(contents), &tree);
+        yml::parse_in_place(args.filename, to_substr(*contents), &tree);
     }
     if(args.print_tree)
     {
@@ -273,7 +274,7 @@ void process_file(Args const& args)
         std::string output;
         {
             TS(emit_to_buffer);
-            output.resize(contents.size()); // resize, not just reserve
+            output.resize(contents->size()); // resize, not just reserve
             if(!args.emit_as_json)
                 yml::emitrs_yaml(tree, &output);
             else
@@ -299,14 +300,20 @@ void process_file(Args const& args)
 int main(int argc, const char *argv[])
 {
     const Args args = parse_args(argc, argv);
-    TS(TOTAL);
     set_callbacks(create_custom_callbacks());
+    TS(TOTAL);
+    std::string yaml;
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
-        process_file(args);
+        process_file(args, &yaml);
     }
-    C4_IF_EXCEPTIONS_(catch(std::exception const&), else) // LCOV_EXCL_LINE
+    C4_IF_EXCEPTIONS_(catch(std::exception const& exc), else) // LCOV_EXCL_LINE
     {
+        C4_IF_EXCEPTIONS(
+            dump2stderr(to_csubstr(exc.what()));  // LCOV_EXCL_LINE
+        ,
+            dump2stderr(to_csubstr(jmp_msg));  // LCOV_EXCL_LINE
+        );
         return 1; // LCOV_EXCL_LINE
     }
     return 0;
