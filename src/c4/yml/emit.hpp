@@ -15,19 +15,6 @@
 #include "./node.hpp"
 #endif
 
-#define RYML_DEPRECATE_EMIT                                             \
-    RYML_DEPRECATED("use emit_yaml() instead. "                         \
-                    "See https://github.com/biojppm/rapidyaml/issues/120")
-#define RYML_DEPRECATE_EMITRS                                           \
-    RYML_DEPRECATED("use emitrs_yaml() instead. "                       \
-                    "See https://github.com/biojppm/rapidyaml/issues/120")
-
-#ifdef emit
-#error "emit is defined, likely from a Qt include. "                    \
-    "This will cause a compilation error. "                             \
-    "See https://github.com/biojppm/rapidyaml/issues/120"
-#endif
-
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
@@ -829,6 +816,21 @@ CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={
 
 /** @cond dev */
 
+#define RYML_DEPRECATE_EMIT                                             \
+    RYML_DEPRECATED("use emit_yaml() instead. "                         \
+                    "See https://github.com/biojppm/rapidyaml/issues/120")
+#define RYML_DEPRECATE_EMITRS                                           \
+    RYML_DEPRECATED("use emitrs_yaml() instead. "                       \
+                    "See https://github.com/biojppm/rapidyaml/issues/120")
+
+// workaround for Qt emit which is a macro;
+// see https://github.com/biojppm/rapidyaml/issues/120.
+// emit is defined in qobjectdefs.h (as an empty define).
+#ifdef emit
+#define RYML_TMP_EMIT_
+#undef emit
+#endif
+
 RYML_DEPRECATE_EMIT inline size_t emit(Tree const& t, id_type id, FILE *f)
 {
     return emit_yaml(t, id, f);
@@ -854,6 +856,11 @@ RYML_DEPRECATE_EMIT inline substr emit(ConstNodeRef const& r, substr buf, bool e
 {
     return emit_yaml(r, buf, error_on_excess);
 }
+
+#ifdef RYML_TMP_EMIT_
+#define emit
+#undef RYML_TMP_EMIT_
+#endif
 
 template<class CharOwningContainer>
 RYML_DEPRECATE_EMITRS substr emitrs(Tree const& t, id_type id, CharOwningContainer * cont)
@@ -885,6 +892,7 @@ RYML_DEPRECATE_EMITRS CharOwningContainer emitrs(ConstNodeRef const& n)
 {
     return emitrs_yaml<CharOwningContainer>(n);
 }
+
 /** @endcond */
 
 

@@ -31,6 +31,7 @@
 - [PR#501](https://github.com/biojppm/rapidyaml/pull/501): fix missing tag in `- !!seq []`.
 - [PR#508](https://github.com/biojppm/rapidyaml/pull/508): fix build with cmake 4.
 - [PR#517](https://github.com/biojppm/rapidyaml/pull/517) (fixes [#516](https://github.com/biojppm/rapidyaml/issues/516)): fix python wheels for windows and macosx.
+- Fix [#120](https://github.com/biojppm/rapidyaml/issues/120) (again): add workaround for #define emit in Qt
 
 
 ### Thanks
