@@ -508,12 +508,12 @@ class TestParseFailure(unittest.TestCase):
 
     def test_in_arena(self):
         self.assertNotEqual(self.src_as_str, "")
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ryml.ExceptionParse):
             tree = ryml.parse_in_arena(self.src_as_str)
 
     def test_in_place(self):
         self.assertNotEqual(self.src_as_bytearray, "")
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ryml.ExceptionParse):
             tree = ryml.parse_in_place(self.src_as_bytearray)
 
 
