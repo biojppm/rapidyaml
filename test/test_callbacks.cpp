@@ -653,6 +653,7 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
         set_callbacks(mk_test_callbacks());
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
@@ -661,12 +662,14 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
         RYML_IF_EXC(catch(ExceptionBasic const& exc){
             exc_msg = exc.what();
             exc_ok = true;
+            exc_msg_full = format_exc<std::string>(exc);
         })
         C4_IF_EXCEPTIONS_(catch(std::exception const& exc) { exc_msg = exc.what(); }, else {;})
         testloc(stored_cpploc, cpploc);
         test_full_msg_args(cpploc, to_csubstr(stored_msg_full), expected);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
@@ -677,6 +680,7 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
         set_callbacks(mk_test_callbacks());
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
@@ -685,12 +689,14 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
         RYML_IF_EXC(catch(ExceptionBasic const& exc){
             exc_msg = exc.what();
             exc_ok = true;
+            exc_msg_full = format_exc<std::string>(exc);
         })
         C4_IF_EXCEPTIONS_(catch(std::exception const& exc) { exc_msg = exc.what(); }, else {;})
         testloc(stored_cpploc, cpploc);
         test_full_msg_args(cpploc, to_csubstr(stored_msg_full), expected);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
@@ -771,12 +777,14 @@ void test_check_basic(Fn &&fn, csubstr expected_msg)
     set_callbacks(mk_test_callbacks());
     {
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
             std::forward<Fn>(fn)();
         }
         RYML_IF_EXC(catch(ExceptionBasic const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -784,6 +792,7 @@ void test_check_basic(Fn &&fn, csubstr expected_msg)
         std::cout << exc_msg << "\n";
         std::cout << stored_msg_full << "\n";
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         EXPECT_NE(csubstr::npos, to_csubstr(exc_msg).find(expected_msg));
     }
     reset_callbacks();
@@ -903,12 +912,14 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
         set_callbacks(mk_test_callbacks());
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
             c4::yml::err_parse({cpploc, ymlloc}, errmsg, args...);
         }
         RYML_IF_EXC(catch(ExceptionParse const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -918,6 +929,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         test_full_msg_args(ymlloc, to_csubstr(stored_msg_full), expected_fmt);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
@@ -927,12 +939,14 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
         set_callbacks(mk_test_callbacks());
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
             c4::yml::err_parse({cpploc, ymlloc}, errmsg);
         }
         RYML_IF_EXC(catch(ExceptionParse const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -942,6 +956,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         test_full_msg_args(ymlloc, to_csubstr(stored_msg_full), expected);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
@@ -953,6 +968,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         cb2.m_error_parse = nullptr;
         set_callbacks(cb2);
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
@@ -962,6 +978,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
             exc_ok = false;
         }
         catch(ExceptionBasic const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -970,6 +987,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         EXPECT_EQ(to_csubstr(stored_msg), expected);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
@@ -978,6 +996,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         SCOPED_TRACE("custom handler, parse falls back to basic");
         Callbacks cb2 = mk_test_callbacks();
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
         cb2.m_error_parse = nullptr;
@@ -990,6 +1009,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
             exc_ok = false;
         }
         catch(ExceptionBasic const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -998,6 +1018,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         EXPECT_EQ(to_csubstr(stored_msg), expected_fmt);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
@@ -1031,6 +1052,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         SCOPED_TRACE("default handler exceptions, no format");
         bool exc_ok = false;
         std::string exc_msg;
+        std::string exc_msg_full;
         try
         {
             c4::yml::err_parse({cpploc, ymlloc}, errmsg);
@@ -1039,6 +1061,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         {
             exc_ok = true;
             exc_msg = exc.what();
+            exc_msg_full = format_exc<std::string>(exc);
             testloc(exc.errdata_parse.ymlloc, ymlloc);
             testloc(exc.errdata_parse.cpploc, cpploc);
         }
@@ -1054,6 +1077,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         SCOPED_TRACE("parse err can be caught as basic");
         bool exc_ok = false;
         std::string exc_msg;
+        std::string exc_msg_full;
         try
         {
             c4::yml::err_parse({cpploc, ymlloc}, errmsg, args...);
@@ -1062,6 +1086,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         {
             exc_ok = true;
             exc_msg = exc.what();
+            exc_msg_full = format_exc<std::string>(exc);
             testloc(exc.errdata_basic.location, ymlloc);
         }
         catch(std::exception const& exc)
@@ -1108,18 +1133,21 @@ void test_check_parse(Fn &&fn, csubstr expected_msg)
     set_callbacks(mk_test_callbacks());
     {
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
             std::forward<Fn>(fn)();
         }
         RYML_IF_EXC(catch(ExceptionParse const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
         C4_IF_EXCEPTIONS_(catch(std::exception const& exc) { exc_msg = exc.what(); }, else { exc_msg = stored_msg; })
         std::cout << stored_msg_full << "\n";
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         EXPECT_NE(csubstr::npos, to_csubstr(exc_msg).find(expected_msg));
     }
     reset_callbacks();
@@ -1188,12 +1216,14 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
         set_callbacks(mk_test_callbacks());
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
             c4::yml::err_visit({cpploc, t, id}, errmsg, args...);
         }
         RYML_IF_EXC(catch(ExceptionVisit const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -1204,6 +1234,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         EXPECT_EQ(stored_id, id);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
@@ -1214,12 +1245,14 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
         set_callbacks(mk_test_callbacks());
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
             c4::yml::err_visit({cpploc, t, id}, errmsg);
         }
         RYML_IF_EXC(catch(ExceptionVisit const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -1230,6 +1263,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         EXPECT_EQ(stored_id, id);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
@@ -1243,6 +1277,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         set_callbacks(cb);
         EXPECT_EQ(get_callbacks().m_error_visit, nullptr);
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
@@ -1252,6 +1287,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
             exc_ok = false;
         }
         catch(ExceptionBasic const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -1262,6 +1298,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         EXPECT_EQ(stored_id, NONE);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
@@ -1275,6 +1312,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         set_callbacks(cb);
         EXPECT_EQ(get_callbacks().m_error_visit, nullptr);
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
@@ -1284,6 +1322,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
             exc_ok = false;
         }
         catch(ExceptionBasic const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
@@ -1294,6 +1333,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         EXPECT_EQ(stored_id, NONE);
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         reset_callbacks();
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
@@ -1408,18 +1448,21 @@ void test_check_visit(Fn &&fn, csubstr expected_msg)
     set_callbacks(mk_test_callbacks());
     {
         std::string exc_msg;(void)exc_msg;
+        std::string exc_msg_full;(void)exc_msg_full;
         RYML_IF_EXC(bool exc_ok = false);
         C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
         {
             std::forward<Fn>(fn)();
         }
         RYML_IF_EXC(catch(ExceptionVisit const& exc){
+            exc_msg_full = format_exc<std::string>(exc);
             exc_msg = exc.what();
             exc_ok = true;
         })
         C4_IF_EXCEPTIONS_(catch(std::exception const& exc) { exc_msg = exc.what(); }, else { exc_msg = stored_msg; })
         std::cout << stored_msg_full << "\n";
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
+        RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         EXPECT_NE(csubstr::npos, to_csubstr(exc_msg).find(expected_msg));
     }
     reset_callbacks();

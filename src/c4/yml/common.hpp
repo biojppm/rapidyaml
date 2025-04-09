@@ -274,20 +274,17 @@ typedef enum Encoding_ {
 //-----------------------------------------------------------------------------
 
 
-/** holds a source or yaml file position; See also @ref
- * location_format() and @ref location_format_with_context().
+/** holds a source or yaml file position, for example when an error is
+ * detected; See also @ref location_format() and @ref
+ * location_format_with_context().
  *
  * @ingroup doc_error_handling */
 struct RYML_EXPORT Location
 {
-    //! number of bytes from the beginning of the source buffer
-    size_t offset;
-    //! line
-    size_t line;
-    //! column
-    size_t col;
-    //! file name
-    csubstr name;
+    size_t offset; ///< number of bytes from the beginning of the source buffer
+    size_t line;   ///< line
+    size_t col;    ///< column
+    csubstr name;  ///< name of the file
 
     operator bool () const noexcept { return !name.empty() || line != npos || offset != npos || col != npos; }
 

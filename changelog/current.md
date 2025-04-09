@@ -45,6 +45,7 @@
     - `err_basic_format()`: format/print a full error message for a basic error
     - `location_format()`: format/print a location
     - `location_format_with_context()`: useful to create a rich error message showing the YAML region causing the error, maybe even for a visit error if the source is kept and locations are enabled.
+    - `format_exc()`: when exceptions are enabled
   - See the new header `c4/yml/error.hpp` (and `c4/yml/error.def.hpp` for definitions of the functions in `c4/yml/error.hpp`)
   - See the relevant sample functions in the quickstart sample: `sample_error_basic`, `sample_error_parse` and `sample_error_visit`.
   - There are breaking user-facing changes in the `Callbacks` structure:

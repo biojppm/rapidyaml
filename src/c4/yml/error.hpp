@@ -25,7 +25,7 @@
 /// @endcond
 
 #ifdef _RYML_WITH_EXCEPTIONS
-#include <stdexcept>
+#include <exception>
 #endif
 
 
@@ -446,7 +446,8 @@ C4_NORETURN C4_NO_INLINE void err_visit(ErrorDataVisit const& errdata, const cha
 #if defined(_RYML_WITH_EXCEPTIONS) || defined(__DOXYGEN__)
 
 /** Exception thrown by the default basic error implementation. To
- * obtain the full error message, use @ref err_basic_format().
+ * obtain the full error message, use @ref err_basic_format(), or the
+ * helper @ref format_exc().
  *
  * @note Available only if @ref
  * RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, and @ref
@@ -462,7 +463,7 @@ struct RYML_EXPORT ExceptionBasic : public std::exception
 
 /** Exception thrown by the default parse error implementation. To
  * obtain the full error message containing context, use @ref
- * err_parse_format().
+ * err_parse_format(), or the helper @ref format_exc().
  *
  * @note This exception derives from @ref ExceptionBasic and can be
  * catched using either type.
@@ -479,7 +480,7 @@ struct RYML_EXPORT ExceptionParse : public ExceptionBasic
 
 /** Exception thrown by the default visit error implementation. To
  * obtain the full error message containing context, use @ref
- * err_visit_format().
+ * err_visit_format(), or the helper @ref format_exc().
  *
  * @note This exception derives from @ref ExceptionBasic and can be
  * catched using either type.
@@ -492,6 +493,60 @@ struct RYML_EXPORT ExceptionVisit : public ExceptionBasic
     ExceptionVisit(csubstr msg, ErrorDataVisit const& errdata_) noexcept;
     ErrorDataVisit errdata_visit;
 };
+
+
+/** Format a basic exception to an existing char container
+ *
+ * @note Available only if @ref
+ * RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, and @ref
+ * RYML_NO_DEFAULT_CALLBACKS is NOT defined.  */
+template<class CharContainer>
+void format_exc(CharContainer *out, ExceptionBasic const& exc)
+{
+    out->clear();
+    err_basic_format([out](csubstr s){
+        out->append(s.str, s.len);
+    }, csubstr{exc.msg, strlen(exc.msg)}, exc.errdata_basic);
+}
+/** Format a parse exception to an existing char container
+ *
+ * @note Available only if @ref
+ * RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, and @ref
+ * RYML_NO_DEFAULT_CALLBACKS is NOT defined.  */
+template<class CharContainer>
+void format_exc(CharContainer *out, ExceptionParse const& exc)
+{
+    out->clear();
+    err_parse_format([out](csubstr s){
+        out->append(s.str, s.len);
+    }, csubstr{exc.msg, strlen(exc.msg)}, exc.errdata_parse);
+}
+/** Format a visit exception to an existing char container
+ *
+ * @note Available only if @ref
+ * RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, and @ref
+ * RYML_NO_DEFAULT_CALLBACKS is NOT defined.  */
+template<class CharContainer>
+void format_exc(CharContainer *out, ExceptionVisit const& exc)
+{
+    out->clear();
+    err_visit_format([out](csubstr s){
+        out->append(s.str, s.len);
+    }, csubstr{exc.msg, strlen(exc.msg)}, exc.errdata_visit);
+}
+/** Format a parse exception, and return a newly-created char
+ * container
+ *
+ * @note Available only if @ref
+ * RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, and @ref
+ * RYML_NO_DEFAULT_CALLBACKS is NOT defined.  */
+template<class CharContainer, class ExceptionT>
+CharContainer format_exc(ExceptionT const& exc)
+{
+    CharContainer str;
+    format_exc(&str, exc);
+    return str;
+}
 
 #endif // _RYML_WITH_EXCEPTIONS
 
