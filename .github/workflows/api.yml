@@ -62,69 +62,13 @@ jobs:
            -D RYML_BUILD_TESTS=ON
     - name: build
       run: |
-        cmake --build build/py -j -v --target ryml-api-python3
+        cmake --build build/py -j -v --config Release --target ryml-api-python3
         cp -fv api/python/ryml/__init__.py build/py/api/python3/.
-        ls -lFpAR build/py/api/python3/*
+        ls -lFpAR build/py/api/python3/
     - name: test with ctest
       run: |
         export PYTHONPATH=`pwd`/build/py/api/python3:$PYTHONPATH
-        cmake --build build/py -j -v --target ryml-api-test-python3
-    - name: test with pytest
-      run: |
-        export PYTHONPATH=`pwd`/build/py/api/python3:$PYTHONPATH
-        python -m pytest -vvv api/python/tests
-  pybarewin:
-    if: always()
-    continue-on-error: false
-    name: pybare/${{matrix.config.pythonv}}/${{matrix.config.os}}
-    runs-on: ${{matrix.config.os}}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-        - pythonv: '3.13'
-          os: windows-latest
-    steps:
-    - name: checkout (action)
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        fetch-depth: 0
-    - name: install python ${{matrix.config.pythonv}}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{matrix.config.pythonv}}
-    - name: deps
-      run: |
-        if [[ "${{matrix.config.os}}" == macos* ]] ; then
-           brew install swig
-        elif [[ "${{matrix.config.os}}" == windows* ]] ; then
-           choco install swig
-        fi
-        pip install build deprecation pytest
-        pip install -r requirements.txt
-    - name: setup env (Visual Studio)
-      uses: TheMrMilchmann/setup-msvc-dev@v3
-      with:
-        arch: ${{matrix.config.vsenvarch}}
-    - name: configure
-      run: |
-        cmake -B build/py \
-           -D CMAKE_BUILD_TYPE=Release \
-           -D BUILD_SHARED_LIBS=ON \
-           -D RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON \
-           -D RYML_BUILD_API=ON \
-           -D RYML_API_TESTS=ON \
-           -D RYML_BUILD_TESTS=ON
-    - name: build
-      run: |
-        cmake --build build/py -j -v --target ryml-api-python3
-        cp -fv api/python/ryml/__init__.py build/py/api/python3/.
-        ls -lFpAR build/py/api/python3/*
-    - name: test with ctest
-      run: |
-        export PYTHONPATH=`pwd`/build/py/api/python3:$PYTHONPATH
-        cmake --build build/py -j -v --target ryml-api-test-python3
+        cmake --build build/py -j -v --config Release --target ryml-api-test-python3
     - name: test with pytest
       run: |
         export PYTHONPATH=`pwd`/build/py/api/python3:$PYTHONPATH
@@ -164,7 +108,9 @@ jobs:
         pip install build deprecation pytest
         pip install -r requirements.txt
     - name: '------------------- using setup.py'
-      run: rm -rf build/ dist/
+      run: |
+        rm -rf build/ dist/ || echo "no files found"
+        pip uninstall -y -v rapidyaml || echo "was not installed"
     - name: create wheel with python setup.py bdist_wheel -v
       run: |
         python setup.py bdist_wheel -v
@@ -173,7 +119,9 @@ jobs:
     - name: test with pytest
       run: python -m pytest -vvv api/python/tests
     - name: '------------------- using pip'
-      run: rm -rf build/ dist/
+      run: |
+        rm -rf build/ dist/ || echo "no files found"
+        pip uninstall -y -v rapidyaml || echo "was not installed"
     - name: create wheel with pip wheel -w dist/ .
       run: |
         pip wheel -w dist/ .
@@ -182,7 +130,9 @@ jobs:
     - name: test with pytest
       run: python -m pytest -vvv api/python/tests
     - name: '------------------- using pypa/build'
-      run: rm -rf build/ dist/
+      run: |
+        rm -rf build/ dist/ || echo "no files found"
+        pip uninstall -y -v rapidyaml || echo "was not installed"
     - name: create wheel with python -m build --wheel
       run: |
         python -m build --wheel
@@ -201,6 +151,7 @@ jobs:
         config:
         - pythonv: '3.13'
           os: windows-latest
+          vsenvarch: x64
     env:
       CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILES=ON
     steps:
@@ -227,7 +178,9 @@ jobs:
       with:
         arch: ${{matrix.config.vsenvarch}}
     - name: '------------------- using setup.py'
-      run: rm -rf build/ dist/
+      run: |
+        rm -rf build/ dist/ || echo "no files found"
+        pip uninstall -y -v rapidyaml || echo "was not installed"
     - name: create wheel with python setup.py bdist_wheel -v
       run: |
         python setup.py bdist_wheel -v
@@ -236,7 +189,9 @@ jobs:
     - name: test with pytest
       run: python -m pytest -vvv api/python/tests
     - name: '------------------- using pip'
-      run: rm -rf build/ dist/
+      run: |
+        rm -rf build/ dist/ || echo "no files found"
+        pip uninstall -y -v rapidyaml || echo "was not installed"
     - name: create wheel with pip wheel -w dist/ .
       run: |
         pip wheel -w dist/ .
@@ -245,7 +200,9 @@ jobs:
     - name: test with pytest
       run: python -m pytest -vvv api/python/tests
     - name: '------------------- using pypa/build'
-      run: rm -rf build/ dist/
+      run: |
+        rm -rf build/ dist/ || echo "no files found"
+        pip uninstall -y -v rapidyaml || echo "was not installed"
     - name: create wheel with python -m build --wheel
       run: |
         python -m build --wheel
