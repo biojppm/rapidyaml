@@ -12,6 +12,7 @@
 #define SWIG_FILE_WITH_INIT
 
 #include <c4/yml/yml.hpp>
+#include <c4/yml/error.def.hpp>
 
 namespace c4 {
 namespace yml {
@@ -149,10 +150,49 @@ using csubstr = c4::csubstr;
 // KEEP THIS BEFORE THE FOLLOWING FUNCTIONS!
 // see https://stackoverflow.com/a/61621747
 %include <std_string.i>
+%include <std_except.i>
 %include <exception.i>
+%include <pyabc.i>
+%pythonabc(c4__yml__ExceptionParse, "Exception")
+%pythonabc(c4__yml__ExceptionVisit, "Exception")
+%pythonabc(c4__yml__ExceptionBasic, "Exception")
+%exceptionclass c4::yml::ExceptionBasic;
+%exceptionclass c4::yml::ExceptionParse;
+%exceptionclass c4::yml::ExceptionVisit;
 %exception {
     try {
         $action
+    } catch (c4::yml::ExceptionParse const& exc) {
+        SWIG_Python_Raise(SWIG_NewPointerObj(
+                              (new c4::yml::ExceptionParse(exc)),
+                              SWIGTYPE_p_c4__yml__ExceptionParse,
+                              SWIG_POINTER_OWN),
+                          "ExceptionParse",
+                          SWIGTYPE_p_c4__yml__ExceptionParse);
+        //std::string err = c4::yml::format_exc<std::string>(exc);
+        //PyErr_SetString(SWIG_Python_ExceptionType(SWIGTYPE_p_c4__yml__ExceptionParse), c4::csubstr(err.data(), err.size()), exc.errdata_parse);
+        SWIG_fail;
+    } catch (c4::yml::ExceptionVisit const& exc) {
+        SWIG_Python_Raise(SWIG_NewPointerObj(
+                              (new c4::yml::ExceptionVisit(exc)),
+                              SWIGTYPE_p_c4__yml__ExceptionVisit,
+                              SWIG_POINTER_OWN),
+                          "ExceptionVisit",
+                          SWIGTYPE_p_c4__yml__ExceptionVisit);
+        //std::string err = c4::yml::format_exc<std::string>(exc);
+        //PyErr_SetString(SWIG_Python_ExceptionType(SWIGTYPE_p_c4__yml__ExceptionVisit), c4::csubstr(err.data(), err.size()), exc.errdata_visit);
+        SWIG_fail;
+    } catch (c4::yml::ExceptionBasic const& exc) {
+        //SWIG_exception(SWIGTYPE_p_c4__yml__ExceptionBasic, c4::csubstr(exc.str, strlen(exc.str)), exc.errdata_basic);
+        SWIG_Python_Raise(SWIG_NewPointerObj(
+                              (new c4::yml::ExceptionBasic(exc)),
+                              SWIGTYPE_p_c4__yml__ExceptionBasic,
+                              SWIG_POINTER_OWN),
+                          "ExceptionBasic",
+                          SWIGTYPE_p_c4__yml__ExceptionBasic);
+        //std::string err = c4::yml::format_exc<std::string>(exc);
+        //PyErr_SetString(SWIG_Python_ExceptionType(SWIGTYPE_p_c4__yml__ExceptionBasic), c4::csubstr(err.data(), err.size()), exc.errdata_basic);
+        SWIG_fail;
     } catch(std::exception const& e) {
         SWIG_exception(SWIG_RuntimeError, e.what());
     } catch(...) {
@@ -438,45 +478,102 @@ def compute_emit_json_length(tree, id=None):
 
 //-----------------------------------------------------------------------------
 
+
 namespace c4 {
 namespace yml {
+
 
 constexpr const size_t NONE = (size_t)-1;
 
 using type_bits = uint32_t;
 
-typedef enum {
-    NOTYPE  = 0,          ///< no type is set
-    VAL     = (1<<0),     ///< a leaf node, has a (possibly empty) value
-    KEY     = (1<<1),     ///< is member of a map, must have non-empty key
-    MAP     = (1<<2),     ///< a map: a parent of keyvals
-    SEQ     = (1<<3),     ///< a seq: a parent of vals
-    DOC     = (1<<4),     ///< a document
-    STREAM  = (1<<5)|SEQ, ///< a stream: a seq of docs
-    KEYREF  = (1<<6),     ///< a *reference: the key references an &anchor
-    VALREF  = (1<<7),     ///< a *reference: the val references an &anchor
-    KEYANCH = (1<<8),     ///< the key has an &anchor
-    VALANCH = (1<<9),     ///< the val has an &anchor
-    KEYTAG  = (1<<10),    ///< the key has an explicit tag/type
-    VALTAG  = (1<<11),    ///< the val has an explicit tag/type
-    KEY_UNFILT  = (1<<12), ///< the key scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
-    VAL_UNFILT  = (1<<13), ///< the val scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+
+struct Location
+{
+    size_t offset; ///< number of bytes from the beginning of the source buffer
+    size_t line;
+    size_t col;
+    c4::yml::csubstr name;
+};
+
+struct ErrorDataBasic
+{
+    c4::yml::Location location; ///< location where the error was detected (may be from YAML or C++ source code)
+    ErrorDataBasic() noexcept = default;
+    ErrorDataBasic(c4::yml::Location const& cpploc_) noexcept;
+};
+struct ErrorDataParse
+{
+    c4::yml::Location cpploc; ///< location in the C++ source file where the error was detected.
+    c4::yml::Location ymlloc; ///< location in the YAML source buffer where the error was detected.
+    ErrorDataParse() noexcept = default;
+    ErrorDataParse(c4::yml::Location const& cpploc_, c4::yml::Location const& ymlloc_) noexcept;
+};
+struct ErrorDataVisit
+{
+    c4::yml::Location cpploc;  ///< location in the C++ source file where the error was detected.
+    c4::yml::Tree const* tree; ///< tree where the error was detected
+    c4::yml::id_type node;     ///< node where the error was detected
+    ErrorDataVisit() noexcept = default;
+    ErrorDataVisit(c4::yml::Location const& cpploc_, c4::yml::Tree const *tree_ , c4::yml::id_type node_) noexcept;
+};
+
+struct ExceptionBasic : public std::exception
+{
+    ExceptionBasic(c4::yml::csubstr msg, c4::yml::ErrorDataBasic const& errdata_) noexcept;
+    const char* what() const noexcept override { return msg; }
+    c4::yml::ErrorDataBasic errdata_basic; ///< error data
+    char msg[RYML_ERRMSG_SIZE];   ///< the reported error message, without location indication.
+};
+struct ExceptionParse : public ExceptionBasic
+{
+    ExceptionParse(c4::yml::csubstr msg, c4::yml::ErrorDataParse const& errdata_) noexcept;
+    c4::yml::ErrorDataParse errdata_parse;
+};
+struct ExceptionVisit : public ExceptionBasic
+{
+    ExceptionVisit(c4::yml::csubstr msg, c4::yml::ErrorDataVisit const& errdata_) noexcept;
+    c4::yml::ErrorDataVisit errdata_visit;
+};
+
+typedef enum : c4::yml::type_bits {
+    NOTYPE  = 0,         ///< no node type or style is set
+    KEY     = (1u << 0),     ///< is member of a map
+    VAL     = (1u << 1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ
+    MAP     = (1u << 2),     ///< a map: a parent of KEYVAL/KEYSEQ/KEYMAP nodes
+    SEQ     = (1u << 3),     ///< a seq: a parent of VAL/SEQ/MAP nodes
+    DOC     = (1u << 4),     ///< a document
+    STREAM  = (1u << 5)|SEQ, ///< a stream: a seq of docs
+    KEYREF  = (1u << 6),     ///< a *reference: the key references an &anchor
+    VALREF  = (1u << 7),     ///< a *reference: the val references an &anchor
+    KEYANCH = (1u << 8),     ///< the key has an &anchor
+    VALANCH = (1u << 9),     ///< the val has an &anchor
+    KEYTAG  = (1u << 10),    ///< the key has a tag
+    VALTAG  = (1u << 11),    ///< the val has a tag
+    KEYNIL  = (1u << 12),    ///< the key is null (eg `{ : b}` results in a null key)
+    VALNIL  = (1u << 13),    ///< the val is null (eg `{a : }` results in a null val)
+    _TYMASK = (1u << 14)-1u, ///< all the bits up to here
+    //
+    // unfiltered flags:
+    //
+    KEY_UNFILT  = (1u << 14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+    VAL_UNFILT  = (1u << 15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
     //
     // style flags:
     //
-    FLOW_SL     = (1<<14), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
-    FLOW_ML     = (1<<15), ///< mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
-    BLOCK       = (1<<16), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
-    KEY_LITERAL = (1<<17), ///< mark key scalar as multiline, block literal |
-    VAL_LITERAL = (1<<18), ///< mark val scalar as multiline, block literal |
-    KEY_FOLDED  = (1<<19), ///< mark key scalar as multiline, block folded >
-    VAL_FOLDED  = (1<<20), ///< mark val scalar as multiline, block folded >
-    KEY_SQUO    = (1<<21), ///< mark key scalar as single quoted '
-    VAL_SQUO    = (1<<22), ///< mark val scalar as single quoted '
-    KEY_DQUO    = (1<<23), ///< mark key scalar as double quoted "
-    VAL_DQUO    = (1<<24), ///< mark val scalar as double quoted "
-    KEY_PLAIN   = (1<<25), ///< mark key scalar as plain scalar (unquoted, even when multiline)
-    VAL_PLAIN   = (1<<26), ///< mark val scalar as plain scalar (unquoted, even when multiline)
+    FLOW_SL     = (1u << 16), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
+    FLOW_ML     = (1u << 17), ///< (NOT IMPLEMENTED, work in progress) mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
+    BLOCK       = (1u << 18), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
+    KEY_LITERAL = (1u << 19), ///< mark key scalar as multiline, block literal |
+    VAL_LITERAL = (1u << 20), ///< mark val scalar as multiline, block literal |
+    KEY_FOLDED  = (1u << 21), ///< mark key scalar as multiline, block folded >
+    VAL_FOLDED  = (1u << 22), ///< mark val scalar as multiline, block folded >
+    KEY_SQUO    = (1u << 23), ///< mark key scalar as single quoted '
+    VAL_SQUO    = (1u << 24), ///< mark val scalar as single quoted '
+    KEY_DQUO    = (1u << 25), ///< mark key scalar as double quoted "
+    VAL_DQUO    = (1u << 26), ///< mark val scalar as double quoted "
+    KEY_PLAIN   = (1u << 27), ///< mark key scalar as plain scalar (unquoted, even when multiline)
+    VAL_PLAIN   = (1u << 28), ///< mark val scalar as plain scalar (unquoted, even when multiline)
     //
     // type combination masks:
     //
@@ -503,6 +600,10 @@ typedef enum {
     CONTAINER_STYLE_BLOCK = BLOCK,
     CONTAINER_STYLE       = FLOW_SL|FLOW_ML|BLOCK,
     STYLE          = SCALAR_STYLE | CONTAINER_STYLE,
+    //
+    // mixed masks
+    _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
+    _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
 } NodeType_e;
 
 constexpr NodeType_e operator|  (NodeType_e lhs, NodeType_e rhs) noexcept;
@@ -572,6 +673,8 @@ public:
     bool has_val()           const noexcept;
     bool is_val()            const noexcept;
     bool is_keyval()         const noexcept;
+    bool key_is_null()       const noexcept;
+    bool val_is_null()       const noexcept;
     bool has_key_tag()       const noexcept;
     bool has_val_tag()       const noexcept;
     bool has_key_anchor()    const noexcept;
@@ -938,5 +1041,3 @@ public:
 
 } // namespace yml
 } // namespace c4
-
-//-----------------------------------------------------------------------------
