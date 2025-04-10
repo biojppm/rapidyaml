@@ -38,8 +38,14 @@ C4CORE_DIR_DST = $(RYML_DIR)/src
 C4CORE_INPUT_FILES = $(C4CORE_SRC:%=$(C4CORE_DIR_SRC)/%)
 C4CORE_OUTPUT_FILES = $(C4CORE_SRC:%=$(C4CORE_DIR_DST)/%)
 
-
-c4core-update: $(C4CORE_OUTPUT_FILES)
+update-src-c4core-to-ryml: $(C4CORE_INPUT_FILES)
+	cd $(C4CORE_DIR_SRC) ; \
+	  tar cf - $(C4CORE_SRC) $(C4CORE_SRC_DEV) \
+	  | ( cd $(C4CORE_DIR_DST) ; tar xvfp - )
+update-src-ryml-to-c4core: $(C4CORE_OUTPUT_FILES)
+	cd $(C4CORE_DIR_DST) ; \
+	  tar cf - $(C4CORE_SRC) $(C4CORE_SRC_DEV) \
+	  | ( cd $(C4CORE_DIR_SRC) ; tar xvfp - )
 
 c4core-check:
 	for s in $(C4CORE_SRC) $(C4CORE_SRC_DEV); do \
@@ -51,6 +57,3 @@ c4core-check:
 
 c4core-amalgamate:
 	@echo
-
-$(C4CORE_OUTPUT_FILES): $(C4CORE_INPUT_FILES)
-	cp -fav $(C4CORE_INPUT_FILES) $(C4CORE_DIR_DST)/.

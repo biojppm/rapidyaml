@@ -43,6 +43,21 @@ jobs:
           echo "ERROR: generated workflows are out of date"
         fi
         exit $status
+  check_c4core_src:
+    if: always()
+    continue-on-error: false
+    runs-on: ubuntu-24.04
+    steps:
+    - name: checkout (action)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: install colordiff
+      run: apt-get install -y colordiff
+    - name: test src sync
+      run: |
+        make -C tools c4core-check
   check_doc:
     if: always()
     continue-on-error: false
