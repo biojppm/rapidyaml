@@ -19,7 +19,7 @@ Quickstart build samples
 
 These samples show different ways of getting ryml into your application.
 All the samples use `the same quickstart executable
-source <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/quickstart.cpp>`__, but are built in different ways,
+source <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/quickstart.cpp>`__, but are built in different ways,
 showing several alternatives to integrate ryml into your project. We
 also encourage you to refer to the `quickstart
 docs <doxygen/group__doc__quickstart.html>`__, which extensively covers
@@ -41,19 +41,19 @@ more about each sample:
 +-------------------------------------------------------------------------------------------------+----------------------------------+--------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------+
 | Sample name                                                                                     | ryml is part of build?           | cmake file                                                                                                   | commands                                                                                                    |
 +=================================================================================================+==================================+==============================================================================================================+=============================================================================================================+
-| `singleheader <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/singleheader>`_         | | **yes**                        | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/singleheader/CMakeLists.txt>`_     | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/singleheader/run.sh>`_                    |
+| `singleheader <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/singleheader>`_         | | **yes**                        | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/singleheader/CMakeLists.txt>`_     | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/singleheader/run.sh>`_                    |
 |                                                                                                 | | ryml brought as a single       |                                                                                                              |                                                                                                             |
 |                                                                                                 | | header, not as a library       |                                                                                                              |                                                                                                             |
 +-------------------------------------------------------------------------------------------------+----------------------------------+--------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------+
-| `singleheaderlib <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/singleheaderlib>`_   | | **yes**                        | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/singleheaderlib/CMakeLists.txt>`_  | | `run_shared.sh <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/singleheaderlib/run_shared.sh>`_ |
-|                                                                                                 | | ryml brought as library        |                                                                                                              | | `run_static.sh <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/singleheaderlib/run_static.sh>`_ |
+| `singleheaderlib <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/singleheaderlib>`_   | | **yes**                        | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/singleheaderlib/CMakeLists.txt>`_  | | `run_shared.sh <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/singleheaderlib/run_shared.sh>`_ |
+|                                                                                                 | | ryml brought as library        |                                                                                                              | | `run_static.sh <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/singleheaderlib/run_static.sh>`_ |
 |                                                                                                 | | but from the single header     |                                                                                                              |                                                                                                             |
 +-------------------------------------------------------------------------------------------------+----------------------------------+--------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------+
-| `add_subdirectory <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/add_subdirectory>`_ | **yes**                          | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/add_subdirectory/CMakeLists.txt>`_ | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/add_subdirectory/run.sh>`_                |
+| `add_subdirectory <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/add_subdirectory>`_ | **yes**                          | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/add_subdirectory/CMakeLists.txt>`_ | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/add_subdirectory/run.sh>`_                |
 +-------------------------------------------------------------------------------------------------+----------------------------------+--------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------+
-| `fetch_content <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/fetch_content>`_       | **yes**                          | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/fetch_content/CMakeLists.txt>`_    | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/fetch_content/run.sh>`_                   |
+| `fetch_content <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/fetch_content>`_       | **yes**                          | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/fetch_content/CMakeLists.txt>`_    | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/fetch_content/run.sh>`_                   |
 +-------------------------------------------------------------------------------------------------+----------------------------------+--------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------+
-| `find_package <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/find_package>`_         | | **no**                         | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/find_package/CMakeLists.txt>`_     | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/find_package/run.sh>`_                    |
+| `find_package <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/find_package>`_         | | **no**                         | `CMakeLists.txt <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/find_package/CMakeLists.txt>`_     | `run.sh <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/find_package/run.sh>`_                    |
 |                                                                                                 | | needs prior install or package |                                                                                                              |                                                                                                             |
 +-------------------------------------------------------------------------------------------------+----------------------------------+--------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------+
 
@@ -63,7 +63,7 @@ As a single-header
 
 ryml is provided chiefly as a cmake library project, but it can also
 be used as a single header file, and there is a `tool to amalgamate
-<https://github.com/biojppm/rapidyaml/blob/v0.8.0/tools/amalgamate.py>`__
+<https://github.com/biojppm/rapidyaml/blob/v0.9.0/tools/amalgamate.py>`__
 the code into a single header file. The amalgamated header file is
 provided with each release, but you can also generate a customized
 file suiting your particular needs (or commit):
@@ -186,7 +186,7 @@ that c4core is a submodule of the current repo. However, it is still
 possible to use a c4core version different from the one in the repo (of
 course, only if there are no incompatibilities between the versions).
 You can find out how to achieve this by looking at the
-`custom_c4core sample <https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/custom_c4core/CMakeLists.txt>`__.
+`custom_c4core sample <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/custom_c4core/CMakeLists.txt>`__.
 
 
 CMake build settings for ryml

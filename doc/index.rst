@@ -72,7 +72,7 @@ API teaser
 Here's a short teaser from the API quickstart overview (`see on
 doxygen <doxygen/group__doc__quickstart.html>`_ / `see full code on
 github
-<https://github.com/biojppm/rapidyaml/blob/v0.8.0/samples/quickstart.cpp>`_):
+<https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/quickstart.cpp>`_):
 
 .. code-block:: c++
 

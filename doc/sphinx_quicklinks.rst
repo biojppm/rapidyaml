@@ -15,11 +15,11 @@ Quick links
 
   * `Kanban board <https://github.com/users/biojppm/projects/1/views/1>`_
 
-* Latest release: `0.8.0 <https://github.com/biojppm/rapidyaml/releases/tag/v0.8.0>`_
+* Latest release: `0.9.0 <https://github.com/biojppm/rapidyaml/releases/tag/v0.9.0>`_
 
-  * `Release page [0.8.0] <https://github.com/biojppm/rapidyaml/releases/tag/v0.8.0>`_
+  * `Release page [0.9.0] <https://github.com/biojppm/rapidyaml/releases/tag/v0.9.0>`_
 
-  * `README [0.8.0] <https://github.com/biojppm/rapidyaml/blob/v0.8.0/README.md>`_
+  * `README [0.9.0] <https://github.com/biojppm/rapidyaml/blob/v0.9.0/README.md>`_
 
 * Since latest release (master branch):
 
