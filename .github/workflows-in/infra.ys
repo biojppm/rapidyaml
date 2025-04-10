@@ -31,6 +31,17 @@ jobs:
           fi
           exit $status
 
+  check_c4core_src:
+    :: setup-job('infra' 'check_c4core_src')
+    runs-on: ubuntu-24.04
+    steps:
+      - :: checkout-action
+      - name: install colordiff
+        run: apt-get install -y colordiff
+      - name: test src sync
+        run: |
+          make -C tools c4core-check
+
   check_doc:
     :: setup-job('infra' 'check_doxygen')
     runs-on: ubuntu-24.04
