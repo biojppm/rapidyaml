@@ -49,7 +49,7 @@ force:
 	@echo >> $@
 	$(YS) -Y $< >> $@
 	@chmod a-w $@
-	@wc -lm --total=never $< $@
+	@wc -lm --total=never $< $@ || wc -lm $< $@
 
 
 # Auto install a specific version of ys

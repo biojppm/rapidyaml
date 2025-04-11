@@ -307,6 +307,14 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
+        - name: python/3.13/manylinux_aarch64
+          sfx: python3.13-manylinux_aarch64
+          os: ubuntu-24.04-arm
+          pythonv: '3.13'
+          cibw_pyv: 313
+          cibw_arch: aarch64
+          cibw_platform: manylinux_aarch64
+          vsenvarch: ''
         - name: python/3.13/macosx_x86_64
           sfx: python3.13-macosx_x86_64
           os: macos-13
@@ -314,6 +322,22 @@ jobs:
           cibw_pyv: 313
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          vsenvarch: ''
+        - name: python/3.13/macosx_arm64
+          sfx: python3.13-macosx_arm64
+          os: macos-latest
+          pythonv: '3.13'
+          cibw_pyv: 313
+          cibw_arch: arm64
+          cibw_platform: macosx_arm64
+          vsenvarch: ''
+        - name: python/3.13/macosx_universal2
+          sfx: python3.13-macosx_universal2
+          os: macos-latest
+          pythonv: '3.13'
+          cibw_pyv: 313
+          cibw_arch: universal2
+          cibw_platform: macosx_universal2
           vsenvarch: ''
         - name: python/3.12/manylinux_x86_64
           sfx: python3.12-manylinux_x86_64
@@ -331,6 +355,14 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
+        - name: python/3.12/manylinux_aarch64
+          sfx: python3.12-manylinux_aarch64
+          os: ubuntu-24.04-arm
+          pythonv: '3.12'
+          cibw_pyv: 312
+          cibw_arch: aarch64
+          cibw_platform: manylinux_aarch64
+          vsenvarch: ''
         - name: python/3.12/macosx_x86_64
           sfx: python3.12-macosx_x86_64
           os: macos-13
@@ -338,6 +370,22 @@ jobs:
           cibw_pyv: 312
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          vsenvarch: ''
+        - name: python/3.12/macosx_arm64
+          sfx: python3.12-macosx_arm64
+          os: macos-latest
+          pythonv: '3.12'
+          cibw_pyv: 312
+          cibw_arch: arm64
+          cibw_platform: macosx_arm64
+          vsenvarch: ''
+        - name: python/3.12/macosx_universal2
+          sfx: python3.12-macosx_universal2
+          os: macos-latest
+          pythonv: '3.12'
+          cibw_pyv: 312
+          cibw_arch: universal2
+          cibw_platform: macosx_universal2
           vsenvarch: ''
         - name: python/3.11/manylinux_x86_64
           sfx: python3.11-manylinux_x86_64
@@ -355,6 +403,14 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
+        - name: python/3.11/manylinux_aarch64
+          sfx: python3.11-manylinux_aarch64
+          os: ubuntu-24.04-arm
+          pythonv: '3.11'
+          cibw_pyv: 311
+          cibw_arch: aarch64
+          cibw_platform: manylinux_aarch64
+          vsenvarch: ''
         - name: python/3.11/macosx_x86_64
           sfx: python3.11-macosx_x86_64
           os: macos-13
@@ -362,6 +418,22 @@ jobs:
           cibw_pyv: 311
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          vsenvarch: ''
+        - name: python/3.11/macosx_arm64
+          sfx: python3.11-macosx_arm64
+          os: macos-latest
+          pythonv: '3.11'
+          cibw_pyv: 311
+          cibw_arch: arm64
+          cibw_platform: macosx_arm64
+          vsenvarch: ''
+        - name: python/3.11/macosx_universal2
+          sfx: python3.11-macosx_universal2
+          os: macos-latest
+          pythonv: '3.11'
+          cibw_pyv: 311
+          cibw_arch: universal2
+          cibw_platform: macosx_universal2
           vsenvarch: ''
         - name: python/3.10/manylinux_x86_64
           sfx: python3.10-manylinux_x86_64
@@ -379,6 +451,14 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
+        - name: python/3.10/manylinux_aarch64
+          sfx: python3.10-manylinux_aarch64
+          os: ubuntu-24.04-arm
+          pythonv: '3.10'
+          cibw_pyv: 310
+          cibw_arch: aarch64
+          cibw_platform: manylinux_aarch64
+          vsenvarch: ''
         - name: python/3.10/macosx_x86_64
           sfx: python3.10-macosx_x86_64
           os: macos-13
@@ -386,6 +466,22 @@ jobs:
           cibw_pyv: 310
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          vsenvarch: ''
+        - name: python/3.10/macosx_arm64
+          sfx: python3.10-macosx_arm64
+          os: macos-latest
+          pythonv: '3.10'
+          cibw_pyv: 310
+          cibw_arch: arm64
+          cibw_platform: macosx_arm64
+          vsenvarch: ''
+        - name: python/3.10/macosx_universal2
+          sfx: python3.10-macosx_universal2
+          os: macos-latest
+          pythonv: '3.10'
+          cibw_pyv: 310
+          cibw_arch: universal2
+          cibw_platform: macosx_universal2
           vsenvarch: ''
         - name: python/3.9/manylinux_x86_64
           sfx: python3.9-manylinux_x86_64
@@ -403,6 +499,14 @@ jobs:
           cibw_arch: i686
           cibw_platform: manylinux_i686
           vsenvarch: ''
+        - name: python/3.9/manylinux_aarch64
+          sfx: python3.9-manylinux_aarch64
+          os: ubuntu-24.04-arm
+          pythonv: '3.9'
+          cibw_pyv: 39
+          cibw_arch: aarch64
+          cibw_platform: manylinux_aarch64
+          vsenvarch: ''
         - name: python/3.9/macosx_x86_64
           sfx: python3.9-macosx_x86_64
           os: macos-13
@@ -410,6 +514,22 @@ jobs:
           cibw_pyv: 39
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          vsenvarch: ''
+        - name: python/3.9/macosx_arm64
+          sfx: python3.9-macosx_arm64
+          os: macos-latest
+          pythonv: '3.9'
+          cibw_pyv: 39
+          cibw_arch: arm64
+          cibw_platform: macosx_arm64
+          vsenvarch: ''
+        - name: python/3.9/macosx_universal2
+          sfx: python3.9-macosx_universal2
+          os: macos-latest
+          pythonv: '3.9'
+          cibw_pyv: 39
+          cibw_arch: universal2
+          cibw_platform: macosx_universal2
           vsenvarch: ''
         - name: python/3.8/manylinux_x86_64
           sfx: python3.8-manylinux_x86_64
@@ -426,6 +546,14 @@ jobs:
           cibw_pyv: 38
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          vsenvarch: ''
+        - name: python/3.8/manylinux_aarch64
+          sfx: python3.8-manylinux_aarch64
+          os: ubuntu-24.04-arm
+          pythonv: '3.8'
+          cibw_pyv: 38
+          cibw_arch: aarch64
+          cibw_platform: manylinux_aarch64
           vsenvarch: ''
         - name: python/3.8/macosx_x86_64
           sfx: python3.8-macosx_x86_64
@@ -506,6 +634,10 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{matrix.config.pythonv}}
+    - name: confirm python install
+      run: |
+        python --version
+        python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
     - name: test with python ${{matrix.config.pythonv}}
       run: |
         set -x
@@ -516,7 +648,7 @@ jobs:
           exit 0
         fi
         python --version
-        python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
+        python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
         pip --version
         pip install -v -r requirements.txt
         pip install -v -r api/python/requirements.txt
@@ -536,6 +668,7 @@ jobs:
           python -c 'import ryml'
           python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
           python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
+          # run the tests
           python -m pytest -vvv api/python/tests
           pip uninstall -y -v rapidyaml
         done
@@ -698,6 +831,10 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{matrix.config.pythonv}}
+    - name: confirm python install
+      run: |
+        python --version
+        python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
     - name: test with python ${{matrix.config.pythonv}}
       run: |
         set -x
@@ -708,7 +845,7 @@ jobs:
           exit 0
         fi
         python --version
-        python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
+        python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
         pip --version
         pip install -v -r requirements.txt
         pip install -v -r api/python/requirements.txt
@@ -728,6 +865,7 @@ jobs:
           python -c 'import ryml'
           python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
           python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
+          # run the tests
           python -m pytest -vvv api/python/tests
           pip uninstall -y -v rapidyaml
         done
