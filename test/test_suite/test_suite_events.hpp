@@ -41,10 +41,10 @@ struct OptionalScalar
 {
     csubstr val = {};
     bool was_set = false;
-    inline operator csubstr() const { return get(); }
-    inline operator bool() const { return was_set; }
-    void operator= (csubstr v) { val = v; was_set = true; }
-    csubstr get() const { RYML_ASSERT(was_set); return val; }
+    operator csubstr() const { return get(); }
+    operator bool() const { return was_set; }
+    OptionalScalar& operator= (csubstr v) { val = v; was_set = true; return *this; }
+    csubstr get() const { _RYML_ASSERT_BASIC(was_set); return val; }
     csubstr maybe_get() const { return was_set ? val : csubstr(""); }
 };
 
