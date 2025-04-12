@@ -15,4 +15,6 @@ c4_download_remote_proj(c4log C4LOG_DIR
 add_library(c4log)
 target_sources(c4log PUBLIC ${C4LOG_DIR}/src/c4/log/log.hpp)
 target_sources(c4log PRIVATE ${C4LOG_DIR}/src/c4/log/log.cpp)
+target_sources(c4log PRIVATE ${RYML_SRC_DIR}/c4/memory_resource.hpp)
+target_sources(c4log PRIVATE ${RYML_SRC_DIR}/c4/memory_resource.cpp)
 target_include_directories(c4log PUBLIC ${C4LOG_DIR}/src ${RYML_SRC_DIR})
