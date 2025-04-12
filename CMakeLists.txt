@@ -78,6 +78,8 @@ set(c4core_srcs
     c4/compiler.hpp
     c4/cpu.hpp
     c4/export.hpp
+    c4/error.cpp
+    c4/error.hpp
     c4/ext/fast_float.hpp
     c4/ext/fast_float_all.h
     c4/format.cpp
@@ -99,13 +101,17 @@ set(c4core_srcs
     c4/utf.hpp
     c4/version.cpp
     c4/version.hpp
-    #
+)
+set(c4core_srcs_dev
     c4/dump.hpp
-    c4/error.cpp
-    c4/error.hpp
+    c4/memory_resource.hpp
+    c4/memory_resource.cpp
+    c4/span.hpp
+    c4/szconv.hpp
+    c4/types.hpp
 )
 if(RYML_STANDALONE)
-    list(APPEND ryml_srcs ${c4core_srcs})
+    list(APPEND ryml_srcs ${c4core_srcs} ${c4core_dev})
 endif()
 
 
