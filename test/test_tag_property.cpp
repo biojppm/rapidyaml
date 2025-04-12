@@ -464,7 +464,7 @@ TEST(tag_directives, accepts_multiple_spaces)
 void test_fail_tag_parsing(csubstr yaml)
 {
     Tree t;
-    ExpectError::check_error(&t, [&]{
+    ExpectError::check_error_parse(&t, [&]{
         t = parse_in_arena(yaml);
     });
 }
@@ -474,7 +474,7 @@ void test_fail_tag_resolve(csubstr yaml)
     Tree t;
     t = parse_in_arena(yaml);
     _c4dbg_tree(t);
-    ExpectError::check_error(&t, [&]{
+    ExpectError::check_error_basic(&t, [&]{
         t.resolve_tags();
     });
 }
@@ -566,7 +566,7 @@ TEST(tag_directives, decode_uri_chars)
     {
         Tree t;
         auto checkerr = [&t](csubstr yaml){
-            ExpectError::check_error(&t, [&]{
+            ExpectError::check_error_basic(&t, [&]{
                 t.clear();
                 t = parse_in_arena(yaml);
                 t.resolve_tags();
@@ -888,60 +888,60 @@ TEST(tags, errors)
 
     // cannot get key tag in a node that does not have a key tag
     EXPECT_FALSE(t.has_key_tag(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.key_tag(empty_keyval), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.key_tag(keyval), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.key_tag(keymap), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.key_tag(keyseq), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.key_tag(val), "");
     });
     // cannot get val tag in a node that does not have a val tag
     EXPECT_FALSE(t.has_val_tag(empty_val));
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(empty_val), "");
     });
     EXPECT_FALSE(t.has_val_tag(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(empty_keyval), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(keyval), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(keymap), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(keyseq), "");
     });
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(val), "");
     });
     // cannot set key tag in a node that does not have a key
     EXPECT_FALSE(t.has_key(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         t.set_key_tag(empty_keyval, "!keytag");
     });
     EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         t.set_key_tag(val, "!valtag");
     });
     EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
     // cannot set val tag in a node that does not have a val
     EXPECT_FALSE(t.has_val(empty_val));
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         t.set_val_tag(empty_val, "!valtag");
     });
     EXPECT_FALSE(t.has_val_tag(empty_val)); // must stay the same
     EXPECT_FALSE(t.has_val(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
+    ExpectError::check_assert_visit(&t, [&](){
         t.set_val_tag(empty_keyval, "!valtag");
     });
     EXPECT_FALSE(t.has_val_tag(empty_keyval)); // must stay the same
@@ -1044,7 +1044,7 @@ TEST(tags, EHF6)
 TEST(tags, fuzzcrash0)
 {
     Tree tree;
-    ExpectError::check_error(&tree, [&]{
+    ExpectError::check_error_basic(&tree, [&]{
         parse_in_arena("%TAG !! " "\n"
                        "})"       "\n"
                        ""         "\n"
