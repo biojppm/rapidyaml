@@ -27,49 +27,90 @@ option(RYML_INSTALL "Enable install target" ON)
 
 #-------------------------------------------------------
 
+set(ryml_srcs
+    ryml.hpp
+    ryml_std.hpp
+    c4/yml/detail/checks.hpp
+    c4/yml/detail/parser_dbg.hpp
+    c4/yml/detail/print.hpp
+    c4/yml/detail/stack.hpp
+    c4/yml/common.hpp
+    c4/yml/common.cpp
+    c4/yml/emit.def.hpp
+    c4/yml/emit.hpp
+    c4/yml/event_handler_stack.hpp
+    c4/yml/event_handler_tree.hpp
+    c4/yml/filter_processor.hpp
+    c4/yml/fwd.hpp
+    c4/yml/export.hpp
+    c4/yml/node.hpp
+    c4/yml/node.cpp
+    c4/yml/node_type.hpp
+    c4/yml/node_type.cpp
+    c4/yml/parser_state.hpp
+    c4/yml/parse.hpp
+    c4/yml/parse.cpp
+    c4/yml/parse_engine.hpp
+    c4/yml/parse_engine.def.hpp
+    c4/yml/preprocess.hpp
+    c4/yml/preprocess.cpp
+    c4/yml/reference_resolver.hpp
+    c4/yml/reference_resolver.cpp
+    c4/yml/std/map.hpp
+    c4/yml/std/std.hpp
+    c4/yml/std/string.hpp
+    c4/yml/std/vector.hpp
+    c4/yml/tag.hpp
+    c4/yml/tag.cpp
+    c4/yml/tree.hpp
+    c4/yml/tree.cpp
+    c4/yml/version.hpp
+    c4/yml/version.cpp
+    c4/yml/writer.hpp
+    c4/yml/yml.hpp
+    ryml.natvis
+)
+set(c4core_srcs
+    c4/base64.cpp
+    c4/base64.hpp
+    c4/blob.hpp
+    c4/charconv.hpp
+    c4/compiler.hpp
+    c4/cpu.hpp
+    c4/export.hpp
+    c4/ext/fast_float.hpp
+    c4/ext/fast_float_all.h
+    c4/format.cpp
+    c4/format.hpp
+    c4/gcc-4.8.hpp
+    c4/language.hpp
+    c4/memory_util.hpp
+    c4/memory_util.cpp
+    c4/platform.hpp
+    c4/preprocessor.hpp
+    c4/std/std_fwd.hpp
+    c4/std/string.hpp
+    c4/std/string_fwd.hpp
+    c4/std/vector.hpp
+    c4/std/vector_fwd.hpp
+    c4/substr_fwd.hpp
+    c4/substr.hpp
+    c4/utf.cpp
+    c4/utf.hpp
+    c4/version.cpp
+    c4/version.hpp
+    #
+    c4/dump.hpp
+    c4/error.cpp
+    c4/error.hpp
+)
+if(RYML_STANDALONE)
+    list(APPEND ryml_srcs ${c4core_srcs})
+endif()
+
+
 c4_add_library(ryml
-    SOURCES
-        ryml.hpp
-        ryml_std.hpp
-        c4/yml/detail/checks.hpp
-        c4/yml/detail/parser_dbg.hpp
-        c4/yml/detail/print.hpp
-        c4/yml/detail/stack.hpp
-        c4/yml/common.hpp
-        c4/yml/common.cpp
-        c4/yml/emit.def.hpp
-        c4/yml/emit.hpp
-        c4/yml/event_handler_stack.hpp
-        c4/yml/event_handler_tree.hpp
-        c4/yml/filter_processor.hpp
-        c4/yml/fwd.hpp
-        c4/yml/export.hpp
-        c4/yml/node.hpp
-        c4/yml/node.cpp
-        c4/yml/node_type.hpp
-        c4/yml/node_type.cpp
-        c4/yml/parser_state.hpp
-        c4/yml/parse.hpp
-        c4/yml/parse.cpp
-        c4/yml/parse_engine.hpp
-        c4/yml/parse_engine.def.hpp
-        c4/yml/preprocess.hpp
-        c4/yml/preprocess.cpp
-        c4/yml/reference_resolver.hpp
-        c4/yml/reference_resolver.cpp
-        c4/yml/std/map.hpp
-        c4/yml/std/std.hpp
-        c4/yml/std/string.hpp
-        c4/yml/std/vector.hpp
-        c4/yml/tag.hpp
-        c4/yml/tag.cpp
-        c4/yml/tree.hpp
-        c4/yml/tree.cpp
-        c4/yml/version.hpp
-        c4/yml/version.cpp
-        c4/yml/writer.hpp
-        c4/yml/yml.hpp
-        ryml.natvis
+    SOURCES ${ryml_srcs}
     SOURCE_ROOT ${RYML_SRC_DIR}
     INC_DIRS
         $<BUILD_INTERFACE:${RYML_SRC_DIR}>
@@ -82,32 +123,6 @@ if(NOT RYML_STANDALONE)
         OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
     )
     target_link_libraries(ryml PUBLIC c4core)
-else()
-    target_sources(ryml PRIVATE
-        src/c4/base64.cpp
-        src/c4/base64.hpp
-        src/c4/charconv.hpp
-        src/c4/compiler.hpp
-        src/c4/cpu.hpp
-        src/c4/export.hpp
-        src/c4/format.cpp
-        src/c4/format.hpp
-        src/c4/gcc-4.8.hpp
-        src/c4/language.hpp
-        src/c4/memory_util.hpp
-        src/c4/memory_util.cpp
-        src/c4/platform.hpp
-        src/c4/substr_fwd.hpp
-        src/c4/substr.hpp
-        src/c4/utf.cpp
-        src/c4/utf.hpp
-        src/c4/version.cpp
-        src/c4/version.hpp
-        #
-        src/c4/dump.hpp
-        src/c4/error.cpp
-        src/c4/error.hpp
-    )
 endif()
 
 if(RYML_WITH_TAB_TOKENS)
@@ -142,7 +157,11 @@ endif()
 
 if(RYML_INSTALL)
     c4_install_target(ryml)
-    c4_install_exports(DEPENDENCIES c4core)
+    if(RYML_STANDALONE)
+        c4_install_exports()
+    else()
+        c4_install_exports(DEPENDENCIES c4core)
+    endif()
     c4_pack_project()
 endif()
 
