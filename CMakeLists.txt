@@ -27,103 +27,111 @@ option(RYML_INSTALL "Enable install target" ON)
 
 #-------------------------------------------------------
 
-set(ryml_srcs
-    ryml.hpp
-    ryml_std.hpp
-    c4/yml/detail/checks.hpp
-    c4/yml/detail/parser_dbg.hpp
-    c4/yml/detail/print.hpp
-    c4/yml/detail/stack.hpp
-    c4/yml/common.hpp
-    c4/yml/common.cpp
-    c4/yml/emit.def.hpp
-    c4/yml/emit.hpp
-    c4/yml/event_handler_stack.hpp
-    c4/yml/event_handler_tree.hpp
-    c4/yml/filter_processor.hpp
-    c4/yml/fwd.hpp
-    c4/yml/export.hpp
-    c4/yml/node.hpp
-    c4/yml/node.cpp
-    c4/yml/node_type.hpp
-    c4/yml/node_type.cpp
-    c4/yml/parser_state.hpp
-    c4/yml/parse.hpp
-    c4/yml/parse.cpp
-    c4/yml/parse_engine.hpp
-    c4/yml/parse_engine.def.hpp
-    c4/yml/preprocess.hpp
-    c4/yml/preprocess.cpp
-    c4/yml/reference_resolver.hpp
-    c4/yml/reference_resolver.cpp
-    c4/yml/std/map.hpp
-    c4/yml/std/std.hpp
-    c4/yml/std/string.hpp
-    c4/yml/std/vector.hpp
-    c4/yml/tag.hpp
-    c4/yml/tag.cpp
-    c4/yml/tree.hpp
-    c4/yml/tree.cpp
-    c4/yml/version.hpp
-    c4/yml/version.cpp
-    c4/yml/writer.hpp
-    c4/yml/yml.hpp
-    ryml.natvis
+set(ryml_src
 )
-set(c4core_srcs
-    c4/base64.cpp
-    c4/base64.hpp
-    c4/blob.hpp
-    c4/charconv.hpp
-    c4/compiler.hpp
-    c4/cpu.hpp
-    c4/export.hpp
-    c4/error.cpp
-    c4/error.hpp
-    c4/ext/fast_float.hpp
-    c4/ext/fast_float_all.h
-    c4/format.cpp
-    c4/format.hpp
-    c4/gcc-4.8.hpp
-    c4/language.hpp
-    c4/memory_util.hpp
-    c4/memory_util.cpp
-    c4/platform.hpp
-    c4/preprocessor.hpp
-    c4/std/std_fwd.hpp
-    c4/std/string.hpp
-    c4/std/string_fwd.hpp
-    c4/std/vector.hpp
-    c4/std/vector_fwd.hpp
-    c4/substr_fwd.hpp
-    c4/substr.hpp
-    c4/utf.cpp
-    c4/utf.hpp
-    c4/version.cpp
-    c4/version.hpp
-)
-set(c4core_srcs_dev
-    c4/dump.hpp
-    c4/memory_resource.hpp
-    c4/memory_resource.cpp
-    c4/span.hpp
-    c4/szconv.hpp
-    c4/types.hpp
-)
-if(RYML_STANDALONE)
-    list(APPEND ryml_srcs ${c4core_srcs} ${c4core_dev})
-endif()
 
 
 c4_add_library(ryml
-    SOURCES ${ryml_srcs}
+    SOURCES
+        ryml.hpp
+        ryml_std.hpp
+        c4/yml/detail/checks.hpp
+        c4/yml/detail/parser_dbg.hpp
+        c4/yml/detail/print.hpp
+        c4/yml/detail/stack.hpp
+        c4/yml/common.hpp
+        c4/yml/common.cpp
+        c4/yml/emit.def.hpp
+        c4/yml/emit.hpp
+        c4/yml/event_handler_stack.hpp
+        c4/yml/event_handler_tree.hpp
+        c4/yml/filter_processor.hpp
+        c4/yml/fwd.hpp
+        c4/yml/export.hpp
+        c4/yml/node.hpp
+        c4/yml/node.cpp
+        c4/yml/node_type.hpp
+        c4/yml/node_type.cpp
+        c4/yml/parser_state.hpp
+        c4/yml/parse.hpp
+        c4/yml/parse.cpp
+        c4/yml/parse_engine.hpp
+        c4/yml/parse_engine.def.hpp
+        c4/yml/preprocess.hpp
+        c4/yml/preprocess.cpp
+        c4/yml/reference_resolver.hpp
+        c4/yml/reference_resolver.cpp
+        c4/yml/std/map.hpp
+        c4/yml/std/std.hpp
+        c4/yml/std/string.hpp
+        c4/yml/std/vector.hpp
+        c4/yml/tag.hpp
+        c4/yml/tag.cpp
+        c4/yml/tree.hpp
+        c4/yml/tree.cpp
+        c4/yml/version.hpp
+        c4/yml/version.cpp
+        c4/yml/writer.hpp
+        c4/yml/yml.hpp
+        ryml.natvis
     SOURCE_ROOT ${RYML_SRC_DIR}
     INC_DIRS
         $<BUILD_INTERFACE:${RYML_SRC_DIR}>
         $<INSTALL_INTERFACE:include>
     )
 
-if(NOT RYML_STANDALONE)
+if(RYML_STANDALONE)
+    set(c4core_src
+        c4/base64.cpp
+        c4/base64.hpp
+        c4/blob.hpp
+        c4/charconv.hpp
+        c4/compiler.hpp
+        c4/cpu.hpp
+        c4/export.hpp
+        c4/error.cpp
+        c4/error.hpp
+        c4/ext/fast_float.hpp
+        c4/ext/fast_float_all.h
+        c4/format.cpp
+        c4/format.hpp
+        c4/gcc-4.8.hpp
+        c4/language.hpp
+        c4/memory_util.hpp
+        c4/memory_util.cpp
+        c4/platform.hpp
+        c4/preprocessor.hpp
+        c4/std/std_fwd.hpp
+        c4/std/string.hpp
+        c4/std/string_fwd.hpp
+        c4/std/vector.hpp
+        c4/std/vector_fwd.hpp
+        c4/substr_fwd.hpp
+        c4/substr.hpp
+        c4/utf.cpp
+        c4/utf.hpp
+        c4/version.cpp
+        c4/version.hpp
+    )
+    set(c4core_src_dev
+        c4/dump.hpp
+        c4/memory_resource.hpp
+        c4/memory_resource.cpp
+        c4/span.hpp
+        c4/szconv.hpp
+        c4/types.hpp
+    )
+    _c4_transform_to_full_path(c4core_src     _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
+    _c4_transform_to_full_path(c4core_src_dev _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev)
+    target_sources(ryml PRIVATE ${c4core_src})
+    target_sources(ryml PRIVATE ${c4core_src_dev})
+    target_include_directories(ryml PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src>
+    )
+    target_include_directories(ryml PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev>
+    )
+else()
     c4_require_subproject(c4core INCORPORATE
         SUBDIRECTORY ${RYML_EXT_DIR}/c4core
         OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
