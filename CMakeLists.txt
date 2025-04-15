@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
-include(./ext/c4core/cmake/c4Project.cmake)
+include(./proj/c4proj/c4Project.cmake)
 project(ryml
     DESCRIPTION "Rapid YAML parsing and emitting"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-include(./compat.cmake)
+include(./proj/compat.cmake)
 
 c4_project(VERSION 0.9.0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
@@ -26,10 +26,6 @@ option(RYML_INSTALL "Enable install target" ON)
 
 
 #-------------------------------------------------------
-
-set(ryml_src
-)
-
 
 c4_add_library(ryml
     SOURCES
@@ -195,7 +191,7 @@ endif()
 c4_add_dev_targets()
 
 add_custom_target(ryml-uninstall
-    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake"
+    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/proj/uninstall.cmake"
 )
 
 
