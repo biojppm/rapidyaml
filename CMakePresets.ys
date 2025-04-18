@@ -1,0 +1,51 @@
+# https://martin-fieber.de/blog/cmake-presets/
+# https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
+--- !yamlscript/v0:
+
+.vars_debug: &vars_debug
+  CMAKE_BUILD_TYPE: Debug
+  RYML_DEV: ON
+
+.vars_release: &vars_release
+  CMAKE_BUILD_TYPE: Release
+  RYML_DEV: ON
+
+
+#==============================================================================
+--- !yamlscript/v0:
+
+version: 8
+# see the schema URL here: https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html#schema
+$schema: https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json
+
+
+#------------------------------------------------------------------------------
+configurePresets:
+#------------------------------------------------------------------------------
+  -
+    name: debug
+    displayName: Debug
+    binaryDir: ${sourceDir}/build/cmkps-${hostSystemName}-${presetName}
+    cacheVariables:
+      <<: *vars_debug
+  -
+    name: release
+    displayName: Release
+    binaryDir: ${sourceDir}/build/cmkps-${hostSystemName}-${presetName}
+    cacheVariables:
+      <<: *vars_release
+
+
+#------------------------------------------------------------------------------
+buildPresets:
+#------------------------------------------------------------------------------
+  -
+    name: debug
+    displayName: Build Debug
+    configurePreset: debug
+    configuration: Debug
+  -
+    name: release
+    displayName: Build Release
+    configurePreset: release
+    configuration: Release

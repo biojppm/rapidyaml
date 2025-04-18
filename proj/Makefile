@@ -14,3 +14,13 @@ workflows:
 	$(MAKE) -C ../.github/workflows-in
 workflows-test:
 	$(MAKE) -C ../.github/workflows-in test
+
+
+presets: ../CMakePresets.json
+presets-test: presets-force presets
+presets-force:
+	touch ../CMakePresets.ys
+../CMakePresets.json: ../CMakePresets.ys $(YS)
+	@( chmod a+w $@ || echo >/dev/null )
+	$(YS) --json $< > $@
+	@chmod a-w $@
