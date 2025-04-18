@@ -14,6 +14,8 @@
 #==============================================================================
 --- !yamlscript/v0:
 
+$comment: DO NOT EDIT! Generated automatically from CMakePresets.ys
+
 version: 8
 # see the schema URL here: https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html#schema
 $schema: https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json
