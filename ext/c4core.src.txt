@@ -1,6 +1,7 @@
 c4/base64.cpp
 c4/base64.hpp
 c4/blob.hpp
+c4/c4core.natvis
 c4/charconv.hpp
 c4/compiler.hpp
 c4/cpu.hpp
@@ -12,9 +13,10 @@ c4/ext/fast_float_all.h
 c4/format.cpp
 c4/format.hpp
 c4/gcc-4.8.hpp
+c4/language.cpp
 c4/language.hpp
-c4/memory_util.hpp
 c4/memory_util.cpp
+c4/memory_util.hpp
 c4/platform.hpp
 c4/preprocessor.hpp
 c4/std/std_fwd.hpp
@@ -22,8 +24,8 @@ c4/std/string.hpp
 c4/std/string_fwd.hpp
 c4/std/vector.hpp
 c4/std/vector_fwd.hpp
-c4/substr_fwd.hpp
 c4/substr.hpp
+c4/substr_fwd.hpp
 c4/utf.cpp
 c4/utf.hpp
 c4/version.cpp
