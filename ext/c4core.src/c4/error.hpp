@@ -7,6 +7,7 @@
 
 #include <c4/export.hpp>
 #include <c4/compiler.hpp>
+#include <c4/language.hpp> // needed for C4_USE_ASSERT
 #include <stdint.h>
 #include <stddef.h>
 

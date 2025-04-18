@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 include(./proj/c4proj/c4Project.cmake)
 project(ryml
     DESCRIPTION "Rapid YAML parsing and emitting"
@@ -77,56 +77,19 @@ c4_add_library(ryml
     )
 
 if(RYML_STANDALONE)
-    set(c4core_src
-        c4/base64.cpp
-        c4/base64.hpp
-        c4/blob.hpp
-        c4/charconv.hpp
-        c4/compiler.hpp
-        c4/cpu.hpp
-        c4/export.hpp
-        c4/error.cpp
-        c4/error.hpp
-        c4/ext/fast_float.hpp
-        c4/ext/fast_float_all.h
-        c4/format.cpp
-        c4/format.hpp
-        c4/gcc-4.8.hpp
-        c4/language.hpp
-        c4/memory_util.hpp
-        c4/memory_util.cpp
-        c4/platform.hpp
-        c4/preprocessor.hpp
-        c4/std/std_fwd.hpp
-        c4/std/string.hpp
-        c4/std/string_fwd.hpp
-        c4/std/vector.hpp
-        c4/std/vector_fwd.hpp
-        c4/substr_fwd.hpp
-        c4/substr.hpp
-        c4/utf.cpp
-        c4/utf.hpp
-        c4/version.cpp
-        c4/version.hpp
-    )
-    set(c4core_src_dev
-        c4/dump.hpp
-        c4/memory_resource.hpp
-        c4/memory_resource.cpp
-        c4/span.hpp
-        c4/szconv.hpp
-        c4/types.hpp
-    )
-    _c4_transform_to_full_path(c4core_src     _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
-    _c4_transform_to_full_path(c4core_src_dev _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev)
+    file(STRINGS ext/c4core.src.txt c4core_src)
+    file(STRINGS ext/c4core.dev.txt c4core_dev)
+    _c4_transform_to_full_path(c4core_src _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
+    _c4_transform_to_full_path(c4core_dev _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev)
     target_sources(ryml PRIVATE ${c4core_src})
-    target_sources(ryml PRIVATE ${c4core_src_dev})
+    target_sources(ryml PRIVATE ${c4core_dev})
     target_include_directories(ryml PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src>
-    )
-    target_include_directories(ryml PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev>
     )
+    set(c4core_hdrs ${c4core_src} ${c4core_dev})
+    list(FILTER c4core_hdrs EXCLUDE REGEX .*cpp)
+    install(FILES ${c4core_hdrs} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/c4)
 else()
     c4_require_subproject(c4core INCORPORATE
         SUBDIRECTORY ${RYML_EXT_DIR}/c4core
@@ -175,6 +138,22 @@ if(RYML_INSTALL)
     c4_pack_project()
 endif()
 
+# generate and install the install manifest
+# https://stackoverflow.com/questions/66752091/is-there-a-way-in-cmake-to-save-away-the-install-manifest-txt-for-later
+install(CODE "
+string(REPLACE \"\$\{CMAKE_INSTALL_PREFIX\}/\" \"\" ryml_manifest \"\$\{CMAKE_INSTALL_MANIFEST_FILES\}\")\n\
+list(APPEND ryml_manifest share/ryml/MANIFEST.txt)\n\
+list(SORT ryml_manifest)\n\
+string(REPLACE \";\" \"\\n\" ryml_manifest \"\$\{ryml_manifest\}\")\n\
+file(WRITE ${CMAKE_BINARY_DIR}/MANIFEST.txt \"\$\{ryml_manifest\}\")
+")
+install(FILES "${CMAKE_BINARY_DIR}/MANIFEST.txt" DESTINATION ${CMAKE_INSTALL_PREFIX}/share/ryml)
+
+# add a target to uninstall
+add_custom_target(ryml-uninstall
+    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/proj/uninstall.cmake"
+)
+
 
 #-------------------------------------------------------
 # developer targets
@@ -189,10 +168,6 @@ if(RYML_BUILD_TOOLS)
 endif()
 
 c4_add_dev_targets()
-
-add_custom_target(ryml-uninstall
-    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/proj/uninstall.cmake"
-)
 
 
 #-------------------------------------------------------
