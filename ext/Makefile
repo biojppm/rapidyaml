@@ -1,8 +1,6 @@
 include ../proj/common.mk
 
-C4CORE_REPO := https://github.com/biojppm/c4core
-C4CORE_TAG := v0.2.6
-C4CORE_DIR_PROJ := c4core/src
+C4CORE_DIR_PROJ = c4core/src
 
 # c4core files used by ryml
 C4CORE_SRC := $(shell cat c4core.src.txt)
@@ -19,7 +17,7 @@ C4CORE_OUTPUT_SRC = $(C4CORE_SRC:%=$(C4CORE_DIR_SRC)/%)
 C4CORE_OUTPUT_DEV = $(C4CORE_DEV:%=$(C4CORE_DIR_DEV)/%)
 
 
-c4core-check: c4core-check-sync c4core-check-list
+c4core-check: c4core-check-sync c4core-check-list c4core-version-check
 c4core-check-sync: c4core-check-sync-src c4core-check-sync-dev
 c4core-check-list: c4core-check-list-src c4core-check-list-dev
 c4core-check-sync-src: c4core-clone
@@ -78,3 +76,10 @@ $(RYML_DIR)/build/c4core.done: c4core
 	echo $(C4CORE_TAG) > $(RYML_DIR)/build/c4core.done
 c4core:
 	./c4core.sh "$(C4CORE_REPO)" $(C4CORE_TAG)
+c4core-version-set:
+	sed \
+	  -e "s@repo=\$${1:-.*}@repo=\$${1:-$(C4CORE_REPO)}@g" \
+	  -e "s@tag=\$${2:-.*}@tag=\$${2:-$(C4CORE_TAG)}@g" \
+	  -i c4core.sh
+c4core-version-check: c4core-version-set
+	$(GIT) diff --exit-code c4core.sh

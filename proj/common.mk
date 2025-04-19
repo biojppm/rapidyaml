@@ -1,10 +1,14 @@
 SHELL := bash
 
+C4CORE_REPO := https://github.com/biojppm/c4core
+C4CORE_TAG := v0.2.6
+
+RYML_DIR = $(shell cd .. ; pwd)
+
 GIT := git
 CMAKE := cmake
 COLORDIFF := colordiff
 
-RYML_DIR = $(shell cd .. ; pwd)
 
 # function to copy files using tar
 # $1=src_dir
