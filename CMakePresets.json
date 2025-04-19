@@ -5,7 +5,6 @@
  "https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json",
  "configurePresets":
  [{"name":"debug",
-   "displayName":"Debug",
    "binaryDir":
    "${sourceDir}/build/cmkps-${hostSystemName}-${presetName}",
    "cacheVariables":{"CMAKE_BUILD_TYPE":"Debug", "RYML_DEV":"ON"}},
@@ -15,11 +14,8 @@
    "${sourceDir}/build/cmkps-${hostSystemName}-${presetName}",
    "cacheVariables":{"CMAKE_BUILD_TYPE":"Release", "RYML_DEV":"ON"}}],
  "buildPresets":
- [{"name":"debug",
-   "displayName":"Build Debug",
-   "configurePreset":"debug",
-   "configuration":"Debug"},
+ [{"name":"debug", "configurePreset":"debug", "configuration":
+                                              "Debug"},
   {"name":"release",
-   "displayName":"Build Release",
    "configurePreset":"release",
    "configuration":"Release"}]}

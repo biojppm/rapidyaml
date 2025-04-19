@@ -243,8 +243,7 @@ level API for accessing and traversing the data tree.
 The following snippet is a very quick overview taken from quickstart
 sample ([see on
 doxygen](https://rapidyaml.readthedocs.io/latest/group__doc__quickstart.html)/[see
-on github](samples/quickstart.cpp). After cloning ryml
-(don't forget the `--recursive` flag for git), you can very easily
+on github](samples/quickstart.cpp). After cloning ryml, you can very easily
 build and run this executable using any of the build samples, eg the
 [`add_subdirectory()` sample](samples/add_subdirectory/) (see [the relevant section](#quickstart-samples)).
 
@@ -434,16 +433,6 @@ CHECK(loc.col == 4u);
 ------
 
 ## Using ryml in your project
-
-Note that ryml uses submodules. Take care to use the `--recursive`
-flag when cloning the repo, to ensure ryml's submodules are checked
-out as well:
-```bash
-git clone --recursive https://github.com/biojppm/rapidyaml
-```
-If you omit `--recursive`, after cloning you will have to do `git
-submodule update --init --recursive` to ensure ryml's submodules are
-checked out.
 
 
 ### Single header file

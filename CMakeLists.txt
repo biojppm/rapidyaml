@@ -76,7 +76,9 @@ c4_add_library(ryml
         $<INSTALL_INTERFACE:include>
     )
 
-if(RYML_STANDALONE)
+if(NOT RYML_STANDALONE)
+    target_link_libraries(ryml PUBLIC c4core)
+else()
     file(STRINGS ext/c4core.src.txt c4core_src)
     file(STRINGS ext/c4core.dev.txt c4core_dev)
     _c4_transform_to_full_path(c4core_src _ ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
@@ -91,12 +93,6 @@ if(RYML_STANDALONE)
     list(FILTER c4core_dev EXCLUDE REGEX .*cpp)
     c4_install_files("${c4core_src}" ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
     c4_install_files("${c4core_dev}" ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev)
-else()
-    c4_require_subproject(c4core INCORPORATE
-        SUBDIRECTORY ${RYML_EXT_DIR}/c4core
-        OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
-    )
-    target_link_libraries(ryml PUBLIC c4core)
 endif()
 
 if(RYML_WITH_TAB_TOKENS)

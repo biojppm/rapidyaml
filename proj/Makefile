@@ -4,6 +4,9 @@ include ./common.mk
 include ./ys.mk
 
 
+check: c4core-check workflows-check presets-check
+
+
 c4core-check:
 	$(MAKE) -C ../ext c4core-check
 c4core-import:
@@ -14,12 +17,13 @@ c4core-export:
 
 workflows:
 	$(MAKE) -C ../.github/workflows-in
-workflows-test:
+workflows-check:
 	$(MAKE) -C ../.github/workflows-in test
 
 
 presets: ../CMakePresets.json
-presets-test: presets-force presets
+presets-check: presets-force presets
+	$(GIT) diff --exit-code --color=auto ../CMakePresets.json
 presets-force:
 	touch ../CMakePresets.ys
 ../CMakePresets.json: ../CMakePresets.ys $(YS)

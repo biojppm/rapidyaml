@@ -26,7 +26,6 @@ configurePresets:
 #------------------------------------------------------------------------------
   -
     name: debug
-    displayName: Debug
     binaryDir: ${sourceDir}/build/cmkps-${hostSystemName}-${presetName}
     cacheVariables:
       <<: *vars_debug
@@ -43,11 +42,9 @@ buildPresets:
 #------------------------------------------------------------------------------
   -
     name: debug
-    displayName: Build Debug
     configurePreset: debug
     configuration: Debug
   -
     name: release
-    displayName: Build Release
     configurePreset: release
     configuration: Release
