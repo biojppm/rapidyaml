@@ -87,9 +87,10 @@ if(RYML_STANDALONE)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev>
     )
-    set(c4core_hdrs ${c4core_src} ${c4core_dev})
-    list(FILTER c4core_hdrs EXCLUDE REGEX .*cpp)
-    install(FILES ${c4core_hdrs} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/c4)
+    list(FILTER c4core_src EXCLUDE REGEX .*cpp)
+    list(FILTER c4core_dev EXCLUDE REGEX .*cpp)
+    c4_install_files("${c4core_src}" ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.src)
+    c4_install_files("${c4core_dev}" ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_CURRENT_LIST_DIR}/ext/c4core.dev)
 else()
     c4_require_subproject(c4core INCORPORATE
         SUBDIRECTORY ${RYML_EXT_DIR}/c4core
