@@ -8,6 +8,9 @@ echo "fetch c4core from tag: $tag"
 
 set -xeo pipefail
 
+extdir=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
+cd $extdir
+
 mkdir -p c4core
 
 git -C c4core init -q .
