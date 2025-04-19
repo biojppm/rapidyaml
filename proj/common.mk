@@ -3,7 +3,7 @@ SHELL := bash
 C4CORE_REPO := https://github.com/biojppm/c4core
 C4CORE_TAG := v0.2.6
 
-RYML_DIR = $(shell cd .. ; pwd)
+RYML_DIR = $(shell cd $(dir $(lastword $(MAKEFILE_LIST)))/.. ; pwd)
 
 GIT := git
 CMAKE := cmake

@@ -54,7 +54,9 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - name: install colordiff
-      run: apt-get install -y colordiff
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y colordiff
     - name: check src list
       run: |
         make -C ext c4core-check-list || \

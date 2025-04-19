@@ -1,7 +1,7 @@
 # yamlscript utils
 
 YS_VERSION := 0.1.88
-YS_PREFIX := $(shell cd .. ; pwd)/build/ys/$(YS_VERSION)
+YS_PREFIX := $(RYML_DIR)/build/ys/$(YS_VERSION)
 YS := $(YS_PREFIX)/bin/ys-$(YS_VERSION)
 export PATH := $(YS_PREFIX)/bin:$(PATH)
 

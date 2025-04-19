@@ -38,7 +38,9 @@ jobs:
     steps:
       - :: checkout-action
       - name: install colordiff
-        run: apt-get install -y colordiff
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y colordiff
       - name: check src list
         run: |
           make -C ext c4core-check-list || \
@@ -47,6 +49,7 @@ jobs:
         run: |
           make -C ext c4core-check-sync || \
             ( echo "ERROR: c4core source sync out of date" ; exit 1 )
+
 
   check_doc:
     :: setup-job('infra' 'check_doxygen')
