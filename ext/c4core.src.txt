@@ -4,6 +4,7 @@ c4/blob.hpp
 c4/c4core.natvis
 c4/charconv.hpp
 c4/compiler.hpp
+c4/config.hpp
 c4/cpu.hpp
 c4/error.cpp
 c4/error.hpp
@@ -20,6 +21,7 @@ c4/memory_util.cpp
 c4/memory_util.hpp
 c4/platform.hpp
 c4/preprocessor.hpp
+c4/std/std.hpp
 c4/std/std_fwd.hpp
 c4/std/string.hpp
 c4/std/string_fwd.hpp

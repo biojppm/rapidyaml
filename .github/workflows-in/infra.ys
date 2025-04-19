@@ -38,9 +38,12 @@ jobs:
       - :: checkout-action
       - name: install colordiff
         run: apt-get install -y colordiff
+      - name: test src list
+        run: |
+          make -C ext c4core-check-list
       - name: test src sync
         run: |
-          make -C tools c4core-check
+          make -C ext c4core-check-sync
 
   check_doc:
     :: setup-job('infra' 'check_doxygen')
