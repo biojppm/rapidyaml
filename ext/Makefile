@@ -46,9 +46,25 @@ c4core-check-list-dev:
 	@echo "check c4core list dev: PASS"
 
 
-c4core-import: $(C4CORE_INPUT_SRC) $(C4CORE_INPUT_SRC)
-	$(call tarcopy,$(C4CORE_DIR_PROJ),$(C4CORE_SRC),$(C4CORE_DIR_SRC))
-	$(call tarcopy,$(C4CORE_DIR_PROJ),$(C4CORE_DEV),$(C4CORE_DIR_DEV))
-c4core-export: $(C4CORE_OUTPUT_SRC) $(C4CORE_OUTPUT_EXPORT)
-	$(call tarcopy,$(C4CORE_DIR_SRC),$(C4CORE_SRC),$(C4CORE_DIR_PROJ))
-	$(call tarcopy,$(C4CORE_DIR_DEV),$(C4CORE_DEV),$(C4CORE_DIR_PROJ))
+# function to sync files safely
+# $1=src_dir
+# $2=src_files
+# $3=dst_dir
+safe_sync = \
+	set -xe -o pipefail ; \
+	( cd $3 ; git diff --exit-code --color=auto $2 || ( echo "$$(pwd): destination files are dirty" ; exit 1 ) ) ; \
+	for f in $2 ; do \
+	   $(COLORDIFF) -u $1/$$f $3/$$f || ( cp -fav $1/$$f $3/$$f ) ; \
+	done
+
+
+c4core-import: c4core-import-src c4core-import-dev
+c4core-export: c4core-export-src c4core-export-dev
+c4core-import-src: $(C4CORE_INPUT_SRC)
+	$(call safe_sync,$(C4CORE_DIR_PROJ),$(C4CORE_SRC),$(C4CORE_DIR_SRC))
+c4core-import-dev: $(C4CORE_INPUT_DEV)
+	$(call safe_sync,$(C4CORE_DIR_PROJ),$(C4CORE_DEV),$(C4CORE_DIR_DEV))
+c4core-export-src: $(C4CORE_OUTPUT_SRC)
+	$(call safe_sync,$(C4CORE_DIR_SRC),$(C4CORE_SRC),$(C4CORE_DIR_PROJ))
+c4core-export-dev: $(C4CORE_OUTPUT_DEV)
+	$(call safe_sync,$(C4CORE_DIR_DEV),$(C4CORE_DEV),$(C4CORE_DIR_PROJ))

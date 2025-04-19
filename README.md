@@ -565,42 +565,8 @@ more about each sample:
 
 
 ### CMake build settings for ryml
-The following cmake variables can be used to control the build behavior of
-ryml:
 
-  * `RYML_WITH_TAB_TOKENS=ON/OFF`. Enable/disable support for tabs as
-    valid container tokens after `:` and `-`. Defaults to `OFF`,
-    because this may cost up to 10% in processing time.
-  * `RYML_DEFAULT_CALLBACKS=ON/OFF`. Enable/disable ryml's default
-    implementation of error and allocation callbacks. Defaults to `ON`.
-  * `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON/OFF` - Enable/disable
-    the same-named macro, which will make the default error handler
-    provided by ryml throw a `std::runtime_error` exception.
-  * `RYML_USE_ASSERT` - enable assertions in the code regardless of
-    build type. This is disabled by default. Failed assertions will
-    trigger a call to the error callback.
-  * `RYML_STANDALONE=ON/OFF`. ryml uses
-    [c4core](https://github.com/biojppm/c4core), a C++ library with low-level
-    multi-platform utilities for C++. When `RYML_STANDALONE=ON`, c4core is
-    incorporated into ryml as if it is the same library. Defaults to `ON`.
-  * `RYML_INSTALL=ON/OFF`. enable/disable install target. Defaults to `ON`.
-
-If you're developing ryml or just debugging problems with ryml itself, the
-following cmake variables can be helpful:
-  * `RYML_DEV=ON/OFF`: a bool variable which enables development targets such as
-    unit tests, benchmarks, etc. Defaults to `OFF`.
-  * `RYML_DBG=ON/OFF`: a bool variable which enables verbose prints from
-    parsing code; can be useful to figure out parsing problems. Defaults to
-    `OFF`.
-
-#### Forcing ryml to use a different c4core version
-
-ryml is strongly coupled to c4core, and this is reinforced by the fact
-that c4core is a submodule of the current repo. However, it is still
-possible to use a c4core version different from the one in the repo
-(of course, only if there are no incompatibilities between the
-versions). You can find out how to achieve this by looking at the
-[`custom_c4core` sample](./samples/custom_c4core/CMakeLists.txt).
+See the [relevant documentation page](https://rapidyaml.readthedocs.io/latest/sphinx_using.html#cmake-build-settings-for-ryml).
 
 
 ------

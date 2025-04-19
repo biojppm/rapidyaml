@@ -1,6 +1,5 @@
 SHELL := bash
 RYML_DIR = $(shell cd .. ; pwd)
-
 COLORDIFF := colordiff
 
 # function to copy files using tar

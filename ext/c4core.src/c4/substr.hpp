@@ -7,8 +7,7 @@
 #include <ctype.h>
 #include <type_traits>
 
-#include "c4/cpu.hpp"
-#include "c4/language.hpp"
+#include "c4/config.hpp"
 #include "c4/error.hpp"
 #include "c4/substr_fwd.hpp"
 

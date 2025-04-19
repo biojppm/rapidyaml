@@ -5,11 +5,7 @@
 
 /** @defgroup error_checking Error checking */
 
-#include <c4/export.hpp>
-#include <c4/compiler.hpp>
-#include <c4/language.hpp> // needed for C4_USE_ASSERT
-#include <stdint.h>
-#include <stddef.h>
+#include "c4/config.hpp"
 
 #ifdef _DOXYGEN_
     /** if this is defined and exceptions are enabled, then calls to C4_ERROR()
@@ -26,6 +22,12 @@
      * @ingroup error_checking */
 #   define C4_NOEXCEPT
 #endif // _DOXYGEN_
+
+#if defined(C4_EXCEPTIONS_ENABLED) && defined(C4_ERROR_THROWS_EXCEPTION)
+#   define C4_NOEXCEPT
+#else
+#   define C4_NOEXCEPT noexcept
+#endif
 
 
 namespace c4 {
@@ -251,6 +253,14 @@ struct srcloc
      * @ingroup error_checking */
 #   define C4_NOEXCEPT_A
 #endif // _DOXYGEN_
+
+#ifndef C4_USE_ASSERT
+#   ifdef NDEBUG
+#       define C4_USE_ASSERT 0
+#   else
+#       define C4_USE_ASSERT 1
+#   endif
+#endif
 
 #if C4_USE_ASSERT
 #   define C4_ASSERT(cond) C4_CHECK(cond)

@@ -75,9 +75,9 @@ struct base64_wrapper_
     base64_wrapper_(blob_<CharOrConstChar> blob) : data(blob) {}
 };
 /** a tag type to mark a payload as base64-encoded */
-using const_base64_wrapper = base64_wrapper_<const char>;
+using const_base64_wrapper = base64_wrapper_<cbyte>;
 /** a tag type to mark a payload to be encoded as base64 */
-using base64_wrapper = base64_wrapper_<char>;
+using base64_wrapper = base64_wrapper_<byte>;
 
 
 /** mark a variable to be written in base64 format */

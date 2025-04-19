@@ -1,6 +1,7 @@
 #ifndef _C4_BLOB_HPP_
 #define _C4_BLOB_HPP_
 
+#include "c4/types.hpp"
 #include "c4/error.hpp"
 
 /** @file blob.hpp Mutable and immutable binary data blobs.
@@ -22,8 +23,8 @@ template<class T> struct is_blob_value_type : std::integral_constant<bool, (std:
 template<class T>
 struct blob_
 {
-    static_assert(std::is_same<T, char>::value || std::is_same<T, const char>::value, "must be either char or const char");
-    static_assert(sizeof(T) == 1u, "must be either char or const char");
+    static_assert(std::is_same<T, byte>::value || std::is_same<T, cbyte>::value, "must be either byte or cbyte");
+    static_assert(sizeof(T) == 1u, "must be either byte or cbyte");
 
 public:
 
@@ -58,12 +59,12 @@ public:
 // NOLINTEND(cppcoreguidelines-special-member-functions,hicpp-special-member-functions)
 
 /** an immutable binary blob */
-using cblob = blob_<const char>;
+using cblob = blob_<cbyte>;
 /** a mutable binary blob */
-using  blob = blob_<char>;
+using  blob = blob_< byte>;
 
-static_assert(std::is_trivially_copyable<blob>::value, "must be trivially copyable");
-static_assert(std::is_trivially_copyable<cblob>::value, "must be trivially copyable");
+C4_MUST_BE_TRIVIAL_COPY(blob);
+C4_MUST_BE_TRIVIAL_COPY(cblob);
 
 } // namespace c4
 

@@ -1,6 +1,4 @@
 #include "c4/error.hpp"
-#include "c4/language.hpp"
-#include "c4/platform.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -79,7 +77,6 @@ void set_error_callback(error_callback_type cb)
 
 void handle_error(srcloc where, const char *fmt, ...)
 {
-    (void)where;
     char buf[1024];
     size_t msglen = 0;
     if(s_error_flags & (ON_ERROR_LOG|ON_ERROR_CALLBACK))
@@ -132,7 +129,6 @@ void handle_error(srcloc where, const char *fmt, ...)
 
 void handle_warning(srcloc where, const char *fmt, ...)
 {
-    (void)where;
     va_list args;
     char buf[1024];
     va_start(args, fmt);

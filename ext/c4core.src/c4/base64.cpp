@@ -159,7 +159,7 @@ size_t base64_encode(substr buf, cblob data)
 
 size_t base64_decode(csubstr encoded, blob data)
 {
-    #define c4append_(c) { if(wpos < data.len) { data.buf[wpos] = static_cast<char>(c); } ++wpos; }
+    #define c4append_(c) { if(wpos < data.len) { data.buf[wpos] = static_cast<c4::byte>(c); } ++wpos; }
     #define c4appendval_(c, shift)\
     {\
         C4_XASSERT((c) >= 0);\

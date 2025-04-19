@@ -1,4 +1,6 @@
-{"version":8,
+{"$comment":
+ "DO NOT EDIT! Generated automatically from CMakePresets.ys",
+ "version":10,
  "$schema":
  "https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json",
  "configurePresets":
@@ -20,5 +22,4 @@
   {"name":"release",
    "displayName":"Build Release",
    "configurePreset":"release",
-   "configuration":"Release",
-   "targets":["App"]}]}
+   "configuration":"Release"}]}

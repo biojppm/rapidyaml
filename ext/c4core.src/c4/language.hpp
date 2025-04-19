@@ -143,14 +143,6 @@
 #define C4_INLINE_CONSTEXPR inline constexpr
 #endif
 
-#ifndef C4_USE_ASSERT
-#   ifdef NDEBUG
-#       define C4_USE_ASSERT 0
-#   else
-#       define C4_USE_ASSERT 1
-#   endif
-#endif
-
 #if defined(_MSC_VER) && !defined(__clang__)
 #  if (defined(_CPPUNWIND) && (_CPPUNWIND == 1))
 #    define C4_EXCEPTIONS
@@ -167,12 +159,6 @@
 #else
 #  define C4_IF_EXCEPTIONS_(exc_code, setjmp_code) setjmp_code
 #  define C4_IF_EXCEPTIONS(exc_code, setjmp_code) do { setjmp_code } while(0)
-#endif
-
-#if defined(C4_EXCEPTIONS_ENABLED) && defined(C4_ERROR_THROWS_EXCEPTION)
-#   define C4_NOEXCEPT
-#else
-#   define C4_NOEXCEPT noexcept
 #endif
 
 #if defined(_MSC_VER) && !defined(__clang__)

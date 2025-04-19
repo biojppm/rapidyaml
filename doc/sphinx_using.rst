@@ -178,17 +178,6 @@ Currently `cmake <https://cmake.org/>`_ is required to build ryml; we
 recommend a recent cmake version, at least 3.13.
 
 
-Forcing ryml to use a different c4core version
-----------------------------------------------
-
-ryml is strongly coupled to c4core, and this is reinforced by the fact
-that c4core is a submodule of the current repo. However, it is still
-possible to use a c4core version different from the one in the repo (of
-course, only if there are no incompatibilities between the versions).
-You can find out how to achieve this by looking at the
-`custom_c4core sample <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/custom_c4core/CMakeLists.txt>`__.
-
-
 CMake build settings for ryml
 =============================
 
@@ -201,8 +190,17 @@ of ryml:
 -  ``RYML_DEFAULT_CALLBACKS=ON/OFF``. Enable/disable ryml’s default
    implementation of error and allocation callbacks. Defaults to ``ON``.
 -  ``RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON/OFF`` - Enable/disable the
-   same-named macro, which will make the default error handler provided
-   by ryml throw a ``std::runtime_error`` exception.
+   same-named macro, which will make the default error handlers provided
+   by ryml throw exceptions. Defaults to ``OFF``.
+- ``RYML_USE_ASSERT=ON/OFF``. Enable/disable assertions regardless of
+   of the ``NDEBUG`` macro. When set to ``OFF`` (the default), ryml
+   asserts unless ``NDEBUG`` is defined, making it so that assertions
+   are enabled in Debug builds and disabled in Release builds (which
+   usually have ``NDEBUG`` defined). When ``RYML_USE_ASSERT`` is set to
+   ``ON``, assertions are enabled even if ``NDEBUG`` is defined; with
+   this, assertions will be enabled in all build types regardless of
+   ``NDEBUG`` definition status. Failed assertions will trigger a call
+   to the error callback.
 -  ``RYML_USE_ASSERT`` - enable assertions in the code regardless of
    build type. This is disabled by default. Failed assertions will
    trigger a call to the error callback.
@@ -221,3 +219,14 @@ the following cmake variables can be helpful:
 - ``RYML_DBG=ON/OFF``: a bool variable which enables verbose prints from
   parsing code; can be useful to figure out parsing problems. Defaults
   to ``OFF``.
+
+
+Forcing ryml to use a different c4core version
+----------------------------------------------
+
+ryml is strongly coupled to c4core, and this is reinforced by the fact
+that c4core is a submodule of the current repo. However, it is still
+possible to use a c4core version different from the one in the repo (of
+course, only if there are no incompatibilities between the versions).
+You can find out how to achieve this by looking at the
+`custom_c4core sample <https://github.com/biojppm/rapidyaml/blob/v0.9.0/samples/custom_c4core/CMakeLists.txt>`__.

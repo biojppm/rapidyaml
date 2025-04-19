@@ -412,8 +412,8 @@ struct raw_wrapper_ : public blob_<T>
     }
 };
 
-using const_raw_wrapper = raw_wrapper_<const char>;
-using raw_wrapper = raw_wrapper_<char>;
+using const_raw_wrapper = raw_wrapper_<cbyte>;
+using raw_wrapper = raw_wrapper_<byte>;
 
 /** mark a variable to be written in raw binary format, using memcpy
  * @see blob_ */

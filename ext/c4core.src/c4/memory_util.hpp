@@ -1,15 +1,14 @@
 #ifndef _C4_MEMORY_UTIL_HPP_
 #define _C4_MEMORY_UTIL_HPP_
 
-#include "c4/compiler.hpp"
-#include "c4/language.hpp"
+#include "c4/config.hpp"
 #include "c4/error.hpp"
+#include "c4/compiler.hpp"
 #include "c4/cpu.hpp"
 #ifdef C4_MSVC
 #include <intrin.h>
 #endif
 #include <string.h>
-#include <type_traits>
 
 #if (defined(__GNUC__) && __GNUC__ >= 10) || defined(__has_builtin)
 #define _C4_USE_LSB_INTRINSIC(which) __has_builtin(which)
@@ -53,7 +52,7 @@ C4_ALWAYS_INLINE void mem_zero(T* mem)
 C4_ALWAYS_INLINE C4_CONST bool mem_overlaps(void const* a, void const* b, size_t sza, size_t szb)
 {
     // thanks @timwynants
-    return ((static_cast<const char*>(b) + szb) > a && b < (static_cast<const char*>(a)+sza));
+    return (((const char*)b + szb) > a && b < ((const char*)a+sza));
 }
 
 void mem_repeat(void* dest, void const* pattern, size_t pattern_size, size_t num_times);
