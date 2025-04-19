@@ -9,6 +9,8 @@ c4_add_library(c4fs
         ${C4FS_DIR}/src/c4/fs/fs.cpp
     INC_DIRS
         ${C4FS_DIR}/src
+        ${CMAKE_CURRENT_LIST_DIR}/c4core.src
+        ${CMAKE_CURRENT_LIST_DIR}/c4core.dev
     LIBS
         ryml
 )
@@ -23,6 +25,8 @@ c4_add_library(c4log
         ${C4LOG_DIR}/src/c4/log/log.cpp
     INC_DIRS
         ${C4LOG_DIR}/src
+        ${CMAKE_CURRENT_LIST_DIR}/c4core.src
+        ${CMAKE_CURRENT_LIST_DIR}/c4core.dev
     LIBS
         ryml
 )
