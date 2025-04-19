@@ -1,7 +1,10 @@
 SHELL := bash
-RYML_DIR = $(shell cd .. ; pwd)
+
 GIT := git
+CMAKE := cmake
 COLORDIFF := colordiff
+
+RYML_DIR = $(shell cd .. ; pwd)
 
 # function to copy files using tar
 # $1=src_dir

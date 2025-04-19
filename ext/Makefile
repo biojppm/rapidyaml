@@ -77,9 +77,4 @@ $(RYML_DIR)/build/c4core.done: c4core
 	mkdir -p $(RYML_DIR)/build
 	echo $(C4CORE_TAG) > $(RYML_DIR)/build/c4core.done
 c4core:
-	mkdir -p $@
-	$(GIT) -C $@ init -q .
-	$(GIT) -C $@ remote add origin $(C4CORE_REPO)
-	$(GIT) -C $@ fetch --tags origin $(C4CORE_TAG)
-	$(GIT) -C $@ reset --hard FETCH_HEAD
-	$(GIT) -C $@ submodule update --init --recursive
+	./c4core.sh "$(C4CORE_REPO)" $(C4CORE_TAG)
