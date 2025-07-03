@@ -574,6 +574,83 @@ ENGINE_TEST(QmrkWithTags,
 }
 
 
+ENGINE_TEST(QmrkGithub524_0,
+            ("? outer\n"
+             ": inner1: 1\n"
+             "  inner2: 2\n",
+             "outer:\n"
+             "  inner1: 1\n"
+             "  inner2: 2\n"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :outer\n"
+            "+MAP\n"
+            "=VAL :inner1\n"
+            "=VAL :1\n"
+            "=VAL :inner2\n"
+            "=VAL :2\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("outer"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("inner1"));
+    ___(ps.set_val_scalar_plain("1"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("inner2"));
+    ___(ps.set_val_scalar_plain("2"));
+    ___(ps.end_map());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkGithub524_1,
+            ("? outer\n"
+             ": inner1: 1\n"
+             "inner2: 2\n"
+             ,
+             "outer:\n"
+             "  inner1: 1\n"
+             "inner2: 2\n"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :outer\n"
+            "+MAP\n"
+            "=VAL :inner1\n"
+            "=VAL :1\n"
+            "-MAP\n"
+            "=VAL :inner2\n"
+            "=VAL :2\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+            )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("outer"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("inner1"));
+    ___(ps.set_val_scalar_plain("1"));
+    ___(ps.end_map());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("inner2"));
+    ___(ps.set_val_scalar_plain("2"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(QmrkFlow0,
