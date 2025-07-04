@@ -5,20 +5,24 @@ import sys
 import subprocess
 import argparse
 
-
 projdir = abspath(dirname(dirname(__file__)))
-sys.path.insert(0, f"{projdir}/ext/c4core/cmake")
+sys.path.insert(0, f"{projdir}/proj/c4proj")
 import amalgamate_utils as am
 sys.path.insert(0, f"{projdir}/ext/c4core/tools")
 import amalgamate as am_c4core
 
+
 ryml_defmacro = "RYML_SINGLE_HDR_DEFINE_NOW"
 c4core_defmacro = "C4CORE_SINGLE_HDR_DEFINE_NOW"
+
+
 exports_def_code = f""" // shared library: export when defining
 #if defined(RYML_SHARED) && defined({ryml_defmacro}) && !defined(RYML_EXPORTS)
 #define RYML_EXPORTS
 #endif
 """
+
+
 c4core_def_code = f""" // propagate defines to c4core
 #if defined({ryml_defmacro}) && !defined({c4core_defmacro})
 #define {c4core_defmacro}

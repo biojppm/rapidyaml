@@ -1,0 +1,21 @@
+{"$comment":
+ "DO NOT EDIT! Generated automatically from CMakePresets.ys",
+ "version":10,
+ "$schema":
+ "https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json",
+ "configurePresets":
+ [{"name":"debug",
+   "binaryDir":
+   "${sourceDir}/build/cmkps-${hostSystemName}-${presetName}",
+   "cacheVariables":{"CMAKE_BUILD_TYPE":"Debug", "RYML_DEV":"ON"}},
+  {"name":"release",
+   "displayName":"Release",
+   "binaryDir":
+   "${sourceDir}/build/cmkps-${hostSystemName}-${presetName}",
+   "cacheVariables":{"CMAKE_BUILD_TYPE":"Release", "RYML_DEV":"ON"}}],
+ "buildPresets":
+ [{"name":"debug", "configurePreset":"debug", "configuration":
+                                              "Debug"},
+  {"name":"release",
+   "configurePreset":"release",
+   "configuration":"Release"}]}
