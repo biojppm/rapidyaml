@@ -589,6 +589,31 @@ public:
 
 public:
 
+    /** @name comments */
+    /** @{ */
+
+    /** add leading comment */
+    void add_comment_leading(csubstr txt)
+    {
+        _c4dbgpf("leading comment! [{}]~~~{}~~~", txt.len, txt);
+        _send_("=COM |");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+
+    /** add trailing comment */
+    void add_comment_trailing(csubstr txt)
+    {
+        _c4dbgpf("trailing comment! [{}]~~~{}~~~", txt.len, txt);
+        _send_("=COM <");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+
+    /** @} */
+
+public:
+
     /** @name YAML arena events */
     /** @{ */
 

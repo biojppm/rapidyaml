@@ -203,6 +203,9 @@ private:
     void _write_scalar_squo(csubstr s, id_type level);
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
+    #ifdef RYML_WITH_COMMENTS
+    void _write_comment(csubstr s, id_type level);
+    #endif
 
     size_t _write_escaped_newlines(csubstr s, size_t i);
     size_t _write_indented_block(csubstr s, size_t i, id_type level);

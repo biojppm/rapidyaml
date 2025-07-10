@@ -557,6 +557,37 @@ public:
 
 public:
 
+    /** @name comments */
+    /** @{ */
+
+    #ifdef RYML_WITH_COMMENTS
+    /** add leading comment.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading(csubstr txt)
+    {
+        _c4dbgpf("leading comment! [{}]~~~{}~~~", txt.len, txt);
+        _enable_(COMML);
+        m_curr->tr_data->m_comml = txt;
+    }
+    #endif // RYML_WITH_COMMENTS
+
+    #ifdef RYML_WITH_COMMENTS
+    /** add trailing comment.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_trailing(csubstr txt)
+    {
+        _c4dbgpf("trailing comment! [{}]~~~{}~~~", txt.len, txt);
+        _enable_(COMMT);
+        m_curr->tr_data->m_commt = txt;
+    }
+    #endif // RYML_WITH_COMMENTS
+
+    /** @} */
+
+public:
+
     /** @name arena functions */
     /** @{ */
 

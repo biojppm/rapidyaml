@@ -189,6 +189,11 @@ struct NodeData
     id_type    m_last_child;
     id_type    m_next_sibling;
     id_type    m_prev_sibling;
+
+    #ifdef RYML_WITH_COMMENTS
+    csubstr    m_comml;
+    csubstr    m_commt;
+    #endif
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
 
@@ -349,6 +354,9 @@ public:
     csubstr    const& val_anchor(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val; }
 
+    csubstr    const& comml     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_comml(node)); return _p(node)->m_comml; }
+    csubstr    const& commt     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_comml(node)); return _p(node)->m_commt; }
+
     /** @} */
 
 public:
@@ -399,6 +407,10 @@ public:
     /// true if the val was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
     C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
+
+    C4_ALWAYS_INLINE bool has_comml(id_type node) const { return _p(node)->m_type.has_comml(); }
+    C4_ALWAYS_INLINE bool has_commt(id_type node) const { return _p(node)->m_type.has_commt(); }
+    C4_ALWAYS_INLINE bool has_comm(id_type node) const { return _p(node)->m_type.has_comm(); }
 
     RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
     RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }

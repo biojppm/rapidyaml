@@ -6,8 +6,6 @@
 namespace c4 {
 namespace yml {
 
-//-----------------------------------------------------------------------------
-
 ENGINE_TEST(Qmrk0,
             (HAS_CONTAINER_KEYS, Location(41,3,19),
              "\n"
