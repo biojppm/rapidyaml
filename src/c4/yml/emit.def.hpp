@@ -10,6 +10,16 @@
 #include "c4/yml/detail/parser_dbg.hpp"
 #endif
 
+#if defined(RYML_WITH_COMMENTS)
+#define _RYML_WITH_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITHOUT_COMMENTS(...)
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) with
+#else
+#define _RYML_WITH_COMMENTS(...)
+#define _RYML_WITHOUT_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) without
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -314,6 +324,7 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
             _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_seq(node));
             this->Writer::_do_write('[');
         }
+
     } // container
 
     for(id_type child = m_tree->first_child(node), count = 0; child != NONE; child = m_tree->next_sibling(child))
@@ -376,11 +387,22 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
         for(id_type child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
         {
             _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->has_key(child));
+            _RYML_WITH_COMMENTS(if(m_tree->has_comml(child))
+            {
+                _indent(level, do_indent);
+                _write_comment(m_tree->comml(child), level);
+                this->Writer::_do_write('\n');
+            })
             if(m_tree->is_val(child))
             {
                 _indent(level, do_indent);
                 this->Writer::_do_write("- ");
                 _writev(child, level);
+                _RYML_WITH_COMMENTS(if(m_tree->has_commt(child))
+                {
+                    this->Writer::_do_write(' ');
+                    _write_comment(m_tree->commt(child), level);
+                })
                 this->Writer::_do_write('\n');
             }
             else
@@ -415,12 +437,23 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
         for(id_type ich = m_tree->first_child(node); ich != NONE; ich = m_tree->next_sibling(ich))
         {
             _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_key(ich));
+            _RYML_WITH_COMMENTS(if(m_tree->has_comml(ich))
+            {
+                _indent(level, do_indent);
+                _write_comment(m_tree->comml(ich), level);
+                this->Writer::_do_write('\n');
+            })
             if(m_tree->is_keyval(ich))
             {
                 _indent(level, do_indent);
                 _writek(ich, level);
                 this->Writer::_do_write(": ");
                 _writev(ich, level);
+                _RYML_WITH_COMMENTS(if(m_tree->has_commt(ich))
+                {
+                    this->Writer::_do_write(' ');
+                    _write_comment(m_tree->commt(ich), level);
+                })
                 this->Writer::_do_write('\n');
             }
             else
@@ -504,13 +537,40 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
         if(m_tree->has_children(node))
         {
             if(m_tree->has_key(node))
+            {
                 nl = true;
+                spc = false;
+                _RYML_WITH_COMMENTS(if(m_tree->has_commt(node))
+                {
+                    this->Writer::_do_write(' ');
+                    _write_comment(m_tree->commt(node), ilevel);
+                })
+            }
             else
+            {
+                _RYML_WITH_COMMENTS(if(m_tree->has_commt(node))
+                {
+                    this->Writer::_do_write(' ');
+                    _write_comment(m_tree->commt(node), ilevel);
+                    nl = true;
+                    spc = false;
+                }
+                else)
                 if(!m_tree->is_root(node) && !nl)
+                {
                     spc = true;
+                }
+            }
         }
         else
         {
+            _RYML_WITH_COMMENTS(if(m_tree->has_commt(node))
+            {
+                this->Writer::_do_write(' ');
+                _write_comment(m_tree->commt(node), ilevel);
+                this->Writer::_do_write('\n');
+                this->_indent(ilevel+1);
+            })
             if(m_tree->is_seq(node))
                 this->Writer::_do_write(" []\n");
             else if(m_tree->is_map(node))
@@ -518,7 +578,7 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
             return;
         }
 
-        if(spc && !nl)
+        if(spc)
             this->Writer::_do_write(' ');
 
         do_indent = 0;
@@ -1021,6 +1081,33 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
     if(pos < s.len)
         this->Writer::_do_write(s.sub(pos));
 }
+
+#ifdef RYML_WITH_COMMENTS
+template<class Writer>
+void Emitter<Writer>::_write_comment(csubstr s, id_type ilevel)
+{
+    this->Writer::_do_write("# ");
+    size_t pos = 0; // tracks the last character that was already written
+    for(size_t i = 0; i < s.len; ++i)
+    {
+        if(s.str[i] == '\n')
+        {
+            csubstr sub = s.range(pos, i);
+            this->Writer::_do_write(sub);  // write everything up to (including) this newline
+            this->Writer::_do_write('\n');
+            if(pos < s.len)
+            {
+                _rymlindent_nextline()     // indent the next line
+                this->Writer::_do_write("# ");
+            }
+        }
+    }
+    // write missing characters at the end of the string
+    if(pos < s.len)
+        this->Writer::_do_write(s.sub(pos));
+}
+#endif // RYML_WITH_COMMENTS
+
 
 #undef _rymlindent_nextline
 
