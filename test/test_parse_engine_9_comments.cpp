@@ -6,6 +6,187 @@
 namespace c4 {
 namespace yml {
 
+ENGINE_TEST(CommentSingle,
+            ("# single comment\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "=COM |single comment\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading("single comment"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentSingleMultiline0,
+            (
+             "# single\n"
+             "# comment\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "=COM |single\\ncomment\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading("single\ncomment"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentSingleMultiline1,
+            (
+             "#\n"
+             "# single\n"
+             "# comment\n"
+             "#\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "=COM |\\nsingle\\ncomment\\n\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading("\nsingle\ncomment\n"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentSingleMultiline2,
+            (
+             "#\n"
+             "#\n"
+             "# single\n"
+             "#\n"
+             "#\n"
+             "# comment\n"
+             "#\n"
+             "#\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "=COM |\\n\\nsingle\\n\\n\\ncomment\\n\\n\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading("\n\nsingle\n\n\ncomment\n\n"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapFlowTrailing,
+            (
+             "{ # trailing comment\n"
+             "}"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=COM <trailing comment\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapFlowLeadingTrailing,
+            (
+             "# leading comment\n"
+             "{ # trailing comment\n"
+             "}\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "=COM |leading comment\n"
+            "+MAP {}\n"
+            "=COM <trailing comment\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading("leading comment"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapBlockLeadingTrailing,
+            (
+             "# leading comment\n"
+             "foo: bar # trailing comment\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=COM |leading comment\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=COM <trailing comment\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment_leading("leading comment"));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapFlowSingleTrailingThenLeading,
+            (
+             "# leading comment 1\n"
+             "{ # trailing comment\n"
+             "}\n"
+             "# leading comment 2\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "=COM |leading comment 1\n"
+            "+MAP {}\n"
+            "=COM <trailing comment\n"
+            "-MAP\n"
+            "=COM |leading comment 2\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading("leading comment 1"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.end_map());
+    ___(ps.add_comment_leading("leading comment 2"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 ENGINE_TEST(CommentMapFlow0,
             ("{\n"
              "# leading comment for foo\n"
