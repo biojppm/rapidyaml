@@ -6,6 +6,92 @@
 namespace c4 {
 namespace yml {
 
+ENGINE_TEST(CommentMapFlow0,
+            ("{\n"
+             "# leading comment for foo\n"
+             "foo: 0, # trailing comment for foo\n"
+             "# leading comment for bar\n"
+             "bar: 1, # trailing comment for bar\n"
+             "# leading comment for map\n"
+             "map: { # trailing comment for map\n"
+             "  # leading comment for mapchild\n"
+             "  mapchild: yes # trailing comment for mapchild\n"
+             "},\n"
+             "# leading comment for seq\n"
+             "seq: [ # trailing comment for seq\n"
+             "  # leading comment for seqchild\n"
+             "  - seqchild # trailing comment for seqchild\n"
+             "]\n"
+             "}\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=COM |leading comment for foo\n"
+            "=VAL :foo\n"
+            "=VAL :0\n"
+            "=COM <trailing comment for foo\n"
+            "=COM |leading comment for bar\n"
+            "=VAL :bar\n"
+            "=VAL :1\n"
+            "=COM <trailing comment for bar\n"
+            "=COM |leading comment for map\n"
+            "=VAL :map\n"
+            "=COM <trailing comment for map\n"
+            "+MAP {}\n"
+            "=COM |leading comment for mapchild\n"
+            "=VAL :mapchild\n"
+            "=VAL :yes\n"
+            "=COM <trailing comment for mapchild\n"
+            "-MAP\n"
+            "=COM |leading comment for seq\n"
+            "=VAL :seq\n"
+            "=COM <trailing comment for seq\n"
+            "+SEQ []\n"
+            "=COM |leading comment for seqchild\n"
+            "=VAL :seqchild\n"
+            "=COM <trailing comment for seqchild\n"
+            "-SEQ\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_leading("leading comment for foo"));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("0"));
+    ___(ps.add_comment_trailing("trailing comment for foo"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading("leading comment for bar"));
+    ___(ps.set_key_scalar_plain("bar"));
+    ___(ps.set_val_scalar_plain("1"));
+    ___(ps.add_comment_trailing("trailing comment for bar"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading("leading comment for map"));
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.add_comment_trailing("trailing comment for map"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_leading("leading comment for mapchild"));
+    ___(ps.set_key_scalar_plain("mapchild"));
+    ___(ps.set_val_scalar_plain("yes"));
+    ___(ps.add_comment_trailing("trailing comment for mapchild"));
+    ___(ps.end_map());
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading("leading comment for seq"));
+    ___(ps.set_key_scalar_plain("seq"));
+    ___(ps.add_comment_trailing("trailing comment for seq"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment_leading("leading comment for seqchild"));
+    ___(ps.set_val_scalar_plain("seqchild"));
+    ___(ps.add_comment_trailing("trailing comment for seqchild"));
+    ___(ps.end_seq());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 ENGINE_TEST(CommentMapBlock0,
             ("# leading comment for foo\n"
              "foo: 0 # trailing comment for foo\n"

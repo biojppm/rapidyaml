@@ -286,6 +286,13 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
     {
         _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_map(node) || m_tree->is_seq(node));
 
+        _RYML_WITH_COMMENTS(if(m_tree->has_comml(node))
+        {
+            _indent(ilevel);
+            _write_comment(m_tree->comml(node), ilevel);
+            this->Writer::_do_write('\n');
+        })
+
         bool spc = false; // write a space
 
         if(m_tree->has_key(node))
@@ -325,12 +332,27 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
             this->Writer::_do_write('[');
         }
 
+        _RYML_WITH_COMMENTS(if(m_tree->has_commt(node))
+        {
+            this->Writer::_do_write(' ');
+            _write_comment(m_tree->commt(node), ilevel);
+            this->Writer::_do_write('\n');
+            _indent(ilevel);
+        })
     } // container
 
     for(id_type child = m_tree->first_child(node), count = 0; child != NONE; child = m_tree->next_sibling(child))
     {
         if(count++)
             this->Writer::_do_write(',');
+        _RYML_WITH_COMMENTS(if(!m_tree->is_container(child) && m_tree->has_comml(child))
+        {
+            this->Writer::_do_write('\n');
+            _indent(ilevel);
+            _write_comment(m_tree->comml(child), ilevel);
+            this->Writer::_do_write('\n');
+            _indent(ilevel);
+        })
         if(m_tree->is_keyval(child))
         {
             _writek(child, ilevel);
@@ -346,6 +368,13 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
             // with single-line flow, we can never go back to block
             _do_visit_flow_sl(child, depth + 1, ilevel + 1);
         }
+        _RYML_WITH_COMMENTS(if(!m_tree->is_container(child) && m_tree->has_commt(child))
+        {
+            this->Writer::_do_write(' ');
+            _write_comment(m_tree->commt(child), ilevel);
+            this->Writer::_do_write('\n');
+            _indent(ilevel);
+        })
     }
 
     if(m_tree->is_map(node))
