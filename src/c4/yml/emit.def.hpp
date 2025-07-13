@@ -36,6 +36,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, id_type id, bool
     _RYML_CB_CHECK(t.callbacks(), id < t.capacity());
     m_tree = &t;
     m_flow = false;
+    m_linesz = 0;
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
@@ -73,8 +74,8 @@ void Emitter<Writer>::_emit_yaml(id_type id)
             id_type ilevel = 0;
             if(m_tree->has_key(id))
             {
-                this->Writer::_do_write(m_tree->key(id));
-                this->Writer::_do_write(":\n");
+                _write(m_tree->key(id));
+                _write(":\n");
                 ++ilevel;
             }
             _do_visit_block_container(id, 0, ilevel, ilevel);
@@ -95,12 +96,12 @@ void Emitter<Writer>::_emit_yaml(id_type id)
         for( ; tagds.b != end; ++tagds.b)
         {
             if(next_node != m_tree->first_child(parent))
-                this->Writer::_do_write("...\n");
-            this->Writer::_do_write("%TAG ");
-            this->Writer::_do_write(tagds.b->handle);
-            this->Writer::_do_write(' ');
-            this->Writer::_do_write(tagds.b->prefix);
-            this->Writer::_do_write('\n');
+                _write("...\n");
+            _write("%TAG ");
+            _write(tagds.b->handle);
+            _write(' ');
+            _write(tagds.b->prefix);
+            _newl();
         }
     };
     if(m_tree->is_stream(id))
@@ -112,7 +113,7 @@ void Emitter<Writer>::_emit_yaml(id_type id)
         {
             dispatch(child);
             if(m_tree->is_doc(child) && m_tree->type(child).is_flow_sl())
-                this->Writer::_do_write('\n');
+                _newl();
             if(m_tree->next_sibling(child) != NONE)
                 write_tag_directives(m_tree->next_sibling(child));
         }
@@ -130,23 +131,23 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     else if(m_tree->is_keyval(id))
     {
         _writek(id, 0);
-        this->Writer::_do_write(": ");
+        _write(": ");
         _writev(id, 0);
         if(!m_tree->type(id).is_flow())
-            this->Writer::_do_write('\n');
+            _newl();
     }
     else if(m_tree->is_val(id))
     {
-        //this->Writer::_do_write("- ");
+        //_write("- ");
         _writev(id, 0);
         if(!m_tree->type(id).is_flow())
-            this->Writer::_do_write('\n');
+            _newl();
     }
     #ifdef RYML_WITH_COMMENTS
     else if(m_tree->has_comml(id))
     {
         _write_comment(m_tree->comml(id), 0);
-        this->Writer::_do_write('\n');
+        _newl();
     }
     #endif
     else if(m_tree->type(id) == NOTYPE)
@@ -170,7 +171,7 @@ void Emitter<Writer>::_write_doc(id_type id)
     if(!m_tree->is_root(id))
     {
         RYML_ASSERT(m_tree->is_stream(m_tree->parent(id)));
-        this->Writer::_do_write("---");
+        _write("---");
     }
     //
     if(!ty.has_val()) // this is more frequent
@@ -184,34 +185,34 @@ void Emitter<Writer>::_write_doc(id_type id)
         else if(!tag && anchor)
         {
             if(!m_tree->is_root(id))
-                this->Writer::_do_write(' ');
-            this->Writer::_do_write('&');
-            this->Writer::_do_write(m_tree->val_anchor(id));
+                _write(' ');
+            _write('&');
+            _write(m_tree->val_anchor(id));
             #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
             if(m_tree->has_children(id) && m_tree->is_root(id))
-                this->Writer::_do_write('\n');
+                _newl();
             #endif
         }
         else if(tag && !anchor)
         {
             if(!m_tree->is_root(id))
-                this->Writer::_do_write(' ');
+                _write(' ');
             _write_tag(m_tree->val_tag(id));
             #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
             if(m_tree->has_children(id) && m_tree->is_root(id))
-                this->Writer::_do_write('\n');
+                _newl();
             #endif
         }
         else // tag && anchor
         {
             if(!m_tree->is_root(id))
-                this->Writer::_do_write(' ');
+                _write(' ');
             _write_tag(m_tree->val_tag(id));
-            this->Writer::_do_write(" &");
-            this->Writer::_do_write(m_tree->val_anchor(id));
+            _write(" &");
+            _write(m_tree->val_anchor(id));
             #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
             if(m_tree->has_children(id) && m_tree->is_root(id))
-                this->Writer::_do_write('\n');
+                _newl();
             #endif
         }
     }
@@ -232,16 +233,16 @@ void Emitter<Writer>::_write_doc(id_type id)
         {
             if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag())
             {
-                this->Writer::_do_write('\n');
+                _newl();
                 return;
             }
             else if(val.len && is_ambiguous)
             {
-                this->Writer::_do_write('\n');
+                _newl();
             }
             else
             {
-                this->Writer::_do_write(' ');
+                _write(' ');
             }
         }
         id_type ilevel = 0u;
@@ -252,10 +253,10 @@ void Emitter<Writer>::_write_doc(id_type id)
         }
         _writev(id, ilevel);
         if(val.len && m_tree->is_root(id))
-            this->Writer::_do_write('\n');
+            _newl();
     }
     if(!m_tree->is_root(id))
-        this->Writer::_do_write('\n');
+        _newl();
 }
 
 template<class Writer>
@@ -280,12 +281,12 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
         {
             if(m_tree->is_map(node))
             {
-                this->Writer::_do_write('{');
+                _write('{');
             }
             else
             {
                 _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_seq(node));
-                this->Writer::_do_write('[');
+                _write('[');
             }
         }
     }
@@ -296,10 +297,10 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
         #ifdef RYML_WITH_COMMENTS
         if(m_tree->has_comml(node))
         {
-            this->Writer::_do_write('\n');
+            _newl();
             _indent(ilevel);
             _write_comment(m_tree->comml(node), ilevel);
-            this->Writer::_do_write('\n');
+            _newl();
         }
         #endif
 
@@ -308,14 +309,14 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
         if(m_tree->has_key(node))
         {
             _writek(node, ilevel);
-            this->Writer::_do_write(':');
+            _write(':');
             spc = true;
         }
 
         if(m_tree->has_val_tag(node))
         {
             if(spc)
-                this->Writer::_do_write(' ');
+                _write(' ');
             _write_tag(m_tree->val_tag(node));
             spc = true;
         }
@@ -323,31 +324,31 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
         if(m_tree->has_val_anchor(node))
         {
             if(spc)
-                this->Writer::_do_write(' ');
-            this->Writer::_do_write('&');
-            this->Writer::_do_write(m_tree->val_anchor(node));
+                _write(' ');
+            _write('&');
+            _write(m_tree->val_anchor(node));
             spc = true;
         }
 
         if(spc)
-            this->Writer::_do_write(' ');
+            _write(' ');
 
         if(m_tree->is_map(node))
         {
-            this->Writer::_do_write('{');
+            _write('{');
         }
         else
         {
             _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_seq(node));
-            this->Writer::_do_write('[');
+            _write('[');
         }
 
         #ifdef RYML_WITH_COMMENTS
         if(m_tree->has_commt(node))
         {
-            this->Writer::_do_write(' ');
+            _write(' ');
             _write_comment(m_tree->commt(node), ilevel);
-            this->Writer::_do_write('\n');
+            _newl();
             _indent(ilevel);
         }
         #endif
@@ -359,17 +360,17 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
         #ifdef RYML_WITH_COMMENTS
         if(m_tree->has_comml(child) && !m_tree->is_container(child))
         {
-            this->Writer::_do_write('\n');
+            _newl();
             _indent(ilevel);
             _write_comment(m_tree->comml(child), ilevel);
-            this->Writer::_do_write('\n');
+            _newl();
             _indent(ilevel);
         }
         #endif
         if(m_tree->is_keyval(child))
         {
             _writek(child, ilevel);
-            this->Writer::_do_write(": ");
+            _write(": ");
             _writev(child, ilevel);
         }
         else if(m_tree->is_val(child))
@@ -384,13 +385,13 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
         child = m_tree->next_sibling(child);
         if(child == NONE)
             break;
-        this->Writer::_do_write(',');
+        _write(',');
         #ifdef RYML_WITH_COMMENTS
         if(!m_tree->is_container(child) && m_tree->has_commt(child))
         {
-            this->Writer::_do_write(' ');
+            _write(' ');
             _write_comment(m_tree->commt(child), ilevel);
-            this->Writer::_do_write('\n');
+            _newl();
             _indent(ilevel);
         }
         #endif
@@ -399,11 +400,11 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
 
     if(m_tree->is_map(node))
     {
-        this->Writer::_do_write('}');
+        _write('}');
     }
     else if(m_tree->is_seq(node))
     {
-        this->Writer::_do_write(']');
+        _write(']');
     }
     m_flow = prev_flow;
 }
@@ -441,20 +442,20 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
             {
                 _indent(level, do_indent);
                 _write_comment(m_tree->comml(child), level);
-                this->Writer::_do_write('\n');
+                _newl();
             }
             #endif
             if(m_tree->is_val(child))
             {
                 _indent(level, do_indent);
-                this->Writer::_do_write("- ");
+                _write("- ");
                 _writev(child, level);
                 _RYML_WITH_COMMENTS(if(m_tree->has_commt(child))
                 {
-                    this->Writer::_do_write(' ');
+                    _write(' ');
                     _write_comment(m_tree->commt(child), level);
                 })
-                this->Writer::_do_write('\n');
+                _newl();
             }
             else
             {
@@ -463,16 +464,16 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
                 if(ty.is_flow_sl())
                 {
                     _indent(level, do_indent);
-                    this->Writer::_do_write("- ");
+                    _write("- ");
                     _do_visit_flow_sl(child, depth+1, 0u);
-                    this->Writer::_do_write('\n');
+                    _newl();
                 }
                 else if(ty.is_flow_ml())
                 {
                     _indent(level, do_indent);
-                    this->Writer::_do_write("- ");
+                    _write("- ");
                     _do_visit_flow_ml(child, depth+1, 0u, do_indent);
-                    this->Writer::_do_write('\n');
+                    _newl();
                 }
                 else
                 {
@@ -492,20 +493,20 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
             {
                 _indent(level, do_indent);
                 _write_comment(m_tree->comml(ich), level);
-                this->Writer::_do_write('\n');
+                _newl();
             })
             if(m_tree->is_keyval(ich))
             {
                 _indent(level, do_indent);
                 _writek(ich, level);
-                this->Writer::_do_write(": ");
+                _write(": ");
                 _writev(ich, level);
                 _RYML_WITH_COMMENTS(if(m_tree->has_commt(ich))
                 {
-                    this->Writer::_do_write(' ');
+                    _write(' ');
                     _write_comment(m_tree->commt(ich), level);
                 })
-                this->Writer::_do_write('\n');
+                _newl();
             }
             else
             {
@@ -515,13 +516,13 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
                 {
                     _indent(level, do_indent);
                     _do_visit_flow_sl(ich, depth+1, 0u);
-                    this->Writer::_do_write('\n');
+                    _newl();
                 }
                 else if(ty.is_flow_ml())
                 {
                     _indent(level, do_indent);
                     _do_visit_flow_ml(ich, depth+1, 0u);
-                    this->Writer::_do_write('\n');
+                    _newl();
                 }
                 else
                 {
@@ -556,20 +557,20 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
         {
             _indent(ilevel, do_indent);
             _writek(node, ilevel);
-            this->Writer::_do_write(':');
+            _write(':');
             spc = true;
         }
         else if(!m_tree->is_root(node))
         {
             _indent(ilevel, do_indent);
-            this->Writer::_do_write('-');
+            _write('-');
             spc = true;
         }
 
         if(m_tree->has_val_tag(node))
         {
             if(spc)
-                this->Writer::_do_write(' ');
+                _write(' ');
             _write_tag(m_tree->val_tag(node));
             spc = true;
             nl = true;
@@ -578,9 +579,9 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
         if(m_tree->has_val_anchor(node))
         {
             if(spc)
-                this->Writer::_do_write(' ');
-            this->Writer::_do_write('&');
-            this->Writer::_do_write(m_tree->val_anchor(node));
+                _write(' ');
+            _write('&');
+            _write(m_tree->val_anchor(node));
             spc = true;
             nl = true;
         }
@@ -593,7 +594,7 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
                 spc = false;
                 _RYML_WITH_COMMENTS(if(m_tree->has_commt(node))
                 {
-                    this->Writer::_do_write(' ');
+                    _write(' ');
                     _write_comment(m_tree->commt(node), ilevel);
                 })
             }
@@ -601,7 +602,7 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
             {
                 _RYML_WITH_COMMENTS(if(m_tree->has_commt(node))
                 {
-                    this->Writer::_do_write(' ');
+                    _write(' ');
                     _write_comment(m_tree->commt(node), ilevel);
                     nl = true;
                     spc = false;
@@ -617,25 +618,25 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
         {
             _RYML_WITH_COMMENTS(if(m_tree->has_commt(node))
             {
-                this->Writer::_do_write(' ');
+                _write(' ');
                 _write_comment(m_tree->commt(node), ilevel);
-                this->Writer::_do_write('\n');
+                _newl();
                 this->_indent(ilevel+1);
             })
             if(m_tree->is_seq(node))
-                this->Writer::_do_write(" []\n");
+                _write(" []\n");
             else if(m_tree->is_map(node))
-                this->Writer::_do_write(" {}\n");
+                _write(" {}\n");
             return;
         }
 
         if(spc)
-            this->Writer::_do_write(' ');
+            _write(' ');
 
         do_indent = 0;
         if(nl)
         {
-            this->Writer::_do_write('\n');
+            _newl();
             do_indent = 1;
         }
     } // container
@@ -659,7 +660,7 @@ void Emitter<Writer>::_do_visit_json(id_type id, id_type depth)
     if(m_tree->is_keyval(id))
     {
         _writek_json(id);
-        this->Writer::_do_write(": ");
+        _write(": ");
         _writev_json(id);
     }
     else if(m_tree->is_val(id))
@@ -671,25 +672,25 @@ void Emitter<Writer>::_do_visit_json(id_type id, id_type depth)
         if(m_tree->has_key(id))
         {
             _writek_json(id);
-            this->Writer::_do_write(": ");
+            _write(": ");
         }
         if(m_tree->is_seq(id))
-            this->Writer::_do_write('[');
+            _write('[');
         else if(m_tree->is_map(id))
-            this->Writer::_do_write('{');
+            _write('{');
     }  // container
 
     for(id_type ich = m_tree->first_child(id); ich != NONE; ich = m_tree->next_sibling(ich))
     {
         if(ich != m_tree->first_child(id))
-            this->Writer::_do_write(',');
+            _write(',');
         _do_visit_json(ich, depth+1);
     }
 
     if(m_tree->is_seq(id))
-        this->Writer::_do_write(']');
+        _write(']');
     else if(m_tree->is_map(id))
-        this->Writer::_do_write('}');
+        _write('}');
 }
 
 template<class Writer>
@@ -698,23 +699,23 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, i
     if( ! sc.tag.empty())
     {
         _write_tag(sc.tag);
-        this->Writer::_do_write(' ');
+        _write(' ');
     }
     if(flags.has_anchor())
     {
         RYML_ASSERT(flags.is_ref() != flags.has_anchor());
         RYML_ASSERT( ! sc.anchor.empty());
-        this->Writer::_do_write('&');
-        this->Writer::_do_write(sc.anchor);
-        this->Writer::_do_write(' ');
+        _write('&');
+        _write(sc.anchor);
+        _write(' ');
     }
     else if(flags.is_ref())
     {
         if(sc.anchor != "<<")
-            this->Writer::_do_write('*');
-        this->Writer::_do_write(sc.anchor);
+            _write('*');
+        _write(sc.anchor);
         if(flags.is_key_ref())
-            this->Writer::_do_write(' ');
+            _write(' ');
         return;
     }
 
@@ -771,14 +772,14 @@ void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType fla
         if(dquoted)
             _write_scalar_json_dquo(sc.scalar);
         else
-            this->Writer::_do_write(sc.scalar);
+            _write(sc.scalar);
     }
     else
     {
         if(sc.scalar.str || (flags & (KEY|VALQUO|KEYTAG|VALTAG)))
-            this->Writer::_do_write("\"\"");
+            _write("\"\"");
         else
-            this->Writer::_do_write("null");
+            _write("null");
     }
 }
 
@@ -790,10 +791,10 @@ size_t Emitter<Writer>::_write_escaped_newlines(csubstr s, size_t i)
     //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
     // add an extra newline for each sequence of consecutive
     // newline/whitespace
-    this->Writer::_do_write('\n');
+    _newl();
     do
     {
-        this->Writer::_do_write('\n'); // write the newline again
+        _newl(); // write the newline again
         ++i; // increase the outer loop counter!
     } while(i < s.len && s.str[i] == '\n');
     _RYML_CB_ASSERT(m_tree->callbacks(), i > 0);
@@ -827,7 +828,7 @@ again:
         ++pos;
         //_c4dbgpf("indblock line@i={} rem=[{}]~~~\n{}~~~", i, s.range(i, pos).len, s.range(i, pos));
         _rymlindent_nextline();
-        this->Writer::_do_write(s.range(i, pos));
+        _write(s.range(i, pos));
         i = pos;
         goto again; // NOLINT
     }
@@ -840,7 +841,7 @@ again:
         pos = (pos2 != npos) ? pos2 : pos;
         //_c4dbgpf("indblock line@i={} rem=[{}]~~~\n{}~~~", i, s.range(i, pos).len, s.range(i, pos));
         _rymlindent_nextline();
-        this->Writer::_do_write(s.range(i, pos));
+        _write(s.range(i, pos));
         i = pos;
     }
     return i;
@@ -851,24 +852,24 @@ void Emitter<Writer>::_write_scalar_literal(csubstr s, id_type ilevel, bool expl
 {
     _RYML_CB_ASSERT(m_tree->callbacks(), s.find("\r") == csubstr::npos);
     if(explicit_key)
-        this->Writer::_do_write("? ");
+        _write("? ");
     csubstr trimmed = s.trimr('\n');
     const size_t numnewlines_at_end = s.len - trimmed.len;
     const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
     const bool explicit_indentation = s.triml("\n\r").begins_with_any(" \t");
     //
-    this->Writer::_do_write('|');
+    _write('|');
     if(explicit_indentation)
-        this->Writer::_do_write('2');
+        _write('2');
     //
     if(numnewlines_at_end > 1 || is_newline_only)
-        this->Writer::_do_write('+');
+        _write('+');
     else if(numnewlines_at_end == 0)
-        this->Writer::_do_write('-');
+        _write('-');
     //
     if(trimmed.len)
     {
-        this->Writer::_do_write('\n');
+        _newl();
         size_t pos = 0; // tracks the last character that was already written
         for(size_t i = 0; i < trimmed.len; ++i)
         {
@@ -877,20 +878,20 @@ void Emitter<Writer>::_write_scalar_literal(csubstr s, id_type ilevel, bool expl
             // write everything up to this point
             csubstr since_pos = trimmed.range(pos, i+1); // include the newline
             _rymlindent_nextline()
-            this->Writer::_do_write(since_pos);
+            _write(since_pos);
             pos = i+1; // already written
         }
         if(pos < trimmed.len)
         {
             _rymlindent_nextline()
-            this->Writer::_do_write(trimmed.sub(pos));
+            _write(trimmed.sub(pos));
         }
     }
     for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
-        this->Writer::_do_write('\n');
+        _newl();
     if(explicit_key)
     {
-        this->Writer::_do_write('\n');
+        _newl();
         this->_indent(ilevel);
     }
 }
@@ -899,25 +900,25 @@ template<class Writer>
 void Emitter<Writer>::_write_scalar_folded(csubstr s, id_type ilevel, bool explicit_key)
 {
     if(explicit_key)
-        this->Writer::_do_write("? ");
+        _write("? ");
     _RYML_CB_ASSERT(m_tree->callbacks(), s.find("\r") == csubstr::npos);
     csubstr trimmed = s.trimr('\n');
     const size_t numnewlines_at_end = s.len - trimmed.len;
     const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
     const bool explicit_indentation = s.triml("\n\r").begins_with_any(" \t");
     //
-    this->Writer::_do_write('>');
+    _write('>');
     if(explicit_indentation)
-        this->Writer::_do_write('2');
+        _write('2');
     //
     if(numnewlines_at_end == 0)
-        this->Writer::_do_write('-');
+        _write('-');
     else if(numnewlines_at_end > 1 || is_newline_only)
-        this->Writer::_do_write('+');
+        _write('+');
     //
     if(trimmed.len)
     {
-        this->Writer::_do_write('\n');
+        _newl();
         size_t pos = 0; // tracks the last character that was already written
         for(size_t i = 0; i < trimmed.len; ++i)
         {
@@ -929,7 +930,7 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, id_type ilevel, bool expli
                 if(pos < i)
                 {
                     _rymlindent_nextline()
-                    this->Writer::_do_write(s.range(pos, i));
+                    _write(s.range(pos, i));
                     i = _write_escaped_newlines(s, i);
                     pos = i+1;
                 }
@@ -945,7 +946,7 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, id_type ilevel, bool expli
                         }
                         else
                         {
-                            this->Writer::_do_write('\n');
+                            _newl();
                             pos = i+1;
                         }
                     }
@@ -955,7 +956,7 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, id_type ilevel, bool expli
             {
                 ++i;
                 _rymlindent_nextline()
-                this->Writer::_do_write(s.range(pos, i));
+                _write(s.range(pos, i));
                 if(pos > 0 || !s.begins_with_any(" \t"))
                     i = _write_indented_block(s, i, ilevel);
                 pos = i;
@@ -964,14 +965,14 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, id_type ilevel, bool expli
         if(pos < trimmed.len)
         {
             _rymlindent_nextline()
-            this->Writer::_do_write(trimmed.sub(pos));
+            _write(trimmed.sub(pos));
         }
     }
     for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
-        this->Writer::_do_write('\n');
+        _newl();
     if(explicit_key)
     {
-        this->Writer::_do_write('\n');
+        _newl();
         this->_indent(ilevel);
     }
 }
@@ -980,12 +981,12 @@ template<class Writer>
 void Emitter<Writer>::_write_scalar_squo(csubstr s, id_type ilevel)
 {
     size_t pos = 0; // tracks the last character that was already written
-    this->Writer::_do_write('\'');
+    _write('\'');
     for(size_t i = 0; i < s.len; ++i)
     {
         if(s[i] == '\n')
         {
-            this->Writer::_do_write(s.range(pos, i));  // write everything up to (excluding) this char
+            _write(s.range(pos, i));  // write everything up to (excluding) this char
             //_c4dbgpf("newline at {}. writing ~~~{}~~~", i, s.range(pos, i));
             i = _write_escaped_newlines(s, i);
             //_c4dbgpf("newline --> {}", i);
@@ -997,22 +998,22 @@ void Emitter<Writer>::_write_scalar_squo(csubstr s, id_type ilevel)
         {
             csubstr sub = s.range(pos, i+1);
             //_c4dbgpf("squote at {}. writing ~~~{}~~~", i, sub);
-            this->Writer::_do_write(sub); // write everything up to (including) this squote
-            this->Writer::_do_write('\''); // write the squote again
+            _write(sub); // write everything up to (including) this squote
+            _write('\''); // write the squote again
             pos = i+1;
         }
     }
     // write missing characters at the end of the string
     if(pos < s.len)
-        this->Writer::_do_write(s.sub(pos));
-    this->Writer::_do_write('\'');
+        _write(s.sub(pos));
+    _write('\'');
 }
 
 template<class Writer>
 void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
 {
     size_t pos = 0; // tracks the last character that was already written
-    this->Writer::_do_write('"');
+    _write('"');
     for(size_t i = 0; i < s.len; ++i)
     {
         const char curr = s.str[i];
@@ -1022,9 +1023,9 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
         case '\\':
         {
             csubstr sub = s.range(pos, i);
-            this->Writer::_do_write(sub);  // write everything up to (excluding) this char
-            this->Writer::_do_write('\\'); // write the escape
-            this->Writer::_do_write(curr); // write the char
+            _write(sub);  // write everything up to (excluding) this char
+            _write('\\'); // write the escape
+            _write(curr); // write the char
             pos = i+1;
             break;
         }
@@ -1032,8 +1033,8 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
         case '\n':
         {
             csubstr sub = s.range(pos, i);
-            this->Writer::_do_write(sub);   // write everything up to (excluding) this char
-            this->Writer::_do_write("\\n"); // write the escape
+            _write(sub);   // write everything up to (excluding) this char
+            _write("\\n"); // write the escape
             pos = i+1;
             (void)ilevel;
             break;
@@ -1043,7 +1044,7 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
         {
             // write everything up to (excluding) this newline
             //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
-            this->Writer::_do_write(s.range(pos, i));
+            _write(s.range(pos, i));
             i = _write_escaped_newlines(s, i);
             ++i;
             pos = i;
@@ -1058,9 +1059,9 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
                 {
                     if(first == npos)
                         first = s.len;
-                    this->Writer::_do_write('\\');
-                    this->Writer::_do_write(s.range(i, first));
-                    this->Writer::_do_write('\\');
+                    _write('\\');
+                    _write(s.range(i, first));
+                    _write('\\');
                     i = first-1;
                     pos = first;
                 }
@@ -1075,8 +1076,8 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
             if(next != npos && s.str[next] == '\n')
             {
                 csubstr sub = s.range(pos, i);
-                this->Writer::_do_write(sub);  // write everything up to (excluding) this char
-                this->Writer::_do_write('\\'); // escape the whitespace
+                _write(sub);  // write everything up to (excluding) this char
+                _write('\\'); // escape the whitespace
                 pos = i;
             }
             break;
@@ -1085,16 +1086,16 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
         case '\r':
         {
             csubstr sub = s.range(pos, i);
-            this->Writer::_do_write(sub);  // write everything up to (excluding) this char
-            this->Writer::_do_write("\\r"); // write the escaped char
+            _write(sub);  // write everything up to (excluding) this char
+            _write("\\r"); // write the escaped char
             pos = i+1;
             break;
         }
         case '\b':
         {
             csubstr sub = s.range(pos, i);
-            this->Writer::_do_write(sub);  // write everything up to (excluding) this char
-            this->Writer::_do_write("\\b"); // write the escaped char
+            _write(sub);  // write everything up to (excluding) this char
+            _write("\\b"); // write the escaped char
             pos = i+1;
             break;
         }
@@ -1102,8 +1103,8 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, id_type ilevel)
     }
     // write missing characters at the end of the string
     if(pos < s.len)
-        this->Writer::_do_write(s.sub(pos));
-    this->Writer::_do_write('"');
+        _write(s.sub(pos));
+    _write('"');
 }
 
 template<class Writer>
@@ -1121,7 +1122,7 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
         if(curr == '\n')
         {
             csubstr sub = s.range(pos, i);
-            this->Writer::_do_write(sub);  // write everything up to (including) this newline
+            _write(sub);  // write everything up to (including) this newline
             i = _write_escaped_newlines(s, i);
             pos = i+1;
             if(pos < s.len)
@@ -1130,7 +1131,7 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
     }
     // write missing characters at the end of the string
     if(pos < s.len)
-        this->Writer::_do_write(s.sub(pos));
+        _write(s.sub(pos));
 }
 
 #ifdef RYML_WITH_COMMENTS
@@ -1138,35 +1139,35 @@ template<class Writer>
 void Emitter<Writer>::_write_comment(csubstr s, id_type ilevel)
 {
     if(s.len && s[0] != '\n')
-        this->Writer::_do_write("# ");
+        _write("# ");
     else
-        this->Writer::_do_write('#');
+        _write('#');
     size_t pos = 0; // last character that was already written
     for(size_t i = 0; i < s.len; ++i)
     {
         if(s.str[i] == '\n')
         {
             csubstr sub = s.range(pos, i);
-            this->Writer::_do_write(sub);  // write everything up to (including) this newline
-            this->Writer::_do_write('\n');
+            _write(sub);  // write everything up to (including) this newline
+            _newl();
             pos = i + 1;
             if(pos < s.len)
             {
                 _indent(ilevel);
                 if(s[pos] != '\n')
-                    this->Writer::_do_write("# ");
+                    _write("# ");
                 else
-                    this->Writer::_do_write('#');
+                    _write('#');
             }
             else if(pos == s.len)
             {
-                this->Writer::_do_write('#');
+                _write('#');
             }
         }
     }
     // write missing characters at the end of the string
     if(pos < s.len)
-        this->Writer::_do_write(s.sub(pos));
+        _write(s.sub(pos));
 }
 #endif // RYML_WITH_COMMENTS
 
@@ -1177,44 +1178,44 @@ template<class Writer>
 void Emitter<Writer>::_write_scalar_json_dquo(csubstr s)
 {
     size_t pos = 0;
-    this->Writer::_do_write('"');
+    _write('"');
     for(size_t i = 0; i < s.len; ++i)
     {
         switch(s.str[i])
         {
         case '"':
-            this->Writer ::_do_write(s.range(pos, i));
-            this->Writer ::_do_write("\\\"");
+            _write(s.range(pos, i));
+            _write("\\\"");
             pos = i + 1;
             break;
         case '\n':
-            this->Writer ::_do_write(s.range(pos, i));
-            this->Writer ::_do_write("\\n");
+            _write(s.range(pos, i));
+            _write("\\n");
             pos = i + 1;
             break;
         case '\t':
-            this->Writer ::_do_write(s.range(pos, i));
-            this->Writer ::_do_write("\\t");
+            _write(s.range(pos, i));
+            _write("\\t");
             pos = i + 1;
             break;
         case '\\':
-            this->Writer ::_do_write(s.range(pos, i));
-            this->Writer ::_do_write("\\\\");
+            _write(s.range(pos, i));
+            _write("\\\\");
             pos = i + 1;
             break;
         case '\r':
-            this->Writer ::_do_write(s.range(pos, i));
-            this->Writer ::_do_write("\\r");
+            _write(s.range(pos, i));
+            _write("\\r");
             pos = i + 1;
             break;
         case '\b':
-            this->Writer ::_do_write(s.range(pos, i));
-            this->Writer ::_do_write("\\b");
+            _write(s.range(pos, i));
+            _write("\\b");
             pos = i + 1;
             break;
         case '\f':
-            this->Writer ::_do_write(s.range(pos, i));
-            this->Writer ::_do_write("\\f");
+            _write(s.range(pos, i));
+            _write("\\f");
             pos = i + 1;
             break;
         }
@@ -1222,9 +1223,9 @@ void Emitter<Writer>::_write_scalar_json_dquo(csubstr s)
     if(pos < s.len)
     {
         csubstr sub = s.sub(pos);
-        this->Writer::_do_write(sub);
+        _write(sub);
     }
-    this->Writer::_do_write('"');
+    _write('"');
 }
 
 } // namespace yml
