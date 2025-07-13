@@ -54,6 +54,7 @@ public:
     #else
     #define _enable_(bits) _enable__<bits>()
     #define _disable_(bits) _disable__<bits>()
+    #define _enable__parent_(bits) _enable__parent__<bits>()
     #endif
     #define _has_any_(bits) _has_any__<bits>()
     #define _has_any__parent_(bits) _has_any__<bits>()

@@ -181,6 +181,7 @@ private:
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
     bool m_flow;
+    size_t m_linesz;
 
 private:
 
@@ -213,8 +214,8 @@ private:
     void _write_tag(csubstr tag)
     {
         if(!tag.begins_with('!'))
-            this->Writer::_do_write('!');
-        this->Writer::_do_write(tag);
+            _write('!');
+        _write(tag);
     }
 
     enum : type_bits {
@@ -233,12 +234,39 @@ private:
     void _indent(id_type level, bool enabled)
     {
         if(enabled)
-            this->Writer::_do_write(' ', 2u * (size_t)level);
+            _write(' ', 2u * (size_t)level);
     }
     void _indent(id_type level)
     {
         if(!m_flow)
-            this->Writer::_do_write(' ', 2u * (size_t)level);
+            _write(' ', 2u * (size_t)level);
+    }
+
+    C4_ALWAYS_INLINE void _newl()
+    {
+        m_linesz = 0;
+        this->Writer::_do_write('\n');
+    }
+    template<size_t N>
+    C4_ALWAYS_INLINE void _do_write(const char (&a)[N])
+    {
+        m_linesz += N-1;
+        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
+    }
+    C4_ALWAYS_INLINE void _write(csubstr s)
+    {
+        m_linesz += s.len;
+        this->Writer::_do_write(s);
+    }
+    C4_ALWAYS_INLINE void _write(char c)
+    {
+        ++m_linesz;
+        this->Writer::_do_write(c);
+    }
+    C4_ALWAYS_INLINE void _write(char c, size_t num)
+    {
+        m_linesz += num;
+        this->Writer::_do_write(c, num);
     }
 };
 
