@@ -100,7 +100,33 @@ ENGINE_TEST(CommentMapFlowTrailing,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
-    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.add_comment_trailing_val("trailing comment"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapFlowTrailingMultiline,
+            (
+             "{ # trailing\n"
+             "  # comment\n"
+             "  # with\n"
+             "  # multiple\n"
+             "  # lines\n"
+             "}"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=COM <trailing\\ncomment\\nwith\\nmultiple\\nlines\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_trailing_val("trailing\ncomment\nwith\nmultiple\nlines"));
     ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -125,7 +151,7 @@ ENGINE_TEST(CommentMapFlowLeadingTrailing,
     ___(ps.begin_doc());
     ___(ps.add_comment_leading("leading comment"));
     ___(ps.begin_map_val_flow());
-    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.add_comment_trailing_val("trailing comment"));
     ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -153,7 +179,162 @@ ENGINE_TEST(CommentMapBlockLeadingTrailing,
     ___(ps.add_comment_leading("leading comment"));
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.add_comment_trailing_val("trailing comment"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline,
+            (
+             "# leading\n"
+             "# comment\n"
+             "foo: bar # trailing\n"
+             "         # comment\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=COM |leading\\ncomment\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=COM <trailing\\ncomment\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment_leading("leading\ncomment"));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_comment_trailing_val("trailing\ncomment"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline1,
+            (
+             "# leading\n"
+             "# comment\n"
+             "foo: # trailing\n"
+             "     # kcomment\n"
+             "  bar # trailing\n"
+             "      # vcomment\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=COM |leading\\ncomment\n"
+            "=VAL :foo\n"
+            "=COM <trailing\\nkcomment\n"
+            "=VAL :bar\n"
+            "=COM <trailing\\nvcomment\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment_leading("leading\ncomment"));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.add_comment_trailing_val("trailing\nkcomment"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_comment_trailing_val("trailing\nvcomment"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline2,
+            (
+             "# leading\n"
+             "# comment\n"
+             "foo: bar # trailing\n"
+             "         # comment\n"
+             "# leading2\n"
+             "# comment2\n"
+             "foo2: bar2 # trailing2\n"
+             "           # comment2\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=COM |leading\\ncomment\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=COM <trailing\\ncomment\n"
+            "=COM |leading2\\ncomment2\n"
+            "=VAL :foo2\n"
+            "=VAL :bar2\n"
+            "=COM <trailing2\\ncomment2\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment_leading("leading\ncomment"));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_comment_trailing_val("trailing\ncomment"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading("leading2\ncomment2"));
+    ___(ps.set_key_scalar_plain("foo2"));
+    ___(ps.set_val_scalar_plain("bar2"));
+    ___(ps.add_comment_trailing_val("trailing2\ncomment2"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline3,
+            (
+             "# leading\n"
+             "# comment\n"
+             "foo: bar # trailing\n"
+             "         # comment\n"
+             "# leading2\n"
+             "# comment2\n"
+             "foo2: bar2 # trailing2\n"
+             "           # comment2\n"
+             "# leading3\n"
+             "# comment3\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=COM |leading\\ncomment\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=COM <trailing\\ncomment\n"
+            "=COM |leading2\\ncomment2\n"
+            "=VAL :foo2\n"
+            "=VAL :bar2\n"
+            "=COM <trailing2\\ncomment2\n"
+            "=COM |leading3\\ncomment3\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment_leading("leading\ncomment"));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_comment_trailing_val("trailing\ncomment"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading("leading2\ncomment2"));
+    ___(ps.set_key_scalar_plain("foo2"));
+    ___(ps.set_val_scalar_plain("bar2"));
+    ___(ps.add_comment_trailing_val("trailing2\ncomment2"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading("leading3\ncomment3"));
     ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -180,7 +361,7 @@ ENGINE_TEST(CommentMapFlowSingleTrailingThenLeading,
     ___(ps.begin_doc());
     ___(ps.add_comment_leading("leading comment 1"));
     ___(ps.begin_map_val_flow());
-    ___(ps.add_comment_trailing("trailing comment"));
+    ___(ps.add_comment_trailing_val("trailing comment"));
     ___(ps.end_map());
     ___(ps.add_comment_leading("leading comment 2"));
     ___(ps.end_doc());
@@ -243,30 +424,30 @@ ENGINE_TEST(CommentMapFlow0,
     ___(ps.add_comment_leading("leading comment for foo"));
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("0"));
-    ___(ps.add_comment_trailing("trailing comment for foo"));
+    ___(ps.add_comment_trailing_val("trailing comment for foo"));
     ___(ps.add_sibling());
     ___(ps.add_comment_leading("leading comment for bar"));
     ___(ps.set_key_scalar_plain("bar"));
     ___(ps.set_val_scalar_plain("1"));
-    ___(ps.add_comment_trailing("trailing comment for bar"));
+    ___(ps.add_comment_trailing_val("trailing comment for bar"));
     ___(ps.add_sibling());
     ___(ps.add_comment_leading("leading comment for map"));
     ___(ps.set_key_scalar_plain("map"));
-    ___(ps.add_comment_trailing("trailing comment for map"));
+    ___(ps.add_comment_trailing_val("trailing comment for map"));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment_leading("leading comment for mapchild"));
     ___(ps.set_key_scalar_plain("mapchild"));
     ___(ps.set_val_scalar_plain("yes"));
-    ___(ps.add_comment_trailing("trailing comment for mapchild"));
+    ___(ps.add_comment_trailing_val("trailing comment for mapchild"));
     ___(ps.end_map());
     ___(ps.add_sibling());
     ___(ps.add_comment_leading("leading comment for seq"));
     ___(ps.set_key_scalar_plain("seq"));
-    ___(ps.add_comment_trailing("trailing comment for seq"));
+    ___(ps.add_comment_trailing_val("trailing comment for seq"));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment_leading("leading comment for seqchild"));
     ___(ps.set_val_scalar_plain("seqchild"));
-    ___(ps.add_comment_trailing("trailing comment for seqchild"));
+    ___(ps.add_comment_trailing_val("trailing comment for seqchild"));
     ___(ps.end_seq());
     ___(ps.end_map());
     ___(ps.end_doc());
@@ -324,30 +505,30 @@ ENGINE_TEST(CommentMapBlock0,
     ___(ps.add_comment_leading("leading comment for foo"));
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("0"));
-    ___(ps.add_comment_trailing("trailing comment for foo"));
+    ___(ps.add_comment_trailing_val("trailing comment for foo"));
     ___(ps.add_sibling());
     ___(ps.add_comment_leading("leading comment for bar"));
     ___(ps.set_key_scalar_plain("bar"));
     ___(ps.set_val_scalar_plain("1"));
-    ___(ps.add_comment_trailing("trailing comment for bar"));
+    ___(ps.add_comment_trailing_val("trailing comment for bar"));
     ___(ps.add_sibling());
     ___(ps.add_comment_leading("leading comment for map"));
     ___(ps.set_key_scalar_plain("map"));
-    ___(ps.add_comment_trailing("trailing comment for map"));
+    ___(ps.add_comment_trailing_val("trailing comment for map"));
     ___(ps.begin_map_val_block());
     ___(ps.add_comment_leading("leading comment for mapchild"));
     ___(ps.set_key_scalar_plain("mapchild"));
     ___(ps.set_val_scalar_plain("yes"));
-    ___(ps.add_comment_trailing("trailing comment for mapchild"));
+    ___(ps.add_comment_trailing_val("trailing comment for mapchild"));
     ___(ps.end_map());
     ___(ps.add_sibling());
     ___(ps.add_comment_leading("leading comment for seq"));
     ___(ps.set_key_scalar_plain("seq"));
-    ___(ps.add_comment_trailing("trailing comment for seq"));
+    ___(ps.add_comment_trailing_val("trailing comment for seq"));
     ___(ps.begin_seq_val_block());
     ___(ps.add_comment_leading("leading comment for seqchild"));
     ___(ps.set_val_scalar_plain("seqchild"));
-    ___(ps.add_comment_trailing("trailing comment for seqchild"));
+    ___(ps.add_comment_trailing_val("trailing comment for seqchild"));
     ___(ps.end_seq());
     ___(ps.end_map());
     ___(ps.end_doc());

@@ -181,7 +181,7 @@ private:
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
     bool m_flow;
-    size_t m_linesz;
+    size_t m_col;
 
 private:
 
@@ -205,7 +205,7 @@ private:
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
     #ifdef RYML_WITH_COMMENTS
-    void _write_comment(csubstr s, id_type level);
+    void _write_comment(csubstr s, id_type indentation);
     #endif
 
     size_t _write_escaped_newlines(csubstr s, size_t i);
@@ -244,28 +244,28 @@ private:
 
     C4_ALWAYS_INLINE void _newl()
     {
-        m_linesz = 0;
+        m_col = 0;
         this->Writer::_do_write('\n');
     }
     template<size_t N>
     C4_ALWAYS_INLINE void _do_write(const char (&a)[N])
     {
-        m_linesz += N-1;
+        m_col += N-1;
         this->Writer::_do_write(std::forward<const char (&)[N]>(a));
     }
     C4_ALWAYS_INLINE void _write(csubstr s)
     {
-        m_linesz += s.len;
+        m_col += s.len;
         this->Writer::_do_write(s);
     }
     C4_ALWAYS_INLINE void _write(char c)
     {
-        ++m_linesz;
+        ++m_col;
         this->Writer::_do_write(c);
     }
     C4_ALWAYS_INLINE void _write(char c, size_t num)
     {
-        m_linesz += num;
+        m_col += num;
         this->Writer::_do_write(c, num);
     }
 };

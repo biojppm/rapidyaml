@@ -574,22 +574,41 @@ public:
         m_curr->tr_data->m_comml = txt;
     }
 
-    /** add trailing comment.
+    /** add trailing comment: key.
      *
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
-    void add_comment_trailing(csubstr txt)
+    void add_comment_trailing_key(csubstr txt)
     {
-        _c4dbgpf("trailing comment! [{}]~~~{}~~~", txt.len, txt);
+        _c4dbgpf("trailing key comment! [{}]~~~{}~~~", txt.len, txt);
         const NodeType type = m_curr->tr_data->m_type.type;
         if (type != NOTYPE || !m_parent)
         {
-            _enable_(COMMT);
-            m_curr->tr_data->m_commt = txt;
+            _enable_(COMMK);
+            m_curr->tr_data->m_commk = txt;
         }
         else if(m_parent)
         {
-            _enable__parent_(COMMT);
-            m_parent->tr_data->m_commt = txt;
+            _enable__parent_(COMMK);
+            m_parent->tr_data->m_commk = txt;
+        }
+    }
+
+    /** add trailing comment: val.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_trailing_val(csubstr txt)
+    {
+        _c4dbgpf("trailing val comment! [{}]~~~{}~~~", txt.len, txt);
+        const NodeType type = m_curr->tr_data->m_type.type;
+        if (type != NOTYPE || !m_parent)
+        {
+            _enable_(COMMV);
+            m_curr->tr_data->m_commv = txt;
+        }
+        else if(m_parent)
+        {
+            _enable__parent_(COMMV);
+            m_parent->tr_data->m_commv = txt;
         }
     }
     #endif // RYML_WITH_COMMENTS
