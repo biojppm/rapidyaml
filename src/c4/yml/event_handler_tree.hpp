@@ -50,11 +50,13 @@ public:
     #ifdef RYML_DBG
     #define _enable_(bits) _enable__<bits>(); _c4dbgpf("node[{}]: enable {}", m_curr->node_id, #bits)
     #define _disable_(bits) _disable__<bits>(); _c4dbgpf("node[{}]: disable {}", m_curr->node_id, #bits)
+    #define _enable__parent_(bits) _enable__parent__<bits>(); _c4dbgpf("node[{}]: enable {}", m_parent->node_id, #bits)
     #else
     #define _enable_(bits) _enable__<bits>()
     #define _disable_(bits) _disable__<bits>()
     #endif
     #define _has_any_(bits) _has_any__<bits>()
+    #define _has_any__parent_(bits) _has_any__<bits>()
     /** @endcond */
 
 public:
@@ -313,7 +315,7 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id));
-        NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
+        NodeData const* const prev = m_tree->m_buf; // watchout against relocation of the tree nodes
         _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
         if(prev != m_tree->m_buf)
             _refresh_after_relocation();
@@ -570,17 +572,24 @@ public:
         _enable_(COMML);
         m_curr->tr_data->m_comml = txt;
     }
-    #endif // RYML_WITH_COMMENTS
 
-    #ifdef RYML_WITH_COMMENTS
     /** add trailing comment.
      *
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_trailing(csubstr txt)
     {
         _c4dbgpf("trailing comment! [{}]~~~{}~~~", txt.len, txt);
-        _enable_(COMMT);
-        m_curr->tr_data->m_commt = txt;
+        const NodeType type = m_curr->tr_data->m_type.type;
+        if (type != NOTYPE || !m_parent)
+        {
+            _enable_(COMMT);
+            m_curr->tr_data->m_commt = txt;
+        }
+        else if(m_parent)
+        {
+            _enable__parent_(COMMT);
+            m_parent->tr_data->m_commt = txt;
+        }
     }
     #endif // RYML_WITH_COMMENTS
 
@@ -697,6 +706,11 @@ public:
     {
         m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
     }
+    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _enable__parent__() noexcept
+    {
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_parent);
+        m_parent->tr_data->m_type.type = static_cast<NodeType_e>(m_parent->tr_data->m_type.type | bits);
+    }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _disable__() noexcept
     {
         m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type & (~bits));
@@ -704,6 +718,11 @@ public:
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__() const noexcept
     {
         return (m_curr->tr_data->m_type.type & bits) != 0;
+    }
+    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__parent__() const noexcept
+    {
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_parent);
+        return (m_parent->tr_data->m_type.type & bits) != 0;
     }
 
 public:
@@ -783,8 +802,10 @@ public:
     }
 
 #undef _enable_
+#undef _enable__parent_
 #undef _disable_
 #undef _has_any_
+#undef _has_any__parent_
 
     /** @endcond */
 };

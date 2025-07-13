@@ -355,7 +355,7 @@ public:
     NodeScalar const& valsc     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val; }
 
     csubstr    const& comml     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_comml(node)); return _p(node)->m_comml; }
-    csubstr    const& commt     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_comml(node)); return _p(node)->m_commt; }
+    csubstr    const& commt     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commt(node)); return _p(node)->m_commt; }
 
     /** @} */
 
