@@ -97,20 +97,19 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
     _prflag(KEY_SQUO, "KSQUO");
     _prflag(KEY_DQUO, "KDQUO");
     _prflag(KEY_PLAIN, "KPLAIN");
-    _prflag(KEY_UNFILT, "KUNFILT");
+    //_prflag(KEY_UNFILT, "KUNFILT");
     // val properties
     _prflag(VAL, "VAL");
     _prflag(VALNIL, "VNIL");
     _prflag(VALTAG, "VTAG");
     _prflag(VALANCH, "VANCH");
     _prflag(VALREF, "VREF");
-    _prflag(VAL_UNFILT, "VUNFILT");
     _prflag(VAL_LITERAL, "VLITERAL");
     _prflag(VAL_FOLDED, "VFOLDED");
     _prflag(VAL_SQUO, "VSQUO");
     _prflag(VAL_DQUO, "VDQUO");
     _prflag(VAL_PLAIN, "VPLAIN");
-    _prflag(VAL_UNFILT, "VUNFILT");
+    //_prflag(VAL_UNFILT, "VUNFILT");
     // container properties
     _prflag(MAP, "MAP");
     _prflag(SEQ, "SEQ");
@@ -118,9 +117,10 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
     _prflag(FLOW_ML, "FLOWML");
     _prflag(BLOCK, "BLCK");
     #ifdef RYML_WITH_COMMENTS
-    _prflag(COMML, "COMML");
-    _prflag(COMMK, "COMMK");
-    _prflag(COMMV, "COMMV");
+    _prflag(COMMLK, "COMMLK");
+    _prflag(COMMLV, "COMMLV");
+    _prflag(COMMTK, "COMMTK");
+    _prflag(COMMTV, "COMMTV");
     #endif
     if(pos == 0)
         _prflag(NOTYPE, "NOTYPE");

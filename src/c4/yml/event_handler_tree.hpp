@@ -192,7 +192,7 @@ public:
             id_type first = m_tree->first_child(m_tree->root_id());
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()));
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u);
-            if(m_tree->has_children(first) || m_tree->is_val(first))
+            if(m_tree->has_children(first) || m_tree->is_val(first) || m_tree->has_comml(first))
             {
                 _c4dbgp("push!");
                 _push();
@@ -448,11 +448,11 @@ public:
 
     C4_ALWAYS_INLINE void mark_key_scalar_unfiltered() noexcept
     {
-        _enable_(KEY_UNFILT);
+        //_enable_(KEY_UNFILT);
     }
     C4_ALWAYS_INLINE void mark_val_scalar_unfiltered() noexcept
     {
-        _enable_(VAL_UNFILT);
+        //_enable_(VAL_UNFILT);
     }
 
     /** @} */
@@ -564,14 +564,23 @@ public:
     /** @{ */
 
     #ifdef RYML_WITH_COMMENTS
-    /** add leading comment.
+    /** add leading comment: key
      *
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
-    void add_comment_leading(csubstr txt)
+    void add_comment_leading_key(csubstr txt)
     {
-        _c4dbgpf("leading comment! [{}]~~~{}~~~", txt.len, txt);
-        _enable_(COMML);
-        m_curr->tr_data->m_comml = txt;
+        _c4dbgpf("leading comment! key [{}]~~~{}~~~", txt.len, txt);
+        _enable_(COMMLK);
+        m_curr->tr_data->m_commlk = txt;
+    }
+    /** add leading comment: val
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val(csubstr txt)
+    {
+        _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
+        _enable_(COMMLV);
+        m_curr->tr_data->m_commlv = txt;
     }
 
     /** add trailing comment: key.
@@ -583,13 +592,13 @@ public:
         const NodeType type = m_curr->tr_data->m_type.type;
         if (type != NOTYPE || !m_parent)
         {
-            _enable_(COMMK);
-            m_curr->tr_data->m_commk = txt;
+            _enable_(COMMTK);
+            m_curr->tr_data->m_commtk = txt;
         }
         else if(m_parent)
         {
-            _enable__parent_(COMMK);
-            m_parent->tr_data->m_commk = txt;
+            _enable__parent_(COMMTK);
+            m_parent->tr_data->m_commtk = txt;
         }
     }
 
@@ -602,13 +611,13 @@ public:
         const NodeType type = m_curr->tr_data->m_type.type;
         if (type != NOTYPE || !m_parent)
         {
-            _enable_(COMMV);
-            m_curr->tr_data->m_commv = txt;
+            _enable_(COMMTV);
+            m_curr->tr_data->m_commtv = txt;
         }
         else if(m_parent)
         {
-            _enable__parent_(COMMV);
-            m_parent->tr_data->m_commv = txt;
+            _enable__parent_(COMMTV);
+            m_parent->tr_data->m_commtv = txt;
         }
     }
     #endif // RYML_WITH_COMMENTS

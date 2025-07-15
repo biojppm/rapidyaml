@@ -191,9 +191,10 @@ struct NodeData
     id_type    m_prev_sibling;
 
     #ifdef RYML_WITH_COMMENTS
-    csubstr    m_comml;
-    csubstr    m_commk;
-    csubstr    m_commv;
+    csubstr    m_commlk;
+    csubstr    m_commlv;
+    csubstr    m_commtk;
+    csubstr    m_commtv;
     #endif
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
@@ -355,9 +356,10 @@ public:
     csubstr    const& val_anchor(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val; }
 
-    csubstr    const& comml     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_comml(node)); return _p(node)->m_comml; }
-    csubstr    const& commk     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commk(node)); return _p(node)->m_commk; }
-    csubstr    const& commv     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commv(node)); return _p(node)->m_commv; }
+    csubstr    const& commlk    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commlk(node)); return _p(node)->m_commlk; }
+    csubstr    const& commlv    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commlv(node)); return _p(node)->m_commlv; }
+    csubstr    const& commtk    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commtk(node)); return _p(node)->m_commtk; }
+    csubstr    const& commtv    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commtv(node)); return _p(node)->m_commtv; }
 
     /** @} */
 
@@ -405,14 +407,17 @@ public:
 
     /// true if the key was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
-    C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
+    //C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
     /// true if the val was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
-    C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
+    //C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
 
+    C4_ALWAYS_INLINE bool has_commlk(id_type node) const { return _p(node)->m_type.has_commlk(); }
+    C4_ALWAYS_INLINE bool has_commlv(id_type node) const { return _p(node)->m_type.has_commlv(); }
+    C4_ALWAYS_INLINE bool has_commtk(id_type node) const { return _p(node)->m_type.has_commtk(); }
+    C4_ALWAYS_INLINE bool has_commtv(id_type node) const { return _p(node)->m_type.has_commtv(); }
     C4_ALWAYS_INLINE bool has_comml(id_type node) const { return _p(node)->m_type.has_comml(); }
-    C4_ALWAYS_INLINE bool has_commk(id_type node) const { return _p(node)->m_type.has_commk(); }
-    C4_ALWAYS_INLINE bool has_commv(id_type node) const { return _p(node)->m_type.has_commv(); }
+    C4_ALWAYS_INLINE bool has_commt(id_type node) const { return _p(node)->m_type.has_commt(); }
     C4_ALWAYS_INLINE bool has_comm(id_type node) const { return _p(node)->m_type.has_comm(); }
 
     RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
@@ -1249,6 +1254,12 @@ public:
         dst.m_type = src.m_type;
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        dst.m_commlk = src.m_commlk;
+        dst.m_commlv = src.m_commlv;
+        dst.m_commtk = src.m_commtk;
+        dst.m_commtv = src.m_commtv;
+        #endif
     }
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
@@ -1258,6 +1269,12 @@ public:
         dst.m_type = (src.m_type & src_mask) | (dst.m_type & ~src_mask);
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        dst.m_commlk = src.m_commlk;
+        dst.m_commlv = src.m_commlv;
+        dst.m_commtk = src.m_commtk;
+        dst.m_commtv = src.m_commtv;
+        #endif
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_)
@@ -1266,6 +1283,10 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & ~_KEYMASK) | (dst.m_type & _KEYMASK);
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        dst.m_commlv = src.m_commlv;
+        dst.m_commtv = src.m_commtv;
+        #endif
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
@@ -1274,6 +1295,10 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & ((~_KEYMASK)|src_mask)) | (dst.m_type & (_KEYMASK|~src_mask));
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        dst.m_commlv = src.m_commlv;
+        dst.m_commtv = src.m_commtv;
+        #endif
     }
 
     void _clear_type(id_type node)

@@ -242,13 +242,14 @@ private:
             _write(' ', 2u * (size_t)level);
     }
 
+    /// write a newline and reset the column
     C4_ALWAYS_INLINE void _newl()
     {
         m_col = 0;
         this->Writer::_do_write('\n');
     }
     template<size_t N>
-    C4_ALWAYS_INLINE void _do_write(const char (&a)[N])
+    C4_ALWAYS_INLINE void _write(const char (&a)[N])
     {
         m_col += N-1;
         this->Writer::_do_write(std::forward<const char (&)[N]>(a));
