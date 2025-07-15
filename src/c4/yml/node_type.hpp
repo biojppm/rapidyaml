@@ -44,32 +44,33 @@ typedef enum : type_bits {
     VALTAG  = __(11),    ///< the val has a tag
     KEYNIL  = __(12),    ///< the key is null (eg `{ : b}` results in a null key)
     VALNIL  = __(13),    ///< the val is null (eg `{a : }` results in a null val)
-    COMML   = __(14),    ///< a leading comment (above a node) - target is next node
-    COMMK   = __(15),    ///< a trailing key comment (to the right of a node's value) - target is prev node
-    COMMV   = __(16),    ///< a trailing val comment (to the right of a node's value) - target is prev node
-    _TYMASK = __(17)-1,  ///< all the bits up to here
+    COMMLK  = __(14),    ///< a leading key comment (above a key) - target is next key
+    COMMLV  = __(15),    ///< a leading val comment (above a val) - target is next node
+    COMMTK  = __(16),    ///< a trailing key comment (to the right of a node's key) - target is prev key
+    COMMTV  = __(17),    ///< a trailing val comment (to the right of a node's val) - target is prev val
+    _TYMASK = __(18)-1,  ///< all the bits up to here
     //
     // unfiltered flags:
     //
-    KEY_UNFILT  = __(17), ///< the key scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
-    VAL_UNFILT  = __(18), ///< the val scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+    //KEY_UNFILT  = __(17), ///< the key scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+    //VAL_UNFILT  = __(18), ///< the val scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
     //
     // style flags:
     //
-    FLOW_SL     = __(19), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
-    FLOW_ML     = __(20), ///< (NOT IMPLEMENTED, work in progress) mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
-    BLOCK       = __(21), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
-    KEY_LITERAL = __(22), ///< mark key scalar as multiline, block literal |
-    VAL_LITERAL = __(23), ///< mark val scalar as multiline, block literal |
-    KEY_FOLDED  = __(24), ///< mark key scalar as multiline, block folded >
-    VAL_FOLDED  = __(25), ///< mark val scalar as multiline, block folded >
-    KEY_SQUO    = __(26), ///< mark key scalar as single quoted '
-    VAL_SQUO    = __(27), ///< mark val scalar as single quoted '
-    KEY_DQUO    = __(28), ///< mark key scalar as double quoted "
-    VAL_DQUO    = __(29), ///< mark val scalar as double quoted "
-    KEY_PLAIN   = __(30), ///< mark key scalar as plain scalar (unquoted, even when multiline)
-    VAL_PLAIN   = __(31), ///< mark val scalar as plain scalar (unquoted, even when multiline)
-    //
+    FLOW_SL     = __(18), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
+    FLOW_ML     = __(19), ///< (NOT IMPLEMENTED, work in progress) mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
+    BLOCK       = __(20), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
+    KEY_LITERAL = __(21), ///< mark key scalar as multiline, block literal |
+    VAL_LITERAL = __(22), ///< mark val scalar as multiline, block literal |
+    KEY_FOLDED  = __(23), ///< mark key scalar as multiline, block folded >
+    VAL_FOLDED  = __(24), ///< mark val scalar as multiline, block folded >
+    KEY_SQUO    = __(25), ///< mark key scalar as single quoted '
+    VAL_SQUO    = __(26), ///< mark val scalar as single quoted '
+    KEY_DQUO    = __(27), ///< mark key scalar as double quoted "
+    VAL_DQUO    = __(28), ///< mark val scalar as double quoted "
+    KEY_PLAIN   = __(29), ///< mark key scalar as plain scalar (unquoted, even when multiline)
+    VAL_PLAIN   = __(30), ///< mark val scalar as plain scalar (unquoted, even when multiline)
+    //1
     // type combination masks:
     //
     KEYVAL  = KEY|VAL,
@@ -185,13 +186,16 @@ public:
     C4_ALWAYS_INLINE bool is_val_ref()        const noexcept { return (type & VALREF) != 0; }
     C4_ALWAYS_INLINE bool is_ref()            const noexcept { return (type & (KEYREF|VALREF)) != 0; }
 
-    C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { return (type & (KEY_UNFILT)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { return (type & (VAL_UNFILT)) != 0; }
+    //C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { return (type & (KEY_UNFILT)) != 0; }
+    //C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { return (type & (VAL_UNFILT)) != 0; }
 
-    C4_ALWAYS_INLINE bool has_comml()         const noexcept { return (type & COMML) != 0; }
-    C4_ALWAYS_INLINE bool has_commk()         const noexcept { return (type & COMMK) != 0; }
-    C4_ALWAYS_INLINE bool has_commv()         const noexcept { return (type & COMMV) != 0; }
-    C4_ALWAYS_INLINE bool has_comm()          const noexcept { return (type & (COMML|COMMK|COMMV)) != 0; }
+    C4_ALWAYS_INLINE bool has_commlk()         const noexcept { return (type & COMMLK) != 0; }
+    C4_ALWAYS_INLINE bool has_commlv()         const noexcept { return (type & COMMLV) != 0; }
+    C4_ALWAYS_INLINE bool has_commtk()         const noexcept { return (type & COMMTK) != 0; }
+    C4_ALWAYS_INLINE bool has_commtv()         const noexcept { return (type & COMMTV) != 0; }
+    C4_ALWAYS_INLINE bool has_comml()          const noexcept { return (type & (COMMLK|COMMLV)) != 0; }
+    C4_ALWAYS_INLINE bool has_commt()          const noexcept { return (type & (COMMTK|COMMTV)) != 0; }
+    C4_ALWAYS_INLINE bool has_comm()           const noexcept { return (type & (COMMLK|COMMLV|COMMTK|COMMTV)) != 0; }
 
     RYML_DEPRECATED("use has_key_anchor()")   bool is_key_anchor() const noexcept { return has_key_anchor(); }
     RYML_DEPRECATED("use has_val_anchor()")   bool is_val_anchor() const noexcept { return has_val_anchor(); }
