@@ -65,6 +65,7 @@ void sample_emit_nested_node();     ///< pick a nested node as the root when emi
 void sample_emit_style();           ///< set the nodes to FLOW/BLOCK format
 void sample_json();                 ///< JSON parsing and emitting
 void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
+void sample_anchors_and_aliases_create(); ///< how to create YAML anchors and aliases
 void sample_tags();                 ///< deal with YAML type tags
 void sample_tag_directives();       ///< deal with YAML tag namespace directives
 void sample_docs();                 ///< deal with YAML docs
@@ -105,6 +106,7 @@ int main()
     sample::sample_emit_style();
     sample::sample_json();
     sample::sample_anchors_and_aliases();
+    sample::sample_anchors_and_aliases_create();
     sample::sample_tags();
     sample::sample_tag_directives();
     sample::sample_docs();
@@ -4312,22 +4314,22 @@ void sample_json()
 
 Note that dereferencing is opt-in; after parsing, you have to call
 `Tree::resolve()` explicitly if you want resolved references in the
-tree. This method will resolve all references and substitute the anchored
-values in place of the reference.
+tree. This method will resolve all references and substitute the
+anchored values in place of the reference.
 
-The `Tree::resolve()` method first does a full traversal of the tree to
-gather all anchors and references in a separate collection, then it goes
-through that collection to locate the names, which it does by obeying the
-YAML standard diktat that
+The `Tree::resolve()` method first does a full traversal of the tree
+to gather all anchors and references in a separate collection, then it
+goes through that collection to locate the names, which it does by
+obeying the YAML standard diktat that
 
-    an alias node refers to the most recent node in
-    the serialization having the specified anchor
+    > an alias node refers to the most recent node in
+    > the serialization having the specified anchor
 
-So, depending on the number of anchor/alias nodes, this is a potentially
-expensive operation, with a best-case linear complexity (from the initial
-traversal) and a worst-case quadratic complexity (if every node has an
-alias/anchor). This potential cost is the reason for requiring an explicit
-call to `Tree::resolve()`. */
+So, depending on the number of anchor/alias nodes, this is a
+potentially expensive operation, with a best-case linear complexity
+(from the initial traversal) and a worst-case quadratic complexity (if
+every node has an alias/anchor). This potential cost is the reason for
+requiring an explicit call to `Tree::resolve()`. */
 void sample_anchors_and_aliases()
 {
     std::string unresolved = R"(base: &base
@@ -4399,6 +4401,88 @@ val: key
 
     CHECK(tree["ship_to"]["city"].val() == "East Centerville");
     CHECK(tree["ship_to"]["state"].val() == "KS");
+}
+
+/** demonstrates how to use the API to programatically create anchors
+ * and aliases */
+void sample_anchors_and_aliases_create()
+{
+    // part 1: anchor/ref
+    {
+        ryml::Tree t;
+        t.rootref() |= ryml::MAP|ryml::BLOCK;
+        t["kanchor"] = "2";
+        t["kanchor"].set_key_anchor("kanchor");
+        t["vanchor"] = "3";
+        t["vanchor"].set_val_anchor("vanchor");
+        // to set a reference, need to call .set_val_ref()/.set_key_ref()
+        t["kref"].set_val_ref("kanchor");
+        t["vref"].set_val_ref("vanchor");
+        t["nref"] = "*vanchor";  // NOTE: this is not set as a reference in the tree!
+        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(&kanchor kanchor: 2
+vanchor: &vanchor 3
+kref: *kanchor
+vref: *vanchor
+nref: '*vanchor'
+)"); // note that ryml emits nref with quotes to disambiguate (because no style was set)
+        t.resolve();
+        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(kanchor: 2
+vanchor: 3
+kref: kanchor
+vref: 3
+nref: '*vanchor'
+)"); // note that nref was not resolved
+    }
+
+    // part 2: simple inheritance (ie, adding `<<: *anchor` nodes)
+    {
+        ryml::Tree t = ryml::parse_in_arena(R"(
+orig: &orig {foo: bar, baz: bat}
+copy: {}
+notcopy: {}
+notref: {}
+)");
+        t["copy"]["<<"].set_val_ref("orig");
+        t["notcopy"]["test"].set_val_ref("orig");
+        t["notcopy"]["<<"].set_val_ref("orig");
+        t["notref"]["<<"] = "*orig"; // not a reference! .set_val_ref() was not called
+        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig: &orig {foo: bar,baz: bat}
+copy: {<<: *orig}
+notcopy: {test: *orig,<<: *orig}
+notref: {<<: '*orig'}
+)");
+        t.resolve();
+        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig: {foo: bar,baz: bat}
+copy: {foo: bar,baz: bat}
+notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}
+notref: {<<: '*orig'}
+)");
+    }
+
+    // part 3: multiple inheritance (ie, `<<: [*ref1,*ref2,*etc]`)
+    {
+        ryml::Tree t = ryml::parse_in_arena(R"(orig1: &orig1 {foo: bar}
+orig2: &orig2 {baz: bat}
+orig3: &orig3 {and: more}
+copy: {}
+)");
+        ryml::NodeRef seq = t["copy"]["<<"];
+        seq |= ryml::SEQ;
+        seq.append_child().set_val_ref("orig1");
+        seq.append_child().set_val_ref("orig2");
+        seq.append_child().set_val_ref("orig3");
+        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig1: &orig1 {foo: bar}
+orig2: &orig2 {baz: bat}
+orig3: &orig3 {and: more}
+copy: {<<: [*orig1,*orig2,*orig3]}
+)");
+        t.resolve();
+        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig1: {foo: bar}
+orig2: {baz: bat}
+orig3: {and: more}
+copy: {foo: bar,baz: bat,and: more}
+)");
+    }
 }
 
 
@@ -4711,7 +4795,7 @@ d: 3
 // ryml provides a default error handler, which calls
 // std::abort(). You can use the cmake option and the macro
 // RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS to have the default error
-// handler throw a std::runtime_error instead.
+// handler throw an exception instead.
 
 /** demonstrates how to set a custom error handler for ryml */
 void sample_error_handler()
