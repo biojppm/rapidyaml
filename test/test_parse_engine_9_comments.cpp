@@ -3,8 +3,146 @@
 // WARNING: don't use raw string literals -- g++4.8 cannot accept them
 // as macro arguments
 
+/*
+# CLK: Comment Leading to Key
+key: # CTK Comment Trailing Key
+  # CLV Leading to Val
+  val # CTV Comment Trailing Val
+  # CLV 2
+--- # CTV 3
+---
+# CLV 4
+---
+# CLV 5
+- val # CTV 6
+# CLV 7
+--- # CTV 8
+# CLV 9
+{ # CTV 10
+  # continued 10
+
+  # CLK 11
+  key: # CTK 12
+       # continued 12
+    # CLV 13
+    [ # CTV 14
+      # continued 14
+
+      # CLV 15
+      a, # CTV 16
+         # continued 16
+      # CLV 17
+      b  # CTV 18
+         # continued 18
+      # CLV 19
+    ] # CFV: Comment Footer for Val 19
+    # CLV 20
+} # CFV 21
+# CLV 22
+*/
+
 namespace c4 {
 namespace yml {
+
+ENGINE_TEST(CommentBasic,
+            (
+                "# CLK: Comment Leading to Key\n"
+                "key: # CTK Comment Trailing Key\n"
+                "  # CLV Leading to Val\n"
+                "  val # CTV Comment Trailing Val\n"
+                "  # CLV 2\n"
+                "--- # CTV 3\n"
+                "---\n"
+                "# CLV 4\n"
+                "---\n"
+                "# CLV 5\n"
+                "- val # CTV 6\n"
+                "# CLV 7\n"
+                "--- # CTV 8\n"
+                "# CLV 9\n"
+                "{ # CTV 10\n"
+                "  # continued 10\n"
+                "\n"
+                "  # CLK 11\n"
+                "  key: # CTK 12\n"
+                "       # continued 12\n"
+                "    # CLV 13\n"
+                "    [ # CTV 14\n"
+                "      # continued 14\n"
+                "\n"
+                "      # CLV 15\n"
+                "      a, # CTV 16\n"
+                "         # continued 16\n"
+                "      # CLV 17\n"
+                "      b  # CTV 18\n"
+                "         # continued 18\n"
+                "      # CLV 19\n"
+                "    ] # CFV: Comment Footer for Val 20\n"
+                "      # continued 20\n"
+                "    # CLV 21\n"
+                "} # CFV 22\n"
+                "  # continued 22\n"
+                "# CLV 23\n"
+             ),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=CLK 'CLK: Comment Leading to Key\n"
+            "=VAL :key\n"
+            "=CTK 'CTK: Comment Trailing Key\n"
+            "=CLV 'CLV: Comment Leading to Val\n"
+            "=VAL :val\n"
+            "=CTV 'CTV: Comment Trailing Val\n"
+            "=CLV 'CLV 2\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=CTV 'CTV 3\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=CLV 'CLV 4\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "+SEQ\n"
+            "=CLV 'CLV 5\n"
+            "=VAL :val\n"
+            "=CTV 'CTV 6\n"
+            "=CLV 'CLV 7\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=CTV 'CTV 8\n"
+            "=CLV 'CLV 9\n"
+            "+MAP {}\n"
+            "=CTV 'CTV 10\\ncontinued 10\n"
+            "=CLK 'CLK 11\n"
+            "=VAL :key\n"
+            "=CTK 'CTK 12\\ncontinued 12\n"
+            "=CLV 'CLV 13\n"
+            "+SEQ []\n"
+            "=CTV 'CTV 14\\ncontinued 14\n"
+            "=CLV 'CLV 15\n"
+            "=VAL :a\n"
+            "=CTV 'CTV 16\\ncontinued 16\n"
+            "=CLV 'CLV 17\n"
+            "=VAL :b\n"
+            "=CTV 'CTV 18\\ncontinued 18\n"
+            "=CLV 'CLV 19\n"
+            "-SEQ\n"
+            "=CFV 'CFV Comment Footer for Val 20\\ncontinued 20\n"
+            "=CLV 'CLV 21\n"
+            "-MAP\n"
+            "=CFV 'CFV 22\\ncontinued 22\n"
+            "=CLV 'CLV 23\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading_val("single comment"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
 
 ENGINE_TEST(CommentSingle,
             ("# single comment\n"
