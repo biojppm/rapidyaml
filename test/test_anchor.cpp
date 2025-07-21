@@ -157,12 +157,8 @@ TEST(anchors, programatic_val_ref)
     t["kanchor"].set_key_anchor("kanchor");
     t["vanchor"] = "3";
     t["vanchor"].set_val_anchor("vanchor");
-
-    t["kref"].create();
-    t["vref"].create();
     t["kref"].set_val_ref("kanchor");
     t["vref"].set_val_ref("vanchor");
-
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&kanchor kanchor: 2
 vanchor: &vanchor 3
 kref: *kanchor
@@ -184,16 +180,10 @@ notcopy: {}
 notref: {}
 )");
     _c4dbg_tree(t);
-    t["copy"]["<<"] = "*orig";
     t["copy"]["<<"].set_val_ref("orig");
-
-    t["notcopy"]["test"] = "*orig";
     t["notcopy"]["test"].set_val_ref("orig");
-    t["notcopy"]["<<"] = "*orig";
     t["notcopy"]["<<"].set_val_ref("orig");
-
     t["notref"]["<<"] = "*orig";
-
     _c4dbg_tree(t);
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: &orig {foo: bar,baz: bat}
 copy: {<<: *orig}
@@ -215,16 +205,11 @@ orig2: &orig2 {baz: bat}
 orig3: &orig3 {and: more}
 copy: {}
 )");
-    t["copy"]["<<"] |= SEQ;
-    NodeRef ref1 = t["copy"]["<<"].append_child();
-    NodeRef ref2 = t["copy"]["<<"].append_child();
-    NodeRef ref3 = t["copy"]["<<"].append_child();
-    ref1 = "*orig1";
-    ref2 = "*orig2";
-    ref3 = "*orig3";
-    ref1.set_val_ref("orig1");
-    ref2.set_val_ref("orig2");
-    ref3.set_val_ref("orig3");
+    NodeRef seq = t["copy"]["<<"];
+    seq |= SEQ;
+    seq.append_child().set_val_ref("orig1");
+    seq.append_child().set_val_ref("orig2");
+    seq.append_child().set_val_ref("orig3");
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig1: &orig1 {foo: bar}
 orig2: &orig2 {baz: bat}
 orig3: &orig3 {and: more}
@@ -339,6 +324,39 @@ TEST(anchors, set_val_ref_replaces_existing_key)
     root["foo"].set_val_ref("*notfoo");
     EXPECT_EQ(root["foo"].val(), "*notfoo");
     EXPECT_EQ(emitrs_yaml<std::string>(t), "{foo: *notfoo}");
+}
+
+
+TEST(anchors, github529)
+{
+    csubstr unresolved = R"(
+dimensions: 3
+type: EXPRESSION
+variables:
+  "<<":
+    - biomes/abstract/carving/carving_land.yml:carving.sampler.variables
+  carvingMaxHeight: 40
+expression: $biomes/abstract/carving/carving_land.yml:carving.sampler.expression
+samplers: $biomes/abstract/carving/carving_land.yml:carving.sampler.samplers
+<<: not a reference
+tpl: &anchor
+  it: works
+<<: *anchor
+ )";
+    Tree tree = parse_in_arena(unresolved);
+    //print_tree(tree);
+    EXPECT_FALSE(tree["variables"]["<<"].is_val_ref());
+    EXPECT_TRUE(tree["variables"]["<<"].is_key_quoted());
+    EXPECT_EQ(tree[5].key(), "<<");
+    EXPECT_FALSE(tree[5].is_val_ref());
+    EXPECT_FALSE(tree[5].is_key_quoted());
+    EXPECT_EQ(tree[7].key(), "<<");
+    EXPECT_TRUE(tree[7].is_val_ref());
+    EXPECT_FALSE(tree[7].is_key_quoted());
+    tree.resolve();
+    EXPECT_EQ(tree["variables"]["<<"][0].val(), "biomes/abstract/carving/carving_land.yml:carving.sampler.variables");
+    EXPECT_EQ(tree["<<"].val(), "not a reference");
+    EXPECT_EQ(tree["it"].val(), "works");
 }
 
 
