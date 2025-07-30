@@ -3,8 +3,12 @@
 
 /** @file tree.hpp */
 
+#ifndef _C4_ERROR_HPP_
 #include "c4/error.hpp"
+#endif
+#ifndef _C4_TYPES_HPP_
 #include "c4/types.hpp"
+#endif
 #ifndef _C4_YML_FWD_HPP_
 #include "c4/yml/fwd.hpp"
 #endif
@@ -191,13 +195,36 @@ struct NodeData
     id_type    m_prev_sibling;
 
     #ifdef RYML_WITH_COMMENTS
-    csubstr    m_commlk;
-    csubstr    m_commlv;
-    csubstr    m_commtk;
-    csubstr    m_commtv;
-    #endif
+    id_type    m_first_comment;
+    id_type    m_last_comment;
+    #endif // RYML_WITH_COMMENTS
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#ifdef RYML_WITH_COMMENTS
+typedef enum : uint32_t {
+    COMM_LK,  ///< comment leading key
+    COMM_TK,  ///< comment trailing key
+    COMM_FK,  ///< comment footer key
+    COMM_LV,  ///< comment leading val
+    COMM_TV,  ///< comment trailing val
+    COMM_FV,  ///< comment footer val
+} CommentType_e;
+
+struct CommentData
+{
+    CommentType_e m_type;
+    csubstr       m_text;
+    id_type       m_prev;
+    id_type       m_next;
+};
+C4_MUST_BE_TRIVIAL_COPY(CommentData);
+#endif // RYML_WITH_COMMENTS
 
 
 //-----------------------------------------------------------------------------
@@ -215,6 +242,10 @@ public:
     Tree(Callbacks const& cb);
     Tree(id_type node_capacity, size_t arena_capacity=0) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
     Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb);
+
+    #ifdef RYML_WITH_COMMENTS
+    Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity, Callbacks const& cb);
+    #endif
 
     ~Tree();
 
@@ -356,11 +387,6 @@ public:
     csubstr    const& val_anchor(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val; }
 
-    csubstr    const& commlk    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commlk(node)); return _p(node)->m_commlk; }
-    csubstr    const& commlv    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commlv(node)); return _p(node)->m_commlv; }
-    csubstr    const& commtk    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commtk(node)); return _p(node)->m_commtk; }
-    csubstr    const& commtv    (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_commtv(node)); return _p(node)->m_commtv; }
-
     /** @} */
 
 public:
@@ -407,18 +433,10 @@ public:
 
     /// true if the key was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
-    //C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
+    C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
     /// true if the val was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
-    //C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
-
-    C4_ALWAYS_INLINE bool has_commlk(id_type node) const { return _p(node)->m_type.has_commlk(); }
-    C4_ALWAYS_INLINE bool has_commlv(id_type node) const { return _p(node)->m_type.has_commlv(); }
-    C4_ALWAYS_INLINE bool has_commtk(id_type node) const { return _p(node)->m_type.has_commtk(); }
-    C4_ALWAYS_INLINE bool has_commtv(id_type node) const { return _p(node)->m_type.has_commtv(); }
-    C4_ALWAYS_INLINE bool has_comml(id_type node) const { return _p(node)->m_type.has_comml(); }
-    C4_ALWAYS_INLINE bool has_commt(id_type node) const { return _p(node)->m_type.has_commt(); }
-    C4_ALWAYS_INLINE bool has_comm(id_type node) const { return _p(node)->m_type.has_comm(); }
+    C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
 
     RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
     RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
@@ -806,7 +824,7 @@ public:
     substr arena() { return m_arena.first(m_arena_pos); } // NOLINT(readability-make-member-function-const)
 
     /** return true if the given substring is part of the tree's string arena */
-    bool in_arena(csubstr s) const
+    C4_ALWAYS_INLINE bool in_arena(csubstr s) const
     {
         return m_arena.is_super(s);
     }
@@ -970,13 +988,13 @@ public:
         if(arena_cap > m_arena.len)
         {
             substr buf;
-            buf.str = (char*) m_callbacks.m_allocate(arena_cap, m_arena.str, m_callbacks.m_user_data);
+            buf.str = _RYML_CB_ALLOC(m_callbacks, char, arena_cap);
             buf.len = arena_cap;
             if(m_arena.str)
             {
                 _RYML_CB_ASSERT(m_callbacks, m_arena.len >= 0);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
-                m_callbacks.m_free(m_arena.str, m_arena.len, m_callbacks.m_user_data);
+                _RYML_CB_FREE(m_callbacks, m_arena.str, char, m_arena.len);
             }
             m_arena = buf;
         }
@@ -1087,6 +1105,59 @@ private:
     void _move(Tree      & that) noexcept;
 
     void _relocate(substr next_arena);
+
+#ifdef RYML_WITH_COMMENTS
+public:
+
+    /** @name comments
+     *
+     * For an explanation of the comment types, see @ref
+     * CommentType_e. Comments are enabled only if @ref
+     * RYML_WITH_COMMENTS is defined. */
+    /** @{ */
+
+    bool has_comments(id_type id) const;
+
+    bool has_comment(id_type id, CommentType_e type) const;
+    C4_ALWAYS_INLINE bool has_comment_leading_key(id_type id) const { return has_comment(id, COMM_LK); }
+    C4_ALWAYS_INLINE bool has_comment_trailing_key(id_type id) const { return has_comment(id, COMM_TK); }
+    C4_ALWAYS_INLINE bool has_comment_footer_key(id_type id) const { return has_comment(id, COMM_FK); }
+    C4_ALWAYS_INLINE bool has_comment_leading_val(id_type id) const { return has_comment(id, COMM_LV); }
+    C4_ALWAYS_INLINE bool has_comment_trailing_val(id_type id) const { return has_comment(id, COMM_TV); }
+    C4_ALWAYS_INLINE bool has_comment_footer_val(id_type id) const { return has_comment(id, COMM_FV); }
+
+    csubstr const& comment(id_type id, CommentType_e type) const;
+    C4_ALWAYS_INLINE csubstr const& comment_leading_key(id_type id) const { return comment(id, COMM_LK); }
+    C4_ALWAYS_INLINE csubstr const& comment_trailing_key(id_type id) const { return comment(id, COMM_TK); }
+    C4_ALWAYS_INLINE csubstr const& comment_footer_key(id_type id) const { return comment(id, COMM_FK); }
+    C4_ALWAYS_INLINE csubstr const& comment_leading_val(id_type id) const { return comment(id, COMM_LV); }
+    C4_ALWAYS_INLINE csubstr const& comment_trailing_val(id_type id) const { return comment(id, COMM_TV); }
+    C4_ALWAYS_INLINE csubstr const& comment_footer_val(id_type id) const { return comment(id, COMM_FV); }
+
+    void set_comment(id_type id, CommentType_e type, csubstr const& txt);
+    C4_ALWAYS_INLINE void set_comment_leading_key(id_type id, csubstr const& txt) { set_comment(id, COMM_LK, txt); }
+    C4_ALWAYS_INLINE void set_comment_trailing_key(id_type id, csubstr const& txt) { set_comment(id, COMM_TK, txt); }
+    C4_ALWAYS_INLINE void set_comment_footer_key(id_type id, csubstr const& txt) { set_comment(id, COMM_FK, txt); }
+    C4_ALWAYS_INLINE void set_comment_leading_val(id_type id, csubstr const& txt) { set_comment(id, COMM_LV, txt); }
+    C4_ALWAYS_INLINE void set_comment_trailing_val(id_type id, csubstr const& txt) { set_comment(id, COMM_TV, txt); }
+    C4_ALWAYS_INLINE void set_comment_footer_val(id_type id, csubstr const& txt) { set_comment(id, COMM_FV, txt); }
+
+    void rem_comments(id_type id); ///< remove any comments from the node
+    void rem_comment(id_type id, CommentType_e type);
+    C4_ALWAYS_INLINE void rem_comment_leading_key(id_type id) { rem_comment(id, COMM_LK); }
+    C4_ALWAYS_INLINE void rem_comment_trailing_key(id_type id) { rem_comment(id, COMM_TK); }
+    C4_ALWAYS_INLINE void rem_comment_footer_key(id_type id) { rem_comment(id, COMM_FK); }
+    C4_ALWAYS_INLINE void rem_comment_leading_val(id_type id) { rem_comment(id, COMM_LV); }
+    C4_ALWAYS_INLINE void rem_comment_trailing_val(id_type id) { rem_comment(id, COMM_TV); }
+    C4_ALWAYS_INLINE void rem_comment_footer_val(id_type id) { rem_comment(id, COMM_FV); }
+
+    void reserve_comments(id_type comment_capacity);
+    id_type _claim_comment();
+    id_type _find_comment(id_type id, CommentType_e type);
+
+    /** @} */
+
+#endif // RYML_WITH_COMMENTS
 
 public:
 
@@ -1238,31 +1309,29 @@ public:
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        NodeData      & C4_RESTRICT dst = *_p(dst_);
+        NodeData const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = src.m_type;
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
-        dst.m_commlk = src.m_commlk;
-        dst.m_commlv = src.m_commlv;
-        dst.m_commtk = src.m_commtk;
-        dst.m_commtv = src.m_commtv;
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
         #endif
     }
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        NodeData      & C4_RESTRICT dst = *_p(dst_);
+        NodeData const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & src_mask) | (dst.m_type & ~src_mask);
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
-        dst.m_commlk = src.m_commlk;
-        dst.m_commlv = src.m_commlv;
-        dst.m_commtk = src.m_commtk;
-        dst.m_commtv = src.m_commtv;
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
         #endif
     }
 
@@ -1273,8 +1342,9 @@ public:
         dst.m_type = (src.m_type & ~_KEYMASK) | (dst.m_type & _KEYMASK);
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
-        dst.m_commlv = src.m_commlv;
-        dst.m_commtv = src.m_commtv;
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
         #endif
     }
 
@@ -1285,8 +1355,9 @@ public:
         dst.m_type = (src.m_type & ((~_KEYMASK)|src_mask)) | (dst.m_type & (_KEYMASK|~src_mask));
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
-        dst.m_commlv = src.m_commlv;
-        dst.m_commtv = src.m_commtv;
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
         #endif
     }
 
@@ -1304,6 +1375,10 @@ public:
         n->m_parent = NONE;
         n->m_first_child = NONE;
         n->m_last_child = NONE;
+        #ifdef RYML_WITH_COMMENTS
+        n->m_first_comment = NONE;
+        n->m_last_comment = NONE;
+        #endif // RYML_WITH_COMMENTS
     }
 
     void _clear_key(id_type node)
@@ -1341,8 +1416,7 @@ public:
 
     NodeData *m_buf;
     id_type   m_cap;
-
-    id_type m_size;
+    id_type   m_size;
 
     id_type m_free_head;
     id_type m_free_tail;
@@ -1350,10 +1424,15 @@ public:
     substr m_arena;
     size_t m_arena_pos;
 
+#ifdef RYML_WITH_COMMENTS
+    CommentData *m_comments_buf;
+    id_type      m_comments_cap;
+    id_type      m_comments_size;
+#endif // RYML_WITH_COMMENTS
+
     Callbacks m_callbacks;
 
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
-
 };
 
 

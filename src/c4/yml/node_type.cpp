@@ -116,12 +116,6 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
     _prflag(FLOW_SL, "FLOWSL");
     _prflag(FLOW_ML, "FLOWML");
     _prflag(BLOCK, "BLCK");
-    #ifdef RYML_WITH_COMMENTS
-    _prflag(COMMLK, "COMMLK");
-    _prflag(COMMLV, "COMMLV");
-    _prflag(COMMTK, "COMMTK");
-    _prflag(COMMTV, "COMMTV");
-    #endif
     if(pos == 0)
         _prflag(NOTYPE, "NOTYPE");
 
