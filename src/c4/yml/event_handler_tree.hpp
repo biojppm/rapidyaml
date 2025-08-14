@@ -192,7 +192,7 @@ public:
             id_type first = m_tree->first_child(m_tree->root_id());
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()));
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u);
-            if(m_tree->has_children(first) || m_tree->is_val(first) || m_tree->has_comml(first))
+            if(m_tree->has_children(first) || m_tree->is_val(first) || m_tree->comment(first, COMM_LV))
             {
                 _c4dbgp("push!");
                 _push();
@@ -570,8 +570,7 @@ public:
     void add_comment_leading_key(csubstr txt)
     {
         _c4dbgpf("leading comment! key [{}]~~~{}~~~", txt.len, txt);
-        _enable_(COMMLK);
-        m_curr->tr_data->m_commlk = txt;
+        m_tree->set_comment(m_curr->tr_data, COMM_LK, txt);
     }
     /** add leading comment: val
      *
@@ -579,8 +578,7 @@ public:
     void add_comment_leading_val(csubstr txt)
     {
         _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
-        _enable_(COMMLV);
-        m_curr->tr_data->m_commlv = txt;
+        m_tree->set_comment(m_curr->tr_data, COMM_LV, txt);
     }
 
     /** add trailing comment: key.
@@ -592,13 +590,15 @@ public:
         const NodeType type = m_curr->tr_data->m_type.type;
         if (type != NOTYPE || !m_parent)
         {
-            _enable_(COMMTK);
-            m_curr->tr_data->m_commtk = txt;
+            m_tree->set_comment(m_curr->tr_data, COMM_TK, txt);
         }
         else if(m_parent)
         {
-            _enable__parent_(COMMTK);
-            m_parent->tr_data->m_commtk = txt;
+            m_tree->set_comment(m_parent->tr_data, COMM_TK, txt);
+        }
+        else
+        {
+            _RYML_CB_ERR(m_tree->callbacks(), "FIXME what to do here?");
         }
     }
 
@@ -611,14 +611,34 @@ public:
         const NodeType type = m_curr->tr_data->m_type.type;
         if (type != NOTYPE || !m_parent)
         {
-            _enable_(COMMTV);
-            m_curr->tr_data->m_commtv = txt;
+            m_tree->set_comment(m_curr->tr_data, COMM_TV, txt);
         }
         else if(m_parent)
         {
-            _enable__parent_(COMMTV);
-            m_parent->tr_data->m_commtv = txt;
+            m_tree->set_comment(m_parent->tr_data, COMM_TV, txt);
         }
+        else
+        {
+            _RYML_CB_ERR(m_tree->callbacks(), "FIXME what to do here?");
+        }
+    }
+
+    /** add footer comment: key.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_footer_key(csubstr txt)
+    {
+        _c4dbgpf("key footer comment! [{}]~~~{}~~~", txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FK, txt);
+    }
+
+    /** add footer comment: val.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_footer_val(csubstr txt)
+    {
+        _c4dbgpf("trailing val comment! [{}]~~~{}~~~", txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FV, txt);
     }
     #endif // RYML_WITH_COMMENTS
 

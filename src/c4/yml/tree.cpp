@@ -274,7 +274,7 @@ void Tree::_relocate(substr next_arena)
     }
     for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
-        if(in_arena(->m_key.scalar))
+        if(in_arena(n->m_key.scalar))
             n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
         if(in_arena(n->m_key.tag))
             n->m_key.tag = _relocated(n->m_key.tag, next_arena);
@@ -1921,17 +1921,47 @@ id_type Tree::_claim_comment()
     return id;
 }
 
-id_type Tree::_find_comment(id_type id, CommentType_e type)
+CommentData const* Tree::comment(id_type node_id, CommentType_e type) const
 {
-    NodeData const* n = _p(id);
+    NodeData const* n = _p(node_id);
     for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
     {
         if(m_comments_buf[cid].m_type == type)
-            return cid;
+            return &m_comments_buf[cid];
         else if(m_comments_buf[cid].m_type > type)
             break;
     }
-    return NONE;
+    return nullptr;
+}
+
+void Tree::set_comment(NodeData *n, CommentType_e type, csubstr const& txt)
+{
+    id_type comid = NONE;
+    id_type prev = NONE;
+    // find the comment or find a place to insert it
+    for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
+    {
+        if(m_comments_buf[cid].m_type == type)
+        {
+            comid = cid; // found the comment
+        }
+        else if(m_comments_buf[cid].m_type > type)
+        {
+            prev = m_comments_buf[cid].m_prev; // insert after this
+            break;
+        }
+    }
+    if(comid == NONE)
+    {
+        comid = _insert_comment(n, prev);
+    }
+    m_comments_buf[comid].m_type = type;
+    m_comments_buf[comid].m_text = txt;
+}
+
+void Tree::set_comment(id_type id, CommentType_e type, csubstr const& txt)
+{
+    set_comment(_p(id), type, txt);
 }
 
 id_type Tree::_insert_comment(NodeData *n, id_type prev_comment)
@@ -1974,32 +2004,6 @@ id_type Tree::_insert_comment(NodeData *n, id_type prev_comment)
         }
     }
     return comid;
-}
-
-void Tree::set_comment(id_type id, CommentType_e type, csubstr const& txt)
-{
-    NodeData * n = _p(id);
-    id_type comid = NONE;
-    id_type prev = NONE;
-    // find the comment or find a place to insert it
-    for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
-    {
-        if(m_comments_buf[cid].m_type == type)
-        {
-            comid = cid; // found the comment
-        }
-        else if(m_comments_buf[cid].m_type > type)
-        {
-            prev = m_comments_buf[cid].m_prev; // insert after this
-            break;
-        }
-    }
-    if(comid == NONE)
-    {
-        comid = _insert_comment(n, prev);
-    }
-    m_comments_buf[comid].m_type = type;
-    m_comments_buf[comid].m_text = txt;
 }
 
 #endif // RYML_WITH_COMMENTS

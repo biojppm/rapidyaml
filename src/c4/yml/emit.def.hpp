@@ -144,9 +144,9 @@ void Emitter<Writer>::_emit_yaml(id_type id)
             _newl();
     }
     #ifdef RYML_WITH_COMMENTS
-    else if(m_tree->has_commlv(id))
+    else if(m_tree->comment(id, COMM_LV))
     {
-        _write_comment(m_tree->commlv(id), 0);
+        _write_comment(m_tree->comment(id, COMM_LV), 0);
         _newl();
     }
     #endif
@@ -174,10 +174,10 @@ void Emitter<Writer>::_write_doc(id_type id)
         _write("---");
     }
     #ifdef RYML_WITH_COMMENTS
-    if(m_tree->has_commlv(id))
+    if(m_tree->comment(id, COMM_LV))
     {
         _newl();
-        _write_comment(m_tree->commlv(id), 0);
+        _write_comment(m_tree->comment(id, COMM_LV), 0);
     }
     #endif
     //
