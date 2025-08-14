@@ -1116,44 +1116,18 @@ public:
      * RYML_WITH_COMMENTS is defined. */
     /** @{ */
 
+    void reserve_comments(id_type comment_capacity);
     bool has_comments(id_type id) const;
 
-    bool has_comment(id_type id, CommentType_e type) const;
-    C4_ALWAYS_INLINE bool has_comment_leading_key(id_type id) const { return has_comment(id, COMM_LK); }
-    C4_ALWAYS_INLINE bool has_comment_trailing_key(id_type id) const { return has_comment(id, COMM_TK); }
-    C4_ALWAYS_INLINE bool has_comment_footer_key(id_type id) const { return has_comment(id, COMM_FK); }
-    C4_ALWAYS_INLINE bool has_comment_leading_val(id_type id) const { return has_comment(id, COMM_LV); }
-    C4_ALWAYS_INLINE bool has_comment_trailing_val(id_type id) const { return has_comment(id, COMM_TV); }
-    C4_ALWAYS_INLINE bool has_comment_footer_val(id_type id) const { return has_comment(id, COMM_FV); }
+    CommentData const* comment(id_type node_id, CommentType_e type) const;
 
-    csubstr const& comment(id_type id, CommentType_e type) const;
-    C4_ALWAYS_INLINE csubstr const& comment_leading_key(id_type id) const { return comment(id, COMM_LK); }
-    C4_ALWAYS_INLINE csubstr const& comment_trailing_key(id_type id) const { return comment(id, COMM_TK); }
-    C4_ALWAYS_INLINE csubstr const& comment_footer_key(id_type id) const { return comment(id, COMM_FK); }
-    C4_ALWAYS_INLINE csubstr const& comment_leading_val(id_type id) const { return comment(id, COMM_LV); }
-    C4_ALWAYS_INLINE csubstr const& comment_trailing_val(id_type id) const { return comment(id, COMM_TV); }
-    C4_ALWAYS_INLINE csubstr const& comment_footer_val(id_type id) const { return comment(id, COMM_FV); }
+    void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);
+    void set_comment(NodeData *n, CommentType_e type, csubstr const& txt);
 
-    void set_comment(id_type id, CommentType_e type, csubstr const& txt);
-    C4_ALWAYS_INLINE void set_comment_leading_key(id_type id, csubstr const& txt) { set_comment(id, COMM_LK, txt); }
-    C4_ALWAYS_INLINE void set_comment_trailing_key(id_type id, csubstr const& txt) { set_comment(id, COMM_TK, txt); }
-    C4_ALWAYS_INLINE void set_comment_footer_key(id_type id, csubstr const& txt) { set_comment(id, COMM_FK, txt); }
-    C4_ALWAYS_INLINE void set_comment_leading_val(id_type id, csubstr const& txt) { set_comment(id, COMM_LV, txt); }
-    C4_ALWAYS_INLINE void set_comment_trailing_val(id_type id, csubstr const& txt) { set_comment(id, COMM_TV, txt); }
-    C4_ALWAYS_INLINE void set_comment_footer_val(id_type id, csubstr const& txt) { set_comment(id, COMM_FV, txt); }
+    void rem_comments(id_type node_id); ///< remove all comments from the node
+    void rem_comment(id_type node_id, CommentType_e type);
 
-    void rem_comments(id_type id); ///< remove all comments from the node
-    void rem_comment(id_type id, CommentType_e type);
-    C4_ALWAYS_INLINE void rem_comment_leading_key(id_type id) { rem_comment(id, COMM_LK); }
-    C4_ALWAYS_INLINE void rem_comment_trailing_key(id_type id) { rem_comment(id, COMM_TK); }
-    C4_ALWAYS_INLINE void rem_comment_footer_key(id_type id) { rem_comment(id, COMM_FK); }
-    C4_ALWAYS_INLINE void rem_comment_leading_val(id_type id) { rem_comment(id, COMM_LV); }
-    C4_ALWAYS_INLINE void rem_comment_trailing_val(id_type id) { rem_comment(id, COMM_TV); }
-    C4_ALWAYS_INLINE void rem_comment_footer_val(id_type id) { rem_comment(id, COMM_FV); }
-
-    void reserve_comments(id_type comment_capacity);
     id_type _claim_comment();
-    id_type _find_comment(id_type id, CommentType_e type);
     id_type _insert_comment(NodeData *n, id_type prev_comment);
 
     /** @} */
