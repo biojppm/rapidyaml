@@ -1894,36 +1894,73 @@ id_type Tree::_find_comment(id_type id, CommentType_e type)
 {
     NodeData const* n = _p(id);
     for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
+    {
         if(m_comments_buf[cid].m_type == type)
             return cid;
+        else if(m_comments_buf[cid].m_type > type)
+            break;
+    }
     return NONE;
 }
 
 void Tree::set_comment(id_type id, CommentType_e type, csubstr const& txt)
 {
-    id_type cid = _find_comment(id, type);
-    if(cid == NONE)
+    NodeData * n = _p(id);
+    id_type comid = NONE;
+    id_type prev = NONE;
+    // find the comment or find a place to insert it
+    for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
     {
-        NodeData* n = _p(id);
-        cid = _claim_comment();
-        if(n->m_first_comment == NONE)
+        if(m_comments_buf[cid].m_type == type)
         {
-            _RYML_CB_ASSERT(m_callbacks, n->m_last_comment == NONE);
-            m_comments_buf[cid].m_prev = NONE;
-            m_comments_buf[cid].m_next = NONE;
-            n->m_first_comment = cid;
-            n->m_last_comment = cid;
+            comid = cid; // found the comment
         }
-        else
+        else if(m_comments_buf[cid].m_type > type)
         {
-            m_comments_buf[n->m_last_comment].m_next = cid;
-            m_comments_buf[cid].m_prev = n->m_last_comment;
-            m_comments_buf[cid].m_next = NONE;
-            n->m_last_comment = cid;
+            prev = m_comments_buf[cid].m_prev; // insert after this
+            break;
         }
-        m_comments_buf[cid].m_type = type;
     }
-    m_comments_buf[cid].m_text = txt;
+    if(comid == NONE)
+    {
+        comid = _claim_comment();
+        m_comments_buf[comid].m_type = type;
+        if(n->m_first_comment == NONE) // list is empty
+        {
+            _RYML_CB_ASSERT(m_callbacks, n->m_first_comment == NONE);
+            _RYML_CB_ASSERT(m_callbacks, n->m_last_comment == NONE);
+            m_comments_buf[comid].m_prev = NONE;
+            m_comments_buf[comid].m_next = NONE;
+            n->m_first_comment = comid;
+            n->m_last_comment = comid;
+        }
+        else if(prev == NONE) // insert at the head
+        {
+            _RYML_CB_ASSERT(m_callbacks, n->m_first_comment != NONE);
+            _RYML_CB_ASSERT(m_callbacks, n->m_last_comment != NONE);
+            m_comments_buf[n->m_first_comment].m_prev = comid;
+            m_comments_buf[comid].m_prev = NONE;
+            m_comments_buf[comid].m_next = n->m_first_comment;
+            n->m_first_comment = comid;
+        }
+        else // insert after prev
+        {
+            if (prev != n->m_last_comment) // prev is in the middle
+            {
+                m_comments_buf[comid].m_prev = prev;
+                m_comments_buf[comid].m_next = m_comments_buf[prev].m_next;
+                m_comments_buf[prev].m_next = comid;
+            }
+            else // prev is at the tail
+            {
+                m_comments_buf[n->m_last_comment].m_next = comid;
+                m_comments_buf[comid].m_prev = n->m_last_comment;
+                m_comments_buf[comid].m_next = NONE;
+                n->m_last_comment = comid;
+            }
+        }
+    }
+    m_comments_buf[comid].m_text = txt;
 }
 
 #endif // RYML_WITH_COMMENTS
