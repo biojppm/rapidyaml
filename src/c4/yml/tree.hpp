@@ -1142,7 +1142,7 @@ public:
     C4_ALWAYS_INLINE void set_comment_trailing_val(id_type id, csubstr const& txt) { set_comment(id, COMM_TV, txt); }
     C4_ALWAYS_INLINE void set_comment_footer_val(id_type id, csubstr const& txt) { set_comment(id, COMM_FV, txt); }
 
-    void rem_comments(id_type id); ///< remove any comments from the node
+    void rem_comments(id_type id); ///< remove all comments from the node
     void rem_comment(id_type id, CommentType_e type);
     C4_ALWAYS_INLINE void rem_comment_leading_key(id_type id) { rem_comment(id, COMM_LK); }
     C4_ALWAYS_INLINE void rem_comment_trailing_key(id_type id) { rem_comment(id, COMM_TK); }
@@ -1154,6 +1154,7 @@ public:
     void reserve_comments(id_type comment_capacity);
     id_type _claim_comment();
     id_type _find_comment(id_type id, CommentType_e type);
+    id_type _insert_comment(NodeData *n, id_type prev_comment);
 
     /** @} */
 
