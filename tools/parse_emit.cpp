@@ -34,6 +34,7 @@ using namespace c4;
 struct Args
 {
     c4::csubstr filename = "-";
+    c4::csubstr output = {};
     c4::yml::id_type reserve_size = false;
     bool resolve_refs = false;
     bool keep_refs = false;
@@ -54,6 +55,7 @@ Parse yaml from file (or stdin when file is `-`) and emit to stdout.
 
 Options:
 
+  -h,--help              print this message
   -e [N],--reserve [N]   reserve tree size before parsing (default: N=%d):
                          0=do not reserve
                          1=reserve by estimating size
@@ -63,9 +65,10 @@ Options:
   -p,--print-tree        print parsed rapidyaml tree before emitting (default: %s)
   -q,--quiet             do not emit (default: %s)
   -j,--json              emit json instead of yaml (default: %s)
-  -s,--string            emit to string before dumping to stdout.
+  -s,--string            emit to string before dumping to stdout/file.
                          otherwise, emit directly to stdout (default: %s)
   -t,--timed             time sections (print timings to stderr) (default: %s)
+  -o,--output <filename> emit to the given filename (default: %s)
 
 )",
             exename,
@@ -76,20 +79,15 @@ Options:
             defs.quiet ? "do not emit" : "emit",
             defs.emit_as_json ? "emit as json" : "emit as yaml",
             defs.emit_to_string ? "emit to string" : "no",
-            defs.timed_sections ? "show timings" : "no"
+            defs.timed_sections ? "show timings" : "no",
+            defs.output.empty() ? "no" : defs.output.str
         );
 }
 bool timing_enabled = false;
-Args parse_args(int argc, const char *argv[])
+bool parse_args(int argc, const char *argv[], Args &args)
 {
-    if(argc < 2)
-    {
-        print_usage(argv[0]);
-        c4::yml::error("missing filename (use - to read from stdin)");
-    }
-    Args args = {};
-    args.filename = c4::to_csubstr(argv[argc - 1]);
-    for(int i = 1; i+1 < argc; ++i)
+    args = {};
+    for(int i = 1; i < argc; ++i)
     {
         c4::csubstr arg = c4::to_csubstr(argv[i]);
         auto arg0_is = [&](c4::csubstr argshort, c4::csubstr arglong){
@@ -106,20 +104,32 @@ Args parse_args(int argc, const char *argv[])
         };
         if /**/(arg1_is("-e", "--reserve")) C4_CHECK(c4::from_chars(c4::to_csubstr(argv[++i]), &args.reserve_size));
         else if(arg1_is("-r", "--resolve")) args.resolve_refs = true;
+        else if(arg1_is("-o", "--output")) args.output = c4::to_csubstr(argv[++i]);
         else if(arg0_is("-k", "--keep-refs")) args.keep_refs = true;
         else if(arg0_is("-p", "--print-tree")) args.print_tree = true;
         else if(arg0_is("-q", "--quiet")) args.quiet = true;
         else if(arg0_is("-j", "--json")) args.emit_as_json = true;
         else if(arg0_is("-s", "--string")) args.emit_to_string = true;
         else if(arg0_is("-t", "--timed")) args.timed_sections = true;
-        else
+        else if(arg0_is("-h", "--help"))
+        {
+            print_usage(argv[0]);
+            return false;
+        }
+        else if(i+1 < argc)
         {
             print_usage(argv[0]);
             c4::yml::error("unknown argument");
         }
     }
     timing_enabled = args.timed_sections;
-    return args;
+    if(argc < 2)
+    {
+        print_usage(argv[0]);
+        c4::yml::error("missing filename (use - to read from stdin)");
+    }
+    args.filename = c4::to_csubstr(argv[argc - 1]);
+    return true;
 }
 
 void read_file(csubstr filename, std::string *buf)
@@ -158,6 +168,20 @@ void emit_json_docs(yml::Tree const& tree, std::string *dst=nullptr)
             emit_json(node, stdout);
             printf("\n");
         }
+    };
+    yml::ConstNodeRef root = tree.rootref();
+    if(!root.is_stream())
+        emitnode(root);
+    else
+        for(yml::ConstNodeRef doc : root.children())
+            emitnode(doc);
+}
+
+void emit_json_docs(yml::Tree const& tree, FILE *output)
+{
+    auto emitnode = [&](yml::ConstNodeRef node){
+        emit_json(node, output);
+        (void)fputc('\n', output);
     };
     yml::ConstNodeRef root = tree.rootref();
     if(!root.is_stream())
@@ -287,18 +311,36 @@ void process_file(Args const& args)
     }
     else if(!args.quiet)
     {
-        TS(emit_to_stdout);
-        if(!args.emit_as_json)
-            yml::emit_yaml(tree);
+        if(args.output.empty())
+        {
+            TS(emit_to_stdout);
+            if(!args.emit_as_json)
+                yml::emit_yaml(tree);
+            else
+                emit_json_docs(tree);
+        }
         else
-            emit_json_docs(tree);
+        {
+            FILE *output = fopen(args.output.str, "wb");
+            if (!output) c4::yml::error("could not open file");
+            {
+                TS(emit_to_file);
+                if(!args.emit_as_json)
+                    yml::emit_yaml(tree, output);
+                else
+                    emit_json_docs(tree, output);
+            }
+            (void)fclose(output);
+        }
     }
 }
 // LCOV_EXCL_STOP
 
 int main(int argc, const char *argv[])
 {
-    const Args args = parse_args(argc, argv);
+    Args args;
+    if(!parse_args(argc, argv, args))
+       return 0;
     TS(TOTAL);
     set_callbacks(create_custom_callbacks());
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
