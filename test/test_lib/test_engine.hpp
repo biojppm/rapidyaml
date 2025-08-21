@@ -4,14 +4,14 @@
 #ifdef RYML_SINGLE_HEADER
 #include "ryml_all.hpp"
 #else
-#include "c4/yml/event_handler_tree.hpp"
+#include "c4/yml/evt/event_handler_tree.hpp"
 #include "c4/yml/parse_engine.hpp"
 #include "c4/yml/emit.hpp"
 #include "c4/yml/detail/print.hpp"
 #endif
 #include <gtest/gtest.h>
 #include "./test_lib/test_case.hpp"
-#include "./test_suite/test_suite_event_handler.hpp"
+#include "c4/yml/evt/extra/event_handler_test_suite.hpp"
 
 
 namespace c4 {
@@ -37,10 +37,10 @@ struct ReferenceYaml
 template<template<class> class EventProducerFn>
 C4_NO_INLINE void test_new_parser_str_from_events(std::string const& expected_events)
 {
-    EventHandlerYamlStd::EventSink sink;
-    EventHandlerYamlStd handler(&sink);
+    evt::extra::EventHandlerYamlStd::EventSink sink;
+    evt::extra::EventHandlerYamlStd handler(&sink);
     handler.reset();
-    EventProducerFn<EventHandlerYamlStd> event_producer;
+    EventProducerFn<evt::extra::EventHandlerYamlStd> event_producer;
     event_producer(handler);
     csubstr result = sink;
     _c4dbgpf("~~~\n{}~~~\n", result);
@@ -228,7 +228,7 @@ void name##_impl(Ps &ps)
 #if !defined(RYML_DBG)
 #define ___(stmt) stmt
 #else
-inline void _print_handler_info(EventHandlerYamlStd const& ps, csubstr stmt, const char *file, int line)
+inline void _print_handler_info(evt::extra::EventHandlerYamlStd const& ps, csubstr stmt, const char *file, int line)
 {
     _dbg_printf("{}:{}: {}", file, line, stmt);
     auto indent = [](id_type n){

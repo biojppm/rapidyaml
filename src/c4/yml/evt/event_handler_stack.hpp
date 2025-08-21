@@ -1,5 +1,5 @@
-#ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
-#define _C4_YML_EVENT_HANDLER_STACK_HPP_
+#ifndef _C4_YML_EVT_EVENT_HANDLER_STACK_HPP_
+#define _C4_YML_EVT_EVENT_HANDLER_STACK_HPP_
 
 #ifndef _C4_YML_DETAIL_STACK_HPP_
 #include "c4/yml/detail/stack.hpp"
@@ -191,4 +191,4 @@ protected:
 
 // NOLINTEND(hicpp-signed-bitwise)
 
-#endif /* _C4_YML_EVENT_HANDLER_STACK_HPP_ */
+#endif /* _C4_YML_EVT_EVENT_HANDLER_STACK_HPP_ */

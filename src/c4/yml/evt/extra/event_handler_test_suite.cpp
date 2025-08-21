@@ -3,14 +3,13 @@
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
-#include "./test_suite_event_handler.hpp"
+#include "./event_handler_test_suite.hpp"
 
 
 namespace c4 {
 namespace yml {
-
-// instantiate the template
-template class ParseEngine<EventHandlerYamlStd>;
+namespace evt {
+namespace extra {
 
 void append_escaped(extra::string *es, csubstr val)
 {
@@ -75,6 +74,12 @@ void append_escaped(extra::string *es, csubstr val)
     es->append(val.sub(prev));
     #undef _c4flush_use_instead
 }
+
+} // namespace extra
+} // namespace evt
+
+// instantiate the template
+template class ParseEngine<evt::extra::EventHandlerYamlStd>;
 
 } // namespace yml
 } // namespace c4

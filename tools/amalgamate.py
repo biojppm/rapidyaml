@@ -4,13 +4,37 @@ from os.path import abspath, dirname
 import sys
 import subprocess
 import argparse
-
+from typing import List
+from enum import Enum
 
 projdir = abspath(dirname(dirname(__file__)))
 sys.path.insert(0, f"{projdir}/ext/c4core/cmake")
 import amalgamate_utils as am
 sys.path.insert(0, f"{projdir}/ext/c4core/tools")
 import amalgamate as am_c4core
+
+
+class Event(Enum):
+    tree = "tree"
+    testsuite = "testsuite"
+    ints = "int"
+    all = "all"
+    none = "none"
+    def __str__(self):
+        return self.value
+
+
+event_doc = {
+    Event.tree: """(the default) enable the normal ryml event handler
+    to create the tree, and additionally the Tree, Node, parser and
+    emitter utilities; if this is not enabled, none of these
+    components will be included in the amalgamated file""",
+    Event.testsuite: "enable the (extra) YAML test suite event handler",
+    Event.ints: "enable the (extra) integer-based event handler",
+    Event.all: "enable all event handlers",
+    Event.none: "disable all event handlers",
+}
+
 
 ryml_defmacro = "RYML_SINGLE_HDR_DEFINE_NOW"
 c4core_defmacro = "C4CORE_SINGLE_HDR_DEFINE_NOW"
@@ -42,7 +66,8 @@ c4core_def_code = f""" // propagate defines to c4core
 def amalgamate_ryml(filename: str,
                     with_c4core: bool,
                     with_fastfloat: bool,
-                    with_stl: bool):
+                    with_stl: bool,
+                    events: List[Event]):
     c4core_amalgamated = ""
     if with_c4core:
         c4core_amalgamated = "src/c4/c4core_all.hpp"
@@ -79,6 +104,8 @@ INSTRUCTIONS:
     symbol export/import.
 
 """
+    def has_evt(which):
+        return (which in events) or (Event.all in events)
     srcfiles = [
         am.cmttext(ryml_preamble),
         am.cmtfile("LICENSE.txt"),
@@ -91,22 +118,24 @@ INSTRUCTIONS:
         "src/c4/yml/common.hpp",
         "src/c4/yml/node_type.hpp",
         "src/c4/yml/tag.hpp",
-        "src/c4/yml/tree.hpp",
-        "src/c4/yml/node.hpp",
-        "src/c4/yml/writer.hpp",
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/node.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/writer.hpp"),
         "src/c4/yml/detail/parser_dbg.hpp",
-        am.injcode("#define C4_YML_EMIT_DEF_HPP_"),
-        "src/c4/yml/emit.hpp",
-        "src/c4/yml/emit.def.hpp",
+        am.onlyif(has_evt(Event.tree), am.injcode("#define C4_YML_EMIT_DEF_HPP_")),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/emit.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/emit.def.hpp"),
         "src/c4/yml/detail/stack.hpp",
         "src/c4/yml/filter_processor.hpp",
         "src/c4/yml/parser_state.hpp",
-        "src/c4/yml/event_handler_stack.hpp",
-        "src/c4/yml/event_handler_tree.hpp",
+        "src/c4/yml/evt/event_handler_stack.hpp",
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/evt/event_handler_tree.hpp"),
+        am.onlyif(has_evt(Event.ints), "src/c4/yml/evt/event_handler_ints.hpp"),
+        am.onlyif(has_evt(Event.test_suite), "src/c4/yml/evt/event_handler_test_suite.hpp"),
         "src/c4/yml/parse_engine.hpp",
         "src/c4/yml/preprocess.hpp",
-        "src/c4/yml/reference_resolver.hpp",
-        "src/c4/yml/parse.hpp",
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.hpp"),
         am.onlyif(with_stl, "src/c4/yml/std/map.hpp"),
         am.onlyif(with_stl, "src/c4/yml/std/string.hpp"),
         am.onlyif(with_stl, "src/c4/yml/std/vector.hpp"),
@@ -115,11 +144,13 @@ INSTRUCTIONS:
         "src/c4/yml/common.cpp",
         "src/c4/yml/node_type.cpp",
         "src/c4/yml/tag.cpp",
-        "src/c4/yml/tree.cpp",
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.cpp"),
+        am.onlyif(has_evt(Event.ints), "src/c4/yml/evt/event_handler_ints.cpp"),
+        am.onlyif(has_evt(Event.test_suite), "src/c4/yml/evt/event_handler_test_suite.cpp"),
         "src/c4/yml/parse_engine.def.hpp",
-        "src/c4/yml/reference_resolver.cpp",
-        "src/c4/yml/parse.cpp",
-        "src/c4/yml/node.cpp",
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.cpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.cpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/node.cpp"),
         "src/c4/yml/preprocess.cpp",
         "src/c4/yml/detail/checks.hpp",
         "src/c4/yml/detail/print.hpp",
@@ -143,14 +174,26 @@ INSTRUCTIONS:
 
 
 def mkparser():
-    return am.mkparser(c4core=(True, "amalgamate c4core together with ryml"),
-                       fastfloat=(True, "enable fastfloat library"),
-                       stl=(True, "enable stl interop"))
+    p = am.mkparser(
+        c4core=(True, "amalgamate c4core together with ryml"),
+        fastfloat=(True, "enable fastfloat library"),
+        stl=(True, "enable stl interop")
+    )
+    default = [Event.tree]
+    evtdoc = '. '.join([f"'{e}': {event_doc[e]}" for e in Event])
+    defaultdoc = ','.join([str(e) for e in default])
+    p.add_argument('-e', '--events', type=Event, default=default, choices=[str(e) for e in Event], nargs="+",
+                   help=f"""Specify which event handlers to include. Possible
+                   values are: {evtdoc}. The default is {defaultdoc}.""")
+    return p
 
 
 if __name__ == "__main__":
+    print([event_doc[e] for e in Event])
     args = mkparser().parse_args()
+    print(args)
     amalgamate_ryml(filename=args.output,
                     with_c4core=args.c4core,
                     with_fastfloat=args.fastfloat,
-                    with_stl=args.stl)
+                    with_stl=args.stl,
+                    events=args.events)

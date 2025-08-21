@@ -41,10 +41,10 @@ std::vector<std::string> inject_comments(std::string const& src_)
 void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
     ExpectError::check_error([&]{
-        EventHandlerYamlStd::EventSink sink;
-        EventHandlerYamlStd handler(&sink);
+        evt::extra::EventHandlerYamlStd::EventSink sink;
+        evt::extra::EventHandlerYamlStd handler(&sink);
         handler.reset();
-        ParseEngine<EventHandlerYamlStd> parser(&handler);
+        ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
         std::string copy = parsed_yaml;
         parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     }, expected_error_location);
@@ -66,10 +66,10 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 
 void test_new_parser_events_from_yaml(ReferenceYaml const& yaml, std::string const& expected_events)
 {
-    EventHandlerYamlStd::EventSink sink;
-    EventHandlerYamlStd handler(&sink);
+    evt::extra::EventHandlerYamlStd::EventSink sink;
+    evt::extra::EventHandlerYamlStd handler(&sink);
     handler.reset();
-    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
     std::string copy = yaml.parsed;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     csubstr result = sink;

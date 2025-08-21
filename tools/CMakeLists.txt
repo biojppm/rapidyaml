@@ -6,10 +6,10 @@ c4_add_executable(ryml-parse-emit
 
 c4_add_executable(ryml-yaml-events
     SOURCES yaml_events.cpp
+      ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
+      ../src/c4/yml/evt/extra/event_handler_test_suite.cpp
       ../test/test_suite/test_suite_events.hpp
       ../test/test_suite/test_suite_events_emitter.cpp
-      ../test/test_suite/test_suite_event_handler.hpp
-      ../test/test_suite/test_suite_event_handler.cpp
     INC_DIRS ../test
     LIBS ryml c4fs
     FOLDER tools)

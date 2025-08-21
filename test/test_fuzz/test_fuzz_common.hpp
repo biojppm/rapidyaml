@@ -8,11 +8,11 @@
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/parse.hpp>
 #include <c4/yml/emit.hpp>
-#include <c4/yml/event_handler_tree.hpp>
+#include <c4/yml/evt/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
 #include <test_suite/test_suite_events.hpp>
-#include <test_suite/test_suite_event_handler.hpp>
+#include <c4/yml/evt/extra/event_handler_test_suite.hpp>
 #include <cstdio>
 
 #ifdef C4_EXCEPTIONS
@@ -109,9 +109,9 @@ inline int fuzztest_yaml_events(uint32_t case_number, csubstr src)
 {
     C4_UNUSED(case_number);
     set_callbacks(create_custom_callbacks());
-    EventHandlerYamlStd::EventSink sink = {};
-    EventHandlerYamlStd handler(&sink, create_custom_callbacks());
-    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    evt::extra::EventHandlerYamlStd::EventSink sink = {};
+    evt::extra::EventHandlerYamlStd handler(&sink, create_custom_callbacks());
+    ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
     std::string str(src.begin(), src.end());
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {

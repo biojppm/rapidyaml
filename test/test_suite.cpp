@@ -10,7 +10,7 @@
 #include "test_suite/test_suite_common.hpp"
 #include "test_suite/test_suite_parts.hpp"
 #include "test_suite/test_suite_events.hpp"
-#include "test_suite/test_suite_event_handler.hpp"
+#include "c4/yml/evt/extra/event_handler_test_suite.hpp"
 #include <c4/fs/fs.hpp>
 #include <c4/log/log.hpp>
 #include <gtest/gtest.h>
@@ -148,9 +148,9 @@ struct TestSequenceLevel
     std::string         emitted_from_tree_parsed_from_src;
     std::string         emitted_from_tree_parsed_from_src_json;
 
-    EventHandlerYamlStd::EventSink evt_str_sink;
-    EventHandlerYamlStd evt_handler_str_sink;
-    ParseEngine<EventHandlerYamlStd> parser_str_sink;
+    evt::extra::EventHandlerYamlStd::EventSink evt_str_sink;
+    evt::extra::EventHandlerYamlStd evt_handler_str_sink;
+    ParseEngine<evt::extra::EventHandlerYamlStd> parser_str_sink;
 
     bool immutable = false;
     bool reuse = false;

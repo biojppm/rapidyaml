@@ -1,5 +1,5 @@
 #include "test_suite_events.hpp"
-#include "test_suite_event_handler.hpp"
+#include "c4/yml/evt/extra/event_handler_test_suite.hpp"
 #include "test_suite_common.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/detail/stack.hpp>
@@ -11,9 +11,9 @@ namespace yml {
 
 std::string emit_events_from_source(substr src)
 {
-    EventHandlerYamlStd::EventSink sink;
-    EventHandlerYamlStd handler(&sink);
-    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    evt::extra::EventHandlerYamlStd::EventSink sink;
+    evt::extra::EventHandlerYamlStd handler(&sink);
+    ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", src);
     csubstr result = sink;
     return std::string(result.str, result.len);

@@ -55,18 +55,20 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
-c4_add_library(ryml-_evt_handler_yaml_std LIBRARY_STATIC
+c4_add_library(ryml-_evt_handler_extra LIBRARY_STATIC
     SOURCES
-       test_suite/test_suite_event_handler.cpp
-       test_suite/test_suite_event_handler.hpp
+       ../src/c4/yml/evt/extra/event_handler_test_suite.cpp
+       ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
+       ../src/c4/yml/evt/extra/event_handler_ints.cpp
+       ../src/c4/yml/evt/extra/event_handler_ints.hpp
     LIBS ryml
     FOLDER test
 )
 if(RYML_DBG)
-    target_compile_definitions(ryml-_evt_handler_yaml_std PUBLIC RYML_DBG)
+    target_compile_definitions(ryml-_evt_handler_extra PUBLIC RYML_DBG)
 endif()
 function(ryml_add_engine_test name)
-    ryml_add_test(${name} ryml-_evt_handler_yaml_std)
+    ryml_add_test(${name} ryml-_evt_handler_extra)
 endfunction()
 
 
@@ -79,6 +81,7 @@ ryml_add_engine_test(parse_engine_6_qmrk)
 ryml_add_engine_test(parse_engine_7_seqimap)
 ryml_add_engine_test(parse_engine_8_scalars_tokens)
 ryml_add_engine_test(yaml_events)
+ryml_add_engine_test(int_events)
 ryml_add_test(version)
 ryml_add_test(callbacks)
 ryml_add_test(stack)
@@ -217,8 +220,8 @@ if(RYML_TEST_SUITE)
             test_suite.cpp
             test_suite/test_suite_common.hpp
             test_suite/test_suite_events_emitter.cpp
-            test_suite/test_suite_event_handler.cpp
-            test_suite/test_suite_event_handler.hpp
+            ../src/c4/yml/evt/extra/event_handler_test_suite.cpp
+            ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
             test_suite/test_suite_events.cpp
             test_suite/test_suite_events.hpp
             test_suite/test_suite_parts.cpp
@@ -331,6 +334,6 @@ if(RYML_TEST_FUZZ)
     endfunction()
     ryml_add_fuzz_test(parse_emit)
     ryml_add_fuzz_test(events
-        ../test/test_suite/test_suite_event_handler.hpp
-        ../test/test_suite/test_suite_event_handler.cpp)
+        ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
+        ../src/c4/yml/evt/extra/event_handler_test_suite.cpp)
 endif()

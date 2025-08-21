@@ -1,18 +1,18 @@
-#ifndef _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
-#define _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
+#ifndef _C4_YML_EVT_EXTRA_EVENT_HANDLER_YAMLSTD_HPP_
+#define _C4_YML_EVT_EXTRA_EVENT_HANDLER_YAMLSTD_HPP_
 
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
-#ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
-#include "c4/yml/event_handler_stack.hpp"
+#ifndef _C4_YML_EVT_EVENT_HANDLER_STACK_HPP_
+#include "c4/yml/evt/event_handler_stack.hpp"
 #endif
 #ifndef _C4_YML_DETAIL_PRINT_HPP_
 #include "c4/yml/detail/print.hpp"
 #endif
 #endif
 
-#ifndef _C4_YML_EXTRA_STRING_HPP_
+#ifndef _C4_YML_EVT_EXTRA_STRING_HPP_
 #include "./string.hpp"
 #endif
 
@@ -22,6 +22,8 @@ C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
 namespace c4 {
 namespace yml {
+namespace evt {
+namespace extra {
 
 
 /** @addtogroup doc_event_handlers
@@ -842,9 +844,11 @@ public:
 
 /** @} */
 
+} // namespace extra
+} // namespace evt
 } // namespace yml
 } // namespace c4
 
 C4_SUPPRESS_WARNING_GCC_POP
 
-#endif /* _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_ */
+#endif /* _C4_YML_EVT_EXTRA_EVENT_HANDLER_YAMLSTD_HPP_ */
