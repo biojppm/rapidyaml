@@ -206,31 +206,6 @@ C4_MUST_BE_TRIVIAL_COPY(NodeData);
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#ifdef RYML_WITH_COMMENTS
-typedef enum : uint32_t {
-    COMM_LK,  ///< comment leading key
-    COMM_TK,  ///< comment trailing key
-    COMM_FK,  ///< comment footer key
-    COMM_LV,  ///< comment leading val
-    COMM_TV,  ///< comment trailing val
-    COMM_FV,  ///< comment footer val
-} CommentType_e;
-
-struct CommentData
-{
-    CommentType_e m_type;
-    csubstr       m_text;
-    id_type       m_prev;
-    id_type       m_next;
-};
-C4_MUST_BE_TRIVIAL_COPY(CommentData);
-#endif // RYML_WITH_COMMENTS
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 class RYML_EXPORT Tree
 {
 public:
@@ -1117,8 +1092,8 @@ public:
     /** @{ */
 
     void reserve_comments(id_type comment_capacity);
-    bool has_comments(id_type id) const;
 
+    CommentData const* comment(id_type id, comment_data_type type=COMM_ANY) const;
     CommentData const* comment(id_type node_id, CommentType_e type) const;
 
     void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);

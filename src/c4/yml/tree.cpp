@@ -1890,6 +1890,17 @@ id_type Tree::_claim_comment()
     return id;
 }
 
+CommentData const* Tree::comment(id_type node_id, comment_data_type type) const
+{
+    NodeData const* n = _p(node_id);
+    for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
+    {
+        if(m_comments_buf[cid].m_type & type)
+            return &m_comments_buf[cid];
+    }
+    return nullptr;
+}
+
 CommentData const* Tree::comment(id_type node_id, CommentType_e type) const
 {
     NodeData const* n = _p(node_id);

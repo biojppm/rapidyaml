@@ -264,6 +264,34 @@ RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
 /** @} */
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#ifdef RYML_WITH_COMMENTS
+using comment_data_type = uint32_t;
+typedef enum : uint32_t {
+    COMM_LK = (1u << 0u),  ///< comment leading key
+    COMM_TK = (1u << 1u),  ///< comment trailing key
+    COMM_FK = (1u << 2u),  ///< comment footer key
+    COMM_LV = (1u << 3u),  ///< comment leading val
+    COMM_TV = (1u << 4u),  ///< comment trailing val
+    COMM_FV = (1u << 5u),  ///< comment footer val
+    COMM_ANY_KEY = COMM_LK|COMM_TK|COMM_FK,
+    COMM_ANY_VAL = COMM_LV|COMM_TV|COMM_FV,
+    COMM_ANY = COMM_ANY_KEY|COMM_ANY_VAL,
+} CommentType_e;
+
+struct CommentData
+{
+    CommentType_e m_type;
+    csubstr       m_text;
+    id_type       m_prev;
+    id_type       m_next;
+};
+C4_MUST_BE_TRIVIAL_COPY(CommentData);
+#endif // RYML_WITH_COMMENTS
+
 /** @} */
 
 } // namespace yml
