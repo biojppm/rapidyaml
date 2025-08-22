@@ -1860,7 +1860,7 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 
 void Tree::reserve_comments(id_type comments_cap)
 {
-    if(comments_cap > m_arena.len)
+    if(comments_cap > m_comments_cap)
     {
         CommentData *tmp;
         tmp = _RYML_CB_ALLOC(m_callbacks, CommentData, comments_cap);
@@ -1917,7 +1917,7 @@ CommentData const* Tree::comment(id_type node_id, CommentType_e type) const
 void Tree::set_comment(NodeData *n, CommentType_e type, csubstr const& txt)
 {
     id_type comid = NONE;
-    id_type prev = NONE;
+    id_type prev = n->m_last_comment;
     // find the comment or find a place to insert it
     for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
     {

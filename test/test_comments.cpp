@@ -2,12 +2,28 @@
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
 #endif
-#include "./test_case.hpp"
-#include <gtest/gtest.h>
+#include "./test_lib/test_group.hpp"
+#include "./test_lib/test_group.def.hpp"
 
 
 namespace c4 {
 namespace yml {
+
+TEST(comment_list, insertion_order)
+{
+    Tree t = parse_in_arena("foo: bar");
+    id_type node = 1;
+    ASSERT_EQ(t.comment(node), nullptr);
+    ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
+    t.set_comment(node, COMM_LK, "leading key");
+    ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+    ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
+    t.set_comment(node, COMM_LV, "leading val");
+    ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+    ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+}
+
+//-----------------------------------------------------------------------------
 
 TEST(comments, leading_single_line)
 {
@@ -19,6 +35,7 @@ bar: 1
 # leading comment at the end
 )";
     test_check_emit_check(yaml, [](Tree const &t){
+        (void)t;
     });
 }
 
@@ -37,6 +54,7 @@ TEST(comments, leading_multi_line)
 foo: bar
 )";
     test_check_emit_check(yaml, [](Tree const &t){
+        (void)t;
     });
 }
 
@@ -47,6 +65,7 @@ foo: 0 # trailing comment for foo
 bar: 1 # trailing comment for bar
 )";
     test_check_emit_check(yaml, [](Tree const &t){
+        (void)t;
     });
 }
 
@@ -73,6 +92,7 @@ bar: 1 # trailing comment for bar
        # also not necessary aligned
 )";
     test_check_emit_check(yaml, [](Tree const &t){
+        (void)t;
     });
 }
 
