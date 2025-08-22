@@ -623,21 +623,17 @@ public:
         }
     }
 
-    /** add footer comment: key.
-     *
-     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    /** @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_footer_key(csubstr txt)
     {
         _c4dbgpf("key footer comment! [{}]~~~{}~~~", txt.len, txt);
         m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FK, txt);
     }
 
-    /** add footer comment: val.
-     *
-     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    /**  @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_footer_val(csubstr txt)
     {
-        _c4dbgpf("trailing val comment! [{}]~~~{}~~~", txt.len, txt);
+        _c4dbgpf("val footer comment! [{}]~~~{}~~~", txt.len, txt);
         m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FV, txt);
     }
     #endif // RYML_WITH_COMMENTS
