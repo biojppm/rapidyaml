@@ -174,10 +174,13 @@ void Emitter<Writer>::_write_doc(id_type id)
         _write("---");
     }
     #ifdef RYML_WITH_COMMENTS
-    if(m_tree->comment(id, COMM_LV))
     {
-        _newl();
-        _write_comment(m_tree->comment(id, COMM_LV)->m_text, 0);
+        const CommentData *comm = m_tree->comment(id, COMM_LV);
+        if(comm)
+        {
+            _newl();
+            _write_comment(comm->m_text, 0);
+        }
     }
     #endif
     //
@@ -262,8 +265,22 @@ void Emitter<Writer>::_write_doc(id_type id)
         if(val.len && m_tree->is_root(id))
             _newl();
     }
+    #ifndef RYML_WITH_COMMENTS
     if(!m_tree->is_root(id))
         _newl();
+    #else
+    {
+        const CommentData *comm = m_tree->comment(id, COMM_TV);
+        if(comm)
+        {
+            _write(' ');
+            _write_comment(comm->m_text, m_col);
+            _newl();
+        }
+        else if(!m_tree->is_root(id))
+            _newl();
+    }
+    #endif
 }
 
 template<class Writer>

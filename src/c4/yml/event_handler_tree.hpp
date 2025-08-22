@@ -174,6 +174,7 @@ public:
         _c4dbgp("end_doc");
         if(_stack_should_pop_on_end_doc())
         {
+
             _remove_speculative();
             _c4dbgp("pop!");
             _pop();
@@ -569,7 +570,7 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_leading_key(csubstr txt)
     {
-        _c4dbgpf("leading comment! key [{}]~~~{}~~~", txt.len, txt);
+        _c4dbgpf("node[{}]: leading comment! key [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
         m_tree->set_comment(m_curr->tr_data, COMM_LK, txt);
     }
     /** add leading comment: val
@@ -577,7 +578,7 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_leading_val(csubstr txt)
     {
-        _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
+        _c4dbgpf("node[{}]: leading comment! val [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
         m_tree->set_comment(m_curr->tr_data, COMM_LV, txt);
     }
 
@@ -586,14 +587,15 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_trailing_key(csubstr txt)
     {
-        _c4dbgpf("trailing key comment! [{}]~~~{}~~~", txt.len, txt);
         const NodeType type = m_curr->tr_data->m_type.type;
         if (type != NOTYPE || !m_parent)
         {
+            _c4dbgpf("node[{}](curr): trailing key comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
             m_tree->set_comment(m_curr->tr_data, COMM_TK, txt);
         }
         else if(m_parent)
         {
+            _c4dbgpf("node[{}](parent): trailing key comment! [{}]~~~{}~~~", m_tree->id(m_parent->tr_data), txt.len, txt);
             m_tree->set_comment(m_parent->tr_data, COMM_TK, txt);
         }
         else
@@ -607,14 +609,15 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_trailing_val(csubstr txt)
     {
-        _c4dbgpf("trailing val comment! [{}]~~~{}~~~", txt.len, txt);
         const NodeType type = m_curr->tr_data->m_type.type;
         if (type != NOTYPE || !m_parent)
         {
+            _c4dbgpf("node[{}](curr): trailing val comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
             m_tree->set_comment(m_curr->tr_data, COMM_TV, txt);
         }
         else if(m_parent)
         {
+            _c4dbgpf("node[{}](parent): trailing val comment! [{}]~~~{}~~~", m_tree->id(m_parent->tr_data), txt.len, txt);
             m_tree->set_comment(m_parent->tr_data, COMM_TV, txt);
         }
         else
@@ -626,14 +629,14 @@ public:
     /** @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_footer_key(csubstr txt)
     {
-        _c4dbgpf("key footer comment! [{}]~~~{}~~~", txt.len, txt);
+        _c4dbgpf("node[{}]: key footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
         m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FK, txt);
     }
 
     /**  @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_footer_val(csubstr txt)
     {
-        _c4dbgpf("val footer comment! [{}]~~~{}~~~", txt.len, txt);
+        _c4dbgpf("node[{}]: val footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
         m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FV, txt);
     }
     #endif // RYML_WITH_COMMENTS
