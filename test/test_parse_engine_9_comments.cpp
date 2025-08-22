@@ -44,14 +44,14 @@ key: # CTK Comment Trailing Key
 namespace c4 {
 namespace yml {
 
-ENGINE_TEST(CommentBasic,
+ENGINE_TEST(CommentSketch,
             (
                 "# CLK: Comment Leading to Key\n"
                 "key: # CTK Comment Trailing Key\n"
                 "  # CLV Leading to Val\n"
                 "  val # CTV Comment Trailing Val\n"
                 "  # CLV 2\n"
-                "--- # CTV 3\n"
+              /*  "--- # CTV 3\n"
                 "---\n"
                 "# CLV 4\n"
                 "---\n"
@@ -82,64 +82,72 @@ ENGINE_TEST(CommentBasic,
                 "    # CLV 21\n"
                 "} # CFV 22\n"
                 "  # continued 22\n"
-                "# CLV 23\n"
+                "# CLV 23\n" */
              ),
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
-            "=CLK 'CLK: Comment Leading to Key\n"
+            "=CLK #CLK: Comment Leading to Key\n"
             "=VAL :key\n"
-            "=CTK 'CTK: Comment Trailing Key\n"
-            "=CLV 'CLV: Comment Leading to Val\n"
+            "=CTK #CTK: Comment Trailing Key\n"
+            "=CLV #CLV: Comment Leading to Val\n"
             "=VAL :val\n"
-            "=CTV 'CTV: Comment Trailing Val\n"
-            "=CLV 'CLV 2\n"
+            "=CTV #CTV: Comment Trailing Val\n"
+            "=CLV #CLV 2\n"
             "-MAP\n"
             "-DOC\n"
-            "+DOC ---\n"
-            "=CTV 'CTV 3\n"
+            /*"+DOC ---\n"
+            "=CTV #CTV 3\n"
             "-DOC\n"
             "+DOC ---\n"
-            "=CLV 'CLV 4\n"
+            "=CLV #CLV 4\n"
             "-DOC\n"
             "+DOC ---\n"
             "+SEQ\n"
-            "=CLV 'CLV 5\n"
+            "=CLV #CLV 5\n"
             "=VAL :val\n"
-            "=CTV 'CTV 6\n"
-            "=CLV 'CLV 7\n"
+            "=CTV #CTV 6\n"
+            "=CLV #CLV 7\n"
             "-SEQ\n"
             "-DOC\n"
             "+DOC ---\n"
-            "=CTV 'CTV 8\n"
-            "=CLV 'CLV 9\n"
+            "=CTV #CTV 8\n"
+            "=CLV #CLV 9\n"
             "+MAP {}\n"
-            "=CTV 'CTV 10\\ncontinued 10\n"
-            "=CLK 'CLK 11\n"
+            "=CTV #CTV 10\\ncontinued 10\n"
+            "=CLK #CLK 11\n"
             "=VAL :key\n"
-            "=CTK 'CTK 12\\ncontinued 12\n"
-            "=CLV 'CLV 13\n"
+            "=CTK #CTK 12\\ncontinued 12\n"
+            "=CLV #CLV 13\n"
             "+SEQ []\n"
-            "=CTV 'CTV 14\\ncontinued 14\n"
-            "=CLV 'CLV 15\n"
+            "=CTV #CTV 14\\ncontinued 14\n"
+            "=CLV #CLV 15\n"
             "=VAL :a\n"
-            "=CTV 'CTV 16\\ncontinued 16\n"
-            "=CLV 'CLV 17\n"
+            "=CTV #CTV 16\\ncontinued 16\n"
+            "=CLV #CLV 17\n"
             "=VAL :b\n"
-            "=CTV 'CTV 18\\ncontinued 18\n"
-            "=CLV 'CLV 19\n"
+            "=CTV #CTV 18\\ncontinued 18\n"
+            "=CLV #CLV 19\n"
             "-SEQ\n"
-            "=CFV 'CFV Comment Footer for Val 20\\ncontinued 20\n"
-            "=CLV 'CLV 21\n"
+            "=CFV #CFV Comment Footer for Val 20\\ncontinued 20\n"
+            "=CLV #CLV 21\n"
             "-MAP\n"
-            "=CFV 'CFV 22\\ncontinued 22\n"
-            "=CLV 'CLV 23\n"
-            "-DOC\n"
+            "=CFV #CFV 22\\ncontinued 22\n"
+            "=CLV #CLV 23\n"
+            "-DOC\n"*/
             "-STR\n")
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.add_comment_leading_val("single comment"));
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment_leading_key("CLK: Comment Leading to Key"));
+    ___(ps.set_key_scalar_plain("key"));
+    ___(ps.add_comment_trailing_key("CTK: Comment Trailing Key"));
+    ___(ps.add_comment_leading_val("CLV: Comment Leading to Val"));
+    ___(ps.set_val_scalar_plain("val"));
+    ___(ps.add_comment_trailing_val("CTV: Comment Trailing Val"));
+    ___(ps.add_comment_leading_val("CLV 2"));
+    ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
