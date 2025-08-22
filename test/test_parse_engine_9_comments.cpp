@@ -46,11 +46,11 @@ namespace yml {
 
 ENGINE_TEST(CommentSketch,
             (
-                "# CLK: Comment Leading to Key\n"
+                "# CLK Comment Leading to Key\n"
                 "key: # CTK Comment Trailing Key\n"
-                "  # CLV Leading to Val\n"
+                "  # CLV Comment Leading to Val\n"
                 "  val # CTV Comment Trailing Val\n"
-                "  # CLV 2\n"
+                "  # CFV Comment Footer Val 2\n"
               /*  "--- # CTV 3\n"
                 "---\n"
                 "# CLV 4\n"
@@ -87,13 +87,13 @@ ENGINE_TEST(CommentSketch,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
-            "=CLK #CLK: Comment Leading to Key\n"
+            "=CLK #CLK Comment Leading to Key\n"
             "=VAL :key\n"
-            "=CTK #CTK: Comment Trailing Key\n"
-            "=CLV #CLV: Comment Leading to Val\n"
+            "=CTK #CTK Comment Trailing Key\n"
+            "=CLV #CLV Comment Leading to Val\n"
             "=VAL :val\n"
-            "=CTV #CTV: Comment Trailing Val\n"
-            "=CLV #CLV 2\n"
+            "=CTV #CTV Comment Trailing Val\n"
+            "=CFV #CFV Comment Footer Val 2\n"
             "-MAP\n"
             "-DOC\n"
             /*"+DOC ---\n"
@@ -140,13 +140,13 @@ ENGINE_TEST(CommentSketch,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
-    ___(ps.add_comment_leading_key("CLK: Comment Leading to Key"));
+    ___(ps.add_comment_leading_key("CLK Comment Leading to Key"));
     ___(ps.set_key_scalar_plain("key"));
-    ___(ps.add_comment_trailing_key("CTK: Comment Trailing Key"));
-    ___(ps.add_comment_leading_val("CLV: Comment Leading to Val"));
+    ___(ps.add_comment_trailing_key("CTK Comment Trailing Key"));
+    ___(ps.add_comment_leading_val("CLV Comment Leading to Val"));
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.add_comment_trailing_val("CTV: Comment Trailing Val"));
-    ___(ps.add_comment_leading_val("CLV 2"));
+    ___(ps.add_comment_trailing_val("CTV Comment Trailing Val"));
+    ___(ps.add_comment_footer_val("CFV Comment Footer Val 2"));
     ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.end_stream());
