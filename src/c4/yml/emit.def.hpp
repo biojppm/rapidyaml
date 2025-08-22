@@ -533,20 +533,35 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
                 _indent(level, do_indent);
                 _writek(ich, level);
                 _write(": ");
+                #ifndef RYML_WITH_COMMENTS
+                _writev(ich, val_level);
+                _newl();
+                #else // RYML_WITH_COMMENTS
                 id_type val_level = level;
-                #ifdef RYML_WITH_COMMENTS
                 {
-                    CommentData const* comm = m_tree->comment(ich, COMM_TK);
-                    if(comm)
+                    CommentData const* commtk = m_tree->comment(ich, COMM_TK);
+                    if(commtk)
                     {
-                        _write_comment(comm->m_text, m_col);
-                        _indent(level + 1);
+                        _write_comment(commtk->m_text, m_col);
+                        _newl();
                         ++val_level;
+                        _indent(val_level);
+                    }
+                    CommentData const* commlv = m_tree->comment(ich, COMM_LV);
+                    if(commlv)
+                    {
+                        if(!commtk)
+                        {
+                            _newl();
+                            ++val_level;
+                            _indent(val_level);
+                        }
+                        _write_comment(commlv->m_text, m_col);
+                        _newl();
+                        _indent(val_level);
                     }
                 }
-                #endif
                 _writev(ich, val_level);
-                #ifdef RYML_WITH_COMMENTS
                 {
                     CommentData const* comm = m_tree->comment(ich, COMM_TV);
                     if(comm)
@@ -555,8 +570,17 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
                         _write_comment(comm->m_text, m_col);
                     }
                 }
-                #endif
                 _newl();
+                {
+                    CommentData const* comm = m_tree->comment(ich, COMM_FV);
+                    if(comm)
+                    {
+                        _indent(level + 1);
+                        _write_comment(comm->m_text, level + 1);
+                        _newl();
+                    }
+                }
+                #endif
             }
             else
             {
