@@ -46,13 +46,17 @@ namespace yml {
 
 ENGINE_TEST(CommentSketch,
             (
+                "---\n"
                 "# CLK Comment Leading to Key\n"
                 "key: # CTK Comment Trailing Key\n"
                 "  # CLV Comment Leading to Val\n"
                 "  val # CTV Comment Trailing Val\n"
-                "  # CFV Comment Footer Val 2\n"
-              /*  "--- # CTV 3\n"
-                "---\n"
+                "  # CFV Comment Footer Val\n"
+                "# CLK 2\n"
+                "foo: bar # CTV 2\n"
+                "  # CFV 2\n"
+                "--- # CTV 3\n"
+                /*"---\n"
                 "# CLV 4\n"
                 "---\n"
                 "# CLV 5\n"
@@ -93,13 +97,18 @@ ENGINE_TEST(CommentSketch,
             "=CLV #CLV Comment Leading to Val\n"
             "=VAL :val\n"
             "=CTV #CTV Comment Trailing Val\n"
-            "=CFV #CFV Comment Footer Val 2\n"
+            "=CFV #CFV Comment Footer Val\n"
+            "=CLK #CLK 2\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=CTV #CTV 2\n"
+            "=CFV #CFV 2\n"
             "-MAP\n"
             "-DOC\n"
-            /*"+DOC ---\n"
+            "+DOC ---\n"
             "=CTV #CTV 3\n"
             "-DOC\n"
-            "+DOC ---\n"
+            /*"+DOC ---\n"
             "=CLV #CLV 4\n"
             "-DOC\n"
             "+DOC ---\n"
@@ -146,8 +155,17 @@ ENGINE_TEST(CommentSketch,
     ___(ps.add_comment_leading_val("CLV Comment Leading to Val"));
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.add_comment_trailing_val("CTV Comment Trailing Val"));
-    ___(ps.add_comment_footer_val("CFV Comment Footer Val 2"));
+    ___(ps.add_comment_footer_val("CFV Comment Footer Val"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading_key("CLK 2"));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_comment_trailing_val("CTV 2"));
+    ___(ps.add_comment_footer_val("CFV 2"));
     ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.add_comment_trailing_val("CTV 3"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
