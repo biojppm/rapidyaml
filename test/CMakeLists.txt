@@ -19,8 +19,6 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_case_node.cpp
        test_lib/test_case.hpp
        test_lib/test_case.cpp
-       test_lib/test_engine.hpp
-       test_lib/test_engine.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
     LIBS ryml c4fs gtest
     FOLDER test)
@@ -57,11 +55,15 @@ endfunction()
 
 c4_add_library(ryml-_evt_handler_extra LIBRARY_STATIC
     SOURCES
+       test_lib/test_events_int.hpp
+       test_lib/test_engine.hpp
+       test_lib/test_engine.cpp
        ../src/c4/yml/evt/extra/event_handler_test_suite.cpp
        ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
        ../src/c4/yml/evt/extra/event_handler_ints.cpp
        ../src/c4/yml/evt/extra/event_handler_ints.hpp
-    LIBS ryml
+    INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+    LIBS ryml gtest
     FOLDER test
 )
 if(RYML_DBG)

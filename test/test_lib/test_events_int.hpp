@@ -8,7 +8,7 @@
 namespace c4 {
 using EventFlags = c4::yml::evt::extra::ievt::EventFlags;
 template<>
-c4::EnumSymbols<EventFlags> const esyms<EventFlags>()
+inline c4::EnumSymbols<EventFlags> const esyms<EventFlags>()
 {
     using namespace yml::evt::extra::ievt;
     static_assert(offsetof(symbol, value) == offsetof(c4::EnumSymbols<EventFlags>::Sym, value), "wrong offset");
@@ -61,7 +61,7 @@ inline C4_NO_INLINE size_t num_ints(IntEventWithScalar const *evt, size_t evt_si
     return sz;
 }
 
-inline void C4_NO_INLINE test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
+inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
                                           ievt::DataType const* actual, size_t actual_sz,
                                           csubstr yaml,
                                           csubstr parsed_source,
