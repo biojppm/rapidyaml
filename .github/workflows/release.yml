@@ -178,13 +178,13 @@ jobs:
           gen: DEB
           mime: vnd.debian.binary-package
           os: ubuntu-22.04
-        - name: Windows VS2019 zip
+        - name: Windows VS2022 zip
           sfxg: win64.zip
-          sfxp: windows-vs2019.zip
+          sfxp: windows-vs2022.zip
           gen: ZIP
           mime: zip
-          os: windows-2019
-          cxx: vs2019
+          os: windows-2022
+          cxx: vs2022
         - name: MacOSX sh
           sfxg: apple64.sh
           sfxp: macosx-xcode.sh
@@ -586,22 +586,6 @@ jobs:
           cibw_pyv: 37
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
-          vsenvarch: ''
-        - name: python/3.6/manylinux_x86_64
-          sfx: python3.6-manylinux_x86_64
-          os: ubuntu-20.04
-          pythonv: '3.6'
-          cibw_pyv: 36
-          cibw_arch: x86_64
-          cibw_platform: manylinux_x86_64
-          vsenvarch: ''
-        - name: python/3.6/manylinux_i686
-          sfx: python3.6-manylinux_i686
-          os: ubuntu-20.04
-          pythonv: '3.6'
-          cibw_pyv: 36
-          cibw_arch: i686
-          cibw_platform: manylinux_i686
           vsenvarch: ''
         - name: python/3.6/macosx_x86_64
           sfx: python3.6-macosx_x86_64

@@ -13,8 +13,8 @@ jobs:
         include:
         - {bt: Debug  , os: ubuntu-24.04}
         - {bt: Release, os: ubuntu-24.04}
-        - {bt: Debug  , os: windows-2019}
-        - {bt: Release, os: windows-2019}
+        - {bt: Debug  , os: windows-2022}
+        - {bt: Release, os: windows-2022}
         - {bt: Debug  , os: macos-latest}
         - {bt: Release, os: macos-latest}
     env: !:merge*

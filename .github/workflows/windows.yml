@@ -29,26 +29,6 @@ jobs:
       matrix:
         include:
         - std: 11
-          name: vs2019/64
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: x64
-        - std: 11
-          name: vs2019/32
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: Win32
-        - std: 17
-          name: vs2019/64
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: x64
-        - std: 17
-          name: vs2019/32
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: Win32
-        - std: 11
           name: vs2022/64
           os: 2022
           gen: Visual Studio 17 2022
@@ -168,26 +148,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - std: 11
-          name: vs2019/64
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: x64
-        - std: 11
-          name: vs2019/32
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: Win32
-        - std: 17
-          name: vs2019/64
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: x64
-        - std: 17
-          name: vs2019/32
-          os: 2019
-          gen: Visual Studio 16 2019
-          arch: Win32
         - std: 11
           name: vs2022/64
           os: 2022

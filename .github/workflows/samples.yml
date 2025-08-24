@@ -32,9 +32,9 @@ jobs:
         - bt: Release
           os: ubuntu-24.04
         - bt: Debug
-          os: windows-2019
+          os: windows-2022
         - bt: Release
-          os: windows-2019
+          os: windows-2022
         - bt: Debug
           os: macos-latest
         - bt: Release

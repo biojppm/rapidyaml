@@ -86,18 +86,18 @@ jobs:
           commonvars: null
         - name: find_package/win
           sdir: test/test_install
-          os: windows-2019
-          cxx: vs2019
-          gen: -G 'Visual Studio 16 2019' -A x64
+          os: windows-2022
+          cxx: vs2022
+          gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Release
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
           commonvars: null
         - name: find_package/win
           sdir: test/test_install
-          os: windows-2019
-          cxx: vs2019
-          gen: -G 'Visual Studio 16 2019' -A x64
+          os: windows-2022
+          cxx: vs2022
+          gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Debug
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
@@ -158,18 +158,18 @@ jobs:
           commonvars: null
         - name: find_library/win
           sdir: test/test_install
-          os: windows-2019
-          cxx: vs2019
-          gen: -G 'Visual Studio 16 2019' -A x64
+          os: windows-2022
+          cxx: vs2022
+          gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Release
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
           commonvars: null
         - name: find_library/win
           sdir: test/test_install
-          os: windows-2019
-          cxx: vs2019
-          gen: -G 'Visual Studio 16 2019' -A x64
+          os: windows-2022
+          cxx: vs2022
+          gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Debug
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
@@ -230,18 +230,18 @@ jobs:
           commonvars: null
         - name: singleheader/win
           sdir: test/test_singleheader
-          os: windows-2019
-          cxx: vs2019
-          gen: -G 'Visual Studio 16 2019' -A x64
+          os: windows-2022
+          cxx: vs2022
+          gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Release
           vars: null
           commonvars: null
         - name: singleheader/win
           sdir: test/test_singleheader
-          os: windows-2019
-          cxx: vs2019
-          gen: -G 'Visual Studio 16 2019' -A x64
+          os: windows-2022
+          cxx: vs2022
+          gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Debug
           vars: null

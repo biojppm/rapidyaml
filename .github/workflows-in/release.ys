@@ -61,8 +61,8 @@ python-wheel-matrix =::
 - ! pywhl('3.7'  37  'i686'       'manylinux_i686'    'ubuntu-22.04')
 - ! pywhl('3.7'  37  'x86_64'     'macosx_x86_64'     'macos-13'    )
 #          pyv        arch         platform            os
-- ! pywhl('3.6'  36  'x86_64'     'manylinux_x86_64'  'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
-- ! pywhl('3.6'  36  'i686'       'manylinux_i686'    'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+#- ! pywhl('3.6'  36  'x86_64'     'manylinux_x86_64'  'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+#- ! pywhl('3.6'  36  'i686'       'manylinux_i686'    'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
 - ! pywhl('3.6'  36  'x86_64'     'macosx_x86_64'     'macos-13'    )
 
 
@@ -278,10 +278,10 @@ jobs:
        #   sfxg: unix64.deb,
        #   sfxp: ubuntu-18.04.deb,
        #   gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-18.04}
-        - {name: Windows VS2019 zip,
+        - {name: Windows VS2022 zip,
            sfxg: win64.zip,
-           sfxp: windows-vs2019.zip,
-           gen: ZIP, mime: zip, os: windows-2019, cxx: vs2019}
+           sfxp: windows-vs2022.zip,
+           gen: ZIP, mime: zip, os: windows-2022, cxx: vs2022}
         - {name: MacOSX sh,
            sfxg: apple64.sh,
            sfxp: macosx-xcode.sh,
