@@ -264,7 +264,7 @@ void ReferenceResolver::resolve_()
                 _RYML_CB_ASSERT(m_tree->m_callbacks, refdata.type.is_val_ref());
                 if(m_tree->has_key_anchor(refdata.target) && m_tree->key_anchor(refdata.target) == m_tree->val_ref(refdata.node))
                 {
-                    _c4dbgpf("instance[{}:node{}] target.anchor==key.anchor=={}", i, refdata.node, m_tree->val_anchor(refdata.target));
+                    _c4dbgpf("instance[{}:node{}] target.anchor==key.anchor=={}", i, refdata.node, m_tree->key_anchor(refdata.target));
                     _RYML_CB_CHECK(m_tree->m_callbacks, !m_tree->is_container(refdata.target));
                     _RYML_CB_CHECK(m_tree->m_callbacks, m_tree->has_val(refdata.target));
                     // keys cannot be containers, so don't inherit container flags
