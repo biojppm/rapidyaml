@@ -56,6 +56,37 @@ typedef enum : DataType {
     /// respectively the string's offset and length
     HAS_STR = SCLR|ALIA|ANCH|TAG_
 } EventFlags;
+
+struct symbol { EventFlags value; const char* name; };
+inline C4_NO_INLINE symbol const* symbols(size_t *num_symbols) noexcept
+{
+    static constexpr const symbol syms[] = {
+        {KEY_, "KEY_"},
+        {VAL_, "VAL_"},
+        {SCLR, "SCLR"},
+        {BSEQ, "BSEQ"},
+        {ESEQ, "ESEQ"},
+        {BMAP, "BMAP"},
+        {EMAP, "EMAP"},
+        {ALIA, "ALIA"},
+        {ANCH, "ANCH"},
+        {TAG_, "TAG_"},
+        {PLAI, "PLAI"},
+        {SQUO, "SQUO"},
+        {DQUO, "DQUO"},
+        {LITL, "LITL"},
+        {FOLD, "FOLD"},
+        {FLOW, "FLOW"},
+        {BLCK, "BLCK"},
+        {BDOC, "BDOC"},
+        {EDOC, "EDOC"},
+        {BSTR, "BSTR"},
+        {ESTR, "ESTR"},
+        {EXPL, "EXPL"},
+    };
+    *num_symbols = sizeof(syms) / sizeof(syms[0]);
+    return syms;
+}
 } // namespace ievt
 
 

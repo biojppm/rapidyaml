@@ -1,65 +1,12 @@
-#include <c4/yml/evt/extra/event_handler_ints.hpp>
-#include <c4/bitmask.hpp>
-#include <vector>
 #include "test_lib/test_case.hpp"
+#include "test_lib/test_events_int.hpp"
+#include <c4/yml/evt/extra/event_handler_ints.hpp>
+
 
 namespace c4 {
-
-using EventFlags = c4::yml::evt::extra::ievt::EventFlags;
-
-template<>
-c4::EnumSymbols<EventFlags> const esyms<EventFlags>()
-{
-    static constexpr typename c4::EnumSymbols<EventFlags>::Sym syms[] = {
-        {yml::evt::extra::ievt::KEY_, "KEY_"},
-        {yml::evt::extra::ievt::VAL_, "VAL_"},
-        {yml::evt::extra::ievt::SCLR, "SCLR"},
-        {yml::evt::extra::ievt::BSEQ, "BSEQ"},
-        {yml::evt::extra::ievt::ESEQ, "ESEQ"},
-        {yml::evt::extra::ievt::BMAP, "BMAP"},
-        {yml::evt::extra::ievt::EMAP, "EMAP"},
-        {yml::evt::extra::ievt::ALIA, "ALIA"},
-        {yml::evt::extra::ievt::ANCH, "ANCH"},
-        {yml::evt::extra::ievt::TAG_, "TAG_"},
-        {yml::evt::extra::ievt::PLAI, "PLAI"},
-        {yml::evt::extra::ievt::SQUO, "SQUO"},
-        {yml::evt::extra::ievt::DQUO, "DQUO"},
-        {yml::evt::extra::ievt::LITL, "LITL"},
-        {yml::evt::extra::ievt::FOLD, "FOLD"},
-        {yml::evt::extra::ievt::FLOW, "FLOW"},
-        {yml::evt::extra::ievt::BLCK, "BLCK"},
-        {yml::evt::extra::ievt::BDOC, "BDOC"},
-        {yml::evt::extra::ievt::EDOC, "EDOC"},
-        {yml::evt::extra::ievt::BSTR, "BSTR"},
-        {yml::evt::extra::ievt::ESTR, "ESTR"},
-        {yml::evt::extra::ievt::EXPL, "EXPL"},
-    };
-    return c4::EnumSymbols<EventFlags>(syms);
-}
-
-
 namespace yml {
 namespace evt {
 namespace extra {
-
-
-// provide a structured input for the events, grouping the relevant
-// data in a single structure
-struct IntEventWithScalar
-{
-    ievt::DataType flags, str_start, str_len;
-    csubstr scalar;
-    bool needs_filter;
-    IntEventWithScalar(ievt::DataType t, ievt::DataType start=0, ievt::DataType len=0, csubstr sclr={}, bool needs_filter_=false)
-        : flags(t)
-        , str_start(start)
-        , str_len(len)
-        , scalar(sclr)
-        , needs_filter(needs_filter_)
-    {
-    }
-    size_t required_size() const { return (flags & ievt::HAS_STR) ? 3u : 1u; }
-};
 
 
 struct IntEventsCase
@@ -69,79 +16,9 @@ struct IntEventsCase
     csubstr yaml;
     const std::vector<IntEventWithScalar> evt;
 
-    size_t expected_size() const
-    {
-        size_t sz = 0;
-        for(IntEventWithScalar const& e : evt)
-            sz += e.required_size();
-        return sz;
-    }
     void testeq(ievt::DataType const* actual, size_t actual_size, csubstr parsed_source) const
     {
-        int status = true;
-        size_t num_events_expected = evt.size();
-        size_t num_ints_expected = expected_size();
-
-        EXPECT_EQ(actual_size, num_ints_expected);
-        status = (actual_size == num_ints_expected);
-
-        char actualbuf[100];
-        char expectedbuf[100];
-        for(size_t i = 0, ie = 0; ie < num_events_expected; ++ie)
-        {
-            EXPECT_LT(i, actual_size);
-            if (i >= actual_size)
-                break;
-            size_t reqsize_actual = c4::bm2str<ievt::EventFlags>(actual[i] & ievt::MASK, actualbuf, sizeof(actualbuf));
-            size_t reqsize_expected = c4::bm2str<ievt::EventFlags>(evt[ie].flags & ievt::MASK, expectedbuf, sizeof(expectedbuf));
-            ASSERT_GT(reqsize_actual, 0u);
-            ASSERT_GT(reqsize_expected, 0u);
-            ASSERT_LT(reqsize_actual, sizeof(actualbuf));
-            ASSERT_LT(reqsize_expected, sizeof(expectedbuf));
-            csubstr actual_str = {actualbuf, reqsize_actual-1u};
-            csubstr expected_str = {expectedbuf, reqsize_expected-1u};
-#define _test_eq(fmt, lhs, rhs, ...)                                \
-        do                                                          \
-        {                                                           \
-            _c4dbgpf("status={} cmp={} evt={} i={}: {}={} {}={} " fmt, status, (lhs == rhs), ie, i, #lhs, lhs, #rhs, rhs, __VA_ARGS__); \
-            status &= (lhs == rhs);                                 \
-            EXPECT_EQ(lhs, rhs);                                    \
-        } while(0)
-            _test_eq("actual={} expected={}", actual[i], evt[ie].flags, actual_str, expected_str);
-            if((evt[ie].flags & ievt::HAS_STR) && (actual[i] & ievt::HAS_STR))
-            {
-                _test_eq("", evt[ie].str_start, actual[i + 1], 0);
-                _test_eq("", evt[ie].str_len, actual[i + 2], 0);
-                bool safeactual = (i + 2 < actual_size) && (actual[i + 1] < (int)parsed_source.len && actual[i + 1] + actual[i + 2] <= (int)parsed_source.len);
-                bool safeexpected = (evt[ie].str_start < (int)parsed_source.len && evt[ie].str_start + evt[ie].str_len <= (int)parsed_source.len);
-                _test_eq("", safeactual, true, 0);
-                _test_eq("", safeactual, safeexpected, 0);
-                if(safeactual && safeexpected)
-                {
-                    csubstr evtstr = parsed_source.sub((size_t)evt[ie].str_start, (size_t)evt[ie].str_len);
-                    csubstr actualstr = parsed_source.sub((size_t)actual[i + 1], (size_t)actual[i + 2]);
-                    _test_eq("   ref=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
-                             evt[ie].scalar, actualstr,
-                             evt[ie].scalar.len, evt[ie].scalar,
-                             actualstr.len, actualstr);
-                    if( ! evt[ie].needs_filter)
-                    {
-                        _test_eq("   exp=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
-                                 evtstr, actualstr,
-                                 evtstr.len, evtstr,
-                                 actualstr.len, actualstr);
-                    }
-                }
-            }
-            i += (actual[i] & ievt::HAS_STR) ? 3u : 1u;
-        }
-        RYML_TRACE_FMT("defined in:\n{}:{}\n"
-                       "input:[{}]~~~{}~~~\n"
-                       "parsed:[{}]~~~{}~~~\n",
-                       file, line,
-                       yaml.len, yaml,
-                       parsed_source.len, parsed_source);
-        EXPECT_TRUE(status);
+        test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, file, line);
     }
 };
 
@@ -448,7 +325,7 @@ struct IntEventsTestHelper
     std::vector<ievt::DataType> actual;
     IntEventsTestHelper(IntEventsCase const& ec_)
         : ec(ec_)
-        , required_size_expected(ec.expected_size())
+        , required_size_expected(num_ints(ec.evt.data(), ec.evt.size()))
         , handler()
         , parser(&handler)
         , src_copy()

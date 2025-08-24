@@ -13,7 +13,7 @@
 #endif
 
 #ifndef _C4_YML_EVT_EXTRA_STRING_HPP_
-#include "./string.hpp"
+#include "c4/yml/evt/extra/string.hpp"
 #endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
