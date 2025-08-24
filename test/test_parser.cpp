@@ -594,7 +594,7 @@ TEST(Parser, error_without_handler)
 TEST(parse_in_place, error_without_handler)
 {
     ExpectError::check_error([]{
-        EventHandlerTree evth;
+        evt::EventHandlerTree evth;
         Parser parser{&evth};
         parser.m_evt_handler = nullptr;
         char yaml[] = "{foo: bar}";
@@ -605,7 +605,7 @@ TEST(parse_in_place, error_without_handler)
 TEST(parse_in_arena, error_without_handler)
 {
     ExpectError::check_error([]{
-        EventHandlerTree evth;
+        evt::EventHandlerTree evth;
         Parser parser{&evth};
         parser.m_evt_handler = nullptr;
         const char yaml[] = "{foo: bar}";
@@ -626,7 +626,7 @@ protected:
     csubstr cyaml = to_csubstr(yaml_);
     csubstr filename = "example.yml";
 
-    EventHandlerTree evt_handler;
+    evt::EventHandlerTree evt_handler;
     Parser parser = {&evt_handler};
 
     void SetUp() override
@@ -897,7 +897,7 @@ protected:
     csubstr cjson = to_csubstr(json_);
     csubstr filename = "example.yml";
 
-    EventHandlerTree evt_handler;
+    evt::EventHandlerTree evt_handler;
     Parser parser = {&evt_handler};
 
     void SetUp() override
@@ -1164,7 +1164,7 @@ class ParseToNodeTest : public testing::Test
 {
 protected:
 
-    EventHandlerTree evt_handler;
+    evt::EventHandlerTree evt_handler;
     Parser parser = {&evt_handler};
 
     std::string val_plain = "this is a plain val";

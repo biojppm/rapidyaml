@@ -54,9 +54,9 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 {
     Tree tree = {};
     ExpectError::check_error(&tree, [&]{
-        EventHandlerTree handler(&tree, tree.root_id());
+        evt::EventHandlerTree handler(&tree, tree.root_id());
         ASSERT_EQ(&tree, handler.m_tree);
-        ParseEngine<EventHandlerTree> parser(&handler);
+        ParseEngine<evt::EventHandlerTree> parser(&handler);
         ASSERT_EQ(&handler, parser.m_evt_handler);
         ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
         std::string copy = parsed_yaml;
@@ -86,9 +86,9 @@ void test_new_parser_tree_from_yaml(ReferenceYaml const& yaml)
     else
     {
         Tree tree = {};
-        EventHandlerTree handler(&tree, tree.root_id());
+        evt::EventHandlerTree handler(&tree, tree.root_id());
         ASSERT_EQ(&tree, handler.m_tree);
-        ParseEngine<EventHandlerTree> parser(&handler);
+        ParseEngine<evt::EventHandlerTree> parser(&handler);
         ASSERT_EQ(&handler, parser.m_evt_handler);
         ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
         std::string copy = yaml.parsed;

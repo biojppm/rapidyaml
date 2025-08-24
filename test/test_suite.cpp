@@ -139,8 +139,8 @@ struct TestSequenceLevel
     std::string         src_tree;
     std::string         src_tree_json;
     std::string         src_evts;
-    EventHandlerTree    evt_handler_tree;
-    EventHandlerTree    evt_handler_tree_json;
+    evt::EventHandlerTree evt_handler_tree;
+    evt::EventHandlerTree evt_handler_tree_json;
     Parser              parser_tree;
     Parser              parser_tree_json;
     Tree                tree_parsed_from_src;

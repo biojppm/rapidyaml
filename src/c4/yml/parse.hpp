@@ -11,7 +11,9 @@ namespace yml {
 class Tree;
 class NodeRef;
 template<class EventHandler> class ParseEngine;
+namespace evt {
 struct EventHandlerTree;
+} // namespace evt;
 RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT
 
 
@@ -31,7 +33,7 @@ RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT
  * @see ParseEngine
  * @see EventHandlerTree
  * */
-using Parser = RYML_EXPORT ParseEngine<EventHandlerTree>;
+using Parser = RYML_EXPORT ParseEngine<evt::EventHandlerTree>;
 
 
 //-----------------------------------------------------------------------------

@@ -9,7 +9,7 @@
 #ifndef _C4_YML_PARSE_ENGINE_DEF_HPP_
 #include "c4/yml/parse_engine.def.hpp"
 #endif
-#ifndef _C4_YML_EVENT_HANDLER_TREE_HPP_
+#ifndef _C4_YML_EVT_EVENT_HANDLER_TREE_HPP_
 #include "c4/yml/evt/event_handler_tree.hpp"
 #endif
 
@@ -20,7 +20,7 @@ namespace c4 {
 namespace yml {
 
 // instantiate the parser class
-template class ParseEngine<EventHandlerTree>;
+template class ParseEngine<evt::EventHandlerTree>;
 
 namespace {
 inline void _reset_tree_handler(Parser *parser, Tree *t, id_type node_id)

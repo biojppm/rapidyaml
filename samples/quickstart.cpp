@@ -871,7 +871,7 @@ I am something: indeed
     // Getting the location of nodes in the source:
     //
     // Location tracking is opt-in:
-    ryml::EventHandlerTree evt_handler = {};
+    ryml::evt::EventHandlerTree evt_handler = {};
     ryml::Parser parser(&evt_handler, ryml::ParserOptions().locations(true));
     // Now the parser will start by building the accelerator structure:
     ryml::Tree tree2 = parse_in_arena(&parser, "expected.yml", expected_result);
@@ -2035,7 +2035,7 @@ bar2: [22,32]
  * @see doc_parse */
 void sample_parse_reuse_parser()
 {
-    ryml::EventHandlerTree evt_handler = {};
+    ryml::evt::EventHandlerTree evt_handler = {};
     ryml::Parser parser(&evt_handler);
 
     // it is also advised to reserve the parser depth
@@ -2069,7 +2069,7 @@ void sample_parse_reuse_tree_and_parser()
     // then reserve also the arena's size:
     tree.reserve(256); // reserve 256 characters (good enough for this sample)
 
-    ryml::EventHandlerTree evt_handler;
+    ryml::evt::EventHandlerTree evt_handler;
     ryml::Parser parser(&evt_handler);
     // it is also advised to reserve the parser depth
     // to the expected depth of the data tree:
@@ -4854,7 +4854,7 @@ void sample_global_allocator()
 
     // verify that by reserving we save allocations
     {
-        ryml::EventHandlerTree evt_handler;
+        ryml::evt::EventHandlerTree evt_handler;
         ryml::Parser parser(&evt_handler); // reuse a parser
         ryml::Tree tree;          // reuse a tree
 
@@ -4960,7 +4960,7 @@ void sample_per_tree_allocator()
     {
         // Watchout: ensure that the lifetime of the callbacks target
         // exceeds the lifetime of the tree.
-        ryml::EventHandlerTree evt_handler(mrp.callbacks());
+        ryml::evt::EventHandlerTree evt_handler(mrp.callbacks());
         ryml::Parser parser(&evt_handler);
         ryml::Tree tree1(mr1.callbacks());
         ryml::Tree tree2(mr2.callbacks());
@@ -5022,7 +5022,7 @@ foo: [one, [two, three]]
     // default.
     ryml::ParserOptions opts = {};
     opts.locations(true); // enable locations, default is false
-    ryml::EventHandlerTree evt_handler = {};
+    ryml::evt::EventHandlerTree evt_handler = {};
     ryml::Parser parser(&evt_handler, opts);
     CHECK(parser.options().locations());
     // When locations are enabled, the first task while parsing will

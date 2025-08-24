@@ -1477,7 +1477,7 @@ TEST(Parser, parser_options_filtering)
 
 TEST(Parser, parse_without_filtering_where_none_required)
 {
-    EventHandlerTree evt_handler = {};
+    evt::EventHandlerTree evt_handler = {};
     Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     csubstr yaml = R"(plain key: plain val
 'squo key': 'squo val'
@@ -1502,7 +1502,7 @@ TEST(Parser, parse_without_filtering_where_none_required)
 
 TEST(Parser, parse_without_filtering_where_it_is_required)
 {
-    EventHandlerTree evt_handler = {};
+    evt::EventHandlerTree evt_handler = {};
     Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     csubstr yaml = R"(? plain
     key

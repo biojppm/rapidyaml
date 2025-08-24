@@ -54,16 +54,16 @@ C4_NO_INLINE void test_new_parser_tree_from_events(ReferenceYaml const& yaml)
     {
         ExpectError::check_error([&]{
             Tree tree = {};
-            EventHandlerTree handler(&tree, tree.root_id());
-            EventProducerFn<EventHandlerTree> event_producer;
+            evt::EventHandlerTree handler(&tree, tree.root_id());
+            EventProducerFn<evt::EventHandlerTree> event_producer;
             event_producer(handler);
         });
     }
     else
     {
         Tree tree = {};
-        EventHandlerTree handler(&tree, tree.root_id());
-        EventProducerFn<EventHandlerTree> event_producer;
+        evt::EventHandlerTree handler(&tree, tree.root_id());
+        EventProducerFn<evt::EventHandlerTree> event_producer;
         event_producer(handler);
         #ifdef RYML_DBG
         print_tree(tree);
@@ -249,7 +249,7 @@ inline void _print_handler_info(evt::extra::EventHandlerYamlStd const& ps, csubs
         }
     }
 }
-inline void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
+inline void _print_handler_info(evt::EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
 {
     if(ps.m_parent)
         _dbg_printf("{}:{}: parent.id={} curr.id={}  {}\n",
