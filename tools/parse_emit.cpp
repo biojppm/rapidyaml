@@ -23,6 +23,7 @@ c4::csubstr jmp_msg = {};
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // This function or variable may be unsafe
 
 
 //-----------------------------------------------------------------------------
@@ -355,3 +356,4 @@ int main(int argc, const char *argv[])
 }
 
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
+C4_SUPPRESS_WARNING_MSVC_POP
