@@ -338,4 +338,6 @@ if(RYML_TEST_FUZZ)
     ryml_add_fuzz_test(events
         ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
         ../src/c4/yml/evt/extra/event_handler_test_suite.cpp)
+    ryml_add_fuzz_test(events_ints
+        ../src/c4/yml/evt/extra/event_handler_ints.hpp)
 endif()

@@ -103,8 +103,8 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
     /** @name types
      * @{ */
 
-    // our internal state must inherit from parser state
-    using state = EventHandlerIntsState;
+    using value_type = ievt::DataType;
+    using state = EventHandlerIntsState; // our internal state must inherit from parser state
 
     /** @} */
 

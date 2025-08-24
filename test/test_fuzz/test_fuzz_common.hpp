@@ -12,6 +12,7 @@
 #include <c4/yml/parse_engine.def.hpp>
 #endif
 #include <test_suite/test_suite_events.hpp>
+#include <c4/yml/evt/extra/event_handler_ints.hpp>
 #include <c4/yml/evt/extra/event_handler_test_suite.hpp>
 #include <cstdio>
 
@@ -119,6 +120,32 @@ inline int fuzztest_yaml_events(uint32_t case_number, csubstr src)
         parser.parse_in_place_ev("input", c4::to_substr(str));
         _if_dbg(_dbg_printf("evts[{}]: ~~~\n{}\n~~~\n", case_number, sink); fflush(NULL));
         C4_DONT_OPTIMIZE(sink);
+    }
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
+        // if an exception leaks from here, it is likely because of a greedy noexcept
+        _if_dbg(fprintf(stdout, "err\n"); fflush(NULL));
+        return 1;
+    }
+    return 0;
+}
+
+inline int fuzztest_yaml_events_ints(uint32_t case_number, csubstr src)
+{
+    C4_UNUSED(case_number);
+    set_callbacks(create_custom_callbacks());
+    using Handler = evt::extra::EventHandlerInts;
+    Handler handler{};
+    ParseEngine<evt::extra::EventHandlerInts> parser(&handler);
+    std::string str(src.begin(), src.end());
+    std::vector<Handler::value_type> event_ints;
+    event_ints.reserve(256);
+    handler.reset(to_substr(str), event_ints.data(), (Handler::value_type)event_ints.size());
+    C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
+    {
+        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        parser.parse_in_place_ev("input", c4::to_substr(str));
+        C4_DONT_OPTIMIZE(event_ints);
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
