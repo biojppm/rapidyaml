@@ -393,8 +393,7 @@ public:
 
 public:
 
-    /** @name deprecated parse methods
-     * @{ */
+    // deprecated parse methods
 
     /** @cond dev */
     template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_place(csubstr filename, substr yaml, Tree *t, size_t node_id);
@@ -423,26 +422,30 @@ public:
     template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, Tree>::type parse_in_arena(                  substr yaml                         );
     /** @endcond */
 
-    /** @} */
-
 public:
 
     /** @name locations */
     /** @{ */
 
-    /** Get the location of a node of the last tree to be parsed by this parser. */
-    Location location(Tree const& tree, id_type node_id) const;
-    /** Get the location of a node of the last tree to be parsed by this parser. */
-    Location location(ConstNodeRef node) const;
     /** Get the string starting at a particular location, to the end
      * of the parsed source buffer. */
     csubstr location_contents(Location const& loc) const;
+
     /** Given a pointer to a buffer position, get the location.
      * @param[in] val must be pointing to somewhere in the source
      * buffer that was last parsed by this object. */
     Location val_location(const char *val) const;
 
     /** @} */
+
+public:
+
+    /** @cond dev */
+    RYML_DEPRECATED("moved to Tree::location(Parser const&), deliberately undefined.")
+    Location location(Tree const&, id_type node) const;
+    RYML_DEPRECATED("moved to ConstNodeRef::location(Parser const&), deliberately undefined.")
+    Location location(ConstNodeRef const&) const;
+    /** @endcond */
 
 public:
 

@@ -73,43 +73,44 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
     EXPECT_EQ(actual_sz, num_ints_expected);
     status = (actual_sz == num_ints_expected);
 
-    char actualbuf[100];
-    char expectedbuf[100];
+    char actualbuf[100];(void)actualbuf;
+    char expectedbuf[100];(void)expectedbuf;
     for(size_t i = 0, ie = 0; ie < expected_sz; ++ie)
     {
         EXPECT_LT(i, actual_sz);
         if (i >= actual_sz)
             break;
-        csubstr actual_str = mkstring(actual[i], actualbuf);
-        csubstr expected_str = mkstring(expected[ie].flags, expectedbuf);
-#define _test_eq(fmt, lhs, rhs, ...)                                \
+#define _test_eq(lhs, rhs, fmt, ...)                            \
     do                                                          \
     {                                                           \
         _c4dbgpf("status={} cmp={} evt={} i={}: {}={} {}={} " fmt, status, (lhs == rhs), ie, i, #lhs, lhs, #rhs, rhs, __VA_ARGS__); \
         status &= (lhs == rhs);                                 \
         EXPECT_EQ(lhs, rhs);                                    \
     } while(0)
-        _test_eq("actual={} expected={}", actual[i], expected[ie].flags, actual_str, expected_str);
+        _test_eq(actual[i], expected[ie].flags,
+                 "actual={} expected={}",
+                 mkstring(actual[i], actualbuf),
+                 mkstring(expected[ie].flags, expectedbuf));
         if((expected[ie].flags & ievt::HAS_STR) && (actual[i] & ievt::HAS_STR))
         {
-            _test_eq("", expected[ie].str_start, actual[i + 1], 0);
-            _test_eq("", expected[ie].str_len, actual[i + 2], 0);
+            _test_eq(expected[ie].str_start, actual[i + 1], "", 0);
+            _test_eq(expected[ie].str_len, actual[i + 2], "", 0);
             bool safeactual = (i + 2 < actual_sz) && (actual[i + 1] < (int)parsed_source.len && actual[i + 1] + actual[i + 2] <= (int)parsed_source.len);
             bool safeexpected = (expected[ie].str_start < (int)parsed_source.len && expected[ie].str_start + expected[ie].str_len <= (int)parsed_source.len);
-            _test_eq("", safeactual, true, 0);
-            _test_eq("", safeactual, safeexpected, 0);
+            _test_eq(safeactual, true, "", 0);
+            _test_eq(safeactual, safeexpected, "", 0);
             if(safeactual && safeexpected)
             {
                 csubstr evtstr = parsed_source.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len);
                 csubstr actualstr = parsed_source.sub((size_t)actual[i + 1], (size_t)actual[i + 2]);
-                _test_eq("   ref=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
-                         expected[ie].scalar, actualstr,
+                _test_eq(expected[ie].scalar, actualstr,
+                         "   ref=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
                          expected[ie].scalar.len, expected[ie].scalar,
                          actualstr.len, actualstr);
                 if( ! expected[ie].needs_filter)
                 {
-                    _test_eq("   exp=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
-                             evtstr, actualstr,
+                    _test_eq(evtstr, actualstr,
+                             "   exp=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
                              evtstr.len, evtstr,
                              actualstr.len, actualstr);
                 }

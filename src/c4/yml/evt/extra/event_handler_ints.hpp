@@ -378,7 +378,7 @@ public:
         m_curr->evt_id = m_evt_curr - 2;
         ++m_evt_prev;
         ++m_evt_curr;
-        _enable_(c4::yml::MAP|c4::yml::FLOW);
+        _enable_(c4::yml::MAP|c4::yml::FLOW_SL);
         _push();
     }
 

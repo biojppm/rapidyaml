@@ -108,8 +108,8 @@ struct BmCase
     c4::csubstr            filename;
     std::vector<char>      src;
     std::vector<char>      in_place;
-    ryml::EventHandlerTree ryml_evt_handler;
-    ryml::EventHandlerTree ryml_evt_handler_nofilter;
+    ryml::evt::EventHandlerTree ryml_evt_handler;
+    ryml::evt::EventHandlerTree ryml_evt_handler_nofilter;
     ryml::Parser           ryml_parser{&ryml_evt_handler};
     ryml::Parser           ryml_parser_nofilter{&ryml_evt_handler_nofilter, ryml::ParserOptions().scalar_filtering(false)};
     ryml::Tree             ryml_tree;
