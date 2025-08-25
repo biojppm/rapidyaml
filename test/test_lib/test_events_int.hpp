@@ -23,7 +23,7 @@ inline csubstr mkstring(c4::yml::evt::extra::ievt::DataType flags, substr buf)
     size_t reqsize = c4::bm2str<ievt::EventFlags>((flags & ievt::MASK), buf.str, buf.len);
     C4_CHECK(reqsize > 0u);
     C4_CHECK(reqsize < buf.len);
-    return buf.offs(0, 1);
+    return buf.first(reqsize -1u);
 }
 } // namespace c4
 
@@ -67,6 +67,7 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
                                           csubstr parsed_source,
                                           const char *file, int line)
 {
+    RYML_TRACE_FMT("defined in:\n{}:{}\n", file, line);
     int status = true;
     size_t num_ints_expected = num_ints(expected, expected_sz);
 
@@ -118,10 +119,8 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
         }
         i += (actual[i] & ievt::HAS_STR) ? 3u : 1u;
     }
-    RYML_TRACE_FMT("defined in:\n{}:{}\n"
-                   "input:[{}]~~~{}~~~\n"
+    RYML_TRACE_FMT("input:[{}]~~~{}~~~\n"
                    "parsed:[{}]~~~{}~~~\n",
-                   file, line,
                    yaml.len, yaml,
                    parsed_source.len, parsed_source);
     EXPECT_TRUE(status);

@@ -110,22 +110,23 @@ const IntEventsCase test_cases[] = {
            e(ESTR),
        }),
     // case ------------------------------
-    tc(R"(--- !yamlscript/v0
-foo: !
-- {x: y}
-- [x, y]
-- foo
-- 'foo'
-- "foo"
-- |
-  foo
-- >
-  foo
-- [1, 2, true, false, null]
-- &anchor-1 !tag-1 foobar
----
-another: doc
-)",
+    tc(""
+       "--- !yamlscript/v0\n"
+       "foo: !\n"
+       "- {x: y}\n"
+       "- [x, y]\n"
+       "- foo\n"
+       "- 'foo'\n"
+       "- \"foo\"\n"
+       "- |\n"
+       "  foo\n"
+       "- >\n"
+       "  foo\n"
+       "- [1, 2, true, false, null]\n"
+       "- &anchor-1 !tag-1 foobar\n"
+       "---\n"
+       "another: doc\n"
+       "",
        {
            e(BSTR),
            e(BDOC|EXPL),
@@ -169,21 +170,21 @@ another: doc
            e(ESTR),
        }),
     // case -------------------------------------------------
-    tc(R"(plain: well
-  a
-  b
-  c
-squo: 'single''quote'
-dquo: "x\t\ny"
-lit: |
-     X
-     Y
-     Z
-fold: >
-     U
-     V
-     W
-)",
+    tc("plain: well\n"
+       "  a\n"
+       "  b\n"
+       "  c\n"
+       "squo: 'single''quote'\n"
+       "dquo: \"x\\t\\ny\"\n"
+       "lit: |\n"
+       "     X\n"
+       "     Y\n"
+       "     Z\n"
+       "fold: >\n"
+       "     U\n"
+       "     V\n"
+       "     W\n"
+       ,
        {
            e(BSTR),
            e(BDOC),
@@ -216,13 +217,15 @@ fold: >
            e(ESTR),
        }),
     // case -------------------------------------------------
-    tc(R"_(defn run(prompt session=nil):
-  when session:
-    write session _ :append true: |+
-      Q: $(orig-prompt:trim)
-      A ($api-model):
-      $(answer:trim)
-)_",
+    tc(""
+       "defn run(prompt session=nil):\n"
+       "  when session:\n"
+       "    write session _ :append true: |+\n"
+       "      Q: $(orig-prompt:trim)\n"
+       "      A ($api-model):\n"
+       "      $(answer:trim)\n"
+       ""
+       ,
        {
            e(BSTR),
            e(BDOC),
@@ -240,33 +243,33 @@ fold: >
            e(ESTR),
        }),
     // case -------------------------------------------------
-    tc(R"_(#!/usr/bin/env ys-0
-
-defn run(prompt session=nil):
-  session-text =:
-    when session && session:fs-e:
-
-  answer =:
-    cond:
-      api-model =~ /^dall-e/:
-        openai-image(prompt).data.0.url
-      api-model.in?(anthropic-models):
-        anthropic(prompt):anthropic-message:format
-      api-model.in?(groq-models):
-        groq(prompt).choices.0.message.content:format
-      api-model.in?(openai-models):
-        openai-chat(prompt).choices.0.message.content:format
-      else: die()
-
-  say: answer
-
-  when session:
-    write session _ :append true: |+
-      Q: $(orig-prompt:trim)
-      A ($api-model):
-      $(answer:trim)
-
-)_",
+    tc("#!/usr/bin/env ys-0\n"
+       "\n"
+       "defn run(prompt session=nil):\n"
+       "  session-text =:\n"
+       "    when session && session:fs-e:\n"
+       "\n"
+       "  answer =:\n"
+       "    cond:\n"
+       "      api-model =~ /^dall-e/:\n"
+       "        openai-image(prompt).data.0.url\n"
+       "      api-model.in?(anthropic-models):\n"
+       "        anthropic(prompt):anthropic-message:format\n"
+       "      api-model.in?(groq-models):\n"
+       "        groq(prompt).choices.0.message.content:format\n"
+       "      api-model.in?(openai-models):\n"
+       "        openai-chat(prompt).choices.0.message.content:format\n"
+       "      else: die()\n"
+       "\n"
+       "  say: answer\n"
+       "\n"
+       "  when session:\n"
+       "    write session _ :append true: |+\n"
+       "      Q: $(orig-prompt:trim)\n"
+       "      A ($api-model):\n"
+       "      $(answer:trim)\n"
+       "\n"
+       ,
        {
            e(BSTR),
            e(BDOC),
@@ -354,7 +357,18 @@ struct IntEventsTestHelper
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-class IntEventsTest : public testing::TestWithParam<IntEventsCase> {};
+struct IntEventsTest : public testing::TestWithParam<IntEventsCase>
+{
+    // force an ascii name (some characters in the parameter are UTF8)
+    static std::string name2str(const testing::TestParamInfo<ParamType>& info)
+    {
+        std::string s = c4::catrs<std::string>(to_csubstr(info.param.file), ':', info.param.line);
+        for (char &c : s)
+            if (!std::isalnum(c))
+                c = '_';
+        return s;
+    }
+};
 
 TEST_P(IntEventsTest, size_large_enough)
 {
@@ -382,7 +396,7 @@ TEST_P(IntEventsTest, size_null)
     h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy));
 }
 
-INSTANTIATE_TEST_SUITE_P(IntEvents, IntEventsTest, testing::ValuesIn(test_cases));
+INSTANTIATE_TEST_SUITE_P(IntEvents, IntEventsTest, testing::ValuesIn(test_cases), &IntEventsTest::name2str);
 
 
 } // namespace extra

@@ -441,10 +441,13 @@ public:
 public:
 
     /** @cond dev */
-    RYML_DEPRECATED("moved to Tree::location(Parser const&), deliberately undefined.")
-    Location location(Tree const&, id_type node) const;
-    RYML_DEPRECATED("moved to ConstNodeRef::location(Parser const&), deliberately undefined.")
-    Location location(ConstNodeRef const&) const;
+    template<class U=EventHandler>
+    RYML_DEPRECATED("moved to Tree::location(Parser const&). deliberately undefined here.")
+    typename std::enable_if<U::is_wtree, Location>::type location(Tree const&, id_type node) const;
+
+    template<class U=EventHandler>
+    RYML_DEPRECATED("moved to ConstNodeRef::location(Parser const&), deliberately undefined here.")
+    typename std::enable_if<U::is_wtree, Location>::type location(ConstNodeRef const&) const;
     /** @endcond */
 
 public:
