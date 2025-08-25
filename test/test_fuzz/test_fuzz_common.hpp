@@ -140,7 +140,7 @@ inline int fuzztest_yaml_events_ints(uint32_t case_number, csubstr src)
     std::string str(src.begin(), src.end());
     std::vector<Handler::value_type> event_ints;
     event_ints.reserve(256);
-    handler.reset(to_substr(str), event_ints.data(), (Handler::value_type)event_ints.size());
+    handler.reset(to_substr(str), event_ints.data(), static_cast<Handler::value_type>(event_ints.size()));
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
         _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));

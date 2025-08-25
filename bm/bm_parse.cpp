@@ -190,7 +190,7 @@ void bm_ryml_yaml_arena_nofilter(bm::State& st)
     for(auto _ : st)
     {
         st.PauseTiming();
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         st.ResumeTiming();
         ryml::Tree tree = ryml::parse_in_arena(&parser, s_bm_case->filename, src);
@@ -205,7 +205,7 @@ void bm_ryml_yaml_arena_nofilter_reserve(bm::State& st)
     for(auto _ : st)
     {
         st.PauseTiming();
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         ryml::Tree tree;
         tree.reserve(cap);
@@ -252,7 +252,7 @@ void bm_ryml_json_arena_nofilter(bm::State& st)
     {
         ONLY_FOR_JSON;
         st.PauseTiming();
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         st.ResumeTiming();
         ryml::Tree tree = ryml::parse_json_in_arena(&parser, s_bm_case->filename, src);
@@ -268,7 +268,7 @@ void bm_ryml_json_arena_nofilter_reserve(bm::State& st)
     {
         ONLY_FOR_JSON;
         st.PauseTiming();
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         ryml::Tree tree;
         tree.reserve(cap);
@@ -315,7 +315,7 @@ void bm_ryml_yaml_inplace_nofilter(bm::State& st)
     {
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         st.ResumeTiming();
         ryml::Tree tree = ryml::parse_in_place(&parser, s_bm_case->filename, src);
@@ -331,7 +331,7 @@ void bm_ryml_yaml_inplace_nofilter_reserve(bm::State& st)
     {
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         ryml::Tree tree;
         tree.reserve(cap);
@@ -383,7 +383,7 @@ void bm_ryml_json_inplace_nofilter(bm::State& st)
         ONLY_FOR_JSON;
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         st.ResumeTiming();
         ryml::Tree tree = ryml::parse_json_in_place(&parser, s_bm_case->filename, src);
@@ -400,7 +400,7 @@ void bm_ryml_json_inplace_nofilter_reserve(bm::State& st)
         ONLY_FOR_JSON;
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        ryml::EventHandlerTree evth;
+        ryml::evt::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
         ryml::Tree tree;
         tree.reserve(cap);
