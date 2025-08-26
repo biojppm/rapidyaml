@@ -223,6 +223,8 @@ if(RYML_TEST_SUITE)
             test_suite/test_suite_events_emitter.cpp
             ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
             ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
+            ../src_extra/c4/yml/extra/event_handler_ints.cpp
+            ../src_extra/c4/yml/extra/event_handler_ints.hpp
             test_suite/test_suite_events.cpp
             test_suite/test_suite_events.hpp
             test_suite/test_suite_parts.cpp

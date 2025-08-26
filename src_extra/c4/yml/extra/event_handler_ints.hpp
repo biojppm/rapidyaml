@@ -118,6 +118,8 @@ public:
     char m_key_tag_buf[256];
     char m_val_tag_buf[256];
     std::string m_arena;
+    TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
+    bool m_has_yaml_directive;
 
     // undefined at the end
     #define _enable_(bits) _enable__<bits>()
@@ -152,6 +154,9 @@ public:
         m_evt_size = dst_size;
         m_evt_curr = 0;
         m_evt_prev = 0;
+        m_has_yaml_directive = false;
+        for(TagDirective &td : m_tag_directives)
+            td = {};
     }
 
     void reserve(int arena_size)
@@ -602,8 +607,26 @@ public:
 
     void add_directive(csubstr directive)
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "tag directives not supported");
-        (void)directive;
+        _RYML_CB_ASSERT(m_stack.m_callbacks, directive.begins_with('%'));
+        if(directive.begins_with("%TAG"))
+        {
+            const id_type pos = _num_tag_directives();
+            if(C4_UNLIKELY(pos >= RYML_MAX_TAG_DIRECTIVES))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "too many directives", m_curr->pos);
+            if(C4_UNLIKELY(!m_tag_directives[pos].create_from_str(directive)))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "failed to add directive", m_curr->pos);
+        }
+        else if(directive.begins_with("%YAML"))
+        {
+            _c4dbgpf("%YAML directive! ignoring...: {}", directive);
+            if(C4_UNLIKELY(m_has_yaml_directive))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "multiple yaml directives", m_curr->pos);
+            m_has_yaml_directive = true;
+        }
+        else
+        {
+            _c4dbgpf("unknown directive! ignoring... {}", directive);
+        }
     }
 
     /** @} */
@@ -723,6 +746,19 @@ public:
         m_evt_curr += 3;
     }
 
+    void _clear_tag_directives_()
+    {
+        for(TagDirective &td : m_tag_directives)
+            td = {};
+    }
+    id_type _num_tag_directives() const
+    {
+        // this assumes we have a very small number of tag directives
+        for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
+            if(m_tag_directives[i].handle.empty())
+                return i;
+        return RYML_MAX_TAG_DIRECTIVES;
+    }
     csubstr _transform_directive(csubstr tag, substr output)
     {
         if(tag.begins_with("!!"))

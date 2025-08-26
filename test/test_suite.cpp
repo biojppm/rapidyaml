@@ -11,6 +11,7 @@
 #include "test_suite/test_suite_parts.hpp"
 #include "test_suite/test_suite_events.hpp"
 #include "c4/yml/extra/event_handler_test_suite.hpp"
+#include "c4/yml/extra/event_handler_ints.hpp"
 #include <c4/fs/fs.hpp>
 #include <c4/log/log.hpp>
 #include <gtest/gtest.h>
@@ -139,6 +140,7 @@ struct TestSequenceLevel
     std::string         src_tree;
     std::string         src_tree_json;
     std::string         src_evts;
+    std::string         src_evts_ints;
     EventHandlerTree    evt_handler_tree;
     EventHandlerTree    evt_handler_tree_json;
     Parser              parser_tree;
@@ -149,8 +151,12 @@ struct TestSequenceLevel
     std::string         emitted_from_tree_parsed_from_src_json;
 
     extra::EventHandlerYamlStd::EventSink evt_str_sink;
-    extra::EventHandlerYamlStd evt_handler_str_sink;
-    ParseEngine<extra::EventHandlerYamlStd> parser_str_sink;
+    extra::EventHandlerYamlStd evt_handler_str;
+    ParseEngine<extra::EventHandlerYamlStd> parser_str;
+
+    extra::EventHandlerInts evt_handler_ints;
+    ParseEngine<extra::EventHandlerInts> parser_ints;
+    std::vector<extra::EventHandlerInts::value_type> buffer_ints;
 
     bool immutable = false;
     bool reuse = false;
@@ -166,8 +172,11 @@ struct TestSequenceLevel
         , parser_tree(&evt_handler_tree)
         , parser_tree_json(&evt_handler_tree_json)
         , evt_str_sink()
-        , evt_handler_str_sink(&evt_str_sink)
-        , parser_str_sink(&evt_handler_str_sink)
+        , evt_handler_str(&evt_str_sink)
+        , parser_str(&evt_handler_str)
+        , evt_handler_ints()
+        , parser_ints(&evt_handler_ints)
+        , buffer_ints()
     {
     }
 
@@ -178,6 +187,7 @@ struct TestSequenceLevel
         filename = filename_;
         src_tree.assign(src_.begin(), src_.end());
         src_evts = src_tree;
+        src_evts_ints = src_tree;
         immutable = immutable_;
         reuse = reuse_;
         tree_was_parsed = false;
@@ -202,6 +212,7 @@ struct TestSequenceLevel
             events_were_generated = false;
             src_tree = prev_.emitted_from_tree_parsed_from_src;
             src_evts = src_tree;
+            src_evts_ints = src_tree;
         }
     }
 
@@ -298,13 +309,25 @@ struct TestSequenceLevel
             return;
         if(prev)
             receive_src(*prev);
-        _nfo_logf("level[{}]: parsing source:\n{}", level, src_evts);
+        _nfo_logf("level[{}]: parsing source to events:\n{}", level, src_evts);
         evt_str_sink.clear();
-        evt_handler_str_sink.reset();
-        evt_handler_str_sink.m_stack.m_callbacks = get_callbacks();
-        parser_str_sink.parse_in_place_ev(filename, to_substr(src_evts));
+        evt_handler_str.reset();
+        evt_handler_str.m_stack.m_callbacks = get_callbacks();
+        parser_str.parse_in_place_ev(filename, to_substr(src_evts));
         EXPECT_NE(evt_str_sink.size(), 0);
         events_were_generated = true;
+    }
+
+    void parse_yaml_to_ints()
+    {
+        if(prev)
+            receive_src(*prev);
+        _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts);
+        buffer_ints.resize(32);
+        evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)buffer_ints.size());
+        evt_handler_ints.m_stack.m_callbacks = get_callbacks();
+        parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
+        EXPECT_GT(evt_handler_ints.m_evt_curr, 0);
     }
 
     void emit_parsed_tree()
@@ -539,6 +562,25 @@ struct TestSequenceData
                     levels[i].parse_yaml_to_events();
                 });
                 break; // because we expect error, we cannot go on to the next
+            }
+        }
+    }
+
+    void parse_yaml_to_ints(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        for(size_t i = 0; i < num; ++i)
+        {
+            if(!has_container_keys && !expect_error)
+            {
+                levels[i].parse_yaml_to_ints();
+            }
+            else
+            {
+                ExpectError::check_error([&]{
+                    levels[i].parse_yaml_to_ints();
+                });
+                break; // because we expect error,we cannot go on to the next
             }
         }
     }
@@ -849,6 +891,12 @@ TEST_P(which, 0_parse_yaml_to_events)                                   \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
     g_suite_case->which.parse_yaml_to_events(1 + GetParam());           \
+}                                                                       \
+TEST_P(which, 0_parse_yaml_to_ints)                                     \
+{                                                                       \
+    /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    g_suite_case->which.parse_yaml_to_ints(1 + GetParam());             \
 }                                                                       \
                                                                         \
 TEST_P(which, 0_parse_yaml_to_tree)                                     \
