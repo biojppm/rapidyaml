@@ -169,7 +169,7 @@ public:
     C4_ALWAYS_INLINE bool is_seq()            const noexcept { return (type & SEQ) != 0; }
     C4_ALWAYS_INLINE bool has_key()           const noexcept { return (type & KEY) != 0; }
     C4_ALWAYS_INLINE bool has_val()           const noexcept { return (type & VAL) != 0; }
-    C4_ALWAYS_INLINE bool is_val()            const noexcept { return (type & KEYVAL) == VAL; }
+    C4_ALWAYS_INLINE bool is_val()            const noexcept { return (type & VAL) == VAL; }
     C4_ALWAYS_INLINE bool is_keyval()         const noexcept { return (type & KEYVAL) == KEYVAL; }
     C4_ALWAYS_INLINE bool key_is_null()       const noexcept { return (type & KEYNIL) != 0; }
     C4_ALWAYS_INLINE bool val_is_null()       const noexcept { return (type & VALNIL) != 0; }
