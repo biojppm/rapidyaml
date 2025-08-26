@@ -8,7 +8,6 @@
 
 namespace c4 {
 namespace yml {
-namespace evt {
 namespace extra {
 
 void append_escaped(extra::string *es, csubstr val)
@@ -76,10 +75,9 @@ void append_escaped(extra::string *es, csubstr val)
 }
 
 } // namespace extra
-} // namespace evt
 
 // instantiate the template
-template class ParseEngine<evt::extra::EventHandlerYamlStd>;
+template class ParseEngine<extra::EventHandlerYamlStd>;
 
 } // namespace yml
 } // namespace c4

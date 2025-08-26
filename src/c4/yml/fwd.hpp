@@ -15,10 +15,8 @@ class ConstNodeRef;
 class Tree;
 struct ReferenceResolver;
 template<class EventHandler> class ParseEngine;
-namespace evt {
 struct EventHandlerTree;
-} // namespace evt
-using Parser = ParseEngine<evt::EventHandlerTree>;
+using Parser = ParseEngine<EventHandlerTree>;
 
 } // namespace c4
 } // namespace yml

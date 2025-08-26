@@ -1,7 +1,7 @@
 #ifdef RYML_SINGLE_HEADER
 #include "ryml_all.hpp"
 #else
-#include "c4/yml/evt/event_handler_tree.hpp"
+#include "c4/yml/event_handler_tree.hpp"
 #include "c4/yml/parse_engine.hpp"
 #include "c4/yml/parse.hpp"
 #include "c4/yml/node.hpp"
@@ -594,7 +594,7 @@ TEST(Parser, error_without_handler)
 TEST(parse_in_place, error_without_handler)
 {
     ExpectError::check_error([]{
-        evt::EventHandlerTree evth;
+        EventHandlerTree evth;
         Parser parser{&evth};
         parser.m_evt_handler = nullptr;
         char yaml[] = "{foo: bar}";
@@ -605,7 +605,7 @@ TEST(parse_in_place, error_without_handler)
 TEST(parse_in_arena, error_without_handler)
 {
     ExpectError::check_error([]{
-        evt::EventHandlerTree evth;
+        EventHandlerTree evth;
         Parser parser{&evth};
         parser.m_evt_handler = nullptr;
         const char yaml[] = "{foo: bar}";
@@ -626,7 +626,7 @@ protected:
     csubstr cyaml = to_csubstr(yaml_);
     csubstr filename = "example.yml";
 
-    evt::EventHandlerTree evt_handler;
+    EventHandlerTree evt_handler;
     Parser parser = {&evt_handler};
 
     void SetUp() override
@@ -897,7 +897,7 @@ protected:
     csubstr cjson = to_csubstr(json_);
     csubstr filename = "example.yml";
 
-    evt::EventHandlerTree evt_handler;
+    EventHandlerTree evt_handler;
     Parser parser = {&evt_handler};
 
     void SetUp() override
@@ -1164,7 +1164,7 @@ class ParseToNodeTest : public testing::Test
 {
 protected:
 
-    evt::EventHandlerTree evt_handler;
+    EventHandlerTree evt_handler;
     Parser parser = {&evt_handler};
 
     std::string val_plain = "this is a plain val";

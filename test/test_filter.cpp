@@ -2,7 +2,7 @@
 #include "ryml_all.hpp"
 #else
 #include "c4/yml/filter_processor.hpp"
-#include "c4/yml/evt/event_handler_tree.hpp"
+#include "c4/yml/event_handler_tree.hpp"
 #include "c4/yml/parse_engine.hpp"
 #include "c4/yml/parse.hpp"
 #include "c4/yml/tree.hpp"
@@ -1477,7 +1477,7 @@ TEST(Parser, parser_options_filtering)
 
 TEST(Parser, parse_without_filtering_where_none_required)
 {
-    evt::EventHandlerTree evt_handler = {};
+    EventHandlerTree evt_handler = {};
     Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     csubstr yaml = R"(plain key: plain val
 'squo key': 'squo val'
@@ -1502,7 +1502,7 @@ TEST(Parser, parse_without_filtering_where_none_required)
 
 TEST(Parser, parse_without_filtering_where_it_is_required)
 {
-    evt::EventHandlerTree evt_handler = {};
+    EventHandlerTree evt_handler = {};
     Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     csubstr yaml = R"(? plain
     key

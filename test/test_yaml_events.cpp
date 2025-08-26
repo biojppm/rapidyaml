@@ -6,7 +6,7 @@
 
 #include "./test_lib/test_case.hpp"
 #include "./test_suite/test_suite_events.hpp"
-#include "c4/yml/evt/extra/event_handler_test_suite.hpp"
+#include "c4/yml/extra/event_handler_test_suite.hpp"
 #include "./test_suite/test_suite_events_emitter.cpp" // HACK
 
 namespace c4 {
@@ -53,9 +53,9 @@ TEST_P(EventsTest, from_parser)
     EventsCase const& ec = GetParam();
     printf("%s:%d: %s", ec.file, ec.line, ec.name.str);
     RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
-    evt::extra::EventHandlerYamlStd::EventSink sink;
-    evt::extra::EventHandlerYamlStd handler(&sink);
-    ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerYamlStd::EventSink sink;
+    extra::EventHandlerYamlStd handler(&sink);
+    ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
     std::string src_copy(ec.src.str, ec.src.len);
     parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
     csubstr result = sink;

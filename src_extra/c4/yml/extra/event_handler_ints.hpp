@@ -1,9 +1,9 @@
-#ifndef _C4_YML_EVT_EXTRA_EVENT_HANDLER_INTS_HPP_
-#define _C4_YML_EVT_EXTRA_EVENT_HANDLER_INTS_HPP_
+#ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
+#define _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 
 #include <c4/yml/node_type.hpp>
 #include <c4/yml/parse_engine.hpp>
-#include <c4/yml/evt/event_handler_stack.hpp>
+#include <c4/yml/event_handler_stack.hpp>
 #include <c4/yml/tag.hpp>
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/detail/parser_dbg.hpp>
@@ -15,7 +15,6 @@ C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
 namespace c4 {
 namespace yml {
-namespace evt {
 namespace extra {
 
 
@@ -750,11 +749,10 @@ public:
 };
 
 } // namespace extra
-} // namespace evt
 } // namespace yml
 } // namespace c4
 
 
 C4_SUPPRESS_WARNING_GCC_POP
 
-#endif /* _C4_YML_EVT_EXTRA_EVENT_HANDLER_INTS_HPP_ */
+#endif /* _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_ */

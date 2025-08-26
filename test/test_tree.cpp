@@ -5002,7 +5002,7 @@ TEST(Tree, unfiltered)
     EXPECT_EQ(tree[3].val(), "literal val");
     EXPECT_EQ(tree[4].key(), "folded key");
     EXPECT_EQ(tree[4].val(), "folded val");
-    evt::EventHandlerTree evt_handler = {};
+    EventHandlerTree evt_handler = {};
     Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     const Tree tree2 = parse_in_arena(&parser, style_yaml);
     EXPECT_FALSE(tree2.is_key_unfiltered(tree2[0].id()));

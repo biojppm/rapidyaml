@@ -41,10 +41,10 @@ std::vector<std::string> inject_comments(std::string const& src_)
 void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
     ExpectError::check_error([&]{
-        evt::extra::EventHandlerYamlStd::EventSink sink;
-        evt::extra::EventHandlerYamlStd handler(&sink);
+        extra::EventHandlerYamlStd::EventSink sink;
+        extra::EventHandlerYamlStd handler(&sink);
         handler.reset();
-        ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
+        ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
         std::string copy = parsed_yaml;
         parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     }, expected_error_location);
@@ -53,9 +53,9 @@ void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Locati
 void test_expected_error_events_ints_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
     ExpectError::check_error([&]{
-        evt::extra::EventHandlerInts handler{};
+        extra::EventHandlerInts handler{};
         handler.reset(to_csubstr(parsed_yaml), nullptr, 0);
-        ParseEngine<evt::extra::EventHandlerInts> parser(&handler);
+        ParseEngine<extra::EventHandlerInts> parser(&handler);
         std::string copy = parsed_yaml;
         parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     }, expected_error_location);
@@ -65,9 +65,9 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 {
     Tree tree = {};
     ExpectError::check_error(&tree, [&]{
-        evt::EventHandlerTree handler(&tree, tree.root_id());
+        EventHandlerTree handler(&tree, tree.root_id());
         ASSERT_EQ(&tree, handler.m_tree);
-        ParseEngine<evt::EventHandlerTree> parser(&handler);
+        ParseEngine<EventHandlerTree> parser(&handler);
         ASSERT_EQ(&handler, parser.m_evt_handler);
         ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
         std::string copy = parsed_yaml;
@@ -78,10 +78,10 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 
 void test_new_parser_events_from_yaml(ReferenceYaml const& yaml, std::string const& expected_events)
 {
-    evt::extra::EventHandlerYamlStd::EventSink sink;
-    evt::extra::EventHandlerYamlStd handler(&sink);
+    extra::EventHandlerYamlStd::EventSink sink;
+    extra::EventHandlerYamlStd handler(&sink);
     handler.reset();
-    ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
+    ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
     std::string copy = yaml.parsed;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     csubstr result = sink;
@@ -98,11 +98,11 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml)
         test_expected_error_events_ints_from_yaml(yaml.parsed, yaml.expected_error_location);
         return;
     }
-    evt::extra::EventHandlerInts handler{};
-    using IntType = evt::extra::ievt::DataType;
+    extra::EventHandlerInts handler{};
+    using IntType = extra::ievt::DataType;
     std::vector<IntType> actual_evts(num_ints(yaml.expected_ints.data(), yaml.expected_ints.size()));
     handler.reset(to_csubstr(yaml.parsed), actual_evts.data(), (IntType)actual_evts.size());
-    ParseEngine<evt::extra::EventHandlerInts> parser(&handler);
+    ParseEngine<extra::EventHandlerInts> parser(&handler);
     std::string copy = yaml.parsed;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     test_events_ints(yaml.expected_ints.data(), yaml.expected_ints.size(),
@@ -119,9 +119,9 @@ void test_new_parser_tree_from_yaml(ReferenceYaml const& yaml)
         return;
     }
     Tree tree = {};
-    evt::EventHandlerTree handler(&tree, tree.root_id());
+    EventHandlerTree handler(&tree, tree.root_id());
     ASSERT_EQ(&tree, handler.m_tree);
-    ParseEngine<evt::EventHandlerTree> parser(&handler);
+    ParseEngine<EventHandlerTree> parser(&handler);
     ASSERT_EQ(&handler, parser.m_evt_handler);
     ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
     std::string copy = yaml.parsed;

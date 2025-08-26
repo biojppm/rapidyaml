@@ -4,7 +4,7 @@
 #ifdef RYML_SINGLE_HEADER
 #include "ryml_all.hpp"
 #else
-#include "c4/yml/evt/event_handler_tree.hpp"
+#include "c4/yml/event_handler_tree.hpp"
 #include "c4/yml/parse_engine.hpp"
 #include "c4/yml/emit.hpp"
 #include "c4/yml/detail/print.hpp"
@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/test_events_int.hpp"
-#include "c4/yml/evt/extra/event_handler_test_suite.hpp"
+#include "c4/yml/extra/event_handler_test_suite.hpp"
 
 
 namespace c4 {
@@ -29,18 +29,18 @@ struct ReferenceYaml
     ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p, std::string const& e) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(e), expected_ints(), expected_ints_enabled(false) { RYML_ASSERT(linecol_); }
     ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p                      ) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(p), expected_ints(), expected_ints_enabled(false) { RYML_ASSERT(linecol_); }
 
-    ReferenceYaml(                                       std::string const& s                      , std::vector<evt::extra::IntEventWithScalar> ints) : test_case_flags(), expected_error_location(), parsed(s), emitted(s), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    ReferenceYaml(                                       std::string const& p, std::string const& e, std::vector<evt::extra::IntEventWithScalar> ints) : test_case_flags(), expected_error_location(), parsed(p), emitted(e), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    ReferenceYaml(TestCaseFlags_e tf,                    std::string const& p, std::string const& e, std::vector<evt::extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(), parsed(p), emitted(e), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    ReferenceYaml(TestCaseFlags_e tf,                    std::string const& p                      , std::vector<evt::extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(), parsed(p), emitted(p), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    ReferenceYaml(                    Location linecol_, std::string const& p                      , std::vector<evt::extra::IntEventWithScalar> ints) : test_case_flags(), expected_error_location(linecol_), parsed(p), emitted(p), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
-    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p, std::string const& e, std::vector<evt::extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(e), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
-    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p                      , std::vector<evt::extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(p), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
+    ReferenceYaml(                                       std::string const& s                      , std::vector<extra::IntEventWithScalar> ints) : test_case_flags(), expected_error_location(), parsed(s), emitted(s), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    ReferenceYaml(                                       std::string const& p, std::string const& e, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(), expected_error_location(), parsed(p), emitted(e), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    ReferenceYaml(TestCaseFlags_e tf,                    std::string const& p, std::string const& e, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(), parsed(p), emitted(e), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    ReferenceYaml(TestCaseFlags_e tf,                    std::string const& p                      , std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(), parsed(p), emitted(p), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    ReferenceYaml(                    Location linecol_, std::string const& p                      , std::vector<extra::IntEventWithScalar> ints) : test_case_flags(), expected_error_location(linecol_), parsed(p), emitted(p), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
+    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p, std::string const& e, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(e), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
+    ReferenceYaml(TestCaseFlags_e tf, Location linecol_, std::string const& p                      , std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(p), emitted(p), expected_ints(std::move(ints)), expected_ints_enabled(true) { RYML_ASSERT(linecol_); }
     TestCaseFlags_e test_case_flags;
     Location expected_error_location;
     std::string parsed;
     std::string emitted;
-    std::vector<evt::extra::IntEventWithScalar> expected_ints;
+    std::vector<extra::IntEventWithScalar> expected_ints;
     bool expected_ints_enabled;
 };
 
@@ -48,10 +48,10 @@ struct ReferenceYaml
 template<template<class> class EventProducerFn>
 C4_NO_INLINE void test_new_parser_str_from_events(std::string const& expected_events)
 {
-    evt::extra::EventHandlerYamlStd::EventSink sink;
-    evt::extra::EventHandlerYamlStd handler(&sink);
+    extra::EventHandlerYamlStd::EventSink sink;
+    extra::EventHandlerYamlStd handler(&sink);
     handler.reset();
-    EventProducerFn<evt::extra::EventHandlerYamlStd> event_producer;
+    EventProducerFn<extra::EventHandlerYamlStd> event_producer;
     event_producer(handler);
     csubstr result = sink;
     _c4dbgpf("~~~\n{}~~~\n", result);
@@ -65,16 +65,16 @@ C4_NO_INLINE void test_new_parser_tree_from_events(ReferenceYaml const& yaml)
     {
         ExpectError::check_error([&]{
             Tree tree = {};
-            evt::EventHandlerTree handler(&tree, tree.root_id());
-            EventProducerFn<evt::EventHandlerTree> event_producer;
+            EventHandlerTree handler(&tree, tree.root_id());
+            EventProducerFn<EventHandlerTree> event_producer;
             event_producer(handler);
         });
     }
     else
     {
         Tree tree = {};
-        evt::EventHandlerTree handler(&tree, tree.root_id());
-        EventProducerFn<evt::EventHandlerTree> event_producer;
+        EventHandlerTree handler(&tree, tree.root_id());
+        EventProducerFn<EventHandlerTree> event_producer;
         event_producer(handler);
         #ifdef RYML_DBG
         print_tree(tree);
@@ -286,7 +286,7 @@ void name##_impl(Ps &ps)
        _print_handler_info(ps, #stmt, __FILE__, __LINE__);  \
     } while(0)
 
-inline C4_NO_INLINE void _print_handler_info(evt::EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
+inline C4_NO_INLINE void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
 {
     if(ps.m_parent)
         _dbg_printf("{}:{}: parent.id={} curr.id={}  {}\n",
@@ -297,7 +297,7 @@ inline C4_NO_INLINE void _print_handler_info(evt::EventHandlerTree const& ps, cs
     print_tree(*ps.m_tree);
 }
 
-inline C4_NO_INLINE void _print_handler_info(evt::extra::EventHandlerYamlStd const& ps, csubstr stmt, const char *file, int line)
+inline C4_NO_INLINE void _print_handler_info(extra::EventHandlerYamlStd const& ps, csubstr stmt, const char *file, int line)
 {
     _dbg_printf("{}:{}: {}", file, line, stmt);
     auto indent = [](id_type n){
@@ -319,7 +319,7 @@ inline C4_NO_INLINE void _print_handler_info(evt::extra::EventHandlerYamlStd con
     }
 }
 
-inline C4_NO_INLINE void _print_handler_info(evt::extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line)
+inline C4_NO_INLINE void _print_handler_info(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line)
 {
     _dbg_printf("{}:{}: {}", file, line, stmt);
     (void)ps;

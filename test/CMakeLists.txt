@@ -52,17 +52,16 @@ function(ryml_add_test_case_group name)
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
 endfunction()
 
-
 c4_add_library(ryml-_evt_handler_extra LIBRARY_STATIC
     SOURCES
        test_lib/test_events_int.hpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
-       ../src/c4/yml/evt/extra/event_handler_test_suite.cpp
-       ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
-       ../src/c4/yml/evt/extra/event_handler_ints.cpp
-       ../src/c4/yml/evt/extra/event_handler_ints.hpp
-    INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+       ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
+       ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
+       ../src_extra/c4/yml/extra/event_handler_ints.cpp
+       ../src_extra/c4/yml/extra/event_handler_ints.hpp
+    INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml gtest
     FOLDER test
 )
@@ -222,13 +221,14 @@ if(RYML_TEST_SUITE)
             test_suite.cpp
             test_suite/test_suite_common.hpp
             test_suite/test_suite_events_emitter.cpp
-            ../src/c4/yml/evt/extra/event_handler_test_suite.cpp
-            ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
+            ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
+            ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
             test_suite/test_suite_events.cpp
             test_suite/test_suite_events.hpp
             test_suite/test_suite_parts.cpp
             test_suite/test_suite_parts.hpp
         LIBS ryml-_testlib c4log
+        INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
 
@@ -316,7 +316,7 @@ if(RYML_TEST_FUZZ)
                 test_fuzz/test_fuzz_${name}.cpp
                 test_fuzz/test_fuzz_main.cpp
                 ${ARGN}
-            INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+            INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
             LIBS ryml c4fs
             FOLDER test/fuzz)
         if(RYML_DBG)
@@ -336,8 +336,8 @@ if(RYML_TEST_FUZZ)
     endfunction()
     ryml_add_fuzz_test(parse_emit)
     ryml_add_fuzz_test(events
-        ../src/c4/yml/evt/extra/event_handler_test_suite.hpp
-        ../src/c4/yml/evt/extra/event_handler_test_suite.cpp)
+        ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
+        ../src_extra/c4/yml/extra/event_handler_test_suite.cpp)
     ryml_add_fuzz_test(events_ints
-        ../src/c4/yml/evt/extra/event_handler_ints.hpp)
+        ../src_extra/c4/yml/extra/event_handler_ints.hpp)
 endif()

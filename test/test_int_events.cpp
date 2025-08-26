@@ -1,11 +1,10 @@
 #include "test_lib/test_case.hpp"
 #include "test_lib/test_events_int.hpp"
-#include <c4/yml/evt/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/event_handler_ints.hpp>
 
 
 namespace c4 {
 namespace yml {
-namespace evt {
 namespace extra {
 
 
@@ -322,10 +321,10 @@ struct IntEventsTestHelper
     IntEventsCase const& ec;
     size_t required_size_expected;
     size_t required_size_actual;
-    evt::extra::EventHandlerInts handler;
-    ParseEngine<evt::extra::EventHandlerInts> parser;
+    extra::EventHandlerInts handler;
+    ParseEngine<extra::EventHandlerInts> parser;
     std::string src_copy;
-    std::vector<ievt::DataType> actual;
+    std::vector<DataType> actual;
     IntEventsTestHelper(IntEventsCase const& ec_)
         : ec(ec_)
         , required_size_expected(num_ints(ec.evt.data(), ec.evt.size()))
@@ -400,7 +399,6 @@ INSTANTIATE_TEST_SUITE_P(IntEvents, IntEventsTest, testing::ValuesIn(test_cases)
 
 
 } // namespace extra
-} // namespace evt
 
 
 //-----------------------------------------------------------------------------

@@ -3,11 +3,11 @@
 #else
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/parse.hpp>
-#include <c4/yml/evt/event_handler_tree.hpp>
+#include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
 #include <test_suite/test_suite_events.hpp>
-#include <c4/yml/evt/extra/event_handler_test_suite.hpp>
+#include <c4/yml/extra/event_handler_test_suite.hpp>
 #include <c4/fs/fs.hpp>
 #include <cstdio>
 
@@ -114,9 +114,9 @@ std::string emit_events_from_tree(csubstr filename, substr filecontents)
 
 std::string emit_events_direct(csubstr filename, substr filecontents)
 {
-    evt::extra::EventHandlerYamlStd::EventSink sink = {};
-    evt::extra::EventHandlerYamlStd handler(&sink, create_custom_callbacks());
-    ParseEngine<evt::extra::EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerYamlStd::EventSink sink = {};
+    extra::EventHandlerYamlStd handler(&sink, create_custom_callbacks());
+    ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
     parser.parse_in_place_ev(filename, filecontents);
     csubstr result = sink;
     return std::string(result.str, result.len);

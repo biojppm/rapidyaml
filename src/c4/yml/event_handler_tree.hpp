@@ -1,12 +1,12 @@
-#ifndef _C4_YML_EVT_EVENT_HANDLER_TREE_HPP_
-#define _C4_YML_EVT_EVENT_HANDLER_TREE_HPP_
+#ifndef _C4_YML_EVENT_HANDLER_TREE_HPP_
+#define _C4_YML_EVENT_HANDLER_TREE_HPP_
 
 #ifndef _C4_YML_TREE_HPP_
 #include "c4/yml/tree.hpp"
 #endif
 
-#ifndef _C4_YML_EVT_EVENT_HANDLER_STACK_HPP_
-#include "c4/yml/evt/event_handler_stack.hpp"
+#ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
+#include "c4/yml/event_handler_stack.hpp"
 #endif
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702) // unreachable code
@@ -14,7 +14,6 @@ C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702) // unreachable code
 
 namespace c4 {
 namespace yml {
-namespace evt {
 
 /** @addtogroup doc_event_handlers
  * @{ */
@@ -761,7 +760,6 @@ public:
 
 /** @} */
 
-} // namespace evt
 } // namespace yml
 } // namespace c4
 

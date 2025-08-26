@@ -1,5 +1,5 @@
-#ifndef _C4_YML_EVT_EXTRA_STRING_HPP_
-#define _C4_YML_EVT_EXTRA_STRING_HPP_
+#ifndef _C4_YML_EXTRA_STRING_HPP_
+#define _C4_YML_EXTRA_STRING_HPP_
 
 #ifdef RYML_SINGLE_HEADER
 #ifndef _RYML_SINGLE_HEADER_AMALGAMATED_HPP_
@@ -27,7 +27,6 @@ C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
 namespace c4 {
 namespace yml {
-namespace evt {
 namespace extra {
 
 /** an owning string class used by the yaml std event handler (and the
@@ -417,7 +416,6 @@ public:
 };
 
 } // namespace extra
-} // namespace evt
 } // namespace yml
 } // namespace c4
 

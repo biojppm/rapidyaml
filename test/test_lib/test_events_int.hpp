@@ -1,25 +1,25 @@
 #ifndef _TEST_EVENTS_INTS_HPP_
 #define _TEST_EVENTS_INTS_HPP_
 
-#include <c4/yml/evt/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/bitmask.hpp>
 #include <gtest/gtest.h>
 
 namespace c4 {
-using EventFlags = c4::yml::evt::extra::ievt::EventFlags;
+using EventFlags = c4::yml::extra::ievt::EventFlags;
 template<>
 inline c4::EnumSymbols<EventFlags> const esyms<EventFlags>()
 {
-    using namespace yml::evt::extra::ievt;
+    using namespace yml::extra::ievt;
     static_assert(offsetof(symbol, value) == offsetof(c4::EnumSymbols<EventFlags>::Sym, value), "wrong offset");
     static_assert(offsetof(symbol, name) == offsetof(c4::EnumSymbols<EventFlags>::Sym, name), "wrong offset");
     size_t numsyms = 0;
     symbol const* syms = symbols(&numsyms);
     return c4::EnumSymbols<EventFlags>((c4::EnumSymbols<EventFlags>::Sym const*)syms, numsyms);
 }
-inline csubstr mkstring(c4::yml::evt::extra::ievt::DataType flags, substr buf)
+inline csubstr mkstring(c4::yml::extra::ievt::DataType flags, substr buf)
 {
-    using namespace yml::evt::extra;
+    using namespace yml::extra;
     size_t reqsize = c4::bm2str<ievt::EventFlags>((flags & ievt::MASK), buf.str, buf.len);
     C4_CHECK(reqsize > 0u);
     C4_CHECK(reqsize < buf.len);
@@ -30,7 +30,6 @@ inline csubstr mkstring(c4::yml::evt::extra::ievt::DataType flags, substr buf)
 
 namespace c4 {
 namespace yml {
-namespace evt {
 namespace extra {
 
 // provide a structured input for the event integers, grouping the
@@ -128,7 +127,6 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
 
 
 } // namespace extra
-} // namespace evt
 } // namespace yml
 } // namespace c4
 
