@@ -128,7 +128,7 @@ INSTRUCTIONS:
         "src/c4/yml/detail/stack.hpp",
         "src/c4/yml/filter_processor.hpp",
         "src/c4/yml/parser_state.hpp",
-        "src/c4/yml/evt/event_handler_stack.hpp",
+        "src/c4/yml/event_handler_stack.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/event_handler_tree.hpp"),
         am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/string.hpp"),

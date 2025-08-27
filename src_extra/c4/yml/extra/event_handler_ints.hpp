@@ -120,6 +120,7 @@ public:
     std::string m_arena;
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
     bool m_has_yaml_directive;
+    bool m_has_docs;
 
     // undefined at the end
     #define _enable_(bits) _enable__<bits>()
@@ -154,6 +155,7 @@ public:
         m_evt_size = dst_size;
         m_evt_curr = 0;
         m_evt_prev = 0;
+        m_has_docs = 0;
         m_has_yaml_directive = false;
         for(TagDirective &td : m_tag_directives)
             td = {};
@@ -178,6 +180,8 @@ public:
 
     void finish_parse()
     {
+        if((_num_tag_directives() || m_has_yaml_directive) && !m_has_docs)
+            _RYML_CB_ERR_(m_stack.m_callbacks, "directives cannot be used without a document", {});
         this->_stack_finish_parse();
     }
 
@@ -221,6 +225,7 @@ public:
             _c4dbgp("push!");
             _push();
         }
+        m_has_docs = true;
     }
     /** implicit doc end (without ...) */
     void end_doc()
@@ -244,6 +249,7 @@ public:
             _c4dbgp("push!");
             _push();
         }
+        m_has_docs = true;
     }
     /** explicit doc end, with ... */
     void end_doc_expl()
@@ -266,11 +272,19 @@ public:
 
     void begin_map_key_flow()
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "container keys not supported");
+        _c4dbgpf("{}/{}: bmap key flow", m_evt_curr, m_evt_size);
+        _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::FLOW);
+        _mark_parent_with_children_();
+        _enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::FLOW_SL);
+        _push();
     }
     void begin_map_key_block()
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "container keys not supported");
+        _c4dbgpf("{}/{}: bmap key block", m_evt_curr, m_evt_size);
+        _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::BLCK);
+        _mark_parent_with_children_();
+        _enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::BLOCK);
+        _push();
     }
 
     void begin_map_val_flow()
@@ -305,11 +319,19 @@ public:
 
     void begin_seq_key_flow()
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "container keys not supported");
+        _c4dbgpf("{}/{}: bseq key flow", m_evt_curr, m_evt_size);
+        _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::FLOW);
+        _mark_parent_with_children_();
+        _enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::FLOW_SL);
+        _push();
     }
     void begin_seq_key_block()
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "container keys not supported");
+        _c4dbgpf("{}/{}: bseq key block", m_evt_curr, m_evt_size);
+        _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::BLCK);
+        _mark_parent_with_children_();
+        _enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::BLOCK);
+        _push();
     }
 
     void begin_seq_val_flow()

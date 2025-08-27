@@ -84,7 +84,7 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
     do                                                          \
     {                                                           \
         _c4dbgpf("status={} cmp={} evt={} i={}: {}={} {}={} " fmt, status, (lhs == rhs), ie, i, #lhs, lhs, #rhs, rhs, __VA_ARGS__); \
-        status &= (lhs == rhs);                                 \
+        status &= int(lhs == rhs);                              \
         EXPECT_EQ(lhs, rhs);                                    \
     } while(0)
         _test_eq(actual[i], expected[ie].flags,

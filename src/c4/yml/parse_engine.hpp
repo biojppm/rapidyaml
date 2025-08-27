@@ -441,13 +441,13 @@ public:
 public:
 
     /** @cond dev */
-    template<class U=EventHandler>
+    template<class U>
     RYML_DEPRECATED("moved to Tree::location(Parser const&). deliberately undefined here.")
-    typename std::enable_if<U::is_wtree, Location>::type location(Tree const&, id_type node) const;
+    auto location(Tree const&, id_type node) const -> typename std::enable_if<U::is_wtree, Location>::type;
 
-    template<class U=EventHandler>
+    template<class U>
     RYML_DEPRECATED("moved to ConstNodeRef::location(Parser const&), deliberately undefined here.")
-    typename std::enable_if<U::is_wtree, Location>::type location(ConstNodeRef const&) const;
+    auto location(ConstNodeRef const&) const -> typename std::enable_if<U::is_wtree, Location>::type;
     /** @endcond */
 
 public:
@@ -677,9 +677,6 @@ private:
     void _prepare_locations();
     void _resize_locations(size_t sz);
     bool _locations_dirty() const;
-
-    bool _location_from_cont(Tree const& tree, id_type node, Location *C4_RESTRICT loc) const;
-    bool _location_from_node(Tree const& tree, id_type node, Location *C4_RESTRICT loc, id_type level) const;
 
 private:
 

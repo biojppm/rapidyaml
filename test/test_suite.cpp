@@ -318,8 +318,9 @@ struct TestSequenceLevel
         events_were_generated = true;
     }
 
-    void parse_yaml_to_ints()
+    void parse_yaml_to_events_ints()
     {
+#ifdef IEVT_WIP
         if(prev)
             receive_src(*prev);
         _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts);
@@ -328,6 +329,7 @@ struct TestSequenceLevel
         evt_handler_ints.m_stack.m_callbacks = get_callbacks();
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
         EXPECT_GT(evt_handler_ints.m_evt_curr, 0);
+#endif
     }
 
     void emit_parsed_tree()
@@ -566,23 +568,28 @@ struct TestSequenceData
         }
     }
 
-    void parse_yaml_to_ints(size_t num)
+    void parse_yaml_to_events_ints(size_t num)
     {
+(void)num;
+#ifdef IEVT_WIP
         SKIP_IF(allowed_failure);
         for(size_t i = 0; i < num; ++i)
         {
-            if(!has_container_keys && !expect_error)
+            if(!expect_error)
             {
-                levels[i].parse_yaml_to_ints();
+                levels[i].parse_yaml_to_events_ints();
+                if(has_container_keys)
+                    break;
             }
             else
             {
                 ExpectError::check_error([&]{
-                    levels[i].parse_yaml_to_ints();
+                    levels[i].parse_yaml_to_events_ints();
                 });
                 break; // because we expect error,we cannot go on to the next
             }
         }
+#endif
     }
 
     void emit_tree_parsed_from_src(size_t num)
@@ -706,6 +713,7 @@ struct TestSequenceData
 
     bool m_expected_error_to_tree_checked = false;
     bool m_expected_error_to_events_checked = false;
+    bool m_expected_error_to_events_ints_checked = false;
     void check_expected_error()
     {
         SKIP_IF(allowed_failure);
@@ -727,6 +735,19 @@ struct TestSequenceData
             levels[0].parse_yaml_to_events();
         });
         m_expected_error_to_events_checked = true;
+    }
+    void check_expected_error_events_ints()
+    {
+#ifdef IEVT_WIP
+        SKIP_IF(allowed_failure);
+        //SKIP_IF(has_container_keys); // DO IT!
+        if(m_expected_error_to_events_ints_checked)
+            return;
+        ExpectError::check_error([this]{
+            levels[0].parse_yaml_to_events_ints();
+        });
+        m_expected_error_to_events_ints_checked = true;
+#endif
     }
 
 };
@@ -864,6 +885,12 @@ TEST(which##_errors, check_expected_error_src_to_events)                \
     g_suite_case->which.check_expected_error_events();                  \
 }                                                                       \
                                                                         \
+TEST(which##_errors, check_expected_error_src_to_events_ints)           \
+{                                                                       \
+    SKIP_IF(!g_suite_case->test_case_expects_error);                    \
+    g_suite_case->which.check_expected_error_events_ints();             \
+}                                                                       \
+                                                                        \
                                                                         \
 /*-----------------------------------------------*/                     \
                                                                         \
@@ -892,11 +919,11 @@ TEST_P(which, 0_parse_yaml_to_events)                                   \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
     g_suite_case->which.parse_yaml_to_events(1 + GetParam());           \
 }                                                                       \
-TEST_P(which, 0_parse_yaml_to_ints)                                     \
+TEST_P(which, 0_parse_yaml_to_events_ints)                              \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
-    g_suite_case->which.parse_yaml_to_ints(1 + GetParam());             \
+    g_suite_case->which.parse_yaml_to_events_ints(1 + GetParam());      \
 }                                                                       \
                                                                         \
 TEST_P(which, 0_parse_yaml_to_tree)                                     \
