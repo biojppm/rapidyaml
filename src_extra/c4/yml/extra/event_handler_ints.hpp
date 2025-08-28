@@ -8,6 +8,10 @@
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/detail/parser_dbg.hpp>
 
+#ifdef RYML_DBG
+#include <c4/bitmask.hpp>
+#endif
+
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
@@ -48,6 +52,7 @@ typedef enum : DataType {
     VAL_ = (1 << 20),  ///< as value
     EXPL = (1 << 21),  ///< --- (with BDOC) or
                        ///< ... (with EDOC)
+    PREV_HAS_STR = (1 << 22), ///< special flag to enable look back in the flag array
     // Utility flags
     LAST = EXPL,
     MASK = (LAST << 1) - 1,
@@ -82,10 +87,23 @@ inline C4_NO_INLINE symbol const* symbols(size_t *num_symbols) noexcept
         {BSTR, "BSTR"},
         {ESTR, "ESTR"},
         {EXPL, "EXPL"},
+        {PREV_HAS_STR, "PSCL"},
     };
     *num_symbols = sizeof(syms) / sizeof(syms[0]);
     return syms;
 }
+
+#ifdef RYML_DBG
+inline csubstr mkstring(c4::yml::extra::ievt::DataType flags, substr buf)
+{
+    using namespace yml::extra;
+    size_t reqsize = c4::bm2str<ievt::EventFlags>((flags & ievt::MASK), buf.str, buf.len);
+    C4_CHECK(reqsize > 0u);
+    C4_CHECK(reqsize < buf.len);
+    return buf.first(reqsize -1u);
+}
+#endif
+
 } // namespace ievt
 
 
@@ -261,6 +279,7 @@ public:
             _c4dbgp("pop!");
             _pop();
         }
+        m_has_yaml_directive = false;
     }
 
     /** @} */
@@ -418,7 +437,7 @@ public:
     {
         if(m_evt_prev < m_evt_size)
         {
-            // interpolate BMAP after the last BDOC
+            // interpolate BMAP|VAL|BLCK after the last BDOC
             int32_t pos = _find_last_bdoc();
             if(pos >= 0)
             {
@@ -427,10 +446,15 @@ public:
                 _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC));
                 if(m_evt_curr < m_evt_size)
                 {
-                    ++pos; // add 1 to write after
-                    int32_t *src = m_evt + pos;
+                    ++pos; // add 1 to write after BDOC
                     int32_t num_move = m_evt_curr - pos;
-                    memmove(src + 1, src, (size_t)num_move * sizeof(src[0]));
+                    int32_t *src = m_evt + pos;
+                    int32_t *dst = src + 1;
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, (*src & (ievt::BSEQ|ievt::BMAP)));
+                    memmove(dst, src, (size_t)num_move * sizeof(src[0]));
+                    *src = ievt::VAL_|ievt::BMAP|ievt::BLCK;
+                    *dst &= ~ievt::VAL_;
+                    *dst |= ievt::KEY_;
                 }
             }
         }
@@ -446,10 +470,11 @@ public:
         // save the position of each event (or add a backward-looking
         // HAS_STR_B)
         int32_t pos = -1;
-        for(int32_t i = 0; i <= m_evt_prev; ++i)
+        for(int32_t i = 0; i <= m_evt_prev; )
         {
-            if((m_evt[i] & ievt::BDOC))
+            if((m_evt[i] & ievt::BDOC) != 0)
                 pos = i;
+            i += (m_evt[i] & ievt::HAS_STR) ? 3 : 1;
         }
         return pos;
         /*
@@ -487,7 +512,7 @@ public:
     C4_ALWAYS_INLINE csubstr _get_latest_empty_scalar() const
     {
         // ideally we should search back in the latest event that has
-        // a scalar, than select a zero-length scalar immediately
+        // a scalar, then select a zero-length scalar immediately
         // after that scalar. But this also works for now:
         return m_str.first(0);
     }
@@ -642,6 +667,7 @@ public:
 
     void set_key_tag(csubstr tag)
     {
+        _c4dbgpf("{}/{}: set key tag ~~~{}~~~", m_evt_curr, m_evt_size, tag);
         _enable_(c4::yml::KEYTAG);
         csubstr ttag = _transform_directive(tag, m_key_tag_buf);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !ttag.empty());
@@ -657,11 +683,15 @@ public:
     }
     void set_val_tag(csubstr tag)
     {
+        _c4dbgpf("{}/{}: set val tag ~~~{}~~~", m_evt_curr, m_evt_size, tag);
         _enable_(c4::yml::VALTAG);
+        _c4dbgpf("{}/{}: wtf0", m_evt_curr, m_evt_size);
         csubstr ttag = _transform_directive(tag, m_val_tag_buf);
+        _c4dbgpf("{}/{}: wtf1", m_evt_curr, m_evt_size);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !ttag.empty());
         if(ttag.begins_with('!') && !ttag.begins_with("!!"))
             ttag = ttag.sub(1);
+        _c4dbgpf("{}/{}: wtf2", m_evt_curr, m_evt_size);
         if(m_evt_curr + 2 < m_evt_size)
         {
             m_evt[m_evt_curr] = ievt::VAL_|ievt::TAG_;
@@ -669,6 +699,7 @@ public:
         }
         m_evt_prev = m_evt_curr;
         m_evt_curr += 3;
+        _c4dbgpf("{}/{}: wtf3", m_evt_curr, m_evt_size);
     }
 
     /** @} */
@@ -680,6 +711,7 @@ public:
 
     void add_directive(csubstr directive)
     {
+        _c4dbgpf("{}/{}: add directive ~~~{}~~~", m_evt_curr, m_evt_size, directive);
         _RYML_CB_ASSERT(m_stack.m_callbacks, directive.begins_with('%'));
         if(directive.begins_with("%TAG"))
         {
@@ -834,17 +866,9 @@ public:
     }
     csubstr _transform_directive(csubstr tag, substr output)
     {
-        if(tag.begins_with("!!"))
-        {
+        _c4dbgpf("{}/{}: wtf1", m_evt_curr, m_evt_size);
+        if(tag.begins_with('!'))
             return tag;
-        }
-        else if(tag.begins_with('!'))
-        {
-            if(c4::yml::is_custom_tag(tag))
-            {
-                _RYML_CB_ERR_(m_stack.m_callbacks, "tag not found", m_curr->pos);
-            }
-        }
         csubstr result = c4::yml::normalize_tag_long(tag, output);
         _RYML_CB_CHECK(m_stack.m_callbacks, result.len > 0);
         _RYML_CB_CHECK(m_stack.m_callbacks, result.str);

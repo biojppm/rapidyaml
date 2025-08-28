@@ -66,7 +66,7 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
                                           csubstr parsed_source,
                                           const char *file, int line)
 {
-    RYML_TRACE_FMT("defined in:\n{}:{}\n", file, line);
+    RYML_TRACE_FMT("defined in:\n{}:{}:\n", file, line);
     int status = true;
     size_t num_ints_expected = num_ints(expected, expected_sz);
 
@@ -75,34 +75,35 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
 
     char actualbuf[100];(void)actualbuf;
     char expectedbuf[100];(void)expectedbuf;
-    for(size_t i = 0, ie = 0; ie < expected_sz; ++ie)
+    for(size_t ia = 0, ie = 0; ie < expected_sz; ++ie)
     {
-        EXPECT_LT(i, actual_sz);
-        if (i >= actual_sz)
+        EXPECT_LT(ia, actual_sz);
+        if (ia >= actual_sz)
             break;
 #define _test_eq(lhs, rhs, fmt, ...)                            \
     do                                                          \
     {                                                           \
-        _c4dbgpf("status={} cmp={} evt={} i={}: {}={} {}={} " fmt, status, (lhs == rhs), ie, i, #lhs, lhs, #rhs, rhs, __VA_ARGS__); \
+        _c4dbgpf("status={} cmp={} ie={} ia={}: {}={} == {}={} " fmt, \
+            status, (lhs == rhs), ie, ia, #lhs, lhs, rhs, #rhs, __VA_ARGS__); \
         status &= int(lhs == rhs);                              \
         EXPECT_EQ(lhs, rhs);                                    \
     } while(0)
-        _test_eq(actual[i], expected[ie].flags,
-                 "actual={} expected={}",
-                 mkstring(actual[i], actualbuf),
-                 mkstring(expected[ie].flags, expectedbuf));
-        if((expected[ie].flags & ievt::HAS_STR) && (actual[i] & ievt::HAS_STR))
+        csubstr sactual = mkstring(actual[ia], actualbuf);
+        csubstr sexpect = mkstring(expected[ie].flags, expectedbuf);
+        _test_eq(actual[ia], expected[ie].flags, "", 0);
+        _test_eq(sactual, sexpect, "", 0);
+        if((expected[ie].flags & ievt::HAS_STR) && (actual[ia] & ievt::HAS_STR))
         {
-            _test_eq(expected[ie].str_start, actual[i + 1], "", 0);
-            _test_eq(expected[ie].str_len, actual[i + 2], "", 0);
-            bool safeactual = (i + 2 < actual_sz) && (actual[i + 1] < (int)parsed_source.len && actual[i + 1] + actual[i + 2] <= (int)parsed_source.len);
+            _test_eq(expected[ie].str_start, actual[ia + 1], "", 0);
+            _test_eq(expected[ie].str_len, actual[ia + 2], "", 0);
+            bool safeactual = (ia + 2 < actual_sz) && (actual[ia + 1] < (int)parsed_source.len && actual[ia + 1] + actual[ia + 2] <= (int)parsed_source.len);
             bool safeexpected = (expected[ie].str_start < (int)parsed_source.len && expected[ie].str_start + expected[ie].str_len <= (int)parsed_source.len);
             _test_eq(safeactual, true, "", 0);
             _test_eq(safeactual, safeexpected, "", 0);
             if(safeactual && safeexpected)
             {
                 csubstr evtstr = parsed_source.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len);
-                csubstr actualstr = parsed_source.sub((size_t)actual[i + 1], (size_t)actual[i + 2]);
+                csubstr actualstr = parsed_source.sub((size_t)actual[ia + 1], (size_t)actual[ia + 2]);
                 _test_eq(expected[ie].scalar, actualstr,
                          "   ref=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
                          expected[ie].scalar.len, expected[ie].scalar,
@@ -116,7 +117,7 @@ inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, si
                 }
             }
         }
-        i += (actual[i] & ievt::HAS_STR) ? 3u : 1u;
+        ia += (actual[ia] & ievt::HAS_STR) ? 3u : 1u;
     }
     RYML_TRACE_FMT("input:[{}]~~~{}~~~\n"
                    "parsed:[{}]~~~{}~~~\n",

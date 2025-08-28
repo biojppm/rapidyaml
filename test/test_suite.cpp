@@ -165,6 +165,7 @@ struct TestSequenceLevel
     bool tree_was_emitted = false;
     bool tree_was_emitted_json = false;
     bool events_were_generated = false;
+    bool events_ints_were_generated = false;
 
     TestSequenceLevel()
         : evt_handler_tree()
@@ -195,6 +196,7 @@ struct TestSequenceLevel
         tree_was_emitted = false;
         tree_was_emitted_json = false;
         events_were_generated = false;
+        events_ints_were_generated = false;
     }
 
     void receive_src(TestSequenceLevel & prev_)
@@ -210,6 +212,7 @@ struct TestSequenceLevel
             tree_was_parsed = false;
             tree_was_emitted = false;
             events_were_generated = false;
+            events_ints_were_generated = false;
             src_tree = prev_.emitted_from_tree_parsed_from_src;
             src_evts = src_tree;
             src_evts_ints = src_tree;
@@ -320,14 +323,17 @@ struct TestSequenceLevel
 
     void parse_yaml_to_events_ints()
     {
+        if(events_ints_were_generated)
+            return;
         if(prev)
             receive_src(*prev);
-        _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts);
+        _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts_ints);
         buffer_ints.resize(32);
         evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)buffer_ints.size());
         evt_handler_ints.m_stack.m_callbacks = get_callbacks();
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
         EXPECT_GT(evt_handler_ints.m_evt_curr, 0);
+        events_ints_were_generated = true;
     }
 
     void emit_parsed_tree()

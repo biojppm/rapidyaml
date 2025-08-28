@@ -308,6 +308,62 @@ const IntEventsCase test_cases[] = {
            e(EDOC),
            e(ESTR),
        }),
+    // case -------------------------------------------------
+    tc(""
+       "---\n"
+       "plain: a\n"
+       " b\n"
+       "\n"
+       " c\n"
+       ,
+       {
+           e(BSTR),
+           e(BDOC|EXPL),
+           e(VAL_|BMAP|BLCK),
+           e(KEY_|SCLR|PLAI, 4, 5, "plain"),
+           e(VAL_|SCLR|PLAI, 11, 5, "a b\nc"),
+           e(EMAP),
+           e(EDOC),
+           e(ESTR),
+       }),
+    // case -------------------------------------------------
+    tc("{key: map}: [seq, val]"
+       ,
+       {
+           e(BSTR),
+           e(BDOC),
+           e(VAL_|BMAP|BLCK),
+           e(KEY_|BMAP|FLOW),
+           e(KEY_|SCLR|PLAI, 1, 3, "key"),
+           e(VAL_|SCLR|PLAI, 6, 3, "map"),
+           e(EMAP),
+           e(VAL_|BSEQ|FLOW),
+           e(VAL_|SCLR|PLAI, 13, 3, "seq"),
+           e(VAL_|SCLR|PLAI, 18, 3, "val"),
+           e(ESEQ),
+           e(EMAP),
+           e(EDOC),
+           e(ESTR),
+       }),
+    // case -------------------------------------------------
+    tc("[key, seq]: {map: val}"
+       ,
+       {
+           e(BSTR),
+           e(BDOC),
+           e(VAL_|BMAP|BLCK),
+           e(KEY_|BSEQ|FLOW),
+           e(VAL_|SCLR|PLAI, 1, 3, "key"),
+           e(VAL_|SCLR|PLAI, 6, 3, "seq"),
+           e(ESEQ),
+           e(VAL_|BMAP|FLOW),
+           e(KEY_|SCLR|PLAI, 13, 3, "map"),
+           e(VAL_|SCLR|PLAI, 18, 3, "val"),
+           e(EMAP),
+           e(EMAP),
+           e(EDOC),
+           e(ESTR),
+       }),
 };
 
 
@@ -361,7 +417,7 @@ struct IntEventsTest : public testing::TestWithParam<IntEventsCase>
     // force an ascii name (some characters in the parameter are UTF8)
     static std::string name2str(const testing::TestParamInfo<ParamType>& info)
     {
-        std::string s = c4::catrs<std::string>(to_csubstr(info.param.file), ':', info.param.line);
+        std::string s = c4::catrs<std::string>("line_", info.param.line);
         for (char &c : s)
             if (!std::isalnum(c))
                 c = '_';
