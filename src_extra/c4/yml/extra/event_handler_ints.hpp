@@ -408,9 +408,60 @@ public:
         _push();
     }
 
+    /** like its flow counterpart, but this function can only be
+     * called after the end of a flow-val at root or doc level.
+     *
+     * See the documentation for @ref doc_event_handlers, which has
+     * important notes about this event.
+     */
     void actually_val_is_first_key_of_new_map_block()
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "container keys not supported");
+        if(m_evt_prev < m_evt_size)
+        {
+            // interpolate BMAP after the last BDOC
+            int32_t pos = _find_last_bdoc();
+            if(pos >= 0)
+            {
+                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_curr);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC));
+                if(m_evt_curr < m_evt_size)
+                {
+                    ++pos; // add 1 to write after
+                    int32_t *src = m_evt + pos;
+                    int32_t num_move = m_evt_curr - pos;
+                    memmove(src + 1, src, (size_t)num_move * sizeof(src[0]));
+                }
+            }
+        }
+        ++m_curr->evt_id;
+        ++m_evt_prev;
+        ++m_evt_curr;
+        _push();
+    }
+    int32_t _find_last_bdoc() const
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt_prev < m_evt_size); // it's safe to read from the array
+        // we have to do a linear search from the beginning, unless we
+        // save the position of each event (or add a backward-looking
+        // HAS_STR_B)
+        int32_t pos = -1;
+        for(int32_t i = 0; i <= m_evt_prev; ++i)
+        {
+            if((m_evt[i] & ievt::BDOC))
+                pos = i;
+        }
+        return pos;
+        /*
+        while(pos >= 0)
+        {
+            ievt::DataType e = m_evt[pos];
+            if(e & ievt::BDOC)
+                return pos;
+            pos -= (e & ievt::HAS_STR_B) ? 3 : 1;
+        }
+        return -1;
+        */
     }
 
     /** @} */
