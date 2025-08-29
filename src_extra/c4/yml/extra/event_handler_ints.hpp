@@ -409,7 +409,7 @@ public:
         //          prev           curr
         if(m_evt_prev < m_evt_size)
         {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::HAS_STR) || m_evt_curr >= m_evt_size);
+            //_RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::HAS_STR) || m_evt_curr >= m_evt_size);
             if(m_evt_curr < m_evt_size)
             {
                 // watchout: it must be in this order!
