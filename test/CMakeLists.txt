@@ -52,7 +52,7 @@ function(ryml_add_test_case_group name)
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
 endfunction()
 
-c4_add_library(ryml-_evt_handler_extra LIBRARY_STATIC
+c4_add_library(ryml-_evt_handler LIBRARY_STATIC
     SOURCES
        test_lib/test_events_int.hpp
        test_lib/test_engine.hpp
@@ -62,14 +62,14 @@ c4_add_library(ryml-_evt_handler_extra LIBRARY_STATIC
        ../src_extra/c4/yml/extra/event_handler_ints.cpp
        ../src_extra/c4/yml/extra/event_handler_ints.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
-    LIBS ryml gtest
+    LIBS ryml ryml-_testlib gtest
     FOLDER test
 )
 if(RYML_DBG)
-    target_compile_definitions(ryml-_evt_handler_extra PUBLIC RYML_DBG)
+    target_compile_definitions(ryml-_evt_handler PUBLIC RYML_DBG)
 endif()
 function(ryml_add_engine_test name)
-    ryml_add_test(${name} ryml-_evt_handler_extra)
+    ryml_add_test(${name} ryml-_evt_handler)
 endfunction()
 
 
