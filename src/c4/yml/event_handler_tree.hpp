@@ -766,4 +766,4 @@ public:
 // NOLINTEND(hicpp-signed-bitwise)
 C4_SUPPRESS_WARNING_MSVC_POP
 
-#endif /* _C4_YML_EVENT_HANDLER_TREE_HPP_ */
+#endif /* _C4_YML_EVT_EVENT_HANDLER_TREE_HPP_ */

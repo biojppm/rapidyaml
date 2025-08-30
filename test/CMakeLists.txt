@@ -19,11 +19,15 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_case_node.cpp
        test_lib/test_case.hpp
        test_lib/test_case.cpp
-       test_lib/test_engine.hpp
-       test_lib/test_engine.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
     LIBS ryml c4fs gtest
     FOLDER test)
+if(BUILD_SHARED_LIBS)
+    # this is needed to resolve get_case() because it is provided by
+    # the test linking to this library
+    set_target_properties(ryml-_testlib PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+endif()
 if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
 endif()
@@ -54,19 +58,25 @@ function(ryml_add_test_case_group name)
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
 endfunction()
 
-
-c4_add_library(ryml-_evt_handler_yaml_std LIBRARY_STATIC
+c4_add_library(ryml-_evt_handler LIBRARY_STATIC
     SOURCES
-       test_suite/test_suite_event_handler.cpp
-       test_suite/test_suite_event_handler.hpp
-    LIBS ryml
+       test_lib/test_engine.hpp
+       test_lib/test_engine.cpp
+       test_lib/test_events_int.hpp
+       test_lib/test_events_int.cpp
+       ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
+       ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
+       ../src_extra/c4/yml/extra/event_handler_ints.cpp
+       ../src_extra/c4/yml/extra/event_handler_ints.hpp
+    INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
+    LIBS ryml ryml-_testlib gtest
     FOLDER test
 )
 if(RYML_DBG)
-    target_compile_definitions(ryml-_evt_handler_yaml_std PUBLIC RYML_DBG)
+    target_compile_definitions(ryml-_evt_handler PUBLIC RYML_DBG)
 endif()
 function(ryml_add_engine_test name)
-    ryml_add_test(${name} ryml-_evt_handler_yaml_std)
+    ryml_add_test(${name} ryml-_evt_handler)
 endfunction()
 
 
@@ -79,6 +89,7 @@ ryml_add_engine_test(parse_engine_6_qmrk)
 ryml_add_engine_test(parse_engine_7_seqimap)
 ryml_add_engine_test(parse_engine_8_scalars_tokens)
 ryml_add_engine_test(yaml_events)
+ryml_add_engine_test(int_events)
 ryml_add_test(version)
 ryml_add_test(callbacks)
 ryml_add_test(stack)
@@ -217,13 +228,16 @@ if(RYML_TEST_SUITE)
             test_suite.cpp
             test_suite/test_suite_common.hpp
             test_suite/test_suite_events_emitter.cpp
-            test_suite/test_suite_event_handler.cpp
-            test_suite/test_suite_event_handler.hpp
+            ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
+            ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
+            ../src_extra/c4/yml/extra/event_handler_ints.cpp
+            ../src_extra/c4/yml/extra/event_handler_ints.hpp
             test_suite/test_suite_events.cpp
             test_suite/test_suite_events.hpp
             test_suite/test_suite_parts.cpp
             test_suite/test_suite_parts.hpp
         LIBS ryml-_testlib c4log
+        INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
 
@@ -311,7 +325,7 @@ if(RYML_TEST_FUZZ)
                 test_fuzz/test_fuzz_${name}.cpp
                 test_fuzz/test_fuzz_main.cpp
                 ${ARGN}
-            INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+            INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
             LIBS ryml c4fs
             FOLDER test/fuzz)
         if(RYML_DBG)
@@ -331,6 +345,8 @@ if(RYML_TEST_FUZZ)
     endfunction()
     ryml_add_fuzz_test(parse_emit)
     ryml_add_fuzz_test(events
-        ../test/test_suite/test_suite_event_handler.hpp
-        ../test/test_suite/test_suite_event_handler.cpp)
+        ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
+        ../src_extra/c4/yml/extra/event_handler_test_suite.cpp)
+    ryml_add_fuzz_test(events_ints
+        ../src_extra/c4/yml/extra/event_handler_ints.hpp)
 endif()
