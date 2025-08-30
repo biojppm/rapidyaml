@@ -72,9 +72,9 @@ typedef enum : DataType {
     // Utility flags
     LAST = EXPL,
     MASK = (LAST << 1) - 1,
-    /// the event requires a string. the next two integers will provide
-    /// respectively the string's offset and length
-    HAS_STR = SCLR|ALIA|ANCH|TAG_,
+    /// with string: the event has a string. the next two integers
+    /// will provide respectively the string's offset and length
+    WSTR = SCLR|ALIA|ANCH|TAG_,
     /// special flag to enable look back in the flag array
     PSTR = (1 << 22),
 } EventFlags;
@@ -497,7 +497,7 @@ public:
         {
             if((m_evt[i] & ievt::BDOC) != 0)
                 pos = i;
-            i += (m_evt[i] & ievt::HAS_STR) ? 3 : 1;
+            i += (m_evt[i] & ievt::WSTR) ? 3 : 1;
         }
         return pos;
         /*
@@ -627,7 +627,7 @@ public:
 #define _add_scalar_(i, scalar)                                     \
     _c4dbgpf("{}/{}: scalar!", i, m_evt_size);                      \
     _RYML_CB_ASSERT(m_stack.m_callbacks, scalar.is_sub(m_str));     \
-    _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt[i] & ievt::HAS_STR);  \
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt[i] & ievt::WSTR);  \
     _RYML_CB_ASSERT(m_stack.m_callbacks, i + 2 < m_evt_size);       \
     m_evt[i + 1] = (ievt::DataType)(scalar.str - m_str.str);         \
     m_evt[i + 2] = (ievt::DataType)scalar.len

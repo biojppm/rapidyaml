@@ -22,6 +22,12 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
     LIBS ryml c4fs gtest
     FOLDER test)
+if(BUILD_SHARED_LIBS)
+    # this is needed to resolve get_case() because it is provided by
+    # the test linking to this library
+    set_target_properties(ryml-_testlib PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+endif()
 if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
 endif()
@@ -54,9 +60,10 @@ endfunction()
 
 c4_add_library(ryml-_evt_handler LIBRARY_STATIC
     SOURCES
-       test_lib/test_events_int.hpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
+       test_lib/test_events_int.hpp
+       test_lib/test_events_int.cpp
        ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
        ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
        ../src_extra/c4/yml/extra/event_handler_ints.cpp

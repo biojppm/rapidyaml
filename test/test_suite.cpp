@@ -7,6 +7,7 @@
 #include <c4/yml/detail/checks.hpp>
 #endif
 #include "test_lib/test_case.hpp"
+#include "test_lib/test_events_int.hpp"
 #include "test_suite/test_suite_common.hpp"
 #include "test_suite/test_suite_parts.hpp"
 #include "test_suite/test_suite_events.hpp"
@@ -137,6 +138,7 @@ struct TestSequenceLevel
     size_t              level;
     TestSequenceLevel   *prev;
     csubstr             filename;
+    std::string         src_orig;
     std::string         src_tree;
     std::string         src_tree_json;
     std::string         src_evts;
@@ -187,6 +189,7 @@ struct TestSequenceLevel
         prev = prev_;
         filename = filename_;
         src_tree.assign(src_.begin(), src_.end());
+        src_orig = src_tree;
         src_evts = src_tree;
         src_evts_ints = src_tree;
         immutable = immutable_;
@@ -329,9 +332,22 @@ struct TestSequenceLevel
             receive_src(*prev);
         _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts_ints);
         buffer_ints.resize(32);
-        evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)buffer_ints.size());
         evt_handler_ints.m_stack.m_callbacks = get_callbacks();
+        evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)buffer_ints.size());
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
+        size_t sz = (size_t)evt_handler_ints.m_evt_curr;
+        if (buffer_ints.size() < sz)
+        {
+            buffer_ints.resize(sz);
+            src_evts_ints = src_orig;
+            evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)buffer_ints.size());
+            parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
+            size_t sz2 = (size_t)evt_handler_ints.m_evt_curr;
+            ASSERT_EQ(sz2, sz);
+            sz = sz2;
+        }
+        ASSERT_LE(sz, buffer_ints.size());
+        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)sz);
         EXPECT_GT(evt_handler_ints.m_evt_curr, 0);
         events_ints_were_generated = true;
     }

@@ -17,6 +17,7 @@ struct IntEventsCase
 
     void testeq(ievt::DataType const* actual, size_t actual_size, csubstr parsed_source) const
     {
+        test_events_ints_invariants(parsed_source, actual, (ievt::DataType)actual_size);
         test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, file, line);
     }
 };

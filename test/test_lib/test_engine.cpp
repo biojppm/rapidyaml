@@ -91,13 +91,6 @@ void test_new_parser_events_from_yaml(ReferenceYaml const& yaml, std::string con
 
 void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml)
 {
-    if(!yaml.expected_ints_enabled)
-        return;
-    if(yaml.test_case_flags & HAS_CONTAINER_KEYS) // TODO
-    {
-        test_expected_error_events_ints_from_yaml(yaml.parsed, yaml.expected_error_location);
-        return;
-    }
     extra::EventHandlerInts handler{};
     using IntType = extra::ievt::DataType;
     std::vector<IntType> actual_evts(num_ints(yaml.expected_ints.data(), yaml.expected_ints.size()));
@@ -105,10 +98,13 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml)
     ParseEngine<extra::EventHandlerInts> parser(&handler);
     std::string copy = yaml.parsed;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
-    test_events_ints(yaml.expected_ints.data(), yaml.expected_ints.size(),
-                     actual_evts.data(), actual_evts.size(),
-                     to_csubstr(yaml.parsed), to_csubstr(copy),
-                     __FILE__, __LINE__); // FIXME
+    if (yaml.expected_ints_enabled)
+    {
+        test_events_ints(yaml.expected_ints.data(), yaml.expected_ints.size(),
+                         actual_evts.data(), actual_evts.size(),
+                         to_csubstr(yaml.parsed), to_csubstr(copy),
+                         __FILE__, __LINE__); // FIXME
+    }
 }
 
 void test_new_parser_tree_from_yaml(ReferenceYaml const& yaml)
@@ -156,10 +152,6 @@ void test_new_parser_events_from_yaml_with_comments(ReferenceYaml const& yaml, s
 
 void test_new_parser_events_ints_from_yaml_with_comments(ReferenceYaml const& yaml)
 {
-    if(!yaml.expected_ints_enabled)
-        return;
-    if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
-        return;
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
     ReferenceYaml transformed = yaml;

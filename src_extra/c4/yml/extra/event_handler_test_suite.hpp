@@ -30,6 +30,7 @@ namespace extra {
 /** @addtogroup doc_event_handlers
  * @{ */
 
+size_t append_escaped(substr s, csubstr val);
 void append_escaped(extra::string *s, csubstr val);
 
 

@@ -2,8 +2,10 @@
 #define _TEST_EVENTS_INTS_HPP_
 
 #include <c4/yml/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/event_handler_test_suite.hpp>
 #include <c4/bitmask.hpp>
 #include <gtest/gtest.h>
+
 
 namespace c4 {
 using EventFlags = c4::yml::extra::ievt::EventFlags;
@@ -48,7 +50,7 @@ struct IntEventWithScalar
         , needs_filter(needs_filter_)
     {
     }
-    size_t required_size() const { return (flags & ievt::HAS_STR) ? 3u : 1u; }
+    size_t required_size() const { return (flags & ievt::WSTR) ? 3u : 1u; }
 };
 
 
@@ -60,72 +62,22 @@ inline C4_NO_INLINE size_t num_ints(IntEventWithScalar const *evt, size_t evt_si
     return sz;
 }
 
-inline C4_NO_INLINE void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
-                                          ievt::DataType const* actual, size_t actual_sz,
-                                          csubstr yaml,
-                                          csubstr parsed_source,
-                                          const char *file, int line)
-{
-    RYML_TRACE_FMT("defined in:\n{}:{}:\n", file, line);
-    int status = true;
-    size_t num_ints_expected = num_ints(expected, expected_sz);
+void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
+                      ievt::DataType const* actual, size_t actual_sz,
+                      csubstr yaml,
+                      csubstr parsed_source,
+                      const char *file, int line);
 
-    EXPECT_EQ(actual_sz, num_ints_expected);
-    status = (actual_sz == num_ints_expected);
+void test_events_ints_invariants(
+    csubstr parsed_yaml,
+    ievt::DataType const* evts_ints,
+    ievt::DataType evts_ints_sz);
 
-    char actualbuf[100];(void)actualbuf;
-    char expectedbuf[100];(void)expectedbuf;
-    for(size_t ia = 0, ie = 0; ie < expected_sz; ++ie)
-    {
-        EXPECT_LT(ia, actual_sz);
-        if (ia >= actual_sz)
-            break;
-#define _test_eq(lhs, rhs, fmt, ...)                            \
-    do                                                          \
-    {                                                           \
-        _c4dbgpf("status={} cmp={} ie={} ia={}: {}={} == {}={} " fmt, \
-            status, (lhs == rhs), ie, ia, #lhs, lhs, rhs, #rhs, __VA_ARGS__); \
-        status &= int(lhs == rhs);                              \
-        EXPECT_EQ(lhs, rhs);                                    \
-    } while(0)
-        csubstr sactual = mkstring(actual[ia], actualbuf);
-        csubstr sexpect = mkstring(expected[ie].flags, expectedbuf);
-        _test_eq(actual[ia], expected[ie].flags, "", 0);
-        _test_eq(sactual, sexpect, "", 0);
-        if((expected[ie].flags & ievt::HAS_STR) && (actual[ia] & ievt::HAS_STR))
-        {
-            _test_eq(expected[ie].str_start, actual[ia + 1], "", 0);
-            _test_eq(expected[ie].str_len, actual[ia + 2], "", 0);
-            bool safeactual = (ia + 2 < actual_sz) && (actual[ia + 1] < (int)parsed_source.len && actual[ia + 1] + actual[ia + 2] <= (int)parsed_source.len);
-            bool safeexpected = (expected[ie].str_start < (int)parsed_source.len && expected[ie].str_start + expected[ie].str_len <= (int)parsed_source.len);
-            _test_eq(safeactual, true, "", 0);
-            _test_eq(safeactual, safeexpected, "", 0);
-            if(safeactual && safeexpected)
-            {
-                csubstr evtstr = parsed_source.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len);
-                csubstr actualstr = parsed_source.sub((size_t)actual[ia + 1], (size_t)actual[ia + 2]);
-                _test_eq(expected[ie].scalar, actualstr,
-                         "   ref=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
-                         expected[ie].scalar.len, expected[ie].scalar,
-                         actualstr.len, actualstr);
-                if( ! expected[ie].needs_filter)
-                {
-                    _test_eq(evtstr, actualstr,
-                             "   exp=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
-                             evtstr.len, evtstr,
-                             actualstr.len, actualstr);
-                }
-            }
-        }
-        ia += (actual[ia] & ievt::HAS_STR) ? 3u : 1u;
-    }
-    RYML_TRACE_FMT("input:[{}]~~~{}~~~\n"
-                   "parsed:[{}]~~~{}~~~\n",
-                   yaml.len, yaml,
-                   parsed_source.len, parsed_source);
-    EXPECT_TRUE(status);
-}
-
+size_t emit_events_test_suite_from_ints(
+    csubstr parsed_yaml,
+    ievt::DataType const* evts_ints,
+    ievt::DataType evts_ints_sz,
+    substr evts_test_suite);
 
 } // namespace extra
 } // namespace yml
