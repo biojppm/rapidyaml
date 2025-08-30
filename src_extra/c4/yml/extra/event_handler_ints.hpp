@@ -1,20 +1,37 @@
+#pragma once
 #ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #define _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
+#ifndef _C4_YML_NODE_TYPE_HPP_
 #include <c4/yml/node_type.hpp>
-#include <c4/yml/parse_engine.hpp>
-#include <c4/yml/event_handler_stack.hpp>
+#endif
+#ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
+#include "c4/yml/event_handler_stack.hpp"
+#endif
+#ifndef _C4_YML_TAG_HPP_
 #include <c4/yml/tag.hpp>
-#include <c4/yml/std/string.hpp>
+#endif
+#ifndef _C4_YML_DETAIL_PARSER_DBG_HPP_
 #include <c4/yml/detail/parser_dbg.hpp>
+#endif
+#endif
 
+#ifndef _C4_YML_EXTRA_STRING_HPP_
+#include "c4/yml/extra/string.hpp"
+#endif
 #ifdef RYML_DBG
+#ifndef _C4_BITMASK_HPP_
 #include <c4/bitmask.hpp>
+#endif
 #endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+// NOLINTBEGIN(hicpp-signed-bitwise)
 
 
 namespace c4 {
@@ -52,14 +69,16 @@ typedef enum : DataType {
     VAL_ = (1 << 20),  ///< as value
     EXPL = (1 << 21),  ///< --- (with BDOC) or
                        ///< ... (with EDOC)
-    PREV_HAS_STR = (1 << 22), ///< special flag to enable look back in the flag array
     // Utility flags
     LAST = EXPL,
     MASK = (LAST << 1) - 1,
     /// the event requires a string. the next two integers will provide
     /// respectively the string's offset and length
-    HAS_STR = SCLR|ALIA|ANCH|TAG_
+    HAS_STR = SCLR|ALIA|ANCH|TAG_,
+    /// special flag to enable look back in the flag array
+    PSTR = (1 << 22),
 } EventFlags;
+
 
 struct symbol { EventFlags value; const char* name; };
 inline C4_NO_INLINE symbol const* symbols(size_t *num_symbols) noexcept
@@ -87,7 +106,7 @@ inline C4_NO_INLINE symbol const* symbols(size_t *num_symbols) noexcept
         {BSTR, "BSTR"},
         {ESTR, "ESTR"},
         {EXPL, "EXPL"},
-        {PREV_HAS_STR, "PSCL"},
+        {PSTR, "PSTR"},
     };
     *num_symbols = sizeof(syms) / sizeof(syms[0]);
     return syms;
@@ -106,6 +125,10 @@ inline csubstr mkstring(c4::yml::extra::ievt::DataType flags, substr buf)
 
 } // namespace ievt
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 struct EventHandlerIntsState : public c4::yml::ParserState
 {
@@ -135,7 +158,7 @@ public:
     int32_t m_evt_size;
     char m_key_tag_buf[256];
     char m_val_tag_buf[256];
-    std::string m_arena;
+    extra::string m_arena;
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
     bool m_has_yaml_directive;
     bool m_has_docs;
@@ -744,7 +767,7 @@ public:
     substr alloc_arena(size_t len)
     {
         const size_t sz = m_arena.size();
-        csubstr prev = to_csubstr(m_arena);
+        csubstr prev = m_arena;
         m_arena.resize(sz + len);
         substr out = to_substr(m_arena).sub(sz);
         substr curr = to_substr(m_arena);
@@ -755,7 +778,7 @@ public:
 
     substr alloc_arena(size_t len, substr *relocated)
     {
-        csubstr prev = to_csubstr(m_arena);
+        csubstr prev = m_arena;
         if(!prev.is_super(*relocated))
             return alloc_arena(len);
         substr out = alloc_arena(len);
@@ -866,7 +889,6 @@ public:
     }
     csubstr _transform_directive(csubstr tag, substr output)
     {
-        _c4dbgpf("{}/{}: wtf1", m_evt_curr, m_evt_size);
         if(tag.begins_with('!'))
             return tag;
         csubstr result = c4::yml::normalize_tag_long(tag, output);
@@ -886,6 +908,7 @@ public:
 } // namespace c4
 
 
+// NOLINTEND(hicpp-signed-bitwise)
 C4_SUPPRESS_WARNING_GCC_POP
 
 #endif /* _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_ */

@@ -20,17 +20,23 @@ struct IntEventsCase
         test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, file, line);
     }
 };
-
+// this is required to work around a valgrind problem in gtest's
+// printing of the test byte contents. We use the opportunity to print
+// a line showing the location where the test case was defined.
+std::ostream& operator<<(std::ostream& os, const IntEventsCase& that)
+{
+    return os << "line[" << that.line << "]:\n" << that.file << ":" << that.line << ": (here)";
+}
 
 
 //-----------------------------------------------------------------------------
 
-// make the declarations shorter
-#define tc(ys, ...) IntEventsCase{__FILE__, __LINE__, ys, std::vector<IntEventWithScalar>(__VA_ARGS__)}
-#define e(...) IntEventWithScalar{__VA_ARGS__}
 using namespace ievt;
 const bool needs_filter = true;
 const IntEventsCase test_cases[] = {
+    // make the declarations shorter
+    #define e(...) IntEventWithScalar{__VA_ARGS__}
+    #define tc(ys, ...) IntEventsCase{__FILE__, __LINE__, ys, std::initializer_list<IntEventWithScalar>(__VA_ARGS__)}
     // case -------------------------------------------------
     tc("!yamlscript/v0/bare\n--- !code\n42\n",
        {
