@@ -613,6 +613,19 @@ public:
 
 public:
 
+    /** @name locations */
+    /** @{ */
+
+    Location location(Parser const& parser) const
+    {
+        _C4RR();
+        return tree_->location(parser, id_);
+    }
+
+    /** @} */
+
+public:
+
     /** @name deserialization */
     /** @{ */
 
@@ -883,7 +896,6 @@ public:
 
     ConstNodeRef& operator= (NodeRef const&) noexcept;
     ConstNodeRef& operator= (NodeRef     &&) noexcept;
-
 
     /** @} */
 

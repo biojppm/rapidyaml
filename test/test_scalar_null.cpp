@@ -305,18 +305,18 @@ block:
         //
         // check also locations because nullity may influence the search
         // for location
-        EXPECT_EQ(parser.location(fdquoted).line, 0u);
-        EXPECT_EQ(parser.location(bdquoted).line, 2u);
-        EXPECT_EQ(parser.location(fsquoted).line, 0u);
-        EXPECT_EQ(parser.location(bsquoted).line, 3u);
-        EXPECT_EQ(parser.location(bliteral).line, 4u);
-        EXPECT_EQ(parser.location(bfolded ).line, 5u);
-        EXPECT_EQ(parser.location(fplain  ).line, 0u);
-        EXPECT_EQ(parser.location(bplain  ).line, 6u);
-        EXPECT_EQ(parser.location(fenull  ).line, 0u);
-        EXPECT_EQ(parser.location(benull  ).line, 7u);
-        EXPECT_EQ(parser.location(ftilde  ).line, 0u);
-        EXPECT_EQ(parser.location(btilde  ).line, 8u);
+        EXPECT_EQ(fdquoted.location(parser).line, 0u);
+        EXPECT_EQ(bdquoted.location(parser).line, 2u);
+        EXPECT_EQ(fsquoted.location(parser).line, 0u);
+        EXPECT_EQ(bsquoted.location(parser).line, 3u);
+        EXPECT_EQ(bliteral.location(parser).line, 4u);
+        EXPECT_EQ(bfolded .location(parser).line, 5u);
+        EXPECT_EQ(fplain  .location(parser).line, 0u);
+        EXPECT_EQ(bplain  .location(parser).line, 6u);
+        EXPECT_EQ(fenull  .location(parser).line, 0u);
+        EXPECT_EQ(benull  .location(parser).line, 7u);
+        EXPECT_EQ(ftilde  .location(parser).line, 0u);
+        EXPECT_EQ(btilde  .location(parser).line, 8u);
         //
         EXPECT_TRUE(fdquoted.has_val());
         EXPECT_TRUE(bdquoted.has_val());
@@ -460,18 +460,18 @@ block:
         //
         // check also locations because nullity may influence the search
         // for location
-        EXPECT_EQ(parser.location(fdquoted).line,  0u);
-        EXPECT_EQ(parser.location(bdquoted).line,  2u);
-        EXPECT_EQ(parser.location(fsquoted).line,  0u);
-        EXPECT_EQ(parser.location(bsquoted).line,  3u);
-        EXPECT_EQ(parser.location(bliteral).line,  5u);
-        EXPECT_EQ(parser.location(bfolded ).line,  7u);
-        EXPECT_EQ(parser.location(fplain  ).line,  0u);
-        EXPECT_EQ(parser.location(bplain  ).line,  8u);
-        EXPECT_EQ(parser.location(fenull  ).line,  0u);
-        EXPECT_EQ(parser.location(benull  ).line,  9u);
-        EXPECT_EQ(parser.location(ftilde  ).line,  0u);
-        EXPECT_EQ(parser.location(btilde  ).line, 10u);
+        EXPECT_EQ(fdquoted.location(parser).line,  0u);
+        EXPECT_EQ(bdquoted.location(parser).line,  2u);
+        EXPECT_EQ(fsquoted.location(parser).line,  0u);
+        EXPECT_EQ(bsquoted.location(parser).line,  3u);
+        EXPECT_EQ(bliteral.location(parser).line,  5u);
+        EXPECT_EQ(bfolded .location(parser).line,  7u);
+        EXPECT_EQ(fplain  .location(parser).line,  0u);
+        EXPECT_EQ(bplain  .location(parser).line,  8u);
+        EXPECT_EQ(fenull  .location(parser).line,  0u);
+        EXPECT_EQ(benull  .location(parser).line,  9u);
+        EXPECT_EQ(ftilde  .location(parser).line,  0u);
+        EXPECT_EQ(btilde  .location(parser).line, 10u);
         //
         EXPECT_TRUE(fdquoted.has_key());
         EXPECT_TRUE(bdquoted.has_key());

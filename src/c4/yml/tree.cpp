@@ -1833,5 +1833,121 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 } // namespace c4
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#include "c4/yml/event_handler_tree.hpp"
+#include "c4/yml/parse_engine.def.hpp"
+#include "c4/yml/parse.hpp"
+
+namespace c4 {
+namespace yml {
+
+Location Tree::location(Parser const& parser, id_type node) const
+{
+    // try hard to avoid getting the location from a null string.
+    Location loc;
+    if(_location_from_node(parser, node, &loc, 0))
+        return loc;
+    return parser.val_location(parser.source().str);
+}
+
+bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_RESTRICT loc, id_type level) const
+{
+    if(has_key(node))
+    {
+        csubstr k = key(node);
+        if(C4_LIKELY(k.str != nullptr))
+        {
+            _RYML_CB_ASSERT(m_callbacks, k.is_sub(parser.source()));
+            _RYML_CB_ASSERT(m_callbacks, parser.source().is_super(k));
+            *loc = parser.val_location(k.str);
+            return true;
+        }
+    }
+
+    if(has_val(node))
+    {
+        csubstr v = val(node);
+        if(C4_LIKELY(v.str != nullptr))
+        {
+            _RYML_CB_ASSERT(m_callbacks, v.is_sub(parser.source()));
+            _RYML_CB_ASSERT(m_callbacks, parser.source().is_super(v));
+            *loc = parser.val_location(v.str);
+            return true;
+        }
+    }
+
+    if(is_container(node))
+    {
+        if(_location_from_cont(parser, node, loc))
+            return true;
+    }
+
+    if(type(node) != NOTYPE && level == 0)
+    {
+        // try the prev sibling
+        {
+            const id_type prev = prev_sibling(node);
+            if(prev != NONE)
+            {
+                if(_location_from_node(parser, prev, loc, level+1))
+                    return true;
+            }
+        }
+        // try the next sibling
+        {
+            const id_type next = next_sibling(node);
+            if(next != NONE)
+            {
+                if(_location_from_node(parser, next, loc, level+1))
+                    return true;
+            }
+        }
+        // try the parent
+        {
+            const id_type parent = this->parent(node);
+            if(parent != NONE)
+            {
+                if(_location_from_node(parser, parent, loc, level+1))
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Tree::_location_from_cont(Parser const& parser, id_type node, Location *C4_RESTRICT loc) const
+{
+    _RYML_CB_ASSERT(m_callbacks, is_container(node));
+    if(!is_stream(node))
+    {
+        const char *node_start = _p(node)->m_val.scalar.str;  // this was stored in the container
+        if(has_children(node))
+        {
+            id_type child = first_child(node);
+            if(has_key(child))
+            {
+                // when a map starts, the container was set after the key
+                csubstr k = key(child);
+                if(k.str && node_start > k.str)
+                    node_start = k.str;
+            }
+        }
+        *loc = parser.val_location(node_start);
+        return true;
+    }
+    else // it's a stream
+    {
+        *loc = parser.val_location(parser.source().str); // just return the front of the buffer
+    }
+    return true;
+}
+
+} // namespace yml
+} // namespace c4
+
+
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 C4_SUPPRESS_WARNING_MSVC_POP
