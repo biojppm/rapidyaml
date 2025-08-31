@@ -1,5 +1,6 @@
-#ifndef _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
-#define _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
+#pragma once
+#ifndef _C4_YML_EXTRA_EVENT_HANDLER_YAMLSTD_HPP_
+#define _C4_YML_EXTRA_EVENT_HANDLER_YAMLSTD_HPP_
 
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
@@ -13,20 +14,23 @@
 #endif
 
 #ifndef _C4_YML_EXTRA_STRING_HPP_
-#include "./string.hpp"
+#include "c4/yml/extra/string.hpp"
 #endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
+
 namespace c4 {
 namespace yml {
+namespace extra {
 
 
 /** @addtogroup doc_event_handlers
  * @{ */
 
+size_t append_escaped(substr s, csubstr val);
 void append_escaped(extra::string *s, csubstr val);
 
 
@@ -36,7 +40,7 @@ struct EventHandlerYamlStdState : public ParserState
     NodeData ev_data;
 };
 
-/** The event handler producing standard YAML events as used in the
+/** This event produces standard YAML events as used in the
  * [YAML test suite](https://github.com/yaml/yaml-test-suite).
  * See the documentation for @ref doc_event_handlers, which has
  * important notes about the event model used by rapidyaml.
@@ -842,9 +846,10 @@ public:
 
 /** @} */
 
+} // namespace extra
 } // namespace yml
 } // namespace c4
 
 C4_SUPPRESS_WARNING_GCC_POP
 
-#endif /* _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_ */
+#endif /* _C4_YML_EVT_EXTRA_EVENT_HANDLER_YAMLSTD_HPP_ */
