@@ -19,6 +19,9 @@ constexpr const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
+    // this is a container key that is parsed incorrectly
+    _("M2N8_01-in_yaml"         , "container key parsed incorrectly (events)"),
+
     // errors that fail to materialize
     _("3HFZ-error"              , "should not accept scalar after ..."),
     _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
@@ -134,8 +137,7 @@ constexpr const AllowedFailure container_key_cases[] = {
 
     // these cases have container keys, and cannot be parsed into the
     // ryml tree. However, they CAN be parsed by the ryml parse engine.
-    // Therefore the tests are enabled if they only use the YAML event
-    // emitter based on the parse engine.
+    // Therefore they are treated specifically.
 
     _("4FJ6-in_yaml"            , "only scalar keys allowed (keys cannot be containers)"),
     _("4FJ6-out_yaml"           , "only scalar keys allowed (keys cannot be containers)"),

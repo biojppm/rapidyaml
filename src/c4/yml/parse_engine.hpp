@@ -278,11 +278,20 @@ public:
  * - @ref EventHandlerTree is the handler responsible for creating the
  *   ryml @ref Tree
  *
- * - @ref EventHandlerYamlStd is the handler responsible for emitting
+ * - @ref extra::EventHandlerYamlStd is a handler responsible for emitting
  *   standardized [YAML test suite
  *   events](https://github.com/yaml/yaml-test-suite), used (only) in
  *   the CI of this project. This is not part of the library and is
  *   not installed.
+ *
+ * - @ref extra::EventHandlerInts is the handler responsible for
+ *   emitting integer-coded events. This is intended for integrating
+ *   in fully-conformant parsing in other programming languages
+ *   (integration is currently under work for
+ *   [YamlScript](https://github.com/yaml/yamlscript) and
+ *   [go-yaml](https://github.com/yaml/go-yaml/)). It is not part of
+ *   the library and is not installed.
+ *
  */
 template<class EventHandler>
 class ParseEngine

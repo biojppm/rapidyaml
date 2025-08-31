@@ -3,21 +3,26 @@
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
-#include "./test_suite_event_handler.hpp"
+#include "./event_handler_test_suite.hpp"
 
 
 namespace c4 {
 namespace yml {
+namespace extra {
 
-// instantiate the template
-template class ParseEngine<EventHandlerYamlStd>;
-
-void append_escaped(extra::string *es, csubstr val)
+size_t append_scalar_escaped(substr buffer, csubstr val)
 {
+    size_t pos = 0;
+    #define _append(repl)                                       \
+        do {                                                    \
+            if(repl.len && (pos + repl.len <= buffer.len))      \
+                memcpy(buffer.str + pos, repl.str, repl.len);   \
+            pos += repl.len;                                    \
+        } while(0)
     #define _c4flush_use_instead(i, repl, skip)  \
         do {                                     \
-            es->append(val.range(prev, i));      \
-            es->append(repl);                    \
+            _append(val.range(prev, i));         \
+            _append(csubstr(repl));              \
             prev = i + skip;                     \
         }                                        \
         while(0)
@@ -72,9 +77,29 @@ void append_escaped(extra::string *es, csubstr val)
         }
     }
     // flush the rest
-    es->append(val.sub(prev));
+    _append(val.sub(prev));
     #undef _c4flush_use_instead
+    #undef _append
+    return pos;
 }
+
+void append_scalar_escaped(extra::string *es, csubstr val)
+{
+    size_t orig = es->size();
+    es->resize(es->capacity());
+    size_t sz = append_scalar_escaped(substr(*es).sub(orig), val);
+    if (orig + sz > es->size())
+    {
+        es->resize(orig + sz);
+        sz = append_scalar_escaped(substr(*es).sub(orig), val);
+    }
+    es->resize(orig + sz);
+}
+
+} // namespace extra
+
+// instantiate the template
+template class ParseEngine<extra::EventHandlerYamlStd>;
 
 } // namespace yml
 } // namespace c4

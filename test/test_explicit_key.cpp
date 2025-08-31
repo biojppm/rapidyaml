@@ -265,7 +265,7 @@ N(MFS, L{
   })
 );
 
-ADD_CASE_TO_GROUP("M2N8", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("M2N8", HAS_CONTAINER_KEYS,
 R"(
 - ? : x
 - ? : 
@@ -274,7 +274,7 @@ R"(
   LineCol(2, 5)
 );
 
-ADD_CASE_TO_GROUP("explicit key 2nd", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("explicit key 2nd", HAS_CONTAINER_KEYS,
 R"(
 a simple key: a value
 ? an explicit key: another value
@@ -282,7 +282,7 @@ a simple key: a value
   LineCol(3, 19)
 );
 
-ADD_CASE_TO_GROUP("explicit key 1st", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("explicit key 1st", HAS_CONTAINER_KEYS,
 R"(
 ? an explicit key: another value
 a simple key: a value
@@ -290,7 +290,7 @@ a simple key: a value
   LineCol(2, 19)
 );
 
-ADD_CASE_TO_GROUP("explicit key nested in a map, 1st", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("explicit key nested in a map, 1st", HAS_CONTAINER_KEYS,
 R"(
 map:
   ? an explicit key: another value
@@ -300,7 +300,7 @@ map:
   LineCol(3, 21)
 );
 
-ADD_CASE_TO_GROUP("explicit key nested in a seq, 1st", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("explicit key nested in a seq, 1st", HAS_CONTAINER_KEYS,
 R"(
 - ? an explicit key: another value
   a simple key: a value
