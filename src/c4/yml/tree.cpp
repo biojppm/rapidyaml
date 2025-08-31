@@ -857,7 +857,13 @@ void Tree::set_root_as_stream()
 void Tree::remove_children(id_type node)
 {
     _RYML_CB_ASSERT(m_callbacks, get(node) != nullptr);
+    #if __GNUC__ >= 6
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference")
+    #endif
     id_type ich = get(node)->m_first_child;
+    #if __GNUC__ >= 6
+    C4_SUPPRESS_WARNING_GCC_POP
+    #endif
     while(ich != NONE)
     {
         remove_children(ich);
@@ -1178,7 +1184,6 @@ id_type Tree::child_pos(id_type node, id_type ch) const
 
 #if defined(__clang__)
 #   pragma clang diagnostic push
-#   pragma GCC diagnostic ignored "-Wnull-dereference"
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   if __GNUC__ >= 6

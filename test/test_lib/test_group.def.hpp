@@ -20,6 +20,22 @@ TEST_P(YmlTestCase, parse_windows)
     _test_parse_using_ryml(&d->windows_style);
 }
 
+
+//-----------------------------------------------------------------------------
+
+TEST_P(YmlTestCase, parse_ints_unix)
+{
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
+    _test_parse_using_ints(&d->unix_style);
+}
+
+TEST_P(YmlTestCase, parse_ints_windows)
+{
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
+    _test_parse_using_ints(&d->windows_style);
+}
+
+
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_unix_stdout)
 {

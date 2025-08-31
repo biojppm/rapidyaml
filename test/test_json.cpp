@@ -11,6 +11,11 @@
 
 #include <gtest/gtest.h>
 
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+#if __GNUC__ >= 6
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+#endif
+
 namespace foo {
 
 template<class T>
@@ -735,3 +740,5 @@ Case const* get_case(csubstr /*name*/)
 
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP

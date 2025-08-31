@@ -3,6 +3,9 @@
 #endif
 #include "test_lib/test_group.hpp"
 #include "test_lib/test_case.hpp"
+#include "test_lib/test_events_int.hpp"
+#include <c4/yml/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/event_handler_ints_utils.hpp>
 #include <c4/fs/fs.hpp>
 #include <fstream>
 #include <stdexcept>
@@ -19,13 +22,11 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
         printf("---------------\n%.*s\n---------------\n", (int)c->src.len, c->src.str);
     #endif
 
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
     {
         auto flags = c->flags;
-        ExpectError::check_error(&cd->parsed_tree, [this, cd, flags](){
+        ExpectError::check_error(&cd->parsed_tree, [this, cd, flags]{
             parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
-            if(flags & RESOLVE_REFS)
-                cd->parsed_tree.resolve();
             // if this point was reached, then it means that the expected
             // error failed to occur. So print debugging info.
             _c4dbg_tree("UNEXPECTED PARSED TREE", cd->parsed_tree);
@@ -44,10 +45,12 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     }
     #endif
 
+    if(!(c->flags & EXPECT_RESOLVE_ERROR))
     {
         SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
         test_invariants(cd->parsed_tree);
     }
+    if(!(c->flags & EXPECT_RESOLVE_ERROR))
     {
         SCOPED_TRACE("checking node invariants of unresolved parsed tree");
         test_invariants(cd->parsed_tree.rootref());
@@ -55,6 +58,17 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 
     if(c->flags & RESOLVE_REFS)
     {
+        if(c->flags & EXPECT_RESOLVE_ERROR)
+        {
+            ExpectError::check_error(&cd->parsed_tree, [&]{
+                cd->parsed_tree.resolve();
+                // if this point was reached, then it means that the expected
+                // error failed to occur. So print debugging info.
+                _c4dbg_tree("UNEXPECTED RESOLVED TREE", cd->parsed_tree);
+            }, c->expected_location);
+            return;
+        }
+
         cd->parsed_tree.resolve();
         _c4dbg_tree("resolved tree!!!", cd->parsed_tree);
         {
@@ -95,11 +109,65 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     }
 }
 
+static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints)
+{
+    SCOPED_TRACE("parse_ints");
+    using I = extra::ievt::DataType;
+    using Handler = extra::EventHandlerInts;
+    int estimated_size = extra::estimate_num_events_ints(src);
+    ints->resize((size_t)estimated_size);
+    Handler handler;
+    handler.reset(src, ints->data(), (I)ints->size());
+    ParseEngine<Handler> parser(&handler);
+    parser.parse_in_place_ev(name, src);
+    int needed_size = handler.m_evt_curr;
+    ASSERT_GE(estimated_size, needed_size);
+    EXPECT_GT(needed_size, 0);
+    ints->resize((size_t)needed_size);
+}
+
+void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
+{
+    SCOPED_TRACE("test_parse_ints");
+
+    #ifdef RYML_DBG
+    if(_dbg_enabled())
+        printf("---------------\n%.*s\n---------------\n", (int)c->src.len, c->src.str);
+    #endif
+
+    substr s = to_substr(cd->parse_buf_ints);
+    auto printints = [&]{
+        std::cout << extra::emit_events_test_suite_from_ints<std::string>(s, cd->parsed_ints.data(), (int)cd->parsed_ints.size()) << "\n";
+    };
+
+    if(c->flags & EXPECT_PARSE_ERROR)
+    {
+        SCOPED_TRACE("expect error");
+        ExpectError::check_error(&cd->parsed_tree, [&]{
+            _parse_events_ints(c->fileline, s, &cd->parsed_ints);
+            printints(); // error failed to occur. So print debugging info.
+        }, c->expected_location);
+        return;
+    }
+
+    _parse_events_ints(c->fileline, s, &cd->parsed_ints);
+
+    #ifdef RYML_DBG
+    if(_dbg_enabled())
+        printints();
+    #endif
+
+    {
+        SCOPED_TRACE("checking invariants");
+        extra::test_events_ints_invariants(s, cd->parsed_ints.data(), (int)cd->parsed_ints.size());
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
@@ -112,7 +180,7 @@ void YmlTestCase::_test_emit_json_stdout(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
@@ -123,7 +191,7 @@ void YmlTestCase::_test_emit_json_stdout(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_cout(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
@@ -136,7 +204,7 @@ void YmlTestCase::_test_emit_json_cout(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
@@ -148,7 +216,7 @@ void YmlTestCase::_test_emit_json_cout(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_stringstream(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
@@ -171,7 +239,7 @@ void YmlTestCase::_test_emit_json_stringstream(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
@@ -192,7 +260,7 @@ void YmlTestCase::_test_emit_json_stringstream(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_ofstream(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
@@ -223,7 +291,7 @@ void YmlTestCase::_test_emit_json_ofstream(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
@@ -252,7 +320,7 @@ void YmlTestCase::_test_emit_json_ofstream(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
@@ -269,7 +337,7 @@ void YmlTestCase::_test_emit_json_string(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
@@ -284,7 +352,7 @@ void YmlTestCase::_test_emit_json_string(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emitrs(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     using vtype = std::vector<char>;
@@ -302,7 +370,7 @@ void YmlTestCase::_test_emitrs_json(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     using vtype = std::vector<char>;
@@ -318,7 +386,7 @@ void YmlTestCase::_test_emitrs_json(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emitrs_cfile(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     auto s = emitrs_yaml<std::string>(cd->parsed_tree);
@@ -337,7 +405,7 @@ void YmlTestCase::_test_emitrs_json_cfile(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     auto s = emitrs_json<std::string>(cd->parsed_tree);
@@ -355,7 +423,7 @@ void YmlTestCase::_test_emitrs_json_cfile(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS|EXPECT_RESOLVE_ERROR))
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
@@ -421,7 +489,7 @@ void YmlTestCase::_test_complete_round_trip_json(CaseDataLineEndings *cd)
 {
     if(!(c->flags & JSON_WRITE))
         return;
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
@@ -484,7 +552,7 @@ void YmlTestCase::_test_complete_round_trip_json(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR)
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
         return;
     if(cd->parsed_tree.empty())
         parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
