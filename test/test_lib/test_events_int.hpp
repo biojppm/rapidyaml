@@ -54,6 +54,33 @@ size_t emit_events_test_suite_from_ints(
     ievt::DataType const* evts_ints,
     ievt::DataType evts_ints_sz,
     substr evts_test_suite);
+template<class Container>
+void emit_events_test_suite_from_ints(
+    csubstr parsed_yaml,
+    ievt::DataType const* evts_ints,
+    ievt::DataType evts_ints_sz,
+    Container *evts_test_suite)
+{
+    substr s = to_substr(*evts_test_suite);
+    size_t len = emit_events_test_suite_from_ints(parsed_yaml, evts_ints, evts_ints_sz, s);
+    if(len > evts_test_suite->size())
+    {
+        evts_test_suite->resize(len);
+        s = to_substr(*evts_test_suite);
+        len = emit_events_test_suite_from_ints(parsed_yaml, evts_ints, evts_ints_sz, s);
+    }
+    evts_test_suite->resize(len);
+}
+template<class Container>
+Container emit_events_test_suite_from_ints(
+    csubstr parsed_yaml,
+    ievt::DataType const* evts_ints,
+    ievt::DataType evts_ints_sz)
+{
+    Container ret;
+    emit_events_test_suite_from_ints(parsed_yaml, evts_ints, evts_ints_sz, &ret);
+    return ret;
+}
 
 } // namespace extra
 } // namespace yml

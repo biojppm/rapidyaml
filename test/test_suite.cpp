@@ -159,6 +159,7 @@ struct TestSequenceLevel
     extra::EventHandlerInts evt_handler_ints;
     ParseEngine<extra::EventHandlerInts> parser_ints;
     std::vector<extra::EventHandlerInts::value_type> buffer_ints;
+    std::string evts_test_suite_from_ints;
 
     bool immutable = false;
     bool reuse = false;
@@ -347,11 +348,13 @@ struct TestSequenceLevel
             sz = sz2;
         }
         ASSERT_LE(sz, buffer_ints.size());
+        buffer_ints.resize(sz);
         #ifdef RYML_DBG
         extra::print_events_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)sz);
         #endif
         extra::test_events_ints_invariants(to_csubstr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)sz);
         EXPECT_GT(evt_handler_ints.m_evt_curr, 0);
+        extra::emit_events_test_suite_from_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (extra::ievt::DataType)buffer_ints.size(), &evts_test_suite_from_ints);
         events_ints_were_generated = true;
     }
 
@@ -730,6 +733,16 @@ struct TestSequenceData
                                                                /*ignore_scalar_style*/(num>0));
         }
     }
+    void compare_emitted_int_events_str(size_t num, TestSuiteCaseEvents *events)
+    {
+        for(size_t i = 0; i < num; ++i)
+        {
+            levels[i].parse_yaml_to_events_ints();
+            events->compare_emitted_events_to_reference_events(levels[i].evts_test_suite_from_ints,
+                                                               /*ignore_container_style*/false,
+                                                               /*ignore_scalar_style*/false);
+        }
+    }
 
     bool m_expected_error_to_tree_checked = false;
     bool m_expected_error_to_events_checked = false;
@@ -963,6 +976,12 @@ TEST_P(which, 1_compare_emitted_events_to_ref_events)                   \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
     g_suite_case->which.compare_emitted_events_str(1 + GetParam(), &g_suite_case->events); \
+}                                                                       \
+TEST_P(which, 1_compare_emitted_events_ints_to_ref_events)              \
+{                                                                       \
+    /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    g_suite_case->which.compare_emitted_int_events_str(1 + GetParam(), &g_suite_case->events); \
 }                                                                       \
                                                                         \
 TEST_P(which, 2_emit_tree_parsed_from_src)                              \

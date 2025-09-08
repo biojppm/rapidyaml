@@ -86,11 +86,11 @@ C4_NO_INLINE void test_new_parser_tree_from_events(ReferenceYaml const& yaml)
 }
 
 void test_new_parser_events_from_yaml(ReferenceYaml const& yaml, std::string const& expected_events);
-void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml);
+void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::string const& expected_events);
 void test_new_parser_tree_from_yaml(ReferenceYaml const& yaml);
 
 void test_new_parser_events_from_yaml_with_comments(ReferenceYaml const& yaml, std::string const& expected_events);
-void test_new_parser_events_ints_from_yaml_with_comments(ReferenceYaml const& yaml);
+void test_new_parser_events_ints_from_yaml_with_comments(ReferenceYaml const& yaml, std::string const& expected_events);
 void test_new_parser_tree_from_yaml_with_comments(ReferenceYaml const& yaml);
 
 void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
@@ -228,7 +228,7 @@ TEST(EngineTest, name##_events_ints_from_yaml)                      \
     _RYML_SHOWFILELINE(name);                                       \
     SCOPED_TRACE(#name "_event_ints_from_yaml");                    \
     ReferenceYaml yaml refyaml;                                     \
-    test_new_parser_events_ints_from_yaml(yaml);                    \
+    test_new_parser_events_ints_from_yaml(yaml, events);            \
     _RYML_SHOWFILELINE(name);                                       \
 }                                                                   \
                                                                     \
@@ -254,7 +254,7 @@ TEST(EngineTest, name##_events_ints_from_yaml_with_comments)        \
     _RYML_SHOWFILELINE(name);                                       \
     SCOPED_TRACE(#name "_events_ints_from_yaml_with_comments");     \
     ReferenceYaml yaml refyaml;                                     \
-    test_new_parser_events_ints_from_yaml_with_comments(yaml);      \
+    test_new_parser_events_ints_from_yaml_with_comments(yaml, events); \
 }                                                                   \
                                                                     \
 TEST(EngineTest, name##_tree_from_yaml_with_comments)               \

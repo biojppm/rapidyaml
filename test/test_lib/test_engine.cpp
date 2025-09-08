@@ -89,20 +89,42 @@ void test_new_parser_events_from_yaml(ReferenceYaml const& yaml, std::string con
     EXPECT_EQ(std::string(result.str, result.len), expected_events);
 }
 
-void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml)
+void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::string const& expected_events)
 {
     extra::EventHandlerInts handler{};
     using IntType = extra::ievt::DataType;
     std::vector<IntType> actual_evts(num_ints(yaml.expected_ints.data(), yaml.expected_ints.size()));
-    handler.reset(to_csubstr(yaml.parsed), actual_evts.data(), (IntType)actual_evts.size());
-    ParseEngine<extra::EventHandlerInts> parser(&handler);
     std::string copy = yaml.parsed;
+    handler.reset(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+    ParseEngine<extra::EventHandlerInts> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
+    size_t sz = (size_t)handler.m_evt_curr;
+    if (actual_evts.size() < sz)
+    {
+        actual_evts.resize(sz);
+        copy = yaml.parsed;
+        handler.reset(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+        parser.parse_in_place_ev("(testyaml)", to_substr(copy));
+    }
+    actual_evts.resize(sz);
+    #ifdef RYML_DBG
+    extra::print_events_ints(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+    #endif
+    {
+        RYML_TRACE_FMT("invariants", 0);
+        extra::test_events_ints_invariants(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+    }
     if (yaml.expected_ints_enabled)
     {
+        RYML_TRACE_FMT("here", 0);
         test_events_ints(yaml.expected_ints.data(), yaml.expected_ints.size(),
                          actual_evts.data(), actual_evts.size(),
                          to_csubstr(yaml.parsed), to_csubstr(copy));
+    }
+    {
+        RYML_TRACE_FMT("cmp", 0);
+        std::string actual_test_suite_evts = extra::emit_events_test_suite_from_ints<std::string>(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+        EXPECT_EQ(actual_test_suite_evts, expected_events);
     }
 }
 
@@ -149,7 +171,7 @@ void test_new_parser_events_from_yaml_with_comments(ReferenceYaml const& yaml, s
     }
 }
 
-void test_new_parser_events_ints_from_yaml_with_comments(ReferenceYaml const& yaml)
+void test_new_parser_events_ints_from_yaml_with_comments(ReferenceYaml const& yaml, std::string const& expected_events)
 {
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
@@ -162,7 +184,7 @@ void test_new_parser_events_ints_from_yaml_with_comments(ReferenceYaml const& ya
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
         transformed.parsed = transformed_str;
-        test_new_parser_events_ints_from_yaml(transformed);
+        test_new_parser_events_ints_from_yaml(transformed, expected_events);
     }
 }
 
