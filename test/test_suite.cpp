@@ -7,6 +7,7 @@
 #include <c4/yml/detail/checks.hpp>
 #endif
 #include "test_lib/test_case.hpp"
+#include "test_lib/test_engine.hpp"
 #include "test_lib/test_events_int.hpp"
 #include "test_suite/test_suite_common.hpp"
 #include "test_suite/test_suite_parts.hpp"
@@ -121,10 +122,12 @@ struct TestSuiteCaseEvents
 
     void compare_emitted_events_to_reference_events(std::string const& emitted_events, bool ignore_container_style, bool ignore_scalar_style)
     {
-        if(compare_events(to_csubstr(reference_events), to_csubstr(emitted_events), ignore_container_style, ignore_scalar_style))
-        {
-            EXPECT_EQ(emitted_events, reference_events);
-        }
+        test_compare_events(to_csubstr(reference_events),
+                            to_csubstr(emitted_events),
+                            /*ignore_doc_style*/true,
+                            ignore_container_style,
+                            ignore_scalar_style,
+                            /*ignore_tag*/true);
     }
 };
 

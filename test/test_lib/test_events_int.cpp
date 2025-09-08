@@ -363,9 +363,23 @@ size_t emit_events_test_suite_from_ints(
     auto maybe_append_tag = [&]{
         if(has_tag)
         {
-            append(" <!");
-            append(tag);
-            append(">");
+            if(tag.begins_with('<'))
+            {
+                append(" ");
+                append(tag);
+            }
+            else if(tag.begins_with('!'))
+            {
+                append(" <");
+                append(tag);
+                append(">");
+            }
+            else
+            {
+                append(" <!");
+                append(tag);
+                append(">");
+            }
         }
         has_tag = false;
     };
@@ -381,15 +395,20 @@ size_t emit_events_test_suite_from_ints(
     };
     auto append_cont = [&](csubstr evt, csubstr style){
         append(evt);
-        append(style);
+        if(style.len)
+        {
+            append(" ");
+            append(style);
+        }
         maybe_append_anchor();
         maybe_append_tag();
         append("\n");
     };
     auto append_val = [&](csubstr evt, csubstr val){
-        append("=VAL ");
+        append("=VAL");
         maybe_append_anchor();
         maybe_append_tag();
+        append(" ");
         append(evt);
         substr buf = sz <= evts_test_suite.len ? evts_test_suite.sub(sz) : evts_test_suite.last(0);
         sz += append_escaped(buf, val);
@@ -400,7 +419,7 @@ size_t emit_events_test_suite_from_ints(
         ievt::DataType evt = evts_ints[i];
         if (evt & ievt::BSTR)
         {
-            append("+STR\n");
+             append("+STR\n");
         }
         else if (evt & ievt::ESTR)
         {
@@ -423,9 +442,9 @@ size_t emit_events_test_suite_from_ints(
         else if (evt & ievt::BSEQ)
         {
             if (evt & ievt::FLOW)
-                append_cont("+SEQ", " []");
+                append_cont("+SEQ", "[]");
             else
-                append_cont("+SEQ\n", "");
+                append_cont("+SEQ", "");
         }
         else if (evt & ievt::ESEQ)
         {
@@ -434,9 +453,9 @@ size_t emit_events_test_suite_from_ints(
         else if (evt & ievt::BMAP)
         {
             if (evt & ievt::FLOW)
-                append_cont("+MAP", " {}");
+                append_cont("+MAP", "{}");
             else
-                append("+MAP\n");
+                append_cont("+MAP", "");
         }
         else if (evt & ievt::EMAP)
         {
@@ -458,7 +477,7 @@ size_t emit_events_test_suite_from_ints(
         }
         else if (evt & ievt::ALIA)
         {
-            append("=ALI :");
+            append("=ALI *");
             append(getstr(i));
             append("\n");
         }

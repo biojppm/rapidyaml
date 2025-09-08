@@ -98,9 +98,30 @@ void test_expected_error_events_ints_from_yaml(std::string const& parsed_yaml, L
 void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
 
 
-
 //-----------------------------------------------------------------------------
 
+struct OptionalScalar
+{
+    csubstr val = {};
+    bool was_set = false;
+    operator csubstr() const { return get(); }
+    operator bool() const { return was_set; }
+    void operator= (csubstr v) { val = v; was_set = true; }
+    csubstr get() const { RYML_ASSERT(was_set); return val; }
+    csubstr maybe_get() const { return was_set ? val : csubstr(""); }
+};
+
+csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalScalar *tag);
+
+void test_compare_events(csubstr ref_evts,
+                    csubstr emt_evts,
+                    bool ignore_doc_style,
+                    bool ignore_container_style,
+                    bool ignore_scalar_style,
+                    bool ignore_tag_normalization);
+
+
+//-----------------------------------------------------------------------------
 
 #ifdef RYML_DBG
 #define _RYML_SHOWFILELINE(name) printf("%s:%d: " #name "\n", __FILE__, __LINE__)

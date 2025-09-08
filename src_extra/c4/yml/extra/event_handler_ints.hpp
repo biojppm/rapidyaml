@@ -156,8 +156,6 @@ public:
     int32_t m_evt_curr;
     int32_t m_evt_prev;
     int32_t m_evt_size;
-    char m_key_tag_buf[256];
-    char m_val_tag_buf[256];
     extra::string m_arena;
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
     bool m_has_yaml_directive;
@@ -771,29 +769,23 @@ public:
     {
         _c4dbgpf("{}/{}: set key tag ~~~{}~~~", m_evt_curr, m_evt_size, tag);
         _enable_(c4::yml::KEYTAG);
-        csubstr ttag = _transform_directive(tag, m_key_tag_buf);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !ttag.empty());
-        if(ttag.begins_with('!') && !ttag.begins_with("!!"))
-            ttag = ttag.sub(1);
-        if(m_evt_curr + 3 < m_evt_size)
-        {
-            m_evt[m_evt_curr] |= ievt::KEY_|ievt::TAG_;
-            _add_scalar_(m_evt_curr, ttag);
-        }
-        m_evt_prev = m_evt_curr;
-        m_evt_curr += 3;
+        _set_tag(tag, ievt::KEY_);
     }
     void set_val_tag(csubstr tag)
     {
         _c4dbgpf("{}/{}: set val tag ~~~{}~~~", m_evt_curr, m_evt_size, tag);
         _enable_(c4::yml::VALTAG);
-        csubstr ttag = _transform_directive(tag, m_val_tag_buf);
+        _set_tag(tag, ievt::VAL_);
+    }
+    void _set_tag(csubstr tag, ievt::DataType which)
+    {
+        csubstr ttag = _transform_directive(tag);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !ttag.empty());
         if(ttag.begins_with('!') && !ttag.begins_with("!!"))
             ttag = ttag.sub(1);
         if(m_evt_curr + 3 < m_evt_size)
         {
-            m_evt[m_evt_curr] |= ievt::VAL_|ievt::TAG_;
+            m_evt[m_evt_curr] |= which|ievt::TAG_;
             _add_scalar_(m_evt_curr, ttag);
         }
         m_evt_prev = m_evt_curr;
@@ -964,11 +956,12 @@ public:
                 return i;
         return RYML_MAX_TAG_DIRECTIVES;
     }
-    csubstr _transform_directive(csubstr tag, substr output)
+    csubstr _transform_directive(csubstr tag)
     {
         if(tag.begins_with('!'))
             return tag;
-        csubstr result = c4::yml::normalize_tag_long(tag, output);
+        csubstr result = c4::yml::normalize_tag_long(tag);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, result.is_sub(tag));
         _RYML_CB_CHECK(m_stack.m_callbacks, result.len > 0);
         _RYML_CB_CHECK(m_stack.m_callbacks, result.str);
         return result;
