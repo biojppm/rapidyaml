@@ -18,6 +18,7 @@ if(RYML_DEFAULT_CALLBACKS)
     option(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS "Throw exceptions instead of calling abort in the default error handler provided by ryml" OFF)
 endif()
 option(RYML_USE_ASSERT "Enable assertions regardless of build type. Default is only when NDEBUG is not defined (which is in release builds). This causes a slowdown of the code." OFF)
+option(RYML_SHORT_ERR_MSG "Use shorter error message from checks/asserts: do not show the check condition in the error message" OFF)
 option(RYML_BUILD_TOOLS "Build tools" OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 option(RYML_DBG "Enable (very verbose) debug prints." OFF)
@@ -44,6 +45,8 @@ c4_add_library(ryml
         c4/yml/common.cpp
         c4/yml/emit.def.hpp
         c4/yml/emit.hpp
+        c4/yml/error.hpp
+        c4/yml/error.def.hpp
         c4/yml/event_handler_stack.hpp
         c4/yml/event_handler_tree.hpp
         c4/yml/filter_processor.hpp
@@ -91,16 +94,19 @@ if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
 else()
     if(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
-        target_compile_definitions(ryml PRIVATE RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
+        target_compile_definitions(ryml PUBLIC RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
     endif()
+endif()
+
+if(RYML_SHORT_CHECK_MSG)
+    target_compile_definitions(ryml PUBLIC RYML_SHORT_CHECK_MSG)
+endif()
+if(RYML_USE_ASSERT)
+    target_compile_definitions(ryml PUBLIC RYML_USE_ASSERT=1)
 endif()
 
 if(RYML_DBG)
     target_compile_definitions(ryml PRIVATE RYML_DBG)
-endif()
-
-if(RYML_USE_ASSERT)
-    target_compile_definitions(ryml PUBLIC RYML_USE_ASSERT=1)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
