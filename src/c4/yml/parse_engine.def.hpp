@@ -2661,19 +2661,24 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
     {
         proc.translate_esc('\\');
     }
-    else if(next == 'x') // UTF8
+    else if(next == 'x') // 2-digit Unicode escape (\xXX), code point 0x00–0xFF
     {
         if(C4_UNLIKELY(proc.rpos + 1u + 2u >= proc.src.len))
             _c4err("\\x requires 2 hex digits. scalar pos={}", proc.rpos);
+        char readbuf[8];
         csubstr codepoint = proc.src.sub(proc.rpos + 2u, 2u);
         _c4dbgfdq("utf8 ~~~{}~~~ rpos={} rem=~~~{}~~~", codepoint, proc.rpos, proc.src.sub(proc.rpos));
-        uint8_t byteval = {};
-        if(C4_UNLIKELY(!read_hex(codepoint, &byteval)))
+        uint32_t codepoint_val = {};
+        if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
             _c4err("failed to read \\x codepoint. scalar pos={}", proc.rpos);
-        proc.translate_esc_bulk((const char*)&byteval, 1u, /*nread*/3u);
+        const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
+        if(C4_UNLIKELY(numbytes == 0))
+            _c4err("failed to decode code point={}", proc.rpos);
+        _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
+        proc.translate_esc_bulk(readbuf, numbytes, /*nread*/3u);
         _c4dbgfdq("utf8 after rpos={} rem=~~~{}~~~", proc.rpos, proc.src.sub(proc.rpos));
     }
-    else if(next == 'u') // UTF16
+    else if(next == 'u') // 4-digit Unicode escape (\uXXXX), code point 0x0000–0xFFFF
     {
         if(C4_UNLIKELY(proc.rpos + 1u + 4u >= proc.src.len))
             _c4err("\\u requires 4 hex digits. scalar pos={}", proc.rpos);
@@ -2688,7 +2693,7 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
         _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/5u);
     }
-    else if(next == 'U') // UTF32
+    else if(next == 'U') // 8-digit Unicode escape (\UXXXXXXXX), full 32-bit code point
     {
         if(C4_UNLIKELY(proc.rpos + 1u + 8u >= proc.src.len))
             _c4err("\\U requires 8 hex digits. scalar pos={}", proc.rpos);
