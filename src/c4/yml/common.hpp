@@ -288,7 +288,8 @@ struct RYML_EXPORT LineCol
     //! construct from offset, line and column
     LineCol(size_t o, size_t l, size_t c) : offset(o), line(l), col(c) {}
 };
-static_assert(std::is_trivial<LineCol>::value, "LineCol not trivial");
+static_assert(std::is_trivially_copyable<LineCol>::value, "LineCol not trivially copyable");
+static_assert(std::is_trivially_default_constructible<LineCol>::value, "LineCol not trivially default constructible");
 static_assert(std::is_standard_layout<LineCol>::value, "Location not trivial");
 
 
