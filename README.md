@@ -396,7 +396,7 @@ ja: 惑星（ガス）
 zh: 行星（气体）
 # UTF8 decoding only happens in double-quoted strings,
 # as per the YAML standard
-decode this: "\u263A \xE2\x98\xBA"
+decode this: "\u263A c\x61f\xE9"
 and this as well: "\u2705 \U0001D11E"
 not decoded: '\u263A \xE2\x98\xBA'
 neither this: '\u2705 \U0001D11E'
@@ -410,7 +410,8 @@ CHECK(langs["zh"].val() == "行星（气体）");
 // and \x \u \U codepoints are decoded, but only when they appear
 // inside double-quoted strings, as dictated by the YAML
 // standard:
-CHECK(langs["decode this"].val() == "☺ ☺");
+CHECK(langs["decode this"].val() == "A");
+CHECK(langs["decode this"].val() == "☺ café");
 CHECK(langs["and this as well"].val() == "✅ 𝄞");
 CHECK(langs["not decoded"].val() == "\\u263A \\xE2\\x98\\xBA");
 CHECK(langs["neither this"].val() == "\\u2705 \\U0001D11E");
