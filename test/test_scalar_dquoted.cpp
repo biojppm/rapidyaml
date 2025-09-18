@@ -294,34 +294,40 @@ dquoted_case test_cases_filter[] = {
     // 50
     dqc(R"(\P\P\P\P)", dqesc_P4),
     dqc(R"(\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P)", dqescparsed),
+    dqc(R"(\xE4)", R"(ä)"),
+    dqc(R"(\xD7)", R"(×)"),
+    dqc(R"(\xA9)", R"(©)"),
+    // 55
+    dqc(R"(\xB5)", R"(µ)"),
+    dqc(R"(\xF7)", R"(÷)"),
     dqc(R"(\u263A)", R"(☺)"),
     dqc(R"(\u263a)", R"(☺)"),
     dqc(R"(\u2705)", R"(✅)"),
-    // 55
+    // 60
     dqc(R"(\u2705\u2705)", R"(✅✅)"),
     dqc(R"(\u2705\u2705\u2705)", R"(✅✅✅)"),
     dqc(R"(\u2705\u2705\u2705\u2705)", R"(✅✅✅✅)"),
     dqc(R"(\U0001D11E)", R"(𝄞)"),
     dqc(R"(\U0001d11e)", R"(𝄞)"),
-    // 60
+    // 65
     dqc(R"(\U0001d11e\U0001D11E)", R"(𝄞𝄞)"),
     dqc(R"(\U0001d11e\U0001D11E\U0001D11E)", R"(𝄞𝄞𝄞)"),
     dqc(R"(\U0001d11e\U0001D11E\U0001D11E\U0001D11E)", R"(𝄞𝄞𝄞𝄞)"),
     dqc(R"(\u263A\u2705\U0001D11E)", R"(☺✅𝄞)"),
     dqc(R"(\b1998\t1999\t2000\n)", "\b1998\t1999\t2000\n"),
-    // 65
+    // 70
     dqc(R"(\x0d\x0a is \r\n)", "\r\n is \r\n"),
     dqc("\n  foo\n\n    bar\n\n  baz\n", " foo\nbar\nbaz "),
     dqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc(" 1st non-empty\n\n 2nd non-empty \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc(" 1st non-empty\n\n 2nd non-empty 	\n 	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
-    // 70
+    // 75
     dqc(" 1st non-empty\n\n 2nd non-empty	 \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc("\n  ", " "),
     dqc("  \n  ", " "),
     dqc("\n\n  ", "\n"),
     dqc("\n\n\n  ", "\n\n"),
-    // 75
+    // 80
     dqc("folded \nto a space,	\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
     dqc("folded \nto a space,\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
     //dqc("	\n\ndetected\n\n", "\t\ndetected\n"), // this case cannot be prefixed with anything.
