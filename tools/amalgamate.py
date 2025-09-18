@@ -17,7 +17,7 @@ import amalgamate as am_c4core
 class Event(Enum):
     tree = "tree"
     testsuite = "testsuite"
-    ints = "int"
+    ints = "ints"
     all = "all"
     none = "none"
     def __str__(self):
@@ -121,7 +121,7 @@ INSTRUCTIONS:
         am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/node.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/writer.hpp"),
-        "src/c4/yml/detail/parser_dbg.hpp",
+        "src/c4/yml/detail/dbgprint.hpp",
         am.onlyif(has_evt(Event.tree), am.injcode("#define C4_YML_EMIT_DEF_HPP_")),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emit.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emit.def.hpp"),
@@ -153,10 +153,10 @@ INSTRUCTIONS:
         am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/node.cpp"),
         "src/c4/yml/preprocess.cpp",
-        "src/c4/yml/detail/checks.hpp",
-        "src/c4/yml/detail/print.hpp",
-        "src/c4/yml/yml.hpp",
-        "src/ryml.hpp",
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/detail/checks.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/detail/print.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/yml.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/ryml.hpp"),
     ]
     result = am.catfiles(srcfiles,
                          projdir,
@@ -180,19 +180,18 @@ def mkparser():
         fastfloat=(True, "enable fastfloat library"),
         stl=(True, "enable stl interop")
     )
-    default = [Event.tree]
+    default = [str(Event.tree)]
     evtdoc = '. '.join([f"'{e}': {event_doc[e]}" for e in Event])
     defaultdoc = ','.join([str(e) for e in default])
-    p.add_argument('-e', '--events', type=Event, default=default, choices=[str(e) for e in Event], nargs="+",
+    p.add_argument('-e', '--events', type=str, default=default, choices=[str(e) for e in Event], nargs="+",
                    help=f"""Specify which event handlers to include. Possible
                    values are: {evtdoc}. The default is {defaultdoc}.""")
     return p
 
 
 if __name__ == "__main__":
-    print([event_doc[e] for e in Event])
     args = mkparser().parse_args()
-    print(args)
+    args.events = [Event(e) for e in args.events] # is there a better way to do this?
     amalgamate_ryml(filename=args.output,
                     with_c4core=args.c4core,
                     with_fastfloat=args.fastfloat,
