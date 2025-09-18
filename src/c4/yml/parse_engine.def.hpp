@@ -13,10 +13,10 @@
 #ifdef RYML_DBG
 #include <c4/dump.hpp>
 #include "c4/yml/detail/print.hpp"
-#define _c4err_(fmt, ...) do { RYML_DEBUG_BREAK(); this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
+#define _c4err_(fmt, ...) do { RYML_DEBUG_BREAK(); this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, __VA_ARGS__); } while(0)
 #define _c4err(fmt) do { RYML_DEBUG_BREAK(); this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__); } while(0)
 #else
-#define _c4err_(fmt, ...) this->_err("ERROR: " fmt, ## __VA_ARGS__)
+#define _c4err_(fmt, ...) this->_err("ERROR: " fmt, __VA_ARGS__)
 #define _c4err(fmt) this->_err("ERROR: {}", fmt)
 #endif
 
