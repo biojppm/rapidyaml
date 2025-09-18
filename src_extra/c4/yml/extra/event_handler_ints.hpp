@@ -22,8 +22,8 @@
 #ifndef _C4_YML_TAG_HPP_
 #include <c4/yml/tag.hpp>
 #endif
-#ifndef _C4_YML_DETAIL_PARSER_DBG_HPP_
-#include <c4/yml/detail/parser_dbg.hpp>
+#ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
+#include <c4/yml/detail/dbgprint.hpp>
 #endif
 #endif
 
@@ -62,11 +62,11 @@ typedef enum : DataType {
     SCLR = (1 <<  8),  ///< =VAL scalar
     ALIA = (1 <<  9),  ///< =ALI alias (reference)
     // Style flags
-    PLAI = (1 << 10),  ///< : (plain scalar)
-    SQUO = (1 << 11),  ///< ' (single-quoted scalar)
-    DQUO = (1 << 12),  ///< " (double-quoted scalar)
-    LITL = (1 << 13),  ///< | (block literal scalar)
-    FOLD = (1 << 14),  ///< > (block folded scalar)
+    PLAI = (1 << 10),  ///< plain scalar
+    SQUO = (1 << 11),  ///< single-quoted scalar (')
+    DQUO = (1 << 12),  ///< double-quoted scalar ("")
+    LITL = (1 << 13),  ///< block literal scalar (|)
+    FOLD = (1 << 14),  ///< block folded scalar (>)
     FLOW = (1 << 15),  ///< flow container: [] for seqs or {} for maps
     BLCK = (1 << 16),  ///< block container
     // Modifiers
@@ -75,21 +75,19 @@ typedef enum : DataType {
     // Structure flags
     KEY_ = (1 << 19),  ///< as key
     VAL_ = (1 << 20),  ///< as value
-    EXPL = (1 << 21),  ///< --- (with BDOC) or
-                       ///< ... (with EDOC)
-    /// special flag to enable look back in the event array. it
-    /// signifies that the previous event has a string, meaning that
-    /// the jump back to it event is 3 positions. without this flag it
-    /// would be impossible to jump to the previous event
-    PSTR = (1 << 22),
-    // Utility flags
-    LAST = PSTR,
-    MASK = (LAST << 1) - 1, // mask
-    /// with string: mask of all the events that encode a string
-    /// following the event. in the event has a string. the next two
-    /// integers will provide respectively the string's offset and
-    /// length
-    WSTR = SCLR|ALIA|ANCH|TAG_,
+    EXPL = (1 << 21),  ///< `---` (with BDOC) or
+                       ///< `...` (with EDOC)
+    PSTR = (1 << 22),  ///< special flag to enable look back in the event array. it
+                       ///< signifies that the previous event has a string, meaning that
+                       ///< the jump back to it event is 3 positions. without this flag it
+                       ///< would be impossible to jump to the previous event
+    // Utility flags/masks
+    LAST = PSTR,                ///< the last flag defined above
+    MASK = (LAST << 1) - 1,     ///< a mask of all bits in this enumeration
+    WSTR = SCLR|ALIA|ANCH|TAG_, ///< with string: mask of all the events that encode a string
+                                ///< following the event. in the event has a string. the next two
+                                ///< integers will provide respectively the string's offset and
+                                ///< length. See also @ref PSTR.
 } EventFlags;
 
 } // namespace ievt
@@ -175,23 +173,23 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * };
  * ```
  * Here is some further explanation of the buffer structure:
- * ```
- * source  : [a, bb, ccc]
- *                                                                string offset "a"                string offset "bb"               string offset "ccc"
- *                                                                |   string length "a"            |   string length "bb"           |   string length "ccc"
- *                                                                |   |                            |   |                            |   |
- *            event    event   event [            event "a" ...   |   |      event "bb" ...        |   |      event "ccc" ...       |   |      event ]       event    event
- *            |        |       |                  |               |   |      |                     |   |      |                     |   |      |             |        |
- *            +--------+-------+------------------+---------------+---+------+---------------------+---+------+---------------------+---+------+-------------+--------+-----|
- * value    : BSTR     BDOC    VAL_|BSEQ|FLOW     VAL_|SCLR|PLAI  1   1      VAL_|SCLR|PLAI|PSTR   4   2      VAL_|SCLR|PLAI|PSTR   8   3      ESEQ|PSTR     EDOC     ESTR  (array)
- * event #  : 0        1       2                  3               .   .      4              |      .   .      5              |      .   .      6             7        8     (event #)
- * index/pos: 0        1       2                  3               4   5      6              |      7   8      9              |      10  11     12            13       14    (index/pos)
- *                                                 \              |   |       \             |      |   |       \             |      |   |
- *                                                  has a string--+---+        has a string-+------+---+        has a string-+------+---+
- *                                                                                          |                                |
- *                                                                                          prev event has string            prev event has string
- *                                                                                          (jump back 3 to get to it)       (jump back 3 to get to it)
- * ```
+@verbatim
+source  : [a, bb, ccc]
+                                                               string offset "a"                string offset "bb"               string offset "ccc"
+                                                               |   string length "a"            |   string length "bb"           |   string length "ccc"
+                                                               |   |                            |   |                            |   |
+           event    event   event [            event "a" ...   |   |      event "bb" ...        |   |      event "ccc" ...       |   |      event ]       event    event
+           |        |       |                  |               |   |      |                     |   |      |                     |   |      |             |        |
+           +--------+-------+------------------+---------------+---+------+---------------------+---+------+---------------------+---+------+-------------+--------+-----|
+value    : BSTR     BDOC    VAL_|BSEQ|FLOW     VAL_|SCLR|PLAI  1   1      VAL_|SCLR|PLAI|PSTR   4   2      VAL_|SCLR|PLAI|PSTR   8   3      ESEQ|PSTR     EDOC     ESTR  (array)
+event #  : 0        1       2                  3               .   .      4              |      .   .      5              |      .   .      6             7        8     (event #)
+index/pos: 0        1       2                  3               4   5      6              |      7   8      9              |      10  11     12            13       14    (index/pos)
+                                                \              |   |       \             |      |   |       \             |      |   |
+                                                 has a string--+---+        has a string-+------+---+        has a string-+------+---+
+                                                                                         |                                |
+                                                                                         prev event has string            prev event has string
+                                                                                         (jump back 3 to get to it)       (jump back 3 to get to it)
+@endverbatim
  *
  * Note that the buffer contains both events and strings encoded as
  * integer pairs. That is, events that have an associated string are
@@ -299,8 +297,9 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * The result of @ref estimate_events_ints_size() (click to see more
  * info) is generally an overprediction: it overpredicts for every
  * single case among the many hundreds of cases covered in the unit
- * tests. But conceivably it may underpredict in some instances not
- * found in the test suite. What to do then?
+ * tests. This is deliberate, and aims at minimizing the chance for a
+ * retry parse. But conceivably it may underpredict in some instances
+ * not found in the test suite. What to do then?
  *
  * First, [open an issue](https://github.com/biojppm/rapidyaml/issues)
  * to allow the estimation to be improved! Second, there are two ways
