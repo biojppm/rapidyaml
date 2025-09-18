@@ -1,6 +1,6 @@
 #include "c4/yml/reference_resolver.hpp"
 #include "c4/yml/common.hpp"
-#include "c4/yml/detail/parser_dbg.hpp"
+#include "c4/yml/detail/dbgprint.hpp"
 #ifdef RYML_DBG
 #include "c4/yml/detail/print.hpp"
 #else
