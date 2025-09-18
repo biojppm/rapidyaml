@@ -26,6 +26,12 @@
 #define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) without
 #endif
 
+#if defined(RYML_WITH_BACKL_BACKP)
+#define _RYML_WITH_OR_WITHOUT_BACKL_BACKP(with, without) with
+#else
+#define _RYML_WITH_OR_WITHOUT_BACKL_BACKP(with, without) without
+#endif
+
 
 // scaffold:
 #define _c4dbgnextline()                           \
@@ -2753,6 +2759,10 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
     }
     else if(next == 'L') // unicode line separator \u2028
     {
+        #ifndef RYML_WITH_BACKL_BACKP
+        _c4err("\\L cannot be decoded as it would expand the source buffer. "
+               "use \\u2028 instead, or #define RYML_WITH_BACKL_BACKP while compiling.");
+        #else
         // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=1024&names=-&utf8=0x&unicodeinhtml=hex
         const char payload[] = {
             _RYML_CHCONST(-0x1e, 0xe2),
@@ -2760,9 +2770,14 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
             _RYML_CHCONST(-0x58, 0xa8),
         };
         proc.translate_esc_extending(payload, /*nwrite*/3, /*nread*/1);
+        #endif
     }
     else if(next == 'P') // unicode paragraph separator \u2029
     {
+        #ifndef RYML_WITH_BACKL_BACKP
+        _c4err("\\N cannot be decoded as it would expand the source buffer. "
+               "use \\u2029 instead, or #define RYML_WITH_BACKL_BACKP while compiling.");
+        #else
         // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=1024&names=-&utf8=0x&unicodeinhtml=hex
         const char payload[] = {
             _RYML_CHCONST(-0x1e, 0xe2),
@@ -2770,6 +2785,7 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
             _RYML_CHCONST(-0x57, 0xa9),
         };
         proc.translate_esc_extending(payload, /*nwrite*/3, /*nread*/1);
+        #endif
     }
     else if(next == '\0')
     {

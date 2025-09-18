@@ -13,6 +13,7 @@ c4_project(VERSION 0.9.0 STANDALONE
 #-------------------------------------------------------
 
 option(RYML_WITH_TAB_TOKENS "Enable parsing of tabs after ':' and '-'. This is costly and disabled by default." OFF)
+option(RYML_WITH_BACKL_BACKP "Double scalars: decode \L and \P (respectively to \u2028 and \u2029). They decode to a larger size, and require complex logic to deal with. Disabled by default." OFF)
 option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks: allocate(), free(), error()" ON)
 if(RYML_DEFAULT_CALLBACKS)
     option(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS "Throw exceptions instead of calling abort in the default error handler provided by ryml" OFF)
@@ -85,6 +86,10 @@ c4_add_library(ryml
 
 if(RYML_WITH_TAB_TOKENS)
     target_compile_definitions(ryml PUBLIC RYML_WITH_TAB_TOKENS)
+endif()
+
+if(RYML_WITH_BACKL_BACKP)
+    target_compile_definitions(ryml PUBLIC RYML_WITH_BACKL_BACKP)
 endif()
 
 if(NOT RYML_DEFAULT_CALLBACKS)
