@@ -1397,10 +1397,30 @@ id_type Tree::add_tag_directive(TagDirective const& td)
     return pos;
 }
 
+namespace {
+bool _create_tag_directive_from_str(csubstr directive_, TagDirective *td, Tree *tree)
+{
+    _RYML_CB_CHECK(tree->callbacks(), directive_.begins_with("%TAG "));
+    if(!td->create_from_str(directive_))
+    {
+        _RYML_CB_ERR(tree->callbacks(), "invalid tag directive");
+    }
+    td->next_node_id = tree->size();
+    if(!tree->empty())
+    {
+        const id_type prev = tree->size() - 1;
+        if(tree->is_root(prev) && tree->type(prev) != NOTYPE && !tree->is_stream(prev))
+            ++td->next_node_id;
+    }
+    _c4dbgpf("%TAG: handle={} prefix={} next_node={}", td->handle, td->prefix, td->next_node_id);
+    return true;
+}
+} // namespace
+
 bool Tree::add_tag_directive(csubstr directive_)
 {
     TagDirective td;
-    if(td.create_from_str(directive_, this))
+    if(_create_tag_directive_from_str(directive_, &td, this))
     {
         add_tag_directive(td);
         return true;
