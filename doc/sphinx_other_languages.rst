@@ -2,11 +2,35 @@ Other languages
 ===============
 
 One of the aims of ryml is to provide an efficient YAML API for other
-languages. JavaScript is fully available, and there is already a cursory
-implementation for Python using only the low-level API. After ironing
-out the general approach, other languages are likely to follow (all of
-this is possible because we’re using `SWIG <http://www.swig.org/>`__,
-which makes it easy to do so).
+languages. JavaScript is fully available, and there is already a
+cursory implementation for Python using only the low-level API. After
+ironing out the general approach, other languages are likely to follow
+suit.
+
+
+
+Event buffer int handler
+------------------------
+
+Recently we added an alternative parser event handler (not part of the
+library). This handler parses the YAML source into a linear buffer of
+integers, which contains events encoded as bitmasks, interleaved with
+strings encoded as an offset (from the beginning of the source buffer)
+and length.
+
+This handler is fully compliant (ie it can handle container keys,
+unlike the ryml C++ tree), and is also 2x to 3x faster to parse.
+
+This handler is meant to be used in other programming languages while
+also minimizing speed-killing inter-language calls, creating a full
+representation of the YAML tree that can be processed at once in the
+target programming language.
+
+You can find the int event handler in the `src_extra source folder
+<https://github.com/biojppm/rapidyaml/tree/master/src_extra>`__. See
+its doxygen documentation for details on how to use it, and how to
+process the event array.
+
 
 
 JavaScript
