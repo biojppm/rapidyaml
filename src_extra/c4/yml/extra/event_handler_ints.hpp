@@ -159,8 +159,7 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * (encoded as an offset and length to the parsed source buffer).
  *
  * For example, parsing `[a, bb, ccc]` results in the following event
- * array (annotated):
- *
+ * buffer:
  * ```c++
  * using namespace c4::yml::extra::ievt;
  * const DataType arr[] = {       // result of parsing: [a, bb, ccc]
@@ -175,7 +174,7 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  *   ESTR,                        // end stream
  * };
  * ```
- * which can also be explained as
+ * Here is some further explanation of the buffer structure:
  * ```
  * source  : [a, bb, ccc]
  *                                                                string offset "a"                string offset "bb"               string offset "ccc"
@@ -184,7 +183,7 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  *            event    event   event [            event "a" ...   |   |      event "bb" ...        |   |      event "ccc" ...       |   |      event ]       event    event
  *            |        |       |                  |               |   |      |                     |   |      |                     |   |      |             |        |
  *            +--------+-------+------------------+---------------+---+------+---------------------+---+------+---------------------+---+------+-------------+--------+-----|
- * array    : BSTR     BDOC    VAL_|BSEQ|FLOW     VAL_|SCLR|PLAI  1   1      VAL_|SCLR|PLAI|PSTR   4   2      VAL_|SCLR|PLAI|PSTR   8   3      ESEQ|PSTR     EDOC     ESTR  (array)
+ * value    : BSTR     BDOC    VAL_|BSEQ|FLOW     VAL_|SCLR|PLAI  1   1      VAL_|SCLR|PLAI|PSTR   4   2      VAL_|SCLR|PLAI|PSTR   8   3      ESEQ|PSTR     EDOC     ESTR  (array)
  * event #  : 0        1       2                  3               .   .      4              |      .   .      5              |      .   .      6             7        8     (event #)
  * index/pos: 0        1       2                  3               4   5      6              |      7   8      9              |      10  11     12            13       14    (index/pos)
  *                                                 \              |   |       \             |      |   |       \             |      |   |
@@ -194,11 +193,12 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  *                                                                                          (jump back 3 to get to it)       (jump back 3 to get to it)
  * ```
  *
- * Note that the array contains both events and strings encoded as
+ * Note that the buffer contains both events and strings encoded as
  * integer pairs. That is, events that have an associated string are
- * immediately followed by two extra integers providing the offset and
+ * immediately followed by two integers providing the offset and
  * length of that string in the source buffer. (In the example above,
- * note the events for the strings a, bb, and ccc).
+ * this happens in the events for the strings `a`, `bb`, and `ccc` at
+ * positions 3, 6 and 9, respectively).
  *
  * The flag @ref ievt::PSTR and the mask @ref ievt::WSTR are provided
  * to enable easier iteration over the array. You can use them to test
@@ -250,26 +250,33 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * the output event buffer, as well as its length. This handler will
  * not take ownership nor attempt to resize the output buffer. If the
  * size required for the output buffer is larger than its actual size,
- * the parse goes all way to the end, counting events without writing
- * anything past the end of the buffer. After parsing is finished, the
- * user must ensure that the buffer size was enough to accomodate all
- * the events and associated string offset/lengths, or react
- * accordingly (eg, resize then retry the parse). See @ref
+ * parsing goes all way to the end, determining the required buffer
+ * size without writing anything past the end of the buffer. After
+ * parsing is finished, the user must ensure that the buffer size was
+ * enough to accomodate all the data that needs to be written into it,
+ * or react accordingly (eg, throw an error, or resize the buffer then
+ * retry the parse).
+ *
+ * A couple of functions will be helpful to do this. See @ref
  * EventHandlerInts::success() and @ref
  * EventHandlerInts::required_size() to retrieve to necessary
  * information. To get an estimation of the number of events before
- * parsing, see @ref ievt::estimate_events_ints_size().
+ * parsing, see @ref estimate_events_ints_size().
  *
  * Typical code to parse YAML with this handler will look like this:
  *
  * ```c++
  * csubstr filename = ...;
  * substr src = ...;
+ * // estimate the size required for the events buffer,
+ * // overpredicting it to be safe.
  * int estimated_size = extra::estimate_events_ints_size(src);
  * extra::EventHandlerInts handler;
  * ParseEngine<extra::EventHandlerInts> parser(&handler);
  * // example with a vector
- * std::vector<int> evts((size_t)estimated_size); // ensure we have a fighting change to acommodate the events
+ * std::vector<int> evts;
+ * // ensure we have a fighting chance to acommodate the events
+ * evts.resize((size_t)estimated_size);
  * // initialize the handler
  * handler.reset(src, evts.data(), (int)evts.size());
  * // parse the YAML
@@ -290,12 +297,14 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * ```
  *
  * The result of @ref estimate_events_ints_size() (click to see more
- * info) is generally an overprediction: it does so for every one of
- * the many hundreds of cases covered in the unit tests. But
- * conceivably it may underpredict in some cases. What to do then?
+ * info) is generally an overprediction: it overpredicts for every
+ * single case among the many hundreds of cases covered in the unit
+ * tests. But conceivably it may underpredict in some instances not
+ * found in the test suite. What to do then?
  *
- * First, open an issue here to allow that function to be improved!
- * Second, there are two ways to handle this situation in code:
+ * First, [open an issue](https://github.com/biojppm/rapidyaml/issues)
+ * to allow the estimation to be improved! Second, there are two ways
+ * to handle this situation in code:
  *
  *   1) throw an error (as sketched above)
  *
@@ -305,9 +314,9 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * If you must have your code be able to handle the specific cases
  * where the prediction undershoots before the estimate function is
  * fixed (after you open the issue), that is, if you are considering a
- * parse retry, there is something to pay attention to. The YAML
- * source buffer is mutated in-place during the parse, and cannot be
- * used to parse again. So if you want to retry, you need to keep a
+ * parse retry, there is something important that needs attention. The
+ * YAML source buffer is mutated in-place during the parse, and cannot
+ * be used to parse again. So if you want to retry, you need to keep a
  * pristine copy of the source:
  *
  * ```c++
@@ -333,6 +342,10 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  *      assert((size_t)handler.required_size() == evts.size()); // must always be true
  * }
  * ```
+ *
+ * When bringing this to other programming languages, the semantics
+ * will be very similar to this.
+ *
  */
 struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, EventHandlerIntsState>
 {
