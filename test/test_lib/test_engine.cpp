@@ -96,7 +96,7 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::strin
     extra::EventHandlerInts handler{};
     using IntType = extra::ievt::DataType;
     std::vector<IntType> actual_evts(num_ints(yaml.expected_ints.data(), yaml.expected_ints.size()));
-    int size_estimated = extra::estimate_num_events_ints(to_csubstr(yaml.parsed));
+    int size_estimated = extra::estimate_events_ints_size(to_csubstr(yaml.parsed));
     // there was an error in gcc<5 where the copy buffer was NOT
     // assigned when using a std::string:
     //std::string copy = yaml.parsed; gcc<5 ERROR, see below
@@ -105,8 +105,8 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::strin
     handler.reset(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
     ParseEngine<extra::EventHandlerInts> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
-    EXPECT_GE(size_estimated, handler.m_evt_curr);
-    size_t sz = (size_t)handler.m_evt_curr;
+    EXPECT_GE(size_estimated, handler.required_size());
+    size_t sz = (size_t)handler.required_size();
     if (actual_evts.size() < sz)
     {
         actual_evts.resize(sz);

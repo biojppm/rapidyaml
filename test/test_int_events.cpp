@@ -476,7 +476,7 @@ struct IntEventsTestHelper
             handler.reset(to_substr(src_copy), actual.data(), (int)actual.size());
         }
         parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
-        required_size_actual = (size_t)handler.m_evt_curr;
+        required_size_actual = (size_t)handler.required_size();
     }
 };
 

@@ -301,7 +301,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
         STOPWATCH("parse");
         parser.parse_in_place_ev(filename, src);
     }
-    size_t sz = (size_t)handler.m_evt_curr;
+    size_t sz = (size_t)handler.required_size();
     if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu\n", evts.size(), sz);
     if (evts.size() < sz)
     {
@@ -363,7 +363,7 @@ int estimate_ints_size(csubstr filecontents, int size)
     if(size < 0)
     {
         STOPWATCH("estimate_size");
-        int est = extra::estimate_num_events_ints(filecontents);
+        int est = extra::estimate_events_ints_size(filecontents);
         if(timing_enabled) fprintf(stderr, "estimated_size=%d*%d=%d\n", -size, est, -size * est);
         size = -size * est;
     }
