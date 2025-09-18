@@ -104,8 +104,13 @@ INSTRUCTIONS:
     symbol export/import.
 
 """
-    def has_evt(which):
-        return (which in events) or (Event.all in events)
+    def has_evt(*which):
+        if Event.all in events:
+            return True
+        for e in which:
+            if e in events:
+                return True
+        return False
     srcfiles = [
         am.cmttext(ryml_preamble),
         am.cmtfile("LICENSE.txt"),
@@ -130,17 +135,17 @@ INSTRUCTIONS:
         "src/c4/yml/parser_state.hpp",
         "src/c4/yml/event_handler_stack.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/event_handler_tree.hpp"),
-        am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
-        am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/string.hpp"),
+        am.onlyif(has_evt(Event.testsuite,Event.ints), "src_extra/c4/yml/extra/string.hpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/event_handler_test_suite.hpp"),
+        am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
         "src/c4/yml/parse_engine.hpp",
         "src/c4/yml/preprocess.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.hpp"),
-        am.onlyif(with_stl, "src/c4/yml/std/map.hpp"),
-        am.onlyif(with_stl, "src/c4/yml/std/string.hpp"),
-        am.onlyif(with_stl, "src/c4/yml/std/vector.hpp"),
-        am.onlyif(with_stl, "src/c4/yml/std/std.hpp"),
+        am.onlyif(with_stl and has_evt(Event.tree), "src/c4/yml/std/map.hpp"),
+        am.onlyif(with_stl and has_evt(Event.tree), "src/c4/yml/std/string.hpp"),
+        am.onlyif(with_stl and has_evt(Event.tree), "src/c4/yml/std/vector.hpp"),
+        am.onlyif(with_stl and has_evt(Event.tree), "src/c4/yml/std/std.hpp"),
         "src/c4/yml/version.cpp",
         "src/c4/yml/common.cpp",
         "src/c4/yml/node_type.cpp",
