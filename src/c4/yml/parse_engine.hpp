@@ -1,10 +1,6 @@
 #ifndef _C4_YML_PARSE_ENGINE_HPP_
 #define _C4_YML_PARSE_ENGINE_HPP_
 
-#ifndef _C4_YML_DETAIL_PARSER_DBG_HPP_
-#include "c4/yml/detail/parser_dbg.hpp"
-#endif
-
 #ifndef _C4_YML_PARSER_STATE_HPP_
 #include "c4/yml/parser_state.hpp"
 #endif

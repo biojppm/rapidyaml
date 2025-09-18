@@ -37,7 +37,7 @@ c4_add_library(ryml
         ryml.hpp
         ryml_std.hpp
         c4/yml/detail/checks.hpp
-        c4/yml/detail/parser_dbg.hpp
+        c4/yml/detail/dbgprint.hpp
         c4/yml/detail/print.hpp
         c4/yml/detail/stack.hpp
         c4/yml/common.hpp

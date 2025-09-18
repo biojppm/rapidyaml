@@ -8,7 +8,7 @@
 #include "c4/std/string.hpp"
 #include "c4/format.hpp"
 #include <c4/yml/yml.hpp>
-#include <c4/yml/detail/parser_dbg.hpp>
+#include <c4/yml/detail/dbgprint.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
 

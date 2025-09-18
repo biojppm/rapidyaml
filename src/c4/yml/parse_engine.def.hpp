@@ -8,11 +8,16 @@
 
 #include <ctype.h>
 
-#include "c4/yml/detail/parser_dbg.hpp"
+#include "c4/yml/detail/dbgprint.hpp"
 #include "c4/yml/filter_processor.hpp"
 #ifdef RYML_DBG
 #include <c4/dump.hpp>
 #include "c4/yml/detail/print.hpp"
+#define _c4err_(fmt, ...) do { RYML_DEBUG_BREAK(); this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
+#define _c4err(fmt) do { RYML_DEBUG_BREAK(); this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__); } while(0)
+#else
+#define _c4err_(fmt, ...) this->_err("ERROR: " fmt, ## __VA_ARGS__)
+#define _c4err(fmt) this->_err("ERROR: {}", fmt)
 #endif
 
 
@@ -796,7 +801,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
             case '{':
             case '[':
             //_RYML_WITHOUT_TAB_TOKENS(case '\t'):
-                _c4err("invalid token \":{}\"", _c4prc(s.str[1]));
+                _c4err_("invalid token \":{}\"", _c4prc(s.str[1]));
                 break;
             case ' ':
             case '}':
@@ -831,7 +836,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
             case '}':
             case '[':
             case ']':
-                _c4err("invalid token \"?{}\"", _c4prc(s.str[1]));
+                _c4err_("invalid token \"?{}\"", _c4prc(s.str[1]));
                 break;
             default:
                 break;
@@ -945,7 +950,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
             case '{':
             case '}':
                 _line_progressed(i);
-                _c4err("invalid character: '{}'", c); // noreturn
+                _c4err_("invalid character: '{}'", c); // noreturn
             default:
                 ;
             }
@@ -1021,14 +1026,14 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_map_flow(ScannedScalar *C4_RE
             case '{':
             case '[':
                 _line_progressed(i);
-                _c4err("invalid character: '{}'", c); // noreturn
+                _c4err_("invalid character: '{}'", c); // noreturn
                 break;
             case ']':
                 _line_progressed(i);
                 if(has_any(RSEQIMAP))
                     goto ended_scalar;
                 else
-                    _c4err("invalid character: '{}'", c); // noreturn
+                    _c4err_("invalid character: '{}'", c); // noreturn
                 break;
             case '#':
                 if(!i || s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[i-1] == '\t'))
@@ -2664,16 +2669,16 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
     else if(next == 'x') // 2-digit Unicode escape (\xXX), code point 0x00–0xFF
     {
         if(C4_UNLIKELY(proc.rpos + 1u + 2u >= proc.src.len))
-            _c4err("\\x requires 2 hex digits. scalar pos={}", proc.rpos);
+            _c4err_("\\x requires 2 hex digits. scalar pos={}", proc.rpos);
         char readbuf[8];
         csubstr codepoint = proc.src.sub(proc.rpos + 2u, 2u);
         _c4dbgfdq("utf8 ~~~{}~~~ rpos={} rem=~~~{}~~~", codepoint, proc.rpos, proc.src.sub(proc.rpos));
         uint32_t codepoint_val = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
-            _c4err("failed to read \\x codepoint. scalar pos={}", proc.rpos);
+            _c4err_("failed to read \\x codepoint. scalar pos={}", proc.rpos);
         const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
         if(C4_UNLIKELY(numbytes == 0))
-            _c4err("failed to decode code point={}", proc.rpos);
+            _c4err_("failed to decode code point={}", proc.rpos);
         _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/3u);
         _c4dbgfdq("utf8 after rpos={} rem=~~~{}~~~", proc.rpos, proc.src.sub(proc.rpos));
@@ -2681,30 +2686,30 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
     else if(next == 'u') // 4-digit Unicode escape (\uXXXX), code point 0x0000–0xFFFF
     {
         if(C4_UNLIKELY(proc.rpos + 1u + 4u >= proc.src.len))
-            _c4err("\\u requires 4 hex digits. scalar pos={}", proc.rpos);
+            _c4err_("\\u requires 4 hex digits. scalar pos={}", proc.rpos);
         char readbuf[8];
         csubstr codepoint = proc.src.sub(proc.rpos + 2u, 4u);
         uint32_t codepoint_val = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
-            _c4err("failed to parse \\u codepoint. scalar pos={}", proc.rpos);
+            _c4err_("failed to parse \\u codepoint. scalar pos={}", proc.rpos);
         const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
         if(C4_UNLIKELY(numbytes == 0))
-            _c4err("failed to decode code point={}", proc.rpos);
+            _c4err_("failed to decode code point={}", proc.rpos);
         _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/5u);
     }
     else if(next == 'U') // 8-digit Unicode escape (\UXXXXXXXX), full 32-bit code point
     {
         if(C4_UNLIKELY(proc.rpos + 1u + 8u >= proc.src.len))
-            _c4err("\\U requires 8 hex digits. scalar pos={}", proc.rpos);
+            _c4err_("\\U requires 8 hex digits. scalar pos={}", proc.rpos);
         char readbuf[8];
         csubstr codepoint = proc.src.sub(proc.rpos + 2u, 8u);
         uint32_t codepoint_val = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
-            _c4err("failed to parse \\U codepoint. scalar pos={}", proc.rpos);
+            _c4err_("failed to parse \\U codepoint. scalar pos={}", proc.rpos);
         const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
         if(C4_UNLIKELY(numbytes == 0))
-            _c4err("failed to decode code point={}", proc.rpos);
+            _c4err_("failed to decode code point={}", proc.rpos);
         _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/9u);
     }
@@ -2777,7 +2782,7 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
     }
     else
     {
-        _c4err("unknown character '{}' after '\\' pos={}", _c4prc(next), proc.rpos);
+        _c4err_("unknown character '{}' after '\\' pos={}", _c4prc(next), proc.rpos);
     }
     _c4dbgfdq("backslash...sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
 }
