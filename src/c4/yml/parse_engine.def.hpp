@@ -2859,7 +2859,7 @@ FilterResultExtending ParseEngine<EventHandler>::filter_scalar_dquoted_in_place(
 //-----------------------------------------------------------------------------
 // block filtering helpers
 
-RYML_EXPORT C4_NO_INLINE size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
+C4_NO_INLINE inline size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
 {
     if(indentation + 1 > s.len)
         return npos;
