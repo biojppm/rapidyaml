@@ -24,8 +24,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 
     if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS))
     {
-        auto flags = c->flags;
-        ExpectError::check_error(&cd->parsed_tree, [this, cd, flags]{
+        ExpectError::check_error(&cd->parsed_tree, [this, cd]{
             parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
             // if this point was reached, then it means that the expected
             // error failed to occur. So print debugging info.
@@ -114,13 +113,13 @@ static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints)
     SCOPED_TRACE("parse_ints");
     using I = extra::ievt::DataType;
     using Handler = extra::EventHandlerInts;
-    int estimated_size = extra::estimate_num_events_ints(src);
+    int estimated_size = extra::estimate_events_ints_size(src);
     ints->resize((size_t)estimated_size);
     Handler handler;
     handler.reset(src, ints->data(), (I)ints->size());
     ParseEngine<Handler> parser(&handler);
     parser.parse_in_place_ev(name, src);
-    int needed_size = handler.m_evt_curr;
+    int needed_size = handler.required_size();
     ASSERT_GE(estimated_size, needed_size);
     EXPECT_GT(needed_size, 0);
     ints->resize((size_t)needed_size);

@@ -14,7 +14,7 @@ template class ParseEngine<extra::EventHandlerInts>;
 
 namespace extra {
 
-int32_t estimate_num_events_ints(csubstr src)
+int32_t estimate_events_ints_size(csubstr src)
 {
     int32_t count = 7; // BSTR + BDOC + =VAL + EDOC + ESTR
     for(size_t i = 0; i < src.len; ++i)

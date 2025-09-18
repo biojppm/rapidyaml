@@ -337,19 +337,19 @@ struct TestSequenceLevel
             receive_src(*prev);
         _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts_ints);
         buffer_ints.resize(32);
-        int size_estimated = extra::estimate_num_events_ints(to_csubstr(src_evts_ints));
+        int size_estimated = extra::estimate_events_ints_size(to_csubstr(src_evts_ints));
         evt_handler_ints.m_stack.m_callbacks = get_callbacks();
         evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
-        EXPECT_GE(size_estimated, evt_handler_ints.m_evt_curr);
-        size_t sz = (size_t)evt_handler_ints.m_evt_curr;
+        EXPECT_GE(size_estimated, evt_handler_ints.required_size());
+        size_t sz = (size_t)evt_handler_ints.required_size();
         if (buffer_ints.size() < sz)
         {
             buffer_ints.resize(sz);
             src_evts_ints = src_orig;
             evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
             parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
-            size_t sz2 = (size_t)evt_handler_ints.m_evt_curr;
+            size_t sz2 = (size_t)evt_handler_ints.required_size();
             ASSERT_EQ(sz2, sz);
             sz = sz2;
         }
@@ -359,7 +359,7 @@ struct TestSequenceLevel
         extra::print_events_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (I)sz);
         #endif
         extra::test_events_ints_invariants(to_csubstr(src_evts_ints), buffer_ints.data(), (I)sz);
-        EXPECT_GT(evt_handler_ints.m_evt_curr, 0);
+        EXPECT_GT(evt_handler_ints.required_size(), 0);
         extra::emit_events_test_suite_from_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
         events_ints_were_generated = true;
     }

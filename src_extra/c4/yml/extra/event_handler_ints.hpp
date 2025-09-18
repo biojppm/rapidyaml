@@ -2,6 +2,14 @@
 #ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #define _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 
+/** @file event_handler_ints.hpp An event handler that creates an
+ * integer buffer with a very compact representation of the YAML tree
+ * in a source buffer. This is not part of the main rapidyaml library.
+ *
+ * @see c4::yml::extra::ievt::EventFlags
+ * @see c4::yml::extra::EventHandlerInts
+ * */
+
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
@@ -24,29 +32,35 @@
 #endif
 
 
-C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
-C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
-C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
-// NOLINTBEGIN(hicpp-signed-bitwise)
-
-
 namespace c4 {
 namespace yml {
+
+/** @namespace extra contains event handlers and related utilities
+ * that are not part of the main rapidyaml library */
 namespace extra {
+
+/** @namespace ievt contains the enumeration of integer
+ * events. behaves more or less like a relaxed enum class */
 namespace ievt {
+
+/** data type for integer events. This is set to a 32 bit signed
+ * integer to allow compatibility with a wide range of processing
+ * languages. */
 using DataType = int32_t;
+
+/** enumeration of integer event bits. */
 typedef enum : DataType {
     // Event types
-    BSTR = (1 <<  0),  ///< +STR
-    ESTR = (1 <<  1),  ///< -STR
-    BDOC = (1 <<  2),  ///< +DOC
-    EDOC = (1 <<  3),  ///< -DOC
-    BMAP = (1 <<  4),  ///< +MAP
-    EMAP = (1 <<  5),  ///< -MAP
-    BSEQ = (1 <<  6),  ///< +SEQ
-    ESEQ = (1 <<  7),  ///< -SEQ
-    SCLR = (1 <<  8),  ///< =VAL
-    ALIA = (1 <<  9),  ///< =ALI
+    BSTR = (1 <<  0),  ///< +STR begin stream
+    ESTR = (1 <<  1),  ///< -STR end stream
+    BDOC = (1 <<  2),  ///< +DOC begin doc
+    EDOC = (1 <<  3),  ///< -DOC end doc
+    BMAP = (1 <<  4),  ///< +MAP begin map
+    EMAP = (1 <<  5),  ///< -MAP end map
+    BSEQ = (1 <<  6),  ///< +SEQ begin seq
+    ESEQ = (1 <<  7),  ///< -SEQ end seq
+    SCLR = (1 <<  8),  ///< =VAL scalar
+    ALIA = (1 <<  9),  ///< =ALI alias (reference)
     // Style flags
     PLAI = (1 << 10),  ///< : (plain scalar)
     SQUO = (1 << 11),  ///< ' (single-quoted scalar)
@@ -70,9 +84,11 @@ typedef enum : DataType {
     PSTR = (1 << 22),
     // Utility flags
     LAST = PSTR,
-    MASK = (LAST << 1) - 1,
-    /// with string: the event has a string. the next two integers
-    /// will provide respectively the string's offset and length
+    MASK = (LAST << 1) - 1, // mask
+    /// with string: mask of all the events that encode a string
+    /// following the event. in the event has a string. the next two
+    /// integers will provide respectively the string's offset and
+    /// length
     WSTR = SCLR|ALIA|ANCH|TAG_,
 } EventFlags;
 
@@ -90,7 +106,14 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-RYML_EXPORT int32_t estimate_num_events_ints(csubstr src);
+/** Read YAML source and estimate the size of the integer buffer with
+ * the number of events without undergoing a full parse. This
+ * estimation is meant to exceed the actual number of required events;
+ * this is true for every case in the hundreds/thousands of extensive
+ * tests of rapidyaml (both for the YAML test suite and the internal
+ * cases ). But it may well happen that for some source code it may
+ * actually be lower. */
+RYML_EXPORT int32_t estimate_events_ints_size(csubstr src);
 
 } // namespace extra
 } // namespace yml
@@ -101,10 +124,18 @@ RYML_EXPORT int32_t estimate_num_events_ints(csubstr src);
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+// NOLINTBEGIN(hicpp-signed-bitwise)
+
 namespace c4 {
 namespace yml {
 namespace extra {
 
+
+/** The parser level state for the int event handler.
+ * @see EventHandlerInts */
 struct EventHandlerIntsState : public c4::yml::ParserState
 {
     c4::yml::type_bits evt_type;
@@ -112,6 +143,197 @@ struct EventHandlerIntsState : public c4::yml::ParserState
 };
 
 
+/** A parser event handler that creates a compact representation of
+ * the YAML tree in a buffer of integers containing masks (to
+ * represent events) and offset+length (to represent strings in the
+ * source buffer).
+ *
+ * This is meant for use by other programming languages, and supports
+ * container keys (unlike the ryml tree). It parses 2x-3x faster than
+ * the tree parser, because the resulting data structure is much
+ * simpler.
+ *
+ * The resulting integer buffer is a linear array of integers
+ * containing events (as a mask of @ref ievt::EventFlags), which in
+ * some cases (see @ref ievt::WSTR) are followed by an encoded string
+ * (encoded as an offset and length to the parsed source buffer).
+ *
+ * For example, parsing `[a, bb, ccc]` results in the following event
+ * array (annotated):
+ *
+ * ```c++
+ * using namespace c4::yml::extra::ievt;
+ * const DataType arr[] = {       // result of parsing: [a, bb, ccc]
+ *   BSTR,                        // begin stream
+ *   BDOC,                        // begin doc
+ *   VAL_|BSEQ|FLOW,              // begin seq as val, flow
+ *   VAL_|SCLR|PLAI,      1, 1,   // val scalar, plain style: a   starts at offset 1 and has length 1
+ *   VAL_|SCLR|PLAI|PSTR, 4, 2,   // val scalar, plain style: bb  starts at offset 4 and has length 2
+ *   VAL_|SCLR|PLAI|PSTR, 8, 3,   // val scalar, plain style: ccc starts at offset 8 and has length 3
+ *   ESEQ|PSTR,                   // end seq
+ *   EDOC,                        // end doc
+ *   ESTR,                        // end stream
+ * };
+ * ```
+ * which can also be explained as
+ * ```
+ * source  : [a, bb, ccc]
+ *                                                                string offset "a"                string offset "bb"               string offset "ccc"
+ *                                                                |   string length "a"            |   string length "bb"           |   string length "ccc"
+ *                                                                |   |                            |   |                            |   |
+ *            event    event   event [            event "a" ...   |   |      event "bb" ...        |   |      event "ccc" ...       |   |      event ]       event    event
+ *            |        |       |                  |               |   |      |                     |   |      |                     |   |      |             |        |
+ *            +--------+-------+------------------+---------------+---+------+---------------------+---+------+---------------------+---+------+-------------+--------+-----|
+ * array    : BSTR     BDOC    VAL_|BSEQ|FLOW     VAL_|SCLR|PLAI  1   1      VAL_|SCLR|PLAI|PSTR   4   2      VAL_|SCLR|PLAI|PSTR   8   3      ESEQ|PSTR     EDOC     ESTR  (array)
+ * event #  : 0        1       2                  3               .   .      4              |      .   .      5              |      .   .      6             7        8     (event #)
+ * index/pos: 0        1       2                  3               4   5      6              |      7   8      9              |      10  11     12            13       14    (index/pos)
+ *                                                 \              |   |       \             |      |   |       \             |      |   |
+ *                                                  has a string--+---+        has a string-+------+---+        has a string-+------+---+
+ *                                                                                          |                                |
+ *                                                                                          prev event has string            prev event has string
+ *                                                                                          (jump back 3 to get to it)       (jump back 3 to get to it)
+ * ```
+ *
+ * Note that the array contains both events and strings encoded as
+ * integer pairs. That is, events that have an associated string are
+ * immediately followed by two extra integers providing the offset and
+ * length of that string in the source buffer. (In the example above,
+ * note the events for the strings a, bb, and ccc).
+ *
+ * The flag @ref ievt::PSTR and the mask @ref ievt::WSTR are provided
+ * to enable easier iteration over the array. You can use them to test
+ * for presence of a string when iterating over the array.
+ *
+ * The flag @ref ievt::PSTR announces that an event is *preceded* by a
+ * string. That is, the previous event has a string, so that when this
+ * flag is found while iterating right-to-left, a jump of -3 should be
+ * used to get at the bitmask of the previous event. (In the example
+ * above, this flag is present for the events for `bb` and `ccc`, but
+ * not `a` because it is not preceded by a string).
+ *
+ * Likewise, to signify that the current event is *followed* by a
+ * string, there is the mask @ref ievt::WSTR, which is a mask of all
+ * the flags of events that have a string: @ref ievt::SCLR, @ref
+ * ievt::ALIA, @ref ievt::ANCH and @ref ievt::TAG_. While iterating
+ * left-to-right in the array, presence of any of the bits in the mask
+ * @ref ievt::WSTR means that a jump of +3 should be employed to get
+ * at the bitmask of the next event.
+ *
+ * Typical code to iterate left-to-right over the array will look
+ * like this:
+ *
+ * ```c++
+ * // source buffer, modified in place during parsing (IMPORTANT!)
+ * substr src = ...;
+ * // events resulting from parsing
+ * const int events[] = {...};
+ * int events_size = ...;
+ * for(int i = 0; i < events_size; ++i)
+ * {
+ *     if(events[i] & ievt::WSTR) // this event has a string following it
+ *     {
+ *         size_t offset = (size_t)events[i+1];
+ *         size_t length = (size_t)events[i+2];
+ *         csubstr str = src.sub(offset, length); // get the string
+ *         ...
+ *         i += 2; // skip the two ints of the string
+ *                 // (the jump is three places; the loop adds the other place)
+ *     }
+ *     else
+ *     {
+ *         ... // this is a single-int event
+ *     }
+ * }
+ * ```
+ *
+ * This handler must be initialized with the input source buffer and
+ * the output event buffer, as well as its length. This handler will
+ * not take ownership nor attempt to resize the output buffer. If the
+ * size required for the output buffer is larger than its actual size,
+ * the parse goes all way to the end, counting events without writing
+ * anything past the end of the buffer. After parsing is finished, the
+ * user must ensure that the buffer size was enough to accomodate all
+ * the events and associated string offset/lengths, or react
+ * accordingly (eg, resize then retry the parse). See @ref
+ * EventHandlerInts::success() and @ref
+ * EventHandlerInts::required_size() to retrieve to necessary
+ * information. To get an estimation of the number of events before
+ * parsing, see @ref ievt::estimate_events_ints_size().
+ *
+ * Typical code to parse YAML with this handler will look like this:
+ *
+ * ```c++
+ * csubstr filename = ...;
+ * substr src = ...;
+ * int estimated_size = extra::estimate_events_ints_size(src);
+ * extra::EventHandlerInts handler;
+ * ParseEngine<extra::EventHandlerInts> parser(&handler);
+ * // example with a vector
+ * std::vector<int> evts((size_t)estimated_size); // ensure we have a fighting change to acommodate the events
+ * // initialize the handler
+ * handler.reset(src, evts.data(), (int)evts.size());
+ * // parse the YAML
+ * parser.parse_in_place_ev(filename, src);
+ * if(handler.success()) // was the buffer size enough?
+ * {
+ *      evts.resize((size_t)handler.required_size()); // trim the vector
+ *      ...
+ * }
+ * else
+ * {
+ *      // estimation underpredicted!
+ *      // buffer size was not enough.
+ *      // open an issue at https://github.com/biojppm/rapidyaml/issues
+ *      error("buffer could not accomodate all the events");
+ *      // NOTE: see below for notes on doing a parse retry.
+ * }
+ * ```
+ *
+ * The result of @ref estimate_events_ints_size() (click to see more
+ * info) is generally an overprediction: it does so for every one of
+ * the many hundreds of cases covered in the unit tests. But
+ * conceivably it may underpredict in some cases. What to do then?
+ *
+ * First, open an issue here to allow that function to be improved!
+ * Second, there are two ways to handle this situation in code:
+ *
+ *   1) throw an error (as sketched above)
+ *
+ *   2) grow the buffer to the required size (see @ref
+ *      EventHandlerInts::required_size()), and then parse again
+ *
+ * If you must have your code be able to handle the specific cases
+ * where the prediction undershoots before the estimate function is
+ * fixed (after you open the issue), that is, if you are considering a
+ * parse retry, there is something to pay attention to. The YAML
+ * source buffer is mutated in-place during the parse, and cannot be
+ * used to parse again. So if you want to retry, you need to keep a
+ * pristine copy of the source:
+ *
+ * ```c++
+ * const std::string src = ...;  // the YAML code to be parsed
+ * std::string parsed_src = src; // this is where we will parse (filter during parsring)
+ * std::vector<int> evts((size_t)estimated_size); // ensure we have a fighting change to acommodate the events
+ * ParseEngine<extra::EventHandlerInts> parser(&handler);
+ * handler.reset(to_substr(parsed_src), evts.data(), (int)evts.size());
+ * parser.parse_in_place_ev(filename, to_substr(parsed_src));
+ * if(handler.success()) // was the buffer size enough?
+ * {
+ *      evts.resize((size_t)handler.required_size()); // trim the vector
+ *      ...
+ * }
+ * else
+ * {
+ *      evts.resize((size_t)handler.required_size()); // buffer size was not enough.
+ *      // copy again
+ *      parsed_src = src;
+ *      // retry parse
+ *      handler.reset(to_substr(parsed_src), evts.data(), (int)evts.size());
+ *      parser.parse_in_place_ev(filename, to_substr(parsed_src));
+ *      assert((size_t)handler.required_size() == evts.size()); // must always be true
+ * }
+ * ```
+ */
 struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, EventHandlerIntsState>
 {
 
@@ -135,11 +357,6 @@ public:
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
     bool m_has_yaml_directive;
     bool m_has_docs;
-
-    #ifdef RYML_DBG
-    mutable char m_evtstrbuf0[100];
-    mutable char m_evtstrbuf1[100];
-    #endif
 
     // undefined at the end
     #define _enable_(bits) _enable__<bits>()
@@ -178,6 +395,21 @@ public:
         m_has_yaml_directive = false;
         for(TagDirective &td : m_tag_directives)
             td = {};
+    }
+
+    /** get the size needed for the event buffer from the previous parse
+     * @warning this is valid only until the next parse */
+    int required_size() const
+    {
+        return m_evt_curr;
+    }
+
+    /** Predicate to test if the event buffer successfully accomodated
+     * all the parse events.
+     * @warning this is valid only until the next parse */
+    bool success() const
+    {
+        return m_evt_curr <= m_evt_size;
     }
 
     void reserve(int arena_size)
