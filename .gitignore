@@ -34,6 +34,7 @@ install/
 .python-version
 compile_commands.json
 launch.json
+ext/c4core/
 
 # test files
 /Testing/
