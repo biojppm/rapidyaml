@@ -715,18 +715,14 @@ CaseData* get_data(csubstr name)
         {
             std::string tmp;
             replace_all("\r", "", c->src, &tmp);
-            cd->unix_style.src_buf.assign(tmp.begin(), tmp.end());
-            cd->unix_style.src = to_substr(cd->unix_style.src_buf);
-            cd->unix_style_json.src_buf.assign(tmp.begin(), tmp.end());
-            cd->unix_style_json.src = to_substr(cd->unix_style.src_buf);
+            cd->unix_style.assign(to_csubstr(tmp));
+            cd->unix_style_json.assign(to_csubstr(tmp));
         }
         {
             std::string tmp;
             replace_all("\n", "\r\n", cd->unix_style.src, &tmp);
-            cd->windows_style.src_buf.assign(tmp.begin(), tmp.end());
-            cd->windows_style.src = to_substr(cd->windows_style.src_buf);
-            cd->windows_style_json.src_buf.assign(tmp.begin(), tmp.end());
-            cd->windows_style_json.src = to_substr(cd->windows_style.src_buf);
+            cd->windows_style.assign(to_csubstr(tmp));
+            cd->windows_style_json.assign(to_csubstr(tmp));
         }
     }
     else

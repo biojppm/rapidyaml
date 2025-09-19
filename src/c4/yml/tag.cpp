@@ -1,6 +1,5 @@
 #include "c4/yml/tag.hpp"
-#include "c4/yml/tree.hpp"
-#include "c4/yml/detail/parser_dbg.hpp"
+#include "c4/yml/detail/dbgprint.hpp"
 
 
 namespace c4 {
@@ -219,24 +218,6 @@ bool TagDirective::create_from_str(csubstr directive_)
     prefix = directive;
     next_node_id = NONE;
     _c4dbgpf("%TAG: handle={} prefix={}", handle, prefix);
-    return true;
-}
-
-bool TagDirective::create_from_str(csubstr directive_, Tree *tree)
-{
-    _RYML_CB_CHECK(tree->callbacks(), directive_.begins_with("%TAG "));
-    if(!create_from_str(directive_))
-    {
-        _RYML_CB_ERR(tree->callbacks(), "invalid tag directive");
-    }
-    next_node_id = tree->size();
-    if(!tree->empty())
-    {
-        const id_type prev = tree->size() - 1;
-        if(tree->is_root(prev) && tree->type(prev) != NOTYPE && !tree->is_stream(prev))
-            ++next_node_id;
-    }
-    _c4dbgpf("%TAG: handle={} prefix={} next_node={}", handle, prefix, next_node_id);
     return true;
 }
 

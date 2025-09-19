@@ -457,20 +457,39 @@ you can also generate a customized file suiting your particular needs
 
 ```console
 [user@host rapidyaml]$ python3 tools/amalgamate.py -h
-usage: amalgamate.py [-h] [--c4core | --no-c4core] [--fastfloat | --no-fastfloat] [--stl | --no-stl] [output]
+usage: amalgamate.py [-h] [--c4core | --no-c4core] [--fastfloat | --no-fastfloat]
+                     [--stl | --no-stl]
+                     [-e {tree,testsuite,int,all,none} [{tree,testsuite,int,all,none} ...]]
+                     [output]
 
 positional arguments:
-  output          output file. defaults to stdout
+  output                output file. defaults to stdout
 
-optional arguments:
-  -h, --help      show this help message and exit
-  --c4core        amalgamate c4core together with ryml. this is the default.
-  --no-c4core     amalgamate c4core together with ryml. the default is --c4core.
-  --fastfloat     enable fastfloat library. this is the default.
-  --no-fastfloat  enable fastfloat library. the default is --fastfloat.
-  --stl           enable stl interop. this is the default.
-  --no-stl        enable stl interop. the default is --stl.
+options:
+  -h, --help            show this help message and exit
+  --c4core              amalgamate c4core together with ryml. this is the default.
+  --no-c4core           amalgamate c4core together with ryml. the default is
+                        --c4core.
+  --fastfloat           enable fastfloat library. this is the default.
+  --no-fastfloat        enable fastfloat library. the default is --fastfloat.
+  --stl                 enable stl interop. this is the default.
+  --no-stl              enable stl interop. the default is --stl.
+  -e, --events {tree,testsuite,int,all,none} [{tree,testsuite,int,all,none} ...]
+                        Specify which event handlers to include. Possible values
+                        are: 'tree': (the default) enable the normal ryml event
+                        handler to create the tree, and additionally the Tree, Node,
+                        parser and emitter utilities; if this is not enabled, none
+                        of these components will be included in the amalgamated
+                        file. 'testsuite': enable the (extra) YAML test suite event
+                        handler. 'int': enable the (extra) integer-based event
+                        handler. 'all': enable all event handlers. 'none': disable
+                        all event handlers. The default is tree.
 ```
+
+Note that you can select which event handlers are to be included in the
+amalgamated header. This is useful for example when using only the int
+event parsing (withou the ryml tree/node/parse/emit) for a programming
+language or special application.
 
 The amalgamated header file contains all the function declarations and
 definitions. To use it in the project, `#include` the header at will
@@ -560,6 +579,8 @@ more about each sample:
 |:-------------------|--------------------------|:-------------|:-------------|
 | [`singleheader`](./samples/singleheader) | **yes**<br>ryml brought as a single header file,<br>not as a library | [`CMakeLists.txt`](./samples/singleheader/CMakeLists.txt) | [`run.sh`](./samples/singleheader/run.sh) |
 | [`singleheaderlib`](./samples/singleheaderlib) | **yes**<br>ryml brought as a library<br>but from the single header file | [`CMakeLists.txt`](./samples/singleheaderlib/CMakeLists.txt) | [`run_shared.sh` (shared library)](./samples/singleheaderlib/run_shared.sh)<br> [`run_static.sh` (static library)](./samples/singleheaderlib/run_static.sh) |
+| [`singleheader-ints`](./samples/singleheader-ints) | **yes**<br>ryml brought as a single header file,<br>not as a library | [`CMakeLists.txt`](./samples/singleheader-ints/CMakeLists.txt) | [`run.sh`](./samples/singleheader-ints/run.sh) |
+| [`singleheaderlib`](./samples/singleheaderlib-ints) | **yes**<br>ryml brought as a library<br>but from the single header file | [`CMakeLists.txt`](./samples/singleheaderlib-ints/CMakeLists.txt) | [`run_shared.sh` (shared library)](./samples/singleheaderlib-ints/run_shared.sh)<br> [`run_static.sh` (static library)](./samples/singleheaderlib-ints/run_static.sh) |
 | [`add_subdirectory`](./samples/add_subdirectory) | **yes**                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
 | [`fetch_content`](./samples/fetch_content)      | **yes**                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
 | [`find_package`](./samples/find_package)        | **no**<br>needs prior install or package  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
@@ -611,9 +632,31 @@ versions). You can find out how to achieve this by looking at the
 One of the aims of ryml is to provide an efficient YAML API for other
 languages. JavaScript is fully available, and there is already a
 cursory implementation for Python using only the low-level API. After
-ironing out the general approach, other languages are likely to
-follow (all of this is possible because we're using
-[SWIG](http://www.swig.org/), which makes it easy to do so).
+ironing out the general approach, other languages are likely to follow
+suit.
+
+
+### Event buffer int handler
+
+Recently we added an alternative parser event handler (not part of the
+library). This handler parses the YAML source into a linear buffer of
+integers, which contains events encoded as bitmasks, interleaved with
+strings encoded as an offset (from the beginning of the source buffer)
+and length.
+
+This handler is fully compliant (ie it can handle container keys,
+unlike the ryml C++ tree), and is also 2x to 3x faster to parse.
+
+This handler is meant to be used in other programming languages while
+also minimizing speed-killing inter-language calls, creating a full
+representation of the YAML tree that can be processed at once in the
+target programming language.
+
+You can find the int event handler in the [`src_extra` source
+folder](https://github.com/biojppm/rapidyaml/tree/master/src_extra). See
+its doxygen documentation for details on how to use it, and how to
+process the event array.
+
 
 ### JavaScript
 
@@ -692,7 +735,7 @@ following situations:
 * ryml's tree does NOT accept containers as map keys: keys stored in
   the tree must always be scalars. HOWEVER, this is a limitation only
   of the final tree. The event-based parse engine DOES parse container
-  keys, as it is is meant to be used by other programming languages to
+  keys, as it is meant to be used by other programming languages to
   create their native data-structures, and it is fully tested and
   fully conformant (other than the general error permissiveness noted
   below).
@@ -723,7 +766,7 @@ following situations:
   of the stream or documents (as per the standard), BOMs inside
   scalars are ignored. The [standard mandates that they should be
   quoted](https://yaml.org/spec/1.2.2/#52-character-encodings) when
-  emitted, this is not done.
+  emitted; this is not done.
 * ryml tends to be on the permissive side in several cases where the
   YAML standard dictates that there should be an error; in many of these
   cases, ryml will tolerate the input. This may be good or bad, but in

@@ -85,6 +85,7 @@ public:
 
 public:
 
+    const char* data() const noexcept { return m_str; }
     id_type size() const noexcept { return m_size; }
     id_type capacity() const noexcept { return m_capacity; }
 
