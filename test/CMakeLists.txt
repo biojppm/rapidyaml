@@ -1,15 +1,22 @@
 c4_setup_testing(GTEST)
 
 
-c4_add_executable(ryml-test-quickstart
-    SOURCES ../samples/quickstart.cpp
-    LIBS ryml
-    FOLDER test)
-if(RYML_DBG)
-    target_compile_definitions(ryml-test-quickstart PRIVATE RYML_DBG)
-endif()
-c4_target_compile_flags(ryml-test-quickstart PUBLIC GCC -Wno-useless-cast)
-c4_add_test(ryml-test-quickstart)
+function(ryml_add_test_no_lib test_name)
+    c4_add_executable(ryml-test-${test_name} LIBS ryml FOLDER test ${ARGN})
+    if(RYML_DBG)
+        target_compile_definitions(ryml-test-${test_name} PRIVATE RYML_DBG)
+        c4_target_compile_flags(ryml-test-${test_name} PUBLIC GCC -Wno-useless-cast)
+    endif()
+    c4_add_test(ryml-test-${test_name})
+endfunction()
+ryml_add_test_no_lib(ryml-test-quickstart
+    SOURCES ../samples/quickstart.cpp )
+ryml_add_test_no_lib(ryml-test-quickstart-ints
+    SOURCES
+        ../samples/quickstart-ints.cpp
+        ../src_extra/c4/yml/extra/event_handler_ints.hpp
+        ../src_extra/c4/yml/extra/event_handler_ints.cpp
+    INC_DIRS ../src_extra)
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC

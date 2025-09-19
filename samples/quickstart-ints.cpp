@@ -15,7 +15,7 @@
 #endif
 
 
-int main(int argc, const char *argv[])
+int main(int, const char *[])
 {
     // setup a YAML buffer to be parsed in place
     char yaml_buf[] = "doe: a deer, a female deer\n"
@@ -23,6 +23,9 @@ int main(int argc, const char *argv[])
                       "me: a name I call myself\n"
                       "far: a long long way to run\n";
     c4::substr yaml = yaml_buf;
+    // add a buffer for placing scalars/tags that cannot be filtered
+    // in-place
+    char arena[100];
 
     // setup a buffer to where we should write the events
     constexpr const int events_size = 100;
@@ -43,16 +46,19 @@ int main(int argc, const char *argv[])
     // set up the error callbacks
     c4::yml::extra::EventHandlerInts handler;
     c4::yml::ParseEngine<c4::yml::extra::EventHandlerInts> parser(&handler);
-    handler.reset(yaml, events, estimated_size); // note we pass the estimated size!
+    handler.reset(yaml, arena, events, estimated_size); // note we pass the estimated size!
     parser.parse_in_place_ev("filename", yaml);
 
     // the YAML was successfully parsed, but it may happen that it
     // requires more events than may fit in the buffer. so we need to
     // check that it actually fits (this is mandatory):
-    if(!handler.success())
+    if(!handler.fits_buffers())
     {
-        printf("error: event buffer is too small: required=%d actual=%d\n",
-               handler.required_size(), estimated_size);
+        printf("error: buffers too small:"
+               "   required_evt=%d actual_evt=%d\n"
+               "   required_arena=%zu actual_arena=%zu\n",
+               handler.required_size_events(), estimated_size,
+               handler.required_size_arena(), c4::to_csubstr(arena).len);
         // WATCHOUT: if you want to retry the parse, you need to set
         // up the source buffer again, because it is invalidated from
         // being parsed in place. refer to the doxygen documentation
@@ -61,11 +67,12 @@ int main(int argc, const char *argv[])
     }
 
     // done!
-    printf("success! YAML requires event size %d, estimated=%d\n",
-           handler.required_size(), estimated_size);
+    printf("success! YAML requires event size %d, estimated=%d (required_arena=%zu actual=%zu)\n",
+           handler.required_size_events(), estimated_size,
+           handler.required_size_arena(), c4::to_csubstr(arena).len);
 
     // example iterating through the events array: print the result
-    for (int pos = 0, evt = 0; pos < handler.required_size(); ++pos, ++evt)
+    for (int pos = 0, evt = 0; pos < handler.required_size_events(); ++pos, ++evt)
     {
         using namespace c4::yml::extra::ievt;
         printf("pos=%d\tevent[%d]:\t0x%x", pos, evt, events[pos]);
@@ -73,7 +80,12 @@ int main(int argc, const char *argv[])
         {
             int offset = events[pos + 1];
             int length = events[pos + 2];
-            const char *str = yaml.str + offset; // NOT ZERO TERMINATED!
+            bool in_arena = (events[pos] & AREN);
+            // NOT ZERO TERMINATED!
+            const char *str = !in_arena ?
+                yaml.str + offset
+                :
+                arena + offset;
             printf("\tstr=(%d,%d)\t'%.*s'", offset, length, length, str);
             pos += 2; // advance the two ints from the string
         }
