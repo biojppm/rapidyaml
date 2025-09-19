@@ -471,6 +471,32 @@ const IntEventsCase test_cases[] = {
            e(EDOC),
            e(ESTR),
        }),
+    // case -------------------------------------------------
+    // this requires the arena: directives cause the tag to expand
+    tc("%YAML 1.2\n"
+       "---\n"
+       "- !light fluorescent\n"
+       "- !m something\n"
+       "...\n"
+       "%TAG !m! !myayayayay-\n"
+       "---\n"
+       "!m!light green\n",
+       {
+           e(BSTR),
+           e(BDOC|EXPL),
+           e(VAL_|BSEQ|BLCK),
+           e(VAL_|TAG_,           15,  5, "!light"),
+           e(VAL_|SCLR|PLAI|PSTR, 23, 11, "fluorescent"),
+           e(VAL_|TAG_|PSTR,      38,  1, "!m"),
+           e(VAL_|SCLR|PLAI|PSTR, 40,  9, "something"),
+           e(ESEQ|PSTR),
+           e(EDOC|EXPL),
+           e(VAL_|TAG_,            81, 5, "!myayayayay-light"),
+           e(VAL_|TAG_|PSTR,       89, 5, "green"),
+           e(BDOC|EXPL),
+           e(EDOC),
+           e(ESTR),
+       }),
 };
 
 

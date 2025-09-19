@@ -1219,12 +1219,54 @@ public:
     }
     csubstr _transform_directive(csubstr tag)
     {
+        // lookup from the end. We want to find the first directive that
+        // matches the tag and has a target node id leq than the given
+        // node_id.
+        for(id_type i = RYML_MAX_TAG_DIRECTIVES-1; i != NONE; --i)
+        {
+            TagDirective const& td = m_tag_directives[i];
+            if(td.handle.empty())
+                continue;
+            if(tag.begins_with(td.handle))
+            {
+                bool retry = false;
+            again1:
+                size_t len = td.transform(tag, *output, m_stack.m_callbacks);
+                if(len == 0)
+                {
+                    if(tag.begins_with("!<"))
+                        return tag.sub(1);
+                    return tag;
+                }
+                if(len > output->size())
+                {
+                    _RYML_CB_CHECK(m_stack.m_callbacks, !retry);
+                    retry = true;
+                    output->resize(len);
+                    output->resize(output->capacity());
+                    goto again1;
+                }
+                return csubstr(*output).first(len);
+            }
+        }
         if(tag.begins_with('!'))
-            return tag;
-        csubstr result = c4::yml::normalize_tag_long(tag);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, result.is_sub(tag));
-        _RYML_CB_CHECK(m_stack.m_callbacks, result.len > 0);
-        _RYML_CB_CHECK(m_stack.m_callbacks, result.str);
+        {
+            if(is_custom_tag(tag))
+            {
+                _RYML_CB_ERR_(m_stack.m_callbacks, "tag not found", m_curr->pos);
+            }
+        }
+        bool retry = false;
+    again2:
+        csubstr result = normalize_tag_long(tag, *output);
+        if(!result.str)
+        {
+            _RYML_CB_CHECK(m_stack.m_callbacks, !retry);
+            retry = true;
+            output->resize(result.len);
+            output->resize(output->capacity());
+            goto again2;
+        }
         return result;
     }
 #undef _enable_
