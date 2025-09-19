@@ -16,7 +16,7 @@ struct IntEventsCase
     csubstr yaml;
     const std::vector<IntEventWithScalar> evt;
 
-    void testeq(ievt::DataType const* actual, size_t actual_size, csubstr parsed_source, csubstr arena) const
+    void testeq(csubstr parsed_source, csubstr arena, ievt::DataType const* actual, size_t actual_size) const
     {
         RYML_TRACE_FMT("defined in:\n{}:{}: (here)\n", file, line);
         #ifdef RYML_DBG
@@ -532,19 +532,26 @@ TEST_P(IntEventsTest, size_large_enough)
     IntEventsTestHelper h(GetParam());
     h.run_with_size(2u * h.required_size_expected, 2u * h.ec.yaml.len);
     ASSERT_LT(h.required_size_actual, h.actual.size());
+    ASSERT_LT(h.handler.required_size_arena(), h.arena.size());
     ASSERT_TRUE(h.handler.fits_buffers());
-    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy), to_csubstr(h.arena));
+    h.ec.testeq(to_csubstr(h.src_copy), to_csubstr(h.arena), h.actual.data(), h.required_size_actual);
 }
 
 TEST_P(IntEventsTest, size_too_small)
 {
     IntEventsTestHelper h(GetParam());
-    h.run_with_size(h.required_size_expected / 2u, 0u);
+    size_t small = h.required_size_expected / 2u;
+    h.run_with_size(small, 0u);
+    ASSERT_EQ(h.actual.size(), small);
+    ASSERT_EQ(h.arena.size(), 0u);
     ASSERT_GT(h.required_size_actual, h.actual.size());
     ASSERT_FALSE(h.handler.fits_buffers());
+    _c4dbgpf("retry! reqbuf={} reqarena={}", h.required_size_actual, h.handler.required_size_arena());
     h.run_with_size(h.required_size_actual, h.handler.required_size_arena());
+    ASSERT_EQ(h.actual.size(), h.handler.required_size_events());
+    ASSERT_EQ(h.arena.size(), h.handler.required_size_arena());
     ASSERT_TRUE(h.handler.fits_buffers());
-    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy), to_csubstr(h.arena));
+    h.ec.testeq(to_csubstr(h.src_copy), to_csubstr(h.arena), h.actual.data(), h.required_size_actual);
 }
 
 TEST_P(IntEventsTest, size_null)
@@ -554,7 +561,7 @@ TEST_P(IntEventsTest, size_null)
     ASSERT_GT(h.required_size_actual, h.actual.size());
     h.run_with_size(h.required_size_actual, h.handler.required_size_arena());
     ASSERT_TRUE(h.handler.fits_buffers());
-    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy), to_csubstr(h.arena));
+    h.ec.testeq(to_csubstr(h.src_copy), to_csubstr(h.arena), h.actual.data(), h.required_size_actual);
 }
 
 INSTANTIATE_TEST_SUITE_P(IntEvents, IntEventsTest, testing::ValuesIn(test_cases), &IntEventsTest::name2str);
