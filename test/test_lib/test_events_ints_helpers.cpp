@@ -44,7 +44,10 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
             _test_eq(expected[ie].str_start, actual[ia + 1], "", 0);
             _test_eq(expected[ie].str_len, actual[ia + 2], "", 0);
             bool in_arena = actual[ia] & ievt::AREN;
-            bool safeexpected = (expected[ie].str_start < (int)parsed_source.len && expected[ie].str_start + expected[ie].str_len <= (int)parsed_source.len);
+            bool safeexpected = !in_arena ?
+                (expected[ie].str_start < (int)parsed_source.len && expected[ie].str_start + expected[ie].str_len <= (int)parsed_source.len)
+                :
+                (expected[ie].str_start < (int)arena.len && expected[ie].str_start + expected[ie].str_len <= (int)arena.len);
             bool safeactual = !in_arena ?
                 (ia + 2 < actual_sz) && (actual[ia + 1] < (int)parsed_source.len && actual[ia + 1] + actual[ia + 2] <= (int)parsed_source.len)
                 :
@@ -53,7 +56,10 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
             _test_eq(safeactual, safeexpected, "", 0);
             if(safeactual && safeexpected)
             {
-                csubstr expectedstr = parsed_source.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len);
+                csubstr expectedstr = !in_arena ?
+                    parsed_source.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len)
+                    :
+                    arena.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len);
                 csubstr actualstr = !in_arena ?
                     parsed_source.sub((size_t)actual[ia + 1], (size_t)actual[ia + 2])
                     :

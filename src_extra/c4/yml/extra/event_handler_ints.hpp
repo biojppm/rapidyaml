@@ -74,12 +74,19 @@ typedef enum : DataType {
     EXPL = (1 << 21),  ///< `---` (with BDOC) or
                        ///< `...` (with EDOC)
     // Buffer flags
-    AREN = (1 << 22),  ///< special flag to mark strings that were
-                       ///< placed in the arena
-    PSTR = (1 << 23),  ///< special flag to enable look back in the event array. it
-                       ///< signifies that the previous event has a string, meaning that
-                       ///< the jump back to that event is 3 positions. without this flag it
-                       ///< would be impossible to jump to the previous event
+    ///< IMPORTANT. Marks events whose string was placed in the
+    ///< arena. Fhis happens when the filtered string is larger than the
+    ///< original string in the YAML code (eg from tags that resolve to
+    ///< a larger string, or from "\L" or "\P" in double quotes, which
+    ///< expand from two to three bytes). Because of this size
+    ///< expansion, the filtered string cannot be placed in the original
+    ///< source and needs to be placed in the arena.
+    AREN = (1 << 22),
+    ///< special flag to enable look back in the event array. it
+    ///< signifies that the previous event has a string, meaning that
+    ///< the jump back to that event is 3 positions. without this flag it
+    ///< would be impossible to jump to the previous event
+    PSTR = (1 << 23),
     // Utility flags/masks
     LAST = PSTR,                ///< the last flag defined above
     MASK = (LAST << 1) - 1,     ///< a mask of all bits in this enumeration
@@ -278,7 +285,7 @@ index/pos: 0        1       2                  3               4   5      6     
  * handler.reset(src, evts.data(), (int)evts.size());
  * // parse the YAML
  * parser.parse_in_place_ev(filename, src);
- * if(handler.success()) // was the buffer size enough?
+ * if(handler.fits_buffers()) // were the buffer sizes enough?
  * {
  *      evts.resize((size_t)handler.required_size()); // trim the vector
  *      ...
@@ -324,7 +331,7 @@ index/pos: 0        1       2                  3               4   5      6     
  * ParseEngine<extra::EventHandlerInts> parser(&handler);
  * handler.reset(to_substr(parsed_src), evts.data(), (int)evts.size());
  * parser.parse_in_place_ev(filename, to_substr(parsed_src));
- * if(handler.success()) // was the buffer size enough?
+ * if(handler.fits_buffers()) // were the buffer sizes enough?
  * {
  *      evts.resize((size_t)handler.required_size()); // trim the vector
  *      ...
@@ -391,7 +398,7 @@ public:
     {
     }
 
-    void reset(csubstr str, ievt::DataType *dst, int32_t dst_size, substr arena)
+    void reset(csubstr str, substr arena, ievt::DataType *dst, int32_t dst_size)
     {
         _stack_reset_root();
         m_curr->flags |= c4::yml::RUNK|c4::yml::RTOP;
@@ -962,9 +969,9 @@ public:
     }                                                               \
     else                                                            \
     {                                                               \
-        _c4dbgpf("{}/{}: arena!", i, m_evt_size);                   \
         m_evt[i] |= ievt::AREN;                                     \
         m_evt[i + 1] = (ievt::DataType)(scalar.str - m_arena.str);  \
+        _c4dbgpf("{}/{}: arena! ->{}", i, m_evt_size, m_evt[i+1]);  \
     }                                                               \
     m_evt[i + 2] = (ievt::DataType)scalar.len;                      \
     m_evt[i + 3] = ievt::PSTR
