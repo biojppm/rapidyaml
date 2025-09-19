@@ -334,6 +334,7 @@ struct CaseDataLineEndings
 
     std::string parse_buf_ints;
     std::vector<int> parsed_ints;
+    std::vector<char> arena_ints;
 };
 
 

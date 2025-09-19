@@ -283,7 +283,7 @@ extra::string emit_testsuite_events(csubstr filename, substr filecontents)
     return sink;
 }
 
-csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &parsed, IntEvents &evts, bool fail_size)
+csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &parsed, std::string &arena, IntEvents &evts, bool fail_size)
 {
     using I = extra::ievt::DataType;
     using Handler = extra::EventHandlerInts;
@@ -296,26 +296,28 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
         parsed.assign(filecontents.str, filecontents.len);
         src = to_substr(parsed);
     }
-    handler.reset(src, evts.data(), (I)evts.size());
+    arena.resize(src.len);
+    handler.reset(src, to_substr(arena), evts.data(), (I)evts.size());
     {
         STOPWATCH("parse");
         parser.parse_in_place_ev(filename, src);
     }
     size_t sz = (size_t)handler.required_size_events();
-    if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu\n", evts.size(), sz);
-    if (evts.size() < sz)
+    if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu. arena_size=%zu\n", evts.size(), sz, arena.size());
+    if (!handler.fits_buffers())
     {
         RYML_CHECK(!fail_size);
         {
             STOPWATCH("resize");
             evts.resize(sz);
+            arena.resize(handler.required_size_arena());
         }
         {
             STOPWATCH("redo_copy_src");
             parsed.assign(filecontents.str, filecontents.len);
             src = to_substr(parsed);
         }
-        handler.reset(src, evts.data(), (I)evts.size());
+        handler.reset(src, to_substr(arena), evts.data(), (I)evts.size());
         {
             STOPWATCH("redo_parse");
             parser.parse_in_place_ev(filename, src);
@@ -330,15 +332,16 @@ std::string emit_testsuite_events_from_ints(csubstr filename, substr filecontent
 {
     using I = extra::ievt::DataType;
     std::string buf;
+    std::string arena;
     csubstr parsed;
     {
         STOPWATCH("events");
-        parsed = parse_events_ints(filename, filecontents, buf, evts, fail_size);
+        parsed = parse_events_ints(filename, filecontents, buf, arena, evts, fail_size);
     }
     std::string result;
     {
         STOPWATCH("emit");
-        extra::emit_events_test_suite_from_ints(parsed, evts.data(), (I)evts.size(), &result);
+        extra::emit_events_test_suite_from_ints(parsed, to_substr(arena), evts.data(), (I)evts.size(), &result);
     }
     return result;
 }
@@ -347,14 +350,15 @@ void emit_ints_events(csubstr filename, substr filecontents, IntEvents &evts, bo
 {
     using I = extra::ievt::DataType;
     std::string buf;
+    std::string arena;
     csubstr parsed;
     {
         STOPWATCH("events");
-        parsed = parse_events_ints(filename, filecontents, buf, evts, fail_size);
+        parsed = parse_events_ints(filename, filecontents, buf, arena, evts, fail_size);
     }
     {
         STOPWATCH("emit");
-        extra::print_events_ints(parsed, evts.data(), (I)evts.size());
+        extra::print_events_ints(parsed, to_substr(arena), evts.data(), (I)evts.size());
     }
 }
 

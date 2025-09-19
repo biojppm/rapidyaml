@@ -3,7 +3,7 @@
 #endif
 #include "test_lib/test_group.hpp"
 #include "test_lib/test_case.hpp"
-#include "test_lib/test_events_int.hpp"
+#include "test_lib/test_events_ints_helpers.hpp"
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/event_handler_ints_utils.hpp>
 #include <c4/fs/fs.hpp>
@@ -108,21 +108,22 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     }
 }
 
-static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints)
+static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints, std::vector<char> *arena)
 {
     SCOPED_TRACE("parse_ints");
     using I = extra::ievt::DataType;
     using Handler = extra::EventHandlerInts;
     int estimated_size = extra::estimate_events_ints_size(src);
     ints->resize((size_t)estimated_size);
+    arena->resize(src.len);
     Handler handler;
-    handler.reset(src, ints->data(), (I)ints->size());
+    handler.reset(src, to_substr(*arena), ints->data(), (I)ints->size());
     ParseEngine<Handler> parser(&handler);
     parser.parse_in_place_ev(name, src);
-    int needed_size = handler.required_size_events();
-    ASSERT_GE(estimated_size, needed_size);
-    EXPECT_GT(needed_size, 0);
-    ints->resize((size_t)needed_size);
+    EXPECT_GT(handler.required_size_events(), 0);
+    ASSERT_GE(estimated_size, handler.required_size_events());
+    ints->resize((size_t)handler.required_size_events());
+    ASSERT_TRUE(handler.fits_buffers());
 }
 
 void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
@@ -136,20 +137,20 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
 
     substr s = to_substr(cd->parse_buf_ints);
     auto printints = [&]{
-        std::cout << extra::emit_events_test_suite_from_ints<std::string>(s, cd->parsed_ints.data(), (int)cd->parsed_ints.size()) << "\n";
+        std::cout << extra::emit_events_test_suite_from_ints<std::string>(s, to_csubstr(cd->arena_ints), cd->parsed_ints.data(), (int)cd->parsed_ints.size()) << "\n";
     };
 
     if(c->flags & EXPECT_PARSE_ERROR)
     {
         SCOPED_TRACE("expect error");
         ExpectError::check_error(&cd->parsed_tree, [&]{
-            _parse_events_ints(c->fileline, s, &cd->parsed_ints);
+            _parse_events_ints(c->fileline, s, &cd->parsed_ints, &cd->arena_ints);
             printints(); // error failed to occur. So print debugging info.
         }, c->expected_location);
         return;
     }
 
-    _parse_events_ints(c->fileline, s, &cd->parsed_ints);
+    _parse_events_ints(c->fileline, s, &cd->parsed_ints, &cd->arena_ints);
 
     #ifdef RYML_DBG
     if(_dbg_enabled())
@@ -158,7 +159,7 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
 
     {
         SCOPED_TRACE("checking invariants");
-        extra::test_events_ints_invariants(s, cd->parsed_ints.data(), (int)cd->parsed_ints.size());
+        extra::test_events_ints_invariants(s, to_csubstr(cd->arena_ints), cd->parsed_ints.data(), (int)cd->parsed_ints.size());
     }
 }
 

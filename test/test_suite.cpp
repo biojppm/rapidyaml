@@ -8,7 +8,7 @@
 #endif
 #include "test_lib/test_case.hpp"
 #include "test_lib/test_engine.hpp"
-#include "test_lib/test_events_int.hpp"
+#include "test_lib/test_events_ints_helpers.hpp"
 #include "test_suite/test_suite_common.hpp"
 #include "test_suite/test_suite_parts.hpp"
 #include "test_suite/test_suite_events.hpp"
@@ -146,6 +146,7 @@ struct TestSequenceLevel
     std::string         src_tree_json;
     std::string         src_evts;
     std::string         src_evts_ints;
+    std::string         arena_evts_ints;
     EventHandlerTree    evt_handler_tree;
     EventHandlerTree    evt_handler_tree_json;
     Parser              parser_tree;
@@ -339,15 +340,16 @@ struct TestSequenceLevel
         buffer_ints.resize(32);
         int size_estimated = extra::estimate_events_ints_size(to_csubstr(src_evts_ints));
         evt_handler_ints.m_stack.m_callbacks = get_callbacks();
-        evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
+        evt_handler_ints.reset(to_substr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
         EXPECT_GE(size_estimated, evt_handler_ints.required_size_events());
         size_t sz = (size_t)evt_handler_ints.required_size_events();
-        if (buffer_ints.size() < sz)
+        if (!evt_handler_ints.fits_buffers())
         {
             buffer_ints.resize(sz);
+            arena_evts_ints.resize(evt_handler_ints.required_size_arena());
             src_evts_ints = src_orig;
-            evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
+            evt_handler_ints.reset(to_substr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
             parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
             size_t sz2 = (size_t)evt_handler_ints.required_size_events();
             ASSERT_EQ(sz2, sz);
@@ -356,11 +358,11 @@ struct TestSequenceLevel
         ASSERT_LE(sz, buffer_ints.size());
         buffer_ints.resize(sz);
         #ifdef RYML_DBG
-        extra::print_events_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (I)sz);
+        extra::print_events_ints(to_csubstr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)sz);
         #endif
-        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), buffer_ints.data(), (I)sz);
+        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)sz);
         EXPECT_GT(evt_handler_ints.required_size_events(), 0);
-        extra::emit_events_test_suite_from_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
+        extra::emit_events_test_suite_from_ints(to_csubstr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
         events_ints_were_generated = true;
     }
 
