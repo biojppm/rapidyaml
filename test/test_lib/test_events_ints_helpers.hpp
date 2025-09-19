@@ -43,10 +43,12 @@ inline C4_NO_INLINE size_t num_ints(IntEventWithScalar const *evt, size_t evt_si
 void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
                       ievt::DataType const* actual, size_t actual_sz,
                       csubstr yaml,
-                      csubstr parsed_source);
+                      csubstr parsed_source,
+                      csubstr arena);
 
 void test_events_ints_invariants(
     csubstr parsed_yaml,
+    csubstr arena,
     ievt::DataType const* evts_ints,
     ievt::DataType evts_ints_sz);
 

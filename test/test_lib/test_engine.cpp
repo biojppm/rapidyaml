@@ -56,7 +56,7 @@ void test_expected_error_events_ints_from_yaml(std::string const& parsed_yaml, L
 {
     ExpectError::check_error([&]{
         extra::EventHandlerInts handler{};
-        handler.reset(to_csubstr(parsed_yaml), nullptr, 0);
+        handler.reset(to_csubstr(parsed_yaml), nullptr, 0, substr{});
         ParseEngine<extra::EventHandlerInts> parser(&handler);
         std::string copy = parsed_yaml;
         parser.parse_in_place_ev("(testyaml)", to_substr(copy));
@@ -102,39 +102,43 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::strin
     //std::string copy = yaml.parsed; gcc<5 ERROR, see below
     std::vector<char> copy(yaml.parsed.begin(), yaml.parsed.end());
     _c4dbgpf("parsing: [{}]{}", copy.size(), c4::fmt::hex(copy.data()));
-    handler.reset(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+    std::vector<char> arena(copy.size());
+    handler.reset(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size(), to_substr(arena));
     ParseEngine<extra::EventHandlerInts> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
-    EXPECT_GE(size_estimated, handler.required_size());
-    size_t sz = (size_t)handler.required_size();
-    if (actual_evts.size() < sz)
+    EXPECT_GE(size_estimated, handler.required_size_events());
+    size_t sz = (size_t)handler.required_size_events();
+    if (!handler.fits_buffers())
     {
-        actual_evts.resize(sz);
+        if(sz > actual_evts.size())
+            actual_evts.resize(sz);
+        copy.assign(yaml.parsed.begin(), yaml.parsed.end());
+        if(handler.required_size_arena() > arena.size())
+            arena.resize(handler.required_size_arena());
         _c4dbgpf("parsing again: (before) [{}]{}", copy.size(), c4::fmt::hex(copy.data()));
         //copy = yaml.parsed; ERROR: bad assignment in gcc<5
-        copy.assign(yaml.parsed.begin(), yaml.parsed.end());
         _c4dbgpf("parsing again: (after) [{}]{}", copy.size(), c4::fmt::hex(copy.data()));
-        handler.reset(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+        handler.reset(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size(), to_substr(arena));
         parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     }
     actual_evts.resize(sz);
     #ifdef RYML_DBG
-    extra::print_events_ints(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+    extra::print_events_ints(to_csubstr(copy), to_csubstr(arena), actual_evts.data(), (IntType)actual_evts.size());
     #endif
     {
         RYML_TRACE_FMT("invariants", 0);
-        extra::test_events_ints_invariants(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+        extra::test_events_ints_invariants(to_csubstr(copy), to_csubstr(arena), actual_evts.data(), (IntType)actual_evts.size());
     }
     if (yaml.expected_ints_enabled)
     {
         RYML_TRACE_FMT("here", 0);
         test_events_ints(yaml.expected_ints.data(), yaml.expected_ints.size(),
                          actual_evts.data(), actual_evts.size(),
-                         to_csubstr(yaml.parsed), to_csubstr(copy));
+                         to_csubstr(yaml.parsed), to_csubstr(copy), to_csubstr(arena));
     }
     {
         RYML_TRACE_FMT("cmp", 0);
-        std::string actual_test_suite_evts = extra::emit_events_test_suite_from_ints<std::string>(to_csubstr(copy), actual_evts.data(), (IntType)actual_evts.size());
+        std::string actual_test_suite_evts = extra::emit_events_test_suite_from_ints<std::string>(to_csubstr(copy), to_csubstr(arena), actual_evts.data(), (IntType)actual_evts.size());
         test_compare_events(to_csubstr(expected_events),
                             to_csubstr(actual_test_suite_evts),
                             /*ignore_doc_style*/false,

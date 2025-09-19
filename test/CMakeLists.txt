@@ -21,8 +21,8 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_case.cpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
-       test_lib/test_events_int.hpp
-       test_lib/test_events_int.cpp
+       test_lib/test_events_ints_helpers.hpp
+       test_lib/test_events_ints_helpers.cpp
        ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
        ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
        ../src_extra/c4/yml/extra/event_handler_ints.cpp
@@ -77,8 +77,8 @@ ryml_add_test(parse_engine_5_tag)
 ryml_add_test(parse_engine_6_qmrk)
 ryml_add_test(parse_engine_7_seqimap)
 ryml_add_test(parse_engine_8_scalars_tokens)
-ryml_add_test(yaml_events)
-ryml_add_test(int_events)
+ryml_add_test(extra_yaml)
+ryml_add_test(extra_ints)
 ryml_add_test(version)
 ryml_add_test(callbacks)
 ryml_add_test(stack)

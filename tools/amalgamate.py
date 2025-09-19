@@ -135,7 +135,7 @@ INSTRUCTIONS:
         "src/c4/yml/parser_state.hpp",
         "src/c4/yml/event_handler_stack.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/event_handler_tree.hpp"),
-        am.onlyif(has_evt(Event.testsuite,Event.ints), "src_extra/c4/yml/extra/string.hpp"),
+        am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/string.hpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/event_handler_test_suite.hpp"),
         am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
         "src/c4/yml/parse_engine.hpp",

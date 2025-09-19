@@ -3534,13 +3534,17 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_dquot(substr s)
         _c4dbgpf("filtering dquo scalar: not enough space: needs {}, have {}", len, s.len);
         substr dst = m_evt_handler->alloc_arena(len, &s);
         _c4dbgpf("filtering dquo scalar: dst.len={}", dst.len);
-        _RYML_CB_ASSERT(this->callbacks(), dst.len == len);
-        FilterResult rsd = this->filter_scalar_dquoted(s, dst);
-        _c4dbgpf("filtering dquo scalar: ... result now needs {} was {}", rsd.required_len(), len);
-        _RYML_CB_ASSERT(this->callbacks(), rsd.required_len() <= len); // may be smaller!
-        _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, rsd.valid());
-        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
-        return rsd.get();
+        if(dst.str)
+        {
+            _RYML_CB_ASSERT(this->callbacks(), dst.len == len);
+            FilterResult rsd = this->filter_scalar_dquoted(s, dst);
+            _c4dbgpf("filtering dquo scalar: ... result now needs {} was {}", rsd.required_len(), len);
+            _RYML_CB_ASSERT(this->callbacks(), rsd.required_len() <= len); // may be smaller!
+            _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, rsd.valid());
+            _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
+            return rsd.get();
+        }
+        return dst;
     }
 }
 
