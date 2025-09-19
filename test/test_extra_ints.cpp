@@ -36,6 +36,26 @@ std::ostream& operator<<(std::ostream& os, const IntEventsCase& that)
 
 
 //-----------------------------------------------------------------------------
+#define DECLARE_CSUBSTR_FROM_CHAR_ARR(name, ...) \
+    const char name##_[] = { __VA_ARGS__ }; \
+    csubstr name = {name##_, C4_COUNTOF(name##_)}
+
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L6,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P6,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+    );
 
 using namespace ievt;
 const bool needs_filter = true;
@@ -445,8 +465,8 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|BSEQ|FLOW),
-           e(VAL_|SCLR|DQUO|AREN, 0, 0, ""),
-           e(VAL_|SCLR|DQUO|AREN|PSTR, 0, 0, ""),
+           e(VAL_|SCLR|DQUO|AREN, 0, 18, dqesc_L6),
+           e(VAL_|SCLR|DQUO|AREN|PSTR, 18, 18, dqesc_P6),
            e(ESEQ|PSTR),
            e(EDOC),
            e(ESTR),
@@ -481,16 +501,9 @@ struct IntEventsTestHelper
     void run_with_size(size_t sz, size_t arena_sz)
     {
         src_copy.assign(ec.yaml.str, ec.yaml.len);
-        if (!sz)
-        {
-            handler.reset(to_substr(src_copy), nullptr, 0, substr{});
-        }
-        else
-        {
-            actual.resize(sz);
-            arena.resize(arena_sz);
-            handler.reset(to_substr(src_copy), actual.data(), (int)actual.size(), to_substr(arena));
-        }
+        actual.resize(sz);
+        arena.resize(arena_sz);
+        handler.reset(to_substr(src_copy), to_substr(arena), actual.data(), (int)actual.size());
         parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
         required_size_actual = (size_t)handler.required_size_events();
     }
@@ -517,7 +530,7 @@ struct IntEventsTest : public testing::TestWithParam<IntEventsCase>
 TEST_P(IntEventsTest, size_large_enough)
 {
     IntEventsTestHelper h(GetParam());
-    h.run_with_size(2u * h.required_size_expected, h.ec.yaml.len);
+    h.run_with_size(2u * h.required_size_expected, 2u * h.ec.yaml.len);
     ASSERT_LT(h.required_size_actual, h.actual.size());
     ASSERT_TRUE(h.handler.fits_buffers());
     h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy), to_csubstr(h.arena));
