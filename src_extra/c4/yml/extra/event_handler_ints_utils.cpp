@@ -37,9 +37,11 @@ void print_events_ints(csubstr parsed_yaml, csubstr arena, ievt::DataType const*
                 && ((evts[evtpos + 1] + evts[evtpos + 2]) <= (int)region.len);
             const char *str = safe ? (region.str + evts[evtpos + 1]) : "ERR!!!";
             int len = safe ? evts[evtpos + 2] : 6;
-            printf(": %d [%d]~~~%.*s~~~ (srcsz=%zu)",
-                   evts[evtpos+1], evts[evtpos+2],
-                   len, str, region.len);
+            printf(": %d [%d]~~~%.*s~~~", evts[evtpos+1], evts[evtpos+2], len, str);
+            if(in_arena)
+                printf(" (arenasz=%zu)", arena.len);
+            else
+                printf(" (srcsz=%zu)", parsed_yaml.len);
         }
         printf("\n");
     }

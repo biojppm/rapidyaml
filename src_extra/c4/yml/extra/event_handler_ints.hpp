@@ -1103,7 +1103,7 @@ public:
     {
         const size_t rem = m_arena.len > m_arena_pos ? m_arena.len - m_arena_pos : 0;
         substr s = {};
-        if(C4_LIKELY(rem > len))
+        if(C4_LIKELY(rem >= len))
             s = m_arena.sub(m_arena_pos, len);
         m_arena_pos += len;
         return s;
