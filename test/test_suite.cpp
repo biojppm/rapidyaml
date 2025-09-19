@@ -341,15 +341,15 @@ struct TestSequenceLevel
         evt_handler_ints.m_stack.m_callbacks = get_callbacks();
         evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
-        EXPECT_GE(size_estimated, evt_handler_ints.required_size());
-        size_t sz = (size_t)evt_handler_ints.required_size();
+        EXPECT_GE(size_estimated, evt_handler_ints.required_size_events());
+        size_t sz = (size_t)evt_handler_ints.required_size_events();
         if (buffer_ints.size() < sz)
         {
             buffer_ints.resize(sz);
             src_evts_ints = src_orig;
             evt_handler_ints.reset(to_substr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
             parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
-            size_t sz2 = (size_t)evt_handler_ints.required_size();
+            size_t sz2 = (size_t)evt_handler_ints.required_size_events();
             ASSERT_EQ(sz2, sz);
             sz = sz2;
         }
@@ -359,7 +359,7 @@ struct TestSequenceLevel
         extra::print_events_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (I)sz);
         #endif
         extra::test_events_ints_invariants(to_csubstr(src_evts_ints), buffer_ints.data(), (I)sz);
-        EXPECT_GT(evt_handler_ints.required_size(), 0);
+        EXPECT_GT(evt_handler_ints.required_size_events(), 0);
         extra::emit_events_test_suite_from_ints(to_csubstr(src_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
         events_ints_were_generated = true;
     }

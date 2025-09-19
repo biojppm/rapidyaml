@@ -43,6 +43,7 @@ inline c4::EnumSymbols<yml::extra::ievt::EventFlags> const esyms<yml::extra::iev
         {yml::extra::ievt::BSTR, "BSTR"},
         {yml::extra::ievt::ESTR, "ESTR"},
         {yml::extra::ievt::EXPL, "EXPL"},
+        {yml::extra::ievt::AREN, "AREN"},
         {yml::extra::ievt::PSTR, "PSTR"},
     };
     return EnumSymbols<yml::extra::ievt::EventFlags>(syms);
@@ -75,10 +76,11 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-RYML_EXPORT void print_events_ints(csubstr parsed_yaml, ievt::DataType const* evts_ints, ievt::DataType evts_ints_sz);
+RYML_EXPORT void print_events_ints(csubstr parsed_yaml, csubstr arena, ievt::DataType const* evts_ints, ievt::DataType evts_ints_sz);
 
 RYML_EXPORT size_t emit_events_test_suite_from_ints(
     csubstr parsed_yaml,
+    csubstr arena,
     ievt::DataType const* evts_ints,
     ievt::DataType evts_ints_sz,
     substr evts_test_suite);
@@ -86,17 +88,18 @@ RYML_EXPORT size_t emit_events_test_suite_from_ints(
 template<class Container>
 void emit_events_test_suite_from_ints(
     csubstr parsed_yaml,
+    csubstr arena,
     ievt::DataType const* evts_ints,
     ievt::DataType evts_ints_sz,
     Container *evts_test_suite)
 {
     substr s = to_substr(*evts_test_suite);
-    size_t len = emit_events_test_suite_from_ints(parsed_yaml, evts_ints, evts_ints_sz, s);
+    size_t len = emit_events_test_suite_from_ints(parsed_yaml, arena, evts_ints, evts_ints_sz, s);
     if(len > evts_test_suite->size())
     {
         evts_test_suite->resize(len);
         s = to_substr(*evts_test_suite);
-        len = emit_events_test_suite_from_ints(parsed_yaml, evts_ints, evts_ints_sz, s);
+        len = emit_events_test_suite_from_ints(parsed_yaml, arena, evts_ints, evts_ints_sz, s);
     }
     evts_test_suite->resize(len);
 }
@@ -104,11 +107,12 @@ void emit_events_test_suite_from_ints(
 template<class Container>
 Container emit_events_test_suite_from_ints(
     csubstr parsed_yaml,
+    csubstr arena,
     ievt::DataType const* evts_ints,
     ievt::DataType evts_ints_sz)
 {
     Container ret;
-    emit_events_test_suite_from_ints(parsed_yaml, evts_ints, evts_ints_sz, &ret);
+    emit_events_test_suite_from_ints(parsed_yaml, arena, evts_ints, evts_ints_sz, &ret);
     return ret;
 }
 

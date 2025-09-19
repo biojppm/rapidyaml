@@ -119,7 +119,7 @@ static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints)
     handler.reset(src, ints->data(), (I)ints->size());
     ParseEngine<Handler> parser(&handler);
     parser.parse_in_place_ev(name, src);
-    int needed_size = handler.required_size();
+    int needed_size = handler.required_size_events();
     ASSERT_GE(estimated_size, needed_size);
     EXPECT_GT(needed_size, 0);
     ints->resize((size_t)needed_size);

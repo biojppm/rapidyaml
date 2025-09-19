@@ -14,7 +14,7 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-void print_events_ints(csubstr parsed_yaml, ievt::DataType const* evts, ievt::DataType evts_sz)
+void print_events_ints(csubstr parsed_yaml, csubstr arena, ievt::DataType const* evts, ievt::DataType evts_sz)
 {
     char buf[100];
     for(ievt::DataType evtpos = 0, evtnumber = 0;
@@ -29,27 +29,32 @@ void print_events_ints(csubstr parsed_yaml, ievt::DataType const* evts, ievt::Da
         }
         if (evt & ievt::WSTR)
         {
+            bool in_arena = evt & ievt::AREN;
+            csubstr region = !in_arena ? parsed_yaml : arena;
             bool safe = (evts[evtpos + 1] >= 0)
                 && (evts[evtpos + 2] >= 0)
-                && (evts[evtpos + 1] < (int)parsed_yaml.len)
-                && ((evts[evtpos + 1] + evts[evtpos + 2]) <= (int)parsed_yaml.len);
-            const char *str = safe ? (parsed_yaml.str + evts[evtpos + 1]) : "ERR!!!";
+                && (evts[evtpos + 1] <= (int)region.len)
+                && ((evts[evtpos + 1] + evts[evtpos + 2]) <= (int)region.len);
+            const char *str = safe ? (region.str + evts[evtpos + 1]) : "ERR!!!";
             int len = safe ? evts[evtpos + 2] : 6;
             printf(": %d [%d]~~~%.*s~~~ (srcsz=%zu)",
                    evts[evtpos+1], evts[evtpos+2],
-                   len, str, parsed_yaml.len);
+                   len, str, region.len);
         }
         printf("\n");
     }
 }
 
 size_t emit_events_test_suite_from_ints(csubstr parsed_yaml,
+                                        csubstr arena,
                                         ievt::DataType const* evts_ints,
                                         ievt::DataType evts_ints_sz,
                                         substr evts_test_suite)
 {
     auto getstr = [&](ievt::DataType i){
-        return parsed_yaml.sub((size_t)evts_ints[i+1], (size_t)evts_ints[i+2]);
+        bool in_arena = evts_ints[i] & ievt::AREN;
+        csubstr region = !in_arena ? parsed_yaml : arena;
+        return region.sub((size_t)evts_ints[i+1], (size_t)evts_ints[i+2]);
     };
     size_t sz = 0;
     auto append = [&](csubstr s){

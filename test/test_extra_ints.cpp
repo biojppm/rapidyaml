@@ -1,5 +1,5 @@
 #include "test_lib/test_case.hpp"
-#include "test_lib/test_events_int.hpp"
+#include "test_lib/test_events_ints_helpers.hpp"
 #include <c4/yml/extra/event_handler_ints.hpp>
 
 // NOLINTBEGIN(hicpp-signed-bitwise)
@@ -16,14 +16,14 @@ struct IntEventsCase
     csubstr yaml;
     const std::vector<IntEventWithScalar> evt;
 
-    void testeq(ievt::DataType const* actual, size_t actual_size, csubstr parsed_source) const
+    void testeq(ievt::DataType const* actual, size_t actual_size, csubstr parsed_source, csubstr arena) const
     {
         RYML_TRACE_FMT("defined in:\n{}:{}: (here)\n", file, line);
         #ifdef RYML_DBG
-        print_events_ints(parsed_source, actual, (extra::ievt::DataType)actual_size);
+        print_events_ints(parsed_source, arena, actual, (extra::ievt::DataType)actual_size);
         #endif
-        test_events_ints_invariants(parsed_source, actual, (ievt::DataType)actual_size);
-        test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source);
+        test_events_ints_invariants(parsed_source, arena, actual, (ievt::DataType)actual_size);
+        test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, arena);
     }
 };
 // this is required to work around a valgrind problem in gtest's
@@ -437,6 +437,20 @@ const IntEventsCase test_cases[] = {
            e(EDOC),
            e(ESTR),
        }),
+    // case -------------------------------------------------
+    // this requires the arena:
+    // every filtered \L or \P expands 2->3 bytes
+    tc("[\"\\L\\L\\L\\L\\L\\L\", \"\\P\\P\\P\\P\\P\\P\"]",
+       {
+           e(BSTR),
+           e(BDOC),
+           e(VAL_|BSEQ|FLOW),
+           e(VAL_|SCLR|DQUO|AREN, 0, 0, ""),
+           e(VAL_|SCLR|DQUO|AREN|PSTR, 0, 0, ""),
+           e(ESEQ|PSTR),
+           e(EDOC),
+           e(ESTR),
+       }),
 };
 
 
@@ -454,6 +468,7 @@ struct IntEventsTestHelper
     ParseEngine<extra::EventHandlerInts> parser;
     std::string src_copy;
     std::vector<DataType> actual;
+    std::string arena;
     IntEventsTestHelper(IntEventsCase const& ec_)
         : ec(ec_)
         , required_size_expected(num_ints(ec.evt.data(), ec.evt.size()))
@@ -463,20 +478,21 @@ struct IntEventsTestHelper
         , actual()
     {
     }
-    void run_with_size(size_t const sz)
+    void run_with_size(size_t sz, size_t arena_sz)
     {
         src_copy.assign(ec.yaml.str, ec.yaml.len);
         if (!sz)
         {
-            handler.reset(to_substr(src_copy), nullptr, 0);
+            handler.reset(to_substr(src_copy), nullptr, 0, substr{});
         }
         else
         {
             actual.resize(sz);
-            handler.reset(to_substr(src_copy), actual.data(), (int)actual.size());
+            arena.resize(arena_sz);
+            handler.reset(to_substr(src_copy), actual.data(), (int)actual.size(), to_substr(arena));
         }
         parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
-        required_size_actual = (size_t)handler.required_size();
+        required_size_actual = (size_t)handler.required_size_events();
     }
 };
 
@@ -501,27 +517,31 @@ struct IntEventsTest : public testing::TestWithParam<IntEventsCase>
 TEST_P(IntEventsTest, size_large_enough)
 {
     IntEventsTestHelper h(GetParam());
-    h.run_with_size(2u * h.required_size_expected);
+    h.run_with_size(2u * h.required_size_expected, h.ec.yaml.len);
     ASSERT_LT(h.required_size_actual, h.actual.size());
-    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy));
+    ASSERT_TRUE(h.handler.fits_buffers());
+    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy), to_csubstr(h.arena));
 }
 
 TEST_P(IntEventsTest, size_too_small)
 {
     IntEventsTestHelper h(GetParam());
-    h.run_with_size(h.required_size_expected / 2u);
+    h.run_with_size(h.required_size_expected / 2u, 0u);
     ASSERT_GT(h.required_size_actual, h.actual.size());
-    h.run_with_size(h.required_size_actual);
-    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy));
+    ASSERT_FALSE(h.handler.fits_buffers());
+    h.run_with_size(h.required_size_actual, h.handler.required_size_arena());
+    ASSERT_TRUE(h.handler.fits_buffers());
+    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy), to_csubstr(h.arena));
 }
 
 TEST_P(IntEventsTest, size_null)
 {
     IntEventsTestHelper h(GetParam());
-    h.run_with_size(0);
+    h.run_with_size(0, 0);
     ASSERT_GT(h.required_size_actual, h.actual.size());
-    h.run_with_size(h.required_size_actual);
-    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy));
+    h.run_with_size(h.required_size_actual, h.handler.required_size_arena());
+    ASSERT_TRUE(h.handler.fits_buffers());
+    h.ec.testeq(h.actual.data(), h.required_size_actual, to_csubstr(h.src_copy), to_csubstr(h.arena));
 }
 
 INSTANTIATE_TEST_SUITE_P(IntEvents, IntEventsTest, testing::ValuesIn(test_cases), &IntEventsTest::name2str);

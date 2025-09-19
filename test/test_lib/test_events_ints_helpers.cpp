@@ -1,5 +1,7 @@
 #include "test_lib/test_case.hpp"
-#include "./test_events_int.hpp"
+#include "./test_events_ints_helpers.hpp"
+
+// NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -9,7 +11,8 @@ namespace extra {
 void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
                       ievt::DataType const* actual, size_t actual_sz,
                       csubstr yaml,
-                      csubstr parsed_source)
+                      csubstr parsed_source,
+                      csubstr arena)
 {
     int status = true;
     size_t num_ints_expected = num_ints(expected, expected_sz);
@@ -40,23 +43,30 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
         {
             _test_eq(expected[ie].str_start, actual[ia + 1], "", 0);
             _test_eq(expected[ie].str_len, actual[ia + 2], "", 0);
-            bool safeactual = (ia + 2 < actual_sz) && (actual[ia + 1] < (int)parsed_source.len && actual[ia + 1] + actual[ia + 2] <= (int)parsed_source.len);
+            bool in_arena = actual[ia] & ievt::AREN;
             bool safeexpected = (expected[ie].str_start < (int)parsed_source.len && expected[ie].str_start + expected[ie].str_len <= (int)parsed_source.len);
+            bool safeactual = !in_arena ?
+                (ia + 2 < actual_sz) && (actual[ia + 1] < (int)parsed_source.len && actual[ia + 1] + actual[ia + 2] <= (int)parsed_source.len)
+                :
+                (ia + 2 < actual_sz) && (actual[ia + 1] < (int)arena.len && actual[ia + 1] + actual[ia + 2] <= (int)arena.len)                ;
             _test_eq(safeactual, true, "", 0);
             _test_eq(safeactual, safeexpected, "", 0);
             if(safeactual && safeexpected)
             {
-                csubstr evtstr = parsed_source.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len);
-                csubstr actualstr = parsed_source.sub((size_t)actual[ia + 1], (size_t)actual[ia + 2]);
+                csubstr expectedstr = parsed_source.sub((size_t)expected[ie].str_start, (size_t)expected[ie].str_len);
+                csubstr actualstr = !in_arena ?
+                    parsed_source.sub((size_t)actual[ia + 1], (size_t)actual[ia + 2])
+                    :
+                    arena.sub((size_t)actual[ia + 1], (size_t)actual[ia + 2]);
                 _test_eq(expected[ie].scalar, actualstr,
                          "   ref=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
                          expected[ie].scalar.len, expected[ie].scalar,
                          actualstr.len, actualstr);
                 if( ! expected[ie].needs_filter)
                 {
-                    _test_eq(evtstr, actualstr,
+                    _test_eq(expectedstr, actualstr,
                              "   exp=[{}]~~~{}~~~ vs act=[{}]~~~{}~~~",
-                             evtstr.len, evtstr,
+                             expectedstr.len, expectedstr,
                              actualstr.len, actualstr);
                 }
             }
@@ -65,14 +75,17 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
     }
     RYML_TRACE_FMT("input:[{}]~~~{}~~~\n"
                    "parsed:[{}]~~~{}~~~\n",
+                   "arena:[{}]~~~{}~~~\n",
                    yaml.len, yaml,
-                   parsed_source.len, parsed_source);
+                   parsed_source.len, parsed_source,
+                   arena.len, arena);
     EXPECT_TRUE(status);
 #undef _test_eq
 }
 
 
 void test_events_ints_invariants(csubstr parsed_yaml,
+                                 csubstr arena,
                                  ievt::DataType const* evts,
                                  ievt::DataType evts_sz)
 {
@@ -107,15 +120,17 @@ void test_events_ints_invariants(csubstr parsed_yaml,
                 EXPECT_LE(i + 3, evts_sz);                          \
                 if (i + 3 <= evts_sz)                               \
                 {                                                   \
+                    bool in_arena = evts[i] & ievt::AREN;           \
+                    csubstr buf = !in_arena ? parsed_yaml : arena;  \
                     EXPECT_GE(evts[i + 1], 0);                      \
                     EXPECT_GE(evts[i + 2], 0);                      \
                     if (evts[i + 1] >= 0 && evts[i + 2] >= 0)       \
                     {                                               \
                         size_t offset = (size_t)evts[i + 1];        \
                         size_t len = (size_t)evts[i + 2];           \
-                        EXPECT_LE(offset, parsed_yaml.len);         \
-                        EXPECT_LE(len, parsed_yaml.len);            \
-                        EXPECT_LE(offset + len, parsed_yaml.len);   \
+                        EXPECT_LE(offset, buf.len);                 \
+                        EXPECT_LE(len, buf.len);                    \
+                        EXPECT_LE(offset + len, buf.len);   \
                     }                                               \
                 }                                                   \
             } while(0)
@@ -344,3 +359,5 @@ void test_events_ints_invariants(csubstr parsed_yaml,
 } // namespace extra
 } // namespace yml
 } // namespace c4
+
+// NOLINTEND(hicpp-signed-bitwise)

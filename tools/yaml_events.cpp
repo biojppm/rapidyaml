@@ -301,7 +301,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
         STOPWATCH("parse");
         parser.parse_in_place_ev(filename, src);
     }
-    size_t sz = (size_t)handler.required_size();
+    size_t sz = (size_t)handler.required_size_events();
     if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu\n", evts.size(), sz);
     if (evts.size() < sz)
     {
@@ -320,7 +320,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
             STOPWATCH("redo_parse");
             parser.parse_in_place_ev(filename, src);
         }
-        RYML_CHECK((size_t)handler.m_evt_curr == sz);
+        RYML_CHECK((size_t)handler.m_evt_pos == sz);
     }
     evts.resize(sz);
     return src;
