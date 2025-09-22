@@ -31,7 +31,7 @@ void ReferenceResolver::gather_anchors_and_refs__(id_type n)
     // insert key refs BEFORE inserting val refs
     if(m_tree->has_key(n))
     {
-        if(m_tree->key(n) == "<<")
+        if(!m_tree->is_key_quoted(n) && m_tree->key(n) == "<<")
         {
             _c4dbgpf("node[{}]: key is <<", n);
             if(m_tree->has_val(n))
