@@ -497,7 +497,7 @@ const IntEventsCase test_cases[] = {
            e(VAL_|BSEQ|BLCK),
            e(VAL_|TAG_|AREN,        0, 20, "!extraordinary-light"),
            e(VAL_|SCLR|PLAI|PSTR,  94,  5, "green"),
-           e(VAL_|TAG_|AREN|PSTR,  20, 23, "<tag:yaml.org,2002:int>"),
+           e(VAL_|TAG_|PSTR,      102,  5, "!!int"),
            e(VAL_|SCLR|PLAI|PSTR, 108,  1, "2"),
            e(ESEQ|PSTR),
            e(EDOC),

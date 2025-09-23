@@ -1254,17 +1254,7 @@ public:
                 _RYML_CB_ERR_(m_stack.m_callbacks, "tag not found", m_curr->pos);
             }
         }
-        substr rem = arena_rem();
-        csubstr result = normalize_tag_long(tag, rem);
-        if(result.is_sub(tag))
-            return result;
-        if(!result.is_sub(rem))
-        {
-            if(result.len && result.len <= rem.len)
-                memcpy(rem.str, result.str, result.len);
-        }
-        alloc_arena(result.len);
-        return rem.first(result.len <= rem.len ? result.len : 0);
+        return tag;
     }
 #undef _enable_
 #undef _disable_
