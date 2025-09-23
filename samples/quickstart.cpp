@@ -62,7 +62,7 @@ void sample_emit_to_container();    ///< emit to memory, eg a string or vector-l
 void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 void sample_emit_to_file();         ///< emit to a FILE*
 void sample_emit_nested_node();     ///< pick a nested node as the root when emitting
-void sample_emit_style();           ///< set the nodes to FLOW/BLOCK format
+void sample_style();                ///< set node styles [experimental]
 void sample_json();                 ///< JSON parsing and emitting
 void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
 void sample_anchors_and_aliases_create(); ///< how to create YAML anchors and aliases
@@ -103,7 +103,7 @@ int main()
     sample::sample_emit_to_stream();
     sample::sample_emit_to_file();
     sample::sample_emit_nested_node();
-    sample::sample_emit_style();
+    sample::sample_style();
     sample::sample_json();
     sample::sample_anchors_and_aliases();
     sample::sample_anchors_and_aliases_create();
@@ -4219,59 +4219,178 @@ void sample_emit_nested_node()
 
 //-----------------------------------------------------------------------------
 
-/** [experimental] pick flow/block style for certain nodes. */
-void sample_emit_style()
+/** [experimental] how to query/set/modify node style. */
+void sample_style()
 {
     ryml::Tree tree = ryml::parse_in_arena(R"(
-NodeOne:
-  - key: a
-    desc: b
-    class: c
-    number: d
-  - key: e
-    desc: f
-    class: g
-    number: h
-  - key: i
-    desc: j
-    class: k
-    number: l
+block map:
+  block key: block val
+block seq:
+  - block val 1
+  - block val 2
+  - 'quoted'
+flow map: {flow key: flow val}
+flow seq: [flow val, flow val]
 )");
-    // ryml uses block style by default:
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(NodeOne:
-  - key: a
-    desc: b
-    class: c
-    number: d
-  - key: e
-    desc: f
-    class: g
-    number: h
-  - key: i
-    desc: j
-    class: k
-    number: l
+    // while parsing, ryml marks parsed nodes with their original style:
+    CHECK(tree.rootref().is_block());
+    CHECK(tree["block map"].key_style() & ryml::KEY_PLAIN);
+    CHECK(tree["block seq"].key_style() & ryml::KEY_PLAIN);
+    CHECK(tree["flow map"].key_style() & ryml::KEY_PLAIN);
+    CHECK(tree["flow seq"].key_style() & ryml::KEY_PLAIN);
+    CHECK(tree["block map"].is_block());
+    CHECK(tree["block seq"].is_block());
+    CHECK(tree["flow map"].is_flow());
+    CHECK(tree["flow seq"].is_flow());
+    // which means that if you emit a tree, its style will be
+    // preserved:
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"(block map:
+  block key: block val
+block seq:
+  - block val 1
+  - block val 2
+  - 'quoted'
+flow map: {flow key: flow val}
+flow seq: [flow val,flow val]
 )");
-    // you can override the emit style of individual nodes:
-    for(ryml::NodeRef child : tree["NodeOne"].children())
-        child |= ryml::FLOW_SL; // flow, single-line
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(NodeOne:
-  - {key: a,desc: b,class: c,number: d}
-  - {key: e,desc: f,class: g,number: h}
-  - {key: i,desc: j,class: k,number: l}
+    // you can set the style programatically:
+    tree["block map"].set_container_style(ryml::FLOW_SL); // container style: to flow
+    tree["block seq"].set_container_style(ryml::FLOW_SL);
+    tree["flow map"].set_container_style(ryml::BLOCK);    // container style: to block
+    tree["flow seq"].set_container_style(ryml::BLOCK);
+    tree["block map"].set_key_style(ryml::KEY_SQUO);      // scalar style: to single-quoted scalar
+    tree["block seq"].set_key_style(ryml::KEY_DQUO);      // scalar style: to double-quoted scalar
+    tree["flow map"].set_key_style(ryml::KEY_LITERAL);    // scalar style: to literal scalar
+    tree["flow seq"].set_key_style(ryml::KEY_FOLDED);     // scalar style: to folded scalar
+    tree["block seq"][2].set_val_style(ryml::VAL_PLAIN);  // scalar style: to plain
+    tree["flow seq"][0].set_val_style(ryml::VAL_SQUO);
+    tree["flow seq"][1].set_val_style(ryml::VAL_DQUO);
+    // note the difference now:
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"('block map': {block key: block val}
+"block seq": [block val 1,block val 2,quoted]
+? |-
+  flow map
+:
+  flow key: flow val
+? >-
+  flow seq
+:
+  - 'flow val'
+  - "flow val"
 )");
-    tree["NodeOne"] |= ryml::FLOW_SL;
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(NodeOne: [{key: a,desc: b,class: c,number: d},{key: e,desc: f,class: g,number: h},{key: i,desc: j,class: k,number: l}]
+    // you can clear the style of single nodes:
+    tree["block map"].clear_style();
+std::cout << tree;
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"(block map:
+  block key: block val
+"block seq": [block val 1,block val 2,quoted]
+? |-
+  flow map
+:
+  flow key: flow val
+? >-
+  flow seq
+:
+  - 'flow val'
+  - "flow val"
 )");
-    tree.rootref() |= ryml::FLOW_SL;
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"({NodeOne: [{key: a,desc: b,class: c,number: d},{key: e,desc: f,class: g,number: h},{key: i,desc: j,class: k,number: l}]})");
+    // you can clear the style recursively:
+    tree.rootref().clear_style(/*recurse*/true);
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"(block map:
+  block key: block val
+block seq:
+  - block val 1
+  - block val 2
+  - quoted
+flow map:
+  flow key: flow val
+flow seq:
+  - flow val
+  - flow val
+)");
+    // you can also set the style based on type conditions:
+    {
+        // set a single key to single-quoted
+        tree["block map"].set_style_conditionally(ryml::KEY,
+                                                  /*remflags*/ryml::KEY_STYLE,
+                                                  /*addflags*/ryml::KEY_SQUO,
+                                                  /*recurse*/false);
+        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"('block map':
+  block key: block val
+block seq:
+  - block val 1
+  - block val 2
+  - quoted
+flow map:
+  flow key: flow val
+flow seq:
+  - flow val
+  - flow val
+)");
+        // set all keys to single-quoted:
+        tree.rootref().set_style_conditionally(/*type_mask*/ryml::KEY,
+                                               /*remflags*/ryml::KEY_STYLE,
+                                               /*addflags*/ryml::KEY_SQUO,
+                                               /*recurse*/true);
+        // set all vals to double-quoted
+        tree.rootref().set_style_conditionally(/*type_mask*/ryml::VAL,
+                                               /*remflags*/ryml::VAL_STYLE,
+                                               /*addflags*/ryml::VAL_DQUO,
+                                               /*recurse*/true);
+        // set all seqs to flow
+        tree.rootref().set_style_conditionally(/*type_mask*/ryml::SEQ,
+                                               /*remflags*/ryml::CONTAINER_STYLE,
+                                               /*addflags*/ryml::FLOW_SL,
+                                               /*recurse*/true);
+        // set all maps to flow
+        tree.rootref().set_style_conditionally(/*type_mask*/ryml::MAP,
+                                               /*remflags*/ryml::CONTAINER_STYLE,
+                                               /*addflags*/ryml::BLOCK,
+                                               /*recurse*/true);
+        // done!
+        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"('block map':
+  'block key': "block val"
+'block seq': ["block val 1","block val 2","quoted"]
+'flow map':
+  'flow key': "flow val"
+'flow seq': ["flow val","flow val"]
+)");
+        // you can also set a conditional style in a single node:
+        tree["flow seq"].set_style_conditionally(/*type_mask*/ryml::SEQ,
+                                                 /*remflags*/ryml::CONTAINER_STYLE,
+                                                 /*addflags*/ryml::BLOCK,
+                                                 /*recurse*/false);
+        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"('block map':
+  'block key': "block val"
+'block seq': ["block val 1","block val 2","quoted"]
+'flow map':
+  'flow key': "flow val"
+'flow seq':
+  - "flow val"
+  - "flow val"
+)");
+    }
+    // see also:
+    //  - ryml::scalar_style_choose()
+    //  - ryml::scalar_style_json_choose()
+    //  - ryml::scalar_style_query_squo()
+    //  - ryml::scalar_style_query_plain()
 }
 
 
 //-----------------------------------------------------------------------------
 
-
-/** shows how to parse and emit JSON. */
+/** shows how to parse and emit JSON.
+ *
+ * To emit YAML parsed from JSON, see also @ref sample_style() for
+ * info on clearing the style flags (example below). */
 void sample_json()
 {
     ryml::csubstr json = R"({
@@ -4305,6 +4424,46 @@ void sample_json()
     //
     // - anchors and references cannot be emitted as json and
     //   are not allowed.
+    //
+
+    // Note that when parsing JSON, ryml will the style of each node
+    // in the JSON. This means that if you emit as YAML it will look
+    // mostly the same as the JSON:
+    CHECK(ryml::emitrs_yaml<std::string>(json_tree) == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+    // If you want to avoid this, you will need to clear the style.
+    json_tree.rootref().clear_style(); // clear the style of the map, but do not recurse
+    // note that this is now block mode. That is because when no
+    // style is set, the emit function will default to block mode.
+    CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
+          R"("doe": "a deer, a female deer"
+"ray": "a drop of golden sun"
+"me": "a name, I call myself"
+"far": "a long long way to go"
+)");
+    // if you don't want the double quotes in the scalar, you can
+    // recurse:
+    json_tree.rootref().clear_style(/*recurse*/true);
+    // so now you when emittingwill get this:
+    // (the scalars with a comma are single-qu)
+    CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
+          R"(doe: 'a deer, a female deer'
+ray: a drop of golden sun
+me: 'a name, I call myself'
+far: a long long way to go
+)");
+    // you can do custom style changes based on a type mask. this
+    // will change set the style of all scalar values to single-quoted
+    json_tree.rootref().set_style_conditionally(ryml::VAL,
+                                                /*remflags*/ryml::VAL_STYLE,
+                                                /*addflags*/ryml::VAL_SQUO,
+                                                /*recurse*/true);
+    CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
+          R"(doe: 'a deer, a female deer'
+ray: 'a drop of golden sun'
+me: 'a name, I call myself'
+far: 'a long long way to go'
+)");
+    // see in particular sample_style() for more examples
 }
 
 
@@ -4313,14 +4472,14 @@ void sample_json()
 /** demonstrates usage with anchors and alias references.
 
 Note that dereferencing is opt-in; after parsing, you have to call
-`Tree::resolve()` explicitly if you want resolved references in the
-tree. This method will resolve all references and substitute the
-anchored values in place of the reference.
+@ref c4::yml::Tree::resolve() explicitly if you want resolved
+references in the tree. This method will resolve all references and
+substitute the anchored values in place of the reference.
 
-The `Tree::resolve()` method first does a full traversal of the tree
-to gather all anchors and references in a separate collection, then it
-goes through that collection to locate the names, which it does by
-obeying the YAML standard diktat that
+The @ref c4::yml::Tree::resolve() method first does a full traversal
+of the tree to gather all anchors and references in a separate
+collection, then it goes through that collection to locate the names,
+which it does by obeying the YAML standard diktat that
 
     > an alias node refers to the most recent node in
     > the serialization having the specified anchor
@@ -4329,7 +4488,7 @@ So, depending on the number of anchor/alias nodes, this is a
 potentially expensive operation, with a best-case linear complexity
 (from the initial traversal) and a worst-case quadratic complexity (if
 every node has an alias/anchor). This potential cost is the reason for
-requiring an explicit call to `Tree::resolve()`. */
+requiring an explicit call to @ref c4::yml::Tree::resolve() */
 void sample_anchors_and_aliases()
 {
     std::string unresolved = R"(base: &base

@@ -1337,6 +1337,37 @@ void Tree::to_stream(id_type node, type_bits more_flags)
 
 
 //-----------------------------------------------------------------------------
+
+void Tree::clear_style(id_type node, bool recurse)
+{
+    NodeData *C4_RESTRICT d = _p(node);
+    d->m_type.clear_style();
+    if(!recurse)
+        return;
+    for(id_type child = d->m_first_child; child != NONE; child = next_sibling(child))
+        clear_style(child, recurse);
+}
+
+void Tree::set_style_conditionally(id_type node,
+                                   NodeType type_mask,
+                                   NodeType rem_style_flags,
+                                   NodeType add_style_flags,
+                                   bool recurse)
+{
+    NodeData *C4_RESTRICT d = _p(node);
+    if((d->m_type & type_mask) == type_mask)
+    {
+        d->m_type &= ~(NodeType)rem_style_flags;
+        d->m_type |= (NodeType)add_style_flags;
+    }
+    if(!recurse)
+        return;
+    for(id_type child = d->m_first_child; child != NONE; child = next_sibling(child))
+        set_style_conditionally(child, type_mask, rem_style_flags, add_style_flags, recurse);
+}
+
+
+//-----------------------------------------------------------------------------
 id_type Tree::num_tag_directives() const
 {
     // this assumes we have a very small number of tag directives
