@@ -478,22 +478,28 @@ const IntEventsCase test_cases[] = {
        "- !light fluorescent\n"
        "- !m something\n"
        "...\n"
-       "%TAG !m! !myayayayay-\n"
+       "%TAG !m! !extraordinary-\n"
        "---\n"
-       "!m!light green\n",
+       "- !m!light green\n"
+       "- !!int 2\n"
+       ,
        {
            e(BSTR),
            e(BDOC|EXPL),
            e(VAL_|BSEQ|BLCK),
-           e(VAL_|TAG_,           15,  5, "!light"),
-           e(VAL_|SCLR|PLAI|PSTR, 23, 11, "fluorescent"),
-           e(VAL_|TAG_|PSTR,      38,  1, "!m"),
-           e(VAL_|SCLR|PLAI|PSTR, 40,  9, "something"),
+           e(VAL_|TAG_,            16,  6, "!light"),
+           e(VAL_|SCLR|PLAI|PSTR,  23, 11, "fluorescent"),
+           e(VAL_|TAG_|PSTR,       37,  2, "!m"),
+           e(VAL_|SCLR|PLAI|PSTR,  40,  9, "something"),
            e(ESEQ|PSTR),
            e(EDOC|EXPL),
-           e(VAL_|TAG_,            81, 5, "!myayayayay-light"),
-           e(VAL_|TAG_|PSTR,       89, 5, "green"),
            e(BDOC|EXPL),
+           e(VAL_|BSEQ|BLCK),
+           e(VAL_|TAG_|AREN,        0, 20, "!extraordinary-light"),
+           e(VAL_|SCLR|PLAI|PSTR,  94,  5, "green"),
+           e(VAL_|TAG_|AREN|PSTR,  20, 23, "<tag:yaml.org,2002:int>"),
+           e(VAL_|SCLR|PLAI|PSTR, 108,  1, "2"),
+           e(ESEQ|PSTR),
            e(EDOC),
            e(ESTR),
        }),

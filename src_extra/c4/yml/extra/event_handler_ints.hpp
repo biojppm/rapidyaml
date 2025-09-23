@@ -391,7 +391,7 @@ public:
     EventHandlerInts(c4::yml::Callbacks const& cb)
         : EventHandlerStack(cb)
     {
-        reset({}, nullptr, 0, {});
+        reset(csubstr{}, substr{}, nullptr, 0);
     }
     EventHandlerInts()
         : EventHandlerInts(c4::yml::get_callbacks())
@@ -741,6 +741,66 @@ public:
         _enable_(c4::yml::MAP|c4::yml::FLOW_SL);
         _push();
     }
+
+    /** like its flow counterpart, but this function can only be
+     * called after the end of a flow-val at root or doc level.
+     *
+     * See the documentation for @ref doc_event_handlers, which has
+     * important notes about this event.
+     */
+    void actually_val_is_first_key_of_new_map_block()
+    {
+        if(m_evt_prev < m_evt_size)
+        {
+            // interpolate BMAP|VAL|BLCK after the last BDOC
+            int32_t pos = _find_last_bdoc(m_evt_pos);
+            if(pos >= 0)
+            {
+                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_pos);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC));
+                if(m_evt_pos < m_evt_size)
+                {
+                    ++pos; // add 1 to write after BDOC
+                    int32_t num_move = m_evt_pos - pos;
+                    int32_t posp1 = pos + 1;
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & (ievt::BSEQ|ievt::BMAP)));
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, num_move > 0);
+                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
+                    m_evt[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
+                    m_evt[posp1] &= ~ievt::VAL_;
+                    m_evt[posp1] |= ievt::KEY_;
+                    if(m_evt[posp1] & ievt::PSTR)
+                    {
+                        m_evt[pos] |= ievt::PSTR;
+                        m_evt[posp1] &= ~ievt::PSTR;
+                    }
+                }
+            }
+        }
+        ++m_curr->evt_id;
+        ++m_evt_prev;
+        ++m_evt_pos;
+        _push();
+    }
+
+    /** @} */
+
+public:
+
+    /** @cond dev */
+    int32_t _find_last_bdoc(int32_t pos) const
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt_prev < m_evt_size); // it's safe to read from the array
+        while(pos >= 0)
+        {
+            ievt::DataType e = m_evt[pos];
+            if(e & ievt::BDOC)
+                return pos;
+            pos -= (e & ievt::PSTR) ? 3 : 1;
+        }
+        return -1;
+    }
     int32_t _find_matching_open(ievt::DataType open, ievt::DataType close, int32_t pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
@@ -791,62 +851,7 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
         return pos - ((m_evt[pos] & ievt::PSTR) ? 3 : 1);
     }
-
-    /** like its flow counterpart, but this function can only be
-     * called after the end of a flow-val at root or doc level.
-     *
-     * See the documentation for @ref doc_event_handlers, which has
-     * important notes about this event.
-     */
-    void actually_val_is_first_key_of_new_map_block()
-    {
-        if(m_evt_prev < m_evt_size)
-        {
-            // interpolate BMAP|VAL|BLCK after the last BDOC
-            int32_t pos = _find_last_bdoc(m_evt_pos);
-            if(pos >= 0)
-            {
-                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_pos);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC));
-                if(m_evt_pos < m_evt_size)
-                {
-                    ++pos; // add 1 to write after BDOC
-                    int32_t num_move = m_evt_pos - pos;
-                    int32_t posp1 = pos + 1;
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & (ievt::BSEQ|ievt::BMAP)));
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, num_move > 0);
-                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
-                    m_evt[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
-                    m_evt[posp1] &= ~ievt::VAL_;
-                    m_evt[posp1] |= ievt::KEY_;
-                    if(m_evt[posp1] & ievt::PSTR)
-                    {
-                        m_evt[pos] |= ievt::PSTR;
-                        m_evt[posp1] &= ~ievt::PSTR;
-                    }
-                }
-            }
-        }
-        ++m_curr->evt_id;
-        ++m_evt_prev;
-        ++m_evt_pos;
-        _push();
-    }
-    int32_t _find_last_bdoc(int32_t pos) const
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt_prev < m_evt_size); // it's safe to read from the array
-        while(pos >= 0)
-        {
-            ievt::DataType e = m_evt[pos];
-            if(e & ievt::BDOC)
-                return pos;
-            pos -= (e & ievt::PSTR) ? 3 : 1;
-        }
-        return -1;
-    }
-
-    /** @} */
+    /** @endcond */
 
 public:
 
@@ -1048,8 +1053,6 @@ public:
     {
         csubstr ttag = _transform_directive(tag);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !ttag.empty());
-        if(ttag.begins_with('!') && !ttag.begins_with("!!"))
-            ttag = ttag.sub(1);
         if(m_evt_pos + 3 < m_evt_size)
         {
             m_evt[m_evt_pos] |= which|ievt::TAG_;
@@ -1075,8 +1078,10 @@ public:
             const id_type pos = _num_tag_directives();
             if(C4_UNLIKELY(pos >= RYML_MAX_TAG_DIRECTIVES))
                 _RYML_CB_ERR_(m_stack.m_callbacks, "too many directives", m_curr->pos);
-            if(C4_UNLIKELY(!m_tag_directives[pos].create_from_str(directive)))
+            TagDirective &td = m_tag_directives[pos];
+            if(C4_UNLIKELY(!td.create_from_str(directive)))
                 _RYML_CB_ERR_(m_stack.m_callbacks, "failed to add directive", m_curr->pos);
+            td.next_node_id = (id_type)m_evt_pos;
         }
         else if(directive.begins_with("%YAML"))
         {
@@ -1098,13 +1103,17 @@ public:
     /** @name YAML arena events */
     /** @{ */
 
+    substr arena_rem()
+    {
+        return C4_LIKELY(m_arena_pos <= m_arena.len) ? m_arena.sub(m_arena_pos) : m_arena.last(0);
+    }
+
     /** this may fail, in which case an empty string is returned */
     substr alloc_arena(size_t len)
     {
-        const size_t rem = m_arena.len > m_arena_pos ? m_arena.len - m_arena_pos : 0;
-        substr s = {};
-        if(C4_LIKELY(rem >= len))
-            s = m_arena.sub(m_arena_pos, len);
+        substr s = arena_rem();
+        if(C4_LIKELY(len <= s.len))
+            s = s.first(len);
         m_arena_pos += len;
         return s;
     }
@@ -1227,26 +1236,14 @@ public:
             TagDirective const& td = m_tag_directives[i];
             if(td.handle.empty())
                 continue;
-            if(tag.begins_with(td.handle))
+            if(tag.begins_with(td.handle) && (td.handle != td.prefix))
             {
-                bool retry = false;
-            again1:
-                size_t len = td.transform(tag, *output, m_stack.m_callbacks);
+                substr rem = arena_rem();
+                size_t len = td.transform(tag, rem, m_stack.m_callbacks, /*with_brackets*/false);
                 if(len == 0)
-                {
-                    if(tag.begins_with("!<"))
-                        return tag.sub(1);
                     return tag;
-                }
-                if(len > output->size())
-                {
-                    _RYML_CB_CHECK(m_stack.m_callbacks, !retry);
-                    retry = true;
-                    output->resize(len);
-                    output->resize(output->capacity());
-                    goto again1;
-                }
-                return csubstr(*output).first(len);
+                alloc_arena(len);
+                return rem.first(len <= rem.len ? len : 0);
             }
         }
         if(tag.begins_with('!'))
@@ -1256,18 +1253,17 @@ public:
                 _RYML_CB_ERR_(m_stack.m_callbacks, "tag not found", m_curr->pos);
             }
         }
-        bool retry = false;
-    again2:
-        csubstr result = normalize_tag_long(tag, *output);
-        if(!result.str)
+        substr rem = arena_rem();
+        csubstr result = normalize_tag_long(tag, rem);
+        if(result.is_sub(tag))
+            return result;
+        if(!result.is_sub(rem))
         {
-            _RYML_CB_CHECK(m_stack.m_callbacks, !retry);
-            retry = true;
-            output->resize(result.len);
-            output->resize(output->capacity());
-            goto again2;
+            if(result.len && result.len <= rem.len)
+                memcpy(rem.str, result.str, result.len);
         }
-        return result;
+        alloc_arena(result.len);
+        return rem.first(result.len <= rem.len ? result.len : 0);
     }
 #undef _enable_
 #undef _disable_
