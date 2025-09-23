@@ -281,7 +281,8 @@ size_t TagDirective::transform(csubstr tag, substr output, Callbacks const& call
             size_t prev = 0, wpos = 0;
             auto appendstr = [&](csubstr s) { memcpy(output.str + wpos, s.str, s.len); wpos += s.len; };
             auto appendchar = [&](char c) { output.str[wpos++] = c; };
-            appendchar('<');
+            if(with_brackets)
+                appendchar('<');
             appendstr(prefix);
             pos = rest.find('%');
             _RYML_CB_ASSERT(callbacks, pos != npos);
@@ -303,7 +304,8 @@ size_t TagDirective::transform(csubstr tag, substr output, Callbacks const& call
             _RYML_CB_ASSERT(callbacks, prev > 0);
             _RYML_CB_ASSERT(callbacks, rest.len >= prev);
             appendstr(rest.sub(prev));
-            appendchar('>');
+            if(with_brackets)
+                appendchar('>');
             _RYML_CB_ASSERT(callbacks, wpos == len);
         }
     }
