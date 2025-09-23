@@ -2,15 +2,15 @@ c4_setup_testing(GTEST)
 
 
 function(ryml_add_test_no_lib test_name)
-    c4_add_executable(ryml-test-${test_name} LIBS ryml FOLDER test ${ARGN})
+    c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
     if(RYML_DBG)
-        target_compile_definitions(ryml-test-${test_name} PRIVATE RYML_DBG)
-        c4_target_compile_flags(ryml-test-${test_name} PUBLIC GCC -Wno-useless-cast)
+        target_compile_definitions(${test_name} PRIVATE RYML_DBG)
+        c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
     endif()
-    c4_add_test(ryml-test-${test_name})
+    c4_add_test(${test_name})
 endfunction()
 ryml_add_test_no_lib(ryml-test-quickstart
-    SOURCES ../samples/quickstart.cpp )
+    SOURCES ../samples/quickstart.cpp)
 ryml_add_test_no_lib(ryml-test-quickstart-ints
     SOURCES
         ../samples/quickstart-ints.cpp

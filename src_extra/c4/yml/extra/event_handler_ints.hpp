@@ -1053,7 +1053,6 @@ public:
     {
         csubstr ttag = _transform_directive(tag);
         _c4dbgpf("{}/{}: transformed_tag [{}]~~~{}~~~", m_evt_pos, m_evt_size, ttag.len, ttag);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !ttag.empty());
         if(m_evt_pos + 3 < m_evt_size)
         {
             m_evt[m_evt_pos] |= which|ievt::TAG_;
@@ -1109,12 +1108,14 @@ public:
         return C4_LIKELY(m_arena_pos <= m_arena.len) ? m_arena.sub(m_arena_pos) : m_arena.last(0);
     }
 
-    /** this may fail, in which case an empty string is returned */
+    /** this may fail, in which case a an empty string is returned */
     substr alloc_arena(size_t len)
     {
         substr s = arena_rem();
         if(C4_LIKELY(len <= s.len))
             s = s.first(len);
+        else
+            s.str = nullptr;
         m_arena_pos += len;
         return s;
     }

@@ -75,6 +75,11 @@ size_t emit_events_test_suite_from_ints(csubstr parsed_yaml,
                 append(" ");
                 append(tag);
             }
+            else if(tag.begins_with("!<"))
+            {
+                append(" ");
+                append(tag.sub(1));
+            }
             else if(tag.begins_with('!'))
             {
                 append(" <");
