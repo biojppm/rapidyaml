@@ -1045,13 +1045,14 @@ public:
     }
     void set_val_tag(csubstr tag)
     {
-        _c4dbgpf("{}/{}: set val tag ~~~{}~~~", m_evt_pos, m_evt_size, tag);
+        _c4dbgpf("{}/{}: set val tag [{}]~~~{}~~~", m_evt_pos, m_evt_size, tag.len, tag);
         _enable_(c4::yml::VALTAG);
         _set_tag(tag, ievt::VAL_);
     }
     void _set_tag(csubstr tag, ievt::DataType which)
     {
         csubstr ttag = _transform_directive(tag);
+        _c4dbgpf("{}/{}: transformed_tag [{}]~~~{}~~~", m_evt_pos, m_evt_size, ttag.len, ttag);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !ttag.empty());
         if(m_evt_pos + 3 < m_evt_size)
         {
