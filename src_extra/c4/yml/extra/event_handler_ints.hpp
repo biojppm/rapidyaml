@@ -87,8 +87,11 @@ typedef enum : DataType {
     ///< the jump back to that event is 3 positions. without this flag it
     ///< would be impossible to jump to the previous event
     PSTR = (1 << 23),
+    ///< special flag to mark a scalar as unfiltered (when the parser
+    ///< is set not to filter)
+    UNFILT = (1 << 24),
     // Utility flags/masks
-    LAST = PSTR,                ///< the last flag defined above
+    LAST = UNFILT,                ///< the last flag defined above
     MASK = (LAST << 1) - 1,     ///< a mask of all bits in this enumeration
     WSTR = SCLR|ALIA|ANCH|TAG_, ///< with string: mask of all the events that encode a string
                                 ///< following the event. in the event has a string. the next two
@@ -952,11 +955,13 @@ public:
 
     C4_ALWAYS_INLINE void mark_key_scalar_unfiltered()
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "all scalars must be filtered");
+        _c4dbgpf("{}/{}: mark_key_scalar_unfiltered", m_evt_pos, m_evt_size);
+        _send_flag_only_(ievt::KEY_|ievt::UNFILT);
     }
     C4_ALWAYS_INLINE void mark_val_scalar_unfiltered()
     {
-        _RYML_CB_ERR(m_stack.m_callbacks, "all scalars must be filtered");
+        _c4dbgpf("{}/{}: mark_val_scalar_unfiltered", m_evt_pos, m_evt_size);
+        _send_flag_only_(ievt::VAL_|ievt::UNFILT);
     }
 
     /** @} */

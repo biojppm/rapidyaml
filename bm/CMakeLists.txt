@@ -119,8 +119,13 @@ set(RYML_SAJSON_INC_DIR ${sajson_dir}/include)
 function(ryml_add_bm_comparison_exe name)
     c4_add_executable(ryml-bm-${name}
         SOURCES bm_common.hpp ${ARGN}
+            ../src_extra/c4/yml/extra/event_handler_ints.hpp
+            ../src_extra/c4/yml/extra/event_handler_ints.cpp
         LIBS ryml yaml yaml-cpp benchmark jsoncpp_static nlohmann_json c4fs
-        INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
+        INC_DIRS
+            ${RYML_RAPIDJSON_INC_DIR}
+            ${RYML_SAJSON_INC_DIR}
+            ../src_extra
         FOLDER bm)
     if(RYML_DBG)
         target_compile_definitions(ryml-bm-${name} PRIVATE RYML_DBG)
@@ -133,9 +138,8 @@ function(ryml_add_bm_comparison_exe name)
     _c4_set_target_folder(ryml-bm-${name}-all bm/run)
 endfunction()
 
-ryml_add_bm_comparison_exe(parse bm_parse.cpp)
 ryml_add_bm_comparison_exe(emit bm_emit.cpp)
-
+ryml_add_bm_comparison_exe(parse bm_parse.cpp)
 
 function(ryml_add_bm_comparison_case target name case_file)
     c4_dbg("adding benchmark case: ${case_file}")

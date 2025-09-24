@@ -14,6 +14,7 @@
     #include <c4/yml/extra/event_handler_ints.hpp>
 #endif
 
+// NOLINTBEGIN(hicpp-signed-bitwise)
 
 int main(int, const char *[])
 {
@@ -115,8 +116,11 @@ int main(int, const char *[])
            handler.required_size_events(), estimated_size,
            handler.required_size_arena(), c4::to_csubstr(arena).len);
 
-    // example iterating through the events array: print the result
+    // ensure the result is as expected
     bool compare = true;
+
+    // example iterating through the events array: compare and print
+    // the result
     for (int pos = 0, evt = 0; pos < handler.required_size_events(); ++pos, ++evt)
     {
         using namespace c4::yml::extra::ievt;
@@ -127,14 +131,14 @@ int main(int, const char *[])
             int offset = events[pos + 1];
             int length = events[pos + 2];
             bool in_arena = (events[pos] & AREN);
-            // NOT ZERO TERMINATED!
+            // WATCHOUT! the string is NOT ZERO TERMINATED!
             const char *str = !in_arena ?
                 yaml.str + offset
                 :
                 arena + offset;
             printf("\tstr=(%d,%d)\t'%.*s'", offset, length, length, str);
-            status = status && offset == expected_events[pos + 1];
-            status = status && length == expected_events[pos + 2];
+            status = status && (offset == expected_events[pos + 1]);
+            status = status && (length == expected_events[pos + 2]);
             pos += 2; // advance the two ints from the string
         }
         if(!status)
@@ -147,3 +151,5 @@ int main(int, const char *[])
 
     return compare ? 0 : 1;
 }
+
+// NOLINTEND(hicpp-signed-bitwise)
