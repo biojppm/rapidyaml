@@ -66,7 +66,7 @@ typedef enum : type_bits {
     VAL_DQUO    = __(26), ///< mark val scalar as double quoted "
     KEY_PLAIN   = __(27), ///< mark key scalar as plain scalar (unquoted, even when multiline)
     VAL_PLAIN   = __(28), ///< mark val scalar as plain scalar (unquoted, even when multiline)
-    //
+    //1
     // type combination masks:
     //
     KEYVAL  = KEY|VAL,
@@ -185,9 +185,9 @@ public:
     C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { return (type & (KEY_UNFILT)) != 0; }
     C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { return (type & (VAL_UNFILT)) != 0; }
 
-    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor() const noexcept { return has_key_anchor(); }
-    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor() const noexcept { return has_val_anchor(); }
-    RYML_DEPRECATED("use has_anchor()")        bool is_anchor() const noexcept { return has_anchor(); }
+    RYML_DEPRECATED("use has_key_anchor()")   bool is_key_anchor() const noexcept { return has_key_anchor(); }
+    RYML_DEPRECATED("use has_val_anchor()")   bool is_val_anchor() const noexcept { return has_val_anchor(); }
+    RYML_DEPRECATED("use has_anchor()")       bool is_anchor() const noexcept { return has_anchor(); }
     RYML_DEPRECATED("use has_anchor() || is_ref()") bool is_anchor_or_ref() const noexcept { return has_anchor() || is_ref(); }
     /** @} */
 
@@ -267,6 +267,34 @@ RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
 
 /** @} */
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#ifdef RYML_WITH_COMMENTS
+using comment_data_type = uint32_t;
+typedef enum : uint32_t {
+    COMM_LK = (1u << 0u),  ///< comment leading key
+    COMM_TK = (1u << 1u),  ///< comment trailing key
+    COMM_FK = (1u << 2u),  ///< comment footer key
+    COMM_LV = (1u << 3u),  ///< comment leading val
+    COMM_TV = (1u << 4u),  ///< comment trailing val
+    COMM_FV = (1u << 5u),  ///< comment footer val
+    COMM_ANY_KEY = COMM_LK|COMM_TK|COMM_FK,
+    COMM_ANY_VAL = COMM_LV|COMM_TV|COMM_FV,
+    COMM_ANY = COMM_ANY_KEY|COMM_ANY_VAL,
+} CommentType_e;
+
+struct CommentData
+{
+    CommentType_e m_type;
+    csubstr       m_text;
+    id_type       m_prev;
+    id_type       m_next;
+};
+C4_MUST_BE_TRIVIAL_COPY(CommentData);
+#endif // RYML_WITH_COMMENTS
 
 /** @} */
 

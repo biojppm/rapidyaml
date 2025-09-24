@@ -589,6 +589,64 @@ public:
 
 public:
 
+    /** @name comments */
+    /** @{ */
+
+    /** add leading comment: key */
+    void add_comment_leading_key(csubstr txt)
+    {
+        _c4dbgpf("leading comment! key [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CLK #");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+    /** add leading comment: val */
+    void add_comment_leading_val(csubstr txt)
+    {
+        _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CLV #");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+
+    /** add trailing comment; key */
+    void add_comment_trailing_key(csubstr txt)
+    {
+        _c4dbgpf("trailing comment! key [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CTK #");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+    /** add trailing comment: val */
+    void add_comment_trailing_val(csubstr txt)
+    {
+        _c4dbgpf("trailing comment! val [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CTV #");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+
+    /** add footer comment; key */
+    void add_comment_footer_key(csubstr txt)
+    {
+        _c4dbgpf("footer comment! key [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CFK #");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+    /** add footer comment: val */
+    void add_comment_footer_val(csubstr txt)
+    {
+        _c4dbgpf("footer comment! val [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CFV #");
+        append_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+
+    /** @} */
+
+public:
+
     /** @name YAML arena events */
     /** @{ */
 

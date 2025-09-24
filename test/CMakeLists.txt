@@ -78,6 +78,7 @@ ryml_add_engine_test(parse_engine_5_tag)
 ryml_add_engine_test(parse_engine_6_qmrk)
 ryml_add_engine_test(parse_engine_7_seqimap)
 ryml_add_engine_test(parse_engine_8_scalars_tokens)
+ryml_add_engine_test(parse_engine_9_comments)
 ryml_add_engine_test(yaml_events)
 ryml_add_test(version)
 ryml_add_test(callbacks)
@@ -125,6 +126,8 @@ ryml_add_test_case_group(anchor)
 ryml_add_test_case_group(indentation)
 ryml_add_test_case_group(number)
 ryml_add_test_case_group(github_issues)
+ryml_add_test_case_group(comments)
+
 # workaround for a false positive warning in gcc14 --std=c++20 -O2
 if(CMAKE_COMPILER_IS_GNUCXX
         AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13)

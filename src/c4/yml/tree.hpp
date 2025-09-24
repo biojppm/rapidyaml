@@ -3,8 +3,12 @@
 
 /** @file tree.hpp */
 
+#ifndef _C4_ERROR_HPP_
 #include "c4/error.hpp"
+#endif
+#ifndef _C4_TYPES_HPP_
 #include "c4/types.hpp"
+#endif
 #ifndef _C4_YML_FWD_HPP_
 #include "c4/yml/fwd.hpp"
 #endif
@@ -189,6 +193,11 @@ struct NodeData
     id_type    m_last_child;
     id_type    m_next_sibling;
     id_type    m_prev_sibling;
+
+    #ifdef RYML_WITH_COMMENTS
+    id_type    m_first_comment;
+    id_type    m_last_comment;
+    #endif // RYML_WITH_COMMENTS
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
 
@@ -208,6 +217,10 @@ public:
     Tree(Callbacks const& cb);
     Tree(id_type node_capacity, size_t arena_capacity=0) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
     Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb);
+
+    #ifdef RYML_WITH_COMMENTS
+    Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity, Callbacks const& cb);
+    #endif
 
     ~Tree();
 
@@ -797,7 +810,7 @@ public:
     substr arena() { return m_arena.first(m_arena_pos); } // NOLINT(readability-make-member-function-const)
 
     /** return true if the given substring is part of the tree's string arena */
-    bool in_arena(csubstr s) const
+    C4_ALWAYS_INLINE bool in_arena(csubstr s) const
     {
         return m_arena.is_super(s);
     }
@@ -961,13 +974,13 @@ public:
         if(arena_cap > m_arena.len)
         {
             substr buf;
-            buf.str = (char*) m_callbacks.m_allocate(arena_cap, m_arena.str, m_callbacks.m_user_data);
+            buf.str = _RYML_CB_ALLOC(m_callbacks, char, arena_cap);
             buf.len = arena_cap;
             if(m_arena.str)
             {
                 _RYML_CB_ASSERT(m_callbacks, m_arena.len >= 0);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
-                m_callbacks.m_free(m_arena.str, m_arena.len, m_callbacks.m_user_data);
+                _RYML_CB_FREE(m_callbacks, m_arena.str, char, m_arena.len);
             }
             m_arena = buf;
         }
@@ -1078,6 +1091,34 @@ private:
     void _move(Tree      & that) noexcept;
 
     void _relocate(substr next_arena);
+
+#ifdef RYML_WITH_COMMENTS
+public:
+
+    /** @name comments
+     *
+     * For an explanation of the comment types, see @ref
+     * CommentType_e. Comments are enabled only if @ref
+     * RYML_WITH_COMMENTS is defined. */
+    /** @{ */
+
+    void reserve_comments(id_type comment_capacity);
+
+    CommentData const* comment(id_type id, comment_data_type type=COMM_ANY) const;
+    CommentData const* comment(id_type node_id, CommentType_e type) const;
+
+    void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);
+    void set_comment(NodeData *n, CommentType_e type, csubstr const& txt);
+
+    void rem_comments(id_type node_id); ///< remove all comments from the node
+    void rem_comment(id_type node_id, CommentType_e type);
+
+    id_type _claim_comment();
+    id_type _insert_comment(NodeData *n, id_type prev_comment);
+
+    /** @} */
+
+#endif // RYML_WITH_COMMENTS
 
 public:
 
@@ -1229,20 +1270,30 @@ public:
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        NodeData      & C4_RESTRICT dst = *_p(dst_);
+        NodeData const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = src.m_type;
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        NodeData      & C4_RESTRICT dst = *_p(dst_);
+        NodeData const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & src_mask) | (dst.m_type & ~src_mask);
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_)
@@ -1251,6 +1302,11 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & ~_KEYMASK) | (dst.m_type & _KEYMASK);
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
@@ -1259,6 +1315,11 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & ((~_KEYMASK)|src_mask)) | (dst.m_type & (_KEYMASK|~src_mask));
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _clear_type(id_type node)
@@ -1275,6 +1336,10 @@ public:
         n->m_parent = NONE;
         n->m_first_child = NONE;
         n->m_last_child = NONE;
+        #ifdef RYML_WITH_COMMENTS
+        n->m_first_comment = NONE;
+        n->m_last_comment = NONE;
+        #endif // RYML_WITH_COMMENTS
     }
 
     void _clear_key(id_type node)
@@ -1312,8 +1377,7 @@ public:
 
     NodeData *m_buf;
     id_type   m_cap;
-
-    id_type m_size;
+    id_type   m_size;
 
     id_type m_free_head;
     id_type m_free_tail;
@@ -1321,10 +1385,15 @@ public:
     substr m_arena;
     size_t m_arena_pos;
 
+#ifdef RYML_WITH_COMMENTS
+    CommentData *m_comments_buf;
+    id_type      m_comments_cap;
+    id_type      m_comments_size;
+#endif // RYML_WITH_COMMENTS
+
     Callbacks m_callbacks;
 
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
-
 };
 
 
