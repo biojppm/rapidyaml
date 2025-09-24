@@ -265,8 +265,9 @@ index/pos: 0        1       2                  3               4   5      6     
  * retry the parse).
  *
  * A couple of functions will be helpful to do this. See @ref
- * EventHandlerInts::success() and @ref
- * EventHandlerInts::required_size() to retrieve to necessary
+ * EventHandlerInts::fits_buffers(), @ref
+ * EventHandlerInts::required_size_events() and @ref
+ * EventHandlerInts::required_size_arena() to retrieve to necessary
  * information. To get an estimation of the number of events before
  * parsing, see @ref estimate_events_ints_size().
  *
@@ -317,7 +318,8 @@ index/pos: 0        1       2                  3               4   5      6     
  *   1) throw an error (as sketched above)
  *
  *   2) grow the buffer to the required size (see @ref
- *      EventHandlerInts::required_size()), and then parse again
+ *      EventHandlerInts::required_size_events()), and then parse
+ *      again
  *
  * If your code must be able to handle any case including where the
  * prediction undershoots before the estimate function is fixed (after

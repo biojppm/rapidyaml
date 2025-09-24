@@ -785,8 +785,6 @@ public:
     /** Get the location of a node from the parse used to parse this tree. */
     Location location(Parser const& p, id_type node) const;
 
-    /** @} */
-
 private:
 
     bool _location_from_node(Parser const& p, id_type node, Location *C4_RESTRICT loc, id_type level) const;

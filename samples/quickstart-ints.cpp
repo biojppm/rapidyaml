@@ -19,6 +19,7 @@
 int main(int, const char *[])
 {
     using namespace c4::yml::extra::ievt;
+    auto PSTR_ = c4::yml::extra::ievt::PSTR;
     // YAML buffer to be parsed in place
     char yaml_buf[] = "do: a deer, a female deer\n"
                       "re: a drop of golden sun\n"
@@ -31,19 +32,19 @@ int main(int, const char *[])
         BDOC,
         VAL_|BMAP|BLCK,
         //
-        KEY_|SCLR|PLAI,       0,  2,  // do
-        VAL_|SCLR|PLAI|PSTR,  4, 21,  // a deer, a female deer
+        KEY_|SCLR|PLAI|PSTR_,  0,  2,  // "do"
+        VAL_|SCLR|PLAI|PSTR_,  4, 21,  // "a deer, a female deer"
         //
-        KEY_|SCLR|PLAI|PSTR, 26,  2,  // re
-        VAL_|SCLR|PLAI|PSTR, 30, 20,  // a drop of golden sun
+        KEY_|SCLR|PLAI|PSTR_, 26,  2,  // "re"
+        VAL_|SCLR|PLAI|PSTR_, 30, 20,  // "a drop of golden sun"
         //
-        KEY_|SCLR|PLAI|PSTR, 51,  2,  // mi
-        VAL_|SCLR|PLAI|PSTR, 55, 20,  // a name I call myself
+        KEY_|SCLR|PLAI|PSTR_, 51,  2,  // "mi"
+        VAL_|SCLR|PLAI|PSTR_, 55, 20,  // "a name I call myself"
         //
-        KEY_|SCLR|PLAI|PSTR, 76,  2,  // fa
-        VAL_|SCLR|PLAI|PSTR, 80, 22,  // a long long way to run
+        KEY_|SCLR|PLAI|PSTR_, 76,  2,  // "fa"
+        VAL_|SCLR|PLAI|PSTR_, 80, 22,  // "a long long way to run"
         //
-        EMAP|PSTR,
+        EMAP|PSTR_,
         EDOC,
         ESTR,
     };
