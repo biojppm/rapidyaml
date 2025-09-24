@@ -29,6 +29,12 @@ tag_template = "v{new_version}"
 src = "CMakeLists.txt"
 search = "c4_project\\(VERSION {current_version}"
 [[file]]
+src = "samples/quickstart.cpp"
+search = "https://github.com/biojppm/rapidyaml/tree/v{current_version}"
+[[file]]
+src = "samples/quickstart.cpp"
+search = "GIT_TAG v{current_version}"
+[[file]]
 src = "test/test_install/CMakeLists.txt"
 search = "c4_project\\(VERSION {current_version}"
 [[file]]
