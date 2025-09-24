@@ -998,7 +998,7 @@ jobs:
         release_id: ${{steps.create_release.outputs.id}}
         assets_path: ./assets/
     - name: Publish python packages to test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.4.2
+      uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
         repository_url: https://test.pypi.org/legacy/
         user: __token__
@@ -1007,7 +1007,7 @@ jobs:
         skip_existing: true
     - name: Publish python packages to production PyPI
       if: contains(github.ref, 'tags/v')
-      uses: pypa/gh-action-pypi-publish@v1.4.2
+      uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
         user: __token__
         password: ${{secrets.PYPI_TOKEN}}
