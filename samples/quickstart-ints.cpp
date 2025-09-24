@@ -19,20 +19,19 @@
 int main(int, const char *[])
 {
     using namespace c4::yml::extra::ievt;
-    auto PSTR_ = c4::yml::extra::ievt::PSTR;
-    // YAML buffer to be parsed in place
-    char yaml_buf[] = "do: a deer, a female deer\n"
-                      "re: a drop of golden sun\n"
-                      "mi: a name I call myself\n"
-                      "fa: a long long way to run\n";
-    c4::substr yaml = yaml_buf;
-    // this is the event values we expect
+    auto PSTR_ = c4::yml::extra::ievt::PSTR; // PSTR does not work in windows
+    // YAML code to be parsed in place
+    char yaml[] = "do: a deer, a female deer\n"
+                  "re: a drop of golden sun\n"
+                  "mi: a name I call myself\n"
+                  "fa: a long long way to run\n";
+    // these are the event values we expect
     const int expected_events[] = {
         BSTR,
         BDOC,
         VAL_|BMAP|BLCK,
         //
-        KEY_|SCLR|PLAI|PSTR_,  0,  2,  // "do"
+        KEY_|SCLR|PLAI,        0,  2,  // "do"
         VAL_|SCLR|PLAI|PSTR_,  4, 21,  // "a deer, a female deer"
         //
         KEY_|SCLR|PLAI|PSTR_, 26,  2,  // "re"
@@ -55,15 +54,15 @@ int main(int, const char *[])
      * pos=0	event[0]:	0x1
      * pos=1	event[1]:	0x4
      * pos=2	event[2]:	0x110010
-     * pos=3	event[3]:	0x80500 	str=(0,3)	'do'
-     * pos=6	event[4]:	0x500500	str=(2,21)	'a deer, a female deer'
-     * pos=9	event[5]:	0x480500	str=(26,3)	're'
-     * pos=12	event[6]:	0x500500	str=(30,20)	'a drop of golden sun'
-     * pos=15	event[7]:	0x480500	str=(51,2)	'mi'
-     * pos=18	event[8]:	0x500500	str=(55,20)	'a name I call myself'
-     * pos=21	event[9]:	0x480500	str=(76,3)	'fa'
-     * pos=24	event[10]:	0x500500	str=(80,22)	'a long long way to run'
-     * pos=27	event[11]:	0x400020
+     * pos=3	event[3]:	0x80500 	str=(0,2)	'do'
+     * pos=6	event[4]:	0x900500	str=(4,21)	'a deer, a female deer'
+     * pos=9	event[5]:	0x880500	str=(26,2)	're'
+     * pos=12	event[6]:	0x900500	str=(30,20)	'a drop of golden sun'
+     * pos=15	event[7]:	0x880500	str=(51,2)	'mi'
+     * pos=18	event[8]:	0x900500	str=(55,20)	'a name I call myself'
+     * pos=21	event[9]:	0x880500	str=(76,2)	'fa'
+     * pos=24	event[10]:	0x900500	str=(80,22)	'a long long way to run'
+     * pos=27	event[11]:	0x800020
      * pos=28	event[12]:	0x8
      * pos=29	event[13]:	0x2
      */
@@ -124,19 +123,16 @@ int main(int, const char *[])
     // the result
     for (int pos = 0, evt = 0; pos < handler.required_size_events(); ++pos, ++evt)
     {
-        using namespace c4::yml::extra::ievt;
+        bool status = (events[pos] == expected_events[pos]);
         printf("pos=%d\tevent[%d]:\t0x%x", pos, evt, events[pos]);
-        bool status = events[pos] == expected_events[pos];
         if(events[pos] & WSTR) // the event has a string following it
         {
             int offset = events[pos + 1];
             int length = events[pos + 2];
             bool in_arena = (events[pos] & AREN);
             // WATCHOUT! the string is NOT ZERO TERMINATED!
-            const char *str = !in_arena ?
-                yaml.str + offset
-                :
-                arena + offset;
+            const char *ptr = in_arena ? arena : yaml;
+            const char *str = ptr + offset;
             printf("\tstr=(%d,%d)\t'%.*s'", offset, length, length, str);
             status = status && (offset == expected_events[pos + 1]);
             status = status && (length == expected_events[pos + 2]);
