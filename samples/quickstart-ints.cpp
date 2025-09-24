@@ -17,19 +17,63 @@
 
 int main(int, const char *[])
 {
-    // setup a YAML buffer to be parsed in place
-    char yaml_buf[] = "doe: a deer, a female deer\n"
-                      "ray: a drop of golden sun\n"
-                      "me: a name I call myself\n"
-                      "far: a long long way to run\n";
+    using namespace c4::yml::extra::ievt;
+    // YAML buffer to be parsed in place
+    char yaml_buf[] = "do: a deer, a female deer\n"
+                      "re: a drop of golden sun\n"
+                      "mi: a name I call myself\n"
+                      "fa: a long long way to run\n";
     c4::substr yaml = yaml_buf;
-    // add a buffer for placing scalars/tags that cannot be filtered
-    // in-place
-    char arena[100];
+    // this is the event values we expect
+    const int expected_events[] = {
+        BSTR,
+        BDOC,
+        VAL_|BMAP|BLCK,
+        //
+        KEY_|SCLR|PLAI,       0,  2,  // do
+        VAL_|SCLR|PLAI|PSTR,  4, 21,  // a deer, a female deer
+        //
+        KEY_|SCLR|PLAI|PSTR, 26,  2,  // re
+        VAL_|SCLR|PLAI|PSTR, 30, 20,  // a drop of golden sun
+        //
+        KEY_|SCLR|PLAI|PSTR, 51,  2,  // mi
+        VAL_|SCLR|PLAI|PSTR, 55, 20,  // a name I call myself
+        //
+        KEY_|SCLR|PLAI|PSTR, 76,  2,  // fa
+        VAL_|SCLR|PLAI|PSTR, 80, 22,  // a long long way to run
+        //
+        EMAP|PSTR,
+        EDOC,
+        ESTR,
+    };
 
-    // setup a buffer to where we should write the events
+    /* the output should be this:
+     *
+     * success! YAML requires event size 30, estimated=49
+     * pos=0	event[0]:	0x1
+     * pos=1	event[1]:	0x4
+     * pos=2	event[2]:	0x110010
+     * pos=3	event[3]:	0x80500 	str=(0,3)	'do'
+     * pos=6	event[4]:	0x500500	str=(2,21)	'a deer, a female deer'
+     * pos=9	event[5]:	0x480500	str=(26,3)	're'
+     * pos=12	event[6]:	0x500500	str=(30,20)	'a drop of golden sun'
+     * pos=15	event[7]:	0x480500	str=(51,2)	'mi'
+     * pos=18	event[8]:	0x500500	str=(55,20)	'a name I call myself'
+     * pos=21	event[9]:	0x480500	str=(76,3)	'fa'
+     * pos=24	event[10]:	0x500500	str=(80,22)	'a long long way to run'
+     * pos=27	event[11]:	0x400020
+     * pos=28	event[12]:	0x8
+     * pos=29	event[13]:	0x2
+     */
+
+    // buffer to where we will write the events
     constexpr const int events_size = 100;
-    int events[events_size];
+    int events[events_size] = {};
+    static_assert(events_size >= sizeof(expected_events)/sizeof(expected_events[0]), "buffer too small");
+    // buffer for placing any scalars/tags that cannot be filtered
+    // in-place
+    char arena[100] = {};
+
 
     // ensure the estimation will succeed vs required size
     int estimated_size = c4::yml::extra::estimate_events_ints_size(yaml);
@@ -72,10 +116,12 @@ int main(int, const char *[])
            handler.required_size_arena(), c4::to_csubstr(arena).len);
 
     // example iterating through the events array: print the result
+    bool compare = true;
     for (int pos = 0, evt = 0; pos < handler.required_size_events(); ++pos, ++evt)
     {
         using namespace c4::yml::extra::ievt;
         printf("pos=%d\tevent[%d]:\t0x%x", pos, evt, events[pos]);
+        bool status = events[pos] == expected_events[pos];
         if(events[pos] & WSTR) // the event has a string following it
         {
             int offset = events[pos + 1];
@@ -87,29 +133,17 @@ int main(int, const char *[])
                 :
                 arena + offset;
             printf("\tstr=(%d,%d)\t'%.*s'", offset, length, length, str);
+            status = status && offset == expected_events[pos + 1];
+            status = status && length == expected_events[pos + 2];
             pos += 2; // advance the two ints from the string
+        }
+        if(!status)
+        {
+            printf("  ... fail!");
+            compare = false;
         }
         printf("\n");
     }
 
-    /* the output should be this:
-     *
-     * success! YAML requires event size 30, estimated=49
-     * pos=0	event[0]:	0x1
-     * pos=1	event[1]:	0x4
-     * pos=2	event[2]:	0x110010
-     * pos=3	event[3]:	0x80500 	str=(0,3)	'doe'
-     * pos=6	event[4]:	0x500500	str=(5,21)	'a deer, a female deer'
-     * pos=9	event[5]:	0x480500	str=(27,3)	'ray'
-     * pos=12	event[6]:	0x500500	str=(32,20)	'a drop of golden sun'
-     * pos=15	event[7]:	0x480500	str=(53,2)	'me'
-     * pos=18	event[8]:	0x500500	str=(57,20)	'a name I call myself'
-     * pos=21	event[9]:	0x480500	str=(78,3)	'far'
-     * pos=24	event[10]:	0x500500	str=(83,22)	'a long long way to run'
-     * pos=27	event[11]:	0x400020
-     * pos=28	event[12]:	0x8
-     * pos=29	event[13]:	0x2
-     */
-
-    return 0;
+    return compare ? 0 : 1;
 }
