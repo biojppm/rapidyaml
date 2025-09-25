@@ -95,7 +95,10 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::strin
 {
     extra::EventHandlerInts handler{};
     using IntType = extra::ievt::DataType;
-    std::vector<IntType> actual_evts(num_ints(yaml.expected_ints.data(), yaml.expected_ints.size()));
+    //NOTE! crashes in MIPS64 Debug c++20 (but not c++11) when size is 0:
+    //std::vector<IntType> actual_evts(empty.size());
+    std::vector<IntType> actual_evts; // DO THIS!
+    size_t size_reference = num_ints(yaml.expected_ints.data(), yaml.expected_ints.size());
     int size_estimated = extra::estimate_events_ints_size(to_csubstr(yaml.parsed));
     // there was an error in gcc<5 where the copy buffer was NOT
     // assigned when using a std::string:
@@ -107,6 +110,10 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::strin
     ParseEngine<extra::EventHandlerInts> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     EXPECT_GE(size_estimated, handler.required_size_events());
+    if(yaml.expected_ints_enabled)
+    {
+        EXPECT_EQ(size_reference, handler.required_size_events());
+    }
     size_t sz = (size_t)handler.required_size_events();
     if (!handler.fits_buffers())
     {
@@ -145,7 +152,7 @@ void test_new_parser_events_ints_from_yaml(ReferenceYaml const& yaml, std::strin
                             /*ignore_container_style*/false,
                             /*ignore_scalar_style*/false,
                             /*ignore_tag_normalization*/true);
-}
+    }
 }
 
 void test_new_parser_tree_from_yaml(ReferenceYaml const& yaml)

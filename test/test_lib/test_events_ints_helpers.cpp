@@ -7,6 +7,14 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
+size_t num_ints(IntEventWithScalar const *evt, size_t evt_size)
+{
+    size_t sz = 0;
+    for(size_t i = 0; i < evt_size; ++i)
+        sz += evt[i].required_size();
+    return sz;
+}
+
 
 void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
                       ievt::DataType const* actual, size_t actual_sz,
