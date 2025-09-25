@@ -91,11 +91,11 @@ INSTRUCTIONS:
     `_RYML_SINGLE_HEADER_AMALGAMATED_HPP_`, ie like this:
     ```
     #ifndef _RYML_SINGLE_HEADER_AMALGAMATED_HPP_
-    #include <ryml_all.hpp>
+    #include <header_file_name.hpp>
     #endif
     ```
 
-  - In one (and only one) of your project source files, #define
+  - In one -- and only one -- of your project source files, #define
     {ryml_defmacro} and then include this header. This will enable
     the function and class definitions in the header file.
 
