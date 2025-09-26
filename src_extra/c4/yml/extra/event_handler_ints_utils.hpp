@@ -1,4 +1,3 @@
-#pragma once
 #ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_UTILS_HPP_
 #define _C4_YML_EXTRA_EVENT_HANDLER_INTS_UTILS_HPP_
 
@@ -9,6 +8,7 @@
 #ifndef _C4_BITMASK_HPP_
 #include "c4/bitmask.hpp"
 #endif
+
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
@@ -45,6 +45,7 @@ inline c4::EnumSymbols<yml::extra::ievt::EventFlags> const esyms<yml::extra::iev
         {yml::extra::ievt::EXPL, "EXPL"},
         {yml::extra::ievt::AREN, "AREN"},
         {yml::extra::ievt::PSTR, "PSTR"},
+        {yml::extra::ievt::UNFILT, "UNFILT"},
     };
     return EnumSymbols<yml::extra::ievt::EventFlags>(syms);
 }

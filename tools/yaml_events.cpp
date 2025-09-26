@@ -5,11 +5,11 @@
 #include <c4/yml/parse.hpp>
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
-#endif
+#include <c4/yml/extra/event_handler_ints.hpp>
 #include <test_suite/test_suite_events.hpp>
 #include <c4/yml/extra/event_handler_test_suite.hpp>
-#include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/event_handler_ints_utils.hpp>
+#endif
 #include <c4/fs/fs.hpp>
 #include <cstdio>
 #include <chrono>

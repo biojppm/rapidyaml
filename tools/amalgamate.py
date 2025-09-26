@@ -18,6 +18,7 @@ class Event(Enum):
     tree = "tree"
     testsuite = "testsuite"
     ints = "ints"
+    ints_utils = "ints_utils"
     all = "all"
     none = "none"
     def __str__(self):
@@ -31,6 +32,7 @@ event_doc = {
     components will be included in the amalgamated file""",
     Event.testsuite: "enable the (extra) YAML test suite event handler",
     Event.ints: "enable the (extra) integer-based event handler",
+    Event.ints_utils: "enable the (extra) integer-based event handler utils",
     Event.all: "enable all event handlers",
     Event.none: "disable all event handlers",
 }
@@ -135,9 +137,11 @@ INSTRUCTIONS:
         "src/c4/yml/parser_state.hpp",
         "src/c4/yml/event_handler_stack.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/event_handler_tree.hpp"),
+        am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
+        am.onlyif(has_evt(Event.ints_utils), "src_extra/c4/yml/extra/event_handler_ints_utils.hpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/string.hpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/event_handler_test_suite.hpp"),
-        am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
+        am.onlyif(has_evt(Event.ints_utils, Event.testsuite), "src_extra/c4/yml/extra/scalar.hpp"),
         "src/c4/yml/parse_engine.hpp",
         "src/c4/yml/preprocess.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.hpp"),
@@ -153,6 +157,8 @@ INSTRUCTIONS:
         "src/c4/yml/parse_engine.def.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.cpp"),
         am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.cpp"),
+        am.onlyif(has_evt(Event.ints_utils, Event.testsuite), "src_extra/c4/yml/extra/scalar.cpp"),
+        am.onlyif(has_evt(Event.ints_utils), "src_extra/c4/yml/extra/event_handler_ints_utils.cpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/event_handler_test_suite.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.cpp"),

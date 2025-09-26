@@ -2,96 +2,24 @@
 #include <c4/yml/node.hpp>
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/parse_engine.def.hpp>
+#include <c4/yml/extra/event_handler_test_suite.hpp>
+#include <c4/yml/extra/scalar.hpp>
 #endif
-#include "./event_handler_test_suite.hpp"
 
 
 namespace c4 {
 namespace yml {
 namespace extra {
 
-size_t append_scalar_escaped(substr buffer, csubstr val)
-{
-    size_t pos = 0;
-    #define _append(repl)                                       \
-        do {                                                    \
-            if(repl.len && (pos + repl.len <= buffer.len))      \
-                memcpy(buffer.str + pos, repl.str, repl.len);   \
-            pos += repl.len;                                    \
-        } while(0)
-    #define _c4flush_use_instead(i, repl, skip)  \
-        do {                                     \
-            _append(val.range(prev, i));         \
-            _append(csubstr(repl));              \
-            prev = i + skip;                     \
-        }                                        \
-        while(0)
-    uint8_t const* C4_RESTRICT s = reinterpret_cast<uint8_t const*>(val.str);
-    size_t prev = 0;
-    for(size_t i = 0; i < val.len; ++i)
-    {
-        switch(s[i])
-        {
-        case UINT8_C(0x0a): // \n
-            _c4flush_use_instead(i, "\\n", 1); break;
-        case UINT8_C(0x5c): // '\\'
-            _c4flush_use_instead(i, "\\\\", 1); break;
-        case UINT8_C(0x09): // \t
-            _c4flush_use_instead(i, "\\t", 1); break;
-        case UINT8_C(0x0d): // \r
-            _c4flush_use_instead(i, "\\r", 1); break;
-        case UINT8_C(0x00): // \0
-            _c4flush_use_instead(i, "\\0", 1); break;
-        case UINT8_C(0x0c): // \f (form feed)
-            _c4flush_use_instead(i, "\\f", 1); break;
-        case UINT8_C(0x08): // \b (backspace)
-            _c4flush_use_instead(i, "\\b", 1); break;
-        case UINT8_C(0x07): // \a (bell)
-            _c4flush_use_instead(i, "\\a", 1); break;
-        case UINT8_C(0x0b): // \v (vertical tab)
-            _c4flush_use_instead(i, "\\v", 1); break;
-        case UINT8_C(0x1b): // \e (escape)
-            _c4flush_use_instead(i, "\\e", 1); break;
-        case UINT8_C(0xc2):
-            if(i+1 < val.len)
-            {
-                const uint8_t np1 = s[i+1];
-                if(np1 == UINT8_C(0xa0))
-                    _c4flush_use_instead(i, "\\_", 2);
-                else if(np1 == UINT8_C(0x85))
-                    _c4flush_use_instead(i, "\\N", 2);
-            }
-            break;
-        case UINT8_C(0xe2):
-            if(i+2 < val.len)
-            {
-                if(s[i+1] == UINT8_C(0x80))
-                {
-                    if(s[i+2] == UINT8_C(0xa8))
-                        _c4flush_use_instead(i, "\\L", 3);
-                    else if(s[i+2] == UINT8_C(0xa9))
-                        _c4flush_use_instead(i, "\\P", 3);
-                }
-            }
-            break;
-        }
-    }
-    // flush the rest
-    _append(val.sub(prev));
-    #undef _c4flush_use_instead
-    #undef _append
-    return pos;
-}
-
 void append_scalar_escaped(extra::string *es, csubstr val)
 {
     size_t orig = es->size();
     es->resize(es->capacity());
-    size_t sz = append_scalar_escaped(substr(*es).sub(orig), val);
+    size_t sz = escape_scalar(substr(*es).sub(orig), val);
     if (orig + sz > es->size())
     {
         es->resize(orig + sz);
-        sz = append_scalar_escaped(substr(*es).sub(orig), val);
+        sz = escape_scalar(substr(*es).sub(orig), val);
     }
     es->resize(orig + sz);
 }

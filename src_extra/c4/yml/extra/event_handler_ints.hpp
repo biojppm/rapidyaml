@@ -1,4 +1,3 @@
-#pragma once
 #ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #define _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 
@@ -115,11 +114,13 @@ namespace extra {
 
 /** Read YAML source and estimate the size of the integer buffer with
  * the number of events without undergoing a full parse. This
- * estimation is meant to exceed the actual number of required events;
- * this is true for every case in the hundreds/thousands of extensive
- * tests of rapidyaml (both for the YAML test suite and the internal
- * cases ). But it may well happen that for some source code it may
- * actually be lower. */
+ * estimation is meant to exceed the actual number of required events.
+ *
+ * @note This function overpredicts (as intended) for every case in
+ * the hundreds/thousands of extensive tests of rapidyaml (both for
+ * the YAML test suite and the internal cases). If you find a case
+ * where that does not hold, it is a bug. Please report it at
+ * https://github.com/biojppm/rapidyaml/issues! */
 RYML_EXPORT int32_t estimate_events_ints_size(csubstr src);
 
 } // namespace extra

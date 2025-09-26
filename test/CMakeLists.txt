@@ -36,6 +36,9 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        ../src_extra/c4/yml/extra/event_handler_ints.hpp
        ../src_extra/c4/yml/extra/event_handler_ints_utils.cpp
        ../src_extra/c4/yml/extra/event_handler_ints_utils.hpp
+       ../src_extra/c4/yml/extra/scalar.hpp
+       ../src_extra/c4/yml/extra/scalar.cpp
+       ../src_extra/c4/yml/extra/string.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
     FOLDER test)

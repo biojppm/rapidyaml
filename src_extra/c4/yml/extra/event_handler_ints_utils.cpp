@@ -1,10 +1,9 @@
-
 #ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_UTILS_HPP_
 #include "c4/yml/extra/event_handler_ints_utils.hpp"
 #endif
 
-#ifndef _C4_YML_EXTRA_EVENT_HANDLER_TEST_SUITE_HPP_
-#include "c4/yml/extra/event_handler_test_suite.hpp"
+#ifndef _C4_YML_EXTRA_SCALAR_HPP_
+#include "c4/yml/extra/scalar.hpp"
 #endif
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wold-style-cast")
@@ -16,7 +15,7 @@ namespace extra {
 
 void print_events_ints(csubstr parsed_yaml, csubstr arena, ievt::DataType const* evts, ievt::DataType evts_sz)
 {
-    char buf[100];
+    char buf[200];
     for(ievt::DataType evtpos = 0, evtnumber = 0;
         evtpos < evts_sz;
         ++evtnumber,

@@ -8,22 +8,21 @@ c4_project(VERSION 0.9.0
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 # amalgamate ryml to get the single header
-function(amalgamate_ryml header_dir header_file basename args)
+function(amalgamate_ryml header_dir header_file basename)
     set(rymldir "${CMAKE_CURRENT_LIST_DIR}/../..")
     set(singleheaderdir "${rymldir}/src_singleheader")
-    set(singleheader "${singleheaderdir}/${basename}.hpp")
+    set(singleheader "${singleheaderdir}/ryml_all.hpp")
     set(amscript "${rymldir}/tools/amalgamate.py")
     file(GLOB_RECURSE srcfiles
         LIST_DIRECTORIES FALSE
         CONFIGURE_DEPENDS "${rymldir}/src")
     add_custom_command(OUTPUT "${singleheader}"
-        COMMAND python "${amscript}" ${args} -- "${singleheader}"
-        COMMENT "python ${amscript} ${args} -- ${singleheader}"
+        COMMAND python "${amscript}" --events all -- "${singleheader}"
         DEPENDS ${srcfiles} "${amscript}" "${rymldir}/ext/c4core/cmake/amalgamate_utils.py")
     set(${header_dir} "${singleheaderdir}" PARENT_SCOPE)
     set(${header_file} "${singleheader}" PARENT_SCOPE)
 endfunction()
-amalgamate_ryml(header_dir header_file ryml_all.hpp  "--events tree ints")
+amalgamate_ryml(header_dir header_file ryml_all.hpp  --events tree ints)
 
 c4_add_library(ryml
     INC_DIRS
