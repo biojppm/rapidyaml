@@ -29,13 +29,7 @@
 
 namespace c4 {
 namespace yml {
-
-/** @namespace extra contains event handlers and related utilities
- * that are not part of the main rapidyaml library */
 namespace extra {
-
-/** @namespace ievt contains the enumeration of integer
- * events. behaves more or less like a relaxed enum class */
 namespace ievt {
 
 /** data type for integer events. This is set to a 32 bit signed

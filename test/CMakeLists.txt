@@ -30,12 +30,12 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_engine.cpp
        test_lib/test_events_ints_helpers.hpp
        test_lib/test_events_ints_helpers.cpp
-       ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
-       ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
        ../src_extra/c4/yml/extra/event_handler_ints.cpp
        ../src_extra/c4/yml/extra/event_handler_ints.hpp
        ../src_extra/c4/yml/extra/event_handler_ints_utils.cpp
        ../src_extra/c4/yml/extra/event_handler_ints_utils.hpp
+       ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
+       ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
        ../src_extra/c4/yml/extra/scalar.hpp
        ../src_extra/c4/yml/extra/scalar.cpp
        ../src_extra/c4/yml/extra/string.hpp
@@ -87,7 +87,7 @@ ryml_add_test(parse_engine_5_tag)
 ryml_add_test(parse_engine_6_qmrk)
 ryml_add_test(parse_engine_7_seqimap)
 ryml_add_test(parse_engine_8_scalars_tokens)
-ryml_add_test(extra_yaml)
+ryml_add_test(extra_testsuite)
 ryml_add_test(extra_ints)
 ryml_add_test(version)
 ryml_add_test(callbacks)
@@ -241,17 +241,22 @@ if(RYML_TEST_SUITE)
 
     c4_add_executable(ryml-test-suite
         SOURCES
-            test_suite.cpp
-            test_suite/test_suite_common.hpp
-            test_suite/test_suite_events_emitter.cpp
-            ../src_extra/c4/yml/extra/event_handler_test_suite.cpp
-            ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
             ../src_extra/c4/yml/extra/event_handler_ints.cpp
             ../src_extra/c4/yml/extra/event_handler_ints.hpp
-            test_suite/test_suite_events.cpp
-            test_suite/test_suite_events.hpp
-            test_suite/test_suite_parts.cpp
-            test_suite/test_suite_parts.hpp
+            ../src_extra/c4/yml/extra/event_handler_ints_utils.cpp
+            ../src_extra/c4/yml/extra/event_handler_ints_utils.hpp
+            ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
+            ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
+            ../src_extra/c4/yml/extra/scalar.cpp
+            ../src_extra/c4/yml/extra/scalar.hpp
+            ../src_extra/c4/yml/extra/string.hpp
+            testsuite.cpp
+            testsuite/testsuite_common.hpp
+            testsuite/testsuite_events_emitter.cpp
+            testsuite/testsuite_events.cpp
+            testsuite/testsuite_events.hpp
+            testsuite/testsuite_parts.cpp
+            testsuite/testsuite_parts.hpp
         LIBS ryml-_testlib c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
@@ -360,10 +365,15 @@ if(RYML_TEST_FUZZ)
         endforeach()
     endfunction()
     ryml_add_fuzz_test(parse_emit)
-    ryml_add_fuzz_test(events
-        ../src_extra/c4/yml/extra/event_handler_test_suite.hpp
-        ../src_extra/c4/yml/extra/event_handler_test_suite.cpp)
+    ryml_add_fuzz_test(events_testsuite
+        ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
+        ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
+        ../src_extra/c4/yml/extra/scalar.hpp
+        ../src_extra/c4/yml/extra/scalar.cpp
+        ../src_extra/c4/yml/extra/string.hpp)
     ryml_add_fuzz_test(events_ints
         ../src_extra/c4/yml/extra/event_handler_ints.hpp
-        ../src_extra/c4/yml/extra/event_handler_ints.cpp)
+        ../src_extra/c4/yml/extra/event_handler_ints.cpp
+        ../src_extra/c4/yml/extra/scalar.hpp
+        ../src_extra/c4/yml/extra/scalar.cpp)
 endif()

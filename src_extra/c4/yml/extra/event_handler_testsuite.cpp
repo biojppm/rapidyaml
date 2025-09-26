@@ -2,7 +2,7 @@
 #include <c4/yml/node.hpp>
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/parse_engine.def.hpp>
-#include <c4/yml/extra/event_handler_test_suite.hpp>
+#include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <c4/yml/extra/scalar.hpp>
 #endif
 

@@ -2,13 +2,14 @@
 #include <c4/yml/extra/scalar.hpp>
 #endif
 #include <stdint.h>
+#include <string.h>
 
 
 namespace c4 {
 namespace yml {
 namespace extra {
 
-size_t escaped_scalar(substr buffer, csubstr val)
+size_t escape_scalar(substr buffer, csubstr val)
 {
     size_t pos = 0;
     #define _append(repl)                                       \

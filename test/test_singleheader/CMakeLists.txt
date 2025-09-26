@@ -22,7 +22,7 @@ function(amalgamate_ryml header_dir header_file basename)
     set(${header_dir} "${singleheaderdir}" PARENT_SCOPE)
     set(${header_file} "${singleheader}" PARENT_SCOPE)
 endfunction()
-amalgamate_ryml(header_dir header_file ryml_all.hpp  --events tree ints)
+amalgamate_ryml(header_dir header_file ryml_all.hpp  --events all)
 
 c4_add_library(ryml
     INC_DIRS

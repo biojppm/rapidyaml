@@ -1,6 +1,6 @@
-#include "test_suite_events.hpp"
-#include "c4/yml/extra/event_handler_test_suite.hpp"
-#include "test_suite_common.hpp"
+#include "testsuite_events.hpp"
+#include "c4/yml/extra/event_handler_testsuite.hpp"
+#include "testsuite_common.hpp"
 #include "test_lib/test_engine.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/detail/stack.hpp>

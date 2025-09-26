@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/test_events_ints_helpers.hpp"
-#include "c4/yml/extra/event_handler_test_suite.hpp"
+#include "c4/yml/extra/event_handler_testsuite.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 
 

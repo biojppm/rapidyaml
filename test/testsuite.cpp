@@ -9,10 +9,10 @@
 #include "test_lib/test_case.hpp"
 #include "test_lib/test_engine.hpp"
 #include "test_lib/test_events_ints_helpers.hpp"
-#include "test_suite/test_suite_common.hpp"
-#include "test_suite/test_suite_parts.hpp"
-#include "test_suite/test_suite_events.hpp"
-#include "c4/yml/extra/event_handler_test_suite.hpp"
+#include "testsuite/testsuite_common.hpp"
+#include "testsuite/testsuite_parts.hpp"
+#include "testsuite/testsuite_events.hpp"
+#include "c4/yml/extra/event_handler_testsuite.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 #include <c4/fs/fs.hpp>
 #include <c4/log/log.hpp>

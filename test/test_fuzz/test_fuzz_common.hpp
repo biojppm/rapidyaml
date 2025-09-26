@@ -11,9 +11,9 @@
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
-#include <test_suite/test_suite_events.hpp>
+#include <testsuite/testsuite_events.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
-#include <c4/yml/extra/event_handler_test_suite.hpp>
+#include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <cstdio>
 
 #ifdef C4_EXCEPTIONS

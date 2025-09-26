@@ -122,7 +122,7 @@ size_t emit_events_test_suite_from_ints(csubstr parsed_yaml,
         append(" ");
         append(evt);
         substr buf = sz <= evts_test_suite.len ? evts_test_suite.sub(sz) : evts_test_suite.last(0);
-        sz += append_scalar_escaped(buf, val);
+        sz += escape_scalar(buf, val);
         append("\n");
     };
     for(ievt::DataType i = 0; i < evts_ints_sz; )

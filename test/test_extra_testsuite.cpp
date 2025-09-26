@@ -5,9 +5,9 @@
 #include <gtest/gtest.h>
 
 #include "./test_lib/test_case.hpp"
-#include "./test_suite/test_suite_events.hpp"
-#include "c4/yml/extra/event_handler_test_suite.hpp"
-#include "./test_suite/test_suite_events_emitter.cpp" // HACK
+#include "./testsuite/testsuite_events.hpp"
+#include "c4/yml/extra/event_handler_testsuite.hpp"
+#include "./testsuite/testsuite_events_emitter.cpp" // HACK
 
 namespace c4 {
 namespace yml {
