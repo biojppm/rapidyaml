@@ -1,42 +1,38 @@
-#ifndef _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
-#define _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
+#ifndef _C4_YML_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_
+#define _C4_YML_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_
 
-#ifdef RYML_SINGLE_HEADER
-#include <ryml_all.hpp>
-#else
+#ifndef RYML_SINGLE_HEADER
 #ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
 #include "c4/yml/event_handler_stack.hpp"
 #endif
-#ifndef _C4_YML_DETAIL_PRINT_HPP_
-#include "c4/yml/detail/print.hpp"
 #endif
-#endif
-
 #ifndef _C4_YML_EXTRA_STRING_HPP_
-#include "./string.hpp"
+#include "c4/yml/extra/string.hpp"
 #endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
+
 namespace c4 {
 namespace yml {
+namespace extra {
 
 
 /** @addtogroup doc_event_handlers
  * @{ */
 
-void append_escaped(extra::string *s, csubstr val);
+void append_scalar_escaped(extra::string *s, csubstr val);
 
 
-/** The stack state needed specifically by @ref EventHandlerYamlStd */
-struct EventHandlerYamlStdState : public ParserState
+/** The stack state needed specifically by @ref EventHandlerTestSuite */
+struct EventHandlerTestSuiteState : public ParserState
 {
     NodeData ev_data;
 };
 
-/** The event handler producing standard YAML events as used in the
+/** This event produces standard YAML events as used in the
  * [YAML test suite](https://github.com/yaml/yaml-test-suite).
  * See the documentation for @ref doc_event_handlers, which has
  * important notes about the event model used by rapidyaml.
@@ -46,14 +42,14 @@ struct EventHandlerYamlStdState : public ParserState
  * playground](https://play.yaml.io/main/parser). It is not part of
  * the library and is not installed. *
  */
-struct EventHandlerYamlStd : public EventHandlerStack<EventHandlerYamlStd, EventHandlerYamlStdState>
+struct EventHandlerTestSuite : public EventHandlerStack<EventHandlerTestSuite, EventHandlerTestSuiteState>
 {
 
     /** @name types
      * @{ */
 
     // our internal state must inherit from parser state
-    using state = EventHandlerYamlStdState;
+    using state = EventHandlerTestSuiteState;
 
     using EventSink = extra::string;
 
@@ -82,13 +78,13 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs() {}
-    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()  {}
-    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()
+    EventHandlerTestSuite() : EventHandlerStack(), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs() {}
+    EventHandlerTestSuite(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()  {}
+    EventHandlerTestSuite(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()
     {
         reset();
     }
-    EventHandlerYamlStd(EventSink *sink) : EventHandlerYamlStd(sink, get_callbacks()) {}
+    EventHandlerTestSuite(EventSink *sink) : EventHandlerTestSuite(sink, get_callbacks()) {}
 
     void reset()
     {
@@ -710,7 +706,7 @@ public:
         _send_key_props_();
         _send_(' ');
         _send_(scalar_type_code);
-        append_escaped(&_buf_(), scalar);
+        append_scalar_escaped(&_buf_(), scalar);
         _send_('\n');
     }
     void _send_val_scalar_(csubstr scalar, char scalar_type_code)
@@ -719,7 +715,7 @@ public:
         _send_val_props_();
         _send_(' ');
         _send_(scalar_type_code);
-        append_escaped(&_buf_(), scalar);
+        append_scalar_escaped(&_buf_(), scalar);
         _send_('\n');
     }
 
@@ -842,9 +838,10 @@ public:
 
 /** @} */
 
+} // namespace extra
 } // namespace yml
 } // namespace c4
 
 C4_SUPPRESS_WARNING_GCC_POP
 
-#endif /* _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_ */
+#endif /* _C4_YML_EVT_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_ */

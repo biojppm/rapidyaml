@@ -422,7 +422,7 @@ jobs:
         assets_path: ./assets/
     # PyPI (test)
     - name: Publish python packages to test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.4.2
+      uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
         repository_url: https://test.pypi.org/legacy/
         user: __token__
@@ -432,7 +432,7 @@ jobs:
     # PyPI (production)
     - name: Publish python packages to production PyPI
       if: contains(github.ref, 'tags/v')
-      uses: pypa/gh-action-pypi-publish@v1.4.2
+      uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
         user: __token__
         password: ${{secrets.PYPI_TOKEN}}

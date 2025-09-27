@@ -1,23 +1,29 @@
-#ifndef RYML_SINGLE_HEADER
-#include <c4/yml/node.hpp>
-#include <c4/yml/std/string.hpp>
-#include <c4/yml/parse_engine.def.hpp>
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
+#include <c4/yml/extra/scalar.hpp>
 #endif
-#include "./test_suite_event_handler.hpp"
+#include <stdint.h>
+#include <string.h>
 
 
 namespace c4 {
 namespace yml {
+namespace extra {
 
-// instantiate the template
-template class ParseEngine<EventHandlerYamlStd>;
-
-void append_escaped(extra::string *es, csubstr val)
+size_t escape_scalar(substr buffer, csubstr val)
 {
+    size_t pos = 0;
+    #define _append(repl)                                       \
+        do {                                                    \
+            if(repl.len && (pos + repl.len <= buffer.len))      \
+                memcpy(buffer.str + pos, repl.str, repl.len);   \
+            pos += repl.len;                                    \
+        } while(0)
     #define _c4flush_use_instead(i, repl, skip)  \
         do {                                     \
-            es->append(val.range(prev, i));      \
-            es->append(repl);                    \
+            _append(val.range(prev, i));         \
+            _append(csubstr(repl));              \
             prev = i + skip;                     \
         }                                        \
         while(0)
@@ -72,9 +78,12 @@ void append_escaped(extra::string *es, csubstr val)
         }
     }
     // flush the rest
-    es->append(val.sub(prev));
+    _append(val.sub(prev));
     #undef _c4flush_use_instead
+    #undef _append
+    return pos;
 }
 
+} // namespace extra
 } // namespace yml
 } // namespace c4

@@ -23,124 +23,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fp fl sh lcxx =:
-          -['find_package' 'find_library' 'singleheader' 'linux/libcxx']
-        t-t-i t-t-s =: -['test/test_install' 'test/test_singleheader']
-        include:: -[
-          {:name "$fp/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
-           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Release',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars nil}
-          {:name "$fp/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
-           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Debug',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars nil}
-          {:name "$fp/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Release',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$fp/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Debug',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$fp/macos", :sdir t-t-i, :os 'macos-13', :cxx 'xcode',
-           :gen '-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64',
-           :tgt 'ALL_BUILD', :bt 'Release',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars nil}
-          {:name "$fp/macos", :sdir t-t-i, :os 'macos-13', :cxx 'xcode',
-           :gen '-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64',
-           :tgt 'ALL_BUILD', :bt 'Debug',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars nil}
-          {:name "$fp/win",   :sdir t-t-i, :os 'windows-2022', :cxx 'vs2022',
-           :gen "-G 'Visual Studio 17 2022' -A x64",
-           :tgt 'ALL_BUILD', :bt 'Release',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars nil}
-          {:name "$fp/win",   :sdir t-t-i, :os 'windows-2022', :cxx 'vs2022',
-           :gen "-G 'Visual Studio 17 2022' -A x64",
-           :tgt 'ALL_BUILD', :bt 'Debug',
-           :vars '-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=ON',
-           :commonvars nil}
+        include:
 
-          {:name "$fl/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
-           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Release',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars nil}
-          {:name "$fl/linux", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'g++-13',
-           :gen '-DCMAKE_CXX_COMPILER=g++-13', :tgt 'all', :bt 'Debug',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars nil}
-          {:name "$fl/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Release',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$fl/$lcxx", :sdir t-t-i, :os 'ubuntu-24.04', :cxx 'clang++-14',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Debug',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$fl/macos", :sdir t-t-i, :os 'macos-13', :cxx 'xcode',
-           :gen '-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64',
-           :tgt 'ALL_BUILD', :bt 'Release',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars nil}
-          {:name "$fl/macos", :sdir t-t-i, :os 'macos-13', :cxx 'xcode',
-           :gen '-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64',
-           :tgt 'ALL_BUILD', :bt 'Debug',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars nil}
-          {:name "$fl/win",   :sdir t-t-i, :os 'windows-2022', :cxx 'vs2022',
-           :gen "-G 'Visual Studio 17 2022' -A x64",
-           :tgt 'ALL_BUILD', :bt 'Release',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars nil}
-          {:name "$fl/win",   :sdir t-t-i, :os 'windows-2022', :cxx 'vs2022',
-           :gen "-G 'Visual Studio 17 2022' -A x64",
-           :tgt 'ALL_BUILD', :bt 'Debug',
-           :vars '-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR
-                  -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF',
-           :commonvars nil}
+          - {name: find_package/linux,        sdir: test/test_install,      os: ubuntu-24.04, cxx: g++-13,     gen: -DCMAKE_CXX_COMPILER=g++-13,               tgt: all,       bt: Release, vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
+          - {name: find_package/linux,        sdir: test/test_install,      os: ubuntu-24.04, cxx: g++-13,     gen: -DCMAKE_CXX_COMPILER=g++-13,               tgt: all,       bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
+          - {name: find_package/linux/libcxx, sdir: test/test_install,      os: ubuntu-24.04, cxx: clang++-14, gen: -DCMAKE_CXX_COMPILER=clang++-14,           tgt: all,       bt: Release, vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON, commonvars: -DRYML_USE_LIBCXX=ON}
+          - {name: find_package/linux/libcxx, sdir: test/test_install,      os: ubuntu-24.04, cxx: clang++-14, gen: -DCMAKE_CXX_COMPILER=clang++-14,           tgt: all,       bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON, commonvars: -DRYML_USE_LIBCXX=ON}
+          - {name: find_package/macos,        sdir: test/test_install,      os: macos-13,     cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Release, vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
+          - {name: find_package/macos,        sdir: test/test_install,      os: macos-13,     cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
+          - {name: find_package/win,          sdir: test/test_install,      os: windows-2022, cxx: vs2022,     gen: -G 'Visual Studio 17 2022' -A x64,         tgt: ALL_BUILD, bt: Release, vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
+          - {name: find_package/win,          sdir: test/test_install,      os: windows-2022, cxx: vs2022,     gen: -G 'Visual Studio 17 2022' -A x64,         tgt: ALL_BUILD, bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
 
-          {:name "$sh/linux", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'g++-13',
-           :gen '-DCMAKE_CXX_COMPILER=g++-13',
-           :tgt 'all', :bt 'Release', :vars nil, :commonvars nil}
-          {:name "$sh/linux", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'g++-13',
-           :gen '-DCMAKE_CXX_COMPILER=g++-13',
-           :tgt 'all', :bt 'Debug', :vars nil, :commonvars nil}
-          {:name "$sh/$lcxx", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'clang++-14',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Release',
-           :vars nil, :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$sh/$lcxx", :sdir t-t-s, :os 'ubuntu-24.04', :cxx 'clang++-14',
-           :gen '-DCMAKE_CXX_COMPILER=clang++-14', :tgt 'all', :bt 'Debug',
-           :vars nil, :commonvars '-DRYML_USE_LIBCXX=ON'}
-          {:name "$sh/macos", :sdir t-t-s, :os 'macos-13', :cxx 'xcode',
-           :gen '-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64',
-           :tgt 'ALL_BUILD', :bt 'Release', :vars nil, :commonvars nil}
-          {:name "$sh/macos", :sdir t-t-s, :os 'macos-13', :cxx 'xcode',
-           :gen '-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64',
-           :tgt 'ALL_BUILD', :bt 'Debug', :vars nil, :commonvars nil}
-          {:name "$sh/win",   :sdir t-t-s, :os 'windows-2022', :cxx 'vs2022',
-           :gen "-G 'Visual Studio 17 2022' -A x64",
-           :tgt 'ALL_BUILD', :bt 'Release', :vars nil, :commonvars nil}
-          {:name "$sh/win",   :sdir t-t-s, :os 'windows-2022', :cxx 'vs2022',
-           :gen "-G 'Visual Studio 17 2022' -A x64",
-           :tgt 'ALL_BUILD', :bt 'Debug', :vars nil, :commonvars nil}]
+          - {name: find_library/linux,        sdir: test/test_install,      os: ubuntu-24.04, cxx: g++-13,     gen: -DCMAKE_CXX_COMPILER=g++-13,               tgt: all,       bt: Release, vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
+          - {name: find_library/linux,        sdir: test/test_install,      os: ubuntu-24.04, cxx: g++-13,     gen: -DCMAKE_CXX_COMPILER=g++-13,               tgt: all,       bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
+          - {name: find_library/linux/libcxx, sdir: test/test_install,      os: ubuntu-24.04, cxx: clang++-14, gen: -DCMAKE_CXX_COMPILER=clang++-14,           tgt: all,       bt: Release, vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF, commonvars: -DRYML_USE_LIBCXX=ON}
+          - {name: find_library/linux/libcxx, sdir: test/test_install,      os: ubuntu-24.04, cxx: clang++-14, gen: -DCMAKE_CXX_COMPILER=clang++-14,           tgt: all,       bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF, commonvars: -DRYML_USE_LIBCXX=ON}
+          - {name: find_library/macos,        sdir: test/test_install,      os: macos-13,     cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Release, vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
+          - {name: find_library/macos,        sdir: test/test_install,      os: macos-13,     cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
+          - {name: find_library/win,          sdir: test/test_install,      os: windows-2022, cxx: vs2022,     gen: -G 'Visual Studio 17 2022' -A x64,         tgt: ALL_BUILD, bt: Release, vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
+          - {name: find_library/win,          sdir: test/test_install,      os: windows-2022, cxx: vs2022,     gen: -G 'Visual Studio 17 2022' -A x64,         tgt: ALL_BUILD, bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
+
+          - {name: singleheader/linux,        sdir: test/test_singleheader, os: ubuntu-24.04, cxx: g++-13,     gen: -DCMAKE_CXX_COMPILER=g++-13,               tgt: all,       bt: Release}
+          - {name: singleheader/linux,        sdir: test/test_singleheader, os: ubuntu-24.04, cxx: g++-13,     gen: -DCMAKE_CXX_COMPILER=g++-13,               tgt: all,       bt: Debug}
+          - {name: singleheader/linux/libcxx, sdir: test/test_singleheader, os: ubuntu-24.04, cxx: clang++-14, gen: -DCMAKE_CXX_COMPILER=clang++-14,           tgt: all,       bt: Release, commonvars: -DRYML_USE_LIBCXX=ON}
+          - {name: singleheader/linux/libcxx, sdir: test/test_singleheader, os: ubuntu-24.04, cxx: clang++-14, gen: -DCMAKE_CXX_COMPILER=clang++-14,           tgt: all,       bt: Debug, commonvars: -DRYML_USE_LIBCXX=ON}
+          - {name: singleheader/macos,        sdir: test/test_singleheader, os: macos-13,     cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Release}
+          - {name: singleheader/macos,        sdir: test/test_singleheader, os: macos-13,     cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Debug}
+          - {name: singleheader/win,          sdir: test/test_singleheader, os: windows-2022, cxx: vs2022,     gen: -G 'Visual Studio 17 2022' -A x64,         tgt: ALL_BUILD, bt: Release}
+          - {name: singleheader/win,          sdir: test/test_singleheader, os: windows-2022, cxx: vs2022,     gen: -G 'Visual Studio 17 2022' -A x64,         tgt: ALL_BUILD, bt: Debug}
 
     env:
       CXX_: ${{matrix.cxx}}
@@ -162,16 +72,28 @@ jobs:
       uses: actions/setup-python@v5
       with: { python-version: 3.9 }
     - name: preinstall
-      run:: bash('install-preinstall')
+      run: |
+        if [ "${{matrix.sdir}}" == "test/test_install" ] ; then
+          mkdir -p $BDIR-staging
+          cmake -S . -B $BDIR-staging -DCMAKE_INSTALL_PREFIX=$PDIR -DCMAKE_BUILD_TYPE=${{matrix.bt}} ${{matrix.gen}} ${{matrix.commonvars}}
+          cmake --build $BDIR-staging --config ${{matrix.bt}} --target ${{matrix.tgt}} -j
+          cmake --build $BDIR-staging --config ${{matrix.bt}} --target install
+        fi
     - name: configure
-      run:: bash('install-configure')
+      run: |
+        mkdir -p $BDIR
+        mkdir -p $IDIR
+        cmake -S ${{matrix.sdir}} -B $BDIR \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=OFF \
+          -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
+          -DCMAKE_INSTALL_PREFIX=$IDIR \
+          ${{matrix.gen}} \
+          ${{matrix.vars}} \
+          ${{matrix.commonvars}}
     - name: build
-      run: >
-        cmake --build $BDIR
-        --config ${{matrix.bt}}
-        --target ryml-test-build -j
+      run: |
+        cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j
     - name: run
-      run: >
-        cmake --build $BDIR
-        --config ${{matrix.bt}}
-        --target ryml-test-run
+      run: |
+        cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-run

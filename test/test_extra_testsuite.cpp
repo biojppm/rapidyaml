@@ -5,9 +5,9 @@
 #include <gtest/gtest.h>
 
 #include "./test_lib/test_case.hpp"
-#include "./test_suite/test_suite_events.hpp"
-#include "./test_suite/test_suite_event_handler.hpp"
-#include "./test_suite/test_suite_events_emitter.cpp" // HACK
+#include "./testsuite/testsuite_events.hpp"
+#include "c4/yml/extra/event_handler_testsuite.hpp"
+#include "./testsuite/testsuite_events_emitter.cpp" // HACK
 
 namespace c4 {
 namespace yml {
@@ -53,9 +53,9 @@ TEST_P(EventsTest, from_parser)
     EventsCase const& ec = GetParam();
     printf("%s:%d: %s", ec.file, ec.line, ec.name.str);
     RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
-    EventHandlerYamlStd::EventSink sink;
-    EventHandlerYamlStd handler(&sink);
-    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerTestSuite::EventSink sink;
+    extra::EventHandlerTestSuite handler(&sink);
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
     std::string src_copy(ec.src.str, ec.src.len);
     parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
     csubstr result = sink;

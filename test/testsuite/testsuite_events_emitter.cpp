@@ -1,7 +1,7 @@
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/std/string.hpp>
 #endif
-#include "test_suite_events.hpp"
+#include "testsuite_events.hpp"
 
 namespace c4 {
 namespace yml {
