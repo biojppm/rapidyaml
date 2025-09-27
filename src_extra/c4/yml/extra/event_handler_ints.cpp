@@ -1,5 +1,4 @@
 #ifndef RYML_SINGLE_HEADER
-#include <ryml_all.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
 #include "c4/yml/extra/event_handler_ints.hpp"

@@ -9,6 +9,8 @@
     #include <ryml_all.hpp>
 #elif defined(RYML_SINGLE_HEADER_LIB) // using the single header from a library
     #include <ryml_all.hpp>
+#else
+#include <c4/yml/parse_engine.def.hpp>
 #endif
 #include <c4/yml/extra/event_handler_ints.hpp>
 
