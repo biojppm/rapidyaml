@@ -5,11 +5,13 @@
 #include <c4/yml/parse.hpp>
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
+#endif
+#include <c4/yml/extra/string.hpp>
+#include <c4/yml/extra/scalar.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
-#include <testsuite/testsuite_events.hpp>
 #include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <c4/yml/extra/event_handler_ints_utils.hpp>
-#endif
+#include <testsuite/testsuite_events.hpp>
 #include <c4/fs/fs.hpp>
 #include <cstdio>
 #include <chrono>
@@ -273,9 +275,9 @@ std::string emit_testsuite_events_from_tree(csubstr filename, substr filecontent
 
 extra::string emit_testsuite_events(csubstr filename, substr filecontents)
 {
-    extra::EventHandlerYamlStd::EventSink sink = {};
-    extra::EventHandlerYamlStd handler(&sink, create_custom_callbacks());
-    ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerTestSuite::EventSink sink = {};
+    extra::EventHandlerTestSuite handler(&sink, create_custom_callbacks());
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
     {
         STOPWATCH("parse");
         parser.parse_in_place_ev(filename, filecontents);

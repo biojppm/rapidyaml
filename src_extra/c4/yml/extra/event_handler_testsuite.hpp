@@ -1,17 +1,9 @@
-#ifndef _C4_YML_EXTRA_EVENT_HANDLER_TEST_SUITE_HPP_
-#define _C4_YML_EXTRA_EVENT_HANDLER_TEST_SUITE_HPP_
+#ifndef _C4_YML_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_
+#define _C4_YML_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_
 
-#ifdef RYML_SINGLE_HEADER
-#include <ryml_all.hpp>
-#else
 #ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
 #include "c4/yml/event_handler_stack.hpp"
 #endif
-#ifndef _C4_YML_DETAIL_PRINT_HPP_
-#include "c4/yml/detail/print.hpp"
-#endif
-#endif
-
 #ifndef _C4_YML_EXTRA_STRING_HPP_
 #include "c4/yml/extra/string.hpp"
 #endif
@@ -29,12 +21,11 @@ namespace extra {
 /** @addtogroup doc_event_handlers
  * @{ */
 
-size_t append_scalar_escaped(substr s, csubstr val);
 void append_scalar_escaped(extra::string *s, csubstr val);
 
 
-/** The stack state needed specifically by @ref EventHandlerYamlStd */
-struct EventHandlerYamlStdState : public ParserState
+/** The stack state needed specifically by @ref EventHandlerTestSuite */
+struct EventHandlerTestSuiteState : public ParserState
 {
     NodeData ev_data;
 };
@@ -49,14 +40,14 @@ struct EventHandlerYamlStdState : public ParserState
  * playground](https://play.yaml.io/main/parser). It is not part of
  * the library and is not installed. *
  */
-struct EventHandlerYamlStd : public EventHandlerStack<EventHandlerYamlStd, EventHandlerYamlStdState>
+struct EventHandlerTestSuite : public EventHandlerStack<EventHandlerTestSuite, EventHandlerTestSuiteState>
 {
 
     /** @name types
      * @{ */
 
     // our internal state must inherit from parser state
-    using state = EventHandlerYamlStdState;
+    using state = EventHandlerTestSuiteState;
 
     using EventSink = extra::string;
 
@@ -85,13 +76,13 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs() {}
-    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()  {}
-    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()
+    EventHandlerTestSuite() : EventHandlerStack(), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs() {}
+    EventHandlerTestSuite(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()  {}
+    EventHandlerTestSuite(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()
     {
         reset();
     }
-    EventHandlerYamlStd(EventSink *sink) : EventHandlerYamlStd(sink, get_callbacks()) {}
+    EventHandlerTestSuite(EventSink *sink) : EventHandlerTestSuite(sink, get_callbacks()) {}
 
     void reset()
     {
@@ -851,4 +842,4 @@ public:
 
 C4_SUPPRESS_WARNING_GCC_POP
 
-#endif /* _C4_YML_EVT_EXTRA_EVENT_HANDLER_TEST_SUITE_HPP_ */
+#endif /* _C4_YML_EVT_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_ */

@@ -53,9 +53,9 @@ TEST_P(EventsTest, from_parser)
     EventsCase const& ec = GetParam();
     printf("%s:%d: %s", ec.file, ec.line, ec.name.str);
     RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
-    extra::EventHandlerYamlStd::EventSink sink;
-    extra::EventHandlerYamlStd handler(&sink);
-    ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerTestSuite::EventSink sink;
+    extra::EventHandlerTestSuite handler(&sink);
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
     std::string src_copy(ec.src.str, ec.src.len);
     parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
     csubstr result = sink;

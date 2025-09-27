@@ -17,12 +17,12 @@ function(amalgamate_ryml header_dir header_file basename)
         LIST_DIRECTORIES FALSE
         CONFIGURE_DEPENDS "${rymldir}/src")
     add_custom_command(OUTPUT "${singleheader}"
-        COMMAND python "${amscript}" --events all -- "${singleheader}"
+        COMMAND python "${amscript}" --events tree -- "${singleheader}"
         DEPENDS ${srcfiles} "${amscript}" "${rymldir}/ext/c4core/cmake/amalgamate_utils.py")
     set(${header_dir} "${singleheaderdir}" PARENT_SCOPE)
     set(${header_file} "${singleheader}" PARENT_SCOPE)
 endfunction()
-amalgamate_ryml(header_dir header_file ryml_all.hpp  --events all)
+amalgamate_ryml(header_dir header_file ryml_all.hpp --events tree)
 
 c4_add_library(ryml
     INC_DIRS

@@ -110,9 +110,9 @@ inline int fuzztest_yaml_events(uint32_t case_number, csubstr src)
 {
     C4_UNUSED(case_number);
     set_callbacks(create_custom_callbacks());
-    extra::EventHandlerYamlStd::EventSink sink = {};
-    extra::EventHandlerYamlStd handler(&sink, create_custom_callbacks());
-    ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerTestSuite::EventSink sink = {};
+    extra::EventHandlerTestSuite handler(&sink, create_custom_callbacks());
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
     std::string str(src.begin(), src.end());
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {

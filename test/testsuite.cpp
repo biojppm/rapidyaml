@@ -156,9 +156,9 @@ struct TestSequenceLevel
     std::string         emitted_from_tree_parsed_from_src;
     std::string         emitted_from_tree_parsed_from_src_json;
 
-    extra::EventHandlerYamlStd::EventSink evt_str_sink;
-    extra::EventHandlerYamlStd evt_handler_str;
-    ParseEngine<extra::EventHandlerYamlStd> parser_str;
+    extra::EventHandlerTestSuite::EventSink evt_str_sink;
+    extra::EventHandlerTestSuite evt_handler_str;
+    ParseEngine<extra::EventHandlerTestSuite> parser_str;
 
     extra::EventHandlerInts evt_handler_ints;
     ParseEngine<extra::EventHandlerInts> parser_ints;

@@ -1,10 +1,7 @@
-#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/node.hpp>
-#include <c4/yml/std/string.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <c4/yml/extra/scalar.hpp>
-#endif
 
 
 namespace c4 {
@@ -27,7 +24,7 @@ void append_scalar_escaped(extra::string *es, csubstr val)
 } // namespace extra
 
 // instantiate the template
-template class ParseEngine<extra::EventHandlerYamlStd>;
+template class ParseEngine<extra::EventHandlerTestSuite>;
 
 } // namespace yml
 } // namespace c4

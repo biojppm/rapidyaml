@@ -1,9 +1,11 @@
 #include "testsuite_events.hpp"
-#include "c4/yml/extra/event_handler_testsuite.hpp"
 #include "testsuite_common.hpp"
 #include "test_lib/test_engine.hpp"
-#ifndef RYML_SINGLE_HEADER
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
 #include <c4/yml/detail/stack.hpp>
+#include "c4/yml/extra/event_handler_testsuite.hpp"
 #endif
 
 namespace c4 {
@@ -12,9 +14,9 @@ namespace yml {
 
 std::string emit_events_from_source(substr src)
 {
-    extra::EventHandlerYamlStd::EventSink sink;
-    extra::EventHandlerYamlStd handler(&sink);
-    ParseEngine<extra::EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerTestSuite::EventSink sink;
+    extra::EventHandlerTestSuite handler(&sink);
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", src);
     csubstr result = sink;
     return std::string(result.str, result.len);

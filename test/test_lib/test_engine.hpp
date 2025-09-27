@@ -49,10 +49,10 @@ struct ReferenceYaml
 template<template<class> class EventProducerFn>
 C4_NO_INLINE void test_new_parser_str_from_events(std::string const& expected_events)
 {
-    extra::EventHandlerYamlStd::EventSink sink;
-    extra::EventHandlerYamlStd handler(&sink);
+    extra::EventHandlerTestSuite::EventSink sink;
+    extra::EventHandlerTestSuite handler(&sink);
     handler.reset();
-    EventProducerFn<extra::EventHandlerYamlStd> event_producer;
+    EventProducerFn<extra::EventHandlerTestSuite> event_producer;
     event_producer(handler);
     csubstr result = sink;
     _c4dbgpf("~~~\n{}~~~\n", result);
@@ -319,7 +319,7 @@ inline C4_NO_INLINE void _print_handler_info(EventHandlerTree const& ps, csubstr
     print_tree(*ps.m_tree);
 }
 
-inline C4_NO_INLINE void _print_handler_info(extra::EventHandlerYamlStd const& ps, csubstr stmt, const char *file, int line)
+inline C4_NO_INLINE void _print_handler_info(extra::EventHandlerTestSuite const& ps, csubstr stmt, const char *file, int line)
 {
     _dbg_printf("{}:{}: {}", file, line, stmt);
     auto indent = [](id_type n){
