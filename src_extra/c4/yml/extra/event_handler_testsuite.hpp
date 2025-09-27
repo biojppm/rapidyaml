@@ -1,8 +1,10 @@
 #ifndef _C4_YML_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_
 #define _C4_YML_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_
 
+#ifndef RYML_SINGLE_HEADER
 #ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
 #include "c4/yml/event_handler_stack.hpp"
+#endif
 #endif
 #ifndef _C4_YML_EXTRA_STRING_HPP_
 #include "c4/yml/extra/string.hpp"
