@@ -6,13 +6,24 @@
 // ryml can be used as a single header, or as a simple library:
 #if defined(RYML_SINGLE_HEADER) // using the single header directly in the executable
     #define RYML_SINGLE_HDR_DEFINE_NOW
-    #include <ryml_all.hpp>
+    #ifndef RYML_SINGLE_HEADER_INTS
+        #include <ryml_all.hpp>
+    #else
+        #include <ryml_ints.hpp>
+    #endif
 #elif defined(RYML_SINGLE_HEADER_LIB) // using the single header from a library
-    #include <ryml_all.hpp>
+    #ifndef RYML_SINGLE_HEADER_INTS
+        #include <ryml_all.hpp>
+    #else
+        #include <ryml_ints.hpp>
+    #endif
 #else
 #include <c4/yml/parse_engine.def.hpp>
 #endif
+
+#ifndef RYML_SINGLE_HEADER_INTS
 #include <c4/yml/extra/event_handler_ints.hpp>
+#endif
 
 
 // NOLINTBEGIN(hicpp-signed-bitwise)

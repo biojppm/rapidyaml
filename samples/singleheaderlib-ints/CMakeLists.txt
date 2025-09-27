@@ -14,6 +14,7 @@ target_include_directories(ryml PUBLIC "${SINGLE_HEADER_DIR}")
 add_executable(ryml-quickstart-ints ../quickstart-ints.cpp)
 target_link_libraries(ryml-quickstart-ints PRIVATE ryml)
 target_compile_definitions(ryml-quickstart-ints PUBLIC -DRYML_SINGLE_HEADER_LIB)
+target_compile_definitions(ryml-quickstart-ints PUBLIC -DRYML_SINGLE_HEADER_INTS)
 
 # adjustments for shared library
 if(BUILD_SHARED_LIBS)

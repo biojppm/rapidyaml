@@ -1,7 +1,14 @@
-#ifndef RYML_SINGLE_HEADER
+
+#ifdef RYML_SINGLE_HEADER_INTS
+#include <ryml_ints.hpp>
+#elif defined(RYML_SINGLE_HEADER)
+#include <ryml_all.hpp>
+#else
 #include <c4/yml/parse_engine.def.hpp>
 #endif
+#ifndef RYML_SINGLE_HEADER_INTS
 #include "c4/yml/extra/event_handler_ints.hpp"
+#endif
 
 namespace c4 {
 namespace yml {

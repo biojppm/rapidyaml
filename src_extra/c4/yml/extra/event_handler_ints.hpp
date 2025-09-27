@@ -9,9 +9,7 @@
  * @see c4::yml::extra::EventHandlerInts
  * */
 
-#ifdef RYML_SINGLE_HEADER
-#include <ryml_all.hpp>
-#else
+#ifndef RYML_SINGLE_HEADER
 #ifndef _C4_YML_NODE_TYPE_HPP_
 #include <c4/yml/node_type.hpp>
 #endif
@@ -25,7 +23,6 @@
 #include <c4/yml/detail/dbgprint.hpp>
 #endif
 #endif
-
 
 namespace c4 {
 namespace yml {
@@ -84,7 +81,7 @@ typedef enum : DataType {
     ///< is set not to filter)
     UNFILT = (1 << 24),
     // Utility flags/masks
-    LAST = UNFILT,                ///< the last flag defined above
+    LAST = UNFILT,              ///< the last flag defined above
     MASK = (LAST << 1) - 1,     ///< a mask of all bits in this enumeration
     WSTR = SCLR|ALIA|ANCH|TAG_, ///< with string: mask of all the events that encode a string
                                 ///< following the event. in the event has a string. the next two
@@ -110,9 +107,9 @@ namespace extra {
  * the number of events without undergoing a full parse. This
  * estimation is meant to exceed the actual number of required events.
  *
- * @note This function overpredicts (as intended) for every case in
- * the hundreds/thousands of extensive tests of rapidyaml (both for
- * the YAML test suite and the internal cases). If you find a case
+ * @note This function must overpredict. It does so for every case in
+ * the hundreds/thousands of extensive tests of rapidyaml -- both for
+ * the YAML test suite and the internal cases. If you find a case
  * where that does not hold, it is a bug. Please report it at
  * https://github.com/biojppm/rapidyaml/issues! */
 RYML_EXPORT int32_t estimate_events_ints_size(csubstr src);

@@ -7,6 +7,7 @@
 #endif
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wold-style-cast")
 // NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
@@ -213,4 +214,5 @@ size_t emit_events_test_suite_from_ints(csubstr parsed_yaml,
 } // namespace c4
 
 // NOLINTEND(hicpp-signed-bitwise)
+C4_SUPPRESS_WARNING_CLANG_POP
 C4_SUPPRESS_WARNING_GCC_POP
