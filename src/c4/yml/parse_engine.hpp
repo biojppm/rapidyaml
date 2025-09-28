@@ -756,10 +756,6 @@ private:
 
 };
 
-/** @cond dev */
-RYML_EXPORT C4_NO_INLINE size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept;
-/** @endcond */
-
 
 /** Quickly inspect the source to estimate the number of nodes the
  * resulting tree is likely have. If a tree is empty before
