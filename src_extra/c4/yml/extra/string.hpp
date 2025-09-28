@@ -1,11 +1,7 @@
 #ifndef _C4_YML_EXTRA_STRING_HPP_
 #define _C4_YML_EXTRA_STRING_HPP_
 
-#ifdef RYML_SINGLE_HEADER
-#ifndef _RYML_SINGLE_HEADER_AMALGAMATED_HPP_
-#include <ryml_all.hpp>
-#endif
-#else
+#ifndef RYML_SINGLE_HEADER
 #ifndef _C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
@@ -85,6 +81,7 @@ public:
 
 public:
 
+    const char* data() const noexcept { return m_str; }
     id_type size() const noexcept { return m_size; }
     id_type capacity() const noexcept { return m_capacity; }
 
