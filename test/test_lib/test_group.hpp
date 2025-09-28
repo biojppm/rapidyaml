@@ -71,6 +71,7 @@ struct YmlTestCase : public ::testing::TestWithParam<csubstr>
     }
 
     void _test_parse_using_ryml(CaseDataLineEndings *cd);
+    void _test_parse_using_ints(CaseDataLineEndings *cd);
 
     void _test_emit_yml_stdout(CaseDataLineEndings *cd);
     void _test_emit_json_stdout(CaseDataLineEndings *cd);

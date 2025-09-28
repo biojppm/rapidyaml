@@ -269,10 +269,11 @@ struct ExpectError
 typedef enum {
     EXPECT_PARSE_ERROR = (1<<0),
     RESOLVE_REFS = (1<<1),
-    JSON_WRITE = (1<<2), // TODO: make it the opposite: opt-out instead of opt-in
-    JSON_READ = (1<<3),
-    HAS_CONTAINER_KEYS = (1<<4),
-    HAS_MULTILINE_SCALAR = (1<<5),
+    EXPECT_RESOLVE_ERROR = (1<<2),
+    JSON_WRITE = (1<<3), // TODO: make it the opposite: opt-out instead of opt-in
+    JSON_READ = (1<<4),
+    HAS_CONTAINER_KEYS = (1<<5),
+    HAS_MULTILINE_SCALAR = (1<<6),
 } TestCaseFlags_e;
 
 
@@ -299,6 +300,13 @@ struct Case
 // a persistent data store to avoid repeating operations on every test
 struct CaseDataLineEndings
 {
+    void assign(csubstr src_orig)
+    {
+        parse_buf_ints.assign(src_orig.begin(), src_orig.end());
+        src_buf.assign(src_orig.begin(), src_orig.end());
+        src = to_substr(src_buf);
+    }
+
     std::vector<char> src_buf;
     substr src;
 
@@ -323,6 +331,10 @@ struct CaseDataLineEndings
     Tree emitted_tree_json;
 
     Tree recreated;
+
+    std::string parse_buf_ints;
+    std::vector<int> parsed_ints;
+    std::vector<char> arena_ints;
 };
 
 

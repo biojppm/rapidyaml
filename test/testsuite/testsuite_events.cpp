@@ -1,8 +1,11 @@
-#include "test_suite_events.hpp"
-#include "test_suite_event_handler.hpp"
-#include "test_suite_common.hpp"
-#ifndef RYML_SINGLE_HEADER
+#include "testsuite_events.hpp"
+#include "testsuite_common.hpp"
+#include "test_lib/test_engine.hpp"
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
 #include <c4/yml/detail/stack.hpp>
+#include "c4/yml/extra/event_handler_testsuite.hpp"
 #endif
 
 namespace c4 {
@@ -11,9 +14,9 @@ namespace yml {
 
 std::string emit_events_from_source(substr src)
 {
-    EventHandlerYamlStd::EventSink sink;
-    EventHandlerYamlStd handler(&sink);
-    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerTestSuite::EventSink sink;
+    extra::EventHandlerTestSuite handler(&sink);
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", src);
     csubstr result = sink;
     return std::string(result.str, result.len);
@@ -167,138 +170,6 @@ struct Scalar
 };
 
 } // namespace /*anon*/
-
-csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalScalar *tag)
-{
-    *anchor = OptionalScalar{};
-    *tag = OptionalScalar{};
-    if(tokens.begins_with('&'))
-    {
-        size_t pos = tokens.first_of(' ');
-        if(pos == (size_t)csubstr::npos)
-        {
-            *anchor = tokens.sub(1);
-            tokens = {};
-        }
-        else
-        {
-            *anchor = tokens.first(pos).sub(1);
-            tokens = tokens.right_of(pos);
-        }
-        _nfo_logf("anchor: {}", anchor->get());
-    }
-    if(tokens.begins_with('<'))
-    {
-        size_t pos = tokens.find('>');
-        RYML_ASSERT(pos != (size_t)csubstr::npos);
-        *tag = tokens.first(pos + 1);
-        tokens = tokens.right_of(pos).triml(' ');
-        _nfo_logf("tag: {}", tag->maybe_get());
-    }
-    return tokens;
-}
-
-bool compare_events(csubstr ref_evts, csubstr emt_evts, bool ignore_container_style=false, bool ignore_scalar_style=false)
-{
-    auto diff_line_with_optional_ending = [](csubstr ref, csubstr emt, csubstr optional_ending){
-        RYML_ASSERT(ref != emt);
-        ref = ref.stripr(optional_ending).trimr(' ');
-        emt = emt.stripr(optional_ending).trimr(' ');
-        bool diff = ref != emt;
-        return diff;
-    };
-    auto diff_val_with_scalar_wildcard = [](csubstr ref, csubstr emt){
-        RYML_ASSERT(ref.begins_with("=VAL "));
-        RYML_ASSERT(emt.begins_with("=VAL "));
-        ref = ref.sub(5);
-        emt = emt.sub(5);
-        OptionalScalar reftag = {}, refanchor = {};
-        OptionalScalar emttag = {}, emtanchor = {};
-        if((bool(reftag) != bool(emttag)) || (reftag && (reftag.get() != emttag.get())))
-            return true;
-        if((bool(refanchor) != bool(emtanchor)) || (refanchor && (refanchor.get() != emtanchor.get())))
-            return true;
-        ref = parse_anchor_and_tag(ref, &refanchor, &reftag).triml(' ');
-        emt = parse_anchor_and_tag(emt, &emtanchor, &emttag).triml(' ');
-        RYML_ASSERT(ref.len > 0);
-        RYML_ASSERT(emt.len > 0);
-        RYML_ASSERT(ref[0] == ':' || ref[0] == '\'' || ref[0] == '"' || ref[0] == '|' || ref[0] == '>');
-        RYML_ASSERT(emt[0] == ':' || emt[0] == '\'' || emt[0] == '"' || emt[0] == '|' || emt[0] == '>');
-        ref = ref.sub(1);
-        emt = emt.sub(1);
-        if(ref != emt)
-            return true;
-        return false;
-    };
-    if(bool(ref_evts.len) != bool(emt_evts.len))
-        return true;
-    size_t posref = 0;
-    size_t posemt = 0;
-    bool fail = false;
-    while(posref < ref_evts.len && posemt < emt_evts.len)
-    {
-        const size_t endref = ref_evts.find('\n', posref);
-        const size_t endemt = emt_evts.find('\n', posemt);
-        if((endref == npos || endemt == npos) && (endref != endemt))
-        {
-            fail = true;
-            break;
-        }
-        csubstr ref = ref_evts.range(posref, endref);
-        csubstr emt = emt_evts.range(posemt, endemt);
-        if(ref != emt)
-        {
-            if(ref.begins_with("+DOC"))
-            {
-                if(diff_line_with_optional_ending(ref, emt, "---"))
-                {
-                    fail = true;
-                    break;
-                }
-            }
-            else if(ref.begins_with("-DOC"))
-            {
-                if(diff_line_with_optional_ending(ref, emt, "..."))
-                {
-                    fail = true;
-                    break;
-                }
-            }
-            else if(ignore_container_style && ref.begins_with("+MAP"))
-            {
-                if(diff_line_with_optional_ending(ref, emt, "{}"))
-                {
-                    fail = true;
-                    break;
-                }
-            }
-            else if(ignore_container_style && ref.begins_with("+SEQ"))
-            {
-                if(diff_line_with_optional_ending(ref, emt, "[]"))
-                {
-                    fail = true;
-                    break;
-                }
-            }
-            else if(ignore_scalar_style && ref.begins_with("=VAL"))
-            {
-                if(diff_val_with_scalar_wildcard(ref, emt))
-                {
-                    fail = true;
-                    break;
-                }
-            }
-            else
-            {
-                fail = true;
-                break;
-            }
-        }
-        posref = endref + 1u;
-        posemt = endemt + 1u;
-    }
-    return fail;
-}
 
 void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
 {

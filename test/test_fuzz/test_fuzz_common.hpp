@@ -11,8 +11,9 @@
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
-#include <test_suite/test_suite_events.hpp>
-#include <test_suite/test_suite_event_handler.hpp>
+#include <testsuite/testsuite_events.hpp>
+#include <c4/yml/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <cstdio>
 
 #ifdef C4_EXCEPTIONS
@@ -109,9 +110,9 @@ inline int fuzztest_yaml_events(uint32_t case_number, csubstr src)
 {
     C4_UNUSED(case_number);
     set_callbacks(create_custom_callbacks());
-    EventHandlerYamlStd::EventSink sink = {};
-    EventHandlerYamlStd handler(&sink, create_custom_callbacks());
-    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    extra::EventHandlerTestSuite::EventSink sink = {};
+    extra::EventHandlerTestSuite handler(&sink, create_custom_callbacks());
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
     std::string str(src.begin(), src.end());
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
@@ -119,6 +120,33 @@ inline int fuzztest_yaml_events(uint32_t case_number, csubstr src)
         parser.parse_in_place_ev("input", c4::to_substr(str));
         _if_dbg(_dbg_printf("evts[{}]: ~~~\n{}\n~~~\n", case_number, sink); fflush(NULL));
         C4_DONT_OPTIMIZE(sink);
+    }
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
+        // if an exception leaks from here, it is likely because of a greedy noexcept
+        _if_dbg(fprintf(stdout, "err\n"); fflush(NULL));
+        return 1;
+    }
+    return 0;
+}
+
+inline int fuzztest_yaml_events_ints(uint32_t case_number, csubstr src)
+{
+    C4_UNUSED(case_number);
+    set_callbacks(create_custom_callbacks());
+    using Handler = extra::EventHandlerInts;
+    Handler handler{};
+    ParseEngine<extra::EventHandlerInts> parser(&handler);
+    std::string str(src.begin(), src.end());
+    std::vector<char> arena(str.size());
+    std::vector<Handler::value_type> event_ints;
+    event_ints.reserve(256);
+    handler.reset(to_substr(str), to_substr(arena), event_ints.data(), static_cast<Handler::value_type>(event_ints.size()));
+    C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
+    {
+        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        parser.parse_in_place_ev("input", c4::to_substr(str));
+        C4_DONT_OPTIMIZE(event_ints);
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {

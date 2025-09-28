@@ -4,6 +4,7 @@
 #include "c4/yml/filter_processor.hpp"
 #include "c4/yml/event_handler_tree.hpp"
 #include "c4/yml/parse_engine.hpp"
+#include "c4/yml/parse_engine.def.hpp"
 #include "c4/yml/parse.hpp"
 #include "c4/yml/tree.hpp"
 #include "c4/yml/node.hpp"
