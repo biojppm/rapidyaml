@@ -25,7 +25,7 @@ help:
 	cp -favr doxygen/html "$(BUILDDIR)/html/doxygen"
 
 doxy:
-	# ensure submodules are checked out
+	@# ensure submodules are checked out
 	if [ ! -f $(shell pwd)/../ext/c4core/cmake/c4Project.cmake ] ; then echo "ERROR: submodules not present" ; exit 1 ; fi
 	if [ ! -f $(shell pwd)/../ext/c4core/src/c4/charconv.hpp ] ; then echo "ERROR: submodules not present" ; exit 1 ; fi
 	doxygen Doxyfile
