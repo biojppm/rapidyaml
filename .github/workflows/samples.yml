@@ -65,10 +65,16 @@ jobs:
       run: source .github/setenv.sh && c4_show_info
     - name: singleheader
       run: cd samples/singleheader && ./run.sh $BT
+    - name: singleheader-ints
+      run: cd samples/singleheader-ints && ./run.sh $BT
     - name: singleheaderlib-static
       run: cd samples/singleheaderlib && ./run_static.sh $BT
     - name: singleheaderlib-shared
       run: cd samples/singleheaderlib && ./run_shared.sh $BT
+    - name: singleheaderlib-ints-static
+      run: cd samples/singleheaderlib-ints && ./run_static.sh $BT
+    - name: singleheaderlib-ints-shared
+      run: cd samples/singleheaderlib-ints && ./run_shared.sh $BT
     - name: add_subdirectory
       run: cd samples/add_subdirectory && ./run.sh $BT
     - name: find_package

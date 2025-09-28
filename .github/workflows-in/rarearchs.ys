@@ -3,6 +3,9 @@
 :use common: :all
 :: workflow-setup()
 
+# NOTE: to debug with qemu and gdb:
+# https://stackoverflow.com/questions/59906042/how-to-debug-mips-interactively
+
 jobs:
   xcompile:
     :: setup-job('rarearchs' 'xcompile')
