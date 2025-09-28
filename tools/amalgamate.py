@@ -19,6 +19,7 @@ class Event(Enum):
     testsuite = "testsuite"
     ints = "ints"
     ints_utils = "ints_utils"
+    ints_to_testsuite = "ints_to_testsuite"
     all = "all"
     none = "none"
     def __str__(self):
@@ -33,6 +34,7 @@ event_doc = {
     Event.testsuite: "enable the (extra) YAML test suite event handler",
     Event.ints: "enable the (extra) integer-based event handler",
     Event.ints_utils: "enable the (extra) integer-based event handler utils",
+    Event.ints_to_testsuite: "enable the (extra) integer events conversion to testsuite events",
     Event.all: "enable all event handlers",
     Event.none: "disable all event handlers",
 }
@@ -138,7 +140,8 @@ INSTRUCTIONS:
         "src/c4/yml/event_handler_stack.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/event_handler_tree.hpp"),
         am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
-        am.onlyif(has_evt(Event.ints_utils), "src_extra/c4/yml/extra/event_handler_ints_utils.hpp"),
+        am.onlyif(has_evt(Event.ints_utils), "src_extra/c4/yml/extra/ints_utils.hpp"),
+        am.onlyif(has_evt(Event.ints_to_testsuite), "src_extra/c4/yml/extra/ints_to_testsuite.hpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/string.hpp"),
         am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/event_handler_testsuite.hpp"),
         am.onlyif(has_evt(Event.ints_utils, Event.testsuite), "src_extra/c4/yml/extra/scalar.hpp"),
@@ -158,8 +161,8 @@ INSTRUCTIONS:
         am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.cpp"),
         am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.cpp"),
         am.onlyif(has_evt(Event.ints_utils, Event.testsuite), "src_extra/c4/yml/extra/scalar.cpp"),
-        am.onlyif(has_evt(Event.ints_utils), "src_extra/c4/yml/extra/event_handler_ints_utils.cpp"),
-        am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/event_handler_testsuite.cpp"),
+        am.onlyif(has_evt(Event.ints_utils), "src_extra/c4/yml/extra/ints_utils.cpp"),
+        am.onlyif(has_evt(Event.ints_to_testsuite), "src_extra/c4/yml/extra/ints_to_testsuite.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/node.cpp"),
