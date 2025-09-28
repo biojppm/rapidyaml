@@ -281,6 +281,168 @@ void bm_ryml_json_arena_nofilter_reserve(bm::State& st)
 
 //-----------------------------------------------------------------------------
 
+void bm_rymlints_estimate(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        auto sz = c4::yml::extra::estimate_events_ints_size(src);
+        bm::DoNotOptimize(sz);
+    }
+    s_bm_case->report(st);
+}
+
+
+void bm_rymlints_yaml_inplace(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        IntObjects obj;
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        if(obj.again())
+        {
+            s_bm_case->prepare(st, kResetInPlace);
+            parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        }
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_yaml_inplace_reserve(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    int sz = ryml::extra::estimate_events_ints_size(src);
+    for(auto _ : st)
+    {
+        st.PauseTiming();
+        s_bm_case->prepare(kResetInPlace);
+        IntObjects obj;
+        obj.data.resize(src);
+        st.ResumeTiming();
+        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_yaml_inplace_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        if(obj.again())
+        {
+            s_bm_case->prepare(st, kResetInPlace);
+            parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        }
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_yaml_inplace_nofilter_reserve(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    int sz = ryml::extra::estimate_events_ints_size(src);
+    for(auto _ : st)
+    {
+        st.PauseTiming();
+        s_bm_case->prepare(kResetInPlace);
+        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
+        obj.data.resize(src);
+        st.ResumeTiming();
+        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+
+//-----------------------------------------------------------------------------
+
+void bm_rymlints_json_inplace(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        IntObjects obj;
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        if(obj.again())
+        {
+            s_bm_case->prepare(st, kResetInPlace);
+            parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        }
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_json_inplace_reserve(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    int sz = ryml::extra::estimate_events_ints_size(src);
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        st.PauseTiming();
+        s_bm_case->prepare(kResetInPlace);
+        IntObjects obj;
+        obj.data.resize(src);
+        st.ResumeTiming();
+        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_json_inplace_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        if(obj.again())
+        {
+            s_bm_case->prepare(st, kResetInPlace);
+            parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        }
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_json_inplace_nofilter_reserve(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    int sz = ryml::extra::estimate_events_ints_size(src);
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        st.PauseTiming();
+        s_bm_case->prepare(kResetInPlace);
+        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
+        obj.data.resize(src);
+        st.ResumeTiming();
+        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+
+//-----------------------------------------------------------------------------
+
 void bm_ryml_yaml_inplace(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
@@ -515,6 +677,66 @@ void bm_ryml_json_arena_reuse_nofilter_reserve(bm::State& st)
 
 //-----------------------------------------------------------------------------
 
+void bm_rymlints_yaml_inplace_reuse(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj.data.resize(src);
+    for(auto _ : st)
+    {
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_yaml_inplace(s_bm_case->filename, src, s_bm_case->int_obj.parser, &s_bm_case->int_obj.data);
+        bm::DoNotOptimize(s_bm_case->int_obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_yaml_inplace_reuse_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj_nofilter.data.resize(src);
+    for(auto _ : st)
+    {
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_yaml_inplace(s_bm_case->filename, src, s_bm_case->int_obj_nofilter.parser, &s_bm_case->int_obj_nofilter.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_nofilter);
+    }
+    s_bm_case->report(st);
+}
+
+
+//-----------------------------------------------------------------------------
+
+void bm_rymlints_json_inplace_reuse(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj.data.resize(src);
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_json_inplace(s_bm_case->filename, src, s_bm_case->int_obj.parser, &s_bm_case->int_obj.data);
+        bm::DoNotOptimize(s_bm_case->int_obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_json_inplace_reuse_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj_nofilter.data.resize(src);
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_json_inplace(s_bm_case->filename, src, s_bm_case->int_obj_nofilter.parser, &s_bm_case->int_obj_nofilter.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_nofilter);
+    }
+    s_bm_case->report(st);
+}
+
+
+//-----------------------------------------------------------------------------
+
 void bm_ryml_yaml_inplace_reuse(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
@@ -617,6 +839,16 @@ void bm_ryml_json_inplace_reuse_nofilter_reserve(bm::State& st)
 
 //-----------------------------------------------------------------------------
 
+BENCHMARK(bm_rymlints_estimate);
+
+
+BENCHMARK(bm_rymlints_json_inplace_reuse_nofilter);
+BENCHMARK(bm_rymlints_json_inplace_reuse);
+
+BENCHMARK(bm_rymlints_yaml_inplace_reuse_nofilter);
+BENCHMARK(bm_rymlints_yaml_inplace_reuse);
+
+
 BENCHMARK(bm_ryml_json_inplace_reuse_nofilter_reserve);
 BENCHMARK(bm_ryml_json_inplace_reuse_nofilter);
 BENCHMARK(bm_ryml_json_inplace_reuse_reserve);
@@ -637,6 +869,17 @@ BENCHMARK(bm_ryml_yaml_arena_reuse_nofilter_reserve);
 BENCHMARK(bm_ryml_yaml_arena_reuse_nofilter);
 BENCHMARK(bm_ryml_yaml_arena_reuse_reserve);
 BENCHMARK(bm_ryml_yaml_arena_reuse);
+
+
+BENCHMARK(bm_rymlints_json_inplace_nofilter_reserve);
+BENCHMARK(bm_rymlints_json_inplace_nofilter);
+BENCHMARK(bm_rymlints_json_inplace_reserve);
+BENCHMARK(bm_rymlints_json_inplace);
+
+BENCHMARK(bm_rymlints_yaml_inplace_nofilter_reserve);
+BENCHMARK(bm_rymlints_yaml_inplace_nofilter);
+BENCHMARK(bm_rymlints_yaml_inplace_reserve);
+BENCHMARK(bm_rymlints_yaml_inplace);
 
 
 BENCHMARK(bm_ryml_json_inplace_nofilter_reserve);
