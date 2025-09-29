@@ -4,6 +4,7 @@
 #include <ryml_std.hpp>
 #include <c4/fs/fs.hpp>
 #include "c4/yml/parse.hpp"
+#include "c4/yml/extra/event_handler_ints.hpp"
 
 #include <vector>
 #include <iostream>
@@ -82,12 +83,79 @@ namespace bm = benchmark;
 #   pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #   pragma clang diagnostic ignored "-Wunused-variable"
 #   pragma clang diagnostic ignored "-Wsign-conversion"
+#   pragma clang diagnostic ignored "-Wold-style-cast"
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #   pragma GCC diagnostic ignored "-Wunused-variable"
 #   pragma GCC diagnostic ignored "-Wsign-conversion"
+#   pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+using IntHandler = ryml::extra::EventHandlerInts;
+using IntParser = ryml::ParseEngine<IntHandler>;
+struct IntData
+{
+    std::vector<int> events;
+    std::vector<char> arena;
+    void resize(ryml::extra::EventHandlerInts const& handler)
+    {
+        resize((size_t)handler.required_size_events(),
+               handler.required_size_arena());
+    }
+    void resize(ryml::substr src)
+    {
+        resize((size_t)ryml::extra::estimate_events_ints_size(src),
+               src.len);
+    }
+    void resize(size_t evt_sz, size_t arn_sz)
+    {
+        events.resize(evt_sz);
+        events.resize(arn_sz);
+    }
+};
+struct IntObjects
+{
+    IntObjects(ryml::ParserOptions opts={})
+        : handler()
+        , parser(&handler, opts)
+        , data()
+    {
+    }
+    IntHandler handler;
+    IntParser parser;
+    IntData data;
+    bool again()
+    {
+        if(!handler.fits_buffers())
+        {
+            data.resize(handler);
+            return true;
+        }
+        return false;
+    }
+};
+inline void parse_yaml_inplace(ryml::csubstr filename, ryml::substr src, IntParser &parser, IntData *dst)
+{
+    parser.m_evt_handler->reset(src,
+                                ryml::to_substr(dst->arena),
+                                dst->events.data(),
+                                (int)dst->events.size());
+    parser.parse_in_place_ev(filename, src);
+}
+inline void parse_json_inplace(ryml::csubstr filename, ryml::substr src, IntParser &parser, IntData *dst)
+{
+    parser.m_evt_handler->reset(src,
+                                ryml::to_substr(dst->arena),
+                                dst->events.data(),
+                                (int)dst->events.size());
+    parser.parse_json_in_place_ev(filename, src);
+}
 
 
 //-----------------------------------------------------------------------------
@@ -99,6 +167,7 @@ enum : int {
       kClearTreeArena=2,
       kResetInPlace=4,
       kReserveTree=8,
+      kReserveInts=8,
       kAll=kClearTree|kClearTreeArena|kResetInPlace|kReserveTree,
 };
 
@@ -116,6 +185,9 @@ struct BmCase
     bool                   is_json;
     rapidjson::Document    rapidjson_doc;
     ryml::Tree             libyaml_tree;
+
+    IntObjects int_obj;
+    IntObjects int_obj_nofilter{ryml::ParserOptions().scalar_filtering(false)};
 
     void run(std::string name, int argc, char **argv)
     {
@@ -167,6 +239,11 @@ USAGE: bm <case.yml>
         if(what & kClearTreeArena)
         {
             ryml_tree.clear_arena();
+        }
+        if(what & kReserveTree)
+        {
+            RYML_CHECK(capacity > 0);
+            ryml_tree.reserve(capacity);
         }
         if(what & kReserveTree)
         {

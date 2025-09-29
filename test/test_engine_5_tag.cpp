@@ -710,6 +710,13 @@ ENGINE_TEST(DirectiveAndTag,
     ___(ps.end_stream());
 }
 
+ENGINE_TEST_ERR(TagCustomNotFound,
+                "--- !foo \"bar\"\n"
+                "...\n"
+                "%TAG !m! tag:example.com,2000:app/\n"
+                "--- !n!foo \"bar\"\n")
+
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST_ERRLOC(TagTestSuiteU99R_0, Location(2,1),
@@ -1247,6 +1254,31 @@ ENGINE_TEST_ERR(DirectiveMultipleYAML_3,
                 "%YAML 1.2\n"
                 "---\n"
                 "bar")
+
+ENGINE_TEST_ERR(DirectiveWrong,
+                "--- !foo \"ba\"\n"
+                "...\n"
+                "%TAG ,,,,,\n"
+                "--- !foo \"bar\"\n")
+
+ENGINE_TEST_ERR(DirectiveTooMany,
+                "--- !foo \"bar\"\n"
+                "...\n"
+                "%TAG ! tag:example.com,2000:app/\n"
+                "--- !foo \"bar\"\n"
+                "...\n"
+                "%TAG ! tag:example.com,2001:app/\n"
+                "...\n"
+                "--- !foo \"bar\"\n"
+                "...\n"
+                "%TAG ! tag:example.com,2002:app/\n"
+                "--- !foo \"bar\"\n"
+                "...\n"
+                "%TAG ! tag:example.com,2003:app/\n"
+                "--- !foo \"bar\"\n"
+                "...\n"
+                "%TAG ! tag:example.com,2004:app/\n"
+                "--- !foo \"bar\"\n")
 
 
 //-----------------------------------------------------------------------------

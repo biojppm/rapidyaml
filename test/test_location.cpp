@@ -46,7 +46,7 @@ TEST(locations, error_is_triggered_querying_with_locations_disabled)
         Parser parser(&evt_handler, ParserOptions().locations(false));
         Tree t = parse_in_arena(&parser, "test", "foo: bar");
         parsed_ok = true;
-        (void)parser.location(t["foo"]);
+        t["foo"].location(parser);
     });
     EXPECT_TRUE(parsed_ok);
 }
@@ -55,7 +55,7 @@ TEST(locations, error_is_triggered_querying_with_locations_disabled)
 
 #define _checkloc(node, line_, col_, str)                               \
     {                                                                   \
-        const Location loc = parser.location(node);                     \
+        const Location loc = node.location(parser);                     \
         EXPECT_EQ(loc.name, "myfile.yml");                              \
         EXPECT_EQ(loc.line, line_);                                     \
         EXPECT_EQ(loc.col, col_);                                       \
@@ -661,7 +661,7 @@ TEST(locations, issue260_0)
       Line One
       Line Two)");
     EXPECT_EQ(tree["Body"][2]["Name"].val(), "Dog");
-    EXPECT_EQ(parser.location(tree["Body"][2]["Name"]).line, 12u);
+    EXPECT_EQ(tree["Body"][2]["Name"].location(parser).line, 12u);
 }
 
 TEST(locations, issue260_1)
@@ -702,27 +702,27 @@ TEST(locations, issue260_1)
     Script: |
       Line One
       Line Two)");
-    EXPECT_EQ(parser.location(tree["Body"][0]).line, 1u);
-    EXPECT_EQ(parser.location(tree["Body"][1]).line, 3u);
-    EXPECT_EQ(parser.location(tree["Body"][2]).line, 8u);
-    EXPECT_EQ(parser.location(tree["Body"][3]).line, 13u);
-    EXPECT_EQ(parser.location(tree["Body"][4]).line, 18u);
-    EXPECT_EQ(parser.location(tree["Body"][5]).line, 23u);
-    EXPECT_EQ(parser.location(tree["Body"][6]).line, 28u);
-    EXPECT_EQ(parser.location(tree["Body"][0]["Id"]).line, 1u);
-    EXPECT_EQ(parser.location(tree["Body"][1]["Id"]).line, 3u);
-    EXPECT_EQ(parser.location(tree["Body"][2]["Id"]).line, 8u);
-    EXPECT_EQ(parser.location(tree["Body"][3]["Id"]).line, 13u);
-    EXPECT_EQ(parser.location(tree["Body"][4]["Id"]).line, 18u);
-    EXPECT_EQ(parser.location(tree["Body"][5]["Id"]).line, 23u);
-    EXPECT_EQ(parser.location(tree["Body"][6]["Id"]).line, 28u);
-    EXPECT_EQ(parser.location(tree["Body"][0]["Name"]).line, 1u+1u);
-    EXPECT_EQ(parser.location(tree["Body"][1]["Name"]).line, 3u+1u);
-    EXPECT_EQ(parser.location(tree["Body"][2]["Name"]).line, 8u+1u);
-    EXPECT_EQ(parser.location(tree["Body"][3]["Name"]).line, 13u+1u);
-    EXPECT_EQ(parser.location(tree["Body"][4]["Name"]).line, 18u+1u);
-    EXPECT_EQ(parser.location(tree["Body"][5]["Name"]).line, 23u+1u);
-    EXPECT_EQ(parser.location(tree["Body"][6]["Name"]).line, 28u+1u);
+    EXPECT_EQ(tree["Body"][0].location(parser).line, 1u);
+    EXPECT_EQ(tree["Body"][1].location(parser).line, 3u);
+    EXPECT_EQ(tree["Body"][2].location(parser).line, 8u);
+    EXPECT_EQ(tree["Body"][3].location(parser).line, 13u);
+    EXPECT_EQ(tree["Body"][4].location(parser).line, 18u);
+    EXPECT_EQ(tree["Body"][5].location(parser).line, 23u);
+    EXPECT_EQ(tree["Body"][6].location(parser).line, 28u);
+    EXPECT_EQ(tree["Body"][0]["Id"].location(parser).line, 1u);
+    EXPECT_EQ(tree["Body"][1]["Id"].location(parser).line, 3u);
+    EXPECT_EQ(tree["Body"][2]["Id"].location(parser).line, 8u);
+    EXPECT_EQ(tree["Body"][3]["Id"].location(parser).line, 13u);
+    EXPECT_EQ(tree["Body"][4]["Id"].location(parser).line, 18u);
+    EXPECT_EQ(tree["Body"][5]["Id"].location(parser).line, 23u);
+    EXPECT_EQ(tree["Body"][6]["Id"].location(parser).line, 28u);
+    EXPECT_EQ(tree["Body"][0]["Name"].location(parser).line, 1u+1u);
+    EXPECT_EQ(tree["Body"][1]["Name"].location(parser).line, 3u+1u);
+    EXPECT_EQ(tree["Body"][2]["Name"].location(parser).line, 8u+1u);
+    EXPECT_EQ(tree["Body"][3]["Name"].location(parser).line, 13u+1u);
+    EXPECT_EQ(tree["Body"][4]["Name"].location(parser).line, 18u+1u);
+    EXPECT_EQ(tree["Body"][5]["Name"].location(parser).line, 23u+1u);
+    EXPECT_EQ(tree["Body"][6]["Name"].location(parser).line, 28u+1u);
 }
 
 

@@ -1,15 +1,22 @@
 c4_setup_testing(GTEST)
 
 
-c4_add_executable(ryml-test-quickstart
-    SOURCES ../samples/quickstart.cpp
-    LIBS ryml
-    FOLDER test)
-if(RYML_DBG)
-    target_compile_definitions(ryml-test-quickstart PRIVATE RYML_DBG)
-endif()
-c4_target_compile_flags(ryml-test-quickstart PUBLIC GCC -Wno-useless-cast)
-c4_add_test(ryml-test-quickstart)
+function(ryml_add_test_no_lib test_name)
+    c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
+    if(RYML_DBG)
+        target_compile_definitions(${test_name} PRIVATE RYML_DBG)
+        c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
+    endif()
+    c4_add_test(${test_name})
+endfunction()
+ryml_add_test_no_lib(ryml-test-quickstart
+    SOURCES ../samples/quickstart.cpp)
+ryml_add_test_no_lib(ryml-test-quickstart-ints
+    SOURCES
+        ../samples/quickstart-ints.cpp
+        ../src_extra/c4/yml/extra/event_handler_ints.hpp
+        ../src_extra/c4/yml/extra/event_handler_ints.cpp
+    INC_DIRS ../src_extra)
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
@@ -21,9 +28,28 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_case.cpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
-    INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+       test_lib/test_events_ints_helpers.hpp
+       test_lib/test_events_ints_helpers.cpp
+       ../src_extra/c4/yml/extra/event_handler_ints.cpp
+       ../src_extra/c4/yml/extra/event_handler_ints.hpp
+       ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
+       ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
+       ../src_extra/c4/yml/extra/ints_utils.cpp
+       ../src_extra/c4/yml/extra/ints_utils.hpp
+       ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
+       ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
+       ../src_extra/c4/yml/extra/scalar.hpp
+       ../src_extra/c4/yml/extra/scalar.cpp
+       ../src_extra/c4/yml/extra/string.hpp
+    INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
     FOLDER test)
+if(BUILD_SHARED_LIBS)
+    # this is needed to resolve get_case() because it is provided by
+    # the test linking to this library
+    set_target_properties(ryml-_testlib PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+endif()
 if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
 endif()
@@ -55,30 +81,16 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
-c4_add_library(ryml-_evt_handler_yaml_std LIBRARY_STATIC
-    SOURCES
-       test_suite/test_suite_event_handler.cpp
-       test_suite/test_suite_event_handler.hpp
-    LIBS ryml
-    FOLDER test
-)
-if(RYML_DBG)
-    target_compile_definitions(ryml-_evt_handler_yaml_std PUBLIC RYML_DBG)
-endif()
-function(ryml_add_engine_test name)
-    ryml_add_test(${name} ryml-_evt_handler_yaml_std)
-endfunction()
-
-
-ryml_add_engine_test(parse_engine_1_doc)
-ryml_add_engine_test(parse_engine_2_map)
-ryml_add_engine_test(parse_engine_3_seq)
-ryml_add_engine_test(parse_engine_4_anchor)
-ryml_add_engine_test(parse_engine_5_tag)
-ryml_add_engine_test(parse_engine_6_qmrk)
-ryml_add_engine_test(parse_engine_7_seqimap)
-ryml_add_engine_test(parse_engine_8_scalars_tokens)
-ryml_add_engine_test(yaml_events)
+ryml_add_test(engine_1_doc)
+ryml_add_test(engine_2_map)
+ryml_add_test(engine_3_seq)
+ryml_add_test(engine_4_anchor)
+ryml_add_test(engine_5_tag)
+ryml_add_test(engine_6_qmrk)
+ryml_add_test(engine_7_seqimap)
+ryml_add_test(engine_8_scalars_tokens)
+ryml_add_test(extra_testsuite)
+ryml_add_test(extra_ints)
 ryml_add_test(version)
 ryml_add_test(callbacks)
 ryml_add_test(stack)
@@ -175,20 +187,37 @@ if(RYML_TEST_TOOLS)
     endfunction()
     function(ryml_add_event_tool_test name expect_success flags contents)
         ryml_create_file(${name}.yml "${contents}" file)
+        string(REPLACE " " ";" flags "${flags}")
         add_test(NAME ryml-test-tool-events-${name} COMMAND ${RYML_TGT_EVENTS} ${flags} ${file})
         if(NOT expect_success)
             set_tests_properties(ryml-test-tool-events-${name} PROPERTIES WILL_FAIL TRUE)
         endif()
     endfunction()
     ryml_get_target_exe(ryml-yaml-events RYML_TGT_EVENTS)
-    ryml_add_event_tool_test(success_tree TRUE "-t" "{foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test(success_evts TRUE ""   "{{this: is, a: keymap}: [seq,val]}")
-    ryml_add_event_tool_test(fail_squo_tree FALSE "-t" "foo: 'bar")
-    ryml_add_event_tool_test(fail_squo_evts FALSE ""   "foo: 'bar")
-    ryml_add_event_tool_test(fail_dquo_tree FALSE "-t" "foo: \"bar")
-    ryml_add_event_tool_test(fail_dquo_evts FALSE ""   "foo: \"bar")
-    ryml_add_event_tool_test(fail_seq1_tree FALSE "-t" "[ a, b, c ] ]")
-    ryml_add_event_tool_test(fail_seq2_evts FALSE ""   "[ [a, b, c ]")
+    ryml_add_event_tool_test(success_help TRUE "--help" "{foo: bar, baz: [exactly]}")
+    ryml_add_event_tool_test(success_help2 TRUE "tst --help" "{foo: bar, baz: [exactly]}")
+    ryml_add_event_tool_test(fail_nocmd FALSE "" "foo")
+    ryml_add_event_tool_test(fail_badcmd FALSE "barbar" "foo")
+    ryml_add_event_tool_test(success_timing TRUE "tst --timing" "{foo: bar, baz: [exactly]}")
+    ryml_add_event_tool_test(success_tree TRUE "tst" "{foo: bar, baz: [exactly]}")
+    ryml_add_event_tool_test(success_evts TRUE "tss" "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(success_evts_ints TRUE "tsi" "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(success_ryml_ints TRUE "ri" "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(success_evts_ints_resize TRUE "tsi --ints-size 1" "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(fail_evts_ints_resize FALSE "tsi --ints-size" "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(fail_evts_ints_resize2 FALSE "tsi --ints-size xyz" "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(fail_evts_ints_no_resize FALSE "tsi --ints-size 1 --ints-size-force" "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(fail_squo_tree FALSE "tst" "foo: 'bar")
+    ryml_add_event_tool_test(fail_squo_evts FALSE "tss" "foo: 'bar")
+    ryml_add_event_tool_test(fail_dquo_tree FALSE "tst" "foo: \"bar")
+    ryml_add_event_tool_test(fail_dquo_evts FALSE "tss" "foo: \"bar")
+    ryml_add_event_tool_test(fail_seq1_tree FALSE "tst" "[ a, b, c ] ]")
+    ryml_add_event_tool_test(fail_seq2_evts FALSE "tss" "[ [a, b, c ]")
+    if(UNIX)
+        add_test(NAME ryml-test-tool-events-stdin COMMAND echo foo | ${RYML_TGT_EVENTS} tsi -)
+    endif()
+    add_test(NAME ryml-test-tool-events-nofile COMMAND ${RYML_TGT_EVENTS} tsi no_file)
+    set_tests_properties(ryml-test-tool-events-nofile PROPERTIES WILL_FAIL TRUE)
 endif()
 
 
@@ -214,16 +243,26 @@ if(RYML_TEST_SUITE)
 
     c4_add_executable(ryml-test-suite
         SOURCES
-            test_suite.cpp
-            test_suite/test_suite_common.hpp
-            test_suite/test_suite_events_emitter.cpp
-            test_suite/test_suite_event_handler.cpp
-            test_suite/test_suite_event_handler.hpp
-            test_suite/test_suite_events.cpp
-            test_suite/test_suite_events.hpp
-            test_suite/test_suite_parts.cpp
-            test_suite/test_suite_parts.hpp
+            ../src_extra/c4/yml/extra/event_handler_ints.cpp
+            ../src_extra/c4/yml/extra/event_handler_ints.hpp
+            ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
+            ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
+            ../src_extra/c4/yml/extra/ints_utils.cpp
+            ../src_extra/c4/yml/extra/ints_utils.hpp
+            ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
+            ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
+            ../src_extra/c4/yml/extra/scalar.cpp
+            ../src_extra/c4/yml/extra/scalar.hpp
+            ../src_extra/c4/yml/extra/string.hpp
+            testsuite.cpp
+            testsuite/testsuite_common.hpp
+            testsuite/testsuite_events_emitter.cpp
+            testsuite/testsuite_events.cpp
+            testsuite/testsuite_events.hpp
+            testsuite/testsuite_parts.cpp
+            testsuite/testsuite_parts.hpp
         LIBS ryml-_testlib c4log
+        INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
 
@@ -311,7 +350,7 @@ if(RYML_TEST_FUZZ)
                 test_fuzz/test_fuzz_${name}.cpp
                 test_fuzz/test_fuzz_main.cpp
                 ${ARGN}
-            INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+            INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
             LIBS ryml c4fs
             FOLDER test/fuzz)
         if(RYML_DBG)
@@ -330,7 +369,15 @@ if(RYML_TEST_FUZZ)
         endforeach()
     endfunction()
     ryml_add_fuzz_test(parse_emit)
-    ryml_add_fuzz_test(events
-        ../test/test_suite/test_suite_event_handler.hpp
-        ../test/test_suite/test_suite_event_handler.cpp)
+    ryml_add_fuzz_test(events_testsuite
+        ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
+        ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
+        ../src_extra/c4/yml/extra/scalar.hpp
+        ../src_extra/c4/yml/extra/scalar.cpp
+        ../src_extra/c4/yml/extra/string.hpp)
+    ryml_add_fuzz_test(events_ints
+        ../src_extra/c4/yml/extra/event_handler_ints.hpp
+        ../src_extra/c4/yml/extra/event_handler_ints.cpp
+        ../src_extra/c4/yml/extra/scalar.hpp
+        ../src_extra/c4/yml/extra/scalar.cpp)
 endif()

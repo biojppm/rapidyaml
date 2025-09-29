@@ -38,7 +38,6 @@ jobs:
           tgt: all
           bt: Release
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
-          commonvars: null
         - name: find_package/linux
           sdir: test/test_install
           os: ubuntu-24.04
@@ -47,7 +46,6 @@ jobs:
           tgt: all
           bt: Debug
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
-          commonvars: null
         - name: find_package/linux/libcxx
           sdir: test/test_install
           os: ubuntu-24.04
@@ -74,7 +72,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Release
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
-          commonvars: null
         - name: find_package/macos
           sdir: test/test_install
           os: macos-13
@@ -83,7 +80,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Debug
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
-          commonvars: null
         - name: find_package/win
           sdir: test/test_install
           os: windows-2022
@@ -92,7 +88,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Release
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
-          commonvars: null
         - name: find_package/win
           sdir: test/test_install
           os: windows-2022
@@ -101,7 +96,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Debug
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
-          commonvars: null
         - name: find_library/linux
           sdir: test/test_install
           os: ubuntu-24.04
@@ -110,7 +104,6 @@ jobs:
           tgt: all
           bt: Release
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
-          commonvars: null
         - name: find_library/linux
           sdir: test/test_install
           os: ubuntu-24.04
@@ -119,7 +112,6 @@ jobs:
           tgt: all
           bt: Debug
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
-          commonvars: null
         - name: find_library/linux/libcxx
           sdir: test/test_install
           os: ubuntu-24.04
@@ -146,7 +138,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Release
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
-          commonvars: null
         - name: find_library/macos
           sdir: test/test_install
           os: macos-13
@@ -155,7 +146,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Debug
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
-          commonvars: null
         - name: find_library/win
           sdir: test/test_install
           os: windows-2022
@@ -164,7 +154,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Release
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
-          commonvars: null
         - name: find_library/win
           sdir: test/test_install
           os: windows-2022
@@ -173,7 +162,6 @@ jobs:
           tgt: ALL_BUILD
           bt: Debug
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
-          commonvars: null
         - name: singleheader/linux
           sdir: test/test_singleheader
           os: ubuntu-24.04
@@ -181,8 +169,6 @@ jobs:
           gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Release
-          vars: null
-          commonvars: null
         - name: singleheader/linux
           sdir: test/test_singleheader
           os: ubuntu-24.04
@@ -190,8 +176,6 @@ jobs:
           gen: -DCMAKE_CXX_COMPILER=g++-13
           tgt: all
           bt: Debug
-          vars: null
-          commonvars: null
         - name: singleheader/linux/libcxx
           sdir: test/test_singleheader
           os: ubuntu-24.04
@@ -199,7 +183,6 @@ jobs:
           gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Release
-          vars: null
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: singleheader/linux/libcxx
           sdir: test/test_singleheader
@@ -208,7 +191,6 @@ jobs:
           gen: -DCMAKE_CXX_COMPILER=clang++-14
           tgt: all
           bt: Debug
-          vars: null
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: singleheader/macos
           sdir: test/test_singleheader
@@ -217,8 +199,6 @@ jobs:
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD
           bt: Release
-          vars: null
-          commonvars: null
         - name: singleheader/macos
           sdir: test/test_singleheader
           os: macos-13
@@ -226,8 +206,6 @@ jobs:
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD
           bt: Debug
-          vars: null
-          commonvars: null
         - name: singleheader/win
           sdir: test/test_singleheader
           os: windows-2022
@@ -235,8 +213,6 @@ jobs:
           gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Release
-          vars: null
-          commonvars: null
         - name: singleheader/win
           sdir: test/test_singleheader
           os: windows-2022
@@ -244,8 +220,6 @@ jobs:
           gen: -G 'Visual Studio 17 2022' -A x64
           tgt: ALL_BUILD
           bt: Debug
-          vars: null
-          commonvars: null
     env:
       CXX_: ${{matrix.cxx}}
       BT: ${{matrix.bt}}

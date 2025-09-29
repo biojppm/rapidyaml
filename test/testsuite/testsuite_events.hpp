@@ -37,21 +37,6 @@ CharContainer emit_events_from_tree(Tree const& C4_RESTRICT tree)
     return result;
 }
 
-struct OptionalScalar
-{
-    csubstr val = {};
-    bool was_set = false;
-    inline operator csubstr() const { return get(); }
-    inline operator bool() const { return was_set; }
-    void operator= (csubstr v) { val = v; was_set = true; }
-    csubstr get() const { RYML_ASSERT(was_set); return val; }
-    csubstr maybe_get() const { return was_set ? val : csubstr(""); }
-};
-
-csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalScalar *tag);
-
-bool compare_events(csubstr ref_evts, csubstr emt_evts, bool ignore_container_style, bool ignore_scalar_style);
-
 } // namespace yml
 } // namespace c4
 

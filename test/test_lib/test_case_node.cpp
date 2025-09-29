@@ -4,6 +4,9 @@
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+#if __GNUC__ >= 6
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+#endif
 
 namespace c4 {
 namespace yml {
