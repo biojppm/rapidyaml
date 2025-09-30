@@ -3550,29 +3550,51 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_dquot(substr s)
 
 
 //-----------------------------------------------------------------------------
+
+template<class EventHandler>
+csubstr ParseEngine<EventHandler>::_move_scalar_left_and_add_newline(substr s)
+{
+    if(s.is_sub(m_buf))
+    {
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, s.str > m_buf.str);
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, s.str-1 >= m_buf.str);
+        if(s.len)
+            memmove(s.str - 1, s.str, s.len);
+        --s.str;
+        s.str[s.len] = '\n';
+        ++s.len;
+        return s;
+    }
+    else
+    {
+        substr dst = m_evt_handler->alloc_arena(s.len + 1);
+        if(s.len)
+            memcpy(dst.str, s.str, s.len);
+        dst[s.len] = '\n';
+        return dst;
+    }
+}
+
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t indentation, BlockChomp_e chomp)
 {
     _c4dbgpf("filtering block literal scalar: s=[{}]~~~{}~~~", s.len, s);
     FilterResult r = this->filter_scalar_block_literal_in_place(s, s.len, indentation, chomp);
+    csubstr result;
     if(C4_LIKELY(r.valid()))
     {
-        _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
+        result = r.get();
     }
     else
     {
         _c4dbgpf("filtering block literal scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_evt_handler->alloc_arena(r.required_len(), &s);
-        if(dst.str)
-        {
-            FilterResult rsd = this->filter_scalar_block_literal(s, dst, indentation, chomp);
-            _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, rsd.valid());
-            _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
-            return rsd.get();
-        }
-        return dst;
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, r.required_len() == s.len + 1);
+        // this can only happen when adding a single newline in clip mode.
+        // so we shift left the scalar by one place
+        result = _move_scalar_left_and_add_newline(s);
     }
+    _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", result.len, result);
+    return result;
 }
 
 
@@ -3582,24 +3604,21 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_folded(substr s, size_t indent
 {
     _c4dbgpf("filtering block folded scalar: s=[{}]~~~{}~~~", s.len, s);
     FilterResult r = this->filter_scalar_block_folded_in_place(s, s.len, indentation, chomp);
+    csubstr result;
     if(C4_LIKELY(r.valid()))
     {
-        _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
+        result = r.get();
     }
     else
     {
         _c4dbgpf("filtering block folded scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_evt_handler->alloc_arena(r.required_len(), &s);
-        if(dst.str)
-        {
-            FilterResult rsd = this->filter_scalar_block_folded(s, dst, indentation, chomp);
-            _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, rsd.valid());
-            _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
-            return rsd.get();
-        }
-        return dst;
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, r.required_len() == s.len + 1);
+        // this can only happen when adding a single newline in clip mode.
+        // so we shift left the scalar by one place
+        result = _move_scalar_left_and_add_newline(s);
     }
+    _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", result.len, result);
+    return result;
 }
 
 

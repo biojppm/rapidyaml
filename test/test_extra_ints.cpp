@@ -541,7 +541,10 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|SCLR|LITL|AREN, 0, 4, "abc\n"), // result has additional newline
+           // instead of this (in the arena):
+           //e(VAL_|SCLR|LITL|AREN, 0, 4, "abc\n"), // result has additional newline
+           // we get this (shifted left by 1, in the source code)
+           e(VAL_|SCLR|LITL, 1, 4, "abc\n"), // result has additional newline
            e(EDOC|PSTR),
            e(ESTR),
        }),
@@ -553,7 +556,10 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|SCLR|FOLD|AREN, 0, 4, "abc\n"), // result has additional newline
+           // instead of this (in the arena):
+           //e(VAL_|SCLR|FOLD|AREN, 0, 4, "abc\n"), // result has additional newline
+           // we get this (shifted left by 1, in the source code)
+           e(VAL_|SCLR|FOLD, 1, 4, "abc\n"), // result has additional newline
            e(EDOC|PSTR),
            e(ESTR),
        }),

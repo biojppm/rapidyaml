@@ -536,6 +536,7 @@ public: // exposed for testing
     csubstr _filter_scalar_dquot(substr s);
     csubstr _filter_scalar_literal(substr s, size_t indentation, BlockChomp_e chomp);
     csubstr _filter_scalar_folded(substr s, size_t indentation, BlockChomp_e chomp);
+    csubstr _move_scalar_left_and_add_newline(substr s);
 
     csubstr _maybe_filter_key_scalar_plain(ScannedScalar const& sc, size_t indendation);
     csubstr _maybe_filter_val_scalar_plain(ScannedScalar const& sc, size_t indendation);
