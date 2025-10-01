@@ -300,7 +300,14 @@ jobs:
     - name: shared64-pack
       run: source .github/setenv.sh && c4_package shared64 $GEN
     - name: shared64-normalize
-      run:: bash('release-shared-normalize')
+      run: |
+        set -x
+        source vars.sh
+        mkdir -p assets
+        asset_src=`ls -1 ./build/shared64/*-${{matrix.config.sfxg}}`
+        asset_dst=./assets/${PROJ_PKG_NAME}${SRC_VERSION}-${{matrix.config.sfxp}}
+        [ ! -f $asset_src ] && exit 1
+        cp -fav $asset_src $asset_dst
     - name: Save artifacts
       uses: actions/upload-artifact@v4
       with: {name: 'assets-${{matrix.config.sfxp}}', path: assets/}
@@ -317,10 +324,12 @@ jobs:
       - name: install python 3.9
         uses: actions/setup-python@v5
         with: {python-version: 3.9}
-      - name: package python src packages
-        run:: bash('release-package-python')
-      - name: normalize src package names
-        run:: bash('release-normalize')
+      - name: python version
+        run: python --version
+      - name: python requirements
+        run: pip install -v -r requirements.txt
+      - name: package python src
+        run: python setup.py sdist --formats=gztar
       - name: Save artifacts
         uses: actions/upload-artifact@v4
         with: {name: dist-python_src, path: dist/}
@@ -395,9 +404,6 @@ jobs:
         )
         ls -lFhp assets*/ || echo 'none found'
         ls -lFhp dist*/ || echo 'none found'
-    - name: Move Python packages to assets folder
-      if: contains(github.ref, 'tags/v')
-      run: mv -fv dist/*src.zip assets/.
     # Github
     - :: version-get-vars
     - name: Create Github Release
@@ -424,11 +430,11 @@ jobs:
     - name: Publish python packages to test PyPI
       uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
-        repository_url: https://test.pypi.org/legacy/
+        repository-url: https://test.pypi.org/legacy/
         user: __token__
         password: ${{secrets.PYPI_TOKEN_TEST}}
         verbose: true
-        skip_existing: true
+        skip-existing: true
     # PyPI (production)
     - name: Publish python packages to production PyPI
       if: contains(github.ref, 'tags/v')

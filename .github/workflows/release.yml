@@ -261,17 +261,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.9
-    - name: package python src packages
-      run: |
-        python --version
-        pip install -v -r requirements.txt
-        python setup.py sdist --formats=zip
-    - name: normalize src package names
-      run: |
-        sdist_orig=`find dist -type f -name 'rapidyaml-*.zip'`
-        [ ! -f $sdist_orig ] && exit 1
-        sdist=`echo $sdist_orig | sed 's:\.zip:-python_src.zip:'`
-        mv -fv $sdist_orig $sdist
+    - name: python version
+      run: python --version
+    - name: python requirements
+      run: pip install -v -r requirements.txt
+    - name: package python src
+      run: python setup.py sdist --formats=gztar
     - name: Save artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -950,9 +945,6 @@ jobs:
         )
         ls -lFhp assets*/ || echo 'none found'
         ls -lFhp dist*/ || echo 'none found'
-    - name: Move Python packages to assets folder
-      if: contains(github.ref, 'tags/v')
-      run: mv -fv dist/*src.zip assets/.
     - name: Download vars.sh
       uses: actions/download-artifact@v4
       with:
@@ -1000,11 +992,11 @@ jobs:
     - name: Publish python packages to test PyPI
       uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
-        repository_url: https://test.pypi.org/legacy/
+        repository-url: https://test.pypi.org/legacy/
         user: __token__
         password: ${{secrets.PYPI_TOKEN_TEST}}
         verbose: true
-        skip_existing: true
+        skip-existing: true
     - name: Publish python packages to production PyPI
       if: contains(github.ref, 'tags/v')
       uses: pypa/gh-action-pypi-publish@v1.13.0
