@@ -56,15 +56,12 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
     auto maybe_append_tag = [&]{
         if(has_tag)
         {
-            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
             if(tag.begins_with('<'))
             {
                 append(" ");
                 append(tag);
             }
-            else
-            #endif
-            if(tag.begins_with("!<"))
+            else if(tag.begins_with("!<"))
             {
                 append(" ");
                 append(tag.sub(1));

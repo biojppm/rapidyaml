@@ -10,7 +10,8 @@ namespace yml {
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SimpleSeqFlow,
-            ("[foo,bar,baz]"),
+            "[foo,bar,baz]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -46,7 +47,8 @@ ENGINE_TEST_ERRLOC(SimpleSeqFlowErr7, Location(8,1,9), "[[a,b,c]")
 
 
 ENGINE_TEST(NestedSeqFlowEmpty,
-            ("[[]]"),
+            "[[]]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -67,7 +69,8 @@ ENGINE_TEST(NestedSeqFlowEmpty,
 }
 
 ENGINE_TEST(NestedSeq3FlowEmpty,
-            ("[[[]]]"),
+            "[[[]]]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -92,7 +95,8 @@ ENGINE_TEST(NestedSeq3FlowEmpty,
 }
 
 ENGINE_TEST(NestedSeq4FlowEmpty,
-            ("[[[[]]]]"),
+            "[[[[]]]]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -121,7 +125,10 @@ ENGINE_TEST(NestedSeq4FlowEmpty,
 }
 
 ENGINE_TEST(SimpleSeqFlowMultiline,
-            ("[\nfoo\n,\nbar\n,\nbaz\n]", "[foo,bar,baz]"),
+            "[\nfoo\n,\nbar\n,\nbaz\n]"
+            ,
+            "[foo,bar,baz]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -149,7 +156,8 @@ ENGINE_TEST(SimpleSeqFlowMultiline,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SimpleSeqBlock,
-            ("- foo\n- bar\n- baz\n"),
+            "- foo\n- bar\n- baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -174,8 +182,10 @@ ENGINE_TEST(SimpleSeqBlock,
 }
 
 ENGINE_TEST(SimpleSeqBlock2,
-            ("- [foo, bar, baz]\n- {foo: bar,baz}\n",
-             "- [foo,bar,baz]\n- {foo: bar,baz: }\n"),
+            "- [foo, bar, baz]\n- {foo: bar,baz}\n"
+            ,
+            "- [foo,bar,baz]\n- {foo: bar,baz: }\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -219,11 +229,11 @@ ENGINE_TEST(SimpleSeqBlock2,
 
 
 ENGINE_TEST(SimpleSeqBlockPlainScalar0,
-            (HAS_MULTILINE_SCALAR,
-             "- a\n"
-             "  b\n"
-             ,
-             "- a b\n")
+            HAS_MULTILINE_SCALAR,
+            "- a\n"
+            "  b\n"
+            ,
+            "- a b\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -243,10 +253,11 @@ ENGINE_TEST(SimpleSeqBlockPlainScalar0,
 }
 
 ENGINE_TEST(SimpleSeqBlockPlainScalar1,
-            (HAS_MULTILINE_SCALAR,
+            HAS_MULTILINE_SCALAR,
              "- a\n"
              "  - b - c\n",
-             "- a - b - c\n"),
+             "- a - b - c\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -265,11 +276,13 @@ ENGINE_TEST(SimpleSeqBlockPlainScalar1,
 }
 
 ENGINE_TEST(SimpleSeqBlockComment0,
-            ("-   &wtf\n"
-             "   # this is a comment\n"
-             "  foo\n"
-             "\n",
-             "- &wtf foo\n"),
+            "-   &wtf\n"
+            "   # this is a comment\n"
+            "  foo\n"
+            "\n"
+            ,
+            "- &wtf foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -289,10 +302,13 @@ ENGINE_TEST(SimpleSeqBlockComment0,
 }
 
 ENGINE_TEST(SimpleSeqBlockComment1,
-            ("-   &wtf\n"
-             "  foo\n"
-             "   # this is a comment\n"
-             "\n", "- &wtf foo\n"),
+            "-   &wtf\n"
+            "  foo\n"
+            "   # this is a comment\n"
+            "\n"
+            ,
+            "- &wtf foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -312,7 +328,10 @@ ENGINE_TEST(SimpleSeqBlockComment1,
 }
 
 ENGINE_TEST(SimpleSeqBlockEmptyScalars,
-            ("-\n-\n-\n-\n", "- \n- \n- \n- \n"),
+            "-\n-\n-\n-\n"
+            ,
+            "- \n- \n- \n- \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -340,9 +359,12 @@ ENGINE_TEST(SimpleSeqBlockEmptyScalars,
 }
 
 ENGINE_TEST(SimpleSeqBlockEmptyLiterals,
-            (HAS_MULTILINE_SCALAR,
-             "- |\n- |\n- |\n- |\n",
-             "- |-\n- |-\n- |-\n- |-\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "- |\n- |\n- |\n- |\n"
+            ,
+            "- |-\n- |-\n- |-\n- |-\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -370,9 +392,11 @@ ENGINE_TEST(SimpleSeqBlockEmptyLiterals,
 }
 
 ENGINE_TEST(SimpleSeqBlockEmptyFolded,
-            (HAS_MULTILINE_SCALAR,
-             "- >\n- >\n- >\n- >\n",
-             "- >-\n- >-\n- >-\n- >-\n"),
+            HAS_MULTILINE_SCALAR,
+            "- >\n- >\n- >\n- >\n"
+            ,
+            "- >-\n- >-\n- >-\n- >-\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -402,7 +426,10 @@ ENGINE_TEST(SimpleSeqBlockEmptyFolded,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SeqSeqFlow,
-            ("[[foo1,bar1,baz1],\n[foo2,bar2,baz2]]", "[[foo1,bar1,baz1],[foo2,bar2,baz2]]"),
+            "[[foo1,bar1,baz1],\n[foo2,bar2,baz2]]"
+            ,
+            "[[foo1,bar1,baz1],[foo2,bar2,baz2]]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -444,16 +471,16 @@ ENGINE_TEST(SeqSeqFlow,
 }
 
 
-ENGINE_TEST(SeqBlockSpace, (HAS_MULTILINE_SCALAR,
-             ""
-             "- a\n"
-             "  - b\n"
-             ""
-             ,
-             ""
-             "- a - b\n"
-             ""
-                ),
+ENGINE_TEST(SeqBlockSpace, HAS_MULTILINE_SCALAR,
+            ""
+            "- a\n"
+            "  - b\n"
+            ""
+            ,
+            ""
+            "- a - b\n"
+            ""
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -472,13 +499,12 @@ ENGINE_TEST(SeqBlockSpace, (HAS_MULTILINE_SCALAR,
 }
 
 #ifdef RYML_FIX_THIS
-ENGINE_TEST(SeqBlockTab,
-            (HAS_MULTILINE_SCALAR,
-             ""
-             "- a\n"
-             "\t- b\n"
-             ""
-                ),
+ENGINE_TEST(SeqBlockTab, HAS_MULTILINE_SCALAR,
+            ""
+            "- a\n"
+            "\t- b\n"
+            ""
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -501,12 +527,13 @@ ENGINE_TEST(SeqBlockTab,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SeqSeqBlock,
-            ("- - foo1\n"
-             "  - bar1\n"
-             "  - baz1\n"
-             "- - foo2\n"
-             "  - bar2\n"
-             "  - baz2\n"),
+            "- - foo1\n"
+            "  - bar1\n"
+            "  - baz1\n"
+            "- - foo2\n"
+            "  - bar2\n"
+            "  - baz2\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -548,13 +575,14 @@ ENGINE_TEST(SeqSeqBlock,
 }
 
 ENGINE_TEST(SeqSeqSeqBlock,
-            ("- - - foo1\n"
-             "    - bar1\n"
-             "    - baz1\n"
-             "  - - foo2\n"
-             "    - bar2\n"
-             "    - baz2\n"
-             "- back\n"),
+            "- - - foo1\n"
+            "    - bar1\n"
+            "    - baz1\n"
+            "  - - foo2\n"
+            "    - bar2\n"
+            "    - baz2\n"
+            "- back\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -603,12 +631,13 @@ ENGINE_TEST(SeqSeqSeqBlock,
 }
 
 ENGINE_TEST(SeqMapBlock,
-            ("- foo: 1\n"
-             "  bar: 2\n"
-             "- foo: 10\n"
-             "  bar: 20\n"
-             "- foo: 100\n"
-             "  bar: 200\n"),
+            "- foo: 1\n"
+            "  bar: 2\n"
+            "- foo: 10\n"
+            "  bar: 20\n"
+            "- foo: 100\n"
+            "  bar: 200\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"

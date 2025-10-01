@@ -10,7 +10,8 @@ namespace yml {
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SeqIMap0Ref,
-            ("[val0,val1,{key: val2},wtf]"),
+            "[val0,val1,{key: val2},wtf]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -44,7 +45,10 @@ ENGINE_TEST(SeqIMap0Ref,
 }
 
 ENGINE_TEST(SeqIMap1,
-            ("[val0,val1,key: val2,wtf]", "[val0,val1,{key: val2},wtf]"),
+            "[val0,val1,key: val2,wtf]"
+            ,
+            "[val0,val1,{key: val2},wtf]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -82,7 +86,10 @@ ENGINE_TEST(SeqIMap1,
 }
 
 ENGINE_TEST(SeqIMap2,
-            ("[val0,val1,key: [foo: bar],wtf]", "[val0,val1,{key: [{foo: bar}]},wtf]"),
+            "[val0,val1,key: [foo: bar],wtf]"
+            ,
+            "[val0,val1,{key: [{foo: bar}]},wtf]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -127,8 +134,10 @@ ENGINE_TEST(SeqIMap2,
 
 
 ENGINE_TEST(SeqIMap2Nested,
-            ("[val: [0: [1: [2: [3: [4: [5: [6: 7]]]]]]], :]",
-             "[{val: [{0: [{1: [{2: [{3: [{4: [{5: [{6: 7}]}]}]}]}]}]}]},{: }]"),
+            "[val: [0: [1: [2: [3: [4: [5: [6: 7]]]]]]], :]"
+            ,
+            "[{val: [{0: [{1: [{2: [{3: [{4: [{5: [{6: 7}]}]}]}]}]}]}]},{: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -233,7 +242,10 @@ ENGINE_TEST(SeqIMap2Nested,
 
 
 ENGINE_TEST(SeqIMap3EmptyKey,
-            ("[val0, : wtf]", "[val0,{: wtf}]"),
+            "[val0, : wtf]"
+            ,
+            "[val0,{: wtf}]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -261,7 +273,10 @@ ENGINE_TEST(SeqIMap3EmptyKey,
 }
 
 ENGINE_TEST(SeqIMap3EmptyVal,
-            ("[val0, wtf: ]", "[val0,{wtf: }]"),
+            "[val0, wtf: ]"
+            ,
+            "[val0,{wtf: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -289,7 +304,10 @@ ENGINE_TEST(SeqIMap3EmptyVal,
 }
 
 ENGINE_TEST(SeqIMap3EmptyKeyVal,
-            ("[val0, : ]", "[val0,{: }]"),
+            "[val0, : ]"
+            ,
+            "[val0,{: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -317,7 +335,10 @@ ENGINE_TEST(SeqIMap3EmptyKeyVal,
 }
 
 ENGINE_TEST(SeqIMap3EmptyKeyValNested,
-            ("[val0: val1, : ]", "[{val0: val1},{: }]"),
+            "[val0: val1, : ]"
+            ,
+            "[{val0: val1},{: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -351,7 +372,10 @@ ENGINE_TEST(SeqIMap3EmptyKeyValNested,
 }
 
 ENGINE_TEST(SeqIMap3EmptyKeyValNested2,
-            ("[val0: [val1: val2], : ]", "[{val0: [{val1: val2}]},{: }]"),
+            "[val0: [val1: val2], : ]"
+            ,
+            "[{val0: [{val1: val2}]},{: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -395,7 +419,8 @@ ENGINE_TEST(SeqIMap3EmptyKeyValNested2,
 }
 
 ENGINE_TEST(SeqIMap4Ref,
-            ("[val0,val1,[rat,rot],wtf]"),
+            "[val0,val1,[rat,rot],wtf]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -430,7 +455,12 @@ ENGINE_TEST(SeqIMap4Ref,
 }
 
 ENGINE_TEST(SeqIMap4,
-            (HAS_CONTAINER_KEYS, Location(20,1,21), "[val0,val1,[rat,rot]: [foo: bar],wtf]", "[val0,val1,{[rat,rot]: [{foo: bar}]},wtf]"),
+            HAS_CONTAINER_KEYS, Location(20,1,21)
+            ,
+            "[val0,val1,[rat,rot]: [foo: bar],wtf]"
+            ,
+            "[val0,val1,{[rat,rot]: [{foo: bar}]},wtf]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -481,7 +511,11 @@ ENGINE_TEST(SeqIMap4,
 }
 
 ENGINE_TEST(SeqIMap4_actually,
-            (HAS_CONTAINER_KEYS, Location(20,1,21), "[val0,val1,[rat,rot]: [foo: bar],wtf]", "[val0,val1,{[rat,rot]: [{foo: bar}]},wtf]"),
+            HAS_CONTAINER_KEYS, Location(20,1,21),
+            "[val0,val1,[rat,rot]: [foo: bar],wtf]"
+            ,
+            "[val0,val1,{[rat,rot]: [{foo: bar}]},wtf]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -535,7 +569,10 @@ ENGINE_TEST(SeqIMap4_actually,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SeqIMap5Squo,
-            ("[a: &anchor 'b']", "[{a: &anchor 'b'}]"),
+            "[a: &anchor 'b']"
+            ,
+            "[{a: &anchor 'b'}]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -561,7 +598,10 @@ ENGINE_TEST(SeqIMap5Squo,
 }
 
 ENGINE_TEST(SeqIMap5Dquo,
-            ("[a: &anchor \"b\"]", "[{a: &anchor \"b\"}]"),
+            "[a: &anchor \"b\"]"
+            ,
+            "[{a: &anchor \"b\"}]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -587,7 +627,10 @@ ENGINE_TEST(SeqIMap5Dquo,
 }
 
 ENGINE_TEST(SeqIMap5Ref,
-            ("[a: *ref]", "[{a: *ref}]"),
+            "[a: *ref]"
+            ,
+            "[{a: *ref}]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -612,7 +655,10 @@ ENGINE_TEST(SeqIMap5Ref,
 }
 
 ENGINE_TEST(SeqIMap5QmrkNone0,
-            ("[? ,]", "[{: }]"),
+            "[? ,]"
+            ,
+            "[{: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -637,7 +683,10 @@ ENGINE_TEST(SeqIMap5QmrkNone0,
 }
 
 ENGINE_TEST(SeqIMap5QmrkNone1,
-            ("[? ]", "[{: }]"),
+            "[? ]"
+            ,
+            "[{: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -662,7 +711,10 @@ ENGINE_TEST(SeqIMap5QmrkNone1,
 }
 
 ENGINE_TEST(SeqIMap5QmrkSquo1,
-            ("[? &anchor 'squo' ]", "[{&anchor 'squo': }]"),
+            "[? &anchor 'squo' ]"
+            ,
+            "[{&anchor 'squo': }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -689,7 +741,10 @@ ENGINE_TEST(SeqIMap5QmrkSquo1,
 }
 
 ENGINE_TEST(SeqIMap5QmrkDquo1,
-            ("[? &anchor \"dquo\" ]", "[{&anchor \"dquo\": }]"),
+            "[? &anchor \"dquo\" ]"
+            ,
+            "[{&anchor \"dquo\": }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -716,7 +771,10 @@ ENGINE_TEST(SeqIMap5QmrkDquo1,
 }
 
 ENGINE_TEST(SeqIMap5QmrkRef1,
-            ("[? a: *ref]", "[{a: *ref}]"),
+            "[? a: *ref]"
+            ,
+            "[{a: *ref}]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -741,7 +799,10 @@ ENGINE_TEST(SeqIMap5QmrkRef1,
 }
 
 ENGINE_TEST(SeqIMap5QmrkRef2,
-            ("[? *ref: b]", "[{*ref : b}]"),
+            "[? *ref: b]"
+            ,
+            "[{*ref : b}]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -766,8 +827,11 @@ ENGINE_TEST(SeqIMap5QmrkRef2,
 }
 
 ENGINE_TEST(SeqIMap5QmrkSeq,
-            (HAS_CONTAINER_KEYS,
-             "[? &anchor [a, seq]: ]", "[{&anchor [a, seq]: }]"),
+            HAS_CONTAINER_KEYS,
+            "[? &anchor [a, seq]: ]"
+            ,
+            "[{&anchor [a, seq]: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -800,8 +864,11 @@ ENGINE_TEST(SeqIMap5QmrkSeq,
 }
 
 ENGINE_TEST(SeqIMap5QmrkMap,
-            (HAS_CONTAINER_KEYS,
-             "[? &anchor {a: map}: ]", "[{&anchor {a: map}: }]"),
+            HAS_CONTAINER_KEYS,
+            "[? &anchor {a: map}: ]"
+            ,
+            "[{&anchor {a: map}: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"

@@ -7,7 +7,7 @@ namespace c4 {
 namespace yml {
 
 ENGINE_TEST(DocEmpty,
-            (""),
+            "",
             "+STR\n"
             "-STR\n")
 {
@@ -19,7 +19,7 @@ ENGINE_TEST(DocEmpty,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocEmptyExpl,
-            ("---\n"),
+            "---\n",
             "+STR\n"
             "+DOC ---\n"
             "=VAL :\n"
@@ -37,7 +37,10 @@ ENGINE_TEST(DocEmptyExpl,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocEmptyTerm1,
-            ("...\n", ""),
+            "...\n"
+            ,
+            ""
+            ,
             "+STR\n"
             "-STR\n")
 {
@@ -46,7 +49,10 @@ ENGINE_TEST(DocEmptyTerm1,
 }
 
 ENGINE_TEST(DocEmptyTerm1Indented1,
-            (" ...\n", "  ...\n"),
+            " ...\n"
+            ,
+            "  ...\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :...\n"
@@ -61,7 +67,10 @@ ENGINE_TEST(DocEmptyTerm1Indented1,
 }
 
 ENGINE_TEST(DocEmptyTerm2,
-            ("...\n...\n", ""),
+            "...\n...\n"
+            ,
+            ""
+            ,
             "+STR\n"
             "-STR\n")
 {
@@ -70,8 +79,12 @@ ENGINE_TEST(DocEmptyTerm2,
 }
 
 ENGINE_TEST(DocEmptyTerm2Indented0,
-            (HAS_MULTILINE_SCALAR,
-             " ...\n...\n", "  ...\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            " ...\n...\n"
+            ,
+            "  ...\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :...\n"
@@ -86,8 +99,12 @@ ENGINE_TEST(DocEmptyTerm2Indented0,
 }
 
 ENGINE_TEST(DocEmptyTerm2Indented1,
-            (HAS_MULTILINE_SCALAR,
-             " ...\n ...\n", "  ... ...\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            " ...\n ...\n"
+            ,
+            "  ... ...\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :... ...\n"
@@ -102,7 +119,10 @@ ENGINE_TEST(DocEmptyTerm2Indented1,
 }
 
 ENGINE_TEST(DocEmptyTerm3,
-            ("...\n...\n...\n", ""),
+            "...\n...\n...\n"
+            ,
+            ""
+            ,
             "+STR\n"
             "-STR\n")
 {
@@ -111,7 +131,10 @@ ENGINE_TEST(DocEmptyTerm3,
 }
 
 ENGINE_TEST(DocEmptyTerm3_1,
-            ("...\n...\n..\n", "..\n"),
+            "...\n...\n..\n"
+            ,
+            "..\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :..\n"
@@ -126,13 +149,14 @@ ENGINE_TEST(DocEmptyTerm3_1,
 }
 
 ENGINE_TEST(DocEmptyTerm4_2,
-            ("...\n"
-             "...\n"
-             "......\n"
-             "...\n"
-             "...\n"
-             ,
-             "  ......\n"),
+            "...\n"
+            "...\n"
+            "......\n"
+            "...\n"
+            "...\n"
+            ,
+            "  ......\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :......\n"
@@ -150,7 +174,8 @@ ENGINE_TEST(DocEmptyTerm4_2,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocEmptyExplMult,
-            ("---\n---\n---\n"),
+            "---\n---\n---\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :\n"
@@ -179,7 +204,10 @@ ENGINE_TEST(DocEmptyExplMult,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocEmptyExplMultImplFirst,
-            ("foo\n--- bar\n--- baz\n", "--- foo\n--- bar\n--- baz\n"),
+            "foo\n--- bar\n--- baz\n"
+            ,
+            "--- foo\n--- bar\n--- baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :foo\n"
@@ -209,7 +237,8 @@ ENGINE_TEST(DocEmptyExplMultImplFirst,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocScalarPlain0,
-            ("foo\n"),
+            "foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :foo\n"
@@ -224,7 +253,8 @@ ENGINE_TEST(DocScalarPlain0,
 }
 
 ENGINE_TEST(DocScalarPlain1,
-            ("--- foo\n"),
+            "--- foo\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :foo\n"
@@ -239,7 +269,10 @@ ENGINE_TEST(DocScalarPlain1,
 }
 
 ENGINE_TEST(DocScalarPlain2,
-            ("--- ---\n", "---\n  ---\n"),
+            "--- ---\n"
+            ,
+            "---\n  ---\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :---\n"
@@ -254,7 +287,10 @@ ENGINE_TEST(DocScalarPlain2,
 }
 
 ENGINE_TEST(DocScalarPlain2_1,
-            ("------\n", "  ------\n"),
+            "------\n"
+            ,
+            "  ------\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :------\n"
@@ -269,7 +305,10 @@ ENGINE_TEST(DocScalarPlain2_1,
 }
 
 ENGINE_TEST(DocScalarPlain2_2,
-            ("......\n", "  ......\n"),
+            "......\n"
+            ,
+            "  ......\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :......\n"
@@ -284,7 +323,10 @@ ENGINE_TEST(DocScalarPlain2_2,
 }
 
 ENGINE_TEST(DocScalarPlain3,
-            ("--- ...\n", "---\n  ...\n"),
+            "--- ...\n"
+            ,
+            "---\n  ...\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :...\n"
@@ -299,7 +341,10 @@ ENGINE_TEST(DocScalarPlain3,
 }
 
 ENGINE_TEST(DocScalarPlain3_1,
-            ("---...\n", "  ---...\n"),
+            "---...\n"
+            ,
+            "  ---...\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :---...\n"
@@ -314,8 +359,11 @@ ENGINE_TEST(DocScalarPlain3_1,
 }
 
 ENGINE_TEST(DocScalarPlainMultiline0,
-            (HAS_MULTILINE_SCALAR,
-             "--- foo\n bar\n", "--- foo bar\n"),
+            HAS_MULTILINE_SCALAR,
+            "--- foo\n bar\n"
+            ,
+            "--- foo bar\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :foo bar\n"
@@ -330,8 +378,10 @@ ENGINE_TEST(DocScalarPlainMultiline0,
 }
 
 ENGINE_TEST(DocScalarPlainMultiline0Indented,
-            (HAS_MULTILINE_SCALAR,
-             " --- foo\n bar\n", "  --- foo bar\n"),
+            HAS_MULTILINE_SCALAR,
+            " --- foo\n bar\n"
+            , "  --- foo bar\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :--- foo bar\n"
@@ -346,8 +396,12 @@ ENGINE_TEST(DocScalarPlainMultiline0Indented,
 }
 
 ENGINE_TEST(DocScalarPlainMultiline0Indented1,
-            (HAS_MULTILINE_SCALAR,
-             " --- foo\n bar\n", "  --- foo bar\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            " --- foo\n bar\n"
+            ,
+            "  --- foo bar\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :--- foo bar\n"
@@ -362,8 +416,12 @@ ENGINE_TEST(DocScalarPlainMultiline0Indented1,
 }
 
 ENGINE_TEST(DocScalarPlainMultiline,
-            (HAS_MULTILINE_SCALAR,
-             "foo\nbar\n\nfew\nbars", "foo bar\n\n  few bars\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "foo\nbar\n\nfew\nbars"
+            ,
+            "foo bar\n\n  few bars\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :foo bar\\nfew bars\n"
@@ -378,8 +436,12 @@ ENGINE_TEST(DocScalarPlainMultiline,
 }
 
 ENGINE_TEST(DocScalarPlainMultilineComment0,
-            (HAS_MULTILINE_SCALAR,
-             "# comment\nfoo\nbar\n\nfew\nbars", "foo bar\n\n  few bars\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "# comment\nfoo\nbar\n\nfew\nbars"
+            ,
+            "foo bar\n\n  few bars\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :foo bar\\nfew bars\n"
@@ -394,8 +456,12 @@ ENGINE_TEST(DocScalarPlainMultilineComment0,
 }
 
 ENGINE_TEST(DocScalarPlainMultilineComment1,
-            (HAS_MULTILINE_SCALAR,
-             "foo\nbar\n\nfew\nbars\n# comment\n", "foo bar\n\n  few bars\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "foo\nbar\n\nfew\nbars\n# comment\n"
+            ,
+            "foo bar\n\n  few bars\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :foo bar\\nfew bars\n"
@@ -411,30 +477,30 @@ ENGINE_TEST(DocScalarPlainMultilineComment1,
 
 
 ENGINE_TEST(DocScalarPlainIndentation,
-            (HAS_MULTILINE_SCALAR,
-             "  foo\n"
-             " bar\n"
-             "baz\n"
-             "--- foo\n"
-             "bar\n"
-             "baz\n"
-             "---\n"
-             "- foo\n"
-             " bar\n"
-             "- baz\n"
-             "---\n"
-             "aaa: bbb\n"
-             " ccc\n"
-             "ddd: eee\n"
-             ,
-             "--- foo bar baz\n"
-             "--- foo bar baz\n"
-             "---\n"
-             "- foo bar\n"
-             "- baz\n"
-             "---\n"
-             "aaa: bbb ccc\n"
-             "ddd: eee\n")
+            HAS_MULTILINE_SCALAR,
+            "  foo\n"
+            " bar\n"
+            "baz\n"
+            "--- foo\n"
+            "bar\n"
+            "baz\n"
+            "---\n"
+            "- foo\n"
+            " bar\n"
+            "- baz\n"
+            "---\n"
+            "aaa: bbb\n"
+            " ccc\n"
+            "ddd: eee\n"
+            ,
+            "--- foo bar baz\n"
+            "--- foo bar baz\n"
+            "---\n"
+            "- foo bar\n"
+            "- baz\n"
+            "---\n"
+            "aaa: bbb ccc\n"
+            "ddd: eee\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -489,7 +555,8 @@ ENGINE_TEST(DocScalarPlainIndentation,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocScalarSQuoted,
-            ("'foo'\n"),
+            "'foo'\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL 'foo\n"
@@ -504,7 +571,11 @@ ENGINE_TEST(DocScalarSQuoted,
 }
 
 ENGINE_TEST(DocScalarSQuotedMultiline,
-            (HAS_MULTILINE_SCALAR, "'foo\nbar\nbaz\n\nbat'\n", "'foo bar baz\n\n  bat'\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "'foo\nbar\nbaz\n\nbat'\n"
+            ,
+            "'foo bar baz\n\n  bat'\n",
             "+STR\n"
             "+DOC\n"
             "=VAL 'foo bar baz\\nbat\n"
@@ -519,7 +590,12 @@ ENGINE_TEST(DocScalarSQuotedMultiline,
 }
 
 ENGINE_TEST(DocScalarSQuotedMultilineComment0,
-            (HAS_MULTILINE_SCALAR, "# a comment\n'foo\nbar\nbaz\n\nbat'\n", "'foo bar baz\n\n  bat'\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "# a comment\n'foo\nbar\nbaz\n\nbat'\n"
+            ,
+            "'foo bar baz\n\n  bat'\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL 'foo bar baz\\nbat\n"
@@ -534,7 +610,11 @@ ENGINE_TEST(DocScalarSQuotedMultilineComment0,
 }
 
 ENGINE_TEST(DocScalarSQuotedMultilineComment1,
-            (HAS_MULTILINE_SCALAR, "'foo\nbar\nbaz\n\nbat'\n# a comment\n", "'foo bar baz\n\n  bat'\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "'foo\nbar\nbaz\n\nbat'\n# a comment\n"
+            ,
+            "'foo bar baz\n\n  bat'\n",
             "+STR\n"
             "+DOC\n"
             "=VAL 'foo bar baz\\nbat\n"
@@ -552,7 +632,8 @@ ENGINE_TEST(DocScalarSQuotedMultilineComment1,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocScalarDQuoted,
-            ("\"foo\"\n"),
+            "\"foo\"\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL \"foo\n"
@@ -567,9 +648,11 @@ ENGINE_TEST(DocScalarDQuoted,
 }
 
 ENGINE_TEST(DocScalarDQuotedMultiline,
-            (HAS_MULTILINE_SCALAR,
-             "\"foo\nbar\nbaz\n\nbat\"\n",
-             "\"foo bar baz\\nbat\"\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "\"foo\nbar\nbaz\n\nbat\"\n"
+            ,
+            "\"foo bar baz\\nbat\"\n",
             "+STR\n"
             "+DOC\n"
             "=VAL \"foo bar baz\\nbat\n"
@@ -584,9 +667,12 @@ ENGINE_TEST(DocScalarDQuotedMultiline,
 }
 
 ENGINE_TEST(DocScalarDQuotedMultilineComment0,
-            (HAS_MULTILINE_SCALAR,
-             "# a comment\n\"foo\nbar\nbaz\n\nbat\"\n",
-             "\"foo bar baz\\nbat\"\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "# a comment\n\"foo\nbar\nbaz\n\nbat\"\n"
+            ,
+            "\"foo bar baz\\nbat\"\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL \"foo bar baz\\nbat\n"
@@ -601,9 +687,12 @@ ENGINE_TEST(DocScalarDQuotedMultilineComment0,
 }
 
 ENGINE_TEST(DocScalarDQuotedMultilineComment1,
-            (HAS_MULTILINE_SCALAR,
-             "\"foo\nbar\nbaz\n\nbat\"\n# a comment\n",
-             "\"foo bar baz\\nbat\"\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "\"foo\nbar\nbaz\n\nbat\"\n# a comment\n"
+            ,
+            "\"foo bar baz\\nbat\"\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL \"foo bar baz\\nbat\n"
@@ -621,7 +710,10 @@ ENGINE_TEST(DocScalarDQuotedMultilineComment1,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocScalarLiteral,
-            (HAS_MULTILINE_SCALAR, "|-\n  foo\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "|-\n  foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL |foo\n"
@@ -636,7 +728,11 @@ ENGINE_TEST(DocScalarLiteral,
 }
 
 ENGINE_TEST(DocScalarLiteralComment0,
-            (HAS_MULTILINE_SCALAR, "# comment\n|-\n  foo\n", "|-\n  foo\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "# comment\n|-\n  foo\n"
+            ,
+            "|-\n  foo\n",
             "+STR\n"
             "+DOC\n"
             "=VAL |foo\n"
@@ -651,7 +747,12 @@ ENGINE_TEST(DocScalarLiteralComment0,
 }
 
 ENGINE_TEST(DocScalarLiteralComment1,
-            (HAS_MULTILINE_SCALAR, "|-\n  foo\n# comment\n", "|-\n  foo\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "|-\n  foo\n# comment\n"
+            ,
+            "|-\n  foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL |foo\n"
@@ -669,7 +770,10 @@ ENGINE_TEST(DocScalarLiteralComment1,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocScalarFolded,
-            (HAS_MULTILINE_SCALAR, ">-\n  foo\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            ">-\n  foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL >foo\n"
@@ -684,7 +788,12 @@ ENGINE_TEST(DocScalarFolded,
 }
 
 ENGINE_TEST(DocScalarFoldedComment0,
-            (HAS_MULTILINE_SCALAR, "# comment\n>-\n  foo\n", ">-\n  foo\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "# comment\n>-\n  foo\n"
+            ,
+            ">-\n  foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL >foo\n"
@@ -699,7 +808,12 @@ ENGINE_TEST(DocScalarFoldedComment0,
 }
 
 ENGINE_TEST(DocScalarFoldedComment1,
-            (HAS_MULTILINE_SCALAR, ">-\n  foo\n# comment\n", ">-\n  foo\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            ">-\n  foo\n# comment\n"
+            ,
+            ">-\n  foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL >foo\n"
@@ -717,7 +831,11 @@ ENGINE_TEST(DocScalarFoldedComment1,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(ScalarMixedDoc,
-            (HAS_MULTILINE_SCALAR, R"(. "dquo" plain 'squo')", ". \"dquo\" plain 'squo'\n"),
+            HAS_MULTILINE_SCALAR,
+            ". \"dquo\" plain 'squo'"
+            ,
+            ". \"dquo\" plain 'squo'\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :. \"dquo\" plain 'squo'\n"
@@ -732,7 +850,12 @@ ENGINE_TEST(ScalarMixedDoc,
 }
 
 ENGINE_TEST(ScalarMixedMap,
-            (HAS_MULTILINE_SCALAR, R"(foo: . "dquo" plain 'squo')", "foo: . \"dquo\" plain 'squo'\n"),
+            HAS_MULTILINE_SCALAR
+            ,
+            "foo: . \"dquo\" plain 'squo'"
+            ,
+            "foo: . \"dquo\" plain 'squo'\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -756,7 +879,8 @@ ENGINE_TEST(ScalarMixedMap,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocStream,
-            ("--- doc0\n--- 'doc1'\n--- \"doc2\"\n"),
+            "--- doc0\n--- 'doc1'\n--- \"doc2\"\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :doc0\n"
@@ -786,7 +910,10 @@ ENGINE_TEST(DocStream,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocStreamImplicitDocFirst,
-            ("doc0\n--- doc1\n--- doc2\n", "--- doc0\n--- doc1\n--- doc2\n"),
+            "doc0\n--- doc1\n--- doc2\n"
+            ,
+            "--- doc0\n--- doc1\n--- doc2\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :doc0\n"
@@ -816,20 +943,22 @@ ENGINE_TEST(DocStreamImplicitDocFirst,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SuddenDoc0,
-            ("- map:\n"
-             "   foo: bar\n"
-             "...\n"
-             "seq:\n"
-             "  - a\n"
-             "  - b\n"
-             "...\n",
-             "---\n"
-             "- map:\n"
-             "    foo: bar\n"
-             "---\n"
-             "seq:\n"
-             "  - a\n"
-             "  - b\n"),
+            "- map:\n"
+            "   foo: bar\n"
+            "...\n"
+            "seq:\n"
+            "  - a\n"
+            "  - b\n"
+            "...\n"
+            ,
+            "---\n"
+            "- map:\n"
+            "    foo: bar\n"
+            "---\n"
+            "seq:\n"
+            "  - a\n"
+            "  - b\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -879,70 +1008,71 @@ ENGINE_TEST(SuddenDoc0,
 }
 
 ENGINE_TEST(SuddenDoc1,
-            ("map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "      - now inside a seq:\n"
-             "          another map:\n"
-             "          - another seq\n"
-             "          - etc\n"
-             "---\n"
-             "map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "      - now inside a seq:\n"
-             "          another map: the value\n"
-             "---\n"
-             "map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "      - now inside a seq:\n"
-             "          another map:\n"
-             "          - another seq\n"
-             "          - etc\n"
-             "...\n"
-             "map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "      - now inside a seq:\n"
-             "          another map: the value\n"
-             "...\n",
-             "---\n"
-             "map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "        - now inside a seq:\n"
-             "            another map:\n"
-             "              - another seq\n"
-             "              - etc\n"
-             "---\n"
-             "map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "        - now inside a seq:\n"
-             "            another map: the value\n"
-             "---\n"
-             "map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "        - now inside a seq:\n"
-             "            another map:\n"
-             "              - another seq\n"
-             "              - etc\n"
-             "---\n"
-             "map:\n"
-             "  nested:\n"
-             "    nested more:\n"
-             "      nested even more:\n"
-             "        - now inside a seq:\n"
-             "            another map: the value\n"),
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "      - now inside a seq:\n"
+            "          another map:\n"
+            "          - another seq\n"
+            "          - etc\n"
+            "---\n"
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "      - now inside a seq:\n"
+            "          another map: the value\n"
+            "---\n"
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "      - now inside a seq:\n"
+            "          another map:\n"
+            "          - another seq\n"
+            "          - etc\n"
+            "...\n"
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "      - now inside a seq:\n"
+            "          another map: the value\n"
+            "...\n",
+            "---\n"
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "        - now inside a seq:\n"
+            "            another map:\n"
+            "              - another seq\n"
+            "              - etc\n"
+            "---\n"
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "        - now inside a seq:\n"
+            "            another map: the value\n"
+            "---\n"
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "        - now inside a seq:\n"
+            "            another map:\n"
+            "              - another seq\n"
+            "              - etc\n"
+            "---\n"
+            "map:\n"
+            "  nested:\n"
+            "    nested more:\n"
+            "      nested even more:\n"
+            "        - now inside a seq:\n"
+            "            another map: the value\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1109,7 +1239,6 @@ ENGINE_TEST(SuddenDoc1,
     ___(ps.end_doc_expl());
     ___(ps.end_stream());
 }
-
 
 } // namespace yml
 } // namespace c4

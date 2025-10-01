@@ -80,39 +80,39 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 }
 
 
-void test_engine_testsuite_from_yaml(ReferenceYaml const& yaml, std::string const& expected_events, ParserOptions opts)
+void test_engine_testsuite_from_yaml(EngineEvtTestCase const& tc, std::string const& parsed_yaml, ParserOptions opts)
 {
     extra::EventHandlerTestSuite::EventSink sink;
     extra::EventHandlerTestSuite handler(&sink);
     handler.reset();
     ParseEngine<extra::EventHandlerTestSuite> parser(&handler, opts);
-    std::string copy = yaml.parsed;
+    std::string copy = parsed_yaml;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     csubstr result = sink;
     _c4dbgpf("~~~\n{}~~~\n", result);
-    EXPECT_EQ(std::string(result.str, result.len), expected_events);
+    EXPECT_EQ(std::string(result.str, result.len), tc.expected_events);
 }
 
-void test_engine_ints_from_yaml(ReferenceYaml const& yaml, std::string const& expected_events, ParserOptions opts)
+void test_engine_ints_from_yaml(EngineEvtTestCase const& tc, std::string const& parsed_yaml, ParserOptions opts)
 {
     extra::EventHandlerInts handler{};
     using IntType = extra::ievt::DataType;
     //NOTE! crashes in MIPS64 Debug c++20 (but not c++11) when size is 0:
     //std::vector<IntType> actual_evts(empty.size());
     std::vector<IntType> actual_evts; // DO THIS!
-    size_t size_reference = num_ints(yaml.expected_ints.data(), yaml.expected_ints.size());
-    int size_estimated = extra::estimate_events_ints_size(to_csubstr(yaml.parsed));
+    size_t size_reference = num_ints(tc.expected_ints.data(), tc.expected_ints.size());
+    int size_estimated = extra::estimate_events_ints_size(to_csubstr(parsed_yaml));
     // there was an error in gcc<5 where the copy buffer was NOT
     // assigned when using a std::string:
     //std::string copy = yaml.parsed; gcc<5 ERROR, see below
-    std::vector<char> copy(yaml.parsed.begin(), yaml.parsed.end());
+    std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end());
     _c4dbgpf("parsing: [{}]{}", copy.size(), c4::fmt::hex(copy.data()));
     std::vector<char> arena(copy.size());
     handler.reset(to_csubstr(copy), to_substr(arena), actual_evts.data(), (IntType)actual_evts.size());
     ParseEngine<extra::EventHandlerInts> parser(&handler, opts);
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     EXPECT_GE(size_estimated, handler.required_size_events());
-    if(yaml.expected_ints_enabled)
+    if(tc.expected_ints_enabled)
     {
         EXPECT_EQ(size_reference, handler.required_size_events());
     }
@@ -121,7 +121,7 @@ void test_engine_ints_from_yaml(ReferenceYaml const& yaml, std::string const& ex
     {
         if(sz > actual_evts.size())
             actual_evts.resize(sz);
-        copy.assign(yaml.parsed.begin(), yaml.parsed.end());
+        copy.assign(parsed_yaml.begin(), parsed_yaml.end());
         if(handler.required_size_arena() > arena.size())
             arena.resize(handler.required_size_arena());
         _c4dbgpf("parsing again: (before) [{}]{}", copy.size(), c4::fmt::hex(copy.data()));
@@ -138,17 +138,17 @@ void test_engine_ints_from_yaml(ReferenceYaml const& yaml, std::string const& ex
         RYML_TRACE_FMT("invariants", 0);
         extra::test_events_ints_invariants(to_csubstr(copy), to_csubstr(arena), actual_evts.data(), (IntType)actual_evts.size());
     }
-    if (yaml.expected_ints_enabled)
+    if (tc.expected_ints_enabled)
     {
         RYML_TRACE_FMT("here", 0);
-        test_events_ints(yaml.expected_ints.data(), yaml.expected_ints.size(),
+        test_events_ints(tc.expected_ints.data(), tc.expected_ints.size(),
                          actual_evts.data(), actual_evts.size(),
-                         to_csubstr(yaml.parsed), to_csubstr(copy), to_csubstr(arena));
+                         to_csubstr(parsed_yaml), to_csubstr(copy), to_csubstr(arena));
     }
     {
         RYML_TRACE_FMT("cmp", 0);
         std::string actual_test_suite_evts = extra::events_ints_to_testsuite<std::string>(to_csubstr(copy), to_csubstr(arena), actual_evts.data(), (IntType)actual_evts.size());
-        test_compare_events(to_csubstr(expected_events),
+        test_compare_events(to_csubstr(tc.expected_events),
                             to_csubstr(actual_test_suite_evts),
                             /*ignore_doc_style*/false,
                             /*ignore_container_style*/false,
@@ -157,11 +157,11 @@ void test_engine_ints_from_yaml(ReferenceYaml const& yaml, std::string const& ex
     }
 }
 
-void test_engine_tree_from_yaml(ReferenceYaml const& yaml, ParserOptions opts)
+void test_engine_tree_from_yaml(EngineEvtTestCase const& tc, std::string const& parsed_yaml, ParserOptions opts)
 {
-    if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
+    if(tc.test_case_flags & HAS_CONTAINER_KEYS)
     {
-        test_expected_error_tree_from_yaml(yaml.parsed, yaml.expected_error_location);
+        test_expected_error_tree_from_yaml(parsed_yaml, tc.expected_error_location);
         return;
     }
     Tree tree = {};
@@ -170,60 +170,55 @@ void test_engine_tree_from_yaml(ReferenceYaml const& yaml, ParserOptions opts)
     ParseEngine<EventHandlerTree> parser(&handler, opts);
     ASSERT_EQ(&handler, parser.m_evt_handler);
     ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
-    std::string copy = yaml.parsed;
+    std::string copy = parsed_yaml;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     #ifdef RYML_DBG
     print_tree(tree);
     #endif
     std::string actual = emitrs_yaml<std::string>(tree);
     _c4dbgpf("~~~\n{}~~~\n", actual);
-    EXPECT_EQ(actual, yaml.emitted);
+    EXPECT_EQ(actual, tc.emitted);
 }
 
 
-void test_engine_testsuite_from_yaml_with_comments(ReferenceYaml const& yaml, std::string const& expected_events, ParserOptions opts)
+void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& yaml, ParserOptions opts)
 {
     if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
-    ReferenceYaml transformed = yaml;
     const auto injected_comments = inject_comments(yaml.parsed);
     for(size_t i = 0; i < injected_comments.size(); ++i)
     {
-        const auto & transformed_str = injected_comments[i];
+        const std::string& transformed_str = injected_comments[i];
         _c4dbgpf("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comments.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        transformed.parsed = transformed_str;
-        test_engine_testsuite_from_yaml(transformed, expected_events, opts);
+        test_engine_testsuite_from_yaml(yaml, transformed_str, opts);
     }
 }
 
-void test_engine_ints_from_yaml_with_comments(ReferenceYaml const& yaml, std::string const& expected_events, ParserOptions opts)
+void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& yaml, ParserOptions opts)
 {
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
-    ReferenceYaml transformed = yaml;
     const auto injected_comments = inject_comments(yaml.parsed);
     for(size_t i = 0; i < injected_comments.size(); ++i)
     {
-        const auto & transformed_str = injected_comments[i];
+        const std::string& transformed_str = injected_comments[i];
         _c4dbgpf("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comments.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        transformed.parsed = transformed_str;
-        test_engine_ints_from_yaml(transformed, expected_events, opts);
+        test_engine_ints_from_yaml(yaml, transformed_str, opts);
     }
 }
 
-void test_engine_tree_from_yaml_with_comments(ReferenceYaml const& yaml, ParserOptions opts)
+void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& yaml, ParserOptions opts)
 {
     if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
-    ReferenceYaml transformed = yaml;
     const auto injected_comments = inject_comments(yaml.parsed);
     for(size_t i = 0; i < injected_comments.size(); ++i)
     {
@@ -231,10 +226,14 @@ void test_engine_tree_from_yaml_with_comments(ReferenceYaml const& yaml, ParserO
         _c4dbgpf("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comments.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        transformed.parsed = transformed_str;
-        test_engine_tree_from_yaml(transformed, opts);
+        test_engine_ints_from_yaml(yaml, transformed_str, opts);
     }
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalScalar *tag)
 {

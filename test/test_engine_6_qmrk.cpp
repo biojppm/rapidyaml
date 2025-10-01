@@ -9,10 +9,11 @@ namespace yml {
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(Qmrk0,
-            (HAS_CONTAINER_KEYS, Location(41,3,19),
-             "\n"
-             "a simple key: a value\n"
-             "? an explicit key: another value\n"),
+            HAS_CONTAINER_KEYS, Location(41,3,19),
+            "\n"
+            "a simple key: a value\n"
+            "? an explicit key: another value\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -44,10 +45,12 @@ ENGINE_TEST(Qmrk0,
 }
 
 ENGINE_TEST(Qmrk1_0,
-            ("? an explicit key\n"
-             "a simple key: a value\n",
-             "an explicit key: \n"
-             "a simple key: a value\n"),
+            "? an explicit key\n"
+            "a simple key: a value\n"
+            ,
+            "an explicit key: \n"
+            "a simple key: a value\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -73,10 +76,11 @@ ENGINE_TEST(Qmrk1_0,
 }
 
 ENGINE_TEST(Qmrk1_1,
-            (HAS_CONTAINER_KEYS, Location(19,2,19),
-             "\n"
-             "? an explicit key: another value\n"
-             "a simple key: a value\n"),
+            HAS_CONTAINER_KEYS, Location(19,2,19),
+            "\n"
+            "? an explicit key: another value\n"
+            "a simple key: a value\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -108,12 +112,13 @@ ENGINE_TEST(Qmrk1_1,
 }
 
 ENGINE_TEST(Qmrk1_2,
-            (HAS_CONTAINER_KEYS, Location(25,2,21),
-             "map:\n"
-             "  ? an explicit key: another value\n"
-             "  a simple key: a value\n"
-             "? an explicit key deindented: its value\n"
-             "? more: siblings\n"),
+            HAS_CONTAINER_KEYS, Location(25,2,21),
+            "map:\n"
+            "  ? an explicit key: another value\n"
+            "  a simple key: a value\n"
+            "? an explicit key deindented: its value\n"
+            "? more: siblings\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -173,13 +178,14 @@ ENGINE_TEST(Qmrk1_2,
 }
 
 ENGINE_TEST(Qmrk2_0,
-            ("? an explicit key\n"
-             "...\n"
-             "? another explicit key\n",
-             "---\n"
-             "an explicit key: \n"
-             "---\n"
-             "another explicit key: \n"),
+            "? an explicit key\n"
+            "...\n"
+            "? another explicit key\n",
+            "---\n"
+            "an explicit key: \n"
+            "---\n"
+            "another explicit key: \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -212,13 +218,15 @@ ENGINE_TEST(Qmrk2_0,
 }
 
 ENGINE_TEST(Qmrk2_1,
-            ("? an explicit key\n"
-             "---\n"
-             "? another explicit key\n",
-             "---\n"
-             "an explicit key: \n"
-             "---\n"
-             "another explicit key: \n"),
+            "? an explicit key\n"
+            "---\n"
+            "? another explicit key\n"
+            ,
+            "---\n"
+            "an explicit key: \n"
+            "---\n"
+            "another explicit key: \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -251,8 +259,10 @@ ENGINE_TEST(Qmrk2_1,
 }
 
 ENGINE_TEST(Qmrk3,
-            ("{ ? an explicit key, ? foo,? bar,?baz:,?bat}",
-             "{an explicit key: ,foo: ,bar: ,?baz: ,?bat: }"),
+            "{ ? an explicit key, ? foo,? bar,?baz:,?bat}"
+            ,
+             "{an explicit key: ,foo: ,bar: ,?baz: ,?bat: }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -293,8 +303,10 @@ ENGINE_TEST(Qmrk3,
 }
 
 ENGINE_TEST(Qmrk4_0,
-            ("[?baz:,]",
-             "[{?baz: }]"),
+            "[?baz:,]"
+            ,
+            "[{?baz: }]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -319,8 +331,10 @@ ENGINE_TEST(Qmrk4_0,
 }
 
 ENGINE_TEST(Qmrk4,
-            ("[ ? an explicit key, ? foo,? bar,?baz:,?bat]",
-             "[{an explicit key: },{foo: },{bar: },{?baz: },?bat]"),
+            "[ ? an explicit key, ? foo,? bar,?baz:,?bat]"
+            ,
+            "[{an explicit key: },{foo: },{bar: },{?baz: },?bat]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
@@ -375,10 +389,11 @@ ENGINE_TEST(Qmrk4,
 }
 
 ENGINE_TEST(Qmrk5,
-            (HAS_CONTAINER_KEYS, Location(4,1,5),
-             "? a: b\n"
-             "?\n"
-             "?\n"),
+            HAS_CONTAINER_KEYS, Location(4,1,5),
+            "? a: b\n"
+            "?\n"
+            "?\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -416,11 +431,12 @@ ENGINE_TEST(Qmrk5,
 
 
 ENGINE_TEST(Qmrk6,
-            (HAS_CONTAINER_KEYS, Location(21,2,21),
-             "\n"
-             "- ? an explicit key: another value\n"
-             "  a simple key: a value\n"
-             "- ? another explicit key: its value\n"),
+            HAS_CONTAINER_KEYS, Location(21,2,21),
+            "\n"
+            "- ? an explicit key: another value\n"
+            "  a simple key: a value\n"
+            "- ? another explicit key: its value\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -471,11 +487,12 @@ ENGINE_TEST(Qmrk6,
 }
 
 ENGINE_TEST(Qmrk7,
-            (HAS_CONTAINER_KEYS, Location(5,2,5),
-             "\n"
-             "- ? : x\n"
-             "- ? : \n"
-             "- ? :\n"),
+            HAS_CONTAINER_KEYS, Location(5,2,5),
+            "\n"
+            "- ? : x\n"
+            "- ? : \n"
+            "- ? :\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -536,11 +553,12 @@ ENGINE_TEST(Qmrk7,
 }
 
 ENGINE_TEST(QmrkWithTags,
-            (HAS_CONTAINER_KEYS, Location(18,3,6),
-             "a1: b1\n"
-             "? !at\n"
-             " !bt : b2\n"
-             ": c3\n"),
+            HAS_CONTAINER_KEYS, Location(18,3,6),
+            "a1: b1\n"
+            "? !at\n"
+            " !bt : b2\n"
+            ": c3\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -575,12 +593,14 @@ ENGINE_TEST(QmrkWithTags,
 
 
 ENGINE_TEST(QmrkGithub524_0,
-            ("? outer\n"
-             ": inner1: 1\n"
-             "  inner2: 2\n",
-             "outer:\n"
-             "  inner1: 1\n"
-             "  inner2: 2\n"),
+            "? outer\n"
+            ": inner1: 1\n"
+            "  inner2: 2\n"
+            ,
+            "outer:\n"
+            "  inner1: 1\n"
+            "  inner2: 2\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -612,13 +632,14 @@ ENGINE_TEST(QmrkGithub524_0,
 }
 
 ENGINE_TEST(QmrkGithub524_1,
-            ("? outer\n"
-             ": inner1: 1\n"
-             "inner2: 2\n"
-             ,
-             "outer:\n"
-             "  inner1: 1\n"
-             "inner2: 2\n"),
+            "? outer\n"
+            ": inner1: 1\n"
+            "inner2: 2\n"
+            ,
+            "outer:\n"
+            "  inner1: 1\n"
+            "inner2: 2\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -654,7 +675,10 @@ ENGINE_TEST(QmrkGithub524_1,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(QmrkFlow0,
-            ("{ ? }", "{: }"),
+            "{ ? }"
+            ,
+            "{: }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -675,7 +699,10 @@ ENGINE_TEST(QmrkFlow0,
 }
 
 ENGINE_TEST(QmrkFlow1,
-            ("{ ? , }", "{: }"),
+            "{ ? , }"
+            ,
+            "{: }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -696,7 +723,10 @@ ENGINE_TEST(QmrkFlow1,
 }
 
 ENGINE_TEST(QmrkFlow1Anch,
-            ("{ ? &anch , }", "{&anch : }"),
+            "{ ? &anch , }"
+            ,
+            "{&anch : }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -718,7 +748,10 @@ ENGINE_TEST(QmrkFlow1Anch,
 }
 
 ENGINE_TEST(QmrkFlow1Tag,
-            ("{ ? !tag , }", "{!tag : }"),
+            "{ ? !tag , }"
+            ,
+            "{!tag : }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -740,7 +773,10 @@ ENGINE_TEST(QmrkFlow1Tag,
 }
 
 ENGINE_TEST(QmrkFlow1Squo,
-            ("{ ? 'squo', }", "{'squo': }"),
+            "{ ? 'squo', }"
+            ,
+            "{'squo': }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -761,7 +797,10 @@ ENGINE_TEST(QmrkFlow1Squo,
 }
 
 ENGINE_TEST(QmrkFlow1AnchSquo,
-            ("{ ? &anch 'squo', }", "{&anch 'squo': }"),
+            "{ ? &anch 'squo', }"
+            ,
+            "{&anch 'squo': }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -783,7 +822,10 @@ ENGINE_TEST(QmrkFlow1AnchSquo,
 }
 
 ENGINE_TEST(QmrkFlow1TagSquo,
-            ("{ ? !tag 'squo', }", "{!tag 'squo': }"),
+            "{ ? !tag 'squo', }"
+            ,
+            "{!tag 'squo': }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -805,7 +847,10 @@ ENGINE_TEST(QmrkFlow1TagSquo,
 }
 
 ENGINE_TEST(QmrkFlow1Dquo,
-            ("{ ? \"dquo\", }", "{\"dquo\": }"),
+            "{ ? \"dquo\", }"
+            ,
+            "{\"dquo\": }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -826,7 +871,10 @@ ENGINE_TEST(QmrkFlow1Dquo,
 }
 
 ENGINE_TEST(QmrkFlow1AnchDquo,
-            ("{ ? &anch \"dquo\", }", "{&anch \"dquo\": }"),
+            "{ ? &anch \"dquo\", }"
+            ,
+            "{&anch \"dquo\": }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -848,7 +896,10 @@ ENGINE_TEST(QmrkFlow1AnchDquo,
 }
 
 ENGINE_TEST(QmrkFlow1TagDquo,
-            ("{ ? !tag \"dquo\", }", "{!tag \"dquo\": }"),
+            "{ ? !tag \"dquo\", }"
+            ,
+            "{!tag \"dquo\": }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -870,7 +921,10 @@ ENGINE_TEST(QmrkFlow1TagDquo,
 }
 
 ENGINE_TEST(QmrkFlow1Ref,
-            ("{ ? *ref , }", "{*ref : }"),
+            "{ ? *ref , }"
+            ,
+            "{*ref : }"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -891,8 +945,11 @@ ENGINE_TEST(QmrkFlow1Ref,
 }
 
 ENGINE_TEST(QmrkFlow1Seq,
-            (HAS_CONTAINER_KEYS,
-             "{ ? [a, b]: c , }", "{? [a, b] : c}"),
+            HAS_CONTAINER_KEYS,
+            "{ ? [a, b]: c , }"
+            ,
+            "{? [a, b] : c}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -919,8 +976,11 @@ ENGINE_TEST(QmrkFlow1Seq,
 }
 
 ENGINE_TEST(QmrkFlow1SeqAnchor,
-            (HAS_CONTAINER_KEYS,
-             "{ ? &anchor [a, b]: c , }", "{? &anchor [a, b] : c}"),
+            HAS_CONTAINER_KEYS,
+            "{ ? &anchor [a, b]: c , }"
+            ,
+            "{? &anchor [a, b] : c}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -948,8 +1008,11 @@ ENGINE_TEST(QmrkFlow1SeqAnchor,
 }
 
 ENGINE_TEST(QmrkFlow1SeqTag,
-            (HAS_CONTAINER_KEYS,
-             "{ ? !tag [a, b]: c , }", "{? !tag [a, b] : c}"),
+            HAS_CONTAINER_KEYS,
+            "{ ? !tag [a, b]: c , }"
+            ,
+            "{? !tag [a, b] : c}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -977,8 +1040,11 @@ ENGINE_TEST(QmrkFlow1SeqTag,
 }
 
 ENGINE_TEST(QmrkFlow1Map,
-            (HAS_CONTAINER_KEYS,
-             "{ ? {a: b}: c , }", "{? {a: b} : c}"),
+            HAS_CONTAINER_KEYS,
+            "{ ? {a: b}: c , }"
+            ,
+            "{? {a: b} : c}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -1005,8 +1071,11 @@ ENGINE_TEST(QmrkFlow1Map,
 }
 
 ENGINE_TEST(QmrkFlow1MapAnchor,
-            (HAS_CONTAINER_KEYS,
-             "{ ? &anchor {a: b}: c , }", "{? &anchor {a: b} : c}"),
+            HAS_CONTAINER_KEYS,
+            "{ ? &anchor {a: b}: c , }"
+            ,
+            "{? &anchor {a: b} : c}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -1034,8 +1103,11 @@ ENGINE_TEST(QmrkFlow1MapAnchor,
 }
 
 ENGINE_TEST(QmrkFlow1MapTag,
-            (HAS_CONTAINER_KEYS,
-             "{ ? !tag {a: b}: c , }", "{? !tag {a: b} : c}"),
+            HAS_CONTAINER_KEYS,
+            "{ ? !tag {a: b}: c , }"
+            ,
+            "{? !tag {a: b} : c}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -1064,8 +1136,9 @@ ENGINE_TEST(QmrkFlow1MapTag,
 
 #ifdef TODO_FIXME // this is the only failing suite test
 ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
-            (HAS_CONTAINER_KEYS,
-             "? []: x"),
+            HAS_CONTAINER_KEYS,
+            "? []: x"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1095,8 +1168,9 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
 }
 
 ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
-            (HAS_CONTAINER_KEYS,
-             "? {}: x"),
+            HAS_CONTAINER_KEYS,
+             "? {}: x"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"

@@ -9,7 +9,8 @@ namespace yml {
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorDocVal,
-            ("&val a\n"),
+            "&val a\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL &val :a\n"
@@ -28,7 +29,8 @@ ENGINE_TEST(AnchorDocVal,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorDocRef,
-            ("*a\n"),
+            "*a\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=ALI *a\n"
@@ -46,7 +48,8 @@ ENGINE_TEST(AnchorDocRef,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorExplDocVal,
-            ("&val a\n"),
+            "&val a\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL &val :a\n"
@@ -65,7 +68,8 @@ ENGINE_TEST(AnchorExplDocVal,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorSeqBlock,
-            ("&seq\n- &val1 val1\n- &val2 val2\n"),
+            "&seq\n- &val1 val1\n- &val2 val2\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ &seq\n"
@@ -90,12 +94,13 @@ ENGINE_TEST(AnchorSeqBlock,
 }
 
 ENGINE_TEST(AnchorSeqMapBlock,
-            ("&seq\n"
-             "- &key1 key1: &val1 val1\n"
-             "  &key2 key2: &val2 val2\n"
-             "- &map2\n"
-             "  &key10 key10: &val10 val10\n"
-             "  &key20 key20: &val20 val20\n"),
+            "&seq\n"
+            "- &key1 key1: &val1 val1\n"
+            "  &key2 key2: &val2 val2\n"
+            "- &map2\n"
+            "  &key10 key10: &val10 val10\n"
+            "  &key20 key20: &val20 val20\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ &seq\n"
@@ -149,7 +154,10 @@ ENGINE_TEST(AnchorSeqMapBlock,
 }
 
 ENGINE_TEST(AnchorSeqFlow,
-            ("&seq [&val1 val1,\n&val2 val2]", "&seq [&val1 val1,&val2 val2]"),
+            "&seq [&val1 val1,\n&val2 val2]"
+            ,
+            "&seq [&val1 val1,&val2 val2]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ [] &seq\n"
@@ -174,7 +182,8 @@ ENGINE_TEST(AnchorSeqFlow,
 }
 
 ENGINE_TEST(AnchorSeqBlockWithRef,
-            ("&seq\n- &val1 val1\n- *val1\n"),
+            "&seq\n- &val1 val1\n- *val1\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ &seq\n"
@@ -198,7 +207,10 @@ ENGINE_TEST(AnchorSeqBlockWithRef,
 }
 
 ENGINE_TEST(AnchorSeqFlowWithRef,
-            ("&seq [&val1 val1,*val1]", "&seq [&val1 val1,*val1]"),
+            "&seq [&val1 val1,*val1]"
+            ,
+            "&seq [&val1 val1,*val1]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ [] &seq\n"
@@ -222,7 +234,10 @@ ENGINE_TEST(AnchorSeqFlowWithRef,
 }
 
 ENGINE_TEST(AnchorSeqFlowWithRefMultiLine,
-            ("&seq\n[\n&val1 val1\n,*val1\n]", "&seq [&val1 val1,*val1]"),
+            "&seq\n[\n&val1 val1\n,*val1\n]"
+            ,
+            "&seq [&val1 val1,*val1]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ [] &seq\n"
@@ -249,7 +264,8 @@ ENGINE_TEST(AnchorSeqFlowWithRefMultiLine,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorMapBlock,
-            ("&map\n&key1 key1: &val1 val1\n&key2 key2: &val2 val2\n"),
+            "&map\n&key1 key1: &val1 val1\n&key2 key2: &val2 val2\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP &map\n"
@@ -280,7 +296,8 @@ ENGINE_TEST(AnchorMapBlock,
 }
 
 ENGINE_TEST(AnchorMapBlockWithRef,
-            ("&map\n&rkey1 key1: &rval1 val1\n*rkey1 : *rval1\n"),
+            "&map\n&rkey1 key1: &rval1 val1\n*rkey1 : *rval1\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP &map\n"
@@ -312,7 +329,10 @@ ENGINE_TEST(AnchorMapBlockWithRef,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorMapFlow,
-            ("&map\n{&key1 key1: &val1 val1,&key2 key2: &val2 val2}", "&map {&key1 key1: &val1 val1,&key2 key2: &val2 val2}"),
+            "&map\n{&key1 key1: &val1 val1,&key2 key2: &val2 val2}"
+            ,
+            "&map {&key1 key1: &val1 val1,&key2 key2: &val2 val2}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {} &map\n"
@@ -343,7 +363,10 @@ ENGINE_TEST(AnchorMapFlow,
 }
 
 ENGINE_TEST(AnchorMapFlowMultiLine,
-            ("&map\n{&key1 key1: &val1 val1,\n&key2 key2: &val2 val2\n}", "&map {&key1 key1: &val1 val1,&key2 key2: &val2 val2}"),
+            "&map\n{&key1 key1: &val1 val1,\n&key2 key2: &val2 val2\n}"
+            ,
+            "&map {&key1 key1: &val1 val1,&key2 key2: &val2 val2}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {} &map\n"
@@ -375,7 +398,10 @@ ENGINE_TEST(AnchorMapFlowMultiLine,
 
 // WATCHOUT: see https://play.yaml.io/main/parser?input=Jm1hcAomcmtleTEgZm9vOiAmcnZhbDEgYmFyCipya2V5MSA6ICpydmFsMQ==
 ENGINE_TEST(AnchorMapFlowWithRef,
-            ("&map\n{&rkey1 key1: &rval1 val1,*rkey1 : *rval1}", "&map {&rkey1 key1: &rval1 val1,*rkey1 : *rval1}"),
+            "&map\n{&rkey1 key1: &rval1 val1,*rkey1 : *rval1}"
+            ,
+            "&map {&rkey1 key1: &rval1 val1,*rkey1 : *rval1}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {} &map\n"
@@ -405,7 +431,10 @@ ENGINE_TEST(AnchorMapFlowWithRef,
 
 // WATCHOUT: see https://play.yaml.io/main/parser?input=Jm1hcAomcmtleTEgZm9vOiAmcnZhbDEgYmFyCipya2V5MSA6ICpydmFsMQ==
 ENGINE_TEST(AnchorMapFlowWithRefMultiLine,
-            ("&map\n{\n&rkey1 key1: &rval1 val1,\n*rkey1 : *rval1\n}", "&map {&rkey1 key1: &rval1 val1,*rkey1 : *rval1}"),
+            "&map\n{\n&rkey1 key1: &rval1 val1,\n*rkey1 : *rval1\n}"
+            ,
+            "&map {&rkey1 key1: &rval1 val1,*rkey1 : *rval1}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {} &map\n"
@@ -437,7 +466,8 @@ ENGINE_TEST(AnchorMapFlowWithRefMultiLine,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorMapMapBlock,
-            ("&map\n&mapkey map: &mapval\n  &key1 key1: &val1 val1\n  &key2 key2: &val2 val2\n"),
+            "&map\n&mapkey map: &mapval\n  &key1 key1: &val1 val1\n  &key2 key2: &val2 val2\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP &map\n"
@@ -476,8 +506,10 @@ ENGINE_TEST(AnchorMapMapBlock,
 }
 
 ENGINE_TEST(AnchorMapMapFlow,
-            ("&map\n{&mapkey map: &mapval {&key1 key1: &val1 val1,&key2 key2: &val2 val2,key3: val3},key4: val4}",
-             "&map {&mapkey map: &mapval {&key1 key1: &val1 val1,&key2 key2: &val2 val2,key3: val3},key4: val4}"),
+            "&map\n{&mapkey map: &mapval {&key1 key1: &val1 val1,&key2 key2: &val2 val2,key3: val3},key4: val4}"
+            ,
+            "&map {&mapkey map: &mapval {&key1 key1: &val1 val1,&key2 key2: &val2 val2,key3: val3},key4: val4}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {} &map\n"
@@ -530,28 +562,29 @@ ENGINE_TEST(AnchorMapMapFlow,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorTagPlacement,
-            ("- &a0 !b0 foo0: bar0\n"
-             "- &a1 !b1\n"
-             "  foo1: bar1\n"
-             "- &a2\n"
-             "  !b2 foo2: bar2\n"
-             "- &a3\n"
-             "  !b3\n"
-             "  foo3: bar3\n"
-             "- &a4\n"
-             "\n"
-             "  !b4\n"
-             "\n"
-             "  foo4: bar4\n",
-             "- !b0 &a0 foo0: bar0\n"
-             "- !b1 &a1\n"
-             "  foo1: bar1\n"
-             "- &a2\n"
-             "  !b2 foo2: bar2\n"
-             "- !b3 &a3\n"
-             "  foo3: bar3\n"
-             "- !b4 &a4\n"
-             "  foo4: bar4\n"),
+            "- &a0 !b0 foo0: bar0\n"
+            "- &a1 !b1\n"
+            "  foo1: bar1\n"
+            "- &a2\n"
+            "  !b2 foo2: bar2\n"
+            "- &a3\n"
+            "  !b3\n"
+            "  foo3: bar3\n"
+            "- &a4\n"
+            "\n"
+            "  !b4\n"
+            "\n"
+            "  foo4: bar4\n",
+            "- !b0 &a0 foo0: bar0\n"
+            "- !b1 &a1\n"
+            "  foo1: bar1\n"
+            "- &a2\n"
+            "  !b2 foo2: bar2\n"
+            "- !b3 &a3\n"
+            "  foo3: bar3\n"
+            "- !b4 &a4\n"
+            "  foo4: bar4\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -623,52 +656,53 @@ ENGINE_TEST(AnchorTagPlacement,
 
 
 ENGINE_TEST(AnchorMapMapSuckerPunch,
-            ("!mymap &mymap\n"
-             "&fooanch !footag foo: &seq\n"
-             "  &key1 key1: &val1 val1\n"
-             "  &key2 key2: &val2 val2\n"
-             "!bartag &baranch bar: !a &map2\n"
-             "  !b &key10 key10: !c &val10 val10\n"
-             "  &key20 !b key20: &val20 !c val20\n"
-             "  key10: 20\n"
-             "&bazanch !baztag baz:   &map2 !a\n"
-             "    &key10 !b key10: &val10 !c val10\n"
-             "    !b &key20 key20: !c &val20 val20\n"
-             "    key10: 20\n"
-             "brr: &map2\n"
-             "  !a foo: bar\n"
-             "bra: &map2\n"
-             "\n"
-             "\n"
-             "\n"
-             "  !a foo: bar\n"
-             "bre: &map2\n"
-             "  !a\n"
-             "  \n"
-             "  \n"
-             "  foo: bar\n"
-             "bru:   &wtf\n"
-             "  foo\n"
-             ,
-             "!mymap &mymap\n"
-             "!footag &fooanch foo: &seq\n"
-             "  &key1 key1: &val1 val1\n"
-             "  &key2 key2: &val2 val2\n"
-             "!bartag &baranch bar: !a &map2\n"
-             "  !b &key10 key10: !c &val10 val10\n"
-             "  !b &key20 key20: !c &val20 val20\n"
-             "  key10: 20\n"
-             "!baztag &bazanch baz: !a &map2\n"
-             "  !b &key10 key10: !c &val10 val10\n"
-             "  !b &key20 key20: !c &val20 val20\n"
-             "  key10: 20\n"
-             "brr: &map2\n"
-             "  !a foo: bar\n"
-             "bra: &map2\n"
-             "  !a foo: bar\n"
-             "bre: !a &map2\n"
-             "  foo: bar\n"
-             "bru: &wtf foo\n"),
+            "!mymap &mymap\n"
+            "&fooanch !footag foo: &seq\n"
+            "  &key1 key1: &val1 val1\n"
+            "  &key2 key2: &val2 val2\n"
+            "!bartag &baranch bar: !a &map2\n"
+            "  !b &key10 key10: !c &val10 val10\n"
+            "  &key20 !b key20: &val20 !c val20\n"
+            "  key10: 20\n"
+            "&bazanch !baztag baz:   &map2 !a\n"
+            "    &key10 !b key10: &val10 !c val10\n"
+            "    !b &key20 key20: !c &val20 val20\n"
+            "    key10: 20\n"
+            "brr: &map2\n"
+            "  !a foo: bar\n"
+            "bra: &map2\n"
+            "\n"
+            "\n"
+            "\n"
+            "  !a foo: bar\n"
+            "bre: &map2\n"
+            "  !a\n"
+            "  \n"
+            "  \n"
+            "  foo: bar\n"
+            "bru:   &wtf\n"
+            "  foo\n"
+            ,
+            "!mymap &mymap\n"
+            "!footag &fooanch foo: &seq\n"
+            "  &key1 key1: &val1 val1\n"
+            "  &key2 key2: &val2 val2\n"
+            "!bartag &baranch bar: !a &map2\n"
+            "  !b &key10 key10: !c &val10 val10\n"
+            "  !b &key20 key20: !c &val20 val20\n"
+            "  key10: 20\n"
+            "!baztag &bazanch baz: !a &map2\n"
+            "  !b &key10 key10: !c &val10 val10\n"
+            "  !b &key20 key20: !c &val20 val20\n"
+            "  key10: 20\n"
+            "brr: &map2\n"
+            "  !a foo: bar\n"
+            "bra: &map2\n"
+            "  !a foo: bar\n"
+            "bre: !a &map2\n"
+            "  foo: bar\n"
+            "bru: &wtf foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP &mymap <!mymap>\n"
@@ -820,50 +854,51 @@ ENGINE_TEST(AnchorMapMapSuckerPunch,
 }
 
 ENGINE_TEST(AnchorSeqMapSuckerPunch,
-            ("&seq\n"
-             "- &key1 key1: &val1 val1\n"
-             "  &key2 key2: &val2 val2\n"
-             "- !a &map2a\n"
-             "  !b &key10 key10: &val10 val10\n"
-             "  &key20 key20: &val20 val20\n"
-             "  key10: 20\n"
-             "-   &map2x !a\n"
-             "    &key10 !b key10: &val10 val10\n"
-             "    &key20 key20: &val20 val20\n"
-             "    key10: 20\n"
-             "- &map2y\n"
-             "  !a foo: bar\n"
-             "- &map2z\n"
-             "\n"
-             "\n"
-             "\n"
-             "  !a foo: bar\n"
-             "- &map2u\n"
-             "  !a\n"
-             "  \n"
-             "  \n"
-             "  foo: bar\n"
-             "-   &wtf\n"
-             "  foo\n"
-             "  ",
-             "&seq\n"
-             "- &key1 key1: &val1 val1\n"
-             "  &key2 key2: &val2 val2\n"
-             "- !a &map2a\n"
-             "  !b &key10 key10: &val10 val10\n"
-             "  &key20 key20: &val20 val20\n"
-             "  key10: 20\n"
-             "- !a &map2x\n"
-             "  !b &key10 key10: &val10 val10\n"
-             "  &key20 key20: &val20 val20\n"
-             "  key10: 20\n"
-             "- &map2y\n"
-             "  !a foo: bar\n"
-             "- &map2z\n"
-             "  !a foo: bar\n"
-             "- !a &map2u\n"
-             "  foo: bar\n"
-             "- &wtf foo\n"),
+            "&seq\n"
+            "- &key1 key1: &val1 val1\n"
+            "  &key2 key2: &val2 val2\n"
+            "- !a &map2a\n"
+            "  !b &key10 key10: &val10 val10\n"
+            "  &key20 key20: &val20 val20\n"
+            "  key10: 20\n"
+            "-   &map2x !a\n"
+            "    &key10 !b key10: &val10 val10\n"
+            "    &key20 key20: &val20 val20\n"
+            "    key10: 20\n"
+            "- &map2y\n"
+            "  !a foo: bar\n"
+            "- &map2z\n"
+            "\n"
+            "\n"
+            "\n"
+            "  !a foo: bar\n"
+            "- &map2u\n"
+            "  !a\n"
+            "  \n"
+            "  \n"
+            "  foo: bar\n"
+            "-   &wtf\n"
+            "  foo\n"
+            "  ",
+            "&seq\n"
+            "- &key1 key1: &val1 val1\n"
+            "  &key2 key2: &val2 val2\n"
+            "- !a &map2a\n"
+            "  !b &key10 key10: &val10 val10\n"
+            "  &key20 key20: &val20 val20\n"
+            "  key10: 20\n"
+            "- !a &map2x\n"
+            "  !b &key10 key10: &val10 val10\n"
+            "  &key20 key20: &val20 val20\n"
+            "  key10: 20\n"
+            "- &map2y\n"
+            "  !a foo: bar\n"
+            "- &map2z\n"
+            "  !a foo: bar\n"
+            "- !a &map2u\n"
+            "  foo: bar\n"
+            "- &wtf foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ &seq\n"
@@ -988,9 +1023,11 @@ ENGINE_TEST(AnchorSeqMapSuckerPunch,
 
 
 ENGINE_TEST(DocDoubleAnchorSeqMap,
-            (HAS_CONTAINER_KEYS,
-             "--- &docanchor\n"
-             "&anchor [seq, yeah]: foo\n"),
+            HAS_CONTAINER_KEYS
+            ,
+            "--- &docanchor\n"
+            "&anchor [seq, yeah]: foo\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP &docanchor\n"
@@ -1019,9 +1056,10 @@ ENGINE_TEST(DocDoubleAnchorSeqMap,
 }
 
 ENGINE_TEST(DoubleAnchorSeqMap,
-            (HAS_CONTAINER_KEYS,
-             "&docanchor\n"
-             "&anchor [seq, yeah]: foo\n"),
+            HAS_CONTAINER_KEYS,
+            "&docanchor\n"
+            "&anchor [seq, yeah]: foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP &docanchor\n"
@@ -1050,9 +1088,10 @@ ENGINE_TEST(DoubleAnchorSeqMap,
 }
 
 ENGINE_TEST(DocDoubleAnchorKeyMap,
-            (HAS_CONTAINER_KEYS,
-             "--- &docanchor\n"
-             "&anchor {key: val}: foo\n"),
+            HAS_CONTAINER_KEYS,
+            "--- &docanchor\n"
+            "&anchor {key: val}: foo\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP &docanchor\n"
@@ -1081,9 +1120,10 @@ ENGINE_TEST(DocDoubleAnchorKeyMap,
 }
 
 ENGINE_TEST(DoubleAnchorKeyMap,
-            (HAS_CONTAINER_KEYS,
-             "&docanchor\n"
-             "&anchor {key: val}: foo\n"),
+            HAS_CONTAINER_KEYS,
+            "&docanchor\n"
+            "&anchor {key: val}: foo\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP &docanchor\n"

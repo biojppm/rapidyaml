@@ -8,7 +8,8 @@ namespace yml {
 
 
 ENGINE_TEST(PlainScalarUnfiltered,
-            ("foo: bar\n"),
+            "foo: bar\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -33,7 +34,10 @@ ENGINE_TEST(PlainScalarUnfiltered,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(PlainScalarWithColon0,
-            ("a::\n", "a:: \n"),
+            "a::\n"
+            ,
+            "a:: \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -54,7 +58,8 @@ ENGINE_TEST(PlainScalarWithColon0,
 }
 
 ENGINE_TEST(PlainScalarWithColon1,
-            ("key ends with two colons::: value\n"),
+            "key ends with two colons::: value\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -75,12 +80,14 @@ ENGINE_TEST(PlainScalarWithColon1,
 }
 
 ENGINE_TEST(PlainScalarWithColonSeq,
-            ("- ::\n"
-             "- x::\n"
-             "- :x::\n",
-             "- :: \n"
-             "- x:: \n"
-             "- :x:: \n"),
+            "- ::\n"
+            "- x::\n"
+            "- :x::\n"
+            ,
+            "- :: \n"
+            "- x:: \n"
+            "- :x:: \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -126,7 +133,8 @@ ENGINE_TEST(PlainScalarWithColonSeq,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(BlockPlainScalarCommaDoc,
-            ("a, b\n"),
+            "a, b\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :a, b\n"
@@ -141,7 +149,8 @@ ENGINE_TEST(BlockPlainScalarCommaDoc,
 }
 
 ENGINE_TEST(BlockPlainScalarCommaMap,
-            ("a, b: c, d\n"),
+            "a, b: c, d\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -162,7 +171,8 @@ ENGINE_TEST(BlockPlainScalarCommaMap,
 }
 
 ENGINE_TEST(BlockPlainScalarCommaSeq,
-            ("- a, b\n- c, d\n"),
+            "- a, b\n- c, d\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -299,13 +309,15 @@ ENGINE_TEST_ERRLOC(ExtraTokensFlow2Map5_1, Location(3,1), "---\n{a: b}\n-")
 ENGINE_TEST_ERRLOC(ExtraTokensScalar0, Location(2,6), "word1  # comment\nword2")
 
 ENGINE_TEST(ExtraTokensNoFalseError0,
-            ("---\n"
-             "map : {foo: bar, notag: none}\n"
-             "seq : [foo, bar]\n"
-             "...\n",
-             "---\n"
-             "map: {foo: bar,notag: none}\n"
-             "seq: [foo,bar]\n"),
+            "---\n"
+            "map : {foo: bar, notag: none}\n"
+            "seq : [foo, bar]\n"
+            "...\n"
+            ,
+            "---\n"
+            "map: {foo: bar,notag: none}\n"
+            "seq: [foo,bar]\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP\n"
@@ -349,13 +361,15 @@ ENGINE_TEST(ExtraTokensNoFalseError0,
 }
 
 ENGINE_TEST(ExtraTokensNoFalseError1,
-            ("---\n"
-             "*mapref : {foo: bar, notag: none}\n"
-             "*seqref : [foo, bar]\n"
-             "...\n",
-             "---\n"
-             "*mapref : {foo: bar,notag: none}\n"
-             "*seqref : [foo,bar]\n"),
+            "---\n"
+            "*mapref : {foo: bar, notag: none}\n"
+            "*seqref : [foo, bar]\n"
+            "...\n"
+            ,
+            "---\n"
+            "*mapref : {foo: bar,notag: none}\n"
+            "*seqref : [foo,bar]\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP\n"
@@ -402,8 +416,10 @@ ENGINE_TEST(ExtraTokensNoFalseError1,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(PlainScalarDoc0,
-            ("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~",
-             "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\n"),
+            "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"
+            ,
+            "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL :a!\"#$%&'()*+,-./09:;<=>?@AZ[\\\\]^_`az{|}~\n"
@@ -417,8 +433,10 @@ ENGINE_TEST(PlainScalarDoc0,
     ___(ps.end_stream());
 }
 ENGINE_TEST(PlainScalarBlockSeq0,
-            ("- a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~",
-             "- a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\n"),
+            "- a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"
+            ,
+            "- a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -436,8 +454,9 @@ ENGINE_TEST(PlainScalarBlockSeq0,
     ___(ps.end_stream());
 }
 ENGINE_TEST(PlainScalarBlockMap0,
-            ("key: a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\n"
-             "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~: val\n"),
+            "key: a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\n"
+            "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~: val\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -469,9 +488,11 @@ ENGINE_TEST_ERRLOC(PlainScalarFlow0Seq1_1, Location(2,28), "[\n"
                    "a!\"#$%&'()*+,-./09:;<=>?@AZ{|}^_`az{|}~\n]")
 ENGINE_TEST_ERRLOC(PlainScalarFlow1Seq0, Location(1,38), "[a!\"#$%&'()*+,-./09:;<=>?@]^_`az{|}~]")
 ENGINE_TEST(PlainScalarFlow0Seq1,
-            ("[\n"
-             "a!\"#$%&'()*+,-./09:;<=>?@AZ\\\n]",
-             "[a!\"#$%&'()*+,-./09:;<=>?@AZ\\]"),
+            "[\n"
+            "a!\"#$%&'()*+,-./09:;<=>?@AZ\\\n]"
+            ,
+            "[a!\"#$%&'()*+,-./09:;<=>?@AZ\\]"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ []\n"
