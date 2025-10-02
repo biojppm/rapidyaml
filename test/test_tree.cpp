@@ -4132,8 +4132,10 @@ TEST(set_root_as_stream, empty_tree)
     EXPECT_EQ(r.is_stream(), false);
     EXPECT_EQ(r.num_children(), 0u);
     t.set_root_as_stream();
+    r = t.rootref();
     EXPECT_EQ(r.is_stream(), true);
-    EXPECT_EQ(r.num_children(), 0u);
+    ASSERT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), 1u);
 }
 
 TEST(set_root_as_stream, already_with_stream)
