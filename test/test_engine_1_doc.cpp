@@ -909,10 +909,10 @@ ENGINE_TEST(DocStream,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST(DocStreamImplicitDocFirst,
-            "doc0\n--- doc1\n--- doc2\n"
+ENGINE_TEST(DocStreamImplicitDocFirstVal,
+            "doc0\n--- doc1\n"
             ,
-            "--- doc0\n--- doc1\n--- doc2\n"
+            "--- doc0\n--- doc1\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -920,9 +920,6 @@ ENGINE_TEST(DocStreamImplicitDocFirst,
             "-DOC\n"
             "+DOC ---\n"
             "=VAL :doc1\n"
-            "-DOC\n"
-            "+DOC ---\n"
-            "=VAL :doc2\n"
             "-DOC\n"
             "-STR\n")
 {
@@ -933,8 +930,201 @@ ENGINE_TEST(DocStreamImplicitDocFirst,
     ___(ps.begin_doc_expl());
     ___(ps.set_val_scalar_plain("doc1"));
     ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DocStreamImplicitDocFirstAnchor,
+            "&anch1\n"
+            "--- &anch2\n"
+            ,
+            "--- &anch1 \n"
+            "--- &anch2 \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "=VAL &anch1 :\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL &anch2 :\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_anchor("anch1"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.set_val_scalar_plain("doc2"));
+    ___(ps.set_val_anchor("anch2"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DocStreamImplicitDocFirstTag,
+            "!!str\n"
+            "--- !!str\n"
+            ,
+            "--- !!str \n"
+            "--- !!str \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "=VAL <tag:yaml.org,2002:str> :\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL <tag:yaml.org,2002:str> :\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_tag("!!str"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_tag("!!str"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DocStreamImplicitDocFirstSeqFlowEmpty,
+            "[]\n"
+            "--- []\n"
+            ,
+            "---\n"
+            "[]\n"
+            "---\n"
+            "[]\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DocStreamImplicitDocFirstSeqFlow,
+            "[a]\n"
+            "--- [b]\n"
+            ,
+            "---\n"
+            "[a]\n"
+            "---\n"
+            "[b]\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "+SEQ []\n"
+            "=VAL :b\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DocStreamImplicitDocFirstMapEmpty,
+            "{}\n"
+            "--- {}\n"
+            ,
+            "---\n"
+            "{}\n"
+            "---\n"
+            "{}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DocStreamImplicitDocFirstMap,
+            "{a: b}\n"
+            "--- {c: d}\n"
+            ,
+            "---\n"
+            "{a: b}\n"
+            "---\n"
+            "{c: d}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "+MAP {}\n"
+            "=VAL :c\n"
+            "=VAL :d\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("c"));
+    ___(ps.set_val_scalar_plain("d"));
+    ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

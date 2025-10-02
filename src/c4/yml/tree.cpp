@@ -825,7 +825,13 @@ void Tree::set_root_as_stream()
     // don't use _add_flags() because it's checked and will fail
     if(!has_children(root))
     {
-        if(is_val(root))
+        if(is_container(root))
+        {
+            id_type next_doc = append_child(root);
+            _copy_props_wo_key(next_doc, root);
+            _p(next_doc)->m_type.add(DOC);
+        }
+        else
         {
             _p(root)->m_type.add(SEQ);
             id_type next_doc = append_child(root);
