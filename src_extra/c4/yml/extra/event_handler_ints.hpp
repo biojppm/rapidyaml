@@ -971,13 +971,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::DQUO);
         _enable_(c4::yml::KEY|c4::yml::KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::DQUO);
         _enable_(c4::yml::VAL|c4::yml::VAL_DQUO);
     }
@@ -999,13 +999,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::LITL);
         _enable_(c4::yml::KEY|c4::yml::KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::LITL);
         _enable_(c4::yml::VAL|c4::yml::VAL_LITERAL);
     }
@@ -1013,13 +1013,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::FOLD);
         _enable_(c4::yml::KEY|c4::yml::KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::FOLD);
         _enable_(c4::yml::VAL|c4::yml::VAL_FOLDED);
     }

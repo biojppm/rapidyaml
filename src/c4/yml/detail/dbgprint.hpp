@@ -60,6 +60,9 @@
 #define RYML_LOGBUF_SIZE_MAX RYML_ERRMSG_SIZE
 
 #include <c4/dump.hpp>
+
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
+
 namespace c4 {
 inline bool& _dbg_enabled() { static bool enabled = true; return enabled; }
 inline C4_NO_INLINE void _dbg_set_enabled(bool yes) { _dbg_enabled() = yes; }
@@ -158,6 +161,8 @@ inline C4_NO_INLINE void __c4presc(const char *s, size_t len, bool keep_newlines
     __c4presc(csubstr(s, len), keep_newlines);
 }
 } // namespace c4
+
+C4_SUPPRESS_WARNING_GCC_POP
 
 #endif // RYML_DBG
 
