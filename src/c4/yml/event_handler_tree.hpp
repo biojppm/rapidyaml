@@ -51,11 +51,14 @@ public:
     #ifdef RYML_DBG
     #define _enable_(bits) _enable__<bits>(); _c4dbgpf("node[{}]: enable {}", m_curr->node_id, #bits)
     #define _disable_(bits) _disable__<bits>(); _c4dbgpf("node[{}]: disable {}", m_curr->node_id, #bits)
+    #define _enable__parent_(bits) _enable__parent__<bits>(); _c4dbgpf("node[{}]: enable {}", m_parent->node_id, #bits)
     #else
     #define _enable_(bits) _enable__<bits>()
     #define _disable_(bits) _disable__<bits>()
+    #define _enable__parent_(bits) _enable__parent__<bits>()
     #endif
     #define _has_any_(bits) _has_any__<bits>()
+    #define _has_any__parent_(bits) _has_any__<bits>()
     /** @endcond */
 
 public:
@@ -315,7 +318,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id), m_tree, m_parent->node_id);
-        NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
+        NodeData const* const prev = m_tree->m_buf; // watchout against relocation of the tree nodes
         _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
         if(prev != m_tree->m_buf)
             _refresh_after_relocation();
@@ -557,6 +560,90 @@ public:
 
 public:
 
+    /** @name comments */
+    /** @{ */
+
+    #ifdef RYML_WITH_COMMENTS
+    /** add leading comment: key
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_key(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: leading comment! key [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_curr->tr_data, COMM_LK, txt);
+    }
+    /** add leading comment: val
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: leading comment! val [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_curr->tr_data, COMM_LV, txt);
+    }
+
+    /** add trailing comment: key.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_trailing_key(csubstr txt)
+    {
+        const NodeType type = m_curr->tr_data->m_type.type;
+        if (type != NOTYPE || !m_parent)
+        {
+            _c4dbgpf("node[{}](curr): trailing key comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+            m_tree->set_comment(m_curr->tr_data, COMM_TK, txt);
+        }
+        else if(m_parent)
+        {
+            _c4dbgpf("node[{}](parent): trailing key comment! [{}]~~~{}~~~", m_tree->id(m_parent->tr_data), txt.len, txt);
+            m_tree->set_comment(m_parent->tr_data, COMM_TK, txt);
+        }
+        else
+        {
+            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "FIXME what to do here?");
+        }
+    }
+
+    /** add trailing comment: val.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_trailing_val(csubstr txt)
+    {
+        const NodeType type = m_curr->tr_data->m_type.type;
+        if (type != NOTYPE || !m_parent)
+        {
+            _c4dbgpf("node[{}](curr): trailing val comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+            m_tree->set_comment(m_curr->tr_data, COMM_TV, txt);
+        }
+        else if(m_parent)
+        {
+            _c4dbgpf("node[{}](parent): trailing val comment! [{}]~~~{}~~~", m_tree->id(m_parent->tr_data), txt.len, txt);
+            m_tree->set_comment(m_parent->tr_data, COMM_TV, txt);
+        }
+        else
+        {
+            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "FIXME what to do here?");
+        }
+    }
+
+    /** @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_footer_key(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: key footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FK, txt);
+    }
+
+    /**  @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_footer_val(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: val footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FV, txt);
+    }
+    #endif // RYML_WITH_COMMENTS
+
+    /** @} */
+
+public:
+
     /** @name arena functions */
     /** @{ */
 
@@ -666,6 +753,11 @@ public:
     {
         m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
     }
+    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _enable__parent__() noexcept
+    {
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), m_parent, m_curr->pos);
+        m_parent->tr_data->m_type.type = static_cast<NodeType_e>(m_parent->tr_data->m_type.type | bits);
+    }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _disable__() noexcept
     {
         m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type & (~bits));
@@ -673,6 +765,11 @@ public:
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__() const noexcept
     {
         return (m_curr->tr_data->m_type.type & bits) != 0;
+    }
+    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__parent__() const noexcept
+    {
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), m_parent, m_curr->pos);
+        return (m_parent->tr_data->m_type.type & bits) != 0;
     }
 
 public:
@@ -747,8 +844,10 @@ public:
     }
 
 #undef _enable_
+#undef _enable__parent_
 #undef _disable_
 #undef _has_any_
+#undef _has_any__parent_
 
     /** @endcond */
 };

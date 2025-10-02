@@ -46,6 +46,9 @@ int32_t estimate_events_ints_size(csubstr src)
         case '>':
         case '?':
         case '\n':
+        #ifdef RYML_WITH_COMMENTS
+        case '#':
+        #endif
             count += 3;
             break;
         case '[':

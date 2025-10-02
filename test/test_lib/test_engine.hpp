@@ -126,11 +126,13 @@ struct EventTransformer
     fwd(add_sibling)
     fwd(actually_val_is_first_key_of_new_map_flow)
     fwd(actually_val_is_first_key_of_new_map_block)
+
     fwd(mark_key_scalar_unfiltered)
     fwd(mark_val_scalar_unfiltered)
 
     fwd(set_key_scalar_plain_empty)
     fwd(set_val_scalar_plain_empty)
+
     fwds(set_key_scalar_plain)
     fwds(set_val_scalar_plain)
     fwds(set_key_scalar_dquoted)
@@ -151,6 +153,15 @@ struct EventTransformer
     fwds(set_val_tag)
 
     fwds(add_directive)
+
+    #ifdef RYML_WITH_COMMENTS
+    fwds(add_comment_leading_key)
+    fwds(add_comment_leading_val)
+    fwds(add_comment_trailing_key)
+    fwds(add_comment_trailing_val)
+    fwds(add_comment_footer_key)
+    fwds(add_comment_footer_val)
+    #endif
 
     #undef fwd
     #undef fwds
@@ -287,10 +298,11 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 
 //-----------------------------------------------------------------------------
 
+
 #define ENGINE_TEST_ERRLOC(name, location, refyaml)             \
                                                                 \
                                                                 \
-TEST(EngineTest, name##_err_testsuite_from_yaml)                \
+TEST(name, err_testsuite_from_yaml)                             \
 {                                                               \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_err_testsuite_from_yaml");             \
@@ -299,7 +311,7 @@ TEST(EngineTest, name##_err_testsuite_from_yaml)                \
 }                                                               \
                                                                 \
                                                                 \
-TEST(EngineTest, name##_err_ints_from_yaml)                     \
+TEST(name, err_ints_from_yaml)                                  \
 {                                                               \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_err_ints_from_yaml");                  \
@@ -308,7 +320,7 @@ TEST(EngineTest, name##_err_ints_from_yaml)                     \
 }                                                               \
                                                                 \
                                                                 \
-TEST(EngineTest, name##_err_tree_from_yaml)                     \
+TEST(name, err_tree_from_yaml)                                  \
 {                                                               \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_err_tree_from_yaml");                  \
@@ -322,7 +334,7 @@ TEST(EngineTest, name##_err_tree_from_yaml)                     \
 #define ENGINE_TEST_ERR(name, refyaml)                  \
                                                         \
                                                         \
-TEST(EngineTest, name##_err_testsuite_from_yaml)        \
+TEST(name, err_testsuite_from_yaml)                     \
 {                                                       \
     _RYML_SHOWFILELINE(name);                           \
     SCOPED_TRACE(#name "_err_testsuite_from_yaml");     \
@@ -331,7 +343,7 @@ TEST(EngineTest, name##_err_testsuite_from_yaml)        \
 }                                                       \
                                                         \
                                                         \
-TEST(EngineTest, name##_err_ints_from_yaml)             \
+TEST(name, err_ints_from_yaml)                          \
 {                                                       \
     _RYML_SHOWFILELINE(name);                           \
     SCOPED_TRACE(#name "_err_ints_from_yaml");          \
@@ -340,7 +352,7 @@ TEST(EngineTest, name##_err_ints_from_yaml)             \
 }                                                       \
                                                         \
                                                         \
-TEST(EngineTest, name##_err_tree_from_yaml)             \
+TEST(name, err_tree_from_yaml)                          \
 {                                                       \
     _RYML_SHOWFILELINE(name);                           \
     SCOPED_TRACE(#name "_err_tree_from_yaml");          \
@@ -359,117 +371,118 @@ TEST(EngineTest, name##_err_tree_from_yaml)             \
 
 /* declare a parse engine test for the existing event handlers.
  * The extra arguments are for the ctor of EngineEvtTestCase */
-#define ENGINE_TEST_(name, opts, ...)                                   \
-                                                                        \
-                                                                        \
-static const EngineEvtTestCase test_case_##name(__VA_ARGS__);           \
-                                                                        \
-                                                                        \
-/* declare a function that will produce a                               \
-   sequence of events */                                                \
-template<class EvtHandlerClass>                                         \
-void name##_impl(EvtHandlerClass &handler);                             \
-                                                                        \
-                                                                        \
-/* package the function into a class */                                 \
-template<class EvtHandlerClass>                                         \
-struct name                                                             \
-{                                                                       \
-    void operator() (EvtHandlerClass &handler)                          \
-    {                                                                   \
-        name##_impl(handler);                                           \
-    }                                                                   \
-};                                                                      \
-                                                                        \
-                                                                        \
-TEST(EngineTest, name##_testsuite_from_events)                          \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_testsuite_from_events");                       \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_testsuite_from_events<name>(tc);                        \
-    _RYML_SHOWFILELINE(name);                                           \
-}                                                                       \
-                                                                        \
-TEST(EngineTest, name##_ints_from_events)                               \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_ints_from_events");                            \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_ints_from_events<name>(tc);                             \
-    _RYML_SHOWFILELINE(name);                                           \
-}                                                                       \
-                                                                        \
-TEST(EngineTest, name##_tree_from_events)                               \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_tree_from_events");                            \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_tree_from_events<name>(tc);                             \
-    _RYML_SHOWFILELINE(name);                                           \
-}                                                                       \
-                                                                        \
-                                                                        \
-                                                                        \
-TEST(EngineTest, name##_testsuite_from_yaml)                            \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_testsuite_from_yaml");                         \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_testsuite_from_yaml(tc, opts);                          \
-    _RYML_SHOWFILELINE(name);                                           \
-}                                                                       \
-                                                                        \
-TEST(EngineTest, name##_ints_from_yaml)                                 \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_event_ints_from_yaml");                        \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_ints_from_yaml(tc, opts);                               \
-    _RYML_SHOWFILELINE(name);                                           \
-}                                                                       \
-                                                                        \
-TEST(EngineTest, name##_tree_from_yaml)                                 \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_tree_from_yaml");                              \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_tree_from_yaml(tc, opts);                               \
-    _RYML_SHOWFILELINE(name);                                           \
-}                                                                       \
-                                                                        \
-                                                                        \
-                                                                        \
-TEST(EngineTest, name##_testsuite_from_yaml_with_comments)              \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_testsuite_from_yaml_with_comments");           \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_testsuite_from_yaml_with_comments(tc, opts);            \
-}                                                                       \
-                                                                        \
-TEST(EngineTest, name##_ints_from_yaml_with_comments)                   \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_ints_from_yaml_with_comments");                \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_ints_from_yaml_with_comments(tc, opts);                 \
-}                                                                       \
-                                                                        \
-TEST(EngineTest, name##_tree_from_yaml_with_comments)                   \
-{                                                                       \
-    _RYML_SHOWFILELINE(name);                                           \
-    SCOPED_TRACE(#name "_tree_from_yaml");                              \
-    auto const &tc = test_case_##name;                                  \
-    test_engine_tree_from_yaml_with_comments(tc, opts);                 \
-    _RYML_SHOWFILELINE(name);                                           \
-}                                                                       \
-                                                                        \
-                                                                        \
-/* define the function that will produce the                            \
- * sequence of events */                                                \
-template<class EvtHandlerClass>                                         \
-void name##_impl(EvtHandlerClass &ps)
+#define ENGINE_TEST_(name, opts, ...)                           \
+                                                                \
+                                                                \
+static const EngineEvtTestCase test_case_##name(__VA_ARGS__);   \
+                                                                \
+                                                                \
+/* declare a function that will produce a                       \
+   sequence of events */                                        \
+template<class EvtHandlerClass>                                 \
+void stream_events_##name(EvtHandlerClass &handler);            \
+                                                                \
+                                                                \
+/* package the function into a class */                         \
+template<class EvtHandlerClass>                                 \
+struct name                                                     \
+{                                                               \
+    void operator() (EvtHandlerClass &handler)                  \
+    {                                                           \
+        stream_events_##name(handler);                          \
+    }                                                           \
+};                                                              \
+                                                                \
+                                                                \
+TEST(name, testsuite_from_events)                               \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_testsuite_from_events");               \
+    auto const &tc = test_case_##name;                          \
+    test_engine_testsuite_from_events<name>(tc);                \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+TEST(name, ints_from_events)                                    \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_ints_from_events");                    \
+    auto const &tc = test_case_##name;                          \
+    test_engine_ints_from_events<name>(tc);                     \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+TEST(name, tree_from_events)                                    \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_tree_from_events");                    \
+    auto const &tc = test_case_##name;                          \
+    test_engine_tree_from_events<name>(tc);                     \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+                                                                \
+                                                                \
+TEST(name, testsuite_from_yaml)                                 \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_testsuite_from_yaml");                 \
+    auto const &tc = test_case_##name;                          \
+    test_engine_testsuite_from_yaml(tc, opts);                  \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+TEST(name, ints_from_yaml)                                      \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_event_ints_from_yaml");                \
+    auto const &tc = test_case_##name;                          \
+    test_engine_ints_from_yaml(tc, opts);                       \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+TEST(name, tree_from_yaml)                                      \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_tree_from_yaml");                      \
+    auto const &tc = test_case_##name;                          \
+    test_engine_tree_from_yaml(tc, opts);                       \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+                                                                \
+                                                                \
+TEST(name, testsuite_from_yaml_with_comments)                   \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_testsuite_from_yaml_with_comments");   \
+    auto const &tc = test_case_##name;                          \
+    test_engine_testsuite_from_yaml_with_comments(tc, opts);    \
+}                                                               \
+                                                                \
+TEST(name, ints_from_yaml_with_comments)                        \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_ints_from_yaml_with_comments");        \
+    auto const &tc = test_case_##name;                          \
+    test_engine_ints_from_yaml_with_comments(tc, opts);         \
+}                                                               \
+                                                                \
+TEST(name, tree_from_yaml_with_comments)                        \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_tree_from_yaml");                      \
+    auto const &tc = test_case_##name;                          \
+    test_engine_tree_from_yaml_with_comments(tc, opts);         \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+                                                                \
+                                                                \
+/* finally, define the function that will produce the           \
+ * sequence of events */                                        \
+template<class EvtHandlerClass>                                 \
+void stream_events_##name(EvtHandlerClass &ps)
 
 
 
