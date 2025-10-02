@@ -107,7 +107,25 @@ inline id_type print_node(Tree const& p, id_type node, int level, id_type count,
         printf(" %c%.*s%c", code, (int)v.len, v.str, code);
     }
     printf("  (%zu sibs)", (size_t)p.num_siblings(node));
-
+    #ifdef RYML_WITH_COMMENTS
+    if (p.comment(node))
+    {
+        printf(" COMM[");
+        NodeData const* n = p._p(node);
+        id_type ccount = 0;
+        for(id_type cid = n->m_first_comment; cid != NONE; cid = p.m_comments_buf[cid].m_next)
+        {
+            CommentData const& comm = p.m_comments_buf[cid];
+            if(comm.m_type == COMM_LK) printf("%sLK", ccount++?"|":"");
+            else if(comm.m_type == COMM_TK) printf("%sTK", ccount++?"|":"");
+            else if(comm.m_type == COMM_FK) printf("%sFK", ccount++?"|":"");
+            else if(comm.m_type == COMM_LV) printf("%sLV", ccount++?"|":"");
+            else if(comm.m_type == COMM_TV) printf("%sTV", ccount++?"|":"");
+            else if(comm.m_type == COMM_FV) printf("%sFV", ccount++?"|":"");
+        }
+        printf("]");
+    }
+    #endif
     ++count;
 
     if(!p.is_container(node))
