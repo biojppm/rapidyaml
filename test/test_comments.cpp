@@ -11,17 +11,125 @@ namespace yml {
 
 TEST(comment_list, insertion_order)
 {
-    Tree t = parse_in_arena("foo: bar");
     id_type node = 1;
-    ASSERT_EQ(t.comment(node), nullptr);
-    ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
-    t.set_comment(node, COMM_LK, "leading key");
-    ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-    ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
-    t.set_comment(node, COMM_LV, "leading val");
-    ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-    ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+    Tree orig = parse_in_arena("foo: bar");
+    ASSERT_EQ(orig.key(node), "foo");
+    ASSERT_EQ(orig.val(node), "bar");
+    {
+        Tree t = orig;
+        ASSERT_EQ(t.comment(node), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        t.set_comment(node, COMM_LK, " leading key");
+        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        t.set_comment(node, COMM_LV, " leading val");
+        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
+        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
+        EXPECT_EQ(emitrs_yaml<std::string>(t),
+                  R"(# leading key
+foo: 
+  # leading val
+  bar
+)");
+        t.set_comment(node, COMM_TK, " trailing key");
+        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        t.set_comment(node, COMM_TV, " trailing val");
+        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+        ASSERT_NE(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
+        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
+        EXPECT_EQ(t.comment(node, COMM_TK)->m_text, " trailing key");
+        EXPECT_EQ(t.comment(node, COMM_TV)->m_text, " trailing val");
+        EXPECT_EQ(emitrs_yaml<std::string>(t),
+                  R"(# leading key
+foo: # trailing key
+  # leading val
+  bar # trailing val
+)");
+    }
+    {
+        Tree t = orig;
+        ASSERT_EQ(t.comment(node), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        t.set_comment(node, COMM_LV, " leading val");
+        ASSERT_NE(t.comment(node), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
+        t.set_comment(node, COMM_LK, " leading key");
+        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
+        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
+        EXPECT_EQ(emitrs_yaml<std::string>(t),
+                  R"(# leading key
+foo: 
+  # leading val
+  bar
+)");
+        t.set_comment(node, COMM_TV, " trailing val");
+        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+        ASSERT_NE(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        t.set_comment(node, COMM_TK, " trailing key");
+        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_TK), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
+        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
+        ASSERT_NE(t.comment(node, COMM_TV), nullptr);
+        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
+        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
+        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
+        EXPECT_EQ(t.comment(node, COMM_TK)->m_text, " trailing key");
+        EXPECT_EQ(t.comment(node, COMM_TV)->m_text, " trailing val");
+        EXPECT_EQ(emitrs_yaml<std::string>(t),
+                  R"(# leading key
+foo: # trailing key
+  # leading val
+  bar # trailing val
+)");
+    }
 }
+
 
 //-----------------------------------------------------------------------------
 

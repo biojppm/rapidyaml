@@ -205,6 +205,7 @@ private:
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
     #ifdef RYML_WITH_COMMENTS
+    void _write_comment(id_type node, CommentType_e comment_type);
     void _write_comment(csubstr s, id_type indentation);
     #endif
 

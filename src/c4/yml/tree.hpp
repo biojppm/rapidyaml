@@ -1123,8 +1123,7 @@ public:
 
     void reserve_comments(id_type comment_capacity);
 
-    CommentData const* comment(id_type id, comment_data_type type) const;
-    CommentData const* comment(id_type node_id, CommentType_e type=COMM_ANY) const;
+    CommentData const* comment(id_type node_id, comment_data_type type_flags=COMM_ANY) const;
 
     void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);
     void set_comment(NodeData *n, CommentType_e type, csubstr const& txt);

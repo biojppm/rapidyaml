@@ -101,10 +101,10 @@ ENGINE_TEST(CommentSketch,
             "=CTV # CTV 18\\n continued 18\n"
             "=CLV # CLV 19\n"
             "-SEQ\n"
-            "=CFV # CFV Comment Footer for Val 20\\ncontinued 20\n"
+            "=CFV # CFV Comment Footer for Val 20\\n continued 20\n"
             "=CLV # CLV 21\n"
             "-MAP\n"
-            "=CFV # CFV 22\\ncontinued 22\n"
+            "=CFV # CFV 22\\n continued 22\n"
             "=CLV # CLV 23\n"
             "-DOC\n"
             "-STR\n")

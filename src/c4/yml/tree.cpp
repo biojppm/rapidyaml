@@ -1954,21 +1954,12 @@ id_type Tree::_claim_comment()
 
 CommentData const* Tree::comment(id_type node_id, comment_data_type type) const
 {
+    _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
     NodeData const* n = _p(node_id);
     for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
     {
+        _RYML_ASSERT_VISIT_(m_callbacks, cid < m_comments_size, this, node_id);
         if(m_comments_buf[cid].m_type & type)
-            return &m_comments_buf[cid];
-    }
-    return nullptr;
-}
-
-CommentData const* Tree::comment(id_type node_id, CommentType_e type) const
-{
-    NodeData const* n = _p(node_id);
-    for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
-    {
-        if(m_comments_buf[cid].m_type == type)
             return &m_comments_buf[cid];
         else if(m_comments_buf[cid].m_type > type)
             break;

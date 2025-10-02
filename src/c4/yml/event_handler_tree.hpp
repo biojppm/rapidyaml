@@ -625,14 +625,18 @@ public:
         }
     }
 
-    /** @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    /** add footer comment: key.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_footer_key(csubstr txt)
     {
         _c4dbgpf("node[{}]: key footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
         m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FK, txt);
     }
 
-    /**  @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    /** add footer comment: val.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_footer_val(csubstr txt)
     {
         _c4dbgpf("node[{}]: val footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
