@@ -1990,14 +1990,15 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
 
     size_t numlines = 1; // we already have one line
     size_t pos = npos; // find the pos of the matching quote
+    auto *st = m_evt_handler->m_curr; // prevent erroneous hoist of the assignment out of the loop
     while( ! _finished_file())
     {
-        const csubstr line = m_evt_handler->m_curr->line_contents.rem;
-        #if defined(__GNUC__) && __GNUC__ == 11
+        const csubstr line = st->line_contents.rem;
+        #if defined(__GNUC__) && (__GNUC__ == 11 || __GNUC__ == 8)
         C4_DONT_OPTIMIZE(line); // prevent erroneous hoist of the assignment out of the loop
         #endif
         bool line_is_blank = true;
-        _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", m_evt_handler->m_curr->pos.line, line);
+        _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", st->pos.line, line);
         for(size_t i = 0; i < line.len; ++i)
         {
             const char curr = line.str[i];
@@ -2032,9 +2033,9 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
         else
         {
             _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, pos >= 0 && pos < m_buf.len);
-            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_buf[m_evt_handler->m_curr->pos.offset + pos] == '"');
+            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_buf[st->pos.offset + pos] == '"');
             _line_progressed(pos + 1); // progress beyond the quote
-            pos = m_evt_handler->m_curr->pos.offset - b - 1; // but we stop before it
+            pos = st->pos.offset - b - 1; // but we stop before it
             break;
         }
 
@@ -2056,7 +2057,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
 
     _c4prscalar("scanned dquoted scalar", s, /*keep_newlines*/true);
 
-    return ScannedScalar { s, needs_filter };
+    return ScannedScalar{s, needs_filter};
 }
 
 

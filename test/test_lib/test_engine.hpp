@@ -478,12 +478,15 @@ void name##_impl(EvtHandlerClass &ps)
 #if !defined(RYML_DBG)
 #define ___(stmt) stmt
 #else
+
 #define ___(stmt)                       \
     do                                  \
     {                                   \
        stmt;                            \
        _print_handler_info(ps, #stmt, __FILE__, __LINE__);  \
     } while(0)
+
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
 
 inline C4_NO_INLINE void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
 {
@@ -529,6 +532,9 @@ inline C4_NO_INLINE void _print_handler_info(EventTransformer<Handler, Transform
 {
     _print_handler_info(ps.handler, stmt, file, line);
 }
+
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
+
 #endif
 
 } // namespace yml
