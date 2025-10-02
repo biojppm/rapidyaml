@@ -86,19 +86,19 @@ ENGINE_TEST(CommentSketch,
             "=CTV # CTV 8\n"
             "=CLV # CLV 9\n"
             "+MAP {}\n"
-            "=CTV # CTV 10\\ncontinued 10\n"
+            "=CTV # CTV 10\\n continued 10\n"
             "=CLK # CLK 11\n"
             "=VAL :key\n"
-            "=CTK # CTK 12\\ncontinued 12\n"
+            "=CTK # CTK 12\\n continued 12\n"
             "=CLV # CLV 13\n"
             "+SEQ []\n"
-            "=CTV # CTV 14\\ncontinued 14\n"
+            "=CTV # CTV 14\\n continued 14\n"
             "=CLV # CLV 15\n"
             "=VAL :a\n"
-            "=CTV # CTV 16\\ncontinued 16\n"
+            "=CTV # CTV 16\\n continued 16\n"
             "=CLV # CLV 17\n"
             "=VAL :b\n"
-            "=CTV # CTV 18\\ncontinued 18\n"
+            "=CTV # CTV 18\\n continued 18\n"
             "=CLV # CLV 19\n"
             "-SEQ\n"
             "=CFV # CFV Comment Footer for Val 20\\ncontinued 20\n"
@@ -145,29 +145,32 @@ ENGINE_TEST(CommentSketch,
     ___(ps.add_comment_trailing_val(" CTV 8"));
     ___(ps.add_comment_leading_val(" CLV 9"));
     ___(ps.begin_map_val_flow());
-    ___(ps.add_comment_trailing_val(" CTV 10\ncontinued 10"));
+    ___(ps.add_comment_trailing_val(" CTV 10\n continued 10"));
     ___(ps.add_comment_leading_key(" CLK 11"));
     ___(ps.set_key_scalar_plain("key"));
-    ___(ps.add_comment_trailing_key(" CTK 12\ncontinued 12"));
+    ___(ps.add_comment_trailing_key(" CTK 12\n continued 12"));
     ___(ps.add_comment_leading_val(" CLV 13"));
     ___(ps.begin_seq_val_flow());
-    ___(ps.add_comment_trailing_val(" CTV 14\ncontinued 14"));
+    ___(ps.add_comment_trailing_val(" CTV 14\n continued 14"));
     ___(ps.add_comment_leading_val(" CLV 15"));
     ___(ps.set_val_scalar_plain("a"));
-    ___(ps.add_comment_trailing_val(" CTV 16\ncontinued 16"));
+    ___(ps.add_comment_trailing_val(" CTV 16\n continued 16"));
     ___(ps.add_comment_leading_val(" CLV 17"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.add_comment_trailing_val(" CTV 18\ncontinued 18"));
+    ___(ps.add_comment_trailing_val(" CTV 18\n continued 18"));
     ___(ps.add_comment_leading_val(" CLV 19"));
     ___(ps.end_seq());
-    ___(ps.add_comment_footer_val(" CFV Comment Footer for Val 20\ncontinued 20"));
+    ___(ps.add_comment_footer_val(" CFV Comment Footer for Val 20\n continued 20"));
     ___(ps.add_comment_leading_val(" CLV 21"));
     ___(ps.end_map());
-    ___(ps.add_comment_footer_val(" CFV 22\ncontinued 22"));
+    ___(ps.add_comment_footer_val(" CFV 22\n continued 22"));
     ___(ps.add_comment_leading_val(" CLV 23"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
+
+//-----------------------------------------------------------------------------
 
 ENGINE_TEST(CommentSingle,
             "# single comment\n"
@@ -212,7 +215,7 @@ ENGINE_TEST(CommentSingleLeadSpace,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.add_comment_leading_val(" single comment"));
+    ___(ps.add_comment_leading_val("  single comment"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -242,13 +245,13 @@ ENGINE_TEST(CommentSingleMultiline1,
             ,
             "+STR\n"
             "+DOC\n"
-            "=CLV #\\nsingle\\ncomment\\n\n"
+            "=CLV #\\n single\\n comment\\n\n"
             "-DOC\n"
             "-STR\n")
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.add_comment_leading_val("\nsingle\ncomment\n"));
+    ___(ps.add_comment_leading_val("\n single\n comment\n"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -265,13 +268,13 @@ ENGINE_TEST(CommentSingleMultiline2,
             ,
             "+STR\n"
             "+DOC\n"
-            "=CLV #\\n\\nsingle\\n\\n\\ncomment\\n\\n\n"
+            "=CLV #\\n\\n single\\n\\n\\n comment\\n\\n\n"
             "-DOC\n"
             "-STR\n")
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.add_comment_leading_val("\n\nsingle\n\n\ncomment\n\n"));
+    ___(ps.add_comment_leading_val("\n\n single\n\n\n comment\n\n"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -288,13 +291,13 @@ ENGINE_TEST(CommentSingleMultiline3,
             ,
             "+STR\n"
             "+DOC\n"
-            "=CLV #\\n\\n single  \\n \\n \\n comment  \\n\\n\n"
+            "=CLV #\\n\\n  single  \\n  \\n  \\n  comment  \\n\\n\n"
             "-DOC\n"
             "-STR\n")
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.add_comment_leading_val("\n\n single  \n \n \n comment  \n\n"));
+    ___(ps.add_comment_leading_val("\n\n  single  \n  \n  \n  comment  \n\n"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -330,13 +333,13 @@ ENGINE_TEST(CommentDocLeading,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.add_comment_leading_val("leading 1"));
+    ___(ps.add_comment_leading_val(" leading 1"));
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.add_comment_leading_val("leading 2"));
+    ___(ps.add_comment_leading_val(" leading 2"));
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.add_comment_leading_val("leading 3"));
+    ___(ps.add_comment_leading_val(" leading 3"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -372,12 +375,12 @@ ENGINE_TEST(CommentFlowLeading,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.add_comment_leading_val("leading map"));
+    ___(ps.add_comment_leading_val(" leading map"));
     ___(ps.begin_map_val_flow());
     ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.add_comment_leading_val("leading seq"));
+    ___(ps.add_comment_leading_val(" leading seq"));
     ___(ps.begin_seq_val_flow());
     ___(ps.end_seq());
     ___(ps.end_doc());

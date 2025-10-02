@@ -1249,10 +1249,7 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
 template<class Writer>
 void Emitter<Writer>::_write_comment(csubstr s, id_type indentation)
 {
-    if(s.len && s[0] != '\n')
-        _write("# ");
-    else
-        _write('#');
+    _write('#');
     size_t pos = 0; // last character that was already written
     for(size_t i = 0; i < s.len; ++i)
     {
@@ -1262,19 +1259,8 @@ void Emitter<Writer>::_write_comment(csubstr s, id_type indentation)
             _write(sub);  // write everything up to (including) this newline
             _newl();
             pos = i + 1;
-            if(pos < s.len)
-            {
-                _write(' ', indentation); // _indent() is for level, but we have explicit indentation
-                if(s[pos] != '\n')
-                    _write("# ");
-                else
-                    _write('#');
-            }
-            else if(pos == s.len)
-            {
-                _write(' ', indentation);
-                _write('#');
-            }
+            _write(' ', indentation); // _indent() is for level, but we have explicit indentation
+            _write('#');
         }
     }
     // write missing characters at the end of the string
