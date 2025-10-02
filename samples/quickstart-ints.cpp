@@ -23,6 +23,7 @@
 
 #ifndef RYML_SINGLE_HEADER_INTS
 #include <c4/yml/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/ints_utils.hpp> // to print
 #endif
 
 
@@ -62,21 +63,21 @@ int main(int, const char *[])
 
     /* the output should be this:
      *
-     * success! YAML requires event size 30, estimated=49
-     * pos=0	event[0]:	0x1
-     * pos=1	event[1]:	0x4
-     * pos=2	event[2]:	0x110010
-     * pos=3	event[3]:	0x80500 	str=(0,2)	'do'
-     * pos=6	event[4]:	0x900500	str=(4,21)	'a deer, a female deer'
-     * pos=9	event[5]:	0x880500	str=(26,2)	're'
-     * pos=12	event[6]:	0x900500	str=(30,20)	'a drop of golden sun'
-     * pos=15	event[7]:	0x880500	str=(51,2)	'mi'
-     * pos=18	event[8]:	0x900500	str=(55,20)	'a name I call myself'
-     * pos=21	event[9]:	0x880500	str=(76,2)	'fa'
-     * pos=24	event[10]:	0x900500	str=(80,22)	'a long long way to run'
-     * pos=27	event[11]:	0x800020
-     * pos=28	event[12]:	0x8
-     * pos=29	event[13]:	0x2
+     * success! YAML requires event size 30, estimated=49 (required_arena=0 actual=99)
+     * pos=0	event[0]:	                BSTR = 0x00000001
+     * pos=1	event[1]:	                BDOC = 0x00000004
+     * pos=2	event[2]:	      VAL_|BMAP|BLCK = 0x00140010
+     * pos=3	event[3]:	      KEY_|SCLR|PLAI = 0x00081100	str=(0,2)	'do'
+     * pos=6	event[4]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(4,21)	'a deer, a female deer'
+     * pos=9	event[5]:	 KEY_|SCLR|PLAI|PSTR = 0x04081100	str=(26,2)	're'
+     * pos=12	event[6]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(30,20)	'a drop of golden sun'
+     * pos=15	event[7]:	 KEY_|SCLR|PLAI|PSTR = 0x04081100	str=(51,2)	'mi'
+     * pos=18	event[8]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(55,20)	'a name I call myself'
+     * pos=21	event[9]:	 KEY_|SCLR|PLAI|PSTR = 0x04081100	str=(76,2)	'fa'
+     * pos=24	event[10]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(80,22)	'a long long way to run'
+     * pos=27	event[11]:	           EMAP|PSTR = 0x04000020
+     * pos=28	event[12]:	                EDOC = 0x00000008
+     * pos=29	event[13]:	                ESTR = 0x00000002
      */
 
     // buffer to where we will write the events
@@ -106,7 +107,7 @@ int main(int, const char *[])
     parser.parse_in_place_ev("filename", yaml);
 
     // the YAML was successfully parsed, but it may happen that it
-    // requires more events than may fit in the buffer. so we need to
+    // requires more events than may fit in the buffers. so we need to
     // check that it actually fits (this is mandatory):
     if(!handler.fits_buffers())
     {
@@ -120,18 +121,25 @@ int main(int, const char *[])
     }
 
     // done!
-    printf("success! YAML requires event size %d, estimated=%d (required_arena=%zu actual=%zu)\n",                    // LCOV_EXCL_LINE
+    printf("success! YAML requires event size %d, estimated=%d (required_arena=%zu actual_arena=%zu)\n",              // LCOV_EXCL_LINE
            handler.required_size_events(), estimated_size, handler.required_size_arena(), c4::to_csubstr(arena).len); // LCOV_EXCL_LINE
 
     // ensure the result is as expected
-    bool compare = true;
+    bool success = true;
 
     // example iterating through the events array: compare and print
     // the result
+    char flags[100];
     for (int pos = 0, evt = 0; pos < handler.required_size_events(); ++pos, ++evt)
     {
         bool status = (events[pos] == expected_events[pos]);
-        printf("pos=%d\tevent[%d]:\t0x%x", pos, evt, events[pos]);
+        // let's format the event flags to print them as string.
+        // we need to zero-terminate them to be able to align using printf.
+        memset(flags, 0, sizeof(flags)); // ensure flags are zero-terminated
+        size_t len = c4::yml::extra::ievt::to_chars(flags, events[pos]);
+        if(len + 1 >= sizeof(flags)) { printf("error: could not format flags"); return 1; } // ensure flags are zero-terminated
+        // print the event
+        printf("pos=%d\tevent[%d]:\t%20s = 0x%08x", pos, evt, flags, events[pos]);
         if(events[pos] & WSTR) // the event has a string following it
         {
             int offset = events[pos + 1];
@@ -148,12 +156,12 @@ int main(int, const char *[])
         if(!status)
         {
             printf("  ... fail!"); // LCOV_EXCL_LINE
-            compare = false;       // LCOV_EXCL_LINE
+            success = false;       // LCOV_EXCL_LINE
         }
         printf("\n");
     }
 
-    return compare ? 0 : 1;
+    return success ? 0 : 1;
 }
 
 // NOLINTEND(hicpp-signed-bitwise)

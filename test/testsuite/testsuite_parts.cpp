@@ -181,7 +181,7 @@ cspan<AllowedFailure> g_container_key_cases = container_key_cases;
 
 AllowedFailure is_failure_expected(csubstr casename)
 {
-    RYML_CHECK(casename.not_empty());
+    _RYML_CHECK_BASIC(casename.not_empty());
     for(AllowedFailure const& af : g_allowed_failures)
         if(af.test_name == casename || casename.begins_with(af.test_name))
             return af;
@@ -190,7 +190,7 @@ AllowedFailure is_failure_expected(csubstr casename)
 
 AllowedFailure case_has_container_keys(csubstr casename)
 {
-    RYML_CHECK(casename.not_empty());
+    _RYML_CHECK_BASIC(casename.not_empty());
     for(AllowedFailure const& af : g_container_key_cases)
         if(af.test_name == casename || casename.begins_with(af.test_name))
             return af;

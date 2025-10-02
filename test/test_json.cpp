@@ -495,119 +495,119 @@ quntity2: 95000000)");
 
 TEST(parse_json, error_on_missing_seq_val)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("[foo, , ]");
     });
 }
 
 TEST(parse_json, error_on_double_seq_val)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("[0 1, ]");
     });
 }
 
 TEST(parse_json, error_on_double_seq_val_quoted)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("[\"0\" 1, ]");
     });
 }
 
 TEST(parse_json, error_on_double_seq_val_quoted_2)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("[\"0\" \"1\", ]");
     });
 }
 
 TEST(parse_json, error_on_double_seq_val_quoted_3)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("[0 \"1\", ]");
     });
 }
 
 TEST(parse_json, error_on_double_map_val)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"key\": 0 1}");
     });
 }
 
 TEST(parse_json, error_on_double_map_val_quoted)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"key\": 0 \"1\"}");
     });
 }
 
 TEST(parse_json, error_on_double_map_val_quoted_2)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"key\": \"0\" 1}");
     });
 }
 
 TEST(parse_json, error_on_double_map_val_quoted_3)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"key\": \"0\" \"1\"}");
     });
 }
 
 TEST(parse_json, error_on_missing_seq_term)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("[foo, ");
     });
 }
 
 TEST(parse_json, error_on_missing_map_val)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"foo\": }");
     });
 }
 
 TEST(parse_json, error_on_missing_map_term)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"foo\": 0");
     });
 }
 
 TEST(parse_json, error_on_missing_map_colon)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"foo\" }");
     });
 }
 
 TEST(parse_json, error_on_bad_map_val)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{\"foo\": , }");
     });
 }
 
 TEST(parse_json, error_on_wrong_key_character)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{'foo': 1}");
     });
 }
 
 TEST(parse_json, error_on_unquoted_key_character)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("{foo: 1}");
     });
 }
 
 TEST(parse_json, error_on_bare_keyval)
 {
-    ExpectError::check_error([]{
+    ExpectError::check_error_parse([]{
         Tree tree = parse_json_in_arena("\"fails\": true");
     });
 }
