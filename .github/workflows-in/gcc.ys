@@ -104,6 +104,7 @@ jobs:
     :: setup-job('gcc' 'vg1')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
     :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
     strategy:: strategy-latest-gcc
     env:: load('share/env.yaml')
     steps:
@@ -118,6 +119,7 @@ jobs:
     :: setup-job('gcc' 'vg2')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
     :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
     strategy:: strategy-latest-gcc
     env:: load('share/env.yaml')
     steps:

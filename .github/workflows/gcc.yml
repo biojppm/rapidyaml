@@ -702,6 +702,7 @@ jobs:
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -864,6 +865,7 @@ jobs:
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
