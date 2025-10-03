@@ -1,0 +1,104 @@
+!yamlscript/v0:
+
+:use common: :all
+:: workflow-setup()
+
+::
+  defn define-job(matrixvar stepsvar suffix)::
+    name:: "${{matrix.arch}}/$suffix"
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:: matrixvar
+    steps:
+      - :: checkout-action
+      - name: install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+              gcc${{matrix.version}}-${{matrix.tc}} \
+              g++${{matrix.version}}-${{matrix.tc}} \
+              qemu-user-static
+      - name: info
+        run: |
+          ${{matrix.tc}}-g++${{matrix.version}} --version
+          ${{matrix.tc}}-g++${{matrix.version}} -dM -E - </dev/null | sort
+          ${{matrix.tc}}-g++${{matrix.version}} ${{matrix.flags}} -dM -E - </dev/null | sort
+      - :: stepsvar
+
+  defn xcompile-steps(arch buildtype std flags="")::
+  - name: "-------------------------------------------------"
+    run:: "echo $arch/c++$std/$buildtype"
+  - name:: "configure $arch/c++$std/$buildtype"
+    run:: |
+      touch build
+      rm -rf build
+      export C4_EXTERN_DIR=`pwd`/build/extern
+      cmake -S . -B build \
+          -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+          -DCMAKE_BUILD_TYPE=$buildtype \
+          -DCMAKE_CXX_FLAGS=" $flags" \
+          -DCMAKE_C_FLAGS=" $flags" \
+          -DC4_CXX_STANDARD=$std \
+          -DCXX_STANDARD=$std \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_SANITIZE=OFF \
+          -DRYML_LINT=OFF \
+          -DRYML_VALGRIND=OFF
+  - name:: "build $arch/c++$std/$buildtype"
+    run: |
+      cmake --build build --parallel --target ryml-test-build --verbose
+  - name:: "test $arch/c++$std/$buildtype"
+    run: |
+      cmake --build build --target ryml-test-run
+
+  =>: nil
+
+steps11 =::
+  - :: xcompile-steps("${{matrix.arch}}" "Debug"   "11" "${{matrix.flags}}")
+  - :: xcompile-steps("${{matrix.arch}}" "Release" "11" "${{matrix.flags}}")
+
+steps20 =::
+  - :: xcompile-steps("${{matrix.arch}}" "Debug"   "20" "${{matrix.flags}}")
+  - :: xcompile-steps("${{matrix.arch}}" "Release" "20" "${{matrix.flags}}")
+
+# https://stackoverflow.com/questions/59906042/how-to-debug-mips-interactively
+matrix-items =::
+  - {arch: armv7      , tc: arm-linux-gnueabihf, flags: -march=armv7+fp}
+  - {arch: armv6      , tc: arm-linux-gnueabi, flags: -march=armv6+fp}
+  - {arch: armv5      , tc: arm-linux-gnueabi, flags: -march=armv5te+fp}
+  - {arch: armv4      , tc: arm-linux-gnueabi, flags: -march=armv4}
+  - {arch: aarch64    , tc: aarch64-linux-gnu} # this is armv8
+  - {arch: loongarch64, tc: loongarch64-linux-gnu, version: -14}
+  - {arch: mips       , tc: mips-linux-gnu}
+  - {arch: mipsel     , tc: mipsel-linux-gnu}
+  - {arch: mips64     , tc: mips64-linux-gnuabi64}
+  - {arch: mips64el   , tc: mips64el-linux-gnuabi64}
+  - {arch: riscv64    , tc: riscv64-linux-gnu}
+  - {arch: s390x      , tc: s390x-linux-gnu}
+  - {arch: ppc        , tc: powerpc-linux-gnu}
+  - {arch: ppc64      , tc: powerpc64-linux-gnu}
+  - {arch: ppc64le    , tc: powerpc64le-linux-gnu}
+  - {arch: sparc64    , tc: sparc64-linux-gnu}
+  # TODO xtensa!
+
+
+jobs:
+
+  canary11:
+    :: setup-job('embedded' 'canary11')
+    :: define-job(list(first(matrix-items)) steps11 'c++11')
+  canary20:
+    :: setup-job('embedded' 'canary20')
+    :: define-job(list(first(matrix-items)) steps20 'c++20')
+
+  xcompile11:
+    needs: [canary11, canary20]
+    :: setup-job('embedded' 'xcompile')
+    :: define-job(rest(matrix-items) steps11 'c++11')
+  xcompile20:
+    needs: [canary11, canary20]
+    :: setup-job('embedded' 'xcompile')
+    :: define-job(rest(matrix-items) steps20 'c++20')

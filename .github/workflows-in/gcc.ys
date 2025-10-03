@@ -83,24 +83,57 @@ jobs:
       run: cmake --build build --target ryml-test-run
 
   #----------------------------------------------------------------------------
+  # with valgrind: only latest gcc
+  strategy-latest-gcc =::
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 20, cxx: 14, bits: 64, vg: ON , img: 22.04}
+          - {std: 20, cxx: 14, bits: 32, vg: ON , img: 22.04}
+          - {std: 17, cxx: 14, bits: 64, vg: ON , img: 22.04}
+          - {std: 17, cxx: 14, bits: 32, vg: ON , img: 22.04}
+          - {std: 14, cxx: 14, bits: 64, vg: ON , img: 22.04}
+          - {std: 14, cxx: 14, bits: 32, vg: ON , img: 22.04}
+          - {std: 11, cxx: 14, bits: 64, vg: ON , img: 22.04}
+          - {std: 11, cxx: 14, bits: 32, vg: ON , img: 22.04}
+
+  vg1:
+    :: setup-job('gcc' 'vg1')
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    strategy:: strategy-latest-gcc
+    env:: load('share/env.yaml')
+    steps:
+    - :: checkout-manual
+    - name: install
+      run: c4core-install g++-${{matrix.cxx}}
+    - :: run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}')
+    - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
+    - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
+
+  vg2:
+    :: setup-job('gcc' 'vg2')
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    strategy:: strategy-latest-gcc
+    env:: load('share/env.yaml')
+    steps:
+    - :: checkout-manual
+    - name: install
+      run: c4core-install g++-${{matrix.cxx}}
+    - :: run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
+    - :: run-gcc-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
+
+  #----------------------------------------------------------------------------
+  # without valgrind: older versions
   extended:
     :: setup-job('gcc' 'extended')
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     strategy:
       fail-fast: false
       matrix:
         include:
-        # with valgrind: only latest gcc
-        - {std: 20, cxx: 14  , bits: 64, vg: ON , img: 22.04}
-        - {std: 20, cxx: 14  , bits: 32, vg: ON , img: 22.04}
-        - {std: 17, cxx: 14  , bits: 64, vg: ON , img: 22.04}
-        - {std: 17, cxx: 14  , bits: 32, vg: ON , img: 22.04}
-        - {std: 14, cxx: 14  , bits: 64, vg: ON , img: 22.04}
-        - {std: 14, cxx: 14  , bits: 32, vg: ON , img: 22.04}
-        - {std: 11, cxx: 14  , bits: 64, vg: ON , img: 22.04}
-        - {std: 11, cxx: 14  , bits: 32, vg: ON , img: 22.04}
-        # without valgrind
         - {std: 11, cxx: 13  , bits: 64, vg: OFF, img: 22.04}
         - {std: 11, cxx: 13  , bits: 32, vg: OFF, img: 22.04}
         - {std: 11, cxx: 12  , bits: 64, vg: OFF, img: 22.04}

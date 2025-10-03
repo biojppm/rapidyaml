@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/install.ys
+# DO NOT EDIT - GENERATED FROM .github/workflows-in/install.ys
 
 name: test_install
 defaults:

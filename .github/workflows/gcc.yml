@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/gcc.ys
+# DO NOT EDIT - GENERATED FROM .github/workflows-in/gcc.ys
 
 name: gcc
 defaults:
@@ -504,10 +504,10 @@ jobs:
       run: cmake --build build --target ryml-test-build --parallel --verbose
     - name: run (issue \#${{matrix.issue}})
       run: cmake --build build --target ryml-test-run
-  extended:
+  vg1:
     if: always()
     continue-on-error: false
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     strategy:
@@ -554,6 +554,316 @@ jobs:
           bits: 32
           vg: 'ON'
           img: 22.04
+    env:
+      STD: ${{matrix.std}}
+      CXX_: ${{matrix.cxx}}
+      BT: ${{matrix.bt}}
+      BITLINKS: ${{matrix.bitlinks}}
+      VG: ${{matrix.vg}}
+      SAN: ${{matrix.san}}
+      LINT: ${{matrix.lint}}
+      OS: ${{matrix.os}}
+    steps:
+    - name: checkout (manually)
+      run: |
+        set -xeo pipefail
+        env | sort
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+        echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
+        echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
+        git init -q .
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
+        git fetch origin $branch
+        git reset --hard FETCH_HEAD
+        git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
+    - name: install
+      run: c4core-install g++-${{matrix.cxx}}
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Debug ::: -m${{matrix.bits}}"
+    - name: 'configure Debug ::: -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Debug
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Debug \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS_DEBUG="-m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_DEBUG="-m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Debug ::: -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Debug --target ryml-test-build --parallel --verbose
+    - name: 'run Debug ::: -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Debug --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -O2 -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
+  vg2:
+    if: always()
+    continue-on-error: false
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
+    runs-on: ubuntu-24.04
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - std: 20
+          cxx: 14
+          bits: 64
+          vg: 'ON'
+          img: 22.04
+        - std: 20
+          cxx: 14
+          bits: 32
+          vg: 'ON'
+          img: 22.04
+        - std: 17
+          cxx: 14
+          bits: 64
+          vg: 'ON'
+          img: 22.04
+        - std: 17
+          cxx: 14
+          bits: 32
+          vg: 'ON'
+          img: 22.04
+        - std: 14
+          cxx: 14
+          bits: 64
+          vg: 'ON'
+          img: 22.04
+        - std: 14
+          cxx: 14
+          bits: 32
+          vg: 'ON'
+          img: 22.04
+        - std: 11
+          cxx: 14
+          bits: 64
+          vg: 'ON'
+          img: 22.04
+        - std: 11
+          cxx: 14
+          bits: 32
+          vg: 'ON'
+          img: 22.04
+    env:
+      STD: ${{matrix.std}}
+      CXX_: ${{matrix.cxx}}
+      BT: ${{matrix.bt}}
+      BITLINKS: ${{matrix.bitlinks}}
+      VG: ${{matrix.vg}}
+      SAN: ${{matrix.san}}
+      LINT: ${{matrix.lint}}
+      OS: ${{matrix.os}}
+    steps:
+    - name: checkout (manually)
+      run: |
+        set -xeo pipefail
+        env | sort
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+        echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
+        echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
+        git init -q .
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
+        git fetch origin $branch
+        git reset --hard FETCH_HEAD
+        git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
+    - name: install
+      run: c4core-install g++-${{matrix.cxx}}
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -O3 -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-build --parallel --verbose
+    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        cmake --build build/Release --target ryml-test-run
+  extended:
+    if: always()
+    continue-on-error: false
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
+    runs-on: ubuntu-24.04
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
         - std: 11
           cxx: 13
           bits: 64
