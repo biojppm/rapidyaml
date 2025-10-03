@@ -1124,6 +1124,7 @@ public:
     void reserve_comments(id_type comment_capacity);
 
     CommentData const* comment(id_type node_id, comment_data_type type_flags=COMM_ANY) const;
+    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id, CommentType_e type_flags) const { return comment(node_id, (comment_data_type)type_flags); }
 
     void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);
     void set_comment(NodeData *n, CommentType_e type, csubstr const& txt);

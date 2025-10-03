@@ -264,7 +264,7 @@ public:
     void end_map()
     {
         _pop();
-        _c4dbgpf("node[{}]: end_map_val", m_curr->node_id);
+        _c4dbgpf("node[{}]: end_map", m_curr->node_id);
     }
 
     /** @} */
@@ -303,7 +303,7 @@ public:
     void end_seq()
     {
         _pop();
-        _c4dbgpf("node[{}]: end_seq_val", m_curr->node_id);
+        _c4dbgpf("node[{}]: end_seq", m_curr->node_id);
     }
 
     /** @} */
@@ -570,6 +570,11 @@ public:
     void add_comment_leading_key(csubstr txt)
     {
         _c4dbgpf("node[{}]: leading comment! key [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        if(m_tree->comment(m_tree->id(m_curr->tr_data), COMM_LK))
+        {
+            add_sibling();
+            _c4dbgpf("node[{}]: leading val comment! but new sibling", m_tree->id(m_curr->tr_data));
+        }
         m_tree->set_comment(m_curr->tr_data, COMM_LK, txt);
     }
     /** add leading comment: val
@@ -577,6 +582,11 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_leading_val(csubstr txt)
     {
+        if(m_tree->comment(m_tree->id(m_curr->tr_data), COMM_LV))
+        {
+            add_sibling();
+            _c4dbgpf("node[{}]: leading val comment! but new sibling", m_tree->id(m_curr->tr_data));
+        }
         _c4dbgpf("node[{}]: leading comment! val [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
         m_tree->set_comment(m_curr->tr_data, COMM_LV, txt);
     }
@@ -822,7 +832,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
         const id_type last_added = m_tree->size() - 1;
-        if(m_tree->has_parent(last_added))
+        if(m_tree->has_parent(last_added) && !m_tree->comment(last_added))
             if(m_tree->_p(last_added)->m_type == NOTYPE)
                 m_tree->remove(last_added);
     }
@@ -833,7 +843,7 @@ public:
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
         const id_type last_added = m_tree->size() - 1;
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(last_added), m_tree, last_added);
-        if(m_tree->_p(last_added)->m_type == NOTYPE)
+        if(m_tree->_p(last_added)->m_type == NOTYPE && !m_tree->comment(last_added))
         {
             _c4dbgpf("remove speculative node with parent. parent={} node={} parent(node)={}", m_parent->node_id, last_added, m_tree->parent(last_added));
             m_tree->remove(last_added);

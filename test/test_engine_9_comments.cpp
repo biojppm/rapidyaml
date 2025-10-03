@@ -1,124 +1,131 @@
 #include "./test_lib/test_engine.hpp"
 
-// WARNING: don't use raw string literals -- g++4.8 cannot accept them
-// as macro arguments
-
+// WARNING: don't use raw string literals -- g++-4.8 cannot accept
+// them as macro arguments
 
 namespace c4 {
 namespace yml {
 
+#ifdef RYML_WITH_COMMENTS
+#define COMMENT_TEST(name, ...) ENGINE_TEST_(name, ParserOptions{}.with_comments(true), __VA_ARGS__)
+#else
+#define COMMENT_TEST(name, ...)                                 \
+    template<class Handler> void disabled_##name(Handler &ps);  \
+    template<class Handler> void disabled_##name(Handler &ps)
+#endif
 
-ENGINE_TEST(CommentSketch,
-            "---\n"
-            "# CLK Comment Leading to Key\n"
-            "key: # CTK Comment Trailing Key\n"
-            "  # CLV Comment Leading to Val\n"
-            "  val # CTV Comment Trailing Val\n"
-            "  # CFV Comment Footer Val\n"
-            "# CLK 2\n"
-            "foo: bar # CTV 2\n"
-            "  # CFV 2\n"
-            "--- # CTV 3\n"
-            "---\n"
-            "# CLV 4\n"
-            "---\n"
-            "# CLV 5\n"
-            "- val # CTV 6\n"
-            "# CLV 7\n"
-            "--- # CTV 8\n"
-            "# CLV 9\n"
-            "{ # CTV 10\n"
-            "  # continued 10\n"
-            "\n"
-            "  # CLK 11\n"
-            "  key: # CTK 12\n"
-            "       # continued 12\n"
-            "    # CLV 13\n"
-            "    [ # CTV 14\n"
-            "      # continued 14\n"
-            "\n"
-            "      # CLV 15\n"
-            "      a, # CTV 16\n"
-            "         # continued 16\n"
-            "      # CLV 17\n"
-            "      b  # CTV 18\n"
-            "         # continued 18\n"
-            "      # CLV 19\n"
-            "    ] # CFV: Comment Footer for Val 20\n"
-            "      # continued 20\n"
-            "    # CLV 21\n"
-            "} # CFV 22\n"
-            "  # continued 22\n"
-            "# CLV 23\n"
-            ,
-            "+STR\n"
-            "+DOC ---\n"
-            "+MAP\n"
-            "=CLK # CLK Comment Leading to Key\n"
-            "=VAL :key\n"
-            "=CTK # CTK Comment Trailing Key\n"
-            "=CLV # CLV Comment Leading to Val\n"
-            "=VAL :val\n"
-            "=CTV # CTV Comment Trailing Val\n"
-            "=CFV # CFV Comment Footer Val\n"
-            "=CLK # CLK 2\n"
-            "=VAL :foo\n"
-            "=VAL :bar\n"
-            "=CTV # CTV 2\n"
-            "=CFV # CFV 2\n"
-            "-MAP\n"
-            "-DOC\n"
-            "+DOC ---\n"
-            "=CTV # CTV 3\n"
-            "-DOC\n"
-            "+DOC ---\n"
-            "=CLV # CLV 4\n"
-            "-DOC\n"
-            "+DOC ---\n"
-            "+SEQ\n"
-            "=CLV # CLV 5\n"
-            "=VAL :val\n"
-            "=CTV # CTV 6\n"
-            "=CLV # CLV 7\n"
-            "-SEQ\n"
-            "-DOC\n"
-            "+DOC ---\n"
-            "=CTV # CTV 8\n"
-            "=CLV # CLV 9\n"
-            "+MAP {}\n"
-            "=CTV # CTV 10\\n continued 10\n"
-            "=CLK # CLK 11\n"
-            "=VAL :key\n"
-            "=CTK # CTK 12\\n continued 12\n"
-            "=CLV # CLV 13\n"
-            "+SEQ []\n"
-            "=CTV # CTV 14\\n continued 14\n"
-            "=CLV # CLV 15\n"
-            "=VAL :a\n"
-            "=CTV # CTV 16\\n continued 16\n"
-            "=CLV # CLV 17\n"
-            "=VAL :b\n"
-            "=CTV # CTV 18\\n continued 18\n"
-            "=CLV # CLV 19\n"
-            "-SEQ\n"
-            "=CFV # CFV Comment Footer for Val 20\\n continued 20\n"
-            "=CLV # CLV 21\n"
-            "-MAP\n"
-            "=CFV # CFV 22\\n continued 22\n"
-            "=CLV # CLV 23\n"
-            "-DOC\n"
-            "-STR\n")
+COMMENT_TEST(CommentSketch,
+            "---"                                          "\n"
+            "# CLK Comment Leading to Key 1.1"             "\n"
+            "key: # CTK Comment Trailing Key 1.2"          "\n"
+            "  # CLV Comment Leading to Val 1.3"           "\n"
+            "  val # CTV Comment Trailing Val 1.4"         "\n"
+            "  # CFV Comment Footer Val 1.5"               "\n"
+            "# CLK 2"                                      "\n"
+            "foo: bar # CTV 2"                             "\n"
+            "  # CFV 2"                                    "\n"
+            "--- # CTV 3"                                  "\n"
+            "---"                                          "\n"
+            "# CLV 4"                                      "\n"
+            "---"                                          "\n"
+            "# CLV 5"                                      "\n"
+            "- val # CTV 6"                                "\n"
+            "# CFV 7"                                      "\n"
+            "--- # CTV 8"                                  "\n"
+            "# CLV 9"                                      "\n"
+            "{ # CTV 10"                                   "\n"
+            "  # continued 10"                             "\n"
+            ""                                             "\n"
+            "  # CLK 11"                                   "\n"
+            "  key: # CTK 12"                              "\n"
+            "       # continued 12"                        "\n"
+            "    # CLV 13"                                 "\n"
+            "    [ # CTV 14"                               "\n"
+            "      # continued 14"                         "\n"
+            ""                                             "\n"
+            "      # CLV 15"                               "\n"
+            "      a, # CTV 16"                            "\n"
+            "         # continued 16"                      "\n"
+            "      # CLV 17"                               "\n"
+            "      b  # CTV 18"                            "\n"
+            "         # continued 18"                      "\n"
+            "      # CLV 19"                               "\n"
+            "    ] # CFV 20"                               "\n"
+            "      # continued 20"                         "\n"
+            "    # CLV 21"                                 "\n"
+            "} # CFV 22"                                   "\n"
+            "  # continued 22"                             "\n"
+            "# CLV 23"                                     "\n"
+             ,//-----------------------------------------------
+            "+STR"                                         "\n"
+            "+DOC ---"                                     "\n"
+            "+MAP"                                         "\n"
+            "=CLK # CLK Comment Leading to Key 1.1"        "\n"
+            "=VAL :key"                                    "\n"
+            "=CTK # CTK Comment Trailing Key 1.2"          "\n"
+            "=CLV # CLV Comment Leading to Val 1.3"        "\n"
+            "=VAL :val"                                    "\n"
+            "=CTV # CTV Comment Trailing Val 1.4"          "\n"
+            "=CFV # CFV Comment Footer Val 1.5"            "\n"
+            "=CLK # CLK 2"                                 "\n"
+            "=VAL :foo"                                    "\n"
+            "=VAL :bar"                                    "\n"
+            "=CTV # CTV 2"                                 "\n"
+            "=CFV # CFV 2"                                 "\n"
+            "-MAP"                                         "\n"
+            "-DOC"                                         "\n"
+            "+DOC ---"                                     "\n"
+            "=CTV # CTV 3"                                 "\n"
+            "-DOC"                                         "\n"
+            "+DOC ---"                                     "\n"
+            "=CLV # CLV 4"                                 "\n"
+            "-DOC"                                         "\n"
+            "+DOC ---"                                     "\n"
+            "+SEQ"                                         "\n"
+            "=CLV # CLV 5"                                 "\n"
+            "=VAL :val"                                    "\n"
+            "=CTV # CTV 6"                                 "\n"
+            "=CFV # CFV 7"                                 "\n"
+            "-SEQ"                                         "\n"
+            "-DOC"                                         "\n"
+            "+DOC ---"                                     "\n"
+            "=CTV # CTV 8"                                 "\n"
+            "=CLV # CLV 9"                                 "\n"
+            "+MAP {}"                                      "\n"
+            "=CTV # CTV 10\\n continued 10"                "\n"
+            "=CLK # CLK 11"                                "\n"
+            "=VAL :key"                                    "\n"
+            "=CTK # CTK 12\\n continued 12"                "\n"
+            "=CLV # CLV 13"                                "\n"
+            "+SEQ []"                                      "\n"
+            "=CTV # CTV 14\\n continued 14"                "\n"
+            "=CLV # CLV 15"                                "\n"
+            "=VAL :a"                                      "\n"
+            "=CTV # CTV 16\\n continued 16"                "\n"
+            "=CLV # CLV 17"                                "\n"
+            "=VAL :b"                                      "\n"
+            "=CTV # CTV 18\\n continued 18"                "\n"
+            "=CLV # CLV 19"                                "\n"
+            "-SEQ"                                         "\n"
+            "=CFV # CFV 20\\n continued 20"                "\n"
+            "=CLV # CLV 21"                                "\n"
+            "-MAP"                                         "\n"
+            "=CFV # CFV 22\\n continued 22"                "\n"
+            "=CLV # CLV 23"                                "\n"
+            "-DOC"                                         "\n"
+            "-STR"                                         "\n"
+    )
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc_expl());
     ___(ps.begin_map_val_block());
-    ___(ps.add_comment_leading_key(" CLK Comment Leading to Key"));
+    ___(ps.add_comment_leading_key(" CLK Comment Leading to Key 1.1"));
     ___(ps.set_key_scalar_plain("key"));
-    ___(ps.add_comment_trailing_key(" CTK Comment Trailing Key"));
-    ___(ps.add_comment_leading_val(" CLV Comment Leading to Val"));
+    ___(ps.add_comment_trailing_key(" CTK Comment Trailing Key 1.2"));
+    ___(ps.add_comment_leading_val(" CLV Comment Leading to Val 1.3"));
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.add_comment_trailing_val(" CTV Comment Trailing Val"));
-    ___(ps.add_comment_footer_val(" CFV Comment Footer Val"));
+    ___(ps.add_comment_trailing_val(" CTV Comment Trailing Val 1.4"));
+    ___(ps.add_comment_footer_val(" CFV Comment Footer Val 1.5"));
     ___(ps.add_sibling());
     ___(ps.add_comment_leading_key(" CLK 2"));
     ___(ps.set_key_scalar_plain("foo"));
@@ -138,7 +145,7 @@ ENGINE_TEST(CommentSketch,
     ___(ps.add_comment_leading_val(" CLV 5"));
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.add_comment_trailing_val(" CTV 6"));
-    ___(ps.add_comment_leading_val(" CLV 7"));
+    ___(ps.add_comment_footer_val(" CLV 7"));
     ___(ps.end_seq());
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
@@ -155,12 +162,13 @@ ENGINE_TEST(CommentSketch,
     ___(ps.add_comment_leading_val(" CLV 15"));
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.add_comment_trailing_val(" CTV 16\n continued 16"));
+    ___(ps.add_sibling());
     ___(ps.add_comment_leading_val(" CLV 17"));
     ___(ps.set_val_scalar_plain("b"));
     ___(ps.add_comment_trailing_val(" CTV 18\n continued 18"));
     ___(ps.add_comment_leading_val(" CLV 19"));
     ___(ps.end_seq());
-    ___(ps.add_comment_footer_val(" CFV Comment Footer for Val 20\n continued 20"));
+    ___(ps.add_comment_footer_val(" CFV 20\n continued 20"));
     ___(ps.add_comment_leading_val(" CLV 21"));
     ___(ps.end_map());
     ___(ps.add_comment_footer_val(" CFV 22\n continued 22"));
@@ -172,7 +180,7 @@ ENGINE_TEST(CommentSketch,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST(CommentSingle,
+COMMENT_TEST(CommentSingle,
             "# single comment\n"
             ,
             "+STR\n"
@@ -188,7 +196,7 @@ ENGINE_TEST(CommentSingle,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentSingleNoLeadSpace,
+COMMENT_TEST(CommentSingleNoLeadSpace,
             "#single comment\n"
             ,
             "+STR\n"
@@ -204,7 +212,7 @@ ENGINE_TEST(CommentSingleNoLeadSpace,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentSingleLeadSpace,
+COMMENT_TEST(CommentSingleLeadSpace,
             "#  single comment\n"
             ,
             "+STR\n"
@@ -220,7 +228,7 @@ ENGINE_TEST(CommentSingleLeadSpace,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentSingleMultiline0,
+COMMENT_TEST(CommentSingleMultiline0,
             "# single\n"
             "# comment\n"
             ,
@@ -237,7 +245,7 @@ ENGINE_TEST(CommentSingleMultiline0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentSingleMultiline1,
+COMMENT_TEST(CommentSingleMultiline1,
             "#\n"
             "# single\n"
             "# comment\n"
@@ -256,7 +264,7 @@ ENGINE_TEST(CommentSingleMultiline1,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentSingleMultiline2,
+COMMENT_TEST(CommentSingleMultiline2,
             "#\n"
             "#\n"
             "# single\n"
@@ -279,7 +287,7 @@ ENGINE_TEST(CommentSingleMultiline2,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentSingleMultiline3,
+COMMENT_TEST(CommentSingleMultiline3,
             "#\n"
             "#\n"
             "#  single  \n"
@@ -305,7 +313,7 @@ ENGINE_TEST(CommentSingleMultiline3,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST(CommentDocLeading,
+COMMENT_TEST(CommentDocLeading,
             "# leading 1\n"
             "---\n"
             "# leading 2\n"
@@ -344,7 +352,7 @@ ENGINE_TEST(CommentDocLeading,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentFlowLeading,
+COMMENT_TEST(CommentFlowLeading,
             "# leading map\n"
             "{\n"
             "}\n"
@@ -387,7 +395,7 @@ ENGINE_TEST(CommentFlowLeading,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentFlowLeading3Map,
+COMMENT_TEST(CommentFlowLeading3Map,
             "# leading val 1\n"
             "{ # trailing map 2\n"
             "  foo: # trailing key 3\n"
@@ -432,7 +440,7 @@ ENGINE_TEST(CommentFlowLeading3Map,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentFlowLeading2,
+COMMENT_TEST(CommentFlowLeading2,
             "# leading map\n"
             "{\n"
             "  # leading map child\n"
@@ -485,7 +493,7 @@ ENGINE_TEST(CommentFlowLeading2,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapFlowTrailingMultiline,
+COMMENT_TEST(CommentMapFlowTrailingMultiline,
             "{ # trailing\n"
             "  # comment\n"
             "  # with\n"
@@ -510,7 +518,7 @@ ENGINE_TEST(CommentMapFlowTrailingMultiline,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapFlowLeadingTrailing,
+COMMENT_TEST(CommentMapFlowLeadingTrailing,
             "# leading comment\n"
             "{ # trailing comment\n"
             "}\n"
@@ -534,7 +542,7 @@ ENGINE_TEST(CommentMapFlowLeadingTrailing,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapBlockLeadingTrailing,
+COMMENT_TEST(CommentMapBlockLeadingTrailing,
             "# leading comment\n"
             "foo: bar # trailing comment\n"
             ,
@@ -561,7 +569,7 @@ ENGINE_TEST(CommentMapBlockLeadingTrailing,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline,
+COMMENT_TEST(CommentMapBlockLeadingTrailingMultiline,
             "# leading\n"
             "# comment\n"
             "foo: bar # trailing\n"
@@ -590,7 +598,7 @@ ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline1,
+COMMENT_TEST(CommentMapBlockLeadingTrailingMultiline1,
             "# leading\n"
             "# comment\n"
             "foo: # trailing\n"
@@ -623,7 +631,7 @@ ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline1,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline2,
+COMMENT_TEST(CommentMapBlockLeadingTrailingMultiline2,
             "# leading\n"
             "# comment\n"
             "foo: bar # trailing\n"
@@ -665,7 +673,7 @@ ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline2,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline3,
+COMMENT_TEST(CommentMapBlockLeadingTrailingMultiline3,
             "# leading\n"
             "# comment\n"
             "foo: bar # trailing\n"
@@ -712,7 +720,7 @@ ENGINE_TEST(CommentMapBlockLeadingTrailingMultiline3,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapFlowSingleTrailingThenLeading,
+COMMENT_TEST(CommentMapFlowSingleTrailingThenLeading,
             "# leading comment 1\n"
             "{ # trailing comment\n"
             "} # footer comment\n"
@@ -787,7 +795,7 @@ ENGINE_TEST(CommentMapFlowSingleTrailingThenLeading,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentSeqFlowSingleTrailingThenLeading,
+COMMENT_TEST(CommentSeqFlowSingleTrailingThenLeading,
             "# leading comment 1\n"
             "[ # trailing comment\n"
             "] # footer comment\n"
@@ -862,7 +870,7 @@ ENGINE_TEST(CommentSeqFlowSingleTrailingThenLeading,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapFlow0,
+COMMENT_TEST(CommentMapFlow0,
             "{\n"
             "# leading comment for foo\n"
             "foo: 0, # trailing comment for foo\n"
@@ -948,7 +956,7 @@ ENGINE_TEST(CommentMapFlow0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(CommentMapBlock0,
+COMMENT_TEST(CommentMapBlock0,
             "# leading comment for foo\n"
             "foo: 0 # trailing comment for foo\n"
             "# leading comment for bar\n"
@@ -1029,6 +1037,151 @@ ENGINE_TEST(CommentMapBlock0,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+COMMENT_TEST(CommentMapBlockEmptyContainers,
+             "# CLK 0"                             "\n"
+             "map: { # CTV 1"                      "\n"
+             "  # CLK 1.1"                         "\n"
+             "  } # CFV 2"                         "\n"
+             "# CLK 3"                             "\n"
+             "seq: [ # CTV 4"                      "\n"
+             "  # CLK 4.1"                         "\n"
+             "  ] # CFV 5"                         "\n"
+             "# CLK 6"                             "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+MAP"                                "\n"
+             "=CLK # CLK 0"                        "\n"
+             "=VAL :map"                           "\n"
+             "+MAP {}"                             "\n"
+             "=CTV # CTV 1"                        "\n"
+             "=CLK # CLK 1.1"                      "\n"
+             "-MAP"                                "\n"
+             "=CFV # CFV 2"                        "\n"
+             "=CLK # CLK 3"                        "\n"
+             "=VAL :seq"                           "\n"
+             "+SEQ []"                             "\n"
+             "=CTV # CTV 4"                        "\n"
+             "=CLK # CLK 4.1"                      "\n"
+             "-SEQ"                                "\n"
+             "=CFV # CFV 5"                        "\n"
+             "=CLK # CLK 6"                        "\n"
+             "-MAP"                                "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment_leading_key(" CLK 0"));
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_trailing_val(" CTV 1"));
+    ___(ps.add_comment_leading_key(" CLK 1.1"));
+    ___(ps.end_map());
+    ___(ps.add_comment_footer_val(" CFV 2"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading_key(" CLK 3"));
+    ___(ps.set_key_scalar_plain("seq"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment_trailing_val(" CTV 4"));
+    ___(ps.add_comment_leading_key(" CLK 4.1"));
+    ___(ps.end_seq());
+    ___(ps.add_comment_footer_val(" CFV 5"));
+    ___(ps.add_comment_leading_key(" CLK 6"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(CommentMapFlowEmptyContainers,
+             "# CLV 0"                             "\n"
+             "{ # CTV 0.1"                         "\n"
+             "# CLK 0.1.1"                         "\n"
+             "map: # CTK 0.2"                      "\n"
+             "  # CLV 0.3"                         "\n"
+             "  { # CTV 1"                         "\n"
+             "  # CLK 1.1"                         "\n"
+             "  } # CFV 2"                         "\n"
+             ","                                   "\n"
+             "# CLK 3"                             "\n"
+             "seq: # CTK 3.1"                      "\n"
+             "  # CLV 3.2"                         "\n"
+             "  [ # CTV 4"                         "\n"
+             "  # CLK 4.1"                         "\n"
+             "  ] # CFV 5"                         "\n"
+             "# CLK 6"                             "\n"
+             "} # CFV 7"                           "\n"
+             "# CLV 8"                             "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "=CLV # CLV 0"                        "\n"
+             "+MAP {}"                             "\n"
+             "=CTV # CTV 0.1"                      "\n"
+             "=CLK # CLV 0"                        "\n"
+             "=VAL :map"                           "\n"
+             "+MAP {}"                             "\n"
+             "=CTV # CTV 1"                        "\n"
+             "=CLK # CLK 1.1"                      "\n"
+             "-MAP"                                "\n"
+             "=CFV # CFV 2"                        "\n"
+             "=CLK # CLK 3"                        "\n"
+             "=VAL :seq"                           "\n"
+             "+SEQ []"                             "\n"
+             "=CTV # CTV 4"                        "\n"
+             "=CLK # CLK 4.1"                      "\n"
+             "-SEQ"                                "\n"
+             "=CFV # CFV 5"                        "\n"
+             "=CLK # CLK 6"                        "\n"
+             "-MAP"                                "\n"
+             "=CFV # CFV 7"                        "\n"
+             "=CLV # CLV 8"                        "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading_val(" CLV 0"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_trailing_val(" CTV 0.1"));
+    ___(ps.add_comment_leading_key(" CLK 0.1.1"));
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.add_comment_trailing_key(" CTK 0.2"));
+    ___(ps.add_comment_leading_val(" CTV 0.3"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment_trailing_val(" CTV 1"));
+    ___(ps.add_comment_leading_key(" CLK 1.1"));
+    ___(ps.end_map());
+    ___(ps.add_comment_footer_val(" CFV 2"));
+    ___(ps.add_sibling());
+    ___(ps.add_comment_leading_key(" CLK 3"));
+    ___(ps.set_key_scalar_plain("seq"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment_trailing_val(" CTV 4"));
+    ___(ps.add_comment_leading_key(" CLK 4.1"));
+    ___(ps.end_seq());
+    ___(ps.add_comment_footer_val(" CFV 5"));
+    ___(ps.add_comment_leading_key(" CLK 6"));
+    ___(ps.end_map());
+    ___(ps.add_comment_footer_val(" CFV 7"));
+//fixme    //___(ps.add_comment_leading_val(" CLV 8"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 // The other test executables are written to contain the declarative-style
 // YmlTestCases. This executable does not have any but the build setup
