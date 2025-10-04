@@ -1045,13 +1045,17 @@ COMMENT_TEST(CommentMapBlock0,
 
 COMMENT_TEST(CommentMapBlockEmptyContainers,
              "# CLK 0"                             "\n"
-             "map: { # CTV 1"                      "\n"
-             "  # CLK 1.1"                         "\n"
-             "  } # CFV 2"                         "\n"
+             "map: # CTK 0.1"                      "\n"
+             "# CLV 0.2"                           "\n"
+             "{ # CTV 1"                           "\n"
+             "# CLK 1.1"                           "\n"
+             "} # CFV 2"                           "\n"
              "# CLK 3"                             "\n"
-             "seq: [ # CTV 4"                      "\n"
-             "  # CLK 4.1"                         "\n"
-             "  ] # CFV 5"                         "\n"
+             "seq: # CTK 3.1"                      "\n"
+             "# CLV 3.2"                           "\n"
+             "[ # CTV 4"                           "\n"
+             "# CLK 4.1"                           "\n"
+             "] # CFV 5"                           "\n"
              "# CLK 6"                             "\n"
              ,
              "+STR"                                "\n"
@@ -1059,6 +1063,8 @@ COMMENT_TEST(CommentMapBlockEmptyContainers,
              "+MAP"                                "\n"
              "=CLK # CLK 0"                        "\n"
              "=VAL :map"                           "\n"
+             "=CTK # CTK 0.1"                      "\n"
+             "=CLV # CLV 0.2"                      "\n"
              "+MAP {}"                             "\n"
              "=CTV # CTV 1"                        "\n"
              "=CLK # CLK 1.1"                      "\n"
@@ -1066,6 +1072,8 @@ COMMENT_TEST(CommentMapBlockEmptyContainers,
              "=CFV # CFV 2"                        "\n"
              "=CLK # CLK 3"                        "\n"
              "=VAL :seq"                           "\n"
+             "=CTK # CTK 3.1"                      "\n"
+             "=CLV # CLV 3.2"                      "\n"
              "+SEQ []"                             "\n"
              "=CTV # CTV 4"                        "\n"
              "=CLK # CLK 4.1"                      "\n"
@@ -1082,6 +1090,8 @@ COMMENT_TEST(CommentMapBlockEmptyContainers,
     ___(ps.begin_map_val_block());
     ___(ps.add_comment_leading_key(" CLK 0"));
     ___(ps.set_key_scalar_plain("map"));
+    ___(ps.add_comment_trailing_key(" CTK 0.1"));
+    ___(ps.add_comment_leading_val(" CLV 0.2"));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment_trailing_val(" CTV 1"));
     ___(ps.add_comment_leading_key(" CLK 1.1"));
@@ -1090,6 +1100,8 @@ COMMENT_TEST(CommentMapBlockEmptyContainers,
     ___(ps.add_sibling());
     ___(ps.add_comment_leading_key(" CLK 3"));
     ___(ps.set_key_scalar_plain("seq"));
+    ___(ps.add_comment_trailing_key(" CTK 3.1"));
+    ___(ps.add_comment_leading_val(" CLV 3.2"));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment_trailing_val(" CTV 4"));
     ___(ps.add_comment_leading_key(" CLK 4.1"));
@@ -1106,20 +1118,19 @@ COMMENT_TEST(CommentMapFlowEmptyContainers,
              "{ # CTV 0.1"                         "\n"
              "# CLK 0.1.1"                         "\n"
              "map: # CTK 0.2"                      "\n"
-             "  # CLV 0.3"                         "\n"
-             "  { # CTV 1"                         "\n"
-             "  # CLK 1.1"                         "\n"
-             "  } # CFV 2"                         "\n"
+             "# CLV 0.3"                           "\n"
+             "{ # CTV 1"                           "\n"
+             "# CLK 1.1"                           "\n"
+             "} # CFV 2"                           "\n"
              ","                                   "\n"
              "# CLK 3"                             "\n"
              "seq: # CTK 3.1"                      "\n"
-             "  # CLV 3.2"                         "\n"
-             "  [ # CTV 4"                         "\n"
-             "  # CLK 4.1"                         "\n"
-             "  ] # CFV 5"                         "\n"
+             "# CLV 3.2"                           "\n"
+             "[ # CTV 4"                           "\n"
+             "# CLK 4.1"                           "\n"
+             "] # CFV 5"                           "\n"
              "# CLK 6"                             "\n"
              "} # CFV 7"                           "\n"
-             "# CLV 8"                             "\n"
              ,
              "+STR"                                "\n"
              "+DOC"                                "\n"
@@ -1143,7 +1154,6 @@ COMMENT_TEST(CommentMapFlowEmptyContainers,
              "=CLK # CLK 6"                        "\n"
              "-MAP"                                "\n"
              "=CFV # CFV 7"                        "\n"
-             "=CLV # CLV 8"                        "\n"
              "-DOC"                                "\n"
              "-STR"                                "\n"
     )
@@ -1156,7 +1166,7 @@ COMMENT_TEST(CommentMapFlowEmptyContainers,
     ___(ps.add_comment_leading_key(" CLK 0.1.1"));
     ___(ps.set_key_scalar_plain("map"));
     ___(ps.add_comment_trailing_key(" CTK 0.2"));
-    ___(ps.add_comment_leading_val(" CTV 0.3"));
+    ___(ps.add_comment_leading_val(" CLV 0.3"));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment_trailing_val(" CTV 1"));
     ___(ps.add_comment_leading_key(" CLK 1.1"));
@@ -1165,6 +1175,8 @@ COMMENT_TEST(CommentMapFlowEmptyContainers,
     ___(ps.add_sibling());
     ___(ps.add_comment_leading_key(" CLK 3"));
     ___(ps.set_key_scalar_plain("seq"));
+    ___(ps.add_comment_trailing_key(" CTK 3.1"));
+    ___(ps.add_comment_leading_val(" CLV 3.2"));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment_trailing_val(" CTV 4"));
     ___(ps.add_comment_leading_key(" CLK 4.1"));
@@ -1173,11 +1185,45 @@ COMMENT_TEST(CommentMapFlowEmptyContainers,
     ___(ps.add_comment_leading_key(" CLK 6"));
     ___(ps.end_map());
     ___(ps.add_comment_footer_val(" CFV 7"));
-//fixme    //___(ps.add_comment_leading_val(" CLV 8"));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
 
+#ifdef NOT_IMPLEMENTED_YET_IN_INTS_OR_TESTSUITE
+// mandate handler error from this sequence of events
+ENGINE_TEST_ERR_FROM_EVENTS(DupLVcommentSeq,
+                            "# CLV 1"             "\n"
+                            "[]"                  "\n"
+                            "# CLV 2"             "\n"
+                            ,
+                            "")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading_val(" CLV 1"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq());
+    ___(ps.add_comment_leading_val(" CLV 2"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST_ERR_FROM_EVENTS(DupLVcommentMap,
+                            "# CLV 1"             "\n"
+                            "{}"                  "\n"
+                            "# CLV 2"             "\n"
+                            ,
+                            "")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment_leading_val(" CLV 1"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.add_comment_leading_val(" CLV 2"));
+    ___(ps.end_stream());
+}
+#endif
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

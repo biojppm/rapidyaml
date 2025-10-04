@@ -569,11 +569,22 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_leading_key(csubstr txt)
     {
-        _c4dbgpf("node[{}]: leading comment! key [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
-        if(m_tree->comment(m_tree->id(m_curr->tr_data), COMM_LK))
+        id_type id = m_tree->id(m_curr->tr_data);
+        _c4dbgpf("node[{}]: leading comment! key [{}]~~~{}~~~", id, txt.len, txt);
+        if(m_tree->comment(id, COMM_LK))
         {
-            add_sibling();
-            _c4dbgpf("node[{}]: leading val comment! but new sibling", m_tree->id(m_curr->tr_data));
+            if(m_tree->has_parent(id))
+            {
+                add_sibling();
+                _c4dbgpf("node[{}]: already has LK comment -> add to extra sibling", id);
+            }
+            else
+            {
+                // this node already has leading key comment, and
+                // we're at root level so we cannot accomodate this
+                // extra comment
+                _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "cannot add extra leading key comment at root level");
+            }
         }
         m_tree->set_comment(m_curr->tr_data, COMM_LK, txt);
     }
@@ -582,12 +593,23 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment_leading_val(csubstr txt)
     {
-        if(m_tree->comment(m_tree->id(m_curr->tr_data), COMM_LV))
+        id_type id = m_tree->id(m_curr->tr_data);
+        _c4dbgpf("node[{}]: leading comment! val [{}]~~~{}~~~", id, txt.len, txt);
+        if(m_tree->comment(id, COMM_LV))
         {
-            add_sibling();
-            _c4dbgpf("node[{}]: leading val comment! but new sibling", m_tree->id(m_curr->tr_data));
+            if(m_tree->has_parent(id))
+            {
+                add_sibling();
+                _c4dbgpf("node[{}]: already has LV comment -> add to extra sibling", id);
+            }
+            else
+            {
+                // this node already has leading val comment, and
+                // we're at root level so we cannot accomodate this
+                // extra comment
+                _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "cannot add extra leading val comment at root level");
+            }
         }
-        _c4dbgpf("node[{}]: leading comment! val [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
         m_tree->set_comment(m_curr->tr_data, COMM_LV, txt);
     }
 

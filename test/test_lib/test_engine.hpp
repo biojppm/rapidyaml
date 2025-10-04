@@ -46,48 +46,8 @@ void test_compare_events(csubstr ref_evts,
                     bool ignore_tag_normalization);
 
 
+
 //-----------------------------------------------------------------------------
-
-struct EngineEvtTestCase
-{
-    EngineEvtTestCase(                                       std::string s               , std::string ev) : test_case_flags(  ), expected_error_location(        ), parsed(s           ), emitted(std::move(s)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
-    EngineEvtTestCase(                                       std::string p, std::string e, std::string ev) : test_case_flags(  ), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
-    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev) : test_case_flags(tf), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
-    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p               , std::string ev) : test_case_flags(tf), expected_error_location(        ), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
-    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
-
-    EngineEvtTestCase(                                       std::string s               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(        ), parsed(s           ), emitted(std::move(s)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    EngineEvtTestCase(                                       std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(        ), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
-    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
-    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(           p), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
-    TestCaseFlags_e test_case_flags;
-    Location expected_error_location;
-    std::string parsed;
-    std::string emitted;
-    std::string expected_events;
-    std::vector<extra::IntEventWithScalar> expected_ints;
-    bool expected_ints_enabled;
-};
-
-
-template<template<class> class EventProducerFn>
-C4_NO_INLINE void test_engine_testsuite_from_events(const EngineEvtTestCase& tc)
-{
-    extra::EventHandlerTestSuite::EventSink sink;
-    extra::EventHandlerTestSuite handler(&sink);
-    handler.reset();
-    EventProducerFn<extra::EventHandlerTestSuite> event_producer;
-    event_producer(handler);
-    csubstr result = sink;
-    _c4dbgpf("~~~\n{}~~~\n", result);
-    EXPECT_EQ(std::string(result.str, result.len), tc.expected_events);
-}
-
 
 struct Separator {};
 template<class Handler, class ArgTransformer>
@@ -186,6 +146,62 @@ struct TransformToSourceBufferOrArena
 };
 
 
+//-----------------------------------------------------------------------------
+
+struct EngineEvtTestCase
+{
+    EngineEvtTestCase(                                       std::string s               , std::string ev) : test_case_flags(  ), expected_error_location(        ), parsed(s           ), emitted(std::move(s)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
+    EngineEvtTestCase(                                       std::string p, std::string e, std::string ev) : test_case_flags(  ), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
+    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev) : test_case_flags(tf), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
+    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p               , std::string ev) : test_case_flags(tf), expected_error_location(        ), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) {}
+    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev) : test_case_flags(tf), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _RYML_ASSERT_BASIC(linecol_); }
+
+    EngineEvtTestCase(                                       std::string s               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(        ), parsed(s           ), emitted(std::move(s)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    EngineEvtTestCase(                                       std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(        ), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    EngineEvtTestCase(TestCaseFlags_e tf,                    std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(        ), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) {}
+    EngineEvtTestCase(                    Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(  ), expected_error_location(linecol_), parsed(p           ), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(std::move(p)), emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
+    EngineEvtTestCase(TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : test_case_flags(tf), expected_error_location(linecol_), parsed(           p), emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
+    TestCaseFlags_e test_case_flags;
+    Location expected_error_location;
+    std::string parsed;
+    std::string emitted;
+    std::string expected_events;
+    std::vector<extra::IntEventWithScalar> expected_ints;
+    bool expected_ints_enabled;
+};
+
+
+//-----------------------------------------------------------------------------
+
+
+template<template<class> class EventProducerFn>
+C4_NO_INLINE void test_engine_testsuite_from_events(const EngineEvtTestCase& tc)
+{
+    extra::EventHandlerTestSuite::EventSink sink;
+    extra::EventHandlerTestSuite handler(&sink);
+    handler.reset();
+    EventProducerFn<extra::EventHandlerTestSuite> event_producer;
+    event_producer(handler);
+    csubstr result = sink;
+    _c4dbgpf("~~~\n{}~~~\n", result);
+    EXPECT_EQ(std::string(result.str, result.len), tc.expected_events);
+}
+
+template<template<class> class EventProducerFn>
+C4_NO_INLINE void test_engine_error_testsuite_from_events(const EngineEvtTestCase& tc)
+{
+    ExpectError::check_error_parse([&]{
+        test_engine_testsuite_from_events<EventProducerFn>(tc);
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+
 template<template<class> class EventProducerFn>
 C4_NO_INLINE void test_engine_ints_from_events(EngineEvtTestCase const& tc)
 {
@@ -244,6 +260,17 @@ C4_NO_INLINE void test_engine_ints_from_events(EngineEvtTestCase const& tc)
 }
 
 template<template<class> class EventProducerFn>
+C4_NO_INLINE void test_engine_error_ints_from_events(const EngineEvtTestCase& tc)
+{
+    ExpectError::check_error_parse([&]{
+        test_engine_ints_from_events<EventProducerFn>(tc);
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+
+template<template<class> class EventProducerFn>
 C4_NO_INLINE void test_engine_tree_from_events(EngineEvtTestCase const& tc)
 {
     if(tc.test_case_flags & HAS_CONTAINER_KEYS)
@@ -266,9 +293,20 @@ C4_NO_INLINE void test_engine_tree_from_events(EngineEvtTestCase const& tc)
         #endif
         std::string actual = emitrs_yaml<std::string>(tree);
         _c4dbgpf("~~~\n{}~~~\n", actual);
-        EXPECT_EQ(actual, tc.emitted);
+        EXPECT_EQ(tc.emitted, actual);
     }
 }
+
+template<template<class> class EventProducerFn>
+C4_NO_INLINE void test_engine_error_tree_from_events(const EngineEvtTestCase& tc)
+{
+    ExpectError::check_error_parse([&]{
+        test_engine_tree_from_events<EventProducerFn>(tc);
+    });
+}
+
+
+//-----------------------------------------------------------------------------
 
 void test_engine_testsuite_from_yaml(EngineEvtTestCase const& yaml, std::string const& parsed_yaml, ParserOptions opts);
 void test_engine_ints_from_yaml(EngineEvtTestCase const& yaml, std::string const& parsed_yaml, ParserOptions opts);
@@ -294,6 +332,7 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 #else
 #define _RYML_SHOWFILELINE(name)
 #endif
+
 
 
 //-----------------------------------------------------------------------------
@@ -363,15 +402,7 @@ TEST(name, err_tree_from_yaml)                          \
 
 //-----------------------------------------------------------------------------
 
-
-/* declare a parse engine test for the existing event handlers.
- * The extra arguments are for the ctor of EngineEvtTestCase */
-#define ENGINE_TEST(name, ...) ENGINE_TEST_(name, ParserOptions{}, __VA_ARGS__)
-
-
-/* declare a parse engine test for the existing event handlers.
- * The extra arguments are for the ctor of EngineEvtTestCase */
-#define ENGINE_TEST_(name, opts, ...)                           \
+#define ENGINE_TEST_DECLARE_CASE(name, ...)                     \
                                                                 \
                                                                 \
 static const EngineEvtTestCase test_case_##name(__VA_ARGS__);   \
@@ -380,7 +411,7 @@ static const EngineEvtTestCase test_case_##name(__VA_ARGS__);   \
 /* declare a function that will produce a                       \
    sequence of events */                                        \
 template<class EvtHandlerClass>                                 \
-void stream_events_##name(EvtHandlerClass &handler);            \
+static void stream_events_##name(EvtHandlerClass &handler);     \
                                                                 \
                                                                 \
 /* package the function into a class */                         \
@@ -392,6 +423,77 @@ struct name                                                     \
         stream_events_##name(handler);                          \
     }                                                           \
 };                                                              \
+                                                                \
+
+
+
+#define ENGINE_TEST_DEFINE_CASE(name)                           \
+                                                                \
+/* finally, define the function that will produce the           \
+ * sequence of events */                                        \
+template<class EvtHandlerClass>                                 \
+void stream_events_##name(EvtHandlerClass &ps)
+
+
+
+//-----------------------------------------------------------------------------
+
+
+#define ENGINE_TEST_ERR_FROM_EVENTS(name, ...)                  \
+                                                                \
+                                                                \
+ENGINE_TEST_DECLARE_CASE(name, __VA_ARGS__)                     \
+                                                                \
+                                                                \
+TEST(name, engine_err_testsuite_from_yaml)                      \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_err_testsuite_from_events");           \
+    auto const &tc = test_case_##name;                          \
+    test_engine_error_testsuite_from_events<name>(tc);          \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+                                                                \
+TEST(name, engine_err_ints_from_yaml)                           \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_err_ints_from_events");                \
+    auto const &tc = test_case_##name;                          \
+    test_engine_error_ints_from_events<name>(tc);               \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+                                                                \
+TEST(name, engine_err_tree_from_yaml)                           \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_err_tree_from_events");                \
+    auto const &tc = test_case_##name;                          \
+    test_engine_error_tree_from_events<name>(tc);               \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+                                                                \
+ENGINE_TEST_DEFINE_CASE(name)                                   \
+                                                                \
+                                                                \
+
+
+//-----------------------------------------------------------------------------
+
+
+/* declare a parse engine test for the existing event handlers.
+ * The extra arguments are for the ctor of EngineEvtTestCase */
+#define ENGINE_TEST(name, ...) ENGINE_TEST_(name, ParserOptions{}, __VA_ARGS__)
+
+
+/* declare a parse engine test for the existing event handlers.
+ * The extra arguments are for the ctor of EngineEvtTestCase */
+#define ENGINE_TEST_(name, opts, ...)                           \
+                                                                \
+                                                                \
+ENGINE_TEST_DECLARE_CASE(name, __VA_ARGS__)                     \
                                                                 \
                                                                 \
 TEST(name, testsuite_from_events)                               \
@@ -478,11 +580,9 @@ TEST(name, tree_from_yaml_with_comments)                        \
 }                                                               \
                                                                 \
                                                                 \
+ENGINE_TEST_DEFINE_CASE(name)                                   \
                                                                 \
-/* finally, define the function that will produce the           \
- * sequence of events */                                        \
-template<class EvtHandlerClass>                                 \
-void stream_events_##name(EvtHandlerClass &ps)
+                                                                \
 
 
 

@@ -242,10 +242,6 @@ private:
         if(!m_flow)
             _write(' ', 2u * (size_t)level);
     }
-    void _indent_always(id_type level)
-    {
-        _write(' ', 2u * (size_t)level);
-    }
 
     /// write a newline and reset the column
     C4_ALWAYS_INLINE void _newl()
