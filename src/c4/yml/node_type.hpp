@@ -278,14 +278,16 @@ RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
 #ifdef RYML_WITH_COMMENTS
 using comment_data_type = uint32_t;
 typedef enum : uint32_t {
-    COMM_LK = (1u << 0u),  ///< comment leading key
-    COMM_TK = (1u << 1u),  ///< comment trailing key
-    COMM_FK = (1u << 2u),  ///< comment footer key
-    COMM_LV = (1u << 3u),  ///< comment leading val
-    COMM_TV = (1u << 4u),  ///< comment trailing val
-    COMM_FV = (1u << 5u),  ///< comment footer val
-    COMM_ANY_KEY = COMM_LK|COMM_TK|COMM_FK,
-    COMM_ANY_VAL = COMM_LV|COMM_TV|COMM_FV,
+    COMM_LK  = (1u << 0u),  ///< comment leading key
+    COMM_LK2 = (1u << 1u),  ///< comment leading key, after ? (only in block mode)
+    COMM_TK  = (1u << 2u),  ///< comment trailing key
+    COMM_FK  = (1u << 3u),  ///< comment footer key
+    COMM_LV  = (1u << 4u),  ///< comment leading val
+    COMM_LV2 = (1u << 5u),  ///< comment leading val, after - (only in block mode)
+    COMM_TV  = (1u << 6u),  ///< comment trailing val
+    COMM_FV  = (1u << 7u),  ///< comment footer val
+    COMM_ANY_KEY = COMM_LK|COMM_LK2|COMM_TK|COMM_FK,
+    COMM_ANY_VAL = COMM_LV|COMM_LV2|COMM_TV|COMM_FV,
     COMM_ANY = COMM_ANY_KEY|COMM_ANY_VAL,
 } CommentType_e;
 
@@ -298,6 +300,18 @@ struct CommentData
 };
 C4_MUST_BE_TRIVIAL_COPY(CommentData);
 #endif // RYML_WITH_COMMENTS
+
+/** @cond dev */
+#if defined(RYML_WITH_COMMENTS)
+#define _RYML_WITH_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITHOUT_COMMENTS(...)
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) with
+#else
+#define _RYML_WITH_COMMENTS(...)
+#define _RYML_WITHOUT_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) without
+#endif
+/** @endcond */
 
 /** @} */
 

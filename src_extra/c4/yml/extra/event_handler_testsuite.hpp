@@ -606,6 +606,27 @@ public:
         _send_('\n');
     }
 
+    /** add leading comment: key2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_key2(csubstr txt)
+    {
+        _c4dbgpf("leading comment! key2 [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CLK2 #");
+        append_scalar_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+    /** add leading comment: val2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val2(csubstr txt)
+    {
+        _c4dbgpf("leading comment! val2 [{}]~~~{}~~~", txt.len, txt);
+        _send_("=CLV2 #");
+        append_scalar_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+
     /** add trailing comment; key */
     void add_comment_trailing_key(csubstr txt)
     {

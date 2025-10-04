@@ -116,7 +116,9 @@ struct EventTransformer
 
     #ifdef RYML_WITH_COMMENTS
     fwds(add_comment_leading_key)
+    fwds(add_comment_leading_key2)
     fwds(add_comment_leading_val)
+    fwds(add_comment_leading_val2)
     fwds(add_comment_trailing_key)
     fwds(add_comment_trailing_val)
     fwds(add_comment_footer_key)

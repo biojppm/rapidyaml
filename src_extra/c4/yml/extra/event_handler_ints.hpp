@@ -97,19 +97,20 @@ typedef enum : DataType {
 
     #ifdef RYML_WITH_COMMENTS
     // comment flags
-    COML = (1 << 28),  ///< leading comment
-    COMT = (1 << 29),  ///< trailing comment
-    COMF = (1 << 30),  ///< footer comment
+    COML  = (1 << 28),  ///< leading comment
+    COML2 = (1 << 29),  ///< leading comment
+    COMT  = (1 << 30),  ///< trailing comment
+    COMF  = (1 << 31),  ///< footer comment
     // Utility flags/masks
     /// the last flag defined above
     LAST = COMF,
     /// a mask of all bits in this enumeration
-    MASK = 0x7fffffff, // same as ((LAST << 1) - 1), but without overflow
+    MASK = (-1), // same as ((LAST << 1) - 1), but without overflow
     /// with string: mask of all the events that encode a string
     /// following the event. in the event has a string. the next two
     /// integers will provide respectively the string's offset and
     /// length. See also @ref PSTR.
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COML|COMT|COMF,
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COML|COML2|COMT|COMF,
     #else
     // Utility flags/masks
     /// the last flag defined above
@@ -123,8 +124,6 @@ typedef enum : DataType {
     WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML,
     #endif
 } EventFlags;
-static_assert((MASK & LAST) == LAST, "overflow?");
-static_assert((MASK & (LAST<<1)) == 0, "overflow?");
 } // namespace ievt
 
 /** @} */
@@ -1208,6 +1207,23 @@ public:
     {
         _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
         _send_str_(txt, ievt::VAL_|ievt::COML);
+    }
+
+    /** add leading comment: key2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_key2(csubstr txt)
+    {
+        _c4dbgpf("leading comment! key2 [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::KEY_|ievt::COML2);
+    }
+    /** add leading comment: val2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val2(csubstr txt)
+    {
+        _c4dbgpf("leading comment! val2 [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::VAL_|ievt::COML2);
     }
 
     /** add trailing comment; key */

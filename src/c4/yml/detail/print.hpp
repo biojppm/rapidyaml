@@ -118,9 +118,11 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
         {
             CommentData const& comm = p.m_comments_buf[cid];
             /* */if(comm.m_type == COMM_LK) printf("%sLK", ccount++?"|":"");
+            else if(comm.m_type == COMM_LK2) printf("%sLK2", ccount++?"|":"");
             else if(comm.m_type == COMM_TK) printf("%sTK", ccount++?"|":"");
             else if(comm.m_type == COMM_FK) printf("%sFK", ccount++?"|":"");
             else if(comm.m_type == COMM_LV) printf("%sLV", ccount++?"|":"");
+            else if(comm.m_type == COMM_LV2) printf("%sLV2", ccount++?"|":"");
             else if(comm.m_type == COMM_TV) printf("%sTV", ccount++?"|":"");
             else if(comm.m_type == COMM_FV) printf("%sFV", ccount++?"|":"");
         }

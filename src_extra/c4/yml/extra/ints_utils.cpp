@@ -65,6 +65,7 @@ c4::EnumSymbols<yml::extra::ievt::EventFlags> esyms<yml::extra::ievt::EventFlags
         {yml::extra::ievt::TAGV, "TAGV"},
         #ifdef RYML_WITH_COMMENTS
         {yml::extra::ievt::COML, "COML"},
+        {yml::extra::ievt::COML2, "COML2"},
         {yml::extra::ievt::COMT, "COMT"},
         {yml::extra::ievt::COMF, "COMF"},
         #endif

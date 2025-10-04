@@ -613,6 +613,25 @@ public:
         m_tree->set_comment(m_curr->tr_data, COMM_LV, txt);
     }
 
+    /** add leading comment: key2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_key2(csubstr txt)
+    {
+        id_type id = m_tree->id(m_curr->tr_data);
+        _c4dbgpf("node[{}]: leading comment! key2 [{}]~~~{}~~~", id, txt.len, txt);
+        m_tree->set_comment(m_curr->tr_data, COMM_LK2, txt);
+    }
+    /** add leading comment: val2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val2(csubstr txt)
+    {
+        id_type id = m_tree->id(m_curr->tr_data);
+        _c4dbgpf("node[{}]: leading comment! val2 [{}]~~~{}~~~", id, txt.len, txt);
+        m_tree->set_comment(m_curr->tr_data, COMM_LV2, txt);
+    }
+
     /** add trailing comment: key.
      *
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */

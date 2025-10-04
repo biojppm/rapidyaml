@@ -201,6 +201,14 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
                 append("=CLV #");
             append_esc(getstr(i));
         }
+        else if(evt & ievt::COML2)
+        {
+            if(evt & ievt::KEY_)
+                append("=CLK2 #");
+            else
+                append("=CLV2 #");
+            append_esc(getstr(i));
+        }
         else if(evt & ievt::COMT)
         {
             if(evt & ievt::KEY_)

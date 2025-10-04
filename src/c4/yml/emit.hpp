@@ -186,10 +186,18 @@ private:
 private:
 
     void _emit_yaml(id_type id);
-    void _do_visit_flow_sl(id_type id, id_type depth, id_type ilevel=0);
-    void _do_visit_flow_ml(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block_container(id_type id, id_type depth, id_type next_level, bool do_indent);
+
+    void _visit_flow_sl(id_type id, id_type depth, id_type ilevel=0);
+    void _visit_flow_ml(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
+
+    void _visit_blck(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
+    void _visit_blck_seq(id_type id, id_type depth, id_type next_level, bool do_indent);
+    void _visit_blck_map(id_type id, id_type depth, id_type next_level, bool do_indent);
+    void _visit_blck_container(id_type id, NodeType ty, id_type depth, id_type next_level, bool do_indent);
+
+    void _flow_open_container(id_type id, NodeType ty, id_type ilevel);
+    void _blck_open_container(id_type id, NodeType ty, id_type ilevel, id_type do_indent);
+
     void _do_visit_json(id_type id, id_type depth);
 
 private:
