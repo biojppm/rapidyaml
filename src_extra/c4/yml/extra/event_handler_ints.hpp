@@ -43,39 +43,46 @@ using DataType = int32_t;
 /** enumeration of integer event bits. */
 typedef enum : DataType {
 
-    // Event types
-    BSTR = (1 <<  0),  ///< +STR begin stream
-    ESTR = (1 <<  1),  ///< -STR end stream
-    BDOC = (1 <<  2),  ///< +DOC begin doc
-    EDOC = (1 <<  3),  ///< -DOC end doc
-    BMAP = (1 <<  4),  ///< +MAP begin map
-    EMAP = (1 <<  5),  ///< -MAP end map
-    BSEQ = (1 <<  6),  ///< +SEQ begin seq
-    ESEQ = (1 <<  7),  ///< -SEQ end seq
-    SCLR = (1 <<  8),  ///< =VAL scalar
-    ANCH = (1 <<  9),  ///< &anchor
-    ALIA = (1 << 10),  ///< *ref =ALI alias (reference)
-    TAG_ = (1 << 11),  ///< !tag
+    // Event scopes
+    BEG_ = (1 <<  0),  ///< scope: begin
+    END_ = (1 <<  1),  ///< scope: end
+    SEQ_ = (1 <<  2),  ///< scope: seq
+    MAP_ = (1 <<  3),  ///< scope: map
+    DOC_ = (1 <<  4),  ///< scope: doc
+    STRM = (1 <<  5),  ///< scope: stream
+    BSEQ = BEG_|SEQ_,  ///< begin seq    (+SEQ in test suite events)
+    ESEQ = END_|SEQ_,  ///< end seq      (-SEQ in test suite events)
+    BMAP = BEG_|MAP_,  ///< begin map    (+MAP in test suite events)
+    EMAP = END_|MAP_,  ///< end map      (-MAP in test suite events)
+    BSTR = BEG_|STRM,  ///< begin stream (+STR in test suite events)
+    ESTR = END_|STRM,  ///< end stream   (-STR in test suite events)
+    BDOC = BEG_|DOC_,  ///< begin doc    (+DOC in test suite events)
+    EDOC = END_|DOC_,  ///< end doc      (-DOC in test suite events)
 
-    // Style flags
-    PLAI = (1 << 12),  ///< plain scalar
-    SQUO = (1 << 13),  ///< single-quoted scalar (')
-    DQUO = (1 << 14),  ///< double-quoted scalar ("")
-    LITL = (1 << 15),  ///< block literal scalar (|)
-    FOLD = (1 << 16),  ///< block folded scalar (>)
-    FLOW = (1 << 17),  ///< flow container: [] for seqs or {} for maps
-    BLCK = (1 << 18),  ///< block container
+    // Single events
+    SCLR = (1 <<  6),  ///< scalar (=VAL in test suite events)
+    ALIA = (1 <<  7),  ///< *ref (reference)
+    ANCH = (1 <<  8),  ///< &anchor
+    TAG_ = (1 <<  9),  ///< !tag
 
     // Structure flags
-    KEY_ = (1 << 19),  ///< as key
-    VAL_ = (1 << 20),  ///< as value
-    EXPL = (1 << 21),  ///< `---` (with BDOC) or
-                       ///< `...` (with EDOC)
+    KEY_ = (1 << 10),  ///< as key
+    VAL_ = (1 << 11),  ///< as value
+    EXPL = (1 << 12),  ///< `---` (with BDOC) or `...` (with EDOC)
+
+    // Style flags
+    PLAI = (1 << 13),  ///< scalar: plain
+    SQUO = (1 << 14),  ///< scalar: single-quoted (')
+    DQUO = (1 << 15),  ///< scalar: double-quoted ("")
+    LITL = (1 << 16),  ///< scalar: block literal (|)
+    FOLD = (1 << 17),  ///< scalar: block folded (>)
+    FLOW = (1 << 18),  ///< container: flow: [] for seqs or {} for maps
+    BLCK = (1 << 19),  ///< container: block
 
     // Directive flags
-    YAML = (1 << 22),  ///< `%YAML <version>`
-    TAGD = (1 << 23),  ///< tag directive name : `%TAG <name> .......`
-    TAGV = (1 << 24),  ///< tag directive value: `%TAG ...... <value>`
+    YAML = (1 << 20),  ///< `%YAML <version>`
+    TAGD = (1 << 21),  ///< tag directive name : `%TAG <name> .......`
+    TAGV = (1 << 22),  ///< tag directive value: `%TAG ...... <value>`
 
     // Buffer flags
     /// IMPORTANT. Marks events whose string was placed in the
@@ -85,15 +92,15 @@ typedef enum : DataType {
     /// expand from two to three bytes). Because of this size
     /// expansion, the filtered string cannot be placed in the original
     /// source and needs to be placed in the arena.
-    AREN = (1 << 25),
+    AREN = (1 << 23),
     /// special flag to enable look-back in the event array. it
     /// signifies that the previous event has a string, meaning that
     /// the jump back to that event is 3 positions. without this flag it
     /// would be impossible to jump to the previous event.
-    PSTR = (1 << 26),
+    PSTR = (1 << 24),
     /// special flag to mark a scalar as unfiltered (when the parser
     /// is set not to filter).
-    UNFILT = (1 << 27),
+    UNFILT = (1 << 25),
 
     // Utility flags/masks
     LAST = UNFILT,              ///< the last flag defined above
@@ -732,7 +739,7 @@ public:
                 _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
                 int32_t pos;
                 _c4dbgpf("{}/{}: find matching open for {}", m_evt_pos, m_evt_size, m_evt_prev);
-                if(m_evt[m_evt_prev] & ievt::EMAP)
+                if((m_evt[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
                 {
                     pos = _find_matching_open(ievt::BMAP, ievt::EMAP, m_evt_prev);
                 }
@@ -791,13 +798,13 @@ public:
             {
                 _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
                 _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_pos);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC));
+                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC) == ievt::BDOC);
                 if(m_evt_pos < m_evt_size)
                 {
                     ++pos; // add 1 to write after BDOC
                     int32_t num_move = m_evt_pos - pos;
                     int32_t posp1 = pos + 1;
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & (ievt::BSEQ|ievt::BMAP)));
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
                     _RYML_CB_ASSERT(m_stack.m_callbacks, num_move > 0);
                     _RYML_CB_ASSERT(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
                     memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
@@ -824,7 +831,7 @@ public:
         while(pos >= 0)
         {
             ievt::DataType e = m_evt[pos];
-            if(e & ievt::BDOC)
+            if((e & ievt::BDOC) == ievt::BDOC)
                 return pos;
             pos -= (e & ievt::PSTR) ? 3 : 1;
         }
@@ -833,20 +840,21 @@ public:
     int32_t _find_matching_open(ievt::DataType open, ievt::DataType close, int32_t pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & close));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !(m_evt[pos] & open));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & close) == close);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & open) == (close & ~ievt::END_));
         pos = _prev(pos); // don't count the starting close token
         uint32_t count = 0;
         while(pos >= 0)
         {
             ievt::DataType e = m_evt[pos];
             _c4dbgpf("find_matching: pos={} count={} e={}", pos, count, m_evt[pos]);
-            if(e & close)
+            if((e & close) == close)
             {
                 _c4dbgpf(".............: pos={} close! count={} e={}", pos, count, m_evt[pos]);
                 ++count;
             }
-            else if(e & open)
+            else if((e & open) == open)
             {
                 _c4dbgpf(".............: pos={} open! count={} e={}", pos, count, m_evt[pos]);
                 if(!count)

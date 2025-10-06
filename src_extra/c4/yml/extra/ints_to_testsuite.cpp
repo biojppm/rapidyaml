@@ -129,25 +129,25 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
             else //if(evt & ievt::PLAI)
                 append_val(":", s);
         }
-        else if(evt & ievt::BSEQ)
+        else if((evt & ievt::BSEQ) == ievt::BSEQ)
         {
             if(evt & ievt::FLOW)
                 append_cont("+SEQ", "[]");
             else
                 append_cont("+SEQ", "");
         }
-        else if(evt & ievt::ESEQ)
+        else if((evt & ievt::ESEQ) == ievt::ESEQ)
         {
             append("-SEQ\n");
         }
-        else if(evt & ievt::BMAP)
+        else if((evt & ievt::BMAP) == ievt::BMAP)
         {
             if(evt & ievt::FLOW)
                 append_cont("+MAP", "{}");
             else
                 append_cont("+MAP", "");
         }
-        else if(evt & ievt::EMAP)
+        else if((evt & ievt::EMAP) == ievt::EMAP)
         {
             append("-MAP\n");
         }
@@ -167,25 +167,25 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
             has_anchor = true;
             anchor = getstr(i);
         }
-        else if(evt & ievt::BDOC)
+        else if((evt & ievt::BDOC) == ievt::BDOC)
         {
             if(evt & ievt::EXPL)
                 append("+DOC ---\n");
             else
                 append("+DOC\n");
         }
-        else if(evt & ievt::EDOC)
+        else if((evt & ievt::EDOC) == ievt::EDOC)
         {
             if(evt & ievt::EXPL)
                 append("-DOC ...\n");
             else
                 append("-DOC\n");
         }
-        else if(evt & ievt::BSTR)
+        else if((evt & ievt::BSTR) == ievt::BSTR)
         {
              append("+STR\n");
         }
-        else if(evt & ievt::ESTR)
+        else if((evt & ievt::ESTR) == ievt::ESTR)
         {
             append("-STR\n");
         }
