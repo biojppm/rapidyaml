@@ -47,13 +47,23 @@
           -DRYML_SANITIZE=OFF \
           -DRYML_LINT=OFF \
           -DRYML_VALGRIND=OFF
+  #- name: Collect Workflow Telemetry   # investigate occasional timeouts while building in aarch64/c++11/Release
+  #  uses: catchpoint/workflow-telemetry-action@v2
   - name:: "build $arch/c++$std/$buildtype"
-    run: |
-      cmake --build build --parallel --target ryml-test-build --verbose
+    run::
+      if (and (== buildtype "Release") (== std "20")):
+        do:: |
+          if [ ${{matrix.arch}} == aarch64 ] ; then
+            nproc=$((`nproc` / 2))
+            cmake --build build --parallel $nproc --target ryml-test-build --verbose
+          else
+            cmake --build build --parallel --target ryml-test-build --verbose
+          fi
+        else:: |
+          cmake --build build --parallel --target ryml-test-build --verbose
   - name:: "test $arch/c++$std/$buildtype"
     run: |
       cmake --build build --target ryml-test-run
-
   =>: nil
 
 steps11 =::

@@ -175,7 +175,12 @@ jobs:
             -DRYML_VALGRIND=OFF
     - name: build ${{matrix.arch}}/c++20/Release
       run: |
-        cmake --build build --parallel --target ryml-test-build --verbose
+        if [ ${{matrix.arch}} == aarch64 ] ; then
+          nproc=$((`nproc` / 2))
+          cmake --build build --parallel $nproc --target ryml-test-build --verbose
+        else
+          cmake --build build --parallel --target ryml-test-build --verbose
+        fi
     - name: test ${{matrix.arch}}/c++20/Release
       run: |
         cmake --build build --target ryml-test-run
@@ -403,7 +408,12 @@ jobs:
             -DRYML_VALGRIND=OFF
     - name: build ${{matrix.arch}}/c++20/Release
       run: |
-        cmake --build build --parallel --target ryml-test-build --verbose
+        if [ ${{matrix.arch}} == aarch64 ] ; then
+          nproc=$((`nproc` / 2))
+          cmake --build build --parallel $nproc --target ryml-test-build --verbose
+        else
+          cmake --build build --parallel --target ryml-test-build --verbose
+        fi
     - name: test ${{matrix.arch}}/c++20/Release
       run: |
         cmake --build build --target ryml-test-run
