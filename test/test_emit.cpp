@@ -170,6 +170,44 @@ TEST(as_json, basic)
     }
 }
 
+TEST(emit_nested, basic)
+{
+    const Tree tree = parse_in_arena(R"(- a
+- b
+- x0: 1
+  x1: 2
+- champagne: Dom Perignon
+  coffee: Arabica
+  more:
+    vinho verde: Soalheiro
+    vinho tinto: Redoma 2017
+  beer:
+    - Rochefort 10
+    - Busch
+    - Leffe Rituel
+    - - and so
+      - many other
+      - wonderful beers
+- more
+- seq
+- members
+- here
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0]), "Rochefort 10\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3]), R"(- and so
+- many other
+- wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"]), R"(beer:
+  - Rochefort 10
+  - Busch
+  - Leffe Rituel
+  - - and so
+    - many other
+    - wonderful beers
+)");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

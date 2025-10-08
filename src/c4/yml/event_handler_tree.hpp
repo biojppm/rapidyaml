@@ -51,11 +51,14 @@ public:
     #ifdef RYML_DBG
     #define _enable_(bits) _enable__<bits>(); _c4dbgpf("node[{}]: enable {}", m_curr->node_id, #bits)
     #define _disable_(bits) _disable__<bits>(); _c4dbgpf("node[{}]: disable {}", m_curr->node_id, #bits)
+    #define _enable__parent_(bits) _enable__parent__<bits>(); _c4dbgpf("node[{}]: enable {}", m_parent->node_id, #bits)
     #else
     #define _enable_(bits) _enable__<bits>()
     #define _disable_(bits) _disable__<bits>()
+    #define _enable__parent_(bits) _enable__parent__<bits>()
     #endif
     #define _has_any_(bits) _has_any__<bits>()
+    #define _has_any__parent_(bits) _has_any__<bits>()
     /** @endcond */
 
 public:
@@ -191,7 +194,7 @@ public:
             id_type first = m_tree->first_child(m_tree->root_id());
             _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()), m_tree, m_curr->node_id);
             _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u, m_tree, m_curr->node_id);
-            if(m_tree->is_container(first) || m_tree->is_val(first))
+            if(m_tree->is_container(first) || m_tree->is_val(first) _RYML_WITH_COMMENTS(|| m_tree->comment(first, COMM_ANY)))
             {
                 _c4dbgp("push!");
                 _push();
@@ -261,7 +264,7 @@ public:
     void end_map()
     {
         _pop();
-        _c4dbgpf("node[{}]: end_map_val", m_curr->node_id);
+        _c4dbgpf("node[{}]: end_map", m_curr->node_id);
     }
 
     /** @} */
@@ -300,7 +303,7 @@ public:
     void end_seq()
     {
         _pop();
-        _c4dbgpf("node[{}]: end_seq_val", m_curr->node_id);
+        _c4dbgpf("node[{}]: end_seq", m_curr->node_id);
     }
 
     /** @} */
@@ -315,7 +318,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id), m_tree, m_parent->node_id);
-        NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
+        NodeData const* const prev = m_tree->m_buf; // watchout against relocation of the tree nodes
         _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
         if(prev != m_tree->m_buf)
             _refresh_after_relocation();
@@ -557,6 +560,157 @@ public:
 
 public:
 
+    /** @name comments */
+    /** @{ */
+
+    #ifdef RYML_WITH_COMMENTS
+    /** add leading comment: key
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_key(csubstr txt)
+    {
+        id_type id = m_tree->id(m_curr->tr_data);
+        _c4dbgpf("node[{}]: leading comment! key [{}]~~~{}~~~", id, txt.len, txt);
+        if(m_tree->comment(id, COMM_LK))
+        {
+            if(m_tree->has_parent(id))
+            {
+                add_sibling();
+                _c4dbgpf("node[{}]: already has LK comment -> add to extra sibling", id);
+            }
+            else
+            {
+                // this node already has leading key comment, and
+                // we're at root level so we cannot accomodate this
+                // extra comment
+                _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "cannot add extra leading key comment at root level");
+            }
+        }
+        m_tree->set_comment(m_curr->tr_data, COMM_LK, txt);
+    }
+    /** add leading comment: val
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val(csubstr txt)
+    {
+        id_type id = m_tree->id(m_curr->tr_data);
+        _c4dbgpf("node[{}]: leading comment! val [{}]~~~{}~~~", id, txt.len, txt);
+        if(m_tree->comment(id, COMM_LV))
+        {
+            if(m_tree->has_parent(id))
+            {
+                add_sibling();
+                _c4dbgpf("node[{}]: already has LV comment -> add to extra sibling", id);
+            }
+            else
+            {
+                // this node already has leading val comment, and
+                // we're at root level so we cannot accomodate this
+                // extra comment
+                _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "cannot add extra leading val comment at root level");
+            }
+        }
+        m_tree->set_comment(m_curr->tr_data, COMM_LV, txt);
+    }
+
+    /** add leading comment: key2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_key2(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: leading comment! key2 [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_curr->tr_data, COMM_LK2, txt);
+    }
+    /** add leading comment: val2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val2(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: leading comment! val2 [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_curr->tr_data, COMM_LV2, txt);
+    }
+
+    /** add trailing comment: key.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_trailing_key(csubstr txt)
+    {
+        const NodeType type = m_curr->tr_data->m_type.type;
+        if (type != NOTYPE || !m_parent)
+        {
+            _c4dbgpf("node[{}](curr): trailing key comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+            m_tree->set_comment(m_curr->tr_data, COMM_TK, txt);
+        }
+        else if(m_parent)
+        {
+            _c4dbgpf("node[{}](parent): trailing key comment! [{}]~~~{}~~~", m_tree->id(m_parent->tr_data), txt.len, txt);
+            m_tree->set_comment(m_parent->tr_data, COMM_TK, txt);
+        }
+        else
+        {
+            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "FIXME what to do here?");
+        }
+    }
+
+    /** add trailing comment: val.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_trailing_val(csubstr txt)
+    {
+        const NodeType type = m_curr->tr_data->m_type.type;
+        if (type != NOTYPE || !m_parent)
+        {
+            _c4dbgpf("node[{}](curr): trailing val comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+            m_tree->set_comment(m_curr->tr_data, COMM_TV, txt);
+        }
+        else if(m_parent)
+        {
+            _c4dbgpf("node[{}](parent): trailing val comment! [{}]~~~{}~~~", m_tree->id(m_parent->tr_data), txt.len, txt);
+            m_tree->set_comment(m_parent->tr_data, COMM_TV, txt);
+        }
+        else
+        {
+            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "FIXME what to do here?");
+        }
+    }
+
+    /** add footer comment: key.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_footer_key(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: key footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FK, txt);
+    }
+
+    /** add footer comment: val.
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_footer_val(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: val footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FV, txt);
+    }
+
+    /** add footer comment: val 2 */
+    void add_comment_footer_val2(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: val footer comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FV2, txt);
+    }
+
+    /** add comment trailing comma */
+    void add_comment_trailing_comma(csubstr txt)
+    {
+        _c4dbgpf("node[{}]: comma comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_TC, txt);
+    }
+    #endif // RYML_WITH_COMMENTS
+
+    /** @} */
+
+public:
+
     /** @name arena functions */
     /** @{ */
 
@@ -666,6 +820,11 @@ public:
     {
         m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
     }
+    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _enable__parent__() noexcept
+    {
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), m_parent, m_curr->pos);
+        m_parent->tr_data->m_type.type = static_cast<NodeType_e>(m_parent->tr_data->m_type.type | bits);
+    }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _disable__() noexcept
     {
         m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type & (~bits));
@@ -673,6 +832,11 @@ public:
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__() const noexcept
     {
         return (m_curr->tr_data->m_type.type & bits) != 0;
+    }
+    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__parent__() const noexcept
+    {
+        _RYML_ASSERT_PARSE_(m_tree->callbacks(), m_parent, m_curr->pos);
+        return (m_parent->tr_data->m_type.type & bits) != 0;
     }
 
 public:
@@ -721,7 +885,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
         const id_type last_added = m_tree->size() - 1;
-        if(m_tree->has_parent(last_added))
+        if(m_tree->has_parent(last_added) _RYML_WITH_COMMENTS( && !m_tree->comment(last_added)))
             if(m_tree->_p(last_added)->m_type == NOTYPE)
                 m_tree->remove(last_added);
     }
@@ -732,7 +896,7 @@ public:
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
         const id_type last_added = m_tree->size() - 1;
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(last_added), m_tree, last_added);
-        if(m_tree->_p(last_added)->m_type == NOTYPE)
+        if(m_tree->_p(last_added)->m_type == NOTYPE _RYML_WITH_COMMENTS( && !m_tree->comment(last_added)))
         {
             _c4dbgpf("remove speculative node with parent. parent={} node={} parent(node)={}", m_parent->node_id, last_added, m_tree->parent(last_added));
             m_tree->remove(last_added);
@@ -747,8 +911,10 @@ public:
     }
 
 #undef _enable_
+#undef _enable__parent_
 #undef _disable_
 #undef _has_any_
+#undef _has_any__parent_
 
     /** @endcond */
 };

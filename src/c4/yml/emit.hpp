@@ -181,14 +181,23 @@ private:
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
     bool m_flow;
+    size_t m_col;
 
 private:
 
     void _emit_yaml(id_type id);
-    void _do_visit_flow_sl(id_type id, id_type depth, id_type ilevel=0);
-    void _do_visit_flow_ml(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block_container(id_type id, id_type depth, id_type next_level, bool do_indent);
+
+    void _visit_flow_sl(id_type id, id_type depth, id_type ilevel);
+    void _visit_flow_ml(id_type id, id_type depth, id_type ilevel);
+
+    void _visit_blck(id_type id, id_type depth, id_type ilevel, id_type do_indent);
+    void _visit_blck_seq(id_type id, id_type depth, id_type next_level, bool do_indent);
+    void _visit_blck_map(id_type id, id_type depth, id_type next_level, bool do_indent);
+    void _visit_blck_container(id_type id, NodeType ty, id_type depth, id_type next_level, id_type do_indent);
+
+    void _flow_open_container(id_type id, NodeType ty, id_type ilevel);
+    void _blck_open_container(id_type id, NodeType ty, id_type ilevel, id_type &do_indent);
+
     void _do_visit_json(id_type id, id_type depth);
 
 private:
@@ -203,6 +212,10 @@ private:
     void _write_scalar_squo(csubstr s, id_type level);
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
+    #ifdef RYML_WITH_COMMENTS
+    void _write_comment(id_type node, CommentType_e comment_type);
+    void _write_comment(csubstr s, id_type indentation);
+    #endif
 
     size_t _write_escaped_newlines(csubstr s, size_t i);
     size_t _write_indented_block(csubstr s, size_t i, id_type level);
@@ -210,8 +223,8 @@ private:
     void _write_tag(csubstr tag)
     {
         if(!tag.begins_with('!'))
-            this->Writer::_do_write('!');
-        this->Writer::_do_write(tag);
+            _write('!');
+        _write(tag);
     }
 
     enum : type_bits {
@@ -230,12 +243,40 @@ private:
     void _indent(id_type level, bool enabled)
     {
         if(enabled)
-            this->Writer::_do_write(' ', 2u * (size_t)level);
+            _write(' ', 2u * (size_t)level);
     }
     void _indent(id_type level)
     {
         if(!m_flow)
-            this->Writer::_do_write(' ', 2u * (size_t)level);
+            _write(' ', 2u * (size_t)level);
+    }
+
+    /// write a newline and reset the column
+    C4_ALWAYS_INLINE void _newl()
+    {
+        m_col = 0;
+        this->Writer::_do_write('\n');
+    }
+    template<size_t N>
+    C4_ALWAYS_INLINE void _write(const char (&a)[N])
+    {
+        m_col += N-1;
+        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
+    }
+    C4_ALWAYS_INLINE void _write(csubstr s)
+    {
+        m_col += s.len;
+        this->Writer::_do_write(s);
+    }
+    C4_ALWAYS_INLINE void _write(char c)
+    {
+        ++m_col;
+        this->Writer::_do_write(c);
+    }
+    C4_ALWAYS_INLINE void _write(char c, size_t num)
+    {
+        m_col += num;
+        this->Writer::_do_write(c, num);
     }
 };
 
