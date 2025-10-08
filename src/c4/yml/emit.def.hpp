@@ -162,23 +162,30 @@ void Emitter<Writer>::_write_doc(id_type id)
     const NodeType ty = m_tree->type(id);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, ty.is_doc(), m_tree, id);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, !ty.has_key(), m_tree, id);
+
+    #ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = m_tree->comment(id, COMM_TV);
+    #endif
+
     if(!m_tree->is_root(id))
     {
         _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_tree->is_stream(m_tree->parent(id)), m_tree, id);
         _write("---");
-    }
-    #ifdef RYML_WITH_COMMENTS
-    {
-        const CommentData *comm = m_tree->comment(id, COMM_LV);
+        #ifdef RYML_WITH_COMMENTS
         if(comm)
-        {
-            _newl();
-            _write_comment(comm->m_text, 0);
-        }
+            _write(' ');
+        #endif
+    }
+
+    #ifdef RYML_WITH_COMMENTS
+    if(comm)
+    {
+        _write_comment(comm->m_text, m_col);
+        _newl();
     }
     #endif
-    //
-    if(!ty.has_val()) // this is more frequent
+
+    if(ty.is_container()) // this is more frequent
     {
         const bool tag = ty.has_val_tag();
         const bool anchor = ty.has_val_anchor();
@@ -192,20 +199,12 @@ void Emitter<Writer>::_write_doc(id_type id)
                 _write(' ');
             _write('&');
             _write(m_tree->val_anchor(id));
-            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
-            if(m_tree->has_children(id) && m_tree->is_root(id))
-                _newl();
-            #endif
         }
         else if(tag && !anchor)
         {
             if(!m_tree->is_root(id))
                 _write(' ');
             _write_tag(m_tree->val_tag(id));
-            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
-            if(m_tree->has_children(id) && m_tree->is_root(id))
-                _newl();
-            #endif
         }
         else // tag && anchor
         {
@@ -214,15 +213,14 @@ void Emitter<Writer>::_write_doc(id_type id)
             _write_tag(m_tree->val_tag(id));
             _write(" &");
             _write(m_tree->val_anchor(id));
-            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
-            if(m_tree->has_children(id) && m_tree->is_root(id))
-                _newl();
-            #endif
         }
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
+        if((tag || anchor) && (m_tree->has_children(id) && m_tree->is_root(id)))
+            _newl();
+        #endif
     }
-    else // docval
+    else if(ty.has_val())
     {
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_val(), m_tree, id);
         // some plain scalars such as '...' and '---' must not
         // appear at 0-indentation
         const csubstr val = m_tree->val(id);
@@ -259,16 +257,18 @@ void Emitter<Writer>::_write_doc(id_type id)
         if(val.len && m_tree->is_root(id))
             _newl();
     }
+
     #ifndef RYML_WITH_COMMENTS
     if(!m_tree->is_root(id))
         _newl();
     #else
     {
-        const CommentData *comm = m_tree->comment(id, COMM_TV);
-        if(comm)
+        const CommentData *commf = m_tree->comment(id, comm, COMM_FV);
+        if(commf)
         {
-            _write(' ');
-            _write_comment(comm->m_text, m_col);
+            if(!comm)
+                _newl();
+            _write_comment(commf->m_text, m_col);
             _newl();
         }
         else if(!m_tree->is_root(id))
@@ -566,14 +566,13 @@ void Emitter<Writer>::_visit_flow_sl(id_type node, id_type depth, id_type ilevel
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
 
-    if(ty.is_container())
-    {
-        _flow_open_container(node, ty, ilevel);
-    }
-    else if(ty.is_doc())
+    if(ty.is_doc())
     {
         _write_doc(node);
-        return;
+    }
+    else if(ty.is_container())
+    {
+        _flow_open_container(node, ty, ilevel);
     }
 
 //_write("asdasdasd 1");

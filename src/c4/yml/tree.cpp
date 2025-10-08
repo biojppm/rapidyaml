@@ -1952,11 +1952,14 @@ id_type Tree::_claim_comment()
     return id;
 }
 
-CommentData const* Tree::comment(id_type node_id, comment_data_type type) const
+CommentData const* Tree::comment(id_type node_id, id_type comment_id, comment_data_type type) const
 {
+    (void)node_id;
     _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
-    NodeData const* n = _p(node_id);
-    for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
+    _RYML_ASSERT_VISIT_(m_callbacks, comment_id == NONE || comment_id == 0 || comment_id < m_comments_size, this, node_id);
+    _RYML_ASSERT_VISIT_(m_callbacks, comment_id == NONE || comment_id == 0 || comment_id >= _p(node_id)->m_first_comment, this, node_id);
+    _RYML_ASSERT_VISIT_(m_callbacks, comment_id == NONE || comment_id == 0 || type >= m_comments_buf[comment_id].m_type || _p(node_id)->m_first_comment == _p(node_id)->m_last_comment, this, node_id);
+    for(id_type cid = comment_id; cid != NONE; cid = m_comments_buf[cid].m_next)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, cid < m_comments_size, this, node_id);
         if(m_comments_buf[cid].m_type & type)
@@ -1965,6 +1968,19 @@ CommentData const* Tree::comment(id_type node_id, comment_data_type type) const
             break;
     }
     return nullptr;
+}
+
+CommentData const* Tree::comment(id_type node_id, CommentData const* prev, comment_data_type type_flags) const
+{
+    _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
+    id_type comment_id = prev ? prev->m_next : _p(node_id)->m_first_comment;
+    return comment(node_id, comment_id, type_flags);
+}
+
+CommentData const* Tree::comment(id_type node_id, comment_data_type type) const
+{
+    _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
+    return comment(node_id, _p(node_id)->m_first_comment, type);
 }
 
 void Tree::set_comment(NodeData *n, CommentType_e type, csubstr const& txt)

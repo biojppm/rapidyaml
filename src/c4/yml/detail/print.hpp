@@ -117,16 +117,17 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
         for(id_type cid = n->m_first_comment; cid != NONE; cid = p.m_comments_buf[cid].m_next)
         {
             CommentData const& comm = p.m_comments_buf[cid];
-            /* */if(comm.m_type == COMM_LK) printf("%sLK", ccount++?"|":"");
-            else if(comm.m_type == COMM_LK2) printf("%sLK2", ccount++?"|":"");
-            else if(comm.m_type == COMM_TK) printf("%sTK", ccount++?"|":"");
-            else if(comm.m_type == COMM_FK) printf("%sFK", ccount++?"|":"");
-            else if(comm.m_type == COMM_LV) printf("%sLV", ccount++?"|":"");
-            else if(comm.m_type == COMM_LV2) printf("%sLV2", ccount++?"|":"");
-            else if(comm.m_type == COMM_TV) printf("%sTV", ccount++?"|":"");
-            else if(comm.m_type == COMM_FV) printf("%sFV", ccount++?"|":"");
-            else if(comm.m_type == COMM_FV2) printf("%sFV2", ccount++?"|":"");
-            else if(comm.m_type == COMM_FV2) printf("%sTC", ccount++?"|":"");
+            if(ccount++) printf("|");
+            /* */if(comm.m_type == COMM_LK)  printf("LK");
+            else if(comm.m_type == COMM_LK2) printf("LK2");
+            else if(comm.m_type == COMM_TK)  printf("TK");
+            else if(comm.m_type == COMM_FK)  printf("FK");
+            else if(comm.m_type == COMM_LV)  printf("LV");
+            else if(comm.m_type == COMM_LV2) printf("LV2");
+            else if(comm.m_type == COMM_TV)  printf("TV");
+            else if(comm.m_type == COMM_FV)  printf("FV");
+            else if(comm.m_type == COMM_FV2) printf("FV2");
+            else if(comm.m_type == COMM_TC)  printf("TC");
         }
         printf("]");
     }

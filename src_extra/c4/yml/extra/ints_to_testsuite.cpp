@@ -235,10 +235,7 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
         }
         else if(evt & ievt::COMC)
         {
-            if(evt & ievt::KEY_)
-                append("=CTC #");
-            else
-                append("=CTC #");
+            append("=CTC #");
             append_esc(getstr(i));
         }
         #endif

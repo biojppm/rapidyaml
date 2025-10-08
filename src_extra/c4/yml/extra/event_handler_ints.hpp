@@ -884,7 +884,7 @@ public:
     /** @cond dev */
     int32_t _find_last_bdoc(int32_t pos) const
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev < m_evt_size); // it's safe to read from the array
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
         while(pos >= 0)
         {
             ievt::DataType e = m_evt[pos];
@@ -926,6 +926,7 @@ public:
     }
     int32_t _extend_left_to_include_tag_and_or_anchor(int32_t pos) const
     {
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
         int32_t prev = _prev(pos);
         while((prev > 0) && (m_evt[prev] & (ievt::TAG_|ievt::ANCH)))
         {
