@@ -2,6 +2,10 @@
 #include "test_lib/test_events_ints_helpers.hpp"
 #include <c4/yml/extra/event_handler_ints.hpp>
 
+#ifndef _C4_YML_PARSE_ENGINE_DEF_HPP_
+#include <c4/yml/parse_engine.def.hpp>
+#endif
+
 // NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
