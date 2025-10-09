@@ -187,6 +187,9 @@ private:
 
     void _emit_yaml(id_type id);
 
+    void _visit_stream(id_type id);
+    void _visit_doc(id_type id);
+    void _visit_container(id_type id);
     void _visit_flow_sl(id_type id, id_type depth, id_type ilevel);
     void _visit_flow_ml(id_type id, id_type depth, id_type ilevel);
 
@@ -198,14 +201,13 @@ private:
     void _flow_open_container(id_type id, NodeType ty, id_type ilevel);
     void _blck_open_container(id_type id, NodeType ty, id_type ilevel, id_type &do_indent);
 
-    void _do_visit_json(id_type id, id_type depth);
+    void _visit_json(id_type id, id_type depth);
 
 private:
 
     void _write(NodeScalar const& C4_RESTRICT sc, NodeType flags, id_type level);
     void _write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags);
 
-    void _write_doc(id_type id);
     void _write_scalar_json_dquo(csubstr s);
     void _write_scalar_literal(csubstr s, id_type level, bool as_key);
     void _write_scalar_folded(csubstr s, id_type level, bool as_key);

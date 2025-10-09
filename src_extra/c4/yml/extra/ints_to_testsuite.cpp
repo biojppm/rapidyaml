@@ -233,7 +233,7 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
                 append("=CFV2 #");
             append_esc(getstr(i));
         }
-        else if(evt & ievt::COMC)
+        else if(evt & ievt::COMN)
         {
             append("=CTC #");
             append_esc(getstr(i));

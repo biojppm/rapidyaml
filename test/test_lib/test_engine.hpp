@@ -124,7 +124,7 @@ struct EventTransformer
     fwds(add_comment_footer_key)
     fwds(add_comment_footer_val)
     fwds(add_comment_footer_val2)
-    fwds(add_comment_trailing_comma)
+    fwds(add_comment_trailing_token)
     #endif
 
     #undef fwd

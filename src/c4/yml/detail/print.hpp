@@ -127,7 +127,7 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
             else if(comm.m_type == COMM_TV)  printf("TV");
             else if(comm.m_type == COMM_FV)  printf("FV");
             else if(comm.m_type == COMM_FV2) printf("FV2");
-            else if(comm.m_type == COMM_TC)  printf("TC");
+            else if(comm.m_type == COMM_TT)  printf("TT");
         }
         printf("]");
     }

@@ -1958,7 +1958,6 @@ CommentData const* Tree::comment(id_type node_id, id_type comment_id, comment_da
     _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
     _RYML_ASSERT_VISIT_(m_callbacks, comment_id == NONE || comment_id == 0 || comment_id < m_comments_size, this, node_id);
     _RYML_ASSERT_VISIT_(m_callbacks, comment_id == NONE || comment_id == 0 || comment_id >= _p(node_id)->m_first_comment, this, node_id);
-    _RYML_ASSERT_VISIT_(m_callbacks, comment_id == NONE || comment_id == 0 || type >= m_comments_buf[comment_id].m_type || _p(node_id)->m_first_comment == _p(node_id)->m_last_comment, this, node_id);
     for(id_type cid = comment_id; cid != NONE; cid = m_comments_buf[cid].m_next)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, cid < m_comments_size, this, node_id);

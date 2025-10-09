@@ -699,11 +699,11 @@ public:
         m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_FV2, txt);
     }
 
-    /** add comment trailing comma */
-    void add_comment_trailing_comma(csubstr txt)
+    /** add comment trailing token */
+    void add_comment_trailing_token(csubstr txt)
     {
-        _c4dbgpf("node[{}]: comma comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
-        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_TC, txt);
+        _c4dbgpf("node[{}]: token comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
+        m_tree->set_comment(m_tree->id(m_curr->tr_data), COMM_TT, txt);
     }
     #endif // RYML_WITH_COMMENTS
 

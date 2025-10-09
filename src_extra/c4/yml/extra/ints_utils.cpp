@@ -69,7 +69,7 @@ c4::EnumSymbols<yml::extra::ievt::EventFlags> esyms<yml::extra::ievt::EventFlags
         {yml::extra::ievt::COMT, "COMT"},
         {yml::extra::ievt::COMF, "COMF"},
         {yml::extra::ievt::COMF2, "COMF2"},
-        {yml::extra::ievt::COMC, "COMC"},
+        {yml::extra::ievt::COMN, "COMN"},
         #endif
     };
     return EnumSymbols<yml::extra::ievt::EventFlags>(syms);

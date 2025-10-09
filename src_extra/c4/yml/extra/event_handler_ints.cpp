@@ -99,7 +99,7 @@ static_assert((MASK & COML2) == COML2, "overflow?");
 static_assert((MASK & COMT) == COMT, "overflow?");
 static_assert((MASK & COMF) == COMF, "overflow?");
 static_assert((MASK & COMF2) == COMF2, "overflow?");
-static_assert((MASK & COMC) == COMC, "overflow?");
+static_assert((MASK & COMN) == COMN, "overflow?");
 #endif
 static_assert((MASK & LAST) == LAST, "overflow?");
 static_assert((MASK & MASK) == MASK, "overflow?");

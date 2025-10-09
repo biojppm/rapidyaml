@@ -670,10 +670,10 @@ public:
     }
 
     /** add comment trailing comma */
-    void add_comment_trailing_comma(csubstr txt)
+    void add_comment_trailing_token(csubstr txt)
     {
         _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CTC #");
+        _send_("=CTT #");
         append_scalar_escaped(&_buf_(), txt);
         _send_('\n');
     }

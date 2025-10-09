@@ -30,7 +30,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
-        _do_visit_json(id, 0);
+        _visit_json(id, 0);
     else
         _RYML_ERR_BASIC_(m_tree->callbacks(), "unknown emit type");
     m_tree = nullptr;
@@ -46,16 +46,6 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     // save branches in the visitor by doing the initial stream/doc
     // logic here, sparing the need to check stream/val/keyval inside
     // the visitor functions
-    auto dispatch = [this](id_type node, NodeType ty){
-        if(ty.is_flow_sl())
-            _visit_flow_sl(node, 0, 0);
-        else if(ty.is_flow_ml())
-            _visit_flow_ml(node, 0, 0);
-        else
-        {
-            _visit_blck(node, 0, 0, 1);
-        }
-    };
     const NodeType ty = m_tree->type(id);
     if(!m_tree->is_root(id))
     {
@@ -73,51 +63,17 @@ void Emitter<Writer>::_emit_yaml(id_type id)
         }
     }
 
-    TagDirectiveRange tagds = m_tree->tag_directives();
-    auto write_tag_directives = [&tagds, this](const id_type next_node){
-        TagDirective const* C4_RESTRICT end = tagds.b;
-        while(end < tagds.e)
-        {
-            if(end->next_node_id > next_node)
-                break;
-            ++end;
-        }
-        const id_type parent = m_tree->parent(next_node);
-        for( ; tagds.b != end; ++tagds.b)
-        {
-            if(next_node != m_tree->first_child(parent))
-                _write("...\n");
-            _write("%TAG ");
-            _write(tagds.b->handle);
-            _write(' ');
-            _write(tagds.b->prefix);
-            _newl();
-        }
-    };
     if(ty.is_stream())
     {
-        const id_type first_child = m_tree->first_child(id);
-        if(first_child != NONE)
-            write_tag_directives(first_child);
-        for(id_type child = first_child; child != NONE; child = m_tree->next_sibling(child))
-        {
-            const NodeType cty = m_tree->type(child);
-            dispatch(child, cty);
-            if(cty.is_doc() && cty.is_flow_sl())
-                _newl();
-            if(m_tree->next_sibling(child) != NONE)
-                write_tag_directives(m_tree->next_sibling(child));
-        }
-    }
-    else if(ty.is_container())
-    {
-        dispatch(id, ty);
+        _visit_stream(id);
     }
     else if(ty.is_doc())
     {
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), !ty.is_container(), m_tree, id); // checked above
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_val(), m_tree, id); // so it must be a val
-        _write_doc(id);
+        _visit_doc(id);
+    }
+    else if(ty.is_container())
+    {
+        _visit_container(id);
     }
     else if(ty.is_keyval())
     {
@@ -129,7 +85,6 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     }
     else if(ty.is_val())
     {
-        //_write("- ");
         _writev(id, 0);
         if(!ty.is_flow())
             _newl();
@@ -154,32 +109,84 @@ void Emitter<Writer>::_emit_yaml(id_type id)
 
 //-----------------------------------------------------------------------------
 
-#define _rymlindent_nextline() this->_indent(ilevel + 1);
+template<class Writer>
+void Emitter<Writer>::_visit_stream(id_type id)
+{
+    TagDirectiveRange tagds = m_tree->tag_directives();
+    auto write_tag_directives = [&tagds, this](const id_type next_node){
+        TagDirective const* C4_RESTRICT end = tagds.b;
+        while(end < tagds.e)
+        {
+            if(end->next_node_id > next_node)
+                break;
+            ++end;
+        }
+        const id_type parent = m_tree->parent(next_node);
+        for( ; tagds.b != end; ++tagds.b)
+        {
+            if(next_node != m_tree->first_child(parent))
+                _write("...\n");
+            _write("%TAG ");
+            _write(tagds.b->handle);
+            _write(' ');
+            _write(tagds.b->prefix);
+            _newl();
+        }
+    };
+    const id_type first_child = m_tree->first_child(id);
+    if(first_child != NONE)
+        write_tag_directives(first_child);
+    for(id_type child = first_child; child != NONE; child = m_tree->next_sibling(child))
+    {
+        _visit_doc(child);
+        const NodeType cty = m_tree->type(child);
+        if(cty.is_doc() && cty.is_flow_sl())
+            _newl();
+        if(m_tree->next_sibling(child) != NONE)
+            write_tag_directives(m_tree->next_sibling(child));
+    }
+}
+
+
+//-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_write_doc(id_type id)
+void Emitter<Writer>::_visit_container(id_type id)
+{
+    NodeType ty = m_tree->type(id);
+    if(ty.is_flow_sl())
+        _visit_flow_sl(id, 0, 0);
+    else if(ty.is_flow_ml())
+        _visit_flow_ml(id, 0, 0);
+    else
+        _visit_blck(id, 0, 0, 1);
+}
+
+
+//-----------------------------------------------------------------------------
+
+template<class Writer>
+void Emitter<Writer>::_visit_doc(id_type id)
 {
     const NodeType ty = m_tree->type(id);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, ty.is_doc(), m_tree, id);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, !ty.has_key(), m_tree, id);
 
-    #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(id, COMM_TV);
-    #endif
-
-    if(!m_tree->is_root(id))
+    bool write_sep = !m_tree->is_root(id);
+    if(write_sep)
     {
         _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_tree->is_stream(m_tree->parent(id)), m_tree, id);
         _write("---");
-        #ifdef RYML_WITH_COMMENTS
-        if(comm)
-            _write(' ');
-        #endif
     }
 
     #ifdef RYML_WITH_COMMENTS
+    bool had_leading_comments = false;
+    CommentData const* comm = m_tree->comment(id, COMM_TT);
     if(comm)
     {
+        had_leading_comments = true;
+        if(write_sep)
+            _write(' ');
         _write_comment(comm->m_text, m_col);
         _newl();
     }
@@ -187,51 +194,34 @@ void Emitter<Writer>::_write_doc(id_type id)
 
     if(ty.is_container()) // this is more frequent
     {
-        const bool tag = ty.has_val_tag();
-        const bool anchor = ty.has_val_anchor();
-        if(!tag && !anchor)
-        {
-            ;
-        }
-        else if(!tag && anchor)
-        {
-            if(!m_tree->is_root(id))
-                _write(' ');
-            _write('&');
-            _write(m_tree->val_anchor(id));
-        }
-        else if(tag && !anchor)
-        {
-            if(!m_tree->is_root(id))
-                _write(' ');
-            _write_tag(m_tree->val_tag(id));
-        }
-        else // tag && anchor
-        {
-            if(!m_tree->is_root(id))
-                _write(' ');
-            _write_tag(m_tree->val_tag(id));
-            _write(" &");
-            _write(m_tree->val_anchor(id));
-        }
-        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
-        if((tag || anchor) && (m_tree->has_children(id) && m_tree->is_root(id)))
-            _newl();
-        #endif
+        _visit_container(id);
     }
-    else if(ty.has_val())
+    else if(ty.is_val())
     {
+        #ifdef RYML_WITH_COMMENTS
+        {
+            CommentData const* comm2 = m_tree->comment(id, COMM_LV);
+            if(comm2)
+            {
+                had_leading_comments = true;
+                if(!comm)
+                    _newl();
+                comm = comm2; // for the next call
+                _write_comment(comm2->m_text, m_col);
+                _newl();
+            }
+        }
+        #endif
         // some plain scalars such as '...' and '---' must not
         // appear at 0-indentation
         const csubstr val = m_tree->val(id);
-        const bool preceded_by_3_dashes = !m_tree->is_root(id);
         const type_bits style_marks = ty & VAL_STYLE;
         const bool is_plain = ty.is_val_plain();
         const bool is_ambiguous = (is_plain || !style_marks)
             && ((val.begins_with("...") || val.begins_with("---"))
                 ||
                 (val.find('\n') != npos));
-        if(preceded_by_3_dashes)
+        if(write_sep)
         {
             if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag())
             {
@@ -242,7 +232,7 @@ void Emitter<Writer>::_write_doc(id_type id)
             {
                 _newl();
             }
-            else
+            else _RYML_WITH_COMMENTS(if(!had_leading_comments))
             {
                 _write(' ');
             }
@@ -250,19 +240,20 @@ void Emitter<Writer>::_write_doc(id_type id)
         id_type ilevel = 0u;
         if(is_ambiguous)
         {
-            _rymlindent_nextline();
-            ++ilevel;
+          _indent(ilevel + 1);
+          ++ilevel;
         }
         _writev(id, ilevel);
         if(val.len && m_tree->is_root(id))
             _newl();
-    }
-
-    #ifndef RYML_WITH_COMMENTS
-    if(!m_tree->is_root(id))
-        _newl();
-    #else
-    {
+        #ifdef RYML_WITH_COMMENTS
+        comm = m_tree->comment(id, comm, COMM_TV);
+        if(comm)
+        {
+            _write(' ');
+            _write_comment(comm->m_text, m_col);
+            _newl();
+        }
         const CommentData *commf = m_tree->comment(id, comm, COMM_FV);
         if(commf)
         {
@@ -271,9 +262,16 @@ void Emitter<Writer>::_write_doc(id_type id)
             _write_comment(commf->m_text, m_col);
             _newl();
         }
-        else if(!m_tree->is_root(id))
+        else if(write_sep)
+        {
             _newl();
+        }
+        #endif
     }
+
+    #ifndef RYML_WITH_COMMENTS
+    if(!m_tree->is_root(id))
+        _newl();
     #endif
 }
 
@@ -566,14 +564,7 @@ void Emitter<Writer>::_visit_flow_sl(id_type node, id_type depth, id_type ilevel
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
 
-    if(ty.is_doc())
-    {
-        _write_doc(node);
-    }
-    else if(ty.is_container())
-    {
-        _flow_open_container(node, ty, ilevel);
-    }
+    _flow_open_container(node, ty, ilevel);
 
 //_write("asdasdasd 1");
     ++ilevel;
@@ -732,7 +723,7 @@ void Emitter<Writer>::_visit_flow_sl(id_type node, id_type depth, id_type ilevel
                 _indent(ilevel);
             }
         }
-        CommentData const *commc = m_tree->comment(child, COMM_TC);
+        CommentData const *commc = m_tree->comment(child, COMM_TT);
         #endif
         child = m_tree->next_sibling(child);
         if(child == NONE)
@@ -1053,13 +1044,7 @@ void Emitter<Writer>::_visit_blck(id_type node, id_type depth, id_type ilevel, i
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
 
     const NodeType ty = m_tree->type(node);
-    if(ty.is_doc())
-    {
-        _write_doc(node);
-        if(!m_tree->has_children(node))
-            return;
-    }
-    else if(ty.is_container())
+    if(ty.is_container())
     {
         _blck_open_container(node, ty, ilevel, do_indent);
     }
@@ -1080,7 +1065,7 @@ C4_SUPPRESS_WARNING_MSVC_POP
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_do_visit_json(id_type id, id_type depth)
+void Emitter<Writer>::_visit_json(id_type id, id_type depth)
 {
     _RYML_CHECK_VISIT_(m_tree->callbacks(), !m_tree->is_stream(id), m_tree, id); // JSON does not have streams
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
@@ -1112,7 +1097,7 @@ void Emitter<Writer>::_do_visit_json(id_type id, id_type depth)
     {
         if(ich != m_tree->first_child(id))
             _write(',');
-        _do_visit_json(ich, depth+1);
+        _visit_json(ich, depth+1);
     }
 
     if(m_tree->is_seq(id))
@@ -1238,6 +1223,8 @@ inline bool _is_indented_block(csubstr s, size_t prev, size_t i) noexcept
     const size_t pos = s.first_not_of('\n', i);
     return (pos != npos) && (s.str[pos] == ' ' || s.str[pos] == '\t');
 }
+
+#define _rymlindent_nextline() this->_indent(ilevel + 1);
 
 template<class Writer>
 size_t Emitter<Writer>::_write_indented_block(csubstr s, size_t i, id_type ilevel)

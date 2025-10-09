@@ -109,17 +109,17 @@ typedef enum : DataType {
     COMT  = (1 << 28),  ///< trailing comment
     COMF  = (1 << 29),  ///< footer comment
     COMF2 = (1 << 30),  ///< footer comment
-    COMC  = (1 << 31),  ///< comment after comma
+    COMN  = (1 << 31),  ///< comment after token
     // Utility flags/masks
     /// the last flag defined above
-    LAST = COMC,
+    LAST = COMN,
     /// a mask of all bits in this enumeration
     MASK = -1, // same as ((LAST << 1) - 1), but without overflow
     /// with string: mask of all the events that encode a string
     /// following the event. in the event has a string. the next two
     /// integers will provide respectively the string's offset and
     /// length. See also @ref PSTR.
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COML|COML2|COMT|COMF|COMF2|COMC,
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COML|COML2|COMT|COMF|COMF2|COMN,
     #else
     // Utility flags/masks
     /// the last flag defined above
@@ -1270,11 +1270,18 @@ public:
         _send_str_(txt, ievt::VAL_|ievt::COMF2);
     }
 
-    /** add comment trailing comma */
-    void add_comment_trailing_comma(csubstr txt)
+    /** add comment trailing token */
+    void add_comment_trailing_token(csubstr txt)
     {
         _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::VAL_|ievt::COMC);
+        _send_str_(txt, ievt::VAL_|ievt::COMN);
+    }
+
+    /** add comment trailing comma */
+    void add_comment_trailing_begin_doc_expl(csubstr txt)
+    {
+        _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::BEG_|ievt::COMN);
     }
 
     /** @} */
