@@ -1126,15 +1126,17 @@ public:
     CommentData const* comment(id_type node_id,                          comment_data_type type_flags=COMM_ANY) const;
     CommentData const* comment(id_type node_id, id_type comment_id,      comment_data_type type_flags=COMM_ANY) const;
     CommentData const* comment(id_type node_id, CommentData const* prev, comment_data_type type_flags=COMM_ANY) const;
-    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id,                          CommentType_e type_flags) const { return comment(node_id,             (comment_data_type)type_flags); }
-    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id, id_type comment_id,      CommentType_e type_flags) const { return comment(node_id, comment_id, (comment_data_type)type_flags); }
-    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id, CommentData const* prev, CommentType_e type_flags) const { return comment(node_id, prev,       (comment_data_type)type_flags); }
+    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id,                          CommentType_e type) const { return comment(node_id,             (comment_data_type)type); }
+    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id, id_type comment_id,      CommentType_e type) const { return comment(node_id, comment_id, (comment_data_type)type); }
+    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id, CommentData const* prev, CommentType_e type) const { return comment(node_id, prev,       (comment_data_type)type); }
 
     void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);
     void set_comment(NodeData *n, CommentType_e type, csubstr const& txt);
 
     void rem_comments(id_type node_id); ///< remove all comments from the node
     void rem_comment(id_type node_id, CommentType_e type);
+
+private:
 
     id_type _claim_comment();
     id_type _insert_comment(NodeData *n, id_type prev_comment);

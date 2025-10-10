@@ -132,147 +132,72 @@ foo: # trailing key
     #endif
 }
 
+#define verify_comment(t, node_id, comm_id, comm_ty, prev_comm_id, next_comm_id, txt) \
+    do {                                                                \
+        if(comm_id != NONE)                                             \
+        {                                                               \
+            ASSERT_LT(comm_id, t.m_comments_size);                      \
+            CommentData const* comm = &t.m_comments_buf[comm_id];       \
+            EXPECT_EQ(comm->m_type, comm_ty);                           \
+            EXPECT_EQ(comm->m_prev, prev_comm_id);                      \
+            EXPECT_EQ(comm->m_next, next_comm_id);                      \
+            EXPECT_EQ(comm->m_text, txt);                               \
+        }                                                               \
+    } while(0)
+
 TEST(comment_list, insertion_order_2)
 {
-    #ifdef RYML_WITH_COMMENTS
-    Tree t = parse_in_arena("{}");
+#ifdef RYML_WITH_COMMENTS
+    const Tree orig = parse_in_arena("{}");
     id_type node = 0;
-    EXPECT_EQ(t._p(node)->m_first_comment, NONE);
-    EXPECT_EQ(t._p(node)->m_last_comment, NONE);
-    t.set_comment(node, COMM_TT, " CTN 1");
-    #define verify_comment(t, node_id, comm_id, comm_ty, prev_comm_id, next_comm_id) \
-        EXPECT_EQ(t._p(node_id)->m_first_comment, comm_id); \
-        EXPECT_EQ(t._p(node_id)->m_last_comment, comm_id); \
-        if(comm_id != NONE)                                \
-        {                                                  \
-            ASSERT_LT(comm_id, t.m_comments_size);                  \
-            CommentData const* comm = t.m_comments_buf[comm_id];    \
-            EXPECT_EQ(comm->m_type, comm_ty);                       \
-        }
-    verify_comment(t, node, 0, COMM_TT, )
+    EXPECT_EQ(orig._p(node)->m_first_comment, NONE);
+    EXPECT_EQ(orig._p(node)->m_last_comment, NONE);
+    verify_comment(orig, node, NONE, COMM_NONE, NONE, NONE, "");
 
-    EXPECT_EQ(t.m_comments_buf[0]._p(node)->m_first_comment, 0);
-    EXPECT_EQ(t.m_comments_buf[0]_p(node)->m_last_comment, 0);
-    t.set_comment(node, COMM_LV, " CLV 2");
-    t.set_comment(node, COMM_TV, " CTV 3");
-    t.set_comment(node, COMM_FV, " CFV 4");
-    t.set_comment(node, COMM_FV2, " CFV2 5");
-    ASSERT_EQ(orig.key(node), "foo");
-    ASSERT_EQ(orig.val(node), "bar");
     {
         Tree t = orig;
-        ASSERT_EQ(t.comment(node), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        t.set_comment(node, COMM_LK, " leading key");
-        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        t.set_comment(node, COMM_LV, " leading val");
-        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
-        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
-        EXPECT_EQ(emitrs_yaml<std::string>(t),
-                  R"(# leading key
-foo:
-  # leading val
-  bar
-)");
-        t.set_comment(node, COMM_TK, " trailing key");
-        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        t.set_comment(node, COMM_TV, " trailing val");
-        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
-        ASSERT_NE(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
-        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
-        EXPECT_EQ(t.comment(node, COMM_TK)->m_text, " trailing key");
-        EXPECT_EQ(t.comment(node, COMM_TV)->m_text, " trailing val");
-        EXPECT_EQ(emitrs_yaml<std::string>(t),
-                  R"(# leading key
-foo: # trailing key
-  # leading val
-  bar # trailing val
-)");
+
+        ASSERT_LT(COMM_LV, COMM_TT);
+        t.set_comment(node, COMM_LV, " CLV 2");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 0, COMM_LV, NONE, NONE, " CLV 2");
+        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+
+        t.set_comment(node, COMM_TT, " CTN 1");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 1);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TT, 0, NONE, " CTN 1");
+        { SCOPED_TRACE("here"); test_comment_invariants(t); }
     }
+
     {
         Tree t = orig;
-        ASSERT_EQ(t.comment(node), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_LV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        t.set_comment(node, COMM_LV, " leading val");
-        ASSERT_NE(t.comment(node), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_LK), nullptr);
-        t.set_comment(node, COMM_LK, " leading key");
-        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
-        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
-        EXPECT_EQ(emitrs_yaml<std::string>(t),
-                  R"(# leading key
-foo:
-  # leading val
-  bar
-)");
-        t.set_comment(node, COMM_TV, " trailing val");
-        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
-        ASSERT_NE(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        t.set_comment(node, COMM_TK, " trailing key");
-        ASSERT_NE(t.comment(node, COMM_LK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_TK), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FK), nullptr);
-        ASSERT_NE(t.comment(node, COMM_LV), nullptr);
-        ASSERT_NE(t.comment(node, COMM_TV), nullptr);
-        ASSERT_EQ(t.comment(node, COMM_FV), nullptr);
-        EXPECT_EQ(t.comment(node, COMM_LK)->m_text, " leading key");
-        EXPECT_EQ(t.comment(node, COMM_LV)->m_text, " leading val");
-        EXPECT_EQ(t.comment(node, COMM_TK)->m_text, " trailing key");
-        EXPECT_EQ(t.comment(node, COMM_TV)->m_text, " trailing val");
-        EXPECT_EQ(emitrs_yaml<std::string>(t),
-                  R"(# leading key
-foo: # trailing key
-  # leading val
-  bar # trailing val
-)");
+
+        t.set_comment(node, COMM_TT, " CTN 1");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+        verify_comment(t, node, 0, COMM_TT, NONE, NONE, " CTN 1");
+
+        t.set_comment(node, COMM_LV, " CLV 2");
+        EXPECT_EQ(t._p(node)->m_first_comment, 1);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+        verify_comment(t, node, 0, COMM_TT, 1, NONE, " CTN 1");
+        verify_comment(t, node, 1, COMM_LV, NONE, 0, " CLV 2");
+
+        t.set_comment(node, COMM_TV, " CTV 3");
+        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+
+        t.set_comment(node, COMM_FV, " CFV 4");
+        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+
+        t.set_comment(node, COMM_FV2, " CFV2 5");
+        { SCOPED_TRACE("here"); test_comment_invariants(t); }
     }
-    #endif
+#endif
 }
 
 

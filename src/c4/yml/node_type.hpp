@@ -278,6 +278,7 @@ RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
 #ifdef RYML_WITH_COMMENTS
 using comment_data_type = uint32_t;
 typedef enum : uint32_t {
+    COMM_NONE = 0,
     COMM_LK  = (1u << 0u),  ///< comment leading key
     COMM_LK2 = (1u << 1u),  ///< comment leading key, after `?` (only in block mode)
     COMM_TK  = (1u << 2u),  ///< comment trailing key
@@ -290,7 +291,7 @@ typedef enum : uint32_t {
     COMM_TT  = (1u << 9u),  ///< comment trailing token (after `,` on flow, or after doc `---`)
     COMM_ANY_KEY = COMM_LK|COMM_LK2|COMM_TK|COMM_FK,
     COMM_ANY_VAL = COMM_LV|COMM_LV2|COMM_TV|COMM_FV|COMM_FV2,
-    COMM_ANY = COMM_ANY_KEY|COMM_ANY_VAL,
+    COMM_ANY = COMM_ANY_KEY|COMM_ANY_VAL|COMM_TT,
 } CommentType_e;
 
 struct CommentData

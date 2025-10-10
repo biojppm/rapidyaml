@@ -292,6 +292,7 @@ C4_NO_INLINE void test_engine_tree_from_events(EngineEvtTestCase const& tc)
         EventHandlerTree handler(&tree, tree.root_id());
         EventProducerFn<EventHandlerTree> event_producer;
         event_producer(handler);
+        test_invariants(tree);
         #ifdef RYML_DBG
         print_tree(tree);
         #endif
