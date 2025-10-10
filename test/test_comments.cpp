@@ -145,6 +145,9 @@ foo: # trailing key
         }                                                               \
     } while(0)
 
+#define _check_comment_invariants(t, ...)                               \
+    do { SCOPED_TRACE(__VA_ARGS__); test_comment_invariants(t); } while(0)
+
 TEST(comment_list, insertion_order_2)
 {
 #ifdef RYML_WITH_COMMENTS
@@ -155,6 +158,7 @@ TEST(comment_list, insertion_order_2)
     verify_comment(orig, node, NONE, COMM_NONE, NONE, NONE, "");
 
     {
+        SCOPED_TRACE("insert in order");
         Tree t = orig;
 
         ASSERT_LT(COMM_LV, COMM_TT);
@@ -162,14 +166,87 @@ TEST(comment_list, insertion_order_2)
         EXPECT_EQ(t._p(node)->m_first_comment, 0);
         EXPECT_EQ(t._p(node)->m_last_comment, 0);
         verify_comment(t, node, 0, COMM_LV, NONE, NONE, " CLV 2");
-        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+        _check_comment_invariants(t, "here");
 
-        t.set_comment(node, COMM_TT, " CTN 1");
+        t.set_comment(node, COMM_TV, " CTV 3");
         EXPECT_EQ(t._p(node)->m_first_comment, 0);
         EXPECT_EQ(t._p(node)->m_last_comment, 1);
         verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
-        verify_comment(t, node, 1, COMM_TT, 0, NONE, " CTN 1");
-        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+        verify_comment(t, node, 1, COMM_TV, 0, NONE, " CTV 3");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_FV, " CFV 4");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 2);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TV, 0, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 1, NONE, " CFV 4");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_FV2, " CFV2 5");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 3);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TV, 0, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 1, 3, " CFV 4");
+        verify_comment(t, node, 3, COMM_FV2, 2, NONE, " CFV2 5");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_TT, " CTN 1");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 4);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TV, 0, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 1, 3, " CFV 4");
+        verify_comment(t, node, 3, COMM_FV2, 2, 4, " CFV2 5");
+        verify_comment(t, node, 4, COMM_TT, 3, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
+    }
+
+    {
+        SCOPED_TRACE("swap 4-3");
+        Tree t = orig;
+
+        ASSERT_LT(COMM_LV, COMM_TT);
+        t.set_comment(node, COMM_LV, " CLV 2");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 0, COMM_LV, NONE, NONE, " CLV 2");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_TV, " CTV 3");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 1);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TV, 0, NONE, " CTV 3");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_FV, " CFV 4");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 2);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TV, 0, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 1, NONE, " CFV 4");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_TT, " CTN 1");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 3);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TV, 0, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 1, 3, " CFV 4");
+        verify_comment(t, node, 3, COMM_TT, 2, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_FV2, " CFV2 5");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 3);
+        verify_comment(t, node, 0, COMM_LV, NONE, 1, " CLV 2");
+        verify_comment(t, node, 1, COMM_TV, 0, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 1, 4, " CFV 4");
+        verify_comment(t, node, 4, COMM_FV2, 2, 3, " CFV2 5");
+        verify_comment(t, node, 3, COMM_TT, 4, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
     }
 
     {
@@ -178,24 +255,29 @@ TEST(comment_list, insertion_order_2)
         t.set_comment(node, COMM_TT, " CTN 1");
         EXPECT_EQ(t._p(node)->m_first_comment, 0);
         EXPECT_EQ(t._p(node)->m_last_comment, 0);
-        { SCOPED_TRACE("here"); test_comment_invariants(t); }
         verify_comment(t, node, 0, COMM_TT, NONE, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
 
         t.set_comment(node, COMM_LV, " CLV 2");
         EXPECT_EQ(t._p(node)->m_first_comment, 1);
         EXPECT_EQ(t._p(node)->m_last_comment, 0);
-        { SCOPED_TRACE("here"); test_comment_invariants(t); }
         verify_comment(t, node, 0, COMM_TT, 1, NONE, " CTN 1");
         verify_comment(t, node, 1, COMM_LV, NONE, 0, " CLV 2");
+        _check_comment_invariants(t, "here");
 
         t.set_comment(node, COMM_TV, " CTV 3");
-        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+        EXPECT_EQ(t._p(node)->m_first_comment, 1);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 0, COMM_TT, 2, NONE, " CTN 1");
+        verify_comment(t, node, 1, COMM_LV, NONE, 2, " CLV 2");
+        verify_comment(t, node, 2, COMM_TV, 1, 0, " CTV 3");
+        _check_comment_invariants(t, "here");
 
         t.set_comment(node, COMM_FV, " CFV 4");
-        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+        _check_comment_invariants(t, "here");
 
         t.set_comment(node, COMM_FV2, " CFV2 5");
-        { SCOPED_TRACE("here"); test_comment_invariants(t); }
+        _check_comment_invariants(t, "here");
     }
 #endif
 }

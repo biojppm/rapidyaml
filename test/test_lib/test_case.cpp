@@ -629,10 +629,11 @@ void print_test_tree(const char *message, TestCaseNode const& t)
 
 void test_comment_invariants(Tree const& t, id_type id)
 {
-    (void)t;
+    id = id != NONE ? id : t.root_id();
     (void)id;
 #ifdef RYML_WITH_COMMENTS
     SCOPED_TRACE("comment invariants");
+    RYML_TRACE_FMT("id={}", id);
     if(t.m_comments_cap == 0)
     {
         ASSERT_EQ(t.m_comments_buf, nullptr);
@@ -642,7 +643,6 @@ void test_comment_invariants(Tree const& t, id_type id)
     ASSERT_NE(t.m_comments_buf, nullptr);
     ASSERT_LE(t.m_comments_size, t.m_comments_cap);
 
-    id = id != NONE ? id : t.root_id();
     id_type count_iter = 0;
     {
         NodeData const* node = t._p(id);
@@ -650,6 +650,7 @@ void test_comment_invariants(Tree const& t, id_type id)
         EXPECT_EQ(t.m_comments_buf[node->m_last_comment].m_next, NONE);
         for(id_type cid = node->m_first_comment; cid != NONE; cid = t.m_comments_buf[cid].m_next)
         {
+            RYML_TRACE_FMT("cid={}", cid);
             ASSERT_LT(cid, t.m_comments_size);
             CommentData const* comm = &t.m_comments_buf[cid];
             EXPECT_EQ(t.comment(id, comm->m_type), comm);
@@ -658,8 +659,8 @@ void test_comment_invariants(Tree const& t, id_type id)
                 EXPECT_NE(cid, node->m_first_comment);
                 ASSERT_LT(comm->m_prev, t.m_comments_size);
                 CommentData const* prev = &t.m_comments_buf[comm->m_prev];
-                EXPECT_GT(comm->m_type, prev->m_type);
-                EXPECT_EQ(comm->m_prev, prev->m_next);
+                EXPECT_LT(prev->m_type, comm->m_type);
+                EXPECT_EQ(prev->m_next, cid);
             }
             else
             {
@@ -670,8 +671,8 @@ void test_comment_invariants(Tree const& t, id_type id)
                 EXPECT_NE(cid, node->m_last_comment);
                 ASSERT_LT(comm->m_next, t.m_comments_size);
                 CommentData const* next = &t.m_comments_buf[comm->m_next];
-                EXPECT_LT(comm->m_type, next->m_type);
-                EXPECT_EQ(comm->m_prev, next->m_next);
+                EXPECT_GT(next->m_type, comm->m_type);
+                EXPECT_EQ(next->m_prev, cid);
             }
             else
             {
@@ -699,6 +700,7 @@ void test_comment_invariants(Tree const& t, id_type id)
         CommentType_e ctype_prev = COMM_NONE;
         for(CommentType_e ctype : all_types)
         {
+            SCOPED_TRACE((comment_data_type)ctype);
             CommentData const* comm = t.comment(id, ctype);
             if(ctype_prev != COMM_NONE)
             {
@@ -711,6 +713,11 @@ void test_comment_invariants(Tree const& t, id_type id)
         }
     }
     EXPECT_EQ(count_iter, count_get);
+
+    for(id_type child = t.first_child(id); child != NONE; child = t.next_sibling(id))
+    {
+        test_comment_invariants(t, child);
+    }
 #endif
 }
 
