@@ -293,6 +293,52 @@ TEST(comment_list, insertion_order_2)
         verify_comment(t, node, 4, COMM_FV2, 3, 0, " CFV2 5");
         _check_comment_invariants(t, "here");
     }
+
+    {
+        SCOPED_TRACE("4-3-2-1-0");
+        Tree t = orig;
+
+        ASSERT_LT(COMM_LV, COMM_TT);
+        t.set_comment(node, COMM_TT, " CTN 1");
+        EXPECT_EQ(t._p(node)->m_first_comment, 0);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 0, COMM_TT, NONE, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_FV2, " CFV2 5");
+        EXPECT_EQ(t._p(node)->m_first_comment, 1);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 1, COMM_FV2, NONE, 0, " CFV2 5");
+        verify_comment(t, node, 0, COMM_TT, 1, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_FV, " CFV 4");
+        EXPECT_EQ(t._p(node)->m_first_comment, 2);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 2, COMM_FV, NONE, 1, " CFV 4");
+        verify_comment(t, node, 1, COMM_FV2, 2, 0, " CFV2 5");
+        verify_comment(t, node, 0, COMM_TT, 1, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_TV, " CTV 3");
+        EXPECT_EQ(t._p(node)->m_first_comment, 3);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 3, COMM_TV, NONE, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 3, 1, " CFV 4");
+        verify_comment(t, node, 1, COMM_FV2, 2, 0, " CFV2 5");
+        verify_comment(t, node, 0, COMM_TT, 1, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
+
+        t.set_comment(node, COMM_LV, " CLV 2");
+        EXPECT_EQ(t._p(node)->m_first_comment, 4);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 4, COMM_LV, NONE, 3, " CLV 2");
+        verify_comment(t, node, 3, COMM_TV, 4, 2, " CTV 3");
+        verify_comment(t, node, 2, COMM_FV, 3, 1, " CFV 4");
+        verify_comment(t, node, 1, COMM_FV2, 2, 0, " CFV2 5");
+        verify_comment(t, node, 0, COMM_TT, 1, NONE, " CTN 1");
+        _check_comment_invariants(t, "here");
+    }
 #endif
 }
 
