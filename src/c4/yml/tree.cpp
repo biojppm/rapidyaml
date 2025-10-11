@@ -2037,11 +2037,13 @@ id_type Tree::_insert_comment(NodeData *n, id_type prev_comment)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, n->m_first_comment != NONE, this, id(n));
         _RYML_ASSERT_VISIT_(m_callbacks, n->m_last_comment != NONE, this, id(n));
-        if (prev_comment != n->m_last_comment) // prev is in the middle
+        if(prev_comment != n->m_last_comment) // prev is in the middle
         {
+            id_type next_comment = m_comments_buf[prev_comment].m_next;
             m_comments_buf[comid].m_prev = prev_comment;
-            m_comments_buf[comid].m_next = m_comments_buf[prev_comment].m_next;
+            m_comments_buf[comid].m_next = next_comment;
             m_comments_buf[prev_comment].m_next = comid;
+            m_comments_buf[next_comment].m_prev = comid;
         }
         else // prev is at the tail
         {

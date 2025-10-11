@@ -204,7 +204,7 @@ TEST(comment_list, insertion_order_2)
     }
 
     {
-        SCOPED_TRACE("swap 4-3");
+        SCOPED_TRACE("final order: 0-1-2-4-3");
         Tree t = orig;
 
         ASSERT_LT(COMM_LV, COMM_TT);
@@ -250,6 +250,7 @@ TEST(comment_list, insertion_order_2)
     }
 
     {
+        SCOPED_TRACE("final order: 1-2-3-4-0");
         Tree t = orig;
 
         t.set_comment(node, COMM_TT, " CTN 1");
@@ -274,9 +275,22 @@ TEST(comment_list, insertion_order_2)
         _check_comment_invariants(t, "here");
 
         t.set_comment(node, COMM_FV, " CFV 4");
+        EXPECT_EQ(t._p(node)->m_first_comment, 1);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 0, COMM_TT, 3, NONE, " CTN 1");
+        verify_comment(t, node, 1, COMM_LV, NONE, 2, " CLV 2");
+        verify_comment(t, node, 2, COMM_TV, 1, 3, " CTV 3");
+        verify_comment(t, node, 3, COMM_FV, 2, 0, " CFV 4");
         _check_comment_invariants(t, "here");
 
         t.set_comment(node, COMM_FV2, " CFV2 5");
+        EXPECT_EQ(t._p(node)->m_first_comment, 1);
+        EXPECT_EQ(t._p(node)->m_last_comment, 0);
+        verify_comment(t, node, 0, COMM_TT, 4, NONE, " CTN 1");
+        verify_comment(t, node, 1, COMM_LV, NONE, 2, " CLV 2");
+        verify_comment(t, node, 2, COMM_TV, 1, 3, " CTV 3");
+        verify_comment(t, node, 3, COMM_FV, 2, 4, " CFV 4");
+        verify_comment(t, node, 4, COMM_FV2, 3, 0, " CFV2 5");
         _check_comment_invariants(t, "here");
     }
 #endif
