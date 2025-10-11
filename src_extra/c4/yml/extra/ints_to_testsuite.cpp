@@ -235,7 +235,7 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
         }
         else if(evt & ievt::COMN)
         {
-            append("=CTC #");
+            append("=CTT #");
             append_esc(getstr(i));
         }
         #endif

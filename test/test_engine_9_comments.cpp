@@ -31,11 +31,11 @@ COMMENT_TEST(CommentSketch,
             "# CLK 2.4"                                    "\n"
             "--- baz # CTD 3"                              "\n"
    /*FIXME*/""                                             "\n"
-            "--- # CTK 3.1"                                "\n"
+            "--- # CTT 3.1"                                "\n"
             "bat"                                          "\n"
             "---"                                          "\n"
             "# CFV 4"      /* CFV for the doc node */      "\n"
-            "--- # CTD 5"  /* CTC for the doc node */      "\n"
+            "--- # CTT 5"  /* CTC for the doc node */      "\n"
    /*FIXME*/""                                             "\n"
             "# CLV 5.1"    /* CLV for the seq val node */  "\n"
             "- # CLV2 5.2" /* CLV2 for the seq val node */ "\n"
@@ -75,7 +75,7 @@ COMMENT_TEST(CommentSketch,
    /*FIXME*/""                                             "\n"
              ,//-----------------------------------------------
             "+STR"                                         "\n"
-            "+DOC"                                         "\n"
+            "+DOC ---"                                     "\n"
             "=CLV # CLV Comment Leading to Val 0"          "\n"
             "=VAL :val"                                    "\n"
             "-DOC"                                         "\n"
@@ -102,15 +102,16 @@ COMMENT_TEST(CommentSketch,
             "=CTV # CTV 3"                                 "\n"
             "-DOC"                                         "\n"
             "+DOC ---"                                     "\n"
-            "=CTV # CTV 3.1"                               "\n"
+            "=CTT # CTT 3.1"                               "\n"
+            "=VAL :bat"                                    "\n"
             "-DOC"                                         "\n"
             "+DOC ---"                                     "\n"
             "=CFV # CFV 4"                                 "\n"
             "-DOC"                                         "\n"
             "+DOC ---"                                     "\n"
-            "=CTK # CTK 5"                                 "\n"
+            "=CTT # CTT 5"                                 "\n"
             "+SEQ"                                         "\n"
-            "=CLV # CTK 5.1"                               "\n"
+            "=CLV # CLV 5.1"                               "\n"
             "=CLV2 # CLV2 5.2"                             "\n"
             "=VAL :val"                                    "\n"
             "=CTV # CTV 6"                                 "\n"
@@ -132,10 +133,10 @@ COMMENT_TEST(CommentSketch,
             "=CLV # CLV 15"                                "\n"
             "=VAL :a"                                      "\n"
             "=CTV # CTV 16\\n continued 16"                "\n"
-            "=CTC # CTC 16.1"                              "\n"
+            "=CTT # CTT 16.1"                              "\n"
             "=CLV # CLV 17"                                "\n"
             "=VAL :b"                                      "\n"
-            "=CTC # CTC 17.1"                              "\n"
+            "=CTT # CTT 17.1"                              "\n"
             "=CLV # CLV 17.2"                              "\n"
             "=VAL :c"                                      "\n"
             "=CTV # CTV 18\\n continued 18"                "\n"
@@ -179,14 +180,14 @@ COMMENT_TEST(CommentSketch,
     ___(ps.add_comment_trailing_val(" CTV 3"));
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.add_comment_trailing_key(" CTK 3.1"));
+    ___(ps.add_comment_trailing_token(" CTT 3.1"));
     ___(ps.set_val_scalar_plain("bat"));
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
     ___(ps.add_comment_footer_val(" CFV 4"));
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.add_comment_trailing_key(" CTK 5"));
+    ___(ps.add_comment_trailing_token(" CTT 5"));
     ___(ps.begin_seq_val_block());
     ___(ps.add_comment_leading_val(" CLV 5.1"));
     ___(ps.add_comment_leading_val2(" CLV2 5.2"));
@@ -210,11 +211,11 @@ COMMENT_TEST(CommentSketch,
     ___(ps.add_comment_leading_val(" CLV 15"));
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.add_comment_trailing_val(" CTV 16\n continued 16"));
-    ___(ps.add_comment_trailing_token(" CTC 16.1"));
+    ___(ps.add_comment_trailing_token(" CTT 16.1"));
     ___(ps.add_sibling());
     ___(ps.add_comment_leading_val(" CLV 17"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.add_comment_trailing_token(" CTC 17.1"));
+    ___(ps.add_comment_trailing_token(" CTT 17.1"));
     ___(ps.add_sibling());
     ___(ps.add_comment_leading_val(" CLV 17.2"));
     ___(ps.set_val_scalar_plain("c"));
