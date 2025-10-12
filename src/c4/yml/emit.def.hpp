@@ -194,6 +194,8 @@ void Emitter<Writer>::_visit_doc(id_type id)
 
     if(ty.is_container()) // this is more frequent
     {
+        if(write_sep && !comm)
+            _newl();
         _visit_container(id);
     }
     else if(ty.is_val())
@@ -223,10 +225,9 @@ void Emitter<Writer>::_visit_doc(id_type id)
                 (val.find('\n') != npos));
         if(write_sep)
         {
-            if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag())
+            if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag() && !m_tree->comment(id, COMM_TV|COMM_FV))
             {
                 _newl();
-                return;
             }
             else if(val.len && is_ambiguous)
             {
@@ -285,6 +286,7 @@ void Emitter<Writer>::_blck_open_container(id_type node, NodeType ty, id_type il
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_container(), m_tree, node);
     bool spc = false; // write a space
     bool nl = false;  // write a newline
+    bool toplevel = ty.is_doc() || m_tree->is_root(node);
     if(ty.has_key())
     {
 /*FIXME*/_indent(ilevel, do_indent);
@@ -307,7 +309,7 @@ void Emitter<Writer>::_blck_open_container(id_type node, NodeType ty, id_type il
         _write(':');
         spc = true;
     }
-    else if(!m_tree->is_root(node))
+    else if(!toplevel)
     {
 /*FIXME*/_indent(ilevel, do_indent);
         #ifndef RYML_WITH_COMMENTS
@@ -386,13 +388,13 @@ void Emitter<Writer>::_blck_open_container(id_type node, NodeType ty, id_type il
                     nl = true;
                     spc = false;
                 }
-                else if(!m_tree->is_root(node) && !nl)
+                else if(!toplevel && !nl)
                 {
                     spc = true;
                 }
             }
             #else
-            if(!m_tree->is_root(node) && !nl)
+            if(!toplevel && !nl)
             {
                 spc = true;
             }
@@ -1045,9 +1047,7 @@ void Emitter<Writer>::_visit_blck(id_type node, id_type depth, id_type ilevel, i
 
     const NodeType ty = m_tree->type(node);
     if(ty.is_container())
-    {
         _blck_open_container(node, ty, ilevel, do_indent);
-    }
     else if(ty == NOTYPE)
         return;
 

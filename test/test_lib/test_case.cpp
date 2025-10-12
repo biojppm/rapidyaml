@@ -744,18 +744,21 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_val());
     }
-    // check parent & sibling reciprocity
+    // check sibling reciprocity
     for(ConstNodeRef s : n.siblings())
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(n.has_key())
+        if(s.has_key() && !n.has_key()) { EXPECT_EQ(n.type(), NOTYPE); EXPECT_NE(n.comment(), nullptr); }
+        if(!s.has_key() && n.has_key()) { EXPECT_EQ(s.type(), NOTYPE); EXPECT_NE(s.comment(), nullptr); }
+        if(n.has_key() && s.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
         }
         EXPECT_EQ(s.parent().get(), n.parent().get());
     }
+    // check parent/child reciprocity
     if(n.parent().readable())
     {
         EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings());
@@ -789,7 +792,10 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_FALSE(n.is_seq());
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_TRUE(ch.has_key());
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.has_key());
+            }
         }
     }
     if(n.has_key_anchor())
