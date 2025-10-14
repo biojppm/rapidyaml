@@ -15,6 +15,7 @@ namespace yml {
     template<class Handler> void disabled_##name(Handler &ps)
 #endif
 
+
 COMMENT_TEST(CommentSketch,
              "---"                                          "\n"
              "# CLV Comment Leading to Val 0"               "\n"
@@ -192,6 +193,13 @@ COMMENT_TEST(CommentSketch,
     ___(ps.begin_doc_expl());
     ___(ps.add_comment_trailing_token(" CTT 5"));
     ___(ps.begin_seq_val_block());
+    ___(ps.add_comment_leading_val(" CLV 5.1"));
+    ___(ps.add_comment_leading_val2(" CLV2 5.2"));
+    ___(ps.set_val_scalar_plain("val"));
+    ___(ps.add_comment_trailing_val(" CTV 6"));
+    ___(ps.add_comment_footer_val(" CFV 6.1"));
+    ___(ps.add_comment_leading_val(" CLV 7"));
+    ___(ps.add_sibling());
     ___(ps.add_comment_leading_val(" CLV 5.1"));
     ___(ps.add_comment_leading_val2(" CLV2 5.2"));
     ___(ps.set_val_scalar_plain("val"));
@@ -1598,6 +1606,35 @@ COMMENT_TEST(CommentSeqFlowEmptyContainers,
     ___(ps.add_comment_leading_key(" CLK 6"));
     ___(ps.end_map());
     ___(ps.add_comment_footer_val(" CFV 7"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+//-----------------------------------------------------------------------------
+
+COMMENT_TEST(CommentExplKey1,
+             "# c1 lk"                            "\n"
+             "? # c2 tt"                            "\n"
+             " # c3 ..."                            "\n"
+             " a # c4 lk2"                            "\n"
+             " # c5 ..."                            "\n"
+             "# c6 fk"                            "\n"
+             ": # c7 tk"                            "\n"
+             " # c8"                            "\n"
+             " b # c9"                            "\n"
+             " # c10"                            "\n"
+             "# c11"                            "\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=CLK # c1 lk\n"
+            "=CTT # c2 tt\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

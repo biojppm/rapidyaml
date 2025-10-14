@@ -50,7 +50,7 @@ inline bool is_set_(ConstNodeRef n) { return n.tree() && (n.id() != NONE); }
 /** Specifies the type of content to emit */
 typedef enum {
     EMIT_YAML = 0, ///< emit YAML
-    EMIT_JSON = 1  ///< emit JSON
+    EMIT_JSON = 1, ///< emit JSON
 } EmitType_e;
 
 
@@ -62,10 +62,13 @@ typedef enum {
 struct EmitOptions
 {
     typedef enum : uint32_t {
-        DEFAULT_FLAGS = 0u,
-        JSON_ERR_ON_TAG = 1u << 0u,
-        JSON_ERR_ON_ANCHOR = 1u << 1u,
+        EMIT_NONROOT_KEY = 1u << 0u,
+        EMIT_NONROOT_DASH = 1u << 1u,
+        EMIT_NONROOT_MARKUP = EMIT_NONROOT_KEY|EMIT_NONROOT_DASH,
+        JSON_ERR_ON_TAG = 1u << 1u,
+        JSON_ERR_ON_ANCHOR = 1u << 2u,
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
+        DEFAULT_FLAGS = EMIT_NONROOT_KEY,
     } EmitOptionFlags_e;
 
 public:
@@ -73,8 +76,16 @@ public:
     /** @name option flags
      *
      * @{ */
-    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return m_option_flags; }
+
+    C4_ALWAYS_INLINE bool emit_nonroot_key() const noexcept { return (m_option_flags & EMIT_NONROOT_KEY) != 0; }
+    EmitOptions& emit_nonroot_key(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags|EMIT_NONROOT_KEY) : (m_option_flags&~EMIT_NONROOT_KEY)); return *this; }
+
+    C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_option_flags & EMIT_NONROOT_DASH) != 0; }
+    EmitOptions& emit_nonroot_dash(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags|EMIT_NONROOT_DASH) : (m_option_flags&~EMIT_NONROOT_DASH)); return *this; }
+
+    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return (EmitOptionFlags_e)(m_option_flags & _JSON_ERR_MASK); }
     EmitOptions& json_error_flags(EmitOptionFlags_e d) noexcept { m_option_flags = (EmitOptionFlags_e)(d & _JSON_ERR_MASK); return *this; }
+
     /** @} */
 
 public:
@@ -132,6 +143,8 @@ public:
     template<class ...Args>
     Emitter(EmitOptions const& opts, Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(opts), m_flow(false) {}
 
+public:
+
     /** emit!
      *
      * When writing to a buffer, returns a substr of the emitted YAML.
@@ -170,6 +183,8 @@ public:
 
     /** get the emit options for this object */
     EmitOptions const& options() const noexcept { return m_opts; }
+    /** set the emit options for this object */
+    void options(EmitOptions opts) noexcept { m_opts = opts; }
 
     /** set the max depth for emitted trees (to prevent a stack overflow) */
     void max_depth(id_type max_depth) noexcept { m_opts.max_depth(max_depth); }
@@ -186,20 +201,55 @@ private:
 private:
 
     void _emit_yaml(id_type id);
+    void _emit_yaml_open(id_type id);
+    void _emit_yaml_close(id_type id);
 
     void _visit_stream(id_type id);
     void _visit_doc(id_type id);
-    void _visit_container(id_type id);
-    void _visit_flow_sl(id_type id, id_type depth, id_type ilevel);
-    void _visit_flow_ml(id_type id, id_type depth, id_type ilevel);
+    void _visit_doc_val(id_type id);
+    void _visit_doc_keyval(id_type id);
+    void _visit_doc_container(id_type id);
 
-    void _visit_blck(id_type id, id_type depth, id_type ilevel, id_type do_indent);
-    void _visit_blck_seq(id_type id, id_type depth, id_type next_level, bool do_indent);
-    void _visit_blck_map(id_type id, id_type depth, id_type next_level, bool do_indent);
-    void _visit_blck_container(id_type id, NodeType ty, id_type depth, id_type next_level, id_type do_indent);
+    void _visit_flow_sl(id_type id, id_type depth);
+    void _visit_flow_sl_seq(id_type id, id_type depth);
+    void _visit_flow_sl_map(id_type id, id_type depth);
+
+    void _visit_flow_ml(id_type id, id_type depth);
+    void _visit_flow_ml_seq(id_type id, id_type depth);
+    void _visit_flow_ml_map(id_type id, id_type depth);
+
+    void _visit_blck(id_type id, id_type depth);
+    void _visit_blck_seq(id_type id, id_type depth);
+    void _visit_blck_map(id_type id, id_type depth);
+
+    void _blck_open_entry_seq(id_type id, id_type depth);
+    void _blck_close_entry_seq(id_type id, id_type depth);
+    void _blck_open_entry_map(id_type id, id_type depth);
+    void _blck_close_entry_map(id_type id, id_type depth);
+    void _blck_open_entry_val(id_type id, id_type depth);
+    void _blck_close_entry_val(id_type id, id_type depth);
+
+    void _flow_sl_open_entry_val(id_type id, id_type depth);
+    void _flow_sl_close_entry_val(id_type id, id_type depth);
+    void _flow_sl_open_entry_seq(id_type id, id_type depth);
+    void _flow_sl_close_entry_seq(id_type id, id_type depth);
+    void _flow_sl_open_entry_map(id_type id, id_type depth);
+    void _flow_sl_close_entry_map(id_type id, id_type depth);
+
+    void _flow_ml_open_entry_val(id_type id, id_type depth);
+    void _flow_ml_close_entry_val(id_type id, id_type depth);
+    void _flow_ml_open_entry_seq(id_type id, id_type depth);
+    void _flow_ml_close_entry_seq(id_type id, id_type depth);
+    void _flow_ml_open_entry_map(id_type id, id_type depth);
+    void _flow_ml_close_entry_map(id_type id, id_type depth);
 
     void _flow_open_container(id_type id, NodeType ty, id_type ilevel);
     void _blck_open_container(id_type id, NodeType ty, id_type ilevel, id_type &do_indent);
+
+    void _blck_write_scalar_key(id_type id, id_type ilevel);
+    void _blck_write_scalar_val(id_type id, id_type ilevel);
+    void _flow_write_scalar_key(id_type id, id_type ilevel);
+    void _flow_write_scalar_val(id_type id, id_type ilevel);
 
     void _visit_json(id_type id, id_type depth);
 
