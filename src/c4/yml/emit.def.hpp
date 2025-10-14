@@ -31,6 +31,8 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
     _RYML_CHECK_VISIT_(tree.callbacks(), id < tree.capacity(), &tree, id);
     m_tree = &tree;
     m_col = 0;
+    m_depth = 0;
+    m_ilevel = 0;
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
@@ -60,51 +62,51 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     const bool has_parent = !m_tree->is_root(id);
     const bool emit_key = has_parent && ty.has_key() && m_opts.emit_nonroot_key();
     const bool emit_dash = has_parent && !ty.has_key() && !ty.is_doc() && m_opts.emit_nonroot_dash();
-    const id_type payload_depth = (emit_key || emit_dash);
+    m_ilevel += (emit_key || emit_dash);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, !(emit_key && emit_dash), m_tree, id);
     if(emit_key)
     {
-        _blck_open_entry_map(id, 0);
+        _blck_map_open_entry(id);
     }
     else if(emit_dash)
     {
-        _blck_open_entry_seq(id, 0);
+        _blck_seq_open_entry(id);
     }
     else if(!ty.is_doc()) // opening the doc is done inside _visit_doc()
     {
-        _blck_open_entry_val(id, 0);
+        _blck_val_open_entry(id);
     }
     // emit the payload
     if(ty.is_stream())
     {
-        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, payload_depth == 0, m_tree, id);
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_ilevel == 0, m_tree, id);
         _visit_stream(id);
     }
     else if(ty.is_doc())
     {
-        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, payload_depth == 0, m_tree, id);
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_ilevel == 0, m_tree, id);
         _visit_doc(id);
     }
     else if(ty.is_container())
     {
-        _visit_doc_container(id, payload_depth);
+        _visit_doc_container(id);
     }
     else if(ty.has_val())
     {
-        _visit_doc_val(id, payload_depth);
+        _visit_doc_val(id);
     }
     // emit closing tokens (such as comments)
     if(emit_key)
     {
-        _blck_close_entry_map(id, 0);
+        _blck_map_close_entry(id);
     }
     else if(emit_dash)
     {
-        _blck_close_entry_seq(id, 0);
+        _blck_seq_close_entry(id);
     }
     else if(!ty.is_doc()) // closing the doc is done inside _visit_doc()
     {
-        _blck_close_entry_val(id, 0);
+        _blck_val_close_entry(id);
     }
 }
 
@@ -138,6 +140,7 @@ void Emitter<Writer>::_visit_stream(id_type id)
     const id_type first_child = m_tree->first_child(id);
     if(first_child != NONE)
         write_tag_directives(first_child);
+    ++m_depth;
     for(id_type child = first_child; child != NONE; child = m_tree->next_sibling(child))
     {
         _visit_doc(child);
@@ -147,21 +150,22 @@ void Emitter<Writer>::_visit_stream(id_type id)
         if(m_tree->next_sibling(child) != NONE)
             write_tag_directives(m_tree->next_sibling(child));
     }
+    --m_depth;
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_doc_container(id_type id, id_type depth)
+void Emitter<Writer>::_visit_doc_container(id_type id)
 {
     NodeType ty = m_tree->type(id);
     if(ty.is_flow_sl())
-        _visit_flow_sl(id, depth);
+        _visit_flow_sl(id);
     else if(ty.is_flow_ml())
-        _visit_flow_ml(id, depth);
+        _visit_flow_ml(id);
     else
-        _visit_blck(id, depth);
+        _visit_blck(id);
 }
 
 
@@ -169,51 +173,43 @@ void Emitter<Writer>::_visit_doc_container(id_type id, id_type depth)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_doc_val(id_type id, id_type depth)
+void Emitter<Writer>::_visit_doc_val(id_type id)
 {
-    if(depth)
+    // some plain scalars such as '...' and '---' must not
+    // appear at 0-indentation
+    NodeType ty = m_tree->type(id);
+    const csubstr val = m_tree->val(id);
+    const type_bits style_marks = ty & VAL_STYLE;
+    const bool write_sep = !m_tree->is_root(id);
+    const bool is_plain = ty.is_val_plain();
+    const bool is_ambiguous = (is_plain || !style_marks)
+        && ((val.begins_with("...") || val.begins_with("---"))
+            ||
+            (val.find('\n') != npos));
+    const bool had_leading_comments = (nullptr != m_tree->comment(id, COMM_TT|COMM_LV));
+    if(write_sep)
     {
-        _blck_write_scalar_val(id, depth);
-    }
-    else // depth == 0
-    {
-        // some plain scalars such as '...' and '---' must not
-        // appear at 0-indentation
-        NodeType ty = m_tree->type(id);
-        const csubstr val = m_tree->val(id);
-        const type_bits style_marks = ty & VAL_STYLE;
-        const bool write_sep = !m_tree->is_root(id);
-        const bool is_plain = ty.is_val_plain();
-        const bool is_ambiguous = (is_plain || !style_marks)
-            && ((val.begins_with("...") || val.begins_with("---"))
-                ||
-                (val.find('\n') != npos));
-        const bool had_leading_comments = (nullptr != m_tree->comment(id, COMM_TT|COMM_LV));
-        if(write_sep)
+        if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag() && !m_tree->comment(id, COMM_TV|COMM_FV))
         {
-            if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag() && !m_tree->comment(id, COMM_TV|COMM_FV))
-            {
-                _newl();
-            }
-            else if(val.len && is_ambiguous)
-            {
-                _newl();
-            }
-            else _RYML_WITH_COMMENTS(if(!had_leading_comments))
-            {
-                _write(' ');
-            }
-        }
-        id_type ilevel = 0u;
-        if(is_ambiguous)
-        {
-          _indent(ilevel + 1);
-          ++ilevel;
-        }
-        _blck_write_scalar_val(id, ilevel);
-        if(val.len && m_tree->is_root(id))
             _newl();
+        }
+        else if(val.len && is_ambiguous)
+        {
+            _newl();
+        }
+        else _RYML_WITH_COMMENTS(if(!had_leading_comments))
+        {
+            _write(' ');
+        }
     }
+    if(is_ambiguous)
+    {
+        ++m_ilevel;
+        _indent(m_ilevel);
+    }
+    _blck_write_scalar_val(id);
+    if(val.len && m_tree->is_root(id))
+        _newl();
 }
 
 
@@ -248,7 +244,7 @@ void Emitter<Writer>::_visit_doc(id_type id)
     {
         if(write_sep _RYML_WITH_COMMENTS( && !comm))
             _newl();
-        _visit_doc_container(id, 0);
+        _visit_doc_container(id);
     }
     else if(ty.is_val())
     {
@@ -265,7 +261,7 @@ void Emitter<Writer>::_visit_doc(id_type id)
             }
         }
         #endif
-        _visit_doc_val(id, 0);
+        _visit_doc_val(id);
         #ifdef RYML_WITH_COMMENTS
         comm = m_tree->comment(id, comm, COMM_TV);
         if(comm)
@@ -300,7 +296,7 @@ void Emitter<Writer>::_visit_doc(id_type id)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_flow_sl_write_comma(id_type node, id_type first_sibling, id_type ilevel)
+void Emitter<Writer>::_flow_sl_write_comma(id_type node, id_type first_sibling)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), first_sibling == m_tree->first_sibling(node), m_tree, node);
     if(node != first_sibling)
@@ -313,14 +309,14 @@ void Emitter<Writer>::_flow_sl_write_comma(id_type node, id_type first_sibling, 
             _write(" #");
             _write_comment(comm->m_text, m_col);
             _newl();
-            _indent(ilevel);
+            _indent(m_ilevel);
         }
         #endif
     }
 }
 
 template<class Writer>
-void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type first_sibling, id_type ilevel)
+void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type first_sibling)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), first_sibling == m_tree->first_sibling(node), m_tree, node);
     if(node != first_sibling)
@@ -335,7 +331,7 @@ void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type first_sibling, 
         }
         #endif
         _newl();
-        _indent(ilevel);
+        _indent(m_ilevel);
     }
 }
 
@@ -343,10 +339,10 @@ void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type first_sibling, 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_blck_open_entry_val(id_type node, id_type ilevel)
+void Emitter<Writer>::_blck_val_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    _indent(ilevel);
+    _indent(m_ilevel);
     bool spc = false;
     #ifndef RYML_WITH_COMMENTS
     if(ty.has_val_tag())
@@ -375,7 +371,7 @@ void Emitter<Writer>::_blck_open_entry_val(id_type node, id_type ilevel)
     {
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel);
+        _indent(m_ilevel);
     }
     if(ty.has_val_tag())
     {
@@ -403,21 +399,15 @@ void Emitter<Writer>::_blck_open_entry_val(id_type node, id_type ilevel)
         if(spc)
             _write(' ');
     }
-    else
-    {
-        _newl();
-        _indent(ilevel + 1);
-    }
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_blck_close_entry_val(id_type node, id_type ilevel)
+void Emitter<Writer>::_blck_val_close_entry(id_type node)
 {
     (void)node;
-    (void)ilevel;
     #ifdef RYML_WITH_COMMENTS
     CommentData const* comm = m_tree->comment(node, COMM_TV);
     if(comm)
@@ -429,7 +419,7 @@ void Emitter<Writer>::_blck_close_entry_val(id_type node, id_type ilevel)
     if(comm)
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         _write_comment(comm->m_text, m_col);
         _newl();
     }
@@ -437,7 +427,7 @@ void Emitter<Writer>::_blck_close_entry_val(id_type node, id_type ilevel)
     if(comm)
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         _write_comment(comm->m_text, m_col);
         _newl();
     }
@@ -448,11 +438,10 @@ void Emitter<Writer>::_blck_close_entry_val(id_type node, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_blck_open_entry_seq(id_type node, id_type ilevel)
+void Emitter<Writer>::_blck_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_seq(), m_tree, node);
-    _indent(ilevel);
+    _indent(m_ilevel);
     #ifndef RYML_WITH_COMMENTS
     _write('-');
     if(ty.has_val_tag())
@@ -476,7 +465,7 @@ void Emitter<Writer>::_blck_open_entry_seq(id_type node, id_type ilevel)
     {
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel);
+        _indent(m_ilevel);
     }
     _write('-');
     comm = m_tree->comment(node, comm, COMM_LV2);
@@ -486,7 +475,7 @@ void Emitter<Writer>::_blck_open_entry_seq(id_type node, id_type ilevel)
         _write(' ');
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         spc = false;
     }
     if(ty.has_val_tag())
@@ -518,7 +507,7 @@ void Emitter<Writer>::_blck_open_entry_seq(id_type node, id_type ilevel)
     else
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
     }
 }
 
@@ -526,11 +515,11 @@ void Emitter<Writer>::_blck_open_entry_seq(id_type node, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_flow_open_entry_seq(id_type node, id_type ilevel)
+void Emitter<Writer>::_flow_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_seq(), m_tree, node);
-    _indent(ilevel);
+    _indent(m_ilevel);
     bool spc = false;
     #ifndef RYML_WITH_COMMENTS
     if(ty.has_val_tag())
@@ -559,7 +548,7 @@ void Emitter<Writer>::_flow_open_entry_seq(id_type node, id_type ilevel)
     {
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel);
+        _indent(m_ilevel);
     }
     comm = m_tree->comment(node, comm, COMM_LV2);
     if(comm)
@@ -567,7 +556,7 @@ void Emitter<Writer>::_flow_open_entry_seq(id_type node, id_type ilevel)
         _write(' ');
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
     }
     if(ty.has_val_tag())
     {
@@ -598,7 +587,7 @@ void Emitter<Writer>::_flow_open_entry_seq(id_type node, id_type ilevel)
     else
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
     }
 }
 
@@ -606,11 +595,10 @@ void Emitter<Writer>::_flow_open_entry_seq(id_type node, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_blck_close_entry_seq(id_type node, id_type ilevel)
+void Emitter<Writer>::_blck_seq_close_entry(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->type(node).is_seq(), m_tree, node);
     (void)node;
-    (void)ilevel;
     #ifdef RYML_WITH_COMMENTS
     CommentData const* comm = m_tree->comment(node, COMM_TV);
     bool spc = true;
@@ -627,7 +615,7 @@ void Emitter<Writer>::_blck_close_entry_seq(id_type node, id_type ilevel)
         if(spc)
             _write(' ');
         else
-            _indent(ilevel);
+            _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
         _newl();
         spc = false;
@@ -638,7 +626,7 @@ void Emitter<Writer>::_blck_close_entry_seq(id_type node, id_type ilevel)
         if(spc)
             _write(' ');
         else
-            _indent(ilevel);
+            _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
         _newl();
     }
@@ -649,11 +637,10 @@ void Emitter<Writer>::_blck_close_entry_seq(id_type node, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_flow_close_entry_seq(id_type node, id_type ilevel)
+void Emitter<Writer>::_flow_seq_close_entry(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->type(node).is_seq(), m_tree, node);
     (void)node;
-    (void)ilevel;
     #ifdef RYML_WITH_COMMENTS
     CommentData const* comm = m_tree->comment(node, COMM_TV);
     bool prev_comm = false;
@@ -667,7 +654,7 @@ void Emitter<Writer>::_flow_close_entry_seq(id_type node, id_type ilevel)
     if(comm)
     {
         if(prev_comm)
-            _indent(ilevel);
+            _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
         _newl();
         prev_comm = true;
@@ -676,7 +663,7 @@ void Emitter<Writer>::_flow_close_entry_seq(id_type node, id_type ilevel)
     if(comm)
     {
         if(prev_comm)
-            _indent(ilevel);
+            _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
         _newl();
     }
@@ -687,12 +674,13 @@ void Emitter<Writer>::_flow_close_entry_seq(id_type node, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_blck_open_entry_map(id_type node, id_type ilevel)
+void Emitter<Writer>::_blck_map_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
-    _indent(ilevel);
-    #ifndef RYML_WITH_COMMENTS
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_col == 0, m_tree, node);
+    _indent(m_ilevel);
+#ifndef RYML_WITH_COMMENTS
     bool spc = false;
     if(ty.has_key_tag())
     {
@@ -738,13 +726,13 @@ void Emitter<Writer>::_blck_open_entry_map(id_type node, id_type ilevel)
         _write(" *");
         return;
     }
-    #else // with comments
+#else // with comments
     CommentData const* comm = m_tree->comment(node, COMM_LK);
     if(comm)
     {
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel);
+        _indent(m_ilevel);
     }
     {
         bool spc = false;
@@ -774,7 +762,7 @@ void Emitter<Writer>::_blck_open_entry_map(id_type node, id_type ilevel)
         {
             if(spc)
                 _write(' ');
-            _blck_write_scalar_key(node, ilevel);
+            _blck_write_scalar_key(node);
         }
     }
     _write(':');
@@ -785,27 +773,27 @@ void Emitter<Writer>::_blck_open_entry_map(id_type node, id_type ilevel)
         _write(' ');
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         spc = false;
     }
     comm = m_tree->comment(node, comm, COMM_LV);
     if(comm)
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         spc = false;
     }
     comm = m_tree->comment(node, comm, COMM_LV2);
     if(comm)
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         spc = false;
     }
     if(ty.has_val_tag())
@@ -830,8 +818,8 @@ void Emitter<Writer>::_blck_open_entry_map(id_type node, id_type ilevel)
         _write('*');
         return;
     }
-    #endif
-    if(ty.is_val() || ty.is_flow())
+#endif // with comments
+    if(ty.has_val() || ty.is_flow())
     {
         if(spc)
             _write(' ');
@@ -839,7 +827,7 @@ void Emitter<Writer>::_blck_open_entry_map(id_type node, id_type ilevel)
     else
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
     }
 }
 
@@ -847,12 +835,12 @@ void Emitter<Writer>::_blck_open_entry_map(id_type node, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_flow_open_entry_map(id_type node, id_type ilevel)
+void Emitter<Writer>::_flow_map_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
-    _indent(ilevel);
-    #ifndef RYML_WITH_COMMENTS
+    _indent(m_ilevel);
+#ifndef RYML_WITH_COMMENTS
     bool spc = false;
     if(ty.has_key_tag())
     {
@@ -898,13 +886,13 @@ void Emitter<Writer>::_flow_open_entry_map(id_type node, id_type ilevel)
         _write(" *");
         return;
     }
-    #else // with comments
+#else // with comments
     CommentData const* comm = m_tree->comment(node, COMM_LK);
     if(comm)
     {
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel);
+        _indent(m_ilevel);
     }
     {
         bool spc = false;
@@ -934,7 +922,7 @@ void Emitter<Writer>::_flow_open_entry_map(id_type node, id_type ilevel)
         {
             if(spc)
                 _write(' ');
-            _blck_write_scalar_key(node, ilevel);
+            _blck_write_scalar_key(node);
         }
     }
     _write(':');
@@ -945,27 +933,27 @@ void Emitter<Writer>::_flow_open_entry_map(id_type node, id_type ilevel)
         _write(' ');
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         spc = false;
     }
     comm = m_tree->comment(node, comm, COMM_LV);
     if(comm)
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         spc = false;
     }
     comm = m_tree->comment(node, comm, COMM_LV2);
     if(comm)
     {
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         _write_comment(comm->m_text, m_col);
         _newl();
-        _indent(ilevel + 1);
+        _indent(m_ilevel + 1);
         spc = false;
     }
     if(ty.has_val_tag())
@@ -990,51 +978,54 @@ void Emitter<Writer>::_flow_open_entry_map(id_type node, id_type ilevel)
         _write('*');
         return;
     }
-    #endif
+#endif // with comments
     _write(' ');
 }
+
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_blck_close_entry_map(id_type node, id_type ilevel)
+void Emitter<Writer>::_blck_map_close_entry(id_type node)
 {
     (void)node;
-    (void)ilevel;
     #ifdef RYML_WITH_COMMENTS
     CommentData const* comm = m_tree->comment(node, COMM_TV);
+    bool has_comments = false;
     if(comm)
     {
         _write(' ');
         _write_comment(comm->m_text, m_col);
+        has_comments = true;
     }
     comm = m_tree->comment(node, comm, COMM_FV);
     if(comm)
     {
-        _newl();
-        _indent(ilevel + 1);
+        if(has_comments)
+            _newl();
+        _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
-        _newl();
+        has_comments = true;
     }
     comm = m_tree->comment(node, comm, COMM_FV2);
     if(comm)
     {
-        _newl();
-        _indent(ilevel + 1);
+        if(has_comments)
+            _newl();
+        _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
-        _newl();
     }
     #endif
+    _newl();
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_flow_close_entry_map(id_type node, id_type ilevel)
+void Emitter<Writer>::_flow_map_close_entry(id_type node)
 {
     (void)node;
-    (void)ilevel;
     #ifdef RYML_WITH_COMMENTS
     CommentData const* comm = m_tree->comment(node, COMM_TV);
     bool prev_comm = false;
@@ -1048,7 +1039,7 @@ void Emitter<Writer>::_flow_close_entry_map(id_type node, id_type ilevel)
     if(comm)
     {
         if(prev_comm)
-            _indent(ilevel);
+            _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
         _newl();
         prev_comm = true;
@@ -1057,7 +1048,7 @@ void Emitter<Writer>::_flow_close_entry_map(id_type node, id_type ilevel)
     if(comm)
     {
         if(prev_comm)
-            _indent(ilevel);
+            _indent(m_ilevel);
         _write_comment(comm->m_text, m_col);
         _newl();
     }
@@ -1068,29 +1059,32 @@ void Emitter<Writer>::_flow_close_entry_map(id_type node, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_blck_seq(id_type node, id_type depth)
+void Emitter<Writer>::_visit_blck_seq(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
     for(id_type child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         const NodeType ty = m_tree->type(child);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_val() || ty.is_container() || ty == NOTYPE, m_tree, node);
-        _blck_open_entry_seq(child, depth);
+        _blck_seq_open_entry(child);
         if(ty.is_val())
         {
-            _blck_write_scalar_val(child, depth);
+            _blck_write_scalar_val(child);
         }
         else if(ty.is_container())
         {
-            const id_type child_depth = depth + 1;
+            ++m_depth;
+            ++m_ilevel;
             if(ty.is_flow_sl())
-                _visit_flow_sl(child, child_depth);
+                _visit_flow_sl(child);
             else if(ty.is_flow_ml())
-                _visit_flow_ml(child, child_depth);
+                _visit_flow_ml(child);
             else
-                _visit_blck(child, depth+1);
+                _visit_blck(child);
+            --m_depth;
+            --m_ilevel;
         }
-        _blck_close_entry_seq(child, depth);
+        _blck_seq_close_entry(child);
     }
 }
 
@@ -1098,29 +1092,32 @@ void Emitter<Writer>::_visit_blck_seq(id_type node, id_type depth)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_blck_map(id_type node, id_type depth)
+void Emitter<Writer>::_visit_blck_map(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
     for(id_type child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         const NodeType ty = m_tree->type(child);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_keyval() || ty.is_container() || ty == NOTYPE, m_tree, node);
-        _blck_open_entry_map(child, depth); // also writes the key
+        _blck_map_open_entry(child); // also writes the key
         if(ty.is_keyval())
         {
-            _blck_write_scalar_val(child, depth);
+            _blck_write_scalar_val(child);
         }
         else if(ty.is_container())
         {
-            const id_type child_depth = depth + 1;
+            ++m_depth;
+            ++m_ilevel;
             if(ty.is_flow_sl())
-                _visit_flow_sl(child, child_depth);
+                _visit_flow_sl(child);
             else if(ty.is_flow_ml())
-                _visit_flow_ml(child, child_depth);
+                _visit_flow_ml(child);
             else
-                _visit_blck(child, child_depth);
+                _visit_blck(child);
+            --m_depth;
+            --m_ilevel;
         }
-        _blck_close_entry_map(child, depth);
+        _blck_map_close_entry(child);
     }
 }
 
@@ -1128,29 +1125,30 @@ void Emitter<Writer>::_visit_blck_map(id_type node, id_type depth)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_flow_sl_seq(id_type node, id_type depth)
+void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
     _write('[');
     for(id_type first = m_tree->first_child(node), child = first; child != NONE; child = m_tree->next_sibling(child))
     {
-        _flow_sl_write_comma(child, first, depth);
+        _flow_sl_write_comma(child, first);
         const NodeType ty = m_tree->type(child);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_val() || ty.is_container() || ty == NOTYPE, m_tree, node);
-        _flow_open_entry_seq(child, depth);
+        _flow_seq_open_entry(child);
         if(ty.is_val())
         {
-            _flow_write_scalar_val(child, depth);
+            _flow_write_scalar_val(child);
         }
         else if(ty.is_container())
         {
-            const id_type child_depth = depth + 1;
+            ++m_depth;
             if(ty.is_flow_ml())
-                _visit_flow_ml(child, child_depth);
+                _visit_flow_ml(child);
             else
-                _visit_flow_sl(child, child_depth);
+                _visit_flow_sl(child);
+            --m_depth;
         }
-        _flow_close_entry_seq(child, depth);
+        _flow_seq_close_entry(child);
     }
     _write(']');
 }
@@ -1159,29 +1157,30 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node, id_type depth)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_flow_sl_map(id_type node, id_type depth)
+void Emitter<Writer>::_visit_flow_sl_map(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
     _write('{');
     for(id_type first = m_tree->first_child(node), child = first; child != NONE; child = m_tree->next_sibling(child))
     {
-        _flow_sl_write_comma(child, first, depth);
+        _flow_sl_write_comma(child, first);
         const NodeType ty = m_tree->type(child);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key() && (ty.has_val() || ty.is_container() || ty == NOTYPE), m_tree, node);
-        _flow_open_entry_map(child, depth);
+        _flow_map_open_entry(child);
         if(ty.has_val())
         {
-            _flow_write_scalar_val(child, depth);
+            _flow_write_scalar_val(child);
         }
         else if(ty.is_container())
         {
-            const id_type child_depth = depth + 1;
+            ++m_depth;
             if(ty.is_flow_ml())
-                _visit_flow_ml(child, child_depth);
+                _visit_flow_ml(child);
             else
-                _visit_flow_sl(child, child_depth);
+                _visit_flow_sl(child);
+            --m_depth;
         }
-        _flow_close_entry_map(child, depth);
+        _flow_map_close_entry(child);
     }
     _write('}');
 }
@@ -1190,25 +1189,25 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node, id_type depth)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_blck(id_type node, id_type depth)
+void Emitter<Writer>::_visit_blck(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node) _RYML_WITH_COMMENTS( || m_tree->comment(node, COMM_ANY)), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
-    if(C4_UNLIKELY(depth > m_opts.max_depth()))
+    if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     const NodeType ty = m_tree->type(node);
     if(ty.is_seq())
     {
-        _visit_blck_seq(node, depth);
+        _visit_blck_seq(node);
     }
     else if(ty.is_map())
     {
-        _visit_blck_map(node, depth);
+        _visit_blck_map(node);
     }
     else if(ty.has_val())
     {
-        _blck_write_scalar_val(node, depth);
+        _blck_write_scalar_val(node);
     }
 }
 
@@ -1216,36 +1215,35 @@ void Emitter<Writer>::_visit_blck(id_type node, id_type depth)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_flow_sl(id_type node, id_type depth)
+void Emitter<Writer>::_visit_flow_sl(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node) _RYML_WITH_COMMENTS( || m_tree->comment(node, COMM_ANY)), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
-    if(C4_UNLIKELY(depth > m_opts.max_depth()))
+    if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     const NodeType ty = m_tree->type(node);
     if(ty.is_seq())
     {
-        _visit_flow_sl_seq(node, depth);
+        _visit_flow_sl_seq(node);
     }
     else if(ty.is_map())
     {
-        _visit_flow_sl_map(node, depth);
+        _visit_flow_sl_map(node);
     }
     else if(ty.has_val())
     {
-        _flow_write_scalar_val(node, depth);
+        _flow_write_scalar_val(node);
     }
 }
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_flow_ml(id_type id, id_type depth)
+void Emitter<Writer>::_visit_flow_ml(id_type id)
 {
     C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702) // unreachable error, triggered by flow_ml not implemented
     C4_UNUSED(id);
-    C4_UNUSED(depth);
     c4::yml::err_basic(RYML_LOC_HERE(), "not implemented");
     #ifdef THIS_IS_A_WORK_IN_PROGRESS
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
@@ -1307,7 +1305,7 @@ void Emitter<Writer>::_visit_json(id_type id, id_type depth)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_flow_write_scalar_key(id_type id, id_type ilevel)
+void Emitter<Writer>::_flow_write_scalar_key(id_type id)
 {
     enum {
         _block_styles = KEY_LITERAL|KEY_FOLDED,
@@ -1321,17 +1319,17 @@ void Emitter<Writer>::_flow_write_scalar_key(id_type id, id_type ilevel)
     if(ty & KEY_PLAIN)
     {
         if(C4_LIKELY(!(str.begins_with(": ") || str.begins_with(":\t"))))
-            _write_scalar_plain(str, ilevel);
+            _write_scalar_plain(str, m_ilevel);
         else
-            _write_scalar_squo(str, ilevel);
+            _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & KEY_SQUO)
     {
-        _write_scalar_squo(str, ilevel);
+        _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & KEY_DQUO)
     {
-        _write_scalar_dquo(str, ilevel);
+        _write_scalar_dquo(str, m_ilevel);
     }
     else
     {
@@ -1340,7 +1338,7 @@ void Emitter<Writer>::_flow_write_scalar_key(id_type id, id_type ilevel)
 }
 
 template<class Writer>
-void Emitter<Writer>::_flow_write_scalar_val(id_type id, id_type ilevel)
+void Emitter<Writer>::_flow_write_scalar_val(id_type id)
 {
     enum {
         _block_styles = VAL_LITERAL|VAL_FOLDED,
@@ -1354,17 +1352,17 @@ void Emitter<Writer>::_flow_write_scalar_val(id_type id, id_type ilevel)
     if(ty & VAL_PLAIN)
     {
         if(C4_LIKELY(!(str.begins_with(": ") || str.begins_with(":\t"))))
-            _write_scalar_plain(str, ilevel);
+            _write_scalar_plain(str, m_ilevel);
         else
-            _write_scalar_squo(str, ilevel);
+            _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & VAL_SQUO)
     {
-        _write_scalar_squo(str, ilevel);
+        _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & VAL_DQUO)
     {
-        _write_scalar_dquo(str, ilevel);
+        _write_scalar_dquo(str, m_ilevel);
     }
     else
     {
@@ -1373,7 +1371,7 @@ void Emitter<Writer>::_flow_write_scalar_val(id_type id, id_type ilevel)
 }
 
 template<class Writer>
-void Emitter<Writer>::_blck_write_scalar_key(id_type id, id_type ilevel)
+void Emitter<Writer>::_blck_write_scalar_key(id_type id)
 {
     csubstr str = m_tree->key(id);
     NodeType ty = m_tree->type(id) & _keysc;
@@ -1382,25 +1380,25 @@ void Emitter<Writer>::_blck_write_scalar_key(id_type id, id_type ilevel)
     if(ty & KEY_PLAIN)
     {
         if(C4_LIKELY(!(str.begins_with(": ") || str.begins_with(":\t"))))
-            _write_scalar_plain(str, ilevel);
+            _write_scalar_plain(str, m_ilevel);
         else
-            _write_scalar_squo(str, ilevel);
+            _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & KEY_SQUO)
     {
-        _write_scalar_squo(str, ilevel);
+        _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & KEY_DQUO)
     {
-        _write_scalar_dquo(str, ilevel);
+        _write_scalar_dquo(str, m_ilevel);
     }
     else if(ty & KEY_LITERAL)
     {
-        _write_scalar_literal(str, ilevel, /*explicit*/true);
+        _write_scalar_literal(str, m_ilevel, /*explicit*/true);
     }
     else if(ty & KEY_FOLDED)
     {
-        _write_scalar_folded(str, ilevel, /*explicit*/true);
+        _write_scalar_folded(str, m_ilevel, /*explicit*/true);
     }
     else
     {
@@ -1409,7 +1407,7 @@ void Emitter<Writer>::_blck_write_scalar_key(id_type id, id_type ilevel)
 }
 
 template<class Writer>
-void Emitter<Writer>::_blck_write_scalar_val(id_type id, id_type ilevel)
+void Emitter<Writer>::_blck_write_scalar_val(id_type id)
 {
     csubstr str = m_tree->val(id);
     NodeType ty = m_tree->type(id) & _valsc;
@@ -1418,25 +1416,25 @@ void Emitter<Writer>::_blck_write_scalar_val(id_type id, id_type ilevel)
     if(ty & VAL_PLAIN)
     {
         if(C4_LIKELY(!(str.begins_with(": ") || str.begins_with(":\t"))))
-            _write_scalar_plain(str, ilevel);
+            _write_scalar_plain(str, m_ilevel);
         else
-            _write_scalar_squo(str, ilevel);
+            _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & VAL_SQUO)
     {
-        _write_scalar_squo(str, ilevel);
+        _write_scalar_squo(str, m_ilevel);
     }
     else if(ty & VAL_DQUO)
     {
-        _write_scalar_dquo(str, ilevel);
+        _write_scalar_dquo(str, m_ilevel);
     }
     else if(ty & VAL_LITERAL)
     {
-        _write_scalar_literal(str, ilevel, /*explicit*/false);
+        _write_scalar_literal(str, m_ilevel, /*explicit*/false);
     }
     else if(ty & VAL_FOLDED)
     {
-        _write_scalar_folded(str, ilevel, /*explicit*/false);
+        _write_scalar_folded(str, m_ilevel, /*explicit*/false);
     }
     else
     {

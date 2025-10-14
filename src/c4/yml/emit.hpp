@@ -193,6 +193,8 @@ private:
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
     size_t m_col;
+    id_type m_depth;
+    id_type m_ilevel;
 
 private:
 
@@ -200,44 +202,43 @@ private:
 
     void _visit_stream(id_type id);
     void _visit_doc(id_type id);
-    void _visit_doc_val(id_type id, id_type depth);
-    void _visit_doc_container(id_type id, id_type depth);
+    void _visit_doc_val(id_type id);
+    void _visit_doc_container(id_type id);
 
-    void _visit_flow_sl(id_type id, id_type depth);
-    void _visit_flow_sl_seq(id_type id, id_type depth);
-    void _visit_flow_sl_map(id_type id, id_type depth);
+    void _visit_flow_sl(id_type id);
+    void _visit_flow_sl_seq(id_type id);
+    void _visit_flow_sl_map(id_type id);
 
-    void _visit_flow_ml(id_type id, id_type depth);
-    void _visit_flow_ml_seq(id_type id, id_type depth);
-    void _visit_flow_ml_map(id_type id, id_type depth);
+    void _visit_flow_ml(id_type id);
+    void _visit_flow_ml_seq(id_type id);
+    void _visit_flow_ml_map(id_type id);
 
-    void _visit_blck(id_type id, id_type depth);
-    void _visit_blck_seq(id_type id, id_type depth);
-    void _visit_blck_map(id_type id, id_type depth);
+    void _visit_blck(id_type id);
+    void _visit_blck_seq(id_type id);
+    void _visit_blck_map(id_type id);
 
-    void _blck_open_entry_seq(id_type id, id_type depth);
-    void _blck_close_entry_seq(id_type id, id_type depth);
-    void _blck_open_entry_map(id_type id, id_type depth);
-    void _blck_close_entry_map(id_type id, id_type depth);
-    void _blck_open_entry_val(id_type id, id_type depth);
-    void _blck_close_entry_val(id_type id, id_type depth);
+    void _blck_seq_open_entry(id_type id);
+    void _blck_seq_close_entry(id_type id);
+    void _blck_map_open_entry(id_type id);
+    void _blck_map_close_entry(id_type id);
+    void _blck_val_open_entry(id_type id);
+    void _blck_val_close_entry(id_type id);
+    void _blck_write_scalar_key(id_type id);
+    void _blck_write_scalar_val(id_type id);
 
-    void _flow_sl_write_comma(id_type id, id_type first_sibling, id_type depth);
-    void _flow_ml_write_comma(id_type id, id_type first_sibling, id_type depth);
-    void _flow_open_entry_seq(id_type id, id_type depth);
-    void _flow_close_entry_seq(id_type id, id_type depth);
-    void _flow_open_entry_map(id_type id, id_type depth);
-    void _flow_close_entry_map(id_type id, id_type depth);
+    void _flow_seq_open_entry(id_type id);
+    void _flow_seq_close_entry(id_type id);
+    void _flow_map_open_entry(id_type id);
+    void _flow_map_close_entry(id_type id);
+    void _flow_write_scalar_key(id_type id);
+    void _flow_write_scalar_val(id_type id);
 
-    void _blck_write_scalar_key(id_type id, id_type ilevel);
-    void _blck_write_scalar_val(id_type id, id_type ilevel);
-    void _flow_write_scalar_key(id_type id, id_type ilevel);
-    void _flow_write_scalar_val(id_type id, id_type ilevel);
-
-    void _visit_json(id_type id, id_type depth);
+    void _flow_sl_write_comma(id_type id, id_type first_sibling);
+    void _flow_ml_write_comma(id_type id, id_type first_sibling);
 
 private:
 
+    void _visit_json(id_type id, id_type depth);
     void _write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags);
 
     void _write_scalar_json_dquo(csubstr s);
