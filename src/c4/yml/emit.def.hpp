@@ -117,7 +117,7 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     }
 
     // terminate non-flow with a newline
-    if(!ty.is_flow())
+    if(ty != NOTYPE && !ty.is_flow())
     {
         _newl();
     }
@@ -156,9 +156,10 @@ void Emitter<Writer>::_visit_stream(id_type id)
     ++m_depth;
     for(id_type child = first_child; child != NONE; child = m_tree->next_sibling(child))
     {
+        _blck_val_open_entry(child);
         _visit_doc(child);
-        const NodeType ty = m_tree->type(child);
-        if(ty.is_doc() && ty.is_flow_sl())
+        _blck_val_close_entry(child);
+        if(m_tree->is_flow_sl(child))
             _newl();
         if(m_tree->next_sibling(child) != NONE)
             write_tag_directives(m_tree->next_sibling(child));
@@ -192,23 +193,18 @@ void Emitter<Writer>::_visit_doc_val(id_type id)
     // appear at 0-indentation
     NodeType ty = m_tree->type(id);
     const csubstr val = m_tree->val(id);
-    const type_bits style_marks = ty & VAL_STYLE;
     const bool write_sep = !m_tree->is_root(id);
-    const bool is_plain = ty.is_val_plain();
-    const bool is_ambiguous = (is_plain || !style_marks)
+    const type_bits has_style_marks = ty & VAL_STYLE;
+    const bool is_ambiguous = (ty.is_val_plain() || !has_style_marks)
         && ((val.begins_with("...") || val.begins_with("---"))
             ||
             (val.find('\n') != npos));
     if(write_sep)
     {
-        if(is_plain && val.len == 0 && !ty.has_val_anchor() && !ty.has_val_tag() _RYML_WITH_COMMENTS(&& !m_tree->comment(id, COMM_TV|COMM_FV)))
-        {
+        if(is_ambiguous)
             _newl();
-        }
-        else if(val.len && is_ambiguous)
-        {
-            _newl();
-        }
+        else if(val.len)
+            _write(' ');
     }
     if(is_ambiguous)
     {
@@ -216,8 +212,6 @@ void Emitter<Writer>::_visit_doc_val(id_type id)
         _indent(m_ilevel);
     }
     _blck_write_scalar_val(id);
-    if(val.len && m_tree->is_root(id))
-        _newl();
 }
 
 
@@ -292,7 +286,7 @@ void Emitter<Writer>::_visit_doc(id_type id)
         }
         else if(write_sep)
         {
-            _newl();
+            //_newl();
         }
 #endif
     }
