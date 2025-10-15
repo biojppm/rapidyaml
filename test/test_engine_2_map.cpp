@@ -8,6 +8,24 @@ namespace yml {
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST(SimpleMapFlowEmpty,
+            "{}"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 ENGINE_TEST(SimpleMapFlow,
             "{foo: bar,foo2: bar2}"
             ,
@@ -221,6 +239,54 @@ ENGINE_TEST(SimpleMapBlock,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("foo3"));
     ___(ps.set_val_scalar_plain("bar3"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(SimpleMapBlockEmptyFlowMap,
+            "foo: {}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(SimpleMapBlockEmptyFlowSeq,
+            "foo: []\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq());
     ___(ps.end_map());
     ___(ps.end_doc());
     ___(ps.end_stream());

@@ -182,6 +182,20 @@ N(SB, L{
       N{SB, L{N{SB, L{N(VP, "200"), N(VP, "201"), N(VP, "202")}}, N{SB, L{N(VP, "210"), N(VP, "211"), N(VP, "212")}}, N{SB, L{N(VP, "220"), N(VP, "221"), N(VP, "222")}}}},
           })
 );
+
+ADD_CASE_TO_GROUP("nested seq x3 with tags",
+R"(
+- !!seq
+  - !!seq
+    - foo
+- bar
+)",
+N(SB, L{
+    N(SB, TL("!!seq", L{N(SB, TL("!!seq", L{N(VP,"foo")}))})),
+    N(VP,"bar"),
+    })
+);
+
 }
 
 } // namespace yml

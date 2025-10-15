@@ -127,7 +127,7 @@ public:
 
     /** Construct the emitter and its internal Writer state, using default emit options.
      * @param args arguments to be forwarded to the constructor of the writer.
-     * */
+     */
     template<class ...Args>
     Emitter(Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts() {}
 
@@ -135,7 +135,7 @@ public:
      *
      * @param opts EmitOptions
      * @param args arguments to be forwarded to the constructor of the writer.
-     * */
+     */
     template<class ...Args>
     Emitter(EmitOptions const& opts, Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(opts) {}
 
@@ -195,6 +195,7 @@ private:
     size_t m_col;
     id_type m_depth;
     id_type m_ilevel;
+    id_type m_count;
 
 private:
 
@@ -235,6 +236,20 @@ private:
 
     void _flow_sl_write_comma(id_type id, id_type first_sibling);
     void _flow_ml_write_comma(id_type id, id_type first_sibling);
+
+    bool _open_entry_with_newl(id_type node) const
+    {
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(node), m_tree, node);
+        const id_type parent = m_tree->parent(node);
+        const bool first_child = (node == m_tree->first_child(parent));
+        if(first_child && m_tree->has_parent(parent))
+        {
+            const NodeType gpty = m_tree->type(m_tree->parent(parent));
+            const bool use_space = (gpty.is_seq() && gpty.is_block() && !gpty.has_val_tag() && !gpty.has_val_anchor());
+            return !use_space;
+        }
+        return true;
+    }
 
 private:
 

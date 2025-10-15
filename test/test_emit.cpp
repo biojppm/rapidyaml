@@ -193,18 +193,38 @@ TEST(emit_nested, basic)
 - members
 - here
 )");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0]), "Rochefort 10\n");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3]), R"(- and so
+    EmitOptions without_dash = {};
+    EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
+    EmitOptions with_key = {};
+    EmitOptions without_key = EmitOptions{}.emit_nonroot_key(false);
+    ASSERT_FALSE(without_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_key.emit_nonroot_key());
+    ASSERT_FALSE(without_key.emit_nonroot_key());
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], without_dash), "Rochefort 10\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], with_dash), "- Rochefort 10\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], without_dash), R"(- and so
 - many other
 - wonderful beers
 )");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"]), R"(beer:
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], with_dash), R"(- - and so
+  - many other
+  - wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], with_key), R"(beer:
   - Rochefort 10
   - Busch
   - Leffe Rituel
   - - and so
     - many other
     - wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], without_key), R"(- Rochefort 10
+- Busch
+- Leffe Rituel
+- - and so
+  - many other
+  - wonderful beers
 )");
 }
 

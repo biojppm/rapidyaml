@@ -749,8 +749,8 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(s.has_key() && !n.has_key()) { EXPECT_EQ(n.type(), NOTYPE); EXPECT_NE(n.comment(), nullptr); }
-        if(!s.has_key() && n.has_key()) { EXPECT_EQ(s.type(), NOTYPE); EXPECT_NE(s.comment(), nullptr); }
+        if(s.has_key() && !n.has_key()) { EXPECT_EQ(n.type(), NOTYPE); _RYML_WITH_COMMENTS(EXPECT_NE(n.comment(), nullptr)); }
+        if(!s.has_key() && n.has_key()) { EXPECT_EQ(s.type(), NOTYPE); _RYML_WITH_COMMENTS(EXPECT_NE(s.comment(), nullptr)); }
         if(n.has_key() && s.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
