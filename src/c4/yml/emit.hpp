@@ -222,8 +222,8 @@ private:
     void _blck_seq_close_entry(id_type id);
     void _blck_map_open_entry(id_type id);
     void _blck_map_close_entry(id_type id);
-    void _blck_val_open_entry(id_type id);
-    void _blck_val_close_entry(id_type id);
+    void _top_open_entry(id_type id);
+    void _top_close_entry(id_type id);
     void _blck_write_scalar_key(id_type id);
     void _blck_write_scalar_val(id_type id);
 
