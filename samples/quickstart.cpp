@@ -4032,8 +4032,8 @@ void sample_emit_to_container()
 - baz
 - bat
 )";
-    auto treea = ryml::parse_in_arena(ymla);
-    auto treeb = ryml::parse_in_arena(ymlb);
+    const ryml::Tree treea = ryml::parse_in_arena(ymla);
+    const ryml::Tree treeb = ryml::parse_in_arena(ymlb);
 
     // eg, std::vector<char>
     {
@@ -4150,7 +4150,7 @@ void sample_emit_to_stream()
 - baz
 - bat
 )";
-    auto tree = ryml::parse_in_arena(ymlb);
+    const ryml::Tree tree = ryml::parse_in_arena(ymlb);
 
     std::string s;
 
@@ -4214,7 +4214,7 @@ void sample_emit_to_file()
 - baz
 - bat
 )";
-    auto tree = ryml::parse_in_arena(yml);
+    const ryml::Tree tree = ryml::parse_in_arena(yml);
     // this is emitting to stdout, but of course you can pass in any
     // FILE* obtained from fopen()
     size_t len = ryml::emit_yaml(tree, tree.root_id(), stdout);
@@ -4381,22 +4381,22 @@ flow seq:
   - flow val
   - flow val
 )");
-        // set all keys to single-quoted:
+        // change all keys to single-quoted:
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::KEY,
                                                /*remflags*/ryml::KEY_STYLE,
                                                /*addflags*/ryml::KEY_SQUO,
                                                /*recurse*/true);
-        // set all vals to double-quoted
+        // change all vals to double-quoted
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::VAL,
                                                /*remflags*/ryml::VAL_STYLE,
                                                /*addflags*/ryml::VAL_DQUO,
                                                /*recurse*/true);
-        // set all seqs to flow
+        // change all seqs to flow
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::SEQ,
                                                /*remflags*/ryml::CONTAINER_STYLE,
                                                /*addflags*/ryml::FLOW_SL,
                                                /*recurse*/true);
-        // set all maps to flow
+        // change all maps to flow
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::MAP,
                                                /*remflags*/ryml::CONTAINER_STYLE,
                                                /*addflags*/ryml::BLOCK,
@@ -4410,7 +4410,7 @@ R"('block map':
   'flow key': "flow val"
 'flow seq': ["flow val","flow val"]
 )");
-        // you can also set a conditional style in a single node:
+        // you can also set a conditional style in a single node (or its branch if recurse is true):
         tree["flow seq"].set_style_conditionally(/*type_mask*/ryml::SEQ,
                                                  /*remflags*/ryml::CONTAINER_STYLE,
                                                  /*addflags*/ryml::BLOCK,

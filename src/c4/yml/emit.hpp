@@ -244,8 +244,11 @@ private:
         const bool first_child = (node == m_tree->first_child(parent));
         if(first_child && m_tree->has_parent(parent))
         {
+            const NodeType pty = m_tree->type(parent);
             const NodeType gpty = m_tree->type(m_tree->parent(parent));
-            const bool use_space = (gpty.is_seq() && gpty.is_block() && !gpty.has_val_tag() && !gpty.has_val_anchor());
+            const bool use_space = (gpty.is_seq() && gpty.is_block()) &&
+                ((!gpty.has_val_tag() && !gpty.has_val_anchor())
+                || (pty.is_map() && !pty.has_val_anchor() && !pty.has_val_tag()));
             return !use_space;
         }
         return true;
