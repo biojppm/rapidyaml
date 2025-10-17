@@ -121,9 +121,11 @@ void Emitter<Writer>::_emit_yaml(id_type id)
         _top_close_entry(id);
     }
 
-    _write_pws_and_pend(_PWS_NONE);
-    if(ty.is_block())
-        _newl();
+    if(m_tree->is_root(id)
+       || emit_dash || emit_key
+       || !ty.is_val()
+       || ty.is_val_literal() || ty.is_val_folded())
+        _write_pws_and_pend(_PWS_NONE);
 }
 
 
@@ -144,6 +146,7 @@ void Emitter<Writer>::_visit_stream(id_type id)
         const id_type parent = m_tree->parent(next_node);
         for( ; tagds.b != end; ++tagds.b)
         {
+            _write_pws_and_pend(_PWS_NONE);
             if(next_node != m_tree->first_child(parent))
             {
                 _write("...");
@@ -153,7 +156,7 @@ void Emitter<Writer>::_visit_stream(id_type id)
             _write(tagds.b->handle);
             _write(' ');
             _write(tagds.b->prefix);
-            _newl();
+            _pend_newl();
         }
     };
     const id_type first_child = m_tree->first_child(id);
@@ -163,17 +166,15 @@ void Emitter<Writer>::_visit_stream(id_type id)
     for(id_type child = first_child; child != NONE; child = m_tree->next_sibling(child))
     {
         m_ilevel = 0;
-        if(child != first_child && m_pws == _PWS_NONE)
-            _pend_newl();
         _write_pws_and_pend(_PWS_NONE);
         _top_open_entry(child);
         _visit_doc(child);
         _top_close_entry(child);
+        if(m_pws == _PWS_NONE)
+            _pend_newl();
         if(m_tree->next_sibling(child) != NONE)
             write_tag_directives(m_tree->next_sibling(child));
     }
-    if(first_child != NONE && m_pws == _PWS_NONE)
-        _pend_newl();
     --m_depth;
 }
 
@@ -418,16 +419,24 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     comm = _maybe_write_comm_leading(node, COMM_LV, comm);
     comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
     #endif
+    bool tag_or_anchor = false;
     if(ty.has_val_tag())
     {
+        tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
     }
     if(ty.has_val_anchor())
     {
+        tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
+    }
+    if(tag_or_anchor)
+    {
+        if(ty.is_container() && ty.is_block())
+            _pend_newl(); // force the container in a new line
     }
 }
 
@@ -491,8 +500,7 @@ void Emitter<Writer>::_blck_seq_close_entry(id_type node)
     comm = _maybe_write_comm_leading(node, COMM_FV, comm);
     comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
 #endif
-    if(node != m_tree->last_sibling(node))
-        _write_pws_and_pend(_PWS_NEWL);
+    _pend_newl();
 }
 
 
@@ -564,8 +572,7 @@ void Emitter<Writer>::_blck_map_close_entry(id_type node)
     comm = _maybe_write_comm_leading(node, COMM_FV, comm);
     comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
 #endif
-    if(node != m_tree->last_sibling(node))
-        _write_pws_and_pend(_PWS_NEWL);
+    _pend_newl();
 }
 
 
@@ -607,7 +614,10 @@ void Emitter<Writer>::_visit_blck_seq(id_type node)
         _blck_seq_close_entry(child);
     }
     if(empty)
-        _write(" []");
+    {
+        _write_pws_and_pend(_PWS_NONE);
+        _write("[]");
+    }
 }
 
 
@@ -649,7 +659,10 @@ void Emitter<Writer>::_visit_blck_map(id_type node)
         _blck_map_close_entry(child);
     }
     if(empty)
-        _write(" {}");
+    {
+        _write_pws_and_pend(_PWS_NONE);
+        _write("{}");
+    }
 }
 
 

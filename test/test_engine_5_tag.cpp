@@ -1128,7 +1128,7 @@ ENGINE_TEST(TagTestSuiteUGM3,
 ENGINE_TEST(TagTestSuiteUKK6_02_0,
             "!"
             ,
-            "! \n"
+            "!\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1455,11 +1455,11 @@ ENGINE_TEST(TagYs0,
             ""
             ,
             ""
-            "--- !yamlscript/v0/bare \n"
-            "--- !code \n"
-            "--- !data \n"
-            "--- !code \n"
-            "--- !data \n"
+            "--- !yamlscript/v0/bare\n"
+            "--- !code\n"
+            "--- !data\n"
+            "--- !code\n"
+            "--- !data\n"
             ""
             ,
             "+STR\n"
@@ -1512,7 +1512,7 @@ ENGINE_TEST(TagYs1,
             ""
             ,
             ""
-            "--- !yamlscript/v0/bare \n"
+            "--- !yamlscript/v0/bare\n"
             "--- !code 42\n"
             ""
             ,
