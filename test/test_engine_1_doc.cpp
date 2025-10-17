@@ -206,7 +206,7 @@ ENGINE_TEST(DocEmptyExplMult,
 ENGINE_TEST(DocEmptyExplMultImplFirst,
             "foo\n--- bar\n--- baz\n"
             ,
-            "---\nfoo\n---\nbar\n---\nbaz\n"
+            "--- foo\n--- bar\n--- baz\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -254,8 +254,6 @@ ENGINE_TEST(DocScalarPlain0,
 
 ENGINE_TEST(DocScalarPlain1,
             "--- foo\n"
-            ,
-            "---\nfoo\n"
             ,
             "+STR\n"
             "+DOC ---\n"
@@ -364,7 +362,7 @@ ENGINE_TEST(DocScalarPlainMultiline0,
             HAS_MULTILINE_SCALAR,
             "--- foo\n bar\n"
             ,
-            "---\nfoo bar\n"
+            "--- foo bar\n"
             ,
             "+STR\n"
             "+DOC ---\n"
@@ -495,8 +493,8 @@ ENGINE_TEST(DocScalarPlainIndentation,
             " ccc\n"
             "ddd: eee\n"
             ,
-            "---\nfoo bar baz\n"
-            "---\nfoo bar baz\n"
+            "--- foo bar baz\n"
+            "--- foo bar baz\n"
             "---\n"
             "- foo bar\n"
             "- baz\n"
@@ -883,8 +881,6 @@ ENGINE_TEST(ScalarMixedMap,
 ENGINE_TEST(DocStream,
             "--- doc0\n--- 'doc1'\n--- \"doc2\"\n"
             ,
-            "---\ndoc0\n---\n'doc1'\n---\n\"doc2\"\n"
-            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :doc0\n"
@@ -916,7 +912,7 @@ ENGINE_TEST(DocStream,
 ENGINE_TEST(DocStreamImplicitDocFirstVal,
             "doc0\n--- doc1\n"
             ,
-            "---\ndoc0\n---\ndoc1\n"
+            "--- doc0\n--- doc1\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -997,10 +993,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstSeqFlowEmpty,
             "[]\n"
             "--- []\n"
             ,
-            "---\n"
-            "[]\n"
-            "---\n"
-            "[]\n"
+            "--- []\n"
+            "--- []\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1029,10 +1023,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstSeqFlow,
             "[a]\n"
             "--- [b]\n"
             ,
-            "---\n"
-            "[a]\n"
-            "---\n"
-            "[b]\n"
+            "--- [a]\n"
+            "--- [b]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1065,10 +1057,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstMapEmpty,
             "{}\n"
             "--- {}\n"
             ,
-            "---\n"
-            "{}\n"
-            "---\n"
-            "{}\n"
+            "--- {}\n"
+            "--- {}\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1097,10 +1087,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstMap,
             "{a: b}\n"
             "--- {c: d}\n"
             ,
-            "---\n"
-            "{a: b}\n"
-            "---\n"
-            "{c: d}\n"
+            "--- {a: b}\n"
+            "--- {c: d}\n"
             ,
             "+STR\n"
             "+DOC\n"

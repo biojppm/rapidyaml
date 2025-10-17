@@ -190,12 +190,16 @@ private:
 
     /** @cond dev */
 
+    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e; ///< pending whitespace
+
+private:
+
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
     size_t m_col;
     id_type m_depth;
     id_type m_ilevel;
-    id_type m_count;
+    Pws_e m_pws;
 
 private:
 
@@ -236,23 +240,6 @@ private:
 
     void _flow_sl_write_comma(id_type id, id_type first_sibling);
     void _flow_ml_write_comma(id_type id, id_type first_sibling);
-
-    bool _open_entry_with_newl(id_type node) const
-    {
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(node), m_tree, node);
-        const id_type parent = m_tree->parent(node);
-        const bool first_child = (node == m_tree->first_child(parent));
-        if(first_child && m_tree->has_parent(parent))
-        {
-            const NodeType pty = m_tree->type(parent);
-            const NodeType gpty = m_tree->type(m_tree->parent(parent));
-            const bool use_space = (gpty.is_seq() && gpty.is_block()) &&
-                ((!gpty.has_val_tag() && !gpty.has_val_anchor())
-                || (pty.is_map() && !pty.has_val_anchor() && !pty.has_val_tag()));
-            return !use_space;
-        }
-        return true;
-    }
 
 private:
 
@@ -327,6 +314,63 @@ private:
         m_col += num;
         this->Writer::_do_write(c, num);
     }
+
+private:
+
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_none() noexcept
+    {
+        m_pws = _PWS_NONE;
+    }
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_newl() noexcept
+    {
+        m_pws = _PWS_NEWL;
+    }
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_space() noexcept
+    {
+        m_pws = _PWS_SPACE;
+    }
+    /// write pending whitespace, and then set the next pending whitespace
+    C4_ALWAYS_INLINE void _write_pws_and_pend(Pws_e next=_PWS_NONE) noexcept
+    {
+        if(m_pws == _PWS_SPACE)
+        {
+            _write(' ');
+        }
+        else if(m_pws == _PWS_NEWL)
+        {
+            _newl();
+            _indent(m_ilevel);
+        }
+        m_pws = next;
+    }
+
+    #ifdef RYML_WITH_COMMENTS
+    CommentData const* _maybe_write_comm_trailing(id_type node, CommentType_e type, CommentData const* prev=nullptr)
+    {
+        prev = m_tree->comment(node, prev, type);
+        if(prev)
+        {
+            _write(' ');
+            _write_comment(prev->m_text, m_col);
+            _pend_newl();
+        }
+        return prev;
+    }
+    CommentData const* _maybe_write_comm_leading(id_type node, CommentType_e type, CommentData const* prev=nullptr)
+    {
+        prev = m_tree->comment(node, prev, type);
+        if(prev)
+        {
+            _newl();
+            _write_pws_and_pend(_PWS_NEWL);
+            _pend_newl();
+        }
+        return prev;
+    }
+    #endif
 
     /** @endcond */
 };

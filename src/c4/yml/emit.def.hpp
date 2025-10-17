@@ -33,7 +33,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
     m_col = 0;
     m_depth = 0;
     m_ilevel = 0;
-    m_count = 0;
+    m_pws = _PWS_NONE;
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
@@ -121,11 +121,9 @@ void Emitter<Writer>::_emit_yaml(id_type id)
         _top_close_entry(id);
     }
 
-    // terminate non-flow with a newline
-    if(ty != NOTYPE && !ty.is_flow())
-    {
+    _write_pws_and_pend(_PWS_NONE);
+    if(ty.is_block())
         _newl();
-    }
 }
 
 
@@ -164,14 +162,18 @@ void Emitter<Writer>::_visit_stream(id_type id)
     ++m_depth;
     for(id_type child = first_child; child != NONE; child = m_tree->next_sibling(child))
     {
-        if(child != first_child)
-            _newl();
+        m_ilevel = 0;
+        if(child != first_child && m_pws == _PWS_NONE)
+            _pend_newl();
+        _write_pws_and_pend(_PWS_NONE);
         _top_open_entry(child);
         _visit_doc(child);
         _top_close_entry(child);
         if(m_tree->next_sibling(child) != NONE)
             write_tag_directives(m_tree->next_sibling(child));
     }
+    if(first_child != NONE && m_pws == _PWS_NONE)
+        _pend_newl();
     --m_depth;
 }
 
@@ -182,9 +184,7 @@ template<class Writer>
 void Emitter<Writer>::_visit_doc_container(id_type id)
 {
     const NodeType ty = m_tree->type(id);
-    const bool write_sep = ty.is_doc() && !m_tree->is_root(id);
-    if(write_sep)
-        _newl();
+    _write_pws_and_pend(_PWS_NONE);
     if(ty.is_flow_sl())
         _visit_flow_sl(id);
     else if(ty.is_flow_ml())
@@ -206,21 +206,28 @@ void Emitter<Writer>::_visit_doc_val(id_type id)
     const type_bits has_style_marks = ty & VAL_STYLE;
     const bool is_ambiguous = (ty.is_val_plain() || !has_style_marks)
         && (val.begins_with("...") || val.begins_with("---"));
-    const bool write_sep = ty.is_doc() && !m_tree->is_root(id);
-    if(write_sep)
-    {
-        if(!val.empty() || !ty.is_val_plain())
-            _newl();
-    }
     if(is_ambiguous)
     {
         ++m_ilevel;
-        _indent(m_ilevel);
+        if(m_pws != _PWS_NONE)
+            _pend_newl();
+        else
+            _indent(m_ilevel);
     }
+    _write_pws_and_pend(_PWS_NONE);
     if(m_tree->is_val_ref(id))
+    {
         _write(val);
+    }
     else
+    {
         _blck_write_scalar_val(id);
+    }
+    if(is_ambiguous)
+    {
+        --m_ilevel;
+    }
+    _pend_newl();
 }
 
 
@@ -233,39 +240,19 @@ void Emitter<Writer>::_visit_doc(id_type id)
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, ty.is_doc(), m_tree, id);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, !ty.has_key(), m_tree, id);
 
-    m_count = 0; // ensure no extra line at the beginning of block docs
-
     if(ty.is_container()) // this is more frequent
     {
         _visit_doc_container(id);
     }
     else if(ty.is_val())
     {
-        #ifdef RYML_WITH_COMMENTS
-        CommentData const* comm = m_tree->comment(id, COMM_LV);
-        if(comm)
-        {
-            _write_comment(comm->m_text, m_col);
-            _newl();
-        }
-        #endif
+        #ifndef RYML_WITH_COMMENTS
         _visit_doc_val(id);
-        #ifdef RYML_WITH_COMMENTS
-        comm = m_tree->comment(id, comm, COMM_TV);
-        if(comm)
-        {
-            _write(' ');
-            _write_comment(comm->m_text, m_col);
-            _newl();
-        }
-        const CommentData *commf = m_tree->comment(id, comm, COMM_FV);
-        if(commf)
-        {
-            if(!comm)
-                _newl();
-            _write_comment(commf->m_text, m_col);
-            _newl();
-        }
+        #else
+        CommentData const* comm = _maybe_write_comm_leading(id, COMM_LV);
+        _visit_doc_val(id);
+        _maybe_write_comm_trailing(id, COMM_TV, comm);
+        _maybe_write_comm_leading(id, COMM_FV, comm);
         #endif
     }
 }
@@ -278,70 +265,36 @@ template<class Writer>
 void Emitter<Writer>::_top_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    _indent(m_ilevel);
-    bool spc = false;
-    bool write_sep = ty.is_doc() && !m_tree->is_root(node);
-    #ifdef RYML_WITH_COMMENTS
-    bool newl = false;
-    #endif
-    if(write_sep)
+    if(ty.is_doc() && !m_tree->is_root(node))
     {
         _write("---");
-        spc = true;
-        #ifdef RYML_WITH_COMMENTS
-        CommentData const *comm = m_tree->comment(node, COMM_TT);
-        if(comm)
-        {
-            _write(" #");
-            _write_comment(comm->m_text, m_col);
-            spc = false;
-            newl = true;
-        }
-        #endif
+        _pend_space();
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_TT));
     }
-    CommentData const* comm = m_tree->comment(node, COMM_LV);
-    if(comm)
-    {
-        _write_comment(comm->m_text, m_col);
-        newl = true;
-        spc = false;
-    }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_LV));
     if(ty.has_val_tag())
     {
-        #ifdef RYML_WITH_COMMENTS
-        if(newl)
-            _newl();
-        #endif
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
-        spc = true;
     }
     if(ty.has_val_anchor())
     {
-        #ifdef RYML_WITH_COMMENTS
-        if(newl)
-            _newl();
-        #endif
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        spc = true;
     }
-    if(spc)
+    if(m_pws == _PWS_SPACE)
     {
-        if(ty.is_val())
+        if(ty.has_val())
         {
-            if(m_tree->val(node).len)
-                _write(' ');
+            if(!m_tree->val(node).len)
+                _pend_none();
         }
-        else if(ty.is_container())
+        else
         {
+            _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_container(), m_tree, node);
             if(ty.is_block())
-                _newl();
-            else
-                _write(' ');
+                _pend_newl();
         }
     }
 }
@@ -354,26 +307,9 @@ void Emitter<Writer>::_top_close_entry(id_type node)
 {
     (void)node;
 #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_TV);
-    if(comm)
-    {
-        _write(' ');
-        _write_comment(comm->m_text, m_col);
-    }
-    comm = m_tree->comment(node, comm, COMM_FV);
-    if(comm)
-    {
-        _newl();
-        _indent(m_ilevel + 1);
-        _write_comment(comm->m_text, m_col);
-    }
-    comm = m_tree->comment(node, comm, COMM_FV2);
-    if(comm)
-    {
-        _newl();
-        _indent(m_ilevel + 1);
-        _write_comment(comm->m_text, m_col);
-    }
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
 #endif
 }
 
@@ -387,16 +323,7 @@ void Emitter<Writer>::_flow_sl_write_comma(id_type node, id_type first_sibling)
     if(node != first_sibling)
     {
         _write(',');
-        #ifdef RYML_WITH_COMMENTS
-        CommentData const *comm = m_tree->comment(node, COMM_TT);
-        if(comm)
-        {
-            _write(" #");
-            _write_comment(comm->m_text, m_col);
-            _newl();
-            _indent(m_ilevel);
-        }
-        #endif
+        _maybe_write_comm_trailing(node, COMM_TT);
     }
 }
 
@@ -407,16 +334,8 @@ void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type first_sibling)
     if(node != first_sibling)
     {
         _write(',');
-        #ifdef RYML_WITH_COMMENTS
-        CommentData const *comm = m_tree->comment(node, COMM_TT);
-        if(comm)
-        {
-            _write(" #");
-            _write_comment(comm->m_text, m_col);
-        }
-        #endif
-        _newl();
-        _indent(m_ilevel);
+        _maybe_write_comm_trailing(node, COMM_TT);
+        _pend_newl();
     }
 }
 
@@ -427,39 +346,22 @@ template<class Writer>
 void Emitter<Writer>::_flow_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    bool spc = false;
+    _write_pws_and_pend(_PWS_NONE);
     #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_LV);
-    if(comm)
-    {
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel);
-    }
-    comm = m_tree->comment(node, comm, COMM_LV2);
-    if(comm)
-    {
-        _write(' ');
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel + 1);
-    }
+    CommentData const* comm = _maybe_write_comm_leading(node, COMM_LV);
+    comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
     #endif
     if(ty.has_val_tag())
     {
         _write_tag(m_tree->val_tag(node));
-        spc = true;
+        _pend_space();
     }
     if(ty.has_val_anchor())
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        spc = true;
     }
-    if(spc)
-        _write(' ');
 }
 
 
@@ -470,32 +372,11 @@ void Emitter<Writer>::_flow_seq_close_entry(id_type node)
 {
     (void)node;
 #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_TV);
-    bool prev_comm = false;
-    if(comm)
-    {
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        prev_comm = true;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV);
-    if(comm)
-    {
-        if(prev_comm)
-            _indent(m_ilevel);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        prev_comm = true;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV2);
-    if(comm)
-    {
-        if(prev_comm)
-            _indent(m_ilevel);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-    }
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
 #endif
+    _write_pws_and_pend(_PWS_NONE);
 }
 
 
@@ -505,97 +386,49 @@ template<class Writer>
 void Emitter<Writer>::_flow_map_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
+    _write_pws_and_pend(_PWS_NONE);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
-    #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_LK);
-    if(comm)
-    {
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel);
-    }
-    #endif
-    bool spc = false;
+    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_LK));
     if(ty.has_key_tag())
     {
         _write_tag(m_tree->key_tag(node));
-        spc = true;
+        _pend_space();
     }
     if(ty.has_key_anchor())
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write("&");
         _write(m_tree->key_anchor(node));
-        spc = true;
     }
-    /*no else!*/
     if(ty.is_key_ref())
     {
-        if(spc)
-            _write(' ');
-        csubstr ref = m_tree->key_ref(node);
-        if(ref != "<<")
-            _write('*');
-        _write(ref);
-        _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->key(node).begins_with('*') || m_tree->key(node) == "<<", m_tree, node);
+        _write(m_tree->key(node)); // cf asserted assumptions
     }
     else
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_NONE);
         _blck_write_scalar_key(node);
     }
+    _write_pws_and_pend(_PWS_SPACE);
     _write(':');
-    spc = true;
     #ifdef RYML_WITH_COMMENTS
-    comm = m_tree->comment(node, comm, COMM_TK);
-    if(comm)
-    {
-        _write(' ');
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel + 1);
-        spc = false;
-    }
-    comm = m_tree->comment(node, comm, COMM_LV);
-    if(comm)
-    {
-        _newl();
-        _indent(m_ilevel + 1);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel + 1);
-        spc = false;
-    }
-    comm = m_tree->comment(node, comm, COMM_LV2);
-    if(comm)
-    {
-        _newl();
-        _indent(m_ilevel + 1);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel + 1);
-        spc = false;
-    }
+    comm = _maybe_write_comm_trailing(node, COMM_TK, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
     #endif
     if(ty.has_val_tag())
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
-        spc = true;
     }
     if(ty.has_val_anchor())
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        spc = true;
     }
-    if(spc)
-        _write(' ');
 }
 
 
@@ -606,32 +439,11 @@ void Emitter<Writer>::_flow_map_close_entry(id_type node)
 {
     (void)node;
 #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_TV);
-    bool prev_comm = false;
-    if(comm)
-    {
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        prev_comm = true;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV);
-    if(comm)
-    {
-        if(prev_comm)
-            _indent(m_ilevel);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        prev_comm = true;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV2);
-    if(comm)
-    {
-        if(prev_comm)
-            _indent(m_ilevel);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-    }
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
 #endif
+    _write_pws_and_pend(_PWS_NONE);
 }
 
 
@@ -641,67 +453,29 @@ template<class Writer>
 void Emitter<Writer>::_blck_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    if(m_count++)
-    {
-        // ensure that nested block seqs are emitted as '- - -`,
-        // ie as dashes nested in the same line
-        if(_open_entry_with_newl(node))
-        {
-            _newl();
-            _indent(m_ilevel);
-        }
-        else
-        {
-            _write(' ');
-        }
-    }
-    #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_LV);
-    if(comm)
-    {
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel);
-    }
-    #endif
+    _write_pws_and_pend(_PWS_NONE);
+    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_LV));
+    _write_pws_and_pend(_PWS_SPACE); // pend the space after the following dash
     _write('-');
-    #ifdef RYML_WITH_COMMENTS
-    comm = m_tree->comment(node, comm, COMM_LV2);
-    bool spc = true;
-    if(comm)
-    {
-        _write(' ');
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel + 1);
-        spc = false;
-    }
-    #endif
+    _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_LV2, comm));
+    bool tag_or_anchor = false;
     if(ty.has_val_tag())
     {
-        if(spc)
-            _write(' ');
+        tag_or_anchor = true;
+        _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
-        spc = true;
     }
     if(ty.has_val_anchor())
     {
-        if(spc)
-            _write(' ');
+        tag_or_anchor = true;
+        _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        spc = true;
     }
-    if(spc)
+    if(tag_or_anchor)
     {
-        if(ty.is_val() || ty.is_flow())
-        {
-            _write(' ');
-        }
-        //else if(ty.is_block())
-        //{
-        //    _newl();
-        //}
+        if(ty.is_container() && ty.is_block())
+            _pend_newl(); // force the container in a new line
     }
 }
 
@@ -713,44 +487,12 @@ void Emitter<Writer>::_blck_seq_close_entry(id_type node)
 {
     (void)node;
 #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_TV);
-    bool spc = true;
-    if(comm)
-    {
-        _write(' ');
-        _write_comment(comm->m_text, m_col);
-        spc = false;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV);
-    if(comm)
-    {
-        if(spc)
-        {
-            _write(' ');
-        }
-        else
-        {
-            _newl();
-            _indent(m_ilevel);
-        }
-        _write_comment(comm->m_text, m_col);
-        spc = false;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV2);
-    if(comm)
-    {
-        if(spc)
-        {
-            _write(' ');
-        }
-        else
-        {
-            _newl();
-            _indent(m_ilevel);
-        }
-        _write_comment(comm->m_text, m_col);
-    }
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
 #endif
+    if(node != m_tree->last_sibling(node))
+        _write_pws_and_pend(_PWS_NEWL);
 }
 
 
@@ -761,113 +503,53 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_key(node), m_tree, node);
     NodeType ty = m_tree->type(node);
-    if(m_count++)
-    {
-        if(_open_entry_with_newl(node))
-        {
-            _newl();
-            _indent(m_ilevel);
-        }
-        else
-        {
-            _write(' ');
-        }
-    }
-    #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_LK);
-    if(comm)
-    {
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel);
-    }
-    #endif
-    bool spc = false;
+    _write_pws_and_pend(_PWS_NONE);
+    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_LK));
     if(ty.has_key_tag())
     {
+        _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->key_tag(node));
-        spc = true;
     }
     if(ty.has_key_anchor())
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->key_anchor(node));
-        spc = true;
     }
     /*no else!*/
-    if(spc)
-        _write(' ');
     if(ty.is_key_ref())
     {
+        _write_pws_and_pend(_PWS_SPACE);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->key(node).begins_with('*') || m_tree->key(node) == "<<", m_tree, node);
         _write(m_tree->key(node)); // cf asserted assumptions
-        _write(' ');
     }
     else
     {
+        _write_pws_and_pend(_PWS_NONE);
         _blck_write_scalar_key(node);
+        if(ty & (KEY_LITERAL|KEY_FOLDED))
+            _indent(m_ilevel);
     }
-    if(ty & (KEY_LITERAL|KEY_FOLDED))
-        _indent(m_ilevel);
+    _write_pws_and_pend(_PWS_SPACE); // pend the space after the colon
     _write(':');
-    spc = true;
     #ifdef RYML_WITH_COMMENTS
-    comm = m_tree->comment(node, comm, COMM_TK);
-    if(comm)
-    {
-        _write(' ');
-        _write_comment(comm->m_text, m_col);
-        spc = false;
-    }
-    comm = m_tree->comment(node, comm, COMM_LV);
-    if(comm)
-    {
-        _newl();
-        _indent(m_ilevel + 1);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel + 1);
-        spc = false;
-    }
-    comm = m_tree->comment(node, comm, COMM_LV2);
-    if(comm)
-    {
-        _newl();
-        _indent(m_ilevel + 1);
-        _write_comment(comm->m_text, m_col);
-        _newl();
-        _indent(m_ilevel + 1);
-        spc = false;
-    }
+    comm = _maybe_write_comm_trailing(node, COMM_TK, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
     #endif
     if(ty.has_val_tag())
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
-        spc = true;
     }
     if(ty.has_val_anchor())
     {
-        if(spc)
-            _write(' ');
+        _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        spc = true;
     }
-    if(spc)
-    {
-        if(ty.has_val() || ty.is_flow())
-        {
-            _write(' ');
-        }
-        //else if(ty.is_block())
-        //{
-        //    _newl();
-        //}
-    }
+    if(ty.is_container() && ty.is_block())
+        _pend_newl();
 }
 
 
@@ -878,32 +560,12 @@ void Emitter<Writer>::_blck_map_close_entry(id_type node)
 {
     (void)node;
 #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = m_tree->comment(node, COMM_TV);
-    bool has_comments = false;
-    if(comm)
-    {
-        _write(' ');
-        _write_comment(comm->m_text, m_col);
-        has_comments = true;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV);
-    if(comm)
-    {
-        if(has_comments)
-            _newl();
-        _indent(m_ilevel);
-        _write_comment(comm->m_text, m_col);
-        has_comments = true;
-    }
-    comm = m_tree->comment(node, comm, COMM_FV2);
-    if(comm)
-    {
-        if(has_comments)
-            _newl();
-        _indent(m_ilevel);
-        _write_comment(comm->m_text, m_col);
-    }
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
 #endif
+    if(node != m_tree->last_sibling(node))
+        _write_pws_and_pend(_PWS_NEWL);
 }
 
 
@@ -922,6 +584,7 @@ void Emitter<Writer>::_visit_blck_seq(id_type node)
         _blck_seq_open_entry(child);
         if(ty.is_val())
         {
+            _write_pws_and_pend(_PWS_NONE);
             if(!ty.is_val_ref())
                 _blck_write_scalar_val(child);
             else
@@ -931,6 +594,7 @@ void Emitter<Writer>::_visit_blck_seq(id_type node)
         {
             ++m_depth;
             ++m_ilevel;
+            _write_pws_and_pend(_PWS_NONE);
             if(ty.is_flow_sl())
                 _visit_flow_sl(child);
             else if(ty.is_flow_ml())
@@ -962,6 +626,7 @@ void Emitter<Writer>::_visit_blck_map(id_type node)
         _blck_map_open_entry(child); // also writes the key
         if(ty.is_keyval())
         {
+            _write_pws_and_pend(_PWS_NONE);
             if(!ty.is_val_ref())
                 _blck_write_scalar_val(child);
             else
@@ -971,6 +636,7 @@ void Emitter<Writer>::_visit_blck_map(id_type node)
         {
             ++m_depth;
             ++m_ilevel;
+            _write_pws_and_pend(_PWS_NONE);
             if(ty.is_flow_sl())
                 _visit_flow_sl(child);
             else if(ty.is_flow_ml())
@@ -1002,6 +668,7 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
         _flow_seq_open_entry(child);
         if(ty.is_val())
         {
+            _write_pws_and_pend(_PWS_NONE);
             if(!ty.is_val_ref())
                 _flow_write_scalar_val(child);
             else
@@ -1010,6 +677,7 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
         else if(ty.is_container())
         {
             ++m_depth;
+            _write_pws_and_pend(_PWS_NONE);
             if(ty.is_flow_ml())
                 _visit_flow_ml(child);
             else
@@ -1037,6 +705,7 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node)
         _flow_map_open_entry(child);
         if(ty.has_val())
         {
+            _write_pws_and_pend(_PWS_NONE);
             if(!ty.is_val_ref())
                 _flow_write_scalar_val(child);
             else
@@ -1045,6 +714,7 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node)
         else if(ty.is_container())
         {
             ++m_depth;
+            _write_pws_and_pend(_PWS_NONE);
             if(ty.is_flow_ml())
                 _visit_flow_ml(child);
             else
@@ -1649,39 +1319,40 @@ void Emitter<Writer>::_visit_json(id_type id, id_type depth)
     _RYML_CHECK_VISIT_(m_tree->callbacks(), !m_tree->is_stream(id), m_tree, id); // JSON does not have streams
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
-    if(m_tree->is_keyval(id))
+    NodeType ty = m_tree->type(id);
+    if(ty.is_keyval())
     {
         _writek_json(id);
         _write(": ");
         _writev_json(id);
     }
-    else if(m_tree->is_val(id))
+    else if(ty.is_val())
     {
         _writev_json(id);
     }
-    else if(m_tree->is_container(id))
+    else if(ty.is_container())
     {
-        if(m_tree->has_key(id))
+        if(ty.has_key())
         {
             _writek_json(id);
             _write(": ");
         }
-        if(m_tree->is_seq(id))
+        if(ty.is_seq())
             _write('[');
-        else if(m_tree->is_map(id))
+        else if(ty.is_map())
             _write('{');
     }  // container
 
-    for(id_type ich = m_tree->first_child(id); ich != NONE; ich = m_tree->next_sibling(ich))
+    for(id_type child = m_tree->first_child(id); child != NONE; child = m_tree->next_sibling(child))
     {
-        if(ich != m_tree->first_child(id))
+        if(child != m_tree->first_child(id))
             _write(',');
-        _visit_json(ich, depth+1);
+        _visit_json(child, depth+1);
     }
 
-    if(m_tree->is_seq(id))
+    if(ty.is_seq())
         _write(']');
-    else if(m_tree->is_map(id))
+    else if(ty.is_map())
         _write('}');
 }
 
