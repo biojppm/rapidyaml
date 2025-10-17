@@ -208,7 +208,8 @@ private:
     void _visit_stream(id_type id);
     void _visit_doc(id_type id);
     void _visit_doc_val(id_type id);
-    void _visit_doc_container(id_type id);
+    void _visit_blck_container(id_type id);
+    void _visit_flow_container(id_type id);
 
     void _visit_flow_sl(id_type id);
     void _visit_flow_sl_seq(id_type id);

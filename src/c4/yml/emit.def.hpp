@@ -98,7 +98,7 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     }
     else if(ty.is_container())
     {
-        _visit_doc_container(id);
+        _visit_blck_container(id);
     }
     else if(ty.has_val())
     {
@@ -182,9 +182,11 @@ void Emitter<Writer>::_visit_stream(id_type id)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_visit_doc_container(id_type id)
+void Emitter<Writer>::_visit_blck_container(id_type id)
 {
-    const NodeType ty = m_tree->type(id);
+    NodeType ty = m_tree->type(id);
+    if(!(ty & CONTAINER_STYLE))
+        ty |= (m_tree->empty(id) ? FLOW_SL : BLOCK);
     _write_pws_and_pend(_PWS_NONE);
     if(ty.is_flow_sl())
         _visit_flow_sl(id);
@@ -192,6 +194,19 @@ void Emitter<Writer>::_visit_doc_container(id_type id)
         _visit_flow_ml(id);
     else
         _visit_blck(id);
+}
+
+template<class Writer>
+void Emitter<Writer>::_visit_flow_container(id_type id)
+{
+    NodeType ty = m_tree->type(id);
+    if(!(ty & CONTAINER_STYLE))
+        ty |= FLOW_SL;
+    _write_pws_and_pend(_PWS_NONE);
+    if(ty.is_flow_ml())
+        _visit_flow_ml(id);
+    else // if(ty.is_flow_sl())
+        _visit_flow_sl(id);
 }
 
 
@@ -243,7 +258,7 @@ void Emitter<Writer>::_visit_doc(id_type id)
 
     if(ty.is_container()) // this is more frequent
     {
-        _visit_doc_container(id);
+        _visit_blck_container(id);
     }
     else if(ty.is_val())
     {
@@ -481,10 +496,12 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
         _write('&');
         _write(m_tree->val_anchor(node));
     }
-    if(tag_or_anchor)
+    if(ty.is_container())
     {
-        if(ty.is_container() && ty.is_block())
-            _pend_newl(); // force the container in a new line
+        if(!(ty & CONTAINER_STYLE))
+            ty |= BLOCK;
+        if(tag_or_anchor || !ty.is_flow())
+            _pend_newl();
     }
 }
 
@@ -545,19 +562,27 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     comm = _maybe_write_comm_leading(node, COMM_LV, comm);
     comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
     #endif
+    bool has_tag_or_anchor = false;
     if(ty.has_val_tag())
     {
+        has_tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
     }
     if(ty.has_val_anchor())
     {
+        has_tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
     }
-    if(ty.is_container() && ty.is_block())
-        _pend_newl();
+    if(ty.is_container())
+    {
+        if(!(ty & CONTAINER_STYLE))
+            ty |= BLOCK;
+        if(has_tag_or_anchor || !ty.is_flow())
+            _pend_newl();
+    }
 }
 
 
@@ -601,13 +626,7 @@ void Emitter<Writer>::_visit_blck_seq(id_type node)
         {
             ++m_depth;
             ++m_ilevel;
-            _write_pws_and_pend(_PWS_NONE);
-            if(ty.is_flow_sl())
-                _visit_flow_sl(child);
-            else if(ty.is_flow_ml())
-                _visit_flow_ml(child);
-            else
-                _visit_blck(child);
+            _visit_blck_container(child);
             --m_depth;
             --m_ilevel;
         }
@@ -646,13 +665,7 @@ void Emitter<Writer>::_visit_blck_map(id_type node)
         {
             ++m_depth;
             ++m_ilevel;
-            _write_pws_and_pend(_PWS_NONE);
-            if(ty.is_flow_sl())
-                _visit_flow_sl(child);
-            else if(ty.is_flow_ml())
-                _visit_flow_ml(child);
-            else
-                _visit_blck(child);
+            _visit_blck_container(child);
             --m_depth;
             --m_ilevel;
         }
@@ -690,11 +703,7 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
         else if(ty.is_container())
         {
             ++m_depth;
-            _write_pws_and_pend(_PWS_NONE);
-            if(ty.is_flow_ml())
-                _visit_flow_ml(child);
-            else
-                _visit_flow_sl(child);
+            _visit_flow_container(child);
             --m_depth;
         }
         _flow_seq_close_entry(child);
@@ -727,11 +736,7 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node)
         else if(ty.is_container())
         {
             ++m_depth;
-            _write_pws_and_pend(_PWS_NONE);
-            if(ty.is_flow_ml())
-                _visit_flow_ml(child);
-            else
-                _visit_flow_sl(child);
+            _visit_flow_container(child);
             --m_depth;
         }
         _flow_map_close_entry(child);
