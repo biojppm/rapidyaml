@@ -667,9 +667,9 @@ john: doe)";
         // root["john"] = ryml::to_csubstr(ok); // don't, will dangle
         wroot["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
     }
-    CHECK(root["john"].val() == "in_scope"); // OK!
+    CHECK(root["john"].val() == "in_scope"); // OK! val is now in the tree's arena
     // serializing floating points:
-    wroot["float"] << 2.4;
+    wroot["float"] << 2.4f;
     // to force a particular precision or float format:
     // (see sample_float_precision() and sample_formatting())
     wroot["digits"] << ryml::fmt::real(2.4, /*num_digits*/6, ryml::FTOA_FLOAT);
@@ -4258,7 +4258,7 @@ void sample_emit_nested_node()
     - many other
     - wonderful beers
 )");
-    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10\n");
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10");
     CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][3]) == R"(- and so
 - many other
 - wonderful beers

@@ -434,24 +434,16 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     comm = _maybe_write_comm_leading(node, COMM_LV, comm);
     comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
     #endif
-    bool tag_or_anchor = false;
     if(ty.has_val_tag())
     {
-        tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
     }
     if(ty.has_val_anchor())
     {
-        tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-    }
-    if(tag_or_anchor)
-    {
-        if(ty.is_container() && ty.is_block())
-            _pend_newl(); // force the container in a new line
     }
 }
 
@@ -482,25 +474,25 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the following dash
     _write('-');
     _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_LV2, comm));
-    bool tag_or_anchor = false;
+    bool has_tag_or_anchor = false;
     if(ty.has_val_tag())
     {
-        tag_or_anchor = true;
+        has_tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
     }
     if(ty.has_val_anchor())
     {
-        tag_or_anchor = true;
+        has_tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
     }
-    if(ty.is_container())
+    if(has_tag_or_anchor && ty.is_container())
     {
         if(!(ty & CONTAINER_STYLE))
             ty |= BLOCK;
-        if(tag_or_anchor || !ty.is_flow())
+        if(ty.is_block() && m_tree->has_children(node))
             _pend_newl();
     }
 }
@@ -562,25 +554,22 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     comm = _maybe_write_comm_leading(node, COMM_LV, comm);
     comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
     #endif
-    bool has_tag_or_anchor = false;
     if(ty.has_val_tag())
     {
-        has_tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
     }
     if(ty.has_val_anchor())
     {
-        has_tag_or_anchor = true;
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
     }
-    if(ty.is_container())
+    if(ty.is_container() && m_tree->has_children(node))
     {
         if(!(ty & CONTAINER_STYLE))
             ty |= BLOCK;
-        if(has_tag_or_anchor || !ty.is_flow())
+        if(ty.is_block())
             _pend_newl();
     }
 }
