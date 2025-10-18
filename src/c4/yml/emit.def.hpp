@@ -339,7 +339,7 @@ void Emitter<Writer>::_flow_sl_write_comma(id_type node, id_type first_sibling)
     if(node != first_sibling)
     {
         _write(',');
-        _maybe_write_comm_trailing(node, COMM_TT);
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_TT));
     }
 }
 
@@ -350,7 +350,7 @@ void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type first_sibling)
     if(node != first_sibling)
     {
         _write(',');
-        _maybe_write_comm_trailing(node, COMM_TT);
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_TT));
         _pend_newl();
     }
 }
