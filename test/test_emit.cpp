@@ -170,6 +170,64 @@ TEST(as_json, basic)
     }
 }
 
+TEST(emit_nested, basic)
+{
+    const Tree tree = parse_in_arena(R"(- a
+- b
+- x0: 1
+  x1: 2
+- champagne: Dom Perignon
+  coffee: Arabica
+  more:
+    vinho verde: Soalheiro
+    vinho tinto: Redoma 2017
+  beer:
+    - Rochefort 10
+    - Busch
+    - Leffe Rituel
+    - - and so
+      - many other
+      - wonderful beers
+- more
+- seq
+- members
+- here
+)");
+    EmitOptions without_dash = {};
+    EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
+    EmitOptions with_key = {};
+    EmitOptions without_key = EmitOptions{}.emit_nonroot_key(false);
+    ASSERT_FALSE(without_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_key.emit_nonroot_key());
+    ASSERT_FALSE(without_key.emit_nonroot_key());
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], without_dash), "Rochefort 10");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], with_dash), "- Rochefort 10\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], without_dash), R"(- and so
+- many other
+- wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], with_dash), R"(- - and so
+  - many other
+  - wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], with_key), R"(beer:
+  - Rochefort 10
+  - Busch
+  - Leffe Rituel
+  - - and so
+    - many other
+    - wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], without_key), R"(- Rochefort 10
+- Busch
+- Leffe Rituel
+- - and so
+  - many other
+  - wonderful beers
+)");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -693,7 +751,7 @@ TEST(emit, existing_seq_node_flow)
     {
         SCOPED_TRACE("t[0]");
         ConstNodeRef n = t[0];
-        std::string expected = "foo\n";
+        std::string expected = "foo";
         std::string expected_json = "\"foo\"";
         {
             SCOPED_TRACE("noderef");
@@ -717,7 +775,7 @@ TEST(emit, existing_seq_node_flow)
     {
         SCOPED_TRACE("t[1]");
         ConstNodeRef n = t[1];
-        std::string expected = "bar\n";
+        std::string expected = "bar";
         std::string expected_json = "\"bar\"";
         {
             SCOPED_TRACE("noderef");
@@ -812,7 +870,7 @@ TEST(emit, existing_seq_node_block)
     {
         SCOPED_TRACE("t[0]");
         ConstNodeRef n = t[0];
-        std::string expected = "foo\n";
+        std::string expected = "foo";
         std::string expected_json = "\"foo\"";
         {
             SCOPED_TRACE("noderef");
@@ -836,7 +894,7 @@ TEST(emit, existing_seq_node_block)
     {
         SCOPED_TRACE("t[1]");
         ConstNodeRef n = t[1];
-        std::string expected = "bar\n";
+        std::string expected = "bar";
         std::string expected_json = "\"bar\"";
         {
             SCOPED_TRACE("noderef");
@@ -941,7 +999,7 @@ TEST(emit, existing_map_node_flow)
             SCOPED_TRACE("t, id");
             test_emits(t, n.id(), expected, expected_json);
         }
-        expected = "0: foo";
+        expected = "0: foo\n";
         nct._add_flags(n.id(), FLOW_SL);
         {
             SCOPED_TRACE("t, id");
@@ -965,7 +1023,7 @@ TEST(emit, existing_map_node_flow)
             SCOPED_TRACE("t, id");
             test_emits(t, n.id(), expected, expected_json);
         }
-        expected = "1: bar";
+        expected = "1: bar\n";
         nct._add_flags(n.id(), FLOW_SL);
         {
             SCOPED_TRACE("t, id");
@@ -979,7 +1037,7 @@ TEST(emit, existing_map_node_flow)
     {
         SCOPED_TRACE("t[2]");
         ConstNodeRef n = t[2];
-        std::string expected = "2: [nested,seq]";
+        std::string expected = "2: [nested,seq]\n";
         std::string expected_json = "\"2\": [\"nested\",\"seq\"]";
         {
             SCOPED_TRACE("noderef");
@@ -1004,7 +1062,7 @@ TEST(emit, existing_map_node_flow)
     {
         SCOPED_TRACE("t[3]");
         ConstNodeRef n = t[3];
-        std::string expected = "3: {nested: map}";
+        std::string expected = "3: {nested: map}\n";
         std::string expected_json = "\"3\": {\"nested\": \"map\"}";
         {
             SCOPED_TRACE("noderef");
@@ -1062,7 +1120,7 @@ TEST(emit, existing_map_node_block)
             SCOPED_TRACE("t, id");
             test_emits(t, n.id(), expected, expected_json);
         }
-        expected = "0: foo";
+        expected = "0: foo\n";
         nct._add_flags(n.id(), FLOW_SL);
         {
             SCOPED_TRACE("t, id");
@@ -1086,7 +1144,7 @@ TEST(emit, existing_map_node_block)
             SCOPED_TRACE("t, id");
             test_emits(t, n.id(), expected, expected_json);
         }
-        expected = "1: bar";
+        expected = "1: bar\n";
         nct._add_flags(n.id(), FLOW_SL);
         {
             SCOPED_TRACE("t, id");

@@ -87,6 +87,17 @@ TEST(simple_seq, missing_quoted_key)
     });
 }
 
+TEST(simple_seq, block_nested_with_tags)
+{
+    std::string yaml = R"(- !!seq
+  - !!seq
+    - foo
+- bar
+)";
+    Tree t = parse_in_arena(to_csubstr(yaml));
+    EXPECT_EQ(yaml, emitrs_yaml<std::string>(t));
+}
+
 TEST(simple_seq, deeply_nested_to_cover_parse_stack_resizes)
 {
     csubstr yaml = R"(

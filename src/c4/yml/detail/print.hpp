@@ -17,6 +17,7 @@ namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_GCC("-Wattributes")
 
 inline const char* _container_style_code(Tree const& p, id_type node)
 {
@@ -63,13 +64,13 @@ inline char _scalar_code_val(Tree const& p, id_type node)
 {
     return _scalar_code_key(p._p(node)->m_type);
 }
-inline id_type print_node(Tree const& p, id_type node, int level, id_type count, bool print_children)
+inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, id_type count, bool print_children, bool print_address=false)
 {
-    printf("[%zu]%*s[%zu] %p", (size_t)count, (2*level), "", (size_t)node, (void const*)p.get(node));
+    printf("[%zu]%*s[%zu]", (size_t)count, (2*level), "", (size_t)node);
+    if(print_address)
+        printf(" %p", (void const*)p.get(node));
     if(p.is_root(node))
-    {
         printf(" [ROOT]");
-    }
     char typebuf[128];
     csubstr typestr = p.type(node).type_str(typebuf);
     _RYML_CHECK_BASIC(typestr.str);
@@ -93,7 +94,7 @@ inline id_type print_node(Tree const& p, id_type node, int level, id_type count,
     if(p.has_val_anchor(node))
     {
         csubstr a = p.val_anchor(node);
-        printf(" &%.*s'", (int)a.len, a.str);
+        printf(" &%.*s", (int)a.len, a.str);
     }
     if(p.has_val_tag(node))
     {
@@ -107,7 +108,30 @@ inline id_type print_node(Tree const& p, id_type node, int level, id_type count,
         printf(" %c%.*s%c", code, (int)v.len, v.str, code);
     }
     printf("  (%zu sibs)", (size_t)p.num_siblings(node));
-
+    #ifdef RYML_WITH_COMMENTS
+    if(p.comment(node))
+    {
+        printf(" COMM[");
+        NodeData const* n = p._p(node);
+        id_type ccount = 0;
+        for(id_type cid = n->m_first_comment; cid != NONE; cid = p.m_comments_buf[cid].m_next)
+        {
+            CommentData const& comm = p.m_comments_buf[cid];
+            if(ccount++) printf("|");
+            /* */if(comm.m_type == COMM_LK)  printf("LK");
+            else if(comm.m_type == COMM_LK2) printf("LK2");
+            else if(comm.m_type == COMM_TK)  printf("TK");
+            else if(comm.m_type == COMM_FK)  printf("FK");
+            else if(comm.m_type == COMM_LV)  printf("LV");
+            else if(comm.m_type == COMM_LV2) printf("LV2");
+            else if(comm.m_type == COMM_TV)  printf("TV");
+            else if(comm.m_type == COMM_FV)  printf("FV");
+            else if(comm.m_type == COMM_FV2) printf("FV2");
+            else if(comm.m_type == COMM_TT)  printf("TT");
+        }
+        printf("]");
+    }
+    #endif
     ++count;
 
     if(!p.is_container(node))
@@ -134,9 +158,9 @@ inline id_type print_node(Tree const& p, id_type node, int level, id_type count,
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline void print_node(ConstNodeRef const& p, int level=0)
+inline void print_node(ConstNodeRef const& p, int level=0, bool print_address=false)
 {
-    print_node(*p.tree(), p.id(), level, 0, true);
+    print_node(*p.tree(), p.id(), level, 0, true, print_address);
 }
 
 
@@ -144,7 +168,7 @@ inline void print_node(ConstNodeRef const& p, int level=0)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline id_type print_tree(const char *message, Tree const& p, id_type node=NONE)
+inline id_type print_tree(const char *message, Tree const& p, id_type node=NONE, bool print_address=false)
 {
     printf("--------------------------------------\n");
     if(message != nullptr)
@@ -154,24 +178,24 @@ inline id_type print_tree(const char *message, Tree const& p, id_type node=NONE)
     {
         if(node == NONE)
             node = p.root_id();
-        ret = print_node(p, node, 0, 0, true);
+        ret = print_node(p, node, 0, 0, true, print_address);
     }
     printf("#nodes=%zu vs #printed=%zu\n", (size_t)p.size(), (size_t)ret);
     printf("--------------------------------------\n");
     return ret;
 }
 
-inline id_type print_tree(Tree const& p, id_type node=NONE)
+inline id_type print_tree(Tree const& p, id_type node=NONE, bool print_address=false)
 {
-    return print_tree(nullptr, p, node);
+    return print_tree(nullptr, p, node, print_address);
 }
 
-inline void print_tree(ConstNodeRef const& p, int level)
+inline void print_tree(ConstNodeRef const& p, int level, bool print_address=false)
 {
-    print_node(p, level);
+    print_node(p, level, print_address);
     for(ConstNodeRef ch : p.children())
     {
-        print_tree(ch, level+1);
+        print_tree(ch, level+1, print_address);
     }
 }
 

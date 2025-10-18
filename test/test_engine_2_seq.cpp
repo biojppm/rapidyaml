@@ -630,6 +630,70 @@ ENGINE_TEST(SeqSeqSeqBlock,
     ___(ps.end_stream());
 }
 
+ENGINE_TEST(SeqSeqSeqSeqBlock,
+            "- - - - foo1\n"
+            "      - bar1\n"
+            "      - baz1\n"
+            "  - - - foo2\n"
+            "      - bar2\n"
+            "      - baz2\n"
+            "- back\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "=VAL :foo1\n"
+            "=VAL :bar1\n"
+            "=VAL :baz1\n"
+            "-SEQ\n"
+            "-SEQ\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "=VAL :foo2\n"
+            "=VAL :bar2\n"
+            "=VAL :baz2\n"
+            "-SEQ\n"
+            "-SEQ\n"
+            "-SEQ\n"
+            "=VAL :back\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("foo1"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("bar1"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("baz1"));
+          ___(ps.end_seq());
+        ___(ps.end_seq());
+        ___(ps.add_sibling());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("foo2"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("bar2"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("baz2"));
+          ___(ps.end_seq());
+        ___(ps.end_seq());
+      ___(ps.end_seq());
+      ___(ps.add_sibling());
+      ___(ps.set_val_scalar_plain("back"));
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 ENGINE_TEST(SeqMapBlock,
             "- foo: 1\n"
             "  bar: 2\n"

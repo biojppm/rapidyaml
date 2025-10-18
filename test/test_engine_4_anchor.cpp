@@ -574,7 +574,8 @@ ENGINE_TEST(AnchorTagPlacement,
             "\n"
             "  !b4\n"
             "\n"
-            "  foo4: bar4\n",
+            "  foo4: bar4\n"
+            ,
             "- !b0 &a0 foo0: bar0\n"
             "- !b1 &a1\n"
             "  foo1: bar1\n"

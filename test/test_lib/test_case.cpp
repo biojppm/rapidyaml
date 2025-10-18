@@ -626,6 +626,107 @@ void print_test_tree(const char *message, TestCaseNode const& t)
     printf("--------------------------------------\n");
 }
 
+
+void test_comment_invariants(Tree const& t, id_type id)
+{
+    id = id != NONE ? id : t.root_id();
+    (void)id;
+#ifdef RYML_WITH_COMMENTS
+    SCOPED_TRACE("comment invariants");
+    RYML_TRACE_FMT("id={}", id);
+    if(t.m_comments_cap == 0)
+    {
+        ASSERT_EQ(t.m_comments_buf, nullptr);
+        ASSERT_EQ(t.m_comments_size, 0);
+        return;
+    }
+    ASSERT_NE(t.m_comments_buf, nullptr);
+    ASSERT_LE(t.m_comments_size, t.m_comments_cap);
+
+    id_type count_iter = 0;
+    {
+        NodeData const* node = t._p(id);
+        EXPECT_EQ(t.m_comments_buf[node->m_first_comment].m_prev, NONE);
+        EXPECT_EQ(t.m_comments_buf[node->m_last_comment].m_next, NONE);
+        for(id_type cid = node->m_first_comment; cid != NONE; cid = t.m_comments_buf[cid].m_next)
+        {
+            RYML_TRACE_FMT("cid={}", cid);
+            ASSERT_LT(cid, t.m_comments_size);
+            CommentData const* comm = &t.m_comments_buf[cid];
+            EXPECT_EQ(t.comment(id, comm->m_type), comm);
+            if(comm->m_prev != NONE)
+            {
+                EXPECT_NE(cid, node->m_first_comment);
+                ASSERT_LT(comm->m_prev, t.m_comments_size);
+                CommentData const* prev = &t.m_comments_buf[comm->m_prev];
+                EXPECT_LT(prev->m_type, comm->m_type);
+                EXPECT_EQ(prev->m_next, cid);
+            }
+            else
+            {
+                EXPECT_EQ(cid, node->m_first_comment);
+            }
+            if(comm->m_next != NONE)
+            {
+                EXPECT_NE(cid, node->m_last_comment);
+                ASSERT_LT(comm->m_next, t.m_comments_size);
+                CommentData const* next = &t.m_comments_buf[comm->m_next];
+                EXPECT_GT(next->m_type, comm->m_type);
+                EXPECT_EQ(next->m_prev, cid);
+            }
+            else
+            {
+                EXPECT_EQ(cid, node->m_last_comment);
+            }
+            ++count_iter;
+        }
+    }
+
+    id_type count_get = 0;
+    {
+        const CommentType_e all_types[] = {
+            COMM_LK ,
+            COMM_LK2,
+            COMM_TK ,
+            COMM_FK ,
+            COMM_LV ,
+            COMM_LV2,
+            COMM_TV ,
+            COMM_FV ,
+            COMM_FV2,
+            COMM_TT ,
+        };
+        CommentData const* prev = nullptr;
+        CommentType_e ctype_prev = COMM_NONE;
+        for(CommentType_e ctype : all_types)
+        {
+            SCOPED_TRACE((comment_data_type)ctype);
+            CommentData const* comm = t.comment(id, ctype);
+            if(ctype_prev != COMM_NONE)
+            {
+                ASSERT_GT(ctype, ctype_prev);
+            }
+            EXPECT_EQ(comm, t.comment(id, prev, ctype));
+            count_get += !!comm;
+            ctype_prev = ctype;
+            prev = comm;
+        }
+    }
+    EXPECT_EQ(count_iter, count_get);
+
+    for(id_type child = t.first_child(id); child != NONE; child = t.next_sibling(id))
+    {
+        test_comment_invariants(t, child);
+    }
+#endif
+}
+
+void test_comment_invariants(ConstNodeRef const &n)
+{
+    ASSERT_TRUE(n.readable());
+    test_comment_invariants(*n.tree(), n.id());
+}
+
 void test_invariants(ConstNodeRef const& n)
 {
     SCOPED_TRACE(n.id());
@@ -643,18 +744,21 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_val());
     }
-    // check parent & sibling reciprocity
+    // check sibling reciprocity
     for(ConstNodeRef s : n.siblings())
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(n.has_key())
+        if(s.has_key() && !n.has_key()) { EXPECT_EQ(n.type(), NOTYPE); _RYML_WITH_COMMENTS(EXPECT_NE(n.comment(), nullptr)); }
+        if(!s.has_key() && n.has_key()) { EXPECT_EQ(s.type(), NOTYPE); _RYML_WITH_COMMENTS(EXPECT_NE(s.comment(), nullptr)); }
+        if(n.has_key() && s.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
         }
         EXPECT_EQ(s.parent().get(), n.parent().get());
     }
+    // check parent/child reciprocity
     if(n.parent().readable())
     {
         EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings());
@@ -688,7 +792,10 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_FALSE(n.is_seq());
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_TRUE(ch.has_key());
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.has_key());
+            }
         }
     }
     if(n.has_key_anchor())
@@ -744,9 +851,10 @@ void test_invariants(ConstNodeRef const& n)
     #undef _MORE_INFO
 }
 
-size_t test_tree_invariants(ConstNodeRef const& n)
+
+static size_t test_tree_invariants(ConstNodeRef const& n)
 {
-    auto parent = n.parent();
+    ConstNodeRef parent = n.parent();
 
     if(n.get()->m_prev_sibling == NONE)
     {
@@ -788,6 +896,7 @@ size_t test_tree_invariants(ConstNodeRef const& n)
 
 void test_invariants(Tree const& t)
 {
+    SCOPED_TRACE("tree invariants");
 
     ASSERT_LE(t.size(), t.capacity());
     EXPECT_EQ(t.size() + t.slack(), t.capacity());
@@ -804,6 +913,7 @@ void test_invariants(Tree const& t)
 
     check_invariants(t);
     test_invariants(t.rootref());
+    test_comment_invariants(t);
 
     if(!testing::UnitTest::GetInstance()->current_test_info()->result()->Passed())
     {

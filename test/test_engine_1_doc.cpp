@@ -937,8 +937,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstAnchor,
             "&anch1\n"
             "--- &anch2\n"
             ,
-            "--- &anch1 \n"
-            "--- &anch2 \n"
+            "--- &anch1\n"
+            "--- &anch2\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -965,8 +965,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstTag,
             "!!str\n"
             "--- !!str\n"
             ,
-            "--- !!str \n"
-            "--- !!str \n"
+            "--- !!str\n"
+            "--- !!str\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -993,10 +993,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstSeqFlowEmpty,
             "[]\n"
             "--- []\n"
             ,
-            "---\n"
-            "[]\n"
-            "---\n"
-            "[]\n"
+            "--- []\n"
+            "--- []\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1025,10 +1023,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstSeqFlow,
             "[a]\n"
             "--- [b]\n"
             ,
-            "---\n"
-            "[a]\n"
-            "---\n"
-            "[b]\n"
+            "--- [a]\n"
+            "--- [b]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1061,10 +1057,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstMapEmpty,
             "{}\n"
             "--- {}\n"
             ,
-            "---\n"
-            "{}\n"
-            "---\n"
-            "{}\n"
+            "--- {}\n"
+            "--- {}\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1093,10 +1087,8 @@ ENGINE_TEST(DocStreamImplicitDocFirstMap,
             "{a: b}\n"
             "--- {c: d}\n"
             ,
-            "---\n"
-            "{a: b}\n"
-            "---\n"
-            "{c: d}\n"
+            "--- {a: b}\n"
+            "--- {c: d}\n"
             ,
             "+STR\n"
             "+DOC\n"

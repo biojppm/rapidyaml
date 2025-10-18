@@ -21,7 +21,8 @@ TEST(seq_of_map, with_anchors)
   a4: v4
 )";
         Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+        std::string emitted = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(yaml, emitted);
         ASSERT_EQ(t.rootref().num_children(), 3u);
         ASSERT_EQ(t[2].has_val_anchor(), true);
         ASSERT_EQ(t[2].val_anchor(), "seq");
