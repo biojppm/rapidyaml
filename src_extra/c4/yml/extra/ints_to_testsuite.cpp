@@ -192,6 +192,53 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
         {
             append("-STR\n");
         }
+        #ifdef RYML_WITH_COMMENTS
+        else if(evt & ievt::COML)
+        {
+            if(evt & ievt::KEY_)
+                append("=CLK #");
+            else
+                append("=CLV #");
+            append_esc(getstr(i));
+        }
+        else if(evt & ievt::COML2)
+        {
+            if(evt & ievt::KEY_)
+                append("=CLK2 #");
+            else
+                append("=CLV2 #");
+            append_esc(getstr(i));
+        }
+        else if(evt & ievt::COMT)
+        {
+            if(evt & ievt::KEY_)
+                append("=CTK #");
+            else
+                append("=CTV #");
+            append_esc(getstr(i));
+        }
+        else if(evt & ievt::COMF)
+        {
+            if(evt & ievt::KEY_)
+                append("=CFK #");
+            else
+                append("=CFV #");
+            append_esc(getstr(i));
+        }
+        else if(evt & ievt::COMF2)
+        {
+            if(evt & ievt::KEY_)
+                append("=CFK2 #");
+            else
+                append("=CFV2 #");
+            append_esc(getstr(i));
+        }
+        else if(evt & ievt::COMN)
+        {
+            append("=CTT #");
+            append_esc(getstr(i));
+        }
+        #endif
 
         i += (evt & ievt::WSTR) ? 3 : 1;
     }

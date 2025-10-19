@@ -263,7 +263,14 @@ void Emitter<Writer>::_visit_doc(id_type id)
     }
     else if(ty.is_val())
     {
+        #ifndef RYML_WITH_COMMENTS
         _visit_doc_val(id);
+        #else
+        CommentData const* comm = _maybe_write_comm_leading(id, COMM_LV);
+        _visit_doc_val(id);
+        _maybe_write_comm_trailing(id, COMM_TV, comm);
+        _maybe_write_comm_leading(id, COMM_FV, comm);
+        #endif
     }
 }
 
@@ -279,7 +286,9 @@ void Emitter<Writer>::_top_open_entry(id_type node)
     {
         _write("---");
         _pend_space();
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_TT));
     }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_LV));
     if(ty.has_val_tag())
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -314,6 +323,11 @@ template<class Writer>
 void Emitter<Writer>::_top_close_entry(id_type node)
 {
     (void)node;
+#ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
+#endif
 }
 
 
@@ -325,6 +339,7 @@ void Emitter<Writer>::_flow_sl_write_comma(id_type node, id_type first_sibling)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), first_sibling == m_tree->first_sibling(node), m_tree, node);
     if(node != first_sibling)
         _write(',');
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_TT));
 }
 
 template<class Writer>
@@ -333,6 +348,7 @@ void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type last_sibling)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), last_sibling == m_tree->last_sibling(node), m_tree, node);
     if(node != last_sibling)
         _write(',');
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_TT));
     _pend_newl();
 }
 
@@ -344,6 +360,10 @@ void Emitter<Writer>::_flow_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
+    #ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _maybe_write_comm_leading(node, COMM_LV);
+    comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
+    #endif
     if(ty.has_val_tag())
     {
         _write_tag(m_tree->val_tag(node));
@@ -364,6 +384,11 @@ template<class Writer>
 void Emitter<Writer>::_flow_seq_close_entry(id_type node)
 {
     (void)node;
+#ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
+#endif
     _write_pws_and_pend(_PWS_NONE);
 }
 
@@ -376,6 +401,7 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
+    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_LK));
     if(ty.has_key_tag())
     {
         _write_tag(m_tree->key_tag(node));
@@ -399,6 +425,11 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     }
     _write_pws_and_pend(_PWS_SPACE);
     _write(':');
+    #ifdef RYML_WITH_COMMENTS
+    comm = _maybe_write_comm_trailing(node, COMM_TK, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
+    #endif
     if(ty.has_val_tag())
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -419,6 +450,11 @@ template<class Writer>
 void Emitter<Writer>::_flow_map_close_entry(id_type node)
 {
     (void)node;
+#ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
+#endif
     _write_pws_and_pend(_PWS_NONE);
 }
 
@@ -430,8 +466,10 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
+    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_LV));
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the following dash
     _write('-');
+    _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_LV2, comm));
     bool has_tag_or_anchor = false;
     if(ty.has_val_tag())
     {
@@ -462,6 +500,11 @@ template<class Writer>
 void Emitter<Writer>::_blck_seq_close_entry(id_type node)
 {
     (void)node;
+#ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
+#endif
     _pend_newl();
 }
 
@@ -474,6 +517,7 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_key(node), m_tree, node);
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
+    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_LK));
     if(ty.has_key_tag())
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -499,6 +543,11 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     }
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the colon
     _write(':');
+    #ifdef RYML_WITH_COMMENTS
+    comm = _maybe_write_comm_trailing(node, COMM_TK, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_LV2, comm);
+    #endif
     if(ty.has_val_tag())
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -526,6 +575,11 @@ template<class Writer>
 void Emitter<Writer>::_blck_map_close_entry(id_type node)
 {
     (void)node;
+#ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _maybe_write_comm_trailing(node, COMM_TV);
+    comm = _maybe_write_comm_leading(node, COMM_FV, comm);
+    comm = _maybe_write_comm_leading(node, COMM_FV2, comm);
+#endif
     _pend_newl();
 }
 
@@ -754,7 +808,7 @@ template<class Writer>
 void Emitter<Writer>::_visit_blck(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node) _RYML_WITH_COMMENTS( || m_tree->comment(node, COMM_ANY)), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
@@ -777,7 +831,7 @@ template<class Writer>
 void Emitter<Writer>::_visit_flow_sl(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node) _RYML_WITH_COMMENTS( || m_tree->comment(node, COMM_ANY)), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
@@ -1304,6 +1358,29 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
         _write(s.sub(pos));
 }
 
+#ifdef RYML_WITH_COMMENTS
+template<class Writer>
+void Emitter<Writer>::_write_comment(csubstr s, id_type indentation)
+{
+    _write('#');
+    size_t pos = 0; // last character that was already written
+    for(size_t i = 0; i < s.len; ++i)
+    {
+        if(s.str[i] == '\n')
+        {
+            csubstr sub = s.range(pos, i);
+            _write(sub);  // write everything up to (including) this newline
+            _newl();
+            pos = i + 1;
+            _write(' ', indentation); // _indent() is for level, but we have explicit indentation
+            _write('#');
+        }
+    }
+    // write remaining characters at the end of the string
+    if(pos < s.len)
+        _write(s.sub(pos));
+}
+#endif // RYML_WITH_COMMENTS
 
 //-----------------------------------------------------------------------------
 

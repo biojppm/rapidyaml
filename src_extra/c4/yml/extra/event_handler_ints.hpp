@@ -102,6 +102,25 @@ typedef enum : DataType {
     /// is set not to filter).
     UNFILT = (1 << 25),
 
+    #ifdef RYML_WITH_COMMENTS
+    // Comment flags
+    COML  = (1 << 26),  ///< leading comment
+    COML2 = (1 << 27),  ///< leading comment
+    COMT  = (1 << 28),  ///< trailing comment
+    COMF  = (1 << 29),  ///< footer comment
+    COMF2 = (1 << 30),  ///< footer comment
+    COMN  = (1 << 31),  ///< comment after token
+    // Utility flags/masks
+    /// the last flag defined above
+    LAST = COMN,
+    /// a mask of all bits in this enumeration
+    MASK = -1, // same as ((LAST << 1) - 1), but without overflow
+    /// with string: mask of all the events that encode a string
+    /// following the event. in the event has a string. the next two
+    /// integers will provide respectively the string's offset and
+    /// length. See also @ref PSTR.
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COML|COML2|COMT|COMF|COMF2|COMN,
+    #else
     // Utility flags/masks
     /// the last flag defined above
     LAST = UNFILT,
@@ -112,8 +131,8 @@ typedef enum : DataType {
     /// integers will provide respectively the string's offset and
     /// length. See also @ref PSTR.
     WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML,
+    #endif
 } EventFlags;
-
 } // namespace ievt
 
 /** @} */
@@ -1193,6 +1212,92 @@ public:
     }
 
     /** @} */
+
+public:
+
+    #ifdef RYML_WITH_COMMENTS
+    /** @name comments */
+    /** @{ */
+
+    /** add leading comment: key */
+    void add_comment_leading_key(csubstr txt)
+    {
+        _c4dbgpf("leading comment! key [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::KEY_|ievt::COML);
+    }
+    /** add leading comment: val */
+    void add_comment_leading_val(csubstr txt)
+    {
+        _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::VAL_|ievt::COML);
+    }
+
+    /** add leading comment: key2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_key2(csubstr txt)
+    {
+        _c4dbgpf("leading comment! key2 [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::KEY_|ievt::COML2);
+    }
+    /** add leading comment: val2
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment_leading_val2(csubstr txt)
+    {
+        _c4dbgpf("leading comment! val2 [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::VAL_|ievt::COML2);
+    }
+
+    /** add trailing comment; key */
+    void add_comment_trailing_key(csubstr txt)
+    {
+        _c4dbgpf("trailing comment! key [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::KEY_|ievt::COMT);
+    }
+    /** add trailing comment: val */
+    void add_comment_trailing_val(csubstr txt)
+    {
+        _c4dbgpf("trailing comment! val [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::VAL_|ievt::COMT);
+    }
+
+    /** add footer comment; key */
+    void add_comment_footer_key(csubstr txt)
+    {
+        _c4dbgpf("footer comment! key [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::KEY_|ievt::COMF);
+    }
+    /** add footer comment: val */
+    void add_comment_footer_val(csubstr txt)
+    {
+        _c4dbgpf("footer comment! val [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::VAL_|ievt::COMF);
+    }
+
+    /** add footer comment: val 2 */
+    void add_comment_footer_val2(csubstr txt)
+    {
+        _c4dbgpf("footer comment! val2 [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::VAL_|ievt::COMF2);
+    }
+
+    /** add comment trailing token */
+    void add_comment_trailing_token(csubstr txt)
+    {
+        _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::VAL_|ievt::COMN);
+    }
+
+    /** add comment trailing comma */
+    void add_comment_trailing_begin_doc_expl(csubstr txt)
+    {
+        _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
+        _send_str_(txt, ievt::BEG_|ievt::COMN);
+    }
+
+    /** @} */
+    #endif
 
 public:
 

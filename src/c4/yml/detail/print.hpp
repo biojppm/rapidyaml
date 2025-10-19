@@ -106,7 +106,30 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
         printf(" %c%.*s%c", code, (int)v.len, v.str, code);
     }
     printf("  (%zu sibs)", (size_t)p.num_siblings(node));
-
+    #ifdef RYML_WITH_COMMENTS
+    if(p.comment(node))
+    {
+        printf(" COMM[");
+        NodeData const* n = p._p(node);
+        id_type ccount = 0;
+        for(id_type cid = n->m_first_comment; cid != NONE; cid = p.m_comments_buf[cid].m_next)
+        {
+            CommentData const& comm = p.m_comments_buf[cid];
+            if(ccount++) printf("|");
+            /* */if(comm.m_type == COMM_LK)  printf("LK");
+            else if(comm.m_type == COMM_LK2) printf("LK2");
+            else if(comm.m_type == COMM_TK)  printf("TK");
+            else if(comm.m_type == COMM_FK)  printf("FK");
+            else if(comm.m_type == COMM_LV)  printf("LV");
+            else if(comm.m_type == COMM_LV2) printf("LV2");
+            else if(comm.m_type == COMM_TV)  printf("TV");
+            else if(comm.m_type == COMM_FV)  printf("FV");
+            else if(comm.m_type == COMM_FV2) printf("FV2");
+            else if(comm.m_type == COMM_TT)  printf("TT");
+        }
+        printf("]");
+    }
+    #endif
     ++count;
 
     if(!p.is_container(node))

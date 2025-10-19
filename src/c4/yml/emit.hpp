@@ -259,6 +259,11 @@ private:
     void _write_scalar_squo(csubstr s, id_type level);
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
+
+    #ifdef RYML_WITH_COMMENTS
+    void _write_comment(csubstr s, id_type indentation);
+    #endif
+
     size_t _write_escaped_newlines(csubstr s, size_t i);
     size_t _write_indented_block(csubstr s, size_t i, id_type level);
 
@@ -354,6 +359,31 @@ private: // pending whitespace
         }
         m_pws = next;
     }
+
+    #ifdef RYML_WITH_COMMENTS
+    CommentData const* _maybe_write_comm_trailing(id_type node, CommentType_e type, CommentData const* prev=nullptr)
+    {
+        prev = m_tree->comment(node, prev, type);
+        if(prev)
+        {
+            _write(' ');
+            _write_comment(prev->m_text, m_col);
+            _pend_newl();
+        }
+        return prev;
+    }
+    CommentData const* _maybe_write_comm_leading(id_type node, CommentType_e type, CommentData const* prev=nullptr)
+    {
+        prev = m_tree->comment(node, prev, type);
+        if(prev)
+        {
+            _newl();
+            _write_pws_and_pend(_PWS_NEWL);
+            _pend_newl();
+        }
+        return prev;
+    }
+    #endif
 
 private:
 

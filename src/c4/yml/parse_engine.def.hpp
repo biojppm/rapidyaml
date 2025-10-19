@@ -31,6 +31,16 @@
 #define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) without
 #endif
 
+#if defined(RYML_WITH_COMMENTS)
+#define _RYML_WITH_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITHOUT_COMMENTS(...)
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) with
+#else
+#define _RYML_WITH_COMMENTS(...)
+#define _RYML_WITHOUT_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) without
+#endif
+
 
 // scaffold:
 #define _c4dbgnextline()                           \
