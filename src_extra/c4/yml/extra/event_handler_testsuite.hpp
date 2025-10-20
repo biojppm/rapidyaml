@@ -255,7 +255,13 @@ public:
         _push();
     }
 
-    void end_map()
+    void end_map_block()
+    {
+        _pop();
+        _send_("-MAP\n");
+    }
+
+    void end_map_flow(bool /*multiline*/)
     {
         _pop();
         _send_("-MAP\n");
@@ -310,10 +316,16 @@ public:
         _push();
     }
 
-    void end_seq()
+    void end_seq_block()
     {
         _pop();
-        _send_("-SEQ\n"); // before popping
+        _send_("-SEQ\n");
+    }
+
+    void end_seq_flow(bool /*multiline*/)
+    {
+        _pop();
+        _send_("-SEQ\n");
     }
 
     /** @} */
