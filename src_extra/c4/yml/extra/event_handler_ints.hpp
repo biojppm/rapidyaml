@@ -661,7 +661,13 @@ public:
         _push();
     }
 
-    void end_map()
+    void end_map_block()
+    {
+        _pop();
+        _send_flag_only_(ievt::EMAP);
+    }
+
+    void end_map_flow(bool /*multiline*/)
     {
         _pop();
         _send_flag_only_(ievt::EMAP);
@@ -708,7 +714,13 @@ public:
         _push();
     }
 
-    void end_seq()
+    void end_seq_block()
+    {
+        _pop();
+        _send_flag_only_(ievt::ESEQ);
+    }
+
+    void end_seq_flow(bool /*multiline*/)
     {
         _pop();
         _send_flag_only_(ievt::ESEQ);
@@ -865,7 +877,7 @@ public:
     /** @cond dev */
     int32_t _find_last_bdoc(int32_t pos) const
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev < m_evt_size); // it's safe to read from the array
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
         while(pos >= 0)
         {
             ievt::DataType e = m_evt[pos];
@@ -907,6 +919,7 @@ public:
     }
     int32_t _extend_left_to_include_tag_and_or_anchor(int32_t pos) const
     {
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
         int32_t prev = _prev(pos);
         while((prev > 0) && (m_evt[prev] & (ievt::TAG_|ievt::ANCH)))
         {
@@ -971,13 +984,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::DQUO);
         _enable_(c4::yml::KEY|c4::yml::KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::DQUO);
         _enable_(c4::yml::VAL|c4::yml::VAL_DQUO);
     }
@@ -999,13 +1012,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::LITL);
         _enable_(c4::yml::KEY|c4::yml::KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::LITL);
         _enable_(c4::yml::VAL|c4::yml::VAL_LITERAL);
     }
@@ -1013,13 +1026,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::FOLD);
         _enable_(c4::yml::KEY|c4::yml::KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::FOLD);
         _enable_(c4::yml::VAL|c4::yml::VAL_FOLDED);
     }
