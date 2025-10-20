@@ -1537,7 +1537,7 @@ void ParseEngine<EventHandler>::_save_indentation()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_end_map_flow()
 {
-    bool multiline = m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    bool multiline = m_options.detect_flow_ml() && m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
     _c4dbgpf("mapflow: end, multiline={}", multiline);
     m_evt_handler->end_map_flow(multiline);
 }
@@ -1545,7 +1545,7 @@ void ParseEngine<EventHandler>::_end_map_flow()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_end_seq_flow()
 {
-    bool multiline = m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    bool multiline = m_options.detect_flow_ml() && m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
     _c4dbgpf("seqflow: end, multiline={}", multiline);
     m_evt_handler->end_seq_flow(multiline);
 }
