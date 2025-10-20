@@ -225,7 +225,8 @@ private:
     typedef enum : uint32_t {
         SCALAR_FILTERING = (1u << 0u),
         LOCATIONS = (1u << 1u),
-        DEFAULTS = SCALAR_FILTERING,
+        DETECT_FLOW_ML = (1u << 2u),
+        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
     } Flags_e;
 
     uint32_t flags = DEFAULTS;
@@ -250,6 +251,28 @@ public:
     }
     /** query source location tracking status */
     C4_ALWAYS_INLINE bool locations() const noexcept { return (flags & LOCATIONS); }
+
+    /** @} */
+
+public:
+
+    /** @name detection of @ref FLOW_ML container style */
+    /** @{ */
+
+    /** enable/disable detection of @ref FLOW_ML container style. When
+     * enabled, the parser will set @ref FLOW_ML as the style of flow
+     * containers which have the terminating bracket on a line
+     * different from that of the opening bracket. */
+    ParserOptions& detect_flow_ml(bool enabled) noexcept
+    {
+        if(enabled)
+            flags |= DETECT_FLOW_ML;
+        else
+            flags &= ~DETECT_FLOW_ML;
+        return *this;
+    }
+    /** query status of detection of @ref FLOW_ML container style. */
+    C4_ALWAYS_INLINE bool detect_flow_ml() const noexcept { return (flags & DETECT_FLOW_ML); }
 
     /** @} */
 
