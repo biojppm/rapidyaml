@@ -19,8 +19,8 @@ typedef enum : ParserFlag_t {
     RUNK = 0x01 <<  1,   ///< reading unknown state (when starting): must determine whether scalar, map or seq
     RMAP = 0x01 <<  2,   ///< reading a map
     RSEQ = 0x01 <<  3,   ///< reading a seq
-    FLOW = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
-    BLCK = 0x01 <<  5,   ///< reading in block mode
+    RFLOW = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
+    RBLCK = 0x01 <<  5,   ///< reading in block mode
     QMRK = 0x01 <<  6,   ///< reading an explicit key (`? key`)
     RKEY = 0x01 <<  7,   ///< reading a scalar as key
     RVAL = 0x01 <<  9,   ///< reading a scalar as val
