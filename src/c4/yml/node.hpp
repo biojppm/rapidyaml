@@ -197,6 +197,7 @@ public:
 
     /** returns the data or null when the id is NONE */
     C4_ALWAYS_INLINE NodeData const* get() const RYML_NOEXCEPT { return ((Impl const*)this)->readable() ? tree_->get(id_) : nullptr; }
+
     /** returns the data or null when the id is NONE */
     template<class U=Impl>
     C4_ALWAYS_INLINE auto get() RYML_NOEXCEPT -> _C4_IF_MUTABLE(NodeData*) { return ((Impl const*)this)->readable() ? tree__->get(id__) : nullptr; }
@@ -743,29 +744,22 @@ public:
     using children_view = detail::children_view_<Impl>;
     using const_children_view = detail::children_view_<ConstImpl>;
 
-    /** get an iterator to the first child */
     template<class U=Impl>
-    C4_ALWAYS_INLINE auto begin() RYML_NOEXCEPT -> _C4_IF_MUTABLE(iterator) { _C4RR(); return iterator(tree__, tree__->first_child(id__)); }
-    /** get an iterator to the first child */
-    C4_ALWAYS_INLINE const_iterator begin() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, tree_->first_child(id_)); }
-    /** get an iterator to the first child */
-    C4_ALWAYS_INLINE const_iterator cbegin() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, tree_->first_child(id_)); }
+    C4_ALWAYS_INLINE auto begin() RYML_NOEXCEPT -> _C4_IF_MUTABLE(iterator) { _C4RR(); return iterator(tree__, tree__->first_child(id__)); }  /**< get a mutable iterator to the first child. NOT AVAILABLE for ConstNodeRef. */
+    C4_ALWAYS_INLINE const_iterator begin() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, tree_->first_child(id_)); } /**< get an iterator to the first child */
+    C4_ALWAYS_INLINE const_iterator cbegin() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, tree_->first_child(id_)); } /**< get an iterator to the first child */
 
-    /** get an iterator to after the last child */
     template<class U=Impl>
-    C4_ALWAYS_INLINE auto end() RYML_NOEXCEPT -> _C4_IF_MUTABLE(iterator) { _C4RR(); return iterator(tree__, NONE); }
+    C4_ALWAYS_INLINE auto end() RYML_NOEXCEPT -> _C4_IF_MUTABLE(iterator) { _C4RR(); return iterator(tree__, NONE); } /**< get an iterator to after the last child. NOT AVAILABLE for ConstNodeRef. */
     /** get an iterator to after the last child */
-    C4_ALWAYS_INLINE const_iterator end() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, NONE); }
+    C4_ALWAYS_INLINE const_iterator end() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, NONE); } /**< get an iterator to after the last child */
     /** get an iterator to after the last child */
-    C4_ALWAYS_INLINE const_iterator cend() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, NONE); }
+    C4_ALWAYS_INLINE const_iterator cend() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, NONE); } /**< get an iterator to after the last child */
 
-    /** get an iterable view over children */
     template<class U=Impl>
-    C4_ALWAYS_INLINE auto children() RYML_NOEXCEPT -> _C4_IF_MUTABLE(children_view) { _C4RR(); return children_view(begin(), end()); }
-    /** get an iterable view over children */
-    C4_ALWAYS_INLINE const_children_view children() const RYML_NOEXCEPT { _C4RR(); return const_children_view(begin(), end()); }
-    /** get an iterable view over children */
-    C4_ALWAYS_INLINE const_children_view cchildren() const RYML_NOEXCEPT { _C4RR(); return const_children_view(begin(), end()); }
+    C4_ALWAYS_INLINE auto children() RYML_NOEXCEPT -> _C4_IF_MUTABLE(children_view) { _C4RR(); return children_view(begin(), end()); } /**< get an iterable view over children. NOT AVAILABLE for ConstNodeRef. */
+    C4_ALWAYS_INLINE const_children_view children() const RYML_NOEXCEPT { _C4RR(); return const_children_view(begin(), end()); } /**< get an iterable view over children */
+    C4_ALWAYS_INLINE const_children_view cchildren() const RYML_NOEXCEPT { _C4RR(); return const_children_view(begin(), end()); } /**< get an iterable view over children */
 
     /** get an iterable view over all siblings (including the calling node) */
     template<class U=Impl>

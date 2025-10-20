@@ -3,8 +3,12 @@
 
 /** @file tree.hpp */
 
+#ifndef _C4_ERROR_HPP_
 #include "c4/error.hpp"
+#endif
+#ifndef _C4_TYPES_HPP_
 #include "c4/types.hpp"
+#endif
 #ifndef _C4_YML_FWD_HPP_
 #include "c4/yml/fwd.hpp"
 #endif
@@ -849,7 +853,7 @@ public:
     substr arena() { return m_arena.first(m_arena_pos); } // NOLINT(readability-make-member-function-const)
 
     /** return true if the given substring is part of the tree's string arena */
-    bool in_arena(csubstr s) const
+    C4_ALWAYS_INLINE bool in_arena(csubstr s) const
     {
         return m_arena.is_super(s);
     }
@@ -938,13 +942,13 @@ public:
         if(arena_cap > m_arena.len)
         {
             substr buf;
-            buf.str = (char*) m_callbacks.m_allocate(arena_cap, m_arena.str, m_callbacks.m_user_data);
+            buf.str = _RYML_CB_ALLOC(m_callbacks, char, arena_cap);
             buf.len = arena_cap;
             if(m_arena.str)
             {
                 _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len >= 0, this, NONE);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
-                m_callbacks.m_free(m_arena.str, m_arena.len, m_callbacks.m_user_data);
+                _RYML_CB_FREE(m_callbacks, m_arena.str, char, m_arena.len);
             }
             m_arena = buf;
         }
@@ -1210,8 +1214,8 @@ public:
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        NodeData      & C4_RESTRICT dst = *_p(dst_);
+        NodeData const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = src.m_type;
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
@@ -1219,8 +1223,8 @@ public:
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        NodeData      & C4_RESTRICT dst = *_p(dst_);
+        NodeData const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & src_mask) | (dst.m_type & ~src_mask);
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
@@ -1293,8 +1297,7 @@ public:
 
     NodeData *m_buf;
     id_type   m_cap;
-
-    id_type m_size;
+    id_type   m_size;
 
     id_type m_free_head;
     id_type m_free_tail;
@@ -1305,7 +1308,6 @@ public:
     Callbacks m_callbacks;
 
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
-
 };
 
 
