@@ -57,14 +57,17 @@ typedef enum {
 /** A lightweight object containing options to be used when emitting. */
 struct EmitOptions
 {
+public:
+
     typedef enum : uint32_t {
         EMIT_NONROOT_KEY = 1u << 0u,
         EMIT_NONROOT_DASH = 1u << 1u,
         EMIT_NONROOT_MARKUP = EMIT_NONROOT_KEY|EMIT_NONROOT_DASH,
-        JSON_ERR_ON_TAG = 1u << 1u,
-        JSON_ERR_ON_ANCHOR = 1u << 2u,
+        INDENT_FLOW_ML = 1u << 2u,
+        JSON_ERR_ON_TAG = 1u << 3u,
+        JSON_ERR_ON_ANCHOR = 1u << 4u,
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
-        DEFAULT_FLAGS = EMIT_NONROOT_KEY,
+        DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML,
     } EmitOptionFlags_e;
 
 public:
@@ -78,6 +81,9 @@ public:
 
     C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_option_flags & EMIT_NONROOT_DASH) != 0; }
     EmitOptions& emit_nonroot_dash(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | EMIT_NONROOT_DASH) : (m_option_flags & ~EMIT_NONROOT_DASH)); return *this; }
+
+    C4_ALWAYS_INLINE bool indent_flow_ml() const noexcept { return (m_option_flags & INDENT_FLOW_ML) != 0; }
+    EmitOptions& indent_flow_ml(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | INDENT_FLOW_ML) : (m_option_flags & ~INDENT_FLOW_ML)); return *this; }
 
     C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return (EmitOptionFlags_e)(m_option_flags & _JSON_ERR_MASK); }
     EmitOptions& json_error_flags(EmitOptionFlags_e d) noexcept { m_option_flags = (EmitOptionFlags_e)(d & _JSON_ERR_MASK); return *this; }
@@ -133,7 +139,7 @@ public:
 
     /** Construct the emitter and its internal Writer state.
      *
-     * @param opts EmitOptions
+     * @param opts @ref EmitOptions
      * @param args arguments to be forwarded to the constructor of the writer.
      */
     template<class ...Args>
@@ -511,10 +517,10 @@ inline OStream& operator<< (OStream& s, ConstNodeRef const& n)
 struct as_json
 {
     Tree const* tree;
-    size_t node;
+    id_type node;
     EmitOptions options;
     as_json(Tree const& t, EmitOptions const& opts={}) : tree(&t), node(t.empty() ? NONE : t.root_id()), options(opts)  {}
-    as_json(Tree const& t, size_t id, EmitOptions const& opts={}) : tree(&t), node(id), options(opts)  {}
+    as_json(Tree const& t, id_type id, EmitOptions const& opts={}) : tree(&t), node(id), options(opts)  {}
     as_json(ConstNodeRef const& n, EmitOptions const& opts={}) : tree(n.tree()), node(n.id()), options(opts) {}
 };
 
@@ -532,10 +538,10 @@ struct as_json
 struct as_yaml
 {
     Tree const* tree;
-    size_t node;
+    id_type node;
     EmitOptions options;
     as_yaml(Tree const& t, EmitOptions const& opts={}) : tree(&t), node(t.empty() ? NONE : t.root_id()), options(opts)  {}
-    as_yaml(Tree const& t, size_t id, EmitOptions const& opts={}) : tree(&t), node(id), options(opts)  {}
+    as_yaml(Tree const& t, id_type id, EmitOptions const& opts={}) : tree(&t), node(id), options(opts)  {}
     as_yaml(ConstNodeRef const& n, EmitOptions const& opts={}) : tree(n.tree()), node(n.id()), options(opts) {}
 };
 
@@ -543,10 +549,10 @@ struct as_yaml
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_json const& j)
 {
-    if(!j.tree || j.node == NONE)
+    if(!j.tree || j.tree->empty())
         return s;
     EmitterOStream<OStream> em(j.options, s);
-    em.emit_as(EMIT_JSON, *j.tree, j.node, true);
+    em.emit_as(EMIT_JSON, *j.tree, j.node != NONE ? j.node : j.tree->root_id(), true);
     return s;
 }
 
@@ -554,10 +560,10 @@ inline OStream& operator<< (OStream& s, as_json const& j)
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_yaml const& y)
 {
-    if(!y.tree || y.node == NONE)
+    if(!y.tree || y.tree->empty())
         return s;
     EmitterOStream<OStream> em(y.options, s);
-    em.emit_as(EMIT_YAML, *y.tree, y.node, true);
+    em.emit_as(EMIT_YAML, *y.tree, y.node != NONE ? y.node : y.tree->root_id(), true);
     return s;
 }
 

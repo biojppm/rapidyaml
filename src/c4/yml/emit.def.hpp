@@ -682,7 +682,7 @@ void Emitter<Writer>::_visit_flow_ml_map(id_type node)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
     _write('{');
     _pend_newl();
-    ++m_ilevel;
+    if(m_opts.indent_flow_ml()) ++m_ilevel;
     for(id_type child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         const NodeType ty = m_tree->type(child);
@@ -705,7 +705,7 @@ void Emitter<Writer>::_visit_flow_ml_map(id_type node)
         _flow_map_close_entry(child);
         _flow_ml_write_comma(child, last);
     }
-    --m_ilevel;
+    if(m_opts.indent_flow_ml()) --m_ilevel;
     _write_pws_and_pend(_PWS_NONE);
     _write('}');
 }
@@ -719,7 +719,7 @@ void Emitter<Writer>::_visit_flow_ml_seq(id_type node)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
     _write('[');
     _pend_newl();
-    ++m_ilevel;
+    if(m_opts.indent_flow_ml()) ++m_ilevel;
     for(id_type child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         const NodeType ty = m_tree->type(child);
@@ -742,7 +742,7 @@ void Emitter<Writer>::_visit_flow_ml_seq(id_type node)
         _flow_seq_close_entry(child);
         _flow_ml_write_comma(child, last);
     }
-    --m_ilevel;
+    if(m_opts.indent_flow_ml()) --m_ilevel;
     _write_pws_and_pend(_PWS_NONE);
     _write(']');
 }
@@ -1398,7 +1398,7 @@ void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
     if(m_tree->has_children(id))
     {
         ++depth;
-        ++m_ilevel;
+        if(m_opts.indent_flow_ml()) ++m_ilevel;
         const id_type first = m_tree->first_child(id);
         const id_type last = m_tree->last_child(id);
         for(id_type child = first; child != NONE; child = m_tree->next_sibling(child))
@@ -1413,7 +1413,7 @@ void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
             if(child != last)
                 _write(',');
         }
-        --m_ilevel;
+        if(m_opts.indent_flow_ml()) --m_ilevel;
         --depth;
         _newl();
         _indent(m_ilevel);
