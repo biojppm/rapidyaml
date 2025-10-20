@@ -63,6 +63,7 @@
           cmake --build build --parallel --target ryml-test-build --verbose
   - name:: "test $arch/c++$std/$buildtype"
     run: |
+      export CTEST_PARALLEL_LEVEL=`nproc`
       cmake --build build --target ryml-test-run
   =>: nil
 

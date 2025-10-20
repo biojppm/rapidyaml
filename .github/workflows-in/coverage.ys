@@ -58,6 +58,7 @@ jobs:
         cmake --build build/$BUILD_ID --verbose --target ryml-test-build --parallel
     - name: run
       run: |
+        export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build/$BUILD_ID --verbose --target ryml-coverage
     - name: upload artifacts
       uses: actions/upload-artifact@v4
@@ -69,20 +70,20 @@ jobs:
     - name: upload codecov
       run: |
         cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
-    # https://docs.coveralls.io/parallel-builds
-    - name: upload coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{secrets.COVERALLS_REPO_TOKEN}}
-        parallel: true
-        files: build/${{env.BUILD_ID}}/coverage3-final_filtered.lcov
+    ## https://docs.coveralls.io/parallel-builds
+    #- name: upload coveralls
+    #  uses: coverallsapp/github-action@v2
+    #  with:
+    #    github-token: ${{secrets.COVERALLS_REPO_TOKEN}}
+    #    parallel: true
+    #    files: build/${{env.BUILD_ID}}/coverage3-final_filtered.lcov
 
-  coveralls_finish:
-    needs: coverage
-    if: ${{always()}}
-    runs-on: ubuntu-24.04
-    steps:
-    - name: Coveralls Finished
-      uses: coverallsapp/github-action@v2
-      with:
-        parallel-finished: true
+  #coveralls_finish:
+  #  needs: coverage
+  #  if: ${{always()}}
+  #  runs-on: ubuntu-24.04
+  #  steps:
+  #  - name: Coveralls Finished
+  #    uses: coverallsapp/github-action@v2
+  #    with:
+  #      parallel-finished: true

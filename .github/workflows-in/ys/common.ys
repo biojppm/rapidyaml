@@ -18,7 +18,7 @@ defn workflow-setup(name=nil overrides={})::
       push:
         branches: [master]
       pull_request:
-        branches: [master]
+        branches: ['*']
   env:
     PROJ_PKG_NAME: rapidyaml-
     PROJ_PFX_TARGET: ryml-
@@ -294,6 +294,8 @@ defn run-manual-with-flags(cxx cc buildtype flags="")::
     cmake --build build/$buildtype --target ryml-test-build --parallel --verbose
 - name:: "run $buildtype ::: $flags"
   run:: |
+    source .github/setenv.sh
+    export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
     cmake --build build/$buildtype --target ryml-test-run
 
 
@@ -325,4 +327,6 @@ defn run-vs-manual-with-flags(gen arch buildtype shared flags="")::
     cmake --build build/$buildtype --target ryml-test-build --parallel --verbose
 - name:: "run $buildtype ::: $flags shared=$shared"
   run:: |
+    source .github/setenv.sh
+    export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
     cmake --build build/$buildtype --target ryml-test-run

@@ -11,7 +11,7 @@ defaults:
     - master
   pull_request:
     branches:
-    - master
+    - '*'
 env:
   PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
@@ -88,6 +88,8 @@ jobs:
         cmake --build build/Debug --target ryml-test-build --parallel --verbose
     - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1 shared=ON'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Debug --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -113,6 +115,8 @@ jobs:
         cmake --build build/Debug --target ryml-test-build --parallel --verbose
     - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1 shared=OFF'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Debug --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -138,6 +142,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: /MD /Os /DNDEBUG shared=OFF'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   vsrelease:
     if: always()
@@ -208,6 +214,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: /MD /O1 /Ob1 /DNDEBUG shared=OFF'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -233,6 +241,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: /MD /O2 /Ob2 /DNDEBUG shared=OFF'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -258,4 +268,6 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: /MD /O3 /Ob3 /DNDEBUG shared=OFF'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
