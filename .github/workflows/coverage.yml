@@ -105,18 +105,3 @@ jobs:
     - name: upload codecov
       run: |
         cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
-    - name: upload coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{secrets.COVERALLS_REPO_TOKEN}}
-        parallel: true
-        files: build/${{env.BUILD_ID}}/coverage3-final_filtered.lcov
-  coveralls_finish:
-    needs: coverage
-    if: ${{always()}}
-    runs-on: ubuntu-24.04
-    steps:
-    - name: Coveralls Finished
-      uses: coverallsapp/github-action@v2
-      with:
-        parallel-finished: true
