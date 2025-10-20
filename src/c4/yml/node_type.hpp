@@ -57,7 +57,7 @@ typedef enum : type_bits {
     // style flags:
     //
     FLOW_SL     = __(16), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
-    FLOW_ML     = __(17), ///< (NOT IMPLEMENTED, work in progress) mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
+    FLOW_ML     = __(17), ///< mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
     BLOCK       = __(18), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
     KEY_LITERAL = __(19), ///< mark key scalar as multiline, block literal |
     VAL_LITERAL = __(20), ///< mark val scalar as multiline, block literal |
