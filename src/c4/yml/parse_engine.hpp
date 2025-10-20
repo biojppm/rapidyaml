@@ -577,6 +577,8 @@ private:
 
     void  _handle_flow_skip_whitespace();
 
+    void  _end_map_flow();
+    void  _end_seq_flow();
     void  _end_map_blck();
     void  _end_seq_blck();
     void  _end2_map();

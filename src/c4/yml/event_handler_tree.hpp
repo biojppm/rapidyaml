@@ -258,10 +258,21 @@ public:
         _push();
     }
 
-    void end_map()
+    void end_map_block()
     {
+        _c4dbgpf("node[{}]: end_map_block", m_parent->node_id, m_parent->pos.line, m_curr->pos.line);
         _pop();
-        _c4dbgpf("node[{}]: end_map_val", m_curr->node_id);
+    }
+
+    void end_map_flow(bool multiline)
+    {
+        _c4dbgpf("node[{}]: end_map. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
+        _pop();
+        if(multiline)
+        {
+            _disable_(FLOW_SL);
+            _enable_(FLOW_ML);
+        }
     }
 
     /** @} */
@@ -297,10 +308,21 @@ public:
         _push();
     }
 
-    void end_seq()
+    void end_seq_block()
     {
+        _c4dbgpf("node[{}]: end_seq_block", m_parent->node_id, m_parent->pos.line, m_curr->pos.line);
         _pop();
-        _c4dbgpf("node[{}]: end_seq_val", m_curr->node_id);
+    }
+
+    void end_seq_flow(bool multiline)
+    {
+        _c4dbgpf("node[{}]: end_seq. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
+        _pop();
+        if(multiline)
+        {
+            _disable_(FLOW_SL);
+            _enable_(FLOW_ML);
+        }
     }
 
     /** @} */
@@ -315,7 +337,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id), m_tree, m_parent->node_id);
-        NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
+        NodeData const* const prev = m_tree->m_buf; // watchout against relocation of the tree nodes
         _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
         if(prev != m_tree->m_buf)
             _refresh_after_relocation();

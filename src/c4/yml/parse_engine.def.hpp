@@ -1535,6 +1535,22 @@ void ParseEngine<EventHandler>::_save_indentation()
 //-----------------------------------------------------------------------------
 
 template<class EventHandler>
+void ParseEngine<EventHandler>::_end_map_flow()
+{
+    bool multiline = m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    _c4dbgpf("mapflow: end, multiline={}", multiline);
+    m_evt_handler->end_map_flow(multiline);
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_end_seq_flow()
+{
+    bool multiline = m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    _c4dbgpf("seqflow: end, multiline={}", multiline);
+    m_evt_handler->end_seq_flow(multiline);
+}
+
+template<class EventHandler>
 void ParseEngine<EventHandler>::_end_map_blck()
 {
     _c4dbgp("mapblck: end");
@@ -1552,7 +1568,7 @@ void ParseEngine<EventHandler>::_end_map_blck()
         _handle_annotations_before_blck_val_scalar();
         m_evt_handler->set_val_scalar_plain_empty();
     }
-    m_evt_handler->end_map();
+    m_evt_handler->end_map_block();
 }
 
 template<class EventHandler>
@@ -1564,7 +1580,7 @@ void ParseEngine<EventHandler>::_end_seq_blck()
         _handle_annotations_before_blck_val_scalar();
         m_evt_handler->set_val_scalar_plain_empty();
     }
-    m_evt_handler->end_seq();
+    m_evt_handler->end_seq_block();
 }
 
 template<class EventHandler>
@@ -4494,7 +4510,7 @@ seqjson_start:
         {
             _c4dbgp("seqjson[RVAL]: end!");
             rem_flags(RSEQ);
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             _line_progressed(1);
             if(!has_all(RSEQ|RFLOW))
                 goto seqjson_finish;
@@ -4536,7 +4552,7 @@ seqjson_start:
         case ']':
         {
             _c4dbgp("seqjson[RNXT]: end!");
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             _line_progressed(1);
             goto seqjson_finish;
         }
@@ -4608,7 +4624,7 @@ mapjson_start:
         case '}': // this happens on a trailing comma like ", }"
         {
             _c4dbgp("mapjson[RKEY]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapjson_finish;
         }
@@ -4710,7 +4726,7 @@ mapjson_start:
         else if(rem.begins_with('}'))
         {
             _c4dbgp("mapjson[RNXT]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapjson_finish;
         }
@@ -4776,7 +4792,7 @@ seqimap_start:
             sc = _scan_scalar_squot();
             csubstr maybe_filtered = _maybe_filter_val_scalar_squot(sc);
             m_evt_handler->set_val_scalar_squoted(maybe_filtered);
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '"')
@@ -4785,7 +4801,7 @@ seqimap_start:
             sc = _scan_scalar_dquot();
             csubstr maybe_filtered = _maybe_filter_val_scalar_dquot(sc);
             m_evt_handler->set_val_scalar_dquoted(maybe_filtered);
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         // block scalars (ie | and >) cannot appear in flow containers
@@ -4794,7 +4810,7 @@ seqimap_start:
             _c4dbgp("seqimap[RVAL]: it's a scalar.");
             csubstr maybe_filtered = _maybe_filter_val_scalar_plain(sc, m_evt_handler->m_curr->indref);
             m_evt_handler->set_val_scalar_plain(maybe_filtered);
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '[')
@@ -4821,7 +4837,7 @@ seqimap_start:
         {
             _c4dbgp("seqimap[RVAL]: finish without val.");
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '&')
@@ -4855,7 +4871,7 @@ seqimap_start:
             // we may get here because a map or a seq started and we
             // return later
             _c4dbgp("seqimap: done");
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else
@@ -4924,7 +4940,7 @@ seqimap_start:
             _c4dbgp("seqimap[QMRK]: finish without key.");
             m_evt_handler->set_key_scalar_plain_empty();
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '&')
@@ -4964,7 +4980,7 @@ seqimap_start:
         {
             _c4dbgp("seqimap[RKCL]: found ','. finish without val");
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else
@@ -5067,7 +5083,7 @@ seqflow_start:
         {
             _c4dbgp("seqflow[RVAL]: end!");
             _line_progressed(1);
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             goto seqflow_finish;
         }
         else if(first == '*')
@@ -5145,7 +5161,7 @@ seqflow_start:
         else if(first == ']')
         {
             _c4dbgp("seqflow[RNXT]: end!");
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             _line_progressed(1);
             goto seqflow_finish;
         }
@@ -5263,7 +5279,7 @@ mapflow_start:
         else if(first == '}') // this happens on a trailing comma like ", }"
         {
             _c4dbgp("mapflow[RKEY]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5337,7 +5353,7 @@ mapflow_start:
             _c4dbgp("mapflow[RKCL]: end with missing val!");
             addrem_flags(RVAL, RKCL);
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5411,7 +5427,7 @@ mapflow_start:
         {
             _c4dbgp("mapflow[RVAL]: end!");
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5464,7 +5480,7 @@ mapflow_start:
         else if(rem.begins_with('}'))
         {
             _c4dbgp("mapflow[RNXT]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5519,7 +5535,7 @@ mapflow_start:
             _c4dbgp("mapflow[QMRK]: end!");
             m_evt_handler->set_key_scalar_plain_empty();
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5786,7 +5802,7 @@ seqblck_start:
                 {
                     _c4dbgp("seqblck[RVAL]: empty val + end indentless seq + set key");
                     m_evt_handler->set_val_scalar_plain_empty();
-                    m_evt_handler->end_seq();
+                    m_evt_handler->end_seq_block();
                     m_evt_handler->add_sibling();
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref);  // KEY!
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
@@ -6018,7 +6034,7 @@ seqblck_start:
             if(C4_LIKELY(prev_state && (prev_state->flags & RMAP)))
             {
                 _c4dbgp("seqblck[RNXT]: actually this seq was '?' key of parent map");
-                m_evt_handler->end_seq();
+                m_evt_handler->end_seq_block();
                 goto seqblck_finish;
             }
             else
