@@ -137,7 +137,7 @@ public:
     }
     C4_ALWAYS_INLINE void insert(char c, id_type pos)
     {
-        RYML_ASSERT(pos <= m_size);
+        _RYML_ASSERT_BASIC(pos <= m_size);
         if(pos < m_size)
         {
             if(C4_UNLIKELY(m_size == m_capacity))
@@ -154,7 +154,7 @@ public:
     }
     C4_NO_INLINE void insert(csubstr cs, id_type pos)
     {
-        RYML_ASSERT(pos <= m_size);
+        _RYML_ASSERT_BASIC(pos <= m_size);
         if(cs.len)
         {
             if(pos < m_size)
@@ -175,7 +175,7 @@ public:
     }
     C4_NO_INLINE size_t find_last(csubstr pattern) RYML_NOEXCEPT
     {
-        RYML_ASSERT(pattern.len);
+        _RYML_ASSERT_BASIC(pattern.len);
         if(m_size >= pattern.len)
         {
             for(size_t i = m_size - pattern.len; i != (size_t)-1; --i)
@@ -203,14 +203,14 @@ public:
 
     void _free()
     {
-        RYML_ASSERT(m_str != nullptr); // this structure cannot be memset() to zero
+        _RYML_ASSERT_BASIC(m_str != nullptr); // this structure cannot be memset() to zero
         if(m_str != m_buf)
         {
             _RYML_CB_FREE(get_callbacks(), m_str, char, (size_t)m_capacity);
             m_str = m_buf;
             m_capacity = sso_size;
         }
-        RYML_ASSERT(m_capacity == sso_size);
+        _RYML_ASSERT_BASIC(m_capacity == sso_size);
         m_size = 0;
     }
 
@@ -219,13 +219,13 @@ public:
         #if RYML_USE_ASSERT
         if(that->m_str != that->m_buf)
         {
-            RYML_ASSERT(that->m_capacity > sso_size);
-            RYML_ASSERT(that->m_size <= that->m_capacity);
+            _RYML_ASSERT_BASIC(that->m_capacity > sso_size);
+            _RYML_ASSERT_BASIC(that->m_size <= that->m_capacity);
         }
         else
         {
-            RYML_ASSERT(that->m_capacity <= sso_size);
-            RYML_ASSERT(that->m_size <= that->m_capacity);
+            _RYML_ASSERT_BASIC(that->m_capacity <= sso_size);
+            _RYML_ASSERT_BASIC(that->m_size <= that->m_capacity);
         }
         #endif
         memcpy(m_str, that->m_str, that->m_size);
@@ -237,21 +237,21 @@ public:
     {
         if(that->m_str != that->m_buf)
         {
-            RYML_ASSERT(that->m_capacity > sso_size);
-            RYML_ASSERT(that->m_size <= that->m_capacity);
+            _RYML_ASSERT_BASIC(that->m_capacity > sso_size);
+            _RYML_ASSERT_BASIC(that->m_size <= that->m_capacity);
             m_str = that->m_str;
         }
         else
         {
-            RYML_ASSERT(that->m_capacity <= sso_size);
-            RYML_ASSERT(that->m_size <= that->m_capacity);
+            _RYML_ASSERT_BASIC(that->m_capacity <= sso_size);
+            _RYML_ASSERT_BASIC(that->m_size <= that->m_capacity);
             memcpy(m_buf, that->m_buf, that->m_size);
             m_str = m_buf;
         }
         m_size = that->m_size;
         m_capacity = that->m_capacity;
         // make sure no deallocation happens on destruction
-        RYML_ASSERT(that->m_str != this->m_buf);
+        _RYML_ASSERT_BASIC(that->m_str != this->m_buf);
         that->m_str = that->m_buf;
         that->m_capacity = sso_size;
         that->m_size = 0;
@@ -328,7 +328,7 @@ public:
 
     void _free()
     {
-        RYML_ASSERT(m_arr != nullptr); // this structure cannot be memset() to zero
+        _RYML_ASSERT_BASIC(m_arr != nullptr); // this structure cannot be memset() to zero
         for(id_type i = 0; i < m_size; ++i)
             m_arr[i].~string();
         if(m_arr != m_buf)
@@ -337,7 +337,7 @@ public:
             m_arr = m_buf;
             m_capacity = sso_size;
         }
-        RYML_ASSERT(m_capacity == sso_size);
+        _RYML_ASSERT_BASIC(m_capacity == sso_size);
         m_size = 0;
     }
 
@@ -391,7 +391,7 @@ public:
 
     string& emplace_back()
     {
-        RYML_ASSERT(m_size < m_capacity);
+        _RYML_ASSERT_BASIC(m_size < m_capacity);
         if(m_size == m_capacity)
             reserve(m_size + 1);
         string& ret = m_arr[m_size++];
@@ -400,14 +400,14 @@ public:
     }
     string& operator[] (id_type i)
     {
-        RYML_ASSERT(m_size <= m_capacity);
-        RYML_ASSERT(i < m_size);
+        _RYML_ASSERT_BASIC(m_size <= m_capacity);
+        _RYML_ASSERT_BASIC(i < m_size);
         return m_arr[i];
     }
     string const& operator[] (id_type i) const
     {
-        RYML_ASSERT(m_size <= m_capacity);
-        RYML_ASSERT(i < m_size);
+        _RYML_ASSERT_BASIC(m_size <= m_capacity);
+        _RYML_ASSERT_BASIC(i < m_size);
         return m_arr[i];
     }
 };
