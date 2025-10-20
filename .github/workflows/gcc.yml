@@ -11,7 +11,7 @@ defaults:
     - master
   pull_request:
     branches:
-    - master
+    - '*'
 env:
   PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
@@ -503,7 +503,10 @@ jobs:
     - name: build (issue \#${{matrix.issue}})
       run: cmake --build build --target ryml-test-build --parallel --verbose
     - name: run (issue \#${{matrix.issue}})
-      run: cmake --build build --target ryml-test-run
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build --target ryml-test-run
   vg1:
     if: always()
     continue-on-error: false
@@ -639,6 +642,8 @@ jobs:
         cmake --build build/Debug --target ryml-test-build --parallel --verbose
     - name: 'run Debug ::: -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Debug --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -665,6 +670,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -691,6 +698,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   vg2:
     if: always()
@@ -827,6 +836,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -853,6 +864,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   extended:
     if: always()
@@ -1059,6 +1072,8 @@ jobs:
         cmake --build build/Debug --target ryml-test-build --parallel --verbose
     - name: 'run Debug ::: -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Debug --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -1085,6 +1100,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -1111,6 +1128,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -1137,6 +1156,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
@@ -1163,6 +1184,8 @@ jobs:
         cmake --build build/Release --target ryml-test-build --parallel --verbose
     - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
       run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   gccsan:
     if: always()

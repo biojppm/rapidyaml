@@ -80,7 +80,10 @@ jobs:
     - name: build (issue \#${{matrix.issue}})
       run: cmake --build build --target ryml-test-build --parallel --verbose
     - name: run (issue \#${{matrix.issue}})
-      run: cmake --build build --target ryml-test-run
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build --target ryml-test-run
 
   #----------------------------------------------------------------------------
   # with valgrind: only latest gcc

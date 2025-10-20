@@ -58,6 +58,7 @@ jobs:
         cmake --build build/$BUILD_ID --verbose --target ryml-test-build --parallel
     - name: run
       run: |
+        export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build/$BUILD_ID --verbose --target ryml-coverage
     - name: upload artifacts
       uses: actions/upload-artifact@v4
