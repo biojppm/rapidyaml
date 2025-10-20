@@ -38,10 +38,6 @@ using EmitterOStream = Emitter<WriterOStream<OStream>>;
 using EmitterFile = Emitter<WriterFile>;
 using EmitterBuf  = Emitter<WriterBuf>;
 
-namespace detail {
-inline bool is_set_(ConstNodeRef n) { return n.tree() && (n.id() != NONE); }
-}
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -50,7 +46,7 @@ inline bool is_set_(ConstNodeRef n) { return n.tree() && (n.id() != NONE); }
 /** Specifies the type of content to emit */
 typedef enum {
     EMIT_YAML = 0, ///< emit YAML
-    EMIT_JSON = 1  ///< emit JSON
+    EMIT_JSON = 1, ///< emit JSON
 } EmitType_e;
 
 
@@ -62,10 +58,13 @@ typedef enum {
 struct EmitOptions
 {
     typedef enum : uint32_t {
-        DEFAULT_FLAGS = 0u,
-        JSON_ERR_ON_TAG = 1u << 0u,
-        JSON_ERR_ON_ANCHOR = 1u << 1u,
+        EMIT_NONROOT_KEY = 1u << 0u,
+        EMIT_NONROOT_DASH = 1u << 1u,
+        EMIT_NONROOT_MARKUP = EMIT_NONROOT_KEY|EMIT_NONROOT_DASH,
+        JSON_ERR_ON_TAG = 1u << 1u,
+        JSON_ERR_ON_ANCHOR = 1u << 2u,
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
+        DEFAULT_FLAGS = EMIT_NONROOT_KEY,
     } EmitOptionFlags_e;
 
 public:
@@ -73,8 +72,16 @@ public:
     /** @name option flags
      *
      * @{ */
-    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return m_option_flags; }
+
+    C4_ALWAYS_INLINE bool emit_nonroot_key() const noexcept { return (m_option_flags & EMIT_NONROOT_KEY) != 0; }
+    EmitOptions& emit_nonroot_key(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | EMIT_NONROOT_KEY) : (m_option_flags & ~EMIT_NONROOT_KEY)); return *this; }
+
+    C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_option_flags & EMIT_NONROOT_DASH) != 0; }
+    EmitOptions& emit_nonroot_dash(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | EMIT_NONROOT_DASH) : (m_option_flags & ~EMIT_NONROOT_DASH)); return *this; }
+
+    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return (EmitOptionFlags_e)(m_option_flags & _JSON_ERR_MASK); }
     EmitOptions& json_error_flags(EmitOptionFlags_e d) noexcept { m_option_flags = (EmitOptionFlags_e)(d & _JSON_ERR_MASK); return *this; }
+
     /** @} */
 
 public:
@@ -120,17 +127,19 @@ public:
 
     /** Construct the emitter and its internal Writer state, using default emit options.
      * @param args arguments to be forwarded to the constructor of the writer.
-     * */
+     */
     template<class ...Args>
-    Emitter(Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(), m_flow(false) {}
+    Emitter(Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts() {}
 
     /** Construct the emitter and its internal Writer state.
      *
      * @param opts EmitOptions
      * @param args arguments to be forwarded to the constructor of the writer.
-     * */
+     */
     template<class ...Args>
-    Emitter(EmitOptions const& opts, Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(opts), m_flow(false) {}
+    Emitter(EmitOptions const& opts, Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(opts) {}
+
+public:
 
     /** emit!
      *
@@ -160,9 +169,8 @@ public:
     /** emit starting at the given node */
     substr emit_as(EmitType_e type, ConstNodeRef const& n, bool error_on_excess=true)
     {
-        if(!detail::is_set_(n))
+        if(!n.readable())
             return {};
-        _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
         return this->emit_as(type, *n.tree(), n.id(), error_on_excess);
     }
 
@@ -170,6 +178,8 @@ public:
 
     /** get the emit options for this object */
     EmitOptions const& options() const noexcept { return m_opts; }
+    /** set the emit options for this object */
+    void options(EmitOptions opts) noexcept { m_opts = opts; }
 
     /** set the max depth for emitted trees (to prevent a stack overflow) */
     void max_depth(id_type max_depth) noexcept { m_opts.max_depth(max_depth); }
@@ -178,25 +188,67 @@ public:
 
 private:
 
+    /** @cond dev */
+
+    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e; ///< pending whitespace
+
+private:
+
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
-    bool m_flow;
+    size_t m_col;
+    id_type m_depth;
+    id_type m_ilevel;
+    Pws_e m_pws;
 
 private:
 
     void _emit_yaml(id_type id);
-    void _do_visit_flow_sl(id_type id, id_type depth, id_type ilevel=0);
-    void _do_visit_flow_ml(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block_container(id_type id, id_type depth, id_type next_level, bool do_indent);
-    void _do_visit_json(id_type id, id_type depth);
+
+    void _visit_stream(id_type id);
+    void _visit_doc(id_type id);
+    void _visit_doc_val(id_type id);
+    void _visit_blck_container(id_type id);
+    void _visit_flow_container(id_type id);
+
+    void _visit_flow_sl(id_type id);
+    void _visit_flow_sl_seq(id_type id);
+    void _visit_flow_sl_map(id_type id);
+
+    void _visit_flow_ml(id_type id);
+    void _visit_flow_ml_seq(id_type id);
+    void _visit_flow_ml_map(id_type id);
+
+    void _visit_blck(id_type id);
+    void _visit_blck_seq(id_type id);
+    void _visit_blck_map(id_type id);
+
+    void _blck_seq_open_entry(id_type id);
+    void _blck_seq_close_entry(id_type id);
+    void _blck_map_open_entry(id_type id);
+    void _blck_map_close_entry(id_type id);
+    void _top_open_entry(id_type id);
+    void _top_close_entry(id_type id);
+    void _blck_write_scalar_key(id_type id);
+    void _blck_write_scalar_val(id_type id);
+
+    void _flow_seq_open_entry(id_type id);
+    void _flow_seq_close_entry(id_type id);
+    void _flow_map_open_entry(id_type id);
+    void _flow_map_close_entry(id_type id);
+    void _flow_write_scalar_key(id_type id);
+    void _flow_write_scalar_val(id_type id);
+
+    void _flow_sl_write_comma(id_type id, id_type first_sibling);
+    void _flow_ml_write_comma(id_type id, id_type first_sibling);
 
 private:
 
-    void _write(NodeScalar const& C4_RESTRICT sc, NodeType flags, id_type level);
+    void _emit_json(id_type id);
+    void _visit_json_ml(id_type id, id_type depth);
+    void _visit_json_sl(id_type id, id_type depth);
     void _write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags);
 
-    void _write_doc(id_type id);
     void _write_scalar_json_dquo(csubstr s);
     void _write_scalar_literal(csubstr s, id_type level, bool as_key);
     void _write_scalar_folded(csubstr s, id_type level, bool as_key);
@@ -210,8 +262,17 @@ private:
     void _write_tag(csubstr tag)
     {
         if(!tag.begins_with('!'))
-            this->Writer::_do_write('!');
-        this->Writer::_do_write(tag);
+            _write('!');
+        _write(tag);
+    }
+    void _write_ref(csubstr ref)
+    {
+        if(ref != "<<")
+        {
+            if(!ref.begins_with('*'))
+                _write('*');
+            _write(ref);
+        }
     }
 
     enum : type_bits {
@@ -221,22 +282,80 @@ private:
         _valsc_json = ~(KEY)  |  (VAL),
     };
 
-    C4_ALWAYS_INLINE void _writek(id_type id, id_type level) { _write(m_tree->keysc(id), (m_tree->_p(id)->m_type.type & ~_valsc), level); }
-    C4_ALWAYS_INLINE void _writev(id_type id, id_type level) { _write(m_tree->valsc(id), (m_tree->_p(id)->m_type.type & ~_keysc), level); }
-
     C4_ALWAYS_INLINE void _writek_json(id_type id) { _write_json(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~(VAL)); }
     C4_ALWAYS_INLINE void _writev_json(id_type id) { _write_json(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~(KEY)); }
 
     void _indent(id_type level, bool enabled)
     {
         if(enabled)
-            this->Writer::_do_write(' ', 2u * (size_t)level);
+            _write(' ', 2u * (size_t)level);
     }
     void _indent(id_type level)
     {
-        if(!m_flow)
-            this->Writer::_do_write(' ', 2u * (size_t)level);
+        _write(' ', 2u * (size_t)level);
     }
+
+    /// write a newline and reset the column
+    C4_ALWAYS_INLINE void _newl()
+    {
+        m_col = 0;
+        this->Writer::_do_write('\n');
+    }
+    template<size_t N>
+    C4_ALWAYS_INLINE void _write(const char (&a)[N])
+    {
+        m_col += N-1;
+        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
+    }
+    C4_ALWAYS_INLINE void _write(csubstr s)
+    {
+        m_col += s.len;
+        this->Writer::_do_write(s);
+    }
+    C4_ALWAYS_INLINE void _write(char c)
+    {
+        ++m_col;
+        this->Writer::_do_write(c);
+    }
+    C4_ALWAYS_INLINE void _write(char c, size_t num)
+    {
+        m_col += num;
+        this->Writer::_do_write(c, num);
+    }
+
+private:
+
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_none() noexcept
+    {
+        m_pws = _PWS_NONE;
+    }
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_newl() noexcept
+    {
+        m_pws = _PWS_NEWL;
+    }
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_space() noexcept
+    {
+        m_pws = _PWS_SPACE;
+    }
+    /// write pending whitespace, and then set the next pending whitespace
+    C4_ALWAYS_INLINE void _write_pws_and_pend(Pws_e next=_PWS_NONE) noexcept
+    {
+        if(m_pws == _PWS_SPACE)
+        {
+            _write(' ');
+        }
+        else if(m_pws == _PWS_NEWL)
+        {
+            _newl();
+            _indent(m_ilevel);
+        }
+        m_pws = next;
+    }
+
+    /** @endcond */
 };
 
 
@@ -316,7 +435,7 @@ inline size_t emit_json(Tree const& t, FILE *f=nullptr)
  * Return the number of bytes written. */
 inline size_t emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterFile em(opts, f);
     return em.emit_as(EMIT_YAML, r, /*error_on_excess*/true).len;
@@ -324,7 +443,7 @@ inline size_t emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=
 /** (2) like (1), but use default emit options */
 inline size_t emit_yaml(ConstNodeRef const& r, FILE *f=nullptr)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterFile em(f);
     return em.emit_as(EMIT_YAML, r, /*error_on_excess*/true).len;
@@ -333,7 +452,7 @@ inline size_t emit_yaml(ConstNodeRef const& r, FILE *f=nullptr)
  * Return the number of bytes written. */
 inline size_t emit_json(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterFile em(opts, f);
     return em.emit_as(EMIT_JSON, r, /*error_on_excess*/true).len;
@@ -341,7 +460,7 @@ inline size_t emit_json(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=
 /** (2) like (1), but use default emit options */
 inline size_t emit_json(ConstNodeRef const& r, FILE *f=nullptr)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterFile em(f);
     return em.emit_as(EMIT_JSON, r, /*error_on_excess*/true).len;
@@ -371,7 +490,7 @@ inline OStream& operator<< (OStream& s, Tree const& t)
 template<class OStream>
 inline OStream& operator<< (OStream& s, ConstNodeRef const& n)
 {
-    if(!detail::is_set_(n))
+    if(!n.readable())
         return s;
     EmitterOStream<OStream> em(s);
     em.emit_as(EMIT_YAML, n);
@@ -550,7 +669,7 @@ inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
  * result will be set to null, and the length will report the required buffer size. */
 inline substr emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_YAML, r, error_on_excess);
@@ -558,7 +677,7 @@ inline substr emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, substr b
 /** (2) like (1), but use default emit options */
 inline substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterBuf em(buf);
     return em.emit_as(EMIT_YAML, r, error_on_excess);
@@ -573,7 +692,7 @@ inline substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess=
  * result will be set to null, and the length will report the required buffer size. */
 inline substr emit_json(ConstNodeRef const& r, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_JSON, r, error_on_excess);
@@ -581,7 +700,7 @@ inline substr emit_json(ConstNodeRef const& r, EmitOptions const& opts, substr b
 /** (2) like (1), but use default emit options */
 inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
 {
-    if(!detail::is_set_(r))
+    if(!r.readable())
         return {};
     EmitterBuf em(buf);
     return em.emit_as(EMIT_JSON, r, error_on_excess);
@@ -749,18 +868,16 @@ CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={})
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    if(!detail::is_set_(n))
+    if(!n.readable())
         return {};
-    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_yaml(*n.tree(), n.id(), opts, cont, append);
 }
 /** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool append=false)
 {
-    if(!detail::is_set_(n))
+    if(!n.readable())
         return {};
-    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_yaml(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
 /** (1) emit+resize: JSON to the given `std::string`/`std::vector`-like container,
@@ -769,18 +886,16 @@ substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    if(!detail::is_set_(n))
+    if(!n.readable())
         return {};
-    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_json(*n.tree(), n.id(), opts, cont, append);
 }
 /** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont, bool append=false)
 {
-    if(!detail::is_set_(n))
+    if(!n.readable())
         return {};
-    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     return emitrs_json(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
 
@@ -789,9 +904,8 @@ substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 template<class CharOwningContainer>
 CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={})
 {
-    if(!detail::is_set_(n))
+    if(!n.readable())
         return {};
-    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     CharOwningContainer c;
     emitrs_yaml(*n.tree(), n.id(), opts, &c);
     return c;
@@ -800,9 +914,8 @@ CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={
 template<class CharOwningContainer>
 CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={})
 {
-    if(!detail::is_set_(n))
+    if(!n.readable())
         return {};
-    _RYML_CHECK_VISIT_(n.tree()->callbacks(), n.readable(), n.tree(), n.id());
     CharOwningContainer c;
     emitrs_json(*n.tree(), n.id(), opts, &c);
     return c;
