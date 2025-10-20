@@ -33,6 +33,12 @@
                                 # there is no longer any risk of it being deallocated
   ```
   - improve behavior of `Tree` methods accepting scalars: all standard buffer types are now accepted (ie, `str`, `bytes`, `bytearray` and `memoryview`).
+- [PR#550](https://github.com/biojppm/rapidyaml/pull/550) - Implement FLOW_ML style (flow multiline).
+  - The parser now sets this style automatically for flow seqs or maps when the terminating bracket sits on a line different from the opening bracket.
+  - Added `ParserOptions::detect_flow_ml()` to control this behavior
+  - Added `EmitOptions::indent_flow_ml()` to control indentation of FLOW_ML containers
+  - The emit implementation logic was refactored, and is now significantly cleaner
+  - Added `ParserOptions` defaulted argument to temp-parser overloads of `parse_{yaml,json}_in_{place,arena}()`
 - [PR#503](https://github.com/biojppm/rapidyaml/pull/503) (fixes [#399](https://github.com/biojppm/rapidyaml/issues/399)): change error callbacks.
   - Errors in ryml now have one of these types:
     - parse error: when parsing YAML/JSON. See: `pfn_error_parse`,  `ErrorDataParse`, `ExceptionParse`, `err_parse_format()`, `sample_error_parse`.

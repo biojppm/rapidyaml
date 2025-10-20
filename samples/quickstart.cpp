@@ -133,6 +133,8 @@ void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 void sample_emit_to_file();         ///< emit to a FILE*
 void sample_emit_nested_node();     ///< pick a nested node as the root when emitting
 void sample_style();                ///< query/set node styles
+void sample_style_flow_ml_indent(); ///< control indentation of FLOW_ML containers
+void sample_style_flow_ml_filter(); ///< set the parser to pick FLOW_SL even if the container is multiline
 void sample_json();                 ///< JSON parsing and emitting
 void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
 void sample_anchors_and_aliases_create(); ///< how to create YAML anchors and aliases
@@ -176,6 +178,8 @@ int main()
     sample_emit_to_file();
     sample_emit_nested_node();
     sample_style();
+    sample_style_flow_ml_indent();
+    sample_style_flow_ml_filter();
     sample_json();
     sample_anchors_and_aliases();
     sample_tags();
@@ -4297,169 +4301,407 @@ void sample_emit_nested_node()
 
 //-----------------------------------------------------------------------------
 
-/** [experimental] how to query/set/modify node style. */
+/** [experimental] query/set/modify node style to control
+ * formatting of emitted YAML code. */
 void sample_style()
 {
-    ryml::Tree tree = ryml::parse_in_arena(R"(
-block map:
+    // we will be using these helpers throughout this function
+    auto tostr = [](ryml::ConstNodeRef n) { return ryml::emitrs_yaml<std::string>(n); };
+    // let's parse this:
+    ryml::csubstr yaml = R"(block map:
   block key: block val
 block seq:
   - block val 1
   - block val 2
   - 'quoted'
-flow map: {flow key: flow val}
-flow seq: [flow val, flow val]
-)");
+flow map, singleline: {flow key: flow val}
+flow seq, singleline: [flow val,flow val]
+flow map, multiline: {
+    flow key: flow val
+  }
+flow seq, multiline: [
+    flow val,
+    flow val
+  ]
+)";
+    ryml::Tree tree = ryml::parse_in_arena(yaml);
     // while parsing, ryml marks parsed nodes with their original style:
     CHECK(tree.rootref().is_block());
-    CHECK(tree["block map"].key_style() & ryml::KEY_PLAIN);
-    CHECK(tree["block seq"].key_style() & ryml::KEY_PLAIN);
-    CHECK(tree["flow map"].key_style() & ryml::KEY_PLAIN);
-    CHECK(tree["flow seq"].key_style() & ryml::KEY_PLAIN);
+    CHECK(tree["block map"].is_key_plain());
+    CHECK(tree["block seq"].is_key_plain());
+    CHECK(tree["flow map, singleline"].is_key_plain());
+    CHECK(tree["flow seq, singleline"].is_key_plain());
+    CHECK(tree["flow map, multiline"].is_key_plain());
+    CHECK(tree["flow seq, multiline"].is_key_plain());
     CHECK(tree["block map"].is_block());
     CHECK(tree["block seq"].is_block());
-    CHECK(tree["flow map"].is_flow());
-    CHECK(tree["flow seq"].is_flow());
-    // which means that if you emit a tree, its style will be
-    // preserved:
-    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-R"(block map:
-  block key: block val
-block seq:
-  - block val 1
-  - block val 2
-  - 'quoted'
-flow map: {flow key: flow val}
-flow seq: [flow val,flow val]
-)");
-    // you can set the style programatically:
-    tree["block map"].set_container_style(ryml::FLOW_SL); // container style: to flow
-    tree["block seq"].set_container_style(ryml::FLOW_SL);
-    tree["flow map"].set_container_style(ryml::BLOCK);    // container style: to block
-    tree["flow seq"].set_container_style(ryml::BLOCK);
-    tree["block map"].set_key_style(ryml::KEY_SQUO);      // scalar style: to single-quoted scalar
-    tree["block seq"].set_key_style(ryml::KEY_DQUO);      // scalar style: to double-quoted scalar
-    tree["flow map"].set_key_style(ryml::KEY_LITERAL);    // scalar style: to literal scalar
-    tree["flow seq"].set_key_style(ryml::KEY_FOLDED);     // scalar style: to folded scalar
-    tree["block seq"][2].set_val_style(ryml::VAL_PLAIN);  // scalar style: to plain
-    tree["flow seq"][0].set_val_style(ryml::VAL_SQUO);
-    tree["flow seq"][1].set_val_style(ryml::VAL_DQUO);
-    // note the difference now:
-    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-R"('block map': {block key: block val}
-"block seq": [block val 1,block val 2,quoted]
-? |-
-  flow map
-:
-  flow key: flow val
+    // flow is either singleline (FLOW_SL) or multiline (FLOW_ML)
+    CHECK(tree["flow map, singleline"].is_flow_sl());
+    CHECK(tree["flow seq, singleline"].is_flow_sl());
+    CHECK(tree["flow map, multiline"].is_flow_ml());
+    CHECK(tree["flow seq, multiline"].is_flow_ml());
+    // is_flow() is equivalent to (is_flow_sl() || is_flow_ml())
+    CHECK(tree["flow map, singleline"].is_flow());
+    CHECK(tree["flow seq, singleline"].is_flow());
+    CHECK(tree["flow map, multiline"].is_flow());
+    CHECK(tree["flow seq, multiline"].is_flow());
+    // since the tree nodes are marked with style during the parse,
+    // emission will preserve the original style (minus whitespace):
+    CHECK(tostr(tree) == yaml); // same as before!
+    //
+    // you can set/modify the style programatically!
+    // here are more examples.
+    //
+    {
+        ryml::NodeRef n = tree["block map"]; // Let's look at one node
+        // It looks like this originally:
+        CHECK(tostr(n) == "block map:\n  block key: block val\n");
+        // let's modify its style:
+        n.set_key_style(ryml::KEY_SQUO);      // scalar style: to single-quoted scalar
+        n.set_container_style(ryml::FLOW_SL); // container style: to flow singleline
+        // now it looks like this:
+        CHECK(tostr(n) == "'block map': {block key: block val}\n");
+    }
+    // next example
+    {
+        ryml::NodeRef n = tree["block seq"];
+        CHECK(tostr(n) == "block seq:\n  - block val 1\n  - block val 2\n  - 'quoted'\n");
+        n.set_key_style(ryml::KEY_DQUO);       // scalar style: to double-quoted scalar
+        n.set_container_style(ryml::FLOW_ML);  // container style: to flow multiline
+        n[2].set_val_style(ryml::VAL_PLAIN);   // scalar style: to plain
+        CHECK(tostr(n) == "\"block seq\": [\n    block val 1,\n    block val 2,\n    quoted\n  ]\n");
+    }
+    // next example
+    {
+        ryml::NodeRef n = tree["flow map, singleline"];
+        CHECK(tostr(n) == "flow map, singleline: {flow key: flow val}\n");
+        n.set_container_style(ryml::BLOCK);
+        n["flow key"].set_val_style(ryml::VAL_LITERAL);
+        CHECK(tostr(n) == "flow map, singleline:\n  flow key: |-\n    flow val\n");
+    }
+    // next example
+    {
+        ryml::NodeRef n = tree["flow map, multiline"];
+        CHECK(tostr(n) == "flow map, multiline: {\n    flow key: flow val\n  }\n");
+        n.set_container_style(ryml::BLOCK);
+        CHECK(tostr(n) == "flow map, multiline:\n  flow key: flow val\n");
+    }
+    // next example
+    {
+        ryml::NodeRef n = tree["flow seq, singleline"];
+        CHECK(tostr(n) == "flow seq, singleline: [flow val,flow val]\n");
+        n.set_key_style(ryml::KEY_FOLDED);
+        n.set_container_style(ryml::BLOCK);
+        n[0].set_val_style(ryml::VAL_SQUO);
+        n[1].set_val_style(ryml::VAL_DQUO);
+        CHECK(tostr(n) == "? >-\n  flow seq, singleline\n:\n  - 'flow val'\n  - \"flow val\"\n");
+    }
+    // next example
+    {
+        ryml::NodeRef n = tree["flow seq, multiline"];
+        CHECK(tostr(n) == "flow seq, multiline: [\n    flow val,\n    flow val\n  ]\n");
+        n.set_container_style(ryml::FLOW_SL);
+        CHECK(tostr(n) == "flow seq, multiline: [flow val,flow val]\n");
+    }
+    // note the full tree now:
+    CHECK(tostr(tree) != yaml);
+    CHECK(tostr(tree) ==
+          R"('block map': {block key: block val}
+"block seq": [
+    block val 1,
+    block val 2,
+    quoted
+  ]
+flow map, singleline:
+  flow key: |-
+    flow val
 ? >-
-  flow seq
+  flow seq, singleline
 :
   - 'flow val'
   - "flow val"
+flow map, multiline:
+  flow key: flow val
+flow seq, multiline: [flow val,flow val]
 )");
     // you can clear the style of single nodes:
     tree["block map"].clear_style();
-std::cout << tree;
-    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-R"(block map:
+    tree["block seq"].clear_style();
+    CHECK(tostr(tree) ==
+          R"(block map:
   block key: block val
-"block seq": [block val 1,block val 2,quoted]
-? |-
-  flow map
-:
-  flow key: flow val
+block seq:
+  - block val 1
+  - block val 2
+  - quoted
+flow map, singleline:
+  flow key: |-
+    flow val
 ? >-
-  flow seq
+  flow seq, singleline
 :
   - 'flow val'
   - "flow val"
+flow map, multiline:
+  flow key: flow val
+flow seq, multiline: [flow val,flow val]
 )");
     // you can clear the style recursively:
     tree.rootref().clear_style(/*recurse*/true);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-R"(block map:
+    // when emitting nodes which have no style set, ryml will default
+    // to block format for containers, and call
+    // ryml::scalar_style_choose() to pick the style for each
+    // scalar. Note that it picks single-quoted for the scalars
+    // containing commas:
+    CHECK(tostr(tree) ==
+          R"(block map:
   block key: block val
 block seq:
   - block val 1
   - block val 2
   - quoted
-flow map:
+'flow map, singleline':
   flow key: flow val
-flow seq:
+'flow seq, singleline':
+  - flow val
+  - flow val
+'flow map, multiline':
+  flow key: flow val
+'flow seq, multiline':
   - flow val
   - flow val
 )");
-    // you can also set the style based on type conditions:
-    {
-        // set a single key to single-quoted
-        tree["block map"].set_style_conditionally(ryml::KEY,
-                                                  /*remflags*/ryml::KEY_STYLE,
-                                                  /*addflags*/ryml::KEY_SQUO,
-                                                  /*recurse*/false);
-        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-R"('block map':
+    // you can set the style based on type conditions:
+    // set a single key to single-quoted
+    tree["block map"].set_style_conditionally(ryml::KEY,
+                                              /*remflags*/ryml::KEY_STYLE,
+                                              /*addflags*/ryml::KEY_SQUO,
+                                              /*recurse*/false);
+    CHECK(tostr(tree) ==
+          R"('block map':
   block key: block val
 block seq:
   - block val 1
   - block val 2
   - quoted
-flow map:
+'flow map, singleline':
   flow key: flow val
-flow seq:
+'flow seq, singleline':
+  - flow val
+  - flow val
+'flow map, multiline':
+  flow key: flow val
+'flow seq, multiline':
   - flow val
   - flow val
 )");
-        // change all keys to single-quoted:
-        tree.rootref().set_style_conditionally(/*type_mask*/ryml::KEY,
-                                               /*remflags*/ryml::KEY_STYLE,
-                                               /*addflags*/ryml::KEY_SQUO,
-                                               /*recurse*/true);
-        // change all vals to double-quoted
-        tree.rootref().set_style_conditionally(/*type_mask*/ryml::VAL,
-                                               /*remflags*/ryml::VAL_STYLE,
-                                               /*addflags*/ryml::VAL_DQUO,
-                                               /*recurse*/true);
-        // change all seqs to flow
-        tree.rootref().set_style_conditionally(/*type_mask*/ryml::SEQ,
-                                               /*remflags*/ryml::CONTAINER_STYLE,
-                                               /*addflags*/ryml::FLOW_SL,
-                                               /*recurse*/true);
-        // change all maps to flow
-        tree.rootref().set_style_conditionally(/*type_mask*/ryml::MAP,
-                                               /*remflags*/ryml::CONTAINER_STYLE,
-                                               /*addflags*/ryml::BLOCK,
-                                               /*recurse*/true);
-        // done!
-        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-R"('block map':
+    // change all keys to single-quoted:
+    tree.rootref().set_style_conditionally(/*type_mask*/ryml::KEY,
+                                           /*remflags*/ryml::KEY_STYLE,
+                                           /*addflags*/ryml::KEY_SQUO,
+                                           /*recurse*/true);
+    // change all vals to double-quoted
+    tree.rootref().set_style_conditionally(/*type_mask*/ryml::VAL,
+                                           /*remflags*/ryml::VAL_STYLE,
+                                           /*addflags*/ryml::VAL_DQUO,
+                                           /*recurse*/true);
+    // change all seqs to flow
+    tree.rootref().set_style_conditionally(/*type_mask*/ryml::SEQ,
+                                           /*remflags*/ryml::CONTAINER_STYLE,
+                                           /*addflags*/ryml::FLOW_SL,
+                                           /*recurse*/true);
+    // change all maps to flow
+    tree.rootref().set_style_conditionally(/*type_mask*/ryml::MAP,
+                                           /*remflags*/ryml::CONTAINER_STYLE,
+                                           /*addflags*/ryml::BLOCK,
+                                           /*recurse*/true);
+    // done!
+    CHECK(tostr(tree) ==
+          R"('block map':
   'block key': "block val"
 'block seq': ["block val 1","block val 2","quoted"]
-'flow map':
+'flow map, singleline':
   'flow key': "flow val"
-'flow seq': ["flow val","flow val"]
+'flow seq, singleline': ["flow val","flow val"]
+'flow map, multiline':
+  'flow key': "flow val"
+'flow seq, multiline': ["flow val","flow val"]
 )");
-        // you can also set a conditional style in a single node (or its branch if recurse is true):
-        tree["flow seq"].set_style_conditionally(/*type_mask*/ryml::SEQ,
-                                                 /*remflags*/ryml::CONTAINER_STYLE,
-                                                 /*addflags*/ryml::BLOCK,
-                                                 /*recurse*/false);
-        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-R"('block map':
+    // you can also set a conditional style in a single node (or its branch if recurse is true):
+    tree["flow seq, singleline"].set_style_conditionally(/*type_mask*/ryml::SEQ,
+                                                         /*remflags*/ryml::CONTAINER_STYLE,
+                                                         /*addflags*/ryml::BLOCK,
+                                                         /*recurse*/false);
+    CHECK(tostr(tree) ==
+          R"('block map':
   'block key': "block val"
 'block seq': ["block val 1","block val 2","quoted"]
-'flow map':
+'flow map, singleline':
   'flow key': "flow val"
-'flow seq':
+'flow seq, singleline':
   - "flow val"
   - "flow val"
+'flow map, multiline':
+  'flow key': "flow val"
+'flow seq, multiline': ["flow val","flow val"]
 )");
-    }
     // see also:
     //  - ryml::scalar_style_choose()
     //  - ryml::scalar_style_json_choose()
     //  - ryml::scalar_style_query_squo()
     //  - ryml::scalar_style_query_plain()
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** [experimental] control the indentation of emitted FLOW_ML containers */
+void sample_style_flow_ml_indent()
+{
+    // we will be using this helper throughout this function
+    auto tostr = [](ryml::ConstNodeRef n, ryml::EmitOptions opts) {
+std::cout << "~~~" << ryml::emitrs_yaml<std::string>(n, opts) << "~~~\n";
+        return ryml::emitrs_yaml<std::string>(n, opts);
+    };
+    ryml::csubstr yaml = "{map: {seq: [0, 1, 2, 3, [40, 41]]}}";
+    ryml::Tree tree = ryml::parse_in_arena(yaml);
+    ryml::EmitOptions defaults = {};
+    ryml::EmitOptions noindent = ryml::EmitOptions{}.indent_flow_ml(false);
+    CHECK(tostr(tree, defaults) == "{map: {seq: [0,1,2,3,[40,41]]}}");
+    // let's now set the style to FLOW_ML (it was FLOW_SL)
+    tree.rootref().set_container_style(ryml::FLOW_ML);
+    tree["map"].set_container_style(ryml::FLOW_ML);
+    tree["map"]["seq"].set_container_style(ryml::FLOW_ML);
+    tree["map"]["seq"][4].set_container_style(ryml::FLOW_ML);
+    // by default FLOW_ML prints one value per line, indented:
+    CHECK(tostr(tree, defaults) ==
+          R"({
+  map: {
+    seq: [
+      0,
+      1,
+      2,
+      3,
+      [
+        40,
+        41
+      ]
+    ]
+  }
+}
+)");
+    // if we use the noindent options, then each value is put at the
+    // beginning of the line
+    CHECK(tostr(tree, noindent) ==
+          R"({
+map: {
+seq: [
+0,
+1,
+2,
+3,
+[
+40,
+41
+]
+]
+}
+}
+)");
+    // Note that the noindent option will safely respect any prior
+    // indent level from enclosing block containers! For example:
+    tree.rootref().set_container_style(ryml::BLOCK);
+    CHECK(tostr(tree, noindent) == // notice it is indented at the map level
+          R"(map: {
+  seq: [
+  0,
+  1,
+  2,
+  3,
+  [
+  40,
+  41
+  ]
+  ]
+  }
+)");
+    // Let's set it one BLOCK level further:
+    tree["map"].set_container_style(ryml::BLOCK);
+    CHECK(tostr(tree, noindent) == // notice it is indented one more level
+          R"(map:
+  seq: [
+    0,
+    1,
+    2,
+    3,
+    [
+    40,
+    41
+    ]
+    ]
+)");
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** [experimental] set the parser to pick FLOW_SL even if the
+ * container being parsed is FLOW_ML */
+void sample_style_flow_ml_filter()
+{
+    ryml::csubstr yaml = R"({
+  map: {
+    seq: [
+      0,
+      1,
+      2,
+      3,
+      [
+        40,
+        41
+      ]
+    ]
+  }
+}
+)";
+    // note that the parser defaults to detect multiline flow
+    // (FLOW_ML) containers:
+    {
+        const ryml::Tree tree = ryml::parse_in_arena(yaml);
+        CHECK(tree["map"].is_flow_ml()); // etc
+        CHECK(ryml::emitrs_yaml<std::string>(tree) == yaml);
+    }
+    // if you prefer to shorten the emitted yaml, you can set the
+    // parser to use singleline flow (FLOW_SL):
+    {
+        const ryml::ParserOptions opts = ryml::ParserOptions{}.detect_flow_ml(false);
+        const ryml::Tree tree = ryml::parse_in_arena(yaml, opts);
+        CHECK(tree["map"].is_flow_sl()); // etc
+        // notice how this is smaller
+        CHECK(ryml::emitrs_yaml<std::string>(tree) == R"({map: {seq: [0,1,2,3,[40,41]]}})");
+    }
+    // you can also keep FLOW_ML, but control its indentation:
+    // (see more details in @ref sample_style_flow_ml_indent())
+    {
+        const ryml::EmitOptions noindent = ryml::EmitOptions{}.indent_flow_ml(false);
+        const ryml::Tree tree = ryml::parse_in_arena(yaml);
+        CHECK(tree["map"].is_flow_ml()); // etc
+        CHECK(ryml::emitrs_yaml<std::string>(tree, noindent) == R"({
+map: {
+seq: [
+0,
+1,
+2,
+3,
+[
+40,
+41
+]
+]
+}
+}
+)");
+    }
 }
 
 
