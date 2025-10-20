@@ -706,7 +706,7 @@ ADD_CASE_TO_GROUP("empty map, multiline",
 R"({
 }
 )",
-    MFS
+    MFM
 );
 
 ADD_CASE_TO_GROUP("empty map, multilines",
@@ -714,7 +714,7 @@ R"({
 # foo bar baz akjasdkj
 }
 )",
-    MFS
+    MFM
 );
 
 ADD_CASE_TO_GROUP("simple map, explicit, single line",
@@ -729,7 +729,7 @@ bar: 1,
 baz: 2,
 bat: 3
 })",
-N(MFS, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
+N(MFM, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, explicit, multiline, indented",
@@ -739,7 +739,7 @@ R"({
   baz: 2,
   bat: 3
 })",
-N(MFS, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
+N(MFM, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map",
@@ -1121,7 +1121,7 @@ c3 ,d3: val3, 0003
 e3 ,f3: val3 , 0003
 h3 ,i3: val3 ,0003
 })",
-N(MFS, L{ // this is crazy...
+N(MFM, L{ // this is crazy...
         N(KP|VN, "a0", {}),
         N(KP|VP, "b0", "val0"), N(KP|VN, "0000 c0", {}),
         N(KP|VP, "d0", "val0"), N(KP|VN, "0000 e0", {}),
@@ -1221,12 +1221,12 @@ must be ok   : {
     c2       : d,
 }
 })",
-N(MFS, L{
+N(MFM, L{
     N(KP|MFS, "oka", L{N(KP|VP, "a", "b")}),
     N(KP|VP, "is it ok", "let's see"),
     N(KP|MFS, "okb", L{N(KP|VP, "a", "b")}),
     N(KP|MFS, "ok", L{N(KP|VP, "a", "b")}),
-    N(KP|MFS, "must be ok", L{N(KP|VP, "c0", "d"), N(KP|VP, "c1", "d"), N(KP|VP, "c2", "d")}),
+    N(KP|MFM, "must be ok", L{N(KP|VP, "c0", "d"), N(KP|VP, "c1", "d"), N(KP|VP, "c2", "d")}),
 })
 );
 
@@ -1257,7 +1257,7 @@ R"({
 : a,
 : b,
 })",
-N(MFS, L{
+N(MFM, L{
     N(KN|VP, "", "a"),
     N(KN|VP, "", "b"),
 }));
@@ -1269,7 +1269,7 @@ R"({
 :
   b,
 })",
-N(MFS, L{
+N(MFM, L{
     N(KN|VP, "", "a"),
     N(KN|VP, "", "b"),
 }));
@@ -1281,7 +1281,7 @@ R"({-k
 :
   b,
 })",
-N(MFS, L{
+N(MFM, L{
     N(KP|VP, "-k", "a"),
     N(KP|VP, "-z", "b"),
 }));
@@ -1293,7 +1293,7 @@ R"({:k
 :
   b,
 })",
-N(MFS, L{
+N(MFM, L{
     N(KP|VP, ":k", "a"),
     N(KP|VP, ":z", "b"),
 }));
@@ -1304,7 +1304,7 @@ R"({foo
 baz
 : bat
 })",
-N(MFS, L{
+N(MFM, L{
     N(KP|VP, "foo", "bar"),
     N(KP|VP, "baz", "bat"),
 }));
@@ -1317,7 +1317,7 @@ baz
 :
   bat
 })",
-N(MFS, L{
+N(MFM, L{
     N(KP|VP, "foo", "bar"),
     N(KP|VP, "baz", "bat"),
 }));
@@ -1357,7 +1357,7 @@ R"(---
 )",
 N(STREAM,
   L{
-      N(DOC|MFS, L{
+      N(DOC|MFM, L{
               N(KD|VD,"foo0","bar"),
               N(KD|VP,"foo1","bar"),
               N(KD|MFS,"foo3", L{N(KD|VP,"a","map")}),

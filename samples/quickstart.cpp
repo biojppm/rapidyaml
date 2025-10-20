@@ -667,9 +667,9 @@ john: doe)";
         // root["john"] = ryml::to_csubstr(ok); // don't, will dangle
         wroot["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
     }
-    CHECK(root["john"].val() == "in_scope"); // OK!
+    CHECK(root["john"].val() == "in_scope"); // OK! val is now in the tree's arena
     // serializing floating points:
-    wroot["float"] << 2.4;
+    wroot["float"] << 2.4f;
     // to force a particular precision or float format:
     // (see sample_float_precision() and sample_formatting())
     wroot["digits"] << ryml::fmt::real(2.4, /*num_digits*/6, ryml::FTOA_FLOAT);
@@ -4032,8 +4032,8 @@ void sample_emit_to_container()
 - baz
 - bat
 )";
-    auto treea = ryml::parse_in_arena(ymla);
-    auto treeb = ryml::parse_in_arena(ymlb);
+    const ryml::Tree treea = ryml::parse_in_arena(ymla);
+    const ryml::Tree treeb = ryml::parse_in_arena(ymlb);
 
     // eg, std::vector<char>
     {
@@ -4150,7 +4150,7 @@ void sample_emit_to_stream()
 - baz
 - bat
 )";
-    auto tree = ryml::parse_in_arena(ymlb);
+    const ryml::Tree tree = ryml::parse_in_arena(ymlb);
 
     std::string s;
 
@@ -4167,7 +4167,32 @@ void sample_emit_to_stream()
         std::stringstream ss;
         ss << ryml::as_json(tree); // works with any stream having .operator<<() and .write()
         s = ss.str();
-        CHECK(ryml::to_csubstr(s) == R"(["a","b",{"x0": 1,"x1": 2},{"champagne": "Dom Perignon","coffee": "Arabica","more": {"vinho verde": "Soalheiro","vinho tinto": "Redoma 2017"},"beer": ["Rochefort 10","Busch","Leffe Rituel"]},"foo","bar","baz","bat"])");
+        CHECK(ryml::to_csubstr(s) == R"([
+  "a",
+  "b",
+  {
+    "x0": 1,
+    "x1": 2
+  },
+  {
+    "champagne": "Dom Perignon",
+    "coffee": "Arabica",
+    "more": {
+      "vinho verde": "Soalheiro",
+      "vinho tinto": "Redoma 2017"
+    },
+    "beer": [
+      "Rochefort 10",
+      "Busch",
+      "Leffe Rituel"
+    ]
+  },
+  "foo",
+  "bar",
+  "baz",
+  "bat"
+]
+)");
     }
 
     // emit a nested node
@@ -4186,7 +4211,11 @@ void sample_emit_to_stream()
         std::stringstream ss;
         ss << ryml::as_json(tree[3][2]); // works with any stream having .operator<<() and .write()
         s = ss.str();
-        CHECK(ryml::to_csubstr(s) == R"("more": {"vinho verde": "Soalheiro","vinho tinto": "Redoma 2017"})");
+        CHECK(ryml::to_csubstr(s) == R"("more": {
+  "vinho verde": "Soalheiro",
+  "vinho tinto": "Redoma 2017"
+}
+)");
     }
 }
 
@@ -4214,7 +4243,7 @@ void sample_emit_to_file()
 - baz
 - bat
 )";
-    auto tree = ryml::parse_in_arena(yml);
+    const ryml::Tree tree = ryml::parse_in_arena(yml);
     // this is emitting to stdout, but of course you can pass in any
     // FILE* obtained from fopen()
     size_t len = ryml::emit_yaml(tree, tree.root_id(), stdout);
@@ -4258,7 +4287,7 @@ void sample_emit_nested_node()
     - many other
     - wonderful beers
 )");
-    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10\n");
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10");
     CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][3]) == R"(- and so
 - many other
 - wonderful beers
@@ -4381,22 +4410,22 @@ flow seq:
   - flow val
   - flow val
 )");
-        // set all keys to single-quoted:
+        // change all keys to single-quoted:
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::KEY,
                                                /*remflags*/ryml::KEY_STYLE,
                                                /*addflags*/ryml::KEY_SQUO,
                                                /*recurse*/true);
-        // set all vals to double-quoted
+        // change all vals to double-quoted
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::VAL,
                                                /*remflags*/ryml::VAL_STYLE,
                                                /*addflags*/ryml::VAL_DQUO,
                                                /*recurse*/true);
-        // set all seqs to flow
+        // change all seqs to flow
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::SEQ,
                                                /*remflags*/ryml::CONTAINER_STYLE,
                                                /*addflags*/ryml::FLOW_SL,
                                                /*recurse*/true);
-        // set all maps to flow
+        // change all maps to flow
         tree.rootref().set_style_conditionally(/*type_mask*/ryml::MAP,
                                                /*remflags*/ryml::CONTAINER_STYLE,
                                                /*addflags*/ryml::BLOCK,
@@ -4410,7 +4439,7 @@ R"('block map':
   'flow key': "flow val"
 'flow seq': ["flow val","flow val"]
 )");
-        // you can also set a conditional style in a single node:
+        // you can also set a conditional style in a single node (or its branch if recurse is true):
         tree["flow seq"].set_style_conditionally(/*type_mask*/ryml::SEQ,
                                                  /*remflags*/ryml::CONTAINER_STYLE,
                                                  /*addflags*/ryml::BLOCK,
@@ -4443,11 +4472,12 @@ R"('block map':
 void sample_json()
 {
     ryml::csubstr json = R"({
-  "doe":"a deer, a female deer",
-  "ray":"a drop of golden sun",
-  "me":"a name, I call myself",
-  "far":"a long long way to go"
-})";
+  "doe": "a deer, a female deer",
+  "ray": "a drop of golden sun",
+  "me": "a name, I call myself",
+  "far": "a long long way to go"
+}
+)";
     // Since JSON is a subset of YAML, parsing JSON is just the
     // same as YAML:
     ryml::Tree tree = ryml::parse_in_arena(json);
@@ -4455,13 +4485,13 @@ void sample_json()
     // appropriate parse_json overload, which is faster because json
     // has a smaller grammar:
     ryml::Tree json_tree = ryml::parse_json_in_arena(json);
-    // to emit JSON, use the proper overload:
-    CHECK(ryml::emitrs_json<std::string>(tree) == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
-    CHECK(ryml::emitrs_json<std::string>(json_tree) == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+    // to emit JSON:
+    CHECK(ryml::emitrs_json<std::string>(tree) == json);
+    CHECK(ryml::emitrs_json<std::string>(json_tree) == json);
     // to emit JSON to a stream:
     std::stringstream ss;
     ss << ryml::as_json(tree);  // <- mark it like this
-    CHECK(ss.str() == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+    CHECK(ss.str() == json);
     // Note the following limitations:
     //
     // - YAML streams cannot be emitted as json, and are not
@@ -4478,11 +4508,12 @@ void sample_json()
     // Note that when parsing JSON, ryml will the style of each node
     // in the JSON. This means that if you emit as YAML it will look
     // mostly the same as the JSON:
-    CHECK(ryml::emitrs_yaml<std::string>(json_tree) == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+    std::cout << ryml::emitrs_yaml<std::string>(json_tree);
+    CHECK(ryml::emitrs_yaml<std::string>(json_tree) == json);
     // If you want to avoid this, you will need to clear the style.
     json_tree.rootref().clear_style(); // clear the style of the map, but do not recurse
     // note that this is now block mode. That is because when no
-    // style is set, the emit function will default to block mode.
+    // style is set, the YAML emit function will default to block mode.
     CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
           R"("doe": "a deer, a female deer"
 "ray": "a drop of golden sun"
@@ -4492,8 +4523,8 @@ void sample_json()
     // if you don't want the double quotes in the scalar, you can
     // recurse:
     json_tree.rootref().clear_style(/*recurse*/true);
-    // so now you when emittingwill get this:
-    // (the scalars with a comma are single-qu)
+    // so now when emitting you will get this:
+    // (the scalars with a comma are single-quote)
     CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
           R"(doe: 'a deer, a female deer'
 ray: a drop of golden sun
@@ -4957,14 +4988,14 @@ d: 3
     // tree as json when you start from the root:
     //CHECK(ryml::emitrs_json<std::string>(tree) == yml); // RUNTIME ERROR!
 
-    // emitting streams as json is not possible, but
+    // but, althouth emitting streams as json is not possible,
     // you can iterate through individual documents and emit
     // them separately:
     {
         const std::string expected_json[] = {
-            R"({"a": 0,"b": 1})",
-            R"({"c": 2,"d": 3})",
-            R"([4,5,6,7])",
+            "{\n  \"a\": 0,\n  \"b\": 1\n}\n",
+            "{\n  \"c\": 2,\n  \"d\": 3\n}\n",
+            "[\n  4,\n  5,\n  6,\n  7\n]\n",
         };
         // using the node API
         {
@@ -4972,7 +5003,9 @@ d: 3
             const ryml::ConstNodeRef stream = tree.rootref();
             CHECK(stream.num_children() == (ryml::id_type)C4_COUNTOF(expected_json));
             for(ryml::ConstNodeRef doc : stream.children())
+            {
                 CHECK(ryml::emitrs_json<std::string>(doc) == expected_json[count++]);
+            }
         }
         // equivalent: using the index API
         {
@@ -4980,7 +5013,9 @@ d: 3
             const ryml::id_type stream_id = tree.root_id();
             CHECK(tree.num_children(stream_id) == (ryml::id_type)C4_COUNTOF(expected_json));
             for(ryml::id_type doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(doc_id))
+            {
                 CHECK(ryml::emitrs_json<std::string>(tree, doc_id) == expected_json[count++]);
+            }
         }
     }
 }
