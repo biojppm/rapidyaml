@@ -25,18 +25,18 @@ R"({
      baz1: { foo2: {foo3: 2200, bar3: 2201, baz3: 2202}, bar2: {foo3: 2210, bar3: 2211, baz3: 2212}, baz2: {foo3: 2220, bar3: 2221, baz3: 2222} },
   },
 })",
-N(MFS, L{
-      N(KP|MFS, "foo0", L{
+N(MFM, L{
+      N(KP|MFM, "foo0", L{
          N(KP|MFS, "foo1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "0000"), N(KP|VP, "bar3", "0001"), N(KP|VP, "baz3", "0002")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "0010"), N(KP|VP, "bar3", "0011"), N(KP|VP, "baz3", "0012")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "0020"), N(KP|VP, "bar3", "0021"), N(KP|VP, "baz3", "0022")})}),
          N(KP|MFS, "bar1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "0100"), N(KP|VP, "bar3", "0101"), N(KP|VP, "baz3", "0102")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "0110"), N(KP|VP, "bar3", "0111"), N(KP|VP, "baz3", "0112")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "0120"), N(KP|VP, "bar3", "0121"), N(KP|VP, "baz3", "0122")})}),
          N(KP|MFS, "baz1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "0200"), N(KP|VP, "bar3", "0201"), N(KP|VP, "baz3", "0202")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "0210"), N(KP|VP, "bar3", "0211"), N(KP|VP, "baz3", "0212")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "0220"), N(KP|VP, "bar3", "0221"), N(KP|VP, "baz3", "0222")})}),
       }),
-      N(KP|MFS, "bar0", L{
+      N(KP|MFM, "bar0", L{
          N(KP|MFS, "foo1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "1000"), N(KP|VP, "bar3", "1001"), N(KP|VP, "baz3", "1002")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "1010"), N(KP|VP, "bar3", "1011"), N(KP|VP, "baz3", "1012")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "1020"), N(KP|VP, "bar3", "1021"), N(KP|VP, "baz3", "1022")})}),
          N(KP|MFS, "bar1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "1100"), N(KP|VP, "bar3", "1101"), N(KP|VP, "baz3", "1102")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "1110"), N(KP|VP, "bar3", "1111"), N(KP|VP, "baz3", "1112")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "1120"), N(KP|VP, "bar3", "1121"), N(KP|VP, "baz3", "1122")})}),
          N(KP|MFS, "baz1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "1200"), N(KP|VP, "bar3", "1201"), N(KP|VP, "baz3", "1202")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "1210"), N(KP|VP, "bar3", "1211"), N(KP|VP, "baz3", "1212")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "1220"), N(KP|VP, "bar3", "1221"), N(KP|VP, "baz3", "1222")})}),
       }),
-      N(KP|MFS, "baz0", L{
+      N(KP|MFM, "baz0", L{
          N(KP|MFS, "foo1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "2000"), N(KP|VP, "bar3", "2001"), N(KP|VP, "baz3", "2002")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "2010"), N(KP|VP, "bar3", "2011"), N(KP|VP, "baz3", "2012")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "2020"), N(KP|VP, "bar3", "2021"), N(KP|VP, "baz3", "2022")})}),
          N(KP|MFS, "bar1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "2100"), N(KP|VP, "bar3", "2101"), N(KP|VP, "baz3", "2102")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "2110"), N(KP|VP, "bar3", "2111"), N(KP|VP, "baz3", "2112")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "2120"), N(KP|VP, "bar3", "2121"), N(KP|VP, "baz3", "2122")})}),
          N(KP|MFS, "baz1", L{N(KP|MFS, "foo2", L{N(KP|VP, "foo3", "2200"), N(KP|VP, "bar3", "2201"), N(KP|VP, "baz3", "2202")}),  N(KP|MFS, "bar2", L{N(KP|VP, "foo3", "2210"), N(KP|VP, "bar3", "2211"), N(KP|VP, "baz3", "2212")}),  N(KP|MFS, "baz2", L{N(KP|VP, "foo3", "2220"), N(KP|VP, "bar3", "2221"), N(KP|VP, "baz3", "2222")})}),

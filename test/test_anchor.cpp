@@ -107,9 +107,21 @@ bar: {<<: *foo},
     EXPECT_EQ(t["bar"]["<<"].val(), "*foo");
     //EXPECT_EQ(t["bar"]["<<"].key_ref(), "<<"); // not a ref!
     EXPECT_EQ(t["bar"]["<<"].val_ref(), "foo");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo {a: 1,b: 2},bar: {<<: *foo},sq: {'<<': haha},dq: {"<<": hehe}})");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({
+  foo: &foo {a: 1,b: 2},
+  bar: {<<: *foo},
+  sq: {'<<': haha},
+  dq: {"<<": hehe}
+}
+)");
     t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: {a: 1,b: 2},bar: {a: 1,b: 2},sq: {'<<': haha},dq: {"<<": hehe}})");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({
+  foo: {a: 1,b: 2},
+  bar: {a: 1,b: 2},
+  sq: {'<<': haha},
+  dq: {"<<": hehe}
+}
+)");
 }
 
 TEST(anchors, programatic_key_ref)
@@ -996,16 +1008,16 @@ bar: &bar {
     age: 20
   }
 })",
-N(MFS,  L{
+N(MFM,  L{
       N(KP|VP, "anchored_content", "This string will appear as the value of two keys.", AR(VALANCH, "anchor_name")),
       N(KP|VAL, "other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
-      N(KP|SFS, "anchors_in_seqs", L{
+      N(KP|SFM, "anchors_in_seqs", L{
               N(VP, "this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
               N(VAL, "*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
           }),
-      N(KP|MFS, "base", L{N(KP|VP, "name", "Everyone has same name")}, AR(VALANCH, "base")),
-      N(KP|MFS, "foo", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "10")}, AR(VALANCH, "foo")),
-      N(KP|MFS, "bar", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "20")}, AR(VALANCH, "bar")),
+      N(KP|MFM, "base", L{N(KP|VP, "name", "Everyone has same name")}, AR(VALANCH, "base")),
+      N(KP|MFM, "foo", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "10")}, AR(VALANCH, "foo")),
+      N(KP|MFM, "bar", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "20")}, AR(VALANCH, "bar")),
   })
 );
 
@@ -1058,16 +1070,16 @@ bar: &bar {
     age: 20
   }
 })",
-N(MFS, L{
+N(MFM, L{
       N(KP|VP, "anchored_content", "This string will appear as the value of two keys."),
       N(KP|VP, "other_anchor", "This string will appear as the value of two keys."),
-      N(KP|SFS, "anchors_in_seqs", L{
+      N(KP|SFM, "anchors_in_seqs", L{
               N(VP, "this value appears in both elements of the sequence"),
               N(VP, "this value appears in both elements of the sequence"),
           }),
-      N(KP|MFS, "base", L{N(KP|VP, "name", "Everyone has same name")}),
-      N(KP|MFS, "foo", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "10")}),
-      N(KP|MFS, "bar", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "20")}),
+      N(KP|MFM, "base", L{N(KP|VP, "name", "Everyone has same name")}),
+      N(KP|MFM, "foo", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "10")}),
+      N(KP|MFM, "bar", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "20")}),
   })
 );
 

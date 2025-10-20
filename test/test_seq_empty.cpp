@@ -23,7 +23,7 @@ ADD_CASE_TO_GROUP("empty seq, multiline",
 R"([
 ]
 )",
-    SFS
+    SFM
 );
 
 ADD_CASE_TO_GROUP("empty seq, multilines",
@@ -33,7 +33,7 @@ R"([
 
 ]
 )",
-    SFS
+    SFM
 );
 }
 

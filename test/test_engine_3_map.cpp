@@ -6,7 +6,48 @@
 namespace c4 {
 namespace yml {
 
+static constexpr const bool multiline = true;
+static constexpr const bool singleline = false;
+
 //-----------------------------------------------------------------------------
+
+ENGINE_TEST(SimpleMapFlowEmpty,
+            "{}"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(SimpleMapFlowEmptyMultiline,
+            "{\n}"
+            ,
+            "{\n}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
 
 ENGINE_TEST(SimpleMapFlow,
             "{foo: bar,foo2: bar2}"
@@ -30,7 +71,36 @@ ENGINE_TEST(SimpleMapFlow,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("foo2"));
     ___(ps.set_val_scalar_plain("bar2"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(SimpleMapFlowMultiline0,
+            "{foo: bar,foo2: bar2\n}"
+            ,
+            "{\n  foo: bar,\n  foo2: bar2\n}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=VAL :foo2\n"
+            "=VAL :bar2\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("foo2"));
+    ___(ps.set_val_scalar_plain("bar2"));
+    ___(ps.end_map_flow(multiline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -57,10 +127,10 @@ ENGINE_TEST(NestedMapFlow,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
     ___(ps.begin_map_key_flow());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_map_val_flow());
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -95,17 +165,17 @@ ENGINE_TEST(NestedMap3FlowEmpty,
     ___(ps.begin_map_val_flow());
     ___(ps.begin_map_key_flow());
     ___(ps.begin_map_key_flow());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_map_val_flow());
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_map_val_flow());
     ___(ps.begin_map_key_flow());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_map_val_flow());
-    ___(ps.end_map());
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -113,7 +183,7 @@ ENGINE_TEST(NestedMap3FlowEmpty,
 ENGINE_TEST(SimpleMapFlowMultiline,
             "{\nfoo:\n bar\n,\nfoo2:\nbar2\n}"
             ,
-            "{foo: bar,foo2: bar2}"
+            "{\n  foo: bar,\n  foo2: bar2\n}\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -134,7 +204,7 @@ ENGINE_TEST(SimpleMapFlowMultiline,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("foo2"));
     ___(ps.set_val_scalar_plain("bar2"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(multiline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -185,8 +255,8 @@ ENGINE_TEST(SimpleMapBlockSameLine7, HAS_MULTILINE_SCALAR,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("b"));
     ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -221,7 +291,55 @@ ENGINE_TEST(SimpleMapBlock,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("foo3"));
     ___(ps.set_val_scalar_plain("bar3"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(SimpleMapBlockEmptyFlowMap,
+            "foo: {}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.begin_map_val_flow());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(SimpleMapBlockEmptyFlowSeq,
+            "foo: []\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -260,7 +378,7 @@ ENGINE_TEST(SimpleMapBlockEmptyVals,
     ps.add_sibling();
     ps.set_key_scalar_plain("d");
     ps.set_val_scalar_plain({});
-    ps.end_map();
+    ps.end_map_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -297,7 +415,7 @@ ENGINE_TEST(SimpleMapBlockEmptyKeys,
     ps.add_sibling();
     ps.set_key_scalar_plain({});
     ps.set_val_scalar_plain("d");
-    ps.end_map();
+    ps.end_map_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -336,7 +454,7 @@ ENGINE_TEST(SimpleMapBlockEmpty,
     ps.add_sibling();
     ps.set_key_scalar_plain({});
     ps.set_val_scalar_plain({});
-    ps.end_map();
+    ps.end_map_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -389,7 +507,7 @@ ENGINE_TEST(SimpleMapIndentlessSeq,
     ps.set_val_scalar_plain("bar");
     ps.add_sibling();
     ps.set_val_scalar_plain({});
-    ps.end_seq();
+    ps.end_seq_block();
     ps.add_sibling();
     ps.set_key_scalar_plain("baz");
     ps.set_val_scalar_plain("qux");
@@ -399,11 +517,11 @@ ENGINE_TEST(SimpleMapIndentlessSeq,
     ps.set_val_scalar_plain("bar2");
     ps.add_sibling();
     ps.set_val_scalar_plain({});
-    ps.end_seq();
+    ps.end_seq_block();
     ps.add_sibling();
     ps.set_key_scalar_plain("baz2");
     ps.set_val_scalar_plain("qux2");
-    ps.end_map();
+    ps.end_map_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -444,7 +562,7 @@ ENGINE_TEST(SimpleMapContainerKeyFlow,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("keymap"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
     ___(ps.add_sibling());
@@ -455,8 +573,8 @@ ENGINE_TEST(SimpleMapContainerKeyFlow,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -494,7 +612,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block0_0,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("keymap"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
     ___(ps.add_sibling());
@@ -505,8 +623,8 @@ ENGINE_TEST(SimpleMapContainerKey1Block0_0,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -543,7 +661,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block0_1,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("keymap"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
@@ -555,8 +673,8 @@ ENGINE_TEST(SimpleMapContainerKey1Block0_1,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -599,7 +717,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block1_0,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("key"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
     ___(ps.add_sibling());
@@ -610,8 +728,8 @@ ENGINE_TEST(SimpleMapContainerKey1Block1_0,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -653,7 +771,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block1_1,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("key"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
@@ -665,8 +783,8 @@ ENGINE_TEST(SimpleMapContainerKey1Block1_1,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -704,7 +822,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block2_0,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("keymap"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
     ___(ps.add_sibling());
@@ -715,8 +833,8 @@ ENGINE_TEST(SimpleMapContainerKey1Block2_0,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -753,7 +871,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block2_1,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("keymap"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
@@ -765,8 +883,8 @@ ENGINE_TEST(SimpleMapContainerKey1Block2_1,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -811,13 +929,13 @@ ENGINE_TEST(SimpleMapContainerKey1Block3_0,
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("map"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("seq"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
     ___(ps.begin_map_val_block());
@@ -825,12 +943,12 @@ ENGINE_TEST(SimpleMapContainerKey1Block3_0,
     ___(ps.set_val_scalar_plain("A"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("SEQ"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -874,27 +992,27 @@ ENGINE_TEST(SimpleMapContainerKey1Block3_1,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("map"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("seq"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("A"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("SEQ"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -902,7 +1020,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block3_1,
 
 // the examples above have the starting '[' / '{' at the beginning,
 // where it is parsed in UNK state. This one has those tokens already
-// in RMAP|BLCK|RKEY state, ie, they don't come first.
+// in RMAP|RBLCK|RKEY state, ie, they don't come first.
 ENGINE_TEST(SimpleMapContainerKey2Block_1,
             HAS_CONTAINER_KEYS,
             "\n"
@@ -954,7 +1072,7 @@ ENGINE_TEST(SimpleMapContainerKey2Block_1,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("keymap"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("and"));
     ___(ps.add_sibling());
@@ -965,7 +1083,7 @@ ENGINE_TEST(SimpleMapContainerKey2Block_1,
     ___(ps.set_val_scalar_plain("seq"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!seqtag"));
     ___(ps.set_key_anchor("seqanchor"));
@@ -973,12 +1091,12 @@ ENGINE_TEST(SimpleMapContainerKey2Block_1,
     ___(ps.set_val_scalar_plain("now"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("reversed"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("of"));
     ___(ps.set_val_scalar_plain("course"));
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1019,7 +1137,7 @@ ENGINE_TEST(MapMapFlow,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("FOO1"));
     ___(ps.set_val_scalar_plain("BAR1"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("map2"));
     ___(ps.begin_map_val_flow());
@@ -1028,8 +1146,8 @@ ENGINE_TEST(MapMapFlow,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("FOO2"));
     ___(ps.set_val_scalar_plain("BAR2"));
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1076,7 +1194,7 @@ ENGINE_TEST(MapMapBlock,
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("FOO1"));
         ___(ps.set_val_scalar_plain("BAR1"));
-      ___(ps.end_map());
+      ___(ps.end_map_block());
       ___(ps.add_sibling());
       ___(ps.set_key_scalar_plain("map2"));
       ___(ps.begin_map_val_block());
@@ -1085,8 +1203,8 @@ ENGINE_TEST(MapMapBlock,
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("FOO2"));
         ___(ps.set_val_scalar_plain("BAR2"));
-      ___(ps.end_map());
-    ___(ps.end_map());
+      ___(ps.end_map_block());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1160,7 +1278,7 @@ ENGINE_TEST(MapMapMapBlock,
           ___(ps.add_sibling());
           ___(ps.set_key_scalar_plain("FOO01"));
           ___(ps.set_val_scalar_plain("BAR01"));
-        ___(ps.end_map());
+        ___(ps.end_map_block());
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("map02"));
         ___(ps.begin_map_val_block());
@@ -1177,9 +1295,9 @@ ENGINE_TEST(MapMapMapBlock,
             ___(ps.add_sibling());
             ___(ps.set_key_scalar_plain("foo021"));
             ___(ps.set_val_scalar_plain("bar021"));
-          ___(ps.end_map());
-        ___(ps.end_map());
-      ___(ps.end_map());
+          ___(ps.end_map_block());
+        ___(ps.end_map_block());
+      ___(ps.end_map_block());
       ___(ps.add_sibling());
       ___(ps.set_key_scalar_plain("map1"));
       ___(ps.begin_map_val_block());
@@ -1190,9 +1308,9 @@ ENGINE_TEST(MapMapMapBlock,
           ___(ps.add_sibling());
           ___(ps.set_key_scalar_plain("FOO11"));
           ___(ps.set_val_scalar_plain("BAR11"));
-        ___(ps.end_map());
-      ___(ps.end_map());
-    ___(ps.end_map());
+        ___(ps.end_map_block());
+      ___(ps.end_map_block());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1222,9 +1340,9 @@ ENGINE_TEST(MapKeyFlow,
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1251,9 +1369,9 @@ ENGINE_TEST(MapKeyBlock,
     ___(ps.begin_map_key_block());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1280,9 +1398,9 @@ ENGINE_TEST(MapKeyBlockFlow,
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1310,9 +1428,9 @@ ENGINE_TEST(SeqKeyFlow,
     ___(ps.set_val_scalar_plain("foo"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1343,9 +1461,9 @@ ENGINE_TEST(SeqKeyBlock,
     ___(ps.set_val_scalar_plain("foo"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1374,9 +1492,9 @@ ENGINE_TEST(SeqKeyBlockFlow,
     ___(ps.set_val_scalar_plain("foo"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1412,13 +1530,13 @@ ENGINE_TEST(SeqKeyBlock2,
     ___(ps.set_val_scalar_plain("foo"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.begin_seq_key_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_block());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1454,13 +1572,13 @@ ENGINE_TEST(SeqKeyBlock3,
     ___(ps.set_val_scalar_plain("foo"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.begin_seq_key_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_seq_block());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1489,9 +1607,9 @@ ENGINE_TEST(MapKeyBlock4Squo0,
     ___(ps.begin_map_key_block());
     ___(ps.set_key_scalar_squoted("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1524,9 +1642,9 @@ ENGINE_TEST(MapKeyBlock4Squo1,
     ___(ps.set_key_anchor("scalarkey"));
     ___(ps.set_key_scalar_squoted("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1555,9 +1673,9 @@ ENGINE_TEST(MapKeyBlock4Dquo0,
     ___(ps.begin_map_key_block());
     ___(ps.set_key_scalar_dquoted("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1590,9 +1708,9 @@ ENGINE_TEST(MapKeyBlock4Dquo1,
     ___(ps.set_key_anchor("scalarkey"));
     ___(ps.set_key_scalar_dquoted("foo"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1617,7 +1735,7 @@ ENGINE_TEST(MapKeyBlock4Ref0,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_ref("*ref"));
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1648,9 +1766,9 @@ ENGINE_TEST(MapKeyBlock4Ref1,
     ___(ps.begin_map_key_block());
     ___(ps.set_key_ref("*ref"));
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

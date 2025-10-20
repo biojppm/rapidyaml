@@ -84,8 +84,8 @@ endfunction()
 
 
 ryml_add_test(engine_1_doc)
-ryml_add_test(engine_2_map)
-ryml_add_test(engine_3_seq)
+ryml_add_test(engine_2_seq)
+ryml_add_test(engine_3_map)
 ryml_add_test(engine_4_anchor)
 ryml_add_test(engine_5_tag)
 ryml_add_test(engine_6_qmrk)

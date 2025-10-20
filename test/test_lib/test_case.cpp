@@ -643,18 +643,19 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_val());
     }
-    // check parent & sibling reciprocity
+    // check sibling reciprocity
     for(ConstNodeRef s : n.siblings())
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(n.has_key())
+        if(n.has_key() && s.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
         }
         EXPECT_EQ(s.parent().get(), n.parent().get());
     }
+    // check parent/child reciprocity
     if(n.parent().readable())
     {
         EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings());
@@ -688,7 +689,10 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_FALSE(n.is_seq());
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_TRUE(ch.has_key());
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.has_key());
+            }
         }
     }
     if(n.has_key_anchor())
@@ -744,9 +748,10 @@ void test_invariants(ConstNodeRef const& n)
     #undef _MORE_INFO
 }
 
-size_t test_tree_invariants(ConstNodeRef const& n)
+
+static size_t test_tree_invariants(ConstNodeRef const& n)
 {
-    auto parent = n.parent();
+    ConstNodeRef parent = n.parent();
 
     if(n.get()->m_prev_sibling == NONE)
     {
@@ -788,6 +793,7 @@ size_t test_tree_invariants(ConstNodeRef const& n)
 
 void test_invariants(Tree const& t)
 {
+    SCOPED_TRACE("tree invariants");
 
     ASSERT_LE(t.size(), t.capacity());
     EXPECT_EQ(t.size() + t.slack(), t.capacity());

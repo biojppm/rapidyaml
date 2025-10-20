@@ -170,11 +170,86 @@ TEST(as_json, basic)
     }
 }
 
+TEST(emit_nested, basic)
+{
+    const Tree tree = parse_in_arena(R"(- a
+- b
+- x0: 1
+  x1: 2
+- champagne: Dom Perignon
+  coffee: Arabica
+  more:
+    vinho verde: Soalheiro
+    vinho tinto: Redoma 2017
+  beer:
+    - Rochefort 10
+    - Busch
+    - Leffe Rituel
+    - - and so
+      - many other
+      - wonderful beers
+- more
+- seq
+- members
+- here
+)");
+    EmitOptions without_dash = {};
+    EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
+    EmitOptions with_key = {};
+    EmitOptions without_key = EmitOptions{}.emit_nonroot_key(false);
+    ASSERT_FALSE(without_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_key.emit_nonroot_key());
+    ASSERT_FALSE(without_key.emit_nonroot_key());
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], without_dash), "Rochefort 10");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], with_dash), "- Rochefort 10\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], without_dash), R"(- and so
+- many other
+- wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], with_dash), R"(- - and so
+  - many other
+  - wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], with_key), R"(beer:
+  - Rochefort 10
+  - Busch
+  - Leffe Rituel
+  - - and so
+    - many other
+    - wonderful beers
+)");
+    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], without_key), R"(- Rochefort 10
+- Busch
+- Leffe Rituel
+- - and so
+  - many other
+  - wonderful beers
+)");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+struct TmpContainerStyle
+{
+    Tree &t;
+    id_type id;
+    NodeType prev;
+    TmpContainerStyle(NodeRef n, NodeType tmp) : TmpContainerStyle(*n.tree(), n.id(), tmp) {}
+    TmpContainerStyle(Tree &t_, id_type id_, NodeType tmp) : t(t_), id(id_)
+    {
+        prev = t.type(id);
+        t._p(id)->m_type &= ~CONTAINER_STYLE;
+        t._p(id)->m_type |= tmp;
+    }
+    ~TmpContainerStyle()
+    {
+        t._p(id)->m_type = prev;
+    }
+};
 
 void test_emits(Tree const& t, id_type id, std::string const& expected, std::string const& expected_json)
 {
@@ -275,6 +350,7 @@ void test_emits(Tree const& t, std::string const& expected, std::string const& e
     }
 }
 
+
 void test_emits(ConstNodeRef n, std::string const& expected, std::string const& expected_json)
 {
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(n,                buf); }), expected);
@@ -329,6 +405,8 @@ void test_emits(ConstNodeRef n, std::string const& expected, std::string const& 
 }
 
 
+
+
 TEST(emit, empty_tree)
 {
     const Tree t; // must be const!
@@ -368,7 +446,7 @@ TEST(emit, empty_key_squo)
 : literal
 )");
         std::string expected = "'': literal\n";
-        std::string expected_json = R"({"": "literal"})";
+        std::string expected_json = "{\n  \"\": \"literal\"\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     {
@@ -379,7 +457,7 @@ level1:
   : literal
 )");
         std::string expected = "level1:\n  '': literal\n";
-        std::string expected_json = R"({"level1": {"": "literal"}})";
+        std::string expected_json = "{\n  \"level1\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     const Tree t = parse_in_arena(R"(
@@ -398,25 +476,25 @@ level1:
     {
         SCOPED_TRACE("level3");
         std::string expected = "level3:\n  '': literal\n";
-        std::string expected_json = R"("level3": {"": "literal"})";
+        std::string expected_json = "\"level3\": {\n  \"\": \"literal\"\n}\n";
         test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level2");
         std::string expected = "level2:\n  '': literal\n  level3:\n    '': literal\n";
-        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        std::string expected_json = "\"level2\": {\n  \"\": \"literal\",\n  \"level3\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level1");
         std::string expected = "level1:\n  '': literal\n  level2:\n    '': literal\n    level3:\n      '': literal\n";
-        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        std::string expected_json = "\"level1\": {\n  \"\": \"literal\",\n  \"level2\": {\n    \"\": \"literal\",\n    \"level3\": {\n      \"\": \"literal\"\n    }\n  }\n}\n";
         test_emits(t, t["level1"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level0");
         std::string expected = "'': literal\nlevel1:\n  '': literal\n  level2:\n    '': literal\n    level3:\n      '': literal\n";
-        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        std::string expected_json = "{\n  \"\": \"literal\",\n  \"level1\": {\n    \"\": \"literal\",\n    \"level2\": {\n      \"\": \"literal\",\n      \"level3\": {\n        \"\": \"literal\"\n      }\n    }\n  }\n}\n";
         test_emits(t, NONE, expected, expected_json);
     }
 }
@@ -430,7 +508,7 @@ TEST(emit, empty_key_dquo)
 : literal
 )");
         std::string expected = "\"\": literal\n";
-        std::string expected_json = R"({"": "literal"})";
+        std::string expected_json = "{\n  \"\": \"literal\"\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     {
@@ -441,7 +519,7 @@ level1:
   : literal
 )");
         std::string expected = "level1:\n  \"\": literal\n";
-        std::string expected_json = R"({"level1": {"": "literal"}})";
+        std::string expected_json = "{\n  \"level1\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     const Tree t = parse_in_arena(R"(
@@ -460,25 +538,25 @@ level1:
     {
         SCOPED_TRACE("level3");
         std::string expected = "level3:\n  \"\": literal\n";
-        std::string expected_json = R"("level3": {"": "literal"})";
+        std::string expected_json = "\"level3\": {\n  \"\": \"literal\"\n}\n";
         test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level2");
         std::string expected = "level2:\n  \"\": literal\n  level3:\n    \"\": literal\n";
-        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        std::string expected_json = "\"level2\": {\n  \"\": \"literal\",\n  \"level3\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level1");
         std::string expected = "level1:\n  \"\": literal\n  level2:\n    \"\": literal\n    level3:\n      \"\": literal\n";
-        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        std::string expected_json = "\"level1\": {\n  \"\": \"literal\",\n  \"level2\": {\n    \"\": \"literal\",\n    \"level3\": {\n      \"\": \"literal\"\n    }\n  }\n}\n";
         test_emits(t, t["level1"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level0");
         std::string expected = "\"\": literal\nlevel1:\n  \"\": literal\n  level2:\n    \"\": literal\n    level3:\n      \"\": literal\n";
-        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        std::string expected_json = "{\n  \"\": \"literal\",\n  \"level1\": {\n    \"\": \"literal\",\n    \"level2\": {\n      \"\": \"literal\",\n      \"level3\": {\n        \"\": \"literal\"\n      }\n    }\n  }\n}\n";
         test_emits(t, NONE, expected, expected_json);
     }
 }
@@ -492,7 +570,7 @@ TEST(emit, empty_key_plain)
 : literal
 )");
         std::string expected = ": literal\n";
-        std::string expected_json = R"({"": "literal"})";
+        std::string expected_json = "{\n  \"\": \"literal\"\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     {
@@ -503,7 +581,7 @@ level1:
   : literal
 )");
         std::string expected = "level1:\n  : literal\n";
-        std::string expected_json = R"({"level1": {"": "literal"}})";
+        std::string expected_json = "{\n  \"level1\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     const Tree t = parse_in_arena(R"(
@@ -522,25 +600,25 @@ level1:
     {
         SCOPED_TRACE("level3");
         std::string expected = "level3:\n  : literal\n";
-        std::string expected_json = R"("level3": {"": "literal"})";
+        std::string expected_json = "\"level3\": {\n  \"\": \"literal\"\n}\n";
         test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level2");
         std::string expected = "level2:\n  : literal\n  level3:\n    : literal\n";
-        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        std::string expected_json = "\"level2\": {\n  \"\": \"literal\",\n  \"level3\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level1");
         std::string expected = "level1:\n  : literal\n  level2:\n    : literal\n    level3:\n      : literal\n";
-        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        std::string expected_json = "\"level1\": {\n  \"\": \"literal\",\n  \"level2\": {\n    \"\": \"literal\",\n    \"level3\": {\n      \"\": \"literal\"\n    }\n  }\n}\n";
         test_emits(t, t["level1"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level0");
         std::string expected = ": literal\nlevel1:\n  : literal\n  level2:\n    : literal\n    level3:\n      : literal\n";
-        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        std::string expected_json = "{\n  \"\": \"literal\",\n  \"level1\": {\n    \"\": \"literal\",\n    \"level2\": {\n      \"\": \"literal\",\n      \"level3\": {\n        \"\": \"literal\"\n      }\n    }\n  }\n}\n";
         test_emits(t, NONE, expected, expected_json);
     }
 }
@@ -554,7 +632,7 @@ TEST(emit, empty_key_literal)
 : literal
 )");
         std::string expected = "? |-\n: literal\n";
-        std::string expected_json = R"({"": "literal"})";
+        std::string expected_json = "{\n  \"\": \"literal\"\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     {
@@ -565,7 +643,7 @@ level1:
   : literal
 )");
         std::string expected = "level1:\n  ? |-\n  : literal\n";
-        std::string expected_json = R"({"level1": {"": "literal"}})";
+        std::string expected_json = "{\n  \"level1\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     const Tree t = parse_in_arena(R"(
@@ -584,25 +662,25 @@ level1:
     {
         SCOPED_TRACE("level3");
         std::string expected = "level3:\n  ? |-\n  : literal\n";
-        std::string expected_json = R"("level3": {"": "literal"})";
+        std::string expected_json = "\"level3\": {\n  \"\": \"literal\"\n}\n";
         test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level2");
         std::string expected = "level2:\n  ? |-\n  : literal\n  level3:\n    ? |-\n    : literal\n";
-        std::string expected_json = "\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}";
+        std::string expected_json = "\"level2\": {\n  \"\": \"literal\",\n  \"level3\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level1");
         std::string expected = "level1:\n  ? |-\n  : literal\n  level2:\n    ? |-\n    : literal\n    level3:\n      ? |-\n      : literal\n";
-        std::string expected_json = "\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}";
+        std::string expected_json = "\"level1\": {\n  \"\": \"literal\",\n  \"level2\": {\n    \"\": \"literal\",\n    \"level3\": {\n      \"\": \"literal\"\n    }\n  }\n}\n";
         test_emits(t, t["level1"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level0");
         std::string expected = "? |-\n: literal\nlevel1:\n  ? |-\n  : literal\n  level2:\n    ? |-\n    : literal\n    level3:\n      ? |-\n      : literal\n";
-        std::string expected_json = "{\"\": \"literal\",\"level1\": {\"\": \"literal\",\"level2\": {\"\": \"literal\",\"level3\": {\"\": \"literal\"}}}}";
+        std::string expected_json = "{\n  \"\": \"literal\",\n  \"level1\": {\n    \"\": \"literal\",\n    \"level2\": {\n      \"\": \"literal\",\n      \"level3\": {\n        \"\": \"literal\"\n      }\n    }\n  }\n}\n";
         test_emits(t, NONE, expected, expected_json);
     }
 }
@@ -616,7 +694,7 @@ TEST(emit, empty_key_folded)
 : folded
 )");
         std::string expected = "? >-\n: folded\n";
-        std::string expected_json = R"({"": "folded"})";
+        std::string expected_json = "{\n  \"\": \"folded\"\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     {
@@ -627,7 +705,7 @@ level1:
   : folded
 )");
         std::string expected = "level1:\n  ? >-\n  : folded\n";
-        std::string expected_json = R"({"level1": {"": "folded"}})";
+        std::string expected_json = "{\n  \"level1\": {\n    \"\": \"folded\"\n  }\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
     }
     const Tree t = parse_in_arena(R"(
@@ -646,26 +724,44 @@ level1:
     {
         SCOPED_TRACE("level3");
         std::string expected = "level3:\n  ? >-\n  : folded\n";
-        std::string expected_json = R"("level3": {"": "folded"})";
+        std::string expected_json = "\"level3\": {\n  \"\": \"folded\"\n}\n";
         test_emits(t, t["level1"]["level2"]["level3"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level2");
         std::string expected = "level2:\n  ? >-\n  : folded\n  level3:\n    ? >-\n    : folded\n";
-        std::string expected_json = "\"level2\": {\"\": \"folded\",\"level3\": {\"\": \"folded\"}}";
+        std::string expected_json = "\"level2\": {\n  \"\": \"folded\",\n  \"level3\": {\n    \"\": \"folded\"\n  }\n}\n";
         test_emits(t, t["level1"]["level2"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level1");
         std::string expected = "level1:\n  ? >-\n  : folded\n  level2:\n    ? >-\n    : folded\n    level3:\n      ? >-\n      : folded\n";
-        std::string expected_json = "\"level1\": {\"\": \"folded\",\"level2\": {\"\": \"folded\",\"level3\": {\"\": \"folded\"}}}";
+        std::string expected_json = "\"level1\": {\n  \"\": \"folded\",\n  \"level2\": {\n    \"\": \"folded\",\n    \"level3\": {\n      \"\": \"folded\"\n    }\n  }\n}\n";
         test_emits(t, t["level1"].id(), expected, expected_json);
     }
     {
         SCOPED_TRACE("level0");
         std::string expected = "? >-\n: folded\nlevel1:\n  ? >-\n  : folded\n  level2:\n    ? >-\n    : folded\n    level3:\n      ? >-\n      : folded\n";
-        std::string expected_json = "{\"\": \"folded\",\"level1\": {\"\": \"folded\",\"level2\": {\"\": \"folded\",\"level3\": {\"\": \"folded\"}}}}";
+        std::string expected_json = "{\n  \"\": \"folded\",\n  \"level1\": {\n    \"\": \"folded\",\n    \"level2\": {\n      \"\": \"folded\",\n      \"level3\": {\n        \"\": \"folded\"\n      }\n    }\n  }\n}\n";
         test_emits(t, NONE, expected, expected_json);
+    }
+}
+
+void test_all_emits(ConstNodeRef n, std::string const &expected, std::string const& expected_json)
+{
+    SCOPED_TRACE("test_all_emits");
+    {
+        SCOPED_TRACE("rootref");
+        test_emits(n, expected, expected_json);
+    }
+    if(n.is_root())
+    {
+        SCOPED_TRACE("t");
+        test_emits(*n.tree(), expected, expected_json);
+    }
+    {
+        SCOPED_TRACE("t, id");
+        test_emits(*n.tree(), n.id(), expected, expected_json);
     }
 }
 
@@ -676,114 +772,98 @@ TEST(emit, existing_seq_node_flow)
     {
         SCOPED_TRACE("full");
         std::string expected = "[foo,bar,[nested,seq],{nested: map}]";
-        std::string expected_json = R"(["foo","bar",["nested","seq"],{"nested": "map"}])";
+        std::string expected_ml = "[\n  foo,\n  bar,\n  [nested,seq],\n  {nested: map}\n]\n";
+        std::string expected_ml_all = "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n";
+        std::string expected_json = "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]";
+        std::string expected_json_ml = "[\n  \"foo\",\n  \"bar\",\n  [\"nested\",\"seq\"],\n  {\"nested\": \"map\"}\n]\n";
+        std::string expected_json_ml_all = "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n";
         {
-            SCOPED_TRACE("rootref");
-            test_emits(t.crootref(), expected, expected_json);
+            SCOPED_TRACE("here");
+            test_all_emits(t.crootref(), expected, expected_json);
         }
         {
-            SCOPED_TRACE("t");
-            test_emits(t, expected, expected_json);
+            SCOPED_TRACE("ml");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_ML);
+            test_all_emits(t.crootref(), expected_ml, expected_json_ml);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, t.root_id(), expected, expected_json);
+            SCOPED_TRACE("rootref-ml-all");
+            TmpContainerStyle tmp1(nct.rootref(), FLOW_ML);
+            TmpContainerStyle tmp2(nct[2], FLOW_ML);
+            TmpContainerStyle tmp3(nct[3], FLOW_ML);
+            test_all_emits(t.crootref(), expected_ml_all, expected_json_ml_all);
         }
     }
     {
         SCOPED_TRACE("t[0]");
         ConstNodeRef n = t[0];
-        std::string expected = "foo\n";
+        std::string expected = "foo";
         std::string expected_json = "\"foo\"";
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
-        }
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
+        test_all_emits(n, expected, expected_json);
         nct._add_flags(n.id(), FLOW_SL);
         expected = "foo";
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
-        }
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
+        expected_json = "\"foo\"";
+        test_all_emits(n, expected, expected_json);
     }
     {
         SCOPED_TRACE("t[1]");
         ConstNodeRef n = t[1];
-        std::string expected = "bar\n";
+        std::string expected = "bar";
         std::string expected_json = "\"bar\"";
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
-        }
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
+        test_all_emits(n, expected, expected_json);
         nct._add_flags(n.id(), FLOW_SL);
         expected = "bar";
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
-        }
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
+        expected_json = "\"bar\"";
+        test_all_emits(n, expected, expected_json);
     }
     {
         SCOPED_TRACE("t[2]");
-        ConstNodeRef n = t[2];
-        std::string expected = "[nested,seq]";
-        std::string expected_json = "[\"nested\",\"seq\"]";
+        NodeRef n = nct[2];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("FLOW_SL");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "[nested,seq]";
+            std::string expected_json = "[\"nested\",\"seq\"]";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "[nested,seq]";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("FLOW_ML");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "[\n  nested,\n  seq\n]\n";
+            std::string expected_json = "[\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("BLOCK");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "- nested\n- seq\n";
+            std::string expected_json = "[\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[3]");
-        ConstNodeRef n = t[3];
-        std::string expected = "{nested: map}";
-        std::string expected_json = "{\"nested\": \"map\"}";
+        NodeRef n = nct[3];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("FLOW_SL");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "{nested: map}";
+            std::string expected_json = "{\"nested\": \"map\"}";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "{nested: map}";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("FLOW_ML");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "{\n  nested: map\n}\n";
+            std::string expected_json = "{\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("BLOCK");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "nested: map\n";
+            std::string expected_json = "{\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
     }
 }
@@ -793,116 +873,166 @@ TEST(emit, existing_seq_node_block)
     Tree nct = parse_in_arena("- foo\n- bar\n- - nested\n  - seq\n- nested: map\n");
     Tree const& t = nct;
     {
-        SCOPED_TRACE("full");
-        std::string expected = "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n";
-        std::string expected_json = R"(["foo","bar",["nested","seq"],{"nested": "map"}])";
+        SCOPED_TRACE("full-top");
         {
-            SCOPED_TRACE("rootref");
-            test_emits(t.crootref(), expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(nct.rootref(), BLOCK);
+            std::string expected = "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n";
+            std::string expected_json = "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
         {
-            SCOPED_TRACE("t");
-            test_emits(t, expected, expected_json);
+            SCOPED_TRACE("block-flow-ml");
+            TmpContainerStyle tmp(nct.rootref(), BLOCK);
+            TmpContainerStyle tmp2(nct[2], FLOW_ML);
+            TmpContainerStyle tmp3(nct[3], FLOW_ML);
+            std::string expected = "- foo\n- bar\n- [\n    nested,\n    seq\n  ]\n- {\n    nested: map\n  }\n";
+            std::string expected_json = "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, t.root_id(), expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_ML);
+            std::string expected = "[\n  foo,\n  bar,\n  [nested,seq],\n  {nested: map}\n]\n";
+            std::string expected_json = "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_SL);
+            std::string expected = "[foo,bar,[nested,seq],{nested: map}]";
+            std::string expected_json = "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+    }
+    {
+        SCOPED_TRACE("full-all");
+        {
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp0(nct.rootref(), BLOCK);
+            TmpContainerStyle tmp2(nct[2], BLOCK);
+            TmpContainerStyle tmp3(nct[3], BLOCK);
+            std::string expected = "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n";
+            std::string expected_json = "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_ML);
+            TmpContainerStyle tmp2(nct[2], FLOW_ML);
+            TmpContainerStyle tmp3(nct[3], FLOW_ML);
+            std::string expected = "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n";
+            std::string expected_json = "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_SL);
+            TmpContainerStyle tmp2(nct[2], FLOW_SL);
+            TmpContainerStyle tmp3(nct[3], FLOW_SL);
+            std::string expected = "[foo,bar,[nested,seq],{nested: map}]";
+            std::string expected_json = "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[0]");
-        ConstNodeRef n = t[0];
-        std::string expected = "foo\n";
-        std::string expected_json = "\"foo\"";
+        NodeRef n = nct[0];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "foo";
+            std::string expected_json = "\"foo\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        nct._add_flags(n.id(), FLOW_SL);
-        expected = "foo";
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "foo\n";
+            std::string expected_json = "\"foo\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "foo";
+            std::string expected_json = "\"foo\"";
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[1]");
-        ConstNodeRef n = t[1];
-        std::string expected = "bar\n";
-        std::string expected_json = "\"bar\"";
+        NodeRef n = nct[1];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "bar";
+            std::string expected_json = "\"bar\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        nct._add_flags(n.id(), FLOW_SL);
-        expected = "bar";
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "bar\n";
+            std::string expected_json = "\"bar\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "bar";
+            std::string expected_json = "\"bar\"";
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[2]");
-        ConstNodeRef n = t[2];
-        std::string expected = "- nested\n- seq\n";
-        std::string expected_json = "[\"nested\",\"seq\"]";
+        NodeRef n = nct[2];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "- nested\n- seq\n";
+            std::string expected_json = "[\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "[nested,seq]";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "[\n  nested,\n  seq\n]\n";
+            std::string expected_json = "[\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "[nested,seq]";
+            std::string expected_json = "[\"nested\",\"seq\"]";
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[3]");
-        ConstNodeRef n = t[3];
-        std::string expected = "nested: map\n";
-        std::string expected_json = "{\"nested\": \"map\"}";
+        NodeRef n = nct[3];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "nested: map\n";
+            std::string expected_json = "{\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "{nested: map}";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "{\n  nested: map\n}\n";
+            std::string expected_json = "{\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "{nested: map}";
+            std::string expected_json = "{\"nested\": \"map\"}";
+            test_all_emits(n, expected, expected_json);
         }
     }
 }
@@ -912,118 +1042,157 @@ TEST(emit, existing_map_node_flow)
     Tree nct = parse_in_arena("{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}");
     Tree const& t = nct;
     {
-        SCOPED_TRACE("root");
-        std::string expected = "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}";
-        std::string expected_json = R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})";
+        SCOPED_TRACE("full-top");
         {
-            SCOPED_TRACE("rootref");
-            test_emits(t.rootref(), expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(nct.rootref(), BLOCK);
+            std::string expected = "0: foo\n1: bar\n2: [nested,seq]\n3: {nested: map}\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\"nested\",\"seq\"],\n  \"3\": {\"nested\": \"map\"}\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
         {
-            SCOPED_TRACE("t");
-            test_emits(t, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_ML);
+            std::string expected = "{\n  0: foo,\n  1: bar,\n  2: [nested,seq],\n  3: {nested: map}\n}\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\"nested\",\"seq\"],\n  \"3\": {\"nested\": \"map\"}\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, t.root_id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_SL);
+            std::string expected = "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}";
+            std::string expected_json = "{\"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}}";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+    }
+    {
+        SCOPED_TRACE("full-all");
+        {
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp0(nct.rootref(), BLOCK);
+            TmpContainerStyle tmp2(nct[2], BLOCK);
+            TmpContainerStyle tmp3(nct[3], BLOCK);
+            std::string expected = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_ML);
+            TmpContainerStyle tmp2(nct[2], FLOW_ML);
+            TmpContainerStyle tmp3(nct[3], FLOW_ML);
+            std::string expected = "{\n  0: foo,\n  1: bar,\n  2: [\n    nested,\n    seq\n  ],\n  3: {\n    nested: map\n  }\n}\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_SL);
+            TmpContainerStyle tmp2(nct[2], FLOW_SL);
+            TmpContainerStyle tmp3(nct[3], FLOW_SL);
+            std::string expected = "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}";
+            std::string expected_json = "{\"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}}";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[0]");
-        ConstNodeRef n = t[0];
-        std::string expected = "0: foo\n";
-        std::string expected_json = "\"0\": \"foo\"";
+        NodeRef n = nct[0];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "0: foo\n";
+            std::string expected_json = "\"0\": \"foo\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "0: foo";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "0: foo\n";
+            std::string expected_json = "\"0\": \"foo\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "0: foo\n";
+            std::string expected_json = "\"0\": \"foo\""; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[1]");
-        ConstNodeRef n = t[1];
-        std::string expected = "1: bar\n";
-        std::string expected_json = "\"1\": \"bar\"";
+        NodeRef n = nct[1];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "1: bar\n";
+            std::string expected_json = "\"1\": \"bar\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "1: bar";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "1: bar\n";
+            std::string expected_json = "\"1\": \"bar\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "1: bar\n";
+            std::string expected_json = "\"1\": \"bar\""; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[2]");
-        ConstNodeRef n = t[2];
-        std::string expected = "2: [nested,seq]";
-        std::string expected_json = "\"2\": [\"nested\",\"seq\"]";
+        NodeRef n = nct[2];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "2:\n  - nested\n  - seq\n";
+            std::string expected_json = "\"2\": [\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "2:\n  - nested\n  - seq\n";
-        nct._rem_flags(n.id(), CONTAINER_STYLE);
-        nct._add_flags(n.id(), BLOCK);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "2: [\n    nested,\n    seq\n  ]\n"; // FIXME should be indented one level, not two
+            std::string expected_json = "\"2\": [\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "2: [nested,seq]\n";
+            std::string expected_json = "\"2\": [\"nested\",\"seq\"]"; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[3]");
-        ConstNodeRef n = t[3];
-        std::string expected = "3: {nested: map}";
-        std::string expected_json = "\"3\": {\"nested\": \"map\"}";
+        NodeRef n = nct[3];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "3:\n  nested: map\n";
+            std::string expected_json = "\"3\": {\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "3:\n  nested: map\n";
-        nct._rem_flags(n.id(), CONTAINER_STYLE);
-        nct._add_flags(n.id(), BLOCK);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "3: {\n    nested: map\n  }\n"; // FIXME should be indented one level, not two
+            std::string expected_json = "\"3\": {\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "3: {nested: map}\n";
+            std::string expected_json = "\"3\": {\"nested\": \"map\"}"; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
 }
@@ -1033,118 +1202,166 @@ TEST(emit, existing_map_node_block)
     Tree nct = parse_in_arena("0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n");
     Tree const& t = nct;
     {
-        SCOPED_TRACE("root");
-        std::string expected = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
-        std::string expected_json = R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})";
+        SCOPED_TRACE("full-top");
         {
-            SCOPED_TRACE("rootref");
-            test_emits(t.rootref(), expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(nct.rootref(), BLOCK);
+            std::string expected = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
         {
-            SCOPED_TRACE("t");
-            test_emits(t, expected, expected_json);
+            SCOPED_TRACE("block-flow-ml");
+            TmpContainerStyle tmp(nct.rootref(), BLOCK);
+            TmpContainerStyle tmp2(nct[2], FLOW_ML);
+            TmpContainerStyle tmp3(nct[3], FLOW_ML);
+            std::string expected = "0: foo\n1: bar\n2: [\n    nested,\n    seq\n  ]\n3: {\n    nested: map\n  }\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, t.root_id(), expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_ML);
+            std::string expected = "{\n  0: foo,\n  1: bar,\n  2: [nested,seq],\n  3: {nested: map}\n}\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_SL);
+            std::string expected = "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}";
+            std::string expected_json = R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+    }
+    {
+        SCOPED_TRACE("full-all");
+        {
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp0(nct.rootref(), BLOCK);
+            TmpContainerStyle tmp2(nct[2], BLOCK);
+            TmpContainerStyle tmp3(nct[3], BLOCK);
+            std::string expected = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_ML);
+            TmpContainerStyle tmp2(nct[2], FLOW_ML);
+            TmpContainerStyle tmp3(nct[3], FLOW_ML);
+            std::string expected = "{\n  0: foo,\n  1: bar,\n  2: [\n    nested,\n    seq\n  ],\n  3: {\n    nested: map\n  }\n}\n";
+            std::string expected_json = "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n";
+            test_all_emits(t.crootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(nct.rootref(), FLOW_SL);
+            TmpContainerStyle tmp2(nct[2], FLOW_SL);
+            TmpContainerStyle tmp3(nct[3], FLOW_SL);
+            std::string expected = "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}";
+            std::string expected_json = R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})";
+            test_all_emits(t.crootref(), expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[0]");
-        ConstNodeRef n = t[0];
-        std::string expected = "0: foo\n";
-        std::string expected_json = "\"0\": \"foo\"";
+        NodeRef n = nct[0];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "0: foo\n";
+            std::string expected_json = "\"0\": \"foo\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "0: foo";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "0: foo\n";
+            std::string expected_json = "\"0\": \"foo\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "0: foo\n";
+            std::string expected_json = "\"0\": \"foo\""; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[1]");
-        ConstNodeRef n = t[1];
-        std::string expected = "1: bar\n";
-        std::string expected_json = "\"1\": \"bar\"";
+        NodeRef n = nct[1];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "1: bar\n";
+            std::string expected_json = "\"1\": \"bar\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "1: bar";
-        nct._add_flags(n.id(), FLOW_SL);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "1: bar\n";
+            std::string expected_json = "\"1\": \"bar\"\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "1: bar\n";
+            std::string expected_json = "\"1\": \"bar\""; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[2]");
-        ConstNodeRef n = t[2];
-        std::string expected = "2:\n  - nested\n  - seq\n";
-        std::string expected_json = "\"2\": [\"nested\",\"seq\"]";
+        NodeRef n = nct[2];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "2:\n  - nested\n  - seq\n";
+            std::string expected_json = "\"2\": [\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "2:\n  - nested\n  - seq\n";
-        nct._rem_flags(n.id(), CONTAINER_STYLE);
-        nct._add_flags(n.id(), BLOCK);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "2: [\n    nested,\n    seq\n  ]\n"; // FIXME should be indented one level, not two
+            std::string expected_json = "\"2\": [\n  \"nested\",\n  \"seq\"\n]\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "2: [nested,seq]\n";
+            std::string expected_json = "\"2\": [\"nested\",\"seq\"]"; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
     {
         SCOPED_TRACE("t[3]");
-        ConstNodeRef n = t[3];
-        std::string expected = "3:\n  nested: map\n";
-        std::string expected_json = "\"3\": {\"nested\": \"map\"}";
+        NodeRef n = nct[3];
         {
-            SCOPED_TRACE("noderef");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("block");
+            TmpContainerStyle tmp(n, BLOCK);
+            std::string expected = "3:\n  nested: map\n";
+            std::string expected_json = "\"3\": {\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
-        }
-        expected = "3:\n  nested: map\n";
-        nct._rem_flags(n.id(), CONTAINER_STYLE);
-        nct._add_flags(n.id(), BLOCK);
-        {
-            SCOPED_TRACE("t, id");
-            test_emits(n, expected, expected_json);
+            SCOPED_TRACE("flow_ml");
+            TmpContainerStyle tmp(n, FLOW_ML);
+            std::string expected = "3: {\n    nested: map\n  }\n"; // FIXME should be indented one level, not two
+            std::string expected_json = "\"3\": {\n  \"nested\": \"map\"\n}\n";
+            test_all_emits(n, expected, expected_json);
         }
         {
-            SCOPED_TRACE("t, id");
-            test_emits(t, n.id(), expected, expected_json);
+            SCOPED_TRACE("flow_sl");
+            TmpContainerStyle tmp(n, FLOW_SL);
+            std::string expected = "3: {nested: map}\n";
+            std::string expected_json = "\"3\": {\"nested\": \"map\"}"; // FIXME should have trailing newline
+            test_all_emits(n, expected, expected_json);
         }
     }
 }

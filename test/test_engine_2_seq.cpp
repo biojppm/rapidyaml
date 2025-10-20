@@ -7,6 +7,9 @@ namespace c4 {
 namespace yml {
 
 
+static constexpr const bool multiline = true;
+static constexpr const bool singleline = false;
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SimpleSeqFlow,
@@ -30,7 +33,7 @@ ENGINE_TEST(SimpleSeqFlow,
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -62,8 +65,8 @@ ENGINE_TEST(NestedSeqFlowEmpty,
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_flow());
     ___(ps.begin_seq_val_flow());
-    ___(ps.end_seq());
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -87,9 +90,9 @@ ENGINE_TEST(NestedSeq3FlowEmpty,
     ___(ps.begin_seq_val_flow());
     ___(ps.begin_seq_val_flow());
     ___(ps.begin_seq_val_flow());
-    ___(ps.end_seq());
-    ___(ps.end_seq());
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -116,10 +119,10 @@ ENGINE_TEST(NestedSeq4FlowEmpty,
     ___(ps.begin_seq_val_flow());
     ___(ps.begin_seq_val_flow());
     ___(ps.begin_seq_val_flow());
-    ___(ps.end_seq());
-    ___(ps.end_seq());
-    ___(ps.end_seq());
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -127,7 +130,7 @@ ENGINE_TEST(NestedSeq4FlowEmpty,
 ENGINE_TEST(SimpleSeqFlowMultiline,
             "[\nfoo\n,\nbar\n,\nbaz\n]"
             ,
-            "[foo,bar,baz]"
+            "[\n  foo,\n  bar,\n  baz\n]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -147,7 +150,7 @@ ENGINE_TEST(SimpleSeqFlowMultiline,
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(multiline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -176,7 +179,7 @@ ENGINE_TEST(SimpleSeqBlock,
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -213,7 +216,7 @@ ENGINE_TEST(SimpleSeqBlock2,
         ___(ps.set_val_scalar_plain("bar"));
         ___(ps.add_sibling());
         ___(ps.set_val_scalar_plain("baz"));
-      ___(ps.end_seq());
+      ___(ps.end_seq_flow(singleline));
       ___(ps.add_sibling());
       ___(ps.begin_map_val_flow());
         ___(ps.set_key_scalar_plain("foo"));
@@ -221,8 +224,8 @@ ENGINE_TEST(SimpleSeqBlock2,
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("baz"));
         ___(ps.set_val_scalar_plain({}));
-      ___(ps.end_map());
-    ___(ps.end_seq());
+      ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -247,7 +250,7 @@ ENGINE_TEST(SimpleSeqBlockPlainScalar0,
     ps.begin_doc();
     ps.begin_seq_val_block();
     ps.set_val_scalar_plain("a b");
-    ps.end_seq();
+    ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -255,7 +258,8 @@ ENGINE_TEST(SimpleSeqBlockPlainScalar0,
 ENGINE_TEST(SimpleSeqBlockPlainScalar1,
             HAS_MULTILINE_SCALAR,
              "- a\n"
-             "  - b - c\n",
+             "  - b - c\n"
+            ,
              "- a - b - c\n"
             ,
             "+STR\n"
@@ -270,7 +274,7 @@ ENGINE_TEST(SimpleSeqBlockPlainScalar1,
     ps.begin_doc();
     ps.begin_seq_val_block();
     ps.set_val_scalar_plain("a - b - c");
-    ps.end_seq();
+    ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -296,7 +300,7 @@ ENGINE_TEST(SimpleSeqBlockComment0,
     ps.begin_seq_val_block();
     ps.set_val_anchor("wtf");
     ps.set_val_scalar_plain("foo");
-    ps.end_seq();
+    ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -322,7 +326,7 @@ ENGINE_TEST(SimpleSeqBlockComment1,
     ps.begin_seq_val_block();
     ps.set_val_anchor("wtf");
     ps.set_val_scalar_plain("foo");
-    ps.end_seq();
+    ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -353,7 +357,7 @@ ENGINE_TEST(SimpleSeqBlockEmptyScalars,
     ps.set_val_scalar_plain({});
     ps.add_sibling();
     ps.set_val_scalar_plain({});
-    ps.end_seq();
+    ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -386,7 +390,7 @@ ENGINE_TEST(SimpleSeqBlockEmptyLiterals,
     ps.set_val_scalar_literal({});
     ps.add_sibling();
     ps.set_val_scalar_literal({});
-    ps.end_seq();
+    ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -418,7 +422,7 @@ ENGINE_TEST(SimpleSeqBlockEmptyFolded,
     ps.set_val_scalar_folded({});
     ps.add_sibling();
     ps.set_val_scalar_folded({});
-    ps.end_seq();
+    ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();
 }
@@ -428,7 +432,7 @@ ENGINE_TEST(SimpleSeqBlockEmptyFolded,
 ENGINE_TEST(SeqSeqFlow,
             "[[foo1,bar1,baz1],\n[foo2,bar2,baz2]]"
             ,
-            "[[foo1,bar1,baz1],[foo2,bar2,baz2]]"
+            "[\n  [foo1,bar1,baz1],\n  [foo2,bar2,baz2]\n]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -456,7 +460,7 @@ ENGINE_TEST(SeqSeqFlow,
     ___(ps.set_val_scalar_plain("bar1"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("baz1"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("foo2"));
@@ -464,8 +468,8 @@ ENGINE_TEST(SeqSeqFlow,
     ___(ps.set_val_scalar_plain("bar2"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("baz2"));
-    ___(ps.end_seq());
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_flow(multiline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -493,7 +497,7 @@ ENGINE_TEST(SeqBlockSpace, HAS_MULTILINE_SCALAR,
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("a - b"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -517,7 +521,7 @@ ENGINE_TEST(SeqBlockTab, HAS_MULTILINE_SCALAR,
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("a - b"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -560,7 +564,7 @@ ENGINE_TEST(SeqSeqBlock,
     ___(ps.set_val_scalar_plain("bar1"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("baz1"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.add_sibling());
     ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("foo2"));
@@ -568,8 +572,8 @@ ENGINE_TEST(SeqSeqBlock,
     ___(ps.set_val_scalar_plain("bar2"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("baz2"));
-    ___(ps.end_seq());
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -613,7 +617,7 @@ ENGINE_TEST(SeqSeqSeqBlock,
           ___(ps.set_val_scalar_plain("bar1"));
           ___(ps.add_sibling());
           ___(ps.set_val_scalar_plain("baz1"));
-        ___(ps.end_seq());
+        ___(ps.end_seq_block());
         ___(ps.add_sibling());
         ___(ps.begin_seq_val_block());
           ___(ps.set_val_scalar_plain("foo2"));
@@ -621,11 +625,75 @@ ENGINE_TEST(SeqSeqSeqBlock,
           ___(ps.set_val_scalar_plain("bar2"));
           ___(ps.add_sibling());
           ___(ps.set_val_scalar_plain("baz2"));
-          ___(ps.end_seq());
-        ___(ps.end_seq());
+          ___(ps.end_seq_block());
+        ___(ps.end_seq_block());
       ___(ps.add_sibling());
       ___(ps.set_val_scalar_plain("back"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(SeqSeqSeqSeqBlock,
+            "- - - - foo1\n"
+            "      - bar1\n"
+            "      - baz1\n"
+            "  - - - foo2\n"
+            "      - bar2\n"
+            "      - baz2\n"
+            "- back\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "=VAL :foo1\n"
+            "=VAL :bar1\n"
+            "=VAL :baz1\n"
+            "-SEQ\n"
+            "-SEQ\n"
+            "+SEQ\n"
+            "+SEQ\n"
+            "=VAL :foo2\n"
+            "=VAL :bar2\n"
+            "=VAL :baz2\n"
+            "-SEQ\n"
+            "-SEQ\n"
+            "-SEQ\n"
+            "=VAL :back\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("foo1"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("bar1"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("baz1"));
+          ___(ps.end_seq_block());
+        ___(ps.end_seq_block());
+        ___(ps.add_sibling());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("foo2"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("bar2"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("baz2"));
+          ___(ps.end_seq_block());
+        ___(ps.end_seq_block());
+      ___(ps.end_seq_block());
+      ___(ps.add_sibling());
+      ___(ps.set_val_scalar_plain("back"));
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -672,7 +740,7 @@ ENGINE_TEST(SeqMapBlock,
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("bar"));
         ___(ps.set_val_scalar_plain("2"));
-      ___(ps.end_map());
+      ___(ps.end_map_block());
       ___(ps.add_sibling());
       ___(ps.begin_map_val_block());
         ___(ps.set_key_scalar_plain("foo"));
@@ -680,7 +748,7 @@ ENGINE_TEST(SeqMapBlock,
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("bar"));
         ___(ps.set_val_scalar_plain("20"));
-      ___(ps.end_map());
+      ___(ps.end_map_block());
       ___(ps.add_sibling());
       ___(ps.begin_map_val_block());
         ___(ps.set_key_scalar_plain("foo"));
@@ -688,8 +756,8 @@ ENGINE_TEST(SeqMapBlock,
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("bar"));
         ___(ps.set_val_scalar_plain("200"));
-      ___(ps.end_map());
-    ___(ps.end_seq());
+      ___(ps.end_map_block());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

@@ -6,6 +6,9 @@
 namespace c4 {
 namespace yml {
 
+static constexpr const bool multiline = true;
+static constexpr const bool singleline = false;
+
 
 ENGINE_TEST(PlainScalarUnfiltered,
             "foo: bar\n"
@@ -26,7 +29,7 @@ ENGINE_TEST(PlainScalarUnfiltered,
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.mark_val_scalar_unfiltered());
     ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -51,8 +54,8 @@ ENGINE_TEST(PlainScalarWithColon0,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("a:"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -74,7 +77,7 @@ ENGINE_TEST(PlainScalarWithColon1,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("key ends with two colons::"));
     ___(ps.set_val_scalar_plain("value"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -112,19 +115,19 @@ ENGINE_TEST(PlainScalarWithColonSeq,
     ___(ps.begin_seq_val_block());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain(":"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("x:"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain(":x:"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -165,7 +168,7 @@ ENGINE_TEST(BlockPlainScalarCommaMap,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("a, b"));
     ___(ps.set_val_scalar_plain("c, d"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -188,7 +191,7 @@ ENGINE_TEST(BlockPlainScalarCommaSeq,
     ___(ps.set_val_scalar_plain("a, b"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("c, d"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -347,15 +350,15 @@ ENGINE_TEST(ExtraTokensNoFalseError0,
             ___(ps.add_sibling());
             ___(ps.set_key_scalar_plain("notag"));
             ___(ps.set_val_scalar_plain("none"));
-        ___(ps.end_map());
+        ___(ps.end_map_flow(singleline));
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("seq"));
         ___(ps.begin_seq_val_flow());
             ___(ps.set_val_scalar_plain("foo"));
             ___(ps.add_sibling());
             ___(ps.set_val_scalar_plain("bar"));
-        ___(ps.end_seq());
-    ___(ps.end_map());
+        ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc_expl());
     ___(ps.end_stream());
 }
@@ -399,15 +402,15 @@ ENGINE_TEST(ExtraTokensNoFalseError1,
             ___(ps.add_sibling());
             ___(ps.set_key_scalar_plain("notag"));
             ___(ps.set_val_scalar_plain("none"));
-        ___(ps.end_map());
+        ___(ps.end_map_flow(singleline));
         ___(ps.add_sibling());
         ___(ps.set_key_ref("*seqref"));
         ___(ps.begin_seq_val_flow());
             ___(ps.set_val_scalar_plain("foo"));
             ___(ps.add_sibling());
             ___(ps.set_val_scalar_plain("bar"));
-        ___(ps.end_seq());
-    ___(ps.end_map());
+        ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.end_doc_expl());
     ___(ps.end_stream());
 }
@@ -449,7 +452,7 @@ ENGINE_TEST(PlainScalarBlockSeq0,
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -476,7 +479,7 @@ ENGINE_TEST(PlainScalarBlockMap0,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"));
     ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -491,7 +494,7 @@ ENGINE_TEST(PlainScalarFlow0Seq1,
             "[\n"
             "a!\"#$%&'()*+,-./09:;<=>?@AZ\\\n]"
             ,
-            "[a!\"#$%&'()*+,-./09:;<=>?@AZ\\]"
+            "[\n  a!\"#$%&'()*+,\n  -./09:;<=>?@AZ\\\n]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -508,7 +511,7 @@ ENGINE_TEST(PlainScalarFlow0Seq1,
     ___(ps.set_val_scalar_plain("a!\"#$%&'()*+"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("-./09:;<=>?@AZ\\"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(multiline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
