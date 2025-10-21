@@ -1070,6 +1070,24 @@ TEST(tags, ys0)
     });
 }
 
+TEST(tags, key_tag_error_json)
+{
+    Tree tree = parse_in_arena("{!!str key: val}");
+    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
+    ExpectError::check_error_visit(&tree, [&]{
+        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_TAG));
+    });
+}
+
+TEST(tags, val_tag_error_json)
+{
+    Tree tree = parse_in_arena("{key: !!str val}");
+    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
+    ExpectError::check_error_visit(&tree, [&]{
+        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_TAG));
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
