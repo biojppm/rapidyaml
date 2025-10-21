@@ -856,10 +856,19 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_3_2)
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
+// workaround for optimizer problem in armv4 and armv5 with -O3: when
+// the calling the parser overloads that take a NodeRef, the compiler
+// optimizes the tree away
+static C4_NO_INLINE void ensure_compiler_knows_tree_was_changed(Tree *t)
+{
+    C4_DONT_OPTIMIZE(*t);
+    print_tree(*t); // this was also needed (?)
+}
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_1)
 {
     Tree actual;
     parse_in_arena(cyaml, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
@@ -867,6 +876,7 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_2)
 {
     Tree actual;
     parse_in_arena(filename, cyaml, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
@@ -1131,6 +1141,7 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_1)
 {
     Tree actual;
     parse_json_in_arena(cjson, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
@@ -1138,6 +1149,7 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_2)
 {
     Tree actual;
     parse_json_in_arena(filename, cjson, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
