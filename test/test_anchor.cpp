@@ -859,6 +859,25 @@ k2:
 }
 
 
+TEST(simple_anchor, key_anchor_error_json)
+{
+    Tree tree = parse_in_arena("{&k key: val}");
+    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
+    ExpectError::check_error_visit(&tree, [&]{
+        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_ANCHOR));
+    });
+}
+
+TEST(simple_anchor, val_anchor_error_json)
+{
+    Tree tree = parse_in_arena("{key: &v val}");
+    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
+    ExpectError::check_error_visit(&tree, [&]{
+        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_ANCHOR));
+    });
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

@@ -232,6 +232,32 @@ TEST(emit_nested, basic)
 )");
 }
 
+TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
+{
+    Tree t;
+    NodeRef r = t.rootref();
+    r |= SEQ|BLOCK;
+    r[0] = ": odd";
+    r[0] |= VAL_PLAIN;
+    r[1] = ":\todd";
+    r[1] |= VAL_PLAIN;
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "- ': odd'\n- ':\todd'\n");
+}
+
+TEST(emit_block_map, ambiguous_plain_emitted_as_squo)
+{
+    Tree t;
+    NodeRef r = t.rootref();
+    r |= MAP|BLOCK;
+    r[0].set_key(": odd");
+    r[0] = ": odd";
+    r[0] |= KEY_PLAIN|VAL_PLAIN;
+    r[1].set_key(":\todd");
+    r[1] = ":\todd";
+    r[1] |= KEY_PLAIN|VAL_PLAIN;
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "': odd': ': odd'\n':\todd': ':\todd'\n");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

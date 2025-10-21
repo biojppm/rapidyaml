@@ -4560,7 +4560,6 @@ void sample_style_flow_ml_indent()
 {
     // we will be using this helper throughout this function
     auto tostr = [](ryml::ConstNodeRef n, ryml::EmitOptions opts) {
-std::cout << "~~~" << ryml::emitrs_yaml<std::string>(n, opts) << "~~~\n";
         return ryml::emitrs_yaml<std::string>(n, opts);
     };
     ryml::csubstr yaml = "{map: {seq: [0, 1, 2, 3, [40, 41]]}}";
@@ -4669,16 +4668,18 @@ void sample_style_flow_ml_filter()
     {
         const ryml::Tree tree = ryml::parse_in_arena(yaml);
         CHECK(tree["map"].is_flow_ml()); // etc
+        // emitted yaml is exactly equal to parsed yaml:
         CHECK(ryml::emitrs_yaml<std::string>(tree) == yaml);
     }
     // if you prefer to shorten the emitted yaml, you can set the
-    // parser to use singleline flow (FLOW_SL):
+    // parser to set singleline flow (FLOW_SL) on all flow containers:
     {
         const ryml::ParserOptions opts = ryml::ParserOptions{}.detect_flow_ml(false);
         const ryml::Tree tree = ryml::parse_in_arena(yaml, opts);
         CHECK(tree["map"].is_flow_sl()); // etc
-        // notice how this is smaller
-        CHECK(ryml::emitrs_yaml<std::string>(tree) == R"({map: {seq: [0,1,2,3,[40,41]]}})");
+        // notice how this is smaller now:
+        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+              R"({map: {seq: [0,1,2,3,[40,41]]}})");
     }
     // you can also keep FLOW_ML, but control its indentation:
     // (see more details in @ref sample_style_flow_ml_indent())
@@ -4686,7 +4687,8 @@ void sample_style_flow_ml_filter()
         const ryml::EmitOptions noindent = ryml::EmitOptions{}.indent_flow_ml(false);
         const ryml::Tree tree = ryml::parse_in_arena(yaml);
         CHECK(tree["map"].is_flow_ml()); // etc
-        CHECK(ryml::emitrs_yaml<std::string>(tree, noindent) == R"({
+        CHECK(ryml::emitrs_yaml<std::string>(tree, noindent) ==
+              R"({
 map: {
 seq: [
 0,
