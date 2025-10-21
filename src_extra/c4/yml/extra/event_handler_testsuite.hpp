@@ -601,91 +601,38 @@ public:
     /** @name comments */
     /** @{ */
 
-    /** add leading comment: key */
-    void add_comment_leading_key(csubstr txt)
-    {
-        _c4dbgpf("leading comment! key [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CLK #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-    /** add leading comment: val */
-    void add_comment_leading_val(csubstr txt)
-    {
-        _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CLV #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-
-    /** add leading comment: key2
+    /** add comment
      *
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
-    void add_comment_leading_key2(csubstr txt)
+    void add_comment(csubstr txt, CommentType_e type)
     {
-        _c4dbgpf("leading comment! key2 [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CLK2 #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-    /** add leading comment: val2
-     *
-     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
-    void add_comment_leading_val2(csubstr txt)
-    {
-        _c4dbgpf("leading comment! val2 [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CLV2 #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-
-    /** add trailing comment; key */
-    void add_comment_trailing_key(csubstr txt)
-    {
-        _c4dbgpf("trailing comment! key [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CTK #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-    /** add trailing comment: val */
-    void add_comment_trailing_val(csubstr txt)
-    {
-        _c4dbgpf("trailing comment! val [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CTV #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-
-    /** add footer comment; key */
-    void add_comment_footer_key(csubstr txt)
-    {
-        _c4dbgpf("footer comment! key [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CFK #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-    /** add footer comment: val */
-    void add_comment_footer_val(csubstr txt)
-    {
-        _c4dbgpf("footer comment! val [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CFV #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-    /** add footer comment: val 2 */
-    void add_comment_footer_val2(csubstr txt)
-    {
-        _c4dbgpf("footer comment2! val [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CFV2 #");
-        append_scalar_escaped(&_buf_(), txt);
-        _send_('\n');
-    }
-
-    /** add comment trailing comma */
-    void add_comment_trailing_token(csubstr txt)
-    {
-        _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
-        _send_("=CTT #");
+        _c4dbgpf("comment! [{}]~~~{}~~~", txt.len, txt);
+        if(false) ;
+        else if(type & COMM_STREAM_LEADING_OPEN  ) _send_("=COMM #[STREAM_LEADING_OPEN]");
+        else if(type & COMM_STREAM_TRAILING_CLOSE) _send_("=COMM #[STREAM_TRAILING_CLOSE]");
+        else if(type & COMM_STREAM_FOOTER_CLOSE  ) _send_("=COMM #[STREAM_FOOTER_CLOSE]");
+        else if(type & COMM_DOC_TRAILING_OPEN    ) _send_("=COMM #[DOC_TRAILING_OPEN]");
+        else if(type & COMM_FLOW_COMMA_TRAILING  ) _send_("=COMM #[FLOW_COMMA_TRAILING]");
+        else if(type & COMM_VAL_BRACKET_TRAILING ) _send_("=COMM #[FLOW_BRACKET_TRAILING]");
+        else if(type & COMM_KEY_LEADING_COLON    ) _send_("=COMM #[FLOW_LEADING_COLON]");
+        else if(type & COMM_QMRK_LEADING         ) _send_("=COMM #[QMRK_LEADING]");
+        else if(type & COMM_QMRK_TRAILING        ) _send_("=COMM #[QMRK_TRAILING]");
+        else if(type & COMM_QMRK_FOOTER          ) _send_("=COMM #[QMRK_FOOTER]");
+        else if(type & COMM_VAL_LEADING          ) _send_("=COMM #[VAL_LEADING]");
+        else if(type & COMM_VAL_TRAILING         ) _send_("=COMM #[VAL_TRAILING]");
+        else if(type & COMM_VAL_TRAILING_DASH    ) _send_("=COMM #[VAL_TRAILING_DASH]");
+        else if(type & COMM_VAL_FOOTER           ) _send_("=COMM #[VAL_FOOTER]");
+        else if(type & COMM_KEY_LEADING          ) _send_("=COMM #[KEY_LEADING]");
+        else if(type & COMM_KEY_TRAILING         ) _send_("=COMM #[KEY_TRAILING]");
+        else if(type & COMM_KEY_TRAILING_COLON   ) _send_("=COMM #[KEY_TRAILING_COLON]");
+        else if(type & COMM_VAL_TAG_LEADING      ) _send_("=COMM #[VAL_TAG_LEADING]");
+        else if(type & COMM_VAL_TAG_TRAILING     ) _send_("=COMM #[VAL_TAG_TRAILING]");
+        else if(type & COMM_VAL_TAG_LEADING      ) _send_("=COMM #[VAL_TAG_LEADING]");
+        else if(type & COMM_VAL_TAG_TRAILING     ) _send_("=COMM #[VAL_TAG_TRAILING]");
+        else if(type & COMM_KEY_TAG_LEADING      ) _send_("=COMM #[KEY_TAG_LEADING]");
+        else if(type & COMM_KEY_TAG_TRAILING     ) _send_("=COMM #[KEY_TAG_TRAILING]");
+        else if(type & COMM_KEY_TAG_LEADING      ) _send_("=COMM #[KEY_TAG_LEADING]");
+        else if(type & COMM_KEY_TAG_TRAILING     ) _send_("=COMM #[KEY_TAG_TRAILING]");
         append_scalar_escaped(&_buf_(), txt);
         _send_('\n');
     }

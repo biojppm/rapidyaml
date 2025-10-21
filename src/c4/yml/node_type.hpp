@@ -278,20 +278,44 @@ RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
 #ifdef RYML_WITH_COMMENTS
 using comment_data_type = uint32_t;
 typedef enum : uint32_t {
-    COMM_NONE = 0,
-    COMM_LK  = (1u << 0u),  ///< comment leading key
-    COMM_LK2 = (1u << 1u),  ///< comment leading key, after `?` (only in block mode)
-    COMM_TK  = (1u << 2u),  ///< comment trailing key
-    COMM_FK  = (1u << 3u),  ///< comment footer key
-    COMM_LV  = (1u << 4u),  ///< comment leading val
-    COMM_LV2 = (1u << 5u),  ///< comment leading val, after `-` (only in block mode)
-    COMM_TV  = (1u << 6u),  ///< comment trailing val
-    COMM_FV  = (1u << 7u),  ///< comment footer val
-    COMM_FV2 = (1u << 8u),  ///< comment footer val
-    COMM_TT  = (1u << 9u),  ///< comment trailing token (after `,` on flow, or after doc `---`)
-    COMM_ANY_KEY = COMM_LK|COMM_LK2|COMM_TK|COMM_FK,
-    COMM_ANY_VAL = COMM_LV|COMM_LV2|COMM_TV|COMM_FV|COMM_FV2,
-    COMM_ANY = COMM_ANY_KEY|COMM_ANY_VAL|COMM_TT,
+    #define _c4bit(i) (1u << (i))
+    // STREAM
+    COMM_STREAM_LEADING_OPEN = _c4bit(0u), // leading --- (line before)
+    // DOC
+    COMM_DOC_TRAILING_OPEN = _c4bit(1u), // trailing --- (sameline)
+
+    // QMRK
+    COMM_QMRK_LEADING = _c4bit(3u), // leading ? token (line before)
+    COMM_QMRK_TRAILING = _c4bit(4u),
+    COMM_QMRK_FOOTER = _c4bit(5u),
+
+    COMM_KEY_LEADING  = _c4bit(6u),
+    COMM_KEY_TAG_LEADING = _c4bit(7u),
+    COMM_KEY_TAG_TRAILING = _c4bit(8u),
+    COMM_KEY_ANCHOR_LEADING = _c4bit(9u),
+    COMM_KEY_ANCHOR_TRAILING = _c4bit(10u),
+    COMM_KEY_BRACKET_TRAILING = _c4bit(11u), // trailing [ or { (sameline)
+    COMM_KEY_TRAILING = _c4bit(12u),
+    COMM_KEY_LEADING_COLON = _c4bit(13u),
+    COMM_KEY_TRAILING_COLON = _c4bit(14u),
+
+    COMM_VAL_LEADING  = _c4bit(15u),
+    COMM_VAL_TAG_LEADING = _c4bit(16u),
+    COMM_VAL_TAG_TRAILING = _c4bit(17u),
+    COMM_VAL_ANCHOR_LEADING = _c4bit(18u),
+    COMM_VAL_ANCHOR_TRAILING = _c4bit(19u),
+    COMM_VAL_TRAILING_DASH = _c4bit(20u), // trailing -
+    COMM_VAL_BRACKET_TRAILING = _c4bit(21u), // trailing [ or { (sameline)
+    COMM_VAL_TRAILING = _c4bit(22u),
+    COMM_VAL_FOOTER   = _c4bit(23u),
+    COMM_FLOW_COMMA_TRAILING = _c4bit(24u), // trailing , (sameline)
+
+    COMM_STREAM_TRAILING_CLOSE = _c4bit(25u), // footer ... (same line)
+    COMM_STREAM_FOOTER_CLOSE = _c4bit(26u), // footer ... (line after)
+    COMM_LAST = COMM_STREAM_FOOTER_CLOSE,
+    COMM_ANY = (COMM_LAST << 1u) - 1u,
+    COMM_NONE = 0,   // internal
+    #undef _c4bit
 } CommentType_e;
 
 struct CommentData

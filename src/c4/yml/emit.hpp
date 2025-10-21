@@ -377,8 +377,10 @@ private: // pending whitespace
         prev = m_tree->comment(node, prev, type);
         if(prev)
         {
-            _newl();
-            _write_pws_and_pend(_PWS_NEWL);
+            if(m_col)
+                _newl();
+            _indent(m_ilevel);
+            _write_comment(prev->m_text, m_col);
             _pend_newl();
         }
         return prev;

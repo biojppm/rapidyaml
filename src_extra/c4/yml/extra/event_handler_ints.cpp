@@ -94,12 +94,7 @@ static_assert((MASK & AREN) == AREN, "overflow?");
 static_assert((MASK & PSTR) == PSTR, "overflow?");
 static_assert((MASK & UNFILT) == UNFILT, "overflow?");
 #ifdef RYML_WITH_COMMENTS
-static_assert((MASK & COML) == COML, "overflow?");
-static_assert((MASK & COML2) == COML2, "overflow?");
-static_assert((MASK & COMT) == COMT, "overflow?");
-static_assert((MASK & COMF) == COMF, "overflow?");
-static_assert((MASK & COMF2) == COMF2, "overflow?");
-static_assert((MASK & COMN) == COMN, "overflow?");
+static_assert((MASK & COMM) == COMM, "overflow?");
 #endif
 static_assert((MASK & LAST) == LAST, "overflow?");
 static_assert((MASK & MASK) == MASK, "overflow?");

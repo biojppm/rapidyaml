@@ -43,13 +43,23 @@ using DataType = int32_t;
 /** enumeration of integer event bits. */
 typedef enum : DataType {
 
+    /// @cond dev
+    _COMM_START = 3,  // internal
+    /// @endcond
+
+    // Structure flags
+    KEY_ = (1 << 0),  ///< as key
+    VAL_ = (1 << 1),  ///< as value
+    EXPL = (1 << 2),  ///< `---` (with BDOC) or `...` (with EDOC)
+    COMM = (1 << _COMM_START),  ///< comment (requires RYML_WITH_COMMENTS, unused otherwise)
+
     // Event scopes
-    BEG_ = (1 <<  0),  ///< scope: begin
-    END_ = (1 <<  1),  ///< scope: end
-    SEQ_ = (1 <<  2),  ///< scope: seq
-    MAP_ = (1 <<  3),  ///< scope: map
-    DOC_ = (1 <<  4),  ///< scope: doc
-    STRM = (1 <<  5),  ///< scope: stream
+    BEG_ = (1 <<  4),  ///< scope: begin
+    END_ = (1 <<  5),  ///< scope: end
+    SEQ_ = (1 <<  6),  ///< scope: seq
+    MAP_ = (1 <<  7),  ///< scope: map
+    DOC_ = (1 <<  8),  ///< scope: doc
+    STRM = (1 <<  9),  ///< scope: stream
     BSEQ = BEG_|SEQ_,  ///< begin seq    (+SEQ in test suite events)
     ESEQ = END_|SEQ_,  ///< end seq      (-SEQ in test suite events)
     BMAP = BEG_|MAP_,  ///< begin map    (+MAP in test suite events)
@@ -60,29 +70,24 @@ typedef enum : DataType {
     EDOC = END_|DOC_,  ///< end doc      (-DOC in test suite events)
 
     // Single events
-    SCLR = (1 <<  6),  ///< scalar (=VAL in test suite events)
-    ALIA = (1 <<  7),  ///< *ref (reference)
-    ANCH = (1 <<  8),  ///< &anchor
-    TAG_ = (1 <<  9),  ///< !tag
-
-    // Structure flags
-    KEY_ = (1 << 10),  ///< as key
-    VAL_ = (1 << 11),  ///< as value
-    EXPL = (1 << 12),  ///< `---` (with BDOC) or `...` (with EDOC)
+    SCLR = (1 << 10),  ///< scalar (=VAL in test suite events)
+    ALIA = (1 << 11),  ///< *ref (reference)
+    ANCH = (1 << 12),  ///< &anchor
+    TAG_ = (1 << 13),  ///< !tag
 
     // Style flags
-    PLAI = (1 << 13),  ///< scalar: plain
-    SQUO = (1 << 14),  ///< scalar: single-quoted (')
-    DQUO = (1 << 15),  ///< scalar: double-quoted ("")
-    LITL = (1 << 16),  ///< scalar: block literal (|)
-    FOLD = (1 << 17),  ///< scalar: block folded (>)
-    FLOW = (1 << 18),  ///< container: flow: [] for seqs or {} for maps
-    BLCK = (1 << 19),  ///< container: block
+    PLAI = (1 << 14),  ///< scalar: plain
+    SQUO = (1 << 15),  ///< scalar: single-quoted (')
+    DQUO = (1 << 16),  ///< scalar: double-quoted ("")
+    LITL = (1 << 17),  ///< scalar: block literal (|)
+    FOLD = (1 << 18),  ///< scalar: block folded (>)
+    FLOW = (1 << 19),  ///< container: flow: [] for seqs or {} for maps
+    BLCK = (1 << 20),  ///< container: block
 
     // Directive flags
-    YAML = (1 << 20),  ///< yaml directive: `\%YAML <version>`
-    TAGD = (1 << 21),  ///< tag directive, name : `\%TAG <name> .......`
-    TAGV = (1 << 22),  ///< tag directive, value: `\%TAG ...... <value>`
+    YAML = (1 << 21),  ///< yaml directive: `\%YAML <version>`
+    TAGD = (1 << 22),  ///< tag directive, name : `\%TAG <name> .......`
+    TAGV = (1 << 23),  ///< tag directive, value: `\%TAG ...... <value>`
 
     // Buffer flags
     /// IMPORTANT. Marks events whose string was placed in the
@@ -92,47 +97,43 @@ typedef enum : DataType {
     /// expand from two to three bytes). Because of this size
     /// expansion, the filtered string cannot be placed in the original
     /// source and needs to be placed in the arena.
-    AREN = (1 << 23),
+    AREN = (1 << 24),
     /// special flag to enable look-back in the event array. it
     /// signifies that the previous event has a string, meaning that
     /// the jump back to that event is 3 positions. without this flag it
     /// would be impossible to jump to the previous event.
-    PSTR = (1 << 24),
+    PSTR = (1 << 25),
     /// special flag to mark a scalar as unfiltered (when the parser
     /// is set not to filter).
-    UNFILT = (1 << 25),
+    UNFILT = (1 << 26),
 
-    #ifdef RYML_WITH_COMMENTS
-    // Comment flags
-    COML  = (1 << 26),  ///< leading comment
-    COML2 = (1 << 27),  ///< leading comment
-    COMT  = (1 << 28),  ///< trailing comment
-    COMF  = (1 << 29),  ///< footer comment
-    COMF2 = (1 << 30),  ///< footer comment
-    COMN  = (1 << 31),  ///< comment after token
-    // Utility flags/masks
-    /// the last flag defined above
-    LAST = COMN,
-    /// a mask of all bits in this enumeration
-    MASK = -1, // same as ((LAST << 1) - 1), but without overflow
-    /// with string: mask of all the events that encode a string
-    /// following the event. in the event has a string. the next two
-    /// integers will provide respectively the string's offset and
-    /// length. See also @ref PSTR.
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COML|COML2|COMT|COMF|COMF2|COMN,
-    #else
     // Utility flags/masks
     /// the last flag defined above
     LAST = UNFILT,
     /// a mask of all bits in this enumeration
     MASK = (LAST << 1) - 1,
-    /// with string: mask of all the events that encode a string
-    /// following the event. in the event has a string. the next two
-    /// integers will provide respectively the string's offset and
-    /// length. See also @ref PSTR.
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML,
-    #endif
+    /// WithSTRing: mask of all the events that encode a string
+    /// following the event. For such events, the next two integers
+    /// will provide respectively the string's offset and length. See
+    /// also @ref PSTR.
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COMM,
+
 } EventFlags;
+
+#ifdef RYML_WITH_COMMENTS
+inline DataType encode_comment(ievt::DataType curr, CommentType_e comm)
+{
+    curr &= (ievt::KEY_|ievt::VAL_); // keep only these
+    curr |= ievt::COMM|ievt::DataType(static_cast<uint32_t>(comm) << static_cast<uint32_t>(ievt::_COMM_START));
+    return curr;
+}
+inline CommentType_e decode_comment(ievt::DataType curr)
+{
+    curr &= ~(ievt::KEY_|ievt::VAL_|ievt::COMM);
+    return static_cast<CommentType_e>(static_cast<CommentType_e>(curr >> ievt::_COMM_START) & COMM_ANY);
+}
+#endif
+
 } // namespace ievt
 
 /** @} */
@@ -1219,81 +1220,14 @@ public:
     /** @name comments */
     /** @{ */
 
-    /** add leading comment: key */
-    void add_comment_leading_key(csubstr txt)
-    {
-        _c4dbgpf("leading comment! key [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::KEY_|ievt::COML);
-    }
-    /** add leading comment: val */
-    void add_comment_leading_val(csubstr txt)
-    {
-        _c4dbgpf("leading comment! val [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::VAL_|ievt::COML);
-    }
-
-    /** add leading comment: key2
+    /** add comment
      *
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
-    void add_comment_leading_key2(csubstr txt)
+    void add_comment(csubstr txt, CommentType_e type)
     {
-        _c4dbgpf("leading comment! key2 [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::KEY_|ievt::COML2);
-    }
-    /** add leading comment: val2
-     *
-     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
-    void add_comment_leading_val2(csubstr txt)
-    {
-        _c4dbgpf("leading comment! val2 [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::VAL_|ievt::COML2);
-    }
-
-    /** add trailing comment; key */
-    void add_comment_trailing_key(csubstr txt)
-    {
-        _c4dbgpf("trailing comment! key [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::KEY_|ievt::COMT);
-    }
-    /** add trailing comment: val */
-    void add_comment_trailing_val(csubstr txt)
-    {
-        _c4dbgpf("trailing comment! val [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::VAL_|ievt::COMT);
-    }
-
-    /** add footer comment; key */
-    void add_comment_footer_key(csubstr txt)
-    {
-        _c4dbgpf("footer comment! key [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::KEY_|ievt::COMF);
-    }
-    /** add footer comment: val */
-    void add_comment_footer_val(csubstr txt)
-    {
-        _c4dbgpf("footer comment! val [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::VAL_|ievt::COMF);
-    }
-
-    /** add footer comment: val 2 */
-    void add_comment_footer_val2(csubstr txt)
-    {
-        _c4dbgpf("footer comment! val2 [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::VAL_|ievt::COMF2);
-    }
-
-    /** add comment trailing token */
-    void add_comment_trailing_token(csubstr txt)
-    {
-        _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::VAL_|ievt::COMN);
-    }
-
-    /** add comment trailing comma */
-    void add_comment_trailing_begin_doc_expl(csubstr txt)
-    {
-        _c4dbgpf("comma comment! [{}]~~~{}~~~", txt.len, txt);
-        _send_str_(txt, ievt::BEG_|ievt::COMN);
+        _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", txt.len, txt);
+        ievt::DataType curr = ((m_evt_pos < m_evt_size) ? m_evt[m_evt_pos] : 0);
+        _send_str_(txt, ievt::encode_comment(curr, type));
     }
 
     /** @} */

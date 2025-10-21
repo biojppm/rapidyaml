@@ -64,23 +64,77 @@ c4::EnumSymbols<yml::extra::ievt::EventFlags> esyms<yml::extra::ievt::EventFlags
         {yml::extra::ievt::TAGD, "TAGD"},
         {yml::extra::ievt::TAGV, "TAGV"},
         #ifdef RYML_WITH_COMMENTS
-        {yml::extra::ievt::COML, "COML"},
-        {yml::extra::ievt::COML2, "COML2"},
-        {yml::extra::ievt::COMT, "COMT"},
-        {yml::extra::ievt::COMF, "COMF"},
-        {yml::extra::ievt::COMF2, "COMF2"},
-        {yml::extra::ievt::COMN, "COMN"},
+        {yml::extra::ievt::COMM, "COMM"},
         #endif
     };
     return EnumSymbols<yml::extra::ievt::EventFlags>(syms);
 }
+#ifdef RYML_WITH_COMMENTS
+template<>
+c4::EnumSymbols<yml::CommentType_e> esyms<yml::CommentType_e>()
+{
+    static constexpr const EnumSymbols<yml::CommentType_e>::Sym syms[] = {
+        {yml::COMM_STREAM_LEADING_OPEN  , "CSLO"},
+        {yml::COMM_STREAM_TRAILING_CLOSE, "CSTC"},
+        {yml::COMM_STREAM_FOOTER_CLOSE  , "CSFC"},
+        {yml::COMM_DOC_TRAILING_OPEN    , "CDTO"},
+        {yml::COMM_FLOW_COMMA_TRAILING  , "CFCT"},
+        {yml::COMM_VAL_BRACKET_TRAILING , "CFBT"},
+        {yml::COMM_QMRK_LEADING         , "CQML"},
+        {yml::COMM_QMRK_TRAILING        , "CQMT"},
+        {yml::COMM_QMRK_FOOTER          , "CQMV"},
+        {yml::COMM_VAL_LEADING          , "CVL_"},
+        {yml::COMM_VAL_TRAILING         , "CVT_"},
+        {yml::COMM_VAL_TRAILING_DASH    , "CVTD"},
+        {yml::COMM_VAL_FOOTER           , "CVF_"},
+        {yml::COMM_KEY_LEADING          , "CKL_"},
+        {yml::COMM_KEY_TRAILING         , "CKT_"},
+        {yml::COMM_KEY_TRAILING_COLON   , "CKTC"},
+        {yml::COMM_VAL_TAG_LEADING      , "CVTL"},
+        {yml::COMM_VAL_TAG_TRAILING     , "CVTT"},
+        {yml::COMM_VAL_TAG_LEADING      , "CVAL"},
+        {yml::COMM_VAL_TAG_TRAILING     , "CVAT"},
+        {yml::COMM_KEY_TAG_LEADING      , "CKTL"},
+        {yml::COMM_KEY_TAG_TRAILING     , "CKTT"},
+        {yml::COMM_KEY_TAG_LEADING      , "CKAL"},
+        {yml::COMM_KEY_TAG_TRAILING     , "CKAT"},
+    };
+    return EnumSymbols<yml::CommentType_e>(syms);
+}
+#endif
 namespace yml {
 namespace extra {
 namespace ievt {
 size_t to_chars(substr buf, ievt::DataType flags)
 {
+    #ifndef RYML_WITH_COMMENTS
     flags &= ievt::MASK; // clear any other bits
     return c4::bm2str<ievt::EventFlags>(flags, buf.str, buf.len);
+    #else
+    if(!(flags & ievt::COMM))
+    {
+        flags &= ievt::MASK; // clear any other bits
+        return c4::bm2str<ievt::EventFlags>(flags, buf.str, buf.len);
+    }
+    else
+    {
+        ievt::DataType common = ievt::KEY_|ievt::VAL_|ievt::COMM;
+        size_t len = c4::bm2str<ievt::EventFlags>(flags & common, buf.str, buf.len);
+        substr rem = {};
+        if(len < buf.len)
+        {
+            buf[len++] = '|';
+            rem = buf.sub(len);
+        }
+        else
+        {
+            ++len;
+        }
+        CommentType_e comment = ievt::decode_comment(flags);
+        len += c4::bm2str<yml::CommentType_e>(comment, rem.str, rem.len);
+        return len;
+    }
+    #endif
 }
 csubstr to_chars_sub(substr buf, ievt::DataType flags)
 {

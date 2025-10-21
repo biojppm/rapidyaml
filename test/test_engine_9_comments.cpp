@@ -15,6 +15,98 @@ namespace yml {
     template<class Handler> void disabled_##name(Handler &ps)
 #endif
 
+constexpr const bool multiline = true;
+constexpr const bool singleline = false;
+
+COMMENT_TEST(FlowMapBasic,
+             "# 1"                              "\n"
+             "{ # 2"                              "\n"
+             "  # 3"                              "\n"
+             "  a # 4"                              "\n"
+             "  # 5"                              "\n"
+             "  : # 6"                              "\n"
+             "  b # 7"                              "\n"
+             "  # 8"                              "\n"
+             "} # 9"                              "\n"
+             "# 10"                              "\n"
+             ,
+             "+STR"                          "\n"
+             "+DOC"                          "\n"
+             "=COMM #[VAL_LEADING] 1"         "\n"
+             "+MAP {}"                            "\n"
+             "=COMM #[FLOW_BRACKET_TRAILING] 2\\n 3"         "\n"
+             "=VAL :a"                         "\n"
+             "=COMM #[KEY_TRAILING] 4"         "\n"
+             "=COMM #[FLOW_LEADING_COLON] 5"         "\n"
+             "=COMM #[KEY_TRAILING_COLON] 6"         "\n"
+             "=VAL :b"         "\n"
+             "=COMM #[VAL_TRAILING] 7"         "\n"
+             "=COMM #[VAL_FOOTER] 8"         "\n"
+             "-MAP"         "\n"
+             "=COMM #[VAL_TRAILING] 9"         "\n"
+             "=COMM #[VAL_FOOTER] 10"         "\n"
+             "-DOC"         "\n"
+             "-STR"         "\n"
+             ""
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_VAL_LEADING));
+    ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.add_comment(" 4", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 5", COMM_KEY_LEADING_COLON));
+    ___(ps.add_comment(" 6", COMM_KEY_TRAILING_COLON));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.add_comment(" 7", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 8", COMM_VAL_FOOTER));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.add_comment(" 9", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 10", COMM_VAL_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+#ifdef WIP
+COMMENT_TEST(StreamDocValPlain,
+             "# 1 leading stream"                             "\n"
+             "--- # 2 trailing open"                          "\n"
+             "# 3 val leading"                                "\n"
+             "foo # 4 val trailing"                           "\n"
+             "# 5 val footer"                                 "\n"
+             "... # 6 trailing stream close"                  "\n"
+             "# 7 footer stream close"                        "\n"
+             ,//---------------------------------------------
+             "+STR"                            "\n"
+             "=COM #[STREAM_LEADING_OPEN] 1 leading stream"                            "\n"
+             "+DOC ---"                            "\n"
+             "=COM #[DOC_TRAILING_OPEN] 2 trailing open"                            "\n"
+             "=COM #[VAL_LEADING] 3 leading val"                            "\n"
+             "=VAL :"                            "\n"
+             "=COM #[VAL_TRAILING] 4 trailing val"                            "\n"
+             "=COM #[VAL_FOOTER] 5 footer val"                            "\n"
+             "-DOC ..."                            "\n"
+             "=COM #[STREAM_TRAILING_CLOSE] 6 trailing close"                            "\n"
+             "=COM #[STREAM_FOOTER_CLOSE] 7 footer close"                            "\n"
+             "-STR"                            "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.add_comment(" 1 stream leading open", COMM_STREAM_LEADING_OPEN));
+    ___(ps.begin_doc_expl());
+    ___(ps.add_comment(" 2 doc trailing open", COMM_DOC_TRAILING_OPEN));
+    ___(ps.add_comment(" 3 val leading", COMM_VAL_LEADING));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_comment(" 4 val trailing", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 5 val footer val", COMM_VAL_FOOTER));
+    ___(ps.end_doc_expl());
+    ___(ps.add_comment(" 6 trailing stream", COMM_STREAM_TRAILING_CLOSE));
+    ___(ps.add_comment(" 7 footer stream", COMM_STREAM_FOOTER_CLOSE));
+    ___(ps.end_stream());
+}
 
 COMMENT_TEST(CommentSketch,
              "---"                                          "\n"
@@ -1638,6 +1730,7 @@ COMMENT_TEST(CommentExplKey1,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+#endif
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

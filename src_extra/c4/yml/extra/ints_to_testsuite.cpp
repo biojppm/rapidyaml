@@ -193,49 +193,35 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
             append("-STR\n");
         }
         #ifdef RYML_WITH_COMMENTS
-        else if(evt & ievt::COML)
+        else if(evt & ievt::COMM)
         {
-            if(evt & ievt::KEY_)
-                append("=CLK #");
-            else
-                append("=CLV #");
-            append_esc(getstr(i));
-        }
-        else if(evt & ievt::COML2)
-        {
-            if(evt & ievt::KEY_)
-                append("=CLK2 #");
-            else
-                append("=CLV2 #");
-            append_esc(getstr(i));
-        }
-        else if(evt & ievt::COMT)
-        {
-            if(evt & ievt::KEY_)
-                append("=CTK #");
-            else
-                append("=CTV #");
-            append_esc(getstr(i));
-        }
-        else if(evt & ievt::COMF)
-        {
-            if(evt & ievt::KEY_)
-                append("=CFK #");
-            else
-                append("=CFV #");
-            append_esc(getstr(i));
-        }
-        else if(evt & ievt::COMF2)
-        {
-            if(evt & ievt::KEY_)
-                append("=CFK2 #");
-            else
-                append("=CFV2 #");
-            append_esc(getstr(i));
-        }
-        else if(evt & ievt::COMN)
-        {
-            append("=CTT #");
+            CommentType_e comm = ievt::decode_comment(evt);
+            if(false) ;
+            else if(comm & COMM_STREAM_LEADING_OPEN  ) append("=COMM #[STREAM_LEADING_OPEN]");
+            else if(comm & COMM_STREAM_TRAILING_CLOSE) append("=COMM #[STREAM_TRAILING_CLOSE]");
+            else if(comm & COMM_STREAM_FOOTER_CLOSE  ) append("=COMM #[STREAM_FOOTER_CLOSE]");
+            else if(comm & COMM_DOC_TRAILING_OPEN    ) append("=COMM #[DOC_TRAILING_OPEN]");
+            else if(comm & COMM_FLOW_COMMA_TRAILING  ) append("=COMM #[FLOW_COMMA_TRAILING]");
+            else if(comm & COMM_VAL_BRACKET_TRAILING) append("=COMM #[FLOW_BRACKET_TRAILING]");
+            else if(comm & COMM_KEY_LEADING_COLON   ) append("=COMM #[FLOW_LEADING_COLON]");
+            else if(comm & COMM_QMRK_LEADING         ) append("=COMM #[QMRK_LEADING]");
+            else if(comm & COMM_QMRK_TRAILING        ) append("=COMM #[QMRK_TRAILING]");
+            else if(comm & COMM_QMRK_FOOTER          ) append("=COMM #[QMRK_FOOTER]");
+            else if(comm & COMM_VAL_LEADING          ) append("=COMM #[VAL_LEADING]");
+            else if(comm & COMM_VAL_TRAILING         ) append("=COMM #[VAL_TRAILING]");
+            else if(comm & COMM_VAL_TRAILING_DASH    ) append("=COMM #[VAL_TRAILING_DASH]");
+            else if(comm & COMM_VAL_FOOTER           ) append("=COMM #[VAL_FOOTER]");
+            else if(comm & COMM_KEY_LEADING          ) append("=COMM #[KEY_LEADING]");
+            else if(comm & COMM_KEY_TRAILING         ) append("=COMM #[KEY_TRAILING]");
+            else if(comm & COMM_KEY_TRAILING_COLON   ) append("=COMM #[KEY_TRAILING_COLON]");
+            else if(comm & COMM_VAL_TAG_LEADING      ) append("=COMM #[VAL_TAG_LEADING]");
+            else if(comm & COMM_VAL_TAG_TRAILING     ) append("=COMM #[VAL_TAG_TRAILING]");
+            else if(comm & COMM_VAL_TAG_LEADING      ) append("=COMM #[VAL_TAG_LEADING]");
+            else if(comm & COMM_VAL_TAG_TRAILING     ) append("=COMM #[VAL_TAG_TRAILING]");
+            else if(comm & COMM_KEY_TAG_LEADING      ) append("=COMM #[KEY_TAG_LEADING]");
+            else if(comm & COMM_KEY_TAG_TRAILING     ) append("=COMM #[KEY_TAG_TRAILING]");
+            else if(comm & COMM_KEY_TAG_LEADING      ) append("=COMM #[KEY_TAG_LEADING]");
+            else if(comm & COMM_KEY_TAG_TRAILING     ) append("=COMM #[KEY_TAG_TRAILING]");
             append_esc(getstr(i));
         }
         #endif
