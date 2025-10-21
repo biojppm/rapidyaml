@@ -360,7 +360,7 @@ void Emitter<Writer>::_flow_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
-    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_VAL_LEADING));
+    _RYML_WITH_COMMENTS(CommentData const* comm = nullptr);
     if(ty.has_val_tag())
     {
         _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, comm));
@@ -376,6 +376,7 @@ void Emitter<Writer>::_flow_seq_open_entry(id_type node)
         _write(m_tree->val_anchor(node));
         _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, comm));
     }
+    _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_VAL_LEADING));
 }
 
 
@@ -399,7 +400,7 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
-    _RYML_WITH_COMMENTS(CommentData const* comm = _maybe_write_comm_leading(node, COMM_KEY_LEADING));
+    _RYML_WITH_COMMENTS(CommentData const* comm = nullptr);
     if(ty.has_key_tag())
     {
         _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_KEY_TAG_LEADING, comm));
@@ -415,6 +416,7 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
         _write(m_tree->key_anchor(node));
         _RYML_WITH_COMMENTS(comm = _maybe_write_comm_trailing(node, COMM_KEY_ANCHOR_TRAILING, comm));
     }
+    _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_KEY_LEADING));
     if(ty.is_key_ref())
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -430,7 +432,6 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     _write_pws_and_pend(_PWS_SPACE);
     _write(':');
     _RYML_WITH_COMMENTS(comm = _maybe_write_comm_trailing(node, COMM_KEY_TRAILING_COLON));
-    _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_VAL_LEADING));
     if(ty.has_val_tag())
     {
         _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, comm));
@@ -446,6 +447,7 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
         _write(m_tree->val_anchor(node));
         _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, comm));
     }
+    _RYML_WITH_COMMENTS(comm = _maybe_write_comm_leading(node, COMM_VAL_LEADING));
 }
 
 
@@ -472,6 +474,7 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the following dash
     _write('-');
     _RYML_WITH_COMMENTS(comm = _maybe_write_comm_trailing(node, COMM_VAL_TRAILING_DASH, comm));
+    _RYML_WITH_COMMENTS(++m_ilevel);
     bool has_tag_or_anchor = false;
     if(ty.has_val_tag())
     {
@@ -509,6 +512,7 @@ void Emitter<Writer>::_blck_seq_close_entry(id_type node)
     _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING));
     _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER));
     _pend_newl();
+    _RYML_WITH_COMMENTS(--m_ilevel);
 }
 
 
