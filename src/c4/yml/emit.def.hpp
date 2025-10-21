@@ -38,7 +38,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
         _emit_json(id);
     }
     else
-        _RYML_ERR_BASIC_(m_tree->callbacks(), "unknown emit type");
+        _RYML_ERR_BASIC_(m_tree->callbacks(), "unknown emit type"); // LCOV_EXCL_LINE
     m_tree = nullptr;
     return this->Writer::_get(error_on_excess);
 }
@@ -823,14 +823,14 @@ template<class Writer>
 void Emitter<Writer>::_flow_write_scalar_key(id_type id)
 {
     enum : type_bits {
-        _block_styles = KEY_LITERAL|KEY_FOLDED,
-        _flow_styles = KEY_STYLE & ~_block_styles,
+        _block_styles = (KEY_LITERAL|KEY_FOLDED),
+        _flow_styles = KEY_STYLE & ~(KEY_LITERAL|KEY_FOLDED),
     };
     csubstr str = m_tree->key(id);
     NodeType ty = m_tree->type(id) & static_cast<NodeType_e>(_flow_styles);
     if(!(ty & KEY_STYLE))
         ty |= scalar_style_choose(str);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !(ty & _block_styles), m_tree, id);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !(ty & (KEY_LITERAL|KEY_FOLDED)), m_tree, id);
     if(ty & KEY_PLAIN)
     {
         if(C4_LIKELY(!(str.begins_with(": ") || str.begins_with(":\t"))))
@@ -857,13 +857,13 @@ void Emitter<Writer>::_flow_write_scalar_val(id_type id)
 {
     enum : type_bits {
         _block_styles = VAL_LITERAL|VAL_FOLDED,
-        _flow_styles = VAL_STYLE & ~_block_styles,
+        _flow_styles = (VAL_STYLE) & (~(VAL_LITERAL|VAL_FOLDED)),
     };
     csubstr str = m_tree->val(id);
     NodeType ty = m_tree->type(id) & static_cast<NodeType_e>(_flow_styles);
     if(!(ty & VAL_STYLE))
         ty |= scalar_style_choose(str);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !(ty & static_cast<NodeType_e>(_block_styles)), m_tree, id);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !(ty & (VAL_LITERAL|VAL_FOLDED)), m_tree, id);
     if(ty & VAL_PLAIN)
     {
         if(C4_LIKELY(!(str.begins_with(": ") || str.begins_with(":\t"))))
@@ -889,7 +889,7 @@ template<class Writer>
 void Emitter<Writer>::_blck_write_scalar_key(id_type id)
 {
     csubstr key = m_tree->key(id);
-    NodeType ty = m_tree->type(id) & static_cast<NodeType_e>(_keysc);
+    NodeType ty = m_tree->type(id);
     if(!(ty & KEY_STYLE))
         ty |= scalar_style_choose(key);
     if(ty & KEY_PLAIN)
@@ -925,7 +925,7 @@ template<class Writer>
 void Emitter<Writer>::_blck_write_scalar_val(id_type id)
 {
     csubstr str = m_tree->val(id);
-    NodeType ty = m_tree->type(id) & static_cast<NodeType_e>(_valsc);
+    NodeType ty = m_tree->type(id);
     if(!(ty & VAL_STYLE))
         ty |= scalar_style_choose(str);
     if(ty & VAL_PLAIN)
@@ -1305,8 +1305,8 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
 }
 
 
-
 //-----------------------------------------------------------------------------
+
 template<class Writer>
 void Emitter<Writer>::_emit_json(id_type id)
 {
@@ -1331,19 +1331,19 @@ void Emitter<Writer>::_visit_json_sl(id_type id, id_type depth)
     NodeType ty = m_tree->type(id);
     if(ty.is_keyval())
     {
-        _writek_json(id);
+        _writek_json(id, ty);
         _write(": ");
-        _writev_json(id);
+        _writev_json(id, ty);
     }
     else if(ty.is_val())
     {
-        _writev_json(id);
+        _writev_json(id, ty);
     }
     else if(ty.is_container())
     {
         if(ty.has_key())
         {
-            _writek_json(id);
+            _writek_json(id, ty);
             _write(": ");
         }
         if(ty.is_seq())
@@ -1374,19 +1374,19 @@ void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
     NodeType ty = m_tree->type(id);
     if(ty.is_keyval())
     {
-        _writek_json(id);
+        _writek_json(id, ty);
         _write(": ");
-        _writev_json(id);
+        _writev_json(id, ty);
     }
     else if(ty.is_val())
     {
-        _writev_json(id);
+        _writev_json(id, ty);
     }
     else if(ty.is_container())
     {
         if(ty.has_key())
         {
-            _writek_json(id);
+            _writek_json(id, ty);
             _write(": ");
         }
         if(ty.is_seq())
@@ -1426,29 +1426,44 @@ void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags)
+void Emitter<Writer>::_writek_json(id_type id, NodeType ty)
 {
     if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_TAG)
-        if(C4_UNLIKELY(flags & (KEYTAG|VALTAG)))
-            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, NONE, "JSON does not have tags");
+        if(C4_UNLIKELY(ty.has_key_tag()))
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "JSON does not have tags");
     if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_ANCHOR)
-        if(C4_UNLIKELY(flags.has_anchor()))
-            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, NONE, "JSON does not have anchors");
-    if(sc.scalar.len)
+        if(C4_UNLIKELY(ty.has_key_anchor()))
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
+    csubstr key = m_tree->key(id);
+    if(key.len)
+        _write_scalar_json_dquo(key);
+    else
+        _write("\"\"");
+}
+
+template<class Writer>
+void Emitter<Writer>::_writev_json(id_type id, NodeType ty)
+{
+    if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_TAG)
+        if(C4_UNLIKELY(ty.has_val_tag()))
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "JSON does not have tags");
+    if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_ANCHOR)
+        if(C4_UNLIKELY(ty.has_val_anchor()))
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
+    csubstr val = m_tree->val(id);
+    if(val.len)
     {
-        // use double quoted style...
-        // if it is a key (mandatory in JSON)
-        // if the style is marked quoted
-        bool dquoted = ((flags & (KEY|VALQUO))
-                        || (scalar_style_json_choose(sc.scalar) & SCALAR_DQUO)); // choose the style
+        // use double quoted style if the style is marked quoted
+        bool dquoted = ((ty & VALQUO)
+                        || (scalar_style_json_choose(val) & SCALAR_DQUO)); // choose the style
         if(dquoted)
-            _write_scalar_json_dquo(sc.scalar);
+            _write_scalar_json_dquo(val);
         else
-            _write(sc.scalar);
+            _write(val);
     }
     else
     {
-        if(sc.scalar.str || (flags & (KEY|VALQUO|KEYTAG|VALTAG)))
+        if(val.str || (ty & (VALQUO|VALTAG)))
             _write("\"\"");
         else
             _write("null");
