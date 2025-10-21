@@ -61,7 +61,7 @@ R"(a: [plain
  follows
  ]
 )",
-N(MB, L{N(KP|SFS, "a", L{N(VP, "plain scalar follows")})})
+N(MB, L{N(KP|SFM, "a", L{N(VP, "plain scalar follows")})})
 );
 
 // FIXME: this should be a parse error
@@ -73,7 +73,7 @@ R"(a: [plain
 b: c
 )",
 N(MB, L{
-  N(KP|SFS, "a", L{N(VP, "plain scalar follows")}),
+  N(KP|SFM, "a", L{N(VP, "plain scalar follows")}),
   N(KP|VP, "b", "c"),
 })
 );
