@@ -616,32 +616,41 @@ TEST(parse_in_arena, error_without_handler)
 
 TEST(parse_flow_ml, respects_parser_options)
 {
-    csubstr yaml = R"({
+    std::string yaml = R"({
   foo: 0,
   bar: 1,
   map: {
     hell: yeah
   },
   seq: [
-    hell, yeah
+    hell,
+    yeah
   ]
-})";
+}
+)";
     const ParserOptions defaults = ParserOptions{};
+    const ParserOptions flow_ml = ParserOptions{}.detect_flow_ml(true);
     const ParserOptions no_flow_ml = ParserOptions{}.detect_flow_ml(false);
     {
         SCOPED_TRACE("default behavior: detect flow_ml");
-        test_check_emit_check_with_parser(yaml, defaults, [](const Tree& t, Parser const&){
-            EXPECT_TRUE(t.rootref().is_flow_ml());
-            EXPECT_TRUE(t["map"].is_flow_ml());
-            EXPECT_TRUE(t["seq"].is_flow_ml());
-        });
+        for(ParserOptions opts : {defaults, flow_ml})
+        {
+            test_check_emit_check_with_parser(to_csubstr(yaml), opts, [&](const Tree& t, Parser const&){
+                EXPECT_TRUE(t.rootref().is_flow_ml());
+                EXPECT_TRUE(t["map"].is_flow_ml());
+                EXPECT_TRUE(t["seq"].is_flow_ml());
+                EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+            });
+        }
     }
     {
         SCOPED_TRACE("custom behavior: do not detect flow_ml");
-        test_check_emit_check_with_parser(yaml, no_flow_ml, [](const Tree& t, Parser const&){
+        test_check_emit_check_with_parser(to_csubstr(yaml), no_flow_ml, [](const Tree& t, Parser const&){
             EXPECT_FALSE(t.rootref().is_flow_ml());
             EXPECT_FALSE(t["map"].is_flow_ml());
             EXPECT_FALSE(t["seq"].is_flow_ml());
+            EXPECT_EQ(emitrs_yaml<std::string>(t),
+                      "{foo: 0,bar: 1,map: {hell: yeah},seq: [hell,yeah]}");
         });
     }
 }

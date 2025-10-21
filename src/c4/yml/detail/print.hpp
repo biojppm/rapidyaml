@@ -133,7 +133,7 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline void print_node(ConstNodeRef const& p, int level=0, bool print_address=false)
+inline void print_node(ConstNodeRef const& p, int level=0, bool print_address=false) // LCOV_EXCL_LINE
 {
     print_node(*p.tree(), p.id(), level, 0, true, print_address); // LCOV_EXCL_LINE
 }
