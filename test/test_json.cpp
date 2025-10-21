@@ -731,6 +731,13 @@ TEST(parse_json, seq_nested_on_seq_with_trailing_comma)
 }
 
 
+TEST(emit_json, empty_val)
+{
+    Tree t = parse_in_arena("a: \nb: \"\"\nc: !!tag\nd: !!tag e");
+    EXPECT_EQ(emitrs_json<std::string>(t), "{\n  \"a\": null,\n  \"b\": \"\",\n  \"c\": \"\",\n  \"d\": \"e\"\n}\n");
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)
