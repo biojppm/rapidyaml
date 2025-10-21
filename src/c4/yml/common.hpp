@@ -589,6 +589,16 @@ public:
         (buf) = nullptr;                                            \
     } while(false)
 
+namespace detail {
+template<int8_t signedval, uint8_t unsignedval>
+struct _charconstant_t // is there a better way to do this?
+    : public std::conditional<std::is_signed<char>::value,
+                              std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
+                              std::integral_constant<uint8_t, unsignedval>>::type
+{};
+#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
+} // namespace detail
+
 inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 {
     switch(c)
@@ -604,6 +614,7 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     default: return csubstr(&c, 1);
     }
 }
+
 /// @endcond
 
 C4_SUPPRESS_WARNING_GCC_POP

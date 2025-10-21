@@ -2592,21 +2592,6 @@ FilterResult ParseEngine<EventHandler>::filter_scalar_squoted_in_place(substr ds
 #define _c4dbgfdq(...)
 #endif
 
-/// @cond dev
-
-namespace detail {
-// is there a better way to do this?
-template<int8_t signedval, uint8_t unsignedval>
-struct _charconstant_t
-    : public std::conditional<std::is_signed<char>::value,
-                              std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
-                              std::integral_constant<uint8_t, unsignedval>>::type
-{};
-#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
-} // namespace detail
-
-/// @endcond
-
 template<class EventHandler>
 template<class FilterProcessor>
 void ParseEngine<EventHandler>::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc)
