@@ -44,22 +44,40 @@ using DataType = int32_t;
 typedef enum : DataType {
 
     /// @cond dev
-    _COMM_START = 3,  // internal
+    _COMM_START = 4,  // internal
+    _COMM_MASKOUT = ((1 << _COMM_START) << 1) - 1u,  // internal
     /// @endcond
 
     // Structure flags
     KEY_ = (1 << 0),  ///< as key
     VAL_ = (1 << 1),  ///< as value
-    EXPL = (1 << 2),  ///< `---` (with BDOC) or `...` (with EDOC)
-    COMM = (1 << _COMM_START),  ///< comment (requires RYML_WITH_COMMENTS, unused otherwise)
+    /// special flag to enable look-back in the event array. it
+    /// signifies that the previous event has a string, meaning that
+    /// the jump back to that event is 3 positions. without this flag it
+    /// would be impossible to jump to the previous event.
+    /// see also @ref WSTR
+    PSTR = (1 << 2),
+    /// IMPORTANT. Marks events whose string was placed in the
+    /// arena. This happens when the filtered string is larger than the
+    /// original string in the YAML code (eg from tags that resolve to
+    /// a larger string, or from "\L" or "\P" in double quotes, which
+    /// expand from two to three bytes). Because of this size
+    /// expansion, the filtered string cannot be placed in the original
+    /// source and needs to be placed in the arena.
+    AREN = (1 << 3),
+
+    /// comment (requires RYML_WITH_COMMENTS, unused otherwise).
+    /// Needs to be higher bit than KEY_, VAL_, PSTR and AREN
+    COMM = (1 << _COMM_START),
 
     // Event scopes
-    BEG_ = (1 <<  4),  ///< scope: begin
-    END_ = (1 <<  5),  ///< scope: end
-    SEQ_ = (1 <<  6),  ///< scope: seq
-    MAP_ = (1 <<  7),  ///< scope: map
-    DOC_ = (1 <<  8),  ///< scope: doc
-    STRM = (1 <<  9),  ///< scope: stream
+    BEG_ = (1 <<  5),  ///< scope: begin
+    END_ = (1 <<  6),  ///< scope: end
+    SEQ_ = (1 <<  7),  ///< scope: seq
+    MAP_ = (1 <<  8),  ///< scope: map
+    DOC_ = (1 <<  9),  ///< scope: doc
+    EXPL = (1 << 10),  ///< `---` (with BDOC) or `...` (with EDOC)
+    STRM = (1 << 11),  ///< scope: stream
     BSEQ = BEG_|SEQ_,  ///< begin seq    (+SEQ in test suite events)
     ESEQ = END_|SEQ_,  ///< end seq      (-SEQ in test suite events)
     BMAP = BEG_|MAP_,  ///< begin map    (+MAP in test suite events)
@@ -70,39 +88,25 @@ typedef enum : DataType {
     EDOC = END_|DOC_,  ///< end doc      (-DOC in test suite events)
 
     // Single events
-    SCLR = (1 << 10),  ///< scalar (=VAL in test suite events)
-    ALIA = (1 << 11),  ///< *ref (reference)
-    ANCH = (1 << 12),  ///< &anchor
-    TAG_ = (1 << 13),  ///< !tag
+    SCLR = (1 << 12),  ///< scalar (=VAL in test suite events)
+    ALIA = (1 << 13),  ///< *ref (reference)
+    ANCH = (1 << 14),  ///< &anchor
+    TAG_ = (1 << 15),  ///< !tag
 
     // Style flags
-    PLAI = (1 << 14),  ///< scalar: plain
-    SQUO = (1 << 15),  ///< scalar: single-quoted (')
-    DQUO = (1 << 16),  ///< scalar: double-quoted ("")
-    LITL = (1 << 17),  ///< scalar: block literal (|)
-    FOLD = (1 << 18),  ///< scalar: block folded (>)
-    FLOW = (1 << 19),  ///< container: flow: [] for seqs or {} for maps
-    BLCK = (1 << 20),  ///< container: block
+    PLAI = (1 << 16),  ///< scalar: plain
+    SQUO = (1 << 17),  ///< scalar: single-quoted (')
+    DQUO = (1 << 18),  ///< scalar: double-quoted ("")
+    LITL = (1 << 19),  ///< scalar: block literal (|)
+    FOLD = (1 << 20),  ///< scalar: block folded (>)
+    FLOW = (1 << 21),  ///< container: flow: [] for seqs or {} for maps
+    BLCK = (1 << 22),  ///< container: block
 
     // Directive flags
-    YAML = (1 << 21),  ///< yaml directive: `\%YAML <version>`
-    TAGD = (1 << 22),  ///< tag directive, name : `\%TAG <name> .......`
-    TAGV = (1 << 23),  ///< tag directive, value: `\%TAG ...... <value>`
+    YAML = (1 << 23),  ///< yaml directive: `\%YAML <version>`
+    TAGD = (1 << 24),  ///< tag directive, name : `\%TAG <name> .......`
+    TAGV = (1 << 25),  ///< tag directive, value: `\%TAG ...... <value>`
 
-    // Buffer flags
-    /// IMPORTANT. Marks events whose string was placed in the
-    /// arena. This happens when the filtered string is larger than the
-    /// original string in the YAML code (eg from tags that resolve to
-    /// a larger string, or from "\L" or "\P" in double quotes, which
-    /// expand from two to three bytes). Because of this size
-    /// expansion, the filtered string cannot be placed in the original
-    /// source and needs to be placed in the arena.
-    AREN = (1 << 24),
-    /// special flag to enable look-back in the event array. it
-    /// signifies that the previous event has a string, meaning that
-    /// the jump back to that event is 3 positions. without this flag it
-    /// would be impossible to jump to the previous event.
-    PSTR = (1 << 25),
     /// special flag to mark a scalar as unfiltered (when the parser
     /// is set not to filter).
     UNFILT = (1 << 26),
@@ -112,6 +116,7 @@ typedef enum : DataType {
     LAST = UNFILT,
     /// a mask of all bits in this enumeration
     MASK = (LAST << 1) - 1,
+
     /// WithSTRing: mask of all the events that encode a string
     /// following the event. For such events, the next two integers
     /// will provide respectively the string's offset and length. See
@@ -1226,8 +1231,8 @@ public:
     void add_comment(csubstr txt, CommentType_e type)
     {
         _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", txt.len, txt);
-        ievt::DataType curr = ((m_evt_pos < m_evt_size) ? m_evt[m_evt_pos] : 0);
-        _send_str_(txt, ievt::encode_comment(curr, type));
+        ievt::DataType prev = ((m_evt_prev < m_evt_size) ? m_evt[m_evt_prev] : 0);
+        _send_str_(txt, ievt::encode_comment(prev, type));
     }
 
     /** @} */

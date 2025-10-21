@@ -53,8 +53,8 @@ COMMENT_TEST(FlowMapBasic,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.add_comment(" 1", COMM_VAL_LEADING));
-    ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
     ___(ps.begin_map_val_flow());
+    ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.add_comment(" 4", COMM_KEY_TRAILING));
     ___(ps.add_comment(" 5", COMM_KEY_LEADING_COLON));

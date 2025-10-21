@@ -588,8 +588,14 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment(csubstr txt, CommentType_e type)
     {
-        _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", m_tree->id(m_curr->tr_data), txt.len, txt);
-        m_tree->set_comment(m_curr->tr_data, type, txt);
+        NodeData * d = m_curr->tr_data;
+        _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", m_tree->id(d), txt.len, txt);
+        if(type == COMM_VAL_BRACKET_TRAILING)
+        {
+             _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent && m_parent->tr_data->m_type.is_flow());
+             d = m_parent->tr_data;
+        }
+        m_tree->set_comment(d, type, txt);
     }
     #endif // RYML_WITH_COMMENTS
 
