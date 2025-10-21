@@ -612,7 +612,7 @@ public:
         else if(type & COMM_STREAM_TRAILING_CLOSE) _send_("=COMM #[STREAM_TRAILING_CLOSE]");
         else if(type & COMM_STREAM_FOOTER_CLOSE  ) _send_("=COMM #[STREAM_FOOTER_CLOSE]");
         else if(type & COMM_DOC_TRAILING_OPEN    ) _send_("=COMM #[DOC_TRAILING_OPEN]");
-        else if(type & COMM_FLOW_COMMA_TRAILING  ) _send_("=COMM #[FLOW_COMMA_TRAILING]");
+        else if(type & COMM_COMMA_TRAILING       ) _send_("=COMM #[COMMA_TRAILING]");
         else if(type & COMM_VAL_BRACKET_TRAILING ) _send_("=COMM #[FLOW_BRACKET_TRAILING]");
         else if(type & COMM_KEY_LEADING_COLON    ) _send_("=COMM #[FLOW_LEADING_COLON]");
         else if(type & COMM_QMRK_LEADING         ) _send_("=COMM #[QMRK_LEADING]");

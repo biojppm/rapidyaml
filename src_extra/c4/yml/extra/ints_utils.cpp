@@ -97,7 +97,7 @@ c4::EnumSymbols<yml::CommentType_e> esyms<yml::CommentType_e>()
         {yml::COMM_VAL_BRACKET_TRAILING, "VAL_BRACKET_TRAILING"},
         {yml::COMM_VAL_TRAILING, "VAL_TRAILING"},
         {yml::COMM_VAL_FOOTER,   "VAL_FOOTER"},
-        {yml::COMM_FLOW_COMMA_TRAILING, "FLOW_COMMA_TRAILING"},
+        {yml::COMM_COMMA_TRAILING, "COMMA_TRAILING"},
         {yml::COMM_STREAM_TRAILING_CLOSE, "STREAM_TRAILING_CLOSE"},
         {yml::COMM_STREAM_FOOTER_CLOSE, "STREAM_FOOTER_CLOSE"},
     };

@@ -201,9 +201,9 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
             else if(comm & COMM_STREAM_TRAILING_CLOSE) append("=COMM #[STREAM_TRAILING_CLOSE]");
             else if(comm & COMM_STREAM_FOOTER_CLOSE  ) append("=COMM #[STREAM_FOOTER_CLOSE]");
             else if(comm & COMM_DOC_TRAILING_OPEN    ) append("=COMM #[DOC_TRAILING_OPEN]");
-            else if(comm & COMM_FLOW_COMMA_TRAILING  ) append("=COMM #[FLOW_COMMA_TRAILING]");
-            else if(comm & COMM_VAL_BRACKET_TRAILING) append("=COMM #[FLOW_BRACKET_TRAILING]");
-            else if(comm & COMM_KEY_LEADING_COLON   ) append("=COMM #[FLOW_LEADING_COLON]");
+            else if(comm & COMM_COMMA_TRAILING       ) append("=COMM #[FLOW_COMMA_TRAILING]");
+            else if(comm & COMM_VAL_BRACKET_TRAILING ) append("=COMM #[FLOW_BRACKET_TRAILING]");
+            else if(comm & COMM_KEY_LEADING_COLON    ) append("=COMM #[FLOW_LEADING_COLON]");
             else if(comm & COMM_QMRK_LEADING         ) append("=COMM #[QMRK_LEADING]");
             else if(comm & COMM_QMRK_TRAILING        ) append("=COMM #[QMRK_TRAILING]");
             else if(comm & COMM_QMRK_FOOTER          ) append("=COMM #[QMRK_FOOTER]");

@@ -24,8 +24,14 @@ COMMENT_TEST(FlowSeqBasic,
              "  # 3"                              "\n"
              "  a # 4"                              "\n"
              "  # 5"                              "\n"
-             "] # 6"                              "\n"
-             "# 7"                              "\n"
+             "  , # 6"                              "\n"
+             "  # 7"                              "\n"
+             "  b # 8"                              "\n"
+             "  # 9"                              "\n"
+             "  , # 10"                              "\n"
+             "  # 11"                              "\n"
+             "] # 12"                              "\n"
+             "# 13"                              "\n"
              ,
              "+STR"                          "\n"
              "+DOC"                          "\n"
@@ -35,9 +41,16 @@ COMMENT_TEST(FlowSeqBasic,
              "=VAL :a"                         "\n"
              "=COMM #[VAL_TRAILING] 4"         "\n"
              "=COMM #[VAL_FOOTER] 5"         "\n"
+             "=COMM #[COMMA_TRAILING] 6"         "\n"
+             "=COMM #[VAL_LEADING] 7"         "\n"
+             "=VAL :a"                         "\n"
+             "=COMM #[VAL_TRAILING] 8"         "\n"
+             "=COMM #[VAL_FOOTER] 9"         "\n"
+             "=COMM #[COMMA_TRAILING] 10"         "\n"
+             "=COMM #[VAL_BRACKET_LEADING] 11"         "\n"
              "-SEQ"         "\n"
-             "=COMM #[VAL_TRAILING] 6"         "\n"
-             "=COMM #[VAL_FOOTER] 7"         "\n"
+             "=COMM #[VAL_TRAILING] 12"         "\n"
+             "=COMM #[VAL_FOOTER] 13"         "\n"
              "-DOC"         "\n"
              "-STR"         "\n"
     )
@@ -50,9 +63,17 @@ COMMENT_TEST(FlowSeqBasic,
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.add_comment(" 4", COMM_VAL_TRAILING));
     ___(ps.add_comment(" 5", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 6", COMM_COMMA_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 7", COMM_VAL_LEADING));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.add_comment(" 8", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 9", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 10", COMM_COMMA_TRAILING));
+    ___(ps.add_comment(" 11", COMM_VAL_BRACKET_LEADING));
     ___(ps.end_seq_flow(multiline));
-    ___(ps.add_comment(" 6", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 7", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 12", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 13", COMM_VAL_FOOTER));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

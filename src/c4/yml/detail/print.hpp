@@ -121,7 +121,7 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
             else if(comm.m_type & COMM_STREAM_TRAILING_CLOSE) printf("STREAM_TRAILING_CLOSE");
             else if(comm.m_type & COMM_STREAM_FOOTER_CLOSE  ) printf("STREAM_FOOTER_CLOSE");
             else if(comm.m_type & COMM_DOC_TRAILING_OPEN    ) printf("DOC_TRAILING_OPEN");
-            else if(comm.m_type & COMM_FLOW_COMMA_TRAILING  ) printf("FLOW_COMMA_TRAILING");
+            else if(comm.m_type & COMM_COMMA_TRAILING       ) printf("COMMA_TRAILING");
             else if(comm.m_type & COMM_VAL_BRACKET_TRAILING ) printf("FLOW_BRACKET_TRAILING");
             else if(comm.m_type & COMM_KEY_LEADING_COLON    ) printf("FLOW_LEADING_COLON");
             else if(comm.m_type & COMM_QMRK_LEADING         ) printf("QMRK_LEADING");

@@ -361,29 +361,37 @@ private: // pending whitespace
     }
 
     #ifdef RYML_WITH_COMMENTS
-    CommentData const* _maybe_write_comm_trailing(id_type node, CommentType_e type, CommentData const* prev=nullptr)
+    struct CommentLookupResult
     {
-        prev = m_tree->comment(node, prev, type);
-        if(prev)
+        CommentData const* latest;
+        CommentData const* comm;
+    };
+    void _maybe_write_comm_trailing(id_type node, CommentType_e type, CommentLookupResult *result, bool indent_extra=false)
+    {
+        result->comm = m_tree->comment(node, result->latest, type);
+        if(result->comm)
         {
+            if(indent_extra && !result->latest)
+                ++m_ilevel;
+            result->latest = result->comm;
             _write(' ');
-            _write_comment(prev->m_text, m_col);
+            _write_comment(result->comm->m_text, m_col);
             _pend_newl();
         }
-        return prev;
     }
-    CommentData const* _maybe_write_comm_leading(id_type node, CommentType_e type, CommentData const* prev=nullptr)
+    void _maybe_write_comm_leading(id_type node, CommentType_e type, CommentLookupResult *result, bool indent_extra=false)
     {
-        prev = m_tree->comment(node, prev, type);
-        if(prev)
+        result->comm = m_tree->comment(node, result->latest, type);
+        if(result->comm)
         {
+            if(indent_extra && !result->latest)
+                ++m_ilevel;
             if(m_col)
                 _newl();
             _indent(m_ilevel);
-            _write_comment(prev->m_text, m_col);
+            _write_comment(result->comm->m_text, m_col);
             _pend_newl();
         }
-        return prev;
     }
     #endif
 
