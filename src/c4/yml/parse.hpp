@@ -169,7 +169,7 @@ RYML_EXPORT Tree parse_json_in_place(                  substr json              
  * substr mutable_buffer = ...;
  * parser.parse_in_arena(mutable_buffer); // linker error
  *
- * csubstr immutable_buffer = ...;
+ * csubstr immutable_buffer = mutable_buffer; // convert first to csubstr
  * parser.parse_in_arena(immutable_buffer); // ok
  * ```
  *
@@ -263,8 +263,8 @@ RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_json_in_arena(Parser
  * substr mutable_buffer = ...;
  * parser.parse_in_arena(mutable_buffer); // linker error
  *
- * csubstr immutable_buffer = ...;
- * parser.parse_in_arena(immutable_buffer); // ok
+ * csubstr immutable_buffer = mutable_buffer; // convert first to csubstr
+ * parser.parse_in_arena(immutable_buffer); // ok now
  * ```
  *
  * @{

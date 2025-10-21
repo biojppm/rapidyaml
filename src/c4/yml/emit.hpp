@@ -131,19 +131,35 @@ class Emitter : public Writer
 {
 public:
 
-    /** Construct the emitter and its internal Writer state, using default emit options.
-     * @param args arguments to be forwarded to the constructor of the writer.
-     */
-    template<class ...Args>
-    Emitter(Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts() {}
-
     /** Construct the emitter and its internal Writer state.
      *
      * @param opts @ref EmitOptions
      * @param args arguments to be forwarded to the constructor of the writer.
      */
     template<class ...Args>
-    Emitter(EmitOptions const& opts, Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(opts) {}
+    Emitter(EmitOptions const& opts, Args &&...args)
+        : Writer(std::forward<Args>(args)...)
+        , m_tree()
+        , m_opts(opts)
+        , m_col()
+        , m_depth()
+        , m_ilevel()
+        , m_pws()
+    {}
+
+    /** Construct the emitter and its internal Writer state, using default emit options.
+     * @param args arguments to be forwarded to the constructor of the writer.
+     */
+    template<class ...Args>
+    Emitter(Args &&...args)
+        : Writer(std::forward<Args>(args)...)
+        , m_tree()
+        , m_opts()
+        , m_col()
+        , m_depth()
+        , m_ilevel()
+        , m_pws()
+    {}
 
 public:
 
@@ -158,7 +174,7 @@ public:
      * When writing to a file, the returned substr will be null, but its
      * length will be set to the number of bytes written.
      *
-     * @param type specify what to emit
+     * @param type specify what to emit (YAML or JSON)
      * @param t the tree to emit
      * @param id the id of the node to emit
      * @param error_on_excess when true, an error is raised when the
@@ -192,20 +208,7 @@ public:
     /** get the max depth for emitted trees (to prevent a stack overflow) */
     id_type max_depth() const noexcept { return m_opts.max_depth(); }
 
-private:
-
     /** @cond dev */
-
-    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e; ///< pending whitespace
-
-private:
-
-    Tree const* C4_RESTRICT m_tree;
-    EmitOptions m_opts;
-    size_t m_col;
-    id_type m_depth;
-    id_type m_ilevel;
-    Pws_e m_pws;
 
 private:
 
@@ -229,12 +232,12 @@ private:
     void _visit_blck_seq(id_type id);
     void _visit_blck_map(id_type id);
 
+    void _top_open_entry(id_type id);
+    void _top_close_entry(id_type id);
     void _blck_seq_open_entry(id_type id);
     void _blck_seq_close_entry(id_type id);
     void _blck_map_open_entry(id_type id);
     void _blck_map_close_entry(id_type id);
-    void _top_open_entry(id_type id);
-    void _top_close_entry(id_type id);
     void _blck_write_scalar_key(id_type id);
     void _blck_write_scalar_val(id_type id);
 
@@ -251,19 +254,23 @@ private:
 private:
 
     void _emit_json(id_type id);
-    void _visit_json_ml(id_type id, id_type depth);
-    void _visit_json_sl(id_type id, id_type depth);
-    void _write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags);
-
-    void _write_scalar_json_dquo(csubstr s);
     void _write_scalar_literal(csubstr s, id_type level, bool as_key);
     void _write_scalar_folded(csubstr s, id_type level, bool as_key);
     void _write_scalar_squo(csubstr s, id_type level);
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
-
     size_t _write_escaped_newlines(csubstr s, size_t i);
     size_t _write_indented_block(csubstr s, size_t i, id_type level);
+
+private:
+
+    void _visit_json_ml(id_type id, id_type depth);
+    void _visit_json_sl(id_type id, id_type depth);
+    void _writek_json(id_type id, NodeType ty);
+    void _writev_json(id_type id, NodeType ty);
+    void _write_scalar_json_dquo(csubstr s);
+
+private:
 
     void _write_tag(csubstr tag)
     {
@@ -281,21 +288,6 @@ private:
         }
     }
 
-    enum : type_bits {
-        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO|KEY_STYLE) | ~(VAL|VALREF|VALANCH|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
-        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO|KEY_STYLE) |  (VAL|VALREF|VALANCH|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
-        _keysc_json =  (KEY)  | ~(VAL),
-        _valsc_json = ~(KEY)  |  (VAL),
-    };
-
-    C4_ALWAYS_INLINE void _writek_json(id_type id) { _write_json(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~(VAL)); }
-    C4_ALWAYS_INLINE void _writev_json(id_type id) { _write_json(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~(KEY)); }
-
-    void _indent(id_type level, bool enabled)
-    {
-        if(enabled)
-            _write(' ', 2u * (size_t)level);
-    }
     void _indent(id_type level)
     {
         _write(' ', 2u * (size_t)level);
@@ -329,7 +321,9 @@ private:
         this->Writer::_do_write(c, num);
     }
 
-private:
+private: // pending whitespace
+
+    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e; ///< pending whitespace
 
     /// set pending whitespace, ignoring pending
     C4_ALWAYS_INLINE void _pend_none() noexcept
@@ -360,6 +354,15 @@ private:
         }
         m_pws = next;
     }
+
+private:
+
+    Tree const* C4_RESTRICT m_tree;
+    EmitOptions m_opts;
+    size_t m_col;
+    id_type m_depth;
+    id_type m_ilevel;
+    Pws_e m_pws;
 
     /** @endcond */
 };
