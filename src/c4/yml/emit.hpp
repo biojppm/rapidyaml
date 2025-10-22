@@ -244,9 +244,8 @@ private:
     void _top_open_entry(id_type id);
     void _top_close_entry(id_type id);
     void _blck_seq_open_entry(id_type id);
-    void _blck_seq_close_entry(id_type id);
     void _blck_map_open_entry(id_type id);
-    void _blck_map_close_entry(id_type id);
+    void _blck_close_entry(id_type id);
     void _blck_write_scalar_key(id_type id);
     void _blck_write_scalar_val(id_type id);
 
@@ -364,11 +363,11 @@ private: // pending whitespace
     }
 
     #ifdef RYML_WITH_COMMENTS
-    void _maybe_write_comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
-    void _maybe_write_comm_leading(id_type node, CommentType_e type, bool indent_extra=false);
+    void _comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
+    void _comm_leading(id_type node, CommentType_e type, bool indent_extra=false);
     void _write_comm(csubstr s, id_type indentation);
-    C4_ALWAYS_INLINE void _push_comm() { m_comm_state.push(CommState{}); }
-    C4_ALWAYS_INLINE void _pop_comm() { m_ilevel -= m_comm_state.pop().extra_indentation; }
+    C4_ALWAYS_INLINE void _comm_push() { m_comm_state.push(CommState{}); }
+    C4_ALWAYS_INLINE void _comm_pop() { m_ilevel -= m_comm_state.pop().extra_indentation; }
     #endif
 
 private:
