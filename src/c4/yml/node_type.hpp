@@ -299,18 +299,19 @@ typedef enum : uint32_t {
     COMM_KEY_LEADING_COLON = _c4bit(12),
     COMM_KEY_TRAILING_COLON = _c4bit(13),
 
-    COMM_VAL_TAG_LEADING = _c4bit(14),
-    COMM_VAL_TAG_TRAILING = _c4bit(15),
-    COMM_VAL_ANCHOR_LEADING = _c4bit(16),
-    COMM_VAL_ANCHOR_TRAILING = _c4bit(17),
-    COMM_VAL_LEADING  = _c4bit(18),
-    COMM_VAL_TRAILING_DASH = _c4bit(19), // trailing -
-    COMM_VAL_BRACKET_TRAILING = _c4bit(20), // trailing [ or { (sameline)
-    COMM_VAL_BRACKET_LEADING = _c4bit(21), // leading ] or } (line before)
-    COMM_VAL_TRAILING = _c4bit(22),
-    COMM_VAL_FOOTER   = _c4bit(23),
+    COMM_VAL_LEADING_DASH = _c4bit(14), // leading -
+    COMM_VAL_TRAILING_DASH = _c4bit(15), // trailing -
+    COMM_VAL_TAG_LEADING = _c4bit(16),
+    COMM_VAL_TAG_TRAILING = _c4bit(17),
+    COMM_VAL_ANCHOR_LEADING = _c4bit(18),
+    COMM_VAL_ANCHOR_TRAILING = _c4bit(19),
+    COMM_VAL_LEADING  = _c4bit(20),
+    COMM_VAL_BRACKET_TRAILING = _c4bit(21), // trailing [ or { (sameline)
+    COMM_VAL_BRACKET_LEADING = _c4bit(22), // leading ] or } (line before)
+    COMM_VAL_TRAILING = _c4bit(23),
+    COMM_VAL_FOOTER   = _c4bit(24),
 
-    COMM_COMMA_TRAILING = _c4bit(24), // trailing , (sameline)
+    COMM_COMMA_TRAILING = _c4bit(25), // trailing , (sameline)
 
     COMM_STREAM_TRAILING_CLOSE = _c4bit(2), // footer ... (same line)
     COMM_STREAM_FOOTER_CLOSE = _c4bit(3), // footer ... (line after)

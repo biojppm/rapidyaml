@@ -330,7 +330,8 @@ private:
 
 private: // pending whitespace
 
-    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e; ///< pending whitespace
+    /// pending whitespace
+    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e;
 
     /// set pending whitespace, ignoring pending
     C4_ALWAYS_INLINE void _pend_none() noexcept
