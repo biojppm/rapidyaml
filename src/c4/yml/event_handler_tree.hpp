@@ -590,7 +590,7 @@ public:
     {
         NodeData * d = m_curr->tr_data;
         _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", m_tree->id(d), txt.len, txt);
-        if(type == COMM_VAL_BRACKET_TRAILING)
+        if(type == COMM_VAL_BRACKET_TRAILING || type == COMM_VAL_BRACKET_LEADING)
         {
              _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent && m_parent->tr_data->m_type.is_flow());
              d = m_parent->tr_data;

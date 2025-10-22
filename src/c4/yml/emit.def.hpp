@@ -29,6 +29,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
     m_depth = 0;
     m_ilevel = 0;
     m_pws = _PWS_NONE;
+    _RYML_WITH_COMMENTS(m_comm_state.clear());
     if(type == EMIT_YAML)
     {
         _emit_yaml(id);
@@ -256,22 +257,16 @@ void Emitter<Writer>::_visit_doc(id_type id)
     const NodeType ty = m_tree->type(id);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, ty.is_doc(), m_tree, id);
     _RYML_ASSERT_VISIT_(m_tree->m_callbacks, !ty.has_key(), m_tree, id);
-
     if(ty.is_container()) // this is more frequent
     {
         _visit_blck_container(id);
     }
     else if(ty.is_val())
     {
-        #ifndef RYML_WITH_COMMENTS
+         _RYML_WITH_COMMENTS(_maybe_write_comm_leading(id, COMM_VAL_LEADING));
         _visit_doc_val(id);
-        #else
-        CommentLookupResult comm = {};
-         _maybe_write_comm_leading(id, COMM_VAL_LEADING, &comm);
-        _visit_doc_val(id);
-        _maybe_write_comm_trailing(id, COMM_VAL_TRAILING, &comm);
-        _maybe_write_comm_leading(id, COMM_VAL_FOOTER, &comm);
-        #endif
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(id, COMM_VAL_TRAILING));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(id, COMM_VAL_FOOTER));
     }
 }
 
@@ -283,14 +278,14 @@ template<class Writer>
 void Emitter<Writer>::_top_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
+    _RYML_WITH_COMMENTS(_push_comm());
     if(ty.is_doc() && !m_tree->is_root(node))
     {
         _write("---");
         _pend_space();
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_DOC_TRAILING_OPEN, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_DOC_TRAILING_OPEN));
     }
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING));
     if(ty.has_val_tag())
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -325,33 +320,9 @@ template<class Writer>
 void Emitter<Writer>::_top_close_entry(id_type node)
 {
     (void)node;
-#ifdef RYML_WITH_COMMENTS
-    CommentLookupResult comm = {};
-    _maybe_write_comm_trailing(node, COMM_VAL_TRAILING, &comm);
-    _maybe_write_comm_leading(node, COMM_VAL_FOOTER, &comm);
-#endif
-}
-
-
-//-----------------------------------------------------------------------------
-
-template<class Writer>
-void Emitter<Writer>::_flow_sl_write_comma(id_type node, id_type first_sibling)
-{
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), first_sibling == m_tree->first_sibling(node), m_tree, node);
-    if(node != first_sibling)
-        _write(',');
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {}; _maybe_write_comm_trailing(node, COMM_COMMA_TRAILING, &comm));
-}
-
-template<class Writer>
-void Emitter<Writer>::_flow_ml_write_comma(id_type node, id_type last_sibling)
-{
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), last_sibling == m_tree->last_sibling(node), m_tree, node);
-    if(node != last_sibling)
-        _write(',');
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {}; _maybe_write_comm_trailing(node, COMM_COMMA_TRAILING, &comm));
-    _pend_newl();
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER));
+    _RYML_WITH_COMMENTS(_pop_comm());
 }
 
 
@@ -362,36 +333,23 @@ void Emitter<Writer>::_flow_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
+    _RYML_WITH_COMMENTS(_push_comm());
     if(ty.has_val_tag())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING));
         _write_tag(m_tree->val_tag(node));
         _pend_space();
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING));
     }
     if(ty.has_val_anchor())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING));
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING));
     }
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING, &comm));
-}
-
-
-//-----------------------------------------------------------------------------
-
-template<class Writer>
-void Emitter<Writer>::_flow_seq_close_entry(id_type node)
-{
-    (void)node;
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING, &comm));
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER, &comm));
-    _write_pws_and_pend(_PWS_NONE);
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING));
 }
 
 
@@ -403,23 +361,23 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
+    _RYML_WITH_COMMENTS(_push_comm());
     if(ty.has_key_tag())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_TAG_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_TAG_LEADING));
         _write_tag(m_tree->key_tag(node));
         _pend_space();
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TAG_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TAG_TRAILING));
     }
     if(ty.has_key_anchor())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_ANCHOR_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_ANCHOR_LEADING));
         _write_pws_and_pend(_PWS_SPACE);
         _write("&");
         _write(m_tree->key_anchor(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_ANCHOR_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_ANCHOR_TRAILING));
     }
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_LEADING, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_LEADING));
     if(ty.is_key_ref())
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -430,39 +388,62 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
         _write_pws_and_pend(_PWS_NONE);
         _blck_write_scalar_key(node);
     }
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TRAILING, &comm));
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_LEADING_COLON, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TRAILING));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_LEADING_COLON));
     _write_pws_and_pend(_PWS_SPACE);
     _write(':');
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TRAILING_COLON, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TRAILING_COLON));
     if(ty.has_val_tag())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING));
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING));
     }
     if(ty.has_val_anchor())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING));
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING));
     }
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING));
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_flow_map_close_entry(id_type node)
+void Emitter<Writer>::_flow_close_entry_sl(id_type node, id_type last_sibling)
 {
-    (void)node;
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING, &comm));
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER));
+    _RYML_WITH_COMMENTS(CommentData const* comm = m_tree->comment(node, COMM_COMMA_TRAILING));
+    if(node != last_sibling _RYML_WITH_COMMENTS(|| comm))
+    {
+        _RYML_WITH_COMMENTS(if(comm) _write_pws_and_pend(_PWS_SPACE));
+        _write(',');
+    }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_COMMA_TRAILING));
+    _RYML_WITH_COMMENTS(_pop_comm());
+    _write_pws_and_pend(_PWS_NONE);
+}
+
+template<class Writer>
+void Emitter<Writer>::_flow_close_entry_ml(id_type node, id_type last_sibling)
+{
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER));
+    _RYML_WITH_COMMENTS(CommentData const* comm = m_tree->comment(node, COMM_COMMA_TRAILING));
+    if(node != last_sibling _RYML_WITH_COMMENTS(|| comm))
+    {
+        _RYML_WITH_COMMENTS(if(comm) _write_pws_and_pend(_PWS_SPACE));
+        _write(',');
+    }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_COMMA_TRAILING));
+    _RYML_WITH_COMMENTS(_pop_comm());
+    _pend_newl();
     _write_pws_and_pend(_PWS_NONE);
 }
 
@@ -474,28 +455,28 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING, &comm));
+    _RYML_WITH_COMMENTS(_push_comm());
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING));
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the following dash
     _write('-');
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING_DASH, &comm, /*indent_extra*/true));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING_DASH, /*indent_extra*/true));
     bool has_tag_or_anchor = false;
     if(ty.has_val_tag())
     {
         has_tag_or_anchor = true;
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, /*indent_extra*/true));
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING, /*indent_extra*/true));
     }
     if(ty.has_val_anchor())
     {
         has_tag_or_anchor = true;
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING, /*indent_extra*/true));
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, /*indent_extra*/true));
     }
     if(has_tag_or_anchor && ty.is_container())
     {
@@ -513,19 +494,9 @@ template<class Writer>
 void Emitter<Writer>::_blck_seq_close_entry(id_type node)
 {
     (void)node;
-    #ifdef RYML_WITH_COMMENTS
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _maybe_write_comm_trailing(node, COMM_VAL_TRAILING, &comm);
-    _maybe_write_comm_leading(node, COMM_VAL_FOOTER, &comm);
-    enum : comment_data_type {
-        INDENTING_COMMENTS = COMM_VAL_TRAILING_DASH|
-            COMM_VAL_TAG_LEADING|COMM_VAL_TAG_TRAILING|
-            COMM_VAL_ANCHOR_LEADING|COMM_VAL_ANCHOR_TRAILING|
-            COMM_VAL_TRAILING|COMM_VAL_FOOTER
-    };
-    if(m_tree->comment(node, INDENTING_COMMENTS))
-        --m_ilevel;
-    #endif
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER));
+    _RYML_WITH_COMMENTS(_pop_comm());
     _pend_newl();
 }
 
@@ -538,22 +509,22 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_key(node), m_tree, node);
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_LEADING, &comm));
+    _RYML_WITH_COMMENTS(_push_comm());
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_LEADING));
     if(ty.has_key_tag())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_TAG_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_TAG_LEADING));
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->key_tag(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TAG_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TAG_TRAILING));
     }
     if(ty.has_key_anchor())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_ANCHOR_LEADING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_KEY_ANCHOR_LEADING));
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->key_anchor(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_ANCHOR_TRAILING, &comm));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_ANCHOR_TRAILING));
     }
     if(ty.is_key_ref())
     {
@@ -569,22 +540,22 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     }
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the colon
     _write(':');
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TRAILING, &comm, /*indent_extra*/true));
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING, &comm, /*indent_extra*/true));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_KEY_TRAILING, /*indent_extra*/true));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_LEADING, /*indent_extra*/true));
     if(ty.has_val_tag())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_TAG_LEADING, /*indent_extra*/true));
         _write_pws_and_pend(_PWS_SPACE);
         _write_tag(m_tree->val_tag(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TAG_TRAILING, /*indent_extra*/true));
     }
     if(ty.has_val_anchor())
     {
-        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING, /*indent_extra*/true));
         _write_pws_and_pend(_PWS_SPACE);
         _write('&');
         _write(m_tree->val_anchor(node));
-        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, &comm, /*indent_extra*/true));
+        _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_ANCHOR_TRAILING, /*indent_extra*/true));
     }
     if(ty.is_container() && m_tree->has_children(node))
     {
@@ -602,9 +573,9 @@ template<class Writer>
 void Emitter<Writer>::_blck_map_close_entry(id_type node)
 {
     (void)node;
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING, &comm));
-    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_TRAILING));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_leading(node, COMM_VAL_FOOTER));
+    _RYML_WITH_COMMENTS(_pop_comm());
     _pend_newl();
 }
 
@@ -694,11 +665,9 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
     _write('[');
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING, &comm));
-    for(id_type first = m_tree->first_child(node), child = first; child != NONE; child = m_tree->next_sibling(child))
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING));
+    for(id_type child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
-        _flow_sl_write_comma(child, first);
         const NodeType ty = m_tree->type(child);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_val() || ty.is_container() || ty == NOTYPE, m_tree, node);
         _flow_seq_open_entry(child);
@@ -716,8 +685,9 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
             _visit_flow_container(child);
             --m_depth;
         }
-        _flow_seq_close_entry(child);
+        _flow_close_entry_sl(child, last);
     }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
     _write(']');
 }
 
@@ -729,11 +699,9 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
     _write('{');
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING, &comm));
-    for(id_type first = m_tree->first_child(node), child = first; child != NONE; child = m_tree->next_sibling(child))
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING));
+    for(id_type child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
-        _flow_sl_write_comma(child, first);
         const NodeType ty = m_tree->type(child);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key() && (ty.has_val() || ty.is_container() || ty == NOTYPE), m_tree, node);
         _flow_map_open_entry(child);
@@ -751,8 +719,9 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node)
             _visit_flow_container(child);
             --m_depth;
         }
-        _flow_map_close_entry(child);
+        _flow_close_entry_sl(child, last);
     }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
     _write('}');
 }
 
@@ -765,8 +734,7 @@ void Emitter<Writer>::_visit_flow_ml_map(id_type node)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
     _write('{');
     _pend_newl();
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING));
     if(m_opts.indent_flow_ml()) ++m_ilevel;
     for(id_type child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
@@ -787,9 +755,9 @@ void Emitter<Writer>::_visit_flow_ml_map(id_type node)
             _visit_flow_container(child);
             --m_depth;
         }
-        _flow_map_close_entry(child);
-        _flow_ml_write_comma(child, last);
+        _flow_close_entry_ml(child, last);
     }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
     if(m_opts.indent_flow_ml()) --m_ilevel;
     _write_pws_and_pend(_PWS_NONE);
     _write('}');
@@ -804,8 +772,7 @@ void Emitter<Writer>::_visit_flow_ml_seq(id_type node)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
     _write('[');
     _pend_newl();
-    _RYML_WITH_COMMENTS(CommentLookupResult comm = {});
-    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING, &comm));
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_TRAILING));
     if(m_opts.indent_flow_ml()) ++m_ilevel;
     for(id_type child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
@@ -826,9 +793,9 @@ void Emitter<Writer>::_visit_flow_ml_seq(id_type node)
             _visit_flow_container(child);
             --m_depth;
         }
-        _flow_seq_close_entry(child);
-        _flow_ml_write_comma(child, last);
+        _flow_close_entry_ml(child, last);
     }
+    _RYML_WITH_COMMENTS(_maybe_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
     if(m_opts.indent_flow_ml()) --m_ilevel;
     _write_pws_and_pend(_PWS_NONE);
     _write(']');
@@ -1391,9 +1358,12 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
         _write(s.sub(pos));
 }
 
+
+//-----------------------------------------------------------------------------
+
 #ifdef RYML_WITH_COMMENTS
 template<class Writer>
-void Emitter<Writer>::_write_comment(csubstr s, id_type indentation)
+void Emitter<Writer>::_write_comm(csubstr s, id_type indentation)
 {
     _write('#');
     size_t pos = 0; // last character that was already written
@@ -1413,7 +1383,48 @@ void Emitter<Writer>::_write_comment(csubstr s, id_type indentation)
     if(pos < s.len)
         _write(s.sub(pos));
 }
+
+template<class Writer>
+void Emitter<Writer>::_maybe_write_comm_trailing(id_type node, CommentType_e type, bool indent_extra)
+{
+    CommState *result = &m_comm_state.top();
+    result->comm = m_tree->comment(node, result->latest, type);
+    if(result->comm)
+    {
+        if(indent_extra && !result->latest)
+        {
+            result->extra_indentation = 1;
+            ++m_ilevel;
+        }
+        result->latest = result->comm;
+        _write(' ');
+        _write_comm(result->comm->m_text, m_col);
+        _pend_newl();
+    }
+}
+
+template<class Writer>
+void Emitter<Writer>::_maybe_write_comm_leading(id_type node, CommentType_e type, bool indent_extra)
+{
+    CommState *result = &m_comm_state.top();
+    result->comm = m_tree->comment(node, result->latest, type);
+    if(result->comm)
+    {
+        if(indent_extra && !result->latest)
+        {
+            result->extra_indentation = 1;
+            ++m_ilevel;
+        }
+        result->latest = result->comm;
+        if(m_col)
+            _newl();
+        _indent(m_ilevel);
+        _write_comm(result->comm->m_text, m_col);
+        _pend_newl();
+    }
+}
 #endif // RYML_WITH_COMMENTS
+
 
 //-----------------------------------------------------------------------------
 

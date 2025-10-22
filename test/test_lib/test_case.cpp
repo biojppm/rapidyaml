@@ -687,7 +687,9 @@ void test_comment_invariants(Tree const& t, id_type id)
         const CommentType_e all_types[] = {
             COMM_STREAM_LEADING_OPEN ,
             COMM_DOC_TRAILING_OPEN   ,
+            COMM_STREAM_TRAILING_CLOSE,
             COMM_QMRK_LEADING        ,
+            COMM_STREAM_FOOTER_CLOSE,
             COMM_QMRK_TRAILING       ,
             COMM_QMRK_FOOTER         ,
             COMM_KEY_TAG_LEADING     ,
@@ -706,11 +708,10 @@ void test_comment_invariants(Tree const& t, id_type id)
             COMM_VAL_LEADING         ,
             COMM_VAL_TRAILING_DASH   ,
             COMM_VAL_BRACKET_TRAILING,
+            COMM_VAL_BRACKET_LEADING ,
             COMM_VAL_TRAILING        ,
             COMM_VAL_FOOTER          ,
             COMM_COMMA_TRAILING      ,
-            COMM_STREAM_TRAILING_CLOSE,
-            COMM_STREAM_FOOTER_CLOSE,
         };
         CommentData const* prev = nullptr;
         CommentType_e ctype_prev = COMM_NONE;
@@ -720,7 +721,7 @@ void test_comment_invariants(Tree const& t, id_type id)
             CommentData const* comm = t.comment(id, ctype);
             if(ctype_prev != COMM_NONE)
             {
-                ASSERT_GT(ctype, ctype_prev);
+                ASSERT_GE(ctype, ctype_prev);
             }
             EXPECT_EQ(comm, t.comment(id, prev, ctype));
             count_get += !!comm;

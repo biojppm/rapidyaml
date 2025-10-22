@@ -16,6 +16,13 @@
 #endif
 
 
+#if RYML_WITH_COMMENTS
+#ifndef _C4_YML_DETAIL_STACK_HPP_
+#include "./detail/stack.hpp"
+#endif
+#endif
+
+
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 
@@ -145,6 +152,7 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        _RYML_WITH_COMMENTS(, m_comm_state())
     {}
 
     /** Construct the emitter and its internal Writer state, using default emit options.
@@ -159,6 +167,7 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        _RYML_WITH_COMMENTS(, m_comm_state())
     {}
 
 public:
@@ -208,9 +217,9 @@ public:
     /** get the max depth for emitted trees (to prevent a stack overflow) */
     id_type max_depth() const noexcept { return m_opts.max_depth(); }
 
-    /** @cond dev */
-
 private:
+
+    /** @cond dev */
 
     void _emit_yaml(id_type id);
 
@@ -242,14 +251,11 @@ private:
     void _blck_write_scalar_val(id_type id);
 
     void _flow_seq_open_entry(id_type id);
-    void _flow_seq_close_entry(id_type id);
     void _flow_map_open_entry(id_type id);
-    void _flow_map_close_entry(id_type id);
+    void _flow_close_entry_sl(id_type id, id_type last_sibling);
+    void _flow_close_entry_ml(id_type id, id_type last_sibling);
     void _flow_write_scalar_key(id_type id);
     void _flow_write_scalar_val(id_type id);
-
-    void _flow_sl_write_comma(id_type id, id_type first_sibling);
-    void _flow_ml_write_comma(id_type id, id_type first_sibling);
 
 private:
 
@@ -259,10 +265,6 @@ private:
     void _write_scalar_squo(csubstr s, id_type level);
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
-
-    #ifdef RYML_WITH_COMMENTS
-    void _write_comment(csubstr s, id_type indentation);
-    #endif
 
     size_t _write_escaped_newlines(csubstr s, size_t i);
     size_t _write_indented_block(csubstr s, size_t i, id_type level);
@@ -361,48 +363,31 @@ private: // pending whitespace
     }
 
     #ifdef RYML_WITH_COMMENTS
-    struct CommentLookupResult
-    {
-        CommentData const* latest;
-        CommentData const* comm;
-    };
-    void _maybe_write_comm_trailing(id_type node, CommentType_e type, CommentLookupResult *result, bool indent_extra=false)
-    {
-        result->comm = m_tree->comment(node, result->latest, type);
-        if(result->comm)
-        {
-            if(indent_extra && !result->latest)
-                ++m_ilevel;
-            result->latest = result->comm;
-            _write(' ');
-            _write_comment(result->comm->m_text, m_col);
-            _pend_newl();
-        }
-    }
-    void _maybe_write_comm_leading(id_type node, CommentType_e type, CommentLookupResult *result, bool indent_extra=false)
-    {
-        result->comm = m_tree->comment(node, result->latest, type);
-        if(result->comm)
-        {
-            if(indent_extra && !result->latest)
-                ++m_ilevel;
-            if(m_col)
-                _newl();
-            _indent(m_ilevel);
-            _write_comment(result->comm->m_text, m_col);
-            _pend_newl();
-        }
-    }
+    void _maybe_write_comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
+    void _maybe_write_comm_leading(id_type node, CommentType_e type, bool indent_extra=false);
+    void _write_comm(csubstr s, id_type indentation);
+    C4_ALWAYS_INLINE void _push_comm() { m_comm_state.push(CommState{}); }
+    C4_ALWAYS_INLINE void _pop_comm() { m_ilevel -= m_comm_state.pop().extra_indentation; }
     #endif
 
 private:
 
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
-    size_t m_col;
-    id_type m_depth;
-    id_type m_ilevel;
-    Pws_e m_pws;
+    size_t      m_col;
+    id_type     m_depth;
+    id_type     m_ilevel;
+    Pws_e       m_pws;
+
+    #if RYML_WITH_COMMENTS
+    struct CommState
+    {
+        CommentData const* latest;
+        CommentData const* comm;
+        id_type extra_indentation;
+    };
+    detail::stack<CommState> m_comm_state;
+    #endif
 
     /** @endcond */
 };

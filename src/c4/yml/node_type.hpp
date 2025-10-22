@@ -306,9 +306,9 @@ typedef enum : uint32_t {
     COMM_VAL_LEADING  = _c4bit(18),
     COMM_VAL_TRAILING_DASH = _c4bit(19), // trailing -
     COMM_VAL_BRACKET_TRAILING = _c4bit(20), // trailing [ or { (sameline)
-    COMM_VAL_TRAILING = _c4bit(21),
-    COMM_VAL_FOOTER   = _c4bit(22),
-    COMM_VAL_BRACKET_LEADING = _c4bit(23),
+    COMM_VAL_BRACKET_LEADING = _c4bit(21), // leading ] or } (line before)
+    COMM_VAL_TRAILING = _c4bit(22),
+    COMM_VAL_FOOTER   = _c4bit(23),
 
     COMM_COMMA_TRAILING = _c4bit(24), // trailing , (sameline)
 
