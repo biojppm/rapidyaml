@@ -285,7 +285,7 @@ typedef enum : uint32_t {
     COMM_DOC_TRAILING_OPEN = _c4bit(1), // trailing --- (sameline)
 
     // QMRK
-    COMM_QMRK_LEADING = _c4bit(2), // leading ? token (line before)
+    COMM_KEY_LEADING  = _c4bit(2),
     COMM_QMRK_TRAILING = _c4bit(3),
     COMM_QMRK_FOOTER = _c4bit(4),
 
@@ -293,25 +293,26 @@ typedef enum : uint32_t {
     COMM_KEY_TAG_TRAILING = _c4bit(6),
     COMM_KEY_ANCHOR_LEADING = _c4bit(7),
     COMM_KEY_ANCHOR_TRAILING = _c4bit(8),
-    COMM_KEY_LEADING  = _c4bit(9),
+    COMM_KEY_LEADING2  = _c4bit(9),
     COMM_KEY_BRACKET_TRAILING = _c4bit(10), // trailing [ or { (sameline)
     COMM_KEY_TRAILING = _c4bit(11),
-    COMM_KEY_LEADING_COLON = _c4bit(12),
-    COMM_KEY_TRAILING_COLON = _c4bit(13),
+    COMM_KEY_TRAILING_QMRK = _c4bit(12),
+    COMM_KEY_LEADING_COLON = _c4bit(13),
+    COMM_KEY_TRAILING_COLON = _c4bit(14),
 
-    COMM_VAL_LEADING_DASH = _c4bit(14), // leading -
-    COMM_VAL_TRAILING_DASH = _c4bit(15), // trailing -
-    COMM_VAL_TAG_LEADING = _c4bit(16),
-    COMM_VAL_TAG_TRAILING = _c4bit(17),
-    COMM_VAL_ANCHOR_LEADING = _c4bit(18),
-    COMM_VAL_ANCHOR_TRAILING = _c4bit(19),
-    COMM_VAL_LEADING  = _c4bit(20),
-    COMM_VAL_BRACKET_TRAILING = _c4bit(21), // trailing [ or { (sameline)
-    COMM_VAL_BRACKET_LEADING = _c4bit(22), // leading ] or } (line before)
-    COMM_VAL_TRAILING = _c4bit(23),
-    COMM_VAL_FOOTER   = _c4bit(24),
+    COMM_VAL_LEADING_DASH = _c4bit(15), // leading -
+    COMM_VAL_TRAILING_DASH = _c4bit(16), // trailing -
+    COMM_VAL_TAG_LEADING = _c4bit(17),
+    COMM_VAL_TAG_TRAILING = _c4bit(18),
+    COMM_VAL_ANCHOR_LEADING = _c4bit(19),
+    COMM_VAL_ANCHOR_TRAILING = _c4bit(20),
+    COMM_VAL_LEADING  = _c4bit(21),
+    COMM_VAL_BRACKET_TRAILING = _c4bit(22), // trailing [ or { (sameline)
+    COMM_VAL_BRACKET_LEADING = _c4bit(23), // leading ] or } (line before)
+    COMM_VAL_TRAILING = _c4bit(24),
+    COMM_VAL_FOOTER   = _c4bit(25),
 
-    COMM_COMMA_TRAILING = _c4bit(25), // trailing , (sameline)
+    COMM_COMMA_TRAILING = _c4bit(26), // trailing , (sameline)
 
     COMM_STREAM_TRAILING_CLOSE = _c4bit(2), // footer ... (same line)
     COMM_STREAM_FOOTER_CLOSE = _c4bit(3), // footer ... (line after)

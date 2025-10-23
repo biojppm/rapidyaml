@@ -246,21 +246,19 @@ private:
     void _blck_seq_open_entry(id_type id);
     void _blck_map_open_entry(id_type id);
     void _blck_close_entry(id_type id);
-    void _blck_write_scalar_key(id_type id);
-    void _blck_write_scalar_val(id_type id);
+    void _blck_write_scalar(id_type id, csubstr key, type_bits type);
 
     void _flow_seq_open_entry(id_type id);
     void _flow_map_open_entry(id_type id);
     void _flow_close_entry_sl(id_type id, id_type last_sibling);
     void _flow_close_entry_ml(id_type id, id_type last_sibling);
-    void _flow_write_scalar_key(id_type id);
-    void _flow_write_scalar_val(id_type id);
+    void _flow_write_scalar(id_type id, csubstr key, type_bits type);
 
 private:
 
     void _emit_json(id_type id);
-    void _write_scalar_literal(csubstr s, id_type level, bool as_key);
-    void _write_scalar_folded(csubstr s, id_type level, bool as_key);
+    void _write_scalar_literal(csubstr s, id_type level);
+    void _write_scalar_folded(csubstr s, id_type level);
     void _write_scalar_squo(csubstr s, id_type level);
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
@@ -362,12 +360,17 @@ private: // pending whitespace
         m_pws = next;
     }
 
+private: // comments
+
     #ifdef RYML_WITH_COMMENTS
-    void _comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
-    void _comm_leading(id_type node, CommentType_e type, bool indent_extra=false);
-    void _write_comm(csubstr s, id_type indentation);
     C4_ALWAYS_INLINE void _comm_push() { m_comm_state.push(CommState{}); }
     C4_ALWAYS_INLINE void _comm_pop() { m_ilevel -= m_comm_state.pop().extra_indentation; }
+    CommentData const* _comm_get(id_type node, CommentType_e type, bool indent_extra=false);
+    void _write_comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
+    void _write_comm_leading(id_type node, CommentType_e type, bool indent_extra=false);
+    void _write_comm_trailing(CommentData const* comm);
+    void _write_comm_leading(CommentData const* comm);
+    void _write_comm(csubstr s, id_type indentation);
     #endif
 
 private:
@@ -388,6 +391,18 @@ private:
     };
     detail::stack<CommState> m_comm_state;
     #endif
+
+    enum : type_bits {
+        _styles_block_key = KEY_LITERAL|KEY_FOLDED,
+        _styles_block_val = VAL_LITERAL|VAL_FOLDED,
+        _styles_flow_key  = KEY_STYLE & ~_styles_block_key,
+        _styles_flow_val  = KEY_STYLE & ~_styles_block_val,
+        _styles_squo      = KEY_SQUO|VAL_SQUO,
+        _styles_dquo      = KEY_DQUO|VAL_DQUO,
+        _styles_plain     = KEY_PLAIN|VAL_PLAIN,
+        _styles_literal   = KEY_LITERAL|VAL_LITERAL,
+        _styles_folded    = KEY_FOLDED|VAL_FOLDED,
+    };
 
     /** @endcond */
 };
