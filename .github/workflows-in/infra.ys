@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - :: checkout-action
+      - name: install ys
+        run: make -C .github/workflows-in install-ys
       - name: generate workflows
         run: make -C .github/workflows-in build
       - name: test workflows

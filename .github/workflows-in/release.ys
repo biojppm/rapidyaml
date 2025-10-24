@@ -15,87 +15,87 @@ defn pywhl(pyv cibwpyv cibwarch cibwplatform os vsenvarch='' cmkflags='')::  # N
 
 python-wheel-matrix =::
 #          pyv        arch         platform            os
-- ! pywhl('3.13' 313 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.13' 313 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.13' 313 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.13' 313 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.13' 313 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.13' 313 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.13' 313 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.13' 313 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.13' 313 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.13' 313 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.13' 313 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.13' 313 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.12' 312 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.12' 312 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.12' 312 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.12' 312 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.12' 312 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.12' 312 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.12' 312 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.12' 312 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.12' 312 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.12' 312 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.12' 312 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.12' 312 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.11' 311 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.11' 311 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.11' 311 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.11' 311 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.11' 311 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.11' 311 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.11' 311 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.11' 311 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.11' 311 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.11' 311 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.11' 311 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.11' 311 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.10' 310 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.10' 310 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.10' 310 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.10' 310 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.10' 310 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.10' 310 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.10' 310 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.10' 310 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.10' 310 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.10' 310 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.10' 310 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.10' 310 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.9'  39  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.9'  39  'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.9'  39  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.9'  39  'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.9'  39  'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.9'  39  'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.9'  39  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.9'  39  'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.9'  39  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.9'  39  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.9'  39  'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.9'  39  'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.8'  38  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.8'  38  'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.8'  38  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.8'  38  'x86_64'     'macosx_x86_64'     'macos-15-intel')
-#- ! pywhl('3.8'  38  'arm64'      'macosx_arm64'      'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
-#- ! pywhl('3.8'  38  'universal2' 'macosx_universal2' 'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
+- :: pywhl('3.8'  38  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.8'  38  'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.8'  38  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.8'  38  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+#- :: pywhl('3.8'  38  'arm64'      'macosx_arm64'      'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
+#- :: pywhl('3.8'  38  'universal2' 'macosx_universal2' 'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
 #          pyv        arch         platform            os
-- ! pywhl('3.7'  37  'x86_64'     'manylinux_x86_64'  'ubuntu-22.04')
-- ! pywhl('3.7'  37  'i686'       'manylinux_i686'    'ubuntu-22.04')
-- ! pywhl('3.7'  37  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.7'  37  'x86_64'     'manylinux_x86_64'  'ubuntu-22.04')
+- :: pywhl('3.7'  37  'i686'       'manylinux_i686'    'ubuntu-22.04')
+- :: pywhl('3.7'  37  'x86_64'     'macosx_x86_64'     'macos-15-intel')
 #          pyv        arch         platform            os
-#- ! pywhl('3.6'  36  'x86_64'     'manylinux_x86_64'  'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
-#- ! pywhl('3.6'  36  'i686'       'manylinux_i686'    'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
-#- ! pywhl('3.6'  36  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+#- :: pywhl('3.6'  36  'x86_64'     'manylinux_x86_64'  'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+#- :: pywhl('3.6'  36  'i686'       'manylinux_i686'    'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+#- :: pywhl('3.6'  36  'x86_64'     'macosx_x86_64'     'macos-15-intel')
 
 
 python-wheel-matrix-win =::
 #          pyv        arch     platform     os             vsenvarch     cmakeflags
-- ! pywhl('3.13' 313 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.13' 313 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.13' 313 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.13' 313 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.13' 313 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.13' 313 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.12' 312 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.12' 312 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.12' 312 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.12' 312 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.12' 312 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.12' 312 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.11' 311 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.11' 311 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.11' 311 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.11' 311 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.11' 311 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.11' 311 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.10' 310 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.10' 310 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.10' 310 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.10' 310 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.10' 310 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.10' 310 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.9'  39  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.9'  39  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.9'  39  'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.9'  39  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.9'  39  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.9'  39  'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.8'  38  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.8'  38  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+- :: pywhl('3.8'  38  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.8'  38  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
 #
-- ! pywhl('3.7'  37  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-#- ! pywhl('3.7'  37  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+- :: pywhl('3.7'  37  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+#- :: pywhl('3.7'  37  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
 #
-- ! pywhl('3.6'  36  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.6'  36  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+- :: pywhl('3.6'  36  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.6'  36  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
 
 
 setup-env =::
@@ -303,7 +303,7 @@ jobs:
         mkdir -p assets
         asset_src=`ls -1 ./build/shared64/*-${{matrix.config.sfxg}}`
         asset_dst=./assets/${PROJ_PKG_NAME}${SRC_VERSION}-${{matrix.config.sfxp}}
-        [ ! -f $asset_src ] && exit 1
+        [ -f $asset_src ] || exit
         cp -fav $asset_src $asset_dst
     - name: Save artifacts
       uses: actions/upload-artifact@v4
