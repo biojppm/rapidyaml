@@ -11,6 +11,9 @@
 
 #if defined(C4_MSVC) || defined(C4_MINGW)
 #include <malloc.h>
+#elif (defined(__clang__) && defined(_MSC_VER)) || \
+      defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#include <stdlib.h>
 #else
 #include <alloca.h>
 #endif
