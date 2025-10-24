@@ -1,4 +1,4 @@
-!yamlscript/v0
+!ys-0
 
 python-preamble-job =::
   runs-on: ${{matrix.config.os}}
@@ -86,7 +86,7 @@ python-bare-tests =::
 
 
 ---
-!yamlscript/v0:
+!ys:
 
 :use common: :all
 :: workflow-setup()

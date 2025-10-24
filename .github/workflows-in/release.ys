@@ -1,4 +1,4 @@
-!yamlscript/v0
+!ys-0
 
 
 defn pywhl(pyv cibwpyv cibwarch cibwplatform os vsenvarch='' cmkflags='')::  # NOTE: cannot use _ in names?
@@ -111,7 +111,7 @@ setup-env-win =::
 
 
 ---
-!yamlscript/v0:
+!ys:
 
 :use common: :all
 :workflow-setup 'release'::

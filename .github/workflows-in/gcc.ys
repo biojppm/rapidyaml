@@ -1,4 +1,4 @@
-!yamlscript/v0:
+!ys-0:
 
 :use common: :all
 :: workflow-setup()
@@ -214,7 +214,7 @@ jobs:
         - ! item(14 'Release')
         - ! item(17 'Debug')
         - ! item(17 'Release')
-    env:: -{'TOOLCHAIN' '${{matrix.toolchain}}'} + load('share/env.yaml')
+    env:: +{'TOOLCHAIN' '${{matrix.toolchain}}'} + load('share/env.yaml')
     steps:
     - :: checkout-manual
     - name: install gcc-arm-linux-gnueabihf

@@ -1,35 +1,36 @@
-SHELL := bash
+M := .cache/makes
+$(shell [ -d $M ] || git clone -q https://github.com/makeplus/makes $M)
+include $M/init.mk
+YS-VERSION := 0.2.7
+include $M/ys.mk
+include $M/clean.mk
+include $M/shell.mk
 
-YS_VERSION := 0.2.4
-YS_PREFIX := $(shell cd ../.. ; pwd)/build/ys
-YS := $(YS_PREFIX)/bin/ys-$(YS_VERSION)
+INPUT-FILES := $(wildcard */*)
+SOURCE-FILES := $(wildcard *.ys)
+TARGET-FILES := $(SOURCE-FILES:%.ys=../workflows/%.yml)
 
-INPUT_FILES := $(wildcard */*)
-SOURCE_FILES := $(wildcard *.ys)
-TARGET_FILES := $(SOURCE_FILES:%.ys=../workflows/%.yml)
-
-export PATH := $(YS_PREFIX)/bin:$(PATH)
-export YSPATH := $(shell pwd -P)/ys
+export YSPATH := $(ROOT)/ys
 
 
-build: $(TARGET_FILES)
+build: $(TARGET-FILES)
 
 
 test: force build
-	@git diff --exit-code $(TARGET_FILES) && \
+	@git diff --exit-code $(TARGET-FILES) && \
 	  echo -e '\nPASS - No normative changes to .github/workflows/*.yml'
 
 
-DIFF_ORIG_COMMIT ?= HEAD
+DIFF-ORIG-COMMIT ?= HEAD
 diff:
-	@for s in $(SOURCE_FILES); do \
+	@for s in $(SOURCE-FILES); do \
 	  s=$${s##*/}; \
 	  t=../workflows/$${s%.yml}; \
-	  [[ $$(git show $(DIFF_ORIG_COMMIT):.github/workflows/.$$t \
+	  [[ $$(git show $(DIFF-ORIG-COMMIT):.github/workflows/.$$t \
 	          2>/dev/null) ]] && t=.$$t; \
 	  diff -u --color=auto \
 	    <(yq -P 'sort_keys(..)' \
-	         -o=props <(git show $(DIFF_ORIG_COMMIT):.github/workflows/$$t) | \
+	         -o=props <(git show $(DIFF-ORIG-COMMIT):.github/workflows/$$t) | \
 		 grep -Ev '(^$$|^#)' \
 	     ) \
 	    <(yq -P 'sort_keys(..)' \
@@ -43,23 +44,10 @@ force:
 	touch *.ys
 
 
-../workflows/%.yml: %.ys $(YS) $(INPUT_FILES)
-	@if [ -f "$@" ] ; then chmod a+w $@ ; fi
+../workflows/%.yml: %.ys $(YS) $(INPUT-FILES)
+	@if [[ -f $@ ]] ; then chmod a+w $@ ; fi
 	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows-in/$<" > $@
 	@echo >> $@
 	$(YS) -Y $< >> $@
 	@chmod a-w $@
 	@wc -lm --total=never $< $@ || wc -lm $< $@
-
-
-# Auto install a specific version of ys
-install-ys: $(YS)
-$(YS):
-	mkdir -p $(YS_PREFIX)
-	curl -s https://yamlscript.org/install | \
-	  BIN=1 VERSION=$(YS_VERSION) PREFIX=$(YS_PREFIX) bash
-
-
-stats:
-	@echo "ys : $$(wc -lm *.ys)"
-	@echo "yml: $$(wc -lm *.yml)"
