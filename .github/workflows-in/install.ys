@@ -1,8 +1,7 @@
 !ys-0:
 
 :use common: :all
-::
-  workflow-setup:: test_install
+:: workflow-setup('test_install')
 
 env:
   PROJ_PFX_TARGET: ryml-

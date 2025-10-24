@@ -54,10 +54,10 @@ defn python-wheel-steps(name create-wheel-cmd)::
     run: python -m pytest -vvv api/python/tests
 
 
-python-wheel-tests =::
-  - :: python-wheel-steps('using setup.py'   'python setup.py bdist_wheel -v')
-  - :: python-wheel-steps('using pip'        'pip wheel -w dist/ .')
-  - :: python-wheel-steps('using pypa/build' 'python -m build --wheel')
+python-wheel-tests =:
+  python-wheel-steps('using setup.py'   'python setup.py bdist_wheel -v') +
+  python-wheel-steps('using pip'        'pip wheel -w dist/ .') +
+  python-wheel-steps('using pypa/build' 'python -m build --wheel')
 
 
 python-bare-tests =::
@@ -85,8 +85,7 @@ python-bare-tests =::
       python -m pytest -vvv api/python/tests
 
 
----
-!ys:
+--- !ys:
 
 :use common: :all
 :: workflow-setup()
@@ -100,10 +99,10 @@ jobs:
     :: setup-job('api' 'pybare')
     name: pybare/${{matrix.config.pythonv}}/${{matrix.config.os}}
     :: python-preamble-job
-    steps:
-    - :: checkout-action
-    - :: python-preamble-steps
-    - :: python-bare-tests
+    steps::
+      checkout-action +
+      python-preamble-steps +
+      python-bare-tests
 
   #----------------------------------------------------
   # run tests with built+installed wheels
@@ -113,18 +112,18 @@ jobs:
     :: python-preamble-job
     env:
        CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILES=ON
-    steps:
-    - :: checkout-action
-    - :: python-preamble-steps
-    - :: python-wheel-tests
+    steps::
+      checkout-action +
+      python-preamble-steps +
+      python-wheel-tests
   pywheelwin:
     :: setup-job('api' 'pywheel_win')
     name: pywheel/${{matrix.config.pythonv}}/${{matrix.config.os}}
     :: python-preamble-job-win
     env:
        CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILES=ON
-    steps:
-    - :: checkout-action
-    - :: python-preamble-steps
-    - :: setup-env-win
-    - :: python-wheel-tests
+    steps::
+      checkout-action +
+      python-preamble-steps +
+      setup-env-win +
+      python-wheel-tests

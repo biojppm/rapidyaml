@@ -4,8 +4,7 @@ ns: common
 
 #----------------------------------------------------------
 defn workflow-setup(name=nil overrides={})::
-  name =: name || FILE.replace(/.*\//).replace(/\.ys$/)
-  name:: name
+  name:: name || FILE.replace(/.*\//).replace(/\.ys$/)
   defaults:
     run:
       # Use a bash shell so we can use the same syntax for environment
@@ -25,11 +24,6 @@ defn workflow-setup(name=nil overrides={})::
     PROJ_PFX_CMAKE: RYML_
     CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
     NUM_JOBS_BUILD: # 4
-
-
-#----------------------------------------------------------
-defn bash(name):
-  slurp: "bash/$name.bash"
 
 
 #----------------------------------------------------------
@@ -269,7 +263,7 @@ defn run-manual-with-flags(cxx cc buildtype flags="")::
 # $(<expr>) is the more general syntax for any expr
 # $name and ${name} for simple var expansion
 # those are the 4 interpolation forms
-- name:: "---------------------------------------------------------"
+- name: ---------------------------------------------------------
   run:: |
     echo "$buildtype ::: $flags"
 - name:: "configure $buildtype ::: $flags"
@@ -300,7 +294,7 @@ defn run-manual-with-flags(cxx cc buildtype flags="")::
 
 
 defn run-vs-manual-with-flags(gen arch buildtype shared flags="")::
-- name:: "---------------------------------------------------------"
+- name: ---------------------------------------------------------
   run:: |
     echo "$buildtype ::: $flags shared=$shared"
 - name:: "configure $buildtype ::: $flags shared=$shared"
