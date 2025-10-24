@@ -26,18 +26,18 @@ jobs:
     :: setup-job('windows' 'vsdebug')
     name: ${{matrix.name}}bit/c++${{matrix.std}}/debug
     :: items
-    steps:
-    - :: checkout-action       #   generator         architecture      buildtype shared cflags
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'ON'  '/MDd /Zi /Ob0 /Od /RTC1')
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'OFF' '/MDd /Zi /Ob0 /Od /RTC1')
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /Os /DNDEBUG')
+    steps::
+      checkout-action +     \"  generator         architecture      buildtype shared cflags"
+      run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'ON'  '/MDd /Zi /Ob0 /Od /RTC1') +
+      run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'OFF' '/MDd /Zi /Ob0 /Od /RTC1') +
+      run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /Os /DNDEBUG')
 
   vsrelease:
     :: setup-job('windows' 'vsrelease')
     name: ${{matrix.name}}bit/c++${{matrix.std}}/release
     :: items
-    steps:
-    - :: checkout-action       #   generator         architecture      buildtype shared cflags
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O1 /Ob1 /DNDEBUG')
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O2 /Ob2 /DNDEBUG')
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O3 /Ob3 /DNDEBUG')
+    steps::
+      checkout-action +     \"  generator         architecture      buildtype shared cflags"
+      run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O1 /Ob1 /DNDEBUG') +
+      run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O2 /Ob2 /DNDEBUG') +
+      run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O3 /Ob3 /DNDEBUG')
