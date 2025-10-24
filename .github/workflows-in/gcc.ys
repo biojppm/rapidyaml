@@ -104,6 +104,10 @@ jobs:
           - {std: 11, cxx: 14, bits: 64, vg: ON , img: 22.04}
           - {std: 11, cxx: 14, bits: 32, vg: ON , img: 22.04}
 
+  c4core-install =::
+  - name: install
+    run: c4core-install g++-${{matrix.cxx}}
+
   vg1:
     :: setup-job('gcc' 'vg1')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
@@ -111,13 +115,11 @@ jobs:
     needs: canary
     strategy:: strategy-latest-gcc
     env:: load('share/env.yaml')
-    steps:
-    - :: checkout-manual
-    - name: install
-      run: c4core-install g++-${{matrix.cxx}}
-    - :: run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
+    steps::
+      checkout-manual + c4core-install +
+      run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}') +
+      run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}') +
+      run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
 
   vg2:
     :: setup-job('gcc' 'vg2')
@@ -126,12 +128,10 @@ jobs:
     needs: canary
     strategy:: strategy-latest-gcc
     env:: load('share/env.yaml')
-    steps:
-    - :: checkout-manual
-    - name: install
-      run: c4core-install g++-${{matrix.cxx}}
-    - :: run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
+    steps::
+      checkout-manual + c4core-install +
+      run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}') +
+      run-gcc-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
 
   #----------------------------------------------------------------------------
   # without valgrind: older versions
@@ -167,15 +167,13 @@ jobs:
         - {std: 11, cxx:  4.8, bits: 64, vg: OFF, img: 18.04}
         - {std: 11, cxx:  4.8, bits: 32, vg: OFF, img: 18.04}
     env:: load('share/env.yaml')
-    steps:
-    - :: checkout-manual
-    - name: install
-      run: c4core-install g++-${{matrix.cxx}}
-    - :: run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
+    steps::
+      checkout-manual + c4core-install +
+      run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}') +
+      run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}') +
+      run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}') +
+      run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}') +
+      run-gcc-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
 
   #----------------------------------------------------------------------------
   gccsan:
