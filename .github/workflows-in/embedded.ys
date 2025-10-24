@@ -2,8 +2,7 @@
 
 # DOCKER DEBUGGING EXAMPLES AT THE END!
 
-
-:use common: :all
+:use common:
 :: workflow-setup()
 
 ::
