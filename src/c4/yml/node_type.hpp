@@ -276,51 +276,139 @@ RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
 //-----------------------------------------------------------------------------
 
 #ifdef RYML_WITH_COMMENTS
+
 using comment_data_type = uint32_t;
-typedef enum : uint32_t {
-    #define _c4bit(i) (1u << UINT32_C(i))
-    // STREAM
-    COMM_STREAM_LEADING_OPEN = _c4bit(0), // leading --- (line before)
-    // DOC
-    COMM_DOC_TRAILING_OPEN = _c4bit(1), // trailing --- (sameline)
+/**
+ *
+ *
+ *
+ *
+ * Flow seq:
+ * ```yaml
+ * [
+ *    #                  LEADING
+ *    val1, #            TRAILING
+ *    #                  LEADING
+ *    val2 #             TRAILING
+ * ]
+ * ```
+ *
+ * Flow map:
+ * ```yaml
+ * {
+ *    #                  LEADING
+ *    key1: val1, #      TRAILING
+ *    #                  LEADING
+ *    key2: val2 #       TRAILING
+ * }
+ * ```
+ *
+ * Block seq:
+ * ```yaml
+ * #                     LEADING
+ * - val1 #              TRAILING
+ * #                     LEADING
+ * - val2 #              TRAILING
+ * ```
+ *
+ * Block map:
+ * ```yaml
+ * #                     LEADING
+ * key1: val1 #          TRAILING
+ * #                     LEADING
+ * key2: val2 #          TRAILING
+ * ```
+ *
+ *
+ * ```yaml
+ * --- # Flow map        TRAILING (node 4)
+ * #                     LEADING (container node)
+ * { #                   VAL_TRAILING_OPEN (container node)
+ *
+ *   #                   LEADING
+ *   key: val, #         TRAILING
+ *
+ *   #                   LEADING
+ *   key: #              COLON_TRAILING
+ *      #                VAL_LEADING
+ *      val, #           TRAILING
+ *      #                VAL_FOOTER
+ *
+ *   #                   LEADING
+ *   key #               KEY_TRAILING
+ *   #                   KEY_FOOTER
+ *   : #                 COLON_TRAILING
+ *      #                VAL_LEADING
+ *      val, #           TRAILING
+ *
+ *   #                   LEADING
+ *   key #               KEY_TRAILING
+ *   #                   KEY_FOOTER
+ *   : #                 COLON_TRAILING
+ *      #                VAL_LEADING
+ *      val #            VAL_TRAILING
+ *      #                COMMA_LEADING
+ *      , #              TRAILING
+ *
+ *   # 1                 LEADING
+ *   # 2                 KEY_TAG_LEADING
+ *   !keytag # 3         KEY_TAG_TRAILING
+ *   # 4                 KEY_ANCHOR_LEADING
+ *   &keyanchor # 5      KEY_ANCHOR_TRAILING
+ *   # 6                 KEY_LEADING
+ *   key # 7             KEY_TRAILING
+ *   # 8                 COLON_LEADING
+ *   : # 9               COLON_TRAILING
+ *   # 10                VAL_LEADING
+ *   # 11                VAL_TAG_LEADING
+ *   !valtag # 12        VAL_TAG_TRAILING
+ *   # 13                VAL_ANCHOR_LEADING
+ *   &valanchor # 14     VAL_ANCHOR_TRAILING
+ *   # 15                VAL_LEADING2
+ *   val # 16            TRAILING
+ *   # 17                FOOTER (child node)
+ * } #                   TRAILING (container node)
+ * #                     VAL_FOOTER (container node)
+ * ```
+ */
+typedef enum : comment_data_type {
+#define _RYML_DEFINE_COMMENTS(macro)                        \
+    /* STREAM */                                            \
+    macro(DOC_TRAILING, 0)         /* trailing ---  */      \
+    macro(LEADING, 1)              /* leading, GENERAL */   \
+    macro(KEY_TRAILING_QMRK, 2)    /* trailing ? */         \
+    macro(KEY_FOOTER_QMRK, 3)      /* footer ? */           \
+    macro(KEY_ANCHOR_LEADING, 4)                            \
+    macro(KEY_ANCHOR_TRAILING, 5)                           \
+    macro(KEY_TAG_LEADING, 6)                               \
+    macro(KEY_TAG_TRAILING, 7)                              \
+    macro(KEY_LEADING, 8)                                   \
+    macro(KEY_BRACKET_TRAILING, 9)                          \
+    macro(KEY_TRAILING, 10)                                 \
+    macro(KEY_FOOTER, 11)                                   \
+    macro(COLON_LEADING, 12)                                \
+    macro(COLON_TRAILING, 13)                               \
+    macro(VAL_LEADING, 14)                                  \
+    macro(VAL_DASH_TRAILING, 15)                            \
+    macro(VAL_TAG_LEADING, 16)                              \
+    macro(VAL_TAG_TRAILING, 17)                             \
+    macro(VAL_ANCHOR_LEADING, 18)                           \
+    macro(VAL_ANCHOR_TRAILING, 19)                          \
+    macro(VAL_LEADING2, 20)                                 \
+    macro(VAL_BRACKET_TRAILING, 21)                         \
+    macro(VAL_BRACKET_LEADING, 22)                          \
+    macro(VAL_TRAILING, 23)                                 \
+    macro(COMMA_LEADING, 24)                                \
+    macro(TRAILING, 25)                                     \
+    macro(FOOTER, 26)                                       \
+    macro(LAST_, 26)
 
-    // QMRK
-    COMM_KEY_LEADING  = _c4bit(2),
-    COMM_QMRK_TRAILING = _c4bit(3),
-    COMM_QMRK_FOOTER = _c4bit(4),
+    #define _c4comm(comm_symbol, bit) COMM_##comm_symbol = (UINT32_C(1) << UINT32_C(bit)),
+    _RYML_DEFINE_COMMENTS(_c4comm)
+    COMM_ANY = (COMM_LAST_ << 1u) - 1u,
+    COMM_NONE = 0,
+    #undef _c4comm
 
-    COMM_KEY_TAG_LEADING = _c4bit(5),
-    COMM_KEY_TAG_TRAILING = _c4bit(6),
-    COMM_KEY_ANCHOR_LEADING = _c4bit(7),
-    COMM_KEY_ANCHOR_TRAILING = _c4bit(8),
-    COMM_KEY_LEADING2  = _c4bit(9),
-    COMM_KEY_BRACKET_TRAILING = _c4bit(10), // trailing [ or { (sameline)
-    COMM_KEY_TRAILING = _c4bit(11),
-    COMM_KEY_TRAILING_QMRK = _c4bit(12),
-    COMM_KEY_LEADING_COLON = _c4bit(13),
-    COMM_KEY_TRAILING_COLON = _c4bit(14),
-
-    COMM_VAL_LEADING_DASH = _c4bit(15), // leading -
-    COMM_VAL_TRAILING_DASH = _c4bit(16), // trailing -
-    COMM_VAL_TAG_LEADING = _c4bit(17),
-    COMM_VAL_TAG_TRAILING = _c4bit(18),
-    COMM_VAL_ANCHOR_LEADING = _c4bit(19),
-    COMM_VAL_ANCHOR_TRAILING = _c4bit(20),
-    COMM_VAL_LEADING  = _c4bit(21),
-    COMM_VAL_BRACKET_TRAILING = _c4bit(22), // trailing [ or { (sameline)
-    COMM_VAL_BRACKET_LEADING = _c4bit(23), // leading ] or } (line before)
-    COMM_VAL_TRAILING = _c4bit(24),
-    COMM_VAL_FOOTER   = _c4bit(25),
-
-    COMM_COMMA_TRAILING = _c4bit(26), // trailing , (sameline)
-
-    COMM_STREAM_TRAILING_CLOSE = _c4bit(2), // footer ... (same line)
-    COMM_STREAM_FOOTER_CLOSE = _c4bit(3), // footer ... (line after)
-
-    COMM_LAST = COMM_STREAM_FOOTER_CLOSE,
-    COMM_ANY = (COMM_LAST << 1u) - 1u,
-    COMM_NONE = 0,   // internal
-    #undef _c4bit
 } CommentType_e;
 
 struct CommentData

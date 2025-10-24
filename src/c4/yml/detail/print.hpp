@@ -117,31 +117,9 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
             CommentData const& comm = p.m_comments_buf[cid];
             if(ccount++) printf("|");
             if(false) ;
-            else if(comm.m_type & COMM_STREAM_LEADING_OPEN  ) printf("STREAM_LEADING_OPEN");
-            else if(comm.m_type & COMM_STREAM_TRAILING_CLOSE) printf("STREAM_TRAILING_CLOSE");
-            else if(comm.m_type & COMM_STREAM_FOOTER_CLOSE  ) printf("STREAM_FOOTER_CLOSE");
-            else if(comm.m_type & COMM_DOC_TRAILING_OPEN    ) printf("DOC_TRAILING_OPEN");
-            else if(comm.m_type & COMM_COMMA_TRAILING       ) printf("COMMA_TRAILING");
-            else if(comm.m_type & COMM_VAL_BRACKET_TRAILING ) printf("FLOW_BRACKET_TRAILING");
-            else if(comm.m_type & COMM_KEY_LEADING_COLON    ) printf("FLOW_LEADING_COLON");
-            else if(comm.m_type & COMM_QMRK_LEADING         ) printf("QMRK_LEADING");
-            else if(comm.m_type & COMM_QMRK_TRAILING        ) printf("QMRK_TRAILING");
-            else if(comm.m_type & COMM_QMRK_FOOTER          ) printf("QMRK_FOOTER");
-            else if(comm.m_type & COMM_VAL_LEADING          ) printf("VAL_LEADING");
-            else if(comm.m_type & COMM_VAL_TRAILING         ) printf("VAL_TRAILING");
-            else if(comm.m_type & COMM_VAL_TRAILING_DASH    ) printf("VAL_TRAILING_DASH");
-            else if(comm.m_type & COMM_VAL_FOOTER           ) printf("VAL_FOOTER");
-            else if(comm.m_type & COMM_KEY_LEADING          ) printf("KEY_LEADING");
-            else if(comm.m_type & COMM_KEY_TRAILING         ) printf("KEY_TRAILING");
-            else if(comm.m_type & COMM_KEY_TRAILING_COLON   ) printf("KEY_TRAILING_COLON");
-            else if(comm.m_type & COMM_VAL_TAG_LEADING      ) printf("VAL_TAG_LEADING");
-            else if(comm.m_type & COMM_VAL_TAG_TRAILING     ) printf("VAL_TAG_TRAILING");
-            else if(comm.m_type & COMM_VAL_TAG_LEADING      ) printf("VAL_TAG_LEADING");
-            else if(comm.m_type & COMM_VAL_TAG_TRAILING     ) printf("VAL_TAG_TRAILING");
-            else if(comm.m_type & COMM_KEY_TAG_LEADING      ) printf("KEY_TAG_LEADING");
-            else if(comm.m_type & COMM_KEY_TAG_TRAILING     ) printf("KEY_TAG_TRAILING");
-            else if(comm.m_type & COMM_KEY_TAG_LEADING      ) printf("KEY_TAG_LEADING");
-            else if(comm.m_type & COMM_KEY_TAG_TRAILING     ) printf("KEY_TAG_TRAILING");
+            #define _c4commtostr(sym, bit) else if(comm.m_type & COMM_##sym) printf(#sym);
+            _RYML_DEFINE_COMMENTS(_c4commtostr)
+            #undef _c4commtpstr
         }
         printf("]");
     }

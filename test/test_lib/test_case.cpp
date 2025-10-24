@@ -685,33 +685,9 @@ void test_comment_invariants(Tree const& t, id_type id)
     id_type count_get = 0;
     {
         const CommentType_e all_types[] = {
-            COMM_STREAM_LEADING_OPEN ,
-            COMM_DOC_TRAILING_OPEN   ,
-            COMM_STREAM_TRAILING_CLOSE,
-            COMM_QMRK_LEADING        ,
-            COMM_STREAM_FOOTER_CLOSE,
-            COMM_QMRK_TRAILING       ,
-            COMM_QMRK_FOOTER         ,
-            COMM_KEY_TAG_LEADING     ,
-            COMM_KEY_TAG_TRAILING    ,
-            COMM_KEY_ANCHOR_LEADING  ,
-            COMM_KEY_ANCHOR_TRAILING ,
-            COMM_KEY_LEADING         ,
-            COMM_KEY_BRACKET_TRAILING,
-            COMM_KEY_TRAILING        ,
-            COMM_KEY_LEADING_COLON   ,
-            COMM_KEY_TRAILING_COLON  ,
-            COMM_VAL_TAG_LEADING     ,
-            COMM_VAL_TAG_TRAILING    ,
-            COMM_VAL_ANCHOR_LEADING  ,
-            COMM_VAL_ANCHOR_TRAILING ,
-            COMM_VAL_LEADING         ,
-            COMM_VAL_TRAILING_DASH   ,
-            COMM_VAL_BRACKET_TRAILING,
-            COMM_VAL_BRACKET_LEADING ,
-            COMM_VAL_TRAILING        ,
-            COMM_VAL_FOOTER          ,
-            COMM_COMMA_TRAILING      ,
+            #define _c4comm(comm_symbol, bit) COMM_##comm_symbol,
+            _RYML_DEFINE_COMMENTS(_c4comm)
+            #undef _c4comm
         };
         CommentData const* prev = nullptr;
         CommentType_e ctype_prev = COMM_NONE;

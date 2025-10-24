@@ -74,32 +74,9 @@ template<>
 c4::EnumSymbols<yml::CommentType_e> esyms<yml::CommentType_e>()
 {
     static constexpr const EnumSymbols<yml::CommentType_e>::Sym syms[] = {
-        {yml::COMM_STREAM_LEADING_OPEN, "STREAM_LEADING_OPEN"},
-        {yml::COMM_DOC_TRAILING_OPEN, "DOC_TRAILING_OPEN"},
-        {yml::COMM_QMRK_LEADING, "QMRK_LEADING"},
-        {yml::COMM_QMRK_TRAILING, "QMRK_TRAILING"},
-        {yml::COMM_QMRK_FOOTER, "QMRK_FOOTER"},
-        {yml::COMM_KEY_LEADING,  "KEY_LEADING"},
-        {yml::COMM_KEY_TAG_LEADING, "KEY_TAG_LEADING"},
-        {yml::COMM_KEY_TAG_TRAILING, "KEY_TAG_TRAILING"},
-        {yml::COMM_KEY_ANCHOR_LEADING, "KEY_ANCHOR_LEADING"},
-        {yml::COMM_KEY_ANCHOR_TRAILING, "KEY_ANCHOR_TRAILING"},
-        {yml::COMM_KEY_BRACKET_TRAILING, "KEY_BRACKET_TRAILING"},
-        {yml::COMM_KEY_TRAILING, "KEY_TRAILING"},
-        {yml::COMM_KEY_LEADING_COLON, "KEY_LEADING_COLON"},
-        {yml::COMM_KEY_TRAILING_COLON, "KEY_TRAILING_COLON"},
-        {yml::COMM_VAL_LEADING,  "VAL_LEADING"},
-        {yml::COMM_VAL_TAG_LEADING, "VAL_TAG_LEADING"},
-        {yml::COMM_VAL_TAG_TRAILING, "VAL_TAG_TRAILING"},
-        {yml::COMM_VAL_ANCHOR_LEADING, "VAL_ANCHOR_LEADING"},
-        {yml::COMM_VAL_ANCHOR_TRAILING, "VAL_ANCHOR_TRAILING"},
-        {yml::COMM_VAL_TRAILING_DASH, "VAL_TRAILING_DASH"},
-        {yml::COMM_VAL_BRACKET_TRAILING, "VAL_BRACKET_TRAILING"},
-        {yml::COMM_VAL_TRAILING, "VAL_TRAILING"},
-        {yml::COMM_VAL_FOOTER,   "VAL_FOOTER"},
-        {yml::COMM_COMMA_TRAILING, "COMMA_TRAILING"},
-        {yml::COMM_STREAM_TRAILING_CLOSE, "STREAM_TRAILING_CLOSE"},
-        {yml::COMM_STREAM_FOOTER_CLOSE, "STREAM_FOOTER_CLOSE"},
+        #define _c4comm(sym, bit)  {yml::COMM_##sym, #sym},
+        _RYML_DEFINE_COMMENTS(_c4comm)
+        #undef _c4comm
     };
     return EnumSymbols<yml::CommentType_e>(syms);
 }

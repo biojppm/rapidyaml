@@ -395,8 +395,10 @@ private:
     enum : type_bits {
         _styles_block_key = KEY_LITERAL|KEY_FOLDED,
         _styles_block_val = VAL_LITERAL|VAL_FOLDED,
+        _styles_block     = _styles_block_key|_styles_block_val,
         _styles_flow_key  = KEY_STYLE & ~_styles_block_key,
-        _styles_flow_val  = KEY_STYLE & ~_styles_block_val,
+        _styles_flow_val  = VAL_STYLE & ~_styles_block_val,
+        _styles_flow      = _styles_flow_key|_styles_flow_val,
         _styles_squo      = KEY_SQUO|VAL_SQUO,
         _styles_dquo      = KEY_DQUO|VAL_DQUO,
         _styles_plain     = KEY_PLAIN|VAL_PLAIN,

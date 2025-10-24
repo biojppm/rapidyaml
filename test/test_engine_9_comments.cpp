@@ -18,6 +18,172 @@ namespace yml {
 constexpr const bool multiline = true;
 constexpr const bool singleline = false;
 
+COMMENT_TEST(FlowSeqMinimal,
+             "["                           "\n"
+             "  # 1"                       "\n"
+             "  val1, # 2"                 "\n"
+             "  # 3"                       "\n"
+             "  val2 # 4"                  "\n"
+             "  # 5"                       "\n"
+             "]"                           "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "+SEQ []"                     "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "=VAL :val1"                  "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[LEADING] 3"          "\n"
+             "=VAL :val2"                  "\n"
+             "=COMM #[TRAILING] 4"         "\n"
+             "=COMM #[FOOTER] 5"           "\n"
+             "-SEQ"                        "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_comment(" 2", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 3", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
+    ___(ps.end_seq_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(FlowMapMinimal,
+             "{"                           "\n"
+             "  # 1"                       "\n"
+             "  key1: val1, # 2"           "\n"
+             "  # 3"                       "\n"
+             "  key2: val2 # 4"            "\n"
+             "  # 5"                       "\n"
+             "}"                           "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "+MAP {}"                     "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "=VAL :key1"                  "\n"
+             "=VAL :val1"                  "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[LEADING] 3"          "\n"
+             "=VAL :key2"                  "\n"
+             "=VAL :val2"                  "\n"
+             "=COMM #[TRAILING] 4"         "\n"
+             "=COMM #[FOOTER] 5"           "\n"
+             "-SEQ"                        "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_key_scalar_plain("key1"));
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_comment(" 2", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 3", COMM_LEADING));
+    ___(ps.set_key_scalar_plain("key2"));
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqMinimal,
+             "# 1"                       "\n"
+             "- val1 # 2"                 "\n"
+             "# 3"                       "\n"
+             "- val2 # 4"                  "\n"
+             "# 5"                       "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "+SEQ"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "=VAL :val1"                  "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[LEADING] 3"          "\n"
+             "=VAL :val2"                  "\n"
+             "=COMM #[TRAILING] 4"         "\n"
+             "=COMM #[FOOTER] 5"           "\n"
+             "-SEQ"                        "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_comment(" 2", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 3", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockMapMinimal,
+             "# 1"                         "\n"
+             "key1: val1 # 2"              "\n"
+             "# 3"                         "\n"
+             "key2: val2 # 4"              "\n"
+             "# 5"                         "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "+MAP"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "=VAL :key1"                  "\n"
+             "=VAL :val1"                  "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[LEADING] 3"          "\n"
+             "=VAL :key2"                  "\n"
+             "=VAL :val2"                  "\n"
+             "=COMM #[TRAILING] 4"         "\n"
+             "=COMM #[FOOTER] 5"           "\n"
+             "-SEQ"                        "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_key_scalar_plain("key1"));
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_comment(" 2", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 3", COMM_LEADING));
+    ___(ps.set_key_scalar_plain("key2"));
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+#ifdef WIP
 COMMENT_TEST(FlowSeqBasic,
              "# 1"                              "\n"
              "[ # 2"                              "\n"
@@ -559,7 +725,6 @@ COMMENT_TEST(BlockMapBasicWithTagAndAnchor,
 }
 
 
-#ifdef WIP
 COMMENT_TEST(StreamDocValPlain,
              "# 1 leading stream"                             "\n"
              "--- # 2 trailing open"                          "\n"

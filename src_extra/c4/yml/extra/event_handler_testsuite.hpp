@@ -608,31 +608,9 @@ public:
     {
         _c4dbgpf("comment! [{}]~~~{}~~~", txt.len, txt);
         if(false) ;
-        else if(type & COMM_STREAM_LEADING_OPEN  ) _send_("=COMM #[STREAM_LEADING_OPEN]");
-        else if(type & COMM_STREAM_TRAILING_CLOSE) _send_("=COMM #[STREAM_TRAILING_CLOSE]");
-        else if(type & COMM_STREAM_FOOTER_CLOSE  ) _send_("=COMM #[STREAM_FOOTER_CLOSE]");
-        else if(type & COMM_DOC_TRAILING_OPEN    ) _send_("=COMM #[DOC_TRAILING_OPEN]");
-        else if(type & COMM_COMMA_TRAILING       ) _send_("=COMM #[COMMA_TRAILING]");
-        else if(type & COMM_VAL_BRACKET_TRAILING ) _send_("=COMM #[FLOW_BRACKET_TRAILING]");
-        else if(type & COMM_KEY_LEADING_COLON    ) _send_("=COMM #[FLOW_LEADING_COLON]");
-        else if(type & COMM_QMRK_LEADING         ) _send_("=COMM #[QMRK_LEADING]");
-        else if(type & COMM_QMRK_TRAILING        ) _send_("=COMM #[QMRK_TRAILING]");
-        else if(type & COMM_QMRK_FOOTER          ) _send_("=COMM #[QMRK_FOOTER]");
-        else if(type & COMM_VAL_LEADING          ) _send_("=COMM #[VAL_LEADING]");
-        else if(type & COMM_VAL_TRAILING         ) _send_("=COMM #[VAL_TRAILING]");
-        else if(type & COMM_VAL_TRAILING_DASH    ) _send_("=COMM #[VAL_TRAILING_DASH]");
-        else if(type & COMM_VAL_FOOTER           ) _send_("=COMM #[VAL_FOOTER]");
-        else if(type & COMM_KEY_LEADING          ) _send_("=COMM #[KEY_LEADING]");
-        else if(type & COMM_KEY_TRAILING         ) _send_("=COMM #[KEY_TRAILING]");
-        else if(type & COMM_KEY_TRAILING_COLON   ) _send_("=COMM #[KEY_TRAILING_COLON]");
-        else if(type & COMM_VAL_TAG_LEADING      ) _send_("=COMM #[VAL_TAG_LEADING]");
-        else if(type & COMM_VAL_TAG_TRAILING     ) _send_("=COMM #[VAL_TAG_TRAILING]");
-        else if(type & COMM_VAL_TAG_LEADING      ) _send_("=COMM #[VAL_TAG_LEADING]");
-        else if(type & COMM_VAL_TAG_TRAILING     ) _send_("=COMM #[VAL_TAG_TRAILING]");
-        else if(type & COMM_KEY_TAG_LEADING      ) _send_("=COMM #[KEY_TAG_LEADING]");
-        else if(type & COMM_KEY_TAG_TRAILING     ) _send_("=COMM #[KEY_TAG_TRAILING]");
-        else if(type & COMM_KEY_TAG_LEADING      ) _send_("=COMM #[KEY_TAG_LEADING]");
-        else if(type & COMM_KEY_TAG_TRAILING     ) _send_("=COMM #[KEY_TAG_TRAILING]");
+        #define _c4comm(sym, bit) else if(type & COMM_##sym) _send_("=COMM #[" #sym "]");
+        _RYML_DEFINE_COMMENTS(_c4comm)
+        #undef _c4comm
         append_scalar_escaped(&_buf_(), txt);
         _send_('\n');
     }
