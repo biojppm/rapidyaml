@@ -87,7 +87,7 @@ python-bare-tests =::
 
 --- !ys:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 jobs:
