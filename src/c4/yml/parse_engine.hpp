@@ -217,67 +217,6 @@ typedef enum BlockChomp_ {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** Options to give to the parser to control its behavior. */
-struct RYML_EXPORT ParserOptions
-{
-private:
-
-    typedef enum : uint32_t {
-        SCALAR_FILTERING = (1u << 0u),
-        LOCATIONS = (1u << 1u),
-        DEFAULTS = SCALAR_FILTERING,
-    } Flags_e;
-
-    uint32_t flags = DEFAULTS;
-
-public:
-
-    ParserOptions() = default;
-
-public:
-
-    /** @name source location tracking */
-    /** @{ */
-
-    /** enable/disable source location tracking */
-    ParserOptions& locations(bool enabled) noexcept
-    {
-        if(enabled)
-            flags |= LOCATIONS;
-        else
-            flags &= ~LOCATIONS;
-        return *this;
-    }
-    /** query source location tracking status */
-    C4_ALWAYS_INLINE bool locations() const noexcept { return (flags & LOCATIONS); }
-
-    /** @} */
-
-public:
-
-    /** @name scalar filtering status (experimental; disable at your discretion) */
-    /** @{ */
-
-    /** enable/disable scalar filtering while parsing */
-    ParserOptions& scalar_filtering(bool enabled) noexcept
-    {
-        if(enabled)
-            flags |= SCALAR_FILTERING;
-        else
-            flags &= ~SCALAR_FILTERING;
-        return *this;
-    }
-    /** query scalar filtering status */
-    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
-
-    /** @} */
-};
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 /** This is the main driver of parsing logic: it scans the YAML or
  * JSON source for tokens, and emits the appropriate sequence of
  * parsing events to its event handler. The parse engine itself has no
@@ -577,6 +516,8 @@ private:
 
     void  _handle_flow_skip_whitespace();
 
+    void  _end_map_flow();
+    void  _end_seq_flow();
     void  _end_map_blck();
     void  _end_seq_blck();
     void  _end2_map();

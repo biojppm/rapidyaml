@@ -177,7 +177,7 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& tc, std::string const& 
     #endif
     std::string actual = emitrs_yaml<std::string>(tree);
     _c4dbgpf("~~~\n{}~~~\n", actual);
-    EXPECT_EQ(actual, tc.emitted);
+    EXPECT_EQ(tc.expected_emitted, actual);
 }
 
 

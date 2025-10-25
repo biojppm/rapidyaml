@@ -614,6 +614,47 @@ TEST(parse_in_arena, error_without_handler)
     });
 }
 
+TEST(parse_flow_ml, respects_parser_options)
+{
+    std::string yaml = R"({
+  foo: 0,
+  bar: 1,
+  map: {
+    hell: yeah
+  },
+  seq: [
+    hell,
+    yeah
+  ]
+}
+)";
+    const ParserOptions defaults = ParserOptions{};
+    const ParserOptions flow_ml = ParserOptions{}.detect_flow_ml(true);
+    const ParserOptions no_flow_ml = ParserOptions{}.detect_flow_ml(false);
+    {
+        SCOPED_TRACE("default behavior: detect flow_ml");
+        for(ParserOptions opts : {defaults, flow_ml})
+        {
+            test_check_emit_check_with_parser(to_csubstr(yaml), opts, [&](const Tree& t, Parser const&){
+                EXPECT_TRUE(t.rootref().is_flow_ml());
+                EXPECT_TRUE(t["map"].is_flow_ml());
+                EXPECT_TRUE(t["seq"].is_flow_ml());
+                EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+            });
+        }
+    }
+    {
+        SCOPED_TRACE("custom behavior: do not detect flow_ml");
+        test_check_emit_check_with_parser(to_csubstr(yaml), no_flow_ml, [](const Tree& t, Parser const&){
+            EXPECT_FALSE(t.rootref().is_flow_ml());
+            EXPECT_FALSE(t["map"].is_flow_ml());
+            EXPECT_FALSE(t["seq"].is_flow_ml());
+            EXPECT_EQ(emitrs_yaml<std::string>(t),
+                      "{foo: 0,bar: 1,map: {hell: yeah},seq: [hell,yeah]}");
+        });
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 
@@ -815,10 +856,19 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_3_2)
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
+// workaround for optimizer problem in armv4 and armv5 with -O3: when
+// the calling the parser overloads that take a NodeRef, the compiler
+// optimizes the tree away
+static C4_NO_INLINE void ensure_compiler_knows_tree_was_changed(Tree *t)
+{
+    C4_DONT_OPTIMIZE(*t);
+    print_tree(*t); // this was also needed (?)
+}
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_1)
 {
     Tree actual;
     parse_in_arena(cyaml, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
@@ -826,6 +876,7 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_2)
 {
     Tree actual;
     parse_in_arena(filename, cyaml, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
@@ -1090,6 +1141,7 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_1)
 {
     Tree actual;
     parse_json_in_arena(cjson, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }
@@ -1097,6 +1149,7 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_2)
 {
     Tree actual;
     parse_json_in_arena(filename, cjson, actual.rootref());
+    ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
     check_tree(actual, actual.arena());
 }

@@ -1104,7 +1104,7 @@ with many lines
 and yet more, deindented
 ]
 )",
-  N(SFS, L{
+  N(SFM, L{
       N(VP, "a plain scalar with several lines\nand blank lines\nas well"),
       N(VP, "and another plain scalar"),
       N(VP, "and yet another one\n\n\nwith many lines\nand yet more"),
