@@ -121,7 +121,7 @@ typedef enum : DataType {
     /// following the event. For such events, the next two integers
     /// will provide respectively the string's offset and length. See
     /// also @ref PSTR.
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML|COMM,
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML _RYML_WITH_COMMENTS(|COMM),
 
 } EventFlags;
 
@@ -129,7 +129,8 @@ typedef enum : DataType {
 inline DataType encode_comment(ievt::DataType curr, CommentType_e comm)
 {
     curr &= (ievt::KEY_|ievt::VAL_); // keep only these
-    curr |= ievt::COMM|ievt::DataType(static_cast<uint32_t>(comm) << static_cast<uint32_t>(ievt::_COMM_START));
+    ievt::DataType encoded = ievt::DataType(static_cast<uint32_t>(comm) << static_cast<uint32_t>(ievt::_COMM_START));
+    curr |= ievt::COMM|encoded;
     return curr;
 }
 inline CommentType_e decode_comment(ievt::DataType curr)

@@ -152,6 +152,7 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        _RYML_WITH_COMMENTS(, m_wsonly())
         _RYML_WITH_COMMENTS(, m_comm_state())
     {}
 
@@ -167,6 +168,7 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        _RYML_WITH_COMMENTS(, m_wsonly())
         _RYML_WITH_COMMENTS(, m_comm_state())
     {}
 
@@ -292,37 +294,47 @@ private:
         }
     }
 
-    void _indent(id_type level)
+private:
+
+    C4_ALWAYS_INLINE void _indent(id_type level)
     {
-        _write(' ', 2u * (size_t)level);
+        size_t num = (size_t)(2u * level);
+        this->Writer::_do_write(' ', num);
+        m_col += num;
+    }
+
+    template<size_t N>
+    C4_ALWAYS_INLINE void _write(const char (&a)[N])
+    {
+        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
+        m_col += N-1;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
+    }
+    C4_ALWAYS_INLINE void _write(csubstr s)
+    {
+        this->Writer::_do_write(s);
+        m_col += s.len;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
+    }
+    C4_ALWAYS_INLINE void _write(char c)
+    {
+        this->Writer::_do_write(c);
+        ++m_col;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
+    }
+    C4_ALWAYS_INLINE void _write(char c, size_t num)
+    {
+        this->Writer::_do_write(c, num);
+        m_col += num;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
     }
 
     /// write a newline and reset the column
     C4_ALWAYS_INLINE void _newl()
     {
-        m_col = 0;
         this->Writer::_do_write('\n');
-    }
-    template<size_t N>
-    C4_ALWAYS_INLINE void _write(const char (&a)[N])
-    {
-        m_col += N-1;
-        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
-    }
-    C4_ALWAYS_INLINE void _write(csubstr s)
-    {
-        m_col += s.len;
-        this->Writer::_do_write(s);
-    }
-    C4_ALWAYS_INLINE void _write(char c)
-    {
-        ++m_col;
-        this->Writer::_do_write(c);
-    }
-    C4_ALWAYS_INLINE void _write(char c, size_t num)
-    {
-        m_col += num;
-        this->Writer::_do_write(c, num);
+        m_col = 0;
+        _RYML_WITH_COMMENTS(m_wsonly = true;)
     }
 
 private: // pending whitespace
@@ -362,7 +374,7 @@ private: // pending whitespace
 
 private: // comments
 
-    #ifdef RYML_WITH_COMMENTS
+#ifdef RYML_WITH_COMMENTS
     C4_ALWAYS_INLINE void _comm_push() { m_comm_state.push(CommState{}); }
     C4_ALWAYS_INLINE void _comm_pop() { m_ilevel -= m_comm_state.pop().extra_indentation; }
     CommentData const* _comm_get(id_type node, CommentType_e type, bool indent_extra=false);
@@ -371,7 +383,7 @@ private: // comments
     void _write_comm_trailing(CommentData const* comm);
     void _write_comm_leading(CommentData const* comm);
     void _write_comm(csubstr s, id_type indentation);
-    #endif
+#endif
 
 private:
 
@@ -381,8 +393,8 @@ private:
     id_type     m_depth;
     id_type     m_ilevel;
     Pws_e       m_pws;
-
-    #if RYML_WITH_COMMENTS
+#if RYML_WITH_COMMENTS
+    bool        m_wsonly;
     struct CommState
     {
         CommentData const* latest;
@@ -390,7 +402,7 @@ private:
         id_type extra_indentation;
     };
     detail::stack<CommState> m_comm_state;
-    #endif
+#endif
 
     enum : type_bits {
         _styles_block_key = KEY_LITERAL|KEY_FOLDED,

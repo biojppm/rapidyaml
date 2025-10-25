@@ -390,21 +390,21 @@ typedef enum : comment_data_type {
     macro(COLON_TRAILING, 13)                               \
     macro(VAL_LEADING, 14)                                  \
     macro(VAL_DASH_TRAILING, 15)                            \
-    macro(VAL_TAG_LEADING, 16)                              \
-    macro(VAL_TAG_TRAILING, 17)                             \
-    macro(VAL_ANCHOR_LEADING, 18)                           \
-    macro(VAL_ANCHOR_TRAILING, 19)                          \
+    macro(VAL_ANCHOR_LEADING, 16)                           \
+    macro(VAL_ANCHOR_TRAILING, 17)                          \
+    macro(VAL_TAG_LEADING, 18)                              \
+    macro(VAL_TAG_TRAILING, 19)                             \
     macro(VAL_LEADING2, 20)                                 \
     macro(VAL_BRACKET_TRAILING, 21)                         \
     macro(VAL_BRACKET_LEADING, 22)                          \
     macro(VAL_TRAILING, 23)                                 \
     macro(COMMA_LEADING, 24)                                \
     macro(TRAILING, 25)                                     \
-    macro(FOOTER, 26)                                       \
-    macro(LAST_, 26)
+    macro(FOOTER, 26)
 
     #define _c4comm(comm_symbol, bit) COMM_##comm_symbol = (UINT32_C(1) << UINT32_C(bit)),
     _RYML_DEFINE_COMMENTS(_c4comm)
+    _c4comm(LAST_, 26)
     COMM_ANY = (COMM_LAST_ << 1u) - 1u,
     COMM_NONE = 0,
     #undef _c4comm

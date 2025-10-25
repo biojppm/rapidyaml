@@ -701,7 +701,7 @@ void test_comment_invariants(Tree const& t, id_type id)
         CommentType_e ctype_prev = COMM_NONE;
         for(CommentType_e ctype : all_types)
         {
-            SCOPED_TRACE((comment_data_type)ctype);
+            RYML_TRACE_FMT("ctype={}", c4::fmt::hex((comment_data_type)ctype));
             CommentData const* comm = t.comment(id, ctype);
             if(ctype_prev != COMM_NONE)
             {
