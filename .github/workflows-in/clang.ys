@@ -1,6 +1,6 @@
-!yamlscript/v0:
+!ys-0:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         item =: \({:std %1, :cxx %2, :bt %3, :bitlinks 'shared64 static32'})
-        include:: &include1 -[
+        include:: &include1 +[
           item(20 'clang++-18' 'Debug'  )
           item(20 'clang++-18' 'Release') ]
     env:: load('share/env.yaml')
@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix:
         include: *include1
-    env:: -{'CXXFLAGS' '-fno-exceptions -fno-rtti'} +
+    env:: +{'CXXFLAGS' '-fno-exceptions -fno-rtti'} +
           load('share/env.yaml')
     steps:: checkout-action-docker + install-cxx + run-steps
 
@@ -94,15 +94,16 @@ jobs:
         - {std: 11, cxx: '3.9', bits: 64, vg: OFF, img: 18.04}
         - {std: 11, cxx: '3.9', bits: 32, vg: OFF, img: 18.04}
     env:: load('share/env.yaml')
-    steps:
-      - :: checkout-manual
-      - name: install
-        run: c4core-install clang++-${{matrix.cxx}}
-      - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
+    c4core-install =::
+    - name: install
+      run: c4core-install clang++-${{matrix.cxx}}
+    steps::
+      checkout-manual + c4core-install +
+      run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}') +
+      run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}') +
+      run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}') +
+      run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}') +
+      run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
 
   #----------------------------------------------------------------------------
   clangsan:

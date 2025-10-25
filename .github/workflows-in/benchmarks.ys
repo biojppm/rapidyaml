@@ -1,14 +1,14 @@
-!yamlscript/v0:
+!ys-0:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 jobs:
   gettag:
     runs-on: ubuntu-latest
-    steps:
-    - :: checkout-action
-    - :: version-discover
+    steps::
+      checkout-action +
+      version-discover
 
   benchmarks:
     name: bm/c++${{matrix.std}}/${{matrix.comp}}/${{matrix.bt}}
@@ -24,10 +24,9 @@ jobs:
         #- {std: 17, comp: vs2019 , os: windows-2019, cmkflags: -G 'Visual Studio 16 2019' -A x64}
         - {std: 17, comp: vs2022 , os: windows-2022, cmkflags: -G 'Visual Studio 17 2022' -A x64}
         - {std: 17, comp: xcode15, os: macos-13, xcver: 15, cmkflags: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64}
-    env:: -{'BM' 'ON'} + load('share/env.yaml')
+    env:: +{'BM' 'ON'} + load('share/env.yaml')
     steps:
-    - :: checkout-action
-    - :: version-get-vars
+    - :: checkout-action + version-get-vars
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
