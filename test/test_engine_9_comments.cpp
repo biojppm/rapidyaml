@@ -796,6 +796,26 @@ COMMENT_TEST(BlockMapBasicWithTagAndAnchor,
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+COMMENT_TEST(DocEmptyMinimal,
+             "# 1"                                      "\n"
+             ""/*FIXME*/                                        "\n"
+             ,//-----------------------------------------------
+             "+STR"                                         "\n"
+             "+DOC"                                     "\n"
+             "=COMM #[LEADING] 1"                           "\n"
+             "=VAL :"                                       "\n"
+             "-DOC"                                         "\n"
+             "-STR"                                         "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 
 COMMENT_TEST(DocValMinimal,
              "# 1"                       "\n"
@@ -952,15 +972,9 @@ COMMENT_TEST(StreamMinimal,
     ___(ps.end_stream());
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-COMMENT_TEST(StreamDocValEmptyLeading,
+COMMENT_TEST(StreamValEmptyLeading,
              "---"                              "\n"
              "# 1"                                      "\n"
-             ""/*FIXME*/                                        "\n"
              ,//-----------------------------------------------
              "+STR"                                         "\n"
              "+DOC ---"                                     "\n"
@@ -975,6 +989,79 @@ COMMENT_TEST(StreamDocValEmptyLeading,
     ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(StreamMultiDoc,
+             "# 1"                        "\n"
+             "--- # 2"                    "\n"
+             "# 3"                        "\n"
+             "foo # 4"                    "\n"
+             "# 5"                        "\n"
+             "--- # 6"                    "\n"
+             "# 7"                        "\n"
+             "bar # 8"                    "\n"
+             "# 9"                        "\n"
+             "--- # 10"                   "\n"
+             "# 11"                       "\n"
+             "baz # 12"                   "\n"
+             "# 13"                       "\n"
+             "... # 14"                   "\n"
+             "# 15"                       "\n"
+             ,
+             "+STR"                       "\n"
+             "=COMM #[LEADING] 1"         "\n"
+             "+DOC ---"                   "\n"
+             "=COMM #[DOC_TRAILING] 2"    "\n"
+             "=COMM #[LEADING] 3"         "\n"
+             "=VAL :foo"                  "\n"
+             "=COMM #[TRAILING] 4"        "\n"
+             "=COMM #[FOOTER] 5"          "\n"
+             "-DOC"                       "\n"
+             "+DOC ---"                   "\n"
+             "=COMM #[DOC_TRAILING] 6"    "\n"
+             "=COMM #[LEADING] 7"         "\n"
+             "=VAL :bar"                  "\n"
+             "=COMM #[TRAILING] 8"        "\n"
+             "=COMM #[FOOTER] 9"          "\n"
+             "-DOC"                       "\n"
+             "+DOC ---"                   "\n"
+             "=COMM #[DOC_TRAILING] 10"   "\n"
+             "=COMM #[LEADING] 11"        "\n"
+             "=VAL :baz"                  "\n"
+             "=COMM #[TRAILING] 12"       "\n"
+             "=COMM #[FOOTER] 13"         "\n"
+             "-DOC ..."                   "\n"
+             "=COMM #[TRAILING] 14"       "\n"
+             "=COMM #[FOOTER] 15"         "\n"
+             "-STR"                       "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.begin_doc_expl());
+    ___(ps.add_comment(" 2", COMM_DOC_TRAILING));
+    ___(ps.add_comment(" 3", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("foo"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.add_comment(" 6", COMM_DOC_TRAILING));
+    ___(ps.add_comment(" 7", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.add_comment(" 8", COMM_TRAILING));
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.add_comment(" 10", COMM_DOC_TRAILING));
+    ___(ps.add_comment(" 11", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("baz"));
+    ___(ps.add_comment(" 12", COMM_TRAILING));
+    ___(ps.add_comment(" 13", COMM_FOOTER));
+    ___(ps.end_doc_expl());
+    ___(ps.add_comment(" 14", COMM_TRAILING));
+    ___(ps.add_comment(" 15", COMM_FOOTER));
     ___(ps.end_stream());
 }
 

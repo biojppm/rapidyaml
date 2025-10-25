@@ -153,7 +153,7 @@ void Emitter<Writer>::_visit_stream(id_type id)
             if(next_node != m_tree->first_child(parent))
             {
                 _write("...");
-                _newl();
+                _pend_newl();
             }
             _write("%TAG ");
             _write(tagds.b->handle);
@@ -179,6 +179,16 @@ void Emitter<Writer>::_visit_stream(id_type id)
             write_tag_directives(m_tree->next_sibling(child));
     }
     --m_depth;
+    #ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _comm_get(id, COMM_TRAILING);
+    if(comm)
+    {
+        _write_pws_and_pend(_PWS_NONE);
+        _write("...");
+        _write_comm_trailing(comm);
+    }
+    _write_comm_leading(id, COMM_FOOTER);
+    #endif
 }
 
 
@@ -321,17 +331,11 @@ void Emitter<Writer>::_top_close_entry(id_type node)
 {
     (void)node;
     #ifdef RYML_WITH_COMMENTS
-    CommentData const* comm = _comm_get(node, COMM_TRAILING);
-    if(comm)
+    if(!m_tree->is_stream(node))
     {
-        if(m_tree->is_stream(node))
-        {
-            _write_pws_and_pend(_PWS_NONE);
-            _write("...");
-        }
-        _write_comm_trailing(comm);
+        _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_TRAILING));
+        _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_FOOTER));
     }
-    _write_comm_leading(node, COMM_FOOTER);
     _comm_pop();
     #endif
 }
