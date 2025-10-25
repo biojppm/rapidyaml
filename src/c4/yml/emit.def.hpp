@@ -470,6 +470,7 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the following dash
     _write('-');
     _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_DASH_TRAILING, /*indent_extra*/true));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_LEADING, /*indent_extra*/true));
     bool has_tag_or_anchor = false;
     if(ty & VALANCH)
     {
@@ -495,7 +496,7 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
         if(ty.is_block() && m_tree->has_children(node))
             _pend_newl();
     }
-    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_LEADING, /*indent_extra*/true));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_LEADING2, /*indent_extra*/true));
 }
 
 
@@ -1378,6 +1379,10 @@ template<class Writer>
 CommentData const* Emitter<Writer>::_comm_get(id_type node, CommentType_e type, bool indent_extra)
 {
     CommState *result = &m_comm_state.top();
+    #ifdef RYML_USE_ASSERT
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), type >= result->latest_query, m_tree, node);
+    result->latest_query = type;
+    #endif
     result->comm = m_tree->comment(node, result->latest, type);
     if(result->comm)
     {
@@ -1394,35 +1399,17 @@ CommentData const* Emitter<Writer>::_comm_get(id_type node, CommentType_e type, 
 template<class Writer>
 void Emitter<Writer>::_write_comm_trailing(id_type node, CommentType_e type, bool indent_extra)
 {
-    CommState *result = &m_comm_state.top();
-    result->comm = m_tree->comment(node, result->latest, type);
-    if(result->comm)
-    {
-        result->latest = result->comm;
-        if(indent_extra && !result->extra_indentation)
-        {
-            result->extra_indentation = 1;
-            ++m_ilevel;
-        }
-        _write_comm_trailing(result->comm);
-    }
+    CommentData const* comm = _comm_get(node, type, indent_extra);
+    if(comm)
+        _write_comm_trailing(comm);
 }
 
 template<class Writer>
 void Emitter<Writer>::_write_comm_leading(id_type node, CommentType_e type, bool indent_extra)
 {
-    CommState *result = &m_comm_state.top();
-    result->comm = m_tree->comment(node, result->latest, type);
-    if(result->comm)
-    {
-        result->latest = result->comm;
-        if(indent_extra && !result->extra_indentation)
-        {
-            result->extra_indentation = 1;
-            ++m_ilevel;
-        }
-        _write_comm_leading(result->comm);
-    }
+    CommentData const* comm = _comm_get(node, type, indent_extra);
+    if(comm)
+        _write_comm_leading(comm);
 }
 #endif // RYML_WITH_COMMENTS
 

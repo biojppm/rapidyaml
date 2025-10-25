@@ -400,6 +400,9 @@ private:
         CommentData const* latest;
         CommentData const* comm;
         id_type extra_indentation;
+        #ifdef RYML_USE_ASSERT
+        CommentType_e latest_query;
+        #endif
     };
     detail::stack<CommState> m_comm_state;
 #endif

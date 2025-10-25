@@ -453,6 +453,142 @@ COMMENT_TEST(BlockSeqMinimal,
     ___(ps.end_stream());
 }
 
+COMMENT_TEST(BlockSeqBasic,
+             "# 1"                                 "\n"
+             "- # 2"                               "\n"
+             "  # 3"                               "\n"
+             "  a # 4"                             "\n"
+             "  # 5"                               "\n"
+             "# 6"                                 "\n"
+             "- # 7"                               "\n"
+             "  # 8"                               "\n"
+             "  b # 9"                             "\n"
+             "  # 10"                              "\n"
+             "# 11"                                "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "=COMM #[LEADING] 1"                  "\n"
+             "=COMM #[VAL_DASH_TRAILING] 2"        "\n"
+             "=COMM #[VAL_LEADING] 3"              "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 4"                 "\n"
+             "=COMM #[FOOTER] 5"                   "\n"
+             "=COMM #[LEADING] 6"                  "\n"
+             "=COMM #[VAL_DASH_TRAILING] 7\\n 8"   "\n"
+             "=VAL :b"                             "\n"
+             "=COMM #[TRAILING] 9"                 "\n"
+             "=COMM #[FOOTER] 10"                  "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 11"                  "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.add_comment(" 2", COMM_VAL_DASH_TRAILING));
+    ___(ps.add_comment(" 3", COMM_VAL_LEADING));
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 6", COMM_LEADING));
+    ___(ps.add_comment(" 7\n 8", COMM_VAL_DASH_TRAILING));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.add_comment(" 9", COMM_TRAILING));
+    ___(ps.add_comment(" 10", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 11", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqBasicWithTagAndAnchor,
+             "# 1"                                                 "\n"
+             "- # 2"                                               "\n"
+             "  # 3"                                               "\n"
+             "  &aa # 4"                                           "\n"
+             "  # 5"                                               "\n"
+             "  !atag # 6"                                         "\n"
+             "  # 7"                                               "\n"
+             "  a # 8"                                             "\n"
+             "  # 9"                                               "\n"
+             "# 10"                                                "\n"
+             "- # 11"                                              "\n"
+             "  # 12"                                              "\n"
+             "  &bb # 13"                                          "\n"
+             "  # 14"                                              "\n"
+             "  !btag # 15"                                        "\n"
+             "  # 16"                                              "\n"
+             "  b # 17"                                            "\n"
+             "  # 18"                                              "\n"
+             "# 19"                                                "\n"
+             ,
+             "+STR"                                                "\n"
+             "+DOC"                                                "\n"
+             "+SEQ"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
+             "=COMM #[VAL_DASH_TRAILING] 2"                        "\n"
+             "=COMM #[VAL_ANCHOR_LEADING] 3"                       "\n"
+             "=COMM #[VAL_ANCHOR_TRAILING] 4"                      "\n"
+             "=COMM #[VAL_TAG_LEADING] 5"                          "\n"
+             "=COMM #[VAL_TAG_TRAILING] 6"                         "\n"
+             "=COMM #[VAL_LEADING2] 7"                             "\n"
+             "=VAL &aa <!atag> :a"                                 "\n"
+             "=COMM #[TRAILING] 8"                                 "\n"
+             "=COMM #[FOOTER] 9"                                   "\n"
+             "=COMM #[LEADING] 10"                                 "\n"
+             "=COMM #[VAL_DASH_TRAILING] 11\\n 12"                 "\n"
+             "=COMM #[VAL_ANCHOR_TRAILING] 13"                     "\n"
+             "=COMM #[VAL_TAG_LEADING] 14"                         "\n"
+             "=COMM #[VAL_TAG_TRAILING] 15"                        "\n"
+             "=COMM #[VAL_LEADING2] 16"                            "\n"
+             "=VAL &bb <!btag> :b"                                 "\n"
+             "=COMM #[TRAILING] 17"                                "\n"
+             "=COMM #[FOOTER] 18"                                  "\n"
+             "-SEQ"                                                "\n"
+             "=COMM #[FOOTER] 19"                                  "\n"
+             "-DOC"                                                "\n"
+             "-STR"                                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.add_comment(" 2", COMM_VAL_DASH_TRAILING));
+    ___(ps.add_comment(" 3", COMM_VAL_ANCHOR_LEADING));
+    ___(ps.set_val_anchor("aa"));
+    ___(ps.add_comment(" 4", COMM_VAL_ANCHOR_TRAILING));
+    ___(ps.add_comment(" 5", COMM_VAL_TAG_LEADING));
+    ___(ps.set_val_tag("!atag"));
+    ___(ps.add_comment(" 6", COMM_VAL_TAG_TRAILING));
+    ___(ps.add_comment(" 7", COMM_VAL_LEADING2));
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.add_comment(" 8", COMM_TRAILING));
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 10", COMM_LEADING));
+    ___(ps.add_comment(" 11\n 12", COMM_VAL_DASH_TRAILING));
+    ___(ps.set_val_anchor("bb"));
+    ___(ps.add_comment(" 13", COMM_VAL_ANCHOR_TRAILING));
+    ___(ps.add_comment(" 14", COMM_VAL_TAG_LEADING));
+    ___(ps.set_val_tag("!btag"));
+    ___(ps.add_comment(" 15", COMM_VAL_TAG_TRAILING));
+    ___(ps.add_comment(" 16", COMM_VAL_LEADING2));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.add_comment(" 17", COMM_TRAILING));
+    ___(ps.add_comment(" 18", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 19", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 COMMENT_TEST(BlockMapMinimal,
              "# 1"                         "\n"
              "key1: val1 # 2"              "\n"
@@ -501,57 +637,6 @@ COMMENT_TEST(BlockMapMinimal,
 //-----------------------------------------------------------------------------
 
 #ifdef WIP
-COMMENT_TEST(BlockSeqBasic,
-             "# 1"                              "\n"
-             "- # 2"                              "\n"
-             "  # 3"                              "\n"
-             "  a # 4"                              "\n"
-             "  # 5"                              "\n"
-             "# 6"                              "\n"
-             "- # 7"                              "\n"
-             "  # 8"                              "\n"
-             "  b # 9"                              "\n"
-             "  # 10"                              "\n"
-             "# 11"                               "\n"
-             ,
-             "+STR"                          "\n"
-             "+DOC"                          "\n"
-             "+SEQ"                            "\n"
-             "=COMM #[VAL_LEADING] 1"         "\n"
-             "=COMM #[VAL_TRAILING_DASH] 2\\n 3"         "\n"
-             "=VAL :a"                         "\n"
-             "=COMM #[VAL_TRAILING] 4"         "\n"
-             "=COMM #[VAL_FOOTER] 5"         "\n"
-             "=COMM #[VAL_LEADING] 6"         "\n"
-             "=COMM #[VAL_TRAILING_DASH] 7\\n 8"         "\n"
-             "=VAL :b"                         "\n"
-             "=COMM #[VAL_TRAILING] 9"         "\n"
-             "=COMM #[VAL_FOOTER] 10"         "\n"
-             "-SEQ"         "\n"
-             "=COMM #[VAL_FOOTER] 11"         "\n"
-             "-DOC"         "\n"
-             "-STR"         "\n"
-    )
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-    ___(ps.add_comment(" 1", COMM_VAL_LEADING_DASH));
-    ___(ps.add_comment(" 2\n 3", COMM_VAL_TRAILING_DASH));
-    ___(ps.set_val_scalar_plain("a"));
-    ___(ps.add_comment(" 4", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 5", COMM_VAL_FOOTER));
-    ___(ps.add_sibling());
-    ___(ps.add_comment(" 6", COMM_VAL_LEADING_DASH));
-    ___(ps.add_comment(" 7\n 8", COMM_VAL_TRAILING_DASH));
-    ___(ps.set_val_scalar_plain("b"));
-    ___(ps.add_comment(" 9", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 10", COMM_VAL_FOOTER));
-    ___(ps.end_seq_block());
-    ___(ps.add_comment(" 11", COMM_VAL_FOOTER));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
 
 COMMENT_TEST(BlockMapBasic,
              "# 1"                              "\n"
@@ -613,78 +698,6 @@ COMMENT_TEST(BlockMapBasic,
     ___(ps.end_stream());
 }
 
-
-COMMENT_TEST(BlockSeqBasicWithTagAndAnchor,
-             "# 1"                                                 "\n"
-             "- # 2"                                               "\n"
-             "  # 3"                                               "\n"
-             "  !!atag # 4"                                        "\n"
-             "  # 5"                                               "\n"
-             "  &aa # 6"                                           "\n"
-             "  # 7"                                               "\n"
-             "  a # 8"                                             "\n"
-             "  # 9"                                               "\n"
-             "# 10"                                                "\n"
-             "- # 11"                                              "\n"
-             "  # 12"                                              "\n"
-             "  !!btag # 13"                                       "\n"
-             "  # 14"                                              "\n"
-             "  &bb # 15"                                          "\n"
-             "  # 16"                                              "\n"
-             "  b # 17"                                            "\n"
-             "  # 18"                                              "\n"
-             "# 19"                                                "\n"
-             ,
-             "+STR"                                                "\n"
-             "+DOC"                                                "\n"
-             "+SEQ"                                                "\n"
-             "=COMM #[VAL_LEADING] 1"                              "\n"
-             "=COMM #[VAL_DASH_TRAILING] 2\\n 3"                   "\n"
-             "=COMM #[VAL_TAG_TRAILING] 4"                         "\n"
-             "=COMM #[VAL_ANCHOR_LEADING] 5"                       "\n"
-             "=COMM #[VAL_ANCHOR_TRAILING] 6"                      "\n"
-             "=COMM #[VAL_LEADING] 7"                              "\n"
-             "=VAL <!!atag> &a :a"                                 "\n"
-             "=COMM #[VAL_TRAILING] 8"                             "\n"
-             "=COMM #[VAL_FOOTER] 9"                               "\n"
-             "-SEQ"                                                "\n"
-             "=COMM #[VAL_TRAILING] 10"                            "\n"
-             "=COMM #[VAL_FOOTER] 11"                              "\n"
-             "-DOC"                                                "\n"
-             "-STR"                                                "\n"
-    )
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-    ___(ps.add_comment(" 1", COMM_VAL_LEADING_DASH));
-    ___(ps.add_comment(" 2\n 3", COMM_VAL_TRAILING_DASH));
-    ___(ps.set_val_tag("!!atag"));
-    ___(ps.add_comment(" 4", COMM_VAL_TAG_TRAILING));
-    ___(ps.add_comment(" 5", COMM_VAL_ANCHOR_LEADING));
-    ___(ps.set_val_anchor("aa"));
-    ___(ps.add_comment(" 6", COMM_VAL_ANCHOR_TRAILING));
-    ___(ps.add_comment(" 7", COMM_VAL_LEADING));
-    ___(ps.set_val_scalar_plain("a"));
-    ___(ps.add_comment(" 8", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 9", COMM_VAL_FOOTER));
-    ___(ps.add_sibling());
-    ___(ps.add_comment(" 10", COMM_VAL_LEADING_DASH));
-    ___(ps.add_comment(" 11\n 12", COMM_VAL_TRAILING_DASH));
-    ___(ps.set_val_tag("!!btag"));
-    ___(ps.add_comment(" 13", COMM_VAL_TAG_TRAILING));
-    ___(ps.add_comment(" 14", COMM_VAL_ANCHOR_LEADING));
-    ___(ps.set_val_anchor("bb"));
-    ___(ps.add_comment(" 15", COMM_VAL_ANCHOR_TRAILING));
-    ___(ps.add_comment(" 16", COMM_VAL_LEADING));
-    ___(ps.set_val_scalar_plain("b"));
-    ___(ps.add_comment(" 17", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 18", COMM_VAL_FOOTER));
-    ___(ps.end_seq_block());
-    ___(ps.add_comment(" 19", COMM_VAL_FOOTER));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
 
 //  equivalent to {!!atag &a a: !!btag &b b}
 COMMENT_TEST(BlockMapBasicWithTagAndAnchor,

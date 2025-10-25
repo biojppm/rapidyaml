@@ -388,8 +388,8 @@ typedef enum : comment_data_type {
     macro(KEY_FOOTER, 11)                                   \
     macro(COLON_LEADING, 12)                                \
     macro(COLON_TRAILING, 13)                               \
-    macro(VAL_LEADING, 14)                                  \
-    macro(VAL_DASH_TRAILING, 15)                            \
+    macro(VAL_DASH_TRAILING, 14)                            \
+    macro(VAL_LEADING, 15)                                  \
     macro(VAL_ANCHOR_LEADING, 16)                           \
     macro(VAL_ANCHOR_TRAILING, 17)                          \
     macro(VAL_TAG_LEADING, 18)                              \
