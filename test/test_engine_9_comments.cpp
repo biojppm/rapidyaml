@@ -232,6 +232,11 @@ COMMENT_TEST(FlowMapMinimalBase,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 COMMENT_TEST(FlowMapMinimal,
              "{"                           "\n"
              "  # 1"                       "\n"
@@ -415,6 +420,11 @@ COMMENT_TEST(FlowMapBasicWithTagAndAnchor,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 COMMENT_TEST(BlockSeqMinimal,
              "# 1"                         "\n"
              "- val1 # 2"                  "\n"
@@ -589,6 +599,11 @@ COMMENT_TEST(BlockSeqBasicWithTagAndAnchor,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 COMMENT_TEST(BlockMapMinimal,
              "# 1"                         "\n"
              "key1: val1 # 2"              "\n"
@@ -631,69 +646,62 @@ COMMENT_TEST(BlockMapMinimal,
     ___(ps.end_stream());
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-#ifdef WIP
-
 COMMENT_TEST(BlockMapBasic,
              "# 1"                              "\n"
-             "a: # 2"                              "\n"
-             "  # 3"                              "\n"
-             "  b # 4"                              "\n"
-             "  # 5"                              "\n"
+             "a: # 2"                           "\n"
+             "  # 3"                            "\n"
+             "  b # 4"                          "\n"
+             "  # 5"                            "\n"
              "# 6"                              "\n"
-             "c: # 7"                              "\n"
-             "  # 8"                              "\n"
-             "  d # 9"                              "\n"
-             "  # 10"                              "\n"
-             "# 11"                              "\n"
+             "c: # 7"                           "\n"
+             "  # 8"                            "\n"
+             "  d # 9"                          "\n"
+             "  # 10"                           "\n"
+             "# 11"                             "\n"
              ,
-             "+STR"                          "\n"
-             "+DOC"                          "\n"
-             "+MAP {}"                            "\n"
-             "=COMM #[KEY_LEADING] 1"         "\n"
-             "=VAL :a"                         "\n"
-             "=COMM #[KEY_TRAILING] 2"         "\n"
-             "=COMM #[VAL_LEADING] 3"         "\n"
-             "=VAL :b"                         "\n"
-             "=COMM #[VAL_TRAILING] 4"         "\n"
-             "=COMM #[VAL_FOOTER] 5"         "\n"
-             "=COMM #[KEY_LEADING] 6"         "\n"
-             "=VAL :c"                         "\n"
-             "=COMM #[VAL_LEADING] 7"         "\n"
-             "=COMM #[KEY_TRAILING] 8"         "\n"
-             "=VAL :d"         "\n"
-             "=COMM #[VAL_TRAILING] 9"         "\n"
-             "=COMM #[VAL_FOOTER] 10"         "\n"
-             "-MAP"         "\n"
-             "=COMM #[VAL_FOOTER] 11"         "\n"
-             "-DOC"         "\n"
-             "-STR"         "\n"
+             "+STR"                             "\n"
+             "+DOC"                             "\n"
+             "+MAP"                             "\n"
+             "=COMM #[LEADING] 1"               "\n"
+             "=VAL :a"                          "\n"
+             "=COMM #[COLON_TRAILING] 2"        "\n"
+             "=COMM #[VAL_LEADING] 3"           "\n"
+             "=VAL :b"                          "\n"
+             "=COMM #[TRAILING] 4"              "\n"
+             "=COMM #[FOOTER] 5"                "\n"
+             "=COMM #[LEADING] 6"               "\n"
+             "=VAL :c"                          "\n"
+             "=COMM #[COLON_TRAILING] 7"        "\n"
+             "=COMM #[VAL_LEADING] 8"           "\n"
+             "=VAL :d"                          "\n"
+             "=COMM #[TRAILING] 9"              "\n"
+             "=COMM #[FOOTER] 10"               "\n"
+             "-MAP"                             "\n"
+             "=COMM #[FOOTER] 11"               "\n"
+             "-DOC"                             "\n"
+             "-STR"                             "\n"
     )
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
-    ___(ps.add_comment(" 1", COMM_KEY_LEADING));
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.set_key_scalar_plain("a"));
-    ___(ps.add_comment(" 2", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 2", COMM_COLON_TRAILING));
     ___(ps.add_comment(" 3", COMM_VAL_LEADING));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.add_comment(" 4", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 5", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
     ___(ps.add_sibling());
-    ___(ps.add_comment(" 6", COMM_KEY_LEADING));
+    ___(ps.add_comment(" 6", COMM_LEADING));
     ___(ps.set_key_scalar_plain("c"));
-    ___(ps.add_comment(" 7", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 7", COMM_COLON_TRAILING));
     ___(ps.add_comment(" 8", COMM_VAL_LEADING));
     ___(ps.set_val_scalar_plain("d"));
-    ___(ps.add_comment(" 9", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 10", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 9", COMM_TRAILING));
+    ___(ps.add_comment(" 10", COMM_FOOTER));
     ___(ps.end_map_block());
-    ___(ps.add_comment(" 11", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 11", COMM_FOOTER));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -701,111 +709,223 @@ COMMENT_TEST(BlockMapBasic,
 
 //  equivalent to {!!atag &a a: !!btag &b b}
 COMMENT_TEST(BlockMapBasicWithTagAndAnchor,
-             "# 1"                                                 "\n"
-             "!!atag # 2"                                        "\n"
-             "# 3"                                               "\n"
-             "&aa # 4"                                            "\n"
-             "# 5"                                               "\n"
-             "aaa: # 6"                                             "\n"
-             "     # 6.1"                                             "\n"
-             "  # 6.2"                                             "\n"
-             "  !!btag # 7"                                       "\n"
-             "  # 8"                                              "\n"
-             "  &bb # 9"                                           "\n"
-             "  # 10"                                              "\n"
-             "  b # 11"                                            "\n"
-             "  # 12"                                              "\n"
-             "# 13"                                                "\n"
-             "!!ctag # 14"                                        "\n"
-             "# 15"                                               "\n"
-             "&cc # 16"                                            "\n"
-             "# 17"                                               "\n"
-             "ccc: # 18"                                             "\n"
-             "     # 18.1"                                              "\n"
-             "  # 18.2"                                              "\n"
-             "  !!dtag # 19"                                       "\n"
-             "  # 20"                                              "\n"
-             "  &dd # 21"                                           "\n"
-             "  # 22"                                              "\n"
-             "  d # 23"                                            "\n"
-             "  # 24"                                              "\n"
-             "# 25"                                               "\n"
-             ,                                                     ""
-             "+STR"                                                "\n"
-             "+DOC"                                                "\n"
-             "+MAP"                                                "\n"
-             "=COMM #[KEY_TAG_LEADING] 1"                          "\n"
-             "=COMM #[KEY_TAG_TRAILING] 2"                         "\n"
-             "=COMM #[KEY_ANCHOR_LEADING] 3"                       "\n"
-             "=COMM #[KEY_ANCHOR_TRAILING] 4"                      "\n"
-             "=COMM #[KEY_LEADING] 5"                              "\n"
-             "=VAL <!!atag> &a :a"                                 "\n"
-             "=COMM #[COLON_TRAILING] 6"                             "\n"
-             "=COMM #[FLOW_LEADING_COLON] 9"                       "\n"
-             "=COMM #[KEY_TRAILING_COLON] 10"                      "\n"
-             "=COMM #[VAL_TAG_LEADING] 11"                         "\n"
-             "=COMM #[VAL_TAG_TRAILING] 12"                        "\n"
-             "=COMM #[VAL_ANCHOR_LEADING] 13"                      "\n"
-             "=COMM #[VAL_ANCHOR_TRAILING] 14"                     "\n"
-             "=COMM #[VAL_LEADING] 15"                             "\n"
-             "=VAL <!!btag> &b :b"                                 "\n"
-             "=COMM #[VAL_TRAILING] 16"                            "\n"
-             "=COMM #[VAL_FOOTER] 17"                              "\n"
-             "-MAP"                                                "\n"
-             "=COMM #[VAL_TRAILING] 18"                            "\n"
-             "=COMM #[VAL_FOOTER] 19"                              "\n"
-             "-DOC"                                                "\n"
-             "-STR"                                                "\n"
+             "# 1"                               "\n"
+             "? # 2"                             "\n"
+             "  # 3"                             "\n"
+             "  &aa # 4"                         "\n"
+             "  # 5"                             "\n"
+             "  !atag # 6"                       "\n"
+             "  # 7"                             "\n"
+             "  aaa # 8"                         "\n"
+             "  # 9"                             "\n"
+             "# 10"                              "\n"
+             ": # 11"                            "\n"
+             "  # 12"                            "\n"
+             "  &bb # 13"                        "\n"
+             "  # 14"                            "\n"
+             "  !btag # 15"                      "\n"
+             "  # 16"                            "\n"
+             "  b # 17"                          "\n"
+             "  # 18"                            "\n"
+             "# 19"                              "\n"
+             ,
+             "+STR"                              "\n"
+             "+DOC"                              "\n"
+             "+MAP"                              "\n"
+             "=COMM #[LEADING] 1"                "\n"
+             "=COMM #[KEY_TRAILING_QMRK] 2"      "\n"
+             "=COMM #[KEY_ANCHOR_LEADING] 3"     "\n"
+             "=COMM #[KEY_ANCHOR_TRAILING] 4"    "\n"
+             "=COMM #[KEY_TAG_LEADING] 5"        "\n"
+             "=COMM #[KEY_TAG_TRAILING] 6"       "\n"
+             "=COMM #[KEY_LEADING] 7"            "\n"
+             "=VAL &aa <!atag> :aaa"             "\n"
+             "=COMM #[KEY_TRAILING] 8"           "\n"
+             "=COMM #[KEY_FOOTER] 9"             "\n"
+             "=COMM #[COLON_LEADING] 10"         "\n"
+             "=COMM #[COLON_TRAILING] 11"        "\n"
+             "=COMM #[VAL_ANCHOR_LEADING] 12"    "\n"
+             "=COMM #[VAL_ANCHOR_TRAILING] 13"   "\n"
+             "=COMM #[VAL_TAG_LEADING] 14"       "\n"
+             "=COMM #[VAL_TAG_TRAILING] 15"      "\n"
+             "=COMM #[VAL_LEADING2] 16"          "\n"
+             "=VAL &bb <!btag> :b"               "\n"
+             "=COMM #[TRAILING] 17"              "\n"
+             "=COMM #[FOOTER] 18"                "\n"
+             "-MAP"                              "\n"
+             "=COMM #[FOOTER] 19"                "\n"
+             "-DOC"                              "\n"
+             "-STR"                              "\n"
     )
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
-    ___(ps.add_comment(" 1", COMM_KEY_TAG_LEADING));
-    ___(ps.add_comment(" 2", COMM_KEY_TAG_TRAILING));
-    ___(ps.set_key_tag("!!atag"));
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.add_comment(" 2", COMM_KEY_TRAILING_QMRK));
     ___(ps.add_comment(" 3", COMM_KEY_ANCHOR_LEADING));
     ___(ps.set_key_anchor("aa"));
     ___(ps.add_comment(" 4", COMM_KEY_ANCHOR_TRAILING));
-    ___(ps.add_comment(" 5", COMM_KEY_LEADING));
+    ___(ps.add_comment(" 5", COMM_KEY_TAG_LEADING));
+    ___(ps.set_key_tag("!atag"));
+    ___(ps.add_comment(" 6", COMM_KEY_TAG_TRAILING));
+    ___(ps.add_comment(" 7", COMM_KEY_LEADING));
     ___(ps.set_key_scalar_plain("aaa"));
-    ___(ps.add_comment(" 6\n 6.1", COMM_KEY_TRAILING));
-    ___(ps.add_comment(" 6.2", COMM_VAL_TAG_LEADING));
-    ___(ps.set_val_tag("!!btag"));
-    ___(ps.add_comment(" 7", COMM_VAL_TAG_TRAILING));
-    ___(ps.add_comment(" 8", COMM_VAL_ANCHOR_LEADING));
+    ___(ps.add_comment(" 8", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 9", COMM_KEY_FOOTER));
+    ___(ps.add_comment(" 10", COMM_COLON_LEADING));
+    ___(ps.add_comment(" 11", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 12", COMM_VAL_ANCHOR_LEADING));
     ___(ps.set_val_anchor("bb"));
-    ___(ps.add_comment(" 9", COMM_VAL_ANCHOR_TRAILING));
-    ___(ps.add_comment(" 10", COMM_VAL_LEADING));
+    ___(ps.add_comment(" 13", COMM_VAL_ANCHOR_TRAILING));
+    ___(ps.add_comment(" 14", COMM_VAL_TAG_LEADING));
+    ___(ps.set_val_tag("!btag"));
+    ___(ps.add_comment(" 15", COMM_VAL_TAG_TRAILING));
+    ___(ps.add_comment(" 16", COMM_VAL_LEADING2));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.add_comment(" 11", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 12", COMM_VAL_FOOTER));
-    ___(ps.add_sibling());
-    ___(ps.add_comment(" 13", COMM_KEY_TAG_LEADING));
-    ___(ps.add_comment(" 14", COMM_KEY_TAG_TRAILING));
-    ___(ps.set_key_tag("!!ctag"));
-    ___(ps.add_comment(" 15", COMM_KEY_ANCHOR_LEADING));
-    ___(ps.set_key_anchor("cc"));
-    ___(ps.add_comment(" 16", COMM_KEY_ANCHOR_TRAILING));
-    ___(ps.add_comment(" 17", COMM_KEY_LEADING));
-    ___(ps.set_key_scalar_plain("ccc"));
-    ___(ps.add_comment(" 18\n 18.1", COMM_KEY_TRAILING));
-    ___(ps.add_comment(" 18.2", COMM_VAL_TAG_LEADING));
-    ___(ps.set_val_tag("!!dtag"));
-    ___(ps.add_comment(" 19", COMM_VAL_TAG_TRAILING));
-    ___(ps.add_comment(" 20", COMM_VAL_ANCHOR_LEADING));
-    ___(ps.set_val_anchor("dd"));
-    ___(ps.add_comment(" 21", COMM_VAL_ANCHOR_TRAILING));
-    ___(ps.add_comment(" 22", COMM_VAL_LEADING));
-    ___(ps.set_val_scalar_plain("d"));
-    ___(ps.add_comment(" 23", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 24", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 17", COMM_TRAILING));
+    ___(ps.add_comment(" 18", COMM_FOOTER));
     ___(ps.end_map_block());
-    ___(ps.add_comment(" 25", COMM_VAL_FOOTER));
+    ___(ps.add_comment(" 19", COMM_FOOTER));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+
+COMMENT_TEST(DocValMinimal,
+             "# 1"                       "\n"
+             "foo # 2"                   "\n"
+             "# 3"                       "\n"
+             ,
+             "+STR"                      "\n"
+             "+DOC"                      "\n"
+             "=COMM #[LEADING] 1"        "\n"
+             "=VAL :foo"                 "\n"
+             "=COMM #[TRAILING] 2"       "\n"
+             "=COMM #[FOOTER] 3"         "\n"
+             "-DOC"                      "\n"
+             "-STR"                      "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("foo"));
+    ___(ps.add_comment(" 2", COMM_TRAILING));
+    ___(ps.add_comment(" 3", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(DocSeqMinimal,
+             "# 1"                       "\n"
+             "[ # 2"                     "\n"
+             "] # 3"                     "\n"
+             "# 4"                       "\n"
+             ,
+             "+STR"                      "\n"
+             "+DOC"                      "\n"
+             "=COMM #[LEADING] 1"        "\n"
+             "+SEQ []"                   "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 2"   "\n"
+             "-SEQ"                      "\n"
+             "=COMM #[TRAILING] 3"       "\n"
+             "=COMM #[FOOTER] 4"         "\n"
+             "-DOC"                      "\n"
+             "-STR"                      "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment(" 2", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.end_seq_flow(multiline));
+    ___(ps.add_comment(" 3", COMM_TRAILING));
+    ___(ps.add_comment(" 4", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(DocMapMinimal,
+             "# 1"                       "\n"
+             "{ # 2"                     "\n"
+             "} # 3"                     "\n"
+             "# 4"                       "\n"
+             ,
+             "+STR"                      "\n"
+             "+DOC"                      "\n"
+             "=COMM #[LEADING] 1"        "\n"
+             "+MAP {}"                   "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 2"   "\n"
+             "-MAP"                      "\n"
+             "=COMM #[TRAILING] 3"       "\n"
+             "=COMM #[FOOTER] 4"         "\n"
+             "-DOC"                      "\n"
+             "-STR"                      "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment(" 2", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.add_comment(" 3", COMM_TRAILING));
+    ___(ps.add_comment(" 4", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#ifdef WIP
+
+
+COMMENT_TEST(StreamMinimal,
+             "# 1"                       "\n"
+             "--- # 2"                   "\n"
+             "# 3"                       "\n"
+             "foo # 4"                   "\n"
+             "# 5"                       "\n"
+             "... # 6"                   "\n"
+             "# 7"                       "\n"
+             ,
+             "+STR"                      "\n"
+             "=COM #[LEADING] 1"         "\n"
+             "+DOC ---"                  "\n"
+             "=COM #[DOC_TRAILING] 2"    "\n"
+             "=COM #[LEADING] 3"         "\n"
+             "=VAL :foo"                 "\n"
+             "=COM #[TRAILING] 4"        "\n"
+             "=COM #[FOOTER] 5"          "\n"
+             "-DOC ..."                  "\n"
+             "=COM #[TRAILING] 6"        "\n"
+             "=COM #[FOOTER] 7"          "\n"
+             "-STR"                      "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.begin_doc_expl());
+    ___(ps.add_comment(" 2", COMM_DOC_TRAILING));
+    ___(ps.add_comment(" 3", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("foo"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_FOOTER));
+    ___(ps.end_doc_expl());
+    ___(ps.add_comment(" 6", COMM_TRAILING));
+    ___(ps.add_comment(" 7", COMM_FOOTER));
+    ___(ps.end_stream());
+}
 
 COMMENT_TEST(StreamDocValPlain,
              "# 1 leading stream"                             "\n"
