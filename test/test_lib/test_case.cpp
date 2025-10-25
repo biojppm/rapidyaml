@@ -644,8 +644,16 @@ void test_comment_invariants(Tree const& t, id_type id)
     ASSERT_LE(t.m_comments_size, t.m_comments_cap);
 
     id_type count_iter = 0;
+    NodeData const* node = t._p(id);
+    if(node->m_first_comment == NONE || node->m_last_comment == NONE)
     {
-        NodeData const* node = t._p(id);
+        EXPECT_EQ(node->m_first_comment, NONE);
+        EXPECT_EQ(node->m_last_comment, NONE);
+    }
+    else
+    {
+        ASSERT_LT(node->m_first_comment, t.m_comments_size);
+        ASSERT_LT(node->m_last_comment, t.m_comments_size);
         EXPECT_EQ(t.m_comments_buf[node->m_first_comment].m_prev, NONE);
         EXPECT_EQ(t.m_comments_buf[node->m_last_comment].m_next, NONE);
         for(id_type cid = node->m_first_comment; cid != NONE; cid = t.m_comments_buf[cid].m_next)
