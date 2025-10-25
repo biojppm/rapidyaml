@@ -266,10 +266,7 @@ void Emitter<Writer>::_visit_doc(id_type id)
     }
     else if(ty.is_val())
     {
-         _RYML_WITH_COMMENTS(_write_comm_leading(id, COMM_LEADING));
         _visit_doc_val(id);
-        _RYML_WITH_COMMENTS(_write_comm_trailing(id, COMM_TRAILING));
-        _RYML_WITH_COMMENTS(_write_comm_leading(id, COMM_FOOTER));
     }
 }
 
@@ -323,9 +320,20 @@ template<class Writer>
 void Emitter<Writer>::_top_close_entry(id_type node)
 {
     (void)node;
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_TRAILING));
-    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_FOOTER));
-    _RYML_WITH_COMMENTS(_comm_pop());
+    #ifdef RYML_WITH_COMMENTS
+    CommentData const* comm = _comm_get(node, COMM_TRAILING);
+    if(comm)
+    {
+        if(m_tree->is_stream(node))
+        {
+            _write_pws_and_pend(_PWS_NONE);
+            _write("...");
+        }
+        _write_comm_trailing(comm);
+    }
+    _write_comm_leading(node, COMM_FOOTER);
+    _comm_pop();
+    #endif
 }
 
 

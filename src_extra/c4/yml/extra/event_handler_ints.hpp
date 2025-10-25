@@ -129,14 +129,14 @@ typedef enum : DataType {
 inline DataType encode_comment(ievt::DataType curr, CommentType_e comm)
 {
     curr &= (ievt::KEY_|ievt::VAL_); // keep only these
-    ievt::DataType encoded = ievt::DataType(static_cast<uint32_t>(comm) << static_cast<uint32_t>(ievt::_COMM_START));
+    ievt::DataType encoded = ievt::DataType(static_cast<uint32_t>(comm) << static_cast<uint32_t>(ievt::_COMM_START + 1));
     curr |= ievt::COMM|encoded;
     return curr;
 }
 inline CommentType_e decode_comment(ievt::DataType curr)
 {
     curr &= ~(ievt::KEY_|ievt::VAL_|ievt::COMM);
-    return static_cast<CommentType_e>(static_cast<CommentType_e>(curr >> ievt::_COMM_START) & COMM_ANY);
+    return static_cast<CommentType_e>(static_cast<CommentType_e>(curr >> (ievt::_COMM_START + 1u)) & COMM_ANY);
 }
 #endif
 

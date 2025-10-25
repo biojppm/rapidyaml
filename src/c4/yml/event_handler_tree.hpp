@@ -767,7 +767,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
         const id_type last_added = m_tree->size() - 1;
-        if(m_tree->has_parent(last_added) _RYML_WITH_COMMENTS( && !m_tree->comment(last_added)))
+        if(m_tree->has_parent(last_added))
             if(m_tree->_p(last_added)->m_type == NOTYPE)
                 m_tree->remove(last_added);
     }

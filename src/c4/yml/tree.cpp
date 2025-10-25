@@ -884,6 +884,10 @@ void Tree::set_root_as_stream()
             id_type next_doc = append_child(root);
             _copy_props_wo_key(next_doc, root);
             _p(next_doc)->m_type.add(DOC);
+            #ifdef RYML_WITH_COMMENTS
+            _p(next_doc)->m_first_comment = NONE;
+            _p(next_doc)->m_last_comment = NONE;
+            #endif
         }
         else
         {
@@ -892,6 +896,10 @@ void Tree::set_root_as_stream()
             _copy_props_wo_key(next_doc, root);
             _p(next_doc)->m_type.add(DOC);
             _p(next_doc)->m_type.rem(SEQ);
+            #ifdef RYML_WITH_COMMENTS
+            _p(next_doc)->m_first_comment = NONE;
+            _p(next_doc)->m_last_comment = NONE;
+            #endif
         }
         _p(root)->m_type = STREAM;
         return;
@@ -910,6 +918,10 @@ void Tree::set_root_as_stream()
         next = next_sibling(next);
     }
     _p(root)->m_type = STREAM;
+    #ifdef RYML_WITH_COMMENTS
+    _p(next_doc)->m_first_comment = NONE;
+    _p(next_doc)->m_last_comment = NONE;
+    #endif
 }
 
 
