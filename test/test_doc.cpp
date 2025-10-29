@@ -220,13 +220,13 @@ void test_boms2(CreateFn &&createfn, TestFn &&testfn)
             }
             else
             {
-                pfn_error orig = get_callbacks().m_error;
-                ExpectError::check_error([&]{
+                pfn_error_parse orig = get_callbacks().m_error_parse;
+                ExpectError::check_error_parse([&]{
                     Tree tree;
                     Parser::handler_type handler;
                     Parser parser(&handler);
-                    ASSERT_EQ((pfn_error)tree.callbacks().m_error, (pfn_error)parser.callbacks().m_error);
-                    ASSERT_NE((pfn_error)tree.callbacks().m_error, orig);
+                    ASSERT_EQ((pfn_error_parse)tree.callbacks().m_error_parse, (pfn_error_parse)parser.callbacks().m_error_parse);
+                    ASSERT_NE((pfn_error_parse)tree.callbacks().m_error_parse, orig);
                     parse_in_arena(&parser, to_csubstr(buf), &tree);
                 });
             }
@@ -701,7 +701,7 @@ R"(# the first : should cause a parse error
     b: 1
     c: 2
 )",
-   LineCol(7, 6)
+   Location(7, 6)
 );
 
 ADD_CASE_TO_GROUP("simple doc, multi doc, map-seq",
@@ -735,7 +735,7 @@ R"(
     - c
     ...
 )",
-  LineCol(3, 6)
+  Location(3, 6)
 );
 
 ADD_CASE_TO_GROUP("simple doc, multi doc, map-seq, no term",
@@ -765,7 +765,7 @@ R"(
     - b
     - c
 )",
-  LineCol(3, 6)
+  Location(3, 6)
 );
 
 ADD_CASE_TO_GROUP("simple doc, multi doc, impl seq-map",
@@ -791,7 +791,7 @@ R"(
     {a: 0, b: 1, c: 2}
     ...
 )",
-  LineCol(6, 7)
+  Location(6, 7)
 );
 
 ADD_CASE_TO_GROUP("simple doc, multi doc, impl seq-map, no term",
@@ -813,7 +813,7 @@ R"(
     ---
     {a: 0, b: 1, c: 2}
 )",
-  LineCol(5, 7)
+  Location(5, 7)
 );
 
 ADD_CASE_TO_GROUP("simple doc, multi doc, impl map-seq",
@@ -839,7 +839,7 @@ R"(
     [a, b, c]
     ...
 )",
-  LineCol(3, 7)
+  Location(3, 7)
 );
 
 ADD_CASE_TO_GROUP("simple doc, multi doc, impl map-seq, no term",
@@ -861,7 +861,7 @@ R"(
     ---
     [a, b, c]
 )",
-  LineCol(3, 7)
+  Location(3, 7)
 );
 
 ADD_CASE_TO_GROUP("simple doc, indented with empty lines", EXPECT_PARSE_ERROR,
@@ -892,7 +892,7 @@ R"(
     d:
        some scalar
 )",
-  LineCol(3, 7)
+  Location(3, 7)
 );
 
 

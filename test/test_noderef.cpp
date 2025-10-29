@@ -225,7 +225,7 @@ TEST(NodeRef, valid_vs_seed_vs_readable)
 #define _TEST_FAIL(tree, method_expr)           \
     {                                           \
         SCOPED_TRACE(#method_expr);             \
-        ExpectError::check_assertion(tree, [&]{ \
+        ExpectError::check_assert_basic(tree, [&]{ \
             auto ret = (method_expr);           \
             C4_DONT_OPTIMIZE(ret);              \
         });                                     \

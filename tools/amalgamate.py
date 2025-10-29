@@ -125,6 +125,8 @@ INSTRUCTIONS:
         "src/c4/yml/fwd.hpp",
         "src/c4/yml/version.hpp",
         "src/c4/yml/common.hpp",
+        "src/c4/yml/error.hpp",
+        "src/c4/yml/error.def.hpp",
         "src/c4/yml/node_type.hpp",
         "src/c4/yml/tag.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.hpp"),
