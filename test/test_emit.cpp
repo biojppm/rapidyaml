@@ -234,28 +234,56 @@ TEST(emit_nested, basic)
 
 TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
 {
-    Tree t;
-    NodeRef r = t.rootref();
-    r |= SEQ|BLOCK;
-    r[0] = ": odd";
-    r[0] |= VAL_PLAIN;
-    r[1] = ":\todd";
-    r[1] |= VAL_PLAIN;
-    EXPECT_EQ(emitrs_yaml<std::string>(t), "- ': odd'\n- ':\todd'\n");
+    EXPECT_EQ(scalar_style_query_plain(": odd"), false);
+    EXPECT_EQ(scalar_style_query_plain(":\todd"), false);
+    EXPECT_EQ(scalar_style_choose(": odd"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_choose(":\todd"), SCALAR_SQUO);
+    {
+        Tree t;
+        NodeRef r = t.rootref();
+        r |= SEQ|BLOCK;
+        r[0] = ": odd";
+        r[0] |= VAL_PLAIN;
+        r[1] = ":\todd";
+        r[1] |= VAL_PLAIN;
+        EXPECT_EQ(emitrs_yaml<std::string>(t), "- : odd\n- :\todd\n");
+    }
+    {
+        Tree t;
+        NodeRef r = t.rootref();
+        r |= SEQ|BLOCK;
+        r[0] = ": odd";
+        r[1] = ":\todd";
+        EXPECT_FALSE(r[0].is_val_plain());
+        EXPECT_FALSE(r[1].is_val_plain());
+        EXPECT_EQ(emitrs_yaml<std::string>(t), "- ': odd'\n- ':\todd'\n");
+    }
 }
 
 TEST(emit_block_map, ambiguous_plain_emitted_as_squo)
 {
-    Tree t;
-    NodeRef r = t.rootref();
-    r |= MAP|BLOCK;
-    r[0].set_key(": odd");
-    r[0] = ": odd";
-    r[0] |= KEY_PLAIN|VAL_PLAIN;
-    r[1].set_key(":\todd");
-    r[1] = ":\todd";
-    r[1] |= KEY_PLAIN|VAL_PLAIN;
-    EXPECT_EQ(emitrs_yaml<std::string>(t), "': odd': ': odd'\n':\todd': ':\todd'\n");
+    {
+        Tree t;
+        NodeRef r = t.rootref();
+        r |= MAP|BLOCK;
+        r[0].set_key(": odd");
+        r[0] = ": odd";
+        r[1].set_key(":\todd");
+        r[1] = ":\todd";
+        EXPECT_EQ(emitrs_yaml<std::string>(t), "': odd': ': odd'\n':\todd': ':\todd'\n");
+    }
+    {
+        Tree t;
+        NodeRef r = t.rootref();
+        r |= MAP|BLOCK;
+        r[0].set_key(": odd");
+        r[0] = ": odd";
+        r[0] |= KEY_PLAIN|VAL_PLAIN;
+        r[1].set_key(":\todd");
+        r[1] = ":\todd";
+        r[1] |= KEY_PLAIN|VAL_PLAIN;
+        EXPECT_EQ(emitrs_yaml<std::string>(t), ": odd: : odd\n:\todd: :\todd\n");
+    }
 }
 
 
@@ -755,12 +783,8 @@ TEST(emit, empty_key_literal)
         test_emits(t, t.root_id(), expected, expected_json);
     }
     {
-        SCOPED_TRACE("nested");
-        const Tree t = parse_in_arena(R"(
-level1:
-  ? |-
-  : literal
-)");
+        SCOPED_TRACE("nested1");
+        const Tree t = parse_in_arena("level1:\n  ? |-\n  : literal\n");
         std::string expected = "level1:\n  ? |-\n  : literal\n";
         std::string expected_json = "{\n  \"level1\": {\n    \"\": \"literal\"\n  }\n}\n";
         test_emits(t, t.root_id(), expected, expected_json);
