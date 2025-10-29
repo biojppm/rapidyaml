@@ -38,8 +38,9 @@
   - Added `ParserOptions::detect_flow_ml()` to control this behavior
   - Added `EmitOptions::indent_flow_ml()` to control indentation of FLOW_ML containers
   - The emit implementation logic was refactored, and is now significantly cleaner
+  - Emitted YAML will now have anchors emitted before tags, as is customary ([see example](https://play.yaml.io/main/parser?input=LSAhdGFnICZhbmNob3IgfAogIG5vdGUgaG93IHRoZSBhbmNob3IgY29tZXMKICBmaXJzdCBpbiB0aGUgZXZlbnRz)).
   - Added `ParserOptions` defaulted argument to temp-parser overloads of `parse_{yaml,json}_in_{place,arena}()`
-- [PR#503](https://github.com/biojppm/rapidyaml/pull/503) (fixes [#399](https://github.com/biojppm/rapidyaml/issues/399)): change error callbacks.
+ [PR#503](https://github.com/biojppm/rapidyaml/pull/503) (fixes [#399](https://github.com/biojppm/rapidyaml/issues/399)): change error callbacks.
   - Errors in ryml now have one of these types:
     - parse error: when parsing YAML/JSON. See: `pfn_error_parse`,  `ErrorDataParse`, `ExceptionParse`, `err_parse_format()`, `sample_error_parse`.
     - visit error: when visiting a tree (reading or writing). See: `pfn_error_visit`,  `ErrorDataVisit`, `ExceptionVisit`, `err_visit_format()`, `sample_error_visit`.

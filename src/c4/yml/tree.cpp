@@ -934,7 +934,7 @@ bool Tree::change_type(id_type node, NodeType type)
         return false;
     else if(type.is_val() && is_val(node))
         return false;
-    d->m_type = (d->m_type & (~(MAP|SEQ|VAL))) | type;
+    d->m_type = (d->m_type & (~(MAP|SEQ|VAL|CONTAINER_STYLE|KEY_STYLE|VAL_STYLE))) | type;
     remove_children(node);
     return true;
 }

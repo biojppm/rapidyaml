@@ -1131,8 +1131,6 @@ ENGINE_TEST(TagTestSuiteUGM3,
 ENGINE_TEST(TagTestSuiteUKK6_02_0,
             "!"
             ,
-            "!\n"
-            ,
             "+STR\n"
             "+DOC\n"
             "=VAL <!> :\n"
@@ -1142,7 +1140,7 @@ ENGINE_TEST(TagTestSuiteUKK6_02_0,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.set_val_tag("!"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

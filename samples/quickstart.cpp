@@ -4305,7 +4305,7 @@ void sample_emit_nested_node()
  * formatting of emitted YAML code. */
 void sample_style()
 {
-    // we will be using these helpers throughout this function
+    // we will be using this helper throughout this function
     auto tostr = [](ryml::ConstNodeRef n) { return ryml::emitrs_yaml<std::string>(n); };
     // let's parse this:
     ryml::csubstr yaml = R"(block map:
@@ -4473,7 +4473,7 @@ block seq:
 )");
     // you can set the style based on type conditions:
     // set a single key to single-quoted
-    tree["block map"].set_style_conditionally(ryml::KEY,
+    tree["block map"].set_style_conditionally(/*type_mask*/ryml::KEY,
                                               /*remflags*/ryml::KEY_STYLE,
                                               /*addflags*/ryml::KEY_SQUO,
                                               /*recurse*/false);

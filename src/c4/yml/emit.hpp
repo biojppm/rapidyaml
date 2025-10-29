@@ -136,9 +136,9 @@ public:
      * @param opts @ref EmitOptions
      * @param args arguments to be forwarded to the constructor of the writer.
      */
-    template<class ...Args>
-    Emitter(EmitOptions const& opts, Args &&...args)
-        : Writer(std::forward<Args>(args)...)
+    template<class ...WriterArgs>
+    Emitter(EmitOptions const& opts, WriterArgs &&...args)
+        : Writer(std::forward<WriterArgs>(args)...)
         , m_tree()
         , m_opts(opts)
         , m_col()
@@ -150,9 +150,9 @@ public:
     /** Construct the emitter and its internal Writer state, using default emit options.
      * @param args arguments to be forwarded to the constructor of the writer.
      */
-    template<class ...Args>
-    Emitter(Args &&...args)
-        : Writer(std::forward<Args>(args)...)
+    template<class ...WriterArgs>
+    Emitter(WriterArgs &&...args)
+        : Writer(std::forward<WriterArgs>(args)...)
         , m_tree()
         , m_opts()
         , m_col()
@@ -208,9 +208,9 @@ public:
     /** get the max depth for emitted trees (to prevent a stack overflow) */
     id_type max_depth() const noexcept { return m_opts.max_depth(); }
 
-    /** @cond dev */
-
 private:
+
+    /** @cond dev */
 
     void _emit_yaml(id_type id);
 
@@ -235,30 +235,26 @@ private:
     void _top_open_entry(id_type id);
     void _top_close_entry(id_type id);
     void _blck_seq_open_entry(id_type id);
-    void _blck_seq_close_entry(id_type id);
     void _blck_map_open_entry(id_type id);
-    void _blck_map_close_entry(id_type id);
-    void _blck_write_scalar_key(id_type id);
-    void _blck_write_scalar_val(id_type id);
+    void _blck_close_entry(id_type id);
+    void _blck_write_qmrk(id_type id, csubstr key, type_bits type, bool has_qmrk_comments);
+    void _blck_write_scalar(csubstr str, type_bits type);
 
     void _flow_seq_open_entry(id_type id);
-    void _flow_seq_close_entry(id_type id);
     void _flow_map_open_entry(id_type id);
-    void _flow_map_close_entry(id_type id);
-    void _flow_write_scalar_key(id_type id);
-    void _flow_write_scalar_val(id_type id);
-
-    void _flow_sl_write_comma(id_type id, id_type first_sibling);
-    void _flow_ml_write_comma(id_type id, id_type first_sibling);
+    void _flow_close_entry_sl(id_type id, id_type last_sibling);
+    void _flow_close_entry_ml(id_type id, id_type last_sibling);
+    void _flow_write_scalar(csubstr str, type_bits type);
 
 private:
 
     void _emit_json(id_type id);
-    void _write_scalar_literal(csubstr s, id_type level, bool as_key);
-    void _write_scalar_folded(csubstr s, id_type level, bool as_key);
+    void _write_scalar_literal(csubstr s, id_type level);
+    void _write_scalar_folded(csubstr s, id_type level);
     void _write_scalar_squo(csubstr s, id_type level);
     void _write_scalar_dquo(csubstr s, id_type level);
     void _write_scalar_plain(csubstr s, id_type level);
+
     size_t _write_escaped_newlines(csubstr s, size_t i);
     size_t _write_indented_block(csubstr s, size_t i, id_type level);
 
@@ -288,42 +284,48 @@ private:
         }
     }
 
-    void _indent(id_type level)
+private:
+
+    C4_ALWAYS_INLINE void _indent(id_type level)
     {
-        _write(' ', 2u * (size_t)level);
+        size_t num = (size_t)(2u * level);
+        this->Writer::_do_write(' ', num);
+        m_col += num;
+    }
+
+    template<size_t N>
+    C4_ALWAYS_INLINE void _write(const char (&a)[N])
+    {
+        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
+        m_col += N-1;
+    }
+    C4_ALWAYS_INLINE void _write(csubstr s)
+    {
+        this->Writer::_do_write(s);
+        m_col += s.len;
+    }
+    C4_ALWAYS_INLINE void _write(char c)
+    {
+        this->Writer::_do_write(c);
+        ++m_col;
+    }
+    C4_ALWAYS_INLINE void _write(char c, size_t num)
+    {
+        this->Writer::_do_write(c, num);
+        m_col += num;
     }
 
     /// write a newline and reset the column
     C4_ALWAYS_INLINE void _newl()
     {
-        m_col = 0;
         this->Writer::_do_write('\n');
-    }
-    template<size_t N>
-    C4_ALWAYS_INLINE void _write(const char (&a)[N])
-    {
-        m_col += N-1;
-        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
-    }
-    C4_ALWAYS_INLINE void _write(csubstr s)
-    {
-        m_col += s.len;
-        this->Writer::_do_write(s);
-    }
-    C4_ALWAYS_INLINE void _write(char c)
-    {
-        ++m_col;
-        this->Writer::_do_write(c);
-    }
-    C4_ALWAYS_INLINE void _write(char c, size_t num)
-    {
-        m_col += num;
-        this->Writer::_do_write(c, num);
+        m_col = 0;
     }
 
 private: // pending whitespace
 
-    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e; ///< pending whitespace
+    /// pending whitespace
+    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e;
 
     /// set pending whitespace, ignoring pending
     C4_ALWAYS_INLINE void _pend_none() noexcept
@@ -359,10 +361,26 @@ private:
 
     Tree const* C4_RESTRICT m_tree;
     EmitOptions m_opts;
-    size_t m_col;
-    id_type m_depth;
-    id_type m_ilevel;
-    Pws_e m_pws;
+    size_t      m_col;
+    id_type     m_depth;
+    id_type     m_ilevel;
+    Pws_e       m_pws;
+
+private:
+
+    enum : type_bits {
+        _styles_block_key = KEY_LITERAL|KEY_FOLDED,
+        _styles_block_val = VAL_LITERAL|VAL_FOLDED,
+        _styles_block     = _styles_block_key|_styles_block_val,
+        _styles_flow_key  = KEY_STYLE & ~_styles_block_key,
+        _styles_flow_val  = VAL_STYLE & ~_styles_block_val,
+        _styles_flow      = _styles_flow_key|_styles_flow_val,
+        _styles_squo      = KEY_SQUO|VAL_SQUO,
+        _styles_dquo      = KEY_DQUO|VAL_DQUO,
+        _styles_plain     = KEY_PLAIN|VAL_PLAIN,
+        _styles_literal   = KEY_LITERAL|VAL_LITERAL,
+        _styles_folded    = KEY_FOLDED|VAL_FOLDED,
+    };
 
     /** @endcond */
 };

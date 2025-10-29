@@ -188,20 +188,25 @@ public:
         {
             _c4dbgp("ensure stream");
             _set_root_as_stream();
-            id_type first = m_tree->first_child(m_tree->root_id());
-            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()), m_tree, m_curr->node_id);
-            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u, m_tree, m_curr->node_id);
+            const id_type root = m_tree->root_id();
+            const id_type first = m_tree->first_child(root);
+            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_stream(root), m_tree, root);
+            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->num_children(root) == 1u, m_tree, root);
             if(m_tree->is_container(first) || m_tree->is_val(first))
             {
                 _c4dbgp("push!");
                 _push();
+                #ifdef RYML_WITH_COMMENTS
+                m_tree->_p(root)->m_first_comment = NONE;
+                m_tree->_p(root)->m_last_comment = NONE;
+                #endif
             }
             else
             {
                 _c4dbgp("tweak");
                 _push();
                 _remove_speculative();
-                m_curr->node_id = m_tree->last_child(m_tree->root_id());
+                m_curr->node_id = m_tree->last_child(root);
                 m_curr->tr_data = m_tree->_p(m_curr->node_id);
             }
         }

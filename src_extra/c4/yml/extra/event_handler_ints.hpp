@@ -43,13 +43,32 @@ using DataType = int32_t;
 /** enumeration of integer event bits. */
 typedef enum : DataType {
 
+    // Structure flags
+    KEY_ = (1 << 0),  ///< as key
+    VAL_ = (1 << 1),  ///< as value
+    /// special flag to enable look-back in the event array. it
+    /// signifies that the previous event has a string, meaning that
+    /// the jump back to that event is 3 positions. without this flag it
+    /// would be impossible to jump to the previous event.
+    /// see also @ref WSTR
+    PSTR = (1 << 2),
+    /// IMPORTANT. Marks events whose string was placed in the
+    /// arena. This happens when the filtered string is larger than the
+    /// original string in the YAML code (eg from tags that resolve to
+    /// a larger string, or from "\L" or "\P" in double quotes, which
+    /// expand from two to three bytes). Because of this size
+    /// expansion, the filtered string cannot be placed in the original
+    /// source and needs to be placed in the arena.
+    AREN = (1 << 3),
+
     // Event scopes
-    BEG_ = (1 <<  0),  ///< scope: begin
-    END_ = (1 <<  1),  ///< scope: end
-    SEQ_ = (1 <<  2),  ///< scope: seq
-    MAP_ = (1 <<  3),  ///< scope: map
-    DOC_ = (1 <<  4),  ///< scope: doc
-    STRM = (1 <<  5),  ///< scope: stream
+    BEG_ = (1 <<  5),  ///< scope: begin
+    END_ = (1 <<  6),  ///< scope: end
+    SEQ_ = (1 <<  7),  ///< scope: seq
+    MAP_ = (1 <<  8),  ///< scope: map
+    DOC_ = (1 <<  9),  ///< scope: doc
+    EXPL = (1 << 10),  ///< `---` (with BDOC) or `...` (with EDOC)
+    STRM = (1 << 11),  ///< scope: stream
     BSEQ = BEG_|SEQ_,  ///< begin seq    (+SEQ in test suite events)
     ESEQ = END_|SEQ_,  ///< end seq      (-SEQ in test suite events)
     BMAP = BEG_|MAP_,  ///< begin map    (+MAP in test suite events)
@@ -60,58 +79,41 @@ typedef enum : DataType {
     EDOC = END_|DOC_,  ///< end doc      (-DOC in test suite events)
 
     // Single events
-    SCLR = (1 <<  6),  ///< scalar (=VAL in test suite events)
-    ALIA = (1 <<  7),  ///< *ref (reference)
-    ANCH = (1 <<  8),  ///< &anchor
-    TAG_ = (1 <<  9),  ///< !tag
-
-    // Structure flags
-    KEY_ = (1 << 10),  ///< as key
-    VAL_ = (1 << 11),  ///< as value
-    EXPL = (1 << 12),  ///< `---` (with BDOC) or `...` (with EDOC)
+    SCLR = (1 << 12),  ///< scalar (=VAL in test suite events)
+    ALIA = (1 << 13),  ///< *ref (reference)
+    ANCH = (1 << 14),  ///< &anchor
+    TAG_ = (1 << 15),  ///< !tag
 
     // Style flags
-    PLAI = (1 << 13),  ///< scalar: plain
-    SQUO = (1 << 14),  ///< scalar: single-quoted (')
-    DQUO = (1 << 15),  ///< scalar: double-quoted ("")
-    LITL = (1 << 16),  ///< scalar: block literal (|)
-    FOLD = (1 << 17),  ///< scalar: block folded (>)
-    FLOW = (1 << 18),  ///< container: flow: [] for seqs or {} for maps
-    BLCK = (1 << 19),  ///< container: block
+    PLAI = (1 << 16),  ///< scalar: plain
+    SQUO = (1 << 17),  ///< scalar: single-quoted (')
+    DQUO = (1 << 18),  ///< scalar: double-quoted ("")
+    LITL = (1 << 19),  ///< scalar: block literal (|)
+    FOLD = (1 << 20),  ///< scalar: block folded (>)
+    FLOW = (1 << 21),  ///< container: flow: [] for seqs or {} for maps
+    BLCK = (1 << 22),  ///< container: block
 
     // Directive flags
-    YAML = (1 << 20),  ///< yaml directive: `\%YAML <version>`
-    TAGD = (1 << 21),  ///< tag directive, name : `\%TAG <name> .......`
-    TAGV = (1 << 22),  ///< tag directive, value: `\%TAG ...... <value>`
+    YAML = (1 << 23),  ///< yaml directive: `\%YAML <version>`
+    TAGD = (1 << 24),  ///< tag directive, name : `\%TAG <name> .......`
+    TAGV = (1 << 25),  ///< tag directive, value: `\%TAG ...... <value>`
 
-    // Buffer flags
-    /// IMPORTANT. Marks events whose string was placed in the
-    /// arena. This happens when the filtered string is larger than the
-    /// original string in the YAML code (eg from tags that resolve to
-    /// a larger string, or from "\L" or "\P" in double quotes, which
-    /// expand from two to three bytes). Because of this size
-    /// expansion, the filtered string cannot be placed in the original
-    /// source and needs to be placed in the arena.
-    AREN = (1 << 23),
-    /// special flag to enable look-back in the event array. it
-    /// signifies that the previous event has a string, meaning that
-    /// the jump back to that event is 3 positions. without this flag it
-    /// would be impossible to jump to the previous event.
-    PSTR = (1 << 24),
     /// special flag to mark a scalar as unfiltered (when the parser
     /// is set not to filter).
-    UNFILT = (1 << 25),
+    UNFILT = (1 << 26),
 
     // Utility flags/masks
     /// the last flag defined above
     LAST = UNFILT,
     /// a mask of all bits in this enumeration
     MASK = (LAST << 1) - 1,
-    /// with string: mask of all the events that encode a string
-    /// following the event. in the event has a string. the next two
-    /// integers will provide respectively the string's offset and
-    /// length. See also @ref PSTR.
+
+    /// WithSTRing: mask of all the events that encode a string
+    /// following the event. For such events, the next two integers
+    /// will provide respectively the string's offset and length. See
+    /// also @ref PSTR.
     WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML,
+
 } EventFlags;
 
 } // namespace ievt
