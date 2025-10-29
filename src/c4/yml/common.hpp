@@ -319,6 +319,9 @@ private:
         SCALAR_FILTERING = (1u << 0u),
         LOCATIONS = (1u << 1u),
         DETECT_FLOW_ML = (1u << 2u),
+        #ifdef RYML_WITH_COMMENTS
+        WITH_COMMENTS = (1u << 2u),
+        #endif
         DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
     } Flags_e;
 
@@ -387,6 +390,27 @@ public:
     C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
 
     /** @} */
+
+public:
+
+    #ifdef RYML_WITH_COMMENTS
+    /** @name comment parsing status (disable at your discretion) */
+    /** @{ */
+
+    /** enable/disable comment parsing */
+    ParserOptions& with_comments(bool enabled) noexcept
+    {
+        if(enabled)
+            flags |= WITH_COMMENTS;
+        else
+            flags &= ~WITH_COMMENTS;
+        return *this;
+    }
+    /** query comments parsing status */
+    C4_ALWAYS_INLINE bool with_comments() const noexcept { return (flags & WITH_COMMENTS); }
+
+    /** @} */
+    #endif // RYML_WITH_COMMENTS
 };
 
 

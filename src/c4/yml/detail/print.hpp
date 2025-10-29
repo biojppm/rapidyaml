@@ -106,7 +106,24 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
         printf(" %c%.*s%c", code, (int)v.len, v.str, code);
     }
     printf("  (%zu sibs)", (size_t)p.num_siblings(node));
-
+    #ifdef RYML_WITH_COMMENTS
+    if(p.comment(node))
+    {
+        printf(" COMM[");
+        NodeData const* n = p._p(node);
+        id_type ccount = 0;
+        for(id_type cid = n->m_first_comment; cid != NONE; cid = p.m_comments_buf[cid].m_next)
+        {
+            CommentData const& comm = p.m_comments_buf[cid];
+            if(ccount++) printf("|");
+            if(false) ;
+            #define _c4commtostr(sym, bit) else if(comm.m_type & COMM_##sym) printf(#sym);
+            _RYML_DEFINE_COMMENTS(_c4commtostr)
+            #undef _c4commtpstr
+        }
+        printf("]");
+    }
+    #endif
     ++count;
 
     if(!p.is_container(node))

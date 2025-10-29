@@ -117,6 +117,10 @@ struct EventTransformer
 
     fwds(add_directive)
 
+    #ifdef RYML_WITH_COMMENTS
+    void add_comment(csubstr txt, CommentType_e type) { handler.add_comment(transformer(txt), type); }
+    #endif
+
     #undef fwd
     #undef fwds
     #undef fwdb
