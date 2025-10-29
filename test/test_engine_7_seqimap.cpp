@@ -7,6 +7,10 @@ namespace c4 {
 namespace yml {
 
 
+//static constexpr const bool multiline = true;
+static constexpr const bool singleline = false;
+
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SeqIMap0Ref,
@@ -36,10 +40,10 @@ ENGINE_TEST(SeqIMap0Ref,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("key"));
     ___(ps.set_val_scalar_plain("val2"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("wtf"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -77,10 +81,10 @@ ENGINE_TEST(SeqIMap1,
         // val to the key of the first child
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain("val2"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("wtf"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -122,12 +126,12 @@ ENGINE_TEST(SeqIMap2,
         ___(ps.set_val_scalar_plain("foo"));
         ___(ps.actually_val_is_first_key_of_new_map_flow());
         ___(ps.set_val_scalar_plain("bar"));
-        ___(ps.end_map());
-        ___(ps.end_seq());
-      ___(ps.end_map());
+        ___(ps.end_map_flow(singleline));
+        ___(ps.end_seq_flow(singleline));
+      ___(ps.end_map_flow(singleline));
       ___(ps.add_sibling());
       ___(ps.set_val_scalar_plain("wtf"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -215,27 +219,27 @@ ENGINE_TEST(SeqIMap2Nested,
                                     ___(ps.set_val_scalar_plain("6"));
                                     ___(ps.actually_val_is_first_key_of_new_map_flow());
                                       ___(ps.set_val_scalar_plain("7"));
-                                    ___(ps.end_map());
-                                  ___(ps.end_seq());
-                                ___(ps.end_map());
-                              ___(ps.end_seq());
-                            ___(ps.end_map());
-                          ___(ps.end_seq());
-                        ___(ps.end_map());
-                      ___(ps.end_seq());
-                    ___(ps.end_map());
-                  ___(ps.end_seq());
-                ___(ps.end_map());
-              ___(ps.end_seq());
-            ___(ps.end_map());
-          ___(ps.end_seq());
-        ___(ps.end_map());
+                                    ___(ps.end_map_flow(singleline));
+                                  ___(ps.end_seq_flow(singleline));
+                                ___(ps.end_map_flow(singleline));
+                              ___(ps.end_seq_flow(singleline));
+                            ___(ps.end_map_flow(singleline));
+                          ___(ps.end_seq_flow(singleline));
+                        ___(ps.end_map_flow(singleline));
+                      ___(ps.end_seq_flow(singleline));
+                    ___(ps.end_map_flow(singleline));
+                  ___(ps.end_seq_flow(singleline));
+                ___(ps.end_map_flow(singleline));
+              ___(ps.end_seq_flow(singleline));
+            ___(ps.end_map_flow(singleline));
+          ___(ps.end_seq_flow(singleline));
+        ___(ps.end_map_flow(singleline));
         ___(ps.add_sibling());
         ___(ps.set_val_scalar_plain({}));
         ___(ps.actually_val_is_first_key_of_new_map_flow());
           ___(ps.set_val_scalar_plain({}));
-        ___(ps.end_map());
-      ___(ps.end_seq());
+        ___(ps.end_map_flow(singleline));
+      ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -266,8 +270,8 @@ ENGINE_TEST(SeqIMap3EmptyKey,
     ___(ps.set_val_scalar_plain({}));
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain("wtf"));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -297,8 +301,8 @@ ENGINE_TEST(SeqIMap3EmptyVal,
     ___(ps.set_val_scalar_plain("wtf"));
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -328,8 +332,8 @@ ENGINE_TEST(SeqIMap3EmptyKeyVal,
     ___(ps.set_val_scalar_plain({}));
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -360,13 +364,13 @@ ENGINE_TEST(SeqIMap3EmptyKeyValNested,
     ___(ps.set_val_scalar_plain("val0"));
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain("val1"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain({}));
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -405,15 +409,15 @@ ENGINE_TEST(SeqIMap3EmptyKeyValNested2,
     ___(ps.set_val_scalar_plain("val1"));
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain("val2"));
-    ___(ps.end_map());
-    ___(ps.end_seq());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain({}));
     ___(ps.actually_val_is_first_key_of_new_map_flow());
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -446,10 +450,10 @@ ENGINE_TEST(SeqIMap4Ref,
     ___(ps.set_val_scalar_plain("rat"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("rot"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("wtf"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -495,17 +499,17 @@ ENGINE_TEST(SeqIMap4,
       ___(ps.set_val_scalar_plain("rat"));
       ___(ps.add_sibling());
       ___(ps.set_val_scalar_plain("rot"));
-      ___(ps.end_seq());
+      ___(ps.end_seq_flow(singleline));
       ___(ps.begin_seq_val_flow());
         ___(ps.begin_map_val_flow());
           ___(ps.set_key_scalar_plain("foo"));
           ___(ps.set_val_scalar_plain("bar"));
-        ___(ps.end_map());
-      ___(ps.end_seq());
-    ___(ps.end_map());
+        ___(ps.end_map_flow(singleline));
+      ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("wtf"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -549,18 +553,18 @@ ENGINE_TEST(SeqIMap4_actually,
            ___(ps.set_val_scalar_plain("rat"));
            ___(ps.add_sibling());
            ___(ps.set_val_scalar_plain("rot"));
-       ___(ps.end_seq());
+       ___(ps.end_seq_flow(singleline));
        ___(ps.actually_val_is_first_key_of_new_map_flow());
            ___(ps.begin_seq_val_flow());
                ___(ps.set_val_scalar_plain("foo"));
                ___(ps.actually_val_is_first_key_of_new_map_flow());
                    ___(ps.set_val_scalar_plain("bar"));
-               ___(ps.end_map());
-           ___(ps.end_seq());
-       ___(ps.end_map());
+               ___(ps.end_map_flow(singleline));
+           ___(ps.end_seq_flow(singleline));
+       ___(ps.end_map_flow(singleline));
        ___(ps.add_sibling());
        ___(ps.set_val_scalar_plain("wtf"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -591,8 +595,8 @@ ENGINE_TEST(SeqIMap5Squo,
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_anchor("anchor"));
     ___(ps.set_val_scalar_squoted("b"));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -620,8 +624,8 @@ ENGINE_TEST(SeqIMap5Dquo,
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_anchor("anchor"));
     ___(ps.set_val_scalar_dquoted("b"));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -648,8 +652,8 @@ ENGINE_TEST(SeqIMap5Ref,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_ref("*ref"));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -676,8 +680,8 @@ ENGINE_TEST(SeqIMap5QmrkNone0,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain({}));
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -704,8 +708,8 @@ ENGINE_TEST(SeqIMap5QmrkNone1,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain({}));
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -734,8 +738,8 @@ ENGINE_TEST(SeqIMap5QmrkSquo1,
     ___(ps.set_key_anchor("anchor"));
     ___(ps.set_key_scalar_squoted("squo"));
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -764,8 +768,8 @@ ENGINE_TEST(SeqIMap5QmrkDquo1,
     ___(ps.set_key_anchor("anchor"));
     ___(ps.set_key_scalar_dquoted("dquo"));
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -792,8 +796,8 @@ ENGINE_TEST(SeqIMap5QmrkRef1,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_ref("*ref"));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -820,8 +824,8 @@ ENGINE_TEST(SeqIMap5QmrkRef2,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_ref("*ref"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -855,10 +859,10 @@ ENGINE_TEST(SeqIMap5QmrkSeq,
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("seq"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -892,10 +896,10 @@ ENGINE_TEST(SeqIMap5QmrkMap,
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("map"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
