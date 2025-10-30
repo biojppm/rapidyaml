@@ -3519,6 +3519,76 @@ FilterResult ParseEngine<EventHandler>::filter_scalar_block_folded_in_place(subs
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#ifdef RYML_WITH_COMMENTS
+
+// a debugging scaffold:
+#if 0
+#define _c4dbgfc(fmt, ...) _c4dbgpf("filter_comm: " fmt, __VA_ARGS__)
+#else
+#define _c4dbgfc(...)
+#endif
+
+template<class EventHandler>
+csubstr ParseEngine<EventHandler>::_filter_comment(substr comment)
+{
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, comment.len >= 1);
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, comment.begins_with('#'));
+    size_t wpos = 1; // write position. no need to overwrite the first '#'
+    size_t rpos = 1; // read position. skip the first '#'
+    size_t last = 1; // read mark. position of last copied character
+    for(; rpos < comment.len; ++rpos)
+    {
+        _c4dbgfc("[{}/{}]='{}'", rpos, comment.len, _c4prc(comment.str[rpos]));
+        if(comment.str[rpos] != '\n')
+            continue;
+        // copy newlines if they are not at the end
+        size_t inclusive = rpos + 1 < comment.len ? rpos + 1 : rpos;
+        size_t num_move = inclusive - last;
+        if(num_move)
+        {
+            _c4dbgfc("... copy {}:{} <- {}:{}  [{}]'{}' ", wpos, wpos + num_move, last, last + num_move, num_move, comment.sub(last, num_move));
+            if(wpos != last)
+                memmove(comment.str + wpos, comment.str + last, num_move);
+            wpos += num_move;
+        }
+        ++rpos; // advance past the newline
+        // every comment line must begin with whitespace. skip it.
+        for(; rpos < comment.len; ++rpos)
+        {
+            if(comment.str[rpos] == ' ' _RYML_WITH_TAB_TOKENS(|| comment.str[rpos] != '\t'))
+            {
+                _c4dbgfc("... skip [{}/{}]='{}' ", rpos, comment.len, _c4prc(comment.str[rpos]));
+            }
+            else
+            {
+                break;
+            }
+        }
+        // now the current character must be # or we're at the end
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rpos == comment.len || comment.str[rpos] == '#');
+        last = rpos + 1;
+    }
+    // copy remaining characters
+    if(last < comment.len)
+    {
+        size_t num_move = comment.len - last;
+        _c4dbgfc("final copy: {}:{} <- {}:{}  [{}]'{}' ", wpos, wpos + num_move, last, last + num_move, num_move, comment.sub(last, num_move));
+        if(wpos != last)
+            memmove(comment.str + wpos, comment.str + last, num_move);
+        wpos += num_move;
+    }
+    return comment.range(1, wpos);
+}
+
+#undef _c4dbgfc
+
+#endif //  RYML_WITH_COMMENTS
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_plain(substr s, size_t indentation)
 {
