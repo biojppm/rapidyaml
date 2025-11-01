@@ -779,6 +779,8 @@ csubstr ParseEngine<EventHandler>::_scan_tag()
 template<class EventHandler>
 bool ParseEngine<EventHandler>::_maybe_advance_to_trailing_comment()
 {
+    if(!m_options.with_comments())
+        return false;
     _maybe_skip_whitespace_tokens();
     csubstr rem = m_evt_handler->m_curr->line_contents.rem;
     return (rem.len && rem.str[0] == '#');
@@ -4766,15 +4768,16 @@ void ParseEngine<EventHandler>::_handle_flow_end_comment()
 }
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::_maybe_handle_leading_comment(CommentType_e current, comment_data_type *so_far)
+void ParseEngine<EventHandler>::_maybe_handle_leading_comment(CommentType_e current)
 {
     if(m_pending_comment.type != COMM_NONE)
     {
         _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comment.type == COMM_LEADING);
-        *so_far |= current|COMM_LEADING;
-        current = ((*so_far) & COMM_LEADING) ? current : COMM_LEADING;
-        _apply_pending_comment(COMM_LEADING, current);
+        CommentType_e actual = (m_evt_handler->m_curr->leading_comments & COMM_LEADING) ? current : COMM_LEADING;
+        _apply_pending_comment(COMM_LEADING, actual);
+        m_evt_handler->m_curr->leading_comments |= actual;
     }
+    m_evt_handler->m_curr->leading_comments |= COMM_LEADING;
 }
 #endif
 
@@ -5360,8 +5363,6 @@ seqflow_start:
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RVAL) != has_all(RNXT));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->indref != npos);
 
-    _RYML_WITH_COMMENTS(comment_data_type leading_comments = 0;)
-
     _handle_flow_skip_whitespace();
     // don't assign to csubstr rem: otherwise, gcc12,13,14 -O3 -m32 misbuilds
     if(!m_evt_handler->m_curr->line_contents.rem.len)
@@ -5379,7 +5380,7 @@ seqflow_start:
             _c4dbgp("seqflow[RVAL]: squo scalar");
             sc = _scan_scalar_squot();
             csubstr maybe_filtered = _maybe_filter_val_scalar_squot(sc);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2);)
             m_evt_handler->set_val_scalar_squoted(maybe_filtered);
             addrem_flags(RNXT, RVAL);
             #ifdef RYML_WITH_COMMENTS
@@ -5396,7 +5397,7 @@ seqflow_start:
             _c4dbgp("seqflow[RVAL]: dquo scalar");
             sc = _scan_scalar_dquot();
             csubstr maybe_filtered = _maybe_filter_val_scalar_dquot(sc);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2);)
             m_evt_handler->set_val_scalar_dquoted(maybe_filtered);
             addrem_flags(RNXT, RVAL);
             #ifdef RYML_WITH_COMMENTS
@@ -5412,7 +5413,7 @@ seqflow_start:
         {
             _c4dbgp("seqflow[RVAL]: plain scalar.");
             csubstr maybe_filtered = _maybe_filter_val_scalar_plain(sc, m_evt_handler->m_curr->indref);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2);)
             m_evt_handler->set_val_scalar_plain(maybe_filtered);
             addrem_flags(RNXT, RVAL);
             #ifdef RYML_WITH_COMMENTS
@@ -5428,7 +5429,7 @@ seqflow_start:
         {
             _c4dbgp("seqflow[RVAL]: start child seqflow");
             addrem_flags(RNXT, RVAL);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2);)
             m_evt_handler->begin_seq_val_flow();
             _set_indentation(m_evt_handler->m_parent->indref);
             addrem_flags(RVAL, RNXT);
@@ -5446,7 +5447,7 @@ seqflow_start:
         {
             _c4dbgp("seqflow[RVAL]: start child mapflow");
             addrem_flags(RNXT, RVAL);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2);)
             m_evt_handler->begin_map_val_flow();
             _set_indentation(m_evt_handler->m_parent->indref);
             addrem_flags(RMAP|RKEY, RSEQ|RVAL|RNXT);
@@ -5472,7 +5473,7 @@ seqflow_start:
         {
             csubstr ref = _scan_ref_seq();
             _c4dbgpf("seqflow[RVAL]: ref! [{}]~~~{}~~~", ref.len, ref);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_LEADING2);)
             m_evt_handler->set_val_ref(ref);
             addrem_flags(RNXT, RVAL);
         }
@@ -5480,7 +5481,7 @@ seqflow_start:
         {
             csubstr anchor = _scan_anchor();
             _c4dbgpf("seqflow[RVAL]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_ANCHOR_LEADING, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_ANCHOR_LEADING);)
             m_evt_handler->set_val_anchor(anchor);
             if(_maybe_scan_following_comma())
             {
@@ -5502,7 +5503,7 @@ seqflow_start:
             csubstr tag = _scan_tag();
             _c4dbgpf("seqflow[RVAL]: tag! [{}]~~~{}~~~", tag.len, tag);
             _check_tag(tag);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_TAG_LEADING, &leading_comments);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment(COMM_VAL_TAG_LEADING);)
             m_evt_handler->set_val_tag(tag);
             if(_maybe_scan_following_comma())
             {
@@ -5566,7 +5567,7 @@ seqflow_start:
             #ifdef RYML_WITH_COMMENTS
             if(m_pending_comment.type == COMM_LEADING)
                 _apply_pending_comment(COMM_LEADING, COMM_COMMA_LEADING);
-            leading_comments = 0;
+            m_evt_handler->m_curr->leading_comments = 0;
             #endif
             addrem_flags(RVAL, RNXT);
             _line_progressed(1);

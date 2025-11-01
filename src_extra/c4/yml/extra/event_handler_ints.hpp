@@ -22,6 +22,11 @@
 #ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
 #include <c4/yml/detail/dbgprint.hpp>
 #endif
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include <c4/yml/comment_type.hpp>
+#endif
+#endif
 #endif
 
 // NOLINTBEGIN(hicpp-signed-bitwise)
