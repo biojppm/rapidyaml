@@ -454,11 +454,12 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
 template<class Writer>
 void Emitter<Writer>::_flow_close_entry_sl(id_type node, id_type last_sibling)
 {
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_TRAILING));
-    _RYML_WITH_COMMENTS(CommentData const *comm = _comm_get(node, COMM_COMMA_LEADING));
-    if(node != last_sibling _RYML_WITH_COMMENTS(|| comm))
+    _RYML_WITH_COMMENTS(CommentData const *commvt = _comm_get(node, COMM_VAL_TRAILING));
+    _RYML_WITH_COMMENTS(CommentData const *commcl = _comm_get(node, COMM_COMMA_LEADING));
+    if(node != last_sibling _RYML_WITH_COMMENTS(|| commvt || commcl))
     {
-        _RYML_WITH_COMMENTS(if(comm) _write_comm_leading(comm));
+        _RYML_WITH_COMMENTS(if(commvt) _write_comm_trailing(commvt));
+        _RYML_WITH_COMMENTS(if(commcl) _write_comm_leading(commcl));
         _write_pws_and_pend(_PWS_NONE);
         _write(',');
     }
@@ -470,17 +471,7 @@ void Emitter<Writer>::_flow_close_entry_sl(id_type node, id_type last_sibling)
 template<class Writer>
 void Emitter<Writer>::_flow_close_entry_ml(id_type node, id_type last_sibling)
 {
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_TRAILING));
-    _RYML_WITH_COMMENTS(CommentData const *comm = _comm_get(node, COMM_COMMA_LEADING));
-    if(node != last_sibling _RYML_WITH_COMMENTS(|| comm))
-    {
-        _RYML_WITH_COMMENTS(if(comm) _write_comm_leading(comm));
-        _write_pws_and_pend(_PWS_NONE);
-        _write(',');
-    }
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_TRAILING));
-    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_FOOTER));
-    _RYML_WITH_COMMENTS(_comm_pop());
+    _flow_close_entry_sl(node, last_sibling);
     _pend_newl();
 }
 
@@ -882,7 +873,7 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
         }
         _flow_close_entry_sl(child, last);
     }
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_BRACKET_LEADING));
     _write(']');
 }
 
@@ -925,7 +916,7 @@ void Emitter<Writer>::_visit_flow_ml_seq(id_type node)
         }
         _flow_close_entry_ml(child, last);
     }
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_BRACKET_LEADING));
     if(m_opts.indent_flow_ml()) --m_ilevel;
     _write_pws_and_pend(_PWS_NONE);
     _write(']');
@@ -968,7 +959,7 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node)
         }
         _flow_close_entry_sl(child, last);
     }
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_BRACKET_LEADING));
     _write_pws_and_pend(_PWS_NONE);
     _write('}');
 }
@@ -1012,7 +1003,7 @@ void Emitter<Writer>::_visit_flow_ml_map(id_type node)
         }
         _flow_close_entry_ml(child, last);
     }
-    _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_BRACKET_LEADING));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_BRACKET_LEADING));
     if(m_opts.indent_flow_ml()) --m_ilevel;
     _write_pws_and_pend(_PWS_NONE);
     _write('}');

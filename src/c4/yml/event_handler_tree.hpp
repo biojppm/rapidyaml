@@ -599,10 +599,11 @@ public:
     {
         NodeData * d = m_curr->tr_data;
         _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", m_tree->id(d), txt.len, txt);
-        if(type == COMM_VAL_BRACKET_TRAILING)
+        if(type == COMM_VAL_BRACKET_TRAILING || type == COMM_VAL_BRACKET_LEADING)
         {
              _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent && m_parent->tr_data->m_type.is_flow());
              d = m_parent->tr_data;
+            _c4dbgpf("node[{}]: comment to parent! [{}]~~~{}~~~", m_tree->id(d), txt.len, txt);
         }
         m_tree->set_comment(d, type, txt);
     }
@@ -772,25 +773,34 @@ public:
 
     void _remove_speculative()
     {
-        _c4dbgp("remove speculative node");
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
-        const id_type last_added = m_tree->size() - 1;
-        if(m_tree->has_parent(last_added))
-            if(m_tree->_p(last_added)->m_type == NOTYPE)
-                m_tree->remove(last_added);
+        const id_type speculative = m_tree->size() - 1;
+        const NodeData* node = m_tree->_p(speculative);
+        _c4dbgpf("remove speculative node={}, parent={}", speculative, node->m_parent);
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), node == m_curr->tr_data);
+        if(node->m_parent != NONE && node->m_type == NOTYPE)
+        {
+            _RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_first_comment == NONE);
+            _RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_last_comment == NONE);
+            m_tree->remove(speculative);
+        }
     }
 
     void _remove_speculative_with_parent()
     {
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
-        const id_type last_added = m_tree->size() - 1;
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(last_added), m_tree, last_added);
-        if(m_tree->_p(last_added)->m_type == NOTYPE _RYML_WITH_COMMENTS( && !m_tree->comment(last_added)))
+        const id_type speculative = m_tree->size() - 1;
+        const NodeData* node = m_tree->_p(speculative);
+        _c4dbgpf("remove speculative node={}, parent={}", speculative, node->m_parent);
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), node == m_curr->tr_data);
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(speculative), m_tree, speculative);
+        if(node->m_type == NOTYPE)
         {
-            _c4dbgpf("remove speculative node with parent. parent={} node={} parent(node)={}", m_parent->node_id, last_added, m_tree->parent(last_added));
-            m_tree->remove(last_added);
+            _RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_first_comment == NONE);
+            _RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_last_comment == NONE);
+            m_tree->remove(speculative);
         }
     }
 

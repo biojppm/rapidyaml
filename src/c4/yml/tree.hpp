@@ -28,6 +28,12 @@
 #include <c4/charconv.hpp>
 #endif
 
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include "c4/yml/comment_type.hpp"
+#endif
+#endif
+
 #include <cmath>
 #include <limits>
 
@@ -203,6 +209,22 @@ struct NodeData
     #endif // RYML_WITH_COMMENTS
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#ifdef RYML_WITH_COMMENTS
+struct CommentData
+{
+    CommentType_e m_type;
+    csubstr       m_text;
+    id_type       m_prev;
+    id_type       m_next;
+};
+C4_MUST_BE_TRIVIAL_COPY(CommentData);
+#endif // RYML_WITH_COMMENTS
 
 
 //-----------------------------------------------------------------------------
