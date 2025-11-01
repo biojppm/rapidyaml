@@ -125,27 +125,27 @@ inline C4_NO_INLINE void __c4presc(csubstr s, bool keep_newlines=false)
         case '\v'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\v"); prev = i+1; break;
         case '\a'  : _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\a"); prev = i+1; break;
         case '\x1b': _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\x1b"); prev = i+1; break;
-        case -0x3e/*0xc2u*/:
+        case _RYML_CHCONST(-0x3e, 0xc2):
             if(i+1 < s.len)
             {
-                if(s.str[i+1] == -0x60/*0xa0u*/)
+                if(s.str[i+1] == _RYML_CHCONST(-0x60, 0xa0))
                 {
                     _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\_"); prev = i+1;
                 }
-                else if(s.str[i+1] == -0x7b/*0x85u*/)
+                else if(s.str[i+1] == _RYML_CHCONST(-0x7b,0x85))
                 {
                     _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\N"); prev = i+1;
                 }
             }
             break;
-        case -0x1e/*0xe2u*/:
-            if(i+2 < s.len && s.str[i+1] == -0x80/*0x80u*/)
+        case _RYML_CHCONST(-0x1e, 0xe2):
+            if(i+2 < s.len && s.str[i+1] == _RYML_CHCONST(-0x80,0x80))
             {
-                if(s.str[i+2] == -0x58/*0xa8u*/)
+                if(s.str[i+2] == _RYML_CHCONST(-0x58,0xa8))
                 {
                     _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\L"); prev = i+1;
                 }
-                else if(s.str[i+2] == -0x57/*0xa9u*/)
+                else if(s.str[i+2] == _RYML_CHCONST(-0x57,0xa9))
                 {
                     _dbg_dumper(s.range(prev, i)); _dbg_dumper("\\P"); prev = i+1;
                 }

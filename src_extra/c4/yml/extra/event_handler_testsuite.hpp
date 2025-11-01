@@ -255,7 +255,13 @@ public:
         _push();
     }
 
-    void end_map()
+    void end_map_block()
+    {
+        _pop();
+        _send_("-MAP\n");
+    }
+
+    void end_map_flow(bool /*multiline*/)
     {
         _pop();
         _send_("-MAP\n");
@@ -310,10 +316,16 @@ public:
         _push();
     }
 
-    void end_seq()
+    void end_seq_block()
     {
         _pop();
-        _send_("-SEQ\n"); // before popping
+        _send_("-SEQ\n");
+    }
+
+    void end_seq_flow(bool /*multiline*/)
+    {
+        _pop();
+        _send_("-SEQ\n");
     }
 
     /** @} */
@@ -582,6 +594,29 @@ public:
     }
 
     /** @} */
+
+public:
+
+    #ifdef RYML_WITH_COMMENTS
+    /** @name comments */
+    /** @{ */
+
+    /** add comment
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment(csubstr txt, CommentType_e type)
+    {
+        _c4dbgpf("comment! [{}]~~~{}~~~", txt.len, txt);
+        if(false) ;
+        #define _c4comm(sym, bit) else if(type & COMM_##sym) _send_("=COMM #[" #sym "]");
+        _RYML_DEFINE_COMMENTS(_c4comm)
+        #undef _c4comm
+        append_scalar_escaped(&_buf_(), txt);
+        _send_('\n');
+    }
+
+    /** @} */
+    #endif
 
 public:
 

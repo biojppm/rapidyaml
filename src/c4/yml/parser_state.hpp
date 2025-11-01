@@ -5,6 +5,12 @@
 #include "c4/yml/error.hpp"
 #endif
 
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include "c4/yml/comment_type.hpp"
+#endif
+#endif
+
 // NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
@@ -19,8 +25,8 @@ typedef enum : ParserFlag_t {
     RUNK = 0x01 <<  1,   ///< reading unknown state (when starting): must determine whether scalar, map or seq
     RMAP = 0x01 <<  2,   ///< reading a map
     RSEQ = 0x01 <<  3,   ///< reading a seq
-    FLOW = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
-    BLCK = 0x01 <<  5,   ///< reading in block mode
+    RFLOW = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
+    RBLCK = 0x01 <<  5,   ///< reading in block mode
     QMRK = 0x01 <<  6,   ///< reading an explicit key (`? key`)
     RKEY = 0x01 <<  7,   ///< reading a scalar as key
     RVAL = 0x01 <<  9,   ///< reading a scalar as val
@@ -142,6 +148,7 @@ struct ParserState
     size_t       scalar_col; // the column where the scalar (or its quotes) begin
     bool         more_indented;
     bool         has_children;
+    _RYML_WITH_COMMENTS(comment_data_type leading_comments;)
 
     ParserState() = default;
 
@@ -157,6 +164,7 @@ struct ParserState
         scalar_col = 0;
         indref = 0;
         has_children = false;
+        _RYML_WITH_COMMENTS(leading_comments = 0;)
     }
 
     void reset_after_push()
@@ -166,6 +174,7 @@ struct ParserState
         more_indented = false;
         ++level;
         has_children = false;
+        _RYML_WITH_COMMENTS(leading_comments = 0;)
     }
 
     C4_ALWAYS_INLINE void reset_before_pop(ParserState const& to_pop)

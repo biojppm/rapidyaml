@@ -177,12 +177,13 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& tc, std::string const& 
     #endif
     std::string actual = emitrs_yaml<std::string>(tree);
     _c4dbgpf("~~~\n{}~~~\n", actual);
-    EXPECT_EQ(actual, tc.emitted);
+    EXPECT_EQ(tc.expected_emitted, actual);
 }
 
 
 void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& yaml, ParserOptions opts)
 {
+    _RYML_WITH_COMMENTS(if(opts.with_comments()) return;)
     if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -200,6 +201,7 @@ void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& yaml
 
 void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& yaml, ParserOptions opts)
 {
+    _RYML_WITH_COMMENTS(if(opts.with_comments()) return;)
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
     const auto injected_comments = inject_comments(yaml.parsed);
@@ -215,6 +217,7 @@ void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& yaml, Par
 
 void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& yaml, ParserOptions opts)
 {
+    _RYML_WITH_COMMENTS(if(opts.with_comments()) return;)
     if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(yaml.test_case_flags & HAS_MULTILINE_SCALAR)
