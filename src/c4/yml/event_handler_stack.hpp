@@ -148,8 +148,6 @@ protected:
                 st.line_contents.rem = _stack_relocate_to_new_arena(st.line_contents.rem, prev, curr);
             if(st.line_contents.full.is_sub(prev))
                 st.line_contents.full = _stack_relocate_to_new_arena(st.line_contents.full, prev, curr);
-            if(st.line_contents.stripped.is_sub(prev))
-                st.line_contents.stripped = _stack_relocate_to_new_arena(st.line_contents.stripped, prev, curr);
         }
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_relocate_arena != nullptr);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_relocate_arena_data != nullptr);

@@ -38,90 +38,71 @@ typedef enum : ParserFlag_t {
     RSEQIMAP = 0x01 << 17,
 } ParserState_e;
 
-#ifdef RYML_DBG
+
 /** @cond dev */
+#ifdef RYML_DBG
 namespace detail {
 csubstr _parser_flags_to_str(substr buf, ParserFlag_t flags);
-} // namespace
-/** @endcond */
+} // namespace detail
 #endif
+/** @endcond */
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /** Helper to control the line contents while parsing a buffer */
 struct LineContents
 {
-    substr  rem;         ///< the stripped line remainder; initially starts at the first non-space character
-    size_t  indentation; ///< the number of spaces on the beginning of the line
-    substr  full;        ///< the full line, including newlines on the right
-    substr  stripped;    ///< the stripped line, excluding newlines on the right
+    substr  rem;         ///< current line remainder, without newline characters
+    substr  full;        ///< full line, including newline characters \n and \r
+    size_t  num_cols;    ///< number of columns in the line, excluding newline
+                         ///< characters (ie the initial size of rem)
+    size_t  indentation; ///< number of spaces on the beginning of the line.
+                         ///< TODO this should not be a member of this object.
+                         ///< We only care about indentation in block mode, so
+                         ///< this should be moved to the parser state.
 
-    LineContents() = default;
+    LineContents() RYML_NOEXCEPT = default;
 
-    void reset_with_next_line(substr buf, size_t offset)
+    void reset_with_next_line(substr buf, size_t start) RYML_NOEXCEPT
     {
-        _RYML_ASSERT_BASIC(offset <= buf.len);
-        size_t e = offset;
+        _RYML_ASSERT_BASIC(start <= buf.len);
+        size_t end = start;
         // get the current line stripped of newline chars
-        while(e < buf.len && (buf.str[e] != '\n' && buf.str[e] != '\r'))
-            ++e;
-        _RYML_ASSERT_BASIC(e >= offset);
-        const substr stripped_ = buf.range(offset, e);
-        #if defined(__GNUC__) && __GNUC__ == 11
-        C4_DONT_OPTIMIZE(stripped_);
-        #endif
-        // advance pos to include the first line ending
-        if(e < buf.len && buf.str[e] == '\r')
-            ++e;
-        if(e < buf.len && buf.str[e] == '\n')
-            ++e;
-        const substr full_ = buf.range(offset, e);
-        reset(full_, stripped_);
-    }
-
-    void reset(substr full_, substr stripped_)
-    {
-        rem = stripped_;
-        indentation = stripped_.first_not_of(' ');  // find the first column where the character is not a space
-        full = full_;
-        stripped = stripped_;
+        while((end < buf.len) && (buf.str[end] != '\n'))
+            ++end;
+        if(end < buf.len)
+        {
+            _RYML_ASSERT_BASIC(buf[end] == '\n');
+            full = buf.range(start, end + 1);
+            rem = buf.range(start, end);
+        }
+        else
+        {
+            // buffer ends without newline
+            full = rem = buf.sub(start);
+        }
+        size_t pos = rem.last_not_of('\r');
+        rem.len = (pos != npos) ? pos + 1 : 0;
+        num_cols = rem.len;
+        _RYML_ASSERT_BASIC(rem.find('\r') == npos);
+        // TODO move this to the parser state
+        indentation = rem.first_not_of(' ');  // find the first column where the character is not a space
     }
 
     C4_ALWAYS_INLINE size_t current_col() const RYML_NOEXCEPT
     {
-        // WARNING: gcc x86 release builds were wrong (eg returning 0
-        // when the result should be 4 ) when this function was like
-        // this:
-        //
-        //return current_col(rem);
-        //
-        // (see below for the full definition of the called overload
-        // of current_col())
-        //
-        // ... so we explicitly inline the code in here:
         _RYML_ASSERT_BASIC(rem.str >= full.str);
-        size_t col = static_cast<size_t>(rem.str - full.str);
-        return col;
-        //
-        // this was happening only on builds specifically with (gcc
-        // AND x86 AND release); no other builds were having the
-        // problem: not in debug, not in x64, not in other
-        // architectures, not in clang, not in visual studio. WTF!?
-        //
-        // Enabling debug prints with RYML_DBG made the problem go
-        // away, so these could not be used to debug the
-        // problem. Adding prints inside the called current_col() also
-        // made the problem go away! WTF!???
-        //
-        // a prize will be offered to anybody able to explain why this
-        // was happening.
+        return static_cast<size_t>(rem.str - full.str);
     }
 
     C4_ALWAYS_INLINE size_t current_col(csubstr s) const RYML_NOEXCEPT
     {
         _RYML_ASSERT_BASIC(s.str >= full.str);
-        _RYML_ASSERT_BASIC(full.is_super(s));
-        size_t col = static_cast<size_t>(s.str - full.str);
-        return col;
+        _RYML_ASSERT_BASIC(s.str <= rem.end());
+        return static_cast<size_t>(s.str - full.str);
     }
 };
 static_assert(std::is_standard_layout<LineContents>::value, "LineContents not standard");
