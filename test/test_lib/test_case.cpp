@@ -47,22 +47,23 @@ id_type _num_leaves(Tree const& t, id_type node)
 }
 
 
-void test_compare(Tree const& actual, Tree const& expected)
+void test_compare(Tree const& actual, Tree const& expected,
+                  const char *actual_name, const char *expected_name)
 {
     ASSERT_EQ(actual.empty(), expected.empty());
     if(actual.empty() || expected.empty())
         return;
     EXPECT_EQ(actual.size(), expected.size());
     EXPECT_EQ(_num_leaves(actual, actual.root_id()), _num_leaves(expected, expected.root_id()));
-    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0);
+    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0, actual_name, expected_name);
 }
 
 
 void test_compare(Tree const& actual, id_type node_actual,
-     Tree const& expected, id_type node_expected,
-     id_type level)
+                  Tree const& expected, id_type node_expected,
+                  id_type depth, const char *actual_name, const char *expected_name)
 {
-    RYML_TRACE_FMT("actual={} vs expected={}", node_actual, node_expected);
+    RYML_TRACE_FMT("{}[{}] vs {}[{}]. depth={}", actual_name, node_actual, expected_name, node_expected, depth);
 
     ASSERT_NE(node_actual, (id_type)NONE);
     ASSERT_NE(node_expected, (id_type)NONE);
@@ -122,8 +123,9 @@ void test_compare(Tree const& actual, id_type node_actual,
         ia != NONE && ib != NONE;
         ia = actual.next_sibling(ia), ib = expected.next_sibling(ib))
     {
-        test_compare(actual, ia, expected, ib, level+1);
+        test_compare(actual, ia, expected, ib, depth+1, actual_name, expected_name);
     }
+
 }
 
 void test_arena_not_shared(Tree const& a, Tree const& b)
@@ -643,18 +645,19 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_val());
     }
-    // check parent & sibling reciprocity
+    // check sibling reciprocity
     for(ConstNodeRef s : n.siblings())
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(n.has_key())
+        if(n.has_key() && s.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
         }
         EXPECT_EQ(s.parent().get(), n.parent().get());
     }
+    // check parent/child reciprocity
     if(n.parent().readable())
     {
         EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings());
@@ -688,7 +691,10 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_FALSE(n.is_seq());
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_TRUE(ch.has_key());
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.has_key());
+            }
         }
     }
     if(n.has_key_anchor())
@@ -744,9 +750,10 @@ void test_invariants(ConstNodeRef const& n)
     #undef _MORE_INFO
 }
 
-size_t test_tree_invariants(ConstNodeRef const& n)
+
+static size_t test_tree_invariants(ConstNodeRef const& n)
 {
-    auto parent = n.parent();
+    ConstNodeRef parent = n.parent();
 
     if(n.get()->m_prev_sibling == NONE)
     {
@@ -788,6 +795,7 @@ size_t test_tree_invariants(ConstNodeRef const& n)
 
 void test_invariants(Tree const& t)
 {
+    SCOPED_TRACE("tree invariants");
 
     ASSERT_LE(t.size(), t.capacity());
     EXPECT_EQ(t.size() + t.slack(), t.capacity());
