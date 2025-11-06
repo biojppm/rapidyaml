@@ -270,7 +270,6 @@ RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
 
 /** @} */
 
-
 /** @} */
 
 } // namespace yml

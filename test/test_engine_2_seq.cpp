@@ -223,7 +223,7 @@ ENGINE_TEST(SimpleSeqBlock2,
         ___(ps.set_val_scalar_plain("bar"));
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("baz"));
-        ___(ps.set_val_scalar_plain({}));
+        ___(ps.set_val_scalar_plain_empty());
       ___(ps.end_map_flow(singleline));
     ___(ps.end_seq_block());
     ___(ps.end_doc());
@@ -350,13 +350,13 @@ ENGINE_TEST(SimpleSeqBlockEmptyScalars,
     ps.begin_stream();
     ps.begin_doc();
     ps.begin_seq_val_block();
-    ps.set_val_scalar_plain({});
+    ps.set_val_scalar_plain_empty();
     ps.add_sibling();
-    ps.set_val_scalar_plain({});
+    ps.set_val_scalar_plain_empty();
     ps.add_sibling();
-    ps.set_val_scalar_plain({});
+    ps.set_val_scalar_plain_empty();
     ps.add_sibling();
-    ps.set_val_scalar_plain({});
+    ps.set_val_scalar_plain_empty();
     ps.end_seq_block();
     ps.end_doc();
     ps.end_stream();

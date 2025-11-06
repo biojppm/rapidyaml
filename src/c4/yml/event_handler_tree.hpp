@@ -363,7 +363,7 @@ public:
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->is_container(m_curr->node_id), m_tree, m_curr->node_id);
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->has_key(m_curr->node_id), m_tree, m_curr->node_id);
         const NodeData tmp = _val2key_(*m_curr->tr_data);
-        _disable_(_VALMASK|VAL_STYLE);
+        _disable_(_VALMASK|VAL_STYLE|VALNIL);
         m_curr->tr_data->m_val = {};
         begin_map_val_flow();
         m_curr->tr_data->m_type = tmp.m_type;
@@ -739,6 +739,8 @@ public:
         r.m_type.type = ((d.m_type.type & (_VALMASK|VAL_STYLE)) >> 1u);
         r.m_type.type = (r.m_type.type & ~(_VALMASK|VAL_STYLE));
         r.m_type.type = (r.m_type.type | KEY);
+        if(d.m_type.type & VALNIL)
+            r.m_type.type = (r.m_type.type | KEYNIL);
         return r;
     }
 

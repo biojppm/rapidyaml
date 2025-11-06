@@ -47,22 +47,23 @@ id_type _num_leaves(Tree const& t, id_type node)
 }
 
 
-void test_compare(Tree const& actual, Tree const& expected)
+void test_compare(Tree const& actual, Tree const& expected,
+                  const char *actual_name, const char *expected_name)
 {
     ASSERT_EQ(actual.empty(), expected.empty());
     if(actual.empty() || expected.empty())
         return;
     EXPECT_EQ(actual.size(), expected.size());
     EXPECT_EQ(_num_leaves(actual, actual.root_id()), _num_leaves(expected, expected.root_id()));
-    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0);
+    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0, actual_name, expected_name);
 }
 
 
 void test_compare(Tree const& actual, id_type node_actual,
-     Tree const& expected, id_type node_expected,
-     id_type level)
+                  Tree const& expected, id_type node_expected,
+                  id_type depth, const char *actual_name, const char *expected_name)
 {
-    RYML_TRACE_FMT("actual={} vs expected={}", node_actual, node_expected);
+    RYML_TRACE_FMT("{}[{}] vs {}[{}]. depth={}", actual_name, node_actual, expected_name, node_expected, depth);
 
     ASSERT_NE(node_actual, (id_type)NONE);
     ASSERT_NE(node_expected, (id_type)NONE);
@@ -122,8 +123,9 @@ void test_compare(Tree const& actual, id_type node_actual,
         ia != NONE && ib != NONE;
         ia = actual.next_sibling(ia), ib = expected.next_sibling(ib))
     {
-        test_compare(actual, ia, expected, ib, level+1);
+        test_compare(actual, ia, expected, ib, depth+1, actual_name, expected_name);
     }
+
 }
 
 void test_arena_not_shared(Tree const& a, Tree const& b)

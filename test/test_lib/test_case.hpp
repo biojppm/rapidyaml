@@ -116,10 +116,11 @@ struct CaseData;
 Case const* get_case(csubstr name);
 CaseData* get_data(csubstr name);
 
-void test_compare(Tree const& actual, Tree const& expected);
+void test_compare(Tree const& actual, Tree const& expected,
+                  const char *actual_name="actual", const char *expected_name="expected");
 void test_compare(Tree const& actual, id_type node_actual,
-     Tree const& expected, id_type node_expected,
-     id_type level=0);
+                  Tree const& expected, id_type node_expected,
+                  id_type level=0, const char *actual_name="actual", const char *expected_name="expected");
 
 void test_arena_not_shared(Tree const& a, Tree const& b);
 
