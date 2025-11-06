@@ -222,6 +222,7 @@ void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::st
 
 void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -239,6 +240,7 @@ void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test
 
 void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
     const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
@@ -254,6 +256,7 @@ void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case
 
 void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -271,6 +274,7 @@ void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case
 
 void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
