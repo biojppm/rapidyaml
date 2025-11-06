@@ -461,7 +461,7 @@ C4_NO_INLINE void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
 {
     auto const *const C4_RESTRICT st = m_evt_handler->m_curr;
     auto const& lc = st->line_contents;
-    csubstr contents = lc.stripped;
+    csubstr contents = lc.full.first(lc.num_cols);
     if(contents.len)
     {
         // print the yaml src line
@@ -618,18 +618,18 @@ void ParseEngine<EventHandler>::_skip_comment()
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.begins_with('#'));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.is_sub(m_evt_handler->m_curr->line_contents.full));
     csubstr rem = m_evt_handler->m_curr->line_contents.rem;
-    csubstr full = m_evt_handler->m_curr->line_contents.full;
+    csubstr line = m_evt_handler->m_curr->line_contents.full;
     // raise an error if the comment is not preceded by whitespace
-    if(!full.begins_with('#'))
+    if(!line.begins_with('#'))
     {
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str > full.str);
-        const char c = full[(size_t)(rem.str - full.str - 1)];
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str > line.str);
+        const char c = line[(size_t)(rem.str - line.str - 1)];
         if(C4_UNLIKELY(c != ' ' && c != '\t'))
             _c4err("comment not preceded by whitespace");
     }
     else
     {
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str == full.str);
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str == line.str);
     }
     _c4dbgpf("comment was '{}'", rem);
     _line_progressed(rem.len);
@@ -1471,16 +1471,22 @@ void ParseEngine<EventHandler>::_scan_line()
     if(C4_LIKELY(m_evt_handler->m_curr->pos.offset < m_buf.len))
         m_evt_handler->m_curr->line_contents.reset_with_next_line(m_buf, m_evt_handler->m_curr->pos.offset);
     else
-        m_evt_handler->m_curr->line_contents.reset(m_buf.last(0), m_buf.last(0));
+        m_evt_handler->m_curr->line_contents.reset_with_next_line(m_buf.last(0), 0);
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_line_progressed(size_t ahead)
 {
-    _c4dbgpf("line[{}] ({} cols) progressed by {}:  col {}-->{}   offset {}-->{}", m_evt_handler->m_curr->pos.line, m_evt_handler->m_curr->line_contents.full.len, ahead, m_evt_handler->m_curr->pos.col, m_evt_handler->m_curr->pos.col+ahead, m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset+ahead);
+    _c4dbgpf("line[{}] ({} cols) progressed by {}:  col {}-->{}   offset {}-->{}",
+             m_evt_handler->m_curr->pos.line,
+             m_evt_handler->m_curr->line_contents.full.len,
+             ahead, m_evt_handler->m_curr->pos.col,
+             m_evt_handler->m_curr->pos.col+ahead,
+             m_evt_handler->m_curr->pos.offset,
+             m_evt_handler->m_curr->pos.offset+ahead);
     m_evt_handler->m_curr->pos.offset += ahead;
     m_evt_handler->m_curr->pos.col += ahead;
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col <= m_evt_handler->m_curr->line_contents.stripped.len+1);
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col <= m_evt_handler->m_curr->line_contents.num_cols+1);
     m_evt_handler->m_curr->line_contents.rem = m_evt_handler->m_curr->line_contents.rem.sub(ahead);
 }
 
@@ -1490,10 +1496,10 @@ void ParseEngine<EventHandler>::_line_ended()
     _c4dbgpf("line[{}] ({} cols) ended! offset {}-->{} / col {}-->{}",
              m_evt_handler->m_curr->pos.line,
              m_evt_handler->m_curr->line_contents.full.len,
-             m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset + m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len,
+             m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset + m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols,
              m_evt_handler->m_curr->pos.col, 1);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col == m_evt_handler->m_curr->line_contents.stripped.len + 1);
-    m_evt_handler->m_curr->pos.offset += m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len;
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col == m_evt_handler->m_curr->line_contents.num_cols + 1);
+    m_evt_handler->m_curr->pos.offset += m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols;
     ++m_evt_handler->m_curr->pos.line;
     m_evt_handler->m_curr->pos.col = 1;
 }
@@ -1503,12 +1509,12 @@ void ParseEngine<EventHandler>::_line_ended_undo()
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col == 1u);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.line > 0u);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.offset >= m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len);
-    const size_t delta = m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len;
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.offset >= m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols);
+    const size_t delta = m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols;
     _c4dbgpf("line[{}] undo ended! line {}-->{}, offset {}-->{}", m_evt_handler->m_curr->pos.line, m_evt_handler->m_curr->pos.line, m_evt_handler->m_curr->pos.line - 1, m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset - delta);
     m_evt_handler->m_curr->pos.offset -= delta;
     --m_evt_handler->m_curr->pos.line;
-    m_evt_handler->m_curr->pos.col = m_evt_handler->m_curr->line_contents.stripped.len + 1u;
+    m_evt_handler->m_curr->pos.col = m_evt_handler->m_curr->line_contents.num_cols + 1u;
     // don't forget to undo also the changes to the remainder of the line
     //_RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.offset >= m_buf.len || m_buf[m_evt_handler->m_curr->pos.offset] == '\n' || m_buf[m_evt_handler->m_curr->pos.offset] == '\r');
     m_evt_handler->m_curr->line_contents.rem = m_buf.sub(m_evt_handler->m_curr->pos.offset, 0);
@@ -1526,7 +1532,7 @@ void ParseEngine<EventHandler>::_set_indentation(size_t indentation)
 template<class EventHandler>
 void ParseEngine<EventHandler>::_save_indentation()
 {
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.begin() >= m_evt_handler->m_curr->line_contents.full.begin());
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.is_sub(m_evt_handler->m_curr->line_contents.full));
     m_evt_handler->m_curr->indref = m_evt_handler->m_curr->line_contents.current_col();
     _c4dbgpf("state[{}]: saving indentation: {}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 }
@@ -2146,7 +2152,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
 
     // start with a zero-length block, already pointing at the right place
     substr raw_block(m_buf.data() + m_evt_handler->m_curr->pos.offset, size_t(0));// m_evt_handler->m_curr->line_contents.full.sub(0, 0);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, raw_block.begin() == m_evt_handler->m_curr->line_contents.full.begin());
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, raw_block.begin() == m_evt_handler->m_curr->line_contents.full.str);
 
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed.
@@ -2165,7 +2171,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         #if defined(__GNUC__) && (__GNUC__ == 12 || __GNUC__ == 13)
         C4_DONT_OPTIMIZE(lc.rem);
         #endif
-        _c4dbgpf("blck: peeking at [{}]~~~{}~~~", lc.stripped.len, lc.stripped);
+        _c4dbgpf("blck: peeking at [{}]~~~{}~~~", lc.rem.trimr("\r\n").len, lc.rem.trimr("\r\n"));
         // evaluate termination conditions
         if(indentation != npos)
         {
@@ -2195,7 +2201,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         }
         else
         {
-            const size_t fns = lc.stripped.first_not_of(' ');
+            const size_t fns = lc.rem.first_not_of(' ');
             _c4dbgpf("blck: indentation ref not set. firstnonws={}", fns);
             if(fns != npos) // non-empty line
             {
@@ -2244,13 +2250,13 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
             }
             else // empty line
             {
-                _c4dbgpf("blck: line empty or {} spaces. line_indentation={} prov_indentation={}", lc.stripped.len, lc.indentation, provisional_indentation);
+                _c4dbgpf("blck: line empty or {} spaces. line_indentation={} prov_indentation={}", lc.rem.len, lc.indentation, provisional_indentation);
                 if(provisional_indentation != npos)
                 {
-                    if(lc.stripped.len >= provisional_indentation)
+                    if(lc.rem.len >= provisional_indentation)
                     {
-                        _c4dbgpf("blck: increase provisional_ref {} -> {}", provisional_indentation, lc.stripped.len);
-                        provisional_indentation = lc.stripped.len;
+                        _c4dbgpf("blck: increase provisional_ref {} -> {}", provisional_indentation, lc.rem.len);
+                        provisional_indentation = lc.rem.len;
                     }
                     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
                     else if(lc.indentation >= provisional_indentation && lc.indentation != npos)
@@ -2266,7 +2272,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                     _c4dbgpf("blck: initialize provisional_ref={}", provisional_indentation);
                     if(provisional_indentation == npos)
                     {
-                        provisional_indentation = lc.stripped.len ? lc.stripped.len : has_any(RSEQ|RVAL);
+                        provisional_indentation = lc.rem.len ? lc.rem.len : has_any(RSEQ|RVAL);
                         _c4dbgpf("blck: initialize provisional_ref={}", provisional_indentation);
                     }
                     if(provisional_indentation < indref)
@@ -5002,7 +5008,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_seq_flow()
 {
 seqflow_start:
-    _c4dbgpf("handle2_seq_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_seq_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RKEY));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RSEQ));
@@ -5193,7 +5199,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_map_flow()
 {
 mapflow_start:
-    _c4dbgpf("handle2_map_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_map_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RFLOW));
@@ -5284,8 +5290,8 @@ mapflow_start:
         else if(first == '[')
         {
             // RYML's tree cannot store container keys, but that's
-            // handled inside the tree sink. Other sink types may be
-            // able to handle it.
+            // handled inside the tree event handler. Other handler
+            // types may be able to handle it.
             _c4dbgp("mapflow[RKEY]: start child seqflow (!)");
             addrem_flags(RKCL, RKEY);
             m_evt_handler->begin_seq_key_flow();
@@ -5297,8 +5303,8 @@ mapflow_start:
         else if(first == '{')
         {
             // RYML's tree cannot store container keys, but that's
-            // handled inside the tree sink. Other sink types may be
-            // able to handle it.
+            // handled inside the tree event handler. Other handler
+            // types may be able to handle it.
             _c4dbgp("mapflow[RKEY]: start child mapflow (!)");
             addrem_flags(RKCL, RKEY);
             m_evt_handler->begin_map_key_flow();
@@ -5611,7 +5617,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_seq_block()
 {
 seqblck_start:
-    _c4dbgpf("handle2_seq_block: seq_id={} node_id={} level={} indent={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_seq_block: seq_id={} node_id={} level={} indent={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RSEQ));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RBLCK));
@@ -6100,7 +6106,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_map_block()
 {
 mapblck_start:
-    _c4dbgpf("handle2_map_block: map_id={} node_id={} level={} indref={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_map_block: map_id={} node_id={} level={} indref={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     // states: RKEY|QMRK -> RKCL -> RVAL -> RNXT
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP));

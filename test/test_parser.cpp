@@ -16,6 +16,191 @@ namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
+// undefined below
+#define testlc(lc, buf, offs, begins_with_, rem_, full_) \
+    {                                                               \
+        RYML_TRACE_FMT("offs={}", offs);                            \
+        substr sub = buf.sub(offs);                                 \
+        EXPECT_TRUE(sub.begins_with(begins_with_)) << buf.sub(offs); \
+        lc.reset_with_next_line(buf, offs);                         \
+        EXPECT_EQ(lc.rem, csubstr(rem_));                           \
+        EXPECT_EQ(lc.full, csubstr(full_));                         \
+    }
+
+TEST(LineContents, basic)
+{
+    char buf_[] =
+        "line 0\n"
+        "line 1\n"
+        "\n"
+        "line 3\n"
+        "      \n"
+        "line 5\n"
+        ;
+    substr buf = buf_;
+    LineContents lc;
+    //
+    testlc(lc, buf, 0, "line 0\n", "line 0", "line 0\n");
+    testlc(lc, buf, 1, "ine 0\n", "ine 0", "ine 0\n");
+    testlc(lc, buf, 5, "0\n", "0", "0\n");
+    testlc(lc, buf, 6, "\nline 1", "", "\n");
+    testlc(lc, buf, 7, "line 1", "line 1", "line 1\n");
+    testlc(lc, buf, 12, "1", "1", "1\n");
+    testlc(lc, buf, 13, "\n", "", "\n");
+    testlc(lc, buf, 14, "\n", "", "\n");
+    testlc(lc, buf, 15, "line 3\n", "line 3", "line 3\n");
+    testlc(lc, buf, 20, "3\n", "3", "3\n");
+    testlc(lc, buf, 21, "\n", "", "\n");
+    testlc(lc, buf, 22, "      \n", "      ", "      \n");
+    testlc(lc, buf, 28, "\n", "", "\n");
+    testlc(lc, buf, 29, "line 5\n", "line 5", "line 5\n");
+    testlc(lc, buf, 34, "5\n", "5", "5\n");
+    testlc(lc, buf, 35, "\n", "", "\n");
+    testlc(lc, buf, 36, "", "", "");
+}
+
+
+TEST(LineContents, with_carriage_return_1)
+{
+    char buf_[] =
+        "line 0\r\n"
+        "line 1\r\n"
+        "\r\n"
+        "line 3\r\n"
+        "      \r\n"
+        "line 5\r\n"
+        ;
+    substr buf = buf_;
+    LineContents lc;
+    //
+    testlc(lc, buf,  0, "line 0\r\n", "line 0", "line 0\r\n");
+    testlc(lc, buf,  1, "ine 0\r\n" , "ine 0" , "ine 0\r\n");
+    testlc(lc, buf,  5, "0\r\n"     , "0"     , "0\r\n");
+    testlc(lc, buf,  6, "\r\nline 1", ""      , "\r\n");
+    testlc(lc, buf,  7, "\nline 1"  , ""      , "\n");
+    testlc(lc, buf,  8, "line 1"    , "line 1", "line 1\r\n");
+    testlc(lc, buf, 13, "1"         , "1"     , "1\r\n");
+    testlc(lc, buf, 14, "\r\n"      , ""      , "\r\n");
+    testlc(lc, buf, 15, "\n"        , ""      , "\n");
+    testlc(lc, buf, 16, "\r\n"      , ""      , "\r\n");
+    testlc(lc, buf, 17, "\n"        , ""      , "\n");
+    testlc(lc, buf, 18, "line 3\r\n", "line 3", "line 3\r\n");
+    testlc(lc, buf, 23, "3\r\n"     , "3"     , "3\r\n");
+    testlc(lc, buf, 24, "\r\n"      , ""      , "\r\n");
+    testlc(lc, buf, 25, "\n"        , ""      , "\n");
+    testlc(lc, buf, 26, "      \r\n", "      ", "      \r\n");
+    testlc(lc, buf, 32, "\r\n"      , ""      , "\r\n");
+    testlc(lc, buf, 33, "\n"        , ""      , "\n");
+    testlc(lc, buf, 34, "line 5\r\n", "line 5", "line 5\r\n");
+    testlc(lc, buf, 39, "5\r\n"     , "5"     , "5\r\n");
+    testlc(lc, buf, 40, "\r\n"      , ""      , "\r\n");
+    testlc(lc, buf, 41, "\n"        , ""      , "\n");
+    testlc(lc, buf, 42, ""          , ""      , "");
+}
+
+
+TEST(LineContents, with_carriage_return_2)
+{
+    char buf_[] =
+        "line 0\r\r\n"
+        "line 1\r\r\n"
+        "\r\r\n"
+        "line 3\r\r\n"
+        "      \r\r\n"
+        "line 5\r\r\n"
+        ;
+    substr buf = buf_;
+    LineContents lc;
+    //
+    testlc(lc, buf,  0, "line 0\r\r\n", "line 0", "line 0\r\r\n");
+    testlc(lc, buf,  1, "ine 0\r\r\n" , "ine 0" , "ine 0\r\r\n");
+    testlc(lc, buf,  5, "0\r\r\n"     , "0"     , "0\r\r\n");
+    testlc(lc, buf,  6, "\r\r\nline 1", ""      , "\r\r\n");
+    testlc(lc, buf,  7, "\r\nline 1"  , ""      , "\r\n");
+    testlc(lc, buf,  8, "\nline 1"    , ""      , "\n");
+    testlc(lc, buf,  9, "line 1"      , "line 1", "line 1\r\r\n");
+    testlc(lc, buf, 14, "1"           , "1"     , "1\r\r\n");
+    testlc(lc, buf, 15, "\r\r\n"      , ""      , "\r\r\n");
+    testlc(lc, buf, 16, "\r\n"        , ""      , "\r\n");
+    testlc(lc, buf, 17, "\n"          , ""      , "\n");
+    testlc(lc, buf, 18, "\r\r\n"      , ""      , "\r\r\n");
+    testlc(lc, buf, 19, "\r\n"        , ""      , "\r\n");
+    testlc(lc, buf, 20, "\n"          , ""      , "\n");
+    testlc(lc, buf, 21, "line 3\r\r\n", "line 3", "line 3\r\r\n");
+    testlc(lc, buf, 26, "3\r\r\n"     , "3"     , "3\r\r\n");
+    testlc(lc, buf, 27, "\r\r\n"      , ""      , "\r\r\n");
+    testlc(lc, buf, 28, "\r\n"        , ""      , "\r\n");
+    testlc(lc, buf, 29, "\n"          , ""      , "\n");
+    testlc(lc, buf, 30, "      \r\r\n", "      ", "      \r\r\n");
+    testlc(lc, buf, 36, "\r\r\n"      , ""      , "\r\r\n");
+    testlc(lc, buf, 37, "\r\n"        , ""      , "\r\n");
+    testlc(lc, buf, 38, "\n"          , ""      , "\n");
+    testlc(lc, buf, 39, "line 5\r\r\n", "line 5", "line 5\r\r\n");
+    testlc(lc, buf, 44, "5\r\r\n"     , "5"     , "5\r\r\n");
+    testlc(lc, buf, 45, "\r\r\n"      , ""      , "\r\r\n");
+    testlc(lc, buf, 46, "\r\n"        , ""      , "\r\n");
+    testlc(lc, buf, 47, "\n"          , ""      , "\n");
+    testlc(lc, buf, 48, ""            , ""      , "");
+}
+
+
+TEST(LineContents, with_carriage_return_3)
+{
+    char buf_[] =
+        "line 0\r\r\r\n"
+        "line 1\r\r\r\n"
+        "\r\r\r\n"
+        "line 3\r\r\r\n"
+        "      \r\r\r\n"
+        "line 5\r\r\r\n"
+        ;
+    substr buf = buf_;
+    LineContents lc;
+    //
+    testlc(lc, buf,  0, "line 0\r\r\r\n", "line 0", "line 0\r\r\r\n");
+    testlc(lc, buf,  1, "ine 0\r\r\r\n" , "ine 0" , "ine 0\r\r\r\n");
+    testlc(lc, buf,  5, "0\r\r\r\n"     , "0"     , "0\r\r\r\n");
+    testlc(lc, buf,  6, "\r\r\r\nline 1", ""      , "\r\r\r\n");
+    testlc(lc, buf,  7, "\r\r\nline 1"  , ""      , "\r\r\n");
+    testlc(lc, buf,  8, "\r\nline 1"    , ""      , "\r\n");
+    testlc(lc, buf,  9, "\nline 1"      , ""      , "\n");
+    testlc(lc, buf, 10, "line 1"        , "line 1", "line 1\r\r\r\n");
+    testlc(lc, buf, 15, "1"             , "1"     , "1\r\r\r\n");
+    testlc(lc, buf, 16, "\r\r\r\n"      , ""      , "\r\r\r\n");
+    testlc(lc, buf, 17, "\r\r\n"        , ""      , "\r\r\n");
+    testlc(lc, buf, 18, "\r\n"          , ""      , "\r\n");
+    testlc(lc, buf, 19, "\n"            , ""      , "\n");
+    testlc(lc, buf, 20, "\r\r\r\n"      , ""      , "\r\r\r\n");
+    testlc(lc, buf, 21, "\r\r\n"        , ""      , "\r\r\n");
+    testlc(lc, buf, 22, "\r\n"          , ""      , "\r\n");
+    testlc(lc, buf, 23, "\n"            , ""      , "\n");
+    testlc(lc, buf, 24, "line 3\r\r\r\n", "line 3", "line 3\r\r\r\n");
+    testlc(lc, buf, 29, "3\r\r\r\n"     , "3"     , "3\r\r\r\n");
+    testlc(lc, buf, 30, "\r\r\r\n"      , ""      , "\r\r\r\n");
+    testlc(lc, buf, 31, "\r\r\n"        , ""      , "\r\r\n");
+    testlc(lc, buf, 32, "\r\n"          , ""      , "\r\n");
+    testlc(lc, buf, 33, "\n"            , ""      , "\n");
+    testlc(lc, buf, 34, "      \r\r\r\n", "      ", "      \r\r\r\n");
+    testlc(lc, buf, 40, "\r\r\r\n"      , ""      , "\r\r\r\n");
+    testlc(lc, buf, 41, "\r\r\n"        , ""      , "\r\r\n");
+    testlc(lc, buf, 42, "\r\n"          , ""      , "\r\n");
+    testlc(lc, buf, 43, "\n"            , ""      , "\n");
+    testlc(lc, buf, 44, "line 5\r\r\r\n", "line 5", "line 5\r\r\r\n");
+    testlc(lc, buf, 49, "5\r\r\r\n"     , "5"     , "5\r\r\r\n");
+    testlc(lc, buf, 50, "\r\r\r\n"      , ""      , "\r\r\r\n");
+    testlc(lc, buf, 51, "\r\r\n"        , ""      , "\r\r\n");
+    testlc(lc, buf, 52, "\r\n"          , ""      , "\r\n");
+    testlc(lc, buf, 53, "\n"            , ""      , "\n");
+    testlc(lc, buf, 54, ""              , ""      , "");
+}
+
+#undef testlc
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 // TODO: add this as a method to csubstr
 bool is_same(csubstr lhs, csubstr rhs)
 {
