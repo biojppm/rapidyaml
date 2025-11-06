@@ -390,6 +390,23 @@ public:
 
 public:
 
+    #ifdef RYML_WITH_COMMENTS
+    /** @name comments */
+    /** @{ */
+
+    C4_ALWAYS_INLINE CommentData const* comment(                         comment_data_type type_flags=COMM_ANY) const RYML_NOEXCEPT { _C4RR(); return tree_->comment(id_,             type_flags); }
+    C4_ALWAYS_INLINE CommentData const* comment(id_type comment_id,      comment_data_type type_flags=COMM_ANY) const RYML_NOEXCEPT { _C4RR(); return tree_->comment(id_, comment_id, type_flags); }
+    C4_ALWAYS_INLINE CommentData const* comment(CommentData const* prev, comment_data_type type_flags=COMM_ANY) const RYML_NOEXCEPT { _C4RR(); return tree_->comment(id_, prev,       type_flags); }
+
+    C4_ALWAYS_INLINE CommentData const* comment(                         CommentType_e type) const RYML_NOEXCEPT { _C4RR(); return tree_->comment(id_,             (comment_data_type)type); }
+    C4_ALWAYS_INLINE CommentData const* comment(id_type comment_id,      CommentType_e type) const RYML_NOEXCEPT { _C4RR(); return tree_->comment(id_, comment_id, (comment_data_type)type); }
+    C4_ALWAYS_INLINE CommentData const* comment(CommentData const* prev, CommentType_e type) const RYML_NOEXCEPT { _C4RR(); return tree_->comment(id_, prev,       (comment_data_type)type); }
+
+    /** @} */
+    #endif
+
+public:
+
     /** @name square_brackets
      * operator[] */
     /** @{ */

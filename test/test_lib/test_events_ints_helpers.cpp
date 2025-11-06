@@ -122,6 +122,12 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             prev = (evt & ievt::PSTR) ? evts[evtpos - 3] : evts[evtpos - 1];
         if(nextpos < evts_sz)
             next = evts[nextpos];
+        if(evt & ievt::COMM)
+            evt &= ievt::_COMM_MASKOUT;
+        if(prev & ievt::COMM)
+            prev &= ievt::_COMM_MASKOUT;
+        if(next & ievt::COMM)
+            next &= ievt::_COMM_MASKOUT;
         #define _test_str_in_buffer(i)                              \
             do {                                                    \
                 EXPECT_LE(i + 3, evts_sz);                          \

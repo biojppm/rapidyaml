@@ -5,6 +5,12 @@
 #include "c4/yml/error.hpp"
 #endif
 
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include "c4/yml/comment_type.hpp"
+#endif
+#endif
+
 // NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
@@ -123,6 +129,7 @@ struct ParserState
     size_t       scalar_col; // the column where the scalar (or its quotes) begin
     bool         more_indented;
     bool         has_children;
+    _RYML_WITH_COMMENTS(comment_data_type leading_comments;)
 
     ParserState() = default;
 
@@ -138,6 +145,7 @@ struct ParserState
         scalar_col = 0;
         indref = 0;
         has_children = false;
+        _RYML_WITH_COMMENTS(leading_comments = 0;)
     }
 
     void reset_after_push()
@@ -147,6 +155,7 @@ struct ParserState
         more_indented = false;
         ++level;
         has_children = false;
+        _RYML_WITH_COMMENTS(leading_comments = 0;)
     }
 
     C4_ALWAYS_INLINE void reset_before_pop(ParserState const& to_pop)

@@ -6,6 +6,13 @@
 #endif
 
 
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include "c4/yml/comment_type.hpp"
+#endif
+#endif
+
+
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
@@ -494,6 +501,12 @@ private:
     csubstr _scan_ref_map();
     csubstr _scan_tag();
 
+    #ifdef RYML_WITH_COMMENTS
+    bool _maybe_advance_to_trailing_comment();
+    substr _scan_comment_flow();
+    substr _scan_comment_blck();
+    #endif
+
 public: // exposed for testing
 
     /** @cond dev */
@@ -514,6 +527,10 @@ public: // exposed for testing
     csubstr _maybe_filter_val_scalar_literal(ScannedBlock const& sb);
     csubstr _maybe_filter_key_scalar_folded(ScannedBlock const& sb);
     csubstr _maybe_filter_val_scalar_folded(ScannedBlock const& sb);
+
+    #ifdef RYML_WITH_COMMENTS
+    csubstr _filter_comment(substr s);
+    #endif
     /** @endcond */
 
 private:
@@ -704,6 +721,15 @@ private:
 
     void _check_tag(csubstr tag);
 
+    #ifdef RYML_WITH_COMMENTS
+    void _pend_comment(csubstr txt, CommentType_e type);
+    void _maybe_apply_pending_comment();
+    void _maybe_apply_pending_comment(CommentType_e expect_type, CommentType_e actual_type);
+    void _apply_pending_comment(CommentType_e expect_type, CommentType_e actual_type);
+    void _handle_flow_end_comment();
+    void _maybe_handle_leading_comment(CommentType_e current);
+    #endif
+
 private:
 
     ParserOptions m_options;
@@ -721,6 +747,14 @@ private:
 
     Annotation m_pending_anchors;
     Annotation m_pending_tags;
+    #ifdef RYML_WITH_COMMENTS
+    struct PendingComment
+    {
+        operator bool() const noexcept { return type != COMM_NONE; }
+        csubstr txt; CommentType_e type;
+    };
+    PendingComment m_pending_comment;
+    #endif
 
     bool m_was_inside_qmrk;
     bool m_doc_empty = true;

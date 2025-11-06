@@ -16,6 +16,13 @@
 #endif
 
 
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_DETAIL_STACK_HPP_
+#include "./detail/stack.hpp"
+#endif
+#endif
+
+
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 
@@ -65,10 +72,12 @@ public:
         EMIT_NONROOT_DASH = 1u << 1u,
         EMIT_NONROOT_MARKUP = EMIT_NONROOT_KEY|EMIT_NONROOT_DASH,
         INDENT_FLOW_ML = 1u << 2u,
-        JSON_ERR_ON_TAG = 1u << 3u,
-        JSON_ERR_ON_ANCHOR = 1u << 4u,
+        COMMENTS = 1u << 3u, ///< enable commments in emitted code
+        COMMENTS_ADD_LEADING_SPACE = 1u << 4u, ///< ensure every comment # is followed by a space, even if the comment does not start with space
+        JSON_ERR_ON_TAG = 1u << 5u,
+        JSON_ERR_ON_ANCHOR = 1u << 6u,
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
-        DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML,
+        DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML|COMMENTS|COMMENTS_ADD_LEADING_SPACE,
     } EmitOptionFlags_e;
     /** @endcond */
 
@@ -83,6 +92,12 @@ public:
 
     C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_option_flags & EMIT_NONROOT_DASH) != 0; }
     EmitOptions& emit_nonroot_dash(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | EMIT_NONROOT_DASH) : (m_option_flags & ~EMIT_NONROOT_DASH)); return *this; }
+
+    C4_ALWAYS_INLINE bool comments() const noexcept { return (m_option_flags & COMMENTS) != 0; }
+    EmitOptions& comments(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | COMMENTS) : (m_option_flags & ~COMMENTS)); return *this; }
+
+    C4_ALWAYS_INLINE bool comments_add_leading_space() const noexcept { return (m_option_flags & COMMENTS_ADD_LEADING_SPACE) != 0; }
+    EmitOptions& comments_add_leading_space(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | COMMENTS_ADD_LEADING_SPACE) : (m_option_flags & ~COMMENTS_ADD_LEADING_SPACE)); return *this; }
 
     C4_ALWAYS_INLINE bool indent_flow_ml() const noexcept { return (m_option_flags & INDENT_FLOW_ML) != 0; }
     EmitOptions& indent_flow_ml(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | INDENT_FLOW_ML) : (m_option_flags & ~INDENT_FLOW_ML)); return *this; }
@@ -147,6 +162,8 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        _RYML_WITH_COMMENTS(, m_wsonly())
+        _RYML_WITH_COMMENTS(, m_comm_state())
     {}
 
     /** Construct the emitter and its internal Writer state, using default emit options.
@@ -161,6 +178,8 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        _RYML_WITH_COMMENTS(, m_wsonly())
+        _RYML_WITH_COMMENTS(, m_comm_state())
     {}
 
 public:
@@ -268,6 +287,20 @@ private:
     void _writev_json(id_type id, NodeType ty);
     void _write_scalar_json_dquo(csubstr s);
 
+private: // comments
+
+#ifdef RYML_WITH_COMMENTS
+    C4_ALWAYS_INLINE void _comm_push() { m_comm_state.push(CommState{}); }
+    C4_ALWAYS_INLINE void _comm_pop() { m_ilevel -= m_comm_state.pop().extra_indentation; }
+    CommentData const* _comm_get(id_type node, CommentType_e type, bool indent_extra=false);
+    CommentData const* _write_comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
+    CommentData const* _write_comm_leading(id_type node, CommentType_e type, bool indent_extra=false);
+    void _write_comm_trailing(CommentData const* comm);
+    void _write_comm_leading(CommentData const* comm);
+    void _write_comm(csubstr s, id_type indentation);
+    void _write_comm_leadspace(csubstr s, id_type indentation);
+#endif
+
 private:
 
     void _write_tag(csubstr tag)
@@ -300,21 +333,25 @@ private:
     {
         this->Writer::_do_write(std::forward<const char (&)[N]>(a));
         m_col += N-1;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
     }
     C4_ALWAYS_INLINE void _write(csubstr s)
     {
         this->Writer::_do_write(s);
         m_col += s.len;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
     }
     C4_ALWAYS_INLINE void _write(char c)
     {
         this->Writer::_do_write(c);
         ++m_col;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
     }
     C4_ALWAYS_INLINE void _write(char c, size_t num)
     {
         this->Writer::_do_write(c, num);
         m_col += num;
+        _RYML_WITH_COMMENTS(m_wsonly = false;)
     }
 
     /// write a newline and reset the column
@@ -322,6 +359,7 @@ private:
     {
         this->Writer::_do_write('\n');
         m_col = 0;
+        _RYML_WITH_COMMENTS(m_wsonly = true;)
     }
 
 private: // pending whitespace
@@ -367,6 +405,19 @@ private:
     id_type     m_depth;
     id_type     m_ilevel;
     Pws_e       m_pws;
+#ifdef RYML_WITH_COMMENTS
+    bool        m_wsonly; ///< line contains only whitespace
+    struct CommState
+    {
+        CommentData const* latest;
+        CommentData const* comm;
+        id_type extra_indentation;
+        #ifdef RYML_USE_ASSERT
+        CommentType_e latest_query;
+        #endif
+    };
+    detail::stack<CommState> m_comm_state;
+#endif
 
 private:
 

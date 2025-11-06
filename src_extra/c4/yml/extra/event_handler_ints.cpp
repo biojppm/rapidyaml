@@ -46,6 +46,9 @@ int32_t estimate_events_ints_size(csubstr src)
         case '>':
         case '?':
         case '\n':
+        #ifdef RYML_WITH_COMMENTS
+        case '#':
+        #endif
             count += 3;
             break;
         case '[':
@@ -90,6 +93,9 @@ static_assert((MASK & TAGV) == TAGV, "overflow?");
 static_assert((MASK & AREN) == AREN, "overflow?");
 static_assert((MASK & PSTR) == PSTR, "overflow?");
 static_assert((MASK & UNFILT) == UNFILT, "overflow?");
+#ifdef RYML_WITH_COMMENTS
+static_assert((MASK & COMM) == COMM, "overflow?");
+#endif
 static_assert((MASK & LAST) == LAST, "overflow?");
 static_assert((MASK & MASK) == MASK, "overflow?");
 static_assert((MASK & WSTR) == WSTR, "overflow?");

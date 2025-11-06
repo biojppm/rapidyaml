@@ -59,16 +59,57 @@ c4::EnumSymbols<yml::extra::ievt::EventFlags> esyms<yml::extra::ievt::EventFlags
         {yml::extra::ievt::YAML, "YAML"},
         {yml::extra::ievt::TAGD, "TAGD"},
         {yml::extra::ievt::TAGV, "TAGV"},
+        #ifdef RYML_WITH_COMMENTS
+        {yml::extra::ievt::COMM, "COMM"},
+        #endif
     };
     return EnumSymbols<yml::extra::ievt::EventFlags>(syms);
 }
+#ifdef RYML_WITH_COMMENTS
+template<>
+c4::EnumSymbols<yml::CommentType_e> esyms<yml::CommentType_e>()
+{
+    static constexpr const EnumSymbols<yml::CommentType_e>::Sym syms[] = {
+        #define _c4comm(sym, bit)  {yml::COMM_##sym, #sym},
+        _RYML_DEFINE_COMMENTS(_c4comm)
+        #undef _c4comm
+    };
+    return EnumSymbols<yml::CommentType_e>(syms);
+}
+#endif
 namespace yml {
 namespace extra {
 namespace ievt {
 size_t to_chars(substr buf, ievt::DataType flags)
 {
+    #ifndef RYML_WITH_COMMENTS
     flags &= ievt::MASK; // clear any other bits
     return c4::bm2str<ievt::EventFlags>(flags, buf.str, buf.len);
+    #else
+    if(!(flags & ievt::COMM))
+    {
+        flags &= ievt::MASK; // clear any other bits
+        return c4::bm2str<ievt::EventFlags>(flags, buf.str, buf.len);
+    }
+    else
+    {
+        ievt::DataType common = ievt::KEY_|ievt::VAL_|ievt::COMM;
+        size_t len = c4::bm2str<ievt::EventFlags>(flags & common, buf.str, buf.len);
+        substr rem = {};
+        if(len)
+        {
+            if(len < buf.len)
+            {
+                buf[len] = '|';
+                rem = buf.sub(len);
+            }
+            ++len;
+        }
+        CommentType_e comment = ievt::decode_comment(flags);
+        len += c4::bm2str<yml::CommentType_e>(comment, rem.str, rem.len);
+        return len;
+    }
+    #endif
 }
 csubstr to_chars_sub(substr buf, ievt::DataType flags)
 {

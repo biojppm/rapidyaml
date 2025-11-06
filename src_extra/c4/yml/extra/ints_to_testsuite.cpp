@@ -118,6 +118,18 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
     for(ievt::DataType i = 0; i < evts_ints_sz; )
     {
         ievt::DataType evt = evts_ints[i];
+        #ifdef RYML_WITH_COMMENTS
+        if(evt & ievt::COMM)
+        {
+            CommentType_e comm = ievt::decode_comment(evt);
+            if(false) ;
+            #define _c4comm(sym, bit) else if(comm & COMM_##sym) append("=COMM #[" #sym "]");
+            _RYML_DEFINE_COMMENTS(_c4comm)
+            #undef _c4comm
+            append_esc(getstr(i));
+        }
+        else
+        #endif
         if(evt & ievt::SCLR)
         {
             csubstr s = getstr(i);
