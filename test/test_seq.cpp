@@ -605,7 +605,7 @@ R"([
 N(SFM, L{
    N(VP, ":a"),
    N(VP, ":0"),
-   N(VP, "::"),
+   N(MFS, L{N(KP|VN, ":", {})}),
    N(VP, ":-"),
    N(VP, ":*"),
    N(VP, ":@"),
@@ -617,7 +617,7 @@ N(SFM, L{
    _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{KN|VN}), N(VP, ":\t")),
    N(VP, "x:a"),
    N(VP, "x:0"),
-   N(VP, "x::"),
+   N(MFS, L{N(KP|VN, "x:", {})}),
    N(VP, "x:-"),
    N(VP, "x:*"),
    N(VP, "x:@"),
@@ -629,7 +629,7 @@ N(SFM, L{
    _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VN, "x", "")}), N(VP, "x:\t")),
    N(VP, ":z:a"),
    N(VP, ":z:0"),
-   N(VP, ":z::"),
+   N(MFS, L{N(KP|VN, ":z:", {})}),
    N(VP, ":z:-"),
    N(VP, ":z:*"),
    N(VP, ":z:@"),
@@ -637,7 +637,7 @@ N(SFM, L{
    N(VP, ":z:^"),
    N(VP, ":z:$"),
    N(VP, ":z:`"),
-   N(MFS, L{N(KP|VN, ":z", "")}),
+   N(MFS, L{N(KP|VN, ":z", {})}),
    _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VN, ":z", "")}), N(VP, ":z:\t")),
  })
 );

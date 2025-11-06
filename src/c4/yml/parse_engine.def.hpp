@@ -788,6 +788,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
     case '|':
     case '>':
     case '#':
+    case ',':
         _c4dbgpf("not a scalar: found non-scalar token '{}'", _c4prc(s.str[0]));
         return false;
     // '-' and ':' are illegal at the beginning if not followed by a scalar character
@@ -797,21 +798,21 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
         {
             switch(s.str[1])
             {
-            case '\n':
-            case '\r':
-            case '{':
-            case '[':
-            //_RYML_WITHOUT_TAB_TOKENS(case '\t'):
-                _c4err("invalid token \":{}\"", _c4prc(s.str[1]));
-                break;
             case ' ':
+            case '\n':
             case '}':
             case ']':
+            case '\r':
                 if(s.str[0] == ':')
                 {
                     _c4dbgpf("not a scalar: found non-scalar token '{}{}'", s.str[0], s.str[1]);
                     return false;
                 }
+                break;
+            case '{':
+            case '[':
+            //_RYML_WITHOUT_TAB_TOKENS(case '\t'):
+                _c4err("invalid token \":{}\"", _c4prc(s.str[1]));
                 break;
             default:
                 break;
@@ -865,116 +866,114 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RVAL));
 
-    substr s = m_evt_handler->m_curr->line_contents.rem;
+    substr s = m_buf.sub(m_evt_handler->m_curr->pos.offset);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, !s.begins_with(' '));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, !s.begins_with('\n'));
 
-    if(!s.len)
-        return false;
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, s.begins_with(m_evt_handler->m_curr->line_contents.rem));
 
-    if(!_is_valid_start_scalar_plain_flow(s))
+    if(!s.len || !_is_valid_start_scalar_plain_flow(s))
         return false;
 
     _c4dbgp("scanning seqflow scalar...");
 
-    const size_t start_offset = m_evt_handler->m_curr->pos.offset;
     bool needs_filter = false;
-    while(true)
+    size_t col = 0; // zero-based column
+    size_t offs = 0;
+    size_t offsp1;
+    for( ; offs < s.len; ++offs, ++col)
     {
-        _c4dbgpf("scanning scalar: curr line=[{}]~~~{}~~~", s.len, s);
-        for(size_t i = 0; i < s.len; ++i)
+        const char c = s.str[offs];
+        switch(c)
         {
-            const char c = s.str[i];
-            switch(c)
+        case ',':
+        case ']':
+            _c4dbgpf("found terminating character at {}: '{}'", offs, c);
+            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, offs > 0);
+            goto ended_scalar;
+        case '\n':
+            _c4dbgpf("found newline. offs={} col={}", offs, col);
+            offsp1 = offs + 1;
+            if(s.len > offsp1)
             {
-            case ',':
-                _c4dbgpf("found terminating character at {}: '{}'", i, c);
-                _line_progressed(i);
-                if(m_evt_handler->m_curr->pos.offset + i > start_offset)
+                csubstr next_line = s.sub(offsp1).triml(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+                if(next_line.begins_with_any(",]#")) // any of the characters we're interested in
                 {
+                    _c4dbgpf("found terminating character beginning next line: '{}'", next_line.str[0]);
+                    goto ended_scalar;
+                }
+            }
+            col = (size_t)-1; // so that col is 0 in the next loop iteration
+            needs_filter = true;
+            _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
+            _line_ended();
+            _scan_line();
+            break;
+        case '\r':
+            --col; // don't count \r when calling _line_progressed()
+            needs_filter = true;
+            break;
+        case ':':
+            _c4dbgp("found suspicious ':'");
+            offsp1 = offs + 1;
+            if(s.len > offsp1)
+            {
+                char next = s.str[offsp1];
+                _c4dbgpf("next char is '{}'", _c4prc(next));
+                if(next == '\r')
+                {
+                    csubstr after = s.sub(offsp1).triml('\r');
+                    if(after.len)
+                    {
+                        next = after.str[0];
+                        _c4dbgpf("skip \\r to '{}'", _c4prc(next));
+                    }
+                }
+                // no else here.
+                if(next == ' ' _RYML_WITH_TAB_TOKENS(|| next == '\t') || next == ',' || next == '\n' || next == ']')
+                {
+                    _c4dbgp("map starting!");
                     goto ended_scalar;
                 }
                 else
                 {
-                    _c4dbgp("at the beginning. no scalar here.");
-                    return false;
+                    _c4dbgp("':' nothing to see here");
                 }
-                break;
-            case ']':
-                _c4dbgpf("found terminating character at {}: '{}'", i, c);
-                _line_progressed(i);
-                goto ended_scalar;
-                break;
-            case '#':
+            }
+            else
+            {
+                _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, s.len == offsp1);
+                _line_progressed(col);
+                _c4err("missing termination: '{}'", c); // noreturn
+            }
+            break;
+        case '#':
+            {
                 _c4dbgp("found suspicious '#'");
-                if(!i || (s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[i-1] == '\t')))
+                _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, offs > 0);
+                char prev = s.str[offs - 1];
+                if(prev == ' ' _RYML_WITH_TAB_TOKENS((|| prev == '\t')))
                 {
-                    _c4dbgpf("found terminating character at {}: '{}'", i, c);
-                    _line_progressed(i);
+                    _c4dbgpf("found terminating character at {}: '{}'", offs, c);
                     goto ended_scalar;
                 }
-                break;
-            case ':':
-                _c4dbgp("found suspicious ':'");
-                if(s.len > i+1)
-                {
-                    const char next = s.str[i+1];
-                    _c4dbgpf("next char is '{}'", _c4prc(next));
-                    if(next == ' ' || next == ',' _RYML_WITH_TAB_TOKENS(|| next == '\t'))
-                    {
-                        _c4dbgp("map starting!");
-                        if(m_evt_handler->m_curr->pos.offset + i > start_offset)
-                        {
-                            _c4dbgp("scalar finished!");
-                            _line_progressed(i);
-                            goto ended_scalar;
-                        }
-                        else
-                        {
-                            _c4dbgp("at the beginning. no scalar here.");
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        _c4dbgp("it's a scalar indeed.");
-                        ++i; // skip the next char
-                    }
-                }
-                else if(s.len == i+1)
-                {
-                    _c4dbgp("':' at line end. map starting!");
-                    return false;
-                }
-                break;
-            case '[':
-            case '{':
-            case '}':
-                _line_progressed(i);
-                _c4err("invalid character: '{}'", c); // noreturn
-            default:
-                ;
             }
+            break;
+        case '[':
+        case '{':
+        case '}':
+            _line_progressed(col);
+            _c4err("invalid character: '{}'", c); // noreturn
+        default:
+            ;
         }
-        _line_progressed(s.len);
-        if(!_finished_file())
-        {
-            _c4dbgp("next line!");
-            _line_ended();
-            _scan_line();
-        }
-        else
-        {
-            _c4dbgp("file finished!");
-            goto ended_scalar;
-        }
-        s = m_evt_handler->m_curr->line_contents.rem;
-        needs_filter = true;
     }
 
 ended_scalar:
 
-    sc->scalar = m_buf.range(start_offset, m_evt_handler->m_curr->pos.offset).trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+    _line_progressed(col);
+    s = s.first(offs);
+    sc->scalar = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
     sc->needs_filter = needs_filter;
 
     _c4prscalar("scanned plain scalar", sc->scalar, /*keep_newlines*/true);
