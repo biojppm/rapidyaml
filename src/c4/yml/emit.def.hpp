@@ -41,6 +41,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
     return this->Writer::_get(error_on_excess);
 }
 
+/** @cond dev */
 
 //-----------------------------------------------------------------------------
 
@@ -1475,6 +1476,8 @@ void Emitter<Writer>::_write_scalar_json_dquo(csubstr s)
     }
     _write('"');
 }
+
+/** @endcond */
 
 } // namespace yml
 } // namespace c4

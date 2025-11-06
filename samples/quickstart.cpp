@@ -4307,7 +4307,7 @@ void sample_style()
 {
     // we will be using this helper throughout this function
     auto tostr = [](ryml::ConstNodeRef n) { return ryml::emitrs_yaml<std::string>(n); };
-    // let's parse this:
+    // let's parse this yaml:
     ryml::csubstr yaml = R"(block map:
   block key: block val
 block seq:
@@ -4345,11 +4345,15 @@ flow seq, multiline: [
     CHECK(tree["flow seq, singleline"].is_flow());
     CHECK(tree["flow map, multiline"].is_flow());
     CHECK(tree["flow seq, multiline"].is_flow());
-    // since the tree nodes are marked with style during the parse,
-    // emission will preserve the original style (minus whitespace):
+    //
+    // since the tree nodes are marked with their original parsed
+    // style, emitting the parsed tree will preserve the original
+    // style (minus whitespace):
+    //
     CHECK(tostr(tree) == yaml); // same as before!
     //
     // you can set/modify the style programatically!
+    //
     // here are more examples.
     //
     {
@@ -4450,9 +4454,9 @@ flow seq, multiline: [flow val,flow val]
     tree.rootref().clear_style(/*recurse*/true);
     // when emitting nodes which have no style set, ryml will default
     // to block format for containers, and call
-    // ryml::scalar_style_choose() to pick the style for each
-    // scalar. Note that it picks single-quoted for the scalars
-    // containing commas:
+    // ryml::scalar_style_choose() to pick the style for each scalar
+    // (at the cost of a scan over each scalar). Note that ryml picks
+    // single-quoted for scalars containing commas:
     CHECK(tostr(tree) ==
           R"(block map:
   block key: block val
@@ -4472,7 +4476,8 @@ block seq:
   - flow val
 )");
     // you can set the style based on type conditions:
-    // set a single key to single-quoted
+    //
+    // eg, set a single key to single-quoted
     tree["block map"].set_style_conditionally(/*type_mask*/ryml::KEY,
                                               /*remflags*/ryml::KEY_STYLE,
                                               /*addflags*/ryml::KEY_SQUO,
@@ -4663,6 +4668,21 @@ void sample_style_flow_ml_filter()
   }
 }
 )";
+    ryml::csubstr yaml_not_indented = R"({
+map: {
+seq: [
+0,
+1,
+2,
+3,
+[
+40,
+41
+]
+]
+}
+}
+)";
     // note that the parser defaults to detect multiline flow
     // (FLOW_ML) containers:
     {
@@ -4687,22 +4707,7 @@ void sample_style_flow_ml_filter()
         const ryml::EmitOptions noindent = ryml::EmitOptions{}.indent_flow_ml(false);
         const ryml::Tree tree = ryml::parse_in_arena(yaml);
         CHECK(tree["map"].is_flow_ml()); // etc
-        CHECK(ryml::emitrs_yaml<std::string>(tree, noindent) ==
-              R"({
-map: {
-seq: [
-0,
-1,
-2,
-3,
-[
-40,
-41
-]
-]
-}
-}
-)");
+        CHECK(ryml::emitrs_yaml<std::string>(tree, noindent) == yaml_not_indented);
     }
 }
 

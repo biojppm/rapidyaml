@@ -57,8 +57,6 @@
 #endif
 
 
-#define RYML_LOGBUF_SIZE_MAX RYML_ERRMSG_SIZE
-
 #include <c4/dump.hpp>
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")

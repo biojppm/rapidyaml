@@ -19,7 +19,8 @@ ENGINE_TEST(DocEmpty,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocEmptyExpl,
-            "---\n",
+            "---\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "=VAL :\n"
@@ -28,7 +29,7 @@ ENGINE_TEST(DocEmptyExpl,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc_expl());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -190,13 +191,13 @@ ENGINE_TEST(DocEmptyExplMult,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc_expl());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

@@ -803,6 +803,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
             case '}':
             case ']':
             case '\r':
+            _RYML_WITH_TAB_TOKENS(case '\t':)
                 if(s.str[0] == ':')
                 {
                     _c4dbgpf("not a scalar: found non-scalar token '{}{}'", s.str[0], s.str[1]);
@@ -952,7 +953,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
                 _c4dbgp("found suspicious '#'");
                 _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, offs > 0);
                 char prev = s.str[offs - 1];
-                if(prev == ' ' _RYML_WITH_TAB_TOKENS((|| prev == '\t')))
+                if(prev == ' ' _RYML_WITH_TAB_TOKENS(|| prev == '\t'))
                 {
                     _c4dbgpf("found terminating character at {}: '{}'", offs, c);
                     goto ended_scalar;
@@ -2205,7 +2206,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
             if(fns != npos) // non-empty line
             {
                 _RYML_WITH_TAB_TOKENS(
-                    if(C4_UNLIKELY(lc.stripped.begins_with('\t')))
+                    if(C4_UNLIKELY(lc.full.begins_with('\t')))
                         _c4err("parse error");
                 )
                 _c4dbgpf("blck: line not empty. indref={} indprov={} indentation={}", indref, provisional_indentation, lc.indentation);

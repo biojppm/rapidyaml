@@ -149,6 +149,10 @@ if(CMAKE_COMPILER_IS_GNUCXX
         c4_target_compile_flags(ryml-test-scalar_plain PUBLIC GCC -Wno-array-bounds -Wno-stringop-overflow)
     endif()
 endif()
+# MSVC bigobj
+if(MSVC)
+    target_compile_options(ryml-test-engine_1_doc PRIVATE /bigobj)
+endif()
 
 
 #-------------------------------------------------------------------------

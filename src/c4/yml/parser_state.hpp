@@ -56,7 +56,7 @@ csubstr _parser_flags_to_str(substr buf, ParserFlag_t flags);
 struct LineContents
 {
     substr  rem;         ///< current line remainder, without newline characters
-    substr  full;        ///< full line, including newline characters \n and \r
+    substr  full;        ///< full line, including newline characters `\n` and `\r`
     size_t  num_cols;    ///< number of columns in the line, excluding newline
                          ///< characters (ie the initial size of rem)
     size_t  indentation; ///< number of spaces on the beginning of the line.

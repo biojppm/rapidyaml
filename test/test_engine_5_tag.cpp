@@ -806,7 +806,7 @@ ENGINE_TEST(TagTestSuiteU99R_3,
     ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("xxx"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -836,7 +836,7 @@ ENGINE_TEST(TagTestSuiteU99R_3_1,
     ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("xxx"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -863,10 +863,10 @@ ENGINE_TEST(TagTestSuiteWZ62_0_0_0,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!!str"));
-    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_key_scalar_plain_empty());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
@@ -894,10 +894,10 @@ ENGINE_TEST(TagTestSuiteWZ62_0_0_1,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!!str"));
-    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_key_scalar_plain_empty());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_map_block());
     ___(ps.end_doc());
@@ -925,10 +925,10 @@ ENGINE_TEST(TagTestSuiteWZ62_0_1_0,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!str"));
-    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_key_scalar_plain_empty());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
@@ -956,10 +956,10 @@ ENGINE_TEST(TagTestSuiteWZ62_0_1_1,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!str"));
-    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_key_scalar_plain_empty());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_map_block());
     ___(ps.end_doc());
@@ -987,11 +987,11 @@ ENGINE_TEST(TagTestSuiteWZ62_1_0_0,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!!str:"));
     ___(ps.set_key_scalar_plain("bar"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -1018,11 +1018,11 @@ ENGINE_TEST(TagTestSuiteWZ62_1_0_1,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!!str:"));
     ___(ps.set_key_scalar_plain("bar"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -1049,11 +1049,11 @@ ENGINE_TEST(TagTestSuiteWZ62_1_1_0,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!str:"));
     ___(ps.set_key_scalar_plain("bar"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -1080,11 +1080,11 @@ ENGINE_TEST(TagTestSuiteWZ62_1_1_1,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_tag("!str"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!str:"));
     ___(ps.set_key_scalar_plain("bar"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -1235,7 +1235,7 @@ ENGINE_TEST(DirectiveTestSuiteMUS6,
     ___(ps.begin_stream());
     ___(ps.add_directive("%YAM 1.1"));
     ___(ps.begin_doc_expl());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1273,7 +1273,7 @@ ENGINE_TEST(DirectiveMultipleYAML_W4TN,
     ___(ps.end_doc_expl());
     ___(ps.add_directive("%YAML 1.2"));
     ___(ps.begin_doc_expl());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_doc_expl());
     ___(ps.end_stream());
 }

@@ -865,7 +865,7 @@ public:
      * you can overload c4::to_chars(substr, T const&)
      *
      * @note To customize how the type gets serialized to the arena,
-     * you can overload @ref c4::yml::serialize_scalar(substr, T const&)
+     * you can overload @ref serialize_scalar()
      *
      * @note Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual

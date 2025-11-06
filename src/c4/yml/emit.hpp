@@ -59,6 +59,7 @@ struct EmitOptions
 {
 public:
 
+    /** @cond dev */
     typedef enum : uint32_t {
         EMIT_NONROOT_KEY = 1u << 0u,
         EMIT_NONROOT_DASH = 1u << 1u,
@@ -69,6 +70,7 @@ public:
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
         DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML,
     } EmitOptionFlags_e;
+    /** @endcond */
 
 public:
 
@@ -368,19 +370,27 @@ private:
 
 private:
 
+    // g++-4.8 has problems with the operand types here...
+    #if defined(__GNUC__) && (__GNUC__ < 5) && (!defined(__clang__))
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wparentheses"
+    #endif
     enum : type_bits {
         _styles_block_key = KEY_LITERAL|KEY_FOLDED,
         _styles_block_val = VAL_LITERAL|VAL_FOLDED,
-        _styles_block     = _styles_block_key|_styles_block_val,
-        _styles_flow_key  = KEY_STYLE & ~_styles_block_key,
-        _styles_flow_val  = VAL_STYLE & ~_styles_block_val,
-        _styles_flow      = _styles_flow_key|_styles_flow_val,
+        _styles_block     = ((type_bits)_styles_block_key) | ((type_bits)_styles_block_val),
+        _styles_flow_key  = KEY_STYLE & (~((type_bits)_styles_block_key)),
+        _styles_flow_val  = VAL_STYLE & (~((type_bits)_styles_block_val)),
+        _styles_flow      = ((type_bits)_styles_flow_key) | ((type_bits)_styles_flow_val),
         _styles_squo      = KEY_SQUO|VAL_SQUO,
         _styles_dquo      = KEY_DQUO|VAL_DQUO,
         _styles_plain     = KEY_PLAIN|VAL_PLAIN,
         _styles_literal   = KEY_LITERAL|VAL_LITERAL,
         _styles_folded    = KEY_FOLDED|VAL_FOLDED,
     };
+    #if defined(__GNUC__) && (__GNUC__ < 5) && (!defined(__clang__))
+    #pragma GCC diagnostic pop
+    #endif
 
     /** @endcond */
 };
