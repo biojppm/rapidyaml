@@ -351,6 +351,9 @@ private:
         SCALAR_FILTERING = (1u << 0u),
         LOCATIONS = (1u << 1u),
         DETECT_FLOW_ML = (1u << 2u),
+        #ifdef RYML_WITH_COMMENTS
+        WITH_COMMENTS = (1u << 3u),
+        #endif
         DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
     } Flags_e;
 
@@ -419,6 +422,29 @@ public:
     C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
 
     /** @} */
+
+public:
+
+    #ifdef RYML_WITH_COMMENTS
+    /** @name comment parsing */
+    /** @{ */
+
+    /** enable/disable comment parsing. available only when @ref
+     * RYML_WITH_COMMENTS is defined */
+    ParserOptions& with_comments(bool enabled) noexcept
+    {
+        if(enabled)
+            flags |= WITH_COMMENTS;
+        else
+            flags &= ~WITH_COMMENTS;
+        return *this;
+    }
+    /** query comments parsing status. available only when @ref
+     * RYML_WITH_COMMENTS is defined */
+    C4_ALWAYS_INLINE bool with_comments() const noexcept { return (flags & WITH_COMMENTS); }
+
+    /** @} */
+    #endif // RYML_WITH_COMMENTS
 };
 
 
@@ -614,6 +640,16 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     default: return csubstr(&c, 1);
     }
 }
+
+#if defined(RYML_WITH_COMMENTS)
+#define _RYML_WITH_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITHOUT_COMMENTS(...)
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) with
+#else
+#define _RYML_WITH_COMMENTS(...)
+#define _RYML_WITHOUT_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) without
+#endif
 
 /// @endcond
 

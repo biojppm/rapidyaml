@@ -22,6 +22,11 @@
 #ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
 #include <c4/yml/detail/dbgprint.hpp>
 #endif
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include <c4/yml/comment_type.hpp>
+#endif
+#endif
 #endif
 
 // NOLINTBEGIN(hicpp-signed-bitwise)
@@ -43,6 +48,11 @@ using DataType = int32_t;
 /** enumeration of integer event bits. */
 typedef enum : DataType {
 
+    /// @cond dev
+    _COMM_START = 4,  // internal
+    _COMM_MASKOUT = ((1 << _COMM_START) << 1) - 1u,  // internal
+    /// @endcond
+
     // Structure flags
     KEY_ = (1 << 0),  ///< as key
     VAL_ = (1 << 1),  ///< as value
@@ -60,6 +70,10 @@ typedef enum : DataType {
     /// expansion, the filtered string cannot be placed in the original
     /// source and needs to be placed in the arena.
     AREN = (1 << 3),
+
+    /// comment (requires RYML_WITH_COMMENTS, unused otherwise).
+    /// Needs to be higher bit than KEY_, VAL_, PSTR and AREN
+    COMM = (1 << _COMM_START),
 
     // Event scopes
     BEG_ = (1 <<  5),  ///< scope: begin
@@ -112,9 +126,24 @@ typedef enum : DataType {
     /// following the event. For such events, the next two integers
     /// will provide respectively the string's offset and length. See
     /// also @ref PSTR.
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML,
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGD|TAGV|YAML _RYML_WITH_COMMENTS(|COMM),
 
 } EventFlags;
+
+#ifdef RYML_WITH_COMMENTS
+inline DataType encode_comment(ievt::DataType curr, CommentType_e comm)
+{
+    curr &= (ievt::KEY_|ievt::VAL_); // keep only these
+    ievt::DataType encoded = ievt::DataType(static_cast<uint32_t>(comm) << static_cast<uint32_t>(ievt::_COMM_START + 1));
+    curr |= ievt::COMM|encoded;
+    return curr;
+}
+inline CommentType_e decode_comment(ievt::DataType curr)
+{
+    curr &= ~(ievt::KEY_|ievt::VAL_|ievt::COMM);
+    return static_cast<CommentType_e>(static_cast<CommentType_e>(curr >> (ievt::_COMM_START + 1u)) & COMM_ANY);
+}
+#endif
 
 } // namespace ievt
 
@@ -1195,6 +1224,25 @@ public:
     }
 
     /** @} */
+
+public:
+
+    #ifdef RYML_WITH_COMMENTS
+    /** @name comments */
+    /** @{ */
+
+    /** add comment
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment(csubstr txt, CommentType_e type)
+    {
+        _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", txt.len, txt);
+        ievt::DataType prev = ((m_evt_prev < m_evt_size) ? m_evt[m_evt_prev] : 0);
+        _send_str_(txt, ievt::encode_comment(prev, type));
+    }
+
+    /** @} */
+    #endif
 
 public:
 

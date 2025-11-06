@@ -117,6 +117,10 @@ struct EventTransformer
 
     fwds(add_directive)
 
+    #ifdef RYML_WITH_COMMENTS
+    void add_comment(csubstr txt, CommentType_e type) { handler.add_comment(transformer(txt), type); }
+    #endif
+
     #undef fwd
     #undef fwds
     #undef fwdb
@@ -524,6 +528,15 @@ ENGINE_TEST_DEFINE_CASE(name)                                   \
 
 
 //-----------------------------------------------------------------------------
+
+
+#ifdef RYML_WITH_COMMENTS
+#define COMMENT_TEST(name, ...) ENGINE_TEST_(name, ParserOptions{}.with_comments(true), __VA_ARGS__)
+#else
+#define COMMENT_TEST(name, ...)                                 \
+    template<class Handler> void disabled_##name(Handler &ps);  \
+    template<class Handler> void disabled_##name(Handler &ps)
+#endif
 
 
 /* declare a parse engine test for the existing event handlers.
