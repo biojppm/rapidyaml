@@ -600,6 +600,10 @@ TEST(Tree, empty_ctor)
     EXPECT_EQ(tree.arena_capacity(), 0u);
     EXPECT_EQ(tree.arena_slack(), 0u);
     EXPECT_EQ(tree.arena().empty(), true);
+    #ifdef RYML_WITH_COMMENTS
+    EXPECT_EQ(tree.comments_capacity(), 0);
+    EXPECT_EQ(tree.comments_size(), 0);
+    #endif
 }
 
 TEST(Tree, node_cap_ctor)
@@ -625,6 +629,10 @@ TEST(Tree, node_cap_ctor)
         EXPECT_EQ(tree.arena().empty(), true);
         EXPECT_EQ(tree.size(), 1u); // we have the root
         EXPECT_EQ(tree.slack(), 9u);
+        #ifdef RYML_WITH_COMMENTS
+        EXPECT_EQ(tree.comments_size(), 0u);
+        EXPECT_EQ(tree.comments_capacity(), 0u);
+        #endif
     }
     {
         Tree tree(10u, 20u);
@@ -635,6 +643,10 @@ TEST(Tree, node_cap_ctor)
         EXPECT_EQ(tree.arena().empty(), true);
         EXPECT_EQ(tree.size(), 1u); // we have the root
         EXPECT_EQ(tree.slack(), 9u);
+        #ifdef RYML_WITH_COMMENTS
+        EXPECT_EQ(tree.comments_size(), 0u);
+        EXPECT_EQ(tree.comments_capacity(), 0u);
+        #endif
     }
     {
         Tree tree(0u, 20u);
@@ -646,7 +658,38 @@ TEST(Tree, node_cap_ctor)
         EXPECT_EQ(tree.arena().empty(), true);
         EXPECT_EQ(tree.size(), 0u);
         EXPECT_EQ(tree.slack(), 0u);
+        #ifdef RYML_WITH_COMMENTS
+        EXPECT_EQ(tree.comments_size(), 0u);
+        EXPECT_EQ(tree.comments_capacity(), 0u);
+        #endif
     }
+#ifdef RYML_WITH_COMMENTS
+    {
+        Tree tree(10u, 20u, 30u);
+        EXPECT_EQ(tree.callbacks(), get_callbacks());
+        EXPECT_EQ(tree.empty(), false); // we have the root
+        EXPECT_EQ(tree.capacity(), 10u);
+        EXPECT_EQ(tree.arena_capacity(), 20u);
+        EXPECT_EQ(tree.arena().empty(), true);
+        EXPECT_EQ(tree.size(), 1u); // we have the root
+        EXPECT_EQ(tree.slack(), 9u);
+        EXPECT_EQ(tree.comments_size(), 0u);
+        EXPECT_EQ(tree.comments_capacity(), 30u);
+    }
+    {
+        Tree tree(0u, 20u, 40u);
+        EXPECT_EQ(tree.callbacks(), get_callbacks());
+        EXPECT_EQ(tree.empty(), true);
+        EXPECT_EQ(tree.capacity(), 0u);
+        EXPECT_EQ(tree.arena_capacity(), 20u);
+        EXPECT_EQ(tree.arena_slack(), 20u);
+        EXPECT_EQ(tree.arena().empty(), true);
+        EXPECT_EQ(tree.size(), 0u);
+        EXPECT_EQ(tree.slack(), 0u);
+        EXPECT_EQ(tree.comments_size(), 0u);
+        EXPECT_EQ(tree.comments_capacity(), 40u);
+    }
+#endif
 }
 
 Tree get_test_tree(CallbacksTester *cbt=nullptr)
@@ -659,6 +702,10 @@ Tree get_test_tree(CallbacksTester *cbt=nullptr)
     NodeRef ch = n.append_child();
     ch << key("serialized_key");
     ch << 89;
+    #ifdef RYML_WITH_COMMENTS
+    csubstr comment = t.to_arena("trailing comment");
+    t.set_comment(n.id(), COMM_TRAILING, comment);
+    #endif
     return t;
 }
 

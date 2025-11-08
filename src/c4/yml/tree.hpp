@@ -281,6 +281,7 @@ public:
     Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb);
 
     #ifdef RYML_WITH_COMMENTS
+    Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity);
     Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity, Callbacks const& cb);
     #endif
 
@@ -1107,6 +1108,8 @@ public:
     /** @{ */
 
     void reserve_comments(id_type comment_capacity);
+    size_t comments_capacity() const { return m_comments_cap; }
+    size_t comments_size() const { return m_comments_size; }
 
     CommentData const* comment(id_type node_id,                          comment_data_type type_flags=COMM_ANY) const;
     CommentData const* comment(id_type node_id, id_type comment_id,      comment_data_type type_flags=COMM_ANY) const;

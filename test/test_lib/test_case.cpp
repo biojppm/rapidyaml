@@ -202,6 +202,14 @@ void test_arena_not_shared(Tree const& a, Tree const& b)
         EXPECT_FALSE(a.in_arena(td.prefix));
     }
     #ifdef RYML_WITH_COMMENTS
+    for(id_type i = 0; i < a.m_comments_size; ++i)
+    {
+        EXPECT_FALSE(b.in_arena(a.m_comments_buf[i].m_text)) << i;
+    }
+    for(id_type i = 0; i < b.m_comments_size; ++i)
+    {
+        EXPECT_FALSE(a.in_arena(b.m_comments_buf[i].m_text)) << i;
+    }
     #endif
 }
 

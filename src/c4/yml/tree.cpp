@@ -150,6 +150,10 @@ Tree::Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacit
     reserve_arena(arena_capacity);
     reserve_comments(comment_capacity);
 }
+Tree::Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity)
+    : Tree(node_capacity, arena_capacity, comment_capacity, get_callbacks())
+{
+}
 #endif // RYML_WITH_COMMENTS
 
 Tree::~Tree()
@@ -199,20 +203,20 @@ void Tree::_free()
         _RYML_ASSERT_VISIT_(m_callbacks, m_cap > 0, this, NONE);
         _RYML_CB_FREE(m_callbacks, m_buf, NodeData, (size_t)m_cap);
     }
+    #ifdef RYML_WITH_COMMENTS
+    if(m_comments_buf)
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap > 0, this, NONE);
+        _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap >= m_comments_size, this, NONE);
+        _RYML_CB_FREE(m_callbacks, m_comments_buf, CommentData, (size_t)m_comments_cap);
+    }
+    #endif // RYML_WITH_COMMENTS
     if(m_arena.str)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len > 0, this, NONE);
         _RYML_CB_FREE(m_callbacks, m_arena.str, char, m_arena.len);
     }
     _clear();
-    #ifdef RYML_WITH_COMMENTS
-    if(m_comments_buf)
-    {
-        _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap > 0, this, NONE);
-        _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap >= m_comments_size, this, NONE);
-        _RYML_CB_FREE(m_callbacks, m_comments_buf, CommentData, m_comments_cap);
-    }
-    #endif // RYML_WITH_COMMENTS
 }
 
 
@@ -230,20 +234,22 @@ void Tree::_clear()
     m_free_tail = 0;
     m_arena = {};
     m_arena_pos = 0;
-    for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
-        m_tag_directives[i] = {};
     #ifdef RYML_WITH_COMMENTS
     m_comments_buf = nullptr;
     m_comments_cap = 0;
     m_comments_size = 0;
     #endif // RYML_WITH_COMMENTS
+    for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
+        m_tag_directives[i] = {};
 }
 
 void Tree::_copy(Tree const& that)
 {
     _RYML_ASSERT_VISIT_(m_callbacks, m_buf == nullptr, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, m_cap == 0, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.str == nullptr, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len == 0, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, that.m_cap >= that.m_size, this, NONE);
     if(that.m_cap)
     {
         m_buf = _RYML_CB_ALLOC_HINT(m_callbacks, NodeData, (size_t)that.m_cap, that.m_buf);
@@ -255,6 +261,19 @@ void Tree::_copy(Tree const& that)
     m_free_tail = that.m_free_tail;
     m_arena_pos = that.m_arena_pos;
     m_arena = that.m_arena;
+    #ifdef RYML_WITH_COMMENTS
+    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_buf == nullptr, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap == 0, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, that.m_comments_cap >= that.m_comments_size, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, !!that.m_comments_cap == !!that.m_comments_buf, this, NONE);
+    if(that.m_comments_size)
+    {
+        m_comments_buf = _RYML_CB_ALLOC_HINT(m_callbacks, CommentData, (size_t)that.m_comments_cap, that.m_comments_buf);
+        memcpy(m_comments_buf, that.m_comments_buf, (size_t)that.m_comments_size * sizeof(CommentData));
+    }
+    m_comments_size = that.m_comments_size;
+    m_comments_cap = that.m_comments_cap;
+    #endif // RYML_WITH_COMMENTS
     if(that.m_arena.str)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, that.m_arena.len > 0, this, NONE);
@@ -266,21 +285,12 @@ void Tree::_copy(Tree const& that)
     }
     for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
         m_tag_directives[i] = that.m_tag_directives[i];
-    #ifdef RYML_WITH_COMMENTS
-    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_buf == nullptr, this, NONE);
-    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap == 0, this, NONE);
-    if(that.m_comments_size)
-    {
-        _RYML_ASSERT_VISIT_(m_callbacks, that.m_comments_cap >= that.m_comments_size, this, NONE);
-        m_comments_buf = _RYML_CB_ALLOC(m_callbacks, CommentData, that.m_comments_size);
-        memcpy(m_comments_buf, that.m_comments_buf, (size_t)that.m_comments_size * sizeof(CommentData));
-    }
-    #endif // RYML_WITH_COMMENTS
 }
 
 void Tree::_move(Tree & that) noexcept
 {
     _RYML_ASSERT_VISIT_(m_callbacks, m_buf == nullptr, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, m_cap == 0, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.str == nullptr, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len == 0, this, NONE);
     m_buf = that.m_buf;
@@ -290,9 +300,6 @@ void Tree::_move(Tree & that) noexcept
     m_free_tail = that.m_free_tail;
     m_arena = that.m_arena;
     m_arena_pos = that.m_arena_pos;
-    for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
-        m_tag_directives[i] = that.m_tag_directives[i];
-    that._clear();
     #ifdef RYML_WITH_COMMENTS
     _RYML_ASSERT_VISIT_(m_callbacks, m_comments_buf == nullptr, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap == 0, this, NONE);
@@ -300,6 +307,9 @@ void Tree::_move(Tree & that) noexcept
     m_comments_cap = that.m_comments_cap;
     m_comments_size = that.m_comments_size;
     #endif // RYML_WITH_COMMENTS
+    for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
+        m_tag_directives[i] = that.m_tag_directives[i];
+    that._clear();
 }
 
 void Tree::_relocate(substr next_arena)
