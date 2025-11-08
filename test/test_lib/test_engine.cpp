@@ -38,7 +38,191 @@ std::vector<std::string> inject_comments_in_src(std::string const& src_)
     } while(pos != npos);
     return result;
 }
+
+
+#ifdef RYML_WITH_COMMENTS
+
+id_type inject_comments_in_tree__blck_keyval(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comments_in_tree__flow_keyval(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comments_in_tree__blck_val(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comments_in_tree__flow_val(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comments_in_tree__flow_seq(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comments_in_tree__flow_map(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comments_in_tree__blck_seq(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comments_in_tree__blck_map(Tree *tree, id_type id, csubstr fmt, id_type count);
+id_type inject_comment(Tree *tree, id_type id, CommentType_e type, csubstr fmt, id_type count)
+{
+    struct symname { CommentType_e sym; csubstr name; };
+    static const symname symbols[] = {
+        #define _c4comm(comm_symbol, bit) {COMM_##comm_symbol, csubstr(#comm_symbol)},
+        _RYML_DEFINE_COMMENTS(_c4comm)
+        #undef _c4comm
+    };
+    substr comment = {};
+    csubstr typestr = {};
+    for(symname const& s : symbols)
+        if(s.sym == type)
+            typestr = s.name;
+    _RYML_CHECK_BASIC(!typestr.empty());
+    size_t len = c4::format(comment, fmt, count, id, typestr, count);
+    comment = tree->alloc_arena(len);
+    _RYML_CHECK_BASIC(comment.str != nullptr);
+    _RYML_CHECK_BASIC(comment.len == len);
+    size_t len2 = c4::format(comment, fmt, count, id, typestr, count);
+    _RYML_CHECK_BASIC(len2 == len);
+    _c4dbgpf("injecting comment: node={} type={} cmt=[{}]~~~{}~~~", id, typestr, comment.len, comment);
+    tree->set_comment(id, type, comment);
+    return count + 1;
+}
+
+
+id_type inject_comments_in_tree__blck_keyval(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    (void)tree;
+    (void)id;
+    (void)fmt;
+    (void)count;
+    return count;
+}
+id_type inject_comments_in_tree__flow_keyval(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    (void)tree;
+    (void)id;
+    (void)fmt;
+    (void)count;
+    return count;
+}
+
+
+id_type inject_comments_in_tree__blck_val(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    (void)tree;
+    (void)id;
+    (void)fmt;
+    (void)count;
+    return count;
+}
+id_type inject_comments_in_tree__flow_val(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    NodeType ty = tree->type(id);
+    count = inject_comment(tree, id, COMM_LEADING, fmt, count);
+    if(ty & VALANCH)
+    {
+        count = inject_comment(tree, id, COMM_VAL_ANCHOR_LEADING, fmt, count);
+        count = inject_comment(tree, id, COMM_VAL_ANCHOR_TRAILING, fmt, count);
+    }
+    if(ty & VALTAG)
+    {
+        count = inject_comment(tree, id, COMM_VAL_TAG_LEADING, fmt, count);
+        count = inject_comment(tree, id, COMM_VAL_TAG_TRAILING, fmt, count);
+    }
+    if(ty & (VALANCH|VALTAG))
+    {
+        count = inject_comment(tree, id, COMM_VAL_LEADING2, fmt, count);
+    }
+    if(ty & SEQ)
+    {
+        count = inject_comments_in_tree__flow_seq(tree, id, fmt, count);
+    }
+    else if(ty & MAP)
+    {
+        count = inject_comments_in_tree__flow_map(tree, id, fmt, count);
+    }
+    count = inject_comment(tree, id, COMM_TRAILING, fmt, count);
+    return count;
+}
+
+
+id_type inject_comments_in_tree__flow_seq(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    count = inject_comment(tree, id, COMM_VAL_BRACKET_TRAILING, fmt, count);
+    id_type first = tree->first_child(id);
+    for(id_type child = first; child != NONE; child = tree->next_sibling(child))
+    {
+        count = inject_comments_in_tree__flow_val(tree, child, fmt, count);
+        count = inject_comment(tree, child, COMM_COMMA_LEADING, fmt, count);
+    }
+    count = inject_comment(tree, id, COMM_VAL_BRACKET_LEADING, fmt, count);
+    return count;
+}
+id_type inject_comments_in_tree__flow_map(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    (void)tree;
+    (void)id;
+    (void)fmt;
+    (void)count;
+    return count;
+}
+
+
+id_type inject_comments_in_tree__blck_seq(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    (void)tree;
+    (void)id;
+    (void)fmt;
+    (void)count;
+    return count;
+}
+id_type inject_comments_in_tree__blck_map(Tree *tree, id_type id, csubstr fmt, id_type count)
+{
+    (void)tree;
+    (void)id;
+    (void)fmt;
+    (void)count;
+    return count;
+}
+#endif
+
 } // anon
+
+
+id_type inject_comments_in_tree(Tree *tree, csubstr fmt)
+{
+    #ifdef RYML_WITH_COMMENTS
+    (void)inject_comments_in_tree__blck_keyval;
+    (void)inject_comments_in_tree__flow_keyval;
+    (void)inject_comments_in_tree__blck_val;
+    auto kickstart = [&](id_type id, id_type count){
+        NodeType ty = tree->type(id);
+        if(ty & SEQ)
+        {
+            if(ty & (FLOW_SL|FLOW_ML))
+                count = inject_comments_in_tree__flow_seq(tree, id, fmt, count);
+            else
+                count = inject_comments_in_tree__blck_seq(tree, id, fmt, count);
+        }
+        else if(ty & MAP)
+        {
+            if(ty & (FLOW_SL|FLOW_ML))
+                count = inject_comments_in_tree__flow_map(tree, id, fmt, count);
+            else
+                count = inject_comments_in_tree__blck_map(tree, id, fmt, count);
+        }
+        else
+        {
+            _RYML_ASSERT_BASIC(ty & VAL);
+            count = inject_comments_in_tree__blck_val(tree, id, fmt, count);
+        }
+        count = inject_comment(tree, id, COMM_FOOTER, fmt, count);
+        return count;
+    };
+    id_type root = tree->root_id();
+    if(!tree->is_stream(root))
+        return kickstart(root, 0);
+    // for streams
+    id_type count = 0;
+    for(id_type doc = tree->first_child(root); doc != NONE; doc = tree->next_sibling(doc))
+    {
+        count = inject_comment(tree, doc, COMM_DOC_TRAILING, fmt, count);
+        count = kickstart(doc, count);
+    }
+    return count;
+    #else
+    (void)tree;
+    (void)fmt;
+    return 0;
+    #endif
+}
 
 
 void test_expected_error_testsuite_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
@@ -80,12 +264,12 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 }
 
 
-void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, ParserOptions opts)
 {
     extra::EventHandlerTestSuite::EventSink sink;
     extra::EventHandlerTestSuite handler(&sink);
     handler.reset();
-    ParseEngine<extra::EventHandlerTestSuite> parser(&handler, test_case.opts);
+    ParseEngine<extra::EventHandlerTestSuite> parser(&handler, opts);
     std::string copy = parsed_yaml;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     csubstr result = sink;
@@ -93,7 +277,7 @@ void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::st
     EXPECT_EQ(std::string(result.str, result.len), test_case.expected_events);
 }
 
-void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, ParserOptions opts)
 {
     extra::EventHandlerInts handler{};
     using IntType = extra::ievt::DataType;
@@ -109,7 +293,7 @@ void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string 
     _c4dbgpf("parsing: [{}]{}", copy.size(), c4::fmt::hex(copy.data()));
     std::vector<char> arena(copy.size());
     handler.reset(to_csubstr(copy), to_substr(arena), actual_evts.data(), (IntType)actual_evts.size());
-    ParseEngine<extra::EventHandlerInts> parser(&handler, test_case.opts);
+    ParseEngine<extra::EventHandlerInts> parser(&handler, opts);
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     EXPECT_GE(size_estimated, handler.required_size_events());
     if(test_case.expected_ints_enabled)
@@ -157,7 +341,7 @@ void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string 
     }
 }
 
-void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
+void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml, ParserOptions opts)
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
     {
@@ -167,7 +351,7 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string 
     Tree tree = {};
     EventHandlerTree handler(&tree, tree.root_id());
     ASSERT_EQ(&tree, handler.m_tree);
-    ParseEngine<EventHandlerTree> parser(&handler, test_case.opts);
+    ParseEngine<EventHandlerTree> parser(&handler, opts);
     ASSERT_EQ(&handler, parser.m_evt_handler);
     ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
     std::string copy = yaml;
@@ -180,13 +364,13 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string 
     EXPECT_EQ(test_case.expected_emitted, actual);
 }
 
-void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
+void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml, ParserOptions opts)
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     csubstr filename = "(testyaml)";
     std::string copy = yaml;
-    const Tree parsed_tree = parse_in_place(filename, to_substr(copy), test_case.opts);
+    const Tree parsed_tree = parse_in_place(filename, to_substr(copy), opts);
     #ifdef RYML_DBG
     print_tree("parsed_tree", parsed_tree);
     #endif
@@ -197,7 +381,7 @@ void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::st
     const std::string parsed_tree_emitted = emitrs_yaml<std::string>(parsed_tree);
     EXPECT_EQ(test_case.expected_emitted, parsed_tree_emitted);
     std::string emitted0_copy = parsed_tree_emitted;
-    const Tree after_roundtrip = parse_in_place(filename, to_substr(emitted0_copy), test_case.opts);
+    const Tree after_roundtrip = parse_in_place(filename, to_substr(emitted0_copy), opts);
     {
         SCOPED_TRACE("invariants_after_roundtrip");
         test_invariants(after_roundtrip);
@@ -219,14 +403,71 @@ void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::st
     }
 }
 
-
-void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+void test_engine_roundtrip_from_yaml__tree_comments(EngineEvtTestCase const& test_case)
 {
-    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
+    if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
+        return;
+    csubstr filename = "(testyaml)";
+    std::string copy = test_case.yaml;
+    ParserOptions without_comments = {};
+    ParserOptions with_comments = {};
+    without_comments.with_comments(false);
+    with_comments.with_comments(true);
+    const Tree parsed_tree = parse_in_place(filename, to_substr(copy), without_comments);
+    {
+        SCOPED_TRACE("invariants_after_parse");
+        test_invariants(parsed_tree);
+    }
+    for(csubstr fmt : {
+            csubstr("{} node={} {} {}"),
+            csubstr("\n{} node={} {}\n multiline\n with\n many lines\n {}\n"),
+        })
+    {
+        RYML_TRACE_FMT("injected comment format={}", fmt);
+        Tree injected_tree = parsed_tree;
+        id_type num_comments = inject_comments_in_tree(&injected_tree, fmt);
+        {
+            SCOPED_TRACE("invariants_after_inject");
+            test_invariants(parsed_tree);
+        }
+        EXPECT_EQ(num_comments, injected_tree.m_comments_size);
+        const std::string injected_tree_emitted = emitrs_yaml<std::string>(injected_tree);
+        std::string injected_tree_emitted_copy = injected_tree_emitted;
+        const Tree after_roundtrip = parse_in_place(filename, to_substr(injected_tree_emitted_copy), with_comments);
+        {
+            SCOPED_TRACE("invariants_after_roundtrip");
+            test_invariants(after_roundtrip);
+        }
+        const std::string roundtrip_tree_emitted = emitrs_yaml<std::string>(after_roundtrip);
+        EXPECT_EQ(num_comments, after_roundtrip.m_comments_size);
+        EXPECT_EQ(injected_tree_emitted, roundtrip_tree_emitted);
+        {
+            SCOPED_TRACE("compare_trees");
+            test_compare(after_roundtrip, injected_tree,
+                         "after_roundtrip", "injected_tree");
+        }
+        if(testing::Test::HasFailure())
+        {
+            printf("source: ~~~\n%.*s~~~\n", (int)test_case.yaml.size(), test_case.yaml.data());
+            print_tree("parsed_tree", parsed_tree);
+            print_tree("injected_tree", injected_tree);
+            printf("injected_tree_emitted: ~~~\n%.*s~~~\n", (int)injected_tree_emitted.size(), injected_tree_emitted.data());
+            print_tree("after_roundtrip", after_roundtrip);
+            printf("roundtrip_tree_emitted: ~~~\n%.*s~~~\n", (int)roundtrip_tree_emitted.size(), roundtrip_tree_emitted.data());
+            break;
+        }
+    }
+}
+
+
+void test_engine_testsuite_from_yaml__src_comments(EngineEvtTestCase const& test_case)
+{
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
+    ParserOptions opts = test_case.opts;
+    _RYML_WITH_COMMENTS(opts.with_comments(false);)
     const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
     for(size_t i = 0; i < injected_comment_cases.size(); ++i)
     {
@@ -234,15 +475,16 @@ void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test
         RYML_TRACE_FMT("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comment_cases.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        test_engine_testsuite_from_yaml(test_case, transformed_str);
+        test_engine_testsuite_from_yaml(test_case, transformed_str, opts);
     }
 }
 
-void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+void test_engine_ints_from_yaml__src_comments(EngineEvtTestCase const& test_case)
 {
-    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
+    ParserOptions opts = test_case.opts;
+    _RYML_WITH_COMMENTS(opts.with_comments(false);)
     const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
     for(size_t i = 0; i < injected_comment_cases.size(); ++i)
     {
@@ -250,17 +492,18 @@ void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case
         RYML_TRACE_FMT("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comment_cases.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        test_engine_ints_from_yaml(test_case, transformed_str);
+        test_engine_ints_from_yaml(test_case, transformed_str, opts);
     }
 }
 
-void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+void test_engine_tree_from_yaml__src_comments(EngineEvtTestCase const& test_case)
 {
-    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
+    ParserOptions opts = test_case.opts;
+    _RYML_WITH_COMMENTS(opts.with_comments(false);)
     const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
     for(size_t i = 0; i < injected_comment_cases.size(); ++i)
     {
@@ -268,17 +511,18 @@ void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case
         RYML_TRACE_FMT("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comment_cases.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        test_engine_tree_from_yaml(test_case, transformed_str);
+        test_engine_tree_from_yaml(test_case, transformed_str, opts);
     }
 }
 
-void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+void test_engine_roundtrip_from_yaml__src_comments(EngineEvtTestCase const& test_case)
 {
-    _RYML_WITH_COMMENTS(if(test_case.opts.with_comments()) return;)
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
+    ParserOptions opts = test_case.opts;
+    _RYML_WITH_COMMENTS(opts.with_comments(false);)
     const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
     for(size_t i = 0; i < injected_comment_cases.size(); ++i)
     {
@@ -286,7 +530,7 @@ void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test
         RYML_TRACE_FMT("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comment_cases.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        test_engine_roundtrip_from_yaml(test_case, transformed_str);
+        test_engine_roundtrip_from_yaml(test_case, transformed_str, opts);
     }
 }
 
