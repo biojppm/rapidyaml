@@ -598,7 +598,7 @@ public:
     void add_comment(csubstr txt, CommentType_e type)
     {
         NodeData * d = m_curr->tr_data;
-        _c4dbgpf("node[{}]: comment! type={} txt=[{}]~~~{}~~~", m_tree->id(d), type, txt.len, txt);
+        _c4dbgpf("node[{}]: comment! type={}({}) txt=[{}]~~~{}~~~", m_tree->id(d), comment_type_str(type), type, txt.len, txt);
         if(type == COMM_VAL_BRACKET_TRAILING || type == COMM_VAL_BRACKET_LEADING)
         {
              _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent && m_parent->tr_data->m_type.is_flow());

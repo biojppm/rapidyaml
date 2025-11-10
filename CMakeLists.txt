@@ -43,6 +43,7 @@ c4_add_library(ryml
         c4/yml/detail/print.hpp
         c4/yml/detail/stack.hpp
         c4/yml/comment_type.hpp
+        c4/yml/comment_type.cpp
         c4/yml/common.hpp
         c4/yml/common.cpp
         c4/yml/emit.def.hpp

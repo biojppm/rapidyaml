@@ -725,6 +725,7 @@ private:
     void _pend_comment(csubstr txt, CommentType_e type);
     void _maybe_apply_pending_comment();
     void _maybe_apply_pending_comment(CommentType_e expect_type, CommentType_e actual_type);
+    void _maybe_apply_pending_comment_matching(CommentType_e match_type, CommentType_e actual_type);
     void _apply_pending_comment(CommentType_e expect_type, CommentType_e actual_type);
     void _handle_flow_end_comment();
     void _maybe_handle_leading_comment(CommentType_e current);
@@ -748,12 +749,17 @@ private:
     Annotation m_pending_anchors;
     Annotation m_pending_tags;
     #ifdef RYML_WITH_COMMENTS
-    struct PendingComment
+    enum : size_t { max_pending_comments = 2 };
+    struct PendingComments
     {
-        operator bool() const noexcept { return type != COMM_NONE; }
-        csubstr txt; CommentType_e type;
+        struct Entry
+        {
+            csubstr txt;
+            CommentType_e type;
+        } entries[max_pending_comments];
+        size_t num_entries;
     };
-    PendingComment m_pending_comment;
+    PendingComments m_pending_comments;
     #endif
 
     bool m_was_inside_qmrk;

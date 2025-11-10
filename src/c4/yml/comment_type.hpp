@@ -152,6 +152,9 @@ typedef enum : comment_data_type {
     #undef _c4comm
 } CommentType_e;
 
+
+const char *comment_type_str(CommentType_e type);
+
 /** @} */
 
 } // namespace yml

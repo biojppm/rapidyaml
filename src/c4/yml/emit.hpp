@@ -73,11 +73,12 @@ public:
         EMIT_NONROOT_MARKUP = EMIT_NONROOT_KEY|EMIT_NONROOT_DASH,
         INDENT_FLOW_ML = 1u << 2u,
         COMMENTS = 1u << 3u, ///< enable commments in emitted code
-        COMMENTS_ADD_LEADING_SPACE = 1u << 4u, ///< ensure every comment # is followed by a space, even if the comment does not start with space
-        JSON_ERR_ON_TAG = 1u << 5u,
-        JSON_ERR_ON_ANCHOR = 1u << 6u,
+        COMMENTS_ADD_LEADING_SPACE = 1u << 4u, ///< ensure every non-empty comment line has a space after #, even if the comment does not start with space
+        COMMENTS_SEP = 1u << 5u, ///< add comment separator for consecutive comments that would be ambiguous otherwise
+        JSON_ERR_ON_TAG = 1u << 6u,
+        JSON_ERR_ON_ANCHOR = 1u << 7u,
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
-        DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML|COMMENTS|COMMENTS_ADD_LEADING_SPACE,
+        DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML|COMMENTS|COMMENTS_ADD_LEADING_SPACE|COMMENTS_SEP,
     } EmitOptionFlags_e;
     /** @endcond */
 
@@ -98,6 +99,9 @@ public:
 
     C4_ALWAYS_INLINE bool comments_add_leading_space() const noexcept { return (m_option_flags & COMMENTS_ADD_LEADING_SPACE) != 0; }
     EmitOptions& comments_add_leading_space(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | COMMENTS_ADD_LEADING_SPACE) : (m_option_flags & ~COMMENTS_ADD_LEADING_SPACE)); return *this; }
+
+    C4_ALWAYS_INLINE bool comments_sep() const noexcept { return (m_option_flags & COMMENTS_SEP) != 0; }
+    EmitOptions& comments_sep(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | COMMENTS_SEP) : (m_option_flags & ~COMMENTS_SEP)); return *this; }
 
     C4_ALWAYS_INLINE bool indent_flow_ml() const noexcept { return (m_option_flags & INDENT_FLOW_ML) != 0; }
     EmitOptions& indent_flow_ml(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | INDENT_FLOW_ML) : (m_option_flags & ~INDENT_FLOW_ML)); return *this; }
@@ -290,15 +294,16 @@ private:
 private: // comments
 
 #ifdef RYML_WITH_COMMENTS
-    C4_ALWAYS_INLINE void _comm_push() { m_comm_state.push(CommState{}); }
+    C4_ALWAYS_INLINE void _comm_push() { m_comm_state.push(CommentState{}); }
     C4_ALWAYS_INLINE void _comm_pop() { m_ilevel -= m_comm_state.pop().extra_indentation; }
     CommentData const* _comm_get(id_type node, CommentType_e type, bool indent_extra=false);
     CommentData const* _write_comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
     CommentData const* _write_comm_leading(id_type node, CommentType_e type, bool indent_extra=false);
-    void _write_comm_trailing(CommentData const* comm);
-    void _write_comm_leading(CommentData const* comm);
-    void _write_comm(csubstr s, id_type indentation);
-    void _write_comm_leadspace(csubstr s, id_type indentation);
+    void _write_comm_trailing(CommentData const* comm, bool with_sep);
+    void _write_comm_leading(CommentData const* comm, bool with_sep);
+    void _write_comm(csubstr s, id_type indentation, bool with_sep);
+    void _write_comm_leadspace(csubstr s, id_type indentation, bool with_sep);
+    bool _comm_needs_sep(id_type node, comment_data_type type) const;
 #endif
 
 private:
@@ -407,7 +412,7 @@ private:
     Pws_e       m_pws;
 #ifdef RYML_WITH_COMMENTS
     bool        m_wsonly; ///< line contains only whitespace
-    struct CommState
+    struct CommentState
     {
         CommentData const* latest;
         CommentData const* comm;
@@ -416,7 +421,7 @@ private:
         CommentType_e latest_query;
         #endif
     };
-    detail::stack<CommState> m_comm_state;
+    detail::stack<CommentState> m_comm_state;
 #endif
 
 private:
