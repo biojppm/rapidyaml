@@ -183,6 +183,16 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 
 #define RYML_DEPRECATED(msg) C4_DEPRECATED(msg)
 
+#if defined(RYML_WITH_COMMENTS)
+#define _RYML_WITH_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITHOUT_COMMENTS(...)
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) with
+#else
+#define _RYML_WITH_COMMENTS(...)
+#define _RYML_WITHOUT_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) without
+#endif
+
 /** @endcond */
 
 
@@ -321,15 +331,17 @@ private:
         DETECT_FLOW_ML = (1u << 2u),
         #ifdef RYML_WITH_COMMENTS
         WITH_COMMENTS = (1u << 3u),
+        WITH_COMMENT_SEP = (1u << 4u),
         #endif
-        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
+        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML _RYML_WITH_COMMENTS(|WITH_COMMENT_SEP),
     } Flags_e;
 
-    uint32_t flags = DEFAULTS;
+    uint32_t m_flags;
+    char m_comment_sep;
 
 public:
 
-    ParserOptions() = default;
+    ParserOptions() noexcept : m_flags(DEFAULTS), m_comment_sep('~') {}
 
 public:
 
@@ -340,13 +352,13 @@ public:
     ParserOptions& locations(bool enabled) noexcept
     {
         if(enabled)
-            flags |= LOCATIONS;
+            m_flags |= LOCATIONS;
         else
-            flags &= ~LOCATIONS;
+            m_flags &= ~LOCATIONS;
         return *this;
     }
     /** query source location tracking status */
-    C4_ALWAYS_INLINE bool locations() const noexcept { return (flags & LOCATIONS); }
+    C4_ALWAYS_INLINE bool locations() const noexcept { return (m_flags & LOCATIONS); }
 
     /** @} */
 
@@ -362,13 +374,13 @@ public:
     ParserOptions& detect_flow_ml(bool enabled) noexcept
     {
         if(enabled)
-            flags |= DETECT_FLOW_ML;
+            m_flags |= DETECT_FLOW_ML;
         else
-            flags &= ~DETECT_FLOW_ML;
+            m_flags &= ~DETECT_FLOW_ML;
         return *this;
     }
     /** query status of detection of @ref FLOW_ML container style. */
-    C4_ALWAYS_INLINE bool detect_flow_ml() const noexcept { return (flags & DETECT_FLOW_ML); }
+    C4_ALWAYS_INLINE bool detect_flow_ml() const noexcept { return (m_flags & DETECT_FLOW_ML); }
 
     /** @} */
 
@@ -381,13 +393,13 @@ public:
     ParserOptions& scalar_filtering(bool enabled) noexcept
     {
         if(enabled)
-            flags |= SCALAR_FILTERING;
+            m_flags |= SCALAR_FILTERING;
         else
-            flags &= ~SCALAR_FILTERING;
+            m_flags &= ~SCALAR_FILTERING;
         return *this;
     }
     /** query scalar filtering status */
-    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
+    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (m_flags & SCALAR_FILTERING); }
 
     /** @} */
 
@@ -402,14 +414,39 @@ public:
     ParserOptions& with_comments(bool enabled) noexcept
     {
         if(enabled)
-            flags |= WITH_COMMENTS;
+            m_flags |= WITH_COMMENTS;
         else
-            flags &= ~WITH_COMMENTS;
+            m_flags &= ~WITH_COMMENTS;
         return *this;
     }
     /** query comments parsing status. available only when @ref
      * RYML_WITH_COMMENTS is defined */
-    C4_ALWAYS_INLINE bool with_comments() const noexcept { return (flags & WITH_COMMENTS); }
+    C4_ALWAYS_INLINE bool with_comments() const noexcept { return (m_flags & WITH_COMMENTS); }
+
+    /** enable/disable comment separation token (see @ref
+     * comment_sep()). available only when @ref RYML_WITH_COMMENTS is
+     * defined */
+    ParserOptions& with_comment_sep(bool enabled) noexcept
+    {
+        if(enabled)
+            m_flags |= WITH_COMMENT_SEP;
+        else
+            m_flags &= ~WITH_COMMENT_SEP;
+        return *this;
+    }
+    /** query status of comment separation token (see @ref
+     * comment_sep()). available only when @ref RYML_WITH_COMMENTS is
+     * defined */
+    C4_ALWAYS_INLINE bool with_comment_sep() const noexcept { return (m_flags & WITH_COMMENT_SEP); }
+
+    /** set the comment separation character. default is `~` */
+    ParserOptions& comment_sep(char sep) noexcept
+    {
+        m_comment_sep = sep;
+        return *this;
+    }
+    /** get the comment separation character. */
+    C4_ALWAYS_INLINE char comment_sep() const noexcept { return m_comment_sep; }
 
     /** @} */
     #endif // RYML_WITH_COMMENTS
@@ -608,16 +645,6 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     default: return csubstr(&c, 1);
     }
 }
-
-#if defined(RYML_WITH_COMMENTS)
-#define _RYML_WITH_COMMENTS(...) __VA_ARGS__
-#define _RYML_WITHOUT_COMMENTS(...)
-#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) with
-#else
-#define _RYML_WITH_COMMENTS(...)
-#define _RYML_WITHOUT_COMMENTS(...) __VA_ARGS__
-#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) without
-#endif
 
 /// @endcond
 

@@ -206,6 +206,7 @@ struct NodeData
     #ifdef RYML_WITH_COMMENTS
     id_type    m_first_comment;
     id_type    m_last_comment;
+    comment_data_type m_comments;
     #endif // RYML_WITH_COMMENTS
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
@@ -894,7 +895,7 @@ public:
      * @see alloc_arena() */
     template<class T>
     auto to_arena(T const& C4_RESTRICT a)
-        -> typename std::enable_if<!std::is_floating_point<T>::value, csubstr>::type
+        -> typename std::enable_if< ! std::is_floating_point<T>::value, csubstr>::type
     {
         substr rem(m_arena.sub(m_arena_pos));
         size_t num = to_chars(rem, a);
@@ -1000,8 +1001,9 @@ public:
      * @see reserve_arena() */
     substr alloc_arena(size_t sz)
     {
-        if(sz > arena_slack())
-            _grow_arena(sz - arena_slack());
+        size_t slack = arena_slack();
+        if(sz > slack)
+            _grow_arena(sz - slack);
         substr s = _request_span(sz);
         return s;
     }
