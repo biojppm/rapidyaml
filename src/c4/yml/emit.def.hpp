@@ -198,7 +198,7 @@ void Emitter<Writer>::_visit_stream(id_type id)
     {
         _write_pws_and_pend(_PWS_NONE);
         _write("...");
-        _write_comm_trailing(comm);
+        _write_comm_trailing(comm, /*with_sep*/false);
     }
     _write_comm_leading(id, COMM_FOOTER);
     #endif
@@ -459,10 +459,28 @@ void Emitter<Writer>::_flow_close_entry_sl(id_type node, id_type last_sibling)
 {
     _RYML_WITH_COMMENTS(CommentData const *commvt = _comm_get(node, COMM_VAL_TRAILING));
     _RYML_WITH_COMMENTS(CommentData const *commcl = _comm_get(node, COMM_COMMA_LEADING));
+_write("!!!");
+_write(commvt ? "!!!" : "---");
     if(node != last_sibling _RYML_WITH_COMMENTS(|| commvt || commcl))
     {
-        _RYML_WITH_COMMENTS(if(commvt) _write_comm_trailing(commvt));
-        _RYML_WITH_COMMENTS(if(commcl) _write_comm_leading(commcl));
+_write("???");
+        #ifdef RYML_WITH_COMMENTS
+        if(commvt && commcl)
+        {
+_write("wtf");
+            _write_comm_trailing(commvt, true);
+            _write_comm_leading(commcl, false);
+_write("crl");
+        }
+        else if(commvt)
+        {
+            _write_comm_trailing(commvt, false);
+        }
+        else if(commcl)
+        {
+            _write_comm_leading(commcl, false);
+        }
+        #endif
         _write_pws_and_pend(_PWS_NONE);
         _write(',');
     }
@@ -542,7 +560,8 @@ void Emitter<Writer>::_blck_write_qmrk(id_type node, csubstr key, type_bits ty, 
                 nested = true;                                          \
                 ++m_ilevel;                                             \
             }                                                           \
-            _write_comm_leading(comm);                                  \
+            bool with_sep = (m_opts.comments_sep() && _comm_needs_sep(node, commtype)); \
+            _write_comm_leading(comm, with_sep);                        \
         }                                                               \
     } while(0)
 #define _ryml_write_comm_trailing_and_nest(node, commtype)              \
@@ -1471,7 +1490,7 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
 
 #ifdef RYML_WITH_COMMENTS
 template<class Writer>
-void Emitter<Writer>::_write_comm(csubstr s, id_type indentation)
+void Emitter<Writer>::_write_comm(csubstr s, id_type indentation, bool with_sep)
 {
     _write('#');
     size_t pos = 0; // last character that was already written
@@ -1493,10 +1512,14 @@ void Emitter<Writer>::_write_comm(csubstr s, id_type indentation)
         csubstr sub = s.sub(pos);
         _write(sub);
     }
+    if(with_sep)
+    {
+        _write(" ~");
+    }
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_comm_leadspace(csubstr s, id_type indentation)
+void Emitter<Writer>::_write_comm_leadspace(csubstr s, id_type indentation, bool with_sep)
 {
     _write('#');
     size_t pos = 0; // last character that was already written
@@ -1522,32 +1545,10 @@ void Emitter<Writer>::_write_comm_leadspace(csubstr s, id_type indentation)
             _write(' ');
         _write(sub);
     }
-}
-
-template<class Writer>
-void Emitter<Writer>::_write_comm_trailing(CommentData const* comm)
-{
-    _write(' ');
-    if(!m_opts.comments_add_leading_space())
-        _write_comm(comm->m_text, m_col);
-    else
-        _write_comm_leadspace(comm->m_text, m_col);
-    _pend_newl();
-}
-
-template<class Writer>
-void Emitter<Writer>::_write_comm_leading(CommentData const* comm)
-{
-    if(!m_wsonly)
+    if(with_sep)
     {
-        _newl();
-        _indent(m_ilevel);
+        _write(" ~");
     }
-    if(!m_opts.comments_add_leading_space())
-        _write_comm(comm->m_text, m_col);
-    else
-        _write_comm_leadspace(comm->m_text, m_col);
-    _pend_newl();
 }
 
 template<class Writer>
@@ -1555,8 +1556,11 @@ CommentData const* Emitter<Writer>::_comm_get(id_type node, CommentType_e type, 
 {
     if(!m_opts.comments())
         return nullptr;
-    CommState *result = &m_comm_state.top();
-    #ifdef RYML_USE_ASSERT // ensure the queries are in order of CommentType
+    CommentState *result = &m_comm_state.top();
+    #ifdef RYML_USE_ASSERT
+    // ensure the queries are in order of CommentType. if this
+    // assertion fires, it means the emit code is looking for comments
+    // in the wrong order.
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), type >= result->latest_query, m_tree, node);
     result->latest_query = type;
     #endif
@@ -1571,6 +1575,50 @@ CommentData const* Emitter<Writer>::_comm_get(id_type node, CommentType_e type, 
         }
     }
     return result->comm;
+
+}
+
+template<class Writer>
+void Emitter<Writer>::_write_comm_trailing(CommentData const* comm, bool with_sep)
+{
+    _write(' ');
+    if(!m_opts.comments_add_leading_space())
+        _write_comm(comm->m_text, m_col, with_sep);
+    else
+        _write_comm_leadspace(comm->m_text, m_col, with_sep);
+    _pend_newl();
+}
+
+template<class Writer>
+void Emitter<Writer>::_write_comm_leading(CommentData const* comm, bool with_sep)
+{
+    if(!m_wsonly)
+    {
+        _newl();
+        _indent(m_ilevel);
+    }
+    if(!m_opts.comments_add_leading_space())
+        _write_comm(comm->m_text, m_col, with_sep);
+    else
+        _write_comm_leadspace(comm->m_text, m_col, with_sep);
+    _pend_newl();
+}
+
+template<class Writer>
+bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) const
+{
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), ((type) & (type - 1u)) == 0); // needs to be power of two
+    const comment_data_type consecutive_types = type | (type << 1u);
+    NodeData const* nd = m_tree->_p(node);
+    if((nd->m_comments & consecutive_types) == consecutive_types)
+        return true;
+    else if(type != COMM_TRAILING)
+        return false;
+    else if(nd->m_next_sibling != NONE)
+        return m_tree->_p(nd->m_next_sibling)->m_comments & COMM_LEADING;
+    else if(nd->m_parent != NONE)
+        return m_tree->_p(nd->m_parent)->m_comments & (COMM_LEADING|COMM_VAL_BRACKET_LEADING);
+    return false;
 }
 
 template<class Writer>
@@ -1578,7 +1626,10 @@ CommentData const* Emitter<Writer>::_write_comm_trailing(id_type node, CommentTy
 {
     CommentData const* comm = _comm_get(node, type, indent_extra);
     if(comm)
-        _write_comm_trailing(comm);
+    {
+        bool with_sep = (m_opts.comments_sep() && _comm_needs_sep(node, type));
+        _write_comm_trailing(comm, with_sep);
+    }
     return comm;
 }
 
@@ -1587,7 +1638,9 @@ CommentData const* Emitter<Writer>::_write_comm_leading(id_type node, CommentTyp
 {
     CommentData const* comm = _comm_get(node, type, indent_extra);
     if(comm)
-        _write_comm_leading(comm);
+    {
+        _write_comm_leading(comm, false);
+    }
     return comm;
 }
 #endif // RYML_WITH_COMMENTS
