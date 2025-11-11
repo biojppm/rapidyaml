@@ -1615,7 +1615,12 @@ bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) cons
     else if((type == COMM_TRAILING) && (nd->m_comments & (COMM_FOOTER)))
         return true;
     else if(type == COMM_VAL_BRACKET_TRAILING)
-        return (nd->m_first_child != NONE && (m_tree->_p(nd->m_first_child)->m_comments & (COMM_LEADING|COMM_VAL_TAG_LEADING|COMM_VAL_LEADING|COMM_VAL_LEADING2)));
+    {
+        if(nd->m_first_child != NONE)
+            return (m_tree->_p(nd->m_first_child)->m_comments & (COMM_LEADING|COMM_VAL_TAG_LEADING|COMM_VAL_LEADING|COMM_VAL_LEADING2));
+        else
+            return (nd->m_comments & COMM_VAL_BRACKET_LEADING);
+    }
     else if(type != COMM_TRAILING)
         return false;
     else if(nd->m_next_sibling != NONE)
