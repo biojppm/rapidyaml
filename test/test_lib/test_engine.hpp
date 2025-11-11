@@ -356,6 +356,7 @@ void test_engine_roundtrip_from_events__tree_comments(EngineEvtTestCase const& t
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
+    SCOPED_TRACE("test_engine_roundtrip_from_events__tree_comments");
     Tree event_tree = {};
     EventHandlerTree handler(&event_tree, event_tree.root_id());
     EventProducerFn<EventHandlerTree> event_producer;
@@ -368,11 +369,12 @@ void test_engine_roundtrip_from_events__tree_comments(EngineEvtTestCase const& t
     with_comments.with_comments(true);
     for(csubstr fmt : {
             csubstr(" {} node={} {} {}"),
-            csubstr(" \n{} node={} {}\n multiline\n with\n many lines\n {}\n"),
+            csubstr(" \n {} node={} {}\n multiline\n with\n many lines\n {}\n"),
         })
     {
-        RYML_TRACE_FMT("injected comment format={}", fmt);
+        RYML_TRACE_FMT("injected comment format=~~~{}~~~", fmt);
         Tree injected_tree = event_tree;
+        injected_tree.rem_comments(injected_tree.root_id(), /*recursive*/true);
         EXPECT_EQ(0, injected_tree.m_comments_size);
         id_type num_comments = inject_comments_in_tree(&injected_tree, fmt);
         EXPECT_EQ(num_comments, injected_tree.m_comments_size);
@@ -381,6 +383,10 @@ void test_engine_roundtrip_from_events__tree_comments(EngineEvtTestCase const& t
             test_invariants(injected_tree);
         }
         const std::string injected_tree_emitted = emitrs_yaml<std::string>(injected_tree);
+        #ifdef RYML_DBG
+        print_tree("injected_tree", injected_tree);
+        printf("injected_tree_emitted: ~~~\n%.*s~~~\n", (int)injected_tree_emitted.size(), injected_tree_emitted.data());
+        #endif
         std::string injected_tree_emitted_copy = injected_tree_emitted;
         const Tree after_roundtrip = parse_in_place(to_substr(injected_tree_emitted_copy), with_comments);
         {

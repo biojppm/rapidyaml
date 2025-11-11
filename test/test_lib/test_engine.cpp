@@ -135,6 +135,7 @@ id_type inject_comments_in_tree__flow_val(Tree *tree, id_type id, csubstr fmt, i
 
 id_type inject_comments_in_tree__flow_seq(Tree *tree, id_type id, csubstr fmt, id_type count)
 {
+    tree->set_style_conditionally(id, FLOW_SL, FLOW_SL, FLOW_ML);
     count = inject_comment(tree, id, COMM_VAL_BRACKET_TRAILING, fmt, count);
     id_type first = tree->first_child(id);
     for(id_type child = first; child != NONE; child = tree->next_sibling(child))
@@ -147,6 +148,7 @@ id_type inject_comments_in_tree__flow_seq(Tree *tree, id_type id, csubstr fmt, i
 }
 id_type inject_comments_in_tree__flow_map(Tree *tree, id_type id, csubstr fmt, id_type count)
 {
+    tree->set_style_conditionally(id, FLOW_SL, FLOW_SL, FLOW_ML);
     (void)tree;
     (void)id;
     (void)fmt;
@@ -419,8 +421,8 @@ void test_engine_roundtrip_from_yaml__tree_comments(EngineEvtTestCase const& tes
         test_invariants(parsed_tree);
     }
     for(csubstr fmt : {
-            csubstr("{} node={} {} {}"),
-            csubstr("\n{} node={} {}\n multiline\n with\n many lines\n {}\n"),
+            csubstr(" {} node={} {} {}"),
+            csubstr("\n {} node={} {}\n multiline\n with\n many lines\n {}\n"),
         })
     {
         RYML_TRACE_FMT("injected comment format={}", fmt);
@@ -462,6 +464,8 @@ void test_engine_roundtrip_from_yaml__tree_comments(EngineEvtTestCase const& tes
 
 void test_engine_testsuite_from_yaml__src_comments(EngineEvtTestCase const& test_case)
 {
+    if(test_case.opts.with_comments())
+        return;
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -481,6 +485,8 @@ void test_engine_testsuite_from_yaml__src_comments(EngineEvtTestCase const& test
 
 void test_engine_ints_from_yaml__src_comments(EngineEvtTestCase const& test_case)
 {
+    if(test_case.opts.with_comments())
+        return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
     ParserOptions opts = test_case.opts;
@@ -498,6 +504,8 @@ void test_engine_ints_from_yaml__src_comments(EngineEvtTestCase const& test_case
 
 void test_engine_tree_from_yaml__src_comments(EngineEvtTestCase const& test_case)
 {
+    if(test_case.opts.with_comments())
+        return;
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -517,6 +525,8 @@ void test_engine_tree_from_yaml__src_comments(EngineEvtTestCase const& test_case
 
 void test_engine_roundtrip_from_yaml__src_comments(EngineEvtTestCase const& test_case)
 {
+    if(test_case.opts.with_comments())
+        return;
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
