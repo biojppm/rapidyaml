@@ -1123,8 +1123,8 @@ public:
     void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);
     void set_comment(NodeData *n, CommentType_e type, csubstr const& txt);
 
-    void rem_comments(id_type node_id); ///< remove all comments from the node
     void rem_comment(id_type node_id, CommentType_e type);
+    void rem_comments(id_type node_id, bool recursive=false);
 
 private:
 
