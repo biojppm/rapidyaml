@@ -2109,6 +2109,35 @@ id_type Tree::_insert_comment(NodeData *n, id_type prev_comment)
     return comid;
 }
 
+void Tree::rem_comment(id_type node_id, CommentType_e type)
+{
+    NodeData *C4_RESTRICT d = _p(node_id);
+    if(d->m_comments & type)
+    {
+        CommentData *C4_RESTRICT cd = const_cast<CommentData*>(comment(node_id, type));
+        if(cd->m_prev != NONE)
+            m_comments_buf[cd->m_prev].m_next = cd->m_next;
+        if(cd->m_next != NONE)
+            m_comments_buf[cd->m_next].m_prev = cd->m_prev;
+        *cd = {};
+        d->m_comments &= ~type;
+    }
+}
+
+void Tree::rem_comments(id_type node_id, bool recursive)
+{
+    NodeData *C4_RESTRICT d = _p(node_id);
+    d->m_first_comment = NONE;
+    d->m_last_comment = NONE;
+    d->m_comments = {};
+    if(!recursive)
+        return;
+    if(node_id == root_id())
+        m_comments_size = 0;
+    for(id_type child = first_child(node_id); child != NONE; child = next_sibling(child))
+        rem_comments(child, true);
+}
+
 #endif // RYML_WITH_COMMENTS
 
 } // namespace yml

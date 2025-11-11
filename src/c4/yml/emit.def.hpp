@@ -459,18 +459,13 @@ void Emitter<Writer>::_flow_close_entry_sl(id_type node, id_type last_sibling)
 {
     _RYML_WITH_COMMENTS(CommentData const *commvt = _comm_get(node, COMM_VAL_TRAILING));
     _RYML_WITH_COMMENTS(CommentData const *commcl = _comm_get(node, COMM_COMMA_LEADING));
-_write("!!!");
-_write(commvt ? "!!!" : "---");
     if(node != last_sibling _RYML_WITH_COMMENTS(|| commvt || commcl))
     {
-_write("???");
         #ifdef RYML_WITH_COMMENTS
         if(commvt && commcl)
         {
-_write("wtf");
             _write_comm_trailing(commvt, true);
             _write_comm_leading(commcl, false);
-_write("crl");
         }
         else if(commvt)
         {
@@ -896,6 +891,7 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
         _flow_close_entry_sl(child, last);
     }
     _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_BRACKET_LEADING));
+    _write_pws_and_pend(_PWS_NONE);
     _write(']');
 }
 
@@ -1607,11 +1603,19 @@ void Emitter<Writer>::_write_comm_leading(CommentData const* comm, bool with_sep
 template<class Writer>
 bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) const
 {
-    _RYML_ASSERT_BASIC_(m_tree->callbacks(), ((type) & (type - 1u)) == 0); // needs to be power of two
-    const comment_data_type consecutive_types = type | (type << 1u);
     NodeData const* nd = m_tree->_p(node);
-    if((nd->m_comments & consecutive_types) == consecutive_types)
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), type & nd->m_comments);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), ((type) & (type - 1u)) == 0); // needs to be power of two
+    if((type == COMM_LEADING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_ANCHOR_LEADING)))
         return true;
+    else if((type == COMM_VAL_ANCHOR_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_TAG_LEADING)))
+        return true;
+    else if((type == COMM_VAL_TAG_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2)))
+        return true;
+    else if((type == COMM_TRAILING) && (nd->m_comments & (COMM_FOOTER)))
+        return true;
+    else if(type == COMM_VAL_BRACKET_TRAILING)
+        return (nd->m_first_child != NONE && (m_tree->_p(nd->m_first_child)->m_comments & (COMM_LEADING|COMM_VAL_TAG_LEADING|COMM_VAL_LEADING|COMM_VAL_LEADING2)));
     else if(type != COMM_TRAILING)
         return false;
     else if(nd->m_next_sibling != NONE)
@@ -1639,7 +1643,8 @@ CommentData const* Emitter<Writer>::_write_comm_leading(id_type node, CommentTyp
     CommentData const* comm = _comm_get(node, type, indent_extra);
     if(comm)
     {
-        _write_comm_leading(comm, false);
+        bool with_sep = (m_opts.comments_sep() && _comm_needs_sep(node, type));
+        _write_comm_leading(comm, with_sep);
     }
     return comm;
 }

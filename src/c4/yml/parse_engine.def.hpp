@@ -6,10 +6,10 @@
 #include "c4/charconv.hpp"
 #include "c4/utf.hpp"
 
-#include <ctype.h>
-
 #include "c4/yml/detail/dbgprint.hpp"
 #include "c4/yml/filter_processor.hpp"
+
+
 #ifdef RYML_DBG
 #include <c4/dump.hpp>
 #include "c4/yml/detail/print.hpp"
@@ -4671,7 +4671,7 @@ void ParseEngine<EventHandler>::_apply_pending_comment(CommentType_e expect_type
 {
     _c4dbgpf("apply pending comment! {}({}) -> {}({})", comment_type_str(expect_type), expect_type, comment_type_str(actual_type), actual_type);
     _RYML_ASSERT_PARSE_(callbacks(), m_pending_comments.num_entries == 1, m_evt_handler->m_curr->pos);
-    auto const& entry = m_pending_comments.entries[m_pending_comments.num_entries];
+    auto const& entry = m_pending_comments.entries[0];
     _RYML_ASSERT_PARSE_(callbacks(), entry.type != COMM_NONE, m_evt_handler->m_curr->pos);
     _RYML_ASSERT_PARSE_(callbacks(), entry.type == expect_type, m_evt_handler->m_curr->pos);
     m_evt_handler->add_comment(entry.txt, actual_type);
@@ -4689,8 +4689,11 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_maybe_apply_pending_comment_matching(CommentType_e match_type, CommentType_e actual_type)
 {
     if(m_pending_comments.num_entries)
-        if(m_pending_comments.entries[m_pending_comments.num_entries].type == match_type)
+    {
+        _RYML_ASSERT_PARSE_(callbacks(), m_pending_comments.num_entries == 1, m_evt_handler->m_curr->pos);
+        if(m_pending_comments.entries[0].type == match_type)
             _apply_pending_comment(match_type, actual_type);
+    }
 }
 
 template<class EventHandler>
@@ -4699,7 +4702,7 @@ void ParseEngine<EventHandler>::_handle_flow_end_comment()
     if(m_pending_comments.num_entries)
     {
         _RYML_ASSERT_PARSE_(callbacks(), m_pending_comments.num_entries == 1, m_evt_handler->m_curr->pos);
-        auto const& entry = m_pending_comments.entries[m_pending_comments.num_entries];
+        auto const& entry = m_pending_comments.entries[0];
         if(entry.type == COMM_LEADING)
         {
             _apply_pending_comment(COMM_LEADING, COMM_VAL_BRACKET_LEADING);
@@ -4715,20 +4718,31 @@ void ParseEngine<EventHandler>::_handle_flow_end_comment()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_maybe_handle_leading_comment(CommentType_e current)
 {
-    if(m_pending_comments.num_entries)
+    if(m_pending_comments.num_entries == 1)
     {
-        _RYML_ASSERT_PARSE_(callbacks(), m_pending_comments.num_entries == 1, m_evt_handler->m_curr->pos);
-        auto const& entry = m_pending_comments.entries[m_pending_comments.num_entries];
-        _RYML_ASSERT_PARSE_(callbacks(), entry.type != COMM_NONE, m_evt_handler->m_curr->pos);
+        auto const& entry = m_pending_comments.entries[0];
         bool leading_exists = (m_evt_handler->m_curr->leading_comments & COMM_LEADING);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type != COMM_NONE, m_evt_handler->m_curr->pos);
         _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type == COMM_LEADING, m_evt_handler->m_curr->pos);
         CommentType_e actual = leading_exists ? current : COMM_LEADING;
         _c4dbgpf("pending leading comment! context={}({}) leading_exists={} actual={}({})", comment_type_str(current), current, leading_exists, comment_type_str(actual), actual);
-        _apply_pending_comment(COMM_LEADING, actual);
+        m_evt_handler->add_comment(entry.txt, actual);
         m_evt_handler->m_curr->leading_comments |= actual;
+        m_pending_comments.num_entries = 0;
+    }
+    else if(m_pending_comments.num_entries == 2)
+    {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, current != COMM_LEADING, m_evt_handler->m_curr->pos);
+        _c4dbgpf("pending leading comment [0]! type={}({})", comment_type_str(m_pending_comments.entries[0].type), m_pending_comments.entries[0].type);
+        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, COMM_LEADING);
+        _c4dbgpf("pending leading comment [1]! type={}({})", comment_type_str(current), current);
+        m_evt_handler->add_comment(m_pending_comments.entries[1].txt, current);
+        m_evt_handler->m_curr->leading_comments |= COMM_LEADING|current;
+        m_pending_comments.num_entries = 0;
     }
     else if(current & (COMM_VAL_LEADING2|COMM_VAL_ANCHOR_LEADING))
     {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.num_entries == 0, m_evt_handler->m_curr->pos);
         m_evt_handler->m_curr->leading_comments |= COMM_LEADING;
     }
 }
@@ -5539,6 +5553,7 @@ seqflow_start:
         else if(first == ']')
         {
             _c4dbgp("seqflow[RNXT]: end!");
+            _maybe_apply_pending_comment_matching(COMM_VAL_TRAILING, COMM_TRAILING);
             _line_progressed(1); // call before
             _end_seq_flow(); // handles comments inside
             goto seqflow_finish;
@@ -5557,7 +5572,7 @@ seqflow_start:
         {
             _c4dbgp("seqflow[RNXT]: comment!");
             _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_options.with_comments());
-            _maybe_apply_pending_comment_matching(COMM_VAL_TRAILING, COMM_TRAILING);
+            _maybe_apply_pending_comment_matching(COMM_VAL_TRAILING, COMM_VAL_TRAILING);
             csubstr comm = _filter_comment(_scan_comment_flow());
             _pend_comment(comm, COMM_LEADING);
         }
