@@ -1606,11 +1606,20 @@ bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) cons
     NodeData const* nd = m_tree->_p(node);
     _RYML_ASSERT_BASIC_(m_tree->callbacks(), type & nd->m_comments);
     _RYML_ASSERT_BASIC_(m_tree->callbacks(), ((type) & (type - 1u)) == 0); // needs to be power of two
-    if((type == COMM_LEADING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_ANCHOR_LEADING)))
+    if(type == COMM_LEADING)
+    {
+        if(nd->m_type & KEY)
+            return (nd->m_comments & (COMM_KEY_LEADING|COMM_KEY_ANCHOR_LEADING));
+        else
+            return (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_ANCHOR_LEADING));
+    }
+    else if((type == COMM_KEY_TRAILING) && (nd->m_comments & COMM_COLON_LEADING))
         return true;
     else if((type == COMM_VAL_ANCHOR_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_TAG_LEADING)))
         return true;
     else if((type == COMM_VAL_TAG_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2)))
+        return true;
+    else if((type == COMM_COLON_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2|COMM_VAL_ANCHOR_LEADING)))
         return true;
     else if((type == COMM_TRAILING) && (nd->m_comments & (COMM_FOOTER)))
         return true;
