@@ -1,8 +1,5 @@
 #include "./test_lib/test_engine.hpp"
 
-// WARNING: don't use raw string literals -- g++-4.8 cannot accept
-// them as macro arguments
-
 #ifndef RYML_WITH_COMMENTS
 #error this test requires RYML_WITH_COMMENTS to be defined
 #endif
@@ -12,6 +9,9 @@ namespace yml {
 
 constexpr const bool multiline = true;
 constexpr const bool singleline = false;
+
+// WARNING: don't use raw string literals -- g++-4.8 cannot accept
+// them as macro arguments
 
 COMMENT_TEST(FlowSeqMinimalBase,
              "["                           "\n"
