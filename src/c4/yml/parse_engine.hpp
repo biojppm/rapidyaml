@@ -729,7 +729,7 @@ private:
     void _apply_pending_comment(CommentType_e expect_type, CommentType_e actual_type);
     void _handle_flow_end_comments();
     void _handle_flow_comma_comments();
-    void _maybe_handle_leading_comment(CommentType_e current);
+    void _maybe_handle_leading_comment_seq_flow(CommentType_e current);
     #endif
 
 private:
