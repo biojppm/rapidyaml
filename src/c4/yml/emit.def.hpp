@@ -1624,9 +1624,12 @@ bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) cons
     else if(type != COMM_TRAILING)
         return false;
     else if(nd->m_next_sibling != NONE)
-        return m_tree->_p(nd->m_next_sibling)->m_comments & COMM_LEADING;
+    {
+        NodeData const* sib = m_tree->_p(nd->m_next_sibling);
+        return (sib->m_comments & COMM_LEADING) && !(sib->m_type & DOC);
+    }
     else if(nd->m_parent != NONE)
-        return m_tree->_p(nd->m_parent)->m_comments & (COMM_LEADING|COMM_VAL_BRACKET_LEADING);
+        return (m_tree->_p(nd->m_parent)->m_comments & COMM_VAL_BRACKET_LEADING);
     return false;
 }
 

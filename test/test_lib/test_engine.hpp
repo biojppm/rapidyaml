@@ -365,6 +365,12 @@ void test_engine_roundtrip_from_events__tree_comments(EngineEvtTestCase const& t
         SCOPED_TRACE("test_invariants_orig");
         test_invariants(event_tree);
     }
+    event_tree.rem_comments(event_tree.root_id(), /*recursive*/true);
+    {
+        SCOPED_TRACE("invariants_after_inject");
+        test_invariants(event_tree);
+    }
+    EXPECT_EQ(0, event_tree.m_comments_size);
     ParserOptions with_comments = {};
     with_comments.with_comments(true);
     for(csubstr fmt : {
@@ -374,7 +380,6 @@ void test_engine_roundtrip_from_events__tree_comments(EngineEvtTestCase const& t
     {
         RYML_TRACE_FMT("injected comment format=~~~{}~~~", fmt);
         Tree injected_tree = event_tree;
-        injected_tree.rem_comments(injected_tree.root_id(), /*recursive*/true);
         EXPECT_EQ(0, injected_tree.m_comments_size);
         id_type num_comments = inject_comments_in_tree(&injected_tree, fmt);
         EXPECT_EQ(num_comments, injected_tree.m_comments_size);
@@ -403,7 +408,7 @@ void test_engine_roundtrip_from_events__tree_comments(EngineEvtTestCase const& t
         if(testing::Test::HasFailure())
         {
             printf("source: ~~~\n%.*s~~~\n", (int)test_case.yaml.size(), test_case.yaml.data());
-            print_tree("parsed_tree", event_tree);
+            print_tree("event_tree", event_tree);
             print_tree("injected_tree", injected_tree);
             printf("injected_tree_emitted: ~~~\n%.*s~~~\n", (int)injected_tree_emitted.size(), injected_tree_emitted.data());
             print_tree("after_roundtrip", after_roundtrip);

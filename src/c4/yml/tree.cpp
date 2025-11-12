@@ -266,7 +266,7 @@ void Tree::_copy(Tree const& that)
     _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap == 0, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, that.m_comments_cap >= that.m_comments_size, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, !!that.m_comments_cap == !!that.m_comments_buf, this, NONE);
-    if(that.m_comments_size)
+    if(that.m_comments_cap)
     {
         m_comments_buf = _RYML_CB_ALLOC_HINT(m_callbacks, CommentData, (size_t)that.m_comments_cap, that.m_comments_buf);
         memcpy(m_comments_buf, that.m_comments_buf, (size_t)that.m_comments_size * sizeof(CommentData));

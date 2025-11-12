@@ -1292,6 +1292,7 @@ public:
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
         // FIXME
+        dst.m_comments = src.m_comments;
         dst.m_first_comment = src.m_first_comment;
         dst.m_last_comment = src.m_last_comment;
         #endif
@@ -1306,6 +1307,7 @@ public:
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
         // FIXME
+        dst.m_comments = src.m_comments;
         dst.m_first_comment = src.m_first_comment;
         dst.m_last_comment = src.m_last_comment;
         #endif
@@ -1319,6 +1321,7 @@ public:
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
         // FIXME
+        dst.m_comments = src.m_comments;
         dst.m_first_comment = src.m_first_comment;
         dst.m_last_comment = src.m_last_comment;
         #endif
@@ -1332,6 +1335,7 @@ public:
         dst.m_val  = src.m_val;
         #ifdef RYML_WITH_COMMENTS
         // FIXME
+        dst.m_comments = src.m_comments;
         dst.m_first_comment = src.m_first_comment;
         dst.m_last_comment = src.m_last_comment;
         #endif
@@ -1352,6 +1356,7 @@ public:
         n->m_first_child = NONE;
         n->m_last_child = NONE;
         #ifdef RYML_WITH_COMMENTS
+        n->m_comments = {};
         n->m_first_comment = NONE;
         n->m_last_comment = NONE;
         #endif // RYML_WITH_COMMENTS
