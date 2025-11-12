@@ -231,7 +231,47 @@ COMMENT_TEST(FlowSeqMinimal0,
     ___(ps.end_stream());
 }
 
-COMMENT_TEST(FlowSeqMinimal0WithSepLeadingComma,
+COMMENT_TEST(FlowSeqMinimal0WithSep,
+             "["                           "\n"
+             "  # 1"                       "\n"
+             "  val1, # 2 ~"               "\n"
+             "  # 3"                       "\n"
+             "  val2 # 4 ~"                "\n"
+             "  # 5"                       "\n"
+             "]"                           "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "+SEQ []"                     "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "=VAL :val1"                  "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[LEADING] 3"          "\n"
+             "=VAL :val2"                  "\n"
+             "=COMM #[TRAILING] 4"         "\n"
+             "=COMM #[VAL_BRACKET_LEADING] 5"    "\n"
+             "-SEQ"                        "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_comment(" 2", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.add_comment(" 3", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.add_comment(" 4", COMM_TRAILING));
+    ___(ps.add_comment(" 5", COMM_VAL_BRACKET_LEADING));
+    ___(ps.end_seq_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(FlowSeqMinimal0WithSepAndComma,
              "["                           "\n"
              "  # 1"                       "\n"
              "  val1, # 2 ~"               "\n"
@@ -247,9 +287,13 @@ COMMENT_TEST(FlowSeqMinimal0WithSepLeadingComma,
              "+SEQ []"                     "\n"
              "=COMM #[LEADING] 1"          "\n"
              "=VAL :val1"                  "\n"
-             "=COMM #[TRAILING] 2\\n 3"    "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[LEADING] 3"          "\n"
              "=VAL :val2"                  "\n"
-             "=COMM #[TRAILING] 4\\n 5"    "\n"
+             "=COMM #[VAL_TRAILING] 4"     "\n"
+             "=COMM #[COMMA_LEADING] 5"    "\n"
+             "=COMM #[TRAILING] 6"         "\n"
+             "=COMM #[VAL_BRACKET_LEADING] 7"    "\n"
              "-SEQ"                        "\n"
              "-DOC"                        "\n"
              "-STR"                        "\n"
@@ -260,10 +304,14 @@ COMMENT_TEST(FlowSeqMinimal0WithSepLeadingComma,
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.set_val_scalar_plain("val1"));
-    ___(ps.add_comment(" 2\n 3", COMM_TRAILING));
+    ___(ps.add_comment(" 2", COMM_TRAILING));
     ___(ps.add_sibling());
+    ___(ps.add_comment(" 3", COMM_LEADING));
     ___(ps.set_val_scalar_plain("val2"));
-    ___(ps.add_comment(" 4\n 5", COMM_TRAILING));
+    ___(ps.add_comment(" 4", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 5", COMM_COMMA_LEADING));
+    ___(ps.add_comment(" 6", COMM_TRAILING));
+    ___(ps.add_comment(" 7", COMM_VAL_BRACKET_LEADING));
     ___(ps.end_seq_flow(multiline));
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -523,7 +571,7 @@ COMMENT_TEST(FlowSeqBasic1WithSep,
              "=COMM #[VAL_TRAILING] 8"                 "\n"
              "=COMM #[COMMA_LEADING] 9"                "\n"
              "=COMM #[TRAILING] 10"                    "\n"
-             "=COMM #[LEADING] 11"                     "\n"
+             "=COMM #[VAL_BRACKET_LEADING] 11"         "\n"
              "-SEQ"                                    "\n"
              "=COMM #[TRAILING] 12"                    "\n"
              "=COMM #[FOOTER] 13"                      "\n"
@@ -547,6 +595,7 @@ COMMENT_TEST(FlowSeqBasic1WithSep,
     ___(ps.add_comment(" 8", COMM_VAL_TRAILING));
     ___(ps.add_comment(" 9", COMM_COMMA_LEADING));
     ___(ps.add_comment(" 10", COMM_TRAILING));
+    ___(ps.add_comment(" 11", COMM_VAL_BRACKET_LEADING));
     ___(ps.end_seq_flow(multiline));
     ___(ps.add_comment(" 12", COMM_TRAILING));
     ___(ps.add_comment(" 13", COMM_FOOTER));
@@ -645,132 +694,25 @@ COMMENT_TEST(FlowSeqMultiline0,
     ___(ps.end_stream());
 }
 
-COMMENT_TEST(FlowSeqMultiline1,
-            "---\n"
+COMMENT_TEST(FlowSeqMultiline0WithSep,
             "# 1 leading comment\n"
             "# 1 continued\n"
-            "[ # 2 bracket trailing comment\n"
-            "  # 2 continued\n"
-            "] # 3 trailing comment\n"
-            "  # 3 continued\n"
-            "# 4 footer comment\n"
-            "# 4 continued\n"
-            "---\n"
-            "# 5 leading comment\n"
+            "[ # 2 bracket trailing comment ~\n"
+            "  # 3 bracket leading comment\n"
+            "] # 4 trailing comment\n"
+            "  # 4 continued ~\n"
+            "# 5 footer comment\n"
             "# 5 continued\n"
-            "[ # 6 bracket trailing comment\n"
-            "  # 6 continued\n"
-            "] # 7 trailing comment\n"
-            "  # 7 continued\n"
-            "# 8 footer comment\n"
-            "# 8 continued\n"
-            ,
-            "---\n"
-            "# 1 leading comment\n"
-            "# 1 continued\n"
-            "[ # 2 bracket trailing comment\n"
-            "  # 2 continued\n"
-            "] # 3 trailing comment\n"
-            "  # 3 continued\n"
-            "  # 4 footer comment\n"
-            "  # 4 continued\n"
-            "---\n"
-            "# 5 leading comment\n"
-            "# 5 continued\n"
-            "[ # 6 bracket trailing comment\n"
-            "  # 6 continued\n"
-            "] # 7 trailing comment\n"
-            "  # 7 continued\n"
-            "  # 8 footer comment\n"
-            "  # 8 continued\n"
-            ,
-            "+STR\n"
-            "+DOC ---\n"
-            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
-            "+SEQ []\n"
-            "=COMM #[VAL_BRACKET_TRAILING] 2 bracket trailing comment\\n 2 continued\n"
-            "-SEQ\n"
-            "=COMM #[TRAILING] 3 trailing comment\\n 3 continued\\n 4 footer comment\\n 4 continued\n"
-            "-DOC\n"
-            "+DOC ---\n"
-            "=COMM #[LEADING] 5 leading comment\\n 5 continued\n"
-            "+SEQ []\n"
-            "=COMM #[VAL_BRACKET_TRAILING] 6 bracket trailing comment\\n 6 continued\n"
-            "-SEQ\n"
-            "=COMM #[TRAILING] 7 trailing comment\\n 7 continued\\n 8 footer comment\\n 8 continued\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc_expl());
-    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
-    ___(ps.begin_seq_val_flow());
-    ___(ps.add_comment(" 2 bracket trailing comment\n 2 continued", COMM_VAL_BRACKET_TRAILING));
-    ___(ps.end_seq_flow(multiline));
-    ___(ps.add_comment(" 3 trailing comment\n 3 continued\n 4 footer comment\n 4 continued", COMM_TRAILING));
-    ___(ps.end_doc());
-    ___(ps.begin_doc_expl());
-    ___(ps.add_comment(" 5 leading comment\n 5 continued", COMM_LEADING));
-    ___(ps.begin_seq_val_flow());
-    ___(ps.add_comment(" 6 bracket trailing comment\n 6 continued", COMM_VAL_BRACKET_TRAILING));
-    ___(ps.end_seq_flow(multiline));
-    ___(ps.add_comment(" 7 trailing comment\n 7 continued\n 8 footer comment\n 8 continued", COMM_TRAILING));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-COMMENT_TEST(FlowSeqMultiline2,
-            "# 1 leading comment\n"
-            "# 1 continued\n"
-            "[ # 2 bracket trailing comment\n"
-            "  # 2 continued\n"
-            "] # 3 trailing comment\n"
-            "  # 3 continued\n"
-            "# 4 footer comment\n"
-            "# 4 continued\n"
-            "---\n"
-            "# 5 leading comment\n"
-            "# 5 continued\n"
-            "[ # 6 bracket trailing comment\n"
-            "  # 6 continued\n"
-            "] # 7 trailing comment\n"
-            "  # 7 continued\n"
-            "# 8 footer comment\n"
-            "# 8 continued\n"
-            ,
-            "---\n"
-            "# 1 leading comment\n"
-            "# 1 continued\n"
-            "[ # 2 bracket trailing comment\n"
-            "  # 2 continued\n"
-            "] # 3 trailing comment\n"
-            "  # 3 continued\n"
-            "  # 4 footer comment\n"
-            "  # 4 continued\n"
-            "---\n"
-            "# 5 leading comment\n"
-            "# 5 continued\n"
-            "[ # 6 bracket trailing comment\n"
-            "  # 6 continued\n"
-            "] # 7 trailing comment\n"
-            "  # 7 continued\n"
-            "  # 8 footer comment\n"
-            "  # 8 continued\n"
             ,
             "+STR\n"
             "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+DOC\n"
             "+SEQ []\n"
-            "=COMM #[VAL_BRACKET_TRAILING] 2 bracket trailing comment\\n 2 continued\n"
+            "=COMM #[VAL_BRACKET_TRAILING] 2 bracket trailing comment\n"
+            "=COMM #[VAL_BRACKET_LEADING] 3 bracket leading comment\n"
             "-SEQ\n"
-            "=COMM #[TRAILING] 3 trailing comment\\n 3 continued\\n 4 footer comment\\n 4 continued\n"
-            "-DOC\n"
-            "+DOC ---\n"
-            "=COMM #[LEADING] 5 leading comment\\n 5 continued\n"
-            "+SEQ []\n"
-            "=COMM #[VAL_BRACKET_TRAILING] 6 bracket trailing comment\\n 6 continued\n"
-            "-SEQ\n"
-            "=COMM #[TRAILING] 7 trailing comment\\n 7 continued\\n 8 footer comment\\n 8 continued\n"
+            "=COMM #[TRAILING] 4 trailing comment\\n 4 continued\n"
+            "=COMM #[FOOTER] 5 footer comment\\n 5 continued\n"
             "-DOC\n"
             "-STR\n")
 {
@@ -778,16 +720,11 @@ COMMENT_TEST(FlowSeqMultiline2,
     ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_flow());
-    ___(ps.add_comment(" 2 bracket trailing comment\n 2 continued", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 2 bracket trailing comment", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 3 bracket leading comment", COMM_VAL_BRACKET_LEADING));
     ___(ps.end_seq_flow(multiline));
-    ___(ps.add_comment(" 3 trailing comment\n 3 continued\n 4 footer comment\n 4 continued", COMM_TRAILING));
-    ___(ps.end_doc());
-    ___(ps.begin_doc_expl());
-    ___(ps.add_comment(" 5 leading comment\n 5 continued", COMM_LEADING));
-    ___(ps.begin_seq_val_flow());
-    ___(ps.add_comment(" 6 bracket trailing comment\n 6 continued", COMM_VAL_BRACKET_TRAILING));
-    ___(ps.end_seq_flow(multiline));
-    ___(ps.add_comment(" 7 trailing comment\n 7 continued\n 8 footer comment\n 8 continued", COMM_TRAILING));
+    ___(ps.add_comment(" 4 trailing comment\n 4 continued", COMM_TRAILING));
+    ___(ps.add_comment(" 5 footer comment\n 5 continued", COMM_FOOTER));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
