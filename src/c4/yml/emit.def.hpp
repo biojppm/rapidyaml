@@ -1609,15 +1609,42 @@ bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) cons
     if(type == COMM_LEADING)
     {
         if(nd->m_type & KEY)
-            return (nd->m_comments & (COMM_KEY_LEADING|COMM_KEY_ANCHOR_LEADING));
+        {
+            if(nd->m_type & KEYANCH)
+                return (nd->m_comments & COMM_KEY_ANCHOR_LEADING);
+            else if(nd->m_type & KEYTAG)
+                return (nd->m_comments & COMM_KEY_TAG_LEADING);
+            else
+                return (nd->m_comments & COMM_KEY_LEADING);
+        }
         else
-            return (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_ANCHOR_LEADING));
+        {
+            if(nd->m_type & VALANCH)
+                return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
+            else if(nd->m_type & VALTAG)
+                return (nd->m_comments & COMM_VAL_TAG_LEADING);
+            else
+                return (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2));
+        }
+    }
+    else if(type == COMM_VAL_LEADING)
+    {
+        if(nd->m_type & VALANCH)
+            return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
+        else if(nd->m_type & VALTAG)
+            return (nd->m_comments & COMM_VAL_TAG_LEADING);
+        else
+            return (nd->m_comments & COMM_VAL_LEADING2);
     }
     else if((type == COMM_KEY_TRAILING) && (nd->m_comments & COMM_COLON_LEADING))
         return true;
     else if((type == COMM_VAL_ANCHOR_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_TAG_LEADING)))
         return true;
+    else if((type == COMM_KEY_ANCHOR_TRAILING) && (nd->m_comments & (COMM_KEY_LEADING|COMM_KEY_TAG_LEADING)))
+        return true;
     else if((type == COMM_VAL_TAG_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2)))
+        return true;
+    else if((type == COMM_KEY_TAG_TRAILING) && (nd->m_comments & COMM_KEY_LEADING))
         return true;
     else if((type == COMM_COLON_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2|COMM_VAL_ANCHOR_LEADING)))
         return true;
