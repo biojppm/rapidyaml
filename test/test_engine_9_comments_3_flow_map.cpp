@@ -791,6 +791,278 @@ COMMENT_TEST(FlowMap1WithSep,
     ___(ps.end_stream());
 }
 
+COMMENT_TEST(FlowMap2,
+             "# 0"                 "\n"
+             "{ # 1"               "\n"
+             "  # 2"               "\n"
+             "  foo # 3"           "\n"
+             "  # 4"               "\n"
+             "  : # 5"             "\n"
+             "  # 6"               "\n"
+             "  0 # 7"             "\n"
+             "  # 8"               "\n"
+             "  , # 9"             "\n"
+             "  # 10"              "\n"
+             "  bar # 11"          "\n"
+             "  # 12"              "\n"
+             "  : # 13"            "\n"
+             "  # 14"              "\n"
+             "  1 # 15"            "\n"
+             "  # 16"              "\n"
+             "  , # 17"            "\n"
+             "  # 18"              "\n"
+             "  map # 19"          "\n"
+             "  # 20"              "\n"
+             "  : # 21"            "\n"
+             "  # 22"              "\n"
+             "  { # 23"            "\n"
+             "    # 24"            "\n"
+             "    mapchild # 25"   "\n"
+             "    # 26"            "\n"
+             "    : # 27"          "\n"
+             "    # 28"            "\n"
+             "    yes # 29"        "\n"
+             "    # 30"            "\n"
+             "    , # 31"          "\n"
+             "    # 32"            "\n"
+             "  } # 33"            "\n"
+             "  # 34"              "\n"
+             "  , # 35"            "\n"
+             "  # 36"              "\n"
+             "  seq # 37"          "\n"
+             "  # 38"              "\n"
+             "  : # 39"            "\n"
+             "  # 40"              "\n"
+             "  [ # 41"            "\n"
+             "    # 42"            "\n"
+             "    seqchild # 43"   "\n"
+             "    # 44"            "\n"
+             "    , # 45"          "\n"
+             "    # 46"            "\n"
+             "  ] # 47"            "\n"
+             "  # 48"              "\n"
+             "  , # 49"            "\n"
+             "  # 50"              "\n"
+             "} # 51"              "\n"
+             "# 52"                "\n"
+             ,
+             "# 0"                 "\n"
+             "{ # 1"               "\n"
+             "  # 2"               "\n"
+             "  foo # 3"           "\n"
+             "      # 4"           "\n"
+             "  : # 5"             "\n"
+             "    # 6"             "\n"
+             "  0 # 7"             "\n"
+             "    # 8"             "\n"
+             "  , # 9"             "\n"
+             "    # 10"            "\n"
+             "  bar # 11"          "\n"
+             "      # 12"          "\n"
+             "  : # 13"            "\n"
+             "    # 14"            "\n"
+             "  1 # 15"            "\n"
+             "    # 16"            "\n"
+             "  , # 17"            "\n"
+             "    # 18"            "\n"
+             "  map # 19"          "\n"
+             "      # 20"          "\n"
+             "  : # 21"            "\n"
+             "    # 22"            "\n"
+             "  { # 23"            "\n"
+             "    # 24"            "\n"
+             "    mapchild # 25"   "\n"
+             "             # 26"   "\n"
+             "    : # 27"          "\n"
+             "      # 28"          "\n"
+             "    yes # 29"        "\n"
+             "        # 30"        "\n"
+             "    , # 31"          "\n"
+             "      # 32"          "\n"
+             "  } # 33"            "\n"
+             "    # 34"            "\n"
+             "  , # 35"            "\n"
+             "    # 36"            "\n"
+             "  seq # 37"          "\n"
+             "      # 38"          "\n"
+             "  : # 39"            "\n"
+             "    # 40"            "\n"
+             "  [ # 41"            "\n"
+             "    # 42"            "\n"
+             "    seqchild # 43"   "\n"
+             "             # 44"   "\n"
+             "    , # 45"          "\n"
+             "      # 46"          "\n"
+             "  ] # 47"            "\n"
+             "    # 48"            "\n"
+             "  , # 49"            "\n"
+             "    # 50"            "\n"
+             "} # 51"              "\n"
+             "  # 52"              "\n"
+             ,
+             ""
+             "")
+{
+    ___(ps.begin_stream());
+    ___(ps.add_comment(" 0", COMM_LEADING));
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment(" 1\n 2", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.add_comment(" 3\n 4", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 5\n 6", COMM_COLON_TRAILING));
+    ___(ps.set_val_scalar_plain("0"));
+    ___(ps.add_comment(" 7\n 8", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 9\n 10", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("bar"));
+    ___(ps.add_comment(" 11\n 12", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 13\n 14", COMM_COLON_TRAILING));
+    ___(ps.set_val_scalar_plain("1"));
+    ___(ps.add_comment(" 15\n 16", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 17\n 18", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.add_comment(" 19\n 20", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 21\n 22", COMM_COLON_TRAILING));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment(" 23\n 24", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.set_key_scalar_plain("mapchild"));
+    ___(ps.add_comment(" 25\n 26", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 27\n 28", COMM_COLON_TRAILING));
+    ___(ps.set_val_scalar_plain("yes"));
+    ___(ps.add_comment(" 29\n 30", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 31\n 32", COMM_TRAILING));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.add_comment(" 33\n 34", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 35\n 36", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("seq"));
+    ___(ps.add_comment(" 37\n 38", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 39\n 40", COMM_COLON_TRAILING));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment(" 41\n 42", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.set_val_scalar_plain("seqchild"));
+    ___(ps.add_comment(" 43\n 44", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 45\n 46", COMM_COLON_TRAILING));
+    ___(ps.end_seq_flow(multiline));
+    ___(ps.add_comment(" 47\n 48", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 49\n 50", COMM_TRAILING));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.add_comment(" 51\n 52", COMM_TRAILING));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(FlowMap2WithSep,
+             "# 0"                 "\n"
+             "{ # 1 ~"             "\n"
+             "  # 2"               "\n"
+             "  foo # 3 ~"         "\n"
+             "  # 4"               "\n"
+             "  : # 5 ~"           "\n"
+             "  # 6"               "\n"
+             "  0 # 7 ~"           "\n"
+             "  # 8"               "\n"
+             "  , # 9 ~"           "\n"
+             "  # 10"              "\n"
+             "  bar # 11 ~"        "\n"
+             "  # 12"              "\n"
+             "  : # 13 ~"          "\n"
+             "  # 14"              "\n"
+             "  1 # 15 ~"          "\n"
+             "  # 16"              "\n"
+             "  , # 17 ~"          "\n"
+             "  # 18"              "\n"
+             "  map # 19 ~"        "\n"
+             "  # 20"              "\n"
+             "  : # 21 ~"          "\n"
+             "  # 22"              "\n"
+             "  { # 23 ~"          "\n"
+             "    # 24"            "\n"
+             "    mapchild # 25 ~" "\n"
+             "    # 26"            "\n"
+             "    : # 27 ~"        "\n"
+             "    # 28"            "\n"
+             "    yes # 29 ~"      "\n"
+             "    # 30"            "\n"
+             "    , # 31 ~"        "\n"
+             "    # 32"            "\n"
+             "  } # 33 ~"          "\n"
+             "  # 34"              "\n"
+             "  , # 35 ~"          "\n"
+             "  # 36"              "\n"
+             "  seq # 37 ~"        "\n"
+             "  # 38"              "\n"
+             "  : # 39 ~"          "\n"
+             "  # 40"              "\n"
+             "  [ # 41 ~"          "\n"
+             "    # 42"            "\n"
+             "    seqchild # 43 ~" "\n"
+             "    # 44"            "\n"
+             "    , # 45 ~"        "\n"
+             "    # 46"            "\n"
+             "  ] # 47 ~"          "\n"
+             "  # 48"              "\n"
+             "  , # 49 ~"          "\n"
+             "  # 50"              "\n"
+             "} # 51 ~"            "\n"
+             "# 52"                "\n"
+             ,
+             ""
+             "")
+{
+    ___(ps.begin_stream());
+    ___(ps.add_comment(" 0", COMM_LEADING));
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment(" 1\n 2", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.add_comment(" 3\n 4", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 5\n 6", COMM_COLON_TRAILING));
+    ___(ps.set_val_scalar_plain("0"));
+    ___(ps.add_comment(" 7\n 8", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 9\n 10", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("bar"));
+    ___(ps.add_comment(" 11\n 12", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 13\n 14", COMM_COLON_TRAILING));
+    ___(ps.set_val_scalar_plain("1"));
+    ___(ps.add_comment(" 15\n 16", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 17\n 18", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.add_comment(" 19\n 20", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 21\n 22", COMM_COLON_TRAILING));
+    ___(ps.begin_map_val_flow());
+    ___(ps.add_comment(" 23\n 24", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.set_key_scalar_plain("mapchild"));
+    ___(ps.add_comment(" 25\n 26", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 27\n 28", COMM_COLON_TRAILING));
+    ___(ps.set_val_scalar_plain("yes"));
+    ___(ps.add_comment(" 29\n 30", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 31\n 32", COMM_TRAILING));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.add_comment(" 33\n 34", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 35\n 36", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("seq"));
+    ___(ps.add_comment(" 37\n 38", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 39\n 40", COMM_COLON_TRAILING));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.add_comment(" 41\n 42", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.set_val_scalar_plain("seqchild"));
+    ___(ps.add_comment(" 43\n 44", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 45\n 46", COMM_COLON_TRAILING));
+    ___(ps.end_seq_flow(multiline));
+    ___(ps.add_comment(" 47\n 48", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 49\n 50", COMM_TRAILING));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.add_comment(" 51\n 52", COMM_TRAILING));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
