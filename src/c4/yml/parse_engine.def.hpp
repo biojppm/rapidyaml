@@ -4306,7 +4306,7 @@ void ParseEngine<EventHandler>::_handle_colon()
 }
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line)
+void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line _RYML_WITH_COMMENTS(, CommentType_e leading_type))
 {
     _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, str, indentation, line);
     if(C4_UNLIKELY(dst->num_entries >= C4_COUNTOF(dst->annotations))) // NOLINT(bugprone-sizeof-expression)
@@ -4314,6 +4314,37 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
     dst->annotations[dst->num_entries].str = str;
     dst->annotations[dst->num_entries].indentation = indentation;
     dst->annotations[dst->num_entries].line = line;
+    #ifdef RYML_WITH_COMMENTS
+    if(m_pending_comments.num_entries == 0)
+    {
+        dst->annotations[dst->num_entries].leading_comment.type = {};
+        dst->annotations[dst->num_entries].trailing_comment.type = {};
+    }
+    else if(m_pending_comments.num_entries)
+    {
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.num_entries == 2);
+        if(m_pending_comments.entries[0].type == COMM_LEADING || m_pending_comments.entries[0].type == COMM_FOOTER)
+        {
+            dst->annotations[dst->num_entries].leading_comment.txt = m_pending_comments.entries[0].txt;
+            dst->annotations[dst->num_entries].leading_comment.type = leading_type;
+        }
+        else
+        {
+            dst->annotations[dst->num_entries].trailing_comment.txt = m_pending_comments.entries[0].txt;
+            dst->annotations[dst->num_entries].trailing_comment.type = m_pending_comments.entries[0].type;
+        }
+        m_pending_comments.num_entries = 0;
+    }
+    else
+    {
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.entries[0].type == COMM_LEADING || m_pending_comments.entries[0].type == COMM_FOOTER);
+        dst->annotations[dst->num_entries].leading_comment.txt = m_pending_comments.entries[0].txt;
+        dst->annotations[dst->num_entries].leading_comment.type = leading_type;
+        dst->annotations[dst->num_entries].trailing_comment.txt = m_pending_comments.entries[1].txt;
+        dst->annotations[dst->num_entries].trailing_comment.type = m_pending_comments.entries[1].type;
+        m_pending_comments.num_entries = 0;
+    }
+    #endif
     ++dst->num_entries;
 }
 
@@ -4376,7 +4407,9 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
         if(C4_LIKELY(m_pending_tags.num_entries == 1))
         {
             _check_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_tags);
         }
         else
@@ -4389,7 +4422,9 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
         _c4dbgpf("annotations_before_blck_key_scalar, #anchors={}", m_pending_anchors.num_entries);
         if(C4_LIKELY(m_pending_anchors.num_entries == 1))
         {
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_anchors);
         }
         else
@@ -4409,7 +4444,9 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
         if(C4_LIKELY(m_pending_tags.num_entries == 1))
         {
             _check_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_tags);
         }
         else
@@ -4422,7 +4459,9 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
         _c4dbgpf("annotations_before_blck_val_scalar, #anchors={}", m_pending_anchors.num_entries);
         if(C4_LIKELY(m_pending_anchors.num_entries == 1))
         {
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_val_anchor(m_pending_anchors.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_anchors);
         }
         else
@@ -4439,8 +4478,10 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t 
     if(m_pending_tags.num_entries == 2)
     {
         _c4dbgp("2 tags, setting entry 0");
+        _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
         _check_tag(m_pending_tags.annotations[0].str);
         m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
+        _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
     }
     else if(m_pending_tags.num_entries == 1)
     {
@@ -4449,7 +4490,9 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t 
         {
             _c4dbgp("...tag is for the map. setting it.");
             _check_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_tags);
         }
     }
@@ -4457,7 +4500,9 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t 
     if(m_pending_anchors.num_entries == 2)
     {
         _c4dbgp("2 anchors, setting entry 0");
+        _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
         m_evt_handler->set_val_anchor(m_pending_anchors.annotations[0].str);
+        _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
     }
     else if(m_pending_anchors.num_entries == 1)
     {
@@ -4465,7 +4510,9 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t 
         if(m_pending_anchors.annotations[0].line < current_line)
         {
             _c4dbgp("...anchor is for the map. setting it.");
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_val_anchor(m_pending_anchors.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_anchors);
         }
     }
@@ -4478,11 +4525,15 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck_as_key(
     if(m_pending_tags.num_entries == 2)
     {
         _check_tag(m_pending_tags.annotations[0].str);
+        _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
         m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+        _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
     }
     if(m_pending_anchors.num_entries == 2)
     {
+        _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
         m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
+        _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
     }
 }
 
@@ -4499,23 +4550,31 @@ void ParseEngine<EventHandler>::_handle_annotations_and_indentation_after_start_
         {
         case 1u:
             _check_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_tags);
             break;
         case 2u:
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[1].leading_comment.maybe_apply(m_evt_handler);)
             _check_tag(m_pending_tags.annotations[1].str);
             m_evt_handler->set_key_tag(m_pending_tags.annotations[1].str);
+            _RYML_WITH_COMMENTS(m_pending_tags.annotations[1].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_tags);
             break;
         }
         switch(m_pending_anchors.num_entries)
         {
         case 1u:
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[0].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_anchors);
             break;
         case 2u:
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[1].leading_comment.maybe_apply(m_evt_handler);)
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[1].str);
+            _RYML_WITH_COMMENTS(m_pending_anchors.annotations[1].trailing_comment.maybe_apply(m_evt_handler);)
             _clear_annotations(&m_pending_anchors);
             break;
         }
@@ -6652,7 +6711,7 @@ seqblck_start:
             _c4dbgpf("seqblck[RVAL]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
             // we need to buffer the anchors, as there may be two
             // consecutive anchors in here
-            _add_annotation(&m_pending_anchors, anchor, startindent, startline);
+            _add_annotation(&m_pending_anchors, anchor, startindent, startline _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
         }
         else if(first == '*')
         {
@@ -6685,7 +6744,7 @@ seqblck_start:
             _c4dbgpf("seqblck[RVAL]: val tag! [{}]~~~{}~~~", tag.len, tag);
             // we need to buffer the tags, as there may be two
             // consecutive tags in here
-            _add_annotation(&m_pending_tags, tag, startindent, startline);
+            _add_annotation(&m_pending_tags, tag, startindent, startline _RYML_WITH_COMMENTS(, COMM_VAL_TAG_LEADING));
         }
         else if(first == '?')
         {
@@ -7028,13 +7087,13 @@ mapblck_start:
         {
             csubstr anchor = _scan_anchor();
             _c4dbgpf("mapblck[RKEY]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
-            _add_annotation(&m_pending_anchors, anchor, startindent, startline);
+            _add_annotation(&m_pending_anchors, anchor, startindent, startline _RYML_WITH_COMMENTS(, COMM_KEY_ANCHOR_LEADING));
         }
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
             _c4dbgpf("mapblck[RKEY]: key tag! [{}]~~~{}~~~", tag.len, tag);
-            _add_annotation(&m_pending_tags, tag, startindent, startline);
+            _add_annotation(&m_pending_tags, tag, startindent, startline _RYML_WITH_COMMENTS(, COMM_KEY_TAG_LEADING));
         }
         else if(first == '[')
         {
@@ -7537,7 +7596,7 @@ mapblck_start:
             }
             // we need to buffer the anchors, as there may be two
             // consecutive anchors in here
-            _add_annotation(&m_pending_anchors, anchor, startindent, startline);
+            _add_annotation(&m_pending_anchors, anchor, startindent, startline _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
         }
         else if(first == '!')
         {
@@ -7553,7 +7612,7 @@ mapblck_start:
             }
             // we need to buffer the tags, as there may be two
             // consecutive tags in here
-            _add_annotation(&m_pending_tags, tag, startindent, startline);
+            _add_annotation(&m_pending_tags, tag, startindent, startline _RYML_WITH_COMMENTS(, COMM_VAL_TAG_LEADING));
         }
         else if(first == '?')
         {
@@ -7941,13 +8000,13 @@ mapblck_start:
         {
             csubstr anchor = _scan_anchor();
             _c4dbgpf("mapblck[QMRK]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
-            _add_annotation(&m_pending_anchors, anchor, startindent, startline);
+            _add_annotation(&m_pending_anchors, anchor, startindent, startline _RYML_WITH_COMMENTS(, COMM_KEY_ANCHOR_LEADING));
         }
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
             _c4dbgpf("mapblck[QMRK]: key tag! [{}]~~~{}~~~", tag.len, tag);
-            _add_annotation(&m_pending_tags, tag, startindent, startline);
+            _add_annotation(&m_pending_tags, tag, startindent, startline _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
         }
         else if(first == '-')
         {
@@ -8389,9 +8448,17 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         const size_t line = m_evt_handler->m_curr->pos.line;
-        _add_annotation(&m_pending_anchors, anchor, remindent, line);
+        _add_annotation(&m_pending_anchors, anchor, remindent, line _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
         _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         m_doc_empty = false;
+        #ifdef RYML_WITH_COMMENTS
+        if(_maybe_advance_to_trailing_comment())
+        {
+            _c4dbgp("trailing anchor comment!");
+            csubstr comm = _filter_comment(_scan_comment_flow());
+            _pend_comment(comm, COMM_VAL_ANCHOR_TRAILING);
+        }
+        #endif
     }
     else if(first == '*')
     {
@@ -8427,7 +8494,15 @@ void ParseEngine<EventHandler>::_handle_unk()
         // consecutive tags in here
         const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
         const size_t line = m_evt_handler->m_curr->pos.line;
-        _add_annotation(&m_pending_tags, tag, indentation, line);
+        _add_annotation(&m_pending_tags, tag, indentation, line _RYML_WITH_COMMENTS(, COMM_VAL_TAG_LEADING));
+        #ifdef RYML_WITH_COMMENTS
+        if(_maybe_advance_to_trailing_comment())
+        {
+            _c4dbgp("trailing tag comment!");
+            csubstr comm = _filter_comment(_scan_comment_flow());
+            _pend_comment(comm, COMM_VAL_TAG_TRAILING);
+        }
+        #endif
     }
     #ifdef RYML_WITH_COMMENTS
     else if(first == '#')
@@ -8697,7 +8772,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _c4dbgpf("usty[RMAP]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
             const size_t line = m_evt_handler->m_curr->pos.line;
-            _add_annotation(&m_pending_anchors, anchor, indentation, line);
+            _add_annotation(&m_pending_anchors, anchor, indentation, line _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
             _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         }
         else if(first == '*')
@@ -8730,7 +8805,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             // consecutive tags in here
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
             const size_t line = m_evt_handler->m_curr->pos.line;
-            _add_annotation(&m_pending_tags, tag, indentation, line);
+            _add_annotation(&m_pending_tags, tag, indentation, line _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
         }
         else if(first == '[' || (first == '-' && _is_blck_token(rem)))
         {
@@ -8889,7 +8964,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _c4dbgpf("usty[UNK]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
             const size_t line = m_evt_handler->m_curr->pos.line;
-            _add_annotation(&m_pending_anchors, anchor, indentation, line);
+            _add_annotation(&m_pending_anchors, anchor, indentation, line _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
             _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         }
         else if(first == '*')
@@ -8924,7 +8999,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             // consecutive tags in here
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
             const size_t line = m_evt_handler->m_curr->pos.line;
-            _add_annotation(&m_pending_tags, tag, indentation, line);
+            _add_annotation(&m_pending_tags, tag, indentation, line _RYML_WITH_COMMENTS(, COMM_VAL_TAG_LEADING));
         }
         else
         {

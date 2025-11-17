@@ -688,7 +688,25 @@ private:
 
 private:
 
-    /** store pending tag or anchor/ref annotations */
+    #ifdef RYML_WITH_COMMENTS
+    struct PendingComment
+    {
+        csubstr txt;
+        CommentType_e type;
+        void maybe_apply(EventHandler *h) const
+        {
+            if(type != COMM_NONE)
+                h->add_comment(txt, type);
+        }
+    };
+    enum : size_t { max_pending_comments = 2 };
+    struct PendingComments
+    {
+        PendingComment entries[max_pending_comments];
+        size_t num_entries;
+    };
+    #endif
+    /* store pending tag or anchor/ref annotations */
     struct Annotation
     {
         struct Entry
@@ -696,13 +714,15 @@ private:
             csubstr str;
             size_t indentation;
             size_t line;
+            _RYML_WITH_COMMENTS(PendingComment leading_comment;)
+            _RYML_WITH_COMMENTS(PendingComment trailing_comment;)
         };
         Entry annotations[2];
         size_t num_entries;
     };
 
     void _handle_colon();
-    void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line);
+    void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line _RYML_WITH_COMMENTS(, CommentType_e leading_type));
     void _clear_annotations(Annotation *C4_RESTRICT dst);
     bool _has_pending_annotations() const { return m_pending_tags.num_entries || m_pending_anchors.num_entries; }
     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
@@ -753,19 +773,7 @@ private:
 
     Annotation m_pending_anchors;
     Annotation m_pending_tags;
-    #ifdef RYML_WITH_COMMENTS
-    enum : size_t { max_pending_comments = 2 };
-    struct PendingComments
-    {
-        struct Entry
-        {
-            csubstr txt;
-            CommentType_e type;
-        } entries[max_pending_comments];
-        size_t num_entries;
-    };
-    PendingComments m_pending_comments;
-    #endif
+    _RYML_WITH_COMMENTS(PendingComments m_pending_comments;)
 
     bool m_was_inside_qmrk;
     bool m_doc_empty = true;
