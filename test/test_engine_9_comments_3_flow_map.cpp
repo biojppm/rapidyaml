@@ -901,6 +901,52 @@ COMMENT_TEST(FlowMap2,
              "  # 52"              "\n"
              ,
              ""
+             "+STR"                                  "\n"
+             "=COMM #[LEADING] 0"                    "\n"
+             "+DOC"                                  "\n"
+             "+MAP {}"                               "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 1\\n 2"  "\n"
+             "=VAL :foo"                             "\n"
+             "=COMM #[KEY_TRAILING] 3\\n 4"          "\n"
+             "=COMM #[COLON_TRAILING] 5\\n 6"        "\n"
+             "=VAL :0"                               "\n"
+             "=COMM #[VAL_TRAILING] 7\\n 8"          "\n"
+             "=COMM #[TRAILING] 9\\n 10"             "\n"
+             "=VAL :bar"                             "\n"
+             "=COMM #[KEY_TRAILING] 11\\n 12"        "\n"
+             "=COMM #[COLON_TRAILING] 13\\n 14"      "\n"
+             "=VAL :1"                               "\n"
+             "=COMM #[VAL_TRAILING] 15\\n 16"        "\n"
+             "=COMM #[TRAILING] 17\\n 18"            "\n"
+             "=VAL :map"                             "\n"
+             "=COMM #[KEY_TRAILING] 19\\n 20"        "\n"
+             "=COMM #[COLON_TRAILING] 21\\n 22"      "\n"
+             "+MAP {}"                               "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 23\\n 24""\n"
+             "=VAL :mapchild"                        "\n"
+             "=COMM #[KEY_TRAILING] 25\\n 26"        "\n"
+             "=COMM #[COLON_TRAILING] 27\\n 28"      "\n"
+             "=VAL :yes"                             "\n"
+             "=COMM #[VAL_TRAILING] 29\\n 30"        "\n"
+             "=COMM #[TRAILING] 31\\n 32"            "\n"
+             "-MAP"                                  "\n"
+             "=COMM #[VAL_TRAILING] 33\\n 34"        "\n"
+             "=COMM #[TRAILING] 35\\n 36"            "\n"
+             "=VAL :seq"                             "\n"
+             "=COMM #[KEY_TRAILING] 37\\n 38"        "\n"
+             "=COMM #[COLON_TRAILING] 39\\n 40"      "\n"
+             "+SEQ []"                               "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 41\\n 42""\n"
+             "=VAL :seqchild"                        "\n"
+             "=COMM #[VAL_TRAILING] 43\\n 44"        "\n"
+             "=COMM #[TRAILING] 45\\n 46"            "\n"
+             "-SEQ"                                  "\n"
+             "=COMM #[VAL_TRAILING] 47\\n 48"        "\n"
+             "=COMM #[TRAILING] 49\\n 50"            "\n"
+             "-MAP"                                  "\n"
+             "=COMM #[TRAILING] 51\\n 52"            "\n"
+             "-DOC"                                  "\n"
+             "-STR"                                  "\n"
              "")
 {
     ___(ps.begin_stream());
@@ -944,7 +990,7 @@ COMMENT_TEST(FlowMap2,
     ___(ps.add_comment(" 41\n 42", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_val_scalar_plain("seqchild"));
     ___(ps.add_comment(" 43\n 44", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 45\n 46", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 45\n 46", COMM_TRAILING));
     ___(ps.end_seq_flow(multiline));
     ___(ps.add_comment(" 47\n 48", COMM_VAL_TRAILING));
     ___(ps.add_comment(" 49\n 50", COMM_TRAILING));
@@ -1010,55 +1056,153 @@ COMMENT_TEST(FlowMap2WithSep,
              "# 52"                "\n"
              ,
              ""
+             "+STR"                                           "\n"
+             "=COMM #[LEADING] 0"                             "\n"
+             "+DOC"                                           "\n"
+             "+MAP {}"                                        "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 1"                "\n"
+             "=COMM #[LEADING] 2"                             "\n"
+             "=VAL :foo"                                      "\n"
+             "=COMM #[KEY_TRAILING] 3"                        "\n"
+             "=COMM #[COLON_LEADING] 4"                       "\n"
+             "=COMM #[COLON_TRAILING] 5"                      "\n"
+             "=COMM #[VAL_LEADING] 6"                         "\n"
+             "=VAL :0"                                        "\n"
+             "=COMM #[VAL_TRAILING] 7"                        "\n"
+             "=COMM #[COMMA_LEADING] 8"                       "\n"
+             "=COMM #[TRAILING] 9"                            "\n"
+             "=COMM #[LEADING] 10"                            "\n"
+             "=VAL :bar"                                      "\n"
+             "=COMM #[KEY_TRAILING] 11"                       "\n"
+             "=COMM #[COLON_LEADING] 12"                      "\n"
+             "=COMM #[COLON_TRAILING] 13"                     "\n"
+             "=COMM #[VAL_LEADING] 14"                        "\n"
+             "=VAL :1"                                        "\n"
+             "=COMM #[VAL_TRAILING] 15"                       "\n"
+             "=COMM #[COMMA_LEADING] 16"                      "\n"
+             "=COMM #[TRAILING] 17"                           "\n"
+             "=COMM #[LEADING] 18"                            "\n"
+             "=VAL :map"                                      "\n"
+             "=COMM #[KEY_TRAILING] 19"                       "\n"
+             "=COMM #[COLON_LEADING] 20"                      "\n"
+             "=COMM #[COLON_TRAILING] 21"                     "\n"
+             "=COMM #[VAL_LEADING] 22"                        "\n"
+             "+MAP {}"                                        "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 23"               "\n"
+             "=COMM #[LEADING] 24"                            "\n"
+             "=VAL :mapchild"                                 "\n"
+             "=COMM #[KEY_TRAILING] 25"                       "\n"
+             "=COMM #[COLON_LEADING] 26"                      "\n"
+             "=COMM #[COLON_TRAILING] 27"                     "\n"
+             "=COMM #[VAL_LEADING] 28"                        "\n"
+             "=VAL :yes"                                      "\n"
+             "=COMM #[VAL_TRAILING] 29"                       "\n"
+             "=COMM #[COMMA_LEADING] 30"                      "\n"
+             "=COMM #[TRAILING] 31"                           "\n"
+             "=COMM #[VAL_BRACKET_LEADING] 32"                "\n"
+             "-MAP"                                           "\n"
+             "=COMM #[VAL_TRAILING] 33"                       "\n"
+             "=COMM #[COMMA_LEADING] 34"                      "\n"
+             "=COMM #[TRAILING] 35"                           "\n"
+             "=COMM #[LEADING] 36"                            "\n"
+             "=VAL :seq"                                      "\n"
+             "=COMM #[KEY_TRAILING] 37"                       "\n"
+             "=COMM #[COLON_LEADING] 38"                      "\n"
+             "=COMM #[COLON_TRAILING] 39"                     "\n"
+             "=COMM #[VAL_LEADING] 40"                        "\n"
+             "+SEQ []"                                        "\n"
+             "=COMM #[VAL_BRACKET_TRAILING] 41"               "\n"
+             "=COMM #[LEADING] 42"                            "\n"
+             "=VAL :seqchild"                                 "\n"
+             "=COMM #[VAL_TRAILING] 43"                       "\n"
+             "=COMM #[COMMA_LEADING] 44"                      "\n"
+             "=COMM #[TRAILING] 45"                           "\n"
+             "=COMM #[VAL_BRACKET_LEADING] 46"                "\n"
+             "-SEQ"                                           "\n"
+             "=COMM #[VAL_TRAILING] 47"                       "\n"
+             "=COMM #[COMMA_LEADING] 48"                      "\n"
+             "=COMM #[TRAILING] 49"                           "\n"
+             "=COMM #[VAL_BRACKET_LEADING] 50"                "\n"
+             "-MAP"                                           "\n"
+             "=COMM #[TRAILING] 51"                           "\n"
+             "=COMM #[FOOTER] 52"                             "\n"
+             "-DOC"                                           "\n"
+             "-STR"                                           "\n"
              "")
 {
     ___(ps.begin_stream());
     ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
-    ___(ps.add_comment(" 1\n 2", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 1", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 2", COMM_LEADING));
     ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.add_comment(" 3\n 4", COMM_KEY_TRAILING));
-    ___(ps.add_comment(" 5\n 6", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 3", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 4", COMM_COLON_LEADING));
+    ___(ps.add_comment(" 5", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 6", COMM_VAL_LEADING));
     ___(ps.set_val_scalar_plain("0"));
-    ___(ps.add_comment(" 7\n 8", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 9\n 10", COMM_TRAILING));
+    ___(ps.add_comment(" 7", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 8", COMM_COMMA_LEADING));
+    ___(ps.add_comment(" 9", COMM_TRAILING));
     ___(ps.add_sibling());
+    ___(ps.add_comment(" 10", COMM_LEADING));
     ___(ps.set_key_scalar_plain("bar"));
-    ___(ps.add_comment(" 11\n 12", COMM_KEY_TRAILING));
-    ___(ps.add_comment(" 13\n 14", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 11", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 12", COMM_COLON_LEADING));
+    ___(ps.add_comment(" 13", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 14", COMM_VAL_LEADING));
     ___(ps.set_val_scalar_plain("1"));
-    ___(ps.add_comment(" 15\n 16", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 17\n 18", COMM_TRAILING));
+    ___(ps.add_comment(" 15", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 16", COMM_COMMA_LEADING));
+    ___(ps.add_comment(" 17", COMM_TRAILING));
     ___(ps.add_sibling());
+    ___(ps.add_comment(" 18", COMM_LEADING));
     ___(ps.set_key_scalar_plain("map"));
-    ___(ps.add_comment(" 19\n 20", COMM_KEY_TRAILING));
-    ___(ps.add_comment(" 21\n 22", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 19", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 20", COMM_COLON_LEADING));
+    ___(ps.add_comment(" 21", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 22", COMM_VAL_LEADING));
     ___(ps.begin_map_val_flow());
-    ___(ps.add_comment(" 23\n 24", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 23", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 24", COMM_LEADING));
     ___(ps.set_key_scalar_plain("mapchild"));
-    ___(ps.add_comment(" 25\n 26", COMM_KEY_TRAILING));
-    ___(ps.add_comment(" 27\n 28", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 25", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 26", COMM_COLON_LEADING));
+    ___(ps.add_comment(" 27", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 28", COMM_VAL_LEADING));
     ___(ps.set_val_scalar_plain("yes"));
-    ___(ps.add_comment(" 29\n 30", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 31\n 32", COMM_TRAILING));
+    ___(ps.add_comment(" 29", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 30", COMM_COMMA_LEADING));
+    ___(ps.add_comment(" 31", COMM_TRAILING));
+    ___(ps.add_comment(" 32", COMM_VAL_BRACKET_LEADING));
     ___(ps.end_map_flow(multiline));
-    ___(ps.add_comment(" 33\n 34", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 35\n 36", COMM_TRAILING));
+    ___(ps.add_comment(" 33", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 34", COMM_COMMA_LEADING));
+    ___(ps.add_comment(" 35", COMM_TRAILING));
     ___(ps.add_sibling());
+    ___(ps.add_comment(" 36", COMM_LEADING));
     ___(ps.set_key_scalar_plain("seq"));
-    ___(ps.add_comment(" 37\n 38", COMM_KEY_TRAILING));
-    ___(ps.add_comment(" 39\n 40", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 37", COMM_KEY_TRAILING));
+    ___(ps.add_comment(" 38", COMM_COLON_LEADING));
+    ___(ps.add_comment(" 39", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 40", COMM_VAL_LEADING));
     ___(ps.begin_seq_val_flow());
-    ___(ps.add_comment(" 41\n 42", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 41", COMM_VAL_BRACKET_TRAILING));
+    ___(ps.add_comment(" 42", COMM_LEADING));
     ___(ps.set_val_scalar_plain("seqchild"));
-    ___(ps.add_comment(" 43\n 44", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 45\n 46", COMM_COLON_TRAILING));
+    ___(ps.add_comment(" 43", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 44", COMM_COMMA_LEADING));
+    ___(ps.add_comment(" 45", COMM_TRAILING));
+    ___(ps.add_comment(" 46", COMM_VAL_BRACKET_LEADING));
     ___(ps.end_seq_flow(multiline));
-    ___(ps.add_comment(" 47\n 48", COMM_VAL_TRAILING));
-    ___(ps.add_comment(" 49\n 50", COMM_TRAILING));
+    ___(ps.add_comment(" 47", COMM_VAL_TRAILING));
+    ___(ps.add_comment(" 48", COMM_COMMA_LEADING));
+    ___(ps.add_comment(" 49", COMM_TRAILING));
+    ___(ps.add_comment(" 50", COMM_VAL_BRACKET_LEADING));
     ___(ps.end_map_flow(multiline));
-    ___(ps.add_comment(" 51\n 52", COMM_TRAILING));
+    ___(ps.add_comment(" 51", COMM_TRAILING));
+    ___(ps.add_comment(" 52", COMM_FOOTER));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
