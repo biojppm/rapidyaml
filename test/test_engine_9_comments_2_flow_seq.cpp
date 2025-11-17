@@ -50,8 +50,8 @@ COMMENT_TEST(FlowSeqMinimalBaseSingleLine1,
              "            # 3"             "\n"
              ,
              "+STR"                        "\n"
-             "=COMM #[LEADING] 1"          "\n"
              "+DOC"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
              "+SEQ []"                     "\n"
              "=VAL :val1"                  "\n"
              "=VAL :val2"                  "\n"
@@ -62,8 +62,8 @@ COMMENT_TEST(FlowSeqMinimalBaseSingleLine1,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("val1"));
     ___(ps.add_sibling());
@@ -84,8 +84,8 @@ COMMENT_TEST(FlowSeqMinimalBaseSingleLine1WithSep,
              "# 3"                         "\n"
              ,
              "+STR"                        "\n"
-             "=COMM #[LEADING] 1"          "\n"
              "+DOC"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
              "+SEQ []"                     "\n"
              "=VAL :val1"                  "\n"
              "=VAL :val2"                  "\n"
@@ -97,8 +97,8 @@ COMMENT_TEST(FlowSeqMinimalBaseSingleLine1WithSep,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("val1"));
     ___(ps.add_sibling());
@@ -116,8 +116,8 @@ COMMENT_TEST(FlowSeqMinimalBaseSingleLine2,
              "            # 3"             "\n"
              ,
              "+STR"                        "\n"
-             "=COMM #[LEADING] 1"          "\n"
              "+DOC"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
              "+SEQ []"                     "\n"
              "=VAL :val1"                  "\n"
              "=VAL :val2"                  "\n"
@@ -128,8 +128,8 @@ COMMENT_TEST(FlowSeqMinimalBaseSingleLine2,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("val1"));
     ___(ps.add_sibling());
@@ -461,8 +461,8 @@ COMMENT_TEST(FlowSeqBasic0,
              "  # 13"                                  "\n"
              ,
              "+STR"                                    "\n"
-             "=COMM #[LEADING] 1"                      "\n"
              "+DOC"                                    "\n"
+             "=COMM #[LEADING] 1"                      "\n"
              "+SEQ []"                                 "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2\\n 3"    "\n"
              "=VAL :a"                                 "\n"
@@ -476,8 +476,8 @@ COMMENT_TEST(FlowSeqBasic0,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_val_scalar_plain("a"));
@@ -507,8 +507,8 @@ COMMENT_TEST(FlowSeqBasic1,
              "  # 13"                                  "\n"
              ,
              "+STR"                                    "\n"
-             "=COMM #[LEADING] 1"                      "\n"
              "+DOC"                                    "\n"
+             "=COMM #[LEADING] 1"                      "\n"
              "+SEQ []"                                 "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2\\n 3"    "\n"
              "=VAL :a"                                 "\n"
@@ -524,8 +524,8 @@ COMMENT_TEST(FlowSeqBasic1,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_val_scalar_plain("a"));
@@ -557,8 +557,8 @@ COMMENT_TEST(FlowSeqBasic1WithSep,
              "# 13"                                    "\n"
              ,
              "+STR"                                    "\n"
-             "=COMM #[LEADING] 1"                      "\n"
              "+DOC"                                    "\n"
+             "=COMM #[LEADING] 1"                      "\n"
              "+SEQ []"                                 "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2"         "\n"
              "=COMM #[LEADING] 3"                      "\n"
@@ -580,8 +580,8 @@ COMMENT_TEST(FlowSeqBasic1WithSep,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 3", COMM_LEADING));
@@ -619,8 +619,8 @@ COMMENT_TEST(FlowSeqBasic2,
              "# 13"                                    "\n"
              ,
              "+STR"                                    "\n"
-             "=COMM #[LEADING] 1"                      "\n"
              "+DOC"                                    "\n"
+             "=COMM #[LEADING] 1"                      "\n"
              "+SEQ []"                                 "\n"
              "=COMM #[LEADING] 3"                      "\n"
              "=VAL :a"                                 "\n"
@@ -636,8 +636,8 @@ COMMENT_TEST(FlowSeqBasic2,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 3", COMM_LEADING));
     ___(ps.set_val_scalar_plain("a"));
@@ -674,8 +674,8 @@ COMMENT_TEST(FlowSeqMultiline0,
             "  # 4 continued\n"
             ,
             "+STR\n"
-            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+DOC\n"
+            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+SEQ []\n"
             "=COMM #[VAL_BRACKET_TRAILING] 2 bracket trailing comment\\n 2 continued\n"
             "-SEQ\n"
@@ -684,8 +684,8 @@ COMMENT_TEST(FlowSeqMultiline0,
             "-STR\n")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2 bracket trailing comment\n 2 continued", COMM_VAL_BRACKET_TRAILING));
     ___(ps.end_seq_flow(multiline));
@@ -705,8 +705,8 @@ COMMENT_TEST(FlowSeqMultiline0WithSep,
             "# 5 continued\n"
             ,
             "+STR\n"
-            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+DOC\n"
+            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+SEQ []\n"
             "=COMM #[VAL_BRACKET_TRAILING] 2 bracket trailing comment\n"
             "=COMM #[VAL_BRACKET_LEADING] 3 bracket leading comment\n"
@@ -717,8 +717,8 @@ COMMENT_TEST(FlowSeqMultiline0WithSep,
             "-STR\n")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2 bracket trailing comment", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 3 bracket leading comment", COMM_VAL_BRACKET_LEADING));
@@ -758,8 +758,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor1,
              "  # 11"                                              "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+SEQ []"                                             "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2\\n 3"                "\n"
              "=COMM #[VAL_ANCHOR_TRAILING] 4\\n 5"                 "\n"
@@ -773,8 +773,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor1,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_val_anchor("a"));
@@ -806,8 +806,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor1WithSep,
              "# 14"                                                "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+SEQ []"                                             "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2"                     "\n"
              "=COMM #[LEADING] 3"                                  "\n"
@@ -829,8 +829,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor1WithSep,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 3", COMM_LEADING));
@@ -885,8 +885,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor1WithSep2,
              "# 14"                                                "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+SEQ []"                                             "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2"                     "\n"
              "=COMM #[LEADING] 3"                                  "\n"
@@ -908,8 +908,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor1WithSep2,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 2", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 3", COMM_LEADING));
@@ -946,8 +946,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor2,
              "# 11"                                                "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+SEQ []"                                             "\n"
              "=COMM #[LEADING] 3"                                  "\n"
              "=COMM #[VAL_TAG_LEADING] 5"                          "\n"
@@ -961,8 +961,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor2,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 3", COMM_LEADING));
     ___(ps.set_val_anchor("a"));
@@ -989,8 +989,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor3,
              "# 11"                                                "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+SEQ []"                                             "\n"
              "=COMM #[LEADING] 3"                                  "\n"
              "=COMM #[VAL_LEADING2] 7"                             "\n"
@@ -1003,8 +1003,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor3,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.add_comment(" 3", COMM_LEADING));
     ___(ps.set_val_anchor("a"));
@@ -1031,8 +1031,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor4,
              "# 11"                                                "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+SEQ []"                                             "\n"
              "=COMM #[VAL_TAG_LEADING] 5"                          "\n"
              "=COMM #[VAL_LEADING2] 7"                             "\n"
@@ -1045,8 +1045,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor4,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_anchor("a"));
     ___(ps.add_comment(" 5", COMM_VAL_TAG_LEADING));
@@ -1083,8 +1083,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor5,
              "# 11"                                                "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+SEQ []"                                             "\n"
              "=COMM #[LEADING] 5"                                  "\n"
              "=COMM #[VAL_LEADING2] 7"                             "\n"
@@ -1097,8 +1097,8 @@ COMMENT_TEST(FlowSeqWithTagAndAnchor5,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_seq_val_flow());
     ___(ps.set_val_tag("!atag"));
     ___(ps.add_comment(" 5", COMM_LEADING));
