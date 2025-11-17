@@ -4779,6 +4779,7 @@ void ParseEngine<EventHandler>::_handle_doc_end_comments()
         auto const& entry = m_pending_comments.entries[0];
         CommentType_e actual = entry.type == COMM_VAL_TRAILING ? COMM_TRAILING : entry.type;
         m_evt_handler->add_comment(entry.txt, actual);
+        m_pending_comments.num_entries = 0;
     }
     else if(m_pending_comments.num_entries)
     {
@@ -4886,6 +4887,28 @@ void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_val_map(Comme
     {
         _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.num_entries == 0, m_evt_handler->m_curr->pos);
         m_evt_handler->m_curr->leading_comments |= COMM_VAL_LEADING;
+    }
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_comma_map()
+{
+    if(m_pending_comments.num_entries == 1)
+    {
+        _c4dbgp("map comma: 1 pending comment");
+        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, m_pending_comments.entries[0].type);
+        m_pending_comments.num_entries = 0;
+    }
+    else if(m_pending_comments.num_entries)
+    {
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.num_entries == 2);
+        _c4dbgp("map comma: 2 pending comments");
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.entries[0].type != m_pending_comments.entries[1].type);
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.entries[0].type == COMM_VAL_TRAILING);
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.entries[1].type == COMM_LEADING);
+        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, m_pending_comments.entries[0].type);
+        m_evt_handler->add_comment(m_pending_comments.entries[1].txt, COMM_COMMA_LEADING);
+        m_pending_comments.num_entries = 0;
     }
 }
 #endif // RYML_WITH_COMMENTS
@@ -6081,6 +6104,7 @@ mapflow_start:
         {
             _c4dbgp("mapflow[RVAL]: start val seqflow");
             addrem_flags(RNXT, RVAL);
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
             m_evt_handler->begin_seq_val_flow();
             _set_indentation(m_evt_handler->m_parent->indref);
             addrem_flags(RSEQ|RVAL, RMAP|RNXT);
@@ -6099,6 +6123,7 @@ mapflow_start:
         {
             _c4dbgp("mapflow[RVAL]: start val mapflow");
             addrem_flags(RNXT, RVAL);
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
             m_evt_handler->begin_map_val_flow();
             _set_indentation(m_evt_handler->m_parent->indref);
             addrem_flags(RKEY, RNXT);
@@ -6192,7 +6217,7 @@ mapflow_start:
             _c4dbgp("mapflow[RNXT]: expect next keyval");
             addrem_flags(RKEY, RNXT);
             _line_progressed(1);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_COMMA_LEADING);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_comma_map();)
             #ifdef RYML_WITH_COMMENTS
             if(_maybe_advance_to_trailing_comment())
             {
