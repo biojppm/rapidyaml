@@ -4788,8 +4788,12 @@ void ParseEngine<EventHandler>::_handle_doc_end_comments()
         auto const& entry0 = m_pending_comments.entries[0];
         auto const& entry1 = m_pending_comments.entries[1];
         _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, entry0.type != entry1.type);
-        m_evt_handler->add_comment(entry0.txt, entry0.type);
-        m_evt_handler->add_comment(entry1.txt, entry1.type);
+        CommentType_e actual0 = entry0.type;
+        CommentType_e actual1 = entry1.type;
+        if(actual0 == COMM_VAL_TRAILING && actual1 == COMM_FOOTER)
+            actual0 = COMM_TRAILING;
+        m_evt_handler->add_comment(entry0.txt, actual0);
+        m_evt_handler->add_comment(entry1.txt, actual1);
         m_pending_comments.num_entries = 0;
     }
 }
@@ -8261,6 +8265,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         {
             _c4dbgp("it's a seq, flow");
             _handle_annotations_before_blck_val_scalar();
+            _RYML_WITH_COMMENTS(_maybe_apply_pending_comment();)
             m_evt_handler->begin_seq_val_flow();
             addrem_flags(RSEQ|RFLOW|RVAL, RUNK|RTOP|RDOC);
             _set_indentation(remindent);
@@ -8268,6 +8273,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         else
         {
             _c4dbgp("start new block map, set flow seq as key (!)");
+            _RYML_WITH_COMMENTS(_maybe_apply_pending_comment();)
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|RBLCK|RKCL, RUNK|RTOP|RDOC);
@@ -8294,6 +8300,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         if(C4_LIKELY( ! _annotations_require_key_container()))
         {
             _c4dbgp("it's a map, flow");
+            _RYML_WITH_COMMENTS(_maybe_apply_pending_comment();)
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_flow();
             addrem_flags(RMAP|RFLOW|RKEY, RVAL|RTOP|RUNK|RDOC);
@@ -8302,6 +8309,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         else
         {
             _c4dbgp("start new block map, set flow map as key (!)");
+            _RYML_WITH_COMMENTS(_maybe_apply_pending_comment();)
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|RBLCK|RKCL, RUNK|RTOP|RDOC);
@@ -8428,7 +8436,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         if(m_options.with_comments())
         {
             csubstr comm = _filter_comment(_scan_comment_flow());
-            m_evt_handler->add_comment(comm, m_doc_empty ? COMM_LEADING : COMM_FOOTER);
+            _pend_comment(comm, m_doc_empty ? COMM_LEADING : COMM_FOOTER);
         }
         else
         {

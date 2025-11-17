@@ -234,8 +234,8 @@ COMMENT_TEST(FlowMapBasic,
              "  # 11"                                 "\n"
              ,
              "+STR"                                   "\n"
-             "=COMM #[LEADING] 1"                     "\n"
              "+DOC"                                   "\n"
+             "=COMM #[LEADING] 1"                     "\n"
              "+MAP {}"                                "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2\\n 3"   "\n"
              "=VAL :a"                                "\n"
@@ -250,8 +250,8 @@ COMMENT_TEST(FlowMapBasic,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_key_scalar_plain("a"));
@@ -279,8 +279,8 @@ COMMENT_TEST(FlowMapBasicWithSep,
              "# 11"                                        "\n"
              ,
              "+STR"                                        "\n"
-             "=COMM #[LEADING] 1"                          "\n"
              "+DOC"                                        "\n"
+             "=COMM #[LEADING] 1"                          "\n"
              "+MAP {}"                                     "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2"             "\n"
              "=COMM #[LEADING] 3"                          "\n"
@@ -300,8 +300,8 @@ COMMENT_TEST(FlowMapBasicWithSep,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 2", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 3", COMM_LEADING));
@@ -363,8 +363,8 @@ COMMENT_TEST(FlowMapBasicWithTagAndAnchor,
              "  # 19"                                              "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+MAP {}"                                             "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2\\n 3"                "\n"
              "=COMM #[KEY_ANCHOR_TRAILING] 4\\n 5"                 "\n"
@@ -383,8 +383,8 @@ COMMENT_TEST(FlowMapBasicWithTagAndAnchor,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 2\n 3", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_key_anchor("a"));
@@ -430,8 +430,8 @@ COMMENT_TEST(FlowMapBasicWithTagAndAnchorWithSep,
              "# 19"                                                "\n"
              ,
              "+STR"                                                "\n"
-             "=COMM #[LEADING] 1"                                  "\n"
              "+DOC"                                                "\n"
+             "=COMM #[LEADING] 1"                                  "\n"
              "+MAP {}"                                             "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 2"                     "\n"
              "=COMM #[LEADING] 3"                                  "\n"
@@ -461,8 +461,8 @@ COMMENT_TEST(FlowMapBasicWithTagAndAnchorWithSep,
     )
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 2", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 3", COMM_LEADING));
@@ -507,8 +507,8 @@ COMMENT_TEST(FlowMapMultiline0,
             "# 4 continued\n"
             ,
             "+STR\n"
-            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+DOC\n"
+            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+MAP {}\n"
             "=COMM #[VAL_BRACKET_TRAILING] 2 bracket trailing comment\\n 2 continued\n"
             "-MAP\n"
@@ -518,8 +518,8 @@ COMMENT_TEST(FlowMapMultiline0,
             "-STR\n")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 2 bracket trailing comment\n 2 continued", COMM_VAL_BRACKET_TRAILING));
     ___(ps.end_map_flow(multiline));
@@ -541,8 +541,8 @@ COMMENT_TEST(FlowMapMultiline1,
             "# 4 continued\n"
             ,
             "+STR\n"
-            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+DOC\n"
+            "=COMM #[LEADING] 1 leading comment\\n 1 continued\n"
             "+MAP {}\n"
             "=COMM #[VAL_BRACKET_TRAILING] 2 bracket trailing comment\\n 2 continued\n"
             "=VAL :a\n"
@@ -554,8 +554,8 @@ COMMENT_TEST(FlowMapMultiline1,
             "-STR\n")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 1 leading comment\n 1 continued", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 2 bracket trailing comment\n 2 continued", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_key_scalar_plain("a"));
@@ -614,8 +614,8 @@ COMMENT_TEST(FlowMap1,
              ,
              ""
              "+STR"                                  "\n"
-             "=COMM #[LEADING] 0"                    "\n"
              "+DOC"                                  "\n"
+             "=COMM #[LEADING] 0"                    "\n"
              "+MAP {}"                               "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 0.1\\n 1""\n"
              "=VAL :foo"                             "\n"
@@ -646,8 +646,8 @@ COMMENT_TEST(FlowMap1,
              "")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 0.1\n 1", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_key_scalar_plain("foo"));
@@ -705,8 +705,8 @@ COMMENT_TEST(FlowMap1WithSep,
              ,
              ""
              "+STR"                                  "\n"
-             "=COMM #[LEADING] 0"                    "\n"
              "+DOC"                                  "\n"
+             "=COMM #[LEADING] 0"                    "\n"
              "+MAP {}"                               "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 0.1"     "\n"
              "=COMM #[LEADING] 1"                    "\n"
@@ -747,8 +747,8 @@ COMMENT_TEST(FlowMap1WithSep,
              "")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 0.1", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 1", COMM_LEADING));
@@ -902,8 +902,8 @@ COMMENT_TEST(FlowMap2,
              ,
              ""
              "+STR"                                  "\n"
-             "=COMM #[LEADING] 0"                    "\n"
              "+DOC"                                  "\n"
+             "=COMM #[LEADING] 0"                    "\n"
              "+MAP {}"                               "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 1\\n 2"  "\n"
              "=VAL :foo"                             "\n"
@@ -950,8 +950,8 @@ COMMENT_TEST(FlowMap2,
              "")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 1\n 2", COMM_VAL_BRACKET_TRAILING));
     ___(ps.set_key_scalar_plain("foo"));
@@ -1057,8 +1057,8 @@ COMMENT_TEST(FlowMap2WithSep,
              ,
              ""
              "+STR"                                           "\n"
-             "=COMM #[LEADING] 0"                             "\n"
              "+DOC"                                           "\n"
+             "=COMM #[LEADING] 0"                             "\n"
              "+MAP {}"                                        "\n"
              "=COMM #[VAL_BRACKET_TRAILING] 1"                "\n"
              "=COMM #[LEADING] 2"                             "\n"
@@ -1131,8 +1131,8 @@ COMMENT_TEST(FlowMap2WithSep,
              "")
 {
     ___(ps.begin_stream());
-    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_doc());
+    ___(ps.add_comment(" 0", COMM_LEADING));
     ___(ps.begin_map_val_flow());
     ___(ps.add_comment(" 1", COMM_VAL_BRACKET_TRAILING));
     ___(ps.add_comment(" 2", COMM_LEADING));
