@@ -308,6 +308,7 @@ void Emitter<Writer>::_top_open_entry(id_type node)
         _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_DOC_TRAILING));
     }
     _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_LEADING));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_LEADING));
     if(ty.has_val_anchor())
     {
         _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING));
@@ -323,6 +324,7 @@ void Emitter<Writer>::_top_open_entry(id_type node)
         _write_tag(m_tree->val_tag(node));
         _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_VAL_TAG_TRAILING));
     }
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_LEADING2));
     if(m_pws == _PWS_SPACE)
     {
         if(ty.has_val())
@@ -369,6 +371,7 @@ void Emitter<Writer>::_flow_seq_open_entry(id_type node)
     _write_pws_and_pend(_PWS_NONE);
     _RYML_WITH_COMMENTS(_comm_push());
     _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_LEADING));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_LEADING));
     if(ty & VALANCH)
     {
         _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_ANCHOR_LEADING));
