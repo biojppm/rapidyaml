@@ -699,7 +699,7 @@ private:
                 h->add_comment(txt, type);
         }
     };
-    enum : size_t { max_pending_comments = 2 };
+    enum : size_t { max_pending_comments = 3 };
     struct PendingComments
     {
         PendingComment entries[max_pending_comments];
@@ -754,6 +754,7 @@ private:
     void _maybe_handle_leading_comment_flow_val(CommentType_e current);
     void _maybe_handle_leading_comment_flow_val_map(CommentType_e current);
     void _maybe_handle_leading_comment_flow_comma_map();
+    void _maybe_handle_leading_comment_unk_start();
     #endif
 
 private:
