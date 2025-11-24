@@ -754,7 +754,6 @@ private:
     void _maybe_handle_leading_comment_flow_val(CommentType_e current);
     void _maybe_handle_leading_comment_flow_val_map(CommentType_e current);
     void _maybe_handle_leading_comment_flow_comma_map();
-    void _maybe_handle_leading_comment_unk_start();
     #endif
 
 private:
