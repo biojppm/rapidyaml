@@ -1236,7 +1236,7 @@ public:
      * @warning This is only available if RYML_WITH_COMMENTS is defined. */
     void add_comment(csubstr txt, CommentType_e type)
     {
-        _c4dbgpf("node[{}]: comment! [{}]~~~{}~~~", txt.len, txt);
+        _c4dbgpf("evt[{}]: comment! [{}]~~~{}~~~", m_evt_prev, txt.len, txt);
         ievt::DataType prev = ((m_evt_prev < m_evt_size) ? m_evt[m_evt_prev] : 0);
         _send_str_(txt, ievt::encode_comment(prev, type));
     }
