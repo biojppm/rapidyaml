@@ -4882,7 +4882,7 @@ void ParseEngine<EventHandler>::_handle_doc_end_comments()
 }
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_val(CommentType_e current)
+void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_key(CommentType_e current)
 {
     if(m_pending_comments.num_entries == 1)
     {
@@ -4890,6 +4890,38 @@ void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_val(CommentTy
         bool leading_exists = (m_evt_handler->m_curr->leading_comments & COMM_LEADING);
         _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type != COMM_NONE, m_evt_handler->m_curr->pos);
         _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type == COMM_LEADING, m_evt_handler->m_curr->pos);
+        CommentType_e actual = leading_exists ? current : COMM_LEADING;
+        _c4dbgpf("pending leading comment! context={}({}) leading_exists={} actual={}({})", comment_type_str(current), current, leading_exists, comment_type_str(actual), actual);
+        m_evt_handler->add_comment(entry.txt, actual);
+        m_evt_handler->m_curr->leading_comments |= actual;
+        m_pending_comments.num_entries = 0;
+    }
+    else if(m_pending_comments.num_entries == 2)
+    {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, current != COMM_LEADING, m_evt_handler->m_curr->pos);
+        _c4dbgpf("pending leading comment [0]! type={}({})", comment_type_str(m_pending_comments.entries[0].type), m_pending_comments.entries[0].type);
+        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, COMM_LEADING);
+        _c4dbgpf("pending leading comment [1]! type={}({})", comment_type_str(current), current);
+        m_evt_handler->add_comment(m_pending_comments.entries[1].txt, current);
+        m_evt_handler->m_curr->leading_comments |= COMM_LEADING|current;
+        m_pending_comments.num_entries = 0;
+    }
+    else if(current & COMM_KEY_ANCHOR_LEADING)
+    {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.num_entries == 0, m_evt_handler->m_curr->pos);
+        m_evt_handler->m_curr->leading_comments |= COMM_LEADING;
+    }
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_val(CommentType_e current)
+{
+    if(m_pending_comments.num_entries == 1)
+    {
+        auto const& entry = m_pending_comments.entries[0];
+        bool leading_exists = (m_evt_handler->m_curr->leading_comments & COMM_LEADING);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type != COMM_NONE, m_evt_handler->m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type == COMM_LEADING || entry.type == COMM_VAL_LEADING || entry.type == COMM_FOOTER, m_evt_handler->m_curr->pos);
         CommentType_e actual = leading_exists ? current : COMM_LEADING;
         _c4dbgpf("pending leading comment! context={}({}) leading_exists={} actual={}({})", comment_type_str(current), current, leading_exists, comment_type_str(actual), actual);
         m_evt_handler->add_comment(entry.txt, actual);
@@ -4922,38 +4954,6 @@ void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_val(CommentTy
     {
         _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.num_entries == 0, m_evt_handler->m_curr->pos);
         m_evt_handler->m_curr->leading_comments |= COMM_LEADING|COMM_VAL_LEADING;
-    }
-}
-
-template<class EventHandler>
-void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_key(CommentType_e current)
-{
-    if(m_pending_comments.num_entries == 1)
-    {
-        auto const& entry = m_pending_comments.entries[0];
-        bool leading_exists = (m_evt_handler->m_curr->leading_comments & COMM_LEADING);
-        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type != COMM_NONE, m_evt_handler->m_curr->pos);
-        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, entry.type == COMM_LEADING, m_evt_handler->m_curr->pos);
-        CommentType_e actual = leading_exists ? current : COMM_LEADING;
-        _c4dbgpf("pending leading comment! context={}({}) leading_exists={} actual={}({})", comment_type_str(current), current, leading_exists, comment_type_str(actual), actual);
-        m_evt_handler->add_comment(entry.txt, actual);
-        m_evt_handler->m_curr->leading_comments |= actual;
-        m_pending_comments.num_entries = 0;
-    }
-    else if(m_pending_comments.num_entries == 2)
-    {
-        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, current != COMM_LEADING, m_evt_handler->m_curr->pos);
-        _c4dbgpf("pending leading comment [0]! type={}({})", comment_type_str(m_pending_comments.entries[0].type), m_pending_comments.entries[0].type);
-        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, COMM_LEADING);
-        _c4dbgpf("pending leading comment [1]! type={}({})", comment_type_str(current), current);
-        m_evt_handler->add_comment(m_pending_comments.entries[1].txt, current);
-        m_evt_handler->m_curr->leading_comments |= COMM_LEADING|current;
-        m_pending_comments.num_entries = 0;
-    }
-    else if(current & COMM_KEY_ANCHOR_LEADING)
-    {
-        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.num_entries == 0, m_evt_handler->m_curr->pos);
-        m_evt_handler->m_curr->leading_comments |= COMM_LEADING;
     }
 }
 
@@ -5019,35 +5019,6 @@ void ParseEngine<EventHandler>::_maybe_handle_leading_comment_flow_comma_map()
         _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_comments.entries[1].type == COMM_LEADING);
         m_evt_handler->add_comment(m_pending_comments.entries[0].txt, m_pending_comments.entries[0].type);
         m_evt_handler->add_comment(m_pending_comments.entries[1].txt, COMM_COMMA_LEADING);
-        m_pending_comments.num_entries = 0;
-    }
-}
-
-template<class EventHandler>
-void ParseEngine<EventHandler>::_maybe_handle_leading_comment_unk_start()
-{
-    if(m_pending_comments.num_entries == 1)
-    {
-        _c4dbgp("unk start: 1 pending comment");
-        CommentType_e actual = m_pending_comments.entries[0].type;
-        if(actual == COMM_FOOTER)
-            actual = COMM_LEADING;
-        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, actual);
-        m_pending_comments.num_entries = 0;
-    }
-    else if(m_pending_comments.num_entries == 2)
-    {
-        _c4dbgp("unk start: 2 pending comments");
-        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, COMM_LEADING);
-        m_evt_handler->add_comment(m_pending_comments.entries[1].txt, COMM_VAL_LEADING2);
-        m_pending_comments.num_entries = 0;
-    }
-    else if(m_pending_comments.num_entries == 3)
-    {
-        _c4dbgp("unk start: 3 pending comments");
-        m_evt_handler->add_comment(m_pending_comments.entries[0].txt, COMM_LEADING);
-        m_evt_handler->add_comment(m_pending_comments.entries[1].txt, COMM_VAL_LEADING);
-        m_evt_handler->add_comment(m_pending_comments.entries[2].txt, COMM_VAL_LEADING2);
         m_pending_comments.num_entries = 0;
     }
 }
@@ -8401,7 +8372,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         {
             _c4dbgp("it's a seq, flow");
             _handle_annotations_before_blck_val_scalar();
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
             m_evt_handler->begin_seq_val_flow();
             addrem_flags(RSEQ|RFLOW|RVAL, RUNK|RTOP|RDOC);
             _set_indentation(remindent);
@@ -8410,7 +8381,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         {
             _c4dbgp("start new block map, set flow seq as key (!)");
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|RBLCK|RKCL, RUNK|RTOP|RDOC);
             _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
@@ -8437,7 +8408,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         {
             _c4dbgp("it's a map, flow");
             _handle_annotations_before_blck_val_scalar();
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
             m_evt_handler->begin_map_val_flow();
             addrem_flags(RMAP|RFLOW|RKEY, RVAL|RTOP|RUNK|RDOC);
             _set_indentation(remindent);
@@ -8446,7 +8417,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         {
             _c4dbgp("start new block map, set flow map as key (!)");
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|RBLCK|RKCL, RUNK|RTOP|RDOC);
             _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
@@ -8470,7 +8441,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         _handle_annotations_before_blck_val_scalar();
-        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
         m_evt_handler->begin_seq_val_block();
         addrem_flags(RSEQ|RBLCK|RVAL, RNXT|RTOP|RUNK|RDOC);
         m_doc_empty = false;
@@ -8484,7 +8455,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         _handle_annotations_before_blck_val_scalar();
-        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
         m_evt_handler->begin_map_val_block();
         addrem_flags(RMAP|RBLCK|QMRK, RKEY|RVAL|RTOP|RUNK);
         m_doc_empty = false;
@@ -8501,7 +8472,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             const size_t startline = m_evt_handler->m_curr->pos.line; // save
             m_evt_handler->check_trailing_doc_token();
             _maybe_begin_doc();
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
             _handle_annotations_before_start_mapblck(startline);
             _handle_colon();
             m_evt_handler->begin_map_val_block();
@@ -8514,7 +8485,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         {
             _c4dbgp("actually prev val is a key!");
             size_t prev_indentation = m_evt_handler->m_curr->indref;
-            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_LEADING2);)
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
             m_evt_handler->actually_val_is_first_key_of_new_map_block();
             _set_indentation(prev_indentation);
         }
@@ -8529,7 +8500,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         const size_t line = m_evt_handler->m_curr->pos.line;
-        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_ANCHOR_LEADING);)
+        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_ANCHOR_LEADING);)
         _add_annotation(&m_pending_anchors, anchor, remindent, line _RYML_WITH_COMMENTS(, COMM_VAL_ANCHOR_LEADING));
         _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         m_doc_empty = false;
@@ -8538,11 +8509,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         {
             _c4dbgp("unk: trailing anchor comment!");
             csubstr comm = _filter_comment(_scan_comment_flow());
-            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_anchors.num_entries > 0);
-            auto &ann = m_pending_anchors.annotations[m_pending_anchors.num_entries - 1];
-            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, ann.trailing_comment.type == COMM_NONE);
-            ann.trailing_comment.txt = comm;
-            ann.trailing_comment.type = COMM_VAL_ANCHOR_TRAILING;
+            m_evt_handler->add_comment(comm, COMM_VAL_ANCHOR_TRAILING);
         }
         #endif
     }
@@ -8580,18 +8547,16 @@ void ParseEngine<EventHandler>::_handle_unk()
         // consecutive tags in here
         const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
         const size_t line = m_evt_handler->m_curr->pos.line;
-        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_VAL_TAG_LEADING);)
+        _maybe_begin_doc();
+        m_doc_empty = false;
+        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_TAG_LEADING);)
         _add_annotation(&m_pending_tags, tag, indentation, line _RYML_WITH_COMMENTS(, COMM_VAL_TAG_LEADING));
         #ifdef RYML_WITH_COMMENTS
         if(_maybe_advance_to_trailing_comment())
         {
             _c4dbgp("unk: trailing tag comment!");
             csubstr comm = _filter_comment(_scan_comment_flow());
-            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_pending_tags.num_entries > 0);
-            auto &ann = m_pending_tags.annotations[m_pending_tags.num_entries - 1];
-            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, ann.trailing_comment.type == COMM_NONE);
-            ann.trailing_comment.txt = comm;
-            ann.trailing_comment.type = COMM_VAL_TAG_TRAILING;
+            m_evt_handler->add_comment(comm, COMM_VAL_TAG_TRAILING);
         }
         #endif
     }
