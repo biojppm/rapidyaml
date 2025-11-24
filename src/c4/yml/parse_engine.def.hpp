@@ -4849,7 +4849,11 @@ void ParseEngine<EventHandler>::_handle_doc_end_comments()
     {
         _c4dbgp("doc end: 1 pending comment");
         auto const& entry = m_pending_comments.entries[0];
-        CommentType_e actual = entry.type == COMM_VAL_TRAILING ? COMM_TRAILING : entry.type;
+        CommentType_e actual = entry.type;
+        if(entry.type == COMM_VAL_TRAILING)
+            actual = COMM_TRAILING;
+        else if(entry.type == COMM_LEADING)
+            actual = COMM_FOOTER;
         m_evt_handler->add_comment(entry.txt, actual);
         m_pending_comments.num_entries = 0;
     }
@@ -6644,9 +6648,18 @@ seqblck_start:
             {
                 _c4dbgp("seqblck[RVAL]: set as val");
                 _handle_annotations_before_blck_val_scalar();
+                _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING);)
                 csubstr maybe_filtered = _maybe_filter_val_scalar_plain(sc, m_evt_handler->m_curr->indref);  // VAL!
                 m_evt_handler->set_val_scalar_plain(maybe_filtered);
                 addrem_flags(RNXT, RVAL);
+                #ifdef RYML_WITH_COMMENTS
+                if(_maybe_advance_to_trailing_comment())
+                {
+                    _c4dbgp("seqblck[RVAL]: comment!");
+                    csubstr comm = _filter_comment(_scan_comment_flow());
+                    m_evt_handler->add_comment(comm, COMM_TRAILING);
+                }
+                #endif
             }
             else
             {
@@ -6795,6 +6808,15 @@ seqblck_start:
             _maybe_skip_whitespace_tokens();
             goto seqblck_finish;
         }
+        #ifdef RYML_WITH_COMMENTS
+        else if(rem.begins_with('#'))
+        {
+            _c4dbgp("seqblck[RVAL]: comment!");
+            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_options.with_comments());
+            csubstr comm = _filter_comment(_scan_comment_flow());
+            _pend_comment(comm, COMM_VAL_LEADING);
+        }
+        #endif
         else
         {
             _c4err("parse error");
@@ -6878,12 +6900,14 @@ seqblck_start:
                 _c4dbgp("seqblck[RNXT]: expect next val");
                 addrem_flags(RVAL, RNXT);
                 m_evt_handler->add_sibling();
+                _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_LEADING);)
                 _line_progressed(1);
                 _maybe_skip_whitespace_tokens();
             }
             else
             {
                 _c4dbgp("seqblck[RNXT]: start doc");
+                _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_FOOTER);)
                 _start_doc_suddenly();
                 _line_progressed(3);
                 _maybe_skip_whitespace_tokens();
@@ -6946,6 +6970,15 @@ seqblck_start:
                 addrem_flags(RKEY, RNXT);
                 goto seqblck_finish;
             }
+            #ifdef RYML_WITH_COMMENTS
+            else if(rem.begins_with('#'))
+            {
+                _c4dbgp("seqblck[RNXT]: comment!");
+                _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_options.with_comments());
+                csubstr comm = _filter_comment(_scan_comment_flow());
+                _pend_comment(comm, COMM_LEADING);
+            }
+            #endif
             else //if(first != '*')
             {
                 _c4err("parse error");
@@ -6962,6 +6995,7 @@ seqblck_start:
         if(_finished_file())
         {
             _c4dbgp("seqblck: finish!");
+            _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_FOOTER);)
             _end_seq_blck();
             goto seqblck_finish;
         }
@@ -8414,8 +8448,8 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         _handle_annotations_before_blck_val_scalar();
-        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_VAL_LEADING2);)
         m_evt_handler->begin_seq_val_block();
+        _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_LEADING);)
         addrem_flags(RSEQ|RBLCK|RVAL, RNXT|RTOP|RUNK|RDOC);
         m_doc_empty = false;
         _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
