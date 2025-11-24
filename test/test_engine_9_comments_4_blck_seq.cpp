@@ -20,6 +20,47 @@ COMMENT_TEST(BlockSeqMinimal,
              "- val2 # 4"                  "\n"
              "# 5"                         "\n"
              ,
+             "# 1"                         "\n"
+             "- val1 # 2"                  "\n"
+             "       # 3"                  "\n"
+             "- val2 # 4"                  "\n"
+             "       # 5"                  "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "+SEQ"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "=VAL :val1"                  "\n"
+             "=COMM #[TRAILING] 2\\n 3"    "\n"
+             "=VAL :val2"                  "\n"
+             "=COMM #[TRAILING] 4\\n 5"    "\n"
+             "-SEQ"                        "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_comment(" 2\n 3", COMM_TRAILING));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.add_comment(" 4\n 5", COMM_TRAILING));
+    ___(ps.end_seq_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+COMMENT_TEST(BlockSeqMinimalWithSep,
+             "# 1"                         "\n"
+             "- val1 # 2 ~"                "\n"
+             "# 3"                         "\n"
+             "- val2 # 4 ~"                "\n"
+             "# 5"                         "\n"
+             ,
              "+STR"                        "\n"
              "+DOC"                        "\n"
              "+SEQ"                        "\n"
@@ -50,6 +91,7 @@ COMMENT_TEST(BlockSeqMinimal,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
 
 COMMENT_TEST(BlockSeqBasic,
              "# 1"                                 "\n"
