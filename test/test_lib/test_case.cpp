@@ -822,7 +822,7 @@ void test_comment_invariants(Tree const& t, id_type id)
         }
     }
 
-    for(id_type child = t.first_child(id); child != NONE; child = t.next_sibling(id))
+    for(id_type child = t.first_child(id); child != NONE; child = t.next_sibling(child))
     {
         test_comment_invariants(t, child);
     }

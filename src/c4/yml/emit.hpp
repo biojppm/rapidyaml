@@ -294,7 +294,7 @@ private:
 private: // comments
 
 #ifdef RYML_WITH_COMMENTS
-    C4_ALWAYS_INLINE void _comm_push() { m_comm_state.push(CommentState{}); }
+    C4_ALWAYS_INLINE void _comm_push(NodeType style) { CommentState st{}; st.curr_style = style; m_comm_state.push(st); }
     C4_ALWAYS_INLINE void _comm_pop() { m_ilevel -= m_comm_state.pop().extra_indentation; }
     CommentData const* _comm_get(id_type node, CommentType_e type, bool indent_extra=false);
     CommentData const* _write_comm_trailing(id_type node, CommentType_e type, bool indent_extra=false);
@@ -304,6 +304,8 @@ private: // comments
     void _write_comm(csubstr s, id_type indentation, bool with_sep);
     void _write_comm_leadspace(csubstr s, id_type indentation, bool with_sep);
     bool _comm_needs_sep(id_type node, comment_data_type type) const;
+    bool _comm_needs_sep_flow(id_type node, comment_data_type type, type_bits style, NodeData const *nd) const;
+    bool _comm_needs_sep_blck(id_type node, comment_data_type type, type_bits style, NodeData const *nd) const;
 #endif
 
 private:
@@ -416,6 +418,7 @@ private:
     {
         CommentData const* latest;
         CommentData const* comm;
+        NodeType curr_style;
         id_type extra_indentation;
         #ifdef RYML_USE_ASSERT
         CommentType_e latest_query;
