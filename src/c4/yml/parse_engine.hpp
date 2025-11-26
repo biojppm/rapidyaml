@@ -6,6 +6,13 @@
 #endif
 
 
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include "c4/yml/comment_type.hpp"
+#endif
+#endif
+
+
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
@@ -213,65 +220,20 @@ typedef enum BlockChomp_ {
 } BlockChomp_e;
 
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-/** Options to give to the parser to control its behavior. */
-struct RYML_EXPORT ParserOptions
-{
-private:
-
-    typedef enum : uint32_t {
-        SCALAR_FILTERING = (1u << 0u),
-        LOCATIONS = (1u << 1u),
-        DEFAULTS = SCALAR_FILTERING,
-    } Flags_e;
-
-    uint32_t flags = DEFAULTS;
-
-public:
-
-    ParserOptions() = default;
-
-public:
-
-    /** @name source location tracking */
-    /** @{ */
-
-    /** enable/disable source location tracking */
-    ParserOptions& locations(bool enabled) noexcept
-    {
-        if(enabled)
-            flags |= LOCATIONS;
-        else
-            flags &= ~LOCATIONS;
-        return *this;
-    }
-    /** query source location tracking status */
-    C4_ALWAYS_INLINE bool locations() const noexcept { return (flags & LOCATIONS); }
-
-    /** @} */
-
-public:
-
-    /** @name scalar filtering status (experimental; disable at your discretion) */
-    /** @{ */
-
-    /** enable/disable scalar filtering while parsing */
-    ParserOptions& scalar_filtering(bool enabled) noexcept
-    {
-        if(enabled)
-            flags |= SCALAR_FILTERING;
-        else
-            flags &= ~SCALAR_FILTERING;
-        return *this;
-    }
-    /** query scalar filtering status */
-    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
-
-    /** @} */
-};
+/** Quickly inspect the source to estimate the number of nodes the
+ * resulting tree is likely to have. If a tree is empty before
+ * parsing, considerable time will be spent growing it, so calling
+ * this to reserve the tree size prior to parsing is likely to
+ * result in a time gain. We encourage using this method before
+ * parsing, but as always measure its impact in performance to
+ * obtain a good trade-off.
+ *
+ * @note since this method is meant for optimizing performance, it
+ * is approximate. The result may be actually smaller than the
+ * resulting number of nodes, notably if the YAML uses implicit
+ * maps as flow seq members as in `[these: are, individual:
+ * maps]`. */
+RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-redundant-declaration)
 
 
 //-----------------------------------------------------------------------------
@@ -539,6 +501,12 @@ private:
     csubstr _scan_ref_map();
     csubstr _scan_tag();
 
+    #ifdef RYML_WITH_COMMENTS
+    bool _maybe_advance_to_trailing_comment();
+    substr _scan_comment_flow();
+    substr _scan_comment_blck();
+    #endif
+
 public: // exposed for testing
 
     /** @cond dev */
@@ -559,6 +527,10 @@ public: // exposed for testing
     csubstr _maybe_filter_val_scalar_literal(ScannedBlock const& sb);
     csubstr _maybe_filter_key_scalar_folded(ScannedBlock const& sb);
     csubstr _maybe_filter_val_scalar_folded(ScannedBlock const& sb);
+
+    #ifdef RYML_WITH_COMMENTS
+    csubstr _filter_comment(substr s);
+    #endif
     /** @endcond */
 
 private:
@@ -577,6 +549,8 @@ private:
 
     void  _handle_flow_skip_whitespace();
 
+    void  _end_map_flow();
+    void  _end_seq_flow();
     void  _end_map_blck();
     void  _end_seq_blck();
     void  _end2_map();
@@ -714,7 +688,25 @@ private:
 
 private:
 
-    /** store pending tag or anchor/ref annotations */
+    #ifdef RYML_WITH_COMMENTS
+    struct PendingComment
+    {
+        csubstr txt;
+        CommentType_e type;
+        void maybe_apply(EventHandler *h) const
+        {
+            if(type != COMM_NONE)
+                h->add_comment(txt, type);
+        }
+    };
+    enum : size_t { max_pending_comments = 3 };
+    struct PendingComments
+    {
+        PendingComment entries[max_pending_comments];
+        size_t num_entries;
+    };
+    #endif
+    /* store pending tag or anchor/ref annotations */
     struct Annotation
     {
         struct Entry
@@ -722,13 +714,15 @@ private:
             csubstr str;
             size_t indentation;
             size_t line;
+            _RYML_WITH_COMMENTS(PendingComment leading_comment;)
+            _RYML_WITH_COMMENTS(PendingComment trailing_comment;)
         };
         Entry annotations[2];
         size_t num_entries;
     };
 
     void _handle_colon();
-    void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line);
+    void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line _RYML_WITH_COMMENTS(, CommentType_e leading_type));
     void _clear_annotations(Annotation *C4_RESTRICT dst);
     bool _has_pending_annotations() const { return m_pending_tags.num_entries || m_pending_anchors.num_entries; }
     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
@@ -747,6 +741,21 @@ private:
 
     void _check_tag(csubstr tag);
 
+    #ifdef RYML_WITH_COMMENTS
+    void _pend_comment(csubstr txt, CommentType_e type);
+    void _maybe_apply_pending_comment();
+    void _maybe_apply_pending_comment(CommentType_e expect_type, CommentType_e actual_type);
+    void _maybe_apply_pending_comment_matching(CommentType_e match_type, CommentType_e actual_type);
+    void _apply_pending_comment(CommentType_e expect_type, CommentType_e actual_type);
+    void _handle_flow_end_comments();
+    void _handle_flow_comma_comments();
+    void _handle_doc_end_comments();
+    void _maybe_handle_leading_comment_flow_key(CommentType_e current);
+    void _maybe_handle_leading_comment_flow_val(CommentType_e current);
+    void _maybe_handle_leading_comment_flow_val_map(CommentType_e current);
+    void _maybe_handle_leading_comment_flow_comma_map();
+    #endif
+
 private:
 
     ParserOptions m_options;
@@ -764,6 +773,7 @@ private:
 
     Annotation m_pending_anchors;
     Annotation m_pending_tags;
+    _RYML_WITH_COMMENTS(PendingComments m_pending_comments;)
 
     bool m_was_inside_qmrk;
     bool m_doc_empty = true;
@@ -780,21 +790,6 @@ private:
 
 };
 
-
-/** Quickly inspect the source to estimate the number of nodes the
- * resulting tree is likely have. If a tree is empty before
- * parsing, considerable time will be spent growing it, so calling
- * this to reserve the tree size prior to parsing is likely to
- * result in a time gain. We encourage using this method before
- * parsing, but as always measure its impact in performance to
- * obtain a good trade-off.
- *
- * @note since this method is meant for optimizing performance, it
- * is approximate. The result may be actually smaller than the
- * resulting number of nodes, notably if the YAML uses implicit
- * maps as flow seq members as in `[these: are, individual:
- * maps]`. */
-RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-redundant-declaration)
 
 /** @} */
 

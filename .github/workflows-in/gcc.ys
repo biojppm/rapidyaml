@@ -41,6 +41,19 @@ jobs:
     steps:: checkout-manual + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
+  comments:
+    :: setup-job('gcc' 'comments')
+    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+    env:: load('share/env.yaml') + {'CMAKE_FLAGS' '-DRYML_WITH_COMMENTS=ON'}
+    steps:: checkout-manual + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
   noexceptions:
     :: setup-job('gcc' 'noexceptions')
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}

@@ -188,21 +188,30 @@ public:
         {
             _c4dbgp("ensure stream");
             _set_root_as_stream();
-            id_type first = m_tree->first_child(m_tree->root_id());
-            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()), m_tree, m_curr->node_id);
-            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u, m_tree, m_curr->node_id);
+            const id_type root = m_tree->root_id();
+            const id_type first = m_tree->first_child(root);
+            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_stream(root), m_tree, root);
+            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->num_children(root) == 1u, m_tree, root);
             if(m_tree->is_container(first) || m_tree->is_val(first))
             {
                 _c4dbgp("push!");
                 _push();
+                #ifdef RYML_WITH_COMMENTS
+                m_tree->_p(root)->m_first_comment = NONE;
+                m_tree->_p(root)->m_last_comment = NONE;
+                #endif
             }
             else
             {
                 _c4dbgp("tweak");
                 _push();
                 _remove_speculative();
-                m_curr->node_id = m_tree->last_child(m_tree->root_id());
+                m_curr->node_id = m_tree->last_child(root);
                 m_curr->tr_data = m_tree->_p(m_curr->node_id);
+                #ifdef RYML_WITH_COMMENTS
+                m_tree->_p(m_curr->node_id)->m_first_comment = NONE;
+                m_tree->_p(m_curr->node_id)->m_last_comment = NONE;
+                #endif
             }
         }
         else
@@ -258,10 +267,21 @@ public:
         _push();
     }
 
-    void end_map()
+    void end_map_block()
     {
+        _c4dbgpf("node[{}]: end_map_block", m_parent->node_id, m_parent->pos.line, m_curr->pos.line);
         _pop();
-        _c4dbgpf("node[{}]: end_map_val", m_curr->node_id);
+    }
+
+    void end_map_flow(bool multiline)
+    {
+        _c4dbgpf("node[{}]: end_map. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
+        _pop();
+        if(multiline)
+        {
+            _disable_(FLOW_SL);
+            _enable_(FLOW_ML);
+        }
     }
 
     /** @} */
@@ -297,10 +317,21 @@ public:
         _push();
     }
 
-    void end_seq()
+    void end_seq_block()
     {
+        _c4dbgpf("node[{}]: end_seq_block", m_parent->node_id, m_parent->pos.line, m_curr->pos.line);
         _pop();
-        _c4dbgpf("node[{}]: end_seq_val", m_curr->node_id);
+    }
+
+    void end_seq_flow(bool multiline)
+    {
+        _c4dbgpf("node[{}]: end_seq. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
+        _pop();
+        if(multiline)
+        {
+            _disable_(FLOW_SL);
+            _enable_(FLOW_ML);
+        }
     }
 
     /** @} */
@@ -315,7 +346,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id), m_tree, m_parent->node_id);
-        NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
+        NodeData const* const prev = m_tree->m_buf; // watchout against relocation of the tree nodes
         _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
         if(prev != m_tree->m_buf)
             _refresh_after_relocation();
@@ -336,7 +367,7 @@ public:
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->is_container(m_curr->node_id), m_tree, m_curr->node_id);
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->has_key(m_curr->node_id), m_tree, m_curr->node_id);
         const NodeData tmp = _val2key_(*m_curr->tr_data);
-        _disable_(_VALMASK|VAL_STYLE);
+        _disable_(_VALMASK|VAL_STYLE|VALNIL);
         m_curr->tr_data->m_val = {};
         begin_map_val_flow();
         m_curr->tr_data->m_type = tmp.m_type;
@@ -557,6 +588,31 @@ public:
 
 public:
 
+    /** @name comments */
+    /** @{ */
+
+    #ifdef RYML_WITH_COMMENTS
+    /** add comment
+     *
+     * @warning This is only available if RYML_WITH_COMMENTS is defined. */
+    void add_comment(csubstr txt, CommentType_e type)
+    {
+        NodeData * d = m_curr->tr_data;
+        _c4dbgpf("node[{}]: comment! type={}({}) txt=[{}]~~~{}~~~", m_tree->id(d), comment_type_str(type), type, txt.len, txt);
+        if(type == COMM_VAL_BRACKET_TRAILING || type == COMM_VAL_BRACKET_LEADING)
+        {
+             _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent && m_parent->tr_data->m_type.is_flow());
+             d = m_parent->tr_data;
+            _c4dbgpf("node[{}]: comment to parent! [{}]~~~{}~~~", m_tree->id(d), txt.len, txt);
+        }
+        m_tree->set_comment(d, type, txt);
+    }
+    #endif // RYML_WITH_COMMENTS
+
+    /** @} */
+
+public:
+
     /** @name arena functions */
     /** @{ */
 
@@ -712,30 +768,39 @@ public:
         r.m_type.type = ((d.m_type.type & (_VALMASK|VAL_STYLE)) >> 1u);
         r.m_type.type = (r.m_type.type & ~(_VALMASK|VAL_STYLE));
         r.m_type.type = (r.m_type.type | KEY);
+        if(d.m_type.type & VALNIL)
+            r.m_type.type = (r.m_type.type | KEYNIL);
         return r;
     }
 
     void _remove_speculative()
     {
-        _c4dbgp("remove speculative node");
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
-        const id_type last_added = m_tree->size() - 1;
-        if(m_tree->has_parent(last_added))
-            if(m_tree->_p(last_added)->m_type == NOTYPE)
-                m_tree->remove(last_added);
+        const id_type speculative = m_tree->size() - 1;
+        const NodeData* node = m_tree->_p(speculative);
+        _c4dbgpf("remove speculative node={}, parent={}", speculative, node->m_parent);
+        if(node->m_parent != NONE && node->m_type == NOTYPE)
+        {
+            _RYML_WITH_COMMENTS(_RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_first_comment == NONE));
+            _RYML_WITH_COMMENTS(_RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_last_comment == NONE));
+            m_tree->remove(speculative);
+        }
     }
 
     void _remove_speculative_with_parent()
     {
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
         _RYML_ASSERT_BASIC_(m_tree->callbacks(), !m_tree->empty());
-        const id_type last_added = m_tree->size() - 1;
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(last_added), m_tree, last_added);
-        if(m_tree->_p(last_added)->m_type == NOTYPE)
+        const id_type speculative = m_tree->size() - 1;
+        const NodeData* node = m_tree->_p(speculative);
+        _c4dbgpf("remove speculative node={}, parent={}", speculative, node->m_parent);
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_parent(speculative), m_tree, speculative);
+        if(node->m_type == NOTYPE)
         {
-            _c4dbgpf("remove speculative node with parent. parent={} node={} parent(node)={}", m_parent->node_id, last_added, m_tree->parent(last_added));
-            m_tree->remove(last_added);
+            _RYML_WITH_COMMENTS(_RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_first_comment == NONE));
+            _RYML_WITH_COMMENTS(_RYML_ASSERT_BASIC_(m_tree->callbacks(), node->m_last_comment == NONE));
+            m_tree->remove(speculative);
         }
     }
 
