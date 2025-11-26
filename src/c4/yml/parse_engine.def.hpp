@@ -1370,6 +1370,8 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
             return false;
         }
         break;
+    _RYML_WITH_COMMENTS(case '#':)
+        return false;
     }
 
     _c4dbgpf("plain scalar! indentation={}", indentation);
@@ -6911,9 +6913,17 @@ seqblck_start:
                 _c4dbgp("seqblck[RNXT]: expect next val");
                 addrem_flags(RVAL, RNXT);
                 m_evt_handler->add_sibling();
-                _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val(COMM_LEADING);)
+                _RYML_WITH_COMMENTS(_maybe_handle_leading_comment_flow_val_map(COMM_LEADING);)
                 _line_progressed(1);
                 _maybe_skip_whitespace_tokens();
+                #ifdef RYML_WITH_COMMENTS
+                if(_maybe_advance_to_trailing_comment())
+                {
+                    _c4dbgp("seqblck[RNXT]: comment!");
+                    csubstr comm = _filter_comment(_scan_comment_flow());
+                    m_evt_handler->add_comment(comm, COMM_VAL_DASH_TRAILING);
+                }
+                #endif
             }
             else
             {
@@ -6923,6 +6933,14 @@ seqblck_start:
                 _line_progressed(3);
                 _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
+                #ifdef RYML_WITH_COMMENTS
+                if(_maybe_advance_to_trailing_comment())
+                {
+                    _c4dbgp("seqblck[RNXT]: comment!");
+                    csubstr comm = _filter_comment(_scan_comment_flow());
+                    m_evt_handler->add_comment(comm, COMM_DOC_TRAILING);
+                }
+                #endif
             }
         }
         else if(first == ':')
@@ -8463,7 +8481,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         #ifdef RYML_WITH_COMMENTS
         if(_maybe_advance_to_trailing_comment())
         {
-            _c4dbgp("seqflow[RVAL]: comment!");
+            _c4dbgp("unk: comment!");
             csubstr comm = _filter_comment(_scan_comment_flow());
             m_evt_handler->add_comment(comm, COMM_VAL_BRACKET_TRAILING);
         }
@@ -8481,7 +8499,16 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_doc_empty = false;
         _set_indentation(remindent);
         _line_progressed(1);
+        #ifndef RYML_WITH_COMMENTS
         _maybe_skip_whitespace_tokens();
+        #else
+        if(_maybe_advance_to_trailing_comment())
+        {
+            _c4dbgp("unk: comment!");
+            csubstr comm = _filter_comment(_scan_comment_flow());
+            m_evt_handler->add_comment(comm, COMM_VAL_DASH_TRAILING);
+        }
+        #endif
     }
     else if(first == '?' && _is_blck_token(rem))
     {

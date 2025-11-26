@@ -300,7 +300,7 @@ template<class Writer>
 void Emitter<Writer>::_top_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    _RYML_WITH_COMMENTS(_comm_push());
+    _RYML_WITH_COMMENTS(_comm_push(DOC));
     if(ty.is_doc() && !m_tree->is_root(node))
     {
         _write("---");
@@ -369,7 +369,7 @@ void Emitter<Writer>::_flow_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
-    _RYML_WITH_COMMENTS(_comm_push());
+    _RYML_WITH_COMMENTS(_comm_push(FLOW_SL|SEQ));
     _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_LEADING));
     _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_VAL_LEADING));
     if(ty & VALANCH)
@@ -399,7 +399,7 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
-    _RYML_WITH_COMMENTS(_comm_push());
+    _RYML_WITH_COMMENTS(_comm_push(FLOW_SL|MAP));
     _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_LEADING));
     if(ty & KEYANCH)
     {
@@ -502,7 +502,7 @@ void Emitter<Writer>::_blck_seq_open_entry(id_type node)
 {
     NodeType ty = m_tree->type(node);
     _write_pws_and_pend(_PWS_NONE);
-    _RYML_WITH_COMMENTS(_comm_push());
+    _RYML_WITH_COMMENTS(_comm_push(BLOCK|SEQ));
     _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_LEADING));
     _write_pws_and_pend(_PWS_SPACE); // pend the space after the following dash
     _write('-');
@@ -640,8 +640,8 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     if(!(ty & (KEY_STYLE|KEYREF)))
         ty |= (scalar_style_choose(key) & KEY_STYLE);
     _write_pws_and_pend(_PWS_NONE);
-    _RYML_WITH_COMMENTS(_comm_push());
 #ifndef RYML_WITH_COMMENTS
+    _comm_push(BLOCK|MAP);
     if(ty & KEYANCH)
     {
         _write_pws_and_pend(_PWS_SPACE);
@@ -759,7 +759,7 @@ void Emitter<Writer>::_blck_close_entry(id_type node)
 {
     (void)node;
     _RYML_WITH_COMMENTS(_write_comm_trailing(node, COMM_TRAILING));
-    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_FOOTER));
+    _RYML_WITH_COMMENTS(_write_comm_leading(node, COMM_FOOTER, /*indent_extra*/true));
     _RYML_WITH_COMMENTS(_comm_pop());
     _pend_newl();
 }
@@ -1604,23 +1604,31 @@ void Emitter<Writer>::_write_comm_leading(CommentData const* comm, bool with_sep
 }
 
 template<class Writer>
-bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) const
+bool Emitter<Writer>::_comm_needs_sep_flow(id_type node, comment_data_type comm_type, type_bits curr_style, NodeData const *nd) const
 {
-    NodeData const* nd = m_tree->_p(node);
-    _RYML_ASSERT_BASIC_(m_tree->callbacks(), type & nd->m_comments);
-    _RYML_ASSERT_BASIC_(m_tree->callbacks(), ((type) & (type - 1u)) == 0); // needs to be power of two
-    if(type == COMM_LEADING)
+    (void)node;
+    // bracket comments, common to seq and map
+    if(comm_type == COMM_VAL_BRACKET_TRAILING)
     {
-        if(nd->m_type & KEY)
-        {
-            if(nd->m_type & KEYANCH)
-                return (nd->m_comments & COMM_KEY_ANCHOR_LEADING);
-            else if(nd->m_type & KEYTAG)
-                return (nd->m_comments & COMM_KEY_TAG_LEADING);
-            else
-                return (nd->m_comments & COMM_KEY_LEADING);
-        }
+        if(nd->m_first_child != NONE)
+            return (m_tree->_p(nd->m_first_child)->m_comments & (COMM_LEADING|COMM_VAL_TAG_LEADING|COMM_VAL_LEADING|COMM_VAL_LEADING2));
         else
+            return (nd->m_comments & COMM_VAL_BRACKET_LEADING);
+    }
+    else if(comm_type == COMM_TRAILING)
+    {
+        if(nd->m_next_sibling != NONE)
+        {
+            NodeData const* sib = m_tree->_p(nd->m_next_sibling);
+            return (sib->m_comments & COMM_LEADING) && !(sib->m_type & DOC);
+        }
+        else if(nd->m_parent != NONE)
+            return (m_tree->_p(nd->m_parent)->m_comments & COMM_VAL_BRACKET_LEADING);
+    }
+
+    if(curr_style & SEQ) // SEQ, FLOW
+    {
+        if(comm_type == COMM_LEADING)
         {
             if(nd->m_type & VALANCH)
                 return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
@@ -1629,46 +1637,158 @@ bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type type) cons
             else
                 return (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2));
         }
+        else if(comm_type == COMM_VAL_LEADING)
+        {
+            if(nd->m_type & VALANCH)
+                return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
+            else if(nd->m_type & VALTAG)
+                return (nd->m_comments & COMM_VAL_TAG_LEADING);
+            else
+                return (nd->m_comments & COMM_VAL_LEADING2);
+        }
+        else if((comm_type == COMM_VAL_ANCHOR_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_TAG_LEADING)))
+            return true;
+        else if((comm_type == COMM_VAL_TAG_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2)))
+            return true;
+        else if((comm_type == COMM_TRAILING) && (nd->m_comments & (COMM_FOOTER)))
+            return true;
     }
-    else if(type == COMM_VAL_LEADING)
+    else // MAP, FLOW
     {
-        if(nd->m_type & VALANCH)
-            return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
-        else if(nd->m_type & VALTAG)
-            return (nd->m_comments & COMM_VAL_TAG_LEADING);
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), curr_style & MAP);
+        if(comm_type == COMM_LEADING)
+        {
+            if(nd->m_type & KEY)
+            {
+                if(nd->m_type & KEYANCH)
+                    return (nd->m_comments & COMM_KEY_ANCHOR_LEADING);
+                else if(nd->m_type & KEYTAG)
+                    return (nd->m_comments & COMM_KEY_TAG_LEADING);
+                else
+                    return (nd->m_comments & COMM_KEY_LEADING);
+            }
+            else
+            {
+                if(nd->m_type & VALANCH)
+                    return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
+                else if(nd->m_type & VALTAG)
+                    return (nd->m_comments & COMM_VAL_TAG_LEADING);
+                else
+                    return (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2));
+            }
+        }
+        else if(comm_type == COMM_VAL_LEADING)
+        {
+            if(nd->m_type & VALANCH)
+                return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
+            else if(nd->m_type & VALTAG)
+                return (nd->m_comments & COMM_VAL_TAG_LEADING);
+            else
+                return (nd->m_comments & COMM_VAL_LEADING2);
+        }
+        else if((comm_type == COMM_KEY_TRAILING) && (nd->m_comments & COMM_COLON_LEADING))
+            return true;
+        else if((comm_type == COMM_VAL_ANCHOR_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_TAG_LEADING)))
+            return true;
+        else if((comm_type == COMM_KEY_ANCHOR_TRAILING) && (nd->m_comments & (COMM_KEY_LEADING|COMM_KEY_TAG_LEADING)))
+            return true;
+        else if((comm_type == COMM_VAL_TAG_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2)))
+            return true;
+        else if((comm_type == COMM_KEY_TAG_TRAILING) && (nd->m_comments & COMM_KEY_LEADING))
+            return true;
+        else if((comm_type == COMM_COLON_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2|COMM_VAL_ANCHOR_LEADING)))
+            return true;
+        else if((comm_type == COMM_TRAILING) && (nd->m_comments & (COMM_FOOTER)))
+            return true;
+    }
+    return false;
+}
+
+
+template<class Writer>
+bool Emitter<Writer>::_comm_needs_sep_blck(id_type node, comment_data_type comm_type, type_bits curr_style, NodeData const *nd) const
+{
+    (void)node;
+    if(comm_type & (COMM_TRAILING|COMM_FOOTER))
+    {
+        enum : comment_data_type { comm_none = comment_data_type(0), comm_all = ~comm_none };
+        comment_data_type upper_bits = comm_all & ~((comm_type << 1u) - 1);
+        bool is_last_comment = (comm_none == (nd->m_comments & upper_bits));
+        if(is_last_comment)
+        {
+            if(nd->m_next_sibling != NONE)
+                return m_tree->_p(nd->m_next_sibling)->m_comments & COMM_LEADING;
+            // this node is the last child; check the closing
+            // scopes, and then the first new child
+            id_type parent = nd->m_parent;
+            while(parent != NONE)
+            {
+                NodeData const* pd = m_tree->_p(parent);
+                if(pd->m_comments & COMM_FOOTER)
+                    return true;
+                else if(parent != nd->m_parent)
+                    if(pd->m_first_child != NONE)
+                        if(m_tree->_p(pd->m_first_child)->m_comments & COMM_LEADING)
+                            return true;
+                parent = pd->m_parent;
+            }
+            return false;
+        }
         else
-            return (nd->m_comments & COMM_VAL_LEADING2);
+        {
+            return true;
+        }
     }
-    else if((type == COMM_KEY_TRAILING) && (nd->m_comments & COMM_COLON_LEADING))
-        return true;
-    else if((type == COMM_VAL_ANCHOR_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_TAG_LEADING)))
-        return true;
-    else if((type == COMM_KEY_ANCHOR_TRAILING) && (nd->m_comments & (COMM_KEY_LEADING|COMM_KEY_TAG_LEADING)))
-        return true;
-    else if((type == COMM_VAL_TAG_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2)))
-        return true;
-    else if((type == COMM_KEY_TAG_TRAILING) && (nd->m_comments & COMM_KEY_LEADING))
-        return true;
-    else if((type == COMM_COLON_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2|COMM_VAL_ANCHOR_LEADING)))
-        return true;
-    else if((type == COMM_TRAILING) && (nd->m_comments & (COMM_FOOTER)))
-        return true;
-    else if(type == COMM_VAL_BRACKET_TRAILING)
+    // container-specific
+    if(curr_style & SEQ)
     {
-        if(nd->m_first_child != NONE)
-            return (m_tree->_p(nd->m_first_child)->m_comments & (COMM_LEADING|COMM_VAL_TAG_LEADING|COMM_VAL_LEADING|COMM_VAL_LEADING2));
-        else
-            return (nd->m_comments & COMM_VAL_BRACKET_LEADING);
+        if(comm_type == COMM_VAL_LEADING || (comm_type == COMM_VAL_DASH_TRAILING && !(nd->m_comments & COMM_VAL_LEADING)))
+        {
+            if(nd->m_type & VALANCH)
+                return (nd->m_comments & COMM_VAL_ANCHOR_LEADING);
+            else if(nd->m_type & VALTAG)
+                return (nd->m_comments & COMM_VAL_TAG_LEADING);
+            else
+                return (nd->m_comments & COMM_VAL_LEADING2);
+        }
+        else if((comm_type == COMM_VAL_ANCHOR_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_TAG_LEADING)))
+            return true;
+        else if((comm_type == COMM_VAL_TAG_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING|COMM_VAL_LEADING2)))
+            return true;
+        else if((comm_type == COMM_VAL_DASH_TRAILING) && (nd->m_comments & (COMM_VAL_LEADING)))
+            return true;
+        else if((comm_type == COMM_TRAILING) && (nd->m_comments & (COMM_FOOTER)))
+            return true;
     }
-    else if(type != COMM_TRAILING)
-        return false;
-    else if(nd->m_next_sibling != NONE)
+    else // MAP
     {
-        NodeData const* sib = m_tree->_p(nd->m_next_sibling);
-        return (sib->m_comments & COMM_LEADING) && !(sib->m_type & DOC);
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), curr_style & MAP);
     }
-    else if(nd->m_parent != NONE)
-        return (m_tree->_p(nd->m_parent)->m_comments & COMM_VAL_BRACKET_LEADING);
+    return false;
+}
+
+
+template<class Writer>
+bool Emitter<Writer>::_comm_needs_sep(id_type node, comment_data_type comm_type) const
+{
+    NodeData const* nd = m_tree->_p(node);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), comm_type & nd->m_comments);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), ((comm_type) & (comm_type - 1u)) == 0); // needs to be power of two
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), m_comm_state.size() > 0);
+    NodeType curr_style = m_comm_state.top().curr_style;
+    if(curr_style & DOC)
+    {
+        curr_style = FLOW_SL|SEQ;
+    }
+    if(curr_style & (FLOW_SL|FLOW_ML))
+    {
+        return _comm_needs_sep_flow(node, comm_type, curr_style, nd);
+    }
+    else
+    {
+        _RYML_ASSERT_BASIC_(m_tree->callbacks(), curr_style & BLOCK);
+        return _comm_needs_sep_blck(node, comm_type, curr_style, nd);
+    }
     return false;
 }
 
@@ -1677,10 +1797,7 @@ CommentData const* Emitter<Writer>::_write_comm_trailing(id_type node, CommentTy
 {
     CommentData const* comm = _comm_get(node, type, indent_extra);
     if(comm)
-    {
-        bool with_sep = (m_opts.comments_sep() && _comm_needs_sep(node, type));
-        _write_comm_trailing(comm, with_sep);
-    }
+        _write_comm_trailing(comm, (m_opts.comments_sep() && _comm_needs_sep(node, type)));
     return comm;
 }
 
@@ -1689,10 +1806,7 @@ CommentData const* Emitter<Writer>::_write_comm_leading(id_type node, CommentTyp
 {
     CommentData const* comm = _comm_get(node, type, indent_extra);
     if(comm)
-    {
-        bool with_sep = (m_opts.comments_sep() && _comm_needs_sep(node, type));
-        _write_comm_leading(comm, with_sep);
-    }
+        _write_comm_leading(comm, (m_opts.comments_sep() && _comm_needs_sep(node, type)));
     return comm;
 }
 #endif // RYML_WITH_COMMENTS
