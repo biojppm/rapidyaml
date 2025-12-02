@@ -492,7 +492,7 @@ TEST(CaseNode, anchors)
 
 TEST(simple_anchor, resolve_works_on_an_empty_tree)
 {
-    Tree t;
+    Tree t(0);
     t.resolve();
     EXPECT_TRUE(t.empty());
 }

@@ -310,7 +310,7 @@ struct CaseDataLineEndings
     std::vector<char> src_buf;
     substr src;
 
-    Tree parsed_tree;
+    Tree parsed_tree{0};
 
     size_t numbytes_stdout;
     size_t numbytes_stdout_json;
@@ -327,10 +327,10 @@ struct CaseDataLineEndings
     std::string parse_buf_json;
     substr parsed_json;
 
-    Tree emitted_tree;
-    Tree emitted_tree_json;
+    Tree emitted_tree{0};
+    Tree emitted_tree_json{0};
 
-    Tree recreated;
+    Tree recreated{0};
 
     std::string parse_buf_ints;
     std::vector<int> parsed_ints;

@@ -547,7 +547,7 @@ TEST(tag_directives, resolve_tags)
 
 TEST(tag_directives, safe_with_empty_tree)
 {
-    Tree t;
+    Tree t(0);
     t.resolve_tags();
     EXPECT_TRUE(t.empty());
 }

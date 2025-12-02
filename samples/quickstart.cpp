@@ -3911,7 +3911,7 @@ void sample_float_precision()
     // have to build the container.
     //
     // First a function to check the result:
-    auto check_precision = [&](ryml::Tree serialized){
+    auto check_precision = [&](ryml::Tree const& serialized){
         std::cout << serialized;
         // now it works!
         CHECK((ryml::emitrs_yaml<std::string>(serialized) == R"(- 1.23234412342131239

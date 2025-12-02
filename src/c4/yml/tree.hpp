@@ -33,7 +33,6 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
 
-
 namespace c4 {
 namespace yml {
 
@@ -206,7 +205,7 @@ public:
 
     Tree() : Tree(get_callbacks()) {}
     Tree(Callbacks const& cb);
-    Tree(id_type node_capacity, size_t arena_capacity=0) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
+    Tree(id_type node_capacity, size_t arena_capacity=RYML_DEFAULT_TREE_ARENA_CAPACITY) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
     Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb);
 
     ~Tree();
@@ -224,7 +223,7 @@ public:
     /** @name memory and sizing */
     /** @{ */
 
-    void reserve(id_type node_capacity);
+    void reserve(id_type node_capacity=RYML_DEFAULT_TREE_CAPACITY);
 
     /** clear the tree and zero every node
      * @note does NOT clear the arena
@@ -284,10 +283,8 @@ public:
     //! This function is implementation only; use at your own risk.
     NodeData const * _p(id_type node) const { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
 
-    //! Get the id of the root node
-    id_type root_id()       { if(m_cap == 0) { reserve(16); } _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
-    //! Get the id of the root node
-    id_type root_id() const {                                 _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
+    //! Get the id of the root node. The tree must not be empty.
+    id_type root_id() const { _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
 
     //! Get a NodeRef of a node by id
     NodeRef      ref(id_type node);
@@ -313,17 +310,17 @@ public:
     //! @note @p i is NOT the node id, but the doc position within the stream
     ConstNodeRef cdocref(id_type i) const;
 
-    //! find a root child by name, return it as a NodeRef
+    //! find a root child (ie child of root) by name, return it as a NodeRef
     //! @note requires the root to be a map.
     NodeRef      operator[] (csubstr key);
-    //! find a root child by name, return it as a NodeRef
+    //! find a root child (ie child of root) by name, return it as a NodeRef
     //! @note requires the root to be a map.
     ConstNodeRef operator[] (csubstr key) const;
 
-    //! find a root child by index: return the root node's @p i-th child as a NodeRef
+    //! find a root child (ie child of root) by index: return the root node's @p i-th child as a NodeRef
     //! @note @p i is NOT the node id, but the child's position
     NodeRef      operator[] (id_type i);
-    //! find a root child by index: return the root node's @p i-th child as a NodeRef
+    //! find a root child (ie child of root) by index: return the root node's @p i-th child as a NodeRef
     //! @note @p i is NOT the node id, but the child's position
     ConstNodeRef operator[] (id_type i) const;
 
@@ -971,7 +968,7 @@ public:
      * @warning This operation may be expensive, with a potential complexity of O(numNodes)+O(arenasize).
      * @warning Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual nodes. */
-    void reserve_arena(size_t arena_cap)
+    void reserve_arena(size_t arena_cap=RYML_DEFAULT_TREE_ARENA_CAPACITY)
     {
         if(arena_cap > m_arena.len)
         {

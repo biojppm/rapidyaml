@@ -592,17 +592,28 @@ TEST(Tree, empty_ctor)
 {
     Tree tree;
     EXPECT_EQ(tree.callbacks(), get_callbacks());
-    EXPECT_EQ(tree.empty(), true);
-    EXPECT_EQ(tree.capacity(), 0u);
+    EXPECT_EQ(tree.empty(), RYML_DEFAULT_TREE_CAPACITY == 0);
+    EXPECT_EQ(tree.capacity(), RYML_DEFAULT_TREE_CAPACITY);
+    EXPECT_EQ(tree.size(), RYML_DEFAULT_TREE_CAPACITY != 0); // the root
+    EXPECT_EQ(tree.slack(), RYML_DEFAULT_TREE_CAPACITY ? RYML_DEFAULT_TREE_CAPACITY - 1u : 0);
     EXPECT_EQ(tree.arena_capacity(), 0u);
     EXPECT_EQ(tree.arena_slack(), 0u);
-    EXPECT_EQ(tree.size(), 0u);
-    EXPECT_EQ(tree.slack(), 0u);
     EXPECT_EQ(tree.arena().empty(), true);
 }
 
 TEST(Tree, node_cap_ctor)
 {
+    {
+        Tree tree(0u);
+        EXPECT_EQ(tree.callbacks(), get_callbacks());
+        EXPECT_EQ(tree.empty(), true);
+        EXPECT_EQ(tree.capacity(), 0u);
+        EXPECT_EQ(tree.arena_capacity(), 0u);
+        EXPECT_EQ(tree.arena_slack(), 0u);
+        EXPECT_EQ(tree.size(), 0u);
+        EXPECT_EQ(tree.slack(), 0u);
+        EXPECT_EQ(tree.arena().empty(), true);
+    }
     {
         Tree tree(10u);
         EXPECT_EQ(tree.callbacks(), get_callbacks());

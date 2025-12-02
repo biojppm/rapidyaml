@@ -10,6 +10,7 @@ C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
+
 namespace c4 {
 namespace yml {
 
@@ -82,6 +83,11 @@ ConstNodeRef Tree::cdocref(id_type i) const
 
 //-----------------------------------------------------------------------------
 Tree::Tree(Callbacks const& cb)
+    : Tree(RYML_DEFAULT_TREE_CAPACITY, RYML_DEFAULT_TREE_ARENA_CAPACITY, cb)
+{
+}
+
+Tree::Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb)
     : m_buf(nullptr)
     , m_cap(0)
     , m_size(0)
@@ -92,13 +98,10 @@ Tree::Tree(Callbacks const& cb)
     , m_callbacks(cb)
     , m_tag_directives()
 {
-}
-
-Tree::Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb)
-    : Tree(cb)
-{
-    reserve(node_capacity);
-    reserve_arena(arena_capacity);
+    if(node_capacity)
+        reserve(node_capacity);
+    if(arena_capacity)
+        reserve_arena(arena_capacity);
 }
 
 Tree::~Tree()
@@ -107,9 +110,16 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that) : Tree(that.m_callbacks)
+Tree::Tree(Tree const& that) : m_callbacks(that.m_callbacks)
 {
+    _clear();
     _copy(that);
+}
+
+Tree::Tree(Tree && that) noexcept : m_callbacks(that.m_callbacks)
+{
+    _clear();
+    _move(that);
 }
 
 Tree& Tree::operator= (Tree const& that)
@@ -121,11 +131,6 @@ Tree& Tree::operator= (Tree const& that)
         _copy(that);
     }
     return *this;
-}
-
-Tree::Tree(Tree && that) noexcept : Tree(that.m_callbacks)
-{
-    _move(that);
 }
 
 Tree& Tree::operator= (Tree && that) noexcept
