@@ -597,10 +597,11 @@ using id_type = RYML_ID_TYPE;
 struct Tree
 {
     Tree();
+    Tree(id_type node_type, size_t arena_capacity=RYML_DEFAULT_TREE_ARENA_CAPACITY);
     ~Tree();
 
-    void reserve(id_type node_capacity);
-    void reserve_arena(size_t arena_capacity);
+    void reserve(id_type node_capacity=RYML_DEFAULT_TREE_CAPACITY);
+    void reserve_arena(size_t arena_capacity=RYML_DEFAULT_TREE_ARENA_CAPACITY);
     void clear();
     void clear_arena();
 

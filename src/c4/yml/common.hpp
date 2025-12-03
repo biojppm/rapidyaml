@@ -22,6 +22,16 @@
 
 //-----------------------------------------------------------------------------
 
+#ifndef RYML_DEFAULT_TREE_CAPACITY
+/// default capacity for the tree when not set explicitly
+#define RYML_DEFAULT_TREE_CAPACITY (16)
+#endif
+
+#ifndef RYML_DEFAULT_TREE_ARENA_CAPACITY
+/// default capacity for the tree's arena when not set explicitly
+#define RYML_DEFAULT_TREE_ARENA_CAPACITY (0)
+#endif
+
 #ifndef RYML_ERRMSG_SIZE
 /// size for the error message buffer
 #define RYML_ERRMSG_SIZE (1024)
