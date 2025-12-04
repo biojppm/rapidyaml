@@ -4,154 +4,12 @@ try:
 except:
     from ryml import _same_ptr, _same_mem
 import unittest
+import copy
 
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-class TestSubstrInterop(unittest.TestCase):
-
-    # ------------------------------------------------
-    # str
-
-    # CAN create c4::csubstr from string object
-    def test11_str2csubstr(self):
-        s = "asdasd"
-        m = ryml.as_csubstr(s)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, ryml.u(m))
-        #
-        m = ryml.as_csubstr(m)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, ryml.u(m))
-
-    # CANNOT create c4::substr from string object
-    def test12_str2substr(self):
-        s = ""
-        with self.assertRaises(TypeError) as context:
-            _ = ryml.as_substr(s)
-        self.assertTrue(type(context.exception), TypeError)
-
-    # ------------------------------------------------
-    # bytes
-
-    # CAN create c4::csubstr from string object
-    def test21_bytes2csubstr(self):
-        s = b"foo21"
-        m = ryml.as_csubstr(s)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, m)
-        #
-        m = ryml.as_csubstr(m)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, m)
-
-    # CANNOT create c4::csubstr from string object
-    def test22_bytes2substr(self):
-        s = b"foo22"
-        with self.assertRaises(TypeError) as context:
-            _ = ryml.as_substr(s)
-        self.assertTrue(type(context.exception), TypeError)
-
-    # ------------------------------------------------
-    # bytearray
-
-    # CAN create c4::csubstr from string object
-    def test31_bytes2csubstr(self):
-        s = bytearray("foo31", "utf8")
-        m = ryml.as_csubstr(s)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, m)
-        #
-        m = ryml.as_csubstr(m)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, m)
-
-    # CANNOT create c4::csubstr from string object
-    def test32_bytes2substr(self):
-        s = bytearray("foo31", "utf8")
-        m = ryml.as_csubstr(s)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, m)
-        #
-        m = ryml.as_csubstr(m)
-        self.assertTrue(_same_ptr(s, m))
-        self.assertTrue(_same_mem(s, m))
-        self.assertEqual(s, m)
-
-
-# -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-
-def _addmap(t, node, k=None):
-    m = t.append_child(node)
-    if k is None:
-        t.to_map(m)
-    else:
-        t.to_map(m, k)
-    return m
-
-
-def _addseq(t, node, k=None):
-    m = t.append_child(node)
-    if k is None:
-        t.to_seq(m)
-    else:
-        t.to_seq(m, k)
-    return m
-
-
-def _addval(t, node, k, v=None):
-    ch = t.append_child(node)
-    if v is None:
-        t.to_val(ch, k)
-    else:
-        t.to_keyval(ch, k, v)
-    return ch
-
-
-# -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-def check_tree_mod(ut, t):
-    # some convenient shorthands
-    eq = ut.assertEqual
-    def _addval_and_check(node, k, v=None):
-        ch = _addval(t, node, k, v)
-        pos = t.child_pos(node, ch)
-        eq(t.child(node, pos), ch)
-        if v is not None:
-            eq(t.find_child(node, k), ch)
-            eq(t.child(node, pos), t.find_child(node, k))
-        return ch
-    def _addseq_and_check(node, k):
-        ch = _addseq(t, node, k)
-        eq(t.find_child(node, k), ch)
-        return ch
-    def _addmap_and_check(node, k):
-        ch = _addmap(t, node, k)
-        eq(t.find_child(node, k), ch)
-        return ch
-    m = _addmap_and_check(t.root_id(), "check_tree_mod_map")
-    _addval_and_check(m, "k1", "v1")
-    _addval_and_check(m, "k2", "v2")
-    _addval_and_check(m, "k3", "v3")
-    eq(t.num_children(m), 3)
-    eq(t.num_siblings(t.first_child(m)), 3)
-    s = _addseq_and_check(t.root_id(), "check_tree_mod_seq")
-    _addval_and_check(s, "v1")
-    _addval_and_check(s, "v2")
-    _addval_and_check(s, "v3")
-    eq(t.num_children(s), 3)
-    eq(t.num_siblings(t.first_child(m)), 3)
 
 
 # -----------------------------------------------------------------------------
@@ -363,6 +221,14 @@ class SimpleTestCase:
         check_tree_mod(ut, t)
 
 
+def _copy(s):
+    "force a copy of the src string"
+    cp = (s + ".")[:-1]  # https://stackoverflow.com/questions/24804453/how-can-i-copy-a-python-string
+    assert id(cp) != id(s)
+    return cp
+
+
+
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -375,9 +241,16 @@ class TestRunner(unittest.TestCase):
     # if they are added
     def _setUp(self, case):
         self.case = case
-        self.src_as_str = str(case.yaml)
-        self.src_as_bytes = bytes(case.yaml, "utf8")
-        self.src_as_bytearray = bytearray(case.yaml, "utf8")
+        self.src_as_str = str(_copy(case.yaml))
+        self.src_as_bytes = bytes(_copy(case.yaml), "utf8")
+        self.src_as_bytearray = bytearray(_copy(case.yaml), "utf8")
+        self.src_as_memoryview = memoryview(copy.deepcopy(self.src_as_bytearray))
+        all = (self.src_as_str, self.src_as_bytes, self.src_as_bytearray, self.src_as_memoryview)
+        for v in all:
+            assert id(v) != id(case.yaml)
+            for other in all:
+                if other != v:
+                    assert id(other) != id(v)
 
     # ----------------------------------------------------------
     def test11_str__arena(self):  # cannot read string buffers (or can we?)
