@@ -31,21 +31,29 @@ using csubstr = c4::csubstr;
 
 %typemap(in) c4::substr {
 #if defined(SWIGPYTHON)
-  Py_buffer view;
-  int ok = PyObject_CheckBuffer($input);
-  if(ok)
+  if($input != Py_None)
   {
-      ok = (0 == PyObject_GetBuffer($input, &view, PyBUF_SIMPLE|PyBUF_WRITABLE));
-  }
-  if(ok)
-  {
-      $1 = c4::substr((char*)view.buf, view.len);
-      PyBuffer_Release(&view);
+      int ok = PyObject_CheckBuffer($input);
+      Py_buffer view;
+      view.buf = nullptr;
+      if(ok)
+      {
+          ok = (0 == PyObject_GetBuffer($input, &view, PyBUF_SIMPLE|PyBUF_WRITABLE));
+      }
+      if(ok)
+      {
+          $1 = c4::substr((char*)view.buf, view.len);
+          PyBuffer_Release(&view);
+      }
+      else
+      {
+          PyErr_SetString(PyExc_TypeError, "substr: could not get mutable memory - have you passed an imutable type such as str or bytes?");
+          SWIG_fail;
+      }
   }
   else
   {
-      PyErr_SetString(PyExc_TypeError, "could not get mutable memory for c4::csubstr - have you passed a str?");
-      SWIG_fail;
+      $1 = c4::substr(nullptr, size_t(0));
   }
 #else
 #error no "in" typemap defined for this export language
@@ -54,32 +62,39 @@ using csubstr = c4::csubstr;
 
 %typemap(in) c4::csubstr {
 #if defined(SWIGPYTHON)
-  Py_buffer view;
-  view.buf = nullptr;
-  int ok = PyObject_CheckBuffer($input);
-  if(ok)
+  if($input != Py_None)
   {
-      ok = (0 == PyObject_GetBuffer($input, &view, PyBUF_CONTIG_RO));
-  }
-  if(ok)
-  {
-      $1 = c4::csubstr((const char*)view.buf, view.len);
-      PyBuffer_Release(&view);
-  }
-  else
-  {
-      // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-      Py_ssize_t sz = 0;
-      const char *buf = PyUnicode_AsUTF8AndSize($input, &sz);
-      if(buf || sz == 0)
+      int ok = PyObject_CheckBuffer($input);
+      Py_buffer view;
+      view.buf = nullptr;
+      if(ok)
       {
-          $1 = c4::csubstr(buf, sz);
+          ok = (0 == PyObject_GetBuffer($input, &view, PyBUF_CONTIG_RO));
+      }
+      if(ok)
+      {
+          $1 = c4::csubstr((const char*)view.buf, view.len);
+          PyBuffer_Release(&view);
       }
       else
       {
-          PyErr_SetString(PyExc_TypeError, "c4::csubstr: could not get readonly memory from python object");
-          SWIG_fail;
+          // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
+          Py_ssize_t sz = 0;
+          const char *buf = PyUnicode_AsUTF8AndSize($input, &sz);
+          if(buf || sz == 0)
+          {
+              $1 = c4::csubstr(buf, sz);
+          }
+          else
+          {
+              PyErr_SetString(PyExc_TypeError, "csubstr: could not get readonly memory from python object");
+              SWIG_fail;
+          }
       }
+  }
+  else
+  {
+      $1 = c4::csubstr(nullptr, size_t(0));
   }
 #else
 #error no "in" typemap defined for this export language
@@ -217,6 +232,13 @@ c4::csubstr  _get_as_substr(c4::substr s)
 }
 
 
+// helper for calling to_arena()
+c4::csubstr _to_arena_buf_cpp(c4::yml::Tree &t, c4::csubstr s)
+{
+    return t.to_arena(s);
+}
+
+
 // utilities for testing
 bool _same_ptr(c4::csubstr l, c4::csubstr r)
 {
@@ -227,8 +249,6 @@ bool _same_mem(c4::csubstr l, c4::csubstr r)
 {
     return l.str == r.str && l.len == r.len;
 }
-
-
 %}
 
 
@@ -241,10 +261,14 @@ from deprecation import deprecated
 
 def as_csubstr(s):
     """return as a ryml::csubstr"""
+    if isinstance(s, memoryview):
+        return s
     return _get_as_csubstr(s)
 
 def as_substr(s):
     """return as a ryml::ssubstr"""
+    if isinstance(s, memoryview):
+        return s
     return _get_as_substr(s)
 
 def u(memview):
@@ -291,6 +315,7 @@ def walk(tree, node=None, depth=0):
 def parse(buf, **kwargs):
     return parse_in_arena(tree, id)
 
+
 def parse_in_arena(buf, tree=None):
     """parse immutable YAML in the trees arena. Copy the YAML into a buffer
     in the C++ tree's arena, then parse the YAML from the trees arena.
@@ -304,7 +329,8 @@ def parse_in_arena(buf, tree=None):
        and returned at the end.
     :type buf: ``ryml.Tree``
     """
-    return _call_parse(parse_csubstr, buf, tree)
+    return _call_parse(parse_csubstr, _get_as_csubstr(buf), tree)
+
 
 def parse_in_place(buf, tree=None):
     """parse in place a mutable buffer containing YAML. The resulting tree
@@ -321,7 +347,7 @@ def parse_in_place(buf, tree=None):
     :type buf: ``ryml.Tree``
     """
     _check_valid_for_in_place(buf)
-    return _call_parse(parse_substr, buf, tree)
+    return _call_parse(parse_substr, _get_as_substr(buf), tree)
 
 
 
@@ -820,6 +846,26 @@ public:
      * that is placed closest to the end will prevail. */
     void duplicate_children_no_rep(id_type node, id_type parent, id_type after);
 
+public:
+
+    %extend {
+        // to_arena() is a template. We use an overload set instead, as it
+        // will let SWIG generate the appropriate dispatch code for us.
+        c4::csubstr _to_arena_fundamental(int val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(float val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(double val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_null() { return $self->to_arena(nullptr); }
+        c4::csubstr _to_arena_buffer(c4::csubstr buf) { return $self->to_arena(buf); }
+        %pythoncode %{
+            def to_arena(self, val):
+                if isinstance(val, (str, bytes, bytearray, memoryview)):
+                    return _to_arena_buf_cpp(self, as_csubstr(val))
+                elif val is None:
+                    return self._to_arena_null()
+                else:
+                    return self._to_arena_fundamental(val)
+        %}
+    }
 };
 
 } // namespace yml

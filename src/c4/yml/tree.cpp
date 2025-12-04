@@ -15,6 +15,39 @@ namespace c4 {
 namespace yml {
 
 
+csubstr serialize_to_arena(Tree * C4_RESTRICT tree, csubstr a)
+{
+    if(a.len > 0)
+    {
+        substr rem(tree->m_arena.sub(tree->m_arena_pos));
+        size_t num = to_chars(rem, a);
+        if(num > rem.len)
+        {
+            rem = tree->_grow_arena(num);
+            num = to_chars(rem, a);
+            _RYML_CB_ASSERT(tree->m_callbacks, num <= rem.len);
+        }
+        return tree->_request_span(num);
+    }
+    else
+    {
+        if(a.str == nullptr)
+        {
+            return csubstr{};
+        }
+        else if(tree->m_arena.str == nullptr)
+        {
+            // Arena is empty and we want to store a non-null
+            // zero-length string.
+            // Even though the string has zero length, we need
+            // some "memory" to store a non-nullptr string
+            tree->_grow_arena(1);
+        }
+        return tree->_request_span(0);
+    }
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
