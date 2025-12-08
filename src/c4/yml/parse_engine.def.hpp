@@ -416,7 +416,9 @@ void ParseEngine<EventHandler>::_reset()
     m_doc_empty = true;
     m_was_inside_qmrk = false;
     m_prev_colon = npos;
+    m_bom_len = 0;
     m_encoding = NOBOM;
+    m_bom_line = 0;
     if(m_options.locations())
     {
         _prepare_locations();
@@ -523,7 +525,7 @@ void ParseEngine<EventHandler>::_dbg(csubstr fmt, Args const& C4_RESTRICT ...arg
 {
     if(_dbg_enabled())
     {
-        auto dumpfn = [](csubstr s){ if(s.str) fwrite(s.str, 1, s.len, stdout); };
+        auto dumpfn = [](csubstr s){ if(s.len) fwrite(s.str, 1, s.len, stdout); };
         detail::_dump(dumpfn, fmt, args...);
         dumpfn("\n");
         _fmt_msg(dumpfn);
@@ -1603,6 +1605,7 @@ void ParseEngine<EventHandler>::_end2_seq()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_begin2_doc()
 {
+    _c4dbgp("begin_doc");
     m_doc_empty = true;
     add_flags(RDOC);
     m_evt_handler->begin_doc();
@@ -1612,6 +1615,7 @@ void ParseEngine<EventHandler>::_begin2_doc()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_begin2_doc_expl()
 {
+    _c4dbgp("begin_doc_expl");
     m_doc_empty = true;
     add_flags(RDOC);
     m_evt_handler->begin_doc_expl();
@@ -1630,6 +1634,7 @@ void ParseEngine<EventHandler>::_end2_doc()
         m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_doc();
+    m_bom_len = 0;
 }
 
 template<class EventHandler>
@@ -1643,6 +1648,7 @@ void ParseEngine<EventHandler>::_end2_doc_expl()
         m_evt_handler->set_val_scalar_plain_empty();
     }
     m_evt_handler->end_doc_expl();
+    m_bom_len = 0;
 }
 
 template<class EventHandler>
@@ -4354,18 +4360,20 @@ bool ParseEngine<EventHandler>::_handle_bom()
         const csubstr rest = rem.sub(1);
         // https://yaml.org/spec/1.2.2/#52-character-encodings
         #define _rymlisascii(c) ((c) > '\0' && (c) <= '\x7f') // is the character ASCII?
-        if(rem.begins_with({"\x00\x00\xfe\xff", 4}) || (rem.begins_with({"\x00\x00\x00", 3}) && rem.len >= 4u && _rymlisascii(rem.str[3])))
+        if(rem.begins_with(csubstr{"\x00\x00\xfe\xff", 4}) || (rem.begins_with(csubstr{"\x00\x00\x00", 3}) && rem.len >= 4u && _rymlisascii(rem.str[3])))
         {
             _c4dbgp("byte order mark: UTF32BE");
             _handle_bom(UTF32BE);
             _line_progressed(4);
+            m_bom_len = 4;
             return true;
         }
-        else if(rem.begins_with("\xff\xfe\x00\x00") || (rest.begins_with({"\x00\x00\x00", 3}) && rem.len >= 4u && _rymlisascii(rem.str[0])))
+        else if(rem.begins_with(csubstr{"\xff\xfe\x00\x00", 4}) || (rest.begins_with(csubstr{"\x00\x00\x00", 3}) && rem.len >= 4u && _rymlisascii(rem.str[0])))
         {
             _c4dbgp("byte order mark: UTF32LE");
             _handle_bom(UTF32LE);
             _line_progressed(4);
+            m_bom_len = 4;
             return true;
         }
         else if(rem.begins_with("\xfe\xff") || (rem.begins_with('\x00') && rem.len >= 2u && _rymlisascii(rem.str[1])))
@@ -4373,6 +4381,7 @@ bool ParseEngine<EventHandler>::_handle_bom()
             _c4dbgp("byte order mark: UTF16BE");
             _handle_bom(UTF16BE);
             _line_progressed(2);
+            m_bom_len = 2;
             return true;
         }
         else if(rem.begins_with("\xff\xfe") || (rest.begins_with('\x00') && rem.len >= 2u && _rymlisascii(rem.str[0])))
@@ -4380,6 +4389,7 @@ bool ParseEngine<EventHandler>::_handle_bom()
             _c4dbgp("byte order mark: UTF16LE");
             _handle_bom(UTF16LE);
             _line_progressed(2);
+            m_bom_len = 2;
             return true;
         }
         else if(rem.begins_with("\xef\xbb\xbf"))
@@ -4387,6 +4397,7 @@ bool ParseEngine<EventHandler>::_handle_bom()
             _c4dbgp("byte order mark: UTF8");
             _handle_bom(UTF8);
             _line_progressed(3);
+            m_bom_len = 3;
             return true;
         }
         #undef _rymlisascii
@@ -4399,8 +4410,7 @@ void ParseEngine<EventHandler>::_handle_bom(Encoding_e enc)
 {
     if(m_encoding == NOBOM)
     {
-        const bool is_beginning_of_file = m_evt_handler->m_curr->line_contents.rem.str == m_buf.str;
-        if(enc == UTF8 || is_beginning_of_file)
+        if(enc == UTF8 || /*beginning of file*/(m_evt_handler->m_curr->line_contents.rem.str == m_buf.str))
             m_encoding = enc;
         else
             _c4err("non-UTF8 byte order mark can appear only at the beginning of the file");
@@ -5651,7 +5661,7 @@ seqblck_start:
         const size_t startline = m_evt_handler->m_curr->pos.line;
         // warning: the gcc optimizer on x86 builds is brittle with
         // this function:
-        const size_t startindent = m_evt_handler->m_curr->line_contents.current_col();
+        const size_t startindent = m_evt_handler->m_curr->line_contents.current_col() - m_bom_len;
         ScannedScalar sc;
         if(first == '\'')
         {
@@ -5815,7 +5825,7 @@ seqblck_start:
                 _handle_annotations_before_blck_val_scalar();
                 m_evt_handler->begin_seq_val_block();
                 addrem_flags(RVAL, RNXT);
-                _save_indentation();
+                _set_indentation(startindent);
                 // keep going on inside this function
             }
             _line_progressed(1);
@@ -5883,7 +5893,7 @@ seqblck_start:
             m_was_inside_qmrk = true;
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|QMRK, RSEQ|RNXT);
-            _save_indentation();
+            _set_indentation(startindent);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
             goto seqblck_finish;
@@ -6050,6 +6060,7 @@ seqblck_start:
     _c4dbgt("seqblck: go again", 0);
     if(_finished_line())
     {
+        m_bom_len = 0;
         _line_ended();
         _scan_line();
         if(_finished_file())
@@ -7368,15 +7379,15 @@ void ParseEngine<EventHandler>::_handle_unk()
         _c4dbgpf("rem is now [{}]~~~{}~~~", rem.len, rem);
     }
 
-    if(m_evt_handler->m_curr->line_contents.indentation == 0u && _at_line_begin())
+    if(m_evt_handler->m_curr->line_contents.indentation == 0u && (_at_line_begin() || (m_bom_len && (m_evt_handler->m_curr->pos.line == m_bom_line))))
     {
-        _c4dbgp("rtop: zero indent + at line begin");
+        _c4dbgpf("rtop: zero indent + at line begin. offset={}", m_evt_handler->m_curr->pos.offset);
+        _c4dbgp("check BOM");
         if(_handle_bom())
         {
-            _c4dbgp("byte order mark!");
-            rem = m_evt_handler->m_curr->line_contents.rem;
-            if(!rem.len)
-                return;
+            m_bom_line = m_evt_handler->m_curr->pos.line;
+            _c4dbgpf("byte order mark! line={} offset={}", m_bom_line, m_evt_handler->m_curr->pos.offset);
+            return;
         }
         const char first = rem.str[0];
         if(first == '-')
@@ -7427,19 +7438,35 @@ void ParseEngine<EventHandler>::_handle_unk()
     /* no else-if! */
     char first = rem.str[0];
 
+    const size_t startindent = m_evt_handler->m_curr->line_contents.indentation;
+    size_t remindent = m_evt_handler->m_curr->line_contents.current_col(rem);
+    if(m_bom_len)
+    {
+        _c4dbgpf("prev BOMlen={}", m_bom_len);
+        if(m_evt_handler->m_curr->pos.line == m_bom_line)
+        {
+            _c4dbgpf("BOM remindent={} offset={}", remindent, m_evt_handler->m_curr->pos.offset);
+            _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, remindent >= m_bom_len);
+            remindent -= m_bom_len;
+        }
+        else
+        {
+            m_bom_len = 0;
+        }
+    }
+
     if(first == '[')
     {
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         m_doc_empty = false;
-        const size_t startindent = m_evt_handler->m_curr->line_contents.current_col(rem);
         if(C4_LIKELY( ! _annotations_require_key_container()))
         {
             _c4dbgp("it's a seq, flow");
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
             addrem_flags(RSEQ|FLOW|RVAL, RUNK|RTOP|RDOC);
-            _set_indentation(startindent);
+            _set_indentation(remindent);
         }
         else
         {
@@ -7447,10 +7474,10 @@ void ParseEngine<EventHandler>::_handle_unk()
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|BLCK|RKCL, RUNK|RTOP|RDOC);
-            _handle_annotations_and_indentation_after_start_mapblck(startindent, m_evt_handler->m_curr->pos.line);
+            _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_seq_key_flow();
             addrem_flags(RSEQ|FLOW|RVAL, RMAP|BLCK|RKCL);
-            _set_indentation(startindent);
+            _set_indentation(remindent);
         }
         _line_progressed(1);
     }
@@ -7459,14 +7486,13 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         m_doc_empty = false;
-        const size_t startindent = m_evt_handler->m_curr->line_contents.current_col(rem);
         if(C4_LIKELY( ! _annotations_require_key_container()))
         {
             _c4dbgp("it's a map, flow");
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_flow();
             addrem_flags(RMAP|FLOW|RKEY, RVAL|RTOP|RUNK|RDOC);
-            _set_indentation(startindent);
+            _set_indentation(remindent);
         }
         else
         {
@@ -7474,10 +7500,10 @@ void ParseEngine<EventHandler>::_handle_unk()
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|BLCK|RKCL, RUNK|RTOP|RDOC);
-            _handle_annotations_and_indentation_after_start_mapblck(startindent, m_evt_handler->m_curr->pos.line);
+            _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_key_flow();
             addrem_flags(RMAP|FLOW|RKEY, BLCK|RKCL);
-            _set_indentation(startindent);
+            _set_indentation(remindent);
         }
         _line_progressed(1);
     }
@@ -7490,7 +7516,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->begin_seq_val_block();
         addrem_flags(RSEQ|BLCK|RVAL, RNXT|RTOP|RUNK|RDOC);
         m_doc_empty = false;
-        _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
+        _set_indentation(remindent);
         _line_progressed(1);
         _maybe_skip_whitespace_tokens();
     }
@@ -7504,7 +7530,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         addrem_flags(RMAP|BLCK|QMRK, RKEY|RVAL|RTOP|RUNK);
         m_doc_empty = false;
         m_was_inside_qmrk = true;
-        _save_indentation();
+        _set_indentation(remindent); //_save_indentation();
         _line_progressed(1);
         _maybe_skip_whitespace_tokens();
     }
@@ -7513,7 +7539,6 @@ void ParseEngine<EventHandler>::_handle_unk()
         if(m_doc_empty)
         {
             _c4dbgp("it's a map with an empty key");
-            const size_t startindent = m_evt_handler->m_curr->line_contents.indentation; // save
             const size_t startline = m_evt_handler->m_curr->pos.line; // save
             m_evt_handler->check_trailing_doc_token();
             _maybe_begin_doc();
@@ -7542,9 +7567,8 @@ void ParseEngine<EventHandler>::_handle_unk()
         _c4dbgpf("anchor! [{}]~~~{}~~~", anchor.len, anchor);
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
-        const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
         const size_t line = m_evt_handler->m_curr->pos.line;
-        _add_annotation(&m_pending_anchors, anchor, indentation, line);
+        _add_annotation(&m_pending_anchors, anchor, remindent, line);
         _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         m_doc_empty = false;
     }
@@ -7564,7 +7588,6 @@ void ParseEngine<EventHandler>::_handle_unk()
         else
         {
             _c4dbgp("runk: start new block map, set ref as key");
-            const size_t startindent = m_evt_handler->m_curr->line_contents.indentation; // save
             const size_t startline = m_evt_handler->m_curr->pos.line; // save
             _handle_annotations_before_start_mapblck(startline);
             m_evt_handler->begin_map_val_block();
@@ -7592,7 +7615,6 @@ void ParseEngine<EventHandler>::_handle_unk()
         csubstr s = m_evt_handler->m_curr->line_contents.rem;
         if(!s.len)
             return;
-        const size_t startindent = m_evt_handler->m_curr->line_contents.indentation; // save
         const size_t startline = m_evt_handler->m_curr->pos.line; // save
         first = s.str[0];
         ScannedScalar sc;

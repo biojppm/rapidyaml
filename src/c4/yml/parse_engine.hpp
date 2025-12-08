@@ -758,6 +758,10 @@ private:
     bool m_doc_empty = true;
     size_t m_prev_colon = npos;
 
+private:
+
+    size_t m_bom_len = 0;
+    size_t m_bom_line = 0;
     Encoding_e m_encoding = UTF8;
 
 private:
