@@ -7,6 +7,8 @@
 #error this test requires RYML_WITH_COMMENTS to be defined
 #endif
 
+// NOLINTBEGIN(google-readability-avoid-underscore-in-googletest-name)
+
 namespace c4 {
 namespace yml {
 
@@ -490,6 +492,412 @@ COMMENT_TEST(BlockSeqNested1WithSep,
     ___(ps.end_stream());
 }
 
+COMMENT_TEST(BlockSeqNested2WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "      # 2 ~"                         "\n"
+             "    # 3"                             "\n"
+             "    - b # 4 ~"                       "\n"
+             "    # 5 ~"                           "\n"
+             "  # 6"                               "\n"
+             "  - c # 7 ~"                         "\n"
+             "  # 8 ~"                             "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 2"                   "\n"
+             "=COMM #[LEADING] 3"                  "\n"
+             "=VAL :b"                             "\n"
+             "=COMM #[TRAILING] 4"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 5"                   "\n"
+             "=COMM #[LEADING] 6"                  "\n"
+             "=VAL :c"                             "\n"
+             "=COMM #[TRAILING] 7"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 8"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+          ___(ps.end_seq_block());
+          ___(ps.add_comment(" 2", COMM_FOOTER));
+          ___(ps.add_sibling());
+          ___(ps.add_comment(" 3", COMM_LEADING));
+          ___(ps.set_val_scalar_plain("b"));
+          ___(ps.add_comment(" 4", COMM_TRAILING));
+        ___(ps.end_seq_block());
+        ___(ps.add_comment(" 5", COMM_FOOTER));
+        ___(ps.add_sibling());
+        ___(ps.add_comment(" 6", COMM_LEADING));
+        ___(ps.set_val_scalar_plain("c"));
+        ___(ps.add_comment(" 7", COMM_TRAILING));
+      ___(ps.end_seq_block());
+      ___(ps.add_comment(" 8", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqNested3WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "        # 1.1 ~"                     "\n"
+             "    # 3"                             "\n"
+             "    - b # 4 ~"                       "\n"
+             "      # 4.1 ~"                       "\n"
+             "  # 6"                               "\n"
+             "  - c # 7 ~"                         "\n"
+             "    # 7.1 ~"                         "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "=COMM #[FOOTER] 1.1"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[LEADING] 3"                  "\n"
+             "=VAL :b"                             "\n"
+             "=COMM #[TRAILING] 4"                 "\n"
+             "=COMM #[FOOTER] 4.1"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[LEADING] 6"                  "\n"
+             "=VAL :c"                             "\n"
+             "=COMM #[TRAILING] 7"                 "\n"
+             "=COMM #[FOOTER] 7.1"                 "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+            ___(ps.add_comment(" 1.1", COMM_FOOTER));
+          ___(ps.end_seq_block());
+          ___(ps.add_sibling());
+          ___(ps.add_comment(" 3", COMM_LEADING));
+          ___(ps.set_val_scalar_plain("b"));
+          ___(ps.add_comment(" 4", COMM_TRAILING));
+          ___(ps.add_comment(" 4.1", COMM_FOOTER));
+        ___(ps.end_seq_block());
+        ___(ps.add_sibling());
+        ___(ps.add_comment(" 6", COMM_LEADING));
+        ___(ps.set_val_scalar_plain("c"));
+        ___(ps.add_comment(" 7", COMM_TRAILING));
+        ___(ps.add_comment(" 7.1", COMM_FOOTER));
+      ___(ps.end_seq_block());
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqNested4WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "    # 3"                             "\n"
+             "    - b # 4 ~"                       "\n"
+             "  # 6"                               "\n"
+             "  - c # 7 ~"                         "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[LEADING] 3"                  "\n"
+             "=VAL :b"                             "\n"
+             "=COMM #[TRAILING] 4"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[LEADING] 6"                  "\n"
+             "=VAL :c"                             "\n"
+             "=COMM #[TRAILING] 7"                 "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+          ___(ps.end_seq_block());
+          ___(ps.add_sibling());
+          ___(ps.add_comment(" 3", COMM_LEADING));
+          ___(ps.set_val_scalar_plain("b"));
+          ___(ps.add_comment(" 4", COMM_TRAILING));
+        ___(ps.end_seq_block());
+        ___(ps.add_sibling());
+        ___(ps.add_comment(" 6", COMM_LEADING));
+        ___(ps.set_val_scalar_plain("c"));
+        ___(ps.add_comment(" 7", COMM_TRAILING));
+      ___(ps.end_seq_block());
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqNested5WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "        # 2 ~"                       "\n"
+             "      # 3 ~"                         "\n"
+             "    # 4 ~"                           "\n"
+             "  # 6 ~"                             "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "=COMM #[FOOTER] 2"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 3"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 4"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 6"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+            ___(ps.add_comment(" 2", COMM_FOOTER));
+          ___(ps.end_seq_block());
+          ___(ps.add_comment(" 3", COMM_FOOTER));
+        ___(ps.end_seq_block());
+        ___(ps.add_comment(" 4", COMM_FOOTER));
+      ___(ps.end_seq_block());
+      ___(ps.add_comment(" 6", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqNested6WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "      # 3 ~"                         "\n"
+             "    # 4 ~"                           "\n"
+             "  # 6 ~"                             "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 3"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 4"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 6"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+          ___(ps.end_seq_block());
+          ___(ps.add_comment(" 3", COMM_FOOTER));
+        ___(ps.end_seq_block());
+        ___(ps.add_comment(" 4", COMM_FOOTER));
+      ___(ps.end_seq_block());
+      ___(ps.add_comment(" 6", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqNested7WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "    # 4 ~"                           "\n"
+             "  # 6 ~"                             "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 4"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 6"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+          ___(ps.end_seq_block());
+        ___(ps.end_seq_block());
+        ___(ps.add_comment(" 4", COMM_FOOTER));
+      ___(ps.end_seq_block());
+      ___(ps.add_comment(" 6", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqNested8WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "  # 6 ~"                             "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 6"                   "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+          ___(ps.end_seq_block());
+        ___(ps.end_seq_block());
+      ___(ps.end_seq_block());
+      ___(ps.add_comment(" 6", COMM_FOOTER));
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(BlockSeqNested9WithSep,
+             "- - - - a # 1 ~"                     "\n"
+             "# 9"                                 "\n"
+             ,
+             "+STR"                                "\n"
+             "+DOC"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "+SEQ"                                "\n"
+             "=VAL :a"                             "\n"
+             "=COMM #[TRAILING] 1"                 "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "-SEQ"                                "\n"
+             "=COMM #[FOOTER] 9"                   "\n"
+             "-DOC"                                "\n"
+             "-STR"                                "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_block());
+      ___(ps.begin_seq_val_block());
+        ___(ps.begin_seq_val_block());
+          ___(ps.begin_seq_val_block());
+            ___(ps.set_val_scalar_plain("a"));
+            ___(ps.add_comment(" 1", COMM_TRAILING));
+          ___(ps.end_seq_block());
+        ___(ps.end_seq_block());
+      ___(ps.end_seq_block());
+    ___(ps.end_seq_block());
+    ___(ps.add_comment(" 9", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 COMMENT_TEST(BlockSeqBasicWithTagAndAnchor1,
              "# 1"                                                 "\n"
              "- # 2"                                               "\n"
@@ -763,6 +1171,8 @@ Case const* get_case(csubstr)
 {
     return nullptr;
 }
+
+// NOLINTEND(google-readability-avoid-underscore-in-googletest-name)
 
 } // namespace yml
 } // namespace c4
