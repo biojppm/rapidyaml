@@ -1797,7 +1797,10 @@ CommentData const* Emitter<Writer>::_write_comm_trailing(id_type node, CommentTy
 {
     CommentData const* comm = _comm_get(node, type, indent_extra);
     if(comm)
-        _write_comm_trailing(comm, (m_opts.comments_sep() && _comm_needs_sep(node, type)));
+    {
+        bool with_sep = (m_opts.comments_sep() && _comm_needs_sep(node, type));
+        _write_comm_trailing(comm, with_sep);
+    }
     return comm;
 }
 
@@ -1806,7 +1809,10 @@ CommentData const* Emitter<Writer>::_write_comm_leading(id_type node, CommentTyp
 {
     CommentData const* comm = _comm_get(node, type, indent_extra);
     if(comm)
-        _write_comm_leading(comm, (m_opts.comments_sep() && _comm_needs_sep(node, type)));
+    {
+        bool with_sep = (m_opts.comments_sep() && _comm_needs_sep(node, type));
+        _write_comm_leading(comm, with_sep);
+    }
     return comm;
 }
 #endif // RYML_WITH_COMMENTS
