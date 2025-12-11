@@ -38,6 +38,7 @@ Checks:
   - -google-build-namespaces # do not use unnamed namespaces in header files
   - -google-build-using-namespace # do not use namespace using-directives; use using-declarations instead
   - -google-explicit-constructor # single-argument constructors must be marked explicit to avoid unintentional implicit conversions
+  - -google-readability-avoid-underscore-in-googletest-name
   - -google-readability-braces-around-statements # statement should be inside braces
   - -google-readability-casting # C-style casts are discouraged; use static_cast
   - -google-readability-function-size # function '_handle_map_block' exceeds recommended size/complexity thresholds
