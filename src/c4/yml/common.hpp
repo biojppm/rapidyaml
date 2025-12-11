@@ -183,6 +183,16 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 
 #define RYML_DEPRECATED(msg) C4_DEPRECATED(msg)
 
+#if defined(RYML_WITH_COMMENTS)
+#define _RYML_WITH_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITHOUT_COMMENTS(...)
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) with
+#else
+#define _RYML_WITH_COMMENTS(...)
+#define _RYML_WITHOUT_COMMENTS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_COMMENTS(with, without) without
+#endif
+
 /** @endcond */
 
 
@@ -302,6 +312,144 @@ struct RYML_EXPORT ErrorDataVisit
     id_type node;     ///< node where the error was detected
     ErrorDataVisit() noexcept = default;
     ErrorDataVisit(Location const& cpploc_, Tree const *tree_ , id_type node_) noexcept : cpploc(cpploc_), tree(tree_), node(node_) {}
+};
+
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** Options to give to the parser to control its behavior. */
+struct RYML_EXPORT ParserOptions
+{
+private:
+
+    typedef enum : uint32_t {
+        SCALAR_FILTERING = (1u << 0u),
+        LOCATIONS = (1u << 1u),
+        DETECT_FLOW_ML = (1u << 2u),
+        #ifdef RYML_WITH_COMMENTS
+        WITH_COMMENTS = (1u << 3u),
+        WITH_COMMENT_SEP = (1u << 4u),
+        #endif
+        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML _RYML_WITH_COMMENTS(|WITH_COMMENT_SEP),
+    } Flags_e;
+
+    uint32_t m_flags;
+    char m_comment_sep;
+
+public:
+
+    ParserOptions() noexcept : m_flags(DEFAULTS), m_comment_sep('~') {}
+
+public:
+
+    /** @name source location tracking */
+    /** @{ */
+
+    /** enable/disable source location tracking */
+    ParserOptions& locations(bool enabled) noexcept
+    {
+        if(enabled)
+            m_flags |= LOCATIONS;
+        else
+            m_flags &= ~LOCATIONS;
+        return *this;
+    }
+    /** query source location tracking status */
+    C4_ALWAYS_INLINE bool locations() const noexcept { return (m_flags & LOCATIONS); }
+
+    /** @} */
+
+public:
+
+    /** @name detection of @ref FLOW_ML container style */
+    /** @{ */
+
+    /** enable/disable detection of @ref FLOW_ML container style. When
+     * enabled, the parser will set @ref FLOW_ML as the style of flow
+     * containers which have the terminating bracket on a line
+     * different from that of the opening bracket. */
+    ParserOptions& detect_flow_ml(bool enabled) noexcept
+    {
+        if(enabled)
+            m_flags |= DETECT_FLOW_ML;
+        else
+            m_flags &= ~DETECT_FLOW_ML;
+        return *this;
+    }
+    /** query status of detection of @ref FLOW_ML container style. */
+    C4_ALWAYS_INLINE bool detect_flow_ml() const noexcept { return (m_flags & DETECT_FLOW_ML); }
+
+    /** @} */
+
+public:
+
+    /** @name scalar filtering status (experimental; disable at your discretion) */
+    /** @{ */
+
+    /** enable/disable scalar filtering while parsing */
+    ParserOptions& scalar_filtering(bool enabled) noexcept
+    {
+        if(enabled)
+            m_flags |= SCALAR_FILTERING;
+        else
+            m_flags &= ~SCALAR_FILTERING;
+        return *this;
+    }
+    /** query scalar filtering status */
+    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (m_flags & SCALAR_FILTERING); }
+
+    /** @} */
+
+public:
+
+    #ifdef RYML_WITH_COMMENTS
+    /** @name comment parsing */
+    /** @{ */
+
+    /** enable/disable comment parsing. available only when @ref
+     * RYML_WITH_COMMENTS is defined */
+    ParserOptions& with_comments(bool enabled) noexcept
+    {
+        if(enabled)
+            m_flags |= WITH_COMMENTS;
+        else
+            m_flags &= ~WITH_COMMENTS;
+        return *this;
+    }
+    /** query comments parsing status. available only when @ref
+     * RYML_WITH_COMMENTS is defined */
+    C4_ALWAYS_INLINE bool with_comments() const noexcept { return (m_flags & WITH_COMMENTS); }
+
+    /** enable/disable comment separation token (see @ref
+     * comment_sep()). available only when @ref RYML_WITH_COMMENTS is
+     * defined */
+    ParserOptions& with_comment_sep(bool enabled) noexcept
+    {
+        if(enabled)
+            m_flags |= WITH_COMMENT_SEP;
+        else
+            m_flags &= ~WITH_COMMENT_SEP;
+        return *this;
+    }
+    /** query status of comment separation token (see @ref
+     * comment_sep()). available only when @ref RYML_WITH_COMMENTS is
+     * defined */
+    C4_ALWAYS_INLINE bool with_comment_sep() const noexcept { return (m_flags & WITH_COMMENT_SEP); }
+
+    /** set the comment separation character. default is `~` */
+    ParserOptions& comment_sep(char sep) noexcept
+    {
+        m_comment_sep = sep;
+        return *this;
+    }
+    /** get the comment separation character. */
+    C4_ALWAYS_INLINE char comment_sep() const noexcept { return m_comment_sep; }
+
+    /** @} */
+    #endif // RYML_WITH_COMMENTS
 };
 
 
@@ -472,6 +620,16 @@ public:
         (buf) = nullptr;                                            \
     } while(false)
 
+namespace detail {
+template<int8_t signedval, uint8_t unsignedval>
+struct _charconstant_t // is there a better way to do this?
+    : public std::conditional<std::is_signed<char>::value,
+                              std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
+                              std::integral_constant<uint8_t, unsignedval>>::type
+{};
+#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
+} // namespace detail
+
 inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 {
     switch(c)
@@ -487,6 +645,7 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     default: return csubstr(&c, 1);
     }
 }
+
 /// @endcond
 
 C4_SUPPRESS_WARNING_GCC_POP

@@ -34,6 +34,20 @@ jobs:
     steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
+  comments:
+    :: setup-job('clang' 'comments')
+    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('22.04')
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+    env:: load('share/env.yaml') +
+          {'CMAKE_FLAGS' '-DRYML_WITH_COMMENTS=ON'}
+    steps:: checkout-action-docker + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
   noexceptions:
     :: setup-job('clang' 'noexceptions')
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}

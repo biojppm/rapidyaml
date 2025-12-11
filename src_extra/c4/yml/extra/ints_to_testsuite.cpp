@@ -102,19 +102,34 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
         maybe_append_tag();
         append("\n");
     };
+    auto append_esc = [&](csubstr str){
+        substr buf = sz <= evts_test_suite.len ? evts_test_suite.sub(sz) : evts_test_suite.last(0);
+        sz += escape_scalar(buf, str);
+        append("\n");
+    };
     auto append_val = [&](csubstr evt, csubstr val){
         append("=VAL");
         maybe_append_anchor();
         maybe_append_tag();
         append(" ");
         append(evt);
-        substr buf = sz <= evts_test_suite.len ? evts_test_suite.sub(sz) : evts_test_suite.last(0);
-        sz += escape_scalar(buf, val);
-        append("\n");
+        append_esc(val);
     };
     for(ievt::DataType i = 0; i < evts_ints_sz; )
     {
         ievt::DataType evt = evts_ints[i];
+        #ifdef RYML_WITH_COMMENTS
+        if(evt & ievt::COMM)
+        {
+            CommentType_e comm = ievt::decode_comment(evt);
+            if(false) ;
+            #define _c4comm(sym, bit) else if(comm & COMM_##sym) append("=COMM #[" #sym "]");
+            _RYML_DEFINE_COMMENTS(_c4comm)
+            #undef _c4comm
+            append_esc(getstr(i));
+        }
+        else
+        #endif
         if(evt & ievt::SCLR)
         {
             csubstr s = getstr(i);

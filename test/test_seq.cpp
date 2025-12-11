@@ -87,6 +87,17 @@ TEST(simple_seq, missing_quoted_key)
     });
 }
 
+TEST(simple_seq, block_nested_with_tags)
+{
+    std::string yaml = R"(- !!seq
+  - !!seq
+    - foo
+- bar
+)";
+    Tree t = parse_in_arena(to_csubstr(yaml));
+    EXPECT_EQ(yaml, emitrs_yaml<std::string>(t));
+}
+
 TEST(simple_seq, deeply_nested_to_cover_parse_stack_resizes)
 {
     csubstr yaml = R"(
@@ -259,7 +270,7 @@ R"([
 2,
 3
 ])",
-N(SFS, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"},})
+N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"},})
 );
 
 ADD_CASE_TO_GROUP("simple seq, flow, multiline, unindented, trailcomma",
@@ -269,7 +280,7 @@ R"([
 2,
 3,
 ])",
-N(SFS, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
+N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple seq, flow, multiline, comments inline",
@@ -279,7 +290,7 @@ R"([
 2,  # bla2
 3   # bla3
 ])",
-N(SFS, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
+N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple seq, flow, multiline, comments prev line",
@@ -293,7 +304,7 @@ R"([
 # bla3
 3
 ])",
-N(SFS, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
+N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple seq, flow, multiline, indented",
@@ -303,7 +314,7 @@ R"([
   2,
   3
 ])",
-N(SFS, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
+N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple seq, comments inline",
@@ -543,7 +554,7 @@ R"([
  a , b,  "c , d",   'e , f',
  a ,b,  "c ,d",   'e ,f',
 ])",
-N(SFS, L{
+N(SFM, L{
   N(VP, "a"), N(VP, "b"), N(VD, "c,d"),   N(VS, "e,f"),
   N(VP, "a"), N(VP, "b"), N(VD, "c, d"),  N(VS, "e, f"),
   N(VP, "a"), N(VP, "b"), N(VD, "c , d"), N(VS, "e , f"),
@@ -591,10 +602,10 @@ R"([
     :z:	,  # this is a map (when tab tokens are enabled)
 ]
 )",
-N(SFS, L{
+N(SFM, L{
    N(VP, ":a"),
    N(VP, ":0"),
-   N(VP, "::"),
+   N(MFS, L{N(KP|VN, ":", {})}),
    N(VP, ":-"),
    N(VP, ":*"),
    N(VP, ":@"),
@@ -606,7 +617,7 @@ N(SFS, L{
    _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{KN|VN}), N(VP, ":\t")),
    N(VP, "x:a"),
    N(VP, "x:0"),
-   N(VP, "x::"),
+   N(MFS, L{N(KP|VN, "x:", {})}),
    N(VP, "x:-"),
    N(VP, "x:*"),
    N(VP, "x:@"),
@@ -618,7 +629,7 @@ N(SFS, L{
    _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VN, "x", "")}), N(VP, "x:\t")),
    N(VP, ":z:a"),
    N(VP, ":z:0"),
-   N(VP, ":z::"),
+   N(MFS, L{N(KP|VN, ":z:", {})}),
    N(VP, ":z:-"),
    N(VP, ":z:*"),
    N(VP, ":z:@"),
@@ -626,7 +637,7 @@ N(SFS, L{
    N(VP, ":z:^"),
    N(VP, ":z:$"),
    N(VP, ":z:`"),
-   N(MFS, L{N(KP|VN, ":z", "")}),
+   N(MFS, L{N(KP|VN, ":z", {})}),
    _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{N(KP|VN, ":z", "")}), N(VP, ":z:\t")),
  })
 );
@@ -719,7 +730,7 @@ R"([
  a : b,  "c : d",   'e : f',
  a :b,  "c :d",   'e :f',
 ])",
-N(SFS, L{
+N(SFM, L{
   N(VP, "a:b"), N(VD, "c:d"),   N(VS, "e:f"),
   N(MFS, L{N(KP|VP, "a", "b")}), N(VD, "c: d"),  N(VS, "e: f"),
   N(MFS, L{N(KP|VP, "a", "b")}), N(VD, "c : d"), N(VS, "e : f"),
@@ -757,7 +768,7 @@ R"([
 , # this is needed because of the comment above
  a #b, "c #d",   'e #f',
 ])",
-N(SFS, L{
+N(SFM, L{
   N(VP, "a#b"), N(VD, "c#d"), N(VS, "e#f"),
   N(VP, "a# b"), N(VD, "c# d"), N(VS, "e# f"),
   N(VP, "a"),
@@ -794,7 +805,7 @@ R"([
  a - b, "c - d",   'e - f',
  a -b, "c -d",   'e -f',
 ])",
-N(SFS, L{
+N(SFM, L{
   N(VP, "a-b"),   N(VD, "c-d"),   N(VS, "e-f"),
   N(VP, "a- b"),  N(VD, "c- d"),  N(VS, "e- f"),
   N(VP, "a - b"), N(VD, "c - d"), N(VS, "e - f"),
@@ -835,7 +846,7 @@ R"([
  #a [b,
  "c [d",   'e [f',
 ])",
-N(SFS, L{
+N(SFM, L{
   /*N(VP, "a[b"),  */ N(VD, "c[d"),   N(VS, "e[f"),
   /*N(VP, "a[ b"), */ N(VD, "c[ d"),  N(VS, "e[ f"),
   /*N(VP, "a [ b"),*/ N(VD, "c [ d"), N(VS, "e [ f"),
@@ -876,7 +887,7 @@ R"([
 # a ]b,
    "c ]d",   'e ]f',
 ])",
-N(SFS, L{
+N(SFM, L{
   /*N(VP, "a]b"), */  N(VD, "c]d"),   N(VS, "e]f"),
   /*N(VP, "a] b"), */ N(VD, "c] d"),  N(VS, "e] f"),
   /*N(VP, "a ] b"),*/ N(VD, "c ] d"), N(VS, "e ] f"),
@@ -917,7 +928,7 @@ R"([
 # a {b,
    "c {d",   'e {f',
 ])",
-N(SFS, L{
+N(SFM, L{
   /*N(VP, "a{b"), */  N(VD, "c{d"),   N(VS, "e{f"),
   /*N(VP, "a{ b"), */ N(VD, "c{ d"),  N(VS, "e{ f"),
   /*N(VP, "a { b"),*/ N(VD, "c { d"), N(VS, "e { f"),
@@ -958,7 +969,7 @@ R"([
 # a }b,
    "c }d",   'e }f',
 ])",
-N(SFS, L{
+N(SFM, L{
   /*N(VP, "a}b"), */  N(VD, "c}d"),   N(VS, "e}f"),
   /*N(VP, "a} b"), */ N(VD, "c} d"),  N(VS, "e} f"),
   /*N(VP, "a } b"),*/ N(VD, "c } d"), N(VS, "e } f"),
@@ -1102,7 +1113,7 @@ R"([a:
 
 b]
 )",
-N(SFS, L{N(MFS, L{N(KP|VP, "a", "b")})})
+N(SFM, L{N(MFM, L{N(KP|VP, "a", "b")})})
 );
 
 }

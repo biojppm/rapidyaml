@@ -22,7 +22,7 @@ foo: {foo0: 00, bar0: 01, baz0: 02},
 bar: {foo1: 10, bar1: 11, baz1: 12},
 baz: {foo2: 20, bar2: 21, baz2: 22}
 })",
-N(MFS, L{
+N(MFM, L{
       N{KP|MFS, "foo", L{N{KP|VP, "foo0", "00"}, N{KP|VP, "bar0", "01"}, N{KP|VP, "baz0", "02"}}},
       N{KP|MFS, "bar", L{N{KP|VP, "foo1", "10"}, N{KP|VP, "bar1", "11"}, N{KP|VP, "baz1", "12"}}},
       N{KP|MFS, "baz", L{N{KP|VP, "foo2", "20"}, N{KP|VP, "bar2", "21"}, N{KP|VP, "baz2", "22"}}},
