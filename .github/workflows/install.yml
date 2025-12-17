@@ -66,7 +66,7 @@ jobs:
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: find_package/macos
           sdir: test/test_install
-          os: macos-13
+          os: macos-15-intel
           cxx: xcode
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD
@@ -74,7 +74,7 @@ jobs:
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
         - name: find_package/macos
           sdir: test/test_install
-          os: macos-13
+          os: macos-15-intel
           cxx: xcode
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD
@@ -132,7 +132,7 @@ jobs:
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: find_library/macos
           sdir: test/test_install
-          os: macos-13
+          os: macos-15-intel
           cxx: xcode
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD
@@ -140,7 +140,7 @@ jobs:
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
         - name: find_library/macos
           sdir: test/test_install
-          os: macos-13
+          os: macos-15-intel
           cxx: xcode
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD
@@ -194,14 +194,14 @@ jobs:
           commonvars: -DRYML_USE_LIBCXX=ON
         - name: singleheader/macos
           sdir: test/test_singleheader
-          os: macos-13
+          os: macos-15-intel
           cxx: xcode
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD
           bt: Release
         - name: singleheader/macos
           sdir: test/test_singleheader
-          os: macos-13
+          os: macos-15-intel
           cxx: xcode
           gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
           tgt: ALL_BUILD

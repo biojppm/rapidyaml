@@ -6,21 +6,15 @@
 jobs:
   macosx:
     :: setup-job('macosx' 'macosx')
-    runs-on: macos-13
+    runs-on: macos-15-intel
     strategy:
       fail-fast: false
       matrix:
-        include::
-          ? for
-              xcver [15 14]
-              std [11 17]
-              bt qw(Debug Release)
-          : !
-            std:: std
-            cxx: xcode
-            xcver:: xcver
-            bt:: bt
-            bitlinks: shared64 static64
+        include:
+          - {std: 11, cxx: xcode, xcver: 16, bt: Debug  , bitlinks: shared64 static64}
+          - {std: 11, cxx: xcode, xcver: 16, bt: Release, bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, xcver: 16, bt: Debug  , bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, xcver: 16, bt: Release, bitlinks: shared64 static64}
     env:: load('share/env.yaml')
     steps:
     - :: checkout-action

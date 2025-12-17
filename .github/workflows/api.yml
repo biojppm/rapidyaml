@@ -31,7 +31,7 @@ jobs:
         - pythonv: '3.13'
           os: ubuntu-latest
         - pythonv: '3.13'
-          os: macos-13
+          os: macos-15-intel
     steps:
     - name: checkout (action)
       uses: actions/checkout@v4
@@ -85,7 +85,7 @@ jobs:
         - pythonv: '3.13'
           os: ubuntu-latest
         - pythonv: '3.13'
-          os: macos-13
+          os: macos-15-intel
     env:
       CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILES=ON
     steps:

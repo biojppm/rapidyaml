@@ -22,49 +22,29 @@ jobs:
   macosx:
     if: always()
     continue-on-error: false
-    runs-on: macos-13
+    runs-on: macos-15-intel
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
           cxx: xcode
-          xcver: 15
+          xcver: 16
           bt: Debug
           bitlinks: shared64 static64
         - std: 11
           cxx: xcode
-          xcver: 15
+          xcver: 16
           bt: Release
           bitlinks: shared64 static64
         - std: 17
           cxx: xcode
-          xcver: 15
+          xcver: 16
           bt: Debug
           bitlinks: shared64 static64
         - std: 17
           cxx: xcode
-          xcver: 15
-          bt: Release
-          bitlinks: shared64 static64
-        - std: 11
-          cxx: xcode
-          xcver: 14
-          bt: Debug
-          bitlinks: shared64 static64
-        - std: 11
-          cxx: xcode
-          xcver: 14
-          bt: Release
-          bitlinks: shared64 static64
-        - std: 17
-          cxx: xcode
-          xcver: 14
-          bt: Debug
-          bitlinks: shared64 static64
-        - std: 17
-          cxx: xcode
-          xcver: 14
+          xcver: 16
           bt: Release
           bitlinks: shared64 static64
     env:
