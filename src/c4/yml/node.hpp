@@ -757,7 +757,7 @@ public:
     /** get an iterator to after the last child */
     C4_ALWAYS_INLINE const_iterator end() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, NONE); }
     /** get an iterator to after the last child */
-    C4_ALWAYS_INLINE const_iterator cend() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, tree_->first_child(id_)); }
+    C4_ALWAYS_INLINE const_iterator cend() const RYML_NOEXCEPT { _C4RR(); return const_iterator(tree_, NONE); }
 
     /** get an iterable view over children */
     template<class U=Impl>

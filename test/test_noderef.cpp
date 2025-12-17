@@ -1239,21 +1239,37 @@ TEST(NodeRef, overload_sets)
     {
         EXPECT_EQ(n["iseq"].cbegin().m_child_id, nc["iseq"].cbegin().m_child_id);
         EXPECT_EQ(n["iseq"].cbegin().m_child_id, cn["iseq"].cbegin().m_child_id);
+        EXPECT_EQ(n["iseq"].cbegin().m_child_id, n["iseq"].begin().m_child_id);
+        EXPECT_EQ(nc["iseq"].cbegin().m_child_id, nc["iseq"].begin().m_child_id);
+        EXPECT_EQ(cn["iseq"].cbegin().m_child_id, cn["iseq"].begin().m_child_id);
     }
     // cend()
     {
         EXPECT_EQ(n["iseq"].cend().m_child_id, nc["iseq"].cend().m_child_id);
         EXPECT_EQ(n["iseq"].cend().m_child_id, cn["iseq"].cend().m_child_id);
+        EXPECT_EQ(n["iseq"].cend().m_child_id, n["iseq"].end().m_child_id);
+        EXPECT_EQ(nc["iseq"].cend().m_child_id, nc["iseq"].end().m_child_id);
+        EXPECT_EQ(cn["iseq"].cend().m_child_id, cn["iseq"].end().m_child_id);
     }
     // children()
     {
         EXPECT_EQ(n["iseq"].children().b.m_child_id, nc["iseq"].children().b.m_child_id);
         EXPECT_EQ(n["iseq"].children().b.m_child_id, cn["iseq"].children().b.m_child_id);
+        EXPECT_EQ(n["iseq"].children().e.m_child_id, nc["iseq"].children().e.m_child_id);
+        EXPECT_EQ(n["iseq"].children().e.m_child_id, cn["iseq"].children().e.m_child_id);
     }
     // cchildren()
     {
         EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, nc["iseq"].cchildren().b.m_child_id);
         EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, cn["iseq"].cchildren().b.m_child_id);
+        EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, n["iseq"].children().b.m_child_id);
+        EXPECT_EQ(nc["iseq"].cchildren().b.m_child_id, nc["iseq"].children().b.m_child_id);
+        EXPECT_EQ(cn["iseq"].cchildren().b.m_child_id, cn["iseq"].children().b.m_child_id);
+        EXPECT_EQ(n["iseq"].cchildren().e.m_child_id, nc["iseq"].cchildren().e.m_child_id);
+        EXPECT_EQ(n["iseq"].cchildren().e.m_child_id, cn["iseq"].cchildren().e.m_child_id);
+        EXPECT_EQ(n["iseq"].cchildren().e.m_child_id, n["iseq"].children().e.m_child_id);
+        EXPECT_EQ(nc["iseq"].cchildren().e.m_child_id, nc["iseq"].children().e.m_child_id);
+        EXPECT_EQ(cn["iseq"].cchildren().e.m_child_id, cn["iseq"].children().e.m_child_id);
     }
     // siblings()
     {
@@ -1261,6 +1277,10 @@ TEST(NodeRef, overload_sets)
         EXPECT_EQ(n["iseq"][0].siblings().b.m_child_id, cn["iseq"][0].siblings().b.m_child_id);
         EXPECT_EQ(n.siblings().b.m_child_id, nc.siblings().b.m_child_id);
         EXPECT_EQ(n.siblings().b.m_child_id, cn.siblings().b.m_child_id);
+        EXPECT_EQ(n["iseq"][0].siblings().e.m_child_id, nc["iseq"][0].siblings().e.m_child_id);
+        EXPECT_EQ(n["iseq"][0].siblings().e.m_child_id, cn["iseq"][0].siblings().e.m_child_id);
+        EXPECT_EQ(n.siblings().e.m_child_id, nc.siblings().e.m_child_id);
+        EXPECT_EQ(n.siblings().e.m_child_id, cn.siblings().e.m_child_id);
     }
     // csiblings()
     {
@@ -1268,6 +1288,107 @@ TEST(NodeRef, overload_sets)
         EXPECT_EQ(n["iseq"][0].csiblings().b.m_child_id, cn["iseq"][0].csiblings().b.m_child_id);
         EXPECT_EQ(n.csiblings().b.m_child_id, nc.csiblings().b.m_child_id);
         EXPECT_EQ(n.csiblings().b.m_child_id, cn.csiblings().b.m_child_id);
+        EXPECT_EQ(n["iseq"][0].csiblings().e.m_child_id, nc["iseq"][0].csiblings().e.m_child_id);
+        EXPECT_EQ(n["iseq"][0].csiblings().e.m_child_id, cn["iseq"][0].csiblings().e.m_child_id);
+        EXPECT_EQ(n.csiblings().e.m_child_id, nc.csiblings().e.m_child_id);
+        EXPECT_EQ(n.csiblings().e.m_child_id, cn.csiblings().e.m_child_id);
+        EXPECT_EQ(n["iseq"][0].csiblings().b.m_child_id, n["iseq"][0].siblings().b.m_child_id);
+        EXPECT_EQ(cn["iseq"][0].csiblings().b.m_child_id, cn["iseq"][0].siblings().b.m_child_id);
+        EXPECT_EQ(nc["iseq"][0].csiblings().b.m_child_id, nc["iseq"][0].siblings().b.m_child_id);
+        EXPECT_EQ(n.csiblings().b.m_child_id, n.siblings().b.m_child_id);
+        EXPECT_EQ(nc.csiblings().b.m_child_id, nc.siblings().b.m_child_id);
+        EXPECT_EQ(cn.csiblings().b.m_child_id, cn.siblings().b.m_child_id);
+        EXPECT_EQ(n["iseq"][0].csiblings().e.m_child_id, n["iseq"][0].siblings().e.m_child_id);
+        EXPECT_EQ(nc["iseq"][0].csiblings().e.m_child_id, nc["iseq"][0].siblings().e.m_child_id);
+        EXPECT_EQ(cn["iseq"][0].csiblings().e.m_child_id, cn["iseq"][0].siblings().e.m_child_id);
+        EXPECT_EQ(n.csiblings().e.m_child_id, n.siblings().e.m_child_id);
+        EXPECT_EQ(nc.csiblings().e.m_child_id, nc.siblings().e.m_child_id);
+        EXPECT_EQ(cn.csiblings().e.m_child_id, cn.siblings().e.m_child_id);
+    }
+    // iter begin-end
+    const std::vector<csubstr> expected = {"8", "10"};
+    {
+        {
+            std::vector<csubstr> actual;
+            for(auto it = n["iseq"].begin(); it != n["iseq"].end(); ++it)
+                actual.push_back((*it).val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto it = nc["iseq"].begin(); it != nc["iseq"].end(); ++it)
+                actual.push_back((*it).val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto it = cn["iseq"].begin(); it != cn["iseq"].end(); ++it)
+                actual.push_back((*it).val());
+            EXPECT_EQ(expected, actual);
+        }
+    }
+    // iter cbegin-cend
+    {
+        {
+            std::vector<csubstr> actual;
+            for(auto it = n["iseq"].cbegin(); it != n["iseq"].cend(); ++it)
+                actual.push_back((*it).val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto it = nc["iseq"].cbegin(); it != nc["iseq"].cend(); ++it)
+                actual.push_back((*it).val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto it = cn["iseq"].cbegin(); it != cn["iseq"].cend(); ++it)
+                actual.push_back((*it).val());
+            EXPECT_EQ(expected, actual);
+        }
+    }
+    // iter children
+    {
+        {
+            std::vector<csubstr> actual;
+            for(auto r : n["iseq"].children())
+                actual.push_back(r.val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto r : n["iseq"].children())
+                actual.push_back(r.val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto r : n["iseq"].children())
+                actual.push_back(r.val());
+            EXPECT_EQ(expected, actual);
+        }
+    }
+    // iter cchildren
+    {
+        {
+            std::vector<csubstr> actual;
+            for(auto r : n["iseq"].cchildren())
+                actual.push_back(r.val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto r : n["iseq"].cchildren())
+                actual.push_back(r.val());
+            EXPECT_EQ(expected, actual);
+        }
+        {
+            std::vector<csubstr> actual;
+            for(auto r : n["iseq"].cchildren())
+                actual.push_back(r.val());
+            EXPECT_EQ(expected, actual);
+        }
     }
 }
 
