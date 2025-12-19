@@ -10,6 +10,7 @@
 #include "./test_lib/callbacks_tester.hpp"
 
 #include <gtest/gtest.h>
+#include <unordered_map>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -936,6 +937,46 @@ TEST(Tree, reserve_arena_issue288)
     EXPECT_EQ(t.arena_size(), stars.size() + pluses.size());
     EXPECT_EQ(t.arena().first(stars.size()), to_csubstr(stars));
     EXPECT_EQ(t.arena().last(pluses.size()), to_csubstr(pluses));
+}
+
+// https://github.com/biojppm/rapidyaml/issues/564
+namespace issue564 {
+struct AdjacentSizedBlocks {
+    std::vector<char> mem;
+    char* start;
+    char* next;
+};
+using AvailableBlocks = std::unordered_map<size_t, AdjacentSizedBlocks>;
+static void free(void* , size_t size, void* user_data) {
+    (*static_cast<AvailableBlocks *>(user_data))[size].next -= size;
+}
+static void* alloc(size_t len, void* /*hint*/, void* user_data) {
+    auto& blocks = (*static_cast<AvailableBlocks*>(user_data))[len];
+    if (blocks.start == nullptr) {
+        blocks.mem.resize(10 * len);
+        blocks.start = blocks.next = blocks.mem.data();
+    }
+    void *ret = blocks.next;
+    blocks.next += len;
+    return ret;
+}
+} // namespace issue564
+TEST(Tree, issue564_relocate_arena_0)
+{
+    issue564::AvailableBlocks blocks_by_size;
+    Callbacks cb(&blocks_by_size, issue564::alloc, issue564::free, nullptr);
+    Tree dest(cb);
+    Tree source(cb);
+    parse_in_arena("[]", &dest);
+    parse_in_arena("[]", &source);
+    // Shallow copy `source` as a child of `dest`
+    NodeRef child = dest.rootref().append_child();
+    dest.duplicate_contents(&source, source.root_id(), child.id());
+    // trigger a relocation in dest
+    std::string loong(10000, ' ');
+    ExpectError::check_success([&]{
+        dest.to_arena(to_csubstr(loong));  // error
+    });
 }
 
 TEST(Tree, clear)
