@@ -33,6 +33,7 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
 
+
 namespace c4 {
 namespace yml {
 
@@ -44,8 +45,45 @@ template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, 
 template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type;
 template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_floating_point<T>::value, bool>::type;
 
+
 template<class T> size_t to_chars_float(substr buf, T val);
 template<class T> bool from_chars_float(csubstr buf, T *C4_RESTRICT val);
+
+
+template<class T>
+C4_ALWAYS_INLINE auto serialize_scalar(substr buf, T const& C4_RESTRICT a)
+    -> typename std::enable_if<std::is_floating_point<T>::value, size_t>::type
+{
+    return to_chars_float(buf, a);
+}
+template<class T>
+C4_ALWAYS_INLINE auto serialize_scalar(substr buf, T const& C4_RESTRICT a)
+    -> typename std::enable_if< ! std::is_floating_point<T>::value, size_t>::type
+{
+    return to_chars(buf, a);
+}
+
+
+template<class T>
+csubstr serialize_to_arena(Tree * C4_RESTRICT tree, T const& C4_RESTRICT a);
+
+RYML_EXPORT csubstr serialize_to_arena(Tree * C4_RESTRICT tree, csubstr a);
+
+// these overloads are needed to ensure that these types are not
+// dispatched to the general template overload
+C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT tree, substr a)
+{
+    return serialize_to_arena(tree, csubstr(a));
+}
+C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT tree, const char *a)
+{
+    return serialize_to_arena(tree, to_csubstr(a));
+}
+C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT, std::nullptr_t)
+{
+    return csubstr{};
+}
+
 
 
 //-----------------------------------------------------------------------------
@@ -795,13 +833,12 @@ public:
     /** @{ */
 
     /** get the current size of the tree's internal arena */
-    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
-    /** get the current size of the tree's internal arena */
     size_t arena_size() const { return m_arena_pos; }
     /** get the current capacity of the tree's internal arena */
     size_t arena_capacity() const { return m_arena.len; }
     /** get the current slack of the tree's internal arena */
     size_t arena_slack() const { _RYML_CB_ASSERT(m_callbacks, m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
+    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
 
     /** get the current arena */
     csubstr arena() const { return m_arena.first(m_arena_pos); }
@@ -814,8 +851,14 @@ public:
         return m_arena.is_super(s);
     }
 
-    /** serialize the given floating-point variable to the tree's
+    /** serialize the given variable to the tree's
      * arena, growing it as needed to accomodate the serialization.
+     *
+     * @note To customize how the type gets serialized to a string,
+     * you can overload c4::to_chars(substr, T const&)
+     *
+     * @note To customize how the type gets serialized to the arena,
+     * you can overload @ref c4::yml::serialize_scalar(substr, T const&)
      *
      * @note Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual
@@ -825,99 +868,17 @@ public:
      *
      * @see alloc_arena() */
     template<class T>
-    auto to_arena(T const& C4_RESTRICT a)
-        -> typename std::enable_if<std::is_floating_point<T>::value, csubstr>::type
+    C4_ALWAYS_INLINE csubstr to_arena(T const& C4_RESTRICT a)
     {
-        substr rem(m_arena.sub(m_arena_pos));
-        size_t num = to_chars_float(rem, a);
-        if(num > rem.len)
-        {
-            rem = _grow_arena(num);
-            num = to_chars_float(rem, a);
-            _RYML_CB_ASSERT(m_callbacks, num <= rem.len);
-        }
-        rem = _request_span(num);
-        return rem;
+        return serialize_to_arena(this, a);
     }
 
-    /** serialize the given non-floating-point variable to the tree's
-     * arena, growing it as needed to accomodate the serialization.
+    /** copy the given string to the tree's arena, growing the arena
+     * by the required size.
      *
-     * @note Growing the arena may cause relocation of the entire
-     * existing arena, and thus change the contents of individual
-     * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
-     * cost, ensure that the arena is reserved to an appropriate size
-     * using @ref Tree::reserve_arena().
-     *
-     * @see alloc_arena() */
-    template<class T>
-    auto to_arena(T const& C4_RESTRICT a)
-        -> typename std::enable_if<!std::is_floating_point<T>::value, csubstr>::type
-    {
-        substr rem(m_arena.sub(m_arena_pos));
-        size_t num = to_chars(rem, a);
-        if(num > rem.len)
-        {
-            rem = _grow_arena(num);
-            num = to_chars(rem, a);
-            _RYML_CB_ASSERT(m_callbacks, num <= rem.len);
-        }
-        rem = _request_span(num);
-        return rem;
-    }
-
-    /** serialize the given csubstr to the tree's arena, growing the
-     * arena as needed to accomodate the serialization.
-     *
-     * @note Growing the arena may cause relocation of the entire
-     * existing arena, and thus change the contents of individual
-     * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
-     * cost, ensure that the arena is reserved to an appropriate size
-     * using @ref Tree::reserve_arena().
-     *
-     * @see alloc_arena() */
-    csubstr to_arena(csubstr a)
-    {
-        if(a.len > 0)
-        {
-            substr rem(m_arena.sub(m_arena_pos));
-            size_t num = to_chars(rem, a);
-            if(num > rem.len)
-            {
-                rem = _grow_arena(num);
-                num = to_chars(rem, a);
-                _RYML_CB_ASSERT(m_callbacks, num <= rem.len);
-            }
-            return _request_span(num);
-        }
-        else
-        {
-            if(a.str == nullptr)
-            {
-                return csubstr{};
-            }
-            else if(m_arena.str == nullptr)
-            {
-                // Arena is empty and we want to store a non-null
-                // zero-length string.
-                // Even though the string has zero length, we need
-                // some "memory" to store a non-nullptr string
-                _grow_arena(1);
-            }
-            return _request_span(0);
-        }
-    }
-    C4_ALWAYS_INLINE csubstr to_arena(const char *s)
-    {
-        return to_arena(to_csubstr(s));
-    }
-    C4_ALWAYS_INLINE static csubstr to_arena(std::nullptr_t)
-    {
-        return csubstr{};
-    }
-
-    /** copy the given substr to the tree's arena, growing it by the
-     * required size
+     * @note this method differs from @ref to_arena() in that it
+     * returns a mutable substr, and further it does not deal
+     * with some corner cases for null/empty strings
      *
      * @note Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual
@@ -930,6 +891,7 @@ public:
      */
     substr copy_to_arena(csubstr s)
     {
+        _RYML_CB_ASSERT(m_callbacks, !s.overlaps(m_arena));
         substr cp = alloc_arena(s.len);
         _RYML_CB_ASSERT(m_callbacks, cp.len == s.len);
         _RYML_CB_ASSERT(m_callbacks, !s.overlaps(cp));
@@ -987,7 +949,9 @@ public:
 
     /** @} */
 
-private:
+public:
+
+    /** @cond dev */
 
     substr _grow_arena(size_t more)
     {
@@ -1017,6 +981,8 @@ private:
         _RYML_CB_ASSERT(m_callbacks, next_arena.sub(0, m_arena_pos).is_super(r) || r.len == 0);
         return r;
     }
+
+    /** @endcond */
 
 public:
 
@@ -1541,6 +1507,26 @@ inline readkey(Tree const* C4_RESTRICT tree, id_type id, T *v)
     csubstr key = tree->key(id);
     return C4_LIKELY(!key.empty()) ? from_chars_float(key, v) : false;
 }
+
+
+//-----------------------------------------------------------------------------
+
+template<class T>
+csubstr serialize_to_arena(Tree * C4_RESTRICT tree, T const& C4_RESTRICT a)
+{
+    substr rem(tree->m_arena.sub(tree->m_arena_pos));
+    size_t num = serialize_scalar(rem, a);
+    if(num > rem.len)
+    {
+        rem = tree->_grow_arena(num);
+        num = serialize_scalar(rem, a);
+        _RYML_CB_ASSERT(tree->m_callbacks, num <= rem.len);
+    }
+    rem = tree->_request_span(num);
+    return rem;
+}
+
+
 
 /** @} */
 
