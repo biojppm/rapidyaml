@@ -1009,12 +1009,12 @@ private:
 
     substr _relocated(csubstr s, substr next_arena) const
     {
-        _RYML_CB_ASSERT(m_callbacks, m_arena.is_super(s));
-        _RYML_CB_ASSERT(m_callbacks, m_arena.sub(0, m_arena_pos).is_super(s));
+        _RYML_CB_ASSERT(m_callbacks, m_arena.is_super(s) || s.len == 0);
+        _RYML_CB_ASSERT(m_callbacks, m_arena.sub(0, m_arena_pos).is_super(s) || s.len == 0);
         auto pos = (s.str - m_arena.str); // this is larger than 0 based on the assertions above
         substr r(next_arena.str + pos, s.len);
         _RYML_CB_ASSERT(m_callbacks, r.str - next_arena.str == pos);
-        _RYML_CB_ASSERT(m_callbacks, next_arena.sub(0, m_arena_pos).is_super(r));
+        _RYML_CB_ASSERT(m_callbacks, next_arena.sub(0, m_arena_pos).is_super(r) || r.len == 0);
         return r;
     }
 
