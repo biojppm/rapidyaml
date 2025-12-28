@@ -781,7 +781,7 @@ TEST(empty_scalar, std_string)
               "{ser: {stdstr: '',nullss: },eq: {stdstr: '',nullss: }}");
 }
 
-TEST(empty_scalar, to_arena)
+TEST(empty_scalar, to_arena_substr_non_null)
 {
     Tree tr;
     {
@@ -789,21 +789,63 @@ TEST(empty_scalar, to_arena)
         size_t num = to_chars(substr{}, val);
         ASSERT_EQ(num, 0u);
         char buf_[10];
-        csubstr serialized = to_chars_sub(buf_, val);
+        substr serialized = to_chars_sub(buf_, val);
         EXPECT_EQ(serialized.len, 0);
         EXPECT_NE(serialized.str, nullptr);
         EXPECT_NE(serialized, nullptr);
-        csubstr r = tr.to_arena("");
-        EXPECT_EQ(r.len, 0u);
-        EXPECT_NE(r.str, nullptr);
-        EXPECT_NE(r, nullptr);
+        // substr
+        {
+            csubstr r = tr.to_arena(serialized);
+            EXPECT_EQ(r.len, 0u);
+            EXPECT_NE(r.str, nullptr);
+            EXPECT_NE(r, nullptr);
+        }
+        // csubstr
+        {
+            csubstr cserialized = serialized;
+            csubstr r = tr.to_arena(cserialized);
+            EXPECT_EQ(r.len, 0u);
+            EXPECT_NE(r.str, nullptr);
+            EXPECT_NE(r, nullptr);
+        }
     }
+}
+
+TEST(empty_scalar, to_arena_substr_null)
+{
+    Tree tr;
+    {
+        substr serialized;
+        EXPECT_EQ(serialized.len, 0);
+        EXPECT_EQ(serialized.str, nullptr);
+        EXPECT_EQ(serialized, nullptr);
+        // substr
+        {
+            csubstr r = tr.to_arena(serialized);
+            EXPECT_EQ(r.len, 0u);
+            EXPECT_EQ(r.str, nullptr);
+            EXPECT_EQ(r, nullptr);
+        }
+        // csubstr
+        {
+            csubstr cserialized = serialized;
+            csubstr r = tr.to_arena(cserialized);
+            EXPECT_EQ(r.len, 0u);
+            EXPECT_EQ(r.str, nullptr);
+            EXPECT_EQ(r, nullptr);
+        }
+    }
+}
+
+TEST(empty_scalar, to_arena_const_char)
+{
+    Tree tr;
     {
         const char *val = nullptr;
         size_t num = to_chars(substr{}, val);
         ASSERT_EQ(num, 0u);
         char buf_[10];
-        csubstr serialized = to_chars_sub(buf_, val);
+        substr serialized = to_chars_sub(buf_, val);
         EXPECT_EQ(serialized.len, 0);
         EXPECT_NE(serialized.str, nullptr);
         EXPECT_NE(serialized, nullptr);
@@ -816,6 +858,11 @@ TEST(empty_scalar, to_arena)
         EXPECT_EQ(r.str, nullptr);
         EXPECT_EQ(r, nullptr);
     }
+}
+
+TEST(empty_scalar, to_arena_nullptr)
+{
+    Tree tr;
     {
         std::nullptr_t val = nullptr;
         size_t num = to_chars(substr{}, val);
@@ -826,6 +873,7 @@ TEST(empty_scalar, to_arena)
         EXPECT_EQ(r, nullptr);
     }
 }
+
 
 TEST(empty_scalar, gcc_error)
 {

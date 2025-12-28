@@ -1,6 +1,8 @@
 
 %module ryml
 
+%include "stdint.i"
+
 //-----------------------------------------------------------------------------
 // this block will be pasted verbatim in the generated C++ source file
 
@@ -31,21 +33,33 @@ using csubstr = c4::csubstr;
 
 %typemap(in) c4::substr {
 #if defined(SWIGPYTHON)
-  Py_buffer view;
-  int ok = PyObject_CheckBuffer($input);
-  if(ok)
+  if($input != Py_None)
   {
-      ok = (0 == PyObject_GetBuffer($input, &view, PyBUF_SIMPLE|PyBUF_WRITABLE));
-  }
-  if(ok)
-  {
-      $1 = c4::substr((char*)view.buf, view.len);
-      PyBuffer_Release(&view);
+      if(PyMemoryView_Check($input)) // is it a memoryview?
+      {
+          Py_buffer const* view = PyMemoryView_GET_BUFFER($input);
+          $1 = c4::substr((char*)view->buf, view->len);
+      }
+      else
+      {
+          int ok = PyObject_CheckBuffer($input);
+          Py_buffer view;
+          ok = ok && (0 == PyObject_GetBuffer($input, &view, PyBUF_SIMPLE | PyBUF_WRITABLE));
+          if(ok)
+          {
+              $1 = c4::substr((char*)view.buf, view.len);
+              PyBuffer_Release(&view);
+          }
+          else
+          {
+              PyErr_SetString(PyExc_TypeError, "substr: could not get mutable memory - have you passed an imutable type such as str or bytes?");
+              SWIG_fail;
+          }
+      }
   }
   else
   {
-      PyErr_SetString(PyExc_TypeError, "could not get mutable memory for c4::csubstr - have you passed a str?");
-      SWIG_fail;
+      $1 = c4::substr(nullptr, size_t(0));
   }
 #else
 #error no "in" typemap defined for this export language
@@ -54,37 +68,54 @@ using csubstr = c4::csubstr;
 
 %typemap(in) c4::csubstr {
 #if defined(SWIGPYTHON)
-  Py_buffer view;
-  view.buf = nullptr;
-  int ok = PyObject_CheckBuffer($input);
-  if(ok)
+  if($input != Py_None)
   {
-      ok = (0 == PyObject_GetBuffer($input, &view, PyBUF_CONTIG_RO));
-  }
-  if(ok)
-  {
-      $1 = c4::csubstr((const char*)view.buf, view.len);
-      PyBuffer_Release(&view);
-  }
-  else
-  {
-      // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-      Py_ssize_t sz = 0;
-      const char *buf = PyUnicode_AsUTF8AndSize($input, &sz);
-      if(buf || sz == 0)
+      if(PyMemoryView_Check($input)) // is it a memoryview?
       {
-          $1 = c4::csubstr(buf, sz);
+          Py_buffer const* view = PyMemoryView_GET_BUFFER($input);
+          $1 = c4::csubstr((const char*)view->buf, view->len);
       }
       else
       {
-          PyErr_SetString(PyExc_TypeError, "c4::csubstr: could not get readonly memory from python object");
-          SWIG_fail;
+          Py_buffer view;
+          view.buf = nullptr;
+          int ok = PyObject_CheckBuffer($input);
+          ok = ok && (0 == PyObject_GetBuffer($input, &view, PyBUF_SIMPLE));
+          if(ok)
+          {
+              $1 = c4::csubstr((const char*)view.buf, view.len);
+              PyBuffer_Release(&view);
+          }
+          else
+          {
+              // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
+              Py_ssize_t sz = 0;
+              const char *buf = PyUnicode_AsUTF8AndSize($input, &sz);
+              if(buf || sz == 0)
+              {
+                  $1 = c4::csubstr(buf, sz);
+              }
+              else
+              {
+                  PyErr_SetString(PyExc_TypeError, "csubstr: could not get readonly memory from python object");
+                  SWIG_fail;
+              }
+          }
       }
+  }
+  else
+  {
+      $1 = c4::csubstr(nullptr, size_t(0));
   }
 #else
 #error no "in" typemap defined for this export language
 #endif
 };
+%typemap(in) csubstr = c4::csubstr;
+%typemap(in) substr = c4::substr;
+%typemap(in) c4::yml::csubstr = c4::csubstr;
+%typemap(in) c4::yml::substr = c4::substr;
+
 // Copy the typecheck code for "char *".
 %typemap(typecheck) c4::substr = char *;
 %typemap(typecheck) c4::csubstr = const char *;
@@ -174,16 +205,16 @@ char * emit_json_malloc(c4::yml::Tree const& t, size_t id)
     return ret.str;
 }
 
-size_t emit_yaml_length(const c4::yml::Tree &t, size_t id)
+size_t _compute_yaml_length(const c4::yml::Tree &t, size_t id)
 {
-    c4::substr buf;
+    c4::substr buf = {};
     c4::substr ret = c4::yml::emit_yaml(t, id, buf, /*error_on_excess*/false);
     return ret.len;
 }
 
-size_t emit_json_length(const c4::yml::Tree &t, size_t id)
+size_t _compute_json_length(const c4::yml::Tree &t, size_t id)
 {
-    c4::substr buf;
+    c4::substr buf = {};
     c4::substr ret = c4::yml::emit_json(t, id, buf, /*error_on_excess*/false);
     return ret.len;
 }
@@ -217,6 +248,13 @@ c4::csubstr  _get_as_substr(c4::substr s)
 }
 
 
+// helper for calling to_arena()
+c4::csubstr _to_arena_buf_cpp(c4::yml::Tree &t, c4::csubstr s)
+{
+    return t.to_arena(s);
+}
+
+
 // utilities for testing
 bool _same_ptr(c4::csubstr l, c4::csubstr r)
 {
@@ -227,8 +265,6 @@ bool _same_mem(c4::csubstr l, c4::csubstr r)
 {
     return l.str == r.str && l.len == r.len;
 }
-
-
 %}
 
 
@@ -241,10 +277,14 @@ from deprecation import deprecated
 
 def as_csubstr(s):
     """return as a ryml::csubstr"""
+    if isinstance(s, memoryview):
+        return s
     return _get_as_csubstr(s)
 
 def as_substr(s):
     """return as a ryml::ssubstr"""
+    if isinstance(s, memoryview):
+        return s
     return _get_as_substr(s)
 
 def u(memview):
@@ -291,6 +331,7 @@ def walk(tree, node=None, depth=0):
 def parse(buf, **kwargs):
     return parse_in_arena(tree, id)
 
+
 def parse_in_arena(buf, tree=None):
     """parse immutable YAML in the trees arena. Copy the YAML into a buffer
     in the C++ tree's arena, then parse the YAML from the trees arena.
@@ -304,7 +345,11 @@ def parse_in_arena(buf, tree=None):
        and returned at the end.
     :type buf: ``ryml.Tree``
     """
-    return _call_parse(parse_csubstr, buf, tree)
+    if tree is None:
+        tree = Tree()
+    parse_csubstr(buf, tree)
+    return tree
+
 
 def parse_in_place(buf, tree=None):
     """parse in place a mutable buffer containing YAML. The resulting tree
@@ -320,22 +365,10 @@ def parse_in_place(buf, tree=None):
        and returned at the end.
     :type buf: ``ryml.Tree``
     """
-    _check_valid_for_in_place(buf)
-    return _call_parse(parse_substr, buf, tree)
-
-
-
-def _call_parse(parse_fn, buf, tree):
     if tree is None:
         tree = Tree()
-    parse_fn(buf, tree)
+    parse_substr(buf, tree)
     return tree
-
-
-def _check_valid_for_in_place(obj):
-    if type(obj) in (str, bytes):  # is there a better heuristic?
-        raise TypeError("cannot parse in place: " + type(obj).__name__)
-
 
 
 @deprecated(deprecated_in="0.5.0", details="Use emit_yaml() instead")
@@ -355,30 +388,15 @@ def emit_json(tree, id=None):
     return emit_json_malloc(tree, id)
 
 
-@deprecated(deprecated_in="0.5.0", details="Use compute_emit_yaml_length() instead")
-def compute_emit_length(tree, id=None):
-    return compute_emit_yaml_length(tree, id)
-
-def compute_emit_yaml_length(tree, id=None):
-    if id is None:
-        id = tree.root_id()
-    return emit_yaml_length(tree, id)
-
-def compute_emit_json_length(tree, id=None):
-    if id is None:
-        id = tree.root_id()
-    return emit_json_length(tree, id)
-
-
-@deprecated(deprecated_in="0.5.0", details="Use emit_yaml_in_place() instead")
-def emit_in_place(tree, buf, id=None):
-    return emit_yaml_in_place(tree, buf, id)
-
 def emit_yaml_in_place(tree, buf, id=None):
     return _emit_fn_in_place(tree, buf, id, emit_yaml_to_substr)
 
 def emit_json_in_place(tree, buf, id=None):
     return _emit_fn_in_place(tree, buf, id, emit_json_to_substr)
+
+@deprecated(deprecated_in="0.5.0", details="Use emit_yaml_in_place() instead")
+def emit_in_place(tree, buf, id=None):
+    return emit_yaml_in_place(tree, buf, id)
 
 def _emit_fn_in_place(tree, buf, id, fn):
     if id is None:
@@ -388,6 +406,30 @@ def _emit_fn_in_place(tree, buf, id, fn):
         raise IndexError("Output buffer has {} bytes, but emit requires {} bytes".format(
             len(buf), expected_size))
     return memoryview(buf)[:expected_size]
+
+
+def compute_yaml_length(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+    return _compute_yaml_length(tree, id)
+
+def compute_json_length(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+    return _compute_json_length(tree, id)
+
+@deprecated(deprecated_in="0.5.0", details="Use compute_yaml_length() instead")
+def compute_emit_length(tree, id=None):
+    return compute_yaml_length(tree, id)
+
+@deprecated(deprecated_in="0.11.0", details="Use compute_yaml_length() instead")
+def compute_emit_yaml_length(tree, id=None):
+    return compute_yaml_length(tree, id)
+
+@deprecated(deprecated_in="0.11.0", details="Use compute_json_length() instead")
+def compute_emit_json_length(tree, id=None):
+    return compute_json_length(tree, id)
+
 
 %}
 
@@ -740,23 +782,11 @@ public:
 
 public:
 
-    void to_keyval(id_type node, c4::csubstr key, c4::csubstr val, int more_flags=0);
-    void to_map(id_type node, c4::csubstr key, int more_flags=0);
-    void to_seq(id_type node, c4::csubstr key, int more_flags=0);
-    void to_val(id_type node, c4::csubstr val, int more_flags=0);
-    void to_stream(id_type node, int more_flags=0);
-    void to_map(id_type node, int more_flags=0);
-    void to_seq(id_type node, int more_flags=0);
-    void to_doc(id_type node, int more_flags=0);
-
     void set_key_tag(id_type node, c4::csubstr tag);
     void set_key_anchor(id_type node, c4::csubstr anchor);
     void set_val_anchor(id_type node, c4::csubstr anchor);
     void set_key_ref   (id_type node, c4::csubstr ref   );
     void set_val_ref   (id_type node, c4::csubstr ref   );
-
-    void _set_key(id_type node, c4::csubstr key, int more_flags=0);
-    void _set_val(id_type node, c4::csubstr val, int more_flags=0);
 
     void set_val_tag(id_type node, c4::csubstr tag);
     void rem_key_anchor(id_type node);
@@ -764,6 +794,61 @@ public:
     void rem_key_ref   (id_type node);
     void rem_val_ref   (id_type node);
     void rem_anchor_ref(id_type node);
+
+    // these functions do not work correctly with the typemape for csubstr:
+    //void to_keyval(id_type node, c4::csubstr key, c4::csubstr val, int more_flags=0);
+    //void to_map(id_type node, c4::csubstr key, int more_flags=0);
+    //void to_seq(id_type node, c4::csubstr key, int more_flags=0);
+    //void to_val(id_type node, c4::csubstr val, int more_flags=0);
+    //void to_stream(id_type node, int more_flags=0);
+    //void to_map(id_type node, int more_flags=0);
+    //void to_seq(id_type node, int more_flags=0);
+    //void to_doc(id_type node, int more_flags=0);
+    //void _set_key(id_type node, c4::csubstr key, int more_flags=0);
+    //void _set_val(id_type node, c4::csubstr val, int more_flags=0);
+    //
+    // so we do the following:
+    %extend {
+        void _to_val(id_type node, c4::csubstr s, int flags) { $self->to_val(node, s, flags); }
+        void _to_keyval(id_type node, c4::csubstr key, c4::csubstr val, int more_flags) { $self->to_keyval(node, key, val, more_flags); }
+        void _to_map0(id_type node, int more_flags) { $self->to_map(node, more_flags); }
+        void _to_seq0(id_type node, int more_flags) { $self->to_seq(node, more_flags); }
+        void _to_map1(id_type node, c4::csubstr key, int more_flags) { $self->to_map(node, key, more_flags); }
+        void _to_seq1(id_type node, c4::csubstr key, int more_flags) { $self->to_seq(node, key, more_flags); }
+        void __set_key(id_type node, c4::csubstr key, int more_flags) { $self->_set_key(node, key, more_flags); }
+        void __set_val(id_type node, c4::csubstr val, int more_flags) { $self->_set_val(node, val, more_flags); }
+        void _to_stream(id_type node, int more_flags) { $self->to_stream(node, more_flags); }
+        void _to_doc(id_type node, int more_flags) { $self->to_doc(node, more_flags); }
+        %pythoncode %{
+            # this is needed to ensure the csubstr typemap applies to the overloads
+            def to_val(self, node, val, more_flags=0):
+                self._to_val(node, val, more_flags)
+            def to_keyval(self, node, key, val, more_flags=0):
+                self._to_keyval(node, key, val, more_flags)
+            def to_map(self, node, key=None, more_flags=0):
+                if isinstance(key, int):
+                    self._to_map0(node, key | more_flags)
+                elif key is None:
+                    self._to_map0(node, more_flags)
+                else:
+                    self._to_map1(node, key, more_flags)
+            def to_seq(self, node, key=None, more_flags=0):
+                if isinstance(key, int):
+                    self._to_seq0(node, key | more_flags)
+                elif key is None:
+                    self._to_seq0(node, more_flags)
+                else:
+                    self._to_seq1(node, key, more_flags)
+            def _set_key(self, node, key, more_flags=0):
+                self.__set_key(node, key, more_flags)
+            def _set_val(self, node, val, more_flags=0):
+                self.__set_val(node, val, more_flags)
+            def to_stream(self, node, more_flags=0):
+                self._to_stream(node, more_flags)
+            def to_doc(self, node, more_flags=0):
+                self._to_doc(node, more_flags)
+        %}
+    }
 
 public:
 
@@ -820,6 +905,33 @@ public:
      * that is placed closest to the end will prevail. */
     void duplicate_children_no_rep(id_type node, id_type parent, id_type after);
 
+public:
+
+    %extend {
+        // to_arena() is a template. We use an overload set instead, as it
+        // will let SWIG generate the appropriate dispatch code for us.
+        c4::csubstr _to_arena_fundamental(uint8_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(int8_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(uint16_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(int16_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(uint32_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(int32_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(uint64_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(int64_t val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(float val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_fundamental(double val) { return $self->to_arena(val); }
+        c4::csubstr _to_arena_null() { return $self->to_arena(nullptr); }
+        c4::csubstr _to_arena_buffer(c4::csubstr buf) { return $self->to_arena(buf); }
+        %pythoncode %{
+            def to_arena(self, val):
+                if isinstance(val, (str, bytes, bytearray, memoryview)):
+                    return _to_arena_buf_cpp(self, as_csubstr(val))
+                elif val is None:
+                    return self._to_arena_null()
+                else:
+                    return self._to_arena_fundamental(val)
+        %}
+    }
 };
 
 } // namespace yml
