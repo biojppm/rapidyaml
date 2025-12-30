@@ -658,13 +658,13 @@ TEST(simple_anchor, resolve_nested)
     }
     {
         Tree t = parse_in_arena(yaml);
-        ExpectError::check_error(&t, [&]{
+        ExpectError::check_error_basic(&t, [&]{
             t.resolve(true);
         });
     }
     {
         Tree t = parse_in_arena(yaml);
-        ExpectError::check_error(&t, [&]{
+        ExpectError::check_error_basic(&t, [&]{
             t.resolve(false);
         });
     }
@@ -862,7 +862,7 @@ N(MFS, L{N(KEY|VP, "*foo", AR(KEYREF, "foo"), "bar")})
 
 ADD_CASE_TO_GROUP("anchor colon ambiguity 2", EXPECT_PARSE_ERROR,
 R"({*foo: bar})",
-   LineCol(1, 8)
+   Location(1, 8)
 );
 
 ADD_CASE_TO_GROUP("merge example, unresolved",

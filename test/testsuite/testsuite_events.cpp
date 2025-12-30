@@ -106,7 +106,7 @@ struct Scalar
     OptionalScalar ref    = {};
     OptionalScalar tag    = {};
     NodeType       flags = {};
-    inline operator bool() const { if(anchor || tag) { RYML_ASSERT(scalar); } return scalar.was_set; }
+    inline operator bool() const { if(anchor || tag) { _RYML_ASSERT_BASIC(scalar); } return scalar.was_set; }
     void add_key_props(Tree *tree, id_type node) const
     {
         if(ref)

@@ -43,7 +43,7 @@ std::vector<std::string> inject_comments(std::string const& src_)
 
 void test_expected_error_testsuite_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
-    ExpectError::check_error([&]{
+    ExpectError::check_error_parse([&]{
         extra::EventHandlerTestSuite::EventSink sink;
         extra::EventHandlerTestSuite handler(&sink);
         handler.reset();
@@ -55,7 +55,7 @@ void test_expected_error_testsuite_from_yaml(std::string const& parsed_yaml, Loc
 
 void test_expected_error_ints_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
-    ExpectError::check_error([&]{
+    ExpectError::check_error_parse([&]{
         extra::EventHandlerInts handler{};
         handler.reset(to_csubstr(parsed_yaml), substr{}, nullptr, 0);
         ParseEngine<extra::EventHandlerInts> parser(&handler);
@@ -67,7 +67,7 @@ void test_expected_error_ints_from_yaml(std::string const& parsed_yaml, Location
 void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
     Tree tree = {};
-    ExpectError::check_error(&tree, [&]{
+    ExpectError::check_error_parse(&tree, [&]{
         EventHandlerTree handler(&tree, tree.root_id());
         ASSERT_EQ(&tree, handler.m_tree);
         ParseEngine<EventHandlerTree> parser(&handler);
@@ -257,7 +257,7 @@ csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalSca
     if(tokens.begins_with('<'))
     {
         size_t pos = tokens.find('>');
-        RYML_ASSERT(pos != (size_t)csubstr::npos);
+        _RYML_ASSERT_BASIC(pos != (size_t)csubstr::npos);
         *tag = tokens.first(pos + 1);
         tokens = tokens.right_of(pos).triml(' ');
         _c4dbgpf("tag: {}", tag->maybe_get());

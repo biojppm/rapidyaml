@@ -218,9 +218,9 @@ USAGE: bm <case.yml>
             src.push_back('\0');
         }
         in_place = src;
-        C4_ASSERT_MSG(strlen(in_place.data()) == in_place.size()-1,
-                      "len=%zu sz=%zu",
-                      strlen(in_place.data()), in_place.size());
+        _RYML_ASSERT_BASIC_MSG(strlen(in_place.data()) == in_place.size()-1,
+                               "len=%zu sz=%zu",
+                               strlen(in_place.data()), in_place.size());
     }
 
     void prepare(bm::State &st, int what, ryml::id_type capacity=0)
@@ -242,17 +242,17 @@ USAGE: bm <case.yml>
         }
         if(what & kReserveTree)
         {
-            RYML_CHECK(capacity > 0);
+            _RYML_CHECK_BASIC(capacity > 0);
             ryml_tree.reserve(capacity);
         }
         if(what & kReserveTree)
         {
-            RYML_CHECK(capacity > 0);
+            _RYML_CHECK_BASIC(capacity > 0);
             ryml_tree.reserve(capacity);
         }
         if(what & kResetInPlace)
         {
-            C4_ASSERT(in_place.size() == src.size());
+            _RYML_ASSERT_BASIC(in_place.size() == src.size());
             memcpy(in_place.data(), src.data(), src.size());
         }
     }

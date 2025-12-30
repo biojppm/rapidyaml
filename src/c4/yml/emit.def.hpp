@@ -14,24 +14,24 @@ namespace c4 {
 namespace yml {
 
 template<class Writer>
-substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, id_type id, bool error_on_excess)
+substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, bool error_on_excess)
 {
-    if(t.empty())
+    if(tree.empty())
     {
-        _RYML_CB_ASSERT(t.callbacks(), id == NONE);
+        _RYML_ASSERT_BASIC_(tree.callbacks(), id == NONE);
         return {};
     }
     if(id == NONE)
-        id = t.root_id();
-    _RYML_CB_CHECK(t.callbacks(), id < t.capacity());
-    m_tree = &t;
+        id = tree.root_id();
+    _RYML_CHECK_VISIT_(tree.callbacks(), id < tree.capacity(), &tree, id);
+    m_tree = &tree;
     m_flow = false;
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
         _do_visit_json(id, 0);
     else
-        _RYML_CB_ERR(m_tree->callbacks(), "unknown emit type");
+        _RYML_ERR_BASIC_(m_tree->callbacks(), "unknown emit type");
     m_tree = nullptr;
     return this->Writer::_get(error_on_excess);
 }
@@ -113,8 +113,8 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     }
     else if(m_tree->is_doc(id))
     {
-        _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->is_container(id)); // checked above
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_val(id)); // so it must be a val
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_container(id), m_tree, id); // checked above
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_val(id), m_tree, id); // so it must be a val
         _write_doc(id);
     }
     else if(m_tree->is_keyval(id))
@@ -138,7 +138,7 @@ void Emitter<Writer>::_emit_yaml(id_type id)
     }
     else
     {
-        _RYML_CB_ERR(m_tree->callbacks(), "unknown type");
+        _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "unknown type");
     }
 }
 
@@ -148,11 +148,11 @@ template<class Writer>
 void Emitter<Writer>::_write_doc(id_type id)
 {
     const NodeType ty = m_tree->type(id);
-    RYML_ASSERT(ty.is_doc());
-    RYML_ASSERT(!ty.has_key());
+    _RYML_ASSERT_VISIT_(m_tree->m_callbacks, ty.is_doc(), m_tree, id);
+    _RYML_ASSERT_VISIT_(m_tree->m_callbacks, !ty.has_key(), m_tree, id);
     if(!m_tree->is_root(id))
     {
-        RYML_ASSERT(m_tree->is_stream(m_tree->parent(id)));
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_tree->is_stream(m_tree->parent(id)), m_tree, id);
         this->Writer::_do_write("---");
     }
     //
@@ -200,7 +200,7 @@ void Emitter<Writer>::_write_doc(id_type id)
     }
     else // docval
     {
-        _RYML_CB_ASSERT(m_tree->callbacks(), ty.has_val());
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_val(), m_tree, id);
         // some plain scalars such as '...' and '---' must not
         // appear at 0-indentation
         const csubstr val = m_tree->val(id);
@@ -246,11 +246,11 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
 {
     const bool prev_flow = m_flow;
     m_flow = true;
-    _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->is_stream(node));
-    _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node));
-    _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
-        _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
+        _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
 
     if(m_tree->is_doc(node))
     {
@@ -267,14 +267,14 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
             }
             else
             {
-                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_seq(node));
+                _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
                 this->Writer::_do_write('[');
             }
         }
     }
     else if(m_tree->is_container(node))
     {
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_map(node) || m_tree->is_seq(node));
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node) || m_tree->is_seq(node), m_tree, node);
 
         bool spc = false; // write a space
 
@@ -311,7 +311,7 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ile
         }
         else
         {
-            _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_seq(node));
+            _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
             this->Writer::_do_write('[');
         }
     } // container
@@ -357,7 +357,7 @@ void Emitter<Writer>::_do_visit_flow_ml(id_type id, id_type depth, id_type ileve
     C4_UNUSED(depth);
     C4_UNUSED(ilevel);
     C4_UNUSED(do_indent);
-    c4::yml::error("not implemented");
+    c4::yml::err_basic(RYML_LOC_HERE(), "not implemented");
     #ifdef THIS_IS_A_WORK_IN_PROGRESS
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
@@ -375,7 +375,7 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
     {
         for(id_type child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
         {
-            _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->has_key(child));
+            _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->has_key(child), m_tree, node);
             if(m_tree->is_val(child))
             {
                 _indent(level, do_indent);
@@ -385,7 +385,7 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
             }
             else
             {
-                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(child));
+                _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(child), m_tree, node);
                 NodeType ty = m_tree->type(child);
                 if(ty.is_flow_sl())
                 {
@@ -411,10 +411,10 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
     }
     else // map
     {
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_map(node));
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
         for(id_type ich = m_tree->first_child(node); ich != NONE; ich = m_tree->next_sibling(ich))
         {
-            _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_key(ich));
+            _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_key(ich), m_tree, node);
             if(m_tree->is_keyval(ich))
             {
                 _indent(level, do_indent);
@@ -425,7 +425,7 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
             }
             else
             {
-                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(ich));
+                _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(ich), m_tree, node);
                 NodeType ty = m_tree->type(ich);
                 if(ty.is_flow_sl())
                 {
@@ -452,11 +452,11 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_
 template<class Writer>
 void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ilevel, id_type do_indent)
 {
-    _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->is_stream(node));
-    _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node));
-    _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
-        _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
+        _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     if(m_tree->is_doc(node))
     {
         _write_doc(node);
@@ -465,7 +465,7 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ileve
     }
     else if(m_tree->is_container(node))
     {
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_map(node) || m_tree->is_seq(node));
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_map(node) || m_tree->is_seq(node), m_tree, node);
         bool spc = false; // write a space
         bool nl = false;  // write a newline
         if(m_tree->has_key(node))
@@ -542,9 +542,9 @@ C4_SUPPRESS_WARNING_MSVC_POP
 template<class Writer>
 void Emitter<Writer>::_do_visit_json(id_type id, id_type depth)
 {
-    _RYML_CB_CHECK(m_tree->callbacks(), !m_tree->is_stream(id)); // JSON does not have streams
+    _RYML_CHECK_VISIT_(m_tree->callbacks(), !m_tree->is_stream(id), m_tree, id); // JSON does not have streams
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
-        _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
+        _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
     if(m_tree->is_keyval(id))
     {
         _writek_json(id);
@@ -591,8 +591,8 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, i
     }
     if(flags.has_anchor())
     {
-        RYML_ASSERT(flags.is_ref() != flags.has_anchor());
-        RYML_ASSERT( ! sc.anchor.empty());
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), flags.is_ref() != flags.has_anchor(), m_tree, NONE);
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(),  ! sc.anchor.empty(), m_tree, NONE);
         this->Writer::_do_write('&');
         this->Writer::_do_write(sc.anchor);
         this->Writer::_do_write(' ');
@@ -608,7 +608,7 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, i
     }
 
     // ensure the style flags only have one of KEY or VAL
-    _RYML_CB_ASSERT(m_tree->callbacks(), ((flags & SCALAR_STYLE) == 0) || (((flags & KEY_STYLE) == 0) != ((flags & VAL_STYLE) == 0)));
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), ((flags & SCALAR_STYLE) == 0) || (((flags & KEY_STYLE) == 0) != ((flags & VAL_STYLE) == 0)), m_tree, NONE);
     type_bits style_marks = flags & SCALAR_STYLE;
     if(!style_marks)
         style_marks = scalar_style_choose(sc.scalar);
@@ -637,7 +637,7 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, i
     }
     else
     {
-        _RYML_CB_ERR(m_tree->callbacks(), "not implemented");
+        _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, NONE, "not implemented");
     }
 }
 
@@ -646,10 +646,10 @@ void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType fla
 {
     if(flags & (KEYTAG|VALTAG))
         if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_TAG)
-            _RYML_CB_ERR(m_tree->callbacks(), "JSON does not have tags");
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, NONE, "JSON does not have tags");
     if(C4_UNLIKELY(flags.has_anchor()))
         if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_ANCHOR)
-            _RYML_CB_ERR(m_tree->callbacks(), "JSON does not have anchors");
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, NONE, "JSON does not have anchors");
     if(sc.scalar.len)
     {
         // use double quoted style...
@@ -674,8 +674,8 @@ void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType fla
 template<class Writer>
 size_t Emitter<Writer>::_write_escaped_newlines(csubstr s, size_t i)
 {
-    RYML_ASSERT(s.len > i);
-    RYML_ASSERT(s.str[i] == '\n');
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), s.len > i);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), s.str[i] == '\n');
     //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
     // add an extra newline for each sequence of consecutive
     // newline/whitespace
@@ -685,9 +685,9 @@ size_t Emitter<Writer>::_write_escaped_newlines(csubstr s, size_t i)
         this->Writer::_do_write('\n'); // write the newline again
         ++i; // increase the outer loop counter!
     } while(i < s.len && s.str[i] == '\n');
-    _RYML_CB_ASSERT(m_tree->callbacks(), i > 0);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), i > 0);
     --i;
-    _RYML_CB_ASSERT(m_tree->callbacks(), s.str[i] == '\n');
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), s.str[i] == '\n');
     return i;
 }
 
@@ -703,10 +703,10 @@ template<class Writer>
 size_t Emitter<Writer>::_write_indented_block(csubstr s, size_t i, id_type ilevel)
 {
     //_c4dbgpf("indblock@i={} rem=[{}]~~~\n{}~~~", i, s.sub(i).len, s.sub(i));
-    _RYML_CB_ASSERT(m_tree->callbacks(), i > 0);
-    _RYML_CB_ASSERT(m_tree->callbacks(), s.str[i-1] == '\n');
-    _RYML_CB_ASSERT(m_tree->callbacks(), i < s.len);
-    _RYML_CB_ASSERT(m_tree->callbacks(), s.str[i] == ' ' || s.str[i] == '\t' || s.str[i] == '\n');
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), i > 0);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), s.str[i-1] == '\n');
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), i < s.len);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), s.str[i] == ' ' || s.str[i] == '\t' || s.str[i] == '\n');
 again:
     size_t pos = s.find("\n ", i);
     if(pos == npos)
@@ -738,7 +738,7 @@ again:
 template<class Writer>
 void Emitter<Writer>::_write_scalar_literal(csubstr s, id_type ilevel, bool explicit_key)
 {
-    _RYML_CB_ASSERT(m_tree->callbacks(), s.find("\r") == csubstr::npos);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), s.find("\r") == csubstr::npos);
     if(explicit_key)
         this->Writer::_do_write("? ");
     csubstr trimmed = s.trimr('\n');
@@ -789,7 +789,7 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, id_type ilevel, bool expli
 {
     if(explicit_key)
         this->Writer::_do_write("? ");
-    _RYML_CB_ASSERT(m_tree->callbacks(), s.find("\r") == csubstr::npos);
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), s.find("\r") == csubstr::npos);
     csubstr trimmed = s.trimr('\n');
     const size_t numnewlines_at_end = s.len - trimmed.len;
     const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));

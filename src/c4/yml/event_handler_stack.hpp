@@ -53,26 +53,29 @@ public:
     state *C4_RESTRICT   m_parent;  ///< parent of the current stack level.
     pfn_relocate_arena   m_relocate_arena; ///< callback when the arena gets relocated
     void *               m_relocate_arena_data;
+    csubstr              m_src;
 
 protected:
 
-    EventHandlerStack() : m_stack(), m_curr(), m_parent(), m_relocate_arena(), m_relocate_arena_data() {}
-    EventHandlerStack(Callbacks const& cb) : m_stack(cb), m_curr(), m_parent(), m_relocate_arena(), m_relocate_arena_data() {}
+    EventHandlerStack() : m_stack(), m_curr(), m_parent(), m_relocate_arena(), m_relocate_arena_data(), m_src() {}
+    EventHandlerStack(Callbacks const& cb) : m_stack(cb), m_curr(), m_parent(), m_relocate_arena(), m_relocate_arena_data(), m_src() {}
 
 protected:
 
-    void _stack_start_parse(const char *filename, pfn_relocate_arena relocate_arena, void *relocate_arena_data)
+    void _stack_start_parse(const char *filename, csubstr ymlsrc, pfn_relocate_arena relocate_arena, void *relocate_arena_data)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_curr != nullptr);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, relocate_arena != nullptr);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, relocate_arena_data != nullptr);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_curr != nullptr);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, relocate_arena != nullptr);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, relocate_arena_data != nullptr);
         m_curr->start_parse(filename, m_curr->node_id);
         m_relocate_arena = relocate_arena;
         m_relocate_arena_data = relocate_arena_data;
+        m_src = ymlsrc;
     }
 
     void _stack_finish_parse()
     {
+        m_src = {};
     }
 
 protected:
@@ -104,8 +107,8 @@ protected:
 
     void _stack_pop()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_stack.size() > 1);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_stack.size() > 1);
         m_parent->reset_before_pop(*m_curr);
         m_stack.pop();
         m_parent = m_stack.size() > 1 ? &m_stack.top(1) : nullptr;
@@ -148,17 +151,17 @@ protected:
             if(st.line_contents.stripped.is_sub(prev))
                 st.line_contents.stripped = _stack_relocate_to_new_arena(st.line_contents.stripped, prev, curr);
         }
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_relocate_arena != nullptr);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_relocate_arena_data != nullptr);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_relocate_arena != nullptr);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_relocate_arena_data != nullptr);
         m_relocate_arena(m_relocate_arena_data, prev, curr);
     }
 
     substr _stack_relocate_to_new_arena(csubstr s, csubstr prev, substr curr)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, prev.is_super(s));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, prev.is_super(s));
         auto pos = s.str - prev.str;
         substr out = {curr.str + pos, s.len};
-        _RYML_CB_ASSERT(m_stack.m_callbacks, curr.is_super(out));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, curr.is_super(out));
         return out;
     }
 
@@ -175,7 +178,7 @@ public:
         const bool suspicious = _has_any_(MAP|SEQ|VAL);
         _c4dbgpf("target={} isroot={} suspicious={} ndoc={}", m_curr->node_id, is_root, suspicious, isndoc);
         if((is_root || _has_any_(DOC)) && suspicious && !isndoc)
-            _RYML_CB_ERR_(m_stack.m_callbacks, "parse error", m_curr->pos);
+            _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "parse error");
     }
 
 protected:

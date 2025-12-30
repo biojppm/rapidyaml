@@ -964,7 +964,10 @@ static void* alloc(size_t len, void* /*hint*/, void* user_data) {
 TEST(Tree, issue564_relocate_arena_0)
 {
     issue564::AvailableBlocks blocks_by_size;
-    Callbacks cb(&blocks_by_size, issue564::alloc, issue564::free, nullptr);
+    Callbacks cb{};
+    cb.m_user_data = &blocks_by_size;
+    cb.m_allocate = issue564::alloc;
+    cb.m_free = issue564::free;
     Tree dest(cb);
     Tree source(cb);
     parse_in_arena("[]", &dest);
@@ -1066,7 +1069,7 @@ void verify_success_(csubstr src, Function &&fn)
 template<class Function>
 void verify_assertion_(Tree &tree, Function &&fn)
 {
-    ExpectError::check_assertion(&tree, [&]{
+    ExpectError::check_assert_basic(&tree, [&]{
         (void)fn(tree);
     });
 }
@@ -1074,7 +1077,7 @@ template<class Function>
 void verify_assertion_(csubstr src, Function &&fn)
 {
     Tree tree = parse_in_arena(src);
-    ExpectError::check_assertion(&tree, [&]{
+    ExpectError::check_assert_basic(&tree, [&]{
         (void)fn(tree);
     });
 }
@@ -1082,7 +1085,7 @@ void verify_assertion_(csubstr src, Function &&fn)
 template<class Function>
 void verify_error_(Tree &tree, Function &&fn)
 {
-    ExpectError::check_error(&tree, [&]{
+    ExpectError::check_error_basic(&tree, [&]{
         (void)fn(tree);
     });
 }
@@ -1090,7 +1093,7 @@ template<class Function>
 void verify_error_(csubstr src, Function &&fn)
 {
     Tree tree = parse_in_arena(src);
-    ExpectError::check_error(&tree, [&]{
+    ExpectError::check_error_basic(&tree, [&]{
         (void)fn(tree);
     });
 }
@@ -4541,7 +4544,7 @@ TEST(Tree, add_tag_directives)
     check_up_to(3);
     t.add_tag_directive(td[3]);
     check_up_to(4);
-    ExpectError::check_error(&t, [&]{ // number exceeded
+    ExpectError::check_error_basic(&t, [&]{ // number exceeded
         t.add_tag_directive(td[4]);
     });
     t.clear_tag_directives();

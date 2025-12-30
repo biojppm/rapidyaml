@@ -216,14 +216,14 @@ void test_emits(Tree const& t, id_type id, std::string const& expected, std::str
     if(max_depth > 1)
     {
         EmitOptions opts = EmitOptions{}.max_depth(0);
-        ExpectError::check_error(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, id, opts, buf); }); });
-        ExpectError::check_error(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, id, opts, buf); }); });
-        ExpectError::check_error(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, id, opts, f); }); });
-        ExpectError::check_error(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, id, opts, f); }); });
-        ExpectError::check_error(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(t, id, opts); }); });
-        ExpectError::check_error(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(t, id, opts); }); });
-        ExpectError::check_error(&t, [&]{ return emitrs_yaml<std::string>(t, id, opts); });
-        ExpectError::check_error(&t, [&]{ return emitrs_json<std::string>(t, id, opts); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, id, opts, buf); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, id, opts, buf); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, id, opts, f); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, id, opts, f); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(t, id, opts); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(t, id, opts); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emitrs_yaml<std::string>(t, id, opts); });
+        ExpectError::check_error_basic(&t, [&]{ return emitrs_json<std::string>(t, id, opts); });
     }
 }
 
@@ -264,14 +264,14 @@ void test_emits(Tree const& t, std::string const& expected, std::string const& e
     if(max_depth > 1)
     {
         EmitOptions opts = EmitOptions{}.max_depth(0);
-        ExpectError::check_error(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, opts, buf); }); });
-        ExpectError::check_error(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, opts, buf); }); });
-        ExpectError::check_error(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, opts, f); }); });
-        ExpectError::check_error(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, opts, f); }); });
-        ExpectError::check_error(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(ConstNodeRef(&t), opts); }); });
-        ExpectError::check_error(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(ConstNodeRef(&t), opts); }); });
-        ExpectError::check_error(&t, [&]{ return emitrs_yaml<std::string>(t, opts); });
-        ExpectError::check_error(&t, [&]{ return emitrs_json<std::string>(t, opts); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, opts, buf); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, opts, buf); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, opts, f); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, opts, f); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(ConstNodeRef(&t), opts); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(ConstNodeRef(&t), opts); }); });
+        ExpectError::check_error_basic(&t, [&]{ return emitrs_yaml<std::string>(t, opts); });
+        ExpectError::check_error_basic(&t, [&]{ return emitrs_json<std::string>(t, opts); });
     }
 }
 
@@ -312,18 +312,18 @@ void test_emits(ConstNodeRef n, std::string const& expected, std::string const& 
         if(max_depth > 1)
         {
             EmitOptions opts = EmitOptions{}.max_depth(0);
-            ExpectError::check_error(n.tree(), [&]{
+            ExpectError::check_error_basic(n.tree(), [&]{
                 return emit2buf([&](substr buf){
                     return emit_yaml(n, opts, buf);
                 });
             });
-            ExpectError::check_error(n.tree(), [&]{ return emit2buf([&](substr buf){ return emit_json(n, opts, buf); }); });
-            ExpectError::check_error(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_yaml(n, opts, f); }); });
-            ExpectError::check_error(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_json(n, opts, f); }); });
-            ExpectError::check_error(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(n, opts); }); });
-            ExpectError::check_error(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(n, opts); }); });
-            ExpectError::check_error(n.tree(), [&]{ return emitrs_yaml<std::string>(n, opts); });
-            ExpectError::check_error(n.tree(), [&]{ return emitrs_json<std::string>(n, opts); });
+            ExpectError::check_error_basic(n.tree(), [&]{ return emit2buf([&](substr buf){ return emit_json(n, opts, buf); }); });
+            ExpectError::check_error_basic(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_yaml(n, opts, f); }); });
+            ExpectError::check_error_basic(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_json(n, opts, f); }); });
+            ExpectError::check_error_basic(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(n, opts); }); });
+            ExpectError::check_error_basic(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(n, opts); }); });
+            ExpectError::check_error_basic(n.tree(), [&]{ return emitrs_yaml<std::string>(n, opts); });
+            ExpectError::check_error_basic(n.tree(), [&]{ return emitrs_json<std::string>(n, opts); });
         }
     }
 }
@@ -1264,10 +1264,10 @@ TEST(emit, error_on_emit_yaml_to_short_buffer)
     const Tree tree = parse_in_arena(yaml);
     {
         char too_small[2];
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_yaml(tree, too_small);
         });
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_yaml(tree, too_small, /*error_on_excess*/true);
         });
         substr required = emit_yaml(tree, too_small, /*error_on_excess*/false);
@@ -1278,10 +1278,10 @@ TEST(emit, error_on_emit_yaml_to_short_buffer)
         substr nothing;
         EXPECT_EQ(nothing.str, nullptr);
         EXPECT_EQ(nothing.len, 0u);
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_yaml(tree, nothing);
         });
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_yaml(tree, nothing, /*error_on_excess*/true);
         });
         substr required = emit_yaml(tree, nothing, /*error_on_excess*/false);
@@ -1296,10 +1296,10 @@ TEST(emit, error_on_emit_json_to_short_buffer)
     const Tree tree = parse_in_arena(json);
     {
         char too_small[2];
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_json(tree, too_small);
         });
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_json(tree, too_small, /*error_on_excess*/true);
         });
         substr required = emit_json(tree, too_small, /*error_on_excess*/false);
@@ -1310,10 +1310,10 @@ TEST(emit, error_on_emit_json_to_short_buffer)
         substr nothing;
         EXPECT_EQ(nothing.str, nullptr);
         EXPECT_EQ(nothing.len, 0u);
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_json(tree, nothing);
         });
-        ExpectError::check_error([&]{
+        ExpectError::check_error_basic([&]{
             emit_json(tree, nothing, /*error_on_excess*/true);
         });
         substr required = emit_json(tree, nothing, /*error_on_excess*/false);

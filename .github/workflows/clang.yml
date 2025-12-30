@@ -94,6 +94,7 @@ jobs:
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -164,6 +165,7 @@ jobs:
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -234,6 +236,7 @@ jobs:
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
@@ -629,72 +632,73 @@ jobs:
     name: san/${{matrix.bt}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+    needs: canary
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
-          cxx: clang++-17
+          cxx: clang++-18
           bt: asan
           bitlinks: static64
         - std: 14
-          cxx: clang++-17
+          cxx: clang++-18
           bt: asan
           bitlinks: static64
         - std: 17
-          cxx: clang++-17
+          cxx: clang++-18
           bt: asan
           bitlinks: static64
         - std: 20
-          cxx: clang++-17
+          cxx: clang++-18
           bt: asan
           bitlinks: static64
         - std: 11
-          cxx: clang++-17
+          cxx: clang++-18
           bt: lsan
           bitlinks: static64
         - std: 14
-          cxx: clang++-17
+          cxx: clang++-18
           bt: lsan
           bitlinks: static64
         - std: 17
-          cxx: clang++-17
+          cxx: clang++-18
           bt: lsan
           bitlinks: static64
         - std: 20
-          cxx: clang++-17
+          cxx: clang++-18
           bt: lsan
           bitlinks: static64
         - std: 11
-          cxx: clang++-17
+          cxx: clang++-18
           bt: tsan
           bitlinks: static64
         - std: 14
-          cxx: clang++-17
+          cxx: clang++-18
           bt: tsan
           bitlinks: static64
         - std: 17
-          cxx: clang++-17
+          cxx: clang++-18
           bt: tsan
           bitlinks: static64
         - std: 20
-          cxx: clang++-17
+          cxx: clang++-18
           bt: tsan
           bitlinks: static64
         - std: 11
-          cxx: clang++-17
+          cxx: clang++-18
           bt: ubsan
           bitlinks: static64
         - std: 14
-          cxx: clang++-17
+          cxx: clang++-18
           bt: ubsan
           bitlinks: static64
         - std: 17
-          cxx: clang++-17
+          cxx: clang++-18
           bt: ubsan
           bitlinks: static64
         - std: 20
-          cxx: clang++-17
+          cxx: clang++-18
           bt: ubsan
           bitlinks: static64
     env:

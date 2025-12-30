@@ -44,8 +44,8 @@ struct CallbacksTester
     {
         _c4dbgpf("size: alloc={}  dealloc={}", alloc_size, dealloc_size);
         _c4dbgpf("count: #allocs={}  #deallocs={}", num_allocs, num_deallocs);
-        RYML_CHECK(num_allocs == num_deallocs);
-        RYML_CHECK(alloc_size == dealloc_size);
+        _RYML_CHECK_BASIC(num_allocs == num_deallocs);
+        _RYML_CHECK_BASIC(alloc_size == dealloc_size);
     }
 
     Callbacks callbacks() const
@@ -63,14 +63,14 @@ struct CallbacksTester
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
         ++num_allocs;
-        RYML_CHECK(alloc_size < memory_pool.size());
+        _RYML_CHECK_BASIC(alloc_size < memory_pool.size());
         return ptr;
     }
 
     void free(void *mem, size_t len)
     {
-        RYML_CHECK((char*)mem     >= &memory_pool.front() && (char*)mem     <  &memory_pool.back());
-        RYML_CHECK((char*)mem+len >= &memory_pool.front() && (char*)mem+len <= &memory_pool.back());
+        _RYML_CHECK_BASIC((char*)mem     >= &memory_pool.front() && (char*)mem     <  &memory_pool.back());
+        _RYML_CHECK_BASIC((char*)mem+len >= &memory_pool.front() && (char*)mem+len <= &memory_pool.back());
         _c4dbgpf("free[{}]={}B", num_deallocs, len);
         dealloc_size += len;
         ++num_deallocs;

@@ -693,7 +693,7 @@ parse_error_cases = [
 @pytest.mark.parametrize("buftype", arena_types)
 def test_parse_error_in_arena(testcase, buftype):
     cp, buf = _copy_as(testcase, buftype)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ryml.ExceptionParse):
         tree = ryml.parse_in_arena(buf)
 
 
@@ -702,7 +702,7 @@ def test_parse_error_in_arena(testcase, buftype):
 def test_parse_error_in_arena_reuse(testcase, buftype):
     cp, buf = _copy_as(testcase, buftype)
     tree = ryml.Tree()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ryml.ExceptionParse):
         ryml.parse_in_arena(buf, tree=tree)
 
 
@@ -710,7 +710,7 @@ def test_parse_error_in_arena_reuse(testcase, buftype):
 @pytest.mark.parametrize("buftype", in_place_types)
 def test_parse_error_in_place(testcase, buftype):
     cp, buf = _copy_as(testcase, buftype)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ryml.ExceptionParse):
         tree = ryml.parse_in_place(buf)
 
 
@@ -719,7 +719,7 @@ def test_parse_error_in_place(testcase, buftype):
 def test_parse_error_in_place_reuse(testcase, buftype):
     cp, buf = _copy_as(testcase, buftype)
     tree = ryml.Tree()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ryml.ExceptionParse):
         ryml.parse_in_place(buf, tree=tree)
 
 

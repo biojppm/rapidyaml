@@ -2,7 +2,9 @@
 #include <ryml_all.hpp>
 #else
 #include <c4/yml/std/std.hpp>
+#include <c4/yml/error.def.hpp>
 #include <c4/yml/parse.hpp>
+#include <c4/yml/error.def.hpp>
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
@@ -309,7 +311,10 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
     if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu. arena_size=%zu\n", evts.size(), sz, arena.size());
     if (!handler.fits_buffers())
     {
-        RYML_CHECK(!fail_size);
+        if(fail_size)
+        {
+            _RYML_ERR_BASIC("buffers too small");
+        }
         {
             STOPWATCH("resize");
             evts.resize(sz);
@@ -325,7 +330,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
             STOPWATCH("redo_parse");
             parser.parse_in_place_ev(filename, src);
         }
-        RYML_CHECK((size_t)handler.m_evt_pos == sz);
+        _RYML_CHECK_BASIC((size_t)handler.m_evt_pos == sz);
     }
     evts.resize(sz);
     return src;
@@ -472,41 +477,45 @@ std::string load_file(csubstr filename)
     }
     else if(!fs::path_exists(filename.str))
     {
-        std::fprintf(stderr, "%s: file not found (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str());
-        error("file not found");
+        std::fprintf(stderr, "%s: file not found (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str()); // LCOV_EXCL_LINE
+        err_basic(RYML_LOC_HERE(), "file not found"); // LCOV_EXCL_LINE
     }
     return fs::file_get_contents<std::string>(filename.str);
 }
 
-void report_error(const char* msg, size_t length, Location loc, FILE *f)
+[[noreturn]] C4_NO_INLINE void throwerr(csubstr msg)
 {
-    if(!loc.name.empty())
+    C4_IF_EXCEPTIONS(
+        throw std::runtime_error({msg.str, msg.len});
+        ,
+        jmp_msg.assign(msg.str, msg.len);
+        std::longjmp(jmp_env, 1);
+        );
+    C4_UNREACHABLE_AFTER_ERR();
+}
+
+void dump2stderr(csubstr s)
+{
+    if(s.len)
     {
-        fwrite(loc.name.str, 1, loc.name.len, f);
-        fputc(':', f);
+        fwrite(s.str, 1, s.len, stderr); // NOLINT
+        fflush(stderr); // NOLINT
     }
-    fprintf(f, "%zu:", loc.line);
-    if(loc.col)
-        fprintf(f, "%zu:", loc.col);
-    if(loc.offset)
-        fprintf(f, " (%zuB):", loc.offset);
-    fputc(' ', f);
-    fprintf(f, "%.*s\n", static_cast<int>(length), msg);
-    fflush(f);
 }
 
 Callbacks create_custom_callbacks()
 {
-    Callbacks callbacks = {};
-    callbacks.m_error = [](const char *msg, size_t msg_len, Location location, void *)
-    {
-        report_error(msg, msg_len, location, stderr);
-        C4_IF_EXCEPTIONS(
-            throw std::runtime_error({msg, msg_len});
-            ,
-            jmp_msg.assign(msg, msg_len);
-            std::longjmp(jmp_env, 1);
-        );
-    };
-    return callbacks;
+    return Callbacks{}
+        .set_error_basic([](csubstr msg, yml::ErrorDataBasic const& errdata, void *){
+            yml::err_basic_format(dump2stderr, msg, errdata); // LCOV_EXCL_LINE
+            throwerr(msg); // LCOV_EXCL_LINE
+        })
+        .set_error_parse([](csubstr msg, yml::ErrorDataParse const& errdata, void *){
+            yml::err_parse_format(dump2stderr, msg, errdata); // LCOV_EXCL_LINE
+            throwerr(msg); // LCOV_EXCL_LINE
+        })
+        .set_error_visit([](csubstr msg, yml::ErrorDataVisit const& errdata, void *){
+            yml::err_visit_format(dump2stderr, msg, errdata); // LCOV_EXCL_LINE
+            throwerr(msg); // LCOV_EXCL_LINE
+        });
 }

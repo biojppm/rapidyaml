@@ -5,6 +5,7 @@
 #include <c4/format.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
+#include <c4/yml/parse_engine.def.hpp>
 #endif
 
 #include "./test_lib/test_case.hpp"

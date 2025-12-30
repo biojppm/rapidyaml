@@ -954,6 +954,7 @@ INPUT                  = \
                          ../src \
                          ../src_extra \
                          ../samples/quickstart.cpp \
+                         ../samples/quickstart-ints.cpp \
                          ../ext/c4core/src/c4/substr.hpp \
                          ../ext/c4core/src/c4/charconv.hpp \
                          ../ext/c4core/src/c4/format.hpp \
@@ -1098,7 +1099,7 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           =
+EXAMPLE_PATH           = ../changelog
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
@@ -1222,7 +1223,7 @@ STRIP_CODE_COMMENTS    = NO
 # entity all documented functions referencing it will be listed.
 # The default value is: NO.
 
-REFERENCED_BY_RELATION = YES
+REFERENCED_BY_RELATION = NO
 
 # If the REFERENCES_RELATION tag is set to YES then for each documented function
 # all documented entities called/used by that function will be listed.

@@ -80,9 +80,9 @@ typedef enum : DataType {
     BLCK = (1 << 19),  ///< container: block
 
     // Directive flags
-    YAML = (1 << 20),  ///< `%YAML <version>`
-    TAGD = (1 << 21),  ///< tag directive name : `%TAG <name> .......`
-    TAGV = (1 << 22),  ///< tag directive value: `%TAG ...... <value>`
+    YAML = (1 << 20),  ///< yaml directive: `\%YAML <version>`
+    TAGD = (1 << 21),  ///< tag directive, name : `\%TAG <name> .......`
+    TAGV = (1 << 22),  ///< tag directive, value: `\%TAG ...... <value>`
 
     // Buffer flags
     /// IMPORTANT. Marks events whose string was placed in the
@@ -103,8 +103,10 @@ typedef enum : DataType {
     UNFILT = (1 << 25),
 
     // Utility flags/masks
-    LAST = UNFILT,              ///< the last flag defined above
-    MASK = (LAST << 1) - 1,     ///< a mask of all bits in this enumeration
+    /// the last flag defined above
+    LAST = UNFILT,
+    /// a mask of all bits in this enumeration
+    MASK = (LAST << 1) - 1,
     /// with string: mask of all the events that encode a string
     /// following the event. in the event has a string. the next two
     /// integers will provide respectively the string's offset and
@@ -191,7 +193,7 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * offset and length to the parsed source buffer).
  *
  * For example, parsing `[a, bb, ccc]` results in the following event
- * buffer:
+ * buffer (grouped to highlight the event sequence structure):
  *
  * ```c++
  * using namespace c4::yml::extra::ievt;
@@ -212,22 +214,43 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  *
 @code
 source  : [a, bb, ccc]
-                                                               string offset "a"              string offset "bb"             string offset "ccc"
-                                                               |  string length "a"           |  string length "bb"          |  string length "ccc"
-                                                               |  |                           |  |                           |  |
-           event    event   event [            event "a".......|..|      event "bb"...........|..|      event "ccc"..........|..|      event ]       event    event
-           |        |       |                  |               |  |      |                    |  |      |                    |  |      |             |        |
-           +--------+-------+------------------+---------------+--+------+--------------------+--+------+--------------------+--+------+-------------+--------+-----|
-value    : BSTR     BDOC    VAL_|BSEQ|FLOW     VAL_|SCLR|PLAI..1..1      VAL_|SCLR|PLAI|PSTR..4..2      VAL_|SCLR|PLAI|PSTR..8..3      ESEQ|PSTR     EDOC     ESTR  (array)
-event #  : 0        1       2                  3               .  .      4              |     .  .      5              |     .  .      6             7        8     (event #)
-index/pos: 0        1       2                  3               4  5      6              |     7  8      9              |     10 11     12            13       14    (index/pos)
-                                                \              |  |       \             |     |  |       \             |     |  |
-                                                 has a string--+--+        has a string-+-----+--+        has a string-+-----+--+
-                                                                                        |                              |
-                                                                                        prev event has string          prev event has string
-                                                                                        (jump back 3 to get to it)     (jump back 3 to get to it)
+                                               has a string........
+                                               |               offset "a"
+                                               |               |  length "a"
+                                               |               |  |
+           event0   event1  event2 [           event3 "a"......|..|
+           |        |       |                  |               |  |
+(start)    +--------+-------+------------------+---------------+--+-----> (continued)
+arr[i] :   BSTR     BDOC    VAL_|BSEQ|FLOW     VAL_|SCLR|PLAI..1..1
+i      :   0        1       2                  3               4  5
+
+
+                has a string.............              has a string.............
+                |                    offset "bb"       |                    offset "ccc"
+                |                    |  length "bb"    |                    |  length "ccc"
+                |                    |  |              |                    |  |
+                event4 "bb"..........|..|              event5 "ccc".........|..|
+                |                    |  |              |                    |  |
+ (cont)--> -----+--------------------+--+--------------+--------------------+--+-----> (continued)
+arr[i] :        VAL_|SCLR|PLAI|PSTR..4..2              VAL_|SCLR|PLAI|PSTR..8..3
+i      :        6              |     7  8              9              |     10 11
+                               |                                      |
+                               prev event has string                  prev event has string
+                               (to get to prev, jump                  (to get to prev, jump
+                               back 3: ie 6->3)                       back 3: ie 9->6)
+
+
+
+                event6 ]      event7   event8
+                |             |        |
+ (cont)--> -----+-------------+--------+-----|    (end)
+arr[i] :        ESEQ|PSTR     EDOC     ESTR
+i      :        12   |        13       14
+                     |
+                     prev event has string
+                     (to get to it, jump
+                     back 3: ie 12->9)
 @endcode
- *
  *
  * Note that the buffer contains both events and strings encoded as
  * integer pairs. That is, events that have an associated string are
@@ -254,6 +277,20 @@ index/pos: 0        1       2                  3               4  5      6      
  * array, presence of any of the bits in the mask @ref ievt::WSTR means
  * that a jump of +3 should be employed to get at the bitmask of the next
  * event.
+ *
+ * Here's another example with the result of parsing `a: bb`
+ * ```c++
+ * const DataType arr[] = {       // result of parsing: `a: bb`
+ *   BSTR,                        // begin stream
+ *   BDOC,                        // begin doc
+ *   VAL_|BMAP|BLCK,              // begin map as val, block
+ *   KEY_|SCLR|PLAI,      0, 1,   // key scalar, plain style: "a"   starts at offset 0 and has length 1
+ *   VAL_|SCLR|PLAI|PSTR, 3, 2,   // val scalar, plain style: "bb"  starts at offset 3 and has length 2
+ *   EMAP|PSTR,                   // end map
+ *   EDOC,                        // end doc
+ *   ESTR,                        // end stream
+ * };
+ * ```
  *
  * Typical code to iterate left-to-right over the array will look like
  * this:
@@ -361,8 +398,8 @@ index/pos: 0        1       2                  3               4  5      6      
  * you open the issue), that is, if you are considering a parse retry,
  * there is something important that needs attention. The YAML source
  * buffer is mutated in-place during the parse, and cannot be used to
- * parse again. So if you want to retry, you need to keep a pristine copy
- * of the source, and use it for the retry:
+ * parse again. So if you want to retry, you need to keep a pristine
+ * copy of the source, and use it for the retry:
  *
  * ```c++
  * const std::string src = ...;  // the YAML code to be parsed
@@ -407,7 +444,6 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
 public:
 
     /** @cond dev */
-    csubstr m_str;
     ievt::DataType * m_evt;
     int32_t m_evt_pos;
     int32_t m_evt_prev;
@@ -447,7 +483,7 @@ public:
         m_curr->evt_id = 0;
         m_arena = arena;
         m_arena_pos = 0;
-        m_str = str;
+        m_src = str;
         m_evt = dst;
         m_evt_size = dst_size;
         m_evt_pos = 0;
@@ -492,15 +528,17 @@ public:
     /** @name parse events
      * @{ */
 
-    void start_parse(const char* filename, c4::yml::detail::pfn_relocate_arena relocate_arena, void *relocate_arena_data)
+    void start_parse(const char* filename, csubstr src, c4::yml::detail::pfn_relocate_arena relocate_arena, void *relocate_arena_data)
     {
-        this->_stack_start_parse(filename, relocate_arena, relocate_arena_data);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, src.str == m_src.str);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, src.len == m_src.len);
+        this->_stack_start_parse(filename, src, relocate_arena, relocate_arena_data);
     }
 
     void finish_parse()
     {
         if((_num_tag_directives() || m_has_yaml_directive) && !m_has_docs)
-            _RYML_CB_ERR_(m_stack.m_callbacks, "directives cannot be used without a document", {});
+            _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "directives cannot be used without a document");
         this->_stack_finish_parse();
     }
 
@@ -685,7 +723,7 @@ public:
 
     void add_sibling()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
         m_curr->evt_type = {};
     }
 
@@ -697,8 +735,8 @@ public:
     void actually_val_is_first_key_of_new_map_flow()
     {
         _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_flow", m_evt_pos, m_evt_size, m_evt_prev);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt_pos > 2);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt_prev > 0);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_pos > 2);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev > 0);
         // BEFORE
         // ... flag start len (free)
         //     |              |
@@ -712,7 +750,7 @@ public:
             if(m_evt[m_evt_prev] & ievt::WSTR)
             {
                 _c4dbgpf("{}/{}: WSTR", m_evt_pos, m_evt_size);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt_prev > 0);
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev > 0);
                 int32_t pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
                 if(m_evt_pos + 1 < m_evt_size)
                 {
@@ -722,7 +760,7 @@ public:
                         m_evt[i] &= ~ievt::VAL_;
                     }
                     int32_t num_move = m_evt_pos + 1 - pos;
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, num_move > 0);
+                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
                 }
                 m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
@@ -736,7 +774,7 @@ public:
             else
             {
                 _c4dbgpf("{}/{}: container key", m_evt_pos, m_evt_size);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
                 int32_t pos;
                 _c4dbgpf("{}/{}: find matching open for {}", m_evt_pos, m_evt_size, m_evt_prev);
                 if((m_evt[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
@@ -745,23 +783,23 @@ public:
                 }
                 else
                 {
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::ESEQ));
+                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::ESEQ));
                     pos = _find_matching_open(ievt::BSEQ, ievt::ESEQ, m_evt_prev);
                 }
                 _c4dbgpf("{}/{}: matching open for {}={}", m_evt_pos, m_evt_size, m_evt_prev, pos);
-                _RYML_CB_CHECK(m_stack.m_callbacks, pos >= 0); // internal error
-                _RYML_CB_CHECK(m_stack.m_callbacks, pos < m_evt_prev); // internal error
-                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::ESEQ) == (m_evt[m_evt_prev] & ievt::BSEQ));
-                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::EMAP) == (m_evt[m_evt_prev] & ievt::BMAP));
+                _RYML_CHECK_BASIC_(m_stack.m_callbacks, pos >= 0); // internal error
+                _RYML_CHECK_BASIC_(m_stack.m_callbacks, pos < m_evt_prev); // internal error
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::ESEQ) == (m_evt[m_evt_prev] & ievt::BSEQ));
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::EMAP) == (m_evt[m_evt_prev] & ievt::BMAP));
                 // shift the array one position to the right, starting at pos
                 int32_t posp1 = pos + 1;
                 if(m_evt_pos + 1 < m_evt_size)
                 {
                     int32_t num_move = m_evt_pos + 1 - pos;
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, num_move > 0);
+                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
                 }
-                _RYML_CB_ASSERT(m_stack.m_callbacks, posp1 < m_evt_pos);
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, posp1 < m_evt_pos);
                 // start the map
                 m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
                 // set next as key, not val
@@ -796,17 +834,17 @@ public:
             int32_t pos = _find_last_bdoc(m_evt_pos);
             if(pos >= 0)
             {
-                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_pos);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC) == ievt::BDOC);
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_pos);
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC) == ievt::BDOC);
                 if(m_evt_pos < m_evt_size)
                 {
                     ++pos; // add 1 to write after BDOC
                     int32_t num_move = m_evt_pos - pos;
                     int32_t posp1 = pos + 1;
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, num_move > 0);
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
+                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
+                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
+                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
                     memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
                     m_evt[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
                     m_evt[posp1] &= ~ievt::VAL_;
@@ -827,7 +865,7 @@ public:
     /** @cond dev */
     int32_t _find_last_bdoc(int32_t pos) const
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt_prev < m_evt_size); // it's safe to read from the array
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev < m_evt_size); // it's safe to read from the array
         while(pos >= 0)
         {
             ievt::DataType e = m_evt[pos];
@@ -840,9 +878,9 @@ public:
     int32_t _find_matching_open(ievt::DataType open, ievt::DataType close, int32_t pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & close) == close);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (m_evt[pos] & open) == (close & ~ievt::END_));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & close) == close);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & open) == (close & ~ievt::END_));
         pos = _prev(pos); // don't count the starting close token
         uint32_t count = 0;
         while(pos >= 0)
@@ -880,12 +918,12 @@ public:
     }
     C4_ALWAYS_INLINE int32_t _next(int32_t pos) const noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
         return pos + ((m_evt[pos] & ievt::WSTR) ? 3 : 1);
     }
     C4_ALWAYS_INLINE int32_t _prev(int32_t pos) const noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, pos < m_evt_size);
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
         return pos - ((m_evt[pos] & ievt::PSTR) ? 3 : 1);
     }
     /** @endcond */
@@ -913,19 +951,19 @@ public:
         // ideally we should search back in the latest event that has
         // a scalar, then select a zero-length scalar immediately
         // after that scalar. But this also works for now:
-        return m_str.first(0);
+        return m_src.first(0);
     }
 
 
     C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_key_scalar_(scalar, ievt::PLAI);
         _enable_(c4::yml::KEY|c4::yml::KEY_PLAIN);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_val_scalar_(scalar, ievt::PLAI);
         _enable_(c4::yml::VAL|c4::yml::VAL_PLAIN);
     }
@@ -933,13 +971,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::DQUO);
         _enable_(c4::yml::KEY|c4::yml::KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::DQUO);
         _enable_(c4::yml::VAL|c4::yml::VAL_DQUO);
     }
@@ -947,13 +985,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_key_scalar_(scalar, ievt::SQUO);
         _enable_(c4::yml::KEY|c4::yml::KEY_SQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_val_scalar_(scalar, ievt::SQUO);
         _enable_(c4::yml::VAL|c4::yml::VAL_SQUO);
     }
@@ -961,13 +999,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::LITL);
         _enable_(c4::yml::KEY|c4::yml::KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::LITL);
         _enable_(c4::yml::VAL|c4::yml::VAL_LITERAL);
     }
@@ -975,13 +1013,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_key_scalar_(scalar, ievt::FOLD);
         _enable_(c4::yml::KEY|c4::yml::KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_str.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?scalar.str-m_src.str:m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_val_scalar_(scalar, ievt::FOLD);
         _enable_(c4::yml::VAL|c4::yml::VAL_FOLDED);
     }
@@ -1005,14 +1043,14 @@ public:
 public:
 
     /** @cond dev*/
-#define _add_scalar_(i, scalar)                                     \
+    #define _add_scalar_(i, scalar)                                 \
     _c4dbgpf("{}/{}: scalar!", i, m_evt_size);                      \
-    _RYML_CB_ASSERT(m_stack.m_callbacks, scalar.is_sub(m_str) || scalar.is_sub(m_arena) || (scalar.str == nullptr)); \
-    _RYML_CB_ASSERT(m_stack.m_callbacks, m_evt[i] & ievt::WSTR);    \
-    _RYML_CB_ASSERT(m_stack.m_callbacks, i + 3 < m_evt_size);       \
-    if(C4_LIKELY(scalar.is_sub(m_str)))                             \
+    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, scalar.is_sub(m_src) || scalar.is_sub(m_arena) || (scalar.str == nullptr)); \
+    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt[i] & ievt::WSTR); \
+    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, i + 3 < m_evt_size);    \
+    if(C4_LIKELY(scalar.is_sub(m_src)))                             \
     {                                                               \
-        m_evt[i + 1] = (ievt::DataType)(scalar.str - m_str.str);    \
+        m_evt[i + 1] = (ievt::DataType)(scalar.str - m_src.str);    \
     }                                                               \
     else                                                            \
     {                                                               \
@@ -1030,7 +1068,7 @@ public:
     void set_key_anchor(csubstr anchor)
     {
         _c4dbgpf("{}/{}: set_key_anchor", m_evt_pos, m_evt_size);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !_has_any_(KEYREF));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, !_has_any_(KEYREF));
         _enable_(c4::yml::KEYANCH);
         if(m_evt_pos + 3 < m_evt_size)
         {
@@ -1043,7 +1081,7 @@ public:
     void set_val_anchor(csubstr anchor)
     {
         _c4dbgpf("{}/{}: set_val_anchor", m_evt_pos, m_evt_size);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !_has_any_(VALREF));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, !_has_any_(VALREF));
         _enable_(c4::yml::VALANCH);
         if(m_evt_pos + 3 < m_evt_size)
         {
@@ -1056,17 +1094,17 @@ public:
 
     void set_key_ref(csubstr ref)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ref.begins_with('*'));
         if(C4_UNLIKELY(_has_any_(KEYANCH)))
-            _RYML_CB_ERR_(m_stack.m_callbacks, "key cannot have both anchor and ref", m_curr->pos);
+            _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "key cannot have both anchor and ref");
         _enable_(c4::yml::KEY|c4::yml::KEYREF);
         _send_str_(ref.sub(1), ievt::KEY_|ievt::ALIA); // skip the leading *
     }
     void set_val_ref(csubstr ref)
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ref.begins_with('*'));
         if(C4_UNLIKELY(_has_any_(VALANCH)))
-            _RYML_CB_ERR_(m_stack.m_callbacks, "val cannot have both anchor and ref", m_curr->pos);
+            _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "val cannot have both anchor and ref");
         _enable_(c4::yml::VAL|c4::yml::VALREF);
         _send_str_(ref.sub(1), ievt::VAL_|ievt::ALIA); // skip the leading *
     }
@@ -1113,15 +1151,15 @@ public:
     void add_directive(csubstr directive)
     {
         _c4dbgpf("{}/{}: add directive ~~~{}~~~", m_evt_pos, m_evt_size, directive);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, directive.begins_with('%'));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, directive.begins_with('%'));
         if(directive.begins_with("%TAG"))
         {
             const id_type pos = _num_tag_directives();
             if(C4_UNLIKELY(pos >= RYML_MAX_TAG_DIRECTIVES))
-                _RYML_CB_ERR_(m_stack.m_callbacks, "too many directives", m_curr->pos);
+                _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "too many directives");
             TagDirective &td = m_tag_directives[pos];
             if(C4_UNLIKELY(!td.create_from_str(directive)))
-                _RYML_CB_ERR_(m_stack.m_callbacks, "failed to add directive", m_curr->pos);
+                _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "failed to add directive");
             td.next_node_id = (id_type)m_evt_pos;
             _send_str_(td.handle, ievt::TAGD);
             _send_str_(td.prefix, ievt::TAGV);
@@ -1130,7 +1168,7 @@ public:
         {
             _c4dbgpf("%YAML directive! ignoring...: {}", directive);
             if(C4_UNLIKELY(m_has_yaml_directive))
-                _RYML_CB_ERR_(m_stack.m_callbacks, "multiple yaml directives", m_curr->pos);
+                _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "multiple yaml directives");
             m_has_yaml_directive = true;
             csubstr rest = directive.sub(5).triml(' ');
             _send_str_(rest, ievt::YAML);
@@ -1298,7 +1336,7 @@ public:
         {
             if(is_custom_tag(tag))
             {
-                _RYML_CB_ERR_(m_stack.m_callbacks, "tag not found", m_curr->pos);
+                _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "tag not found");
             }
         }
         return tag;
