@@ -855,7 +855,7 @@ jobs:
       uses: actions/upload-artifact/merge@v4
       with:
         name: assets
-        pattern: assets-*
+        pattern: assets*
         separate-directories: true
         delete-merged: true
     - name: Merge dist artifacts
