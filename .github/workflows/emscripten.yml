@@ -20,7 +20,6 @@ env:
   NUM_JOBS_BUILD: null
 jobs:
   emscripten:
-    name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}
     if: ${{ false }}
     continue-on-error: false
     runs-on: ${{matrix.os}}
@@ -87,3 +86,4 @@ jobs:
       run: source .github/setenv.sh && c4_build_test static32
     - name: static32-run
       run: source .github/setenv.sh && c4_run_test static32
+    name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}

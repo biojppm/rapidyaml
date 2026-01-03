@@ -22,7 +22,6 @@ jobs:
   pybare:
     if: always()
     continue-on-error: false
-    name: pybare/${{matrix.config.pythonv}}/${{matrix.config.os}}
     runs-on: ${{matrix.config.os}}
     strategy:
       fail-fast: false
@@ -73,10 +72,10 @@ jobs:
       run: |
         export PYTHONPATH=`pwd`/build/py/api/python3:$PYTHONPATH
         python -m pytest -vvv api/python/tests
+    name: pybare/${{matrix.config.pythonv}}/${{matrix.config.os}}
   pywheel:
     if: always()
     continue-on-error: false
-    name: pywheel/${{matrix.config.pythonv}}/${{matrix.config.os}}
     runs-on: ${{matrix.config.os}}
     strategy:
       fail-fast: false
@@ -140,10 +139,10 @@ jobs:
       run: pip install dist/*.whl
     - name: test with pytest
       run: python -m pytest -vvv api/python/tests
+    name: pywheel/${{matrix.config.pythonv}}/${{matrix.config.os}}
   pywheelwin:
     if: always()
     continue-on-error: false
-    name: pywheel/${{matrix.config.pythonv}}/${{matrix.config.os}}
     runs-on: ${{matrix.config.os}}
     strategy:
       fail-fast: false
@@ -210,3 +209,4 @@ jobs:
       run: pip install dist/*.whl
     - name: test with pytest
       run: python -m pytest -vvv api/python/tests
+    name: pywheel/${{matrix.config.pythonv}}/${{matrix.config.os}}

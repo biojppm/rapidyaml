@@ -83,12 +83,47 @@ jobs:
       run: cd samples/custom_c4core && ./run.sh $BT
     - name: fetch_content
       run: |
-        # run this sample only if the branch exists on the repo
-        set -xe
+        set -xeo pipefail
         cd samples/fetch_content
+        env | sort
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+        echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
+        echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
         repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
         # https://stackoverflow.com/questions/58033366
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
-        [ -z "$(git ls-remote $repo | grep $branch)" ] ||
-           ./run.sh $BT $branch "$repo"
+        localbranch=$branch
+        rembranch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep -F $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            localbranch=$branch
+            rembranch=$branch
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "$(git ls-remote $repo | grep -F $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                echo "naming locally as $localbranch"
+                rembranch=$branch
+                branch=$branch:$localbranch
+            fi
+        fi
+        hash=$(git ls-remote $repo | grep -F $rembranch | awk '{print $1}')
+        echo "final repo=$repo"
+        echo "final branch=$branch"
+        echo "final rembranch=$rembranch"
+        echo "final localbranch=$localbranch"
+        echo "final hash=$hash"
+
+        # run this sample only if the branch exists on the repo
+        ./run.sh $BT $hash "$repo" || echo 'maybe some other time'

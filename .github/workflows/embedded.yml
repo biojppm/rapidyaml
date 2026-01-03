@@ -189,9 +189,6 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build --target ryml-test-run
   xcompile11:
-    needs:
-    - canary11
-    - canary20
     if: always()
     continue-on-error: false
     name: ${{matrix.arch}}/c++11
@@ -304,10 +301,10 @@ jobs:
       run: |
         export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build --target ryml-test-run
-  xcompile20:
     needs:
     - canary11
     - canary20
+  xcompile20:
     if: always()
     continue-on-error: false
     name: ${{matrix.arch}}/c++20
@@ -425,3 +422,6 @@ jobs:
       run: |
         export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build --target ryml-test-run
+    needs:
+    - canary11
+    - canary20
