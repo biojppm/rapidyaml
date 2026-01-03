@@ -7,4 +7,4 @@ cd $(dirname $0)
 # configure the sample
 cmake -S . -B ./build/$cfg-static -DCMAKE_BUILD_TYPE=$cfg -DBUILD_SHARED_LIBS=OFF
 # build and run the sample
-cmake --build ./build/$cfg-static --config $cfg --target run
+cmake --build ./build/$cfg-static --config $cfg --parallel --target run

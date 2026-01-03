@@ -243,8 +243,7 @@ level API for accessing and traversing the data tree.
 The following snippet is a very quick overview taken from quickstart
 sample ([see on
 doxygen](https://rapidyaml.readthedocs.io/latest/group__doc__quickstart.html)/[see
-on github](samples/quickstart.cpp). After cloning ryml
-(don't forget the `--recursive` flag for git), you can very easily
+on github](samples/quickstart.cpp). After cloning ryml, you can very easily
 build and run this executable using any of the build samples, eg the
 [`add_subdirectory()` sample](samples/add_subdirectory/) (see [the relevant section](#quickstart-samples)).
 
@@ -436,16 +435,6 @@ CHECK(loc.col == 4u);
 
 ## Using ryml in your project
 
-Note that ryml uses submodules. Take care to use the `--recursive`
-flag when cloning the repo, to ensure ryml's submodules are checked
-out as well:
-```bash
-git clone --recursive https://github.com/biojppm/rapidyaml
-```
-If you omit `--recursive`, after cloning you will have to do `git
-submodule update --init --recursive` to ensure ryml's submodules are
-checked out.
-
 
 ### Single header file
 ryml is provided chiefly as a cmake library project, but it can also
@@ -588,45 +577,8 @@ more about each sample:
 
 
 ### CMake build settings for ryml
-The following cmake variables can be used to control the build behavior of
-ryml:
 
-  * `RYML_WITH_TAB_TOKENS=ON/OFF`. Enable/disable support for tabs as
-    valid container tokens after `:` and `-`. Defaults to `OFF`,
-    because this may cost up to 10% in processing time.
-  * `RYML_DEFAULT_CALLBACKS=ON/OFF`. Enable/disable ryml's default
-    implementation of error and allocation callbacks. Defaults to `ON`.
-  * `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON/OFF` - Enable/disable
-    the same-named macro, which will make the default error handler
-    provided by ryml throw a `std::runtime_error` exception.
-  * `RYML_USE_ASSERT` - enable assertions in the code regardless of
-    build type. This is disabled by default. Failed assertions will
-    trigger a call to the error callback.
-  * `RYML_SHORT_CHECK_MSG` - Use shorter error message from
-    checks/asserts: do not show the check condition in the error
-    message.
-  * `RYML_STANDALONE=ON/OFF`. ryml uses
-    [c4core](https://github.com/biojppm/c4core), a C++ library with low-level
-    multi-platform utilities for C++. When `RYML_STANDALONE=ON`, c4core is
-    incorporated into ryml as if it is the same library. Defaults to `ON`.
-  * `RYML_INSTALL=ON/OFF`. enable/disable install target. Defaults to `ON`.
-
-If you're developing ryml or just debugging problems with ryml itself, the
-following cmake variables can be helpful:
-  * `RYML_DEV=ON/OFF`: a bool variable which enables development targets such as
-    unit tests, benchmarks, etc. Defaults to `OFF`.
-  * `RYML_DBG=ON/OFF`: a bool variable which enables verbose prints from
-    parsing code; can be useful to figure out parsing problems. Defaults to
-    `OFF`.
-
-#### Forcing ryml to use a different c4core version
-
-ryml is strongly coupled to c4core, and this is reinforced by the fact
-that c4core is a submodule of the current repo. However, it is still
-possible to use a c4core version different from the one in the repo
-(of course, only if there are no incompatibilities between the
-versions). You can find out how to achieve this by looking at the
-[`custom_c4core` sample](./samples/custom_c4core/CMakeLists.txt).
+See the [relevant documentation page](https://rapidyaml.readthedocs.io/latest/sphinx_using.html#cmake-build-settings-for-ryml).
 
 
 ------
