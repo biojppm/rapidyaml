@@ -85,8 +85,6 @@ jobs:
     - name: Verify vars.sh
       run: env | grep SRC
   benchmarks:
-    name: bm/c++${{matrix.std}}/${{matrix.comp}}/${{matrix.bt}}
-    needs: gettag
     if: always()
     continue-on-error: false
     runs-on: ${{matrix.os}}
@@ -200,3 +198,5 @@ jobs:
       with:
         name: ryml-benchmark_results-${{strategy.job-index}}
         path: ryml-benchmark_results/
+    name: bm/c++${{matrix.std}}/${{matrix.comp}}/${{matrix.bt}}
+    needs: gettag

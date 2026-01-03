@@ -22,7 +22,6 @@ jobs:
   canary:
     if: always()
     continue-on-error: false
-    name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     strategy:
@@ -88,10 +87,10 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
   tabtokens:
     if: always()
     continue-on-error: false
-    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     needs: canary
@@ -159,10 +158,10 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
   noexceptions:
     if: always()
     continue-on-error: false
-    name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     needs: canary
@@ -230,10 +229,10 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
   extended:
     if: always()
     continue-on-error: false
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     needs: canary
@@ -626,10 +625,10 @@ jobs:
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
   clangsan:
     if: always()
     continue-on-error: false
-    name: san/${{matrix.bt}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     needs: canary
@@ -752,3 +751,4 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: san/${{matrix.bt}}/c++${{matrix.std}}
