@@ -337,6 +337,91 @@ struct RYML_EXPORT ErrorDataVisit
 };
 
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** Options to give to the parser to control its behavior. */
+struct RYML_EXPORT ParserOptions
+{
+private:
+
+    typedef enum : uint32_t {
+        SCALAR_FILTERING = (1u << 0u),
+        LOCATIONS = (1u << 1u),
+        DETECT_FLOW_ML = (1u << 2u),
+        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
+    } Flags_e;
+
+    uint32_t flags = DEFAULTS;
+
+public:
+
+    ParserOptions() = default;
+
+public:
+
+    /** @name source location tracking */
+    /** @{ */
+
+    /** enable/disable source location tracking */
+    ParserOptions& locations(bool enabled) noexcept
+    {
+        if(enabled)
+            flags |= LOCATIONS;
+        else
+            flags &= ~LOCATIONS;
+        return *this;
+    }
+    /** query source location tracking status */
+    C4_ALWAYS_INLINE bool locations() const noexcept { return (flags & LOCATIONS); }
+
+    /** @} */
+
+public:
+
+    /** @name detection of @ref FLOW_ML container style */
+    /** @{ */
+
+    /** enable/disable detection of @ref FLOW_ML container style. When
+     * enabled, the parser will set @ref FLOW_ML as the style of flow
+     * containers which have the terminating bracket on a line
+     * different from that of the opening bracket. */
+    ParserOptions& detect_flow_ml(bool enabled) noexcept
+    {
+        if(enabled)
+            flags |= DETECT_FLOW_ML;
+        else
+            flags &= ~DETECT_FLOW_ML;
+        return *this;
+    }
+    /** query status of detection of @ref FLOW_ML container style. */
+    C4_ALWAYS_INLINE bool detect_flow_ml() const noexcept { return (flags & DETECT_FLOW_ML); }
+
+    /** @} */
+
+public:
+
+    /** @name scalar filtering status (experimental; disable at your discretion) */
+    /** @{ */
+
+    /** enable/disable scalar filtering while parsing */
+    ParserOptions& scalar_filtering(bool enabled) noexcept
+    {
+        if(enabled)
+            flags |= SCALAR_FILTERING;
+        else
+            flags &= ~SCALAR_FILTERING;
+        return *this;
+    }
+    /** query scalar filtering status */
+    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
+
+    /** @} */
+};
+
+
 //-----------------------------------------------------------------------------
 
 /** @addtogroup doc_callbacks
@@ -504,6 +589,16 @@ public:
         (buf) = nullptr;                                            \
     } while(false)
 
+namespace detail {
+template<int8_t signedval, uint8_t unsignedval>
+struct _charconstant_t // is there a better way to do this?
+    : public std::conditional<std::is_signed<char>::value,
+                              std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
+                              std::integral_constant<uint8_t, unsignedval>>::type
+{};
+#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
+} // namespace detail
+
 inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 {
     switch(c)
@@ -519,6 +614,7 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     default: return csubstr(&c, 1);
     }
 }
+
 /// @endcond
 
 C4_SUPPRESS_WARNING_GCC_POP

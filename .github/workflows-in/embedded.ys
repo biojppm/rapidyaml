@@ -1,5 +1,8 @@
 !yamlscript/v0:
 
+# DOCKER DEBUGGING EXAMPLES AT THE END!
+
+
 :use common: :all
 :: workflow-setup()
 
@@ -113,3 +116,41 @@ jobs:
     needs: [canary11, canary20]
     :: setup-job('embedded' 'xcompile')
     :: define-job(rest(matrix-items) steps20 'c++20')
+
+
+
+# command examples to test in docker
+#
+#
+# apt-get install g{cc,++}-arm-linux-gnueabi
+# docker exec -it 7e711fd09471 bash -c '( set -xe ; \
+#   arch=armv4 ; flags=" -march=armv4" ; bt=Release ; std=11 ; \
+#   bd=build/docker/$arch-$bt ; \
+#   export C4_EXTERN_DIR=`pwd`/build/extern ; \
+#   function cm() { \
+#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/$arch.cmake \
+#      -DCMAKE_BUILD_TYPE=$bt -DC4_CXX_STANDARD=$std -D CXX_STANDARD=$std \
+#      -DCMAKE_CXX_FLAGS=" $flags" -DCMAKE_C_FLAGS=" $flags" \
+#      -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
+#      cmake --build $bd -j --target "$@" ; \
+#   } ; \
+#   tgt=ryml-test-parser ; \
+#   exe=./$bd/test/$tgt ; \
+#   cm $tgt ; \
+#   qemu-arm-static -L /usr/arm-linux-gnueabi $exe --gtest_filter="*in_arena_noparser_4*" \
+#   )'
+#
+#
+#
+# ( set -xe ; \
+#   arch=aaarch64 ; flags="" ; bt=Release ; std=11 ; \
+#   bd=build/docker/$arch-$bt ; \
+#   export C4_EXTERN_DIR=`pwd`/build/extern ; \
+#   function cm() { \
+#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/$arch.cmake \
+#      -DCMAKE_BUILD_TYPE=$bt -DC4_CXX_STANDARD=$std -D CXX_STANDARD=$std \
+#      -DCMAKE_CXX_FLAGS="$flags" -DCMAKE_C_FLAGS="$flags" \
+#      -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
+#      cmake --build $bd -j --target "$@" ; \
+#   } ; \
+#   cm ryml-test-run )

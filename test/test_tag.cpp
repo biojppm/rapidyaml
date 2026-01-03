@@ -1070,6 +1070,24 @@ TEST(tags, ys0)
     });
 }
 
+TEST(tags, key_tag_error_json)
+{
+    Tree tree = parse_in_arena("{!!str key: val}");
+    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
+    ExpectError::check_error_visit(&tree, [&]{
+        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_TAG));
+    });
+}
+
+TEST(tags, val_tag_error_json)
+{
+    Tree tree = parse_in_arena("{key: !!str val}");
+    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
+    ExpectError::check_error_visit(&tree, [&]{
+        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_TAG));
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1141,7 +1159,7 @@ ivar: !!int 0,
 svar: !!str 0,
 !!str key: !!int val
 })",
-N(MFS, L{
+N(MFM, L{
       N(KP|VP, "ivar", TS("!!int", "0")),
       N(KP|VP, "svar", TS("!!str", "0")),
       N(KP|VP, TS("!!str", "key"), TS("!!int", "val"))
@@ -1155,7 +1173,7 @@ svar: !str 0,
 !str key: !int val
 }
 )",
-N(MFS, L{
+N(MFM, L{
       N(KP|VP, "ivar", TS("!int", "0")),
       N(KP|VP, "svar", TS("!str", "0")),
       N(KP|VP, TS("!str", "key"), TS("!int", "val"))
@@ -1188,7 +1206,7 @@ R"([
 !!str 0
 ]
 )",
-N(SFS, L{
+N(SFM, L{
       N(VP, TS("!!int", "0")),
       N(VP, TS("!!str", "0")),
     })
@@ -1200,7 +1218,7 @@ R"([
 !str 0
 ]
 )",
-    N(SFS, L{
+    N(SFM, L{
       N(VP, TS("!int", "0")),
       N(VP, TS("!str", "0")),
     })
@@ -1212,7 +1230,7 @@ R"(some_seq: !!its_type [
 !!str 0
 ]
 )",
-N(MB, L{N(KP|SFS, "some_seq", TL("!!its_type", L{
+N(MB, L{N(KP|SFM, "some_seq", TL("!!its_type", L{
               N(VP, TS("!!int", "0")),
               N(VP, TS("!!str", "0")),
                   }))
@@ -1225,7 +1243,7 @@ R"(some_seq: !its_type [
 !str 0
 ]
 )",
-N(MB, L{N(KP|SFS, "some_seq", TL("!its_type", L{
+N(MB, L{N(KP|SFM, "some_seq", TL("!its_type", L{
               N(VP, TS("!int", "0")),
               N(VP, TS("!str", "0")),
                   }))

@@ -246,7 +246,7 @@ R"(
     ? an explicit key: another value,
 }
 )",
-N(MFS, L{
+N(MFM, L{
       N(KP|VP, "a simple key", "a value"),
       N(KP|VP, "an explicit key", "another value"),
   })
@@ -259,7 +259,7 @@ R"(
     a simple key: a value,
 }
 )",
-N(MFS, L{
+N(MFM, L{
       N(KP|VP, "an explicit key", "another value"),
       N(KP|VP, "a simple key", "a value"),
   })

@@ -461,7 +461,7 @@ C4_NO_INLINE void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
 {
     auto const *const C4_RESTRICT st = m_evt_handler->m_curr;
     auto const& lc = st->line_contents;
-    csubstr contents = lc.stripped;
+    csubstr contents = lc.full.first(lc.num_cols);
     if(contents.len)
     {
         // print the yaml src line
@@ -618,18 +618,18 @@ void ParseEngine<EventHandler>::_skip_comment()
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.begins_with('#'));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.is_sub(m_evt_handler->m_curr->line_contents.full));
     csubstr rem = m_evt_handler->m_curr->line_contents.rem;
-    csubstr full = m_evt_handler->m_curr->line_contents.full;
+    csubstr line = m_evt_handler->m_curr->line_contents.full;
     // raise an error if the comment is not preceded by whitespace
-    if(!full.begins_with('#'))
+    if(!line.begins_with('#'))
     {
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str > full.str);
-        const char c = full[(size_t)(rem.str - full.str - 1)];
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str > line.str);
+        const char c = line[(size_t)(rem.str - line.str - 1)];
         if(C4_UNLIKELY(c != ' ' && c != '\t'))
             _c4err("comment not preceded by whitespace");
     }
     else
     {
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str == full.str);
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.str == line.str);
     }
     _c4dbgpf("comment was '{}'", rem);
     _line_progressed(rem.len);
@@ -735,7 +735,7 @@ csubstr ParseEngine<EventHandler>::_scan_tag()
     if(rem.begins_with("!!"))
     {
         _c4dbgp("begins with '!!'");
-        if(has_any(FLOW))
+        if(has_any(RFLOW))
             t = rem.left_of(rem.first_of(" ,"));
         else
             t = rem.left_of(rem.first_of(' '));
@@ -756,7 +756,7 @@ csubstr ParseEngine<EventHandler>::_scan_tag()
     {
         _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, rem.begins_with('!'));
         _c4dbgp("begins with '!'");
-        if(has_any(FLOW))
+        if(has_any(RFLOW))
             t = rem.left_of(rem.first_of(" ,"));
         else
             t = rem.left_of(rem.first_of(' '));
@@ -788,6 +788,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
     case '|':
     case '>':
     case '#':
+    case ',':
         _c4dbgpf("not a scalar: found non-scalar token '{}'", _c4prc(s.str[0]));
         return false;
     // '-' and ':' are illegal at the beginning if not followed by a scalar character
@@ -797,21 +798,22 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
         {
             switch(s.str[1])
             {
-            case '\n':
-            case '\r':
-            case '{':
-            case '[':
-            //_RYML_WITHOUT_TAB_TOKENS(case '\t'):
-                _c4err("invalid token \":{}\"", _c4prc(s.str[1]));
-                break;
             case ' ':
+            case '\n':
             case '}':
             case ']':
+            case '\r':
+            _RYML_WITH_TAB_TOKENS(case '\t':)
                 if(s.str[0] == ':')
                 {
                     _c4dbgpf("not a scalar: found non-scalar token '{}{}'", s.str[0], s.str[1]);
                     return false;
                 }
+                break;
+            case '{':
+            case '[':
+            //_RYML_WITHOUT_TAB_TOKENS(case '\t'):
+                _c4err("invalid token \":{}\"", _c4prc(s.str[1]));
                 break;
             default:
                 break;
@@ -860,121 +862,119 @@ template<class EventHandler>
 bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RESTRICT sc)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RSEQ|RSEQIMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RVAL));
 
-    substr s = m_evt_handler->m_curr->line_contents.rem;
+    substr s = m_buf.sub(m_evt_handler->m_curr->pos.offset);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, !s.begins_with(' '));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, !s.begins_with('\n'));
 
-    if(!s.len)
-        return false;
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, s.begins_with(m_evt_handler->m_curr->line_contents.rem));
 
-    if(!_is_valid_start_scalar_plain_flow(s))
+    if(!s.len || !_is_valid_start_scalar_plain_flow(s))
         return false;
 
     _c4dbgp("scanning seqflow scalar...");
 
-    const size_t start_offset = m_evt_handler->m_curr->pos.offset;
     bool needs_filter = false;
-    while(true)
+    size_t col = 0; // zero-based column
+    size_t offs = 0;
+    size_t offsp1;
+    for( ; offs < s.len; ++offs, ++col)
     {
-        _c4dbgpf("scanning scalar: curr line=[{}]~~~{}~~~", s.len, s);
-        for(size_t i = 0; i < s.len; ++i)
+        const char c = s.str[offs];
+        switch(c)
         {
-            const char c = s.str[i];
-            switch(c)
+        case ',':
+        case ']':
+            _c4dbgpf("found terminating character at {}: '{}'", offs, c);
+            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, offs > 0);
+            goto ended_scalar;
+        case '\n':
+            _c4dbgpf("found newline. offs={} col={}", offs, col);
+            offsp1 = offs + 1;
+            if(s.len > offsp1)
             {
-            case ',':
-                _c4dbgpf("found terminating character at {}: '{}'", i, c);
-                _line_progressed(i);
-                if(m_evt_handler->m_curr->pos.offset + i > start_offset)
+                csubstr next_line = s.sub(offsp1).triml(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+                if(next_line.begins_with_any(",]#")) // any of the characters we're interested in
                 {
+                    _c4dbgpf("found terminating character beginning next line: '{}'", next_line.str[0]);
+                    goto ended_scalar;
+                }
+            }
+            col = (size_t)-1; // so that col is 0 in the next loop iteration
+            needs_filter = true;
+            _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
+            _line_ended();
+            _scan_line();
+            break;
+        case '\r':
+            --col; // don't count \r when calling _line_progressed()
+            needs_filter = true;
+            break;
+        case ':':
+            _c4dbgp("found suspicious ':'");
+            offsp1 = offs + 1;
+            if(s.len > offsp1)
+            {
+                char next = s.str[offsp1];
+                _c4dbgpf("next char is '{}'", _c4prc(next));
+                if(next == '\r')
+                {
+                    csubstr after = s.sub(offsp1).triml('\r');
+                    if(after.len)
+                    {
+                        next = after.str[0];
+                        _c4dbgpf("skip \\r to '{}'", _c4prc(next));
+                    }
+                }
+                // no else here.
+                if(next == ' ' _RYML_WITH_TAB_TOKENS(|| next == '\t') || next == ',' || next == '\n' || next == ']')
+                {
+                    _c4dbgp("map starting!");
                     goto ended_scalar;
                 }
                 else
                 {
-                    _c4dbgp("at the beginning. no scalar here.");
-                    return false;
+                    _c4dbgp("':' nothing to see here");
                 }
-                break;
-            case ']':
-                _c4dbgpf("found terminating character at {}: '{}'", i, c);
-                _line_progressed(i);
-                goto ended_scalar;
-                break;
-            case '#':
+            }
+            else
+            {
+                _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, s.len == offsp1);
+                _line_progressed(col);
+                _c4err("missing termination: '{}'", c); // noreturn
+            }
+            break;
+        case '#':
+            {
                 _c4dbgp("found suspicious '#'");
-                if(!i || (s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[i-1] == '\t')))
+                _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, offs > 0);
+                char prev = s.str[offs - 1];
+                if(prev == ' ' _RYML_WITH_TAB_TOKENS(|| prev == '\t'))
                 {
-                    _c4dbgpf("found terminating character at {}: '{}'", i, c);
-                    _line_progressed(i);
+                    _c4dbgpf("found terminating character at {}: '{}'", offs, c);
                     goto ended_scalar;
                 }
-                break;
-            case ':':
-                _c4dbgp("found suspicious ':'");
-                if(s.len > i+1)
-                {
-                    const char next = s.str[i+1];
-                    _c4dbgpf("next char is '{}'", _c4prc(next));
-                    if(next == ' ' || next == ',' _RYML_WITH_TAB_TOKENS(|| next == '\t'))
-                    {
-                        _c4dbgp("map starting!");
-                        if(m_evt_handler->m_curr->pos.offset + i > start_offset)
-                        {
-                            _c4dbgp("scalar finished!");
-                            _line_progressed(i);
-                            goto ended_scalar;
-                        }
-                        else
-                        {
-                            _c4dbgp("at the beginning. no scalar here.");
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        _c4dbgp("it's a scalar indeed.");
-                        ++i; // skip the next char
-                    }
-                }
-                else if(s.len == i+1)
-                {
-                    _c4dbgp("':' at line end. map starting!");
-                    return false;
-                }
-                break;
-            case '[':
-            case '{':
-            case '}':
-                _line_progressed(i);
-                _c4err("invalid character: '{}'", c); // noreturn
-            default:
-                ;
             }
+            break;
+        case '[':
+        case '{':
+        case '}':
+            _line_progressed(col);
+            _c4err("invalid character: '{}'", c); // noreturn
+        default:
+            ;
         }
-        _line_progressed(s.len);
-        if(!_finished_file())
-        {
-            _c4dbgp("next line!");
-            _line_ended();
-            _scan_line();
-        }
-        else
-        {
-            _c4dbgp("file finished!");
-            goto ended_scalar;
-        }
-        s = m_evt_handler->m_curr->line_contents.rem;
-        needs_filter = true;
     }
 
 ended_scalar:
 
-    sc->scalar = m_buf.range(start_offset, m_evt_handler->m_curr->pos.offset).trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+    _line_progressed(col);
+    s = s.first(offs);
+    sc->scalar = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
     sc->needs_filter = needs_filter;
 
     _c4prscalar("scanned plain scalar", sc->scalar, /*keep_newlines*/true);
@@ -986,9 +986,9 @@ template<class EventHandler>
 bool ParseEngine<EventHandler>::_scan_scalar_plain_map_flow(ScannedScalar *C4_RESTRICT sc)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RSEQ) || has_any(RSEQIMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RMAP|RSEQIMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY|RVAL|QMRK));
 
     substr s = m_evt_handler->m_curr->line_contents.rem;
@@ -1079,9 +1079,9 @@ template<class EventHandler>
 bool ParseEngine<EventHandler>::_scan_scalar_seq_json(ScannedScalar *C4_RESTRICT sc)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RSEQ));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RFLOW));
 
     substr s = m_evt_handler->m_curr->line_contents.rem;
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, !s.begins_with(' '));
@@ -1155,9 +1155,9 @@ template<class EventHandler>
 bool ParseEngine<EventHandler>::_scan_scalar_map_json(ScannedScalar *C4_RESTRICT sc)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RSEQ));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY|RVAL));
 
     substr s = m_evt_handler->m_curr->line_contents.rem;
@@ -1236,9 +1236,9 @@ bool ParseEngine<EventHandler>::_is_doc_end(csubstr s)
 template<class EventHandler>
 bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRICT sc, size_t indentation)
 {
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RSEQIMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(BLCK|RUNK|USTY));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RBLCK|RUNK|USTY));
 
     substr s = m_evt_handler->m_curr->line_contents.rem;
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, !s.begins_with(' '));
@@ -1406,10 +1406,10 @@ template<class EventHandler>
 bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_blck(ScannedScalar *C4_RESTRICT sc)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RSEQIMAP));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RSEQ));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RVAL));
     return _scan_scalar_plain_blck(sc, m_evt_handler->m_curr->indref + 1u);
 }
@@ -1418,9 +1418,9 @@ template<class EventHandler>
 bool ParseEngine<EventHandler>::_scan_scalar_plain_map_blck(ScannedScalar *C4_RESTRICT sc)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RSEQ));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY|RVAL|QMRK));
     return _scan_scalar_plain_blck(sc, m_evt_handler->m_curr->indref + 1u);
 }
@@ -1471,16 +1471,22 @@ void ParseEngine<EventHandler>::_scan_line()
     if(C4_LIKELY(m_evt_handler->m_curr->pos.offset < m_buf.len))
         m_evt_handler->m_curr->line_contents.reset_with_next_line(m_buf, m_evt_handler->m_curr->pos.offset);
     else
-        m_evt_handler->m_curr->line_contents.reset(m_buf.last(0), m_buf.last(0));
+        m_evt_handler->m_curr->line_contents.reset_with_next_line(m_buf.last(0), 0);
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_line_progressed(size_t ahead)
 {
-    _c4dbgpf("line[{}] ({} cols) progressed by {}:  col {}-->{}   offset {}-->{}", m_evt_handler->m_curr->pos.line, m_evt_handler->m_curr->line_contents.full.len, ahead, m_evt_handler->m_curr->pos.col, m_evt_handler->m_curr->pos.col+ahead, m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset+ahead);
+    _c4dbgpf("line[{}] ({} cols) progressed by {}:  col {}-->{}   offset {}-->{}",
+             m_evt_handler->m_curr->pos.line,
+             m_evt_handler->m_curr->line_contents.full.len,
+             ahead, m_evt_handler->m_curr->pos.col,
+             m_evt_handler->m_curr->pos.col+ahead,
+             m_evt_handler->m_curr->pos.offset,
+             m_evt_handler->m_curr->pos.offset+ahead);
     m_evt_handler->m_curr->pos.offset += ahead;
     m_evt_handler->m_curr->pos.col += ahead;
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col <= m_evt_handler->m_curr->line_contents.stripped.len+1);
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col <= m_evt_handler->m_curr->line_contents.num_cols+1);
     m_evt_handler->m_curr->line_contents.rem = m_evt_handler->m_curr->line_contents.rem.sub(ahead);
 }
 
@@ -1490,10 +1496,10 @@ void ParseEngine<EventHandler>::_line_ended()
     _c4dbgpf("line[{}] ({} cols) ended! offset {}-->{} / col {}-->{}",
              m_evt_handler->m_curr->pos.line,
              m_evt_handler->m_curr->line_contents.full.len,
-             m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset + m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len,
+             m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset + m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols,
              m_evt_handler->m_curr->pos.col, 1);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col == m_evt_handler->m_curr->line_contents.stripped.len + 1);
-    m_evt_handler->m_curr->pos.offset += m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len;
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col == m_evt_handler->m_curr->line_contents.num_cols + 1);
+    m_evt_handler->m_curr->pos.offset += m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols;
     ++m_evt_handler->m_curr->pos.line;
     m_evt_handler->m_curr->pos.col = 1;
 }
@@ -1503,12 +1509,12 @@ void ParseEngine<EventHandler>::_line_ended_undo()
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.col == 1u);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.line > 0u);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.offset >= m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len);
-    const size_t delta = m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.stripped.len;
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.offset >= m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols);
+    const size_t delta = m_evt_handler->m_curr->line_contents.full.len - m_evt_handler->m_curr->line_contents.num_cols;
     _c4dbgpf("line[{}] undo ended! line {}-->{}, offset {}-->{}", m_evt_handler->m_curr->pos.line, m_evt_handler->m_curr->pos.line, m_evt_handler->m_curr->pos.line - 1, m_evt_handler->m_curr->pos.offset, m_evt_handler->m_curr->pos.offset - delta);
     m_evt_handler->m_curr->pos.offset -= delta;
     --m_evt_handler->m_curr->pos.line;
-    m_evt_handler->m_curr->pos.col = m_evt_handler->m_curr->line_contents.stripped.len + 1u;
+    m_evt_handler->m_curr->pos.col = m_evt_handler->m_curr->line_contents.num_cols + 1u;
     // don't forget to undo also the changes to the remainder of the line
     //_RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.offset >= m_buf.len || m_buf[m_evt_handler->m_curr->pos.offset] == '\n' || m_buf[m_evt_handler->m_curr->pos.offset] == '\r');
     m_evt_handler->m_curr->line_contents.rem = m_buf.sub(m_evt_handler->m_curr->pos.offset, 0);
@@ -1526,13 +1532,29 @@ void ParseEngine<EventHandler>::_set_indentation(size_t indentation)
 template<class EventHandler>
 void ParseEngine<EventHandler>::_save_indentation()
 {
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.begin() >= m_evt_handler->m_curr->line_contents.full.begin());
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.is_sub(m_evt_handler->m_curr->line_contents.full));
     m_evt_handler->m_curr->indref = m_evt_handler->m_curr->line_contents.current_col();
     _c4dbgpf("state[{}]: saving indentation: {}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 }
 
 
 //-----------------------------------------------------------------------------
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_end_map_flow()
+{
+    bool multiline = m_options.detect_flow_ml() && m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    _c4dbgpf("mapflow: end, multiline={}", multiline);
+    m_evt_handler->end_map_flow(multiline);
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_end_seq_flow()
+{
+    bool multiline = m_options.detect_flow_ml() && m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    _c4dbgpf("seqflow: end, multiline={}", multiline);
+    m_evt_handler->end_seq_flow(multiline);
+}
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_end_map_blck()
@@ -1552,7 +1574,7 @@ void ParseEngine<EventHandler>::_end_map_blck()
         _handle_annotations_before_blck_val_scalar();
         m_evt_handler->set_val_scalar_plain_empty();
     }
-    m_evt_handler->end_map();
+    m_evt_handler->end_map_block();
 }
 
 template<class EventHandler>
@@ -1564,7 +1586,7 @@ void ParseEngine<EventHandler>::_end_seq_blck()
         _handle_annotations_before_blck_val_scalar();
         m_evt_handler->set_val_scalar_plain_empty();
     }
-    m_evt_handler->end_seq();
+    m_evt_handler->end_seq_block();
 }
 
 template<class EventHandler>
@@ -1572,13 +1594,13 @@ void ParseEngine<EventHandler>::_end2_map()
 {
     _c4dbgp("map: end");
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RMAP));
-    if(has_any(BLCK))
+    if(has_any(RBLCK))
     {
         _end_map_blck();
     }
     else
     {
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(FLOW));
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RFLOW));
         _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(USTY));
         m_evt_handler->_pop();
     }
@@ -1589,13 +1611,13 @@ void ParseEngine<EventHandler>::_end2_seq()
 {
     _c4dbgp("seq: end");
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RSEQ));
-    if(has_any(BLCK))
+    if(has_any(RBLCK))
     {
         _end_seq_blck();
     }
     else
     {
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(FLOW));
+        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RFLOW));
         _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(USTY));
         m_evt_handler->_pop();
     }
@@ -1722,9 +1744,9 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_end_stream()
 {
     _c4dbgpf("end_stream, level={} node_id={}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->node_id);
-    if(has_all(RSEQ|FLOW))
+    if(has_all(RSEQ|RFLOW))
         _c4err("missing terminating ]");
-    else if(has_all(RMAP|FLOW))
+    else if(has_all(RMAP|RFLOW))
         _c4err("missing terminating }");
     if(m_evt_handler->m_stack.size() > 1)
         _handle_indentation_pop(m_evt_handler->m_stack.begin());
@@ -1841,7 +1863,7 @@ void ParseEngine<EventHandler>::_handle_indentation_pop_from_block_map()
                 break;
             }
             popto = s;
-            if(has_all(RSEQ|BLCK, s))
+            if(has_all(RSEQ|RBLCK, s))
             {
                 csubstr rem = m_evt_handler->m_curr->line_contents.rem;
                 const size_t first = rem.first_not_of(' ');
@@ -2130,7 +2152,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
 
     // start with a zero-length block, already pointing at the right place
     substr raw_block(m_buf.data() + m_evt_handler->m_curr->pos.offset, size_t(0));// m_evt_handler->m_curr->line_contents.full.sub(0, 0);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, raw_block.begin() == m_evt_handler->m_curr->line_contents.full.begin());
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, raw_block.begin() == m_evt_handler->m_curr->line_contents.full.str);
 
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed.
@@ -2149,7 +2171,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         #if defined(__GNUC__) && (__GNUC__ == 12 || __GNUC__ == 13)
         C4_DONT_OPTIMIZE(lc.rem);
         #endif
-        _c4dbgpf("blck: peeking at [{}]~~~{}~~~", lc.stripped.len, lc.stripped);
+        _c4dbgpf("blck: peeking at [{}]~~~{}~~~", lc.rem.trimr("\r\n").len, lc.rem.trimr("\r\n"));
         // evaluate termination conditions
         if(indentation != npos)
         {
@@ -2179,12 +2201,12 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         }
         else
         {
-            const size_t fns = lc.stripped.first_not_of(' ');
+            const size_t fns = lc.rem.first_not_of(' ');
             _c4dbgpf("blck: indentation ref not set. firstnonws={}", fns);
             if(fns != npos) // non-empty line
             {
                 _RYML_WITH_TAB_TOKENS(
-                    if(C4_UNLIKELY(lc.stripped.begins_with('\t')))
+                    if(C4_UNLIKELY(lc.full.begins_with('\t')))
                         _c4err("parse error");
                 )
                 _c4dbgpf("blck: line not empty. indref={} indprov={} indentation={}", indref, provisional_indentation, lc.indentation);
@@ -2228,13 +2250,13 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
             }
             else // empty line
             {
-                _c4dbgpf("blck: line empty or {} spaces. line_indentation={} prov_indentation={}", lc.stripped.len, lc.indentation, provisional_indentation);
+                _c4dbgpf("blck: line empty or {} spaces. line_indentation={} prov_indentation={}", lc.rem.len, lc.indentation, provisional_indentation);
                 if(provisional_indentation != npos)
                 {
-                    if(lc.stripped.len >= provisional_indentation)
+                    if(lc.rem.len >= provisional_indentation)
                     {
-                        _c4dbgpf("blck: increase provisional_ref {} -> {}", provisional_indentation, lc.stripped.len);
-                        provisional_indentation = lc.stripped.len;
+                        _c4dbgpf("blck: increase provisional_ref {} -> {}", provisional_indentation, lc.rem.len);
+                        provisional_indentation = lc.rem.len;
                     }
                     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
                     else if(lc.indentation >= provisional_indentation && lc.indentation != npos)
@@ -2250,7 +2272,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                     _c4dbgpf("blck: initialize provisional_ref={}", provisional_indentation);
                     if(provisional_indentation == npos)
                     {
-                        provisional_indentation = lc.stripped.len ? lc.stripped.len : has_any(RSEQ|RVAL);
+                        provisional_indentation = lc.rem.len ? lc.rem.len : has_any(RSEQ|RVAL);
                         _c4dbgpf("blck: initialize provisional_ref={}", provisional_indentation);
                     }
                     if(provisional_indentation < indref)
@@ -2575,21 +2597,6 @@ FilterResult ParseEngine<EventHandler>::filter_scalar_squoted_in_place(substr ds
 #else
 #define _c4dbgfdq(...)
 #endif
-
-/// @cond dev
-
-namespace detail {
-// is there a better way to do this?
-template<int8_t signedval, uint8_t unsignedval>
-struct _charconstant_t
-    : public std::conditional<std::is_signed<char>::value,
-                              std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
-                              std::integral_constant<uint8_t, unsignedval>>::type
-{};
-#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
-} // namespace detail
-
-/// @endcond
 
 template<class EventHandler>
 template<class FilterProcessor>
@@ -3916,8 +3923,8 @@ inline C4_NO_INLINE csubstr detail::_parser_flags_to_str(substr buf, ParserFlag_
     _prflag(RUNK);
     _prflag(RMAP);
     _prflag(RSEQ);
-    _prflag(FLOW);
-    _prflag(BLCK);
+    _prflag(RFLOW);
+    _prflag(RBLCK);
     _prflag(QMRK);
     _prflag(RKEY);
     _prflag(RVAL);
@@ -4447,7 +4454,7 @@ seqjson_start:
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RKEY));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RSEQ));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RVAL|RNXT));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RVAL) != has_all(RNXT));
 
@@ -4494,9 +4501,9 @@ seqjson_start:
         {
             _c4dbgp("seqjson[RVAL]: end!");
             rem_flags(RSEQ);
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             _line_progressed(1);
-            if(!has_all(RSEQ|FLOW))
+            if(!has_all(RSEQ|RFLOW))
                 goto seqjson_finish;
             break;
         }
@@ -4536,7 +4543,7 @@ seqjson_start:
         case ']':
         {
             _c4dbgp("seqjson[RNXT]: end!");
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             _line_progressed(1);
             goto seqjson_finish;
         }
@@ -4576,7 +4583,7 @@ mapjson_start:
     _c4dbgpf("handle2_map_json: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(QMRK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY|RKCL|RVAL|RNXT));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, 1 == (has_any(RKEY) + has_any(RKCL) + has_any(RVAL) + has_any(RNXT)));
@@ -4608,7 +4615,7 @@ mapjson_start:
         case '}': // this happens on a trailing comma like ", }"
         {
             _c4dbgp("mapjson[RKEY]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapjson_finish;
         }
@@ -4710,7 +4717,7 @@ mapjson_start:
         else if(rem.begins_with('}'))
         {
             _c4dbgp("mapjson[RNXT]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapjson_finish;
         }
@@ -4776,7 +4783,7 @@ seqimap_start:
             sc = _scan_scalar_squot();
             csubstr maybe_filtered = _maybe_filter_val_scalar_squot(sc);
             m_evt_handler->set_val_scalar_squoted(maybe_filtered);
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '"')
@@ -4785,7 +4792,7 @@ seqimap_start:
             sc = _scan_scalar_dquot();
             csubstr maybe_filtered = _maybe_filter_val_scalar_dquot(sc);
             m_evt_handler->set_val_scalar_dquoted(maybe_filtered);
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         // block scalars (ie | and >) cannot appear in flow containers
@@ -4794,7 +4801,7 @@ seqimap_start:
             _c4dbgp("seqimap[RVAL]: it's a scalar.");
             csubstr maybe_filtered = _maybe_filter_val_scalar_plain(sc, m_evt_handler->m_curr->indref);
             m_evt_handler->set_val_scalar_plain(maybe_filtered);
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '[')
@@ -4821,7 +4828,7 @@ seqimap_start:
         {
             _c4dbgp("seqimap[RVAL]: finish without val.");
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '&')
@@ -4855,7 +4862,7 @@ seqimap_start:
             // we may get here because a map or a seq started and we
             // return later
             _c4dbgp("seqimap: done");
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else
@@ -4924,7 +4931,7 @@ seqimap_start:
             _c4dbgp("seqimap[QMRK]: finish without key.");
             m_evt_handler->set_key_scalar_plain_empty();
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else if(first == '&')
@@ -4964,7 +4971,7 @@ seqimap_start:
         {
             _c4dbgp("seqimap[RKCL]: found ','. finish without val");
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             goto seqimap_finish;
         }
         else
@@ -5001,11 +5008,11 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_seq_flow()
 {
 seqflow_start:
-    _c4dbgpf("handle2_seq_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_seq_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RKEY));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RSEQ));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RVAL|RNXT));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RVAL) != has_all(RNXT));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->indref != npos);
@@ -5067,7 +5074,7 @@ seqflow_start:
         {
             _c4dbgp("seqflow[RVAL]: end!");
             _line_progressed(1);
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             goto seqflow_finish;
         }
         else if(first == '*')
@@ -5145,7 +5152,7 @@ seqflow_start:
         else if(first == ']')
         {
             _c4dbgp("seqflow[RNXT]: end!");
-            m_evt_handler->end_seq();
+            _end_seq_flow();
             _line_progressed(1);
             goto seqflow_finish;
         }
@@ -5192,10 +5199,10 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_map_flow()
 {
 mapflow_start:
-    _c4dbgpf("handle2_map_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_map_flow: node_id={} level={} indentation={}", m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RFLOW));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY|RKCL|RVAL|RNXT|QMRK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, 1 == (has_any(RKEY) + has_any(RKCL) + has_any(RVAL) + has_any(RNXT) + has_any(QMRK)));
 
@@ -5263,7 +5270,7 @@ mapflow_start:
         else if(first == '}') // this happens on a trailing comma like ", }"
         {
             _c4dbgp("mapflow[RKEY]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5283,8 +5290,8 @@ mapflow_start:
         else if(first == '[')
         {
             // RYML's tree cannot store container keys, but that's
-            // handled inside the tree sink. Other sink types may be
-            // able to handle it.
+            // handled inside the tree event handler. Other handler
+            // types may be able to handle it.
             _c4dbgp("mapflow[RKEY]: start child seqflow (!)");
             addrem_flags(RKCL, RKEY);
             m_evt_handler->begin_seq_key_flow();
@@ -5296,8 +5303,8 @@ mapflow_start:
         else if(first == '{')
         {
             // RYML's tree cannot store container keys, but that's
-            // handled inside the tree sink. Other sink types may be
-            // able to handle it.
+            // handled inside the tree event handler. Other handler
+            // types may be able to handle it.
             _c4dbgp("mapflow[RKEY]: start child mapflow (!)");
             addrem_flags(RKCL, RKEY);
             m_evt_handler->begin_map_key_flow();
@@ -5337,7 +5344,7 @@ mapflow_start:
             _c4dbgp("mapflow[RKCL]: end with missing val!");
             addrem_flags(RVAL, RKCL);
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5411,7 +5418,7 @@ mapflow_start:
         {
             _c4dbgp("mapflow[RVAL]: end!");
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5464,7 +5471,7 @@ mapflow_start:
         else if(rem.begins_with('}'))
         {
             _c4dbgp("mapflow[RNXT]: end!");
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5519,7 +5526,7 @@ mapflow_start:
             _c4dbgp("mapflow[QMRK]: end!");
             m_evt_handler->set_key_scalar_plain_empty();
             m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->end_map();
+            _end_map_flow();
             _line_progressed(1);
             goto mapflow_finish;
         }
@@ -5610,10 +5617,10 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_seq_block()
 {
 seqblck_start:
-    _c4dbgpf("handle2_seq_block: seq_id={} node_id={} level={} indent={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_seq_block: seq_id={} node_id={} level={} indent={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RSEQ));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RVAL|RNXT));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, 1 == (has_any(RVAL) + has_any(RNXT)));
 
@@ -5782,11 +5789,11 @@ seqblck_start:
                     _maybe_skip_whitespace_tokens();
                     goto seqblck_finish;
                 }
-                else if(m_evt_handler->m_parent && m_evt_handler->m_parent->indref == startindent && has_any(RMAP|BLCK, m_evt_handler->m_parent))
+                else if(m_evt_handler->m_parent && m_evt_handler->m_parent->indref == startindent && has_any(RMAP|RBLCK, m_evt_handler->m_parent))
                 {
                     _c4dbgp("seqblck[RVAL]: empty val + end indentless seq + set key");
                     m_evt_handler->set_val_scalar_plain_empty();
-                    m_evt_handler->end_seq();
+                    m_evt_handler->end_seq_block();
                     m_evt_handler->add_sibling();
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref);  // KEY!
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
@@ -5806,7 +5813,7 @@ seqblck_start:
             addrem_flags(RNXT, RVAL);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
-            addrem_flags(FLOW|RVAL, BLCK|RNXT);
+            addrem_flags(RFLOW|RVAL, RBLCK|RNXT);
             _line_progressed(1);
             _set_indentation(m_evt_handler->m_parent->indref + 1u);
             goto seqblck_finish;
@@ -5817,7 +5824,7 @@ seqblck_start:
             addrem_flags(RNXT, RVAL);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_flow();
-            addrem_flags(RMAP|RKEY|FLOW, BLCK|RSEQ|RVAL|RNXT);
+            addrem_flags(RMAP|RKEY|RFLOW, RBLCK|RSEQ|RVAL|RNXT);
             _line_progressed(1);
             _set_indentation(m_evt_handler->m_parent->indref + 1u);
             goto seqblck_finish;
@@ -5942,7 +5949,7 @@ seqblck_start:
             {
                 _c4dbgp("seqblck[RNXT]: smaller indentation!");
                 _handle_indentation_pop_from_block_seq();
-                if(has_all(RSEQ|BLCK))
+                if(has_all(RSEQ|RBLCK))
                 {
                     _c4dbgp("seqblck[RNXT]: still seqblck!");
                     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RNXT));
@@ -6018,7 +6025,7 @@ seqblck_start:
             if(C4_LIKELY(prev_state && (prev_state->flags & RMAP)))
             {
                 _c4dbgp("seqblck[RNXT]: actually this seq was '?' key of parent map");
-                m_evt_handler->end_seq();
+                m_evt_handler->end_seq_block();
                 goto seqblck_finish;
             }
             else
@@ -6054,12 +6061,12 @@ seqblck_start:
                 _dbg_printf("state[{}]: ind={} node={} flags={}\n", s.level, s.indref, s.node_id, detail::_parser_flags_to_str(flagbuf_, s.flags));
             }
             #endif
-            if(m_evt_handler->m_parent && has_all(RMAP|BLCK, m_evt_handler->m_parent) && m_evt_handler->m_curr->indref == m_evt_handler->m_parent->indref)
+            if(m_evt_handler->m_parent && has_all(RMAP|RBLCK, m_evt_handler->m_parent) && m_evt_handler->m_curr->indref == m_evt_handler->m_parent->indref)
             {
                 _c4dbgpf("seqblck[RNXT]: end indentless seq, go to parent={}. node={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id);
                 _RYML_ASSERT_BASIC_(this->callbacks(), m_evt_handler->m_curr != m_evt_handler->m_parent);
                 _handle_indentation_pop(m_evt_handler->m_parent);
-                _RYML_ASSERT_BASIC_(this->callbacks(), has_all(RMAP|BLCK));
+                _RYML_ASSERT_BASIC_(this->callbacks(), has_all(RMAP|RBLCK));
                 m_evt_handler->add_sibling();
                 addrem_flags(RKEY, RNXT);
                 goto seqblck_finish;
@@ -6099,11 +6106,11 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_map_block()
 {
 mapblck_start:
-    _c4dbgpf("handle2_map_block: map_id={} node_id={} level={} indref={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+    _c4dbgpf("handle_map_block: map_id={} node_id={} level={} indref={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
     // states: RKEY|QMRK -> RKCL -> RVAL -> RNXT
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP));
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(BLCK));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_all(RBLCK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY|RKCL|RVAL|RNXT|QMRK));
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, 1 == (has_any(RKEY) + has_any(RKCL) + has_any(RVAL) + has_any(RNXT) + has_any(QMRK)));
 
@@ -6136,7 +6143,7 @@ mapblck_start:
                 _c4dbgp("mapblck[RKEY]: smaller indentation!");
                 _handle_indentation_pop_from_block_map();
                 _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
-                if(has_all(RMAP|BLCK))
+                if(has_all(RMAP|RBLCK))
                 {
                     _c4dbgp("mapblck[RKEY]: still mapblck!");
                     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY));
@@ -6259,7 +6266,7 @@ mapblck_start:
             addrem_flags(RKCL, RKEY);
             _handle_annotations_before_blck_key_scalar();
             m_evt_handler->begin_seq_key_flow();
-            addrem_flags(RSEQ|FLOW|RVAL, RMAP|BLCK|RKCL);
+            addrem_flags(RSEQ|RFLOW|RVAL, RMAP|RBLCK|RKCL);
             _line_progressed(1);
             _set_indentation(startindent);
             goto mapblck_finish;
@@ -6273,7 +6280,7 @@ mapblck_start:
             addrem_flags(RKCL, RKEY);
             _handle_annotations_before_blck_key_scalar();
             m_evt_handler->begin_map_key_flow();
-            addrem_flags(FLOW|RKEY, BLCK|RKCL);
+            addrem_flags(RFLOW|RKEY, RBLCK|RKCL);
             _line_progressed(1);
             _set_indentation(startindent);
             goto mapblck_finish;
@@ -6477,7 +6484,7 @@ mapblck_start:
             {
                 _c4dbgp("mapblck[RVAL]: smaller indentation!");
                 _handle_indentation_pop_from_block_map();
-                if(has_all(RMAP|BLCK))
+                if(has_all(RMAP|RBLCK))
                 {
                     _c4dbgp("mapblck[RVAL]: still mapblck!");
                     _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
@@ -6686,7 +6693,7 @@ mapblck_start:
             addrem_flags(RNXT, RVAL);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
-            addrem_flags(RSEQ|FLOW|RVAL, RMAP|BLCK|RNXT);
+            addrem_flags(RSEQ|RFLOW|RVAL, RMAP|RBLCK|RNXT);
             _set_indentation(m_evt_handler->m_curr->indref + 1u);
             _line_progressed(1);
             goto mapblck_finish;
@@ -6697,7 +6704,7 @@ mapblck_start:
             addrem_flags(RNXT, RVAL);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_flow();
-            addrem_flags(RKEY|FLOW, BLCK|RVAL|RNXT);
+            addrem_flags(RKEY|RFLOW, RBLCK|RVAL|RNXT);
             m_evt_handler->m_curr->scalar_col = m_evt_handler->m_curr->line_contents.indentation;
             _set_indentation(m_evt_handler->m_curr->indref + 1u);
             _line_progressed(1);
@@ -6785,7 +6792,7 @@ mapblck_start:
                 addrem_flags(RNXT, RVAL);
                 _handle_annotations_before_blck_val_scalar();
                 m_evt_handler->begin_map_val_block();
-                addrem_flags(QMRK|BLCK, RNXT);
+                addrem_flags(QMRK|RBLCK, RNXT);
                 _set_indentation(startindent);
             }
             else
@@ -6879,7 +6886,7 @@ mapblck_start:
             {
                 _c4dbgp("mapblck[RNXT]: smaller indentation!");
                 _handle_indentation_pop_from_block_map();
-                if(has_all(RMAP|BLCK))
+                if(has_all(RMAP|RBLCK))
                 {
                     _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
                     if(!has_any(RKCL))
@@ -6972,7 +6979,7 @@ mapblck_start:
                 _c4dbgp("mapblck[QMRK]: smaller indentation!");
                 _handle_indentation_pop_from_block_map();
                 _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
-                if(has_all(RMAP|BLCK))
+                if(has_all(RMAP|RBLCK))
                 {
                     _c4dbgp("mapblck[QMRK]: still mapblck!");
                     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(QMRK));
@@ -7191,7 +7198,7 @@ mapblck_start:
             _c4dbgp("mapblck[QMRK]: start child seqflow (!)");
             addrem_flags(RKCL, RKEY|QMRK);
             m_evt_handler->begin_seq_key_flow();
-            addrem_flags(RVAL|RSEQ|FLOW, RMAP|RKCL|QMRK|BLCK);
+            addrem_flags(RVAL|RSEQ|RFLOW, RMAP|RKCL|QMRK|RBLCK);
             _set_indentation(m_evt_handler->m_parent->indref);
             _line_progressed(1);
             goto mapblck_finish;
@@ -7201,7 +7208,7 @@ mapblck_start:
             _c4dbgp("mapblck[QMRK]: start child mapblck (!)");
             addrem_flags(RKCL, RKEY|QMRK);
             m_evt_handler->begin_map_key_flow();
-            addrem_flags(RKEY|FLOW, RVAL|RKCL|QMRK|BLCK);
+            addrem_flags(RKEY|RFLOW, RVAL|RKCL|QMRK|RBLCK);
             _set_indentation(m_evt_handler->m_parent->indref);
             _line_progressed(1);
             goto mapblck_finish;
@@ -7290,7 +7297,7 @@ void ParseEngine<EventHandler>::_handle_unk_json()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         m_evt_handler->begin_seq_val_flow();
-        addrem_flags(RSEQ|FLOW|RVAL, RUNK|RTOP|RDOC);
+        addrem_flags(RSEQ|RFLOW|RVAL, RUNK|RTOP|RDOC);
         _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         m_doc_empty = false;
         _line_progressed(1);
@@ -7301,7 +7308,7 @@ void ParseEngine<EventHandler>::_handle_unk_json()
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         m_evt_handler->begin_map_val_flow();
-        addrem_flags(RMAP|FLOW|RKEY, RVAL|RTOP|RUNK|RDOC);
+        addrem_flags(RMAP|RFLOW|RKEY, RVAL|RTOP|RUNK|RDOC);
         m_doc_empty = false;
         _set_indentation(m_evt_handler->m_curr->line_contents.current_col(rem));
         _line_progressed(1);
@@ -7480,7 +7487,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             _c4dbgp("it's a seq, flow");
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
-            addrem_flags(RSEQ|FLOW|RVAL, RUNK|RTOP|RDOC);
+            addrem_flags(RSEQ|RFLOW|RVAL, RUNK|RTOP|RDOC);
             _set_indentation(remindent);
         }
         else
@@ -7488,10 +7495,10 @@ void ParseEngine<EventHandler>::_handle_unk()
             _c4dbgp("start new block map, set flow seq as key (!)");
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_val_block();
-            addrem_flags(RMAP|BLCK|RKCL, RUNK|RTOP|RDOC);
+            addrem_flags(RMAP|RBLCK|RKCL, RUNK|RTOP|RDOC);
             _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_seq_key_flow();
-            addrem_flags(RSEQ|FLOW|RVAL, RMAP|BLCK|RKCL);
+            addrem_flags(RSEQ|RFLOW|RVAL, RMAP|RBLCK|RKCL);
             _set_indentation(remindent);
         }
         _line_progressed(1);
@@ -7506,7 +7513,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             _c4dbgp("it's a map, flow");
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_flow();
-            addrem_flags(RMAP|FLOW|RKEY, RVAL|RTOP|RUNK|RDOC);
+            addrem_flags(RMAP|RFLOW|RKEY, RVAL|RTOP|RUNK|RDOC);
             _set_indentation(remindent);
         }
         else
@@ -7514,10 +7521,10 @@ void ParseEngine<EventHandler>::_handle_unk()
             _c4dbgp("start new block map, set flow map as key (!)");
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_val_block();
-            addrem_flags(RMAP|BLCK|RKCL, RUNK|RTOP|RDOC);
+            addrem_flags(RMAP|RBLCK|RKCL, RUNK|RTOP|RDOC);
             _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_key_flow();
-            addrem_flags(RMAP|FLOW|RKEY, BLCK|RKCL);
+            addrem_flags(RMAP|RFLOW|RKEY, RBLCK|RKCL);
             _set_indentation(remindent);
         }
         _line_progressed(1);
@@ -7529,7 +7536,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         _maybe_begin_doc();
         _handle_annotations_before_blck_val_scalar();
         m_evt_handler->begin_seq_val_block();
-        addrem_flags(RSEQ|BLCK|RVAL, RNXT|RTOP|RUNK|RDOC);
+        addrem_flags(RSEQ|RBLCK|RVAL, RNXT|RTOP|RUNK|RDOC);
         m_doc_empty = false;
         _set_indentation(remindent);
         _line_progressed(1);
@@ -7542,7 +7549,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         _maybe_begin_doc();
         _handle_annotations_before_blck_val_scalar();
         m_evt_handler->begin_map_val_block();
-        addrem_flags(RMAP|BLCK|QMRK, RKEY|RVAL|RTOP|RUNK);
+        addrem_flags(RMAP|RBLCK|QMRK, RKEY|RVAL|RTOP|RUNK);
         m_doc_empty = false;
         m_was_inside_qmrk = true;
         _set_indentation(remindent); //_save_indentation();
@@ -7572,7 +7579,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             m_evt_handler->actually_val_is_first_key_of_new_map_block();
             _set_indentation(prev_indentation);
         }
-        addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
+        addrem_flags(RMAP|RBLCK|RVAL, RTOP|RUNK|RDOC);
         _line_progressed(1);
         _maybe_skip_whitespace_tokens();
     }
@@ -7610,7 +7617,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             m_evt_handler->set_key_ref(ref);
             _maybe_skip_whitespace_tokens();
             _set_indentation(startindent);
-            addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
+            addrem_flags(RMAP|RBLCK|RVAL, RTOP|RUNK|RDOC);
         }
     }
     else if(first == '!')
@@ -7659,7 +7666,7 @@ void ParseEngine<EventHandler>::_handle_unk()
                 m_evt_handler->set_key_scalar_squoted(maybe_filtered);
                 _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
-                addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
+                addrem_flags(RMAP|RBLCK|RVAL, RTOP|RUNK|RDOC);
             }
         }
         else if(first == '"')
@@ -7688,7 +7695,7 @@ void ParseEngine<EventHandler>::_handle_unk()
                 m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
                 _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
-                addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
+                addrem_flags(RMAP|RBLCK|RVAL, RTOP|RUNK|RDOC);
             }
         }
         else if(first == '|')
@@ -7758,7 +7765,7 @@ void ParseEngine<EventHandler>::_handle_unk()
                 m_evt_handler->set_key_scalar_plain(maybe_filtered);
                 _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
-                addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
+                addrem_flags(RMAP|RBLCK|RVAL, RTOP|RUNK|RDOC);
             }
         }
     }
@@ -7772,7 +7779,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
 {
     _c4dbgpf("handle_usty target={}", m_evt_handler->m_curr->indref, m_evt_handler->m_curr->node_id);
 
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(BLCK|FLOW));
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RBLCK|RFLOW));
 
     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
     if(has_any(RNXT))
@@ -7811,7 +7818,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _c4dbgp("usty[RSEQ]: it's a flow seq. merging it");
             add_flags(RNXT);
             m_evt_handler->_push();
-            addrem_flags(FLOW|RVAL, RNXT|USTY);
+            addrem_flags(RFLOW|RVAL, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -7821,7 +7828,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _c4dbgp("usty[RSEQ]: it's a block seq. merging it");
             add_flags(RNXT);
             m_evt_handler->_push();
-            addrem_flags(BLCK|RVAL, RNXT|USTY);
+            addrem_flags(RBLCK|RVAL, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -7841,7 +7848,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->_push();
-            addrem_flags(RMAP|FLOW|RKEY, RNXT|USTY);
+            addrem_flags(RMAP|RFLOW|RKEY, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -7852,7 +7859,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->_push();
-            addrem_flags(RMAP|BLCK|QMRK, RNXT|USTY);
+            addrem_flags(RMAP|RBLCK|QMRK, RNXT|USTY);
             m_was_inside_qmrk = true;
             _save_indentation();
             _line_progressed(1);
@@ -7865,7 +7872,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->_push();
             m_evt_handler->set_key_scalar_plain_empty();
-            addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+            addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
             _save_indentation();
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -7898,7 +7905,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                 m_evt_handler->set_key_ref(ref);
                 _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
-                addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
             }
         }
         else if(first == '!')
@@ -7940,7 +7947,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                     csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc);
                     m_evt_handler->set_key_scalar_squoted(maybe_filtered);
                     _set_indentation(startindent);
-                    addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                    addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
                     _maybe_skip_whitespace_tokens();
                 }
             }
@@ -7962,7 +7969,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                     csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc);
                     m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
                     _set_indentation(startindent);
-                    addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                    addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
                     _maybe_skip_whitespace_tokens();
                 }
             }
@@ -7991,7 +7998,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, startindent);
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
                     _set_indentation(startindent);
-                    addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                    addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
                     _maybe_skip_whitespace_tokens();
                 }
             }
@@ -8011,7 +8018,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
-            addrem_flags(RSEQ|FLOW|RVAL, RNXT|USTY);
+            addrem_flags(RSEQ|RFLOW|RVAL, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -8022,7 +8029,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_block();
-            addrem_flags(RSEQ|BLCK|RVAL, RNXT|USTY);
+            addrem_flags(RSEQ|RBLCK|RVAL, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -8033,7 +8040,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_flow();
-            addrem_flags(RMAP|FLOW|RKEY, RNXT|USTY);
+            addrem_flags(RMAP|RFLOW|RKEY, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -8044,7 +8051,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             add_flags(RNXT);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_block();
-            addrem_flags(RMAP|BLCK|QMRK, RNXT|USTY);
+            addrem_flags(RMAP|RBLCK|QMRK, RNXT|USTY);
             m_was_inside_qmrk = true;
             _save_indentation();
             _line_progressed(1);
@@ -8057,7 +8064,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_block();
             m_evt_handler->set_key_scalar_plain_empty();
-            addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+            addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
             _save_indentation();
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -8092,7 +8099,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                 m_evt_handler->set_key_ref(ref);
                 _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
-                addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
             }
         }
         else if(first == '!')
@@ -8135,7 +8142,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                     csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc);
                     m_evt_handler->set_key_scalar_squoted(maybe_filtered);
                     _set_indentation(startindent);
-                    addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                    addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
                     _maybe_skip_whitespace_tokens();
                 }
             }
@@ -8161,7 +8168,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                     csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc);
                     m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
                     _set_indentation(startindent);
-                    addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                    addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
                     _maybe_skip_whitespace_tokens();
                 }
             }
@@ -8208,7 +8215,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, startindent);
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
                     _set_indentation(startindent);
-                    addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
+                    addrem_flags(RMAP|RBLCK|RVAL, RNXT|USTY);
                     _maybe_skip_whitespace_tokens();
                 }
             }
@@ -8283,7 +8290,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
         {
             _c4dbgnextline();
             _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks,  ! m_evt_handler->m_curr->line_contents.rem.empty());
-            if(has_any(FLOW))
+            if(has_any(RFLOW))
             {
                 if(has_none(RSEQIMAP))
                 {
@@ -8302,7 +8309,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
                     _handle_seq_imap();
                 }
             }
-            else if(has_any(BLCK))
+            else if(has_any(RBLCK))
             {
                 if(has_any(RSEQ))
                 {

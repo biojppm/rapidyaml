@@ -159,8 +159,7 @@ bool scalar_style_query_plain(csubstr s) noexcept
     {
         return true;
     }
-    return s != ':'
-        && ( ! s.begins_with_any("-:?*&,'\"{}[]|>%#@`\r")) // @ and ` are reserved characters
+    return ( ! s.begins_with_any("-:?*&,'\"{}[]|>%#@`\r")) // @ and ` are reserved characters
         && ( ! s.ends_with_any(":#"))
              // make this check in the last place, as it has linear
              // complexity, while the previous ones are

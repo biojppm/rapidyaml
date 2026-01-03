@@ -17,7 +17,7 @@
 #ifndef _C4_YML_EXTRA_SCALAR_HPP_
 #include "c4/yml/extra/scalar.hpp"
 #endif
-#ifndef _C4_YML_EXTRA_SCALAR_HPP_
+#ifndef _C4_YML_EXTRA_STRING_HPP_
 #include "c4/yml/extra/string.hpp"
 #endif
 

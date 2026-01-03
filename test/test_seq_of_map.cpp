@@ -21,7 +21,8 @@ TEST(seq_of_map, with_anchors)
   a4: v4
 )";
         Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+        std::string emitted = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(yaml, emitted);
         ASSERT_EQ(t.rootref().num_children(), 3u);
         ASSERT_EQ(t[2].has_val_anchor(), true);
         ASSERT_EQ(t[2].val_anchor(), "seq");
@@ -276,7 +277,7 @@ R"('implicit block key' : [
   'implicit flow key s' : [val1, val2],
 ])",
 N(MB, L{
-  N(KS|SFS, "implicit block key", L{
+  N(KS|SFM, "implicit block key", L{
     N(MFS, L{N(KS|VP, "implicit flow key 1", "value1")}),
     N(MFS, L{N(KS|VP, "implicit flow key 2", "value2")}),
     N(MFS, L{N(KS|VP, "implicit flow key 3", "value3")}),
@@ -300,10 +301,10 @@ c : [
 ,
   :
 ]})",
-N(MFS, L{
-  N(KP|SFS, "a", L{N(MFS, L{N(KN|VP, "", "foo")}),}),
-  N(KP|SFS, "b", L{N(MFS, L{N(KN|VP, "", "foo")}),}),
-  N(KP|SFS, "c", L{N(MFS, L{N(KN|VN, "", {})}), N(MFS, L{N(KN|VN, "", {})}),}),
+N(MFM, L{
+  N(KP|SFM, "a", L{N(MFM, L{N(KN|VP, "", "foo")}),}),
+  N(KP|SFM, "b", L{N(MFM, L{N(KN|VP, "", "foo")}),}),
+  N(KP|SFM, "c", L{N(MFM, L{N(KN|VN, "", {})}), N(MFM, L{N(KN|VN, "", {})}),}),
 })
 );
 

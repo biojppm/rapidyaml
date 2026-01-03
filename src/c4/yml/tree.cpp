@@ -262,7 +262,9 @@ void Tree::_relocate(substr next_arena)
     _RYML_ASSERT_VISIT_(m_callbacks, next_arena.not_empty(), this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, next_arena.len >= m_arena.len, this, NONE);
     if(m_arena_pos)
+    {
         memcpy(next_arena.str, m_arena.str, m_arena_pos);
+    }
     for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
         if(in_arena(n->m_key.scalar))
@@ -932,7 +934,7 @@ bool Tree::change_type(id_type node, NodeType type)
         return false;
     else if(type.is_val() && is_val(node))
         return false;
-    d->m_type = (d->m_type & (~(MAP|SEQ|VAL))) | type;
+    d->m_type = (d->m_type & (~(MAP|SEQ|VAL|CONTAINER_STYLE|KEY_STYLE|VAL_STYLE))) | type;
     remove_children(node);
     return true;
 }

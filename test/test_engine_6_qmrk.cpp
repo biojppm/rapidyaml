@@ -6,7 +6,9 @@
 namespace c4 {
 namespace yml {
 
-//-----------------------------------------------------------------------------
+
+//static constexpr const bool multiline = true;
+static constexpr const bool singleline = false;
 
 ENGINE_TEST(Qmrk0,
             HAS_CONTAINER_KEYS, Location(41,3,19),
@@ -37,9 +39,9 @@ ENGINE_TEST(Qmrk0,
     ___(ps.begin_map_key_block());
         ___(ps.set_key_scalar_plain("an explicit key"));
         ___(ps.set_val_scalar_plain("another value"));
-    ___(ps.end_map());
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -66,11 +68,11 @@ ENGINE_TEST(Qmrk1_0,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("an explicit key"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a simple key"));
     ___(ps.set_val_scalar_plain("a value"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -101,12 +103,12 @@ ENGINE_TEST(Qmrk1_1,
     ___(ps.begin_map_key_block());
         ___(ps.set_key_scalar_plain("an explicit key"));
         ___(ps.set_val_scalar_plain("another value"));
-    ___(ps.end_map());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("a simple key"));
     ___(ps.set_val_scalar_plain("a value"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -154,25 +156,25 @@ ENGINE_TEST(Qmrk1_2,
             ___(ps.begin_map_key_block());
                 ___(ps.set_key_scalar_plain("an explicit key"));
                 ___(ps.set_val_scalar_plain("another value"));
-            ___(ps.end_map());
-            ___(ps.set_val_scalar_plain({}));
+            ___(ps.end_map_block());
+            ___(ps.set_val_scalar_plain_empty());
             ___(ps.add_sibling());
             ___(ps.set_key_scalar_plain("a simple key"));
             ___(ps.set_val_scalar_plain("a value"));
-        ___(ps.end_map());
+        ___(ps.end_map_block());
         ___(ps.add_sibling());
         ___(ps.begin_map_key_block());
             ___(ps.set_key_scalar_plain("an explicit key deindented"));
             ___(ps.set_key_scalar_plain("its value"));
-        ___(ps.end_map());
-        ___(ps.set_val_scalar_plain({}));
+        ___(ps.end_map_block());
+        ___(ps.set_val_scalar_plain_empty());
         ___(ps.add_sibling());
         ___(ps.begin_map_key_block());
             ___(ps.set_key_scalar_plain("more"));
             ___(ps.set_key_scalar_plain("siblings"));
-        ___(ps.end_map());
-        ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+        ___(ps.end_map_block());
+        ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -205,14 +207,14 @@ ENGINE_TEST(Qmrk2_0,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("an explicit key"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc_expl());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("another explicit key"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -246,14 +248,14 @@ ENGINE_TEST(Qmrk2_1,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("an explicit key"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.begin_doc_expl());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("another explicit key"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -284,20 +286,20 @@ ENGINE_TEST(Qmrk3,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("an explicit key"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("bar"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("?baz"));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("?bat"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -323,9 +325,9 @@ ENGINE_TEST(Qmrk4_0,
     ___(ps.begin_seq_val_flow());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("?baz"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
-    ___(ps.end_seq());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -364,26 +366,26 @@ ENGINE_TEST(Qmrk4,
     ___(ps.begin_seq_val_flow());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("an explicit key"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("bar"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("?baz"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("?bat"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -416,15 +418,15 @@ ENGINE_TEST(Qmrk5,
     ___(ps.begin_map_key_block());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_map());
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain({}));
-    ___(ps.set_val_scalar_plain({}));
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
     ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain({}));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -467,21 +469,21 @@ ENGINE_TEST(Qmrk6,
             ___(ps.begin_map_key_block());
                 ___(ps.set_key_scalar_plain("an explicit key"));
                 ___(ps.set_val_scalar_plain("another value"));
-            ___(ps.end_map());
-            ___(ps.set_val_scalar_plain({}));
+            ___(ps.end_map_block());
+            ___(ps.set_val_scalar_plain_empty());
             ___(ps.add_sibling());
             ___(ps.set_key_scalar_plain("a simple key"));
             ___(ps.set_val_scalar_plain("a value"));
-        ___(ps.end_map());
+        ___(ps.end_map_block());
         ___(ps.add_sibling());
         ___(ps.begin_map_val_block());
             ___(ps.begin_map_key_block());
                 ___(ps.set_key_scalar_plain("another explicit key"));
                 ___(ps.set_val_scalar_plain("its value"));
-            ___(ps.end_map());
-            ___(ps.set_val_scalar_plain({}));
-        ___(ps.end_map());
-    ___(ps.end_seq());
+            ___(ps.end_map_block());
+            ___(ps.set_val_scalar_plain_empty());
+        ___(ps.end_map_block());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -526,28 +528,28 @@ ENGINE_TEST(Qmrk7,
     ___(ps.begin_seq_val_block());
         ___(ps.begin_map_val_block());
             ___(ps.begin_map_key_block());
-                ___(ps.set_key_scalar_plain({}));
+                ___(ps.set_key_scalar_plain_empty());
                 ___(ps.set_val_scalar_plain("x"));
-            ___(ps.end_map());
-            ___(ps.set_val_scalar_plain({}));
-        ___(ps.end_map());
+            ___(ps.end_map_block());
+            ___(ps.set_val_scalar_plain_empty());
+        ___(ps.end_map_block());
         ___(ps.add_sibling());
         ___(ps.begin_map_val_block());
             ___(ps.begin_map_key_block());
-                ___(ps.set_key_scalar_plain({}));
-                ___(ps.set_val_scalar_plain({}));
-            ___(ps.end_map());
-            ___(ps.set_val_scalar_plain({}));
-        ___(ps.end_map());
+                ___(ps.set_key_scalar_plain_empty());
+                ___(ps.set_val_scalar_plain_empty());
+            ___(ps.end_map_block());
+            ___(ps.set_val_scalar_plain_empty());
+        ___(ps.end_map_block());
         ___(ps.add_sibling());
         ___(ps.begin_map_val_block());
             ___(ps.begin_map_key_block());
-                ___(ps.set_key_scalar_plain({}));
-                ___(ps.set_val_scalar_plain({}));
-            ___(ps.end_map());
-            ___(ps.set_val_scalar_plain({}));
-        ___(ps.end_map());
-    ___(ps.end_seq());
+                ___(ps.set_key_scalar_plain_empty());
+                ___(ps.set_val_scalar_plain_empty());
+            ___(ps.end_map_block());
+            ___(ps.set_val_scalar_plain_empty());
+        ___(ps.end_map_block());
+    ___(ps.end_seq_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -582,11 +584,11 @@ ENGINE_TEST(QmrkWithTags,
     ___(ps.set_key_tag("!at"));
     ___(ps.begin_map_key_block());
         ___(ps.set_key_tag("!bt"));
-        ___(ps.set_key_scalar_plain({}));
+        ___(ps.set_key_scalar_plain_empty());
         ___(ps.set_val_scalar_plain("b2"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.set_val_scalar_plain("c3"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -625,8 +627,8 @@ ENGINE_TEST(QmrkGithub524_0,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("inner2"));
     ___(ps.set_val_scalar_plain("2"));
-    ___(ps.end_map());
-    ___(ps.end_map());
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -662,11 +664,11 @@ ENGINE_TEST(QmrkGithub524_1,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("inner1"));
     ___(ps.set_val_scalar_plain("1"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("inner2"));
     ___(ps.set_val_scalar_plain("2"));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -691,9 +693,9 @@ ENGINE_TEST(QmrkFlow0,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain({}));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -715,9 +717,9 @@ ENGINE_TEST(QmrkFlow1,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain({}));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -740,9 +742,9 @@ ENGINE_TEST(QmrkFlow1Anch,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_anchor("anch"));
-    ___(ps.set_key_scalar_plain({}));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -765,9 +767,9 @@ ENGINE_TEST(QmrkFlow1Tag,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_tag("!tag"));
-    ___(ps.set_key_scalar_plain({}));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -790,8 +792,8 @@ ENGINE_TEST(QmrkFlow1Squo,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_squoted("squo"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -815,8 +817,8 @@ ENGINE_TEST(QmrkFlow1AnchSquo,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_anchor("anch"));
     ___(ps.set_key_scalar_squoted("squo"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -840,8 +842,8 @@ ENGINE_TEST(QmrkFlow1TagSquo,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_tag("!tag"));
     ___(ps.set_key_scalar_squoted("squo"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -864,8 +866,8 @@ ENGINE_TEST(QmrkFlow1Dquo,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_dquoted("dquo"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -889,8 +891,8 @@ ENGINE_TEST(QmrkFlow1AnchDquo,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_anchor("anch"));
     ___(ps.set_key_scalar_dquoted("dquo"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -914,8 +916,8 @@ ENGINE_TEST(QmrkFlow1TagDquo,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_tag("!tag"));
     ___(ps.set_key_scalar_dquoted("dquo"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -938,8 +940,8 @@ ENGINE_TEST(QmrkFlow1Ref,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_ref("*ref"));
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -968,9 +970,9 @@ ENGINE_TEST(QmrkFlow1Seq,
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1000,9 +1002,9 @@ ENGINE_TEST(QmrkFlow1SeqAnchor,
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1032,9 +1034,9 @@ ENGINE_TEST(QmrkFlow1SeqTag,
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1063,9 +1065,9 @@ ENGINE_TEST(QmrkFlow1Map,
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1095,9 +1097,9 @@ ENGINE_TEST(QmrkFlow1MapAnchor,
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1127,9 +1129,9 @@ ENGINE_TEST(QmrkFlow1MapTag,
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1158,11 +1160,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.end_seq());
+    ___(ps.end_seq_flow(singleline));
     ___(ps.set_val_scalar_plain("x"));
-    ___(ps.end_map());
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1190,11 +1192,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_map_key_flow());
-    ___(ps.end_map());
+    ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain("x"));
-    ___(ps.end_map());
-    ___(ps.set_val_scalar_plain({}));
-    ___(ps.end_map());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
 }

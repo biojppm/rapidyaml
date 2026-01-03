@@ -488,32 +488,55 @@ references:
 
 TEST(serialize, create_anchor_ref_trip)
 {
-    const char expected_yaml[] = R"(anchor_objects:
-  - &id001
-    name: a_name
-reference_list:
-  - *id001
+    const char expected_yaml[] = R"(anchors:
+  - &id0 val0
+  - &id1
+    key1: val1
+  - &id2
+    - val2
+seq:
+  - *id0
+  - *id1
+  - *id2
+seqflow: [*id0,*id1,*id2]
+map:
+  *id0 : *id1
+  next: *id2
+mapflow: {*id0 : *id1,next: *id2}
 )";
 
     Tree tree;
-    const id_type root_id = tree.root_id();
-    tree.to_map(root_id);
-
-    const id_type anchor_list_id = tree.append_child(root_id);
-    tree.to_seq(anchor_list_id, "anchor_objects");
-
-    const id_type anchor_map0 = tree.append_child(anchor_list_id);
-    tree.to_map(anchor_map0);
-    tree.set_val_anchor(anchor_map0, "id001");
-
-    const id_type anchor_elem0 = tree.append_child(anchor_map0);
-    tree.to_keyval(anchor_elem0, "name", "a_name");
-
-    const id_type ref_list_id = tree.append_child(root_id);
-    tree.to_seq(ref_list_id, "reference_list");
-
-    const id_type elem0_id = tree.append_child(ref_list_id);
-    tree.set_val_ref(elem0_id, "id001");
+    tree.rootref() |= MAP;
+    tree["anchors"] |= SEQ;
+    tree["anchors"][0] = "val0";
+    tree["anchors"][0].set_val_anchor("id0");
+    tree["anchors"][1] |= MAP;
+    tree["anchors"][1].set_val_anchor("id1");
+    tree["anchors"][1]["key1"] = "val1";
+    tree["anchors"][2] |= SEQ;
+    tree["anchors"][2].set_val_anchor("id2");
+    tree["anchors"][2][0] = "val2";
+    auto setseq = [](NodeRef n, NodeType style){
+        n |= SEQ|style;
+        n[0] = "id0";
+        n[0].set_val_ref("id0");
+        n[1] = "id1";
+        n[1].set_val_ref("id1");
+        n[2] = "id2";
+        n[2].set_val_ref("id2");
+    };
+    auto setmap = [](NodeRef n, NodeType style){
+        n |= MAP|style;
+        n["*id0"] = "id0";
+        n["*id0"].set_key_ref("id0");
+        n["*id0"].set_val_ref("id1");
+        n["next"] = "id2";
+        n["next"].set_val_ref("id2");
+    };
+    setseq(tree["seq"], BLOCK);
+    setseq(tree["seqflow"], FLOW_SL);
+    setmap(tree["map"], BLOCK);
+    setmap(tree["mapflow"], FLOW_SL);
 
     EXPECT_EQ(emitrs_yaml<std::string>(tree), expected_yaml);
 }

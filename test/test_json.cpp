@@ -266,7 +266,7 @@ comment: |
 )";
     Tree t = parse_in_place(yml_buf);
     auto s = emitrs_json<std::string>(t);
-    EXPECT_EQ(s, "{\"comment\": \"abc\\ndef\\n\"}");
+    EXPECT_EQ(s, "{\n  \"comment\": \"abc\\ndef\\n\"\n}\n");
 }
 
 TEST(emit_json, issue297_escaped_chars)
@@ -490,7 +490,7 @@ TEST(json, issue390)
     const Tree tree = parse_in_arena(R"(quntity: 9.5e7
 quntity2: 95000000)");
     EXPECT_TRUE(csubstr("9.5e7").is_number());
-    EXPECT_EQ(emitrs_json<std::string>(tree), R"({"quntity": 9.5e7,"quntity2": 95000000})");
+    EXPECT_EQ(emitrs_json<std::string>(tree), "{\n  \"quntity\": 9.5e7,\n  \"quntity2\": 95000000\n}\n");
 }
 
 TEST(parse_json, error_on_missing_seq_val)
@@ -728,6 +728,13 @@ TEST(parse_json, seq_nested_on_seq_with_trailing_comma)
     root.append_child() = "3";
     Tree actual = parse_json_in_arena(json);
     test_compare(expected, actual);
+}
+
+
+TEST(emit_json, empty_val)
+{
+    Tree t = parse_in_arena("a: \nb: \"\"\nc: !!tag\nd: !!tag e");
+    EXPECT_EQ(emitrs_json<std::string>(t), "{\n  \"a\": null,\n  \"b\": \"\",\n  \"c\": \"\",\n  \"d\": \"e\"\n}\n");
 }
 
 

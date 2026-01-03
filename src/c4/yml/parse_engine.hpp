@@ -213,65 +213,20 @@ typedef enum BlockChomp_ {
 } BlockChomp_e;
 
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-/** Options to give to the parser to control its behavior. */
-struct RYML_EXPORT ParserOptions
-{
-private:
-
-    typedef enum : uint32_t {
-        SCALAR_FILTERING = (1u << 0u),
-        LOCATIONS = (1u << 1u),
-        DEFAULTS = SCALAR_FILTERING,
-    } Flags_e;
-
-    uint32_t flags = DEFAULTS;
-
-public:
-
-    ParserOptions() = default;
-
-public:
-
-    /** @name source location tracking */
-    /** @{ */
-
-    /** enable/disable source location tracking */
-    ParserOptions& locations(bool enabled) noexcept
-    {
-        if(enabled)
-            flags |= LOCATIONS;
-        else
-            flags &= ~LOCATIONS;
-        return *this;
-    }
-    /** query source location tracking status */
-    C4_ALWAYS_INLINE bool locations() const noexcept { return (flags & LOCATIONS); }
-
-    /** @} */
-
-public:
-
-    /** @name scalar filtering status (experimental; disable at your discretion) */
-    /** @{ */
-
-    /** enable/disable scalar filtering while parsing */
-    ParserOptions& scalar_filtering(bool enabled) noexcept
-    {
-        if(enabled)
-            flags |= SCALAR_FILTERING;
-        else
-            flags &= ~SCALAR_FILTERING;
-        return *this;
-    }
-    /** query scalar filtering status */
-    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
-
-    /** @} */
-};
+/** Quickly inspect the source to estimate the number of nodes the
+ * resulting tree is likely to have. If a tree is empty before
+ * parsing, considerable time will be spent growing it, so calling
+ * this to reserve the tree size prior to parsing is likely to
+ * result in a time gain. We encourage using this method before
+ * parsing, but as always measure its impact in performance to
+ * obtain a good trade-off.
+ *
+ * @note since this method is meant for optimizing performance, it
+ * is approximate. The result may be actually smaller than the
+ * resulting number of nodes, notably if the YAML uses implicit
+ * maps as flow seq members as in `[these: are, individual:
+ * maps]`. */
+RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-redundant-declaration)
 
 
 //-----------------------------------------------------------------------------
@@ -577,6 +532,8 @@ private:
 
     void  _handle_flow_skip_whitespace();
 
+    void  _end_map_flow();
+    void  _end_seq_flow();
     void  _end_map_blck();
     void  _end_seq_blck();
     void  _end2_map();
@@ -784,21 +741,6 @@ private:
 
 };
 
-
-/** Quickly inspect the source to estimate the number of nodes the
- * resulting tree is likely have. If a tree is empty before
- * parsing, considerable time will be spent growing it, so calling
- * this to reserve the tree size prior to parsing is likely to
- * result in a time gain. We encourage using this method before
- * parsing, but as always measure its impact in performance to
- * obtain a good trade-off.
- *
- * @note since this method is meant for optimizing performance, it
- * is approximate. The result may be actually smaller than the
- * resulting number of nodes, notably if the YAML uses implicit
- * maps as flow seq members as in `[these: are, individual:
- * maps]`. */
-RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-redundant-declaration)
 
 /** @} */
 

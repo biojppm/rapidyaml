@@ -61,6 +61,40 @@ int32_t estimate_events_ints_size(csubstr src)
     return count;
 }
 
+// ensure the ievt flags work despite being signed
+namespace ievt {
+static_assert((MASK & BSTR) == BSTR, "overflow?");
+static_assert((MASK & ESTR) == ESTR, "overflow?");
+static_assert((MASK & BDOC) == BDOC, "overflow?");
+static_assert((MASK & EDOC) == EDOC, "overflow?");
+static_assert((MASK & BMAP) == BMAP, "overflow?");
+static_assert((MASK & EMAP) == EMAP, "overflow?");
+static_assert((MASK & BSEQ) == BSEQ, "overflow?");
+static_assert((MASK & ESEQ) == ESEQ, "overflow?");
+static_assert((MASK & ANCH) == ANCH, "overflow?");
+static_assert((MASK & ALIA) == ALIA, "overflow?");
+static_assert((MASK & TAG_) == TAG_, "overflow?");
+static_assert((MASK & PLAI) == PLAI, "overflow?");
+static_assert((MASK & SQUO) == SQUO, "overflow?");
+static_assert((MASK & DQUO) == DQUO, "overflow?");
+static_assert((MASK & LITL) == LITL, "overflow?");
+static_assert((MASK & FOLD) == FOLD, "overflow?");
+static_assert((MASK & FLOW) == FLOW, "overflow?");
+static_assert((MASK & BLCK) == BLCK, "overflow?");
+static_assert((MASK & KEY_) == KEY_, "overflow?");
+static_assert((MASK & VAL_) == VAL_, "overflow?");
+static_assert((MASK & EXPL) == EXPL, "overflow?");
+static_assert((MASK & YAML) == YAML, "overflow?");
+static_assert((MASK & TAGD) == TAGD, "overflow?");
+static_assert((MASK & TAGV) == TAGV, "overflow?");
+static_assert((MASK & AREN) == AREN, "overflow?");
+static_assert((MASK & PSTR) == PSTR, "overflow?");
+static_assert((MASK & UNFILT) == UNFILT, "overflow?");
+static_assert((MASK & LAST) == LAST, "overflow?");
+static_assert((MASK & MASK) == MASK, "overflow?");
+static_assert((MASK & WSTR) == WSTR, "overflow?");
+} // namespace ievt
+
 } // namespace extra
 } // namespace yml
 } // namespace c4

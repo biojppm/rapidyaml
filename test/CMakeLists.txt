@@ -84,8 +84,8 @@ endfunction()
 
 
 ryml_add_test(engine_1_doc)
-ryml_add_test(engine_2_map)
-ryml_add_test(engine_3_seq)
+ryml_add_test(engine_2_seq)
+ryml_add_test(engine_3_map)
 ryml_add_test(engine_4_anchor)
 ryml_add_test(engine_5_tag)
 ryml_add_test(engine_6_qmrk)
@@ -127,7 +127,7 @@ ryml_add_test_case_group(scalar_dquoted)
 ryml_add_test_case_group(scalar_literal)
 ryml_add_test_case_group(scalar_folded)
 ryml_add_test_case_group(scalar_plain)
-ryml_add_test_case_group(tag_property)
+ryml_add_test_case_group(tag)
 ryml_add_test_case_group(explicit_key)
 ryml_add_test_case_group(map_nestedx2)
 ryml_add_test_case_group(seq_nestedx2)
@@ -148,6 +148,10 @@ if(CMAKE_COMPILER_IS_GNUCXX
     if(std EQUAL 20)
         c4_target_compile_flags(ryml-test-scalar_plain PUBLIC GCC -Wno-array-bounds -Wno-stringop-overflow)
     endif()
+endif()
+# MSVC bigobj
+if(MSVC)
+    target_compile_options(ryml-test-engine_1_doc PRIVATE /bigobj)
 endif()
 
 

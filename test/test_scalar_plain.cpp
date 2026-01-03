@@ -1083,7 +1083,7 @@ R"(
    })
 );
 
-ADD_CASE_TO_GROUP("plain scalar, explicit",
+ADD_CASE_TO_GROUP("plain scalar, flow",
 R"(
 [
   a plain scalar
@@ -1104,7 +1104,7 @@ with many lines
 and yet more, deindented
 ]
 )",
-  N(SFS, L{
+  N(SFM, L{
       N(VP, "a plain scalar with several lines\nand blank lines\nas well"),
       N(VP, "and another plain scalar"),
       N(VP, "and yet another one\n\n\nwith many lines\nand yet more"),
@@ -1112,7 +1112,7 @@ and yet more, deindented
    })
 );
 
-ADD_CASE_TO_GROUP("plain scalar, explicit, early end, seq", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, flow, early end, seq", EXPECT_PARSE_ERROR,
 R"([
   a plain scalar
     with several lines
@@ -1120,7 +1120,7 @@ R"([
   Location(4, 1)
 );
 
-ADD_CASE_TO_GROUP("plain scalar, explicit, early end, map", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, flow, early end, map", EXPECT_PARSE_ERROR,
 R"({foo:
   a plain scalar
     with several lines
@@ -1235,6 +1235,77 @@ N(MB, L{
   N(KP|VP, "foo:", "1 ... 2 ... 3"),
   N(KP|VP, "bar:", "5 .. 10"),
 })
+);
+
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 1, flow, seq",
+"[plain:]",
+  N(SFS, L{
+      N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 1, flow, seqimap",
+"[{plain:}]",
+  N(SFS, L{
+      N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 2, flow, seq",
+"[plain: ]",
+  N(SFS, L{
+      N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 2, flow, seqimap",
+"[{plain: }]",
+  N(SFS, L{
+      N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 3, flow, seq",
+"[plain:\r\n]",
+  N(SFM, L{
+      N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 3, flow, seqimap",
+"[{plain:\r\n}]",
+  N(SFM, L{
+      N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 4, flow, seq",
+"[plain:\n]",
+  N(SFM, L{
+      N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 4, flow, seqimap",
+"[{plain:\n}]",
+  N(SFM, L{
+      N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),
+   })
+);
+
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 5, flow, seq", EXPECT_PARSE_ERROR,
+"[plain:",
+  Location(1, 7)
+);
+
+ADD_CASE_TO_GROUP("plain scalar trailing column 5, flow, seqimap", EXPECT_PARSE_ERROR,
+"[{plain:",
+  Location(1, 9)
 );
 
 } // CASE_GROUP(PLAIN_SCALAR)
