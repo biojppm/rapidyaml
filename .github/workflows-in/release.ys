@@ -210,9 +210,9 @@ jobs:
   gettag:
     :: setup-job('release' 'gettag')
     runs-on: ubuntu-latest
-    steps::
-      checkout-action +
-      version-discover
+    steps:
+    - :: checkout-action
+    - :: version-discover
 
   #----------------------------------------------------------------------------
   # create source packages
@@ -221,7 +221,8 @@ jobs:
     needs: gettag
     runs-on: ubuntu-latest
     steps:
-    - :: checkout-action + version-get-vars
+    - :: checkout-action
+    - :: version-get-vars
     - name: Install python 3.9
       uses: actions/setup-python@v5
       with: { python-version: 3.9 }
@@ -285,7 +286,8 @@ jobs:
            sfxp: macosx-xcode.sh,
            gen: STGZ, mime: x-sh, os: macos-latest, cxx: xcode}
     steps:
-    - :: checkout-action + version-get-vars
+    - :: checkout-action
+    - :: version-get-vars
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
@@ -364,7 +366,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [merge_artifacts]
     steps:
-    - :: checkout-action + version-get-vars
+    - :: checkout-action
+    - :: version-get-vars
     # artifacts
     - name: Verify existing artifacts
       run: |

@@ -6,9 +6,9 @@
 jobs:
   gettag:
     runs-on: ubuntu-latest
-    steps::
-      checkout-action +
-      version-discover
+    steps:
+    - :: checkout-action
+    - :: version-discover
 
   benchmarks:
     name: bm/c++${{matrix.std}}/${{matrix.comp}}/${{matrix.bt}}
@@ -26,7 +26,8 @@ jobs:
         - {std: 17, comp: xcode15, os: macos-15-intel, xcver: 16, cmkflags: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64}
     env:: +{'BM' 'ON'} + load('share/env.yaml')
     steps:
-    - :: checkout-action + version-get-vars
+    - :: checkout-action
+    - :: version-get-vars
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info

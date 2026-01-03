@@ -2,7 +2,7 @@ M := .cache/makes
 $(shell [ -d $M ] || git clone -q https://github.com/makeplus/makes $M)
 include $M/init.mk
 YS-VERSION := 0.2.8
-# include $M/ys.mk
+include $M/ys.mk
 include $M/clean.mk
 include $M/shell.mk
 
@@ -48,6 +48,16 @@ force:
 	@if [[ -f $@ ]] ; then chmod a+w $@ ; fi
 	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows-in/$<" > $@
 	@echo >> $@
-	ys -Y $< >> $@
+	$(YS) -Y $< >> $@
 	@chmod a-w $@
 	@wc -lm --total=never $< $@ || wc -lm $< $@
+
+
+# Auto install a specific version of ys
+install-ys: $(YS)
+$(YS):
+
+
+stats:
+	@echo "ys : $$(wc -lm *.ys)"
+	@echo "yml: $$(wc -lm ../workflows/*.yml)"
