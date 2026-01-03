@@ -90,6 +90,5 @@ jobs:
         # https://stackoverflow.com/questions/58033366
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
-        if [ ! -z "$(git ls-remote $repo | grep $branch)" ] ; then
+        [ -z "$(git ls-remote $repo | grep $branch)" ] ||
            ./run.sh $BT $branch "$repo"
-        fi

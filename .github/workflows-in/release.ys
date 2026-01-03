@@ -1,5 +1,6 @@
-!yamlscript/v0
+!ys-0
 
+use common:
 
 defn pywhl(pyv cibwpyv cibwarch cibwplatform os vsenvarch='' cmkflags='')::  # NOTE: cannot use _ in names?
     name:: "python/$pyv/$cibwplatform"
@@ -15,87 +16,87 @@ defn pywhl(pyv cibwpyv cibwarch cibwplatform os vsenvarch='' cmkflags='')::  # N
 
 python-wheel-matrix =::
 #          pyv        arch         platform            os
-- ! pywhl('3.13' 313 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.13' 313 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.13' 313 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.13' 313 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.13' 313 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.13' 313 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.13' 313 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.13' 313 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.13' 313 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.13' 313 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.13' 313 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.13' 313 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.12' 312 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.12' 312 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.12' 312 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.12' 312 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.12' 312 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.12' 312 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.12' 312 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.12' 312 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.12' 312 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.12' 312 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.12' 312 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.12' 312 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.11' 311 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.11' 311 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.11' 311 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.11' 311 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.11' 311 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.11' 311 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.11' 311 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.11' 311 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.11' 311 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.11' 311 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.11' 311 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.11' 311 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.10' 310 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.10' 310 'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.10' 310 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.10' 310 'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.10' 310 'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.10' 310 'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.10' 310 'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.10' 310 'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.10' 310 'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.10' 310 'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.10' 310 'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.10' 310 'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.9'  39  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.9'  39  'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.9'  39  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.9'  39  'x86_64'     'macosx_x86_64'     'macos-15-intel')
-- ! pywhl('3.9'  39  'arm64'      'macosx_arm64'      'macos-latest')
-- ! pywhl('3.9'  39  'universal2' 'macosx_universal2' 'macos-latest')
+- :: pywhl('3.9'  39  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.9'  39  'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.9'  39  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.9'  39  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.9'  39  'arm64'      'macosx_arm64'      'macos-latest')
+- :: pywhl('3.9'  39  'universal2' 'macosx_universal2' 'macos-latest')
 #          pyv        arch         platform            os
-- ! pywhl('3.8'  38  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
-- ! pywhl('3.8'  38  'i686'       'manylinux_i686'    'ubuntu-24.04')
-- ! pywhl('3.8'  38  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
-- ! pywhl('3.8'  38  'x86_64'     'macosx_x86_64'     'macos-15-intel')
-#- ! pywhl('3.8'  38  'arm64'      'macosx_arm64'      'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
-#- ! pywhl('3.8'  38  'universal2' 'macosx_universal2' 'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
+- :: pywhl('3.8'  38  'x86_64'     'manylinux_x86_64'  'ubuntu-24.04')
+- :: pywhl('3.8'  38  'i686'       'manylinux_i686'    'ubuntu-24.04')
+- :: pywhl('3.8'  38  'aarch64'    'manylinux_aarch64' 'ubuntu-24.04-arm')
+- :: pywhl('3.8'  38  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+#- :: pywhl('3.8'  38  'arm64'      'macosx_arm64'      'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
+#- :: pywhl('3.8'  38  'universal2' 'macosx_universal2' 'macos-14'    ) # disabled: https://cibuildwheel.pypa.io/en/stable/faq/#macos-building-cpython-38-wheels-on-arm64
 #          pyv        arch         platform            os
-- ! pywhl('3.7'  37  'x86_64'     'manylinux_x86_64'  'ubuntu-22.04')
-- ! pywhl('3.7'  37  'i686'       'manylinux_i686'    'ubuntu-22.04')
-- ! pywhl('3.7'  37  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+- :: pywhl('3.7'  37  'x86_64'     'manylinux_x86_64'  'ubuntu-22.04')
+- :: pywhl('3.7'  37  'i686'       'manylinux_i686'    'ubuntu-22.04')
+- :: pywhl('3.7'  37  'x86_64'     'macosx_x86_64'     'macos-15-intel')
 #          pyv        arch         platform            os
-#- ! pywhl('3.6'  36  'x86_64'     'manylinux_x86_64'  'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
-#- ! pywhl('3.6'  36  'i686'       'manylinux_i686'    'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
-#- ! pywhl('3.6'  36  'x86_64'     'macosx_x86_64'     'macos-15-intel')
+#- :: pywhl('3.6'  36  'x86_64'     'manylinux_x86_64'  'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+#- :: pywhl('3.6'  36  'i686'       'manylinux_i686'    'ubuntu-20.04') # setup-python 3.6 requires ubuntu 20.04
+#- :: pywhl('3.6'  36  'x86_64'     'macosx_x86_64'     'macos-15-intel')
 
 
 python-wheel-matrix-win =::
 #          pyv        arch     platform     os             vsenvarch     cmakeflags
-- ! pywhl('3.13' 313 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.13' 313 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.13' 313 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.13' 313 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.13' 313 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.13' 313 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.12' 312 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.12' 312 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.12' 312 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.12' 312 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.12' 312 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.12' 312 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.11' 311 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.11' 311 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.11' 311 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.11' 311 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.11' 311 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.11' 311 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.10' 310 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.10' 310 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.10' 310 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.10' 310 'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.10' 310 'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.10' 310 'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.9'  39  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.9'  39  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
-#- ! pywhl('3.9'  39  'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
+- :: pywhl('3.9'  39  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.9'  39  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+#- :: pywhl('3.9'  39  'ARM64'  'win_arm64'  'windows-2022' 'amd64_arm64' '-G "Visual Studio 17 2022" -A ARM64')
 #
-- ! pywhl('3.8'  38  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.8'  38  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+- :: pywhl('3.8'  38  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.8'  38  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
 #
-- ! pywhl('3.7'  37  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-#- ! pywhl('3.7'  37  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+- :: pywhl('3.7'  37  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+#- :: pywhl('3.7'  37  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
 #
-- ! pywhl('3.6'  36  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
-- ! pywhl('3.6'  36  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
+- :: pywhl('3.6'  36  'AMD64'  'win_amd64'  'windows-2022' 'x64'         '-G "Visual Studio 17 2022" -A x64')
+- :: pywhl('3.6'  36  'x86'    'win32'      'windows-2022' 'x86'         '-G "Visual Studio 17 2022" -A Win32')
 
 
 setup-env =::
@@ -109,86 +110,84 @@ setup-env-win =::
   with:
     arch: ${{matrix.config.vsenvarch}}
 
+defn define-workflow-python-wheels(name matrix setup-env)::
+    :: setup-job('release' name)
+    name: ${{matrix.config.name}}
+    runs-on: ${{matrix.config.os}}
+    env:
+      CMAKE_FLAGS: ${{matrix.config.cmakeflags}} -DCMAKE_VERBOSE_MAKEFILES=ON -DRYML_DEV=OFF -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
+      CIBW_BUILD: cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
+      CIBW_ARCHS: ${{matrix.config.cibw_arch}}
+      CIBW_BUILD_VERBOSITY: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        config:: matrix
+    steps:
+    - :: checkout-action + setup-env
+    - name: create wheel
+      uses: pypa/cibuildwheel@v2.23
+    - name: rename wheelhouse -> dist
+      run: mv -fv wheelhouse dist
+    - name: Verify artifacts
+      run: ls -lFhp dist/
+    - name: Save artifacts for publishing to PyPI
+      uses: actions/upload-artifact@v4
+      with: {name: 'dist-${{matrix.config.sfx}}', path: dist/}
+    # run the tests
+    - name: install python ${{matrix.config.pythonv}}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{matrix.config.pythonv}}
+    - name: confirm python install
+      run: |
+        python --version
+        python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
+    - name: test with python ${{matrix.config.pythonv}}
+      run: |
+        set -x
+        echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
+        # skip 32 bit tests, as Python 32 bits are not available in ubuntu
+        arch="${{matrix.config.cibw_arch}}"
+        if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
+          exit 0
+        fi
+        python --version
+        python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
+        pip --version
+        pip install -v -r requirements.txt
+        pip install -v -r api/python/requirements.txt
+        for whl in dist/* ; do
+          # verify that we can import the wheel files without installing the wheel
+          unzip -l $whl
+          mkdir -p tmpwhl
+          cd tmpwhl
+          unzip ../$whl
+          ls -lFpAR .
+          ( export PYTHONPATH=`pwd`/ryml ; python -c 'import ryml' )
+          cd ..
+          rm -rf tmpwhl
+          # verify that we can install the wheel and then import it
+          pip install -v $whl
+          pip show -f rapidyaml
+          python -c 'import ryml'
+          python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
+          python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
+          # run the tests
+          python -m pytest -vvv api/python/tests
+          pip uninstall -y -v rapidyaml
+        done
+
 
 ---
-!yamlscript/v0:
+!ys:
 
-:use common: :all
+:use common:
+
 :workflow-setup 'release'::
   push:
     tags: [v0.*, v1.*, v2.*]
     branches: [master]
-::
-  defn define-workflow-python-wheels(name matrix setup-env)::
-      :: setup-job('release' name)
-      name: ${{matrix.config.name}}
-      runs-on: ${{matrix.config.os}}
-      env:
-        CMAKE_FLAGS: ${{matrix.config.cmakeflags}} -DCMAKE_VERBOSE_MAKEFILES=ON -DRYML_DEV=OFF -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF
-        CIBW_BUILD: cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}
-        CIBW_ARCHS: ${{matrix.config.cibw_arch}}
-        CIBW_BUILD_VERBOSITY: 2
-      strategy:
-        fail-fast: false
-        matrix:
-          config:: matrix
-      steps:
-      - :: checkout-action
-      - :: setup-env
-      - name: create wheel
-        uses: pypa/cibuildwheel@v2.23
-      - name: rename wheelhouse -> dist
-        run: mv -fv wheelhouse dist
-      - name: Verify artifacts
-        run: ls -lFhp dist/
-      - name: Save artifacts for publishing to PyPI
-        uses: actions/upload-artifact@v4
-        with: {name: 'dist-${{matrix.config.sfx}}', path: dist/}
-      # run the tests
-      - name: install python ${{matrix.config.pythonv}}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{matrix.config.pythonv}}
-      - name: confirm python install
-        run: |
-          python --version
-          python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
-      - name: test with python ${{matrix.config.pythonv}}
-        run: |
-          set -x
-          echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
-          # skip 32 bit tests, as Python 32 bits are not available in ubuntu
-          arch="${{matrix.config.cibw_arch}}"
-          if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
-            exit 0
-          fi
-          python --version
-          python -c 'import sys ; import struct ; import platform ; print("python:", sys.version, struct.calcsize("P") * 8, "bits", platform.machine())'
-          pip --version
-          pip install -v -r requirements.txt
-          pip install -v -r api/python/requirements.txt
-          for whl in dist/* ; do
-            # verify that we can import the wheel files without installing the wheel
-            unzip -l $whl
-            mkdir -p tmpwhl
-            cd tmpwhl
-            unzip ../$whl
-            ls -lFpAR .
-            ( export PYTHONPATH=`pwd`/ryml ; python -c 'import ryml' )
-            cd ..
-            rm -rf tmpwhl
-            # verify that we can install the wheel and then import it
-            pip install -v $whl
-            pip show -f rapidyaml
-            python -c 'import ryml'
-            python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
-            python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
-            # run the tests
-            python -m pytest -vvv api/python/tests
-            pip uninstall -y -v rapidyaml
-          done
-
-  =>: nil # this is needed to expose the function above
 
 env:
   PROJ_PKG_NAME: rapidyaml-
@@ -306,7 +305,7 @@ jobs:
         mkdir -p assets
         asset_src=`ls -1 ./build/shared64/*-${{matrix.config.sfxg}}`
         asset_dst=./assets/${PROJ_PKG_NAME}${SRC_VERSION}-${{matrix.config.sfxp}}
-        [ ! -f $asset_src ] && exit 1
+        [ -f $asset_src ] || exit
         cp -fav $asset_src $asset_dst
     - name: Save artifacts
       uses: actions/upload-artifact@v4
