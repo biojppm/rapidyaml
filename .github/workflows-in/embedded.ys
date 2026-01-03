@@ -69,13 +69,13 @@
       cmake --build build --target ryml-test-run
   =>: nil
 
-steps11 =:
-  xcompile-steps("${{matrix.arch}}" "Debug"   "11" "${{matrix.flags}}") +
-  xcompile-steps("${{matrix.arch}}" "Release" "11" "${{matrix.flags}}")
+steps11 =::
+  - :: xcompile-steps("${{matrix.arch}}" "Debug"   "11" "${{matrix.flags}}")
+  - :: xcompile-steps("${{matrix.arch}}" "Release" "11" "${{matrix.flags}}")
 
-steps20 =:
-  xcompile-steps("${{matrix.arch}}" "Debug"   "20" "${{matrix.flags}}") +
-  xcompile-steps("${{matrix.arch}}" "Release" "20" "${{matrix.flags}}")
+steps20 =::
+  - :: xcompile-steps("${{matrix.arch}}" "Debug"   "20" "${{matrix.flags}}")
+  - :: xcompile-steps("${{matrix.arch}}" "Release" "20" "${{matrix.flags}}")
 
 # https://stackoverflow.com/questions/59906042/how-to-debug-mips-interactively
 matrix-items =::

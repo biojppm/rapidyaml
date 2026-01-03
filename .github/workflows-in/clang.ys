@@ -97,16 +97,16 @@ jobs:
         - {std: 11, cxx: '3.9', bits: 64, vg: OFF, img: 18.04}
         - {std: 11, cxx: '3.9', bits: 32, vg: OFF, img: 18.04}
     env:: load('share/env.yaml')
-    c4core-install =::
-    - name: install
-      run: c4core-install clang++-${{matrix.cxx}}
-    steps::
-      checkout-manual + c4core-install +
-      run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}') +
-      run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}') +
-      run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}') +
-      run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}') +
-      run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
+    steps:
+      - :: checkout-manual
+      - name: install
+        run: c4core-install clang++-${{matrix.cxx}}
+      - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
+
 
   #----------------------------------------------------------------------------
   clangsan:
