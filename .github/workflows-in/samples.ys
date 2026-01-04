@@ -48,13 +48,9 @@ jobs:
     - name: custom_c4core
       run: cd samples/custom_c4core && ./run.sh $BT
     - name: fetch_content
-      run: |
-        # run this sample only if the branch exists on the repo
-        set -xe
+      run:: |
+        set -xeo pipefail
         cd samples/fetch_content
-        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
-        # https://stackoverflow.com/questions/58033366
-        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-        echo branch=$branch
-        [ -z "$(git ls-remote $repo | grep $branch)" ] ||
-           ./run.sh $BT $branch "$repo"
+        ${checkout-find-branch}
+        # run this sample only if the branch exists on the repo
+        ./run.sh \$BT \$hash "\$repo" || echo 'maybe some other time'
