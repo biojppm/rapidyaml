@@ -110,6 +110,142 @@ COMMENT_TEST(FlowSeqMinimalBaseSingleLine1WithSep,
     ___(ps.end_stream());
 }
 
+COMMENT_TEST(FlowSeqMinimalBaseSingleLine1WithAnchorTag,
+             "# 1"                         "\n"
+             "# 2"                         "\n"
+             "&anchor # 3"                 "\n"
+             "# 4"                         "\n"
+             "!!tag # 5"                   "\n"
+             "# 6"                         "\n"
+             "[val1, val2] # 7"            "\n"
+             "# 8"                         "\n"
+             ,
+             "# 1"                         "\n"
+             "# 2"                         "\n"
+             "&anchor # 3"                 "\n"
+             "        # 4"                 "\n"
+             "!!tag # 5"                   "\n"
+             "      # 6"                   "\n"
+             "[val1, val2] # 7"            "\n"
+             "             # 8"            "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "+SEQ []"                     "\n"
+             "=VAL :val1"                  "\n"
+             "=VAL :val2"                  "\n"
+             "-SEQ"                        "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[FOOTER] 3"           "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1\\n 2", COMM_LEADING));
+    ___(ps.set_val_anchor("anchor"));
+    ___(ps.add_comment(" 3\\n 4", COMM_VAL_ANCHOR_TRAILING));
+    ___(ps.set_val_tag("!!tag"));
+    ___(ps.add_comment(" 5\\n 6", COMM_VAL_TAG_TRAILING));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.add_comment(" 7\\n 8", COMM_TRAILING));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(FlowSeqMinimalBaseSingleLine1WithAnchorTagSep1,
+             "# 1" /*no sep here*/         "\n"
+             "# 2"                         "\n"
+             "&anchor # 3 ~"               "\n"
+             "# 4"                         "\n"
+             "!!tag # 5 ~"                 "\n"
+             "# 6"                         "\n"
+             "[val1, val2] # 7 ~"          "\n"
+             "# 8"                         "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "=COMM #[LEADING] 1\\n 2"     "\n"
+             "+SEQ []"                     "\n"
+             "=VAL :val1"                  "\n"
+             "=VAL :val2"                  "\n"
+             "-SEQ"                        "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[FOOTER] 3"           "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1 2", COMM_LEADING));
+    ___(ps.set_val_anchor("anchor"));
+    ___(ps.add_comment(" 3", COMM_VAL_ANCHOR_TRAILING));
+    ___(ps.add_comment(" 4", COMM_VAL_TAG_LEADING));
+    ___(ps.set_val_tag("!!tag"));
+    ___(ps.add_comment(" 5", COMM_VAL_TAG_TRAILING));
+    ___(ps.add_comment(" 6", COMM_VAL_LEADING));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.add_comment(" 7", COMM_TRAILING));
+    ___(ps.add_comment(" 8", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+COMMENT_TEST(FlowSeqMinimalBaseSingleLine1WithAnchorTagSep,
+             "# 1 ~"                       "\n"
+             "# 2"                         "\n"
+             "&anchor # 3 ~"               "\n"
+             "# 4"                         "\n"
+             "!!tag # 5 ~"                 "\n"
+             "# 6"                         "\n"
+             "[val1, val2] # 7 ~"          "\n"
+             "# 8"                         "\n"
+             ,
+             "+STR"                        "\n"
+             "+DOC"                        "\n"
+             "=COMM #[LEADING] 1"          "\n"
+             "+SEQ []"                     "\n"
+             "=VAL :val1"                  "\n"
+             "=VAL :val2"                  "\n"
+             "-SEQ"                        "\n"
+             "=COMM #[TRAILING] 2"         "\n"
+             "=COMM #[FOOTER] 3"           "\n"
+             "-DOC"                        "\n"
+             "-STR"                        "\n"
+    )
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.add_comment(" 1", COMM_LEADING));
+    ___(ps.add_comment(" 2", COMM_VAL_ANCHOR_LEADING));
+    ___(ps.set_val_anchor("anchor"));
+    ___(ps.add_comment(" 3", COMM_VAL_ANCHOR_TRAILING));
+    ___(ps.add_comment(" 4", COMM_VAL_TAG_LEADING));
+    ___(ps.set_val_tag("!!tag"));
+    ___(ps.add_comment(" 5", COMM_VAL_TAG_TRAILING));
+    ___(ps.add_comment(" 6", COMM_VAL_LEADING));
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("val1"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("val2"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.add_comment(" 7", COMM_TRAILING));
+    ___(ps.add_comment(" 8", COMM_FOOTER));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 COMMENT_TEST(FlowSeqMinimalBaseSingleLine2,
              "# 1"                         "\n"
              "[val1,val2] # 2"             "\n"
