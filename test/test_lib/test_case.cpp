@@ -48,20 +48,22 @@ id_type _num_leaves(Tree const& t, id_type node)
 
 
 void test_compare(Tree const& actual, Tree const& expected,
-                  const char *actual_name, const char *expected_name)
+                  const char *actual_name, const char *expected_name,
+                  type_bits cmp_mask)
 {
     ASSERT_EQ(actual.empty(), expected.empty());
     if(actual.empty() || expected.empty())
         return;
     EXPECT_EQ(actual.size(), expected.size());
     EXPECT_EQ(_num_leaves(actual, actual.root_id()), _num_leaves(expected, expected.root_id()));
-    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0, actual_name, expected_name);
+    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0, actual_name, expected_name, cmp_mask);
 }
 
 
 void test_compare(Tree const& actual, id_type node_actual,
                   Tree const& expected, id_type node_expected,
-                  id_type depth, const char *actual_name, const char *expected_name)
+                  id_type depth, const char *actual_name, const char *expected_name,
+                  type_bits cmp_mask)
 {
     RYML_TRACE_FMT("{}[{}] vs {}[{}]. depth={}", actual_name, node_actual, expected_name, node_expected, depth);
 
@@ -70,10 +72,9 @@ void test_compare(Tree const& actual, id_type node_actual,
     ASSERT_LT(node_actual, actual.capacity());
     ASSERT_LT(node_expected, expected.capacity());
 
-    NodeType type_actual = actual.type(node_actual)&_TYMASK;
-    NodeType type_expected = expected.type(node_expected)&_TYMASK;
+    NodeType type_actual = actual.type(node_actual) & cmp_mask;
+    NodeType type_expected = expected.type(node_expected) & cmp_mask;
     RYML_COMPARE_NODE_TYPE(type_actual, type_expected, ==, EQ);
-    //EXPECT_EQ((type_bits)(actual.type(node_actual)&_TYMASK), (type_bits)(expected.type(node_expected)&_TYMASK));
 
     EXPECT_EQ(actual.has_key(node_actual), expected.has_key(node_expected));
     if(actual.has_key(node_actual) && expected.has_key(node_expected))

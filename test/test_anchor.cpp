@@ -373,6 +373,105 @@ tpl: &anchor
 
 
 //-----------------------------------------------------------------------------
+
+Tree github566_make_map(NodeType_e root_style)
+{
+    Tree tree;
+    NodeRef root = tree.rootref();
+    root |= MAP|root_style;
+    root.set_val_anchor("ref0");
+    root["a"] = "1";
+    NodeRef self = root["self"];
+    self.set_val("*ref0");
+    self.set_val_ref("ref0");
+    return tree;
+}
+
+Tree github566_make_seq(NodeType_e root_style)
+{
+    Tree tree;
+    NodeRef root = tree.rootref();
+    root |= SEQ|root_style;
+    root.set_val_anchor("ref0");
+    root[0] = "1";
+    root[1].set_val("*ref0");
+    root[1].set_val_ref("ref0");
+    return tree;
+}
+
+void github566_cmp(type_bits mask, Tree const& orig, std::string const& expected)
+{
+    const Tree parsed = parse_in_arena(to_csubstr(expected));
+    test_compare(orig, parsed, "orig", "parsed", mask);
+    EXPECT_EQ(expected, emitrs_yaml<std::string>(parsed));
+    EXPECT_EQ(expected, emitrs_yaml<std::string>(orig));
+}
+
+TEST(anchors, github566_map_NOSTYLE)
+{
+    const Tree orig = github566_make_map(NOTYPE);
+    github566_cmp(_TYMASK, orig, R"(&ref0
+a: 1
+self: *ref0
+)");
+}
+TEST(anchors, github566_map_BLOCK)
+{
+    const Tree orig = github566_make_map(BLOCK);
+    github566_cmp(0xffffffff, orig, R"(&ref0
+a: 1
+self: *ref0
+)");
+}
+TEST(anchors, github566_map_FLOW_ML)
+{
+    const Tree orig = github566_make_map(FLOW_ML);
+    github566_cmp(0xffffffff, orig, R"(&ref0 {
+  a: 1,
+  self: *ref0
+}
+)");
+}
+TEST(anchors, github566_map_FLOW_SL)
+{
+    const Tree orig = github566_make_map(FLOW_SL);
+    github566_cmp(0xffffffff, orig, R"(&ref0 {a: 1,self: *ref0})");
+}
+
+
+TEST(anchors, github566_seq_NOSTYLE)
+{
+    const Tree orig = github566_make_seq(NOTYPE);
+    github566_cmp(_TYMASK, orig, R"(&ref0
+- 1
+- *ref0
+)");
+}
+TEST(anchors, github566_seq_BLOCK)
+{
+    const Tree orig = github566_make_seq(BLOCK);
+    github566_cmp(0xffffffff, orig, R"(&ref0
+- 1
+- *ref0
+)");
+}
+TEST(anchors, github566_seq_FLOW_ML)
+{
+    const Tree orig = github566_make_seq(FLOW_ML);
+    github566_cmp(0xffffffff, orig, R"(&ref0 [
+  1,
+  *ref0
+]
+)");
+}
+TEST(anchors, github566_seq_FLOW_SL)
+{
+    const Tree orig = github566_make_seq(FLOW_SL);
+    github566_cmp(0xffffffff, orig, R"(&ref0 [1,*ref0])");
+}
+
+
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
