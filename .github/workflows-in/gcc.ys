@@ -1,6 +1,6 @@
-!yamlscript/v0:
+!ys-0:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 jobs:
@@ -16,14 +16,14 @@ jobs:
         item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :bitlinks 'shared64 static32', :img "$a(%4)"})
         include: &include1
         # use gcc13 because it's a lot faster than gcc14
-        - ! item(11  13 'Debug'   '22.04')
-        - ! item(11  13 'Release' '22.04')
-        - ! item(20  13 'Debug'   '22.04')
-        - ! item(20  13 'Release' '22.04')
-        - ! item(11   5 'Debug'   '18.04')
-        - ! item(11   5 'Release' '18.04')
-        - ! item(11 4.8 'Debug'   '18.04')
-        - ! item(11 4.8 'Release' '18.04')
+        - :: item(11  13 'Debug'   '22.04')
+        - :: item(11  13 'Release' '22.04')
+        - :: item(20  13 'Debug'   '22.04')
+        - :: item(20  13 'Release' '22.04')
+        - :: item(11   5 'Debug'   '18.04')
+        - :: item(11   5 'Release' '18.04')
+        - :: item(11 4.8 'Debug'   '18.04')
+        - :: item(11 4.8 'Release' '18.04')
     env:: load('share/env.yaml')
     steps:: checkout-manual + install-cxx + run-steps
 
@@ -187,10 +187,8 @@ jobs:
       fail-fast: false
       matrix:
         include::
-          ? for
-              san qw(asan lsan tsan ubsan)
-              std [11 14 17 20]
-          : ! { std:: std, cxx: g++-14, bt:: san, bitlinks: static64 }
+          for san qw(asan lsan tsan ubsan), std [11 14 17 20]::
+            { std:: std, cxx: g++-14, bt:: san, bitlinks: static64 }
     env:: load('share/env.yaml')
     steps:: checkout-action-docker + install-cxx + run-steps
 
@@ -208,13 +206,13 @@ jobs:
         include:
         # these jobs take much longer, so run only one bitlink pair per job to
         # profit from parallelism
-        - ! item(11 'Debug')
-        - ! item(11 'Release')
-        - ! item(14 'Debug')
-        - ! item(14 'Release')
-        - ! item(17 'Debug')
-        - ! item(17 'Release')
-    env:: -{'TOOLCHAIN' '${{matrix.toolchain}}'} + load('share/env.yaml')
+        - :: item(11 'Debug')
+        - :: item(11 'Release')
+        - :: item(14 'Debug')
+        - :: item(14 'Release')
+        - :: item(17 'Debug')
+        - :: item(17 'Release')
+    env:: +{'TOOLCHAIN' '${{matrix.toolchain}}'} + load('share/env.yaml')
     steps:
     - :: checkout-manual
     - name: install gcc-arm-linux-gnueabihf

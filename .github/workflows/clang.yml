@@ -22,7 +22,6 @@ jobs:
   canary:
     if: always()
     continue-on-error: false
-    name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     strategy:
@@ -88,10 +87,10 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
   tabtokens:
     if: always()
     continue-on-error: false
-    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     needs: canary
@@ -159,10 +158,10 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
   noexceptions:
     if: always()
     continue-on-error: false
-    name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     needs: canary
@@ -230,10 +229,10 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
   extended:
     if: always()
     continue-on-error: false
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     needs: canary
@@ -450,23 +449,35 @@ jobs:
         # https://stackoverflow.com/questions/58033366
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
+        localbranch=$branch
+        rembranch=$branch
         # does the branch exist in the repo?
-        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+        if [ -z "$(git ls-remote $repo | grep -F $branch)" ] ; then
             echo "branch $branch does not exist on $repo"
             # refs/pull/485/merge -> pull/485/head
             branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            localbranch=$branch
+            rembranch=$branch
             echo "... falling back to $branch"
             # does the fallback exist?
-            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+            if [ -z "$(git ls-remote $repo | grep -F $branch)" ] ; then
                 echo "branch $branch does not exist on $repo"
                 exit 1
             else
                 echo "branch $branch exists on $repo"
                 localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                echo "naming locally as $localbranch"
+                rembranch=$branch
                 branch=$branch:$localbranch
-                echo "naming locally as $branch"
             fi
         fi
+        hash=$(git ls-remote $repo | grep -F $rembranch | awk '{print $1}')
+        echo "final repo=$repo"
+        echo "final branch=$branch"
+        echo "final rembranch=$rembranch"
+        echo "final localbranch=$localbranch"
+        echo "final hash=$hash"
+
         # finally, create the local repo
         git init -q .
         # needed for running in the docker image.
@@ -626,10 +637,10 @@ jobs:
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
   clangsan:
     if: always()
     continue-on-error: false
-    name: san/${{matrix.bt}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
     needs: canary
@@ -752,3 +763,4 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+    name: san/${{matrix.bt}}/c++${{matrix.std}}

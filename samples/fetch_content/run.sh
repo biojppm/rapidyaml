@@ -12,7 +12,7 @@ cd $(dirname $0)
 # configure the sample
 cmake -S . -B ./build/$cfg \
       -DCMAKE_BUILD_TYPE=$cfg \
-      -DRYML_BRANCH_NAME=$branch \
+      -DRYML_TAG_NAME=$branch \
       -DRYML_REPO_URL=$repo
 # build and run the sample
 cmake --build ./build/$cfg --config $cfg --target run

@@ -1,6 +1,6 @@
-!yamlscript/v0:  # data mode
+!ys-0:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 items =::

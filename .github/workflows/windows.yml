@@ -22,7 +22,6 @@ jobs:
   vsdebug:
     if: always()
     continue-on-error: false
-    name: ${{matrix.name}}bit/c++${{matrix.std}}/debug
     runs-on: windows-${{matrix.os}}
     strategy:
       fail-fast: false
@@ -145,10 +144,10 @@ jobs:
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
+    name: ${{matrix.name}}bit/c++${{matrix.std}}/debug
   vsrelease:
     if: always()
     continue-on-error: false
-    name: ${{matrix.name}}bit/c++${{matrix.std}}/release
     runs-on: windows-${{matrix.os}}
     strategy:
       fail-fast: false
@@ -271,3 +270,4 @@ jobs:
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
+    name: ${{matrix.name}}bit/c++${{matrix.std}}/release

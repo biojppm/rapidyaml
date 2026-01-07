@@ -1,11 +1,10 @@
-!yamlscript/v0
+!ys-0
 
 ns: common
 
 #----------------------------------------------------------
 defn workflow-setup(name=nil overrides={})::
-  name =: name || FILE.replace(/.*\//).replace(/\.ys$/)
-  name:: name
+  name:: name || FILE.replace(/.*\//).replace(/\.ys$/)
   defaults:
     run:
       # Use a bash shell so we can use the same syntax for environment
@@ -25,11 +24,6 @@ defn workflow-setup(name=nil overrides={})::
     PROJ_PFX_CMAKE: RYML_
     CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
     NUM_JOBS_BUILD: # 4
-
-
-#----------------------------------------------------------
-defn bash(name):
-  slurp: "bash/$name.bash"
 
 
 #----------------------------------------------------------
@@ -79,48 +73,64 @@ checkout-action-docker =::
 
 #----------------------------------------------------------
 
+# this is a bash block to compute the repo and branch for manual
+# checkouts
+checkout-find-branch =:: |
+  env | sort
+  echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+  echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+  echo GITHUB_REF=$GITHUB_REF
+  echo GITHUB_REF_NAME=$GITHUB_REF_NAME
+  echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+  repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+  # check the branch
+  # https://stackoverflow.com/questions/58033366
+  branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+  echo branch=$branch
+  localbranch=$branch
+  rembranch=$branch
+  # does the branch exist in the repo?
+  if [ -z "$(git ls-remote $repo | grep -F $branch)" ] ; then
+      echo "branch $branch does not exist on $repo"
+      # refs/pull/485/merge -> pull/485/head
+      branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+      localbranch=$branch
+      rembranch=$branch
+      echo "... falling back to $branch"
+      # does the fallback exist?
+      if [ -z "$(git ls-remote $repo | grep -F $branch)" ] ; then
+          echo "branch $branch does not exist on $repo"
+          exit 1
+      else
+          echo "branch $branch exists on $repo"
+          localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+          echo "naming locally as $localbranch"
+          rembranch=$branch
+          branch=$branch:$localbranch
+      fi
+  fi
+  hash=$(git ls-remote $repo | grep -F $rembranch | awk '{print $1}')
+  echo "final repo=$repo"
+  echo "final branch=$branch"
+  echo "final rembranch=$rembranch"
+  echo "final localbranch=$localbranch"
+  echo "final hash=$hash"
+
 checkout-manual =::
 # This provides a manual checkout, needed because the nodejs version
 # prevents use of checkout@v3/v4 action on ubuntu18.04
 - name: checkout (manually)
-  run: |
+  run:: |
     set -xeo pipefail
-    env | sort
-    echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
-    echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
-    echo GITHUB_REF=$GITHUB_REF
-    echo GITHUB_REF_NAME=$GITHUB_REF_NAME
-    echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
-    repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
-    # check the branch
-    # https://stackoverflow.com/questions/58033366
-    branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-    echo branch=$branch
-    # does the branch exist in the repo?
-    if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
-        echo "branch $branch does not exist on $repo"
-        # refs/pull/485/merge -> pull/485/head
-        branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
-        echo "... falling back to $branch"
-        # does the fallback exist?
-        if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
-            echo "branch $branch does not exist on $repo"
-            exit 1
-        else
-            echo "branch $branch exists on $repo"
-            localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
-            branch=$branch:$localbranch
-            echo "naming locally as $branch"
-        fi
-    fi
+    ${checkout-find-branch}
     # finally, create the local repo
     git init -q .
     # needed for running in the docker image.
     # see https://github.com/actions/checkout/issues/1169
     git config --system --add safe.directory '*'
     # finally, do it!
-    git remote add origin $repo
-    git fetch origin $branch
+    git remote add origin \$repo
+    git fetch origin \$branch
     git reset --hard FETCH_HEAD
     git submodule update --init --recursive
     # show the log
@@ -269,7 +279,7 @@ defn run-manual-with-flags(cxx cc buildtype flags="")::
 # $(<expr>) is the more general syntax for any expr
 # $name and ${name} for simple var expansion
 # those are the 4 interpolation forms
-- name:: "---------------------------------------------------------"
+- name: ---------------------------------------------------------
   run:: |
     echo "$buildtype ::: $flags"
 - name:: "configure $buildtype ::: $flags"
@@ -300,7 +310,7 @@ defn run-manual-with-flags(cxx cc buildtype flags="")::
 
 
 defn run-vs-manual-with-flags(gen arch buildtype shared flags="")::
-- name:: "---------------------------------------------------------"
+- name: ---------------------------------------------------------
   run:: |
     echo "$buildtype ::: $flags shared=$shared"
 - name:: "configure $buildtype ::: $flags shared=$shared"

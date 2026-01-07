@@ -1,6 +1,6 @@
-!yamlscript/v0:
+!ys-0:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 jobs:
@@ -18,14 +18,14 @@ jobs:
         item =: \({:std %1, :cxx 'em++', :emver %2, :bt %3,
                    :os 'ubuntu-latest', :bitlinks :static32})
         include:
-       #- ! item(11 '2.0.34' 'Debug')
-        - ! item(11 '2.0.34' 'Release')
-       #- ! item(20 '2.0.34' 'Debug')
-        - ! item(20 '2.0.34' 'Release')
-       #- ! item(11 '3.0.0' 'Debug')
-        - ! item(11 '3.0.0' 'Release')
-       #- ! item(20 '3.0.0' 'Debug')
-        - ! item(20 '3.0.0' 'Release')
+        #- ! item(11 '2.0.34' 'Debug')
+         - ! item(11 '2.0.34' 'Release')
+        #- ! item(20 '2.0.34' 'Debug')
+         - ! item(20 '2.0.34' 'Release')
+        #- ! item(11 '3.0.0' 'Debug')
+         - ! item(11 '3.0.0' 'Release')
+        #- ! item(20 '3.0.0' 'Debug')
+         - ! item(20 '3.0.0' 'Release')
     env:: load('share/env.yaml') + {'EMSCRIPTEN_CACHE_FOLDER' 'emsdk-cache'}
          + {'CMAKE_FLAGS' '-DRYML_TEST_SUITE=OFF'}
     steps:
