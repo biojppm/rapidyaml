@@ -5,8 +5,9 @@
   - Added `ParserOptions::detect_flow_ml()` to enable/disable this behavior
   - Added `EmitOptions::indent_flow_ml()` to control indentation of FLOW_ML containers
   - The emit implementation logic was refactored, and is now significantly cleaner
-  - Emitted YAML will now have anchors emitted before tags, as is customary ([see example](https://play.yaml.io/main/parser?input=LSAhdGFnICZhbmNob3IgfAogIG5vdGUgaG93IHRoZSBhbmNob3IgY29tZXMKICBmaXJzdCBpbiB0aGUgZXZlbnRz)). Previously this 
+  - Emitted YAML will now have anchors emitted before tags, as is customary ([see example](https://play.yaml.io/main/parser?input=LSAhdGFnICZhbmNob3IgfAogIG5vdGUgaG93IHRoZSBhbmNob3IgY29tZXMKICBmaXJzdCBpbiB0aGUgZXZlbnRz)).
   - Added `ParserOptions` defaulted argument to temp-parser overloads of `parse_{yaml,json}_in_{place,arena}()`
+  - [PR#567](https://github.com/biojppm/rapidyaml/pull/567) (fixes [#566](https://github.com/biojppm/rapidyaml/issues/566)) fixes a regression from this refactor where top-level container anchors were wrongly emitted in the same line if no style was set on the container.
 
 
 ### API changes

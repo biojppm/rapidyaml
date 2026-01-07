@@ -314,7 +314,7 @@ void Emitter<Writer>::_top_open_entry(id_type node)
         else
         {
             _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_container(), m_tree, node);
-            if(ty.is_block())
+            if(!ty.is_flow())
                 _pend_newl();
         }
     }
