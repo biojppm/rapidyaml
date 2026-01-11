@@ -667,7 +667,13 @@ public:
     /** true if the first character of the string is @p c */
     bool begins_with(const C c) const
     {
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference")
+        #endif
         return len > 0 ? str[0] == c : false;
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC_POP
+        #endif
     }
 
     /** true if the first @p num characters of the string are @p c */

@@ -8,7 +8,7 @@ C4CORE_DEV := $(shell cat c4core.dev.txt)
 
 C4CORE_DIR_SRC = c4core.src
 C4CORE_DIR_DEV = c4core.dev
-C4CORE_DIR_GIT = c4core.git
+C4CORE_DIR_GIT = c4core
 
 C4CORE_DIR_PROJ = $(C4CORE_DIR_GIT)/src
 

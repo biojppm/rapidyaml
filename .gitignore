@@ -1,5 +1,5 @@
 # external files
-ext/c4core.git/
+ext/c4core/
 
 # text editor files
 *.bck

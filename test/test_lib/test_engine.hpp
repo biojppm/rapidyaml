@@ -135,7 +135,13 @@ struct TransformToSourceBufferOrArena
             return src.sub(pos, s.len);
         }
         substr dst = handler->alloc_arena(s.len);
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference")
+        #endif
         if(s.len) memcpy(dst.str, s.str, s.len);
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC_POP
+        #endif
         return dst;
     }
 };

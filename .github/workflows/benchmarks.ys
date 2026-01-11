@@ -38,14 +38,14 @@ jobs:
     - name: checkout c4core
       run: |
         cd ext
-        ./c4core.sh
+        make c4core
     - name: install benchmark plotting dependencies
       run: |
         which python
         which pip
         python --version
         pip --version
-        pip install -v -r ext/c4core/cmake/bm-xp/requirements.txt
+        pip install -v -r ext/c4core.git/cmake/bm-xp/requirements.txt
         python -c 'import munch ; print("ok!") ; exit(0)'
         echo $?
     - name: configure-------------------------------------------------
