@@ -35,3 +35,4 @@ c4/utf.cpp
 c4/utf.hpp
 c4/version.cpp
 c4/version.hpp
+c4/windows.hpp
