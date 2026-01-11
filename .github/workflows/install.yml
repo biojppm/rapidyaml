@@ -235,7 +235,7 @@ jobs:
     - name: checkout c4core
       run: |
         cd ext
-        ./c4core.sh
+        make c4core
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info

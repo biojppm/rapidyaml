@@ -3,6 +3,7 @@
 
 #include "c4/error.hpp"
 #include "c4/types.hpp"
+#include "c4/memory_util.hpp"
 
 /** @file blob.hpp Mutable and immutable binary data blobs.
 */

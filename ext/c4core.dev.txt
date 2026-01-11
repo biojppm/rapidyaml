@@ -9,6 +9,5 @@ c4/restrict.hpp
 c4/span.hpp
 c4/szconv.hpp
 c4/unrestrict.hpp
-c4/windows.hpp
 c4/windows_push.hpp
 c4/windows_pop.hpp
