@@ -234,6 +234,9 @@ public:
 
     C4_PURE int compare(const char *C4_RESTRICT that, size_t sz) const noexcept
     {
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference")
+        #endif
         C4_XASSERT(that || sz  == 0);
         C4_XASSERT(str  || len == 0);
         if(C4_LIKELY(str && that))
@@ -257,6 +260,9 @@ public:
             return 0;
         }
         return len < sz ? -1 : 1;
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC_POP
+        #endif
     }
 
     C4_ALWAYS_INLINE C4_PURE int compare(ro_substr const that) const noexcept { return this->compare(that.str, that.len); }
