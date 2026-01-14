@@ -30,3 +30,6 @@ c4_add_library(c4log
     LIBS
         ryml
 )
+if(TARGET ryml-c4core_dev)
+    target_link_libraries(c4log PRIVATE ryml-c4core_dev)
+endif()
