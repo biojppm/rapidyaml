@@ -18,6 +18,7 @@ ryml_add_test_no_lib(ryml-test-quickstart-ints
         ../src_extra/c4/yml/extra/event_handler_ints.cpp
         ../src_extra/c4/yml/extra/ints_utils.hpp
         ../src_extra/c4/yml/extra/ints_utils.cpp
+    INC_DIRS ../ext/c4core.dev
     INC_DIRS ../src_extra)
 
 
