@@ -4022,9 +4022,10 @@ Location ParseEngine<EventHandler>::val_location(const char *val) const
             }
         }
     }
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr >= m_newline_offsets);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr <= m_newline_offsets + m_newline_offsets_size);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, *lineptr > offset);
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr && (*lineptr > offset));
     Location loc;
     loc.name = m_file;
     loc.offset = offset;
