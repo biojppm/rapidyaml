@@ -907,9 +907,6 @@ void Tree::remove_children(id_type node)
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference")
     #endif
     id_type ich = get(node)->m_first_child;
-    #if __GNUC__ >= 6
-    C4_SUPPRESS_WARNING_GCC_POP
-    #endif
     while(ich != NONE)
     {
         remove_children(ich);
@@ -920,6 +917,9 @@ void Tree::remove_children(id_type node)
             break;
         ich = next;
     }
+    #if __GNUC__ >= 6
+    C4_SUPPRESS_WARNING_GCC_POP
+    #endif
 }
 
 bool Tree::change_type(id_type node, NodeType type)
