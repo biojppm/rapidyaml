@@ -160,9 +160,7 @@ jobs:
       with:
         python-version: '3.10'
     - name: checkout c4core
-      run: |
-        cd ext
-        make c4core
+      run: make -C ext c4core
     - name: install benchmark plotting dependencies
       run: |
         which python
