@@ -20,3 +20,7 @@ c4_add_executable(ryml-yaml-events
     INC_DIRS ../test ../src_extra
     LIBS ryml c4fs
     FOLDER tools)
+
+if(TARGET ryml-c4core_dev)
+    target_link_libraries(ryml-yaml-events PRIVATE ryml-c4core_dev)
+endif()
