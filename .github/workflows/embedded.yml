@@ -37,6 +37,8 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install
       run: |
         sudo apt-get update
@@ -119,6 +121,8 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install
       run: |
         sudo apt-get update
@@ -240,6 +244,8 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install
       run: |
         sudo apt-get update
@@ -356,6 +362,8 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install
       run: |
         sudo apt-get update

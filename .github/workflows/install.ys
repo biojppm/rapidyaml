@@ -65,9 +65,7 @@ jobs:
       uses: actions/checkout@v4
       with: {submodules: recursive}
     - name: checkout c4core
-      run: |
-        cd ext
-        make c4core
+      run: make -C ext c4core
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info

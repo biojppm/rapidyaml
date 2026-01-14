@@ -16,6 +16,8 @@
         include:: matrixvar
     steps:
       - :: checkout-action
+      - name: checkout c4core
+        run: make -C ext c4core
       - name: install
         run: |
           sudo apt-get update
