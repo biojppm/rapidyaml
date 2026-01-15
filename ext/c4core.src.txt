@@ -6,6 +6,7 @@ c4/charconv.hpp
 c4/compiler.hpp
 c4/config.hpp
 c4/cpu.hpp
+c4/dump.hpp
 c4/error.cpp
 c4/error.hpp
 c4/export.hpp
