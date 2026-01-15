@@ -1,4 +1,6 @@
 # these are used both for testing and benchmarking
+
+
 set(C4FS_DIR ${CMAKE_CURRENT_BINARY_DIR}/subprojects/c4fs)
 c4_download_remote_proj(c4fs C4FS_DIR
     GIT_REPOSITORY https://github.com/biojppm/c4fs
@@ -8,12 +10,12 @@ c4_add_library(c4fs
         ${C4FS_DIR}/src/c4/fs/fs.hpp
         ${C4FS_DIR}/src/c4/fs/fs.cpp
     INC_DIRS
-        ${C4FS_DIR}/src
         ${CMAKE_CURRENT_LIST_DIR}/c4core.src
-        ${CMAKE_CURRENT_LIST_DIR}/c4core.dev
+        ${C4FS_DIR}/src
     LIBS
         ryml
 )
+
 
 set(C4LOG_DIR ${CMAKE_CURRENT_BINARY_DIR}/subprojects/c4log)
 c4_download_remote_proj(c4log C4LOG_DIR
@@ -24,12 +26,25 @@ c4_add_library(c4log
         ${C4LOG_DIR}/src/c4/log/log.hpp
         ${C4LOG_DIR}/src/c4/log/log.cpp
     INC_DIRS
-        ${C4LOG_DIR}/src
         ${CMAKE_CURRENT_LIST_DIR}/c4core.src
-        ${CMAKE_CURRENT_LIST_DIR}/c4core.dev
+        ${C4LOG_DIR}/src
     LIBS
         ryml
 )
-if(TARGET ryml-c4core_dev)
+
+
+if(RYML_STANDALONE)
+    message(STATUS "wtf0: ${CMAKE_CURRENT_LIST_DIR}")
+    message(STATUS "wtf1: ${CMAKE_CURRENT_SOURCE_DIR}")
+    message(STATUS "wtf2: ${CMAKE_SOURCE_DIR}")
+    add_library(ryml-c4core_dev)
+    file(STRINGS ext/c4core.dev.txt _src)
+    _c4_transform_to_full_path(_src _ ${CMAKE_CURRENT_LIST_DIR}/c4core.dev)
+    target_sources(ryml-c4core_dev PRIVATE ${_src})
+    target_include_directories(ryml PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/c4core.dev>)
+    list(FILTER _src EXCLUDE REGEX .*cpp)
+    target_include_directories(ryml-c4core_dev PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/c4core.src)
+    target_link_libraries(c4fs PRIVATE ryml-c4core_dev)
     target_link_libraries(c4log PRIVATE ryml-c4core_dev)
 endif()

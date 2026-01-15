@@ -2,7 +2,7 @@ c4_setup_testing(GTEST)
 
 
 function(ryml_add_test_no_lib test_name)
-    c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
+    c4_add_executable(${test_name} LIBS ryml ryml-c4core_dev FOLDER test ${ARGN})
     if(RYML_DBG)
         target_compile_definitions(${test_name} PRIVATE RYML_DBG)
         c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
@@ -10,7 +10,8 @@ function(ryml_add_test_no_lib test_name)
     c4_add_test(${test_name})
 endfunction()
 ryml_add_test_no_lib(ryml-test-quickstart
-    SOURCES ../samples/quickstart.cpp)
+    SOURCES ../samples/quickstart.cpp
+)
 ryml_add_test_no_lib(ryml-test-quickstart-ints
     SOURCES
         ../samples/quickstart-ints.cpp
@@ -18,8 +19,9 @@ ryml_add_test_no_lib(ryml-test-quickstart-ints
         ../src_extra/c4/yml/extra/event_handler_ints.cpp
         ../src_extra/c4/yml/extra/ints_utils.hpp
         ../src_extra/c4/yml/extra/ints_utils.cpp
-    INC_DIRS ../ext/c4core.dev
-    INC_DIRS ../src_extra)
+    INC_DIRS
+        ../src_extra
+)
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
@@ -44,7 +46,8 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        ../src_extra/c4/yml/extra/string.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
-    FOLDER test)
+    FOLDER test
+)
 if(BUILD_SHARED_LIBS)
     # this is needed to resolve get_case() because it is provided by
     # the test linking to this library
@@ -71,7 +74,7 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
        test_lib/test_group.hpp
        test_lib/test_group.def.hpp
        test_lib/test_group.cpp
-    LIBS ryml ryml-_testlib c4fs
+    LIBS ryml ryml-c4core_dev ryml-_testlib c4fs
     FOLDER test)
 if(RYML_DBG)
     target_compile_definitions(ryml-_testgroup PUBLIC RYML_DBG)
@@ -262,7 +265,7 @@ if(RYML_TEST_SUITE)
             testsuite/testsuite_events.hpp
             testsuite/testsuite_parts.cpp
             testsuite/testsuite_parts.hpp
-        LIBS ryml-_testlib c4log
+        LIBS ryml-_testlib ryml-c4core_dev c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
