@@ -44,8 +44,10 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
        ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
        ../src_extra/c4/yml/extra/string.hpp
-    INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
-    LIBS ryml c4fs gtest
+    INC_DIRS
+       ${CMAKE_CURRENT_LIST_DIR}
+       ${CMAKE_CURRENT_LIST_DIR}/../src_extra
+    LIBS ryml ryml-c4core_dev c4fs gtest
     FOLDER test
 )
 if(BUILD_SHARED_LIBS)
