@@ -3,7 +3,6 @@
 
 #ifdef _WIN32
     #ifdef C4CORE_SHARED
-#error crl
         #ifdef C4CORE_EXPORTS
             #define C4CORE_EXPORT __declspec(dllexport)
         #else
