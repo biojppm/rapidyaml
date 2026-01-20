@@ -2,6 +2,8 @@
 
 
 set(C4FS_DIR ${CMAKE_CURRENT_BINARY_DIR}/subprojects/c4fs)
+set(C4LOG_DIR ${CMAKE_CURRENT_BINARY_DIR}/subprojects/c4log)
+
 c4_download_remote_proj(c4fs C4FS_DIR
     GIT_REPOSITORY https://github.com/biojppm/c4fs
     GIT_TAG master)
@@ -16,8 +18,6 @@ c4_add_library(c4fs
         ryml
 )
 
-
-set(C4LOG_DIR ${CMAKE_CURRENT_BINARY_DIR}/subprojects/c4log)
 c4_download_remote_proj(c4log C4LOG_DIR
     GIT_REPOSITORY https://github.com/biojppm/c4log
     GIT_TAG master)

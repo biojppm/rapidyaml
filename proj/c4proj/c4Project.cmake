@@ -1995,6 +1995,7 @@ function(c4_add_target target)
                 if(WIN32)
                     if("${_blt}" STREQUAL SHARED)
                         set_target_properties(${target} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+#message(FATAL_ERROR "crl ${target}: ${_SHARED_MACRO}")
                         target_compile_definitions(${target} PUBLIC ${_SHARED_MACRO})
                         target_compile_definitions(${target} PRIVATE $<BUILD_INTERFACE:${_SHARED_EXPORTS}>)
                         # save the name of the macro for later use when(if) incorporating this library
