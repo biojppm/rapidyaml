@@ -2,7 +2,7 @@ c4_setup_testing(GTEST)
 
 
 function(ryml_add_test_no_lib test_name)
-    c4_add_executable(${test_name} LIBS ryml ryml-c4core_dev FOLDER test ${ARGN})
+    c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
     if(RYML_DBG)
         target_compile_definitions(${test_name} PRIVATE RYML_DBG)
         c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
@@ -47,7 +47,7 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     INC_DIRS
        ${CMAKE_CURRENT_LIST_DIR}
        ${CMAKE_CURRENT_LIST_DIR}/../src_extra
-    LIBS ryml ryml-c4core_dev c4fs gtest
+    LIBS ryml c4fs gtest
     FOLDER test
 )
 if(BUILD_SHARED_LIBS)
@@ -76,7 +76,7 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
        test_lib/test_group.hpp
        test_lib/test_group.def.hpp
        test_lib/test_group.cpp
-    LIBS ryml ryml-c4core_dev ryml-_testlib c4fs
+    LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 if(RYML_DBG)
     target_compile_definitions(ryml-_testgroup PUBLIC RYML_DBG)
@@ -267,7 +267,7 @@ if(RYML_TEST_SUITE)
             testsuite/testsuite_events.hpp
             testsuite/testsuite_parts.cpp
             testsuite/testsuite_parts.hpp
-        LIBS ryml-_testlib ryml-c4core_dev c4log
+        LIBS ryml-_testlib c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
