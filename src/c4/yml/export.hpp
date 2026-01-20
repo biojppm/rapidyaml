@@ -3,6 +3,7 @@
 
 #ifdef _WIN32
     #ifdef RYML_SHARED
+#error fdx
         #ifdef RYML_EXPORTS
             #define RYML_EXPORT __declspec(dllexport)
         #else
