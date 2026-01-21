@@ -40,8 +40,6 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        ../src_extra/c4/yml/extra/ints_utils.hpp
        ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
        ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
-       ../src_extra/c4/yml/extra/scalar.hpp
-       ../src_extra/c4/yml/extra/scalar.cpp
        ../src_extra/c4/yml/extra/string.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
@@ -110,6 +108,7 @@ ryml_add_test(preprocess)
 ryml_add_test(merge)
 ryml_add_test(location)
 ryml_add_test(bom)
+ryml_add_test(escape_scalar)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(doc)
 ryml_add_test_case_group(seq)
@@ -258,8 +257,6 @@ if(RYML_TEST_SUITE)
             ../src_extra/c4/yml/extra/ints_utils.hpp
             ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
             ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
-            ../src_extra/c4/yml/extra/scalar.cpp
-            ../src_extra/c4/yml/extra/scalar.hpp
             ../src_extra/c4/yml/extra/string.hpp
             testsuite.cpp
             testsuite/testsuite_common.hpp
@@ -379,12 +376,8 @@ if(RYML_TEST_FUZZ)
     ryml_add_fuzz_test(events_testsuite
         ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
         ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
-        ../src_extra/c4/yml/extra/scalar.hpp
-        ../src_extra/c4/yml/extra/scalar.cpp
         ../src_extra/c4/yml/extra/string.hpp)
     ryml_add_fuzz_test(events_ints
         ../src_extra/c4/yml/extra/event_handler_ints.hpp
-        ../src_extra/c4/yml/extra/event_handler_ints.cpp
-        ../src_extra/c4/yml/extra/scalar.hpp
-        ../src_extra/c4/yml/extra/scalar.cpp)
+        ../src_extra/c4/yml/extra/event_handler_ints.cpp)
 endif()

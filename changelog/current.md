@@ -57,6 +57,7 @@
   - improve behavior of `Tree` methods accepting scalars: all standard buffer types are now accepted (ie, `str`, `bytes`, `bytearray` and `memoryview`).
 - [PR#565](https://github.com/biojppm/rapidyaml/pull/565) (fixes [#564](https://github.com/biojppm/rapidyaml/issues/564)) - `Tree` arena: allow relocation of zero-length strings when placed at the end (relax assertions triggered in `Tree::_relocated()`)
 - [PR#563](https://github.com/biojppm/rapidyaml/pull/563) (fixes [#562](https://github.com/biojppm/rapidyaml/issues/562)) - Fix bug in `NodeRef::cend()`
+- [PR#568](https://github.com/biojppm/rapidyaml/pull/568) - Move `escape_scalar()` from `c4/yml/extra/scalar.hpp` to `c4/yml/escape_scalar.hpp` (and removed the original header)
 
 
 ### Fixes in YAML parsing

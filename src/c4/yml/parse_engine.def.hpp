@@ -468,13 +468,13 @@ C4_NO_INLINE void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
         size_t offs = 3u + to_chars(substr{}, st->pos.line) + to_chars(substr{}, st->pos.col);
         if(m_file.len)
         {
-            c4::_dbg_dump(std::forward<DumpFn>(dumpfn), "{}:", m_file);
+            _dbg_dump(std::forward<DumpFn>(dumpfn), "{}:", m_file);
             offs += m_file.len + 1;
         }
-        c4::_dbg_dump(std::forward<DumpFn>(dumpfn), "{}:{}: ", st->pos.line, st->pos.col);
+        _dbg_dump(std::forward<DumpFn>(dumpfn), "{}:{}: ", st->pos.line, st->pos.col);
         csubstr maybe_full_content = (contents.len < 80u ? contents : contents.first(80u));
         csubstr maybe_ellipsis = (contents.len < 80u ? csubstr{} : csubstr("..."));
-        c4::_dbg_dump(std::forward<DumpFn>(dumpfn), "{}{}  (size={})\n", maybe_full_content, maybe_ellipsis, contents.len);
+        _dbg_dump(std::forward<DumpFn>(dumpfn), "{}{}  (size={})\n", maybe_full_content, maybe_ellipsis, contents.len);
         // highlight the remaining portion of the previous line
         size_t firstcol = (size_t)(lc.rem.begin() - lc.full.begin());
         size_t lastcol = firstcol + lc.rem.len;
@@ -483,7 +483,7 @@ C4_NO_INLINE void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
         std::forward<DumpFn>(dumpfn)("^");
         for(size_t i = 1, e = (lc.rem.len < 80u ? lc.rem.len : 80u); i < e; ++i)
             std::forward<DumpFn>(dumpfn)("~");
-        c4::_dbg_dump(std::forward<DumpFn>(dumpfn), "{}  (cols {}-{})\n", maybe_ellipsis, firstcol+1, lastcol+1);
+        _dbg_dump(std::forward<DumpFn>(dumpfn), "{}  (cols {}-{})\n", maybe_ellipsis, firstcol+1, lastcol+1);
     }
     else
     {
@@ -492,7 +492,7 @@ C4_NO_INLINE void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
     // next line: print the state flags
     {
         char flagbuf_[128];
-        c4::_dbg_dump(std::forward<DumpFn>(dumpfn), "top state: {}\n", detail::_parser_flags_to_str(flagbuf_, m_evt_handler->m_curr->flags));
+        _dbg_dump(std::forward<DumpFn>(dumpfn), "top state: {}\n", detail::_parser_flags_to_str(flagbuf_, m_evt_handler->m_curr->flags));
     }
 }
 #endif
@@ -525,9 +525,9 @@ void ParseEngine<EventHandler>::_dbg(csubstr fmt, Args const& ...args) const
 {
     if(_dbg_enabled())
     {
-        c4::_dbg_printf(fmt, args...);
-        c4::_dbg_dumper("\n");
-        _fmt_msg(c4::_dbg_dumper);
+        _dbg_printf(fmt, args...);
+        _dbg_dumper("\n");
+        _fmt_msg(_dbg_dumper);
     }
 }
 #endif

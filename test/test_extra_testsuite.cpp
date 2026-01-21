@@ -18,7 +18,7 @@ struct EventsCase
     int line;
     // previously, the strings below were of type std::string, but
     // valgrind was complaining of a problem during initialization of
-    // the parameterized test cases. Probably some SIOF?
+    // the parameterized test cases. Probably some SIOF from gtest code?
     //
     // So we use csubstr:
     csubstr name;
@@ -61,9 +61,9 @@ TEST_P(EventsTest, from_parser)
     csubstr result = sink;
     _c4dbgpf("~~~\n{}~~~\n", result);
     // use the diff from std::string which is nice
-    std::string exp_copy(ec.expected_events_from_parser.str, ec.expected_events_from_parser.len);
-    std::string result_copy(result.str, result.len);
-    EXPECT_EQ(result_copy, exp_copy);
+    const std::string expected(ec.expected_events_from_parser.str, ec.expected_events_from_parser.len);
+    const std::string actual(result.str, result.len);
+    EXPECT_EQ(expected, actual);
 }
 
 TEST_P(EventsTest, from_tree)
@@ -73,8 +73,9 @@ TEST_P(EventsTest, from_tree)
     RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
     const Tree tree = parse_in_arena(to_csubstr(ec.src));
     _c4dbg_tree("parsed tree", tree);
-    std::string exp_copy(ec.expected_events_from_tree.str, ec.expected_events_from_tree.len);
-    EXPECT_EQ(emit_events_from_tree<std::string>(tree), exp_copy);
+    const std::string expected(ec.expected_events_from_tree.str, ec.expected_events_from_tree.len);
+    const std::string actual = emit_events_from_tree<std::string>(tree);
+    EXPECT_EQ(expected, actual);
 }
 
 
