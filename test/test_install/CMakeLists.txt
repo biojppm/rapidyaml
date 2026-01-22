@@ -21,5 +21,6 @@ endif()
 
 enable_testing()
 set(RYML_INSTALL_TEST ON)
+include(../../ext/c4core.cmake)
 include(../../ext/testbm.cmake)
 add_subdirectory(../../test test)

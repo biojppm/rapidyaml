@@ -1,8 +1,11 @@
 c4_setup_testing(GTEST)
 
+set(wtf ON)
+
 
 function(ryml_add_test_no_lib test_name)
     c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
+    ryml_add_c4core_dev_to_target(${test_name})
     if(RYML_DBG)
         target_compile_definitions(${test_name} PRIVATE RYML_DBG)
         c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
@@ -50,6 +53,7 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     LIBS ryml c4fs gtest
     FOLDER test
 )
+ryml_add_c4core_dev_to_target(ryml-_testlib)
 if(BUILD_SHARED_LIBS)
     # this is needed to resolve get_case() because it is provided by
     # the test linking to this library
@@ -67,6 +71,7 @@ function(ryml_add_test test_name)
         SOURCES test_${test_name}.cpp
         LIBS ${ARGN} ryml-_testlib gtest_main
         FOLDER test)
+    ryml_add_c4core_dev_to_target(${t})
     c4_add_test(${t})
 endfunction()
 
@@ -270,6 +275,7 @@ if(RYML_TEST_SUITE)
         LIBS ryml-_testlib c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
+    ryml_add_c4core_dev_to_target(ryml-test-suite)
     add_dependencies(ryml-test-build ryml-test-suite)
 
     ryml_get_target_exe(ryml-test-suite tgt)
@@ -363,6 +369,7 @@ if(RYML_TEST_FUZZ)
             target_compile_definitions(ryml-test-fuzz-${name} PUBLIC RYML_DBG)
         endif()
         add_dependencies(ryml-test-build ryml-test-fuzz-${name})
+        ryml_add_c4core_dev_to_target(ryml-test-fuzz-${name})
         ryml_get_target_exe(ryml-test-fuzz-${name} tgtexe)
         function(ryml_add_fuzz_test_file name_ dir file)
             string(REPLACE "/" "_" fuzz_name "${file}")
