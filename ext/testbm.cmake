@@ -17,6 +17,8 @@ c4_add_library(c4fs
         ${C4FS_DIR}/src
     LIBS
         ryml
+    FOLDER
+        ext
 )
 
 c4_download_remote_proj(c4log C4LOG_DIR
@@ -32,6 +34,8 @@ c4_add_library(c4log
         ${C4LOG_DIR}/src
     LIBS
         ryml
+    FOLDER
+        ext
 )
 
 

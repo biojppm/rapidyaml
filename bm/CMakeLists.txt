@@ -98,6 +98,7 @@ c4_require_subproject(jsoncpp REMOTE
 	)
 c4_set_folder_remote_project_targets(ext/jsoncpp
     jsoncpp
+    jsoncpp_lib
     jsoncpp_object
     jsoncpp_static
     examples
