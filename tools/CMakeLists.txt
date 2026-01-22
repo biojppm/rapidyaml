@@ -14,8 +14,6 @@ c4_add_executable(ryml-yaml-events
       ../src_extra/c4/yml/extra/ints_utils.cpp
       ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
       ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
-      ../src_extra/c4/yml/extra/scalar.hpp
-      ../src_extra/c4/yml/extra/scalar.cpp
       ../src_extra/c4/yml/extra/string.hpp
       ../test/testsuite/testsuite_events.hpp
       ../test/testsuite/testsuite_events_emitter.cpp

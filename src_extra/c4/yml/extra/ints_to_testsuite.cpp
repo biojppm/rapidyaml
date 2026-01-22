@@ -8,8 +8,8 @@
     #endif
 #endif
 
-#ifndef _C4_YML_EXTRA_SCALAR_HPP_
-#include "c4/yml/extra/scalar.hpp"
+#ifndef _C4_YML_ESCAPE_SCALAR_HPP_
+#include "c4/yml/escape_scalar.hpp"
 #endif
 
 #ifndef _C4_YML_EXTRA_INTS_UTILS_HPP_

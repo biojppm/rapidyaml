@@ -14,8 +14,8 @@
 #ifndef _C4_YML_EXTRA_EVENT_HANDLER_TESTSUITE_HPP_
 #include "c4/yml/extra/event_handler_testsuite.hpp"
 #endif
-#ifndef _C4_YML_EXTRA_SCALAR_HPP_
-#include "c4/yml/extra/scalar.hpp"
+#ifndef _C4_YML_ESCAPE_SCALAR_HPP_
+#include "c4/yml/escape_scalar.hpp"
 #endif
 #ifndef _C4_YML_EXTRA_STRING_HPP_
 #include "c4/yml/extra/string.hpp"

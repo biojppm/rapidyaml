@@ -7,9 +7,9 @@
 #include <c4/yml/error.def.hpp>
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
+#include <c4/yml/escape_scalar.hpp>
 #endif
 #include <c4/yml/extra/string.hpp>
-#include <c4/yml/extra/scalar.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <c4/yml/extra/ints_utils.hpp>

@@ -8,10 +8,6 @@
     #endif
 #endif
 
-#ifndef _C4_YML_EXTRA_SCALAR_HPP_
-#include "c4/yml/extra/scalar.hpp"
-#endif
-
 #ifndef _C4_YML_EXTRA_INTS_UTILS_HPP_
 #include "c4/yml/extra/ints_utils.hpp"
 #endif

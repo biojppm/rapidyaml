@@ -379,11 +379,11 @@ i      :        12   |        13       14
  * ```
  *
  * The result of @ref estimate_events_ints_size() (click to see more
- * info) must be an overprediction: it overpredicts for every single case
- * among the many hundreds of cases covered in the unit tests. This is
- * deliberate, and aims at ensuring that a retry parse is not needed. But
- * conceivably, it may underpredict in some instances not found in the out
- * tests. What to do then?
+ * info) must be an overprediction: it overpredicts for every single
+ * case among the many hundreds covered in the unit tests. This is
+ * deliberate, and aims at ensuring that a retry parse is not
+ * needed. But conceivably, it may underpredict in some instances not
+ * found in the out tests. What to do then?
  *
  * First, [open an issue](https://github.com/biojppm/rapidyaml/issues) to
  * allow the estimation to be improved! Second, there are two ways to
