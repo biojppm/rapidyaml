@@ -1,4 +1,4 @@
-!yamlscript/v0
+!ys-0
 
 python-preamble-job =::
   runs-on: ${{matrix.config.os}}
@@ -85,10 +85,9 @@ python-bare-tests =::
       python -m pytest -vvv api/python/tests
 
 
----
-!yamlscript/v0:
+--- !ys:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 jobs:
@@ -101,9 +100,9 @@ jobs:
     name: pybare/${{matrix.config.pythonv}}/${{matrix.config.os}}
     :: python-preamble-job
     steps:
-    - :: checkout-action
-    - :: python-preamble-steps
-    - :: python-bare-tests
+      - :: checkout-action
+      - :: python-preamble-steps
+      - :: python-bare-tests
 
   #----------------------------------------------------
   # run tests with built+installed wheels
@@ -114,9 +113,9 @@ jobs:
     env:
        CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILES=ON
     steps:
-    - :: checkout-action
-    - :: python-preamble-steps
-    - :: python-wheel-tests
+      - :: checkout-action
+      - :: python-preamble-steps
+      - :: python-wheel-tests
   pywheelwin:
     :: setup-job('api' 'pywheel_win')
     name: pywheel/${{matrix.config.pythonv}}/${{matrix.config.os}}
@@ -124,7 +123,7 @@ jobs:
     env:
        CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILES=ON
     steps:
-    - :: checkout-action
-    - :: python-preamble-steps
-    - :: setup-env-win
-    - :: python-wheel-tests
+      - :: checkout-action
+      - :: python-preamble-steps
+      - :: setup-env-win
+      - :: python-wheel-tests

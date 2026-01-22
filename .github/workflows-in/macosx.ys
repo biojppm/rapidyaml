@@ -1,6 +1,6 @@
-!yamlscript/v0:
+!ys-0:
 
-:use common: :all
+:use common:
 :: workflow-setup()
 
 jobs:

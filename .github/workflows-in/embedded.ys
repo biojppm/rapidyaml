@@ -1,9 +1,8 @@
-!yamlscript/v0:
+!ys-0:
 
 # DOCKER DEBUGGING EXAMPLES AT THE END!
 
-
-:use common: :all
+:use common:
 :: workflow-setup()
 
 ::
@@ -100,7 +99,6 @@ matrix-items =::
 
 
 jobs:
-
   canary11:
     :: setup-job('embedded' 'canary11')
     :: define-job(list(first(matrix-items)) steps11 'c++11')

@@ -1,8 +1,7 @@
-!yamlscript/v0:
+!ys-0:
 
-:use common: :all
-::
-  workflow-setup:: test_install
+:use common:
+:: workflow-setup('test_install')
 
 env:
   PROJ_PFX_TARGET: ryml-
