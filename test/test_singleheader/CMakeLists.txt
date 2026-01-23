@@ -34,6 +34,7 @@ c4_add_library(ryml
         ${CMAKE_CURRENT_LIST_DIR}/libryml_singleheader.cpp)
 target_compile_definitions(ryml PUBLIC -DRYML_SINGLE_HEADER) # this is needed only for the tests, not ryml itself
 
+include(../../ext/c4core.cmake)
 include(../../ext/testbm.cmake)
 
 enable_testing()

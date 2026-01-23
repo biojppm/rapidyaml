@@ -907,7 +907,7 @@ WARN_IF_UNDOC_ENUM_VAL = YES
 # Possible values are: NO, YES, FAIL_ON_WARNINGS and FAIL_ON_WARNINGS_PRINT.
 # The default value is: NO.
 
-WARN_AS_ERROR          = NO
+WARN_AS_ERROR = NO
 
 # The WARN_FORMAT tag determines the format of the warning messages that doxygen
 # can produce. The string should contain the $file, $line, and $text tags, which
@@ -955,14 +955,7 @@ INPUT                  = \
                          ../src_extra \
                          ../samples/quickstart.cpp \
                          ../samples/quickstart-ints.cpp \
-                         ../ext/c4core/src/c4/substr.hpp \
-                         ../ext/c4core/src/c4/charconv.hpp \
-                         ../ext/c4core/src/c4/format.hpp \
-                         ../ext/c4core/src/c4/base64.hpp \
-                         ../ext/c4core/src/c4/utf.hpp \
-                         ../ext/c4core/src/c4/std/string.hpp \
-                         ../ext/c4core/src/c4/std/string_view.hpp \
-                         ../ext/c4core/src/c4/std/vector.hpp \
+                         ../ext/c4core.src \
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1069,7 +1062,8 @@ RECURSIVE              = YES
 
 EXCLUDE                = ../src/c4/yml/detail \
                          ../src/c4/c4core_all.hpp \
-                         ../src/ryml-gdbtypes.py
+                         ../src/ryml-gdbtypes.py \
+                         ../ext/c4core.src/c4/ext/fast_float_all.h \
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded

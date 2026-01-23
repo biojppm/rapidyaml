@@ -80,7 +80,9 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
        test_lib/test_group.def.hpp
        test_lib/test_group.cpp
     LIBS ryml ryml-_testlib c4fs
-    FOLDER test)
+    FOLDER test
+)
+ryml_add_c4core_dev_to_target(ryml-_testgroup)
 if(RYML_DBG)
     target_compile_definitions(ryml-_testgroup PUBLIC RYML_DBG)
 endif()

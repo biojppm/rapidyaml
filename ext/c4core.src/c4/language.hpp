@@ -316,6 +316,7 @@
 #   define C4_PRETTY_FUNC __PRETTY_FUNCTION__
 #endif
 
+
 /** prevent compiler warnings about a specific var being unused */
 #define C4_UNUSED(var) (void)var
 
@@ -326,11 +327,12 @@
 #endif
 #define C4_STATIC_ASSERT_MSG(cond, msg) static_assert((cond), #cond ": " msg)
 
-/** @def C4_DONT_OPTIMIZE idea lifted from GoogleBenchmark.
+
+/** @def C4_DONT_OPTIMIZE() idea taken from GoogleBenchmark.
  * @see https://github.com/google/benchmark/blob/master/include/benchmark/benchmark_api.h */
 namespace c4 {
 namespace detail {
-#ifdef __GNUC__
+#if defined(__GNUC__)
 #   define C4_DONT_OPTIMIZE(var) c4::detail::dont_optimize(var)
 template< class T >
 C4_ALWAYS_INLINE void dont_optimize(T const& value) { asm volatile("" : : "g"(value) : "memory"); } // NOLINT
@@ -341,17 +343,19 @@ void use_char_pointer(char const volatile*);
 } // namespace detail
 } // namespace c4
 
-/** @def C4_KEEP_EMPTY_LOOP prevent an empty loop from being optimized out.
- * @see http://stackoverflow.com/a/7084193/5875572 */
+
+/** @def C4_KEEP_EMPTY_LOOP() prevent an empty loop from being optimized out.
+ * @see http://stackoverflow.com/a/7084193/5875572  */
 #if defined(_MSC_VER) && !defined(__clang__)
 #   define C4_KEEP_EMPTY_LOOP { char c; C4_DONT_OPTIMIZE(c); }
 #else
 #   define C4_KEEP_EMPTY_LOOP { asm(""); }
 #endif
 
+
+#if defined(__GNUC__) || defined(__DOXYGEN__)
 /** @def C4_VA_LIST_REUSE_MUST_COPY
  * @todo <jpmag> I strongly suspect that this is actually only in UNIX platforms. revisit this. */
-#ifdef __GNUC__
 #   define C4_VA_LIST_REUSE_MUST_COPY
 #endif
 

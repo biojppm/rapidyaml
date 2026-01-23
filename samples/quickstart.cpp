@@ -3416,9 +3416,9 @@ QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold.
  * ryml_std.hpp and also the headers it includes:
  *
  *  - scalar types:
- *    - for `std::string`: @ref ext/c4core/src/c4/std/string.hpp
- *    - for `std::string_view`: @ref ext/c4core/src/c4/std/string_view.hpp
- *    - for `std::vector<char>`: @ref ext/c4core/src/c4/std/vector.hpp
+ *    - for `std::string`: @ref ext/c4core.src/c4/std/string.hpp
+ *    - for `std::string_view`: @ref ext/c4core.src/c4/std/string_view.hpp
+ *    - for `std::vector<char>`: @ref ext/c4core.src/c4/std/vector.hpp
  *  - container types:
  *    - for `std::vector<T>`: @ref src/c4/yml/std/vector.hpp
  *    - for `std::map<K,V>`: @ref src/c4/yml/std/map.hpp
