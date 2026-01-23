@@ -9,12 +9,13 @@ endfunction()
 
 function(ryml_add_c4core_dev_to_target target)
     if(NOT TARGET ryml-_c4core_dev)
-        add_library(ryml-_c4core_dev)
+        c4_add_library(ryml-_c4core_dev)
         _ryml_add_c4core_to_target(ryml-_c4core_dev c4core.dev OFF)
         target_include_directories(ryml-_c4core_dev PUBLIC
             ${_ryml_ext_dir}/c4core.src
             ${_ryml_ext_dir}/c4core.dev
         )
+        target_link_libraries(ryml-_c4core_dev PUBLIC ryml)
     endif()
     target_link_libraries(${target} PUBLIC ryml-_c4core_dev)
 endfunction()
