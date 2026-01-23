@@ -256,6 +256,7 @@ jobs:
         mkdir -p $IDIR
         cmake -S ${{matrix.sdir}} -B $BDIR \
           -DRYML_BUILD_TESTS=ON \
+          -DRYML_STANDALONE=ON \
           -DRYML_VALGRIND=OFF \
           -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
           -DCMAKE_INSTALL_PREFIX=$IDIR \
