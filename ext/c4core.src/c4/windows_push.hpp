@@ -4,7 +4,7 @@
 /** @file windows_push.hpp sets up macros to include windows header files
  * without pulling in all of <windows.h>
  *
- * @see #include windows_pop.hpp to undefine these macros
+ * @see windows_pop.hpp to undefine these macros
  *
  * @see https://aras-p.info/blog/2018/01/12/Minimizing-windows.h/ */
 
