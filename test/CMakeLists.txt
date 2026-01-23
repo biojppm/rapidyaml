@@ -1,7 +1,5 @@
 c4_setup_testing(GTEST)
 
-set(wtf ON)
-
 
 function(ryml_add_test_no_lib test_name)
     c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
