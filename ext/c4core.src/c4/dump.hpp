@@ -10,7 +10,7 @@
  * passed either by dynamic dispatching or by static dispatching (as a
  * template argument). There are analogs to @ref c4::cat() (@ref
  * c4::cat_dump() and @ref c4::cat_dump_resume()), @ref c4::catsep()
- * (@ref catsetp_dump() and @ref catsep_dump_resume()) and @ref
+ * (@ref c4::catsep_dump() and @ref c4::catsep_dump_resume()) and @ref
  * c4::format() (@ref c4::format_dump() and @ref
  * c4::format_dump_resume()). The analogs have two types: immediate
  * and resuming. An analog of immediate type cannot be retried when
@@ -18,7 +18,7 @@
  * the first (successful) arguments will be dumped again in the
  * subsequent attempt to call. An analog of resuming type will only
  * ever dump as-yet-undumped arguments, through the use of @ref
- * DumpResults return type. */
+ * c4::DumpResults return type. */
 
 namespace c4 {
 
@@ -202,8 +202,8 @@ inline auto dump(SinkFn &&sinkfn, substr buf, Arg const& a)
 
 
 /** An opaque type used by resumeable dump functions like @ref
- * cat_dump_resume(), @ref catsep_dump_resume() or @ref
- * format_dump_resume(). */
+ * c4::cat_dump_resume(), @ref c4::catsep_dump_resume() or @ref
+ * c4::format_dump_resume(). */
 struct DumpResults
 {
     enum : size_t { noarg = (size_t)-1 };
