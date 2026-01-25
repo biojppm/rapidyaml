@@ -65,6 +65,9 @@ jobs:
       DOXY_DIR: /tmp/doxydir/bin
     steps:
       - :: checkout-action
+      - name: checkout c4core
+        run: |
+          make -C ext c4core
       - name: install python
         uses: actions/setup-python@v5
         with: {python-version: 3.9}
