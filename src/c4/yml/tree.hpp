@@ -28,6 +28,12 @@
 #include <c4/charconv.hpp>
 #endif
 
+#ifdef RYML_WITH_COMMENTS
+#ifndef _C4_YML_COMMENT_TYPE_HPP_
+#include "c4/yml/comment_type.hpp"
+#endif
+#endif
+
 #include <cmath>
 #include <limits>
 
@@ -233,8 +239,30 @@ struct NodeData
     id_type    m_last_child;
     id_type    m_next_sibling;
     id_type    m_prev_sibling;
+
+    #ifdef RYML_WITH_COMMENTS
+    id_type    m_first_comment;
+    id_type    m_last_comment;
+    comment_data_type m_comments;
+    #endif // RYML_WITH_COMMENTS
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#ifdef RYML_WITH_COMMENTS
+struct CommentData
+{
+    CommentType_e m_type;
+    csubstr       m_text;
+    id_type       m_prev;
+    id_type       m_next;
+};
+C4_MUST_BE_TRIVIAL_COPY(CommentData);
+#endif // RYML_WITH_COMMENTS
 
 
 //-----------------------------------------------------------------------------
@@ -252,6 +280,11 @@ public:
     Tree(Callbacks const& cb);
     Tree(id_type node_capacity, size_t arena_capacity=RYML_DEFAULT_TREE_ARENA_CAPACITY) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
     Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb);
+
+    #ifdef RYML_WITH_COMMENTS
+    Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity);
+    Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity, Callbacks const& cb);
+    #endif
 
     ~Tree();
 
@@ -927,8 +960,9 @@ public:
      * @see reserve_arena() */
     substr alloc_arena(size_t sz)
     {
-        if(sz > arena_slack())
-            _grow_arena(sz - arena_slack());
+        size_t slack = arena_slack();
+        if(sz > slack)
+            _grow_arena(sz - slack);
         substr s = _request_span(sz);
         return s;
     }
@@ -1063,6 +1097,43 @@ private:
     void _move(Tree      & that) noexcept;
 
     void _relocate(substr next_arena);
+
+public:
+
+#ifdef RYML_WITH_COMMENTS
+
+    /** @name comments [experimental]
+     *
+     * For an explanation of the comment types, see @ref
+     * CommentType_e. Comments are enabled only if @ref
+     * RYML_WITH_COMMENTS is defined. */
+    /** @{ */
+
+    void reserve_comments(id_type comment_capacity);
+    size_t comments_capacity() const { return m_comments_cap; }
+    size_t comments_size() const { return m_comments_size; }
+
+    CommentData const* comment(id_type node_id,                          comment_data_type type_flags=COMM_ANY) const;
+    CommentData const* comment(id_type node_id, id_type comment_id,      comment_data_type type_flags=COMM_ANY) const;
+    CommentData const* comment(id_type node_id, CommentData const* prev, comment_data_type type_flags=COMM_ANY) const;
+    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id,                          CommentType_e type) const { return comment(node_id,             (comment_data_type)type); }
+    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id, id_type comment_id,      CommentType_e type) const { return comment(node_id, comment_id, (comment_data_type)type); }
+    C4_ALWAYS_INLINE CommentData const* comment(id_type node_id, CommentData const* prev, CommentType_e type) const { return comment(node_id, prev,       (comment_data_type)type); }
+
+    void set_comment(id_type node_id, CommentType_e type, csubstr const& txt);
+    void set_comment(NodeData *n, CommentType_e type, csubstr const& txt);
+
+    void rem_comment(id_type node_id, CommentType_e type);
+    void rem_comments(id_type node_id, bool recursive=false);
+
+private:
+
+    id_type _claim_comment();
+    id_type _insert_comment(NodeData *n, id_type prev_comment);
+
+    /** @} */
+
+#endif // RYML_WITH_COMMENTS
 
 public:
 
@@ -1219,6 +1290,12 @@ public:
         dst.m_type = src.m_type;
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_comments = src.m_comments;
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
@@ -1228,6 +1305,12 @@ public:
         dst.m_type = (src.m_type & src_mask) | (dst.m_type & ~src_mask);
         dst.m_key  = src.m_key;
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_comments = src.m_comments;
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_)
@@ -1236,6 +1319,12 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & ~_KEYMASK) | (dst.m_type & _KEYMASK);
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_comments = src.m_comments;
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
@@ -1244,6 +1333,12 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = (src.m_type & ((~_KEYMASK)|src_mask)) | (dst.m_type & (_KEYMASK|~src_mask));
         dst.m_val  = src.m_val;
+        #ifdef RYML_WITH_COMMENTS
+        // FIXME
+        dst.m_comments = src.m_comments;
+        dst.m_first_comment = src.m_first_comment;
+        dst.m_last_comment = src.m_last_comment;
+        #endif
     }
 
     void _clear_type(id_type node)
@@ -1260,6 +1355,11 @@ public:
         n->m_parent = NONE;
         n->m_first_child = NONE;
         n->m_last_child = NONE;
+        #ifdef RYML_WITH_COMMENTS
+        n->m_comments = {};
+        n->m_first_comment = NONE;
+        n->m_last_comment = NONE;
+        #endif // RYML_WITH_COMMENTS
     }
 
     void _clear_key(id_type node)
@@ -1304,6 +1404,12 @@ public:
 
     substr m_arena;
     size_t m_arena_pos;
+
+#ifdef RYML_WITH_COMMENTS
+    CommentData *m_comments_buf;
+    id_type      m_comments_cap;
+    id_type      m_comments_size;
+#endif // RYML_WITH_COMMENTS
 
     Callbacks m_callbacks;
 

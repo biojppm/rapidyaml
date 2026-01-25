@@ -119,6 +119,48 @@ void test_compare(Tree const& actual, id_type node_actual,
         EXPECT_EQ(actual.val_anchor(node_actual), expected.val_anchor(node_expected));
     }
 
+    #ifdef RYML_WITH_COMMENTS
+    struct comment_type_info { comment_data_type type; const char* name; comment_data_type bit; };
+    static const comment_type_info comment_types[] = {
+        #define _c4comm(comm_symbol, bit) {COMM_##comm_symbol, "COMM_" #comm_symbol, bit},
+        _RYML_DEFINE_COMMENTS(_c4comm)
+        #undef _c4comm
+        {COMM_NONE,"COMM_NONE", 0},
+        {COMM_ANY,"COMM_ANY", COMM_LAST_},
+    };
+    auto getnfo = [](comment_data_type type){
+        for(comment_type_info const& nfo : comment_types)
+            if(nfo.type == type)
+                return nfo;
+        return comment_type_info{};
+    };
+    for(comment_type_info nfo : comment_types)
+    {
+        RYML_TRACE_FMT("type={}(bit {}): {}", nfo.type, nfo.bit, to_csubstr(nfo.name));
+        bool is_power_of_two = ((nfo.type & (nfo.type - 1)) == 0);
+        ASSERT_TRUE(is_power_of_two || nfo.type == 0 || nfo.type == COMM_ANY);
+        CommentData const* actual_comment = actual.comment(node_actual, nfo.type);
+        CommentData const* expected_comment = expected.comment(node_expected, nfo.type);
+        comment_type_info actual_nfo = getnfo(actual_comment ? actual_comment->m_type : nfo.type);
+        comment_type_info expected_nfo = getnfo(expected_comment ? expected_comment->m_type : nfo.type);
+        RYML_TRACE_FMT("{}={}(bit {}): {}: {}", actual_name, actual_nfo.type, actual_nfo.bit, actual_nfo.name, actual_comment ? actual_comment->m_text : csubstr("<none>"));
+        RYML_TRACE_FMT("{}={}(bit {}): {}: {}", expected_name, expected_nfo.type, expected_nfo.bit, expected_nfo.name, expected_comment ? expected_comment->m_text : csubstr("<none>"));
+        if(is_power_of_two && actual_comment) { EXPECT_EQ(actual_comment->m_type, nfo.type); }
+        if(is_power_of_two && expected_comment) { EXPECT_EQ(expected_comment->m_type, nfo.type); }
+        EXPECT_TRUE(bool(actual_comment) == bool(expected_comment));
+        if(actual_comment && expected_comment)
+        {
+            if((actual_comment->m_type != expected_comment->m_type)
+               ||
+               (actual_comment->m_text != expected_comment->m_text))
+            {
+                EXPECT_EQ(actual_comment->m_type, expected_comment->m_type);
+                EXPECT_EQ(actual_comment->m_text, expected_comment->m_text);
+            }
+        }
+    }
+    #endif
+
     EXPECT_EQ(actual.num_children(node_actual), expected.num_children(node_expected));
     for(id_type ia = actual.first_child(node_actual), ib = expected.first_child(node_expected);
         ia != NONE && ib != NONE;
@@ -159,6 +201,16 @@ void test_arena_not_shared(Tree const& a, Tree const& b)
         EXPECT_FALSE(a.in_arena(td.handle));
         EXPECT_FALSE(a.in_arena(td.prefix));
     }
+    #ifdef RYML_WITH_COMMENTS
+    for(id_type i = 0; i < a.m_comments_size; ++i)
+    {
+        EXPECT_FALSE(b.in_arena(a.m_comments_buf[i].m_text)) << i;
+    }
+    for(id_type i = 0; i < b.m_comments_size; ++i)
+    {
+        EXPECT_FALSE(a.in_arena(b.m_comments_buf[i].m_text)) << i;
+    }
+    #endif
 }
 
 
@@ -629,6 +681,160 @@ void print_test_tree(const char *message, TestCaseNode const& t)
     printf("--------------------------------------\n");
 }
 
+
+void test_comment_invariants(Tree const& t, id_type id)
+{
+    id = id != NONE ? id : t.root_id();
+    (void)id;
+#ifdef RYML_WITH_COMMENTS
+    SCOPED_TRACE("comment invariants");
+    RYML_TRACE_FMT("id={}", id);
+    if(t.m_comments_cap == 0)
+    {
+        ASSERT_EQ(t.m_comments_buf, nullptr);
+        ASSERT_EQ(t.m_comments_size, 0);
+        ASSERT_EQ(t._p(id)->m_first_comment, NONE);
+        ASSERT_EQ(t._p(id)->m_last_comment, NONE);
+        return;
+    }
+    ASSERT_NE(t.m_comments_buf, nullptr);
+    ASSERT_LE(t.m_comments_size, t.m_comments_cap);
+
+    struct comm_nfo { CommentType_e type; csubstr name; };
+    const comm_nfo all_comments[] = {
+        #define _c4comm(comm_symbol, bit) {COMM_##comm_symbol, #comm_symbol},
+        _RYML_DEFINE_COMMENTS(_c4comm)
+        #undef _c4comm
+    };
+    auto get_nfo = [&](CommentType_e type) {
+        for(comm_nfo nfo : all_comments)
+            if(nfo.type == type)
+                return nfo;
+        return comm_nfo{};
+    };
+
+    id_type count_iter = 0;
+    NodeData const* node = t._p(id);
+    if(node->m_first_comment == NONE || node->m_last_comment == NONE)
+    {
+        EXPECT_EQ(node->m_first_comment, NONE);
+        EXPECT_EQ(node->m_last_comment, NONE);
+    }
+    else
+    {
+        ASSERT_LT(node->m_first_comment, t.m_comments_size);
+        ASSERT_LT(node->m_last_comment, t.m_comments_size);
+        EXPECT_EQ(t.m_comments_buf[node->m_first_comment].m_prev, NONE);
+        EXPECT_EQ(t.m_comments_buf[node->m_last_comment].m_next, NONE);
+        for(id_type cid = node->m_first_comment; cid != NONE; cid = t.m_comments_buf[cid].m_next)
+        {
+            CommentData const* comm = &t.m_comments_buf[cid];
+            RYML_TRACE_FMT("cid={} {}({})", cid, get_nfo(comm->m_type).name, c4::fmt::hex((comment_data_type)comm->m_type));
+            ASSERT_LT(cid, t.m_comments_size);
+            EXPECT_EQ(t.comment(id, comm->m_type), comm);
+            if(comm->m_prev != NONE)
+            {
+                EXPECT_NE(cid, node->m_first_comment);
+                ASSERT_LT(comm->m_prev, t.m_comments_size);
+                CommentData const* prev = &t.m_comments_buf[comm->m_prev];
+                EXPECT_LT(prev->m_type, comm->m_type);
+                EXPECT_EQ(prev->m_next, cid);
+            }
+            else
+            {
+                EXPECT_EQ(cid, node->m_first_comment);
+            }
+            if(comm->m_next != NONE)
+            {
+                EXPECT_NE(cid, node->m_last_comment);
+                ASSERT_LT(comm->m_next, t.m_comments_size);
+                CommentData const* next = &t.m_comments_buf[comm->m_next];
+                EXPECT_GT(next->m_type, comm->m_type);
+                EXPECT_EQ(next->m_prev, cid);
+            }
+            else
+            {
+                EXPECT_EQ(cid, node->m_last_comment);
+            }
+            ++count_iter;
+        }
+    }
+
+    id_type count_get = 0;
+    {
+        CommentData const* prev = nullptr;
+        comm_nfo nfo_prev = {COMM_NONE, "NONE"};
+        for(comm_nfo nfo : all_comments)
+        {
+            RYML_TRACE_FMT("comm={}({})", nfo.name, c4::fmt::hex((comment_data_type)nfo.type));
+            CommentData const* comm = t.comment(id, nfo.type);
+            if(nfo_prev.type != COMM_NONE)
+            {
+                RYML_TRACE_FMT("ctype_prev={}({})", nfo_prev.name, c4::fmt::hex((comment_data_type)nfo_prev.type));
+                ASSERT_GE(nfo.type, nfo_prev.type);
+                EXPECT_EQ(comm, t.comment(id, prev, nfo.type));
+            }
+            else
+            {
+                EXPECT_EQ(comm, t.comment(id, prev, nfo.type));
+            }
+            count_get += !!comm;
+            nfo_prev = nfo;
+            prev = comm;
+        }
+    }
+    EXPECT_EQ(count_iter, count_get);
+
+    size_t num_types = C4_COUNTOF(all_comments);
+    for(size_t i = 0; i < num_types; ++i)
+    {
+        comm_nfo nfo = all_comments[i];
+        RYML_TRACE_FMT("comm[{}]={}({})", i, nfo.name, c4::fmt::hex((comment_data_type)nfo.type));
+        ASSERT_EQ(nfo.type & (nfo.type - 1u), 0u); // must be power of two (ie, single bit)
+        CommentType_e mask_lower_without = CommentType_e(nfo.type - 1u); // all bits up to this comment (exclusive)
+        CommentType_e mask_lower_with    = CommentType_e((((uint32_t)nfo.type) << 1u) - 1u); // all bits up to this comment (inclusive)
+        CommentType_e mask_upper_without = CommentType_e(COMM_ANY & ~mask_lower_with); // all bits
+        CommentData const* comm = t.comment(id, nfo.type);
+        if(comm)
+        {
+            EXPECT_NE(t.comment(id, mask_lower_without), comm);
+            EXPECT_NE(t.comment(id, mask_upper_without), comm);
+        }
+        for(size_t j = 0; j < i; ++j)
+        {
+            comm_nfo lo = all_comments[j];
+            comm_nfo hi = nfo;
+            RYML_TRACE_FMT("lo[{}]={}({})", j, lo.name, c4::fmt::hex((comment_data_type)lo.type));
+            RYML_TRACE_FMT("hi[{}]={}({})", i, hi.name, c4::fmt::hex((comment_data_type)hi.type));
+            CommentData const* comm_lo = t.comment(id, lo.type);
+            CommentData const* comm_hi = t.comment(id, hi.type);
+            EXPECT_EQ(t.comment(id, comm_lo, hi.type), comm_hi);
+        }
+        for(size_t j = i+1; j < num_types; ++j)
+        {
+            comm_nfo lo = nfo;
+            comm_nfo hi = all_comments[j];
+            RYML_TRACE_FMT("lo[{}]={}({})", j, lo.name, c4::fmt::hex((comment_data_type)lo.type));
+            RYML_TRACE_FMT("hi[{}]={}({})", i, hi.name, c4::fmt::hex((comment_data_type)hi.type));
+            CommentData const* comm_lo = t.comment(id, lo.type);
+            CommentData const* comm_hi = t.comment(id, hi.type);
+            EXPECT_EQ(t.comment(id, comm_lo, hi.type), comm_hi);
+        }
+    }
+
+    for(id_type child = t.first_child(id); child != NONE; child = t.next_sibling(child))
+    {
+        test_comment_invariants(t, child);
+    }
+#endif
+}
+
+void test_comment_invariants(ConstNodeRef const &n)
+{
+    ASSERT_TRUE(n.readable());
+    test_comment_invariants(*n.tree(), n.id());
+}
+
 void test_invariants(ConstNodeRef const& n)
 {
     SCOPED_TRACE(n.id());
@@ -651,6 +857,8 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
+        if(s.has_key() && !n.has_key()) { EXPECT_EQ(n.type(), NOTYPE); _RYML_WITH_COMMENTS(EXPECT_NE(n.comment(), nullptr)); }
+        if(!s.has_key() && n.has_key()) { EXPECT_EQ(s.type(), NOTYPE); _RYML_WITH_COMMENTS(EXPECT_NE(s.comment(), nullptr)); }
         if(n.has_key() && s.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
@@ -813,6 +1021,7 @@ void test_invariants(Tree const& t)
 
     check_invariants(t);
     test_invariants(t.rootref());
+    test_comment_invariants(t);
 
     if(!testing::UnitTest::GetInstance()->current_test_info()->result()->Passed())
     {

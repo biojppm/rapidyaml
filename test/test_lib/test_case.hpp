@@ -129,6 +129,11 @@ void test_arena_not_shared(Tree const& a, Tree const& b);
 void test_invariants(Tree const& t);
 void test_invariants(ConstNodeRef const& n);
 
+#ifdef RYML_WITH_COMMENTS
+void test_comment_invariants(Tree const& t, id_type id=NONE);
+void test_comment_invariants(ConstNodeRef const& n);
+#endif
+
 void print_test_node(TestCaseNode const& t, int level=0);
 void print_test_tree(TestCaseNode const& p, int level=0);
 void print_test_tree(const char *message, TestCaseNode const& t);

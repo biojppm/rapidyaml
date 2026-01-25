@@ -13,6 +13,7 @@ c4_project(VERSION 0.10.0 STANDALONE
 #-------------------------------------------------------
 
 option(RYML_WITH_TAB_TOKENS "Enable parsing of tabs after ':' and '-'. This is costly and disabled by default." OFF)
+option(RYML_WITH_COMMENTS "Enable parsing of comments. This is costly and disabled by default." OFF)
 option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks: allocate(), free(), error()" ON)
 if(RYML_DEFAULT_CALLBACKS)
     option(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS "Throw exceptions instead of calling abort in the default error handler provided by ryml" OFF)
@@ -41,6 +42,8 @@ c4_add_library(ryml
         c4/yml/detail/dbgprint.hpp
         c4/yml/detail/print.hpp
         c4/yml/detail/stack.hpp
+        c4/yml/comment_type.hpp
+        c4/yml/comment_type.cpp
         c4/yml/common.hpp
         c4/yml/common.cpp
         c4/yml/emit.def.hpp
@@ -89,6 +92,10 @@ c4_add_library(ryml
 
 if(RYML_WITH_TAB_TOKENS)
     target_compile_definitions(ryml PUBLIC RYML_WITH_TAB_TOKENS)
+endif()
+
+if(RYML_WITH_COMMENTS)
+    target_compile_definitions(ryml PUBLIC RYML_WITH_COMMENTS)
 endif()
 
 if(NOT RYML_DEFAULT_CALLBACKS)

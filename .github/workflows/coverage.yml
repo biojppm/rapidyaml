@@ -38,14 +38,20 @@ jobs:
           namesfx: 64bit_exc
           cmk: -DCMAKE_CXX_FLAGS='-m64' -DRYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON
         - std: 11
+          namesfx: 64bit_comm
+          cmk: -DCMAKE_CXX_FLAGS=-m64 -DRYML_WITH_COMMENTS=ON
+        - std: 11
           namesfx: 64bit_dbg
-          cmk: -DCMAKE_CXX_FLAGS=-m64 -DRYML_DBG=ON
+          cmk: -DCMAKE_CXX_FLAGS=-m64 -DRYML_WITH_COMMENTS=ON -DRYML_DBG=ON
         - std: 11
           namesfx: 32bit
           cmk: -DCMAKE_CXX_FLAGS=-m32
         - std: 11
+          namesfx: 32bit_comm
+          cmk: -DCMAKE_CXX_FLAGS=-m32 -DRYML_WITH_COMMENTS=ON
+        - std: 11
           namesfx: 32bit_dbg
-          cmk: -DCMAKE_CXX_FLAGS=-m32 -DRYML_DBG=ON
+          cmk: -DCMAKE_CXX_FLAGS=-m32 -DRYML_WITH_COMMENTS=ON -DRYML_DBG=ON
     env:
       GCC_VERSION: 13
       LCOV_ARGS: -v --ignore-errors mismatch,mismatch --ignore-errors unused,unused

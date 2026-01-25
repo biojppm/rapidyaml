@@ -117,6 +117,10 @@ struct EventTransformer
 
     fwds(add_directive)
 
+    #ifdef RYML_WITH_COMMENTS
+    void add_comment(csubstr txt, CommentType_e type) { handler.add_comment(transformer(txt), type); }
+    #endif
+
     #undef fwd
     #undef fwds
     #undef fwdb
@@ -172,6 +176,8 @@ public:
     EngineEvtTestCase(ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
     EngineEvtTestCase(ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(           p), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _RYML_ASSERT_BASIC(linecol_); }
 };
+
+id_type inject_comments_in_tree(Tree *tree, csubstr fmt);
 
 
 //-----------------------------------------------------------------------------
@@ -345,27 +351,99 @@ C4_NO_INLINE void test_engine_roundtrip_from_events(EngineEvtTestCase const& tes
     }
 }
 
+template<template<class> class EventProducerFn>
+void test_engine_roundtrip_from_events__tree_comments(EngineEvtTestCase const& test_case)
+{
+    if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
+        return;
+    SCOPED_TRACE("test_engine_roundtrip_from_events__tree_comments");
+    Tree event_tree = {};
+    EventHandlerTree handler(&event_tree, event_tree.root_id());
+    EventProducerFn<EventHandlerTree> event_producer;
+    event_producer(handler);
+    {
+        SCOPED_TRACE("test_invariants_orig");
+        test_invariants(event_tree);
+    }
+    event_tree.rem_comments(event_tree.root_id(), /*recursive*/true);
+    {
+        SCOPED_TRACE("invariants_after_inject");
+        test_invariants(event_tree);
+    }
+    EXPECT_EQ(0, event_tree.m_comments_size);
+    ParserOptions with_comments = {};
+    with_comments.with_comments(true);
+    for(csubstr fmt : {
+            csubstr(" {} node={} {} {}"),
+            csubstr(" \n {} node={} {}\n multiline\n with\n many lines\n {}\n"),
+        })
+    {
+        RYML_TRACE_FMT("injected comment format=~~~{}~~~", fmt);
+        Tree injected_tree = event_tree;
+        EXPECT_EQ(0, injected_tree.m_comments_size);
+        id_type num_comments = inject_comments_in_tree(&injected_tree, fmt);
+        EXPECT_EQ(num_comments, injected_tree.m_comments_size);
+        {
+            SCOPED_TRACE("invariants_after_inject");
+            test_invariants(injected_tree);
+        }
+        const std::string injected_tree_emitted = emitrs_yaml<std::string>(injected_tree);
+        #ifdef RYML_DBG
+        print_tree("injected_tree", injected_tree);
+        printf("injected_tree_emitted: ~~~\n%.*s~~~\n", (int)injected_tree_emitted.size(), injected_tree_emitted.data());
+        #endif
+        std::string injected_tree_emitted_copy = injected_tree_emitted;
+        const Tree after_roundtrip = parse_in_place(to_substr(injected_tree_emitted_copy), with_comments);
+        {
+            SCOPED_TRACE("invariants_after_roundtrip");
+            test_invariants(after_roundtrip);
+        }
+        const std::string roundtrip_tree_emitted = emitrs_yaml<std::string>(after_roundtrip);
+        EXPECT_EQ(num_comments, after_roundtrip.m_comments_size);
+        EXPECT_EQ(injected_tree_emitted, roundtrip_tree_emitted);
+        {
+            SCOPED_TRACE("compare_trees");
+            test_compare(after_roundtrip, injected_tree, "after_roundtrip", "injected_tree");
+        }
+        if(testing::Test::HasFailure())
+        {
+            printf("source: ~~~\n%.*s~~~\n", (int)test_case.yaml.size(), test_case.yaml.data());
+            print_tree("event_tree", event_tree);
+            print_tree("injected_tree", injected_tree);
+            printf("injected_tree_emitted: ~~~\n%.*s~~~\n", (int)injected_tree_emitted.size(), injected_tree_emitted.data());
+            print_tree("after_roundtrip", after_roundtrip);
+            printf("roundtrip_tree_emitted: ~~~\n%.*s~~~\n", (int)roundtrip_tree_emitted.size(), roundtrip_tree_emitted.data());
+        }
+        if(testing::Test::HasFailure())
+            break;
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 
-void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
+void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, ParserOptions opts);
+void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, ParserOptions opts);
+void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, ParserOptions opts);
+void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, ParserOptions opts);
 
-inline void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case) { test_engine_testsuite_from_yaml(test_case, test_case.yaml); }
-inline void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_ints_from_yaml(test_case, test_case.yaml); }
-inline void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case) { test_engine_tree_from_yaml(test_case, test_case.yaml); }
-inline void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case) { test_engine_roundtrip_from_yaml(test_case, test_case.yaml); }
-
-void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test_case);
-void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case);
-void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case);
-void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test_case);
+inline void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case) { test_engine_testsuite_from_yaml(test_case, test_case.yaml, test_case.opts); }
+inline void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_ints_from_yaml(test_case, test_case.yaml, test_case.opts); }
+inline void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case) { test_engine_tree_from_yaml(test_case, test_case.yaml, test_case.opts); }
+inline void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case) { test_engine_roundtrip_from_yaml(test_case, test_case.yaml, test_case.opts); }
+void test_engine_roundtrip_from_yaml__tree_comments(EngineEvtTestCase const& test_case);
 
 void test_expected_error_testsuite_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
 void test_expected_error_ints_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
 void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
+
+
+// these tests inject comments in the YAML source
+void test_engine_testsuite_from_yaml__src_comments(EngineEvtTestCase const& test_case);
+void test_engine_ints_from_yaml__src_comments(EngineEvtTestCase const& test_case);
+void test_engine_tree_from_yaml__src_comments(EngineEvtTestCase const& test_case);
+void test_engine_roundtrip_from_yaml__src_comments(EngineEvtTestCase const& test_case);
+
 
 
 //-----------------------------------------------------------------------------
@@ -526,6 +604,15 @@ ENGINE_TEST_DEFINE_CASE(name)                                   \
 //-----------------------------------------------------------------------------
 
 
+#ifdef RYML_WITH_COMMENTS
+#define COMMENT_TEST(name, ...) ENGINE_TEST_(name, ParserOptions{}.with_comments(true), __VA_ARGS__)
+#else
+#define COMMENT_TEST(name, ...)                                 \
+    template<class Handler> void disabled_##name(Handler &ps);  \
+    template<class Handler> void disabled_##name(Handler &ps)
+#endif
+
+
 /* declare a parse engine test for the existing event handlers.
  * The extra arguments are for the ctor of EngineEvtTestCase */
 #define ENGINE_TEST(name, ...) ENGINE_TEST_(name, ParserOptions{}, __VA_ARGS__)
@@ -575,6 +662,15 @@ TEST(name, roundtrip_from_events)                               \
     _RYML_SHOWFILELINE(name);                                   \
 }                                                               \
                                                                 \
+TEST(name, roundtrip_from_events_tree_comments)                 \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_roundtrip_from_events_tree_comments"); \
+    auto const &tc = test_case_##name;                          \
+    test_engine_roundtrip_from_events__tree_comments<name>(tc); \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
                                                                 \
                                                                 \
 TEST(name, testsuite_from_yaml)                                 \
@@ -613,6 +709,15 @@ TEST(name, roundtrip_from_yaml)                                 \
     _RYML_SHOWFILELINE(name);                                   \
 }                                                               \
                                                                 \
+TEST(name, roundtrip_from_yaml_tree_comments)                   \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_tree_from_yaml_tree_comments");        \
+    auto const &tc = test_case_##name;                          \
+    test_engine_roundtrip_from_yaml__tree_comments(tc);         \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
                                                                 \
                                                                 \
 TEST(name, testsuite_from_yaml_with_comments)                   \
@@ -620,7 +725,7 @@ TEST(name, testsuite_from_yaml_with_comments)                   \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_testsuite_from_yaml_with_comments");   \
     auto const &tc = test_case_##name;                          \
-    test_engine_testsuite_from_yaml_with_comments(tc);          \
+    test_engine_testsuite_from_yaml__src_comments(tc);          \
 }                                                               \
                                                                 \
 TEST(name, ints_from_yaml_with_comments)                        \
@@ -628,7 +733,7 @@ TEST(name, ints_from_yaml_with_comments)                        \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_ints_from_yaml_with_comments");        \
     auto const &tc = test_case_##name;                          \
-    test_engine_ints_from_yaml_with_comments(tc);               \
+    test_engine_ints_from_yaml__src_comments(tc);               \
 }                                                               \
                                                                 \
 TEST(name, tree_from_yaml_with_comments)                        \
@@ -636,7 +741,7 @@ TEST(name, tree_from_yaml_with_comments)                        \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_tree_from_yaml");                      \
     auto const &tc = test_case_##name;                          \
-    test_engine_tree_from_yaml_with_comments(tc);               \
+    test_engine_tree_from_yaml__src_comments(tc);               \
     _RYML_SHOWFILELINE(name);                                   \
 }                                                               \
                                                                 \
@@ -645,7 +750,7 @@ TEST(name, roundtrip_from_yaml_with_comments)                   \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_roundtrip_from_yaml");                 \
     auto const &tc = test_case_##name;                          \
-    test_engine_roundtrip_from_yaml_with_comments(tc);          \
+    test_engine_roundtrip_from_yaml__src_comments(tc);          \
     _RYML_SHOWFILELINE(name);                                   \
 }                                                               \
                                                                 \
