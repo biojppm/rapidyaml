@@ -43,7 +43,7 @@ C4CORE_EXPORT size_t first_non_bom(csubstr s);
  * asserted), and must not have a null string.
  *
  * @param code_point: must have length in ]0,8], and must not begin
- * with any of `'U+','\x','\u','\U','0'` (asserted)
+ * with any of @verbatim `U+`,`\x`,`\u`,`\U`,`0` @endverbatim (asserted)
  *
  * @return the part of @p out that was written, which will always be
  * at most 4 bytes.
@@ -59,7 +59,7 @@ C4CORE_EXPORT substr decode_code_point(substr out, csubstr code_point);
  * @param buflen the length of the output string. must be at least 4
  *
  * @param code: the code point must have length in ]0,8], and must not begin
- * with any of `'U+','\x','\u','\U','0'` (asserted)
+ * with any of @verbatim `U+`,`\x`,`\u`,`\U`,`0` @endverbatim (asserted)
  *
  * @return the number of written characters, which will always be
  * at most 4 bytes.
