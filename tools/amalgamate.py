@@ -10,8 +10,6 @@ from enum import Enum
 projdir = abspath(dirname(dirname(__file__)))
 sys.path.insert(0, f"{projdir}/proj/c4proj")
 import amalgamate_utils as am
-sys.path.insert(0, f"{projdir}/ext/c4core/tools")
-import amalgamate as am_c4core
 
 
 class Event(Enum):
@@ -64,6 +62,10 @@ c4core_def_code = f""" // propagate defines to c4core
 #define C4CORE_SHARED
 #endif
 
+#if defined(C4CORE_SHARED) && defined({c4core_defmacro}) && !defined(C4CORE_EXPORTS)
+#define C4CORE_EXPORTS
+#endif
+
 // workaround for include removal while amalgamating
 // resulting in <stdarg.h> missing in arm-none-eabi-g++
 // https://github.com/biojppm/rapidyaml/issues/193
@@ -71,17 +73,28 @@ c4core_def_code = f""" // propagate defines to c4core
 """
 
 
+required_gcc4_8_include = """// (amalgamate) these includes are needed to work around
+// conditional includes in the gcc4.8 shim
+#include <cstdint>
+#include <type_traits>
+#include <cstring>
+"""
+
+
+required_charconv_include = """// (amalgamate) this include is needed to work around
+// conditional includes in charconv.hpp
+#if (defined(_MSVC_LANG) && (_MSVC_LANG >= 201703L)) || (__cplusplus >= 201703L)
+#include <charconv>
+#endif
+"""
+
 def amalgamate_ryml(filename: str,
                     with_c4core: bool,
+                    with_c4core_dev: bool,
                     with_fastfloat: bool,
                     with_stl: bool,
                     events: List[Event]):
     c4core_amalgamated = ""
-    if with_c4core:
-        c4core_amalgamated = "src/c4/c4core_all.hpp"
-        am_c4core.amalgamate_c4core(f"{projdir}/{c4core_amalgamated}",
-                                    with_fastfloat=with_fastfloat,
-                                    with_stl=with_stl)
     repo = "https://github.com/biojppm/rapidyaml"
     ryml_preamble = f"""
 Rapid YAML - a library to parse and emit YAML, and do it fast.
@@ -123,8 +136,65 @@ INSTRUCTIONS:
         am.cmttext(ryml_preamble),
         am.cmtfile("LICENSE.txt"),
         am.injcode(exports_def_code),
+        # -------------------------------------------
+        # c4core
         am.onlyif(with_c4core, am.injcode(c4core_def_code)),
-        am.onlyif(with_c4core, c4core_amalgamated),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/export.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/version.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/preprocessor.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/platform.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/cpu.hpp"),
+        am.onlyif(with_c4core, am.injcode(required_gcc4_8_include)),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/gcc-4.8.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/compiler.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/language.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/types.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/config.hpp"),
+        am.onlyif(with_c4core, am.hdrfile("ext/c4core.src/c4/ext/debugbreak/debugbreak.h", "c4/ext/debugbreak/debugbreak.h", "DEBUG_BREAK_H")),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/error.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/memory_util.hpp"),
+        am.onlyif(with_c4core_dev, "ext/c4core.dev/c4/memory_resource.hpp"),
+        am.onlyif(with_c4core_dev, "ext/c4core.dev/c4/szconv.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/blob.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/substr_fwd.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/substr.hpp"),
+        am.onlyif(with_c4core and with_fastfloat, am.injfile("ext/c4core.src/c4/ext/fast_float_all.h", "c4/ext/fast_float_all.h")),
+        am.onlyif(with_c4core and with_fastfloat, "ext/c4core.src/c4/ext/fast_float.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/std/vector_fwd.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/std/string_fwd.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/std/std_fwd.hpp"),
+        am.onlyif(with_c4core, am.injcode(required_charconv_include)),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/charconv.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/utf.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/format.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/dump.hpp"),
+        am.onlyif(with_c4core_dev, "ext/c4core.dev/c4/enum.hpp"),
+        am.onlyif(with_c4core_dev, "ext/c4core.dev/c4/bitmask.hpp"),
+        am.onlyif(with_c4core_dev, "ext/c4core.dev/c4/span.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/base64.hpp"),
+        am.onlyif(with_c4core and with_stl, am.ignfile("ext/c4core.src/c4/std/std.hpp")), # this is an umbrella include
+        am.onlyif(with_c4core and with_stl, "ext/c4core.src/c4/std/string.hpp"),
+        am.onlyif(with_c4core and with_stl, "ext/c4core.src/c4/std/string_view.hpp"),
+        am.onlyif(with_c4core and with_stl, "ext/c4core.src/c4/std/vector.hpp"),
+        am.onlyif(with_c4core, am.ignfile("ext/c4core.src/c4/common.hpp")),
+        am.onlyif(with_c4core_dev, am.ignfile("ext/c4core.dev/c4/c4_push.hpp")),
+        am.onlyif(with_c4core_dev, am.ignfile("ext/c4core.dev/c4/c4_pop.hpp")),
+        am.onlyif(with_c4core_dev, am.ignfile("ext/c4core.dev/c4/restrict.hpp")),
+        am.onlyif(with_c4core_dev, am.ignfile("ext/c4core.dev/c4/unrestrict.hpp")),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/version.cpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/language.cpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/format.cpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/memory_util.cpp"),
+        am.onlyif(with_c4core_dev, "ext/c4core.dev/c4/memory_resource.cpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/utf.cpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/base64.cpp"),
+        am.onlyif(with_c4core, am.injcode("#define C4_WINDOWS_POP_HPP_")),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/windows_push.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/windows.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/windows_pop.hpp"), # do NOT include this before windows.hpp
+        am.onlyif(with_c4core, "ext/c4core.src/c4/error.cpp"),
+        # -------------------------------------------
+        # RYML
         "src/c4/yml/export.hpp",
         "src/c4/yml/fwd.hpp",
         "src/c4/yml/version.hpp",
@@ -196,6 +266,7 @@ INSTRUCTIONS:
 def mkparser():
     p = am.mkparser(
         c4core=(True, "amalgamate c4core together with ryml"),
+        c4core_dev=(False, "amalgamate c4core together with ryml (dev utilities)"),
         fastfloat=(True, "enable fastfloat library"),
         stl=(True, "enable stl interop")
     )
@@ -213,6 +284,7 @@ if __name__ == "__main__":
     args.events = [Event(e) for e in args.events] # is there a better way to do this?
     amalgamate_ryml(filename=args.output,
                     with_c4core=args.c4core,
+                    with_c4core_dev=args.c4core_dev,
                     with_fastfloat=args.fastfloat,
                     with_stl=args.stl,
                     events=args.events)

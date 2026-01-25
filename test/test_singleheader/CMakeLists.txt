@@ -3,7 +3,7 @@ project(ryml
     DESCRIPTION "Single header version of ryml library for testing"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-include(../../ext/c4core/cmake/c4Project.cmake)
+include(../../proj/c4proj/c4Project.cmake)
 c4_project(VERSION 0.10.0
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
