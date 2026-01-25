@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.12)
-include(./ext/c4core/cmake/c4Project.cmake)
+cmake_minimum_required(VERSION 3.13)
 project(ryml
     DESCRIPTION "Rapid YAML parsing and emitting"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-include(./compat.cmake)
+include(./proj/compat.cmake)
+include(./proj/c4proj/c4Project.cmake)
 
 c4_project(VERSION 0.10.0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
@@ -28,15 +28,11 @@ option(RYML_INSTALL "Enable install target" ON)
 
 #-------------------------------------------------------
 
-c4_require_subproject(c4core INCORPORATE
-    SUBDIRECTORY ${RYML_EXT_DIR}/c4core
-    OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
-)
-
 c4_add_library(ryml
     SOURCES
         ryml.hpp
         ryml_std.hpp
+        ryml.natvis
         c4/yml/detail/checks.hpp
         c4/yml/detail/dbgprint.hpp
         c4/yml/detail/print.hpp
@@ -78,14 +74,18 @@ c4_add_library(ryml
         c4/yml/version.cpp
         c4/yml/writer.hpp
         c4/yml/yml.hpp
-        ryml.natvis
     SOURCE_ROOT ${RYML_SRC_DIR}
     INC_DIRS
         $<BUILD_INTERFACE:${RYML_SRC_DIR}>
         $<INSTALL_INTERFACE:include>
-    LIBS c4core
-    INCORPORATE c4core
     )
+
+if(NOT RYML_STANDALONE)
+    target_link_libraries(ryml PUBLIC c4core)
+else()
+    include(ext/c4core.cmake)
+    ryml_add_c4core_src_to_target(ryml)
+endif()
 
 if(RYML_WITH_TAB_TOKENS)
     target_compile_definitions(ryml PUBLIC RYML_WITH_TAB_TOKENS)
@@ -102,6 +102,7 @@ endif()
 if(RYML_SHORT_CHECK_MSG)
     target_compile_definitions(ryml PUBLIC RYML_SHORT_CHECK_MSG)
 endif()
+
 if(RYML_USE_ASSERT)
     target_compile_definitions(ryml PUBLIC RYML_USE_ASSERT=1)
 endif()
@@ -122,9 +123,29 @@ endif()
 
 if(RYML_INSTALL)
     c4_install_target(ryml)
-    c4_install_exports(DEPENDENCIES c4core)
+    if(RYML_STANDALONE)
+        c4_install_exports()
+    else()
+        c4_install_exports(DEPENDENCIES c4core)
+    endif()
     c4_pack_project()
 endif()
+
+# generate and install the install manifest
+# https://stackoverflow.com/questions/66752091/is-there-a-way-in-cmake-to-save-away-the-install-manifest-txt-for-later
+install(CODE "
+string(REPLACE \"\$\{CMAKE_INSTALL_PREFIX\}/\" \"\" ryml_manifest \"\$\{CMAKE_INSTALL_MANIFEST_FILES\}\")\n\
+list(APPEND ryml_manifest share/ryml/MANIFEST.txt)\n\
+list(SORT ryml_manifest)\n\
+string(REPLACE \";\" \"\\n\" ryml_manifest \"\$\{ryml_manifest\}\")\n\
+file(WRITE ${CMAKE_BINARY_DIR}/MANIFEST.txt \"\$\{ryml_manifest\}\")
+")
+install(FILES "${CMAKE_BINARY_DIR}/MANIFEST.txt" DESTINATION ${CMAKE_INSTALL_PREFIX}/share/ryml)
+
+# add a target to uninstall
+add_custom_target(ryml-uninstall
+    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/proj/uninstall.cmake"
+)
 
 
 #-------------------------------------------------------
@@ -140,10 +161,6 @@ if(RYML_BUILD_TOOLS)
 endif()
 
 c4_add_dev_targets()
-
-add_custom_target(ryml-uninstall
-    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake"
-)
 
 
 #-------------------------------------------------------
