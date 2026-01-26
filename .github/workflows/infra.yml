@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-in/infra.ys
+# DO NOT EDIT - GENERATED FROM .github/workflows/infra.ys
 
 name: infra
 defaults:
@@ -30,14 +30,14 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - name: install ys
-      run: make -C .github/workflows-in install-ys
+      run: make -C .github/workflows install-ys
     - name: generate workflows
-      run: make -C .github/workflows-in build
+      run: make -C .github/workflows build
     - name: test workflows
       run: |
         wc --version
         wc --help
-        make -C .github/workflows-in test
+        make -C .github/workflows test
         status=$?
         if [ $status != 0 ] ; then
           echo "ERROR: generated workflows are out of date"

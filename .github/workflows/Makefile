@@ -1,12 +1,12 @@
 SHELL := bash
 
-YS_VERSION := 0.2.4
+YS_VERSION := 0.1.88
 YS_PREFIX := $(shell cd ../.. ; pwd)/build/ys
 YS := $(YS_PREFIX)/bin/ys-$(YS_VERSION)
 
-INPUT_FILES := $(wildcard */*)
 SOURCE_FILES := $(wildcard *.ys)
-TARGET_FILES := $(SOURCE_FILES:%.ys=../workflows/%.yml)
+INPUT_FILES := $(wildcard */*) $(SOURCE_FILES)
+TARGET_FILES := $(SOURCE_FILES:%.ys=%.yml)
 
 export PATH := $(YS_PREFIX)/bin:$(PATH)
 export YSPATH := $(shell pwd -P)/ys
@@ -43,9 +43,9 @@ force:
 	touch *.ys
 
 
-../workflows/%.yml: %.ys $(YS) $(INPUT_FILES)
+%.yml: %.ys $(YS) $(INPUT_FILES)
 	@if [ -f "$@" ] ; then chmod a+w $@ ; fi
-	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows-in/$<" > $@
+	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows/$<" > $@
 	@echo >> $@
 	$(YS) -Y $< >> $@
 	@chmod a-w $@

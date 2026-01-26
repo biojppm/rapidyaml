@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-in/gcc.ys
+# DO NOT EDIT - GENERATED FROM .github/workflows/gcc.ys
 
 name: gcc
 defaults:
