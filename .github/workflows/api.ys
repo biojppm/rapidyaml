@@ -6,15 +6,15 @@ python-preamble-job =::
     fail-fast: false
     matrix:
       config:
-        - {pythonv: '3.13', os: ubuntu-latest}
-        - {pythonv: '3.13', os: macos-15-intel}
+        - {pythonv: '3.14', os: ubuntu-latest}
+        - {pythonv: '3.14', os: macos-15-intel}
 python-preamble-job-win =::
   runs-on: ${{matrix.config.os}}
   strategy:
     fail-fast: false
     matrix:
       config:
-        - {pythonv: '3.13', os: windows-latest, vsenvarch: x64}
+        - {pythonv: '3.14', os: windows-latest, vsenvarch: x64}
 
 
 setup-env-win =::

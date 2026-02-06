@@ -286,6 +286,54 @@ jobs:
       fail-fast: false
       matrix:
         config:
+        - name: python/3.14/manylinux_x86_64
+          sfx: python3.14-manylinux_x86_64
+          os: ubuntu-24.04
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: x86_64
+          cibw_platform: manylinux_x86_64
+          vsenvarch: ''
+        - name: python/3.14/manylinux_i686
+          sfx: python3.14-manylinux_i686
+          os: ubuntu-24.04
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: i686
+          cibw_platform: manylinux_i686
+          vsenvarch: ''
+        - name: python/3.14/manylinux_aarch64
+          sfx: python3.14-manylinux_aarch64
+          os: ubuntu-24.04-arm
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: aarch64
+          cibw_platform: manylinux_aarch64
+          vsenvarch: ''
+        - name: python/3.14/macosx_x86_64
+          sfx: python3.14-macosx_x86_64
+          os: macos-15-intel
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: x86_64
+          cibw_platform: macosx_x86_64
+          vsenvarch: ''
+        - name: python/3.14/macosx_arm64
+          sfx: python3.14-macosx_arm64
+          os: macos-latest
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: arm64
+          cibw_platform: macosx_arm64
+          vsenvarch: ''
+        - name: python/3.14/macosx_universal2
+          sfx: python3.14-macosx_universal2
+          os: macos-latest
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: universal2
+          cibw_platform: macosx_universal2
+          vsenvarch: ''
         - name: python/3.13/manylinux_x86_64
           sfx: python3.13-manylinux_x86_64
           os: ubuntu-24.04
@@ -558,30 +606,6 @@ jobs:
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
           vsenvarch: ''
-        - name: python/3.7/manylinux_x86_64
-          sfx: python3.7-manylinux_x86_64
-          os: ubuntu-22.04
-          pythonv: '3.7'
-          cibw_pyv: 37
-          cibw_arch: x86_64
-          cibw_platform: manylinux_x86_64
-          vsenvarch: ''
-        - name: python/3.7/manylinux_i686
-          sfx: python3.7-manylinux_i686
-          os: ubuntu-22.04
-          pythonv: '3.7'
-          cibw_pyv: 37
-          cibw_arch: i686
-          cibw_platform: manylinux_i686
-          vsenvarch: ''
-        - name: python/3.7/macosx_x86_64
-          sfx: python3.7-macosx_x86_64
-          os: macos-15-intel
-          pythonv: '3.7'
-          cibw_pyv: 37
-          cibw_arch: x86_64
-          cibw_platform: macosx_x86_64
-          vsenvarch: ''
     steps:
     - name: checkout (action)
       uses: actions/checkout@v4
@@ -591,7 +615,7 @@ jobs:
     - name: setup env (non-win)
       run: echo 'nothing to do'
     - name: create wheel
-      uses: pypa/cibuildwheel@v2.23
+      uses: pypa/cibuildwheel@v3.3.1
     - name: rename wheelhouse -> dist
       run: mv -fv wheelhouse dist
     - name: Verify artifacts
@@ -657,6 +681,22 @@ jobs:
       fail-fast: false
       matrix:
         config:
+        - name: python/3.14/win_amd64
+          sfx: python3.14-win_amd64
+          os: windows-2022
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          vsenvarch: x64
+        - name: python/3.14/win32
+          sfx: python3.14-win32
+          os: windows-2022
+          pythonv: '3.14'
+          cibw_pyv: 314
+          cibw_arch: x86
+          cibw_platform: win32
+          vsenvarch: x86
         - name: python/3.13/win_amd64
           sfx: python3.13-win_amd64
           os: windows-2022
@@ -753,30 +793,6 @@ jobs:
           cibw_arch: x86
           cibw_platform: win32
           vsenvarch: x86
-        - name: python/3.7/win_amd64
-          sfx: python3.7-win_amd64
-          os: windows-2022
-          pythonv: '3.7'
-          cibw_pyv: 37
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.6/win_amd64
-          sfx: python3.6-win_amd64
-          os: windows-2022
-          pythonv: '3.6'
-          cibw_pyv: 36
-          cibw_arch: AMD64
-          cibw_platform: win_amd64
-          vsenvarch: x64
-        - name: python/3.6/win32
-          sfx: python3.6-win32
-          os: windows-2022
-          pythonv: '3.6'
-          cibw_pyv: 36
-          cibw_arch: x86
-          cibw_platform: win32
-          vsenvarch: x86
     steps:
     - name: checkout (action)
       uses: actions/checkout@v4
@@ -788,7 +804,7 @@ jobs:
       with:
         arch: ${{matrix.config.vsenvarch}}
     - name: create wheel
-      uses: pypa/cibuildwheel@v2.23
+      uses: pypa/cibuildwheel@v3.3.1
     - name: rename wheelhouse -> dist
       run: mv -fv wheelhouse dist
     - name: Verify artifacts
