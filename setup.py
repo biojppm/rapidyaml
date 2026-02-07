@@ -131,7 +131,7 @@ setup(
     ext_modules=[ext],
     include_package_data=True,
     # Requirements
-    python_requires=">=3.8",
+    python_requires=">=3.6",
     setup_requires=[
         'setuptools_scm',
         'setuptools-git',

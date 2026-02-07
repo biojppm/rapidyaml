@@ -293,6 +293,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.14/manylinux_i686
           sfx: python3.14-manylinux_i686
@@ -301,6 +302,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.14/manylinux_aarch64
           sfx: python3.14-manylinux_aarch64
@@ -309,6 +311,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: aarch64
           cibw_platform: manylinux_aarch64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.14/macosx_x86_64
           sfx: python3.14-macosx_x86_64
@@ -317,6 +320,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.14/macosx_arm64
           sfx: python3.14-macosx_arm64
@@ -325,6 +329,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: arm64
           cibw_platform: macosx_arm64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.14/macosx_universal2
           sfx: python3.14-macosx_universal2
@@ -333,6 +338,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: universal2
           cibw_platform: macosx_universal2
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.13/manylinux_x86_64
           sfx: python3.13-manylinux_x86_64
@@ -341,6 +347,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.13/manylinux_i686
           sfx: python3.13-manylinux_i686
@@ -349,6 +356,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.13/manylinux_aarch64
           sfx: python3.13-manylinux_aarch64
@@ -357,6 +365,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: aarch64
           cibw_platform: manylinux_aarch64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.13/macosx_x86_64
           sfx: python3.13-macosx_x86_64
@@ -365,6 +374,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.13/macosx_arm64
           sfx: python3.13-macosx_arm64
@@ -373,6 +383,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: arm64
           cibw_platform: macosx_arm64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.13/macosx_universal2
           sfx: python3.13-macosx_universal2
@@ -381,6 +392,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: universal2
           cibw_platform: macosx_universal2
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.12/manylinux_x86_64
           sfx: python3.12-manylinux_x86_64
@@ -389,6 +401,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.12/manylinux_i686
           sfx: python3.12-manylinux_i686
@@ -397,6 +410,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.12/manylinux_aarch64
           sfx: python3.12-manylinux_aarch64
@@ -405,6 +419,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: aarch64
           cibw_platform: manylinux_aarch64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.12/macosx_x86_64
           sfx: python3.12-macosx_x86_64
@@ -413,6 +428,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.12/macosx_arm64
           sfx: python3.12-macosx_arm64
@@ -421,6 +437,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: arm64
           cibw_platform: macosx_arm64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.12/macosx_universal2
           sfx: python3.12-macosx_universal2
@@ -429,6 +446,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: universal2
           cibw_platform: macosx_universal2
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.11/manylinux_x86_64
           sfx: python3.11-manylinux_x86_64
@@ -437,6 +455,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.11/manylinux_i686
           sfx: python3.11-manylinux_i686
@@ -445,6 +464,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.11/manylinux_aarch64
           sfx: python3.11-manylinux_aarch64
@@ -453,6 +473,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: aarch64
           cibw_platform: manylinux_aarch64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.11/macosx_x86_64
           sfx: python3.11-macosx_x86_64
@@ -461,6 +482,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.11/macosx_arm64
           sfx: python3.11-macosx_arm64
@@ -469,6 +491,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: arm64
           cibw_platform: macosx_arm64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.11/macosx_universal2
           sfx: python3.11-macosx_universal2
@@ -477,6 +500,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: universal2
           cibw_platform: macosx_universal2
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.10/manylinux_x86_64
           sfx: python3.10-manylinux_x86_64
@@ -485,6 +509,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.10/manylinux_i686
           sfx: python3.10-manylinux_i686
@@ -493,6 +518,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.10/manylinux_aarch64
           sfx: python3.10-manylinux_aarch64
@@ -501,6 +527,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: aarch64
           cibw_platform: manylinux_aarch64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.10/macosx_x86_64
           sfx: python3.10-macosx_x86_64
@@ -509,6 +536,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.10/macosx_arm64
           sfx: python3.10-macosx_arm64
@@ -517,6 +545,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: arm64
           cibw_platform: macosx_arm64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.10/macosx_universal2
           sfx: python3.10-macosx_universal2
@@ -525,6 +554,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: universal2
           cibw_platform: macosx_universal2
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.9/manylinux_x86_64
           sfx: python3.9-manylinux_x86_64
@@ -533,6 +563,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.9/manylinux_i686
           sfx: python3.9-manylinux_i686
@@ -541,6 +572,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.9/manylinux_aarch64
           sfx: python3.9-manylinux_aarch64
@@ -549,6 +581,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: aarch64
           cibw_platform: manylinux_aarch64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.9/macosx_x86_64
           sfx: python3.9-macosx_x86_64
@@ -557,6 +590,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.9/macosx_arm64
           sfx: python3.9-macosx_arm64
@@ -565,6 +599,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: arm64
           cibw_platform: macosx_arm64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.9/macosx_universal2
           sfx: python3.9-macosx_universal2
@@ -573,6 +608,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: universal2
           cibw_platform: macosx_universal2
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.8/manylinux_x86_64
           sfx: python3.8-manylinux_x86_64
@@ -581,6 +617,7 @@ jobs:
           cibw_pyv: 38
           cibw_arch: x86_64
           cibw_platform: manylinux_x86_64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.8/manylinux_i686
           sfx: python3.8-manylinux_i686
@@ -589,6 +626,7 @@ jobs:
           cibw_pyv: 38
           cibw_arch: i686
           cibw_platform: manylinux_i686
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.8/manylinux_aarch64
           sfx: python3.8-manylinux_aarch64
@@ -597,6 +635,7 @@ jobs:
           cibw_pyv: 38
           cibw_arch: aarch64
           cibw_platform: manylinux_aarch64
+          cibw_ver: 3.3.1
           vsenvarch: ''
         - name: python/3.8/macosx_x86_64
           sfx: python3.8-macosx_x86_64
@@ -605,6 +644,34 @@ jobs:
           cibw_pyv: 38
           cibw_arch: x86_64
           cibw_platform: macosx_x86_64
+          cibw_ver: 3.3.1
+          vsenvarch: ''
+        - name: python/3.7/manylinux_x86_64
+          sfx: python3.7-manylinux_x86_64
+          os: ubuntu-22.04
+          pythonv: '3.7'
+          cibw_pyv: 37
+          cibw_arch: x86_64
+          cibw_platform: manylinux_x86_64
+          cibw_ver: '2.23'
+          vsenvarch: ''
+        - name: python/3.7/manylinux_i686
+          sfx: python3.7-manylinux_i686
+          os: ubuntu-22.04
+          pythonv: '3.7'
+          cibw_pyv: 37
+          cibw_arch: i686
+          cibw_platform: manylinux_i686
+          cibw_ver: '2.23'
+          vsenvarch: ''
+        - name: python/3.7/macosx_x86_64
+          sfx: python3.7-macosx_x86_64
+          os: macos-15-intel
+          pythonv: '3.7'
+          cibw_pyv: 37
+          cibw_arch: x86_64
+          cibw_platform: macosx_x86_64
+          cibw_ver: '2.23'
           vsenvarch: ''
     steps:
     - name: checkout (action)
@@ -615,7 +682,7 @@ jobs:
     - name: setup env (non-win)
       run: echo 'nothing to do'
     - name: create wheel
-      uses: pypa/cibuildwheel@v3.3.1
+      uses: pypa/cibuildwheel@v${{matrix.config.cibw_ver}}
     - name: rename wheelhouse -> dist
       run: mv -fv wheelhouse dist
     - name: Verify artifacts
@@ -688,6 +755,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: AMD64
           cibw_platform: win_amd64
+          cibw_ver: 3.3.1
           vsenvarch: x64
         - name: python/3.14/win32
           sfx: python3.14-win32
@@ -696,6 +764,7 @@ jobs:
           cibw_pyv: 314
           cibw_arch: x86
           cibw_platform: win32
+          cibw_ver: 3.3.1
           vsenvarch: x86
         - name: python/3.13/win_amd64
           sfx: python3.13-win_amd64
@@ -704,6 +773,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: AMD64
           cibw_platform: win_amd64
+          cibw_ver: 3.3.1
           vsenvarch: x64
         - name: python/3.13/win32
           sfx: python3.13-win32
@@ -712,6 +782,7 @@ jobs:
           cibw_pyv: 313
           cibw_arch: x86
           cibw_platform: win32
+          cibw_ver: 3.3.1
           vsenvarch: x86
         - name: python/3.12/win_amd64
           sfx: python3.12-win_amd64
@@ -720,6 +791,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: AMD64
           cibw_platform: win_amd64
+          cibw_ver: 3.3.1
           vsenvarch: x64
         - name: python/3.12/win32
           sfx: python3.12-win32
@@ -728,6 +800,7 @@ jobs:
           cibw_pyv: 312
           cibw_arch: x86
           cibw_platform: win32
+          cibw_ver: 3.3.1
           vsenvarch: x86
         - name: python/3.11/win_amd64
           sfx: python3.11-win_amd64
@@ -736,6 +809,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: AMD64
           cibw_platform: win_amd64
+          cibw_ver: 3.3.1
           vsenvarch: x64
         - name: python/3.11/win32
           sfx: python3.11-win32
@@ -744,6 +818,7 @@ jobs:
           cibw_pyv: 311
           cibw_arch: x86
           cibw_platform: win32
+          cibw_ver: 3.3.1
           vsenvarch: x86
         - name: python/3.10/win_amd64
           sfx: python3.10-win_amd64
@@ -752,6 +827,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: AMD64
           cibw_platform: win_amd64
+          cibw_ver: 3.3.1
           vsenvarch: x64
         - name: python/3.10/win32
           sfx: python3.10-win32
@@ -760,6 +836,7 @@ jobs:
           cibw_pyv: 310
           cibw_arch: x86
           cibw_platform: win32
+          cibw_ver: 3.3.1
           vsenvarch: x86
         - name: python/3.9/win_amd64
           sfx: python3.9-win_amd64
@@ -768,6 +845,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: AMD64
           cibw_platform: win_amd64
+          cibw_ver: 3.3.1
           vsenvarch: x64
         - name: python/3.9/win32
           sfx: python3.9-win32
@@ -776,6 +854,7 @@ jobs:
           cibw_pyv: 39
           cibw_arch: x86
           cibw_platform: win32
+          cibw_ver: 3.3.1
           vsenvarch: x86
         - name: python/3.8/win_amd64
           sfx: python3.8-win_amd64
@@ -784,6 +863,7 @@ jobs:
           cibw_pyv: 38
           cibw_arch: AMD64
           cibw_platform: win_amd64
+          cibw_ver: 3.3.1
           vsenvarch: x64
         - name: python/3.8/win32
           sfx: python3.8-win32
@@ -792,6 +872,34 @@ jobs:
           cibw_pyv: 38
           cibw_arch: x86
           cibw_platform: win32
+          cibw_ver: 3.3.1
+          vsenvarch: x86
+        - name: python/3.7/win_amd64
+          sfx: python3.7-win_amd64
+          os: windows-2022
+          pythonv: '3.7'
+          cibw_pyv: 37
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          cibw_ver: '2.23'
+          vsenvarch: x64
+        - name: python/3.6/win_amd64
+          sfx: python3.6-win_amd64
+          os: windows-2022
+          pythonv: '3.6'
+          cibw_pyv: 36
+          cibw_arch: AMD64
+          cibw_platform: win_amd64
+          cibw_ver: '2.23'
+          vsenvarch: x64
+        - name: python/3.6/win32
+          sfx: python3.6-win32
+          os: windows-2022
+          pythonv: '3.6'
+          cibw_pyv: 36
+          cibw_arch: x86
+          cibw_platform: win32
+          cibw_ver: '2.23'
           vsenvarch: x86
     steps:
     - name: checkout (action)
@@ -804,7 +912,7 @@ jobs:
       with:
         arch: ${{matrix.config.vsenvarch}}
     - name: create wheel
-      uses: pypa/cibuildwheel@v3.3.1
+      uses: pypa/cibuildwheel@v${{matrix.config.cibw_ver}}
     - name: rename wheelhouse -> dist
       run: mv -fv wheelhouse dist
     - name: Verify artifacts
