@@ -204,7 +204,7 @@ jobs:
       matrix:
         item =:
           \({:std %1, :bt %2, :cxx 'arm-linux-gnueabihf-gcc',
-             :toolchain 'ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake'})
+             :toolchain 'proj/c4proj/toolchains/Toolchain-Arm-ubuntu.cmake'})
         include:
         # these jobs take much longer, so run only one bitlink pair per job to
         # profit from parallelism

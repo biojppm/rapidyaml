@@ -3,7 +3,7 @@ project(ryml
     DESCRIPTION "Single header version of ryml library for testing"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-include(../../ext/c4core/cmake/c4Project.cmake)
+include(../../proj/c4proj/c4Project.cmake)
 c4_project(VERSION 0.10.0
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
@@ -18,7 +18,7 @@ function(amalgamate_ryml header_dir header_file basename)
         CONFIGURE_DEPENDS "${rymldir}/src")
     add_custom_command(OUTPUT "${singleheader}"
         COMMAND python "${amscript}" --events tree -- "${singleheader}"
-        DEPENDS ${srcfiles} "${amscript}" "${rymldir}/ext/c4core/cmake/amalgamate_utils.py")
+        DEPENDS ${srcfiles} "${amscript}" "${rymldir}/proj/c4proj/amalgamate_utils.py")
     set(${header_dir} "${singleheaderdir}" PARENT_SCOPE)
     set(${header_file} "${singleheader}" PARENT_SCOPE)
 endfunction()
@@ -34,6 +34,7 @@ c4_add_library(ryml
         ${CMAKE_CURRENT_LIST_DIR}/libryml_singleheader.cpp)
 target_compile_definitions(ryml PUBLIC -DRYML_SINGLE_HEADER) # this is needed only for the tests, not ryml itself
 
+include(../../ext/c4core.cmake)
 include(../../ext/testbm.cmake)
 
 enable_testing()

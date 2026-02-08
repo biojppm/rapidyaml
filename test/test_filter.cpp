@@ -10,6 +10,7 @@
 #include "c4/yml/tree.hpp"
 #include "c4/yml/node.hpp"
 #include "c4/yml/std/string.hpp"
+#include "c4/types.hpp"
 #endif
 #include <gtest/gtest.h>
 

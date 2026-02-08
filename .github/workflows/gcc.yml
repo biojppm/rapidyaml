@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/gcc.ys
+# DO NOT EDIT - GENERATED FROM gcc.ys
 
 name: gcc
 defaults:
@@ -1333,27 +1333,27 @@ jobs:
         - std: 11
           bt: Debug
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/c4proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 11
           bt: Release
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/c4proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 14
           bt: Debug
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/c4proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 14
           bt: Release
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/c4proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 17
           bt: Debug
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/c4proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 17
           bt: Release
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/c4proj/toolchains/Toolchain-Arm-ubuntu.cmake
     env:
       TOOLCHAIN: ${{matrix.toolchain}}
       STD: ${{matrix.std}}
