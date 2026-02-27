@@ -43,9 +43,6 @@ jobs:
         - std: 11
           namesfx: 32bit
           cmk: -DCMAKE_CXX_FLAGS=-m32
-        - std: 11
-          namesfx: 32bit_dbg
-          cmk: -DCMAKE_CXX_FLAGS=-m32 -DRYML_DBG=ON
     env:
       GCC_VERSION: 13
       LCOV_ARGS: -v --ignore-errors mismatch,mismatch --ignore-errors unused,unused
@@ -59,17 +56,22 @@ jobs:
         fetch-depth: 0
     - name: install compiler
       run: |
-        sudo dpkg --add-architecture i386
+        if [[ ${{matrix}} == *"32"* ]] ; then
+           sudo dpkg --add-architecture i386
+        fi
         sudo apt-get update
+        if [[ ${{matrix}} == *"32"* ]] ; then
+          sudo apt-get install -y \
+              linux-libc-dev:i386 \
+              libc6:i386 \
+              libc6-dev:i386 \
+              libc6-dbg:i386
+        fi
         sudo apt-get install -y \
             build-essential \
             cmake \
             git \
             lcov \
-            linux-libc-dev:i386 \
-            libc6:i386 \
-            libc6-dev:i386 \
-            libc6-dbg:i386 \
             g++-$GCC_VERSION \
             g++-$GCC_VERSION-multilib
     - name: show info

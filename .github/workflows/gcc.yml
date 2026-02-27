@@ -452,6 +452,101 @@ jobs:
       run: source .github/setenv.sh && c4_run_test shared32
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
+  dbg:
+    if: always()
+    continue-on-error: false
+    name: dbg/${{matrix.name}}/${{matrix.gcc}}
+    runs-on: ubuntu-24.04
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - name: 64bit_g
+          std: 11
+          gcc: 13
+          bt: Debug
+          img: 22.04
+          cxxflags: null
+        - name: 64bit_O1
+          std: 11
+          gcc: 13
+          bt: Release
+          img: 22.04
+          cxxflags: -O1 -DNDEBUG
+        - name: 64bit_O2
+          std: 11
+          gcc: 13
+          bt: Release
+          img: 22.04
+          cxxflags: -O2 -DNDEBUG
+        - name: 64bit_O3
+          std: 11
+          gcc: 13
+          bt: Release
+          img: 22.04
+          cxxflags: -O3 -DNDEBUG
+        - name: 32bit_g
+          std: 11
+          gcc: 13
+          bt: Debug
+          img: 22.04
+          cxxflags: -m32
+        - name: 32bit_O1
+          std: 11
+          gcc: 13
+          bt: Release
+          img: 22.04
+          cxxflags: -m32 -O1 -DNDEBUG
+        - name: 32bit_O2
+          std: 11
+          gcc: 13
+          bt: Release
+          img: 22.04
+          cxxflags: -m32 -O2 -DNDEBUG
+        - name: 32bit_O3
+          std: 11
+          gcc: 13
+          bt: Release
+          img: 22.04
+          cxxflags: -m32 -O3 -DNDEBUG
+    env:
+      STD: ${{matrix.std}}
+      CXX_: ${{matrix.gcc}}
+      BT: ${{matrix.bt}}
+      BITLINKS: ${{matrix.bitlinks}}
+      VG: ${{matrix.vg}}
+      SAN: ${{matrix.san}}
+      LINT: ${{matrix.lint}}
+      OS: ${{matrix.os}}
+    steps:
+    - name: checkout (action + docker)
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - run: git config --system --add safe.directory '*'
+    - run: c4core-install g++-${{matrix.gcc}}
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+    - name: configure (issue \#${{matrix.issue}})
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_DEBUG="${{matrix.cxxflags}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="${{matrix.cxxflags}}" \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_DBG=ON
+    - name: build (issue \#${{matrix.issue}})
+      run: cmake --build build --target ryml-test-build --parallel --verbose
+    - name: run (issue \#${{matrix.issue}})
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build --target ryml-test-run
   misbuild:
     if: always()
     continue-on-error: false

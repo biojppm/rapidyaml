@@ -15,7 +15,7 @@ jobs:
       matrix:
         item =: \({:std %1, :cxx "g++-$a(%2)", :bt %3, :bitlinks 'shared64 static32', :img "$a(%4)"})
         include: &include1
-        # use gcc13 because it's a lot faster than gcc14
+        # for canary use gcc13 because it's a lot faster than gcc14
         - ! item(11  13 'Debug'   '22.04')
         - ! item(11  13 'Release' '22.04')
         - ! item(20  13 'Debug'   '22.04')
@@ -54,6 +54,48 @@ jobs:
     steps:: checkout-manual + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
+  dbg:
+    :: setup-job('gcc' 'dbg')
+    name: dbg/${{matrix.name}}/${{matrix.gcc}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - {name: 64bit_g , std: 11, gcc: 13 , bt: Debug  , img: 22.04, cxxflags:      }
+        - {name: 64bit_O1, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags:      -O1 -DNDEBUG}
+        - {name: 64bit_O2, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags:      -O2 -DNDEBUG}
+        - {name: 64bit_O3, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags:      -O3 -DNDEBUG}
+        - {name: 32bit_g , std: 11, gcc: 13 , bt: Debug  , img: 22.04, cxxflags: -m32 }
+        - {name: 32bit_O1, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags: -m32 -O1 -DNDEBUG}
+        - {name: 32bit_O2, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags: -m32 -O2 -DNDEBUG}
+        - {name: 32bit_O3, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags: -m32 -O3 -DNDEBUG}
+    env:: load('share/env.yaml') + {'CXX_' '${{matrix.gcc}}'}
+    steps:
+    - :: checkout-action-docker
+    - run: c4core-install g++-${{matrix.gcc}}
+    - name: show info
+      run: source .github/setenv.sh && c4_show_info
+    - name: configure (issue \#${{matrix.issue}})
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_DEBUG="${{matrix.cxxflags}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="${{matrix.cxxflags}}" \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_DBG=ON
+    - name: build (issue \#${{matrix.issue}})
+      run: cmake --build build --target ryml-test-build --parallel --verbose
+    - name: run (issue \#${{matrix.issue}})
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build --target ryml-test-run
+
+  #----------------------------------------------------------------------------
   misbuild:
     :: setup-job('gcc' 'misbuild')
     name: misbuild#${{matrix.issue}}/gcc${{matrix.gcc}}/c++${{matrix.std}}
@@ -89,7 +131,7 @@ jobs:
         cmake --build build --target ryml-test-run
 
   #----------------------------------------------------------------------------
-  # with valgrind too slow: only latest gcc
+  # with valgrind: it's too slow; only latest gcc
 
   strategy-latest-gcc =::
       fail-fast: false
@@ -104,6 +146,7 @@ jobs:
           - {std: 11, cxx: 14, bits: 64, vg: ON , img: 22.04}
           - {std: 11, cxx: 14, bits: 32, vg: ON , img: 22.04}
 
+  # split these two valgrind jobs to make them faster
   vg1:
     :: setup-job('gcc' 'vg1')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
@@ -118,7 +161,6 @@ jobs:
     - :: run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}')
     - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
     - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
-
   vg2:
     :: setup-job('gcc' 'vg2')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
