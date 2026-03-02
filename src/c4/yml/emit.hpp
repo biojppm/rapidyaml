@@ -250,7 +250,7 @@ private:
 
 private:
 
-    void _emit_json(id_type id);
+    void _json_emit(id_type id);
     void _write_scalar_literal(csubstr s, id_type level);
     void _write_scalar_folded(csubstr s, id_type level);
     void _write_scalar_squo(csubstr s, id_type level);
@@ -262,11 +262,13 @@ private:
 
 private:
 
-    void _visit_json_ml(id_type id, id_type depth);
-    void _visit_json_sl(id_type id, id_type depth);
-    void _writek_json(id_type id, NodeType ty);
-    void _writev_json(id_type id, NodeType ty);
-    void _write_scalar_json_dquo(csubstr s);
+    void _json_visit_ml(id_type id, id_type depth);
+    void _json_visit_sl(id_type id, id_type depth);
+    bool _json_maybe_write_naninf(csubstr s);
+    void _json_writek(id_type id, NodeType ty);
+    void _json_writev(id_type id, NodeType ty);
+    void _json_write_scalar_dquo(csubstr s);
+    void _json_write_number(csubstr s);
 
 private:
 

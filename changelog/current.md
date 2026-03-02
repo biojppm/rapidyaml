@@ -3,8 +3,8 @@
 - [PR#550](https://github.com/biojppm/rapidyaml/pull/550) - Implement flow multiline style (`FLOW_ML`):
   - The parser now detects this style automatically for flow seqs or maps when the terminating bracket sits on a line different from the opening bracket.
   - Added `ParserOptions::detect_flow_ml()` to enable/disable this behavior
-  - Added `EmitOptions::indent_flow_ml()` to control indentation of FLOW_ML containers
-  - The emit implementation logic was refactored, and is now significantly cleaner
+  - Added `EmitOptions::indent_flow_ml()` to control indentation of `FLOW_ML` containers
+  - The emit implementation was refactored, and is now significantly cleaner
   - Emitted YAML will now have anchors emitted before tags, as is customary ([see example](https://play.yaml.io/main/parser?input=LSAhdGFnICZhbmNob3IgfAogIG5vdGUgaG93IHRoZSBhbmNob3IgY29tZXMKICBmaXJzdCBpbiB0aGUgZXZlbnRz)).
   - Added `ParserOptions` defaulted argument to temp-parser overloads of `parse_{yaml,json}_in_{place,arena}()`
   - [PR#567](https://github.com/biojppm/rapidyaml/pull/567) (fixes [#566](https://github.com/biojppm/rapidyaml/issues/566)) fixes a regression from this refactor where top-level container anchors were wrongly emitted in the same line if no style was set on the container.
@@ -45,6 +45,46 @@
   //id_type root = tree.root_id(); // ERROR: cannot get root of empty tree.
   ```
   This changeset also enables the python library to call `root_id()` on a default-constructed tree (fixes [#556](https://github.com/biojppm/rapidyaml/issues/556)).
+
+
+### Fixes in YAML parsing
+
+- [PR#561](https://github.com/biojppm/rapidyaml/pull/561) (fixes [#559](https://github.com/biojppm/rapidyaml/issues/559)) - Byte Order Mark: account for BOM length when determining block indentation
+- [PR#547](https://github.com/biojppm/rapidyaml/pull/547) - Fix parsing of implicit first documents with empty sequences, caused by a problem in `Tree::set_root_as_stream()`:
+  ```yaml
+  []  # this container was lost during parsing
+  ---
+  more data here
+  ```
+
+
+### JSON emitting changes
+
+- [PR#574](https://github.com/biojppm/rapidyaml/pull/574) (fixes [#535](https://github.com/biojppm/rapidyaml/issues/535) and [#312](https://github.com/biojppm/rapidyaml/issues/312)) - improve handling of `.inf`, `.nan` and some float formats when emitting to JSON. For example, the tree
+  ```yaml
+  {
+    inf: [inf, infinity, .inf, .Inf, .INF, -inf, -infinity, -.inf, -.Inf, -.INF],
+    nan: [nan, .nan, .NaN, .NAN],
+    dot: [.1, 1., .2e2, 10., -.2, -2.],
+    zero: [10, 01],
+    normal: [0.1, 0.2e3, 4.e5],
+  }
+  ```
+  is now emitted to JSON as:
+  ```json
+  {
+    ".inf": [".inf",".inf",".inf",".inf","-.inf","-.inf","-.inf","-.inf","-.inf","-.inf"],
+    ".nan": [".nan",".nan",".nan",".nan"],
+    "dot": [0.1,1.0,0.2e2,10.0,-0.2,-2.0],
+    "zero": [10,"01"],
+    "normal": [0.1,0.2e3,4.e5]
+  }
+  ```
+  Previously, some inf and nan cases were emitted without quotes; now they are all emitted with the fixed strings `.nan` and `.inf`, which helps in cases where the JSON may be loaded in JavaScript. Note also the added zeroes for some floats, eg `.1` or `-2.` turning into `0.1` and `-2.0`.
+
+
+### Python improvements
+
 - [PR#560](https://github.com/biojppm/rapidyaml/pull/560) (see also [#554](https://github.com/biojppm/rapidyaml/issues/554)): python improvements:
   - expose `Tree::to_arena()` in python. This allows safer and easier programatic creation of trees in python by ensuring scalars are placed into the tree and so have the same lifetime as the tree:
   ```python
@@ -58,14 +98,3 @@
 - [PR#565](https://github.com/biojppm/rapidyaml/pull/565) (fixes [#564](https://github.com/biojppm/rapidyaml/issues/564)) - `Tree` arena: allow relocation of zero-length strings when placed at the end (relax assertions triggered in `Tree::_relocated()`)
 - [PR#563](https://github.com/biojppm/rapidyaml/pull/563) (fixes [#562](https://github.com/biojppm/rapidyaml/issues/562)) - Fix bug in `NodeRef::cend()`
 - [PR#568](https://github.com/biojppm/rapidyaml/pull/568) - Move `escape_scalar()` from `c4/yml/extra/scalar.hpp` to `c4/yml/escape_scalar.hpp` (and removed the original header)
-
-
-### Fixes in YAML parsing
-
-- [PR#561](https://github.com/biojppm/rapidyaml/pull/561) (fixes [#559](https://github.com/biojppm/rapidyaml/issues/559)) - Byte Order Mark: account for BOM length when determining block indentation
-- [PR#547](https://github.com/biojppm/rapidyaml/pull/547) - Fix parsing of implicit first documents with empty sequences, caused by a problem in `Tree::set_root_as_stream()`:
-  ```yaml
-  []  # this container was lost during parsing
-  ---
-  more data here
-  ```
