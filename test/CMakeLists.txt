@@ -3,6 +3,7 @@ c4_setup_testing(GTEST)
 
 function(ryml_add_test_no_lib test_name)
     c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
+    ryml_add_c4core_dev_to_target(${test_name})
     if(RYML_DBG)
         target_compile_definitions(${test_name} PRIVATE RYML_DBG)
         c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
@@ -10,7 +11,8 @@ function(ryml_add_test_no_lib test_name)
     c4_add_test(${test_name})
 endfunction()
 ryml_add_test_no_lib(ryml-test-quickstart
-    SOURCES ../samples/quickstart.cpp)
+    SOURCES ../samples/quickstart.cpp
+)
 ryml_add_test_no_lib(ryml-test-quickstart-ints
     SOURCES
         ../samples/quickstart-ints.cpp
@@ -18,7 +20,9 @@ ryml_add_test_no_lib(ryml-test-quickstart-ints
         ../src_extra/c4/yml/extra/event_handler_ints.cpp
         ../src_extra/c4/yml/extra/ints_utils.hpp
         ../src_extra/c4/yml/extra/ints_utils.cpp
-    INC_DIRS ../src_extra)
+    INC_DIRS
+        ../src_extra
+)
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
@@ -41,9 +45,13 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
        ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
        ../src_extra/c4/yml/extra/string.hpp
-    INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
+    INC_DIRS
+       ${CMAKE_CURRENT_LIST_DIR}
+       ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
-    FOLDER test)
+    FOLDER test
+)
+ryml_add_c4core_dev_to_target(ryml-_testlib)
 if(BUILD_SHARED_LIBS)
     # this is needed to resolve get_case() because it is provided by
     # the test linking to this library
@@ -61,6 +69,7 @@ function(ryml_add_test test_name)
         SOURCES test_${test_name}.cpp
         LIBS ${ARGN} ryml-_testlib gtest_main
         FOLDER test)
+    ryml_add_c4core_dev_to_target(${t})
     c4_add_test(${t})
 endfunction()
 
@@ -71,7 +80,9 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
        test_lib/test_group.def.hpp
        test_lib/test_group.cpp
     LIBS ryml ryml-_testlib c4fs
-    FOLDER test)
+    FOLDER test
+)
+ryml_add_c4core_dev_to_target(ryml-_testgroup)
 if(RYML_DBG)
     target_compile_definitions(ryml-_testgroup PUBLIC RYML_DBG)
 endif()
@@ -235,10 +246,6 @@ option(RYML_TEST_SUITE "Enable cases from yaml-test-suite, https://github.com/ya
 if(RYML_TEST_SUITE)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
-    c4_require_subproject(c4log REMOTE
-        GIT_REPOSITORY https://github.com/biojppm/c4log
-        GIT_TAG master)
-
     set(tsdir ${ed}/yaml-test-suite)
     c4_download_remote_proj(yaml-test-suite suite_dir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
@@ -268,6 +275,7 @@ if(RYML_TEST_SUITE)
         LIBS ryml-_testlib c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
+    ryml_add_c4core_dev_to_target(ryml-test-suite)
     add_dependencies(ryml-test-build ryml-test-suite)
 
     ryml_get_target_exe(ryml-test-suite tgt)
@@ -361,6 +369,7 @@ if(RYML_TEST_FUZZ)
             target_compile_definitions(ryml-test-fuzz-${name} PUBLIC RYML_DBG)
         endif()
         add_dependencies(ryml-test-build ryml-test-fuzz-${name})
+        ryml_add_c4core_dev_to_target(ryml-test-fuzz-${name})
         ryml_get_target_exe(ryml-test-fuzz-${name} tgtexe)
         function(ryml_add_fuzz_test_file name_ dir file)
             string(REPLACE "/" "_" fuzz_name "${file}")

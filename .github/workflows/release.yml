@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/release.ys
+# DO NOT EDIT - GENERATED FROM release.ys
 
 name: release
 defaults:
@@ -143,6 +143,7 @@ jobs:
         mkdir -p assets
         git-archive-all --prefix $name assets/$name.tgz
         git-archive-all --prefix $name assets/$name.zip
+        make -C ext c4core-clone
         python --version
         python tools/amalgamate.py assets/$id.hpp
     - name: Save source artifacts
