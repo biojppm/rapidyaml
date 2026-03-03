@@ -34,7 +34,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
-        _emit_json(id);
+        _json_emit(id);
     else
         _RYML_ERR_BASIC_(m_tree->callbacks(), "unknown emit type"); // LCOV_EXCL_LINE
     m_tree = nullptr;
@@ -51,11 +51,11 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
 // doc separators, anchors, tags, optional keys or dashes, and
 // comments.
 //
-// It kickstarts the tree descent by handling all the initial and
-// final logic at the top-level scope, thus avoiding top-level
-// kickstart branches in the recursive descending code (which should
-// be oblivious of such logic). This makes the recursive descending
-// code a lot simpler.
+// This function kickstarts the tree descent by handling all the
+// initial and final logic at the top-level scope, thus avoiding
+// top-level kickstart branches in the recursive descending code
+// (which should be oblivious of such logic). This makes the recursive
+// descending code a lot simpler.
 template<class Writer>
 void Emitter<Writer>::_emit_yaml(id_type id)
 {
@@ -1260,22 +1260,22 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void Emitter<Writer>::_emit_json(id_type id)
+void Emitter<Writer>::_json_emit(id_type id)
 {
     NodeType ty = m_tree->type(id);
     if(ty.is_flow_sl() || !(ty & CONTAINER_STYLE))
     {
-        _visit_json_sl(id, 0);
+        _json_visit_sl(id, 0);
     }
     else
     {
-        _visit_json_ml(id, 0);
+        _json_visit_ml(id, 0);
         _newl();
     }
 }
 
 template<class Writer>
-void Emitter<Writer>::_visit_json_sl(id_type id, id_type depth)
+void Emitter<Writer>::_json_visit_sl(id_type id, id_type depth)
 {
     _RYML_CHECK_VISIT_(m_tree->callbacks(), !m_tree->is_stream(id), m_tree, id); // JSON does not have streams
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
@@ -1283,19 +1283,19 @@ void Emitter<Writer>::_visit_json_sl(id_type id, id_type depth)
     NodeType ty = m_tree->type(id);
     if(ty.is_keyval())
     {
-        _writek_json(id, ty);
+        _json_writek(id, ty);
         _write(": ");
-        _writev_json(id, ty);
+        _json_writev(id, ty);
     }
     else if(ty.is_val())
     {
-        _writev_json(id, ty);
+        _json_writev(id, ty);
     }
     else if(ty.is_container())
     {
         if(ty.has_key())
         {
-            _writek_json(id, ty);
+            _json_writek(id, ty);
             _write(": ");
         }
         if(ty.is_seq())
@@ -1308,7 +1308,7 @@ void Emitter<Writer>::_visit_json_sl(id_type id, id_type depth)
     {
         if(child != m_tree->first_child(id))
             _write(',');
-        _visit_json_sl(child, depth+1);
+        _json_visit_sl(child, depth+1);
     }
 
     if(ty.is_seq())
@@ -1318,7 +1318,7 @@ void Emitter<Writer>::_visit_json_sl(id_type id, id_type depth)
 }
 
 template<class Writer>
-void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
+void Emitter<Writer>::_json_visit_ml(id_type id, id_type depth)
 {
     _RYML_CHECK_VISIT_(m_tree->callbacks(), !m_tree->is_stream(id), m_tree, id); // JSON does not have streams
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
@@ -1326,19 +1326,19 @@ void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
     NodeType ty = m_tree->type(id);
     if(ty.is_keyval())
     {
-        _writek_json(id, ty);
+        _json_writek(id, ty);
         _write(": ");
-        _writev_json(id, ty);
+        _json_writev(id, ty);
     }
     else if(ty.is_val())
     {
-        _writev_json(id, ty);
+        _json_writev(id, ty);
     }
     else if(ty.is_container())
     {
         if(ty.has_key())
         {
-            _writek_json(id, ty);
+            _json_writek(id, ty);
             _write(": ");
         }
         if(ty.is_seq())
@@ -1359,9 +1359,9 @@ void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
             _indent(m_ilevel);
             NodeType chty = m_tree->type(child);
             if(chty.is_flow_sl() || !(chty & CONTAINER_STYLE))
-                _visit_json_sl(child, depth);
+                _json_visit_sl(child, depth);
             else
-                _visit_json_ml(child, depth);
+                _json_visit_ml(child, depth);
             if(child != last)
                 _write(',');
         }
@@ -1378,7 +1378,28 @@ void Emitter<Writer>::_visit_json_ml(id_type id, id_type depth)
 }
 
 template<class Writer>
-void Emitter<Writer>::_writek_json(id_type id, NodeType ty)
+bool Emitter<Writer>::_json_maybe_write_naninf(csubstr s)
+{
+    if(s == "nan" || s == ".nan" || s == ".NaN" || s == ".NAN")
+    {
+        _write("\".nan\"");
+        return true;
+    }
+    else if(s == "inf" || s == ".inf" || s == ".Inf" || s == ".INF" || s == "infinity")
+    {
+        _write("\".inf\"");
+        return true;
+    }
+    else if(s == "-inf" || s == "-.inf" || s == "-.Inf" || s == "-.INF" || s == "-infinity")
+    {
+        _write("\"-.inf\"");
+        return true;
+    }
+    return false;
+}
+
+template<class Writer>
+void Emitter<Writer>::_json_writek(id_type id, NodeType ty)
 {
     if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_TAG)
         if(C4_UNLIKELY(ty.has_key_tag()))
@@ -1388,13 +1409,20 @@ void Emitter<Writer>::_writek_json(id_type id, NodeType ty)
             _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
     csubstr key = m_tree->key(id);
     if(key.len)
-        _write_scalar_json_dquo(key);
+    {
+        if(_json_maybe_write_naninf(key))
+            ;
+        else
+            _json_write_scalar_dquo(key);
+    }
     else
+    {
         _write("\"\"");
+    }
 }
 
 template<class Writer>
-void Emitter<Writer>::_writev_json(id_type id, NodeType ty)
+void Emitter<Writer>::_json_writev(id_type id, NodeType ty)
 {
     if(m_opts.json_error_flags() & EmitOptions::JSON_ERR_ON_TAG)
         if(C4_UNLIKELY(ty.has_val_tag()))
@@ -1409,7 +1437,11 @@ void Emitter<Writer>::_writev_json(id_type id, NodeType ty)
         bool dquoted = ((ty & VALQUO)
                         || (scalar_style_json_choose(val) & SCALAR_DQUO)); // choose the style
         if(dquoted)
-            _write_scalar_json_dquo(val);
+            _json_write_scalar_dquo(val);
+        else if(_json_maybe_write_naninf(val))
+            ;
+        else if(val.is_number())
+            _json_write_number(val);
         else
             _write(val);
     }
@@ -1424,7 +1456,7 @@ void Emitter<Writer>::_writev_json(id_type id, NodeType ty)
 
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar_json_dquo(csubstr s)
+void Emitter<Writer>::_json_write_scalar_dquo(csubstr s)
 {
     size_t pos = 0;
     _write('"');
@@ -1475,6 +1507,50 @@ void Emitter<Writer>::_write_scalar_json_dquo(csubstr s)
         _write(sub);
     }
     _write('"');
+}
+
+template<class Writer>
+void Emitter<Writer>::_json_write_number(csubstr s)
+{
+    if(s.is_integer())
+    {
+        _write(s);
+    }
+    else
+    {
+        if(s.begins_with('-') && s.len > 1)
+        {
+            csubstr rest = s.sub(1);
+            if(rest.begins_with('.'))
+            {
+                _write("-0");
+                _write(rest);
+            }
+            else if(rest.ends_with('.'))
+            {
+                _write(s);
+                _write('0');
+            }
+            else
+            {
+                _write(s);
+            }
+        }
+        else if(s.begins_with('.'))
+        {
+            _write('0');
+            _write(s);
+        }
+        else if(s.ends_with('.'))
+        {
+            _write(s);
+            _write('0');
+        }
+        else
+        {
+            _write(s);
+        }
+    }
 }
 
 /** @endcond */

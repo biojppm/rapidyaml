@@ -198,12 +198,26 @@ NodeType_e scalar_style_json_choose(csubstr s) noexcept
             s.is_number()
             &&
             (
-                // quote integral numbers if they have a leading 0
-                // https://github.com/biojppm/rapidyaml/issues/291
-                (!(s.len > 1 && s.begins_with('0')))
-                // do not quote reals with leading 0
-                // https://github.com/biojppm/rapidyaml/issues/313
-                || (s.find('.') != csubstr::npos)
+                (
+                    // quote integral numbers if they have a leading 0
+                    // https://github.com/biojppm/rapidyaml/issues/291
+                    (!(s.len > 1 && s.begins_with('0')))
+                    // do not quote reals with leading 0
+                    // https://github.com/biojppm/rapidyaml/issues/313
+                    || (s.find('.') != csubstr::npos)
+                )
+            )
+        )
+        ||
+        (
+            (s.len > 3)
+            &&
+            (
+                (s[0] == '.' && (s == ".inf" || s == ".Inf" || s == ".INF"
+                                 ||
+                                 s == ".nan" || s == ".NaN" || s == ".NAN"))
+                ||
+                (s[0] == '-' && (s == "-.inf" || s == "-.Inf" || s == "-.INF"))
             )
         )
     );
