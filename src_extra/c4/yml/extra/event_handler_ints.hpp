@@ -204,9 +204,9 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  *   BDOC,                        // begin doc
  *   VAL_|BSEQ|FLOW,              // begin seq as val, flow
  *   VAL_|SCLR|PLAI,      1, 1,   // val scalar, plain style: "a"   starts at offset 1 and has length 1
- *   VAL_|SCLR|PLAI|PSTR, 4, 2,   // val scalar, plain style: "bb"  starts at offset 4 and has length 2
- *   VAL_|SCLR|PLAI|PSTR, 8, 3,   // val scalar, plain style: "ccc" starts at offset 8 and has length 3
- *   ESEQ|PSTR,                   // end seq
+ *   VAL_|SCLR|PLAI|PSTR, 4, 2,   // val scalar, plain style: "bb"  starts at offset 4 and has length 2; preceded by a string event (PSTR)
+ *   VAL_|SCLR|PLAI|PSTR, 8, 3,   // val scalar, plain style: "ccc" starts at offset 8 and has length 3; preceded by a string event (PSTR)
+ *   ESEQ|PSTR,                   // end seq; preceded by a string event (PSTR)
  *   EDOC,                        // end doc
  *   ESTR,                        // end stream
  * };
@@ -239,7 +239,7 @@ i      :        6              |     7  8              9              |     10 1
                                |                                      |
                                prev event has string                  prev event has string
                                (to get to prev, jump                  (to get to prev, jump
-                               back 3: ie 6->3)                       back 3: ie 9->6)
+                               back 3 slots: ie 6->3)                 back 3 slots: ie 9->6)
 
 
 
@@ -251,7 +251,7 @@ i      :        12   |        13       14
                      |
                      prev event has string
                      (to get to it, jump
-                     back 3: ie 12->9)
+                     back 3 slots: ie 12->9)
 @endcode
  *
  * Note that the buffer contains both events and strings encoded as
@@ -405,7 +405,7 @@ i      :        12   |        13       14
  *
  * ```c++
  * const std::string src = ...;  // the YAML code to be parsed
- * std::string parsed_src = src; // this is where we will parse (filter during parsring)
+ * std::string parsed_src = src; // this is where we will parse (filter during parsing)
  * std::vector<int> evts((size_t)estimated_size); // ensure we have a fighting change to acommodate the events
  * std::vector<char> arena(src.size()); // ensure we have a fighting change to acommodate the events
  * ParseEngine<extra::EventHandlerInts> parser(&handler);
