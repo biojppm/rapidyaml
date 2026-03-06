@@ -44,7 +44,6 @@ int32_t estimate_events_ints_size(csubstr src)
         case '"':
         case '|':
         case '>':
-        case '?':
         case '\n':
             count += 3;
             break;
@@ -55,6 +54,9 @@ int32_t estimate_events_ints_size(csubstr src)
         case '{':
         case '}':
             count += 7;
+            break;
+        case '?':
+            count += 5;
             break;
         }
     }
