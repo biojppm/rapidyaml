@@ -990,70 +990,70 @@ struct which : public ::testing::TestWithParam<size_t>                  \
 TEST_P(which, 0_parse_yaml_to_events)                                   \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.parse_yaml_to_events(1 + GetParam());           \
 }                                                                       \
                                                                         \
 TEST_P(which, 0_parse_yaml_to_tree)                                     \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.parse_yaml_to_tree(1 + GetParam());             \
 }                                                                       \
 TEST_P(which, 0_parse_json_to_tree)                                     \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.parse_json_to_tree(1 + GetParam());             \
 }                                                                       \
                                                                         \
 TEST_P(which, 1_compare_emitted_events_to_ref_events)                   \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_emitted_events_str(1 + GetParam(), &g_suite_case->events); \
 }                                                                       \
                                                                         \
 TEST_P(which, 2_emit_tree_parsed_from_src)                              \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.emit_tree_parsed_from_src(1 + GetParam());      \
 }                                                                       \
 TEST_P(which, 2_emit_tree_parsed_from_src_json)                         \
 {                                                                       \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.emit_tree_parsed_from_src_json(1 + GetParam()); \
 }                                                                       \
                                                                         \
 TEST_P(which, 3_compare_level_trees)                                    \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_trees(1 + GetParam());            \
 }                                                                       \
 TEST_P(which, 3_compare_level_trees_json)                               \
 {                                                                       \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_trees_json(1 + GetParam());       \
 }                                                                       \
                                                                         \
 TEST_P(which, 4_compare_emitted_yaml)                                   \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_emitted(1 + GetParam());          \
 }                                                                       \
 TEST_P(which, 4_compare_emitted_yaml_json)                              \
 {                                                                       \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                                   \
+    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_emitted_json(1 + GetParam());     \
 }                                                                       \
                                                                         \

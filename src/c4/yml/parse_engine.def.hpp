@@ -5070,7 +5070,7 @@ seqflow_start:
             _line_progressed(1);
             goto seqflow_finish;
         }
-        else if(first == ']') // this happens on a trailing comma like ", ]"
+        else if(first == ']') // this happens on cases such as [] or [.., ]
         {
             _c4dbgp("seqflow[RVAL]: end!");
             _line_progressed(1);
@@ -6199,11 +6199,11 @@ mapblck_start:
         // appear in an explicit QMRK scope (ie, after the ? token),
         else if(C4_UNLIKELY(first == '|'))
         {
-            _c4err("block literal keys must be enclosed in '?'");
+            _c4err("block keys must be enclosed in '?'");
         }
         else if(C4_UNLIKELY(first == '>'))
         {
-            _c4err("block literal keys must be enclosed in '?'");
+            _c4err("block keys must be enclosed in '?'");
         }
         else if(_scan_scalar_plain_map_blck(&sc))
         {
@@ -7205,7 +7205,7 @@ mapblck_start:
         }
         else if(first == '{')
         {
-            _c4dbgp("mapblck[QMRK]: start child mapblck (!)");
+            _c4dbgp("mapblck[QMRK]: start child mapflow (!)");
             addrem_flags(RKCL, RKEY|QMRK);
             m_evt_handler->begin_map_key_flow();
             addrem_flags(RKEY|RFLOW, RVAL|RKCL|QMRK|RBLCK);
