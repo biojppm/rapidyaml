@@ -556,6 +556,106 @@ ENGINE_TEST(Qmrk7,
     ___(ps.end_stream());
 }
 
+
+ENGINE_TEST(Qmrk8,
+            "?"        "\n"
+            "? "       "\n"
+            "?"        "\n"
+            "? a"      "\n"
+            "? b"      "\n"
+            "?"        "\n"
+            "---"      "\n"
+            "?"        "\n"
+            "? a"      "\n"
+            "? b"      "\n"
+            "?"        "\n"
+            ,
+            "---"       "\n"
+            ": "        "\n"
+            ": "        "\n"
+            ": "        "\n"
+            "a: "       "\n"
+            "b: "       "\n"
+            ": "        "\n"
+            "---"       "\n"
+            ": "        "\n"
+            "a: "       "\n"
+            "b: "       "\n"
+            ": "        "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :a"     "\n"
+            "=VAL :"      "\n"
+            "=VAL :b"     "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "+DOC ---"    "\n"
+            "+MAP"        "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :a"     "\n"
+            "=VAL :"      "\n"
+            "=VAL :b"     "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("b"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("b"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
 ENGINE_TEST(QmrkWithTags,
             HAS_CONTAINER_KEYS, Location(18,3,6),
             "a1: b1\n"
@@ -1138,8 +1238,628 @@ ENGINE_TEST(QmrkFlow1MapTag,
     ___(ps.end_stream());
 }
 
-#ifdef TODO_FIXME // this is the only failing suite test
-ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
+
+//-----------------------------------------------------------------------------
+
+
+ENGINE_TEST(QmrkNestedBlock0,
+            "? \n"
+            "  ?a\n"
+            ,
+            "?a: \n"
+            ,
+            "+STR"          "\n"
+            "+DOC"          "\n"
+            "+MAP"          "\n"
+            "=VAL :?a"          "\n"
+            "=VAL :"          "\n"
+            "-MAP"          "\n"
+            "-DOC"          "\n"
+            "-STR"          "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("?a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock2,
+            HAS_CONTAINER_KEYS,
+            "? \n"
+            "  ? a\n"
+            "  : b\n"
+            ,
+            "+STR"          "\n"
+            "+DOC"          "\n"
+            "+MAP"          "\n"
+            "+MAP"          "\n"
+            "=VAL :a"          "\n"
+            "=VAL :b"          "\n"
+            "-MAP"          "\n"
+            "=VAL :"          "\n"
+            "-MAP"          "\n"
+            "-DOC"          "\n"
+            "-STR"          "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock3,
+            HAS_CONTAINER_KEYS,
+            "? \n"
+            "  ? \n"
+            "    ? a\n"
+            "    : b\n"
+            ,
+            "+STR"          "\n"
+            "+DOC"          "\n"
+            "+MAP"          "\n"
+            "+MAP"          "\n"
+            "+MAP"          "\n"
+            "=VAL :a"       "\n"
+            "=VAL :b"       "\n"
+            "-MAP"          "\n"
+            "=VAL :"        "\n"
+            "-MAP"          "\n"
+            "=VAL :"        "\n"
+            "-MAP"          "\n"
+            "-DOC"          "\n"
+            "-STR"          "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock4,
+            HAS_CONTAINER_KEYS,
+            "? \n"
+            "  ? \n"
+            "    ? \n"
+            "      ? a\n"
+            "      : b\n"
+            ,
+            "+STR"          "\n"
+            "+DOC"          "\n"
+            "+MAP"          "\n"
+            "+MAP"          "\n"
+            "+MAP"          "\n"
+            "+MAP"          "\n"
+            "=VAL :a"       "\n"
+            "=VAL :b"       "\n"
+            "-MAP"          "\n"
+            "=VAL :"        "\n"
+            "-MAP"          "\n"
+            "=VAL :"        "\n"
+            "-MAP"          "\n"
+            "=VAL :"        "\n"
+            "-MAP"          "\n"
+            "-DOC"          "\n"
+            "-STR"          "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock5_0,
+            HAS_CONTAINER_KEYS,
+            "?"          "\n"
+            "  ?"        "\n"
+            ,
+            "+STR"     "\n"
+            "+DOC"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "-DOC"     "\n"
+            "-STR"     "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock5_1,
+            HAS_CONTAINER_KEYS,
+            "?"          "\n"
+            "  ?"        "\n"
+            "    ?"      "\n"
+            ,
+            "+STR"     "\n"
+            "+DOC"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "-DOC"     "\n"
+            "-STR"     "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock5_2,
+            HAS_CONTAINER_KEYS,
+            "?"          "\n"
+            "  ?"        "\n"
+            "    ?"      "\n"
+            "      ?"    "\n"
+            "        ?"  "\n"
+            ,
+            "+STR"     "\n"
+            "+DOC"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "-DOC"     "\n"
+            "-STR"     "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock5_3,
+            HAS_CONTAINER_KEYS,
+            "?"          "\n"
+            "  ?"        "\n"
+            "?"          "\n"
+            ,
+            "+STR"     "\n"
+            "+DOC"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "-DOC"     "\n"
+            "-STR"     "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+#ifdef JAVAI
+ENGINE_TEST(QmrkNestedBlock5_4,
+            HAS_CONTAINER_KEYS,
+            "?"           "\n"
+            "  ?"         "\n"
+            "    ?"       "\n"
+            "      ?"     "\n"
+            "        ?"   "\n"
+            "          ?" "\n"
+            "        ?"   "\n"
+            "      ?"     "\n"
+            "    ?"       "\n"
+            "  ?"         "\n"
+            "?"           "\n"
+            ,
+            "+STR"     "\n"
+            "+DOC"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "-DOC"     "\n"
+            "-STR"     "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkNestedBlock5_5,
+            HAS_CONTAINER_KEYS,
+            "?"           "\n"
+            "  ?"         "\n"
+            "    ?"       "\n"
+            "      ?"     "\n"
+            "        ?"   "\n"
+            "          ?" "\n"
+            "      ?"     "\n"
+            "?"           "\n"
+            ,
+            "+STR"     "\n"
+            "+DOC"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "+MAP"     "\n"
+            "=VAL :"   "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "=VAL :"   "\n"
+            "-MAP"     "\n"
+            "-DOC"     "\n"
+            "-STR"     "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_key,
+            "? k"
+            ,
+            "k: \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :k\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("k"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_key2,
+            "? k\n"
+            ": x\n"
+            ,
+            "k: x\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :k\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("k"));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_seq,
+            HAS_CONTAINER_KEYS,
+            "? []"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_seq2,
+            HAS_CONTAINER_KEYS,
+            "? []\n"
+            ": x\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_map,
+            HAS_CONTAINER_KEYS,
+            "? {}"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_map2,
+            HAS_CONTAINER_KEYS,
+            "? {}\n"
+            ": x\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyscalar,
+            HAS_CONTAINER_KEYS,
+            "? k: x"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "=VAL :k\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain("k"));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq,
             HAS_CONTAINER_KEYS,
             "? []: x"
             ,
@@ -1171,7 +1891,74 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq2,
+            HAS_CONTAINER_KEYS,
+            "? []:\n"
+            ": x"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq_nonempty,
+            HAS_CONTAINER_KEYS,
+            "? [a]: x"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap,
             HAS_CONTAINER_KEYS,
              "? {}: x"
             ,
@@ -1202,7 +1989,76 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
-#endif
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap2,
+            HAS_CONTAINER_KEYS,
+             "? {}:\n"
+             ": x\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap_nonempty,
+            HAS_CONTAINER_KEYS,
+             "? {a: b}: x"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+#endif // JAVAI
 
 } // namespace yml
 } // namespace c4
