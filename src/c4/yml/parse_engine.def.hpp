@@ -5075,6 +5075,10 @@ seqflow_start:
             _c4dbgp("seqflow[RVAL]: end!");
             _line_progressed(1);
             _end_seq_flow();
+            //if(_maybe_scan_following_colon())
+            //{
+            //
+            //}
             goto seqflow_finish;
         }
         else if(first == '*')
@@ -6982,7 +6986,7 @@ mapblck_start:
                 if(has_all(RMAP|RBLCK))
                 {
                     _c4dbgp("mapblck[QMRK]: still mapblck!");
-                    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(QMRK));
+                    //_RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(QMRK));
                     rem = m_evt_handler->m_curr->line_contents.rem;
                     if(!rem.len)
                         goto mapblck_again;
@@ -7216,10 +7220,28 @@ mapblck_start:
         else if(first == '?')
         {
             _c4dbgp("mapblck[QMRK]: another QMRK '?'");
-            m_evt_handler->set_key_scalar_plain_empty();
-            m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->add_sibling();
+            if(m_evt_handler->m_curr->indentation_eq())
+            {
+                _c4dbgp("mapblck[QMRK]: ? indent eq - prev ? was for an empty keyval");
+                m_evt_handler->set_key_scalar_plain_empty();
+                m_evt_handler->set_val_scalar_plain_empty();
+                m_evt_handler->add_sibling();
+            }
+            else if(m_evt_handler->m_curr->indentation_gt())
+            {
+                _c4dbgp("mapblck[QMRK]: ? indent gt - start child mapblck (!)");
+                addrem_flags(RKCL, QMRK);
+                m_evt_handler->begin_map_key_block();
+                addrem_flags(RBLCK|QMRK, RVAL|RKCL);
+                _set_indentation(startindent);
+            }
+            else
+            {
+                _RYML_ASSERT_BASIC_(callbacks(), m_evt_handler->m_curr->indentation_lt());
+_RYML_ERR_BASIC_(callbacks(), "lt not implemented");
+            }
             _line_progressed(1);
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '.')
         {
