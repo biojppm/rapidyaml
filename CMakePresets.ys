@@ -1,0 +1,79 @@
+# https://martin-fieber.de/blog/cmake-presets/
+# https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
+--- !yamlscript/v0:
+
+.config_common: &config_common
+  binaryDir: ${sourceDir}/build/preset-${hostSystemName}-${presetName}
+  environment:
+    CTEST_PARALLEL_LEVEL: "" # nproc parallelism - available only from 3.29
+
+.vars_common: &vars_common
+  C4_EXTERN_DIR: ${sourceDir}/build/extern
+
+.vars_debug: &vars_debug
+  CMAKE_BUILD_TYPE: Debug
+
+.vars_release: &vars_release
+  CMAKE_BUILD_TYPE: Release
+
+.vars_dev: &vars_dev
+  RYML_DEV: ON
+
+
+#==============================================================================
+--- !yamlscript/v0:
+
+$comment: DO NOT EDIT! Generated automatically from CMakePresets.ys
+
+version: 10
+# see the schema URL here: https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html#schema
+$schema: https://cmake.org/cmake/help/latest/_downloads/3e2d73bff478d88a7de0de736ba5e361/schema.json
+
+
+#------------------------------------------------------------------------------
+configurePresets:
+#------------------------------------------------------------------------------
+
+  - name: release
+    displayName: Release
+    <<: *config_common
+    cacheVariables:
+      <<: [*vars_common, *vars_release]
+
+  - name: debug
+    displayName: Debug
+    <<: *config_common
+    cacheVariables:
+      <<: [*vars_common, *vars_debug]
+
+  - name: release-dev
+    displayName: Release-dev
+    <<: *config_common
+    cacheVariables:
+      <<: [*vars_common, *vars_release, *vars_dev]
+
+  - name: debug-dev
+    displayName: Debug-dev
+    <<: *config_common
+    cacheVariables:
+      <<: [*vars_common, *vars_debug, *vars_dev]
+
+
+#------------------------------------------------------------------------------
+buildPresets:
+#------------------------------------------------------------------------------
+  - name: release
+    configurePreset: release
+    configuration: Release
+
+  - name: debug
+    configurePreset: debug
+    configuration: Debug
+
+  - name: release-dev
+    configurePreset: release-dev
+    configuration: Release-dev
+
+  - name: debug-dev
+    configurePreset: debug-dev
+    configuration: Debug-dev
