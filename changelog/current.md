@@ -84,6 +84,11 @@
   Previously, some inf and nan cases were emitted without quotes; now they are all emitted with the fixed strings `.nan` and `.inf`, which helps in cases where the JSON may be loaded in JavaScript. Note also the added zeroes for some floats, eg `.1` or `-2.` turning into `0.1` and `-2.0`.
 
 
+### Other changes
+
+- Update c4core to v0.2.10
+
+
 ### Python improvements
 
 - [PR#560](https://github.com/biojppm/rapidyaml/pull/560) (see also [#554](https://github.com/biojppm/rapidyaml/issues/554)): python improvements:
