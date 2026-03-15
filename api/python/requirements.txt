@@ -1,7 +1,0 @@
-ruamel.yaml
-ninja
-pyyaml
-prettytable
-pytest
-build
-twine

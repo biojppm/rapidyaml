@@ -126,7 +126,7 @@ if(RYML_BUILD_API_PYTHON)
         COMPONENT python
         DESTINATION ${CMAKE_INSTALL_PREFIX})
 
-    set(pydir ${CMAKE_CURRENT_LIST_DIR}/python)
+    set(pydir ${RYML_PY_DIR})
     if(RYML_API_TESTS)
         add_custom_target(ryml-api-test-python3
             COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure ${${_c4_uprefix}CTEST_OPTIONS} -C $<CONFIG> -R ".*python3.*"
@@ -137,7 +137,7 @@ if(RYML_BUILD_API_PYTHON)
         c4_set_folder_remote_project_targets("test" ryml-api-test-python3)
         function(add_python_test script)
             get_filename_component(script_name ${script} NAME_WE)
-            set(script ${pydir}/tests/${script})
+            set(script ${pydir}/test/${script})
             set(tn ryml-api-test-python3-${script_name})
             set(cmd python ${script})
             add_custom_target(${tn}
@@ -154,13 +154,14 @@ if(RYML_BUILD_API_PYTHON)
         add_custom_target(ryml-api-bm-python3)
         add_dependencies(ryml-api-bm ryml-api-bm-python3)
         c4_set_folder_remote_project_targets("bm" ryml-api-bm-python3)
-        set(script ${pydir}/ryml/tests/parse_bm.py)
+        set(cmd python ${pydir}/bm/parse_bm.py)
+        set(bmdir ${CMAKE_CURRENT_LIST_DIR}/../bm/cases)
         c4_add_benchmark_cmd(ryml-api-bm-python3-travis
-            COMMAND python ${script} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/travis.yml ryml)
+            COMMAND ${cmd} ${bmdir}/travis.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-appveyor
-            COMMAND python ${script} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml ryml)
+            COMMAND ${cmd} ${bmdir}/appveyor.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-compile_commands
-            COMMAND python ${script} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/compile_commands.json ryml)
+            COMMAND ${cmd} ${bmdir}/compile_commands.json ryml)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-travis)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-appveyor)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-compile_commands)
