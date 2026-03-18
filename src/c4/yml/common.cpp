@@ -133,9 +133,9 @@ Callbacks::Callbacks(void *user_data, pfn_allocate alloc_, pfn_free free_, pfn_e
     #else
     m_allocate(alloc_),
     m_free(free_),
-    m_error_basic(error_),
+    m_error_basic(error_basic_),
     m_error_parse(nullptr),
-    m_error_visit(nullptr),
+    m_error_visit(nullptr)
     #endif
 {
 }
