@@ -54,6 +54,19 @@ jobs:
     steps:: checkout-manual + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
+  nocallbacks:
+    :: setup-job('gcc' 'nocallbacks')
+    name: nocallbacks/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+    env:: load('share/env.yaml') + {'CMAKE_FLAGS' '-DRYML_DEFAULT_CALLBACKS=OFF'}
+    steps:: checkout-manual + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
   dbg:
     :: setup-job('gcc' 'dbg')
     name: dbg/${{matrix.name}}/${{matrix.gcc}}

@@ -5,6 +5,8 @@
 
 #include "./test_lib/test_case.hpp"
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 

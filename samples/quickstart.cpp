@@ -61,6 +61,7 @@
 
 /** @cond dev */
 int report_checks();
+void ensure_callbacks();
 /** @endcond */
 
 
@@ -153,6 +154,7 @@ void sample_location_tracking();    ///< track node YAML source locations in the
 
 int main()
 {
+    ensure_callbacks();
     sample_lightning_overview();
     sample_quick_overview();
     sample_substr();
@@ -222,8 +224,8 @@ C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
  * @ingroup doc_sample_helpers */
 struct ErrorHandlerExample
 {
-    ErrorHandlerExample() : defaults(ryml::get_callbacks()) {}
-    ryml::Callbacks defaults;
+    ErrorHandlerExample() : original_callbacks(ryml::get_callbacks()) {}
+    ryml::Callbacks original_callbacks; // saves the original callbacks
 public:
     // utilities used below
     template<class Fn> bool check_error_occurs(Fn &&fn);
@@ -237,7 +239,7 @@ public:
     [[noreturn]] void on_error_parse(ryml::csubstr msg, ryml::ErrorDataParse const& errdata);
     [[noreturn]] void on_error_visit(ryml::csubstr msg, ryml::ErrorDataVisit const& errdata);
 public:
-    // these are the functions that we set ryml to call
+    // these are the trampoline functions that we set ryml to call
     [[noreturn]] static void s_error_basic(ryml::csubstr msg, ryml::ErrorDataBasic const& errdata, void *this_);
     [[noreturn]] static void s_error_parse(ryml::csubstr msg, ryml::ErrorDataParse const& errdata, void *this_);
     [[noreturn]] static void s_error_visit(ryml::csubstr msg, ryml::ErrorDataVisit const& errdata, void *this_);
@@ -254,13 +256,27 @@ public:
     ryml::id_type     saved_visit_id;
 };
 
+
 /** Shows how to create a scoped error handler.
  * @ingroup doc_sample_helpers */
 struct ScopedErrorHandlerExample : public ErrorHandlerExample
 {
-    ScopedErrorHandlerExample() : ErrorHandlerExample() { ryml::set_callbacks(callbacks()); check_enabled(); }
-    ~ScopedErrorHandlerExample() { ryml::set_callbacks(this->defaults); check_disabled(); }
+    ScopedErrorHandlerExample() : ErrorHandlerExample()
+    {
+        ryml::set_callbacks(this->callbacks());
+        check_enabled();
+    }
+    ~ScopedErrorHandlerExample()
+    {
+        ryml::set_callbacks(this->original_callbacks);
+        check_disabled();
+    }
 };
+
+
+// needed to setup the callbacks when ryml does not provide them
+void ensure_callbacks();
+ryml::Callbacks default_callbacks();
 
 
 // helper functions for sample_parse_file()
@@ -5292,7 +5308,8 @@ d: 3
 /** demonstrates how to set a custom error handler for ryml */
 void sample_error_handler()
 {
-    ErrorHandlerExample errh; // browse this class to understand more details
+    ErrorHandlerExample errh; // browse the implementation of this
+                              // class to understand more details
     errh.check_disabled();
     // set the global error handlers. Note the error callbacks must
     // never return: they must either throw an exception, use setjmp()
@@ -5303,7 +5320,7 @@ void sample_error_handler()
     CHECK(errh.check_error_occurs([&]{
         ryml::Tree tree = ryml::parse_in_arena("errorhandler.yml", "[a: b\n}");
     }));
-    ryml::set_callbacks(errh.defaults); // restore defaults.
+    ryml::set_callbacks(errh.original_callbacks); // restore defaults.
     errh.check_disabled();
 }
 
@@ -5398,7 +5415,7 @@ err:         (here)
         CHECK(errh.saved_basic_loc.line > 0);
         CHECK(errh.saved_basic_loc.col > 0);
         CHECK(errh.saved_basic_loc.offset > 0);
-        ryml::set_callbacks(errh.defaults);
+        ryml::set_callbacks(errh.original_callbacks);
     }
     // A parse error is also a basic error. If no parse error handler
     // is set, then ryml falls back to a basic error:
@@ -5423,7 +5440,7 @@ err:         (here)
         CHECK(errh.saved_parse_loc.line == ryml::csubstr::npos);
         CHECK(errh.saved_parse_loc.col == ryml::csubstr::npos);
         CHECK(errh.saved_parse_loc.offset == ryml::csubstr::npos);
-        ryml::set_callbacks(errh.defaults);
+        ryml::set_callbacks(errh.original_callbacks);
     }
 #ifdef _RYML_WITH_EXCEPTIONS
     bool gotit = false;
@@ -5535,7 +5552,7 @@ void sample_error_visit()
         // the tree and id are not set, because this was called as a basic error
         CHECK(errh.saved_visit_tree == nullptr);
         CHECK(errh.saved_visit_id == ryml::NONE);
-        ryml::set_callbacks(errh.defaults);
+        ryml::set_callbacks(errh.original_callbacks);
     }
 #ifdef _RYML_WITH_EXCEPTIONS
     // when using the default ryml callbacks (see
@@ -5932,7 +5949,7 @@ void sample_static_trees()
     //
     // To work around the issue, declare static callbacks
     // to explicitly initialize the static tree:
-    static ryml::Callbacks callbacks = {}; // use default callback members
+    static ryml::Callbacks callbacks = default_callbacks(); // use default callback members
     static ryml::Tree tree(callbacks); // OK
     // now you can use the tree as normal:
     ryml::parse_in_arena(R"(doe: "a deer, a female deer")", &tree);
@@ -6157,6 +6174,81 @@ int report_checks()
 }
 
 
+//-----------------------------------------------------------------------------
+// methods to provide default callbacks (needed when
+// RYML_NO_DEFAULT_CALLBACKS is defined)
+
+namespace {
+// LCOV_EXCL_START
+/** dump (part of an) error message to terminal
+ * @ingroup doc_sample_helpers */
+void errdump(ryml::csubstr s)
+{
+    if(s.len)
+        fwrite(s.str, 1, s.len, stderr); // NOLINT
+}
+/** finish printing an error message, and flush
+ * @ingroup doc_sample_helpers */
+void errend()
+{
+    fputc('\n', stderr); // NOLINT
+    fflush(NULL); // NOLINT
+}
+// LCOV_EXCL_STOP
+} // namespace
+
+
+/** a bare-bones implementation of the callbacks
+ * @ingroup doc_sample_helpers */
+ryml::Callbacks default_callbacks()
+{
+    return ryml::Callbacks{}
+        .set_allocate([](size_t len, void* , void *){
+            return malloc(len); // NOLINT
+        })
+        .set_free([](void* mem, size_t, void *){
+            free(mem); // NOLINT
+        })
+        //
+        // The error callbacks won't be called in this quickstart,
+        // because no errors are expected. But we implement them here
+        // to show how a bare-bones implementation looks like.
+        //
+        // For a different (more involved) implementation of the error
+        // callbacks, see the implementation of ErrorHandlerExample
+        // below.
+        //
+        // LCOV_EXCL_START
+        .set_error_basic([](ryml::csubstr msg, ryml::ErrorDataBasic const& errdata, void *){
+            ryml::err_basic_format(errdump, msg, errdata); // format the message, printing to stderr
+            errend(); // print newline and flush
+            abort(); // abort (must never return: abort, or exception or setjmp)
+        })
+        .set_error_parse([](ryml::csubstr msg, ryml::ErrorDataParse const& errdata, void *){
+            ryml::err_parse_format(errdump, msg, errdata); // format the message, printing to out
+            errend(); // print newline and flush
+            abort(); // abort (must never return: abort, or exception or setjmp)
+        })
+        .set_error_visit([](ryml::csubstr msg, ryml::ErrorDataVisit const& errdata, void *){
+            ryml::err_visit_format(errdump, msg, errdata); // format the message, printing to out
+            errend(); // print newline and flush
+            abort(); // abort (must never return: abort, or exception or setjmp)
+        });
+        // LCOV_EXCL_STOP
+}
+
+/** set up default callbacks when ryml does not provide them
+ * (ie when @ref RYML_NO_DEFAULT_CALLBACKS is defined)
+ * @ingroup doc_sample_helpers */
+void ensure_callbacks()
+{
+#ifdef RYML_NO_DEFAULT_CALLBACKS
+    ryml::set_callbacks(default_callbacks());
+#endif
+}
+
+
+//-----------------------------------------------------------------------------
 // methods for the example error handler
 
 #ifndef C4_EXCEPTIONS
@@ -6213,6 +6305,7 @@ bool ErrorHandlerExample::check_error_occurs(Fn &&fn)
     return got_error;
 }
 
+namespace {
 /** interrupt execution
  * @ingroup doc_sample_helpers */
 [[noreturn]] void stopexec(std::string const& s)
@@ -6224,6 +6317,7 @@ bool ErrorHandlerExample::check_error_occurs(Fn &&fn)
     std::longjmp(s_jmp_env, 1);  // jump to the corresponding call to setjmp().
     #endif
 }
+} // namespace
 /** this is where the callback implementation goes. Remember that it must not return.
  * @ingroup doc_sample_helpers
  * */
@@ -6234,6 +6328,7 @@ bool ErrorHandlerExample::check_error_occurs(Fn &&fn)
     ryml::err_basic_format([this](ryml::csubstr s){
         saved_msg_full.append(s.str, s.len);
     }, msg, errdata);
+    // Save the error params for subsequent testing in the quickstart.
     saved_msg_full_with_context = saved_msg_full;
     saved_basic_loc = errdata.location;
     stopexec(saved_msg_short);
@@ -6249,6 +6344,8 @@ bool ErrorHandlerExample::check_error_occurs(Fn &&fn)
     ryml::err_parse_format([this](ryml::csubstr s){
         saved_msg_full.append(s.str, s.len);
     }, msg, errdata);
+    // Save the error params for subsequent testing in the quickstart.
+    //
     // To add the source context, the source buffer is required. If
     // the caller is interested in enriching the full message with the
     // source buffer context, he can ensure that the source buffer is
@@ -6269,6 +6366,8 @@ bool ErrorHandlerExample::check_error_occurs(Fn &&fn)
     ryml::err_visit_format([this](ryml::csubstr s){
         saved_msg_full.append(s.str, s.len);
     }, msg, errdata);
+    // Save the error params for subsequent testing in the quickstart.
+    //
     // To add the source context, the source buffer is required. If
     // the caller is interested in enriching the full message with the
     // source buffer context, he can ensure that the source buffer is
@@ -6303,11 +6402,12 @@ bool ErrorHandlerExample::check_error_occurs(Fn &&fn)
  * */
 ryml::Callbacks ErrorHandlerExample::callbacks()
 {
-    return ryml::Callbacks{}
-        .set_user_data(this)
+    ryml::Callbacks copy = original_callbacks;
+    copy.set_user_data(this)
         .set_error_basic(&ErrorHandlerExample::s_error_basic)
         .set_error_parse(&ErrorHandlerExample::s_error_parse)
         .set_error_visit(&ErrorHandlerExample::s_error_visit);
+    return copy;
 }
 
 /** test that this handler is currently set */
@@ -6317,8 +6417,8 @@ void ErrorHandlerExample::check_enabled() const
     CHECK(current.m_error_basic == &s_error_basic);
     CHECK(current.m_error_parse == &s_error_parse);
     CHECK(current.m_error_visit == &s_error_visit);
-    CHECK(current.m_allocate == defaults.m_allocate);
-    CHECK(current.m_free == defaults.m_free);
+    CHECK(current.m_allocate == original_callbacks.m_allocate);
+    CHECK(current.m_free == original_callbacks.m_free);
 }
 /** test that this handler is currently not set */
 void ErrorHandlerExample::check_disabled() const
@@ -6327,11 +6427,12 @@ void ErrorHandlerExample::check_disabled() const
     CHECK(current.m_error_basic != &s_error_basic);
     CHECK(current.m_error_parse != &s_error_parse);
     CHECK(current.m_error_visit != &s_error_visit);
-    CHECK(current.m_allocate == defaults.m_allocate);
-    CHECK(current.m_free == defaults.m_free);
+    CHECK(current.m_allocate == original_callbacks.m_allocate);
+    CHECK(current.m_free == original_callbacks.m_free);
 }
 
 
+//-----------------------------------------------------------------------------
 // helper functions for sample_parse_file()
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen: this function may be unsafe

@@ -16,6 +16,8 @@ C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
 #endif
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace foo {
 
 template<class T>

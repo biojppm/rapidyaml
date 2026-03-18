@@ -1,12 +1,12 @@
 # Rapid YAML
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
+<!-- [![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml) -->
+[![Codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
 [![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
 [![Documentation Status](https://readthedocs.org/projects/rapidyaml/badge/?version=latest)](https://rapidyaml.readthedocs.io/latest/?badge=latest)
 
-[![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/)
+<!-- [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/) -->
 
-[![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml)
-[![Codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
 
 Or ryml, for short. ryml is a C++ library to parse and emit YAML,
 and do it fast, on everything from x64 to bare-metal chips without
@@ -242,8 +242,8 @@ level API for accessing and traversing the data tree.
 
 The following snippet is a very quick overview taken from quickstart
 sample ([see on
-doxygen](https://rapidyaml.readthedocs.io/latest/group__doc__quickstart.html)/[see
-on github](samples/quickstart.cpp). After cloning ryml
+doxygen](https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__quickstart.html)/[see
+on github](samples/quickstart.cpp)). After cloning ryml
 (don't forget the `--recursive` flag for git), you can very easily
 build and run this executable using any of the build samples, eg the
 [`add_subdirectory()` sample](samples/add_subdirectory/) (see [the relevant section](#quickstart-samples)).

@@ -8,6 +8,8 @@
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 

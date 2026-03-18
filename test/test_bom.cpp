@@ -1,6 +1,8 @@
 #include "./test_lib/test_case.hpp"
 #include <c4/utf.hpp>
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 

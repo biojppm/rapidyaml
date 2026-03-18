@@ -62,6 +62,12 @@ inline c4::yml::Callbacks create_custom_callbacks()
         throwerr(c4::csubstr{msg, msg_len});
     });
     return c4::yml::Callbacks{}
+        .set_allocate([](size_t len, void* , void *){
+            return malloc(len);
+        })
+        .set_free([](void* mem, size_t, void *){
+            free(mem);
+        })
         .set_error_basic([](c4::csubstr msg, c4::yml::ErrorDataBasic const& errdata, void *){
             if(report_errors)
                 c4::yml::err_basic_format(dump2stderr, msg, errdata);

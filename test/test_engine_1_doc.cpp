@@ -3,6 +3,8 @@
 // WARNING: don't use raw string literals -- g++4.8 cannot accept them
 // as macro arguments
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 

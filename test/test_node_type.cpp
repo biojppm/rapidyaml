@@ -7,9 +7,11 @@
 #include <c4/yml/detail/print.hpp>
 #endif
 #include "./test_lib/test_case.hpp"
-#include "./test_lib/callbacks_tester.hpp"
 
 #include <gtest/gtest.h>
+#include "./test_lib/callbacks_tester.hpp"
+
+RYML_DEFINE_TEST_MAIN()
 
 namespace c4 {
 namespace yml {

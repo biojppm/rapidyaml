@@ -4,6 +4,8 @@
 #include "./test_lib/test_case.hpp"
 #include <gtest/gtest.h>
 
+RYML_DEFINE_TEST_MAIN()
+
 TEST(version, str)
 {
     c4::csubstr v = c4::yml::version();

@@ -29,8 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         include: *include1
-    env:: load('share/env.yaml') +
-          {'CMAKE_FLAGS' '-DRYML_WITH_TAB_TOKENS=ON'}
+    env:: load('share/env.yaml') + {'CMAKE_FLAGS' '-DRYML_WITH_TAB_TOKENS=ON'}
     steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
@@ -45,6 +44,19 @@ jobs:
         include: *include1
     env:: -{'CXXFLAGS' '-fno-exceptions -fno-rtti'} +
           load('share/env.yaml')
+    steps:: checkout-action-docker + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
+  nocallbacks:
+    :: setup-job('clang' 'nocallbacks')
+    name: nocallbacks/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('22.04')
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+    env:: load('share/env.yaml') + {'CMAKE_FLAGS' '-DRYML_DEFAULT_CALLBACKS=OFF'}
     steps:: checkout-action-docker + install-cxx + run-steps
 
   #----------------------------------------------------------------------------
