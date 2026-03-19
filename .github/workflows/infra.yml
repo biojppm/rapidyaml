@@ -43,6 +43,8 @@ jobs:
           echo "ERROR: generated workflows are out of date"
         fi
         exit $status
+        make -C proj workflows-check || \
+          ( echo "ERROR: generated workflows are out of date" ; exit 1 )
     - name: check cmake presets
       run: |
         make -C proj presets-check || \

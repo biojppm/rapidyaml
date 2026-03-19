@@ -5,6 +5,7 @@
 
 #include "c4/std/vector_fwd.hpp"
 #include "c4/std/string_fwd.hpp"
+#include "c4/std/span_fwd.hpp"
 //#include "c4/std/tuple_fwd.hpp"
 
 #endif // _C4_STD_STD_FWD_HPP_

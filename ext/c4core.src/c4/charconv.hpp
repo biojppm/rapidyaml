@@ -867,7 +867,7 @@ C4_ALWAYS_INLINE bool read_dec(csubstr s, I *C4_RESTRICT v) noexcept
     {
         if(C4_UNLIKELY(c < '0' || c > '9'))
             return false;
-        *v = (*v) * I(10) + (I(c) - I('0'));
+        *v = ((*v) * I(10)) + (I(c) - I('0'));
     }
     return true;
 }
@@ -902,7 +902,7 @@ C4_ALWAYS_INLINE bool read_hex(csubstr s, I *C4_RESTRICT v) noexcept
             cv = I(10) + (I(c) - I('A'));
         else
             return false;
-        *v = (*v) * I(16) + cv;
+        *v = ((*v) * I(16)) + cv;
     }
     return true;
 }
@@ -960,7 +960,7 @@ C4_ALWAYS_INLINE bool read_oct(csubstr s, I *C4_RESTRICT v) noexcept
     {
         if(C4_UNLIKELY(c < '0' || c > '7'))
             return false;
-        *v = (*v) * I(8) + (I(c) - I('0'));
+        *v = ((*v) * I(8)) + (I(c) - I('0'));
     }
     return true;
 }
@@ -1974,11 +1974,11 @@ C4_ALWAYS_INLINE bool scan_rhex(csubstr s, T *C4_RESTRICT val) noexcept
     {
         const char c = s.str[pos];
         if(c >= '0' && c <= '9')
-            *val = *val * T(16) + T(c - '0');
+            *val = (*val * T(16)) + T(c - '0');
         else if(c >= 'a' && c <= 'f')
-            *val = *val * T(16) + T(c - 'a');
+            *val = (*val * T(16)) + T(c - 'a');
         else if(c >= 'A' && c <= 'F')
-            *val = *val * T(16) + T(c - 'A');
+            *val = (*val * T(16)) + T(c - 'A');
         else if(c == '.')
         {
             ++pos;
@@ -2179,7 +2179,11 @@ C4_ALWAYS_INLINE bool atod(csubstr str, double * C4_RESTRICT v) noexcept
     if(!(rem.len >= 2 && (rem.str[0] == '0' && (rem.str[1] == 'x' || rem.str[1] == 'X'))))
     {
         fast_float::from_chars_result result;
+        #ifndef CLANG_TIDY   // suppress a false-positive error (cannot be done with NOLINT: https://stackoverflow.com/questions/62838193/ )
         result = fast_float::from_chars(str.str, str.str + str.len, *v);
+        #else
+        result = {};
+        #endif
         return result.ec == std::errc();
     }
     else if(detail::scan_rhex(rem.sub(2), v))

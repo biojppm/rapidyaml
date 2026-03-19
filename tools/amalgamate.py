@@ -161,6 +161,7 @@ INSTRUCTIONS:
         am.onlyif(with_c4core and with_fastfloat, am.injfile("ext/c4core.src/c4/ext/fast_float_all.h", "c4/ext/fast_float_all.h")),
         am.onlyif(with_c4core and with_fastfloat, "ext/c4core.src/c4/ext/fast_float.hpp"),
         am.onlyif(with_c4core, "ext/c4core.src/c4/std/vector_fwd.hpp"),
+        am.onlyif(with_c4core, "ext/c4core.src/c4/std/span_fwd.hpp"),
         am.onlyif(with_c4core, "ext/c4core.src/c4/std/string_fwd.hpp"),
         am.onlyif(with_c4core, "ext/c4core.src/c4/std/std_fwd.hpp"),
         am.onlyif(with_c4core, am.injcode(required_charconv_include)),
