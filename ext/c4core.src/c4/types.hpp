@@ -413,12 +413,12 @@ struct __repeat<integer_sequence<_Tp, _Np...>, _Extra...>
     using type = integer_sequence<_Tp,
                             _Np...,
                             sizeof...(_Np) + _Np...,
-                            2 * sizeof...(_Np) + _Np...,
-                            3 * sizeof...(_Np) + _Np...,
-                            4 * sizeof...(_Np) + _Np...,
-                            5 * sizeof...(_Np) + _Np...,
-                            6 * sizeof...(_Np) + _Np...,
-                            7 * sizeof...(_Np) + _Np...,
+                            (2 * sizeof...(_Np)) + _Np...,
+                            (3 * sizeof...(_Np)) + _Np...,
+                            (4 * sizeof...(_Np)) + _Np...,
+                            (5 * sizeof...(_Np)) + _Np...,
+                            (6 * sizeof...(_Np)) + _Np...,
+                            (7 * sizeof...(_Np)) + _Np...,
                             _Extra...>;
 };
 

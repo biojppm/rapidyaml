@@ -8,8 +8,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "c4/config.hpp"
 #include "c4/export.hpp"
 #include "c4/compiler.hpp"
+#include "c4/language.hpp"
 
 #ifdef _DOXYGEN_
     /** if this is defined and exceptions are enabled, then calls to C4_ERROR()
@@ -183,14 +185,27 @@ struct ScopedErrorSettings // NOLINT(cppcoreguidelines-special-member-functions,
 //-----------------------------------------------------------------------------
 
 /** source location */
-struct srcloc;
+struct C4CORE_EXPORT srcloc
+{
+    const char *file;
+    const char *func;
+    int line;
+    srcloc(const char *file_="", const char *func_="", int line_=0) noexcept : file(file_), func(func_), line(line_) {}
+};
 
-// watchout: for VS the [[noreturn]] needs to come before other annotations like C4CORE_EXPORT
-[[noreturn]] C4CORE_EXPORT void handle_error(srcloc s, const char *fmt, ...);
-C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
+
+#if defined(C4_ERROR_SHOWS_FILELINE) && defined(C4_ERROR_SHOWS_FUNC)
+#define C4_SRCLOC() c4::srcloc(__FILE__, C4_PRETTY_FUNC, __LINE__)
+#elif defined(C4_ERROR_SHOWS_FILELINE)
+#define C4_SRCLOC() c4::srcloc(__FILE__, "", __LINE__)
+#elif ! defined(C4_ERROR_SHOWS_FUNC)
+#define C4_SRCLOC() c4::srcloc{}
+#else
+#   error not implemented
+#endif
 
 
-#   define C4_ERROR(msg, ...)                               \
+#define C4_ERROR(msg, ...)                                  \
     do {                                                    \
         if(c4::get_error_flags() & c4::ON_ERROR_DEBUGBREAK) \
         {                                                   \
@@ -200,39 +215,13 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
     } while(0)
 
 
-#   define C4_WARNING(msg, ...)                             \
+#define C4_WARNING(msg, ...)                                \
     c4::handle_warning(C4_SRCLOC(), msg, ## __VA_ARGS__)
 
 
-#if defined(C4_ERROR_SHOWS_FILELINE) && defined(C4_ERROR_SHOWS_FUNC)
-
-struct srcloc
-{
-    const char *file = "";
-    const char *func = "";
-    int line = 0;
-};
-#define C4_SRCLOC() c4::srcloc{__FILE__, C4_PRETTY_FUNC, __LINE__}
-
-#elif defined(C4_ERROR_SHOWS_FILELINE)
-
-struct srcloc
-{
-    const char *file;
-    int line;
-};
-#define C4_SRCLOC() c4::srcloc{__FILE__, __LINE__}
-
-#elif ! defined(C4_ERROR_SHOWS_FUNC)
-
-struct srcloc
-{
-};
-#define C4_SRCLOC() c4::srcloc()
-
-#else
-#   error not implemented
-#endif
+// watchout: for VS the [[noreturn]] needs to come before other annotations like C4CORE_EXPORT
+[[noreturn]] C4CORE_EXPORT void handle_error(srcloc s, const char *fmt, ...);
+C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
 
 
 //-----------------------------------------------------------------------------
@@ -258,6 +247,7 @@ struct srcloc
 #   define C4_NOEXCEPT_A
 #endif // _DOXYGEN_
 
+
 #ifndef C4_USE_ASSERT
 #   ifdef NDEBUG
 #       define C4_USE_ASSERT 0
@@ -265,6 +255,7 @@ struct srcloc
 #       define C4_USE_ASSERT 1
 #   endif
 #endif
+
 
 #if C4_USE_ASSERT
 #   define C4_ASSERT(cond) C4_CHECK(cond)
@@ -301,9 +292,11 @@ struct srcloc
 #   define C4_NOEXCEPT_X
 #endif // _DOXYGEN_
 
+
 #ifndef C4_USE_XASSERT
 #   define C4_USE_XASSERT C4_USE_ASSERT
 #endif
+
 
 #if C4_USE_XASSERT
 #   define C4_XASSERT(cond) C4_CHECK(cond)

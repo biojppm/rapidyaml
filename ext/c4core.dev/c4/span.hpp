@@ -43,7 +43,7 @@ C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
  * @see cspanrsl
  */
 template<class T, class I, class SpanImpl>
-class span_crtp
+class span_crtp // NOLINT(*crtp-constructor-accessibility)
 {
 // some utility defines, undefined at the end of this class
 #define _c4this  ((SpanImpl      *)this)

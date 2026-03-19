@@ -233,6 +233,11 @@
 #   else
 #       define C4_NODISCARD
 #   endif
+#if C4_CPP >= 17
+#   define C4_MAYBE_UNUSED [[maybe_unused]]
+#else
+#   define C4_MAYBE_UNUSED
+#endif
 [[noreturn]] __forceinline void _c4_msvc_unreachable() { __assume(false); } ///< https://stackoverflow.com/questions/60802864/emulating-gccs-builtin-unreachable-in-visual-studio
 #   define C4_UNREACHABLE_AFTER_ERR() /* */
 #else
@@ -263,6 +268,11 @@
 #   define C4_ATTR_FORMAT(...) //__attribute__((format (__VA_ARGS__))) ///< @see https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes
 #   define C4_NORETURN __attribute__((noreturn))
 #   define C4_NODISCARD __attribute__((warn_unused_result))
+#if C4_CPP >= 17
+#   define C4_MAYBE_UNUSED [[maybe_unused]]
+#else
+#   define C4_MAYBE_UNUSED __attribute__((unused))
+#endif
 #   define C4_UNREACHABLE_AFTER_ERR() C4_UNREACHABLE()
 // C4_ASSUME
 // see https://stackoverflow.com/questions/63493968/reproducing-clangs-builtin-assume-for-gcc

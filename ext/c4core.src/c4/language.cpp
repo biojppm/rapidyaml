@@ -9,7 +9,8 @@ void use_char_pointer(char const volatile* v)
     C4_UNUSED(v);
 }
 #else
-void foo() {} // to avoid empty file warning from the linker
+// to avoid empty file warning from the linker
+C4_MAYBE_UNUSED void foo() {} // NOLINT(misc-use-internal-linkage)
 #endif
 
 } // namespace detail

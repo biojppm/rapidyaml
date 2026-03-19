@@ -76,7 +76,7 @@ constexpr static const char base64_char_to_sextet_[128] = {
 };
 
 #ifndef NDEBUG
-void base64_test_tables()
+void base64_test_tables() // NOLINT(*use-internal-linkage*)
 {
     for(size_t i = 0; i < C4_COUNTOF(detail::base64_sextet_to_char_); ++i)
     {

@@ -7,6 +7,7 @@
 #include "c4/error.hpp"
 
 #include <limits>
+#include <type_traits>
 
 namespace c4 {
 

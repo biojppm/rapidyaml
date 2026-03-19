@@ -2,6 +2,8 @@
 #define C4_DUMP_HPP_
 
 #include <c4/substr.hpp>
+#include <utility> // for std::forward
+
 
 /** @file dump.hpp This file provides functions to dump several
  * arguments as strings to a user-provided function sink, for example
@@ -52,20 +54,15 @@ C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 using SinkPfn = void (*)(csubstr str);
 
 
-/** a traits class to use in SFINAE with @ref c4::dump() to select if
- * a type is treated as string type (which is dumped directly to the
- * sink, using to_csubstr()), or if the type is treated as a value,
- * which is first serialized to a buffer using to_chars(), and then
- * the serialization serialized as */
-template<class T> struct dump_directly : public std::false_type {};
-template<> struct dump_directly<csubstr> : public std::true_type {};
-template<> struct dump_directly< substr> : public std::true_type {};
-template<> struct dump_directly<const char*> : public std::true_type {};
-template<> struct dump_directly<      char*> : public std::true_type {};
-template<size_t N> struct dump_directly<const char (&)[N]> : public std::true_type {};
-template<size_t N> struct dump_directly<      char (&)[N]> : public std::true_type {};
-template<size_t N> struct dump_directly<const char[N]> : public std::true_type {};
-template<size_t N> struct dump_directly<      char[N]> : public std::true_type {};
+template<class T> struct is_string; // fwd-decl
+
+/** a traits class used by @ref c4::dump() to decide whether a type is
+ * treated as a string type (which is dumped directly to the sink via
+ * to_csubstr()), or if the type is treated as a value, which is first
+ * serialized to the dump buffer using to_chars() prior to dumping it
+ * to the sink. This type defaults to @ref c4::is_string, but can be
+ * overriden independently. */
+template<class T> struct dump_directly : public is_string<T> {};
 
 
 #if (C4_CPP >= 17) || defined(__DOXYGEN__)
@@ -73,8 +70,8 @@ template<size_t N> struct dump_directly<      char[N]> : public std::true_type {
  * sink. Before dumping, the object may be serialized to a string if
  * @ref c4::dump_directly<Arg> is a false type (the default if
  * dump_directly does not have a specialization). Otherwise the object
- * is considered a string object is dumped directly, without any
- * intermediate serialization.
+ * is considered a string object and is therefore dumped directly,
+ * without any intermediate serialization.
  *
  * @return the number of bytes needed to serialize the string-type
  * object, which may be 0 when there is no serialization
@@ -97,10 +94,11 @@ size_t dump(substr buf, Arg const& a)
 {
     if constexpr (dump_directly<Arg>::value)
     {
-        C4_ASSERT(!buf.overlaps(a));
         C4_UNUSED(buf);
+        csubstr sa = to_csubstr(a);
+        C4_ASSERT(!buf.overlaps(sa));
         // dump directly, no need to serialize to the buffer
-        sinkfn(to_csubstr(a));
+        sinkfn(sa);
         return 0; // no space was used in the buffer
     }
     else
@@ -151,9 +149,10 @@ size_t dump(SinkFn &&sinkfn, substr buf, Arg const& a)
     if constexpr (dump_directly<Arg>::value)
     {
         C4_UNUSED(buf);
-        C4_ASSERT(!buf.overlaps(a));
+        csubstr sa = to_csubstr(a);
+        C4_ASSERT(!buf.overlaps(sa));
         // dump directly, no need to serialize to the buffer
-        std::forward<SinkFn>(sinkfn)(to_csubstr(a));
+        std::forward<SinkFn>(sinkfn)(sa);
         return 0; // no space was used in the buffer
     }
     else
@@ -181,10 +180,11 @@ template<SinkPfn sinkfn, class Arg>
 inline auto dump(substr buf, Arg const& a)
     -> typename std::enable_if<dump_directly<Arg>::value, size_t>::type
 {
-    C4_ASSERT(!buf.overlaps(a));
     C4_UNUSED(buf);
+    csubstr sa = to_csubstr(a);
+    C4_ASSERT(!buf.overlaps(sa));
     // dump directly, no need to serialize to the buffer
-    sinkfn(to_csubstr(a));
+    sinkfn(sa);
     return 0; // no space was used in the buffer
 }
 template<class SinkFn, class Arg>
@@ -192,9 +192,10 @@ inline auto dump(SinkFn &&sinkfn, substr buf, Arg const& a)
     -> typename std::enable_if<dump_directly<Arg>::value, size_t>::type
 {
     C4_UNUSED(buf);
-    C4_ASSERT(!buf.overlaps(a));
+    csubstr sa = to_csubstr(a);
+    C4_ASSERT(!buf.overlaps(sa));
     // dump directly, no need to serialize to the buffer
-    std::forward<SinkFn>(sinkfn)(to_csubstr(a));
+    std::forward<SinkFn>(sinkfn)(sa);
     return 0; // no space was used in the buffer
 }
 

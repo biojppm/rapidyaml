@@ -9,6 +9,8 @@ namespace c4 {
 template<class C> struct basic_substring;
 using csubstr = C4CORE_EXPORT basic_substring<const char>;
 using substr = C4CORE_EXPORT basic_substring<char>;
+template<class T> struct is_string;
+template<class T> struct is_writeable_string;
 #endif // !DOXYGEN
 
 } // namespace c4

@@ -2,8 +2,10 @@
 #define _C4_ENUM_HPP_
 
 #include "c4/error.hpp"
-#include <cstddef>
+
+#include <stddef.h>
 #include <string.h>
+#include <type_traits>
 
 /** @file enum.hpp utilities for enums: convert to/from string
  */
@@ -22,7 +24,7 @@ using is_scoped_enum = std::integral_constant<bool, std::is_enum<Enum>::value &&
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-typedef enum {
+typedef enum { // NOLINT(cert-int09-c,readability-enum-initial-value)
     EOFFS_NONE = 0,  ///< no offset
     EOFFS_CLS = 1,   ///< get the enum offset for the class name. @see eoffs_cls()
     EOFFS_PFX = 2,   ///< get the enum offset for the enum prefix. @see eoffs_pfx()

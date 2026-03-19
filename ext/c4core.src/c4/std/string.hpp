@@ -11,6 +11,15 @@
 
 namespace c4 {
 
+// mark std::string as a string type
+template<class T> struct is_string;
+template<> struct is_string<std::string> : public std::true_type {};
+
+// mark std::string as a writeable string type
+template<class T> struct is_writeable_string;
+template<> struct is_writeable_string<std::string> : public std::true_type {};
+
+
 //-----------------------------------------------------------------------------
 
 /** get a writeable view to an existing std::string.
@@ -59,36 +68,20 @@ C4_ALWAYS_INLINE bool operator<  (std::string const& s, c4::csubstr ss) { return
 
 //-----------------------------------------------------------------------------
 
-/** copy an std::string to a writeable string view */
+/** copy a std::string to a writeable substr */
 inline size_t to_chars(c4::substr buf, std::string const& s)
 {
-    C4_ASSERT(!buf.overlaps(to_csubstr(s)));
-    size_t len = buf.len < s.size() ? buf.len : s.size();
-    // calling memcpy with null strings is undefined behavior
-    // and will wreak havoc in calling code's branches.
-    // see https://github.com/biojppm/rapidyaml/pull/264#issuecomment-1262133637
-    if(len)
-    {
-        C4_ASSERT(s.data() != nullptr);
-        C4_ASSERT(buf.str != nullptr);
-        memcpy(buf.str, s.data(), len);
-    }
-    return s.size(); // return the number of needed chars
+    size_t sz = s.size();
+    size_t len = buf.len < sz ? buf.len : sz;
+    buf.copy_from(csubstr(s.data(), len)); // copy only available chars
+    return sz; // return the number of needed chars
 }
 
-/** copy a string view to an existing std::string */
+/** copy a csubstr to an existing std::string */
 inline bool from_chars(c4::csubstr buf, std::string * s)
 {
     s->resize(buf.len);
-    C4_ASSERT(!buf.overlaps(to_csubstr(*s)));
-    // calling memcpy with null strings is undefined behavior
-    // and will wreak havoc in calling code's branches.
-    // see https://github.com/biojppm/rapidyaml/pull/264#issuecomment-1262133637
-    if(buf.len)
-    {
-        C4_ASSERT(buf.str != nullptr);
-        memcpy(&(*s)[0], buf.str, buf.len); // NOLINT(readability-container-data-pointer)
-    }
+    substr(&(*s)[0], buf.len).copy_from(buf); // NOLINT
     return true;
 }
 

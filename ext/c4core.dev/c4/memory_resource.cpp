@@ -26,7 +26,7 @@ arealloc_pfn s_arealloc = nullptr;
 #else
 
 
-void afree_impl(void *ptr)
+void afree_impl(void *ptr) // NOLINT(misc-use-internal-linkage)
 {
 #if defined(C4_WIN) || defined(C4_XBOX)
     ::_aligned_free(ptr);
@@ -36,7 +36,7 @@ void afree_impl(void *ptr)
 }
 
 
-void* aalloc_impl(size_t size, size_t alignment)
+void* aalloc_impl(size_t size, size_t alignment) // NOLINT(misc-use-internal-linkage)
 {
     // alignment must be nonzero and a power of 2
     C4_CHECK(alignment > 0 && (alignment & (alignment - 1u)) == 0);
@@ -77,7 +77,7 @@ void* aalloc_impl(size_t size, size_t alignment)
 }
 
 
-void* arealloc_impl(void* ptr, size_t oldsz, size_t newsz, size_t alignment)
+void* arealloc_impl(void* ptr, size_t oldsz, size_t newsz, size_t alignment) // NOLINT(misc-use-internal-linkage)
 {
     /** @todo make this more efficient
      * @see https://stackoverflow.com/questions/9078259/does-realloc-keep-the-memory-alignment-of-posix-memalign
@@ -97,9 +97,9 @@ void* arealloc_impl(void* ptr, size_t oldsz, size_t newsz, size_t alignment)
     return tmp;
 }
 
-aalloc_pfn s_aalloc = aalloc_impl;
-afree_pfn s_afree = afree_impl;
-arealloc_pfn s_arealloc = arealloc_impl;
+aalloc_pfn s_aalloc = aalloc_impl;       // NOLINT(misc-use-internal-linkage)
+afree_pfn s_afree = afree_impl;          // NOLINT(misc-use-internal-linkage)
+arealloc_pfn s_arealloc = arealloc_impl; // NOLINT(misc-use-internal-linkage)
 
 #endif // C4_NO_ALLOC_DEFAULTS
 

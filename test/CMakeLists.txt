@@ -291,7 +291,7 @@ if(RYML_TEST_SUITE)
             testsuite/testsuite_events.hpp
             testsuite/testsuite_parts.cpp
             testsuite/testsuite_parts.hpp
-        LIBS ryml-_testlib ryml-_testmain ryml-c4core_dev c4log
+        LIBS ryml-_testlib ryml-_testmain c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
     ryml_add_c4core_dev_to_target(ryml-test-suite)
