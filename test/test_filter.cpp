@@ -12,7 +12,10 @@
 #include "c4/yml/std/string.hpp"
 #endif
 #include <gtest/gtest.h>
+#include "./test_lib/test_main.hpp"
 
+
+RYML_DEFINE_TEST_MAIN()
 
 namespace c4 {
 namespace yml {

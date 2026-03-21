@@ -299,14 +299,15 @@ defn run-manual-with-flags(cxx cc buildtype flags="")::
     cmake --build build/$buildtype --target ryml-test-run
 
 
-defn run-vs-manual-with-flags(gen arch buildtype shared flags="")::
+defn run-vs-manual-with-flags(gen arch buildtype shared flags="" cmkflags="")::
 - name:: "---------------------------------------------------------"
   run:: |
     echo "$buildtype ::: $flags shared=$shared"
 - name:: "configure $buildtype ::: $flags shared=$shared"
-  # WATCHOUT: the flags require a leading space, or
-  # git bash will interpret the first / as the root path
-  # and wrongly expand it to c:/Program Files/git/
+  # WATCHOUT: the flags require a leading space, or git bash will
+  # interpret the leading option tag / as the root path and wrongly
+  # expand it to c:/Program Files/git/. Eg, without the leading space
+  # /MDd would be expanded as c:/Program Files/git/MDd
   run:: |
     rm -rf build/$buildtype
     export C4_EXTERN_DIR=`pwd`/build/extern
@@ -315,18 +316,20 @@ defn run-vs-manual-with-flags(gen arch buildtype shared flags="")::
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_CXX_FLAGS_$(buildtype:uc)=" $flags" \
       -DCMAKE_C_FLAGS_$(buildtype:uc)=" $flags" \
+      -DCMAKE_C_FLAGS=" " \
       -DBUILD_SHARED_LIBS=$shared \
       -DC4_CXX_STANDARD=${{matrix.std}} \
       -DRYML_CXX_STANDARD=${{matrix.std}} \
       -DRYML_BUILD_TESTS=ON \
       -DRYML_DEV=ON \
       -DRYML_BUILD_BENCHMARKS=OFF \
+      $cmkflags \
       -DRYML_DBG=OFF
 - name:: "build $buildtype ::: $flags shared=$shared"
   run:: |
-    cmake --build build/$buildtype --target ryml-test-build --parallel --verbose
+    cmake --build build/$buildtype --target ryml-test-build --config $buildtype --parallel --verbose
 - name:: "run $buildtype ::: $flags shared=$shared"
   run:: |
     source .github/setenv.sh
     export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
-    cmake --build build/$buildtype --target ryml-test-run
+    cmake --build build/$buildtype --target ryml-test-run --config $buildtype

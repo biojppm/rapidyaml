@@ -20,6 +20,24 @@ items =::
         - {std: 20, name: vs2022/64, os: 2022, gen: Visual Studio 17 2022, arch:   x64}
         - {std: 20, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
 
+:: # code mode
+  defn define-flavor-job(name cmkflags cxxflags="")::
+    :: setup-job('windows' name)
+    name:: "$name/${{matrix.name}}bit/c++${{matrix.std}}"
+    runs-on: windows-${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - {std: 11, name: vs2022/64, os: 2022, gen: Visual Studio 17 2022, arch:   x64}
+        - {std: 11, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
+    steps:
+    - :: checkout-action       #   generator         architecture      buildtype shared cflags
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'ON'  ('/MDd /Zi /Ob0 /Od /RTC1 ' + cxxflags) cmkflags)
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'ON'  ('/MDd /O3 /Ob3 /DNDEBUG ' + cxxflags) cmkflags)
+
+  =>: nil # this is needed to expose the function above
+
 jobs:
 
   vsdebug:
@@ -30,7 +48,7 @@ jobs:
     - :: checkout-action       #   generator         architecture      buildtype shared cflags
     - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'ON'  '/MDd /Zi /Ob0 /Od /RTC1')
     - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Debug'   'OFF' '/MDd /Zi /Ob0 /Od /RTC1')
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /Os /DNDEBUG')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'ON'  '/MD /Os /DNDEBUG')
 
   vsrelease:
     :: setup-job('windows' 'vsrelease')
@@ -38,6 +56,52 @@ jobs:
     :: items
     steps:
     - :: checkout-action       #   generator         architecture      buildtype shared cflags
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O1 /Ob1 /DNDEBUG')
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O2 /Ob2 /DNDEBUG')
-    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'OFF' '/MD /O3 /Ob3 /DNDEBUG')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'ON'  '/MD /O1 /Ob1 /DNDEBUG')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'ON'  '/MD /O2 /Ob2 /DNDEBUG')
+    - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'ON'  '/MD /O3 /Ob3 /DNDEBUG')
+
+  tabtokens:
+    #                    name        cmkflags
+    :: define-flavor-job('tabtokens' '-DRYML_WITH_TAB_TOKENS=ON')
+
+  nocallbacks:
+    #                    name          cmkflags
+    :: define-flavor-job('nocallbacks' '-DRYML_DEFAULT_CALLBACKS=ON')
+
+  #noexceptions:
+  #  #                    name           cmkflags  cflags
+  #  :: define-flavor-job('noexceptions' ''        '-D_HAS_EXCEPTIONS=0 /GR- /EHs- /EHc- /wd4611')
+
+  vsclang:
+    :: setup-job('windows' 'clang')
+    name: vsclang/c++${{matrix.std}}/${{matrix.bt}}
+    runs-on: windows-${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - {std: 11, name: vs2022/debug/static  , os: 2022, gen: Visual Studio 17 2022, bt: Debug  , shared: OFF}
+        - {std: 11, name: vs2022/release/shared, os: 2022, gen: Visual Studio 17 2022, bt: Release, shared: ON }
+        - {std: 20, name: vs2022/debug/shared  , os: 2022, gen: Visual Studio 17 2022, bt: Debug  , shared: OFF}
+        - {std: 20, name: vs2022/release/shared, os: 2022, gen: Visual Studio 17 2022, bt: Release, shared: ON }
+    steps:
+    - :: checkout-action
+    - name: config
+      run: |
+        cmake -B build/ \
+              -G "${{matrix.gen}}" -T ClangCL \
+              -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
+              -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+              -DCMAKE_CXX_FLAGS=' /DWIN32 /D_WINDOWS /W3 /GR /EHsc /D_CRT_SECURE_NO_WARNINGS ' \
+              -DCMAKE_C_FLAGS=' /DWIN32 /D_WINDOWS /W3 /GR /EHsc /D_CRT_SECURE_NO_WARNINGS ' \
+              -DBUILD_SHARED_LIBS=${{matrix.shared}} \
+              -DRYML_DEV=ON \
+              -DRYML_BUILD_BENCHMARKS=OFF
+    - name: build
+      run: |
+        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel --verbose
+    - name: test
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build --target ryml-test-run --config ${{matrix.bt}}

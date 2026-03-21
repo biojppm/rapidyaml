@@ -23,6 +23,8 @@
 
 // inf and nan are tested in test_number.cpp
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace foo {
 
 template<class T>

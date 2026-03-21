@@ -32,6 +32,9 @@ jobs:
           namesfx: 64bit
           cmk: -DCMAKE_CXX_FLAGS=-m64
         - std: 11
+          namesfx: 64bit_nocb
+          cmk: -DCMAKE_CXX_FLAGS=-m64 -DRYML_DEFAULT_CALLBACKS=OFF
+        - std: 11
           namesfx: 64bit_noexc
           cmk: -DCMAKE_CXX_FLAGS='-m64 -fno-exceptions -fno-rtti'
         - std: 11

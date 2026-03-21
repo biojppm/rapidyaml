@@ -5,9 +5,12 @@
 #endif
 #include <gtest/gtest.h>
 #include "./test_lib/callbacks_tester.hpp"
+#include "./test_lib/test_main.hpp"
 
 
 //-------------------------------------------
+
+RYML_DEFINE_TEST_MAIN()
 
 namespace c4 {
 namespace yml {

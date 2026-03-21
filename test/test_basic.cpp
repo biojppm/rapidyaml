@@ -22,6 +22,8 @@
 #   pragma GCC diagnostic push
 #endif
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 

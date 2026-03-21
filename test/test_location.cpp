@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 

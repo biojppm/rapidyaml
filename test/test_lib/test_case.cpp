@@ -256,6 +256,8 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     , m_tree_prev(tree ? tree->callbacks() : m_glob_prev)
     , expected_location(loc)
 {
+    EXPECT_NE(m_glob_prev.m_allocate, nullptr);
+    EXPECT_NE(m_tree_prev.m_allocate, nullptr);
     auto errb = [](csubstr msg, ErrorDataBasic const& errdata, void *this_) {
         _c4dbgp("called basic error callback!");
         ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
@@ -289,8 +291,8 @@ ExpectError::ExpectError(Tree *tree, Location loc)
         );
         C4_UNREACHABLE_AFTER_ERR();
     };
-    c4::yml::Callbacks tcb;
-    c4::yml::Callbacks gcb;
+    c4::yml::Callbacks tcb = m_tree_prev;
+    c4::yml::Callbacks gcb = m_glob_prev;
     tcb.set_user_data((void*)this).set_error_basic(errb).set_error_parse(errp).set_error_visit(errv);
     gcb.set_user_data((void*)this).set_error_basic(errb).set_error_parse(errp).set_error_visit(errv);
     if(tree)
@@ -316,7 +318,8 @@ ExpectError::~ExpectError()
         m_tree->callbacks(m_tree_prev);
     }
     _c4dbgp("resetting error callback: global");
-    set_callbacks(m_tree_prev);
+    set_callbacks(m_glob_prev);
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
 }
 
 void ExpectError::check_success(Tree *tree, fntestref fn)

@@ -54,12 +54,22 @@ if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
 endif()
 
+c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
+    SOURCES test_lib/test_main.cpp test_lib/test_main.hpp
+    LIBS ryml
+    FOLDER test
+)
+if(DEFINED RYML_DEFAULT_CALLBACKS)
+    if(NOT RYML_DEFAULT_CALLBACKS)
+        target_compile_definitions(ryml-_testmain PUBLIC RYML_NO_DEFAULT_CALLBACKS)
+    endif()
+endif()
 
 function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
         SOURCES test_${test_name}.cpp
-        LIBS ${ARGN} ryml-_testlib gtest_main
+        LIBS ${ARGN} ryml-_testlib ryml-_testmain
         FOLDER test)
     c4_add_test(${t})
 endfunction()
@@ -265,7 +275,7 @@ if(RYML_TEST_SUITE)
             testsuite/testsuite_events.hpp
             testsuite/testsuite_parts.cpp
             testsuite/testsuite_parts.hpp
-        LIBS ryml-_testlib c4log
+        LIBS ryml-_testlib ryml-_testmain c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
@@ -355,7 +365,7 @@ if(RYML_TEST_FUZZ)
                 test_fuzz/test_fuzz_main.cpp
                 ${ARGN}
             INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
-            LIBS ryml c4fs
+            LIBS ryml ryml-_testmain c4fs
             FOLDER test/fuzz)
         if(RYML_DBG)
             target_compile_definitions(ryml-test-fuzz-${name} PUBLIC RYML_DBG)

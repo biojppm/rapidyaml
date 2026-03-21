@@ -1085,6 +1085,7 @@ Case const* get_case(csubstr /*name*/) { return nullptr; }
 
 int main(int argc, char* argv[])
 {
+    c4::yml::ensure_callbacks(); // needed when RYML_NO_DEFAULT_CALLBACKS
     c4::dump("$");
     for(int i = 0; i < argc; ++i)
         c4::dump(' ', c4::to_csubstr(argv[i]));

@@ -10,6 +10,8 @@
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen: This function or variable may be unsafe
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 
@@ -37,16 +39,16 @@ const char * const null_name = "NUL:";
 const char * const null_name = "/dev/null";
 #endif
 
+bool print_msg = false;
 
 namespace { // anon
 C4_NO_INLINE void dump2file(csubstr s, FILE *f)
 {
     // using fwrite() is more portable than using fprintf("%.*s") which
     // is not available in some embedded platforms
-    if(s.len)
+    if(print_msg && s.len)
         fwrite(s.str, 1, s.len, f); // NOLINT
 }
-} // namespace anon
 
 void location_print(Location const& loc, FILE *f=nullptr)
 {
@@ -60,8 +62,11 @@ void err_basic_print(csubstr msg, ErrorDataBasic const& errdata, FILE *f=nullptr
     if(!f)
         f = stderr;
     err_basic_format([f](csubstr s){ dump2file(s, f); }, msg, errdata);
-    fputc('\n', f); // NOLINT
-    fflush(f); // NOLINT
+    if(print_msg)
+    {
+        fputc('\n', f); // NOLINT
+        fflush(f); // NOLINT
+    }
 }
 
 void err_parse_print(csubstr msg, ErrorDataParse const& errdata, FILE *f=nullptr)
@@ -69,8 +74,11 @@ void err_parse_print(csubstr msg, ErrorDataParse const& errdata, FILE *f=nullptr
     if(!f)
         f = stderr;
     err_parse_format([f](csubstr s){ dump2file(s, f); }, msg, errdata);
-    fputc('\n', f); // NOLINT
-    fflush(f); // NOLINT
+    if(print_msg)
+    {
+        fputc('\n', f); // NOLINT
+        fflush(f); // NOLINT
+    }
 }
 
 void err_visit_print(csubstr msg, ErrorDataVisit const& errdata, FILE *f=nullptr)
@@ -78,21 +86,27 @@ void err_visit_print(csubstr msg, ErrorDataVisit const& errdata, FILE *f=nullptr
     if(!f)
         f = stderr;
     err_visit_format([f](csubstr s){ dump2file(s, f); }, msg, errdata);
-    fputc('\n', f); // NOLINT
-    fflush(f); // NOLINT
+    if(print_msg)
+    {
+        fputc('\n', f); // NOLINT
+        fflush(f); // NOLINT
+    }
 }
 
-static void test_loc_print(Location const& cpploc)
+void test_loc_print(Location const& cpploc)
 {
     FILE *file = fopen(null_name, "wb"); // NOLINT
     location_print(cpploc, file);
-    fprintf(file, "\n"); // NOLINT
-    fflush(file); // NOLINT
+    if(print_msg)
+    {
+        fprintf(file, "\n"); // NOLINT
+        fflush(file); // NOLINT
+    }
     if(file)
         fclose(file); // NOLINT
 }
 
-static void test_error_basic_print(csubstr msg, ErrorDataBasic const& errdata)
+void test_error_basic_print(csubstr msg, ErrorDataBasic const& errdata)
 {
     FILE *file = fopen(null_name, "wb"); // NOLINT
     err_basic_print(msg, errdata, file);
@@ -100,7 +114,7 @@ static void test_error_basic_print(csubstr msg, ErrorDataBasic const& errdata)
         fclose(file); // NOLINT
 }
 
-static void test_error_parse_print(csubstr msg, ErrorDataParse const& errdata)
+void test_error_parse_print(csubstr msg, ErrorDataParse const& errdata)
 {
     FILE *file = fopen(null_name, "wb"); // NOLINT
     err_parse_print(msg, errdata, file);
@@ -108,7 +122,7 @@ static void test_error_parse_print(csubstr msg, ErrorDataParse const& errdata)
         fclose(file); // NOLINT
 }
 
-static void test_error_visit_print(csubstr msg, ErrorDataVisit const& errdata)
+void test_error_visit_print(csubstr msg, ErrorDataVisit const& errdata)
 {
     FILE *file = fopen(null_name, "wb"); // NOLINT
     err_visit_print(msg, errdata, file);
@@ -199,11 +213,6 @@ void test_free_impl(void *mem, size_t length, void * /*user_data*/)
     ::free(mem);
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 Callbacks mk_test_callbacks()
 {
     return Callbacks{}
@@ -233,22 +242,22 @@ void check_callbacks_default(Callbacks const& cb)
     EXPECT_NE(cb.m_error_basic, &test_error_basic_impl);
     EXPECT_NE(cb.m_error_parse, &test_error_parse_impl);
     EXPECT_NE(cb.m_error_visit, &test_error_visit_impl);
-#ifndef RYML_NO_DEFAULT_CALLBACKS
     EXPECT_EQ(cb.m_user_data, nullptr);
+#ifndef RYML_NO_DEFAULT_CALLBACKS
     EXPECT_NE(cb.m_allocate, nullptr);
     EXPECT_NE(cb.m_free, nullptr);
     EXPECT_NE(cb.m_error_basic, nullptr);
     EXPECT_NE(cb.m_error_parse, nullptr);
     EXPECT_NE(cb.m_error_visit, nullptr);
-#else
-    EXPECT_EQ(cb.m_user_data, nullptr);
-    EXPECT_EQ(cb.m_allocate, nullptr);
-    EXPECT_EQ(cb.m_free, nullptr);
-    EXPECT_EQ(cb.m_error_basic, nullptr);
-    EXPECT_EQ(cb.m_error_parse, nullptr);
-    EXPECT_EQ(cb.m_error_visit, nullptr);
 #endif
 }
+
+} // namespace anon
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 TEST(Callbacks, ctor)
 {
@@ -281,19 +290,14 @@ TEST(Callbacks, ctor)
                   &test_free_impl,
                   &test_error_basic_impl);
     C4_SUPPRESS_WARNING_GCC_CLANG_POP
-#ifndef RYML_NO_DEFAULT_CALLBACKS
     EXPECT_EQ(cb2.m_user_data, &data);
     EXPECT_EQ(cb2.m_allocate, &test_allocate_impl);
     EXPECT_EQ(cb2.m_free, &test_free_impl);
     EXPECT_EQ(cb2.m_error_basic, &test_error_basic_impl);
-    EXPECT_NE(cb.m_error_parse, nullptr);
-    EXPECT_NE(cb.m_error_visit, nullptr);
+#ifndef RYML_NO_DEFAULT_CALLBACKS
+    EXPECT_NE(cb2.m_error_parse, nullptr);
+    EXPECT_NE(cb2.m_error_visit, nullptr);
 #else
-    EXPECT_EQ(cb2.m_user_data, nullptr);
-    EXPECT_EQ(cb.m_user_data, nullptr);
-    EXPECT_EQ(cb.m_allocate, nullptr);
-    EXPECT_EQ(cb.m_free, nullptr);
-    EXPECT_EQ(cb.m_error_basic, nullptr);
     EXPECT_EQ(cb.m_error_parse, nullptr);
     EXPECT_EQ(cb.m_error_visit, nullptr);
 #endif
@@ -388,6 +392,7 @@ TEST(Callbacks, get)
 
 TEST(Callbacks, set)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     Callbacks cb = mk_test_callbacks();
     Callbacks before = get_callbacks();
     check_callbacks_default(before);
@@ -401,6 +406,7 @@ TEST(Callbacks, set)
 
 TEST(Callbacks, reset)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     Callbacks before = get_callbacks();
     {
         SCOPED_TRACE("default");
@@ -418,10 +424,12 @@ TEST(Callbacks, reset)
         check_callbacks_default(before);
         check_callbacks_default(get_callbacks());
     }
+    set_callbacks(before); // DON'T FORGET!
 }
 
 TEST(Callbacks, eq)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     Callbacks before = get_callbacks();
     Callbacks bf2 = get_callbacks();
     Callbacks cb = mk_test_callbacks();
@@ -526,6 +534,8 @@ TEST(Callbacks, cmp_error_visit)
 
 TEST(allocate_and_free, basic)
 {
+    Callbacks before = get_callbacks();
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     EXPECT_NE(get_callbacks().m_allocate, &test_allocate_impl);
     EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     set_callbacks(mk_test_callbacks());
@@ -537,7 +547,7 @@ TEST(allocate_and_free, basic)
     get_callbacks().m_free(mem, 32u, get_callbacks().m_user_data);
     EXPECT_EQ(stored_mem, mem);
     EXPECT_EQ(stored_length, 32u);
-    reset_callbacks();
+    set_callbacks(before); // DON'T FORGET!
 }
 
 void testloc(Location const& actual, Location const& expected)
@@ -640,6 +650,7 @@ void test_full_msg_args(Location const& loc, csubstr msg, std::string const& exp
 template<class... Args>
 void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ...args)
 {
+    Callbacks before = get_callbacks();
     auto reset_stored = []{
         stored_msg_full = {};
         stored_msg = {};
@@ -670,7 +681,7 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     reset_stored();
@@ -697,7 +708,7 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     //
@@ -753,6 +764,7 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
 
 TEST(error, basic)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     {
         SCOPED_TRACE("case 1: no col, no offset");
         test_error_basic(Location("file.yml", 0, 123u, 0), "some message int={} s={}", 1213, "abc");
@@ -774,6 +786,7 @@ TEST(error, basic)
 template<class Fn>
 void test_check_basic(Fn &&fn, csubstr expected_msg)
 {
+    Callbacks before = get_callbacks();
     set_callbacks(mk_test_callbacks());
     {
         std::string exc_msg;(void)exc_msg;
@@ -789,16 +802,20 @@ void test_check_basic(Fn &&fn, csubstr expected_msg)
             exc_ok = true;
         })
         C4_IF_EXCEPTIONS_(catch(std::exception const& exc) { exc_msg = exc.what(); }, else { exc_msg = stored_msg; })
-        std::cout << exc_msg << "\n";
-        std::cout << stored_msg_full << "\n";
+        if(print_msg)
+        {
+            std::cout << exc_msg << "\n";
+            std::cout << stored_msg_full << "\n";
+        }
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         EXPECT_NE(csubstr::npos, to_csubstr(exc_msg).find(expected_msg));
     }
-    reset_callbacks();
+    set_callbacks(before);
 }
 TEST(check, basic)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     bool disregard_this_message = false;
     csubstr msg = "disregard_this_message";
     csubstr fmsg = "disregard_this_message: extra args: 1,2";
@@ -832,14 +849,17 @@ void testmsg(Args const& ...args)
 }
 TEST(error, basic_message_is_truncated)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     testmsg<ExceptionBasic>(ErrorDataBasic(Location{}));
 }
 TEST(error, parse_message_is_truncated)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     testmsg<ExceptionParse>(ErrorDataParse(Location{}, Location{}));
 }
 TEST(error, visit_message_is_truncated)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     Tree tree;
     id_type node = {};
     testmsg<ExceptionVisit>(ErrorDataVisit(Location{}, &tree, node));
@@ -848,18 +868,22 @@ TEST(error, visit_message_is_truncated)
 
 TEST(error, loc_print_accepts_null_file)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     test_loc_print(Location{});
     test_loc_print(RYML_LOC_HERE());
     location_print(Location{});
     location_print(Location{}, nullptr);
     location_print(RYML_LOC_HERE());
-    fprintf(stderr, "\n"); // NOLINT
+    if(print_msg)
+        fprintf(stderr, "\n"); // NOLINT
     location_print(RYML_LOC_HERE(), nullptr);
-    fprintf(stderr, "\n"); // NOLINT
+    if(print_msg)
+        fprintf(stderr, "\n"); // NOLINT
 }
 
 TEST(error, basic_print_accepts_null_file)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     csubstr msg = "(disregard this message)";
     err_basic_print(msg, Location{});
     err_basic_print(msg, Location{}, nullptr);
@@ -869,6 +893,7 @@ TEST(error, basic_print_accepts_null_file)
 
 TEST(error, parse_print_accepts_null_file)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     csubstr msg = "(disregard this message)";
     err_parse_print(msg, {Location{}, Location{}});
     err_parse_print(msg, {Location{}, Location{}}, nullptr);
@@ -878,13 +903,16 @@ TEST(error, parse_print_accepts_null_file)
     err_parse_print(msg, {Location{}, RYML_LOC_HERE()}, nullptr);
     err_parse_print(msg, {RYML_LOC_HERE(), RYML_LOC_HERE()});
     err_parse_print(msg, {RYML_LOC_HERE(), RYML_LOC_HERE()}, nullptr);
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
 }
 
 TEST(error, visit_print_accepts_null_file)
 {
+    EXPECT_NE(get_callbacks().m_allocate, nullptr);
     csubstr msg = "(disregard this message)";
     Tree tree;
     id_type node = {};
+    EXPECT_NE(tree.callbacks().m_allocate, nullptr);
     err_visit_print(msg, {Location{}, &tree, node});
     err_visit_print(msg, {Location{}, &tree, node}, nullptr);
     err_visit_print(msg, {RYML_LOC_HERE(), &tree, node});
@@ -898,6 +926,7 @@ template<class... Args>
 void test_error_parse(Location const& cpploc, Location const& ymlloc, const char* errmsg, Args const& ...args)
 {
     SCOPED_TRACE("test_error_parse");
+    Callbacks before = get_callbacks();
     const std::string expected = errmsg;
     const std::string expected_fmt = c4::formatrs<std::string>(errmsg, args...);
     auto reset_stored = []{
@@ -930,7 +959,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     reset_stored();
@@ -957,7 +986,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     reset_stored();
@@ -988,7 +1017,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     reset_stored();
@@ -1019,7 +1048,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     //
@@ -1130,6 +1159,7 @@ TEST(error, parse)
 template<class Fn>
 void test_check_parse(Fn &&fn, csubstr expected_msg)
 {
+    Callbacks before = get_callbacks();
     set_callbacks(mk_test_callbacks());
     {
         std::string exc_msg;(void)exc_msg;
@@ -1145,12 +1175,13 @@ void test_check_parse(Fn &&fn, csubstr expected_msg)
             exc_ok = true;
         })
         C4_IF_EXCEPTIONS_(catch(std::exception const& exc) { exc_msg = exc.what(); }, else { exc_msg = stored_msg; })
-        std::cout << stored_msg_full << "\n";
+        if(print_msg)
+            std::cout << stored_msg_full << "\n";
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         EXPECT_NE(csubstr::npos, to_csubstr(exc_msg).find(expected_msg));
     }
-    reset_callbacks();
+    set_callbacks(before);
 }
 TEST(check, parse)
 {
@@ -1200,6 +1231,7 @@ TEST(check, parse)
 template<class... Args>
 void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const char* errmsg, Args const& ...args)
 {
+    Callbacks before = get_callbacks();
     const std::string expected = errmsg;
     const std::string expected_fmt = c4::formatrs<std::string>(errmsg, args...);
     auto reset_stored = []{
@@ -1235,7 +1267,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
     //
@@ -1264,7 +1296,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
     //
@@ -1299,7 +1331,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected_fmt));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
     //
@@ -1334,7 +1366,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg, expected));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
-        reset_callbacks();
+        set_callbacks(before);
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
     //
@@ -1445,6 +1477,7 @@ TEST(error, visit)
 template<class Fn>
 void test_check_visit(Fn &&fn, csubstr expected_msg)
 {
+    Callbacks before = get_callbacks();
     set_callbacks(mk_test_callbacks());
     {
         std::string exc_msg;(void)exc_msg;
@@ -1460,12 +1493,13 @@ void test_check_visit(Fn &&fn, csubstr expected_msg)
             exc_ok = true;
         })
         C4_IF_EXCEPTIONS_(catch(std::exception const& exc) { exc_msg = exc.what(); }, else { exc_msg = stored_msg; })
-        std::cout << stored_msg_full << "\n";
+        if(print_msg)
+            std::cout << stored_msg_full << "\n";
         RYML_IF_EXC(EXPECT_TRUE(exc_ok));
         RYML_IF_EXC(EXPECT_EQ(exc_msg_full, stored_msg_full));
         EXPECT_NE(csubstr::npos, to_csubstr(exc_msg).find(expected_msg));
     }
-    reset_callbacks();
+    set_callbacks(before);
 }
 TEST(check, visit)
 {
@@ -1512,6 +1546,7 @@ TEST(check, visit)
 
 TEST(RYML_CHECK, basic)
 {
+    Callbacks before = get_callbacks();
     EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     set_callbacks(mk_test_callbacks());
     ASSERT_EQ(get_callbacks(), mk_test_callbacks());
@@ -1529,13 +1564,14 @@ TEST(RYML_CHECK, basic)
     EXPECT_EQ(stored_cpploc.offset, npos);
     EXPECT_EQ(stored_cpploc.line, the_line);
     EXPECT_EQ(stored_cpploc.col, npos);
-    reset_callbacks();
+    set_callbacks(before);
     EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
 }
 
 
 TEST(RYML_ASSERT, basic)
 {
+    Callbacks before = get_callbacks();
     EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     set_callbacks(mk_test_callbacks());
     stored_msg = "";
@@ -1563,7 +1599,7 @@ TEST(RYML_ASSERT, basic)
     EXPECT_EQ(stored_cpploc.line, npos);
     EXPECT_EQ(stored_cpploc.col, npos);
     #endif
-    reset_callbacks();
+    set_callbacks(before);
     EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
 }
 
@@ -1808,16 +1844,18 @@ msgs mkmsg_(csubstr txt, const char* file, size_t line, size_t col, size_t offse
     msgs ret;
     auto dumpfn1 = [&ret](csubstr s) { ret.nocall.append(s.str, s.len); };
     location_format_with_context(dumpfn1, loc, txt, csubstr{}, firstcol, lastcol, num_lines_before, num_lines_after, maxlen);
-    #if defined(RYML_DBG) || 1
-    std::cout << "----\n";
-    std::cout << ret.nocall;
-    #endif
+    if(print_msg)
+    {
+        std::cout << "----\n";
+        std::cout << ret.nocall;
+    }
     auto dumpfn2 = [&ret](csubstr s) { ret.withcall.append(s.str, s.len); };
     location_format_with_context(dumpfn2, loc, txt, "error", firstcol, lastcol, num_lines_before, num_lines_after, maxlen);
-    #if defined(RYML_DBG) || 1
-    std::cout << "....\n";
-    std::cout << ret.withcall;
-    #endif
+    if(print_msg)
+    {
+        std::cout << "....\n";
+        std::cout << ret.withcall;
+    }
     return ret;
 }
 

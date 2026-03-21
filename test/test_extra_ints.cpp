@@ -6,6 +6,8 @@
 #include <c4/yml/parse_engine.def.hpp>
 #endif
 
+RYML_DEFINE_TEST_MAIN()
+
 // NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {

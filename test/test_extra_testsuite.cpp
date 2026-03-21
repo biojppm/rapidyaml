@@ -9,6 +9,8 @@
 #include "c4/yml/extra/event_handler_testsuite.hpp"
 #include "./testsuite/testsuite_events_emitter.cpp" // HACK
 
+RYML_DEFINE_TEST_MAIN()
+
 namespace c4 {
 namespace yml {
 

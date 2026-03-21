@@ -218,6 +218,12 @@ void dump2stderr(csubstr s)
 yml::Callbacks create_custom_callbacks()
 {
     return yml::Callbacks{}
+        .set_allocate([](size_t len, void* , void *){
+            return malloc(len);
+        })
+        .set_free([](void* mem, size_t, void *){
+            free(mem);
+        })
         .set_error_basic([](csubstr msg, yml::ErrorDataBasic const& errdata, void *){
             yml::err_basic_format(dump2stderr, msg, errdata);
             throwerr(msg);

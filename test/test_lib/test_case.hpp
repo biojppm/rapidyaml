@@ -44,6 +44,8 @@
 #   include <c4/yml/detail/print.hpp>
 #endif
 #include "test_lib/test_case_node.hpp"
+#include "test_lib/test_main.hpp"
+
 
 /** @todo use a matcher and EXPECT_THAT():
  * see http://google.github.io/googletest/reference/assertions.html#EXPECT_THAT
