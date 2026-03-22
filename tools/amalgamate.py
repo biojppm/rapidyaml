@@ -129,6 +129,7 @@ INSTRUCTIONS:
         "src/c4/yml/error.def.hpp",
         "src/c4/yml/escape_scalar.hpp",
         "src/c4/yml/node_type.hpp",
+        "src/c4/yml/comment_type.hpp",
         "src/c4/yml/tag.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/node.hpp"),

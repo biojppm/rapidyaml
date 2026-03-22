@@ -128,6 +128,11 @@ Tree::Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb)
     , m_free_tail(NONE)
     , m_arena()
     , m_arena_pos(0)
+#ifdef RYML_WITH_COMMENTS
+    , m_comments_buf()
+    , m_comments_cap()
+    , m_comments_size()
+#endif // RYML_WITH_COMMENTS
     , m_callbacks(cb)
     , m_tag_directives()
 {
@@ -136,6 +141,20 @@ Tree::Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb)
     if(arena_capacity)
         reserve_arena(arena_capacity);
 }
+
+#ifdef RYML_WITH_COMMENTS
+Tree::Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity, Callbacks const& cb)
+    : Tree(cb)
+{
+    reserve(node_capacity);
+    reserve_arena(arena_capacity);
+    reserve_comments(comment_capacity);
+}
+Tree::Tree(id_type node_capacity, size_t arena_capacity, id_type comment_capacity)
+    : Tree(node_capacity, arena_capacity, comment_capacity, get_callbacks())
+{
+}
+#endif // RYML_WITH_COMMENTS
 
 Tree::~Tree()
 {
@@ -184,6 +203,14 @@ void Tree::_free()
         _RYML_ASSERT_VISIT_(m_callbacks, m_cap > 0, this, NONE);
         _RYML_CB_FREE(m_callbacks, m_buf, NodeData, (size_t)m_cap);
     }
+    #ifdef RYML_WITH_COMMENTS
+    if(m_comments_buf)
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap > 0, this, NONE);
+        _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap >= m_comments_size, this, NONE);
+        _RYML_CB_FREE(m_callbacks, m_comments_buf, CommentData, (size_t)m_comments_cap);
+    }
+    #endif // RYML_WITH_COMMENTS
     if(m_arena.str)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len > 0, this, NONE);
@@ -207,6 +234,11 @@ void Tree::_clear()
     m_free_tail = 0;
     m_arena = {};
     m_arena_pos = 0;
+    #ifdef RYML_WITH_COMMENTS
+    m_comments_buf = nullptr;
+    m_comments_cap = 0;
+    m_comments_size = 0;
+    #endif // RYML_WITH_COMMENTS
     for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
         m_tag_directives[i] = {};
 }
@@ -214,8 +246,10 @@ void Tree::_clear()
 void Tree::_copy(Tree const& that)
 {
     _RYML_ASSERT_VISIT_(m_callbacks, m_buf == nullptr, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, m_cap == 0, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.str == nullptr, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len == 0, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, that.m_cap >= that.m_size, this, NONE);
     if(that.m_cap)
     {
         m_buf = _RYML_CB_ALLOC_HINT(m_callbacks, NodeData, (size_t)that.m_cap, that.m_buf);
@@ -227,6 +261,19 @@ void Tree::_copy(Tree const& that)
     m_free_tail = that.m_free_tail;
     m_arena_pos = that.m_arena_pos;
     m_arena = that.m_arena;
+    #ifdef RYML_WITH_COMMENTS
+    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_buf == nullptr, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap == 0, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, that.m_comments_cap >= that.m_comments_size, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, !!that.m_comments_cap == !!that.m_comments_buf, this, NONE);
+    if(that.m_comments_cap)
+    {
+        m_comments_buf = _RYML_CB_ALLOC_HINT(m_callbacks, CommentData, (size_t)that.m_comments_cap, that.m_comments_buf);
+        memcpy(m_comments_buf, that.m_comments_buf, (size_t)that.m_comments_size * sizeof(CommentData));
+    }
+    m_comments_size = that.m_comments_size;
+    m_comments_cap = that.m_comments_cap;
+    #endif // RYML_WITH_COMMENTS
     if(that.m_arena.str)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, that.m_arena.len > 0, this, NONE);
@@ -243,6 +290,7 @@ void Tree::_copy(Tree const& that)
 void Tree::_move(Tree & that) noexcept
 {
     _RYML_ASSERT_VISIT_(m_callbacks, m_buf == nullptr, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, m_cap == 0, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.str == nullptr, this, NONE);
     _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len == 0, this, NONE);
     m_buf = that.m_buf;
@@ -252,6 +300,13 @@ void Tree::_move(Tree & that) noexcept
     m_free_tail = that.m_free_tail;
     m_arena = that.m_arena;
     m_arena_pos = that.m_arena_pos;
+    #ifdef RYML_WITH_COMMENTS
+    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_buf == nullptr, this, NONE);
+    _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap == 0, this, NONE);
+    m_comments_buf = that.m_comments_buf;
+    m_comments_cap = that.m_comments_cap;
+    m_comments_size = that.m_comments_size;
+    #endif // RYML_WITH_COMMENTS
     for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
         m_tag_directives[i] = that.m_tag_directives[i];
     that._clear();
@@ -287,6 +342,13 @@ void Tree::_relocate(substr next_arena)
         if(in_arena(td.handle))
             td.handle = _relocated(td.handle, next_arena);
     }
+    #ifdef RYML_WITH_COMMENTS
+    for(CommentData *C4_RESTRICT c = m_comments_buf, *e = m_comments_buf + m_comments_size; c != e; ++c)
+    {
+        if(in_arena(c->m_text))
+            c->m_text = _relocated(c->m_text, next_arena);
+    }
+    #endif // RYML_WITH_COMMENTS
 }
 
 
@@ -1899,6 +1961,184 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
     return {unres.first(pos), SEQ};
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#ifdef RYML_WITH_COMMENTS
+
+void Tree::reserve_comments(id_type comments_cap)
+{
+    if(comments_cap > m_comments_cap)
+    {
+        CommentData *tmp;
+        tmp = _RYML_CB_ALLOC(m_callbacks, CommentData, comments_cap);
+        if(m_comments_buf)
+        {
+            _RYML_ASSERT_VISIT_(m_callbacks, m_comments_cap >= m_comments_size, this, NONE);
+            if(m_comments_cap)
+            {
+                memcpy(tmp, m_comments_buf, (size_t)m_comments_cap * sizeof(CommentData));
+            }
+            _RYML_CB_FREE(m_callbacks, m_comments_buf, CommentData, m_comments_cap);
+        }
+        m_comments_buf = tmp;
+        m_comments_cap = comments_cap;
+    }
+}
+
+id_type Tree::_claim_comment()
+{
+    id_type id = m_comments_size;
+    if(m_comments_size == m_comments_cap)
+    {
+        id_type next_cap = m_comments_cap ? m_comments_cap * 2u : 64u;
+        reserve_comments(next_cap);
+    }
+    ++m_comments_size;
+    return id;
+}
+
+CommentData const* Tree::comment(id_type node_id, id_type comment_id, comment_data_type type) const
+{
+    _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
+    if((m_buf[node_id].m_comments & type) == 0)
+        return nullptr;
+    _RYML_ASSERT_VISIT_(m_callbacks, comment_id == NONE || comment_id == 0 || comment_id < m_comments_size, this, node_id);
+    for(id_type cid = comment_id; cid != NONE; cid = m_comments_buf[cid].m_next)
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, cid < m_comments_size, this, node_id);
+        if(m_comments_buf[cid].m_type & type)
+            return &m_comments_buf[cid];
+        else if(m_comments_buf[cid].m_type > type)
+            break;
+    }
+    return nullptr;
+}
+
+CommentData const* Tree::comment(id_type node_id, CommentData const* prev, comment_data_type type_flags) const
+{
+    _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
+    if((m_buf[node_id].m_comments & type_flags) == 0)
+        return nullptr;
+    id_type comment_id = prev ? prev->m_next : _p(node_id)->m_first_comment;
+    return comment(node_id, comment_id, type_flags);
+}
+
+CommentData const* Tree::comment(id_type node_id, comment_data_type type) const
+{
+    _RYML_ASSERT_VISIT_(m_callbacks, node_id < m_cap, this, node_id);
+    if((m_buf[node_id].m_comments & type) == 0)
+        return nullptr;
+    return comment(node_id, _p(node_id)->m_first_comment, type);
+}
+
+void Tree::set_comment(NodeData *n, CommentType_e type, csubstr const& txt)
+{
+    id_type comid = NONE;
+    id_type prev = n->m_last_comment;
+    // find the comment or find a place to insert it
+    for(id_type cid = n->m_first_comment; cid != NONE; cid = m_comments_buf[cid].m_next)
+    {
+        if(m_comments_buf[cid].m_type == type)
+        {
+            comid = cid; // found the comment
+        }
+        else if(m_comments_buf[cid].m_type > type)
+        {
+            prev = m_comments_buf[cid].m_prev; // insert after this
+            break;
+        }
+    }
+    if(comid == NONE)
+    {
+        comid = _insert_comment(n, prev);
+    }
+    n->m_comments |= type;
+    m_comments_buf[comid].m_type = type;
+    m_comments_buf[comid].m_text = txt;
+}
+
+void Tree::set_comment(id_type id, CommentType_e type, csubstr const& txt)
+{
+    set_comment(_p(id), type, txt);
+}
+
+id_type Tree::_insert_comment(NodeData *n, id_type prev_comment)
+{
+    id_type comid = _claim_comment();
+    if(n->m_first_comment == NONE) // list is empty
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, n->m_first_comment == NONE, this, id(n));
+        _RYML_ASSERT_VISIT_(m_callbacks, n->m_last_comment == NONE, this, id(n));
+        m_comments_buf[comid].m_prev = NONE;
+        m_comments_buf[comid].m_next = NONE;
+        n->m_first_comment = comid;
+        n->m_last_comment = comid;
+    }
+    else if(prev_comment == NONE) // insert at the head
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, n->m_first_comment != NONE, this, id(n));
+        _RYML_ASSERT_VISIT_(m_callbacks, n->m_last_comment != NONE, this, id(n));
+        m_comments_buf[n->m_first_comment].m_prev = comid;
+        m_comments_buf[comid].m_prev = NONE;
+        m_comments_buf[comid].m_next = n->m_first_comment;
+        n->m_first_comment = comid;
+    }
+    else // insert after prev
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, n->m_first_comment != NONE, this, id(n));
+        _RYML_ASSERT_VISIT_(m_callbacks, n->m_last_comment != NONE, this, id(n));
+        if(prev_comment != n->m_last_comment) // prev is in the middle
+        {
+            id_type next_comment = m_comments_buf[prev_comment].m_next;
+            m_comments_buf[comid].m_prev = prev_comment;
+            m_comments_buf[comid].m_next = next_comment;
+            m_comments_buf[prev_comment].m_next = comid;
+            m_comments_buf[next_comment].m_prev = comid;
+        }
+        else // prev is at the tail
+        {
+            m_comments_buf[n->m_last_comment].m_next = comid;
+            m_comments_buf[comid].m_prev = n->m_last_comment;
+            m_comments_buf[comid].m_next = NONE;
+            n->m_last_comment = comid;
+        }
+    }
+    return comid;
+}
+
+void Tree::rem_comment(id_type node_id, CommentType_e type)
+{
+    NodeData *C4_RESTRICT d = _p(node_id);
+    if(d->m_comments & type)
+    {
+        CommentData *C4_RESTRICT cd = const_cast<CommentData*>(comment(node_id, type));
+        if(cd->m_prev != NONE)
+            m_comments_buf[cd->m_prev].m_next = cd->m_next;
+        if(cd->m_next != NONE)
+            m_comments_buf[cd->m_next].m_prev = cd->m_prev;
+        *cd = {};
+        d->m_comments &= ~type;
+    }
+}
+
+void Tree::rem_comments(id_type node_id, bool recursive)
+{
+    NodeData *C4_RESTRICT d = _p(node_id);
+    d->m_first_comment = NONE;
+    d->m_last_comment = NONE;
+    d->m_comments = {};
+    if(!recursive)
+        return;
+    if(node_id == root_id())
+        m_comments_size = 0;
+    for(id_type child = first_child(node_id); child != NONE; child = next_sibling(child))
+        rem_comments(child, true);
+}
+
+#endif // RYML_WITH_COMMENTS
 
 } // namespace yml
 } // namespace c4
