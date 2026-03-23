@@ -9,6 +9,7 @@
 
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen: This function or variable may be unsafe
+C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -2296,3 +2297,4 @@ Case const* get_case(csubstr)
 } // namespace c4
 
 C4_SUPPRESS_WARNING_MSVC_POP
+C4_SUPPRESS_WARNING_CLANG_POP
