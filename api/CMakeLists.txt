@@ -28,7 +28,7 @@ endif()
 set(RYML_API_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(RYML_SWIG_SRC ${RYML_API_DIR}/ryml.i)
 
-include(../ext/c4core/cmake/TargetArchitecture.cmake)
+include(../proj/c4proj/TargetArchitecture.cmake)
 c4_get_architecture_defines(RYML_SWIG_ARCH_DEFINES)
 c4_log("add CPU architecture defines ${RYML_SWIG_ARCH_DEFINES}")
 
