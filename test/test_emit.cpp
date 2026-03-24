@@ -22,6 +22,7 @@ std::string emit2file(Emit &&fn)
 {
     SCOPED_TRACE("emit2file");
     C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen unsafe
+    C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
     std::string filename = fs::tmpnam<std::string>();
     FILE *f = fopen(filename.c_str(), "wb");
     C4_CHECK(f != nullptr);
@@ -32,6 +33,7 @@ std::string emit2file(Emit &&fn)
     fs::rmfile(filename.c_str());
     _c4dbgpf("emit result: [{}]~~~{}~~~", result.size(), to_csubstr(result));
     return result;
+    C4_SUPPRESS_WARNING_CLANG_POP
     C4_SUPPRESS_WARNING_MSVC_POP
 }
 

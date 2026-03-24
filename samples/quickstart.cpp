@@ -6436,6 +6436,7 @@ void ErrorHandlerExample::check_disabled() const
 // helper functions for sample_parse_file()
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen: this function may be unsafe
+C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
 /** load a file from disk into an existing CharContainer */
 template<class CharContainer>
 size_t file_get_contents(const char *filename, CharContainer *v)
@@ -6479,6 +6480,7 @@ void file_put_contents(const char *filename, const char *buf, size_t sz, const c
     std::fwrite(buf, 1, sz, fp); // NOLINT
     std::fclose(fp); // NOLINT
 }
+C4_SUPPRESS_WARNING_CLANG_POP
 C4_SUPPRESS_WARNING_MSVC_POP
 
 /** @} */ // doc_sample_helpers

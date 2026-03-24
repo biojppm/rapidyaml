@@ -334,6 +334,7 @@ void process_file(Args const& args, std::string *contents)
         }
         else
         {
+            C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
             FILE *output = fopen(args.output.str, "wb");
             if (!output)
                 _RYML_ERR_BASIC("could not open file: {}", args.output.str);
@@ -345,6 +346,7 @@ void process_file(Args const& args, std::string *contents)
                     emit_json_docs(tree, output);
             }
             (void)fclose(output);
+            C4_SUPPRESS_WARNING_CLANG_POP
         }
     }
 }
