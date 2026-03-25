@@ -264,6 +264,16 @@ ENGINE_TEST(SimpleMapBlockSameLine7, HAS_MULTILINE_SCALAR,
 }
 
 
+ENGINE_TEST_ERRLOC(SimpleMapErrLiteralKey, Location(9,2,1),
+                   "foo: bar\n"
+                   "| literal: val\n"
+    )
+ENGINE_TEST_ERRLOC(SimpleMapErrFoldedKey, Location(9,2,1),
+                   "foo: bar\n"
+                   "> folded: val\n"
+    )
+
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(SimpleMapBlock,
@@ -1064,7 +1074,7 @@ ENGINE_TEST(SimpleMapContainerKey2Block_1,
     ___(ps.begin_doc());
     ___(ps.begin_map_val_block());
     ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.set_key_scalar_plain("bar"));
+    ___(ps.set_val_scalar_plain("bar"));
     ___(ps.add_sibling());
     ___(ps.set_key_tag("!maptag"));
     ___(ps.set_key_anchor("mapanchor"));
