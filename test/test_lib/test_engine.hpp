@@ -685,23 +685,7 @@ inline C4_NO_INLINE void _print_handler_info(EventHandlerTree const& ps, csubstr
 inline C4_NO_INLINE void _print_handler_info(extra::EventHandlerTestSuite const& ps, csubstr stmt, const char *file, int line)
 {
     _dbg_printf("{}:{}: {}", file, line, stmt);
-    auto indent = [](id_type n){
-        for(id_type level = 0; level < n; ++level)
-        {
-            _dbg_printf("  ");
-        }
-    };
-    for(id_type i = 0; i < ps.m_stack.size(); ++i)
-    {
-        csubstr const& str = ps._buf_(i);
-        indent(i);
-        _dbg_printf("[{}]\n", i);
-        for(csubstr ln : str.split('\n'))
-        {
-            indent(i);
-            _dbg_printf("{}\n", ln);
-        }
-    }
+    ps._dbg_print();
 }
 
 inline C4_NO_INLINE void _print_handler_info(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line)
