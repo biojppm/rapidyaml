@@ -24,12 +24,14 @@ c4core-check-sync: c4core-check-sync-src c4core-check-sync-dev
 c4core-check-list: c4core-check-list-src c4core-check-list-dev
 c4core-check-sync-src: c4core-clone
 	@echo "check c4core list src..."
+	@set -e ; \
 	for s in $(C4CORE_SRC); do \
 	  ( $(COLORDIFF) -u $(C4CORE_DIR_PROJ)/$$s $(C4CORE_DIR_SRC)/$$s ) ; \
 	done
 	@echo "check c4core sync src: PASS"
 c4core-check-sync-dev: c4core-clone
 	@echo "check c4core list dev..."
+	@set -e ; \
 	for s in $(C4CORE_DEV); do \
 	  ( $(COLORDIFF) -u $(C4CORE_DIR_PROJ)/$$s $(C4CORE_DIR_DEV)/$$s ) ; \
 	done
@@ -71,7 +73,7 @@ $(C4CORE_DIR_GIT):
 c4core-clone: $(C4CORE_DIR_GIT) c4core-clone-check
 c4core-check-clone: c4core-clone-check
 c4core-clone-check: $(C4CORE_DIR_GIT)
-	@ \
+	@set -e ; \
 	currsha=$$(git -C $(C4CORE_DIR_GIT) rev-parse HEAD) ; \
 	currtag=$$(git -C $(C4CORE_DIR_GIT) tag --points-at HEAD || echo -n) ; \
 	echo "c4core sha: $$currsha" ; \
