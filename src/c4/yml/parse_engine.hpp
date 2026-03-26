@@ -507,6 +507,7 @@ private:
     void  _end_seq_blck();
     void  _end2_map();
     void  _end2_seq();
+    void  _flow_container_was_a_key(size_t orig_indent);
 
     void  _begin2_doc();
     void  _begin2_doc_expl();
@@ -630,12 +631,14 @@ private:
     void _free();
     void _clr();
 
+    template<class ...Args> C4_NORETURN C4_NO_INLINE void _err(Location const& cpploc, const char *fmt, Args const& ...args) const;
+    template<class ...Args> C4_NORETURN C4_NO_INLINE void _err(Location const& cpploc, Location const& ymlloc, const char *fmt, Args const& ...args) const;
     #ifdef RYML_DBG
     template<class ...Args> C4_NO_INLINE void _dbg(csubstr fmt, Args const& ...args) const;
     template<class DumpFn>  C4_NO_INLINE void _fmt_msg(DumpFn &&dumpfn) const;
+    C4_NO_INLINE void _print_state_stack() const;
+    C4_NO_INLINE void _print_state_stack(substr buf) const;
     #endif
-    template<class ...Args> C4_NORETURN C4_NO_INLINE void _err(Location const& cpploc, const char *fmt, Args const& ...args) const;
-    template<class ...Args> C4_NORETURN C4_NO_INLINE void _err(Location const& cpploc, Location const& ymlloc, const char *fmt, Args const& ...args) const;
 
 
 private:

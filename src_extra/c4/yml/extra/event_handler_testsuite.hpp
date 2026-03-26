@@ -72,6 +72,29 @@ public:
     #define _enable_(bits) _enable__<bits>()
     #define _disable_(bits) _disable__<bits>()
     #define _has_any_(bits) _has_any__<bits>()
+
+    void _dbg_print() const
+    {
+        #ifdef RYML_DBG
+        auto indent = [](id_type n){
+            for(id_type level = 0; level < n; ++level)
+            {
+                _dbg_printf("  ");
+            }
+        };
+        for(id_type i = 0; i < m_stack.size(); ++i)
+        {
+            csubstr const& str = _buf_(i);
+            indent(i);
+            _dbg_printf("[{}]\n", i);
+            for(csubstr ln : str.split('\n'))
+            {
+                indent(i);
+                _dbg_printf("{}\n", ln);
+            }
+        }
+        #endif
+    }
     /** @endcond */
 
 public:
@@ -349,6 +372,7 @@ public:
      */
     void actually_val_is_first_key_of_new_map_flow()
     {
+        _c4dbgpf("node[{}]: actually_val_is_first_key_of_new_map_flow", m_curr->node_id);
         // ensure we have a temporary buffer to save the current val
         const id_type tmp = m_curr->level + id_type(2);
         _buf_ensure_(tmp + id_type(2));
@@ -371,8 +395,9 @@ public:
      */
     void actually_val_is_first_key_of_new_map_block()
     {
+        _c4dbgpf("node[{}]: actually_val_is_first_key_of_new_map_block", m_curr->node_id);
         EventSink &sink = _buf_();
-        substr full = sink;(void)full;
+        csubstr full = sink;(void)full;
         // interpolate +MAP\n after the last +DOC\n
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, full.len);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, !full.count('\r'));
@@ -387,10 +412,16 @@ public:
         {
             // ... or interpolate +MAP\n after the last +DOC ---\n
             docpos = sink.find_last("+DOC ---\n");
-            _RYML_ASSERT_BASIC_(m_stack.m_callbacks, docpos != npos);
-            _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_stack.size() == 1u) ? (docpos >= 5u) : (docpos == 0u));
-            _RYML_ASSERT_BASIC_(m_stack.m_callbacks, docpos + 9u < full.len);
-            sink.insert("+MAP\n", docpos + 9u);
+            if(docpos != npos)
+            {
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_stack.size() == 1u) ? (docpos >= 5u) : (docpos == 0u));
+                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, docpos + 9u < full.len);
+                sink.insert("+MAP\n", docpos + 9u);
+            }
+            else
+            {
+                sink.insert("+MAP\n", 0u);
+            }
         }
         _push();
     }

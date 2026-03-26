@@ -842,6 +842,7 @@ public:
      */
     void actually_val_is_first_key_of_new_map_block()
     {
+        _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_block", m_evt_pos, m_evt_size, m_evt_prev);
         if(m_evt_prev < m_evt_size)
         {
             // interpolate BMAP|VAL|BLCK after the last BDOC

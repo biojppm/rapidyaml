@@ -495,6 +495,23 @@ C4_NO_INLINE void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
         _dbg_dump(std::forward<DumpFn>(dumpfn), "top state: {}\n", detail::_parser_flags_to_str(flagbuf_, m_evt_handler->m_curr->flags));
     }
 }
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_print_state_stack(substr buf) const
+{
+    if(_dbg_enabled())
+    {
+        for(typename EventHandler::state const& s : m_evt_handler->m_stack)
+            _dbg_printf("state[{}]: ind={} node={} flags={}\n", s.level, s.indref, s.node_id, detail::_parser_flags_to_str(buf, s.flags));
+    }
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_print_state_stack() const
+{
+    char buf[128];
+    _print_state_stack(buf);
+}
 #endif
 
 
@@ -661,9 +678,15 @@ bool ParseEngine<EventHandler>::_maybe_scan_following_colon() noexcept
         }
         if(m_evt_handler->m_curr->line_contents.rem.len && (m_evt_handler->m_curr->line_contents.rem.str[0] == ':'))
         {
-            _c4dbgp("found ':' colon next");
-            _line_progressed(1);
-            return true;
+            if(m_evt_handler->m_curr->line_contents.rem.len == 1
+               || m_evt_handler->m_curr->line_contents.rem.str[1] == ' '
+               _RYML_WITH_TAB_TOKENS(|| m_evt_handler->m_curr->line_contents.rem.str[1] == '\t')
+               )
+            {
+                _c4dbgp("found ':' colon next");
+                _line_progressed(1);
+                return true;
+            }
         }
     }
     return false;
@@ -1541,19 +1564,38 @@ void ParseEngine<EventHandler>::_save_indentation()
 //-----------------------------------------------------------------------------
 
 template<class EventHandler>
+void ParseEngine<EventHandler>::_flow_container_was_a_key(size_t orig_indent)
+{
+    if(_maybe_scan_following_colon())
+    {
+        _c4dbgpf("flow container is followed by colon! orig_indent={}", orig_indent);
+        m_evt_handler->actually_val_is_first_key_of_new_map_block();
+        addrem_flags(RMAP|RVAL|RBLCK, RKCL|RUNK);
+        _set_indentation(orig_indent);
+        _maybe_skip_whitespace_tokens();
+    }
+}
+
+template<class EventHandler>
 void ParseEngine<EventHandler>::_end_map_flow()
 {
     bool multiline = m_options.detect_flow_ml() && m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    size_t orig_indent = m_evt_handler->m_curr->indref;
     _c4dbgpf("mapflow: end, multiline={}", multiline);
     m_evt_handler->end_map_flow(multiline);
+    if(has_none(RFLOW) && (has_any(RUNK|RSEQ) || m_was_inside_qmrk))
+        _flow_container_was_a_key(orig_indent);
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_end_seq_flow()
 {
     bool multiline = m_options.detect_flow_ml() && m_evt_handler->m_parent->pos.line < m_evt_handler->m_curr->pos.line;
+    size_t orig_indent = m_evt_handler->m_curr->indref;
     _c4dbgpf("seqflow: end, multiline={}", multiline);
     m_evt_handler->end_seq_flow(multiline);
+    if(has_none(RFLOW) && (has_any(RUNK|RSEQ) || m_was_inside_qmrk))
+        _flow_container_was_a_key(orig_indent);
 }
 
 template<class EventHandler>
@@ -1806,12 +1848,7 @@ void ParseEngine<EventHandler>::_handle_indentation_pop_from_block_seq()
     _RYML_ASSERT_BASIC_(stack.m_callbacks, m_evt_handler->m_curr >= stack.begin() && m_evt_handler->m_curr < stack.end());
     const size_t ind = m_evt_handler->m_curr->line_contents.indentation;
     #ifdef RYML_DBG
-    if(_dbg_enabled())
-    {
-        char flagbuf_[128];
-        for(state_type const& s : stack)
-            _dbg_printf("state[{}]: ind={} node={} flags={}\n", s.level, s.indref, s.node_id, detail::_parser_flags_to_str(flagbuf_, s.flags));
-    }
+    _print_state_stack();
     #endif
     for(state_type const* s = m_evt_handler->m_curr-1; s >= stack.begin(); --s)
     {
@@ -1842,11 +1879,7 @@ void ParseEngine<EventHandler>::_handle_indentation_pop_from_block_map()
     state_type const* popto = nullptr;
     #ifdef RYML_DBG
     char flagbuf_[128];
-    if(_dbg_enabled())
-    {
-        for(state_type const& s : stack)
-            _dbg_printf("state[{}]: ind={} node={} flags={}\n", s.level, s.indref, s.node_id, detail::_parser_flags_to_str(flagbuf_, s.flags));
-    }
+    _print_state_stack(flagbuf_);
     #endif
     for(state_type const* s = m_evt_handler->m_curr-1; s > stack.begin(); --s) // never go to the stack bottom. that's the root
     {
@@ -5152,8 +5185,8 @@ seqflow_start:
         else if(first == ']')
         {
             _c4dbgp("seqflow[RNXT]: end!");
-            _end_seq_flow();
             _line_progressed(1);
+            _end_seq_flow();
             goto seqflow_finish;
         }
         else if(first == ':')
@@ -5270,8 +5303,8 @@ mapflow_start:
         else if(first == '}') // this happens on a trailing comma like ", }"
         {
             _c4dbgp("mapflow[RKEY]: end!");
-            _end_map_flow();
             _line_progressed(1);
+            _end_map_flow();
             goto mapflow_finish;
         }
         else if(first == '&')
@@ -5344,8 +5377,8 @@ mapflow_start:
             _c4dbgp("mapflow[RKCL]: end with missing val!");
             addrem_flags(RVAL, RKCL);
             m_evt_handler->set_val_scalar_plain_empty();
-            _end_map_flow();
             _line_progressed(1);
+            _end_map_flow();
             goto mapflow_finish;
         }
         else if(first == ',')
@@ -5418,8 +5451,8 @@ mapflow_start:
         {
             _c4dbgp("mapflow[RVAL]: end!");
             m_evt_handler->set_val_scalar_plain_empty();
-            _end_map_flow();
             _line_progressed(1);
+            _end_map_flow();
             goto mapflow_finish;
         }
         else if(first == ',')
@@ -5471,8 +5504,8 @@ mapflow_start:
         else if(rem.begins_with('}'))
         {
             _c4dbgp("mapflow[RNXT]: end!");
-            _end_map_flow();
             _line_progressed(1);
+            _end_map_flow();
             goto mapflow_finish;
         }
         else
@@ -6199,11 +6232,11 @@ mapblck_start:
         // appear in an explicit QMRK scope (ie, after the ? token),
         else if(C4_UNLIKELY(first == '|'))
         {
-            _c4err("block keys must be enclosed in '?'");
+            _c4err("block map: literal keys must be enclosed in '?'");
         }
         else if(C4_UNLIKELY(first == '>'))
         {
-            _c4err("block keys must be enclosed in '?'");
+            _c4err("block map: folded keys must be enclosed in '?'");
         }
         else if(_scan_scalar_plain_map_blck(&sc))
         {
@@ -6982,10 +7015,7 @@ mapblck_start:
                 if(has_all(RMAP|RBLCK))
                 {
                     _c4dbgp("mapblck[QMRK]: still mapblck!");
-                    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_any(QMRK));
-                    rem = m_evt_handler->m_curr->line_contents.rem;
-                    if(!rem.len)
-                        goto mapblck_again;
+                    goto mapblck_again;
                 }
                 else
                 {
@@ -7199,7 +7229,7 @@ mapblck_start:
             addrem_flags(RKCL, RKEY|QMRK);
             m_evt_handler->begin_seq_key_flow();
             addrem_flags(RVAL|RSEQ|RFLOW, RMAP|RKCL|QMRK|RBLCK);
-            _set_indentation(m_evt_handler->m_parent->indref);
+            _set_indentation(startindent);
             _line_progressed(1);
             goto mapblck_finish;
         }
@@ -7209,17 +7239,32 @@ mapblck_start:
             addrem_flags(RKCL, RKEY|QMRK);
             m_evt_handler->begin_map_key_flow();
             addrem_flags(RKEY|RFLOW, RVAL|RKCL|QMRK|RBLCK);
-            _set_indentation(m_evt_handler->m_parent->indref);
+            _set_indentation(startindent);
             _line_progressed(1);
             goto mapblck_finish;
         }
         else if(first == '?')
         {
             _c4dbgp("mapblck[QMRK]: another QMRK '?'");
-            m_evt_handler->set_key_scalar_plain_empty();
-            m_evt_handler->set_val_scalar_plain_empty();
-            m_evt_handler->add_sibling();
+            if(m_evt_handler->m_curr->indentation_eq())
+            {
+                _c4dbgp("mapblck[QMRK]: ? indent eq - prev ? was for an empty keyval");
+                m_evt_handler->set_key_scalar_plain_empty();
+                m_evt_handler->set_val_scalar_plain_empty();
+                m_evt_handler->add_sibling();
+            }
+            else
+            {
+                _RYML_ASSERT_BASIC_(callbacks(), m_evt_handler->m_curr->indentation_gt());
+                _c4dbgp("mapblck[QMRK]: ? indent gt - start child mapblck (!)");
+                addrem_flags(RKCL, RKEY|QMRK);
+                m_evt_handler->begin_map_key_block();
+                addrem_flags(RBLCK|QMRK, RVAL|RKCL);
+                _set_indentation(startindent);
+            }
+            // indentation_lt() should be handled elsewhere
             _line_progressed(1);
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '.')
         {
@@ -7549,7 +7594,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         _maybe_begin_doc();
         _handle_annotations_before_blck_val_scalar();
         m_evt_handler->begin_map_val_block();
-        addrem_flags(RMAP|RBLCK|QMRK, RKEY|RVAL|RTOP|RUNK);
+        addrem_flags(RMAP|RBLCK|QMRK, RKEY|RVAL|RTOP|RUNK|RDOC);
         m_doc_empty = false;
         m_was_inside_qmrk = true;
         _set_indentation(remindent); //_save_indentation();
