@@ -7619,10 +7619,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         }
         else
         {
-            _c4dbgp("actually prev val is a key!");
-            size_t prev_indentation = m_evt_handler->m_curr->indref;
-            m_evt_handler->actually_val_is_first_key_of_new_map_block();
-            _set_indentation(prev_indentation);
+            _c4err("block colon cannot occur on a new line unless ? is used");
         }
         addrem_flags(RMAP|RBLCK|RVAL, RTOP|RUNK|RDOC);
         _line_progressed(1);
