@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
 include(./ext/c4core/cmake/c4Project.cmake)
+cmake_policy(SET CMP0048 NEW) # pass VERSION to project()
 project(ryml
+    VERSION 0.11.0
     DESCRIPTION "Rapid YAML parsing and emitting"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)

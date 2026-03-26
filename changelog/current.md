@@ -2,6 +2,7 @@
 
 - [PR#580](https://github.com/biojppm/rapidyaml/pull/580): fix compilation error when `RYML_NO_DEFAULT_CALLBACKS` is defined (thanks @toge)
 - [PR#582](https://github.com/biojppm/rapidyaml/pull/582): fix compilation with clang-cl
+- Fix [#584](https://github.com/biojppm/rapidyaml/pull/584): install: `RYML_VERSION` was missing from rymlConfig.cmake
 
 
 ## Python
