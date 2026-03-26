@@ -678,16 +678,16 @@ own [dedicated repo](https://github.com/biojppm/rapidyaml-python).
 
 ## YAML standard conformance
 
-ryml is feature complete with regards to the YAML specification. All
-the YAML features are well covered in the unit tests, and expected to
-work, unless in the exceptions noted below.
+ryml is feature-complete with regards to the YAML specification, and
+it passes 100% (ie, all) of the valid YAML cases in the YAML test
+suite. All the YAML features are well covered in the unit tests, and
+expected to work, unless in the exceptions noted below.
 
 Of course, there are many dark corners in YAML, and there certainly
-can appear cases which ryml fails to parse. Your [bug reports or pull
+can appear cases which ryml fails to parse. If you find any case where
+ryml fails, your [bug reports or pull
 requests](https://github.com/biojppm/rapidyaml/issues) are very
 welcome.
-
-See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 
 ### Known limitations
@@ -696,12 +696,12 @@ ryml deliberately makes no effort to follow the YAML standard in the
 following situations:
 
 * ryml's tree does NOT accept containers as map keys: keys stored in
-  the tree must always be scalars. HOWEVER, this is a limitation only
-  of the final tree. The event-based parse engine DOES parse container
-  keys, as it is meant to be used by other programming languages to
-  create their native data-structures, and it is fully tested and
-  fully conformant (other than the general error permissiveness noted
-  below).
+  the tree must always be scalars. But note that this is a limitation
+  only of the final tree. The event-based parse engine DOES parse
+  container keys, as it is meant to be used by other programming
+  languages to create their native data-structures, and it is fully
+  tested and fully conformant (other than the general error
+  permissiveness noted below).
 * Tab characters after `:` and `-` are not accepted tokens, unless
   ryml is compiled with the macro `RYML_WITH_TAB_TOKENS`. This
   requirement exists because checking for tabs introduces branching
@@ -730,18 +730,18 @@ following situations:
   scalars are ignored. The [standard mandates that they should be
   quoted](https://yaml.org/spec/1.2.2/#52-character-encodings) when
   emitted; this is not done.
-* ryml tends to be on the permissive side in several cases where the
-  YAML standard dictates that there should be an error; in many of these
-  cases, ryml will tolerate the input. This may be good or bad, but in
-  any case is being improved on, meaning ryml will grow progressively
-  less tolerant of YAML errors in the coming releases. So we strongly
-  suggest to stay away from those dark corners of YAML which are
-  generally a source of problems; this is good practice anyway.
+* ryml tends to be on the permissive side, tolerating several cases
+  where the YAML standard dictates that there should be an error. This
+  may be good or bad, but in any case is being improved on, meaning
+  ryml **will grow progressively less tolerant of invalid YAML in the
+  coming releases**. So we strongly suggest to stay away from those dark
+  corners of YAML which are generally a source of problems; this is
+  good practice anyway.
 
 If you do run into trouble and would like to investigate conformance
 of your YAML code, **beware** of existing online YAML linters, many of
 which are not fully conformant. Instead, try using
-[https://play.yaml.io](https://play.yaml.io), an amazingly useful tool
+[https://play.yaml.com](https://play.yaml.com/), an amazingly useful tool
 which lets you dynamically input your YAML and continuously see the
 results from all the existing parsers (kudos to @ingydotnet and the
 people from the YAML test suite). And of course, if you detect
@@ -789,9 +789,9 @@ approach.
 Also, note that in [their own words](http://matrix.yaml.info/), the
 tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
-the extreme focus of the test suite, currently ryml only fails a minor
-fraction of the test cases, mostly related with the deliberate
-limitations noted above.
+the extreme focus of the test suite, currently ryml only fails test
+cases where the YAML is invalid, a minor fraction of the test cases,
+mostly related with the deliberate limitations noted above.
 
 Other than those limitations, by far the main issue with ryml is that
 several standard-mandated parse errors fail to materialize (this will

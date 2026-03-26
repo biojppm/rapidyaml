@@ -5,7 +5,7 @@
 github_url = "https://github.com/biojppm/rapidyaml/"
 
 [version]
-current = "0.11.0"
+current = "0.11.1"
 
 # Example of a semver regexp.
 # Make sure this matches current_version before
@@ -27,7 +27,7 @@ tag_template = "v{new_version}"
 # the path of the file, relative to the tbump.toml location.
 [[file]]
 src = "CMakeLists.txt"
-search = "c4_project\\(VERSION {current_version}"
+search = "VERSION {current_version}"
 [[file]]
 src = "test/test_install/CMakeLists.txt"
 search = "c4_project\\(VERSION {current_version}"

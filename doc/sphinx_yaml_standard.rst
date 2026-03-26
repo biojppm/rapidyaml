@@ -1,12 +1,14 @@
 YAML standard conformance
 =========================
 
-ryml is feature complete with regards to the YAML specification. All the
-YAML features are well covered in the unit tests, and expected to work,
-unless in the exceptions noted below.
+ryml is feature-complete with regards to the YAML specification, and
+it passes 100% (ie, all) of the valid YAML cases in the YAML test
+suite. All the YAML features are well covered in the unit tests, and
+expected to work, unless in the exceptions noted below.
 
-Of course, there are many dark corners in YAML, and there certainly can
-appear cases which ryml fails to parse. Your `bug reports or pull
+Of course, there are many dark corners in YAML, and there certainly
+can appear cases which ryml fails to parse. If you find any case where
+ryml fails, your `bug reports or pull
 requests <https://github.com/biojppm/rapidyaml/issues>`__ are very
 welcome.
 
@@ -15,8 +17,8 @@ welcome.
    If you do run into trouble and would like to investigate
    conformance of your YAML code, **do not use existing online YAML
    linters**, many of which are not fully conformant; instead, try
-   using `https://play.yaml.io
-   <https://play.yaml.io/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>`__,
+   using `https://play.yaml.com
+   <https://play.yaml.com/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>`__,
    an amazingly useful tool which lets you dynamically input your YAML and
    continuously see the results from all the existing parsers (kudos
    to @ingydotnet and the people from the YAML test suite). And of
@@ -32,12 +34,12 @@ ryml deliberately makes no effort to follow the standard in the
 following situations:
 
 -  ryml's tree does NOT accept containers as map keys: keys stored in
-   the tree must always be scalars. HOWEVER, this is a limitation only
-   of the final tree. The event-based parse engine DOES parse container
-   keys, as it is is meant to be used by other programming languages to
-   create their native data-structures, and it is fully tested and
-   fully conformant (other than the general error permissiveness noted
-   below).
+   the tree must always be scalars. But note that this is a limitation
+   only of the final tree. The event-based parse engine DOES parse
+   container keys, as it is meant to be used by other programming
+   languages to create their native data-structures, and it is fully
+   tested and fully conformant (other than the general error
+   permissiveness noted below).
 -  Tab characters after ``:`` and ``-`` are not accepted tokens, unless
    ryml is compiled with the macro ``RYML_WITH_TAB_TOKENS``. This
    requirement exists because checking for tabs introduces branching
@@ -61,18 +63,23 @@ following situations:
    arbitrary limit reflects the usual practice of having at most 1 or 2
    tag directives; also, be aware that this feature is under
    consideration for removal in YAML 1.3.
+-  Byte Order Marks: while ryml correctly handles BOMs at the beginning
+   of the stream or documents (as per the standard), BOMs inside
+   scalars are ignored. The `standard mandates that they should be
+   quoted <https://yaml.org/spec/1.2.2/#52-character-encodings>` when
+   emitted; this is not done.
 
 
 Known (unintended) deviations
 -----------------------------
 
-ryml tends to be on the permissive side in several cases where the
-YAML standard dictates that there should be an error; in many of these
-cases, ryml will tolerate the input without producing an error. This
-is being improved on, meaning **ryml will grow progressively less
-tolerant of YAML errors** in the coming releases. So we strongly
-suggest to stay away from those dark corners of YAML which are
-generally a source of problems; this is good practice anyway.
+ryml tends to be on the permissive side, tolerating several cases
+where the YAML standard dictates that there should be an error. This
+may be good or bad, but in any case is being improved on, meaning **ryml
+will grow progressively less tolerant of invalid YAML in the coming
+releases**. So we strongly suggest to stay away from those dark corners
+of YAML which are generally a source of problems; this is good
+practice anyway.
 
 
 
