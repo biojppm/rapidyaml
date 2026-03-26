@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-include(./ext/c4core/cmake/c4Project.cmake)
+include(./proj/c4proj/c4Project.cmake)
 cmake_policy(SET CMP0048 NEW) # pass VERSION to project()
 project(ryml
     VERSION 0.11.1
