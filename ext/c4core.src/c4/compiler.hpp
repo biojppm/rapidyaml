@@ -8,6 +8,7 @@
 
 // Compilers:
 //      C4_MSVC
+//             Visual Studio 2026: MSVC++ 18, 1950
 //             Visual Studio 2022: MSVC++ 17, 1930
 //             Visual Studio 2019: MSVC++ 16, 1920
 //             Visual Studio 2017: MSVC++ 15
@@ -24,15 +25,19 @@
 /** @see http://sourceforge.net/p/predef/wiki/Compilers/ for a list of compiler identifier macros */
 /** @see https://msdn.microsoft.com/en-us/library/b0084kay.aspx for VS2013 predefined macros */
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#if defined(_MSC_VER)
 #   define C4_MSVC
+#   define C4_MSVC_VERSION_2026 18
 #   define C4_MSVC_VERSION_2022 17
 #   define C4_MSVC_VERSION_2019 16
 #   define C4_MSVC_VERSION_2017 15
 #   define C4_MSVC_VERSION_2015 14
 #   define C4_MSVC_VERSION_2013 12
 #   define C4_MSVC_VERSION_2012 11
-#   if _MSC_VER >= 1930
+#   if _MSC_VER >= 1950
+#       define C4_MSVC_VERSION C4_MSVC_VERSION_2026  // visual studio 2026
+#       define C4_MSVC_2026
+#   elif _MSC_VER >= 1930
 #       define C4_MSVC_VERSION C4_MSVC_VERSION_2022  // visual studio 2022
 #       define C4_MSVC_2022
 #   elif _MSC_VER >= 1920

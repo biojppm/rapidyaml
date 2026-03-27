@@ -3,6 +3,7 @@
 
 #include "c4/language.hpp"
 #include "c4/substr_fwd.hpp"
+#include "c4/export.hpp"
 #include <stddef.h>
 #include <stdint.h>
 

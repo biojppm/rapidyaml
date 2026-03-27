@@ -17,7 +17,7 @@ C4CORE_DIR_PROJ = $(C4CORE_DIR_GIT)/src
 
 C4CORE_INPUT_SRC = $(C4CORE_SRC:%=$(C4CORE_DIR_PROJ)/%)
 C4CORE_INPUT_DEV = $(C4CORE_DEV:%=$(C4CORE_DIR_PROJ)/%)
-C4CORE_INPUT_PROJ = $(C4CORE_DEV:%=$(CORE_DIR_PROJ)/cmake/%)
+C4CORE_INPUT_PROJ = $(C4CORE_DEV:%=$(CORE_DIR_GIT)/cmake/%)
 
 C4CORE_OUTPUT_SRC = $(C4CORE_SRC:%=$(C4CORE_DIR_SRC)/%)
 C4CORE_OUTPUT_DEV = $(C4CORE_DEV:%=$(C4CORE_DIR_DEV)/%)
@@ -80,14 +80,14 @@ c4core-import-src: $(C4CORE_INPUT_SRC)
 c4core-import-dev: $(C4CORE_INPUT_DEV)
 	$(call mk_safe_sync,$(C4CORE_DEV),$(C4CORE_DIR_PROJ),$(C4CORE_DIR_DEV))
 c4core-import-proj: $(C4CORE_INPUT_PROJ)
-	$(call mk_safe_sync,$(C4CORE_PROJ),$(CORE_DIR_PROJ)/cmake,$(C4PROJ_DIR))
+	$(call mk_safe_sync,$(C4CORE_PROJ),$(C4CORE_DIR_GIT)/cmake,$(C4PROJ_DIR))
 
 c4core-export-src: $(C4CORE_OUTPUT_SRC)
 	$(call mk_safe_sync,$(C4CORE_SRC),$(C4CORE_DIR_SRC),$(C4CORE_DIR_PROJ))
 c4core-export-dev: $(C4CORE_OUTPUT_DEV)
 	$(call mk_safe_sync,$(C4CORE_DEV),$(C4CORE_DIR_DEV),$(C4CORE_DIR_PROJ))
 c4core-export-proj: $(C4CORE_OUTPUT_PROJ)
-	$(call mk_safe_sync,$(C4CORE_PROJ),$(C4PROJ_DIR),$(CORE_DIR_PROJ)/cmake)
+	$(call mk_safe_sync,$(C4CORE_PROJ),$(C4PROJ_DIR),$(CORE_DIR_GIT)/cmake)
 
 
 $(C4CORE_INPUT_SRC): c4core-clone

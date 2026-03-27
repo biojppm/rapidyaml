@@ -1,5 +1,12 @@
 import re
 import os
+import sys
+
+
+debug_enabled = False
+def dbg(*args, **kwargs):
+    if debug_enabled:
+        print("//", *args, **kwargs, file=sys.stderr)
 
 
 class cmtfile:
@@ -57,6 +64,8 @@ class onlyif:
     def __init__(self, condition, obj):
         self.condition = condition
         self.obj = obj
+    def __str__(self):
+        return str(self.obj)
 
 
 def catfiles(filenames, rootdir,
@@ -70,9 +79,9 @@ def catfiles(filenames, rootdir,
     to_inject = {}
     custom_include_guards = {}
     def banner(s):
-        return f"\n\n\n{sepb}\n{sepf}\n// {s}\n// {repo}/{s}\n{sepf}\n{sepb}\n\n"
+        return f"\n\n\n{sepb}\n{sepf}\n// {s}\n{sepf}\n{sepb}\n\n"
     def footer(s):
-        return f"\n\n// (end {repo}/{s})\n"
+        return f"\n\n// (end {s})\n"
     def incguard(filename):
         return custom_include_guards.get(filename,
                                          f"{file_re.sub('_', filename).upper()}_")
@@ -83,7 +92,7 @@ def catfiles(filenames, rootdir,
             if guard is None:
                 guard = incguard(incl)
             return f"""// amalgamate: removed include of
-// {repo}/src/{incl}
+// {incl}
 //{line}
 #if !defined({guard}) && !defined(_{guard})
 #error "amalgamate: file {incl} must have been included at this point"
@@ -119,8 +128,10 @@ def catfiles(filenames, rootdir,
     for entry in filenames:
         if isinstance(entry, onlyif):
             if entry.condition:
+                dbg(entry, "yes")
                 entry = entry.obj
             else:
+                dbg(entry, "no")
                 continue
         if isinstance(entry, ignfile):
             pass

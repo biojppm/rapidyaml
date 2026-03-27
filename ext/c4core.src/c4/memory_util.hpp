@@ -101,7 +101,7 @@ auto lsb(I v) noexcept
         // upcast to use the intrinsic, it's cheaper.
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanForward(&bit, (unsigned long)v);
                 return bit;
             #else
@@ -128,7 +128,7 @@ auto lsb(I v) noexcept
         // Then remember that the upcast makes it to 31bits
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanForward(&bit, (unsigned long)v);
                 return bit;
             #else
@@ -153,7 +153,7 @@ auto lsb(I v) noexcept
     #if _C4_USE_LSB_INTRINSIC(__builtin_ctz)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanForward(&bit, v);
                 return bit;
             #else
@@ -178,7 +178,7 @@ auto lsb(I v) noexcept
     #if _C4_USE_LSB_INTRINSIC(__builtin_ctzl)
         #if defined(C4_MSVC)
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanForward64(&bit, v);
                 return bit;
             #else
@@ -203,7 +203,7 @@ auto lsb(I v) noexcept
     #if _C4_USE_LSB_INTRINSIC(__builtin_ctzll)
         #if defined(C4_MSVC)
             #if !defined(C4_CPU_X86) && !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanForward64(&bit, v);
                 return bit;
             #else
@@ -310,7 +310,7 @@ auto msb(I v) noexcept
         // Then remember that the upcast makes it to 31bits
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanReverse(&bit, (unsigned long)v);
                 return bit;
             #else
@@ -337,7 +337,7 @@ auto msb(I v) noexcept
         // Then remember that the upcast makes it to 31bits
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanReverse(&bit, (unsigned long)v);
                 return bit;
             #else
@@ -362,7 +362,7 @@ auto msb(I v) noexcept
     #if _C4_USE_MSB_INTRINSIC(__builtin_clz)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanReverse(&bit, v);
                 return bit;
             #else
@@ -387,7 +387,7 @@ auto msb(I v) noexcept
     #if _C4_USE_MSB_INTRINSIC(__builtin_clzl)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanReverse64(&bit, v);
                 return bit;
             #else
@@ -412,7 +412,7 @@ auto msb(I v) noexcept
     #if _C4_USE_MSB_INTRINSIC(__builtin_clzll)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_X86) && !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
-                unsigned long bit;
+                unsigned long bit = {};
                 _BitScanReverse64(&bit, v);
                 return bit;
             #else

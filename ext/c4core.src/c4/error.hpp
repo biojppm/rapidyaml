@@ -364,7 +364,7 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
 // TODO: add C4_MESSAGE() https://stackoverflow.com/questions/18252351/custom-preprocessor-macro-for-a-conditional-pragma-message-xxx?rq=1
 
 
-#ifdef C4_MSVC
+#if defined(C4_MSVC) && !defined(__clang__)
 #define C4_SUPPRESS_WARNING_MSVC_PUSH __pragma(warning(push))
 #define C4_SUPPRESS_WARNING_MSVC(w)  __pragma(warning(disable : w))
 #define C4_SUPPRESS_WARNING_MSVC_POP __pragma(warning(pop))
@@ -375,7 +375,7 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
 #endif // C4_MSVC
 
 
-#ifdef C4_CLANG
+#if defined(C4_CLANG) || defined(__clang__)
 #define C4_PRAGMA_TO_STR(x) _Pragma(#x)
 #define C4_SUPPRESS_WARNING_CLANG_PUSH _Pragma("clang diagnostic push")
 #define C4_SUPPRESS_WARNING_CLANG(w) C4_PRAGMA_TO_STR(clang diagnostic ignored w)

@@ -577,6 +577,13 @@ macro(_c4_handle_semantic_version version)
     c4_setg(${prefix}_VERSION_PATCH ${_patch})
     c4_setg(${prefix}_VERSION_TWEAK "${_safe_tweak}")
     c4_setg(${prefix}_VERSION_TWEAK_FULL "${_tweak}")
+    c4_setg(${_c4_uprefix}VERSION_FULL ${version})
+    c4_setg(${_c4_uprefix}VERSION ${_safe_version})
+    c4_setg(${_c4_uprefix}VERSION_MAJOR ${_major})
+    c4_setg(${_c4_uprefix}VERSION_MINOR ${_minor})
+    c4_setg(${_c4_uprefix}VERSION_PATCH ${_patch})
+    c4_setg(${_c4_uprefix}VERSION_TWEAK "${_safe_tweak}")
+    c4_setg(${_c4_uprefix}VERSION_TWEAK_FULL "${_tweak}")
 endmacro()
 
 
@@ -611,6 +618,24 @@ function(c4_add_dev_targets)
             add_subdirectory(api)
         endif()
     endif()
+    #
+    # FIXME
+    c4_add_doxygen(doc DOXYFILE_IN ${_c4_project_dir}/Doxyfile.in
+        PROJ c4core
+        INPUT ${${_c4_uprefix}SRC_DIR}
+        EXCLUDE ${${_c4_uprefix}EXT_DIR} ${${_c4_uprefix}SRC_DIR}/c4/ext
+        STRIP_FROM_PATH ${${_c4_uprefix}SRC_DIR}
+        STRIP_FROM_INC_PATH ${${_c4_uprefix}SRC_DIR}
+        CLANG_DATABASE_PATH ${CMAKE_BINARY_DIR}
+        )
+    c4_add_doxygen(doc-full DOXYFILE_IN ${_c4_project_dir}/Doxyfile.full.in
+        PROJ c4core
+        INPUT ${${_c4_uprefix}SRC_DIR}
+        EXCLUDE ${${_c4_uprefix}EXT_DIR} ${${_c4_uprefix}SRC_DIR}/c4/ext
+        STRIP_FROM_PATH ${${_c4_uprefix}SRC_DIR}
+        STRIP_FROM_INC_PATH ${${_c4_uprefix}SRC_DIR}
+        CLANG_DATABASE_PATH ${CMAKE_BINARY_DIR}
+        )
 endfunction()
 
 
@@ -1928,14 +1953,27 @@ function(c4_add_target target)
     _c4_handle_arg(SHARED_MACRO ${_c4_uprefix}MACRO)
     _c4_handle_arg(SHARED_EXPORTS ${_c4_uprefix}EXPORTS)
     _c4_handle_arg_or_fallback(SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
-    _c4_transform_to_full_path(          _SOURCES allsrc ${_SOURCE_ROOT})
-    _c4_transform_to_full_path(          _HEADERS allsrc ${_SOURCE_ROOT})
-    _c4_transform_to_full_path(   _PUBLIC_SOURCES allsrc ${_SOURCE_ROOT})
-    _c4_transform_to_full_path(_INTERFACE_SOURCES allsrc ${_SOURCE_ROOT})
-    _c4_transform_to_full_path(  _PRIVATE_SOURCES allsrc ${_SOURCE_ROOT})
-    _c4_transform_to_full_path(   _PUBLIC_HEADERS allsrc ${_SOURCE_ROOT})
-    _c4_transform_to_full_path(_INTERFACE_HEADERS allsrc ${_SOURCE_ROOT})
-    _c4_transform_to_full_path(  _PRIVATE_HEADERS allsrc ${_SOURCE_ROOT})
+    function(_c4_transform_to_full_path list all)
+        set(l)
+        foreach(f ${${list}})
+            if(NOT IS_ABSOLUTE "${f}")
+                set(f "${_SOURCE_ROOT}/${f}")
+            endif()
+            list(APPEND l "${f}")
+        endforeach()
+        set(${list} "${l}" PARENT_SCOPE)
+        set(cp ${${all}})
+        list(APPEND cp ${l})
+        set(${all} ${cp} PARENT_SCOPE)
+    endfunction()
+    _c4_transform_to_full_path(          _SOURCES allsrc)
+    _c4_transform_to_full_path(          _HEADERS allsrc)
+    _c4_transform_to_full_path(   _PUBLIC_SOURCES allsrc)
+    _c4_transform_to_full_path(_INTERFACE_SOURCES allsrc)
+    _c4_transform_to_full_path(  _PRIVATE_SOURCES allsrc)
+    _c4_transform_to_full_path(   _PUBLIC_HEADERS allsrc)
+    _c4_transform_to_full_path(_INTERFACE_HEADERS allsrc)
+    _c4_transform_to_full_path(  _PRIVATE_HEADERS allsrc)
     create_source_group("" "${_SOURCE_ROOT}" "${allsrc}")
     # is the target name prefixed with the project prefix?
     string(REGEX MATCH "${_c4_prefix}::.*" target_is_prefixed "${target}")
@@ -2142,21 +2180,6 @@ function(c4_add_target target)
         endif()
     endif()
 endfunction() # add_target
-
-
-function(_c4_transform_to_full_path list accumlist _SOURCE_ROOT)
-    set(l)
-    foreach(f ${${list}})
-        if(NOT IS_ABSOLUTE "${f}")
-            set(f "${_SOURCE_ROOT}/${f}")
-        endif()
-        list(APPEND l "${f}")
-    endforeach()
-    set(${list} "${l}" PARENT_SCOPE)
-    set(cp "${${accumlist}}")
-    list(APPEND cp "${l}")
-    set(${accumlist} "${cp}" PARENT_SCOPE)
-endfunction()
 
 
 function(_c4_link_with_libs target link_type libs incorporate)
