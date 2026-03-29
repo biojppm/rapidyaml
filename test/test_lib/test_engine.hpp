@@ -363,9 +363,9 @@ void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case
 void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case);
 void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test_case);
 
-void test_expected_error_testsuite_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
-void test_expected_error_ints_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
-void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
+void test_expected_error_testsuite_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location={});
+void test_expected_error_ints_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location={});
+void test_expected_error_tree_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location={});
 
 
 //-----------------------------------------------------------------------------
@@ -381,66 +381,56 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 //-----------------------------------------------------------------------------
 
 
-#define ENGINE_TEST_ERRLOC(name, location, refyaml)             \
-                                                                \
-                                                                \
-TEST(name, err_testsuite_from_yaml)                             \
-{                                                               \
-    _RYML_SHOWFILELINE(name);                                   \
-    SCOPED_TRACE(#name "_err_testsuite_from_yaml");             \
-    test_expected_error_testsuite_from_yaml(refyaml, location); \
-    _RYML_SHOWFILELINE(name);                                   \
-}                                                               \
-                                                                \
-                                                                \
-TEST(name, err_ints_from_yaml)                                  \
-{                                                               \
-    _RYML_SHOWFILELINE(name);                                   \
-    SCOPED_TRACE(#name "_err_ints_from_yaml");                  \
-    test_expected_error_ints_from_yaml(refyaml, location);      \
-    _RYML_SHOWFILELINE(name);                                   \
-}                                                               \
-                                                                \
-                                                                \
-TEST(name, err_tree_from_yaml)                                  \
-{                                                               \
-    _RYML_SHOWFILELINE(name);                                   \
-    SCOPED_TRACE(#name "_err_tree_from_yaml");                  \
-    test_expected_error_tree_from_yaml(refyaml, location);      \
-    _RYML_SHOWFILELINE(name);                                   \
+#define ENGINE_TEST_ERR(name, refyaml)                                  \
+    ENGINE_TEST_ERRLOC_(name, TestCaseFlags_e{}, ExpectedErrorType::err_parse, Location{}, refyaml)
+
+#define ENGINE_TEST_ERR_(name, testcaseflags, refyaml)                  \
+    ENGINE_TEST_ERRLOC_(name, testcaseflags, ExpectedErrorType::err_parse, Location{}, refyaml)
+
+#define ENGINE_TEST_ERRTY(name, errtype, refyaml)                       \
+    ENGINE_TEST_ERRLOC_(name, TestCaseFlags_e{}, errtype, Location{}, refyaml)
+
+#define ENGINE_TEST_ERRLOC(name, location, refyaml)                     \
+    ENGINE_TEST_ERRLOC_(name, TestCaseFlags_e{}, ExpectedErrorType::err_parse, location, refyaml)
+
+#define ENGINE_TEST_ERRLOC_(name, testcaseflags, errtype, location, refyaml) \
+                                                                        \
+                                                                        \
+TEST(name, err_testsuite_from_yaml)                                     \
+{                                                                       \
+    _RYML_SHOWFILELINE(name);                                           \
+    SCOPED_TRACE(#name "_err_testsuite_from_yaml");                     \
+    test_expected_error_testsuite_from_yaml(errtype,                    \
+                                            testcaseflags,              \
+                                            refyaml,                    \
+                                            location);                  \
+    _RYML_SHOWFILELINE(name);                                           \
+}                                                                       \
+                                                                        \
+                                                                        \
+TEST(name, err_ints_from_yaml)                                          \
+{                                                                       \
+    _RYML_SHOWFILELINE(name);                                           \
+    SCOPED_TRACE(#name "_err_ints_from_yaml");                          \
+    test_expected_error_ints_from_yaml(errtype,                         \
+                                       testcaseflags,                   \
+                                       refyaml,                         \
+                                       location);                       \
+    _RYML_SHOWFILELINE(name);                                           \
+}                                                                       \
+                                                                        \
+                                                                        \
+TEST(name, err_tree_from_yaml)                                          \
+{                                                                       \
+    _RYML_SHOWFILELINE(name);                                           \
+    SCOPED_TRACE(#name "_err_tree_from_yaml");                          \
+    test_expected_error_tree_from_yaml(errtype,                         \
+                                       testcaseflags,                   \
+                                       refyaml,                         \
+                                       location);                       \
+    _RYML_SHOWFILELINE(name);                                           \
 }
 
-
-//-----------------------------------------------------------------------------
-
-#define ENGINE_TEST_ERR(name, refyaml)                  \
-                                                        \
-                                                        \
-TEST(name, err_testsuite_from_yaml)                     \
-{                                                       \
-    _RYML_SHOWFILELINE(name);                           \
-    SCOPED_TRACE(#name "_err_testsuite_from_yaml");     \
-    test_expected_error_testsuite_from_yaml(refyaml);   \
-    _RYML_SHOWFILELINE(name);                           \
-}                                                       \
-                                                        \
-                                                        \
-TEST(name, err_ints_from_yaml)                          \
-{                                                       \
-    _RYML_SHOWFILELINE(name);                           \
-    SCOPED_TRACE(#name "_err_ints_from_yaml");          \
-    test_expected_error_ints_from_yaml(refyaml);        \
-    _RYML_SHOWFILELINE(name);                           \
-}                                                       \
-                                                        \
-                                                        \
-TEST(name, err_tree_from_yaml)                          \
-{                                                       \
-    _RYML_SHOWFILELINE(name);                           \
-    SCOPED_TRACE(#name "_err_tree_from_yaml");          \
-    test_expected_error_tree_from_yaml(refyaml);        \
-    _RYML_SHOWFILELINE(name);                           \
-}
 
 
 //-----------------------------------------------------------------------------

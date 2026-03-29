@@ -126,7 +126,7 @@ void test_bom2(bom2spec const& spec, CreateFn &&createfn, TestFn &&testfn, bom2_
     else
     {
         pfn_error_basic orig = get_callbacks().m_error_basic;
-        ExpectError::check_error_basic([&]{
+        ExpectError::check_error_parse([&]{
             Parser::handler_type handler;
             Parser parser(&handler);
             Tree tree;

@@ -463,20 +463,24 @@ TEST(tag_directives, accepts_multiple_spaces)
 )"));
 }
 
-void test_fail_tag_parsing(csubstr yaml)
+constexpr const auto errbasic = ExpectedErrorType::err_basic;
+constexpr const auto errparse = ExpectedErrorType::err_parse;
+constexpr const auto errvisit = ExpectedErrorType::err_visit;
+
+void test_fail_tag_parsing(csubstr yaml, ExpectedErrorType errtype=errparse)
 {
     Tree t;
-    ExpectError::check_error_parse(&t, [&]{
+    ExpectError::check_error(errtype, &t, [&]{
         t = parse_in_arena(yaml);
     });
 }
 
-void test_fail_tag_resolve(csubstr yaml)
+void test_fail_tag_resolve(csubstr yaml, ExpectedErrorType errtype=errvisit)
 {
     Tree t;
     t = parse_in_arena(yaml);
     _c4dbg_tree(t);
-    ExpectError::check_error_basic(&t, [&]{
+    ExpectError::check_error(errtype, &t, [&]{
         t.resolve_tags();
     });
 }
@@ -486,7 +490,7 @@ TEST(tag_directives, errors_parsing_tags_1)
     test_fail_tag_parsing(R"(
 %TAG
 --- # Bulb here
-!m!light fluorescent)");
+!m!light fluorescent)", errbasic);
 }
 
 TEST(tag_directives, errors_parsing_tags_2)
@@ -494,7 +498,7 @@ TEST(tag_directives, errors_parsing_tags_2)
     test_fail_tag_parsing(R"(
 %TAG !m!
 --- # Bulb here
-!m!light fluorescent)");
+!m!light fluorescent)", errbasic);
 }
 
 TEST(tag_directives, errors_resolving_tags_1)

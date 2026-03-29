@@ -200,10 +200,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_basic(&t, [&]{ ch >> f; });
-            ExpectError::check_error_basic(&t, [&]{ ch >> d; });
-            ExpectError::check_error_basic(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_basic(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -334,10 +334,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_basic(&t, [&]{ ch >> f; });
-            ExpectError::check_error_basic(&t, [&]{ ch >> d; });
-            ExpectError::check_error_basic(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_basic(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -428,10 +428,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_basic(&t, [&]{ ch >> f; });
-            ExpectError::check_error_basic(&t, [&]{ ch >> d; });
-            ExpectError::check_error_basic(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_basic(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -508,8 +508,8 @@ TEST(number, github_312__proposed_8e888_cannot_be_converted)
     EXPECT_FALSE(from_chars_float("-8e888", &f));
     EXPECT_FALSE(from_chars_float("-8e888", &d));
     Tree t = parse_in_arena("8e888");
-    ExpectError::check_error_basic(&t, [&]{ t.rootref() >> f; });
-    ExpectError::check_error_basic(&t, [&]{ t.rootref() >> d; });
+    ExpectError::check_error_visit(&t, [&]{ t.rootref() >> f; });
+    ExpectError::check_error_visit(&t, [&]{ t.rootref() >> d; });
 }
 
 TEST(number, github_312_535__json_styles_for_special_values)

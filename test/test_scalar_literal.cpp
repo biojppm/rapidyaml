@@ -1021,7 +1021,7 @@ TEST(block_literal, carriage_return)
     });
 }
 
-#ifdef JAVAI
+#ifdef FIXME
 TEST(block_literal, errors_on_tab_indents)
 {
     Tree tree;

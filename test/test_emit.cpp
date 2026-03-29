@@ -356,14 +356,14 @@ void test_emits(Tree const& t, id_type id, std::string const& expected, std::str
     {
         EmitOptions optsd = opts;
         optsd = optsd.max_depth(0);
-        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, id, optsd, buf); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, id, optsd, buf); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, id, optsd, f); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, id, optsd, f); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(t, id, optsd); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(t, id, optsd); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emitrs_yaml<std::string>(t, id, optsd); });
-        ExpectError::check_error_basic(&t, [&]{ return emitrs_json<std::string>(t, id, optsd); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, id, optsd, buf); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, id, optsd, buf); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, id, optsd, f); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, id, optsd, f); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(t, id, optsd); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(t, id, optsd); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emitrs_yaml<std::string>(t, id, optsd); });
+        ExpectError::check_error_visit(&t, [&]{ return emitrs_json<std::string>(t, id, optsd); });
     }
 }
 
@@ -414,14 +414,14 @@ void test_emits(Tree const& t, std::string const& expected, std::string const& e
     {
         EmitOptions optsd = opts;
         optsd = optsd.max_depth(0);
-        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, optsd, buf); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, optsd, buf); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, optsd, f); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, optsd, f); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(ConstNodeRef(&t), optsd); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(ConstNodeRef(&t), optsd); }); });
-        ExpectError::check_error_basic(&t, [&]{ return emitrs_yaml<std::string>(t, optsd); });
-        ExpectError::check_error_basic(&t, [&]{ return emitrs_json<std::string>(t, optsd); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2buf([&](substr buf){ return emit_yaml(t, optsd, buf); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2buf([&](substr buf){ return emit_json(t, optsd, buf); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2file([&](FILE *f){ return emit_yaml(t, optsd, f); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2file([&](FILE *f){ return emit_json(t, optsd, f); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(ConstNodeRef(&t), optsd); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(ConstNodeRef(&t), optsd); }); });
+        ExpectError::check_error_visit(&t, [&]{ return emitrs_yaml<std::string>(t, optsd); });
+        ExpectError::check_error_visit(&t, [&]{ return emitrs_json<std::string>(t, optsd); });
     }
 }
 
@@ -471,14 +471,14 @@ void test_emits(ConstNodeRef n, std::string const& expected, std::string const& 
         {
             EmitOptions optsd = opts;
             optsd = optsd.max_depth(0);
-            ExpectError::check_error_basic(n.tree(), [&]{ return emit2buf([&](substr buf){ return emit_yaml(n, optsd, buf); }); });
-            ExpectError::check_error_basic(n.tree(), [&]{ return emit2buf([&](substr buf){ return emit_json(n, optsd, buf); }); });
-            ExpectError::check_error_basic(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_yaml(n, optsd, f); }); });
-            ExpectError::check_error_basic(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_json(n, optsd, f); }); });
-            ExpectError::check_error_basic(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(n, optsd); }); });
-            ExpectError::check_error_basic(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(n, optsd); }); });
-            ExpectError::check_error_basic(n.tree(), [&]{ return emitrs_yaml<std::string>(n, optsd); });
-            ExpectError::check_error_basic(n.tree(), [&]{ return emitrs_json<std::string>(n, optsd); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emit2buf([&](substr buf){ return emit_yaml(n, optsd, buf); }); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emit2buf([&](substr buf){ return emit_json(n, optsd, buf); }); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_yaml(n, optsd, f); }); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emit2file([&](FILE *f){ return emit_json(n, optsd, f); }); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_yaml(n, optsd); }); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emit2stream([&](std::ostringstream &oss){ oss << as_json(n, optsd); }); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emitrs_yaml<std::string>(n, optsd); });
+            ExpectError::check_error_visit(n.tree(), [&]{ return emitrs_json<std::string>(n, optsd); });
         }
     }
 }
