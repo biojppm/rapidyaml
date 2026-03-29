@@ -12,6 +12,56 @@ namespace yml {
 //static constexpr const bool multiline = true;
 static constexpr const bool singleline = false;
 
+#ifdef FIXME
+ENGINE_TEST(QmrkNestedSameline0, HAS_CONTAINER_KEYS,
+            "? ? ? ? ?"   "\n"
+            ": a"         "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "+MAP"        "\n"
+            "+MAP"        "\n"
+            "+MAP"        "\n"
+            "+MAP"        "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "=VAL :a"     "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+#endif
+
 
 ENGINE_TEST(QmrkNestedBlock0,
             "? \n"

@@ -488,6 +488,8 @@ public: // exposed for testing
 private:
 
     void  _handle_map_block();
+    bool  _handle_map_block_qmrk();
+    bool  _handle_map_block_rkcl();
     void  _handle_seq_block();
     void  _handle_map_flow();
     void  _handle_seq_flow();
@@ -507,6 +509,7 @@ private:
     void  _end_seq_blck();
     void  _end2_map();
     void  _end2_seq();
+    void  _end_flow_container(size_t orig_indent);
     void  _flow_container_was_a_key(size_t orig_indent);
 
     void  _begin2_doc();
@@ -694,7 +697,6 @@ private:
     Annotation m_pending_anchors;
     Annotation m_pending_tags;
 
-    bool m_was_inside_qmrk;
     bool m_doc_empty = true;
     size_t m_prev_colon = npos;
 

@@ -266,7 +266,6 @@ ParseEngine<EventHandler>::ParseEngine(EventHandler *evt_handler, ParserOptions 
     , m_evt_handler(evt_handler)
     , m_pending_anchors()
     , m_pending_tags()
-    , m_was_inside_qmrk(false)
     , m_doc_empty(false)
     , m_prev_colon(npos)
     , m_encoding(NOBOM)
@@ -286,7 +285,6 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine &&that) noexcept
     , m_evt_handler(that.m_evt_handler)
     , m_pending_anchors(that.m_pending_anchors)
     , m_pending_tags(that.m_pending_tags)
-    , m_was_inside_qmrk(false)
     , m_doc_empty(false)
     , m_prev_colon(npos)
     , m_encoding(NOBOM)
@@ -306,7 +304,6 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine const& that)
     , m_evt_handler(that.m_evt_handler)
     , m_pending_anchors(that.m_pending_anchors)
     , m_pending_tags(that.m_pending_tags)
-    , m_was_inside_qmrk(false)
     , m_doc_empty(false)
     , m_prev_colon(npos)
     , m_encoding(NOBOM)
@@ -334,7 +331,6 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine &&th
     m_evt_handler = that.m_evt_handler;
     m_pending_anchors = that.m_pending_anchors;
     m_pending_tags = that.m_pending_tags;
-    m_was_inside_qmrk = that.m_was_inside_qmrk;
     m_doc_empty = that.m_doc_empty;
     m_prev_colon = that.m_prev_colon;
     m_encoding = that.m_encoding;
@@ -358,7 +354,6 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine cons
         m_evt_handler = that.m_evt_handler;
         m_pending_anchors = that.m_pending_anchors;
         m_pending_tags = that.m_pending_tags;
-        m_was_inside_qmrk = that.m_was_inside_qmrk;
         m_doc_empty = that.m_doc_empty;
         m_prev_colon = that.m_prev_colon;
         m_encoding = that.m_encoding;
@@ -382,7 +377,6 @@ void ParseEngine<EventHandler>::_clr()
     m_evt_handler = {};
     m_pending_anchors = {};
     m_pending_tags = {};
-    m_was_inside_qmrk = false;
     m_doc_empty = true;
     m_prev_colon = npos;
     m_encoding = NOBOM;
@@ -414,7 +408,6 @@ void ParseEngine<EventHandler>::_reset()
     m_pending_anchors = {};
     m_pending_tags = {};
     m_doc_empty = true;
-    m_was_inside_qmrk = false;
     m_prev_colon = npos;
     m_bom_len = 0;
     m_encoding = NOBOM;
@@ -1566,13 +1559,35 @@ void ParseEngine<EventHandler>::_save_indentation()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_flow_container_was_a_key(size_t orig_indent)
 {
-    if(_maybe_scan_following_colon())
+    _c4dbgpf("flow container is followed by colon! orig_indent={}", orig_indent);
+    m_evt_handler->actually_val_is_first_key_of_new_map_block();
+    addrem_flags(RMAP|RVAL|RBLCK, RKCL|RSEQ|RUNK);
+    _set_indentation(orig_indent);
+    _maybe_skip_whitespace_tokens();
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_end_flow_container(size_t orig_indent)
+{
+    if(has_all(RMAP|RBLCK) && has_none(RKCL|RVAL|RNXT))
     {
-        _c4dbgpf("flow container is followed by colon! orig_indent={}", orig_indent);
-        m_evt_handler->actually_val_is_first_key_of_new_map_block();
-        addrem_flags(RMAP|RVAL|RBLCK, RKCL|RUNK);
-        _set_indentation(orig_indent);
+        _c4dbgp("flow container: end as vanilla block map key!");
+        if(C4_UNLIKELY(!_maybe_scan_following_colon()))
+            _c4err("could not find ':' colon after key");
         _maybe_skip_whitespace_tokens();
+        addrem_flags(RVAL, RKEY|RKCL|RNXT);
+    }
+    else if(has_none(RFLOW))
+    {
+        _c4dbgp("flow container: now not in flow!");
+        if(has_any(RUNK|RSEQ|RKCL) && _maybe_scan_following_colon())
+        {
+            _flow_container_was_a_key(orig_indent);
+        }
+        else
+        {
+            _c4dbgp("flow container: end map as key!");
+        }
     }
 }
 
@@ -1583,8 +1598,7 @@ void ParseEngine<EventHandler>::_end_map_flow()
     size_t orig_indent = m_evt_handler->m_curr->indref;
     _c4dbgpf("mapflow: end, multiline={}", multiline);
     m_evt_handler->end_map_flow(multiline);
-    if(has_none(RFLOW) && (has_any(RUNK|RSEQ) || m_was_inside_qmrk))
-        _flow_container_was_a_key(orig_indent);
+    _end_flow_container(orig_indent);
 }
 
 template<class EventHandler>
@@ -1594,8 +1608,7 @@ void ParseEngine<EventHandler>::_end_seq_flow()
     size_t orig_indent = m_evt_handler->m_curr->indref;
     _c4dbgpf("seqflow: end, multiline={}", multiline);
     m_evt_handler->end_seq_flow(multiline);
-    if(has_none(RFLOW) && (has_any(RUNK|RSEQ) || m_was_inside_qmrk))
-        _flow_container_was_a_key(orig_indent);
+    _end_flow_container(orig_indent);
 }
 
 template<class EventHandler>
@@ -5157,7 +5170,6 @@ seqflow_start:
         {
             _c4dbgp("seqflow[RVAL]: start child mapflow, explicit key");
             addrem_flags(RNXT, RVAL);
-            m_was_inside_qmrk = true;
             m_evt_handler->begin_map_val_flow();
             _set_indentation(m_evt_handler->m_parent->indref);
             addrem_flags(RSEQIMAP|QMRK, RSEQ|RNXT);
@@ -5945,7 +5957,6 @@ seqblck_start:
         {
             _c4dbgp("seqblck[RVAL]: start child mapblck, explicit key");
             addrem_flags(RNXT, RVAL);
-            m_was_inside_qmrk = true;
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|QMRK, RSEQ|RNXT);
             _set_indentation(startindent);
@@ -6141,7 +6152,8 @@ void ParseEngine<EventHandler>::_handle_map_block()
 mapblck_start:
     _c4dbgpf("handle_map_block: map_id={} node_id={} level={} indref={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id, m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
 
-    // states: RKEY|QMRK -> RKCL -> RVAL -> RNXT
+    // states: RKEY -> RVAL -> RNXT
+    // states: QMRK -> RKCL -> RVAL -> RNXT
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP), m_evt_handler->m_curr->pos);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_all(RBLCK), m_evt_handler->m_curr->pos);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY|RKCL|RVAL|RNXT|QMRK), m_evt_handler->m_curr->pos);
@@ -6255,7 +6267,6 @@ mapblck_start:
             addrem_flags(QMRK, RKEY);
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
-            m_was_inside_qmrk = true;
             goto mapblck_again;
         }
         else if(first == ':')
@@ -6296,10 +6307,9 @@ mapblck_start:
             // handled inside the tree handler. Other handlers may be
             // able to handle it.
             _c4dbgp("mapblck[RKEY]: start child seqflow (!)");
-            addrem_flags(RKCL, RKEY);
             _handle_annotations_before_blck_key_scalar();
             m_evt_handler->begin_seq_key_flow();
-            addrem_flags(RSEQ|RFLOW|RVAL, RMAP|RBLCK|RKCL);
+            addrem_flags(RSEQ|RFLOW|RVAL, RKEY|RMAP|RBLCK);
             _line_progressed(1);
             _set_indentation(startindent);
             goto mapblck_finish;
@@ -6310,10 +6320,9 @@ mapblck_start:
             // handled inside the tree handler. Other handlers may be
             // able to handle it.
             _c4dbgp("mapblck[RKEY]: start child mapflow (!)");
-            addrem_flags(RKCL, RKEY);
             _handle_annotations_before_blck_key_scalar();
             m_evt_handler->begin_map_key_flow();
-            addrem_flags(RFLOW|RKEY, RBLCK|RKCL);
+            addrem_flags(RFLOW|RKEY, RBLCK);
             _line_progressed(1);
             _set_indentation(startindent);
             goto mapblck_finish;
@@ -6743,7 +6752,6 @@ mapblck_start:
             {
                 _c4err("parse error");
             }
-            m_was_inside_qmrk = true;
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
             goto mapblck_again;
@@ -6900,303 +6908,25 @@ mapblck_start:
     }
     else if(has_any(QMRK))
     {
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RKEY));
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RKCL));
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RVAL));
-        _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, has_none(RNXT));
-        //
-        // handle indentation
-        //
-        if(m_evt_handler->m_curr->at_line_beginning())
-        {
-            _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.indentation != npos);
-            if(m_evt_handler->m_curr->indentation_eq())
-            {
-                _c4dbgpf("mapblck[QMRK]: skip {} from indref", m_evt_handler->m_curr->indref);
-                _line_progressed(m_evt_handler->m_curr->indref);
-                rem = m_evt_handler->m_curr->line_contents.rem;
-                if(!rem.len)
-                    goto mapblck_again;
-            }
-            else if(m_evt_handler->m_curr->indentation_lt())
-            {
-                _c4dbgp("mapblck[QMRK]: smaller indentation!");
-                _handle_indentation_pop_from_block_map();
-                _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
-                if(has_all(RMAP|RBLCK))
-                {
-                    _c4dbgp("mapblck[QMRK]: still mapblck!");
-                    goto mapblck_again;
-                }
-                else
-                {
-                    _c4dbgp("mapblck[QMRK]: no longer mapblck!");
-                    goto mapblck_finish;
-                }
-            }
-            // indentation can be larger in QMRK state
-            else
-            {
-                _c4dbgp("mapblck[QMRK]: larger indentation !");
-                _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
-                rem = m_evt_handler->m_curr->line_contents.rem;
-                if(!rem.len)
-                    goto mapblck_again;
-            }
-        }
-        //
-        // now handle the tokens
-        //
-        const char first = rem.str[0];
-        const size_t startline = m_evt_handler->m_curr->pos.line;
-        const size_t startindent = m_evt_handler->m_curr->line_contents.current_col();
-        _c4dbgpf("mapblck[QMRK]: '{}'", first);
-        ScannedScalar sc;
-        if(first == '\'')
-        {
-            _c4dbgp("mapblck[QMRK]: scanning single-quoted scalar");
-            sc = _scan_scalar_squot();
-            csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
-            if(!_maybe_scan_following_colon())
-            {
-                _c4dbgp("mapblck[QMRK]: set as key");
-                _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->set_key_scalar_squoted(maybe_filtered);
-                addrem_flags(RKCL, QMRK);
-            }
-            else
-            {
-                _c4dbgp("mapblck[QMRK]: start new block map as key (!), set scalar as key");
-                addrem_flags(RKCL, QMRK);
-                _handle_annotations_before_start_mapblck_as_key();
-                m_evt_handler->begin_map_key_block();
-                _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
-                m_evt_handler->set_key_scalar_squoted(maybe_filtered);
-                _maybe_skip_whitespace_tokens();
-                _set_indentation(startindent);
-                // keep the child state on RVAL
-                addrem_flags(RVAL, RKCL|QMRK);
-            }
-        }
-        else if(first == '"')
-        {
-            _c4dbgp("mapblck[QMRK]: scanning double-quoted scalar");
-            sc = _scan_scalar_dquot();
-            csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
-            if(!_maybe_scan_following_colon())
-            {
-                _c4dbgp("mapblck[QMRK]: set as key");
-                _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-                addrem_flags(RKCL, QMRK);
-            }
-            else
-            {
-                _c4dbgp("mapblck[QMRK]: start new block map as key (!), set scalar as key");
-                addrem_flags(RKCL, QMRK);
-                _handle_annotations_before_start_mapblck_as_key();
-                m_evt_handler->begin_map_key_block();
-                _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
-                m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-                _maybe_skip_whitespace_tokens();
-                _set_indentation(startindent);
-                // keep the child state on RVAL
-                addrem_flags(RVAL, RKCL|QMRK);
-            }
-        }
-        else if(first == '|')
-        {
-            _c4dbgp("mapblck[QMRK]: scanning block-literal scalar");
-            ScannedBlock sb;
-            _scan_block(&sb, m_evt_handler->m_curr->indref + 1);
-            csubstr maybe_filtered = _maybe_filter_key_scalar_literal(sb); // KEY!
-            _handle_annotations_before_blck_key_scalar();
-            m_evt_handler->set_key_scalar_literal(maybe_filtered);
-            addrem_flags(RKCL, QMRK);
-        }
-        else if(first == '>')
-        {
-            _c4dbgp("mapblck[QMRK]: scanning block-literal scalar");
-            ScannedBlock sb;
-            _scan_block(&sb, m_evt_handler->m_curr->indref + 1);
-            csubstr maybe_filtered = _maybe_filter_key_scalar_folded(sb); // KEY!
-            _handle_annotations_before_blck_key_scalar();
-            m_evt_handler->set_key_scalar_folded(maybe_filtered);
-            addrem_flags(RKCL, QMRK);
-        }
-        else if(_scan_scalar_plain_map_blck(&sc))
-        {
-            _c4dbgp("mapblck[QMRK]: plain scalar");
-            csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref); // KEY!
-            if(!_maybe_scan_following_colon())
-            {
-                _c4dbgp("mapblck[QMRK]: set as key");
-                _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->set_key_scalar_plain(maybe_filtered);
-                addrem_flags(RKCL, QMRK);
-            }
-            else
-            {
-                _c4dbgp("mapblck[QMRK]: start new block map as key (!), set scalar as key");
-                addrem_flags(RKCL, QMRK);
-                _handle_annotations_before_start_mapblck_as_key();
-                m_evt_handler->begin_map_key_block();
-                _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
-                m_evt_handler->set_key_scalar_plain(maybe_filtered);
-                _maybe_skip_whitespace_tokens();
-                _set_indentation(startindent);
-                // keep the child state on RVAL
-                addrem_flags(RVAL, RKCL|QMRK);
-            }
-        }
-        else if(first == ':')
-        {
-            if(startindent == m_evt_handler->m_curr->indref)
-            {
-                _c4dbgp("mapblck[QMRK]: empty key");
-                addrem_flags(RVAL, QMRK);
-                _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->set_key_scalar_plain_empty();
-                _line_progressed(1);
-                _maybe_skip_whitespace_tokens();
-            }
-            else
-            {
-                _c4dbgp("mapblck[QMRK]: start new block map as key (!), empty key");
-                addrem_flags(RKCL, QMRK);
-                _handle_annotations_before_start_mapblck_as_key();
-                m_evt_handler->begin_map_key_block();
-                _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
-                m_evt_handler->set_key_scalar_plain_empty();
-                _line_progressed(1);
-                _maybe_skip_whitespace_tokens();
-                _set_indentation(startindent);
-                // keep the child state on RVAL
-                addrem_flags(RVAL, RKCL|QMRK);
-            }
-        }
-        else if(first == '*')
-        {
-            csubstr ref = _scan_ref_map();
-            _c4dbgpf("mapblck[QMRK]: key ref! [{}]~~~{}~~~", ref.len, ref);
-            if(!_maybe_scan_following_colon())
-            {
-                _c4dbgp("mapblck[QMRK]: set ref as key");
-                _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->set_key_ref(ref);
-                addrem_flags(RKCL, QMRK);
-            }
-            else
-            {
-                _c4dbgp("mapblck[QMRK]: start new block map as key (!), set ref as key");
-                addrem_flags(RKCL, QMRK);
-                _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->begin_map_key_block();
-                m_evt_handler->set_key_ref(ref);
-                _set_indentation(startindent);
-                // keep the child state on RVAL
-                addrem_flags(RVAL, RKCL|QMRK);
-            }
-            _maybe_skip_whitespace_tokens();
-        }
-        else if(first == '&')
-        {
-            csubstr anchor = _scan_anchor();
-            _c4dbgpf("mapblck[QMRK]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
-            _add_annotation(&m_pending_anchors, anchor, startindent, startline);
-        }
-        else if(first == '!')
-        {
-            csubstr tag = _scan_tag();
-            _c4dbgpf("mapblck[QMRK]: key tag! [{}]~~~{}~~~", tag.len, tag);
-            _add_annotation(&m_pending_tags, tag, startindent, startline);
-        }
-        else if(first == '-')
-        {
-            _c4dbgp("mapblck[QMRK]: maybe doc?");
-            csubstr rs = rem.sub(1);
-            if(rs == "--" || rs.begins_with("-- "))
-            {
-                _c4dbgp("mapblck[QMRK]: end+start doc");
-                _start_doc_suddenly();
-                _line_progressed(3);
-            }
-            else
-            {
-                _c4dbgp("mapblck[QMRK]: start child seqblck (!)");
-                addrem_flags(RKCL, RKEY|QMRK);
-                _handle_annotations_before_blck_key_scalar();
-                m_evt_handler->begin_seq_key_block();
-                addrem_flags(RVAL|RSEQ, RMAP|RKCL|QMRK);
-                _set_indentation(startindent);
-                _line_progressed(1);
-            }
-            _maybe_skip_whitespace_tokens();
-            goto mapblck_finish;
-        }
-        else if(first == '[')
-        {
-            _c4dbgp("mapblck[QMRK]: start child seqflow (!)");
-            addrem_flags(RKCL, RKEY|QMRK);
-            m_evt_handler->begin_seq_key_flow();
-            addrem_flags(RVAL|RSEQ|RFLOW, RMAP|RKCL|QMRK|RBLCK);
-            _set_indentation(startindent);
-            _line_progressed(1);
-            goto mapblck_finish;
-        }
-        else if(first == '{')
-        {
-            _c4dbgp("mapblck[QMRK]: start child mapflow (!)");
-            addrem_flags(RKCL, RKEY|QMRK);
-            m_evt_handler->begin_map_key_flow();
-            addrem_flags(RKEY|RFLOW, RVAL|RKCL|QMRK|RBLCK);
-            _set_indentation(startindent);
-            _line_progressed(1);
-            goto mapblck_finish;
-        }
-        else if(first == '?')
-        {
-            _c4dbgp("mapblck[QMRK]: another QMRK '?'");
-            if(m_evt_handler->m_curr->indentation_eq())
-            {
-                _c4dbgp("mapblck[QMRK]: ? indent eq - prev ? was for an empty keyval");
-                m_evt_handler->set_key_scalar_plain_empty();
-                m_evt_handler->set_val_scalar_plain_empty();
-                m_evt_handler->add_sibling();
-            }
-            else
-            {
-                _RYML_ASSERT_BASIC_(callbacks(), m_evt_handler->m_curr->indentation_gt());
-                _c4dbgp("mapblck[QMRK]: ? indent gt - start child mapblck (!)");
-                addrem_flags(RKCL, RKEY|QMRK);
-                m_evt_handler->begin_map_key_block();
-                addrem_flags(RBLCK|QMRK, RVAL|RKCL);
-                _set_indentation(startindent);
-            }
-            // indentation_lt() should be handled elsewhere
-            _line_progressed(1);
-            _maybe_skip_whitespace_tokens();
-        }
-        else if(first == '.')
-        {
-            _c4dbgp("mapblck[QMRK]: maybe end doc?");
-            csubstr rs = rem.sub(1);
-            if(rs == ".." || rs.begins_with(".. "))
-            {
-                _c4dbgp("mapblck[QMRK]: end+start doc");
-                _end_doc_suddenly();
-                _line_progressed(3);
-                goto mapblck_finish;
-            }
-            else
-            {
-                _c4err("parse error");
-            }
-        }
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(RKEY), m_evt_handler->m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(RKCL), m_evt_handler->m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(RVAL), m_evt_handler->m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(RNXT), m_evt_handler->m_curr->pos);
+        if(_handle_map_block_qmrk())
+            goto mapblck_again;
         else
-        {
-            _c4err("parse error");
-        }
+            goto mapblck_finish;
+    }
+    else if(has_any(RKCL)) // read the key colon (after QMRK)
+    {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(RKEY), m_evt_handler->m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(RVAL), m_evt_handler->m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(RNXT), m_evt_handler->m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_none(QMRK), m_evt_handler->m_curr->pos);
+        if(_handle_map_block_rkcl())
+            goto mapblck_again;
+        else
+            goto mapblck_finish;
     }
 
  mapblck_again:
@@ -7217,6 +6947,390 @@ mapblck_start:
 
  mapblck_finish:
     _c4dbgp("mapblck: finish");
+}
+
+
+//-----------------------------------------------------------------------------
+
+// return true if we should remain in map_block
+template<class EventHandler>
+bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
+{
+    //
+    // handle indentation
+    //
+    if(m_evt_handler->m_curr->at_line_beginning())
+    {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.indentation != npos, m_evt_handler->m_curr->pos);
+        if(m_evt_handler->m_curr->indentation_eq())
+        {
+            _c4dbgpf("mapblck[QMRK]: skip {} from indref", m_evt_handler->m_curr->indref);
+            _line_progressed(m_evt_handler->m_curr->indref);
+            if(!m_evt_handler->m_curr->line_contents.rem.len)
+                return true; // go again
+        }
+        else if(m_evt_handler->m_curr->indentation_lt())
+        {
+            _c4dbgp("mapblck[QMRK]: smaller indentation!");
+            _handle_indentation_pop_from_block_map();
+            _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
+            if(has_all(RMAP|RBLCK))
+            {
+                _c4dbgp("mapblck[QMRK]: still mapblck!");
+                return true; // go again
+            }
+            else
+            {
+                _c4dbgp("mapblck[QMRK]: no longer mapblck!");
+                return false; // finish mapblck
+            }
+        }
+        // indentation can be larger in QMRK state
+        else
+        {
+            _c4dbgp("mapblck[QMRK]: larger indentation !");
+            _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
+            if(!m_evt_handler->m_curr->line_contents.rem.len)
+                return true; // go again
+        }
+    }
+    //
+    // now handle the tokens
+    //
+    const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
+    const size_t startline = m_evt_handler->m_curr->pos.line;
+    const size_t startindent = m_evt_handler->m_curr->line_contents.current_col();
+    _c4dbgpf("mapblck[QMRK]: '{}'", first);
+    ScannedScalar sc;
+    if(first == '\'')
+    {
+        _c4dbgp("mapblck[QMRK]: scanning single-quoted scalar");
+        sc = _scan_scalar_squot();
+        csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
+        addrem_flags(RKCL, QMRK);
+        if(!_maybe_scan_following_colon())
+        {
+            _c4dbgp("mapblck[QMRK]: set as key");
+            _handle_annotations_before_blck_key_scalar();
+            m_evt_handler->set_key_scalar_squoted(maybe_filtered);
+        }
+        else
+        {
+            _c4dbgp("mapblck[QMRK]: start new block map as key (!), set scalar as key");
+            _handle_annotations_before_start_mapblck_as_key();
+            m_evt_handler->begin_map_key_block();
+            _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
+            m_evt_handler->set_key_scalar_squoted(maybe_filtered);
+            _maybe_skip_whitespace_tokens();
+            _set_indentation(startindent);
+            // keep the child state on RVAL
+            addrem_flags(RVAL, RKCL);
+        }
+    }
+    else if(first == '"')
+    {
+        _c4dbgp("mapblck[QMRK]: scanning double-quoted scalar");
+        sc = _scan_scalar_dquot();
+        csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
+        addrem_flags(RKCL, QMRK);
+        if(!_maybe_scan_following_colon())
+        {
+            _c4dbgp("mapblck[QMRK]: set as key");
+            _handle_annotations_before_blck_key_scalar();
+            m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
+        }
+        else
+        {
+            _c4dbgp("mapblck[QMRK]: start new block map as key (!), set scalar as key");
+            _handle_annotations_before_start_mapblck_as_key();
+            m_evt_handler->begin_map_key_block();
+            _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
+            m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
+            _maybe_skip_whitespace_tokens();
+            _set_indentation(startindent);
+            // keep the child state on RVAL
+            addrem_flags(RVAL, RKCL);
+        }
+    }
+    else if(first == '|')
+    {
+        _c4dbgp("mapblck[QMRK]: scanning block-literal scalar");
+        ScannedBlock sb;
+        _scan_block(&sb, m_evt_handler->m_curr->indref + 1);
+        csubstr maybe_filtered = _maybe_filter_key_scalar_literal(sb); // KEY!
+        _handle_annotations_before_blck_key_scalar();
+        m_evt_handler->set_key_scalar_literal(maybe_filtered);
+        addrem_flags(RKCL, QMRK);
+    }
+    else if(first == '>')
+    {
+        _c4dbgp("mapblck[QMRK]: scanning block-literal scalar");
+        ScannedBlock sb;
+        _scan_block(&sb, m_evt_handler->m_curr->indref + 1);
+        csubstr maybe_filtered = _maybe_filter_key_scalar_folded(sb); // KEY!
+        _handle_annotations_before_blck_key_scalar();
+        m_evt_handler->set_key_scalar_folded(maybe_filtered);
+        addrem_flags(RKCL, QMRK);
+    }
+    else if(_scan_scalar_plain_map_blck(&sc))
+    {
+        _c4dbgp("mapblck[QMRK]: plain scalar");
+        csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_evt_handler->m_curr->indref); // KEY!
+        addrem_flags(RKCL, QMRK);
+        if(!_maybe_scan_following_colon())
+        {
+            _c4dbgp("mapblck[QMRK]: set as key");
+            _handle_annotations_before_blck_key_scalar();
+            m_evt_handler->set_key_scalar_plain(maybe_filtered);
+        }
+        else
+        {
+            _c4dbgp("mapblck[QMRK]: start new block map as key (!), set scalar as key");
+            _handle_annotations_before_start_mapblck_as_key();
+            m_evt_handler->begin_map_key_block();
+            _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
+            m_evt_handler->set_key_scalar_plain(maybe_filtered);
+            _maybe_skip_whitespace_tokens();
+            _set_indentation(startindent);
+            // keep the child state on RVAL
+            addrem_flags(RVAL, RKCL);
+        }
+    }
+    else if(first == ':')
+    {
+        if(startindent == m_evt_handler->m_curr->indref)
+        {
+            _c4dbgp("mapblck[QMRK]: empty key");
+            addrem_flags(RVAL, QMRK);
+            _handle_annotations_before_blck_key_scalar();
+            m_evt_handler->set_key_scalar_plain_empty();
+            _line_progressed(1);
+            _maybe_skip_whitespace_tokens();
+        }
+        else
+        {
+            _c4dbgp("mapblck[QMRK]: start new block map as key (!), empty key");
+            addrem_flags(RKCL, QMRK);
+            _handle_annotations_before_start_mapblck_as_key();
+            m_evt_handler->begin_map_key_block();
+            _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
+            m_evt_handler->set_key_scalar_plain_empty();
+            _line_progressed(1);
+            _maybe_skip_whitespace_tokens();
+            _set_indentation(startindent);
+            // keep the child state on RVAL
+            addrem_flags(RVAL, RKCL);
+        }
+    }
+    else if(first == '*')
+    {
+        csubstr ref = _scan_ref_map();
+        _c4dbgpf("mapblck[QMRK]: key ref! [{}]~~~{}~~~", ref.len, ref);
+        addrem_flags(RKCL, QMRK);
+        if(!_maybe_scan_following_colon())
+        {
+            _c4dbgp("mapblck[QMRK]: set ref as key");
+            _handle_annotations_before_blck_key_scalar();
+            m_evt_handler->set_key_ref(ref);
+        }
+        else
+        {
+            _c4dbgp("mapblck[QMRK]: start new block map as key (!), set ref as key");
+            _handle_annotations_before_blck_key_scalar();
+            m_evt_handler->begin_map_key_block();
+            m_evt_handler->set_key_ref(ref);
+            _set_indentation(startindent);
+            // keep the child state on RVAL
+            addrem_flags(RVAL, RKCL|QMRK);
+        }
+        _maybe_skip_whitespace_tokens();
+    }
+    else if(first == '&')
+    {
+        csubstr anchor = _scan_anchor();
+        _c4dbgpf("mapblck[QMRK]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
+        _add_annotation(&m_pending_anchors, anchor, startindent, startline);
+    }
+    else if(first == '!')
+    {
+        csubstr tag = _scan_tag();
+        _c4dbgpf("mapblck[QMRK]: key tag! [{}]~~~{}~~~", tag.len, tag);
+        _add_annotation(&m_pending_tags, tag, startindent, startline);
+    }
+    else if(first == '-')
+    {
+        _c4dbgp("mapblck[QMRK]: maybe doc?");
+        csubstr rs = m_evt_handler->m_curr->line_contents.rem.sub(1);
+        if(rs == "--" || rs.begins_with("-- "))
+        {
+            _c4dbgp("mapblck[QMRK]: end+start doc");
+            _start_doc_suddenly();
+            _line_progressed(3);
+        }
+        else
+        {
+            _c4dbgp("mapblck[QMRK]: start child seqblck (!)");
+            addrem_flags(RKCL, QMRK);
+            _handle_annotations_before_blck_key_scalar();
+            m_evt_handler->begin_seq_key_block();
+            addrem_flags(RVAL|RSEQ, RMAP|RKCL);
+            _set_indentation(startindent);
+            _line_progressed(1);
+        }
+        _maybe_skip_whitespace_tokens();
+        return false; // finish mapblck
+    }
+    else if(first == '[')
+    {
+        _c4dbgp("mapblck[QMRK]: start child seqflow (!)");
+        addrem_flags(RKCL, QMRK);
+        m_evt_handler->begin_seq_key_flow();
+        addrem_flags(RVAL|RSEQ|RFLOW, RMAP|RKCL|RBLCK);
+        _set_indentation(startindent);
+        _line_progressed(1);
+        return false; // finish mapblck
+    }
+    else if(first == '{')
+    {
+        _c4dbgp("mapblck[QMRK]: start child mapflow (!)");
+        addrem_flags(RKCL, QMRK);
+        m_evt_handler->begin_map_key_flow();
+        addrem_flags(RKEY|RFLOW, RVAL|RKCL|RBLCK);
+        _set_indentation(startindent);
+        _line_progressed(1);
+        return false; // finish mapblck
+    }
+    else if(first == '?')
+    {
+        _c4dbgp("mapblck[QMRK]: another QMRK '?'");
+        if(m_evt_handler->m_curr->indentation_eq())
+        {
+            _c4dbgp("mapblck[QMRK]: ? indent eq - prev ? was for an empty keyval");
+            m_evt_handler->set_key_scalar_plain_empty();
+            m_evt_handler->set_val_scalar_plain_empty();
+            m_evt_handler->add_sibling();
+        }
+        else
+        {
+            _RYML_ASSERT_PARSE_(callbacks(), m_evt_handler->m_curr->indentation_gt(), m_evt_handler->m_curr->pos);
+            _c4dbgp("mapblck[QMRK]: ? indent gt - start child mapblck (!)");
+            addrem_flags(RKCL, RKEY|QMRK);
+            rem_flags(RKEY);
+            m_evt_handler->begin_map_key_block();
+            addrem_flags(RBLCK|QMRK, RVAL|RKCL);
+            _set_indentation(startindent);
+        }
+        // indentation_lt() should be handled elsewhere
+        _line_progressed(1);
+        _maybe_skip_whitespace_tokens();
+    }
+    else if(first == '.')
+    {
+        _c4dbgp("mapblck[QMRK]: maybe end doc?");
+        csubstr rs = m_evt_handler->m_curr->line_contents.rem.sub(1);
+        if(rs == ".." || rs.begins_with(".. "))
+        {
+            _c4dbgp("mapblck[QMRK]: end+start doc");
+            _end_doc_suddenly();
+            _line_progressed(3);
+            return false; // finish mapblck
+        }
+        else
+        {
+            _c4err("parse error");
+        }
+    }
+    else
+    {
+        _c4err("parse error");
+    }
+    return true; // continue in mapblck
+}
+
+
+//-----------------------------------------------------------------------------
+
+// return true if we should remain in map_block
+template<class EventHandler>
+bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
+{
+    //
+    // handle indentation
+    //
+    if(m_evt_handler->m_curr->at_line_beginning())
+    {
+        if(m_evt_handler->m_curr->indentation_eq())
+        {
+            _c4dbgpf("mapblck[RKCL]: skip {} from indref", m_evt_handler->m_curr->indref);
+            _line_progressed(m_evt_handler->m_curr->indref);
+            if(!m_evt_handler->m_curr->line_contents.rem.len)
+                return true; // continue in mapblck
+        }
+        else if(C4_UNLIKELY(m_evt_handler->m_curr->indentation_lt()))
+        {
+            _c4err("invalid indentation");
+        }
+    }
+    const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
+    _c4dbgpf("mapblck[RKCL]: '{}'", first);
+    if(first == ':')
+    {
+        _c4dbgp("mapblck[RKCL]: found the colon");
+        addrem_flags(RVAL, RKCL);
+        _line_progressed(1);
+        _maybe_skip_whitespace_tokens();
+    }
+    else if(first == '?')
+    {
+        _c4dbgp("mapblck[RKCL]: got '?'. val was empty");
+        m_evt_handler->set_val_scalar_plain_empty();
+        m_evt_handler->add_sibling();
+        addrem_flags(QMRK, RKCL);
+        _line_progressed(1);
+        _maybe_skip_whitespace_tokens();
+    }
+    else if(first == '-')
+    {
+        if(m_evt_handler->m_curr->indref == 0 || m_evt_handler->m_curr->line_contents.indentation == 0 || _is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem))
+        {
+            _c4dbgp("mapblck[RKCL]: end+start doc");
+            _RYML_CHECK_PARSE_(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem), m_evt_handler->m_curr->pos);
+            _start_doc_suddenly();
+            _line_progressed(3);
+            _maybe_skip_whitespace_tokens();
+            return false; // finish mapblck
+        }
+        else
+        {
+            _c4err("parse error");
+        }
+    }
+    else if(first == '.')
+    {
+        _c4dbgp("mapblck[RKCL]: maybe end doc?");
+        csubstr rs = m_evt_handler->m_curr->line_contents.rem.sub(1);
+        if(rs == ".." || rs.begins_with(".. "))
+        {
+            _c4dbgp("mapblck[RKCL]: end+start doc");
+            _end_doc_suddenly();
+            _line_progressed(3);
+            return false; // finish mapblck
+        }
+        else
+        {
+            _c4err("parse error");
+        }
+    }
+    else/* if(m_was_inside_qmrk) */
+    {
+        _c4dbgp("mapblck[RKCL]: missing :");
+        if(C4_UNLIKELY(!m_evt_handler->m_curr->indentation_eq()))
+            _c4err("parse error");
+        m_evt_handler->set_val_scalar_plain_empty();
+        m_evt_handler->add_sibling();
+        addrem_flags(RKEY, RKCL);
+    }
+    return true;
 }
 
 
@@ -7477,10 +7591,10 @@ void ParseEngine<EventHandler>::_handle_unk()
             _c4dbgp("start new block map, set flow map as key (!)");
             _handle_annotations_before_start_mapblck(m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_val_block();
-            addrem_flags(RMAP|RBLCK|RKCL, RUNK|RTOP|RDOC);
+            addrem_flags(RMAP|RBLCK|RKEY, RUNK|RTOP|RDOC);
             _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_key_flow();
-            addrem_flags(RMAP|RFLOW|RKEY, RBLCK|RKCL);
+            addrem_flags(RMAP|RFLOW|RKEY, RBLCK|RKEY);
             _set_indentation(remindent);
         }
         _line_progressed(1);
@@ -7507,7 +7621,6 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->begin_map_val_block();
         addrem_flags(RMAP|RBLCK|QMRK, RKEY|RVAL|RTOP|RUNK|RDOC);
         m_doc_empty = false;
-        m_was_inside_qmrk = true;
         _set_indentation(remindent); //_save_indentation();
         _line_progressed(1);
         _maybe_skip_whitespace_tokens();
@@ -7813,7 +7926,6 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->_push();
             addrem_flags(RMAP|RBLCK|QMRK, RNXT|USTY);
-            m_was_inside_qmrk = true;
             _save_indentation();
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
@@ -8005,7 +8117,6 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_map_val_block();
             addrem_flags(RMAP|RBLCK|QMRK, RNXT|USTY);
-            m_was_inside_qmrk = true;
             _save_indentation();
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
