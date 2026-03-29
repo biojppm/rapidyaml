@@ -248,16 +248,19 @@ inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+enum class ExpectedErrorType : int { err_none = 0, err_basic = 1, err_parse = 2, err_visit = 3, err_any = 7 };
+
 struct ExpectError
 {
-    bool m_got_an_error;
+    ExpectedErrorType m_error;
+    ExpectedErrorType m_expected_error;
     Tree *m_tree;
     c4::yml::Callbacks m_glob_prev;
     c4::yml::Callbacks m_tree_prev;
     Location expected_location;
 
-    ExpectError(Location loc={}) : ExpectError(nullptr, loc) {}
-    ExpectError(Tree *tree, Location loc={});
+    ExpectError(ExpectedErrorType errtype, Location loc={}) : ExpectError(errtype, nullptr, loc) {}
+    ExpectError(ExpectedErrorType errtype, Tree *tree, Location loc={});
     ~ExpectError();
 
     using fntestref = std::function<void()> const&;
@@ -265,11 +268,17 @@ struct ExpectError
     static void check_success(            fntestref fn) { check_success(nullptr, fn); };
     static void check_success(Tree *tree, fntestref fn);
 
-    static void check_error_basic(            fntestref fn) { check_error_basic((const Tree*)nullptr, fn); }
-    static void check_error_basic(Tree *tree, fntestref fn);
-    static void check_error_basic(Tree const *tree, fntestref fn);
-    static void check_assert_basic(            fntestref fn) { check_assert_parse(nullptr, fn); }
-    static void check_assert_basic(Tree *tree, fntestref fn);
+    static void check_error(ExpectedErrorType errtype,             fntestref fn, Location const& loc={}) { check_error(errtype, nullptr, fn, loc); };
+    static void check_error(ExpectedErrorType errtype, Tree *tree, fntestref fn, Location const& loc={});
+
+    static void check_assert(ExpectedErrorType errtype,             fntestref fn, Location const& loc={}) { check_error(errtype, nullptr, fn, loc); };
+    static void check_assert(ExpectedErrorType errtype, Tree *tree, fntestref fn, Location const& loc={});
+
+    static void check_error_basic(            fntestref fn, bool only_basic=true) { check_error_basic((const Tree*)nullptr, fn, only_basic); }
+    static void check_error_basic(Tree *tree, fntestref fn, bool only_basic=true);
+    static void check_error_basic(Tree const *tree, fntestref fn, bool only_basic=true);
+    static void check_assert_basic(            fntestref fn, bool only_basic=true) { check_assert_parse(nullptr, fn, only_basic); }
+    static void check_assert_basic(Tree *tree, fntestref fn, bool only_basic=true);
 
     static void check_error_parse(            fntestref fn, Location const& expected={}) { check_error_parse((const Tree*)nullptr, fn, expected); }
     static void check_error_parse(Tree *tree, fntestref fn, Location const& expected={});

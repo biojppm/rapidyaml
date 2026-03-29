@@ -656,6 +656,174 @@ ENGINE_TEST(Qmrk8,
 }
 
 
+ENGINE_TEST(Qmrk9,
+            "?"        "\n"
+            ,
+            ": "        "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(Qmrk10,
+            "?"        "\n"
+            ":"        "\n"
+            ,
+            ": "        "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(Qmrk11,
+            HAS_CONTAINER_KEYS, Location(4,2,3),
+            "?"        "\n"
+            "  :"      "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "+MAP"        "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(Qmrk12,
+            HAS_CONTAINER_KEYS, Location(3,2,2),
+            "?"        "\n"
+            " :"      "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "+MAP"        "\n"
+            "=VAL :"      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(Qmrk13,
+            "? ."        "\n"
+            ":"        "\n"
+            ,
+            ".: "        "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "=VAL :."      "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("."));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(Qmrk14,
+            "? ..."        "\n"
+            ":"           "\n"
+            ,
+            "  ...: "     "\n"
+            ,
+            "+STR"        "\n"
+            "+DOC"        "\n"
+            "+MAP"        "\n"
+            "=VAL :..."   "\n"
+            "=VAL :"      "\n"
+            "-MAP"        "\n"
+            "-DOC"        "\n"
+            "-STR"        "\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("..."));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
 ENGINE_TEST(QmrkWithTags,
             HAS_CONTAINER_KEYS, Location(18,3,6),
             "a1: b1\n"

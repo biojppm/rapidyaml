@@ -249,8 +249,9 @@ C4_IF_EXCEPTIONS_(
     ExpectedErrorVisit s_jmp_err_visit = {};
     )
 
-ExpectError::ExpectError(Tree *tree, Location loc)
-    : m_got_an_error(false)
+ExpectError::ExpectError(ExpectedErrorType errtype, Tree *tree, Location loc)
+    : m_error(ExpectedErrorType::err_none)
+    , m_expected_error(errtype)
     , m_tree(tree)
     , m_glob_prev(get_callbacks())
     , m_tree_prev(tree ? tree->callbacks() : m_glob_prev)
@@ -260,7 +261,7 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     EXPECT_NE(m_tree_prev.m_allocate, nullptr);
     auto errb = [](csubstr msg, ErrorDataBasic const& errdata, void *this_) {
         _c4dbgp("called basic error callback!");
-        ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
+        ((ExpectError*)this_)->m_error = ExpectedErrorType::err_basic; // assign in here to ensure the exception was thrown here
         C4_IF_EXCEPTIONS(
             throw ExpectedErrorBasic(msg, errdata);
             ,
@@ -271,7 +272,7 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     };
     auto errp = [](csubstr msg, ErrorDataParse const& errdata, void *this_) {
         _c4dbgpf("called parse error callback! (withlocation={})", bool(errdata.ymlloc));
-        ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
+        ((ExpectError*)this_)->m_error = ExpectedErrorType::err_parse; // assign in here to ensure the exception was thrown here
         C4_IF_EXCEPTIONS(
             throw ExpectedErrorParse(msg, errdata);
             ,
@@ -282,7 +283,7 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     };
     auto errv = [](csubstr msg, ErrorDataVisit const& errdata, void *this_) {
         _c4dbgp("called visit error callback!");
-        ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
+        ((ExpectError*)this_)->m_error = ExpectedErrorType::err_visit; // assign in here to ensure the exception was thrown here
         C4_IF_EXCEPTIONS(
             throw ExpectedErrorVisit(msg, errdata);
             ,
@@ -322,10 +323,32 @@ ExpectError::~ExpectError()
     EXPECT_NE(get_callbacks().m_allocate, nullptr);
 }
 
+void ExpectError::check_error(ExpectedErrorType errtype, Tree *tree, fntestref fn, Location const& loc)
+{
+    switch(errtype)
+    {
+    case ExpectedErrorType::err_none:
+        check_success(tree, std::forward<fntestref>(fn));
+        break;
+    case ExpectedErrorType::err_any:
+        check_error_basic(tree, std::forward<fntestref>(fn), /*only_basic*/false);
+        break;
+    case ExpectedErrorType::err_basic:
+        check_error_basic(tree, std::forward<fntestref>(fn));
+        break;
+    case ExpectedErrorType::err_parse:
+        check_error_parse(tree, std::forward<fntestref>(fn), loc);
+        break;
+    case ExpectedErrorType::err_visit:
+        check_error_visit(tree, std::forward<fntestref>(fn));
+        break;
+    }
+}
+
 void ExpectError::check_success(Tree *tree, fntestref fn)
 {
     Location expected_location = {};
-    auto context = ExpectError(tree, expected_location);
+    auto context = ExpectError(ExpectedErrorType::err_none, tree, expected_location);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
         _c4dbgp("check expected success");
@@ -336,12 +359,12 @@ void ExpectError::check_success(Tree *tree, fntestref fn)
     {
         FAIL() << "check expected success: failed!";
     }
-    ASSERT_FALSE(context.m_got_an_error);
+    ASSERT_EQ(context.m_error, ExpectedErrorType::err_none);
 }
 
-void ExpectError::check_error_basic(Tree const* tree, fntestref fn)
+void ExpectError::check_error_basic(Tree const* tree, fntestref fn, bool only_basic)
 {
-    check_error_basic(const_cast<Tree*>(tree), fn);
+    check_error_basic(const_cast<Tree*>(tree), fn, only_basic);
 }
 
 void ExpectError::check_error_parse(Tree const* tree, fntestref fn, Location const& expected_location)
@@ -354,9 +377,9 @@ void ExpectError::check_error_visit(Tree const* tree, fntestref fn, id_type expe
     check_error_visit(const_cast<Tree*>(tree), fn, expected_id);
 }
 
-void ExpectError::check_error_basic(Tree *tree, fntestref fn)
+void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
 {
-    auto context = ExpectError(tree);
+    auto context = ExpectError(ExpectedErrorType::err_basic, tree);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
         _c4dbgp("check expected basic error");
@@ -379,12 +402,16 @@ void ExpectError::check_error_basic(Tree *tree, fntestref fn)
                 "got an unexpected exception!\n"
                 "---------------\n");
     }, )
-    EXPECT_TRUE(context.m_got_an_error);
+    EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
+    if(only_basic)
+    {
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_basic);
+    }
 }
 
 void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& expected_location)
 {
-    ExpectError context(tree, expected_location);
+    ExpectError context(ExpectedErrorType::err_parse, tree, expected_location);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
         _c4dbgp("check expected parse error");
@@ -418,18 +445,28 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
             }
         }
     }
+    C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
+    {
+        std::cout << "---------------\n";
+        std::cout << "got an unexpected exception!:\n" << exc.what() << "\n";
+        std::cout << "---------------\n";
+    }, )
     C4_IF_EXCEPTIONS_(catch(...)
     {
         _c4dbgp("---------------\n"
                 "got an unexpected exception!\n"
                 "---------------\n");
     }, )
-    EXPECT_TRUE(context.m_got_an_error);
+    EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
+    if(context.m_error != ExpectedErrorType::err_none)
+    {
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
+    }
 }
 
 void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
 {
-    auto context = ExpectError(tree);
+    auto context = ExpectError(ExpectedErrorType::err_visit, tree);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
         _c4dbgp("check expected visit error");
@@ -463,16 +500,33 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
         std::cout << "got an unexpected exception!\n";
         std::cout << "---------------\n";
     }, )
-    EXPECT_TRUE(context.m_got_an_error);
+    EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
+    if(context.m_error != ExpectedErrorType::err_none)
+    {
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
+    }
 }
 
-void ExpectError::check_assert_basic(Tree *tree, fntestref fn)
+void ExpectError::check_assert(ExpectedErrorType errtype, Tree *tree, fntestref fn, Location const& loc)
 {
     #if RYML_USE_ASSERT
-    ExpectError::check_error_basic(tree, fn);
+    ExpectError::check_error(errtype, tree, fn, loc);
+    #else
+    C4_UNUSED(errtype);
+    C4_UNUSED(tree);
+    C4_UNUSED(fn);
+    C4_UNUSED(loc);
+    #endif
+}
+
+void ExpectError::check_assert_basic(Tree *tree, fntestref fn, bool only_basic)
+{
+    #if RYML_USE_ASSERT
+    ExpectError::check_error_basic(tree, fn, only_basic);
     #else
     C4_UNUSED(tree);
     C4_UNUSED(fn);
+    C4_UNUSED(only_basic);
     #endif
 }
 

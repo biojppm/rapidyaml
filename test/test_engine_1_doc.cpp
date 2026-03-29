@@ -174,6 +174,131 @@ ENGINE_TEST(DocEmptyTerm4_2,
 }
 
 
+ENGINE_TEST(DocEmptyTermErr,
+            "...\n...\n"
+            ,
+            ""
+            ,
+            "+STR\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err0,
+                   Location(2, 5),
+                   "foo: bar\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err1,
+                   Location(2, 5),
+                   "foo: bar\n"
+                   "... [bad]\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err2,
+                   Location(2, 5),
+                   "foo: bar\n"
+                   "... {bad: yes}\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err3,
+                   Location(2, 5),
+                   "foo:\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err4,
+                   Location(2, 5),
+                   "foo:\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err5,
+                   Location(2, 5),
+                   "?\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err6,
+                   Location(2, 5),
+                   "? foo\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_ok,
+            "foo: bar\n"
+            "... #bad\n"
+            ,
+            "foo: bar\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "-DOC ...\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err0,
+                   Location(2, 5),
+                   "- foo\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err1,
+                   Location(2, 5),
+                   "-\n"
+                   "... bad\n"
+                   )
+
+ENGINE_TEST_ERRLOC(DocTerm_MapFlow_err0,
+                   Location(2, 5),
+                   "{key: val}\n"
+                   "... bad\n"
+                   )
+
+ENGINE_TEST_ERRLOC(DocTerm_SeqFlow_err0,
+                   Location(2, 5),
+                   "{key: val}\n"
+                   "... bad\n"
+                   )
+
+ENGINE_TEST_ERRLOC(DocTerm_ScalarPlain_err0,
+                   Location(2, 5),
+                   "scalar\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_ScalarSquo_err0,
+                   Location(2, 5),
+                   "'scalar'\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_ScalarDquo_err0,
+                   Location(2, 5),
+                   "\"scalar\"\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_ScalarLit_err0,
+                   Location(3, 5),
+                   "|\n  scalar\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_FoldedLit_err0,
+                   Location(3, 5),
+                   ">\n  scalar\n"
+                   "... bad\n"
+                   )
+
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocEmptyExplMult,

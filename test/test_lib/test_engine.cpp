@@ -41,42 +41,49 @@ std::vector<std::string> inject_comments_in_src(std::string const& src_)
 } // anon
 
 
-void test_expected_error_testsuite_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
+void test_expected_error_testsuite_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location)
 {
-    ExpectError::check_error_parse([&]{
+    (void)tcflags;
+    ExpectError::check_error(errtype, [&]{
+        std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end()); // g++ 4.8 fails with std::string
         extra::EventHandlerTestSuite::EventSink sink;
         extra::EventHandlerTestSuite handler(&sink);
         handler.reset();
         ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
-        std::string copy = parsed_yaml;
         parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     }, expected_error_location);
 }
 
-void test_expected_error_ints_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
+void test_expected_error_ints_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location)
 {
-    ExpectError::check_error_parse([&]{
+    (void)tcflags;
+    ExpectError::check_error(errtype, [&]{
+        std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end()); // g++ 4.8 fails with std::string
         extra::EventHandlerInts handler{};
-        handler.reset(to_csubstr(parsed_yaml), substr{}, nullptr, 0);
+        handler.reset(to_csubstr(copy), substr{}, nullptr, 0);
         ParseEngine<extra::EventHandlerInts> parser(&handler);
-        std::string copy = parsed_yaml;
         parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     }, expected_error_location);
 }
 
-void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
+void test_expected_error_tree_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location)
 {
-    Tree tree = {};
-    ExpectError::check_error_parse(&tree, [&]{
-        EventHandlerTree handler(&tree, tree.root_id());
-        ASSERT_EQ(&tree, handler.m_tree);
-        ParseEngine<EventHandlerTree> parser(&handler);
-        ASSERT_EQ(&handler, parser.m_evt_handler);
-        ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
-        std::string copy = parsed_yaml;
-        parser.parse_in_place_ev("(testyaml)", to_substr(copy));
-        tree.resolve_tags();
-    }, expected_error_location);
+    if(tcflags & HAS_CONTAINER_KEYS)
+        return;
+    else
+    {
+        Tree tree = {};
+        ExpectError::check_error(errtype, &tree, [&]{
+            std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end()); // g++ 4.8 fails with std::string
+            EventHandlerTree handler(&tree, tree.root_id());
+            ASSERT_EQ(&tree, handler.m_tree);
+            ParseEngine<EventHandlerTree> parser(&handler);
+            ASSERT_EQ(&handler, parser.m_evt_handler);
+            ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
+            parser.parse_in_place_ev("(testyaml)", to_substr(copy));
+            tree.resolve_tags();
+        }, expected_error_location);
+    }
 }
 
 
@@ -86,7 +93,7 @@ void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::st
     extra::EventHandlerTestSuite handler(&sink);
     handler.reset();
     ParseEngine<extra::EventHandlerTestSuite> parser(&handler, test_case.opts);
-    std::string copy = parsed_yaml;
+    std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end()); // g++ 4.8 fails with std::string
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     csubstr result = sink;
     _c4dbgpf("~~~\n{}~~~\n", result);
@@ -161,7 +168,10 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string 
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
     {
-        test_expected_error_tree_from_yaml(yaml, test_case.expected_error_location);
+        test_expected_error_tree_from_yaml(ExpectedErrorType::err_parse,
+                                           TestCaseFlags_e{},
+                                           yaml,
+                                           test_case.expected_error_location);
         return;
     }
     Tree tree = {};
@@ -170,7 +180,7 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string 
     ParseEngine<EventHandlerTree> parser(&handler, test_case.opts);
     ASSERT_EQ(&handler, parser.m_evt_handler);
     ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
-    std::string copy = yaml;
+    std::vector<char> copy(yaml.begin(), yaml.end()); // g++ 4.8 fails with std::string
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
     #ifdef RYML_DBG
     print_tree("parsed_tree", tree);

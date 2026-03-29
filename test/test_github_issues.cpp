@@ -371,7 +371,7 @@ TEST(github, 31)
     }
 
     {
-        ExpectError::check_assert_basic(&tree, [&](){
+        ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= MAP;
@@ -379,7 +379,7 @@ TEST(github, 31)
     }
 
     {
-        ExpectError::check_assert_basic(&tree, [&](){
+        ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= SEQ;
@@ -387,7 +387,7 @@ TEST(github, 31)
     }
 
     {
-        ExpectError::check_assert_basic(&tree, [&](){
+        ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi |= MAP;
             lumi << "Lumi";

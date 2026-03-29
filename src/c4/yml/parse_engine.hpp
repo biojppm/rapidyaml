@@ -488,6 +488,8 @@ public: // exposed for testing
 private:
 
     void  _handle_map_block();
+    bool  _handle_map_block_qmrk();
+    bool  _handle_map_block_rkcl();
     void  _handle_seq_block();
     void  _handle_map_flow();
     void  _handle_seq_flow();
@@ -507,12 +509,14 @@ private:
     void  _end_seq_blck();
     void  _end2_map();
     void  _end2_seq();
+    void  _end_flow_container(size_t orig_indent);
     void  _flow_container_was_a_key(size_t orig_indent);
 
     void  _begin2_doc();
     void  _begin2_doc_expl();
     void  _end2_doc();
     void  _end2_doc_expl();
+    void  _check_doc_end_tokens() const;
 
     void  _maybe_begin_doc();
     void  _maybe_end_doc();
@@ -605,10 +609,10 @@ private:
 
     #ifndef RYML_DBG
     C4_ALWAYS_INLINE static void add_flags(ParserFlag_t on, ParserState *C4_RESTRICT s) noexcept { s->flags |= on; }
-    C4_ALWAYS_INLINE static void addrem_flags(ParserFlag_t on, ParserFlag_t off, ParserState *C4_RESTRICT s) noexcept { s->flags &= ~off; s->flags |= on; }
+    C4_ALWAYS_INLINE static void addrem_flags(ParserFlag_t on, ParserFlag_t off, ParserState *C4_RESTRICT s) noexcept { _RYML_ASSERT_BASIC((on & off) == 0); s->flags &= ~off; s->flags |= on; }
     C4_ALWAYS_INLINE static void rem_flags(ParserFlag_t off, ParserState *C4_RESTRICT s) noexcept { s->flags &= ~off; }
     C4_ALWAYS_INLINE void add_flags(ParserFlag_t on) noexcept { m_evt_handler->m_curr->flags |= on; }
-    C4_ALWAYS_INLINE void addrem_flags(ParserFlag_t on, ParserFlag_t off) noexcept { m_evt_handler->m_curr->flags &= ~off; m_evt_handler->m_curr->flags |= on; }
+    C4_ALWAYS_INLINE void addrem_flags(ParserFlag_t on, ParserFlag_t off) noexcept { _RYML_ASSERT_BASIC((on & off) == 0); m_evt_handler->m_curr->flags &= ~off; m_evt_handler->m_curr->flags |= on; }
     C4_ALWAYS_INLINE void rem_flags(ParserFlag_t off) noexcept { m_evt_handler->m_curr->flags &= ~off; }
     #else
     static void add_flags(ParserFlag_t on, ParserState *C4_RESTRICT s);
@@ -694,7 +698,6 @@ private:
     Annotation m_pending_anchors;
     Annotation m_pending_tags;
 
-    bool m_was_inside_qmrk;
     bool m_doc_empty = true;
     size_t m_prev_colon = npos;
 

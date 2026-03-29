@@ -770,6 +770,7 @@ struct TestSequenceData
         //SKIP_IF(has_container_keys); // DO IT!
         if(m_expected_error_to_tree_checked)
             return;
+        SCOPED_TRACE("check_expected_error");
         ExpectError::check_error_parse(&levels[0].tree_parsed_from_src, [this]{
             levels[0].parse_yaml_to_tree();
         });
@@ -781,6 +782,7 @@ struct TestSequenceData
         //SKIP_IF(has_container_keys); // DO IT!
         if(m_expected_error_to_events_checked)
             return;
+        SCOPED_TRACE("check_expected_error_events");
         ExpectError::check_error_parse([this]{
             levels[0].parse_yaml_to_events();
         });
@@ -792,6 +794,7 @@ struct TestSequenceData
         //SKIP_IF(has_container_keys); // DO IT!
         if(m_expected_error_to_events_ints_checked)
             return;
+        SCOPED_TRACE("check_expected_error_events");
         ExpectError::check_error_parse([this]{
             levels[0].parse_yaml_to_events_ints();
         });
@@ -924,18 +927,21 @@ bool g_do_subcases = true;
 TEST(which##_errors, check_expected_error_src_to_tree)                  \
 {                                                                       \
     SKIP_IF(!g_suite_case->test_case_expects_error);                    \
+    SCOPED_TRACE("check_expected_error_src_to_tree");                   \
     g_suite_case->which.check_expected_error();                         \
 }                                                                       \
                                                                         \
 TEST(which##_errors, check_expected_error_src_to_events)                \
 {                                                                       \
     SKIP_IF(!g_suite_case->test_case_expects_error);                    \
+    SCOPED_TRACE("check_expected_error_src_to_events");                 \
     g_suite_case->which.check_expected_error_events();                  \
 }                                                                       \
                                                                         \
 TEST(which##_errors, check_expected_error_src_to_events_ints)           \
 {                                                                       \
     SKIP_IF(!g_suite_case->test_case_expects_error);                    \
+    SCOPED_TRACE("check_expected_error_src_to_events_ints");            \
     g_suite_case->which.check_expected_error_events_ints();             \
 }                                                                       \
                                                                         \

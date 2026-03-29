@@ -1785,6 +1785,112 @@ ENGINE_TEST(MapKeyBlock4Ref1,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(ExtraTokensNoFalseError0,
+            "---\n"
+            "map : {foo: bar, notag: none}\n"
+            "seq : [foo, bar]\n"
+            "...\n"
+            ,
+            "---\n"
+            "map: {foo: bar,notag: none}\n"
+            "seq: [foo,bar]\n"
+            ,
+            "+STR\n"
+            "+DOC ---\n"
+            "+MAP\n"
+            "=VAL :map\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=VAL :notag\n"
+            "=VAL :none\n"
+            "-MAP\n"
+            "=VAL :seq\n"
+            "+SEQ []\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-SEQ\n"
+            "-MAP\n"
+            "-DOC ...\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_map_val_block());
+        ___(ps.set_key_scalar_plain("map"));
+        ___(ps.begin_map_val_flow());
+            ___(ps.set_key_scalar_plain("foo"));
+            ___(ps.set_val_scalar_plain("bar"));
+            ___(ps.add_sibling());
+            ___(ps.set_key_scalar_plain("notag"));
+            ___(ps.set_val_scalar_plain("none"));
+        ___(ps.end_map_flow(singleline));
+        ___(ps.add_sibling());
+        ___(ps.set_key_scalar_plain("seq"));
+        ___(ps.begin_seq_val_flow());
+            ___(ps.set_val_scalar_plain("foo"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("bar"));
+        ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(ExtraTokensNoFalseError1,
+            "---\n"
+            "*mapref : {foo: bar, notag: none}\n"
+            "*seqref : [foo, bar]\n"
+            "...\n"
+            ,
+            "---\n"
+            "*mapref : {foo: bar,notag: none}\n"
+            "*seqref : [foo,bar]\n"
+            ,
+            "+STR\n"
+            "+DOC ---\n"
+            "+MAP\n"
+            "=ALI *mapref\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "=VAL :notag\n"
+            "=VAL :none\n"
+            "-MAP\n"
+            "=ALI *seqref\n"
+            "+SEQ []\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-SEQ\n"
+            "-MAP\n"
+            "-DOC ...\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_map_val_block());
+        ___(ps.set_key_ref("*mapref"));
+        ___(ps.begin_map_val_flow());
+            ___(ps.set_key_scalar_plain("foo"));
+            ___(ps.set_val_scalar_plain("bar"));
+            ___(ps.add_sibling());
+            ___(ps.set_key_scalar_plain("notag"));
+            ___(ps.set_val_scalar_plain("none"));
+        ___(ps.end_map_flow(singleline));
+        ___(ps.add_sibling());
+        ___(ps.set_key_ref("*seqref"));
+        ___(ps.begin_seq_val_flow());
+            ___(ps.set_val_scalar_plain("foo"));
+            ___(ps.add_sibling());
+            ___(ps.set_val_scalar_plain("bar"));
+        ___(ps.end_seq_flow(singleline));
+    ___(ps.end_map_block());
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
 } // namespace yml
 } // namespace c4
 

@@ -510,8 +510,9 @@ public:
         return m_arena_pos;
     }
 
-    /** Predicate to test if the event buffer successfully accomodated
-     * all the parse events.
+    /** Predicate to test if the event and arena buffers successfully
+     * accomodated all the parse events.
+     *
      * @warning this is valid only until the next parse */
     bool fits_buffers() const
     {

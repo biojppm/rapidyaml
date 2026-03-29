@@ -719,7 +719,7 @@ ENGINE_TEST(DirectiveAndTag,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST_ERR(TagCustomNotFound,
+ENGINE_TEST_ERRTY(TagCustomNotFound, ExpectedErrorType::err_any,
                 "--- !foo \"bar\"\n"
                 "...\n"
                 "%TAG !m! tag:example.com,2000:app/\n"
@@ -1206,10 +1206,10 @@ ENGINE_TEST(TagTestSuite6WLZ_1,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST_ERR(DirectiveTestSuite9MMA_YAML,
-                "%YAML 1.2")
+ENGINE_TEST_ERRTY(DirectiveTestSuite9MMA_YAML, ExpectedErrorType::err_any,
+                  "%YAML 1.2")
 
-ENGINE_TEST_ERR(DirectiveTestSuite9MMA_TAG,
+ENGINE_TEST_ERRTY(DirectiveTestSuite9MMA_TAG, ExpectedErrorType::err_any,
                 "%TAG ! tag:example.com,2000:app/\n")
 
 ENGINE_TEST_ERR(DirectiveTestSuiteMUS6_00,
@@ -1306,30 +1306,30 @@ ENGINE_TEST_ERR(DirectiveMultipleYAML_3,
                 "---\n"
                 "bar")
 
-ENGINE_TEST_ERR(DirectiveWrong,
-                "--- !foo \"ba\"\n"
-                "...\n"
-                "%TAG ,,,,,\n"
-                "--- !foo \"bar\"\n")
+ENGINE_TEST_ERRTY(DirectiveWrong, ExpectedErrorType::err_any,
+                  "--- !foo \"ba\"\n"
+                  "...\n"
+                  "%TAG ,,,,,\n"
+                  "--- !foo \"bar\"\n")
 
-ENGINE_TEST_ERR(DirectiveTooMany,
-                "--- !foo \"bar\"\n"
-                "...\n"
-                "%TAG ! tag:example.com,2000:app/\n"
-                "--- !foo \"bar\"\n"
-                "...\n"
-                "%TAG ! tag:example.com,2001:app/\n"
-                "...\n"
-                "--- !foo \"bar\"\n"
-                "...\n"
-                "%TAG ! tag:example.com,2002:app/\n"
-                "--- !foo \"bar\"\n"
-                "...\n"
-                "%TAG ! tag:example.com,2003:app/\n"
-                "--- !foo \"bar\"\n"
-                "...\n"
-                "%TAG ! tag:example.com,2004:app/\n"
-                "--- !foo \"bar\"\n")
+ENGINE_TEST_ERRTY(DirectiveTooMany, ExpectedErrorType::err_any,
+                  "--- !foo \"bar\"\n"
+                  "...\n"
+                  "%TAG ! tag:example.com,2000:app/\n"
+                  "--- !foo \"bar\"\n"
+                  "...\n"
+                  "%TAG ! tag:example.com,2001:app/\n"
+                  "...\n"
+                  "--- !foo \"bar\"\n"
+                  "...\n"
+                  "%TAG ! tag:example.com,2002:app/\n"
+                  "--- !foo \"bar\"\n"
+                  "...\n"
+                  "%TAG ! tag:example.com,2003:app/\n"
+                  "--- !foo \"bar\"\n"
+                  "...\n"
+                  "%TAG ! tag:example.com,2004:app/\n"
+                  "--- !foo \"bar\"\n")
 
 
 //-----------------------------------------------------------------------------

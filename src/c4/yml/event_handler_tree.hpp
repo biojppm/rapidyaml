@@ -115,7 +115,7 @@ public:
     {
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree != nullptr);
         if(m_num_directives && !m_tree->is_stream(m_tree->root_id()))
-            _RYML_ERR_BASIC_(m_stack.m_callbacks, "directives cannot be used without a document");
+            _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "directives cannot be used without a document");
         this->_stack_finish_parse();
         /* This pointer is temporary. Remember that:
          *

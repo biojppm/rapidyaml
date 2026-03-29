@@ -771,13 +771,13 @@ TEST(simple_anchor, resolve_nested)
     }
     {
         Tree t = parse_in_arena(yaml);
-        ExpectError::check_error_basic(&t, [&]{
+        ExpectError::check_error_visit(&t, [&]{
             t.resolve(true);
         });
     }
     {
         Tree t = parse_in_arena(yaml);
-        ExpectError::check_error_basic(&t, [&]{
+        ExpectError::check_error_visit(&t, [&]{
             t.resolve(false);
         });
     }

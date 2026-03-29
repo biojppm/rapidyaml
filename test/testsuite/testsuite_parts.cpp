@@ -29,7 +29,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // These invalid YAML cases do not materialize parse errors
-    _("3HFZ-error"              , "should not accept scalar after ..."),
     _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
     _("5TRB-error"              , "should not accept document-end marker in double quoted string"),
     _("5U3A-error"              , "should not accept opening a sequence on same line as map key"),
