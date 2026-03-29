@@ -53,7 +53,8 @@ function c4_show_info()
         *)
             ;;
     esac
-    set -x
+    pwd
+    ls -l
     git branch
     git rev-parse HEAD
     git tag || echo
@@ -151,6 +152,7 @@ function c4_run_target()  # does not run in parallel
     target=$2
     build_dir=`pwd`/build/$id
     export CTEST_OUTPUT_ON_FAILURE=1
+    export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
     cmake --build $build_dir --config $BT --target $target -- $(_c4_generator_build_flags)
 }
 

@@ -1,3 +1,6 @@
+# external files
+ext/c4core/
+
 # text editor files
 *.bck
 \#*
