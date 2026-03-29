@@ -10,7 +10,7 @@
     {map: }
     : bad
     ```
-  - [PR#586](https://github.com/biojppm/rapidyaml/pull/586): colon on newline generally ([play](https://play.yaml.com/?show=xd#c2NhbGFyCjogYmFkCi0tLQpbc2VxXQo6IGJhZAotLS0KW21hcF0KOiBiYWQK)):
+  - [PR#586](https://github.com/biojppm/rapidyaml/pull/586): tokens after explicit document endcolon on newline:
     ```yaml
     bad cases:
       scalar
@@ -19,4 +19,9 @@
         : bad
       {map: }
         : bad
+    ```
+  - [PR#586](https://github.com/biojppm/rapidyaml/pull/586): tokens after explicit document end:
+    ```yaml
+    foo: bar
+    ... bad tokens
     ```

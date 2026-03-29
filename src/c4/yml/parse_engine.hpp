@@ -516,6 +516,7 @@ private:
     void  _begin2_doc_expl();
     void  _end2_doc();
     void  _end2_doc_expl();
+    void  _check_doc_end_tokens() const;
 
     void  _maybe_begin_doc();
     void  _maybe_end_doc();

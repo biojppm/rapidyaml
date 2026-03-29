@@ -1787,6 +1787,17 @@ void ParseEngine<EventHandler>::_end_doc_suddenly()
 }
 
 template<class EventHandler>
+void ParseEngine<EventHandler>::_check_doc_end_tokens() const
+{
+    csubstr rem = m_evt_handler->m_curr->line_contents.rem;
+    _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, !rem.begins_with_any(". \t"), m_evt_handler->m_curr->pos);
+    if(C4_UNLIKELY(rem.len && !rem.begins_with('#')))
+    {
+        _c4err("parse error");
+    }
+}
+
+template<class EventHandler>
 void ParseEngine<EventHandler>::_start_doc_suddenly()
 {
     _c4dbgp("start doc suddenly");
@@ -5964,6 +5975,23 @@ seqblck_start:
             _maybe_skip_whitespace_tokens();
             goto seqblck_finish;
         }
+        else if(first == '.')
+        {
+            _c4dbgp("seqblck[RVAL]: maybe end doc?");
+            csubstr rs = m_evt_handler->m_curr->line_contents.rem.sub(1);
+            if(rs == ".." || rs.begins_with(".. "))
+            {
+                _c4dbgp("seqblck[RVAL]: end+start doc");
+                _end_doc_suddenly();
+                _line_progressed(3);
+                _maybe_skip_whitespace_tokens();
+                _check_doc_end_tokens();
+            }
+            else
+            {
+                _c4err("parse error");
+            }
+        }
         else
         {
             _c4err("parse error");
@@ -6083,10 +6111,11 @@ seqblck_start:
             csubstr rs = rem.sub(1);
             if(rs == ".." || rs.begins_with(".. "))
             {
-                _c4dbgp("seqblck[RNXT]: end+start doc");
+                _c4dbgp("seqblck[RNXT]: end doc");
                 _end_doc_suddenly();
                 _line_progressed(3);
                 _maybe_skip_whitespace_tokens();
+                _check_doc_end_tokens();
                 goto seqblck_finish;
             }
             else
@@ -6352,6 +6381,7 @@ mapblck_start:
                 _end_doc_suddenly();
                 _line_progressed(3);
                 _maybe_skip_whitespace_tokens();
+                _check_doc_end_tokens();
                 goto mapblck_finish;
             }
             else
@@ -6795,6 +6825,7 @@ mapblck_start:
                 _end_doc_suddenly();
                 _line_progressed(3);
                 _maybe_skip_whitespace_tokens();
+                _check_doc_end_tokens();
                 goto mapblck_finish;
             }
             else
@@ -7233,6 +7264,8 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
             _c4dbgp("mapblck[QMRK]: end+start doc");
             _end_doc_suddenly();
             _line_progressed(3);
+            _maybe_skip_whitespace_tokens();
+            _check_doc_end_tokens();
             return false; // finish mapblck
         }
         else
@@ -7314,6 +7347,8 @@ bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
             _c4dbgp("mapblck[RKCL]: end+start doc");
             _end_doc_suddenly();
             _line_progressed(3);
+            _maybe_skip_whitespace_tokens();
+            _check_doc_end_tokens();
             return false; // finish mapblck
         }
         else
@@ -7514,6 +7549,7 @@ void ParseEngine<EventHandler>::_handle_unk()
                 addrem_flags(NDOC|RUNK, RDOC);
                 _line_progressed(3u);
                 _maybe_skip_whitespace_tokens();
+                _check_doc_end_tokens();
                 return;
             }
         }

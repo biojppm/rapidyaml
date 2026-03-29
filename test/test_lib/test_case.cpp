@@ -458,7 +458,10 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
                 "---------------\n");
     }, )
     EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
-    EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
+    if(context.m_error != ExpectedErrorType::err_none)
+    {
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
+    }
 }
 
 void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
@@ -498,7 +501,10 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
         std::cout << "---------------\n";
     }, )
     EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
-    EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
+    if(context.m_error != ExpectedErrorType::err_none)
+    {
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
+    }
 }
 
 void ExpectError::check_assert(ExpectedErrorType errtype, Tree *tree, fntestref fn, Location const& loc)
