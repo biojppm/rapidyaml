@@ -3938,10 +3938,11 @@ void ParseEngine<EventHandler>::addrem_flags(ParserFlag_t on, ParserFlag_t off, 
     csubstr buf1 = detail::_parser_flags_to_str(buf1_, on);
     csubstr buf2 = detail::_parser_flags_to_str(buf2_, off);
     csubstr buf3 = detail::_parser_flags_to_str(buf3_, s->flags);
-    csubstr buf4 = detail::_parser_flags_to_str(buf4_, ((s->flags|on)&(~off)));
+    csubstr buf4 = detail::_parser_flags_to_str(buf4_, (~off)&((s->flags|on)));
     _c4dbgpf("state[{}]: add {} / rem {}: before={} after={}", s->level, buf1, buf2, buf3, buf4);
-    s->flags |= on;
+    _RYML_ASSERT_BASIC((on & off) == ParserFlag_t(0));
     s->flags &= ~off;
+    s->flags |= on;
 }
 
 template<class EventHandler>
@@ -7630,7 +7631,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             addrem_flags(RMAP|RBLCK|RKEY, RUNK|RTOP|RDOC);
             _handle_annotations_and_indentation_after_start_mapblck(remindent, m_evt_handler->m_curr->pos.line);
             m_evt_handler->begin_map_key_flow();
-            addrem_flags(RMAP|RFLOW|RKEY, RBLCK|RKEY);
+            addrem_flags(RMAP|RFLOW, RBLCK);
             _set_indentation(remindent);
         }
         _line_progressed(1);
