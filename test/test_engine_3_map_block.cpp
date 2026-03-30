@@ -8,240 +8,7 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
-static constexpr const bool multiline = true;
 static constexpr const bool singleline = false;
-
-//-----------------------------------------------------------------------------
-
-ENGINE_TEST(SimpleMapFlowEmpty,
-            "{}"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(SimpleMapFlowEmptyMultiline,
-            "{\n}"
-            ,
-            "{\n}\n"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.end_map_flow(multiline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(SimpleMapFlow,
-            "{foo: bar,foo2: bar2}"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "=VAL :foo\n"
-            "=VAL :bar\n"
-            "=VAL :foo2\n"
-            "=VAL :bar2\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("foo2"));
-    ___(ps.set_val_scalar_plain("bar2"));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(SimpleMapFlowMultiline0,
-            "{foo: bar,foo2: bar2\n}"
-            ,
-            "{\n  foo: bar,\n  foo2: bar2\n}\n"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "=VAL :foo\n"
-            "=VAL :bar\n"
-            "=VAL :foo2\n"
-            "=VAL :bar2\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("foo2"));
-    ___(ps.set_val_scalar_plain("bar2"));
-    ___(ps.end_map_flow(multiline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(NestedMapFlow,
-            HAS_CONTAINER_KEYS
-            ,
-            Location(1,1,2)
-            ,
-            "{{}: {}}"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.begin_map_key_flow());
-    ___(ps.end_map_flow(singleline));
-    ___(ps.begin_map_val_flow());
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(NestedMap3FlowEmpty,
-            HAS_CONTAINER_KEYS
-            ,
-            Location(1,1,2)
-            ,
-            "{{{}: {}}: {{}: {}}}",
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "+MAP {}\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "-MAP\n"
-            "+MAP {}\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "+MAP {}\n"
-            "-MAP\n"
-            "-MAP\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.begin_map_key_flow());
-    ___(ps.begin_map_key_flow());
-    ___(ps.end_map_flow(singleline));
-    ___(ps.begin_map_val_flow());
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.begin_map_val_flow());
-    ___(ps.begin_map_key_flow());
-    ___(ps.end_map_flow(singleline));
-    ___(ps.begin_map_val_flow());
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(SimpleMapFlowMultiline,
-            "{\nfoo:\n bar\n,\nfoo2:\nbar2\n}"
-            ,
-            "{\n  foo: bar,\n  foo2: bar2\n}\n"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "=VAL :foo\n"
-            "=VAL :bar\n"
-            "=VAL :foo2\n"
-            "=VAL :bar2\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("foo2"));
-    ___(ps.set_val_scalar_plain("bar2"));
-    ___(ps.end_map_flow(multiline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST_ERRLOC(SimpleMapFlowErr0, Location(1,1,2), "{")
-ENGINE_TEST_ERRLOC(SimpleMapFlowErr1, Location(5,1,6), "{a: b")
-
-
-//-----------------------------------------------------------------------------
-
-ENGINE_TEST_ERRLOC(SimpleMapFlowCommentAfterComma, Location(6,1,7), "{a: b,#c\n}")
-
-ENGINE_TEST(SimpleMapFlowCommentAfterCommaWhitespace,
-            "{a: b, #c\n}"
-            ,
-            "{\n  a: b\n}\n"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "=VAL :a\n"
-            "=VAL :b\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("a"));
-    ___(ps.set_val_scalar_plain("b"));
-    ___(ps.end_map_flow(multiline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
 
 
 //-----------------------------------------------------------------------------
@@ -568,58 +335,6 @@ ENGINE_TEST(SimpleMapIndentlessSeq,
     ps.end_stream();
 }
 
-
-//-----------------------------------------------------------------------------
-
-ENGINE_TEST(SimpleMapContainerKeyFlow,
-            HAS_CONTAINER_KEYS,
-            "{{this: is, a: keymap}: [and,now,a,seq,val]}"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "+MAP {}\n"
-            "=VAL :this\n"
-            "=VAL :is\n"
-            "=VAL :a\n"
-            "=VAL :keymap\n"
-            "-MAP\n"
-            "+SEQ []\n"
-            "=VAL :and\n"
-            "=VAL :now\n"
-            "=VAL :a\n"
-            "=VAL :seq\n"
-            "=VAL :val\n"
-            "-SEQ\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_key_flow());
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("this"));
-    ___(ps.set_val_scalar_plain("is"));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("a"));
-    ___(ps.set_val_scalar_plain("keymap"));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.begin_seq_val_flow());
-    ___(ps.set_val_scalar_plain("and"));
-    ___(ps.add_sibling());
-    ___(ps.set_val_scalar_plain("now"));
-    ___(ps.add_sibling());
-    ___(ps.set_val_scalar_plain("a"));
-    ___(ps.add_sibling());
-    ___(ps.set_val_scalar_plain("seq"));
-    ___(ps.add_sibling());
-    ___(ps.set_val_scalar_plain("val"));
-    ___(ps.end_seq_flow(singleline));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
 
 ENGINE_TEST(SimpleMapContainerKey1Block0_0,
             HAS_CONTAINER_KEYS,
@@ -1143,57 +858,6 @@ ENGINE_TEST(SimpleMapContainerKey2Block_1,
     ___(ps.end_stream());
 }
 
-//-----------------------------------------------------------------------------
-
-ENGINE_TEST(MapMapFlow,
-            "{map1: {foo1: bar1,FOO1: BAR1},map2: {foo2: bar2,FOO2: BAR2}}"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "=VAL :map1\n"
-            "+MAP {}\n"
-            "=VAL :foo1\n"
-            "=VAL :bar1\n"
-            "=VAL :FOO1\n"
-            "=VAL :BAR1\n"
-            "-MAP\n"
-            "=VAL :map2\n"
-            "+MAP {}\n"
-            "=VAL :foo2\n"
-            "=VAL :bar2\n"
-            "=VAL :FOO2\n"
-            "=VAL :BAR2\n"
-            "-MAP\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("map1"));
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("foo1"));
-    ___(ps.set_val_scalar_plain("bar1"));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("FOO1"));
-    ___(ps.set_val_scalar_plain("BAR1"));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("map2"));
-    ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("foo2"));
-    ___(ps.set_val_scalar_plain("bar2"));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("FOO2"));
-    ___(ps.set_val_scalar_plain("BAR2"));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
 
 //-----------------------------------------------------------------------------
 
@@ -1360,35 +1024,6 @@ ENGINE_TEST(MapMapMapBlock,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST(MapKeyFlow,
-            HAS_CONTAINER_KEYS, Location(1, 1, 2),
-            "{{foo: bar}: baz}"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "+MAP {}\n"
-            "=VAL :foo\n"
-            "=VAL :bar\n"
-            "-MAP\n"
-            "=VAL :baz\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.begin_map_key_flow());
-    ___(ps.set_key_scalar_plain("foo"));
-    ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map_flow(singleline));
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
 ENGINE_TEST(MapKeyBlock,
             HAS_CONTAINER_KEYS, Location(6,1,7),
             "? foo: bar\n: baz"
@@ -1443,36 +1078,6 @@ ENGINE_TEST(MapKeyBlockFlow,
     ___(ps.end_map_flow(singleline));
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.end_map_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(SeqKeyFlow,
-            HAS_CONTAINER_KEYS, Location(1,1,2),
-            "{[foo, bar]: baz}"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+MAP {}\n"
-            "+SEQ []\n"
-            "=VAL :foo\n"
-            "=VAL :bar\n"
-            "-SEQ\n"
-            "=VAL :baz\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_flow());
-    ___(ps.begin_seq_key_flow());
-    ___(ps.set_val_scalar_plain("foo"));
-    ___(ps.add_sibling());
-    ___(ps.set_val_scalar_plain("bar"));
-    ___(ps.end_seq_flow(singleline));
-    ___(ps.set_val_scalar_plain("baz"));
-    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -1921,6 +1526,188 @@ ENGINE_TEST(ExtraTokensNoFalseError1,
     ___(ps.end_doc_expl());
     ___(ps.end_stream());
 }
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_plain_0_0,
+                   Location(2, 1),
+                   "foo\n"
+                   ":\n"
+                   " bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_plain_0_1,
+                   Location(2, 3),
+                   "foo\n"
+                   "  :\n"
+                   " bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_plain_0_2,
+                   Location(2, 1),
+                   "foo\n"
+                   ": bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_plain_0_3,
+                   Location(2, 2),
+                   "foo\n"
+                   " : bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_plain_0_4,
+                   Location(2, 3),
+                   "foo\n"
+                   "  : bar")
+
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_plain_0_0,
+                   Location(2, 4),
+                   "foo: bar\n"
+                   "bad\n"
+                   ": yes\n")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_plain_0_1,
+                   Location(3, 2),
+                   "foo: bar\n"
+                   "bad\n"
+                   " : yes")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_plain_0_2,
+                   Location(3, 3),
+                   "foo: bar\n"
+                   "bad\n"
+                   "  : yes")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_plain_0_3,
+                   Location(3, 4),
+                   "foo: bar\n"
+                   "bad\n"
+                   "   : yes")
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_squo_0_0,
+                   Location(2, 1),
+                   "'foo'\n"
+                   ":\n"
+                   " bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_squo_0_1,
+                   Location(2, 3),
+                   "'foo'\n"
+                   "  :\n"
+                   " bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_squo_0_2,
+                   Location(2, 1),
+                   "'foo'\n"
+                   ": bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_squo_0_3,
+                   Location(2, 2),
+                   "'foo'\n"
+                   " : bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_squo_0_4,
+                   Location(2, 3),
+                   "'foo'\n"
+                   "  : bar")
+
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_squo_0_0,
+                   Location(2, 6),
+                   "'foo': bar\n"
+                   "'bad'\n"
+                   ": yes\n")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_squo_0_1,
+                   Location(2, 6),
+                   "'foo': bar\n"
+                   "'bad'\n"
+                   " : yes")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_squo_0_2,
+                   Location(2, 6),
+                   "'foo': bar\n"
+                   "'bad'\n"
+                   "  : yes")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_squo_0_3,
+                   Location(2, 6),
+                   "'foo': bar\n"
+                   "'bad'\n"
+                   "   : yes")
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_dquo_0_0,
+                   Location(2, 1),
+                   "\"foo\"\n"
+                   ":\n"
+                   " bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_dquo_0_1,
+                   Location(2, 3),
+                   "\"foo\"\n"
+                   "  :\n"
+                   " bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_dquo_0_2,
+                   Location(2, 1),
+                   "\"foo\"\n"
+                   ": bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_dquo_0_3,
+                   Location(2, 2),
+                   "\"foo\"\n"
+                   " : bar")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_first_dquo_0_4,
+                   Location(2, 3),
+                   "\"foo\"\n"
+                   "  : bar")
+
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_dquo_0_0,
+                   Location(2, 6),
+                   "\"foo\": bar\n"
+                   "\"bad\"\n"
+                   ": yes\n")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_dquo_0_1,
+                   Location(2, 6),
+                   "\"foo\": bar\n"
+                   "\"bad\"\n"
+                   " : yes")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_dquo_0_2,
+                   Location(2, 6),
+                   "\"foo\": bar\n"
+                   "\"bad\"\n"
+                   "  : yes")
+ENGINE_TEST_ERRLOC(colon_on_newl_after_second_dquo_0_3,
+                   Location(2, 6),
+                   "\"foo\": bar\n"
+                   "\"bad\"\n"
+                   "   : yes")
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC_(colon_on_newl_after_second_seq_0_0, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(3, 6),
+                    "? [seq]\n"
+                    ": bar\n"
+                    "[bad]\n"
+                    ": yes")
+ENGINE_TEST_ERRLOC_(colon_on_newl_after_second_seq_0_1, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(3, 6),
+                    "? [seq]\n"
+                    ": bar\n"
+                    "[bad]\n"
+                    " : yes")
+ENGINE_TEST_ERRLOC_(colon_on_newl_after_second_seq_0_2, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(3, 6),
+                    "? [seq]\n"
+                    ": bar\n"
+                    "[bad]\n"
+                    "  : yes")
+
+ENGINE_TEST_ERRLOC_(colon_on_newl_after_second_map_0_0, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(3, 11),
+                    "? {foo: bar}\n"
+                    ": bar\n"
+                    "{foo: bar}\n"
+                    ": yes")
+ENGINE_TEST_ERRLOC_(colon_on_newl_after_second_map_0_1, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(3, 11),
+                    "? {foo: bar}\n"
+                    ": bar\n"
+                    "{foo: bar}\n"
+                    " : yes")
+ENGINE_TEST_ERRLOC_(colon_on_newl_after_second_map_0_2, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(3, 11),
+                    "? {foo: bar}\n"
+                    ": bar\n"
+                    "{foo: bar}\n"
+                    "  : yes")
+
 } // namespace yml
 } // namespace c4
 
