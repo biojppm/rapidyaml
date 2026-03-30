@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/clang_tidy.ys
+# DO NOT EDIT - GENERATED FROM clang_tidy.ys
 
 name: clang_tidy
 defaults:

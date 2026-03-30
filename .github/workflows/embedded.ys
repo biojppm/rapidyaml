@@ -16,6 +16,8 @@
         include:: matrixvar
     steps:
       - :: checkout-action
+      - name: checkout c4core
+        run: make -C ext c4core
       - name: install
         run: |
           sudo apt-get update
@@ -39,7 +41,7 @@
       rm -rf build
       export C4_EXTERN_DIR=`pwd`/build/extern
       cmake -S . -B build \
-          -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+          -DCMAKE_TOOLCHAIN_FILE=proj/c4proj/toolchains/${{matrix.arch}}.cmake \
           -DCMAKE_BUILD_TYPE=$buildtype \
           -DCMAKE_CXX_FLAGS=" $flags" \
           -DCMAKE_C_FLAGS=" $flags" \

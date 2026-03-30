@@ -1,0 +1,15 @@
+amalgamate_utils.py
+c4CatSources.cmake
+c4Doxygen.cmake
+c4GetTargetPropertyRecursive.cmake
+c4Project.cmake
+c4StaticAnalysis.cmake
+compat/c4/gcc-4.8.hpp
+compat/gtest_gcc-4.8.patch
+ConfigurationTypes.cmake
+CreateSourceGroup.cmake
+GetFlags.cmake
+PatchUtils.cmake
+PrintVar.cmake
+PVS-Studio.cmake
+TargetArchitecture.cmake
