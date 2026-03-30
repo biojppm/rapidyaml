@@ -32,8 +32,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // tc=Y79Y_004 ; td=`echo $tc | sed s:_:/:g`  // NOLINT
 
     // flow seq
-    _("YJV2-error"              , "should not accept [-]"),
-    _("G5U8-error"              , "should not accept [-, -]"),
     _("N782-error"              , "should not accept doc tokens inside flow seq"), // same for scalars/maps
     _("Y79Y_004-error"          , "cannot use tab for indentation of block entry"),
     _("Y79Y_005-error"          , "cannot use tab for indentation of block entry"),

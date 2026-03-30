@@ -8,9 +8,9 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
-
 static constexpr const bool multiline = true;
 static constexpr const bool singleline = false;
+
 
 //-----------------------------------------------------------------------------
 
@@ -291,6 +291,111 @@ ENGINE_TEST_ERRLOC(ExtraTokensFlow2Seq2_1, Location(3,2), "---\n[a,b,c]\n}")
 ENGINE_TEST_ERRLOC(ExtraTokensFlow2Seq3_1, Location(3,1), "---\n[a,b,c]\n{")
 ENGINE_TEST_ERRLOC(ExtraTokensFlow2Seq4_1, Location(3,1), "---\n[a,b,c]\n[")
 ENGINE_TEST_ERRLOC(ExtraTokensFlow2Seq5_1, Location(3,1), "---\n[a,b,c]\n-")
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DashScalar0_0, Location(1, 2), "[-]")
+ENGINE_TEST_ERRLOC(DashScalar0_0_0, Location(1, 2), "[- ]")
+ENGINE_TEST_ERRLOC(DashScalar0_0_1, Location(1, 2), "[-\t]")
+ENGINE_TEST_ERRLOC(DashScalar0_0_2, Location(1, 2), "[-\n]")
+ENGINE_TEST_ERRLOC(DashScalar0_0_3, Location(1, 2), "[-\r\n]")
+ENGINE_TEST_ERRLOC(DashScalar0_1, Location(1, 2), "[-,-]")
+ENGINE_TEST_ERRLOC(DashScalar0_1_0, Location(1, 2), "[- ,- ]")
+ENGINE_TEST_ERRLOC(DashScalar0_1_1, Location(1, 2), "[-\t,-\t]")
+ENGINE_TEST_ERRLOC(DashScalar0_1_2, Location(1, 2), "[-\n,-\n]")
+ENGINE_TEST_ERRLOC(DashScalar0_1_3, Location(1, 2), "[-\r\n,-\r\n]")
+ENGINE_TEST_ERRLOC(DashScalar0_2, Location(1, 5), "[--,-]")
+ENGINE_TEST_ERRLOC(DashScalar0_2_0, Location(1, 5), "[-a,-]")
+ENGINE_TEST_ERRLOC(DashScalar0_2_1, Location(1, 5), "[-a,-\t]")
+ENGINE_TEST_ERRLOC(DashScalar0_2_2, Location(1, 5), "[-a,-\n]")
+ENGINE_TEST_ERRLOC(DashScalar0_2_3, Location(1, 5), "[-a,-\r\n]")
+ENGINE_TEST(DashScalar1_0,
+            "[--]"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :--\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("--"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(DashScalar1_1,
+            "[--,--]"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :--\n"
+            "=VAL :--\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("--"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("--"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(DashScalar2_0,
+            "[---]"
+            ,
+            "[  ---]"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :---\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("---"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(DashScalar2_1,
+            "[---,---]"
+            ,
+            "[  ---,  ---]"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :---\n"
+            "=VAL :---\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("---"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("---"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
 
 } // namespace yml
 } // namespace c4

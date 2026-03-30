@@ -797,6 +797,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
     // '-' and ':' are illegal at the beginning if not followed by a scalar character
     case '-':
     case ':':
+        _c4dbgpf("token='{}' len={}", _c4prc(s.str[0]), s.len);
         if(s.len > 1)
         {
             switch(s.str[1])
@@ -806,11 +807,15 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
             case '}':
             case ']':
             case '\r':
-            _RYML_WITH_TAB_TOKENS(case '\t':)
+            case '\t':
                 if(s.str[0] == ':')
                 {
                     _c4dbgpf("not a scalar: found non-scalar token '{}{}'", s.str[0], s.str[1]);
                     return false;
+                }
+                else
+                {
+                    _c4err("invalid scalar");
                 }
                 break;
             case '{':
@@ -818,12 +823,18 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
             //_RYML_WITHOUT_TAB_TOKENS(case '\t'):
                 _c4err("invalid token \":{}\"", _c4prc(s.str[1]));
                 break;
+            case ',':
+                if(s.str[0] == '-')
+                    _c4err("invalid scalar");
+                break;
             default:
                 break;
             }
         }
         else
         {
+            if(s.str[0] == '-')
+                _c4err("invalid scalar");
             return false;
         }
         break;

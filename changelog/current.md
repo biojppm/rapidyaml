@@ -31,11 +31,14 @@
     foo: bar
     ... bad tokens
     ```
-  - comments directly after comma in flow containers ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
+  - `-` is invalid scalar in flow sequences ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
     ```yaml
-    [a,b,# bad comment
-     ]
+    [-]
     ---
-    {a: b,# bad comment
-     }
+    [-,-]
+    ---
+    [--,-]
+    ---
+    [-
+     ]
     ```

@@ -616,7 +616,7 @@ N(SFM, L{
    N(VP, ":$"),
    N(VP, ":`"),
    N(MFS, L{KN|VN}),
-   _RYML_WITH_OR_WITHOUT_TAB_TOKENS(N(MFS, L{KN|VN}), N(VP, ":\t")),
+   N(MFS, L{KN|VN}),
    N(VP, "x:a"),
    N(VP, "x:0"),
    N(MFS, L{N(KP|VN, "x:", {})}),
