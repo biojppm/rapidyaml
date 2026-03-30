@@ -32,13 +32,16 @@ constexpr const AllowedFailure allowed_failures[] = {
     // tc=Y79Y_004 ; td=`echo $tc | sed s:_:/:g`  // NOLINT
 
     // flow seq
-    _("DK4H-error"              , "should not accept colon on newline"),
-    _("ZXT5-error"              , "should not accept colon on newline"),
     _("YJV2-error"              , "should not accept [-]"),
     _("G5U8-error"              , "should not accept [-, -]"),
     _("N782-error"              , "should not accept doc tokens inside flow seq"), // same for scalars/maps
     _("Y79Y_004-error"          , "cannot use tab for indentation of block entry"),
     _("Y79Y_005-error"          , "cannot use tab for indentation of block entry"),
+
+    // block seq
+    _("JKF3-error"              , "should not accept multiline unindented double quoted scalar"),
+    _("SY6V-error"              , "should not accept - after anchor"),
+    _("Y79Y_003-error"          , "should not accept leading tabs in flow value"), // same for maps
 
     // block maps
     _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
@@ -54,11 +57,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("Y79Y_007-error"          , "should not accept tab after : succeeding ?"),
     _("Y79Y_008-error"          , "should not accept tab after ?"),
     _("Y79Y_009-error"          , "should not accept tab after : succeeding ?"),
-
-    // block seq
-    _("JKF3-error"              , "should not accept multiline unindented double quoted scalar"),
-    _("SY6V-error"              , "should not accept - after anchor"),
-    _("Y79Y_003-error"          , "should not accept leading tabs in flow value"), // same for maps
 
     // single-quoted scalars
     _("RXY3-error"              , "should not accept document-end marker in single quoted string"),

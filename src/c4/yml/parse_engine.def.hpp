@@ -95,26 +95,6 @@ inline bool _is_doc_end_token(csubstr s)
 
 inline bool _is_doc_token(csubstr s) noexcept
 {
-    //
-    // NOTE: this function was failing under some scenarios when
-    // compiled with gcc -O2 (but not -O3 or -O1 or -O0), likely
-    // related to optimizer assumptions on the input string and
-    // possibly caused from UB around assignment to that string (the
-    // call site was in _scan_block()). For more details see:
-    //
-    // https://github.com/biojppm/rapidyaml/issues/440
-    //
-    // The current version does not suffer this problem, but it may
-    // appear again.
-    //
-    //
-    // UPDATE. The problem appeared again in gcc12 and gcc13 with -Os
-    // (but not any other optimization level, nor any other compiler
-    // or version), because the assignment to s is being hoisted out
-    // of the loop which calls this function. Then the length doesn't
-    // enter the s.len >= 3 when it should. Adding a
-    // C4_DONT_OPTIMIZE(var) makes the problem go away.
-    //
     if(s.len >= 3)
     {
         switch(s.str[0])
@@ -162,7 +142,7 @@ C4_ALWAYS_INLINE size_t _extend_from_combined_newline(char nl, char following)
 }
 
 //! look for the next newline chars, and jump to the right of those
-inline substr from_next_line(substr rem)
+inline substr _from_next_line(substr rem)
 {
     size_t nlpos = rem.first_of("\r\n");
     if(nlpos == csubstr::npos)
@@ -268,6 +248,7 @@ ParseEngine<EventHandler>::ParseEngine(EventHandler *evt_handler, ParserOptions 
     , m_pending_tags()
     , m_doc_empty(false)
     , m_prev_colon(npos)
+    , m_prev_val_end(npos)
     , m_encoding(NOBOM)
     , m_newline_offsets()
     , m_newline_offsets_size(0)
@@ -287,6 +268,7 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine &&that) noexcept
     , m_pending_tags(that.m_pending_tags)
     , m_doc_empty(false)
     , m_prev_colon(npos)
+    , m_prev_val_end(npos)
     , m_encoding(NOBOM)
     , m_newline_offsets(that.m_newline_offsets)
     , m_newline_offsets_size(that.m_newline_offsets_size)
@@ -306,6 +288,7 @@ ParseEngine<EventHandler>::ParseEngine(ParseEngine const& that)
     , m_pending_tags(that.m_pending_tags)
     , m_doc_empty(false)
     , m_prev_colon(npos)
+    , m_prev_val_end(npos)
     , m_encoding(NOBOM)
     , m_newline_offsets()
     , m_newline_offsets_size()
@@ -333,6 +316,7 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine &&th
     m_pending_tags = that.m_pending_tags;
     m_doc_empty = that.m_doc_empty;
     m_prev_colon = that.m_prev_colon;
+    m_prev_val_end = that.m_prev_val_end;
     m_encoding = that.m_encoding;
     m_newline_offsets = (that.m_newline_offsets);
     m_newline_offsets_size = (that.m_newline_offsets_size);
@@ -356,6 +340,7 @@ ParseEngine<EventHandler>& ParseEngine<EventHandler>::operator=(ParseEngine cons
         m_pending_tags = that.m_pending_tags;
         m_doc_empty = that.m_doc_empty;
         m_prev_colon = that.m_prev_colon;
+        m_prev_val_end = that.m_prev_val_end;
         m_encoding = that.m_encoding;
         if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
             _resize_locations(that.m_newline_offsets_capacity);
@@ -379,6 +364,7 @@ void ParseEngine<EventHandler>::_clr()
     m_pending_tags = {};
     m_doc_empty = true;
     m_prev_colon = npos;
+    m_prev_val_end = npos;
     m_encoding = NOBOM;
     m_newline_offsets = {};
     m_newline_offsets_size = {};
@@ -409,6 +395,7 @@ void ParseEngine<EventHandler>::_reset()
     m_pending_tags = {};
     m_doc_empty = true;
     m_prev_colon = npos;
+    m_prev_val_end = npos;
     m_bom_len = 0;
     m_encoding = NOBOM;
     m_bom_line = 0;
@@ -896,8 +883,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
 
     bool needs_filter = false;
     size_t col = 0; // zero-based column
-    size_t offs = 0;
-    size_t offsp1;
+    size_t offs = 0; // offset
     for( ; offs < s.len; ++offs, ++col)
     {
         const char c = s.str[offs];
@@ -910,11 +896,10 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
             goto ended_scalar;
         case '\n':
             _c4dbgpf("found newline. offs={} col={}", offs, col);
-            offsp1 = offs + 1;
-            if(s.len > offsp1)
+            if(s.len > offs + 1)
             {
-                csubstr next_line = s.sub(offsp1).triml(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
-                if(next_line.begins_with_any(",]#")) // any of the characters we're interested in
+                csubstr next_line = s.sub(offs + 1).triml(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+                if(next_line.begins_with_any(",]#:")) // any of the characters we're interested in
                 {
                     _c4dbgpf("found terminating character beginning next line: '{}'", next_line.str[0]);
                     goto ended_scalar;
@@ -932,14 +917,13 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
             break;
         case ':':
             _c4dbgp("found suspicious ':'");
-            offsp1 = offs + 1;
-            if(s.len > offsp1)
+            if(s.len > offs + 1)
             {
-                char next = s.str[offsp1];
+                char next = s.str[offs + 1];
                 _c4dbgpf("next char is '{}'", _c4prc(next));
                 if(next == '\r')
                 {
-                    csubstr after = s.sub(offsp1).triml('\r');
+                    csubstr after = s.sub(offs + 1).triml('\r');
                     if(after.len)
                     {
                         next = after.str[0];
@@ -959,7 +943,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
             }
             else
             {
-                _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, s.len == offsp1, m_evt_handler->m_curr->pos);
+                _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, s.len == offs + 1, m_evt_handler->m_curr->pos);
                 _line_progressed(col);
                 _c4err("missing termination: '{}'", c); // noreturn
             }
@@ -1461,7 +1445,7 @@ substr ParseEngine<EventHandler>::_peek_next_line(size_t pos) const
         goto next_is_empty;
 
     // look for the next newline chars, and jump to the right of those
-    rem = from_next_line(m_buf.sub(pos));
+    rem = _from_next_line(m_buf.sub(pos));
     if(rem.empty())
         goto next_is_empty;
 
@@ -1539,7 +1523,7 @@ void ParseEngine<EventHandler>::_line_ended_undo()
 
 //-----------------------------------------------------------------------------
 template<class EventHandler>
-void ParseEngine<EventHandler>::_set_indentation(size_t indentation)
+void ParseEngine<EventHandler>::_set_indentation(size_t indentation) noexcept
 {
     m_evt_handler->m_curr->indref = indentation;
     _c4dbgpf("state[{}]: saving indentation: {}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
@@ -1551,6 +1535,13 @@ void ParseEngine<EventHandler>::_save_indentation()
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.is_sub(m_evt_handler->m_curr->line_contents.full), m_evt_handler->m_curr->pos);
     m_evt_handler->m_curr->indref = m_evt_handler->m_curr->line_contents.current_col();
     _c4dbgpf("state[{}]: saving indentation: {}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->indref);
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_mark_seqflow_val_end() noexcept
+{
+    _c4dbgpf("SEQFLOW. mark val end at line={}", m_evt_handler->m_curr->pos.line);
+    m_prev_val_end = m_evt_handler->m_curr->pos.line;
 }
 
 
@@ -1588,6 +1579,11 @@ void ParseEngine<EventHandler>::_end_flow_container(size_t orig_indent)
         {
             _c4dbgp("flow container: end map as key!");
         }
+    }
+    else if(has_any(RSEQ))
+    {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, has_any(RFLOW), m_evt_handler->m_curr->pos);
+        _mark_seqflow_val_end();
     }
 }
 
@@ -5095,6 +5091,7 @@ seqflow_start:
             csubstr maybe_filtered = _maybe_filter_val_scalar_squot(sc);
             m_evt_handler->set_val_scalar_squoted(maybe_filtered);
             addrem_flags(RNXT, RVAL);
+            _mark_seqflow_val_end();
         }
         else if(first == '"')
         {
@@ -5103,6 +5100,7 @@ seqflow_start:
             csubstr maybe_filtered = _maybe_filter_val_scalar_dquot(sc);
             m_evt_handler->set_val_scalar_dquoted(maybe_filtered);
             addrem_flags(RNXT, RVAL);
+            _mark_seqflow_val_end();
         }
         // block scalars (ie | and >) cannot appear in flow containers
         else if(_scan_scalar_plain_seq_flow(&sc))
@@ -5111,6 +5109,7 @@ seqflow_start:
             csubstr maybe_filtered = _maybe_filter_val_scalar_plain(sc, m_evt_handler->m_curr->indref);
             m_evt_handler->set_val_scalar_plain(maybe_filtered);
             addrem_flags(RNXT, RVAL);
+            _mark_seqflow_val_end();
         }
         else if(first == '[')
         {
@@ -5212,6 +5211,7 @@ seqflow_start:
             {
                 _c4err("parse error: invalid comment after comma");
             }
+            _mark_seqflow_val_end();
         }
         else if(first == ']')
         {
@@ -5222,12 +5222,20 @@ seqflow_start:
         }
         else if(first == ':')
         {
-            _c4dbgpf("seqflow[RNXT]: actually seqimap at node[{}]", m_evt_handler->m_curr->node_id);
-            m_evt_handler->actually_val_is_first_key_of_new_map_flow();
-            _set_indentation(m_evt_handler->m_parent->indref);
-            _line_progressed(1);
-            addrem_flags(RSEQIMAP|RVAL, RNXT);
-            goto seqflow_finish;
+            _c4dbgpf("seqflow[RNXT]: line@valend={} line@now={}", m_prev_val_end, m_evt_handler->m_curr->pos.line);
+            if(m_prev_val_end != NONE && m_evt_handler->m_curr->pos.line == m_prev_val_end)
+            {
+                _c4dbgpf("seqflow[RNXT]: actually seqimap at node[{}]", m_evt_handler->m_curr->node_id);
+                m_evt_handler->actually_val_is_first_key_of_new_map_flow();
+                _set_indentation(m_evt_handler->m_parent->indref);
+                _line_progressed(1);
+                addrem_flags(RSEQIMAP|RVAL, RNXT);
+                goto seqflow_finish;
+            }
+            else
+            {
+                _c4err("parse error");
+            }
         }
         else
         {

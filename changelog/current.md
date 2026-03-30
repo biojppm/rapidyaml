@@ -10,7 +10,7 @@
     {map: }
     : bad
     ```
-  - colon on newline generally ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
+  - colon on newline generally in block containers ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
     ```yaml
     bad cases:
       scalar
@@ -19,6 +19,12 @@
         : bad colon
       {map: }
         : bad colon
+    ```
+  - colon on newline in flow sequences ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
+    ```yaml
+    [a
+      : 
+      b]
     ```
   - tokens after explicit document end ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
     ```yaml

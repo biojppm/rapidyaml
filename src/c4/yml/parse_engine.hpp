@@ -526,8 +526,9 @@ private:
     void  _end_doc_suddenly__pop();
     void  _end_stream();
 
-    void  _set_indentation(size_t indentation);
+    void  _set_indentation(size_t indentation) noexcept;
     void  _save_indentation();
+    void  _mark_seqflow_val_end() noexcept;
     void  _handle_indentation_pop_from_block_seq();
     void  _handle_indentation_pop_from_block_map();
     void  _handle_indentation_pop(ParserState const* dst);
@@ -694,6 +695,7 @@ private:
 
     bool m_doc_empty = true;
     size_t m_prev_colon = npos;
+    size_t m_prev_val_end = npos;
 
 private:
 
