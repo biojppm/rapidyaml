@@ -20,7 +20,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    // Nothing to see here! All valid YAML cases parse correctly. Yay!
+    // Nothing to see here! All valid YAML cases in the test suite parse correctly.
 
 
     //-------------------------------------------------------------------------
@@ -28,41 +28,57 @@ constexpr const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    // These invalid YAML cases do not materialize parse errors
-    _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
-    _("5TRB-error"              , "should not accept document-end marker in double quoted string"),
-    _("5U3A-error"              , "should not accept opening a sequence on same line as map key"),
-    _("7LBH-error"              , "should not accept multiline double quoted implicit keys"),
-    _("9C9N-error"              , "should not accept non-indented flow sequence"),
-    _("9MQT_01-error"           , "should not accept scalars after ..."),
-    _("C2SP-error"              , "should not accept flow sequence with terminating ] on the next line"),
-    _("CVW2-error"              , "should not accept flow sequence with comment after ,"),
-    _("CXX2-error"              , "should not accept mapping with anchor on document start line"),
-    _("D49Q-error"              , "should not accept multiline single quoted implicit keys"),
-    _("DK4H-error"              , "should not accept implicit key followed by newline"),
-    _("DK95_01-error"           , "should not accept leading tabs in double quoted multiline scalar"),
-    _("DK95_06-error"           , "should not accept tab indentation"),
+    // These invalid YAML cases should materialize parse errors, and currently don't.
+
+    // flow seq
+    _("CVW2-error"              , "should not accept comment after ,"),
+    _("DK4H-error"              , "should not accept colon on newline"),
+    _("ZXT5-error"              , "should not accept colon on newline"),
+    _("YJV2-error"              , "should not accept [-]"),
     _("G5U8-error"              , "should not accept [-, -]"),
-    _("H7TQ-error"              , "should not accept extra words after directive"),
+    _("N782-error"              , "should not accept doc tokens inside flow seq"), // same for scalars/maps
+    _("Y79Y_004-error"          , "cannot use tab for indentation of block entry"),
+    _("Y79Y_005-error"          , "cannot use tab for indentation of block entry"),
+
+    // block maps
+    _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
+    _("5U3A-error"              , "should not accept opening a sequence on same line as block key"),
+    _("9C9N-error"              , "should not accept non-indented flow sequence"),
+    _("C2SP-error"              , "should not accept flow sequence key with terminating ] on the next line"),
+    _("7LBH-error"              , "should not accept multiline double quoted keys"),
+    _("D49Q-error"              , "should not accept multiline single quoted keys"),
+    _("DK95_06-error"           , "should not accept tab indentation"),
+    _("QB6E-error"              , "should not accept unindented multiline double quoted scalar"),
+    _("VJP3_00-error"           , "should not accept non-indented flow map value"),
+    _("Y79Y_006-error"          , "should not accept tab after ?"),
+    _("Y79Y_007-error"          , "should not accept tab after : succeeding ?"),
+    _("Y79Y_008-error"          , "should not accept tab after ?"),
+    _("Y79Y_009-error"          , "should not accept tab after : succeeding ?"),
+
+    // block seq
     _("JKF3-error"              , "should not accept multiline unindented double quoted scalar"),
-    _("N782-error"              , "TBD"),
-    _("QB6E-error"              , "should not accept indented multiline quoted scalar"),
-    _("QLJ7-error"              , "tag directives should apply only to the next doc (?)"),
+    _("SY6V-error"              , "should not accept - after anchor"),
+    _("Y79Y_003-error"          , "should not accept leading tabs in flow value"), // same for maps
+
+    // single-quoted scalars
     _("RXY3-error"              , "should not accept document-end marker in single quoted string"),
+
+    // double-quoted scalars
+    _("5TRB-error"              , "should not accept document-end marker in double quoted string"),
+    _("9MQT_01-error"           , "should not accept document-end marker in double quoted string"),
+    _("DK95_01-error"           , "should not accept leading tabs in double quoted multiline scalar"),
+
+    // block scalars
     _("S4GJ-error"              , "should not accept text after block scalar indicator"),
     _("S98Z-error"              , "should not accept block scalar with more spaces than first content line"),
-    _("SY6V-error"              , "TBD"),
-    _("VJP3_00-error"           , "should not accept flow collections over many lines"),
     _("X4QW-error"              , "should not accept comment without whitespace after block scalar indicator"),
-    _("Y79Y_003-error"          , "should not accept leading tabs in seq elmt"),
-    _("Y79Y_004-error"          , "should not accept tab after -"),
-    _("Y79Y_005-error"          , "TBD"),
-    _("Y79Y_006-error"          , "should not accept tab after ?"),
-    _("Y79Y_007-error"          , "tabs tokens"),
-    _("Y79Y_008-error"          , "TBD"),
-    _("Y79Y_009-error"          , "should not accept tab after ?"),
-    _("YJV2-error"              , "should not accept [-]"),
-    _("ZXT5-error"              , "TBD"),
+
+    // docs
+    _("CXX2-error"              , "should not accept map with anchor after document start token"), // same for scalars/seqs
+
+    // directives
+    _("H7TQ-error"              , "should not accept extra words after directive"),
+    _("QLJ7-error"              , "tag directives should apply only to the next doc (?)"),
 
 
     //-------------------------------------------------------------------------
