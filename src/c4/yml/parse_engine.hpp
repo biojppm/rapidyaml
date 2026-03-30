@@ -608,19 +608,13 @@ private:
     static C4_ALWAYS_INLINE bool has_none(ParserFlag_t f, ParserState const* C4_RESTRICT s) noexcept { return (s->flags & f) == 0; }
 
     #ifndef RYML_DBG
-    C4_ALWAYS_INLINE static void add_flags(ParserFlag_t on, ParserState *C4_RESTRICT s) noexcept { s->flags |= on; }
-    C4_ALWAYS_INLINE static void addrem_flags(ParserFlag_t on, ParserFlag_t off, ParserState *C4_RESTRICT s) noexcept { _RYML_ASSERT_BASIC((on & off) == 0); s->flags &= ~off; s->flags |= on; }
-    C4_ALWAYS_INLINE static void rem_flags(ParserFlag_t off, ParserState *C4_RESTRICT s) noexcept { s->flags &= ~off; }
     C4_ALWAYS_INLINE void add_flags(ParserFlag_t on) noexcept { m_evt_handler->m_curr->flags |= on; }
-    C4_ALWAYS_INLINE void addrem_flags(ParserFlag_t on, ParserFlag_t off) noexcept { _RYML_ASSERT_BASIC((on & off) == 0); m_evt_handler->m_curr->flags &= ~off; m_evt_handler->m_curr->flags |= on; }
+    C4_ALWAYS_INLINE void addrem_flags(ParserFlag_t on, ParserFlag_t off) noexcept { m_evt_handler->m_curr->flags &= ~off; m_evt_handler->m_curr->flags |= on; }
     C4_ALWAYS_INLINE void rem_flags(ParserFlag_t off) noexcept { m_evt_handler->m_curr->flags &= ~off; }
     #else
-    static void add_flags(ParserFlag_t on, ParserState *C4_RESTRICT s);
-    static void addrem_flags(ParserFlag_t on, ParserFlag_t off, ParserState *C4_RESTRICT s);
-    static void rem_flags(ParserFlag_t off, ParserState *C4_RESTRICT s);
-    C4_ALWAYS_INLINE void add_flags(ParserFlag_t on) noexcept { add_flags(on, m_evt_handler->m_curr); }
-    C4_ALWAYS_INLINE void addrem_flags(ParserFlag_t on, ParserFlag_t off) noexcept { addrem_flags(on, off, m_evt_handler->m_curr); }
-    C4_ALWAYS_INLINE void rem_flags(ParserFlag_t off) noexcept { rem_flags(off, m_evt_handler->m_curr); }
+    C4_ALWAYS_INLINE void add_flags(ParserFlag_t on);
+    C4_ALWAYS_INLINE void addrem_flags(ParserFlag_t on, ParserFlag_t off);
+    C4_ALWAYS_INLINE void rem_flags(ParserFlag_t off);
     #endif
 
 private:

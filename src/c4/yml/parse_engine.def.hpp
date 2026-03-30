@@ -3921,8 +3921,9 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_folded(ScannedBlock 
 #ifdef RYML_DBG  //   !!! <----------------------------------
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::add_flags(ParserFlag_t on, ParserState * s)
+void ParseEngine<EventHandler>::add_flags(ParserFlag_t on)
 {
+    ParserState *s = m_evt_handler->m_curr;
     char buf1_[64], buf2_[64], buf3_[64];
     csubstr buf1 = detail::_parser_flags_to_str(buf1_, on);
     csubstr buf2 = detail::_parser_flags_to_str(buf2_, s->flags);
@@ -3932,8 +3933,9 @@ void ParseEngine<EventHandler>::add_flags(ParserFlag_t on, ParserState * s)
 }
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::addrem_flags(ParserFlag_t on, ParserFlag_t off, ParserState * s)
+void ParseEngine<EventHandler>::addrem_flags(ParserFlag_t on, ParserFlag_t off)
 {
+    ParserState *s = m_evt_handler->m_curr;
     char buf1_[64], buf2_[64], buf3_[64], buf4_[64];
     csubstr buf1 = detail::_parser_flags_to_str(buf1_, on);
     csubstr buf2 = detail::_parser_flags_to_str(buf2_, off);
@@ -3946,8 +3948,9 @@ void ParseEngine<EventHandler>::addrem_flags(ParserFlag_t on, ParserFlag_t off, 
 }
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::rem_flags(ParserFlag_t off, ParserState * s)
+void ParseEngine<EventHandler>::rem_flags(ParserFlag_t off)
 {
+    ParserState *s = m_evt_handler->m_curr;
     char buf1_[64], buf2_[64], buf3_[64];
     csubstr buf1 = detail::_parser_flags_to_str(buf1_, off);
     csubstr buf2 = detail::_parser_flags_to_str(buf2_, s->flags);
