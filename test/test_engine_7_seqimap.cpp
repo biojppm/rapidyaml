@@ -904,6 +904,64 @@ ENGINE_TEST(SeqIMap5QmrkMap,
     ___(ps.end_stream());
 }
 
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterPlain0, Location(2,3),
+                   "[ key"       "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterPlain1, Location(2,3),
+                   "[ key  "       "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterPlain2, Location(2,3),
+                   "[ key # comment"   "\n"
+                   "  : value ]"       "\n")
+
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterSquo0, Location(2,3),
+                   "[ 'key'"       "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterSquo1, Location(2,3),
+                   "[ 'key'  "       "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterSquo2, Location(2,3),
+                   "[ 'key' # comment"   "\n"
+                   "  : value ]"       "\n")
+
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterDquo0, Location(2,3),
+                   "[ \"key\""       "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterDquo1, Location(2,3),
+                   "[ \"key\"  "       "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC(SeqIMapColonNextLineAfterDquo2, Location(2,3),
+                   "[ \"key\" # comment"   "\n"
+                   "  : value ]"       "\n")
+
+ENGINE_TEST_ERRLOC_(SeqIMapColonNextLineAfterSeq0, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(2,3),
+                   "[ [seq]"   "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC_(SeqIMapColonNextLineAfterSeq1, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(2,3),
+                   "[ [seq]  "   "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC_(SeqIMapColonNextLineAfterSeq2, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(2,3),
+                   "[ [seq] # comment"   "\n"
+                   "  : value ]"       "\n")
+
+ENGINE_TEST_ERRLOC_(SeqIMapColonNextLineAfterMap0, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(2,3),
+                   "[ {map: yes}"   "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC_(SeqIMapColonNextLineAfterMap1, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(2,3),
+                   "[ {map: yes}  "   "\n"
+                   "  : value ]"       "\n")
+ENGINE_TEST_ERRLOC_(SeqIMapColonNextLineAfterMap2, HAS_CONTAINER_KEYS, ExpectedErrorType::err_parse,
+                    Location(2,3),
+                   "[ {map: yes} # comment"   "\n"
+                   "  : value ]"       "\n")
+
 } // namespace yml
 } // namespace c4
 
