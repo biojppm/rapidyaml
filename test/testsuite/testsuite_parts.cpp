@@ -29,9 +29,9 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // These invalid YAML cases should materialize parse errors, and currently don't.
+    // tc=Y79Y_004 ; td=`echo $tc | sed s:_:/:g`  // NOLINT
 
     // flow seq
-    _("CVW2-error"              , "should not accept comment after ,"),
     _("DK4H-error"              , "should not accept colon on newline"),
     _("ZXT5-error"              , "should not accept colon on newline"),
     _("YJV2-error"              , "should not accept [-]"),

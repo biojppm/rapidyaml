@@ -5208,6 +5208,10 @@ seqflow_start:
             addrem_flags(RVAL, RNXT);
             m_evt_handler->add_sibling();
             _line_progressed(1);
+            if(m_evt_handler->m_curr->line_contents.rem.begins_with('#'))
+            {
+                _c4err("parse error: invalid comment after comma");
+            }
         }
         else if(first == ']')
         {
@@ -5415,6 +5419,10 @@ mapflow_start:
             m_evt_handler->add_sibling();
             addrem_flags(RKEY, RKCL);
             _line_progressed(1);
+            if(m_evt_handler->m_curr->line_contents.rem.begins_with('#'))
+            {
+                _c4err("parse error: invalid comment after comma");
+            }
         }
         else
         {
@@ -5527,6 +5535,10 @@ mapflow_start:
             m_evt_handler->add_sibling();
             addrem_flags(RKEY, RNXT);
             _line_progressed(1);
+            if(m_evt_handler->m_curr->line_contents.rem.begins_with('#'))
+            {
+                _c4err("parse error: invalid comment after comma");
+            }
         }
         else if(rem.begins_with('}'))
         {

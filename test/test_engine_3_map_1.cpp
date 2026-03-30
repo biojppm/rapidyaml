@@ -214,6 +214,36 @@ ENGINE_TEST(SimpleMapFlowMultiline,
 ENGINE_TEST_ERRLOC(SimpleMapFlowErr0, Location(1,1,2), "{")
 ENGINE_TEST_ERRLOC(SimpleMapFlowErr1, Location(5,1,6), "{a: b")
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(SimpleMapFlowCommentAfterComma, Location(6,1,7), "{a: b,#c\n}")
+
+ENGINE_TEST(SimpleMapFlowCommentAfterCommaWhitespace,
+            "{a: b, #c\n}"
+            ,
+            "{\n  a: b\n}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine0Err, Location(5,1,6), "a: b: c")

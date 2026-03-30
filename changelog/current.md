@@ -1,5 +1,5 @@
 - Ensure parse errors for invalid YAML cases:
-  - [PR#585](https://github.com/biojppm/rapidyaml/pull/585): colon on newline at top level ([play](https://play.yaml.com/?show=xd#c2NhbGFyCjogYmFkCi0tLQpbc2VxXQo6IGJhZAotLS0KW21hcF0KOiBiYWQK)):
+  - colon on newline at top level ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
     ```yaml
     scalar
     : bad
@@ -10,18 +10,26 @@
     {map: }
     : bad
     ```
-  - [PR#586](https://github.com/biojppm/rapidyaml/pull/586): tokens after explicit document endcolon on newline:
+  - colon on newline generally ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
     ```yaml
     bad cases:
       scalar
-        : bad
+        : bad colon
       [seq]
-        : bad
+        : bad colon
       {map: }
-        : bad
+        : bad colon
     ```
-  - [PR#586](https://github.com/biojppm/rapidyaml/pull/586): tokens after explicit document end:
+  - tokens after explicit document end ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
     ```yaml
     foo: bar
     ... bad tokens
+    ```
+  - comments directly after comma in flow containers ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
+    ```yaml
+    [a,b,# bad comment
+     ]
+    ---
+    {a: b,# bad comment
+     }
     ```

@@ -504,7 +504,7 @@ ENGINE_TEST(SeqBlockSpace, HAS_MULTILINE_SCALAR,
     ___(ps.end_stream());
 }
 
-#ifdef RYML_FIX_THIS
+#ifdef RYML_FIXME
 ENGINE_TEST(SeqBlockTab, HAS_MULTILINE_SCALAR,
             ""
             "- a\n"
@@ -528,6 +528,36 @@ ENGINE_TEST(SeqBlockTab, HAS_MULTILINE_SCALAR,
     ___(ps.end_stream());
 }
 #endif
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(SeqFlowCommentAfterComma, Location(6,1,7), "[a, b,#c\n]")
+
+ENGINE_TEST(SeqFlowCommentAfterCommaWhitespace,
+            "[a, b, #c\n]"
+            ,
+            "[\n  a,\n  b\n]\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
 
 
 //-----------------------------------------------------------------------------
