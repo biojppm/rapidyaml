@@ -397,6 +397,87 @@ ENGINE_TEST(DashScalar2_1,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err0_0, Location(2, 1),
+                   "["         "\n"
+                   "--- ,"     "\n"
+                   "..."       "\n"
+                   "]"         "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err0_1, Location(2, 1),
+                   "["         "\n"
+                   "... ,"      "\n"
+                   "---"       "\n"
+                   "]"         "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err1_0, Location(2, 1),
+                   "["         "\n"
+                   "---,"      "\n"
+                   "..."       "\n"
+                   "]"         "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err1_1, Location(2, 1),
+                   "["         "\n"
+                   "...,"      "\n"
+                   "---"       "\n"
+                   "]"         "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err2_0, Location(2, 1),
+                   "["         "\n"
+                   "---,"      "\n"
+                   "..."       "\n"
+                   "]"         "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err2_1, Location(2, 1),
+                   "["         "\n"
+                   "...\t,"    "\n"
+                   "---\t"     "\n"
+                   "]"         "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err3, Location(4, 1),
+                   "["         "\n"
+                   ""          "\n"
+                   ""          "\n"
+                   "--- ,"     "\n"
+                   ""          "\n"
+                   ""          "\n"
+                   "..."       "\n"
+                   ""          "\n"
+                   "]"         "\n"
+                   )
+ENGINE_TEST(SeqFlowDocTokens0Ok,
+            "["         "\n"
+            " --- ,"     "\n"
+            " ..."       "\n"
+            "]"         "\n"
+            ,
+            "["         "\n"
+            "  ---,"    "\n"
+            "  ..."     "\n"
+            "]"         "\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :---\n"
+            "=VAL :...\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("---"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("..."));
+    ___(ps.end_seq_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 } // namespace yml
 } // namespace c4
 

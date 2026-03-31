@@ -974,8 +974,19 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
         case '[':
         case '{':
         case '}':
-            _line_progressed(col);
+            _line_progressed(col); // advance to report the proper position in the error
             _c4err("invalid character: '{}'", c); // noreturn
+        case '-':
+        case '.':
+            _c4dbgpf("doc token character: '{}', offs={}", c, offs);
+            if(offs == 0 && m_evt_handler->m_curr->at_line_beginning())
+            {
+                _c4dbgp("at line beginning");
+                if(s.len >= 3 && s.str[1] == c && s.str[2] == c)
+                {
+                    _c4err("parse error"); // no return
+                }
+            }
         default:
             ;
         }

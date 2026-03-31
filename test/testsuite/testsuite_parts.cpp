@@ -14,7 +14,6 @@ namespace yml {
 // https://github.com/yaml/yaml-test-suite/tree/master/src
 constexpr const AllowedFailure allowed_failures[] = {
 
-
     //-------------------------------------------------------------------------
     // SECTION 1. Known issues on valid YAML
     //
@@ -32,7 +31,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // tc=Y79Y_004 ; td=`echo $tc | sed s:_:/:g`  // NOLINT
 
     // flow seq
-    _("N782-error"              , "should not accept doc tokens inside flow seq"), // same for scalars/maps
     _("Y79Y_004-error"          , "cannot use tab for indentation of block entry"),
     _("Y79Y_005-error"          , "cannot use tab for indentation of block entry"),
 
@@ -104,26 +102,26 @@ constexpr const AllowedFailure allowed_failures[] = {
     // SECTION 4. Problems with the test suite spec.
 
     // malformed json in the test spec
-    _("35KP-in_json"            , "malformed JSON from multiple documents"),
-    _("5TYM-in_json"            , "malformed JSON from multiple documents"),
-    _("6XDY-in_json"            , "malformed JSON from multiple documents"),
-    _("6WLZ-in_json"            , "malformed JSON from multiple documents"),
-    _("6ZKB-in_json"            , "malformed JSON from multiple documents"),
-    _("7Z25-in_json"            , "malformed JSON from multiple documents"),
-    _("9DXL-in_json"            , "malformed JSON from multiple documents"),
-    _("9KAX-in_json"            , "malformed JSON from multiple documents"),
-    _("9WXW-in_json"            , "malformed JSON from multiple documents"),
-    _("JHB9-in_json"            , "malformed JSON from multiple documents"),
-    _("KSS4-in_json"            , "malformed JSON from multiple documents"),
-    _("L383-in_json"            , "malformed JSON from multiple documents"),
-    _("M7A3-in_json"            , "malformed JSON from multiple documents"),
-    _("PUW8-in_json"            , "malformed JSON from multiple documents"),
-    _("RZT7-in_json"            , "malformed JSON from multiple documents"),
-    _("U9NS-in_json"            , "malformed JSON from multiple documents"),
-    _("UT92-in_json"            , "malformed JSON from multiple documents"),
-    _("W4TN-in_json"            , "malformed JSON from multiple documents"),
+    _("35KP-in_json"            , "malformed JSON spec from multiple documents"),
+    _("5TYM-in_json"            , "malformed JSON spec from multiple documents"),
+    _("6XDY-in_json"            , "malformed JSON spec from multiple documents"),
+    _("6WLZ-in_json"            , "malformed JSON spec from multiple documents"),
+    _("6ZKB-in_json"            , "malformed JSON spec from multiple documents"),
+    _("7Z25-in_json"            , "malformed JSON spec from multiple documents"),
+    _("9DXL-in_json"            , "malformed JSON spec from multiple documents"),
+    _("9KAX-in_json"            , "malformed JSON spec from multiple documents"),
+    _("9WXW-in_json"            , "malformed JSON spec from multiple documents"),
+    _("JHB9-in_json"            , "malformed JSON spec from multiple documents"),
+    _("KSS4-in_json"            , "malformed JSON spec from multiple documents"),
+    _("L383-in_json"            , "malformed JSON spec from multiple documents"),
+    _("M7A3-in_json"            , "malformed JSON spec from multiple documents"),
+    _("PUW8-in_json"            , "malformed JSON spec from multiple documents"),
+    _("RZT7-in_json"            , "malformed JSON spec from multiple documents"),
+    _("U9NS-in_json"            , "malformed JSON spec from multiple documents"),
+    _("UT92-in_json"            , "malformed JSON spec from multiple documents"),
+    _("W4TN-in_json"            , "malformed JSON spec from multiple documents"),
     // malformed test spec?
-    _("4ABK-out_yaml-events"    , "out-yaml contains null, while in-yaml and events contain empty scalars"),
+    _("4ABK-out_yaml-events"    , "out-yaml test spec contains null, while in-yaml and events contain empty scalars"),
     _("4WA9-out_yaml-events"    , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("652Z-out_yaml-events"    , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("6CA3-emit_yaml"          , "out-yaml test spec is missing a --- document token, which is required in the events"),
@@ -194,25 +192,23 @@ constexpr const AllowedFailure container_key_cases[] = {
 };
 
 
-cspan<AllowedFailure> g_allowed_failures = allowed_failures;
-cspan<AllowedFailure> g_container_key_cases = container_key_cases;
-
-AllowedFailure is_failure_expected(csubstr casename)
+static AllowedFailure is_failure_expected_(csubstr casename, cspan<AllowedFailure> afs)
 {
     _RYML_CHECK_BASIC(casename.not_empty());
-    for(AllowedFailure const& af : g_allowed_failures)
+    for(AllowedFailure const& af : afs)
         if(af.test_name == casename || casename.begins_with(af.test_name))
             return af;
     return {};
 }
 
+AllowedFailure is_failure_expected(csubstr casename)
+{
+    return is_failure_expected_(casename, allowed_failures);
+}
+
 AllowedFailure case_has_container_keys(csubstr casename)
 {
-    _RYML_CHECK_BASIC(casename.not_empty());
-    for(AllowedFailure const& af : g_container_key_cases)
-        if(af.test_name == casename || casename.begins_with(af.test_name))
-            return af;
-    return {};
+    return is_failure_expected_(casename, container_key_cases);
 }
 
 

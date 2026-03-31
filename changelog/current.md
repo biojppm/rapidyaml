@@ -42,3 +42,15 @@
     [-
      ]
     ```
+  - doc start/begin tokens at zero indentation in seq flow ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
+    ```yaml
+    [
+    ---,
+    --- ,
+    ---\t,
+    ...,
+    ... ,
+    ...\t,
+    # etc
+    ]
+    ```
