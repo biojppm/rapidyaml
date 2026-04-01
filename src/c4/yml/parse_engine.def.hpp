@@ -1092,7 +1092,7 @@ ended_scalar:
     sc->scalar = m_buf.range(start_offset, m_evt_handler->m_curr->pos.offset).trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \n\t\r", " \n\r"));
     sc->needs_filter = needs_filter;
 
-    _c4dbgpf("scalar was [{}]~~~{}~~~", sc->scalar.len, sc->scalar);
+    _c4dbgpf("scalar was {}", _prs(sc->scalar));
 
     return sc->scalar.len > 0u;
 }
@@ -1166,7 +1166,7 @@ ended_scalar:
         _line_progressed(i);
         sc->scalar = s.first(i);
         sc->needs_filter = false;
-        _c4dbgpf("scalar was [{}]~~~{}~~~", sc->scalar.len, sc->scalar);
+        _c4dbgpf("scalar was {}", _prs(sc->scalar));
         return true;
     }
 
@@ -1196,7 +1196,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_map_json(ScannedScalar *C4_RESTRICT
         {
             sc->scalar = s.first(len);
             sc->needs_filter = false;
-            _c4dbgpf("special json scalar: '{}'", sc->scalar);
+            _c4dbgpf("special json scalar: '{}'", _prs(sc->scalar));
             _line_progressed(len);
             return true;
         }
@@ -1234,7 +1234,7 @@ ended_scalar:
         _line_progressed(i);
         sc->scalar = s.first(i);
         sc->needs_filter = false;
-        _c4dbgpf("scalar was [{}]~~~{}~~~", sc->scalar.len, sc->scalar);
+        _c4dbgpf("scalar was {}", _prs(sc->scalar));
         return true;
     }
 
@@ -1310,7 +1310,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
     bool needs_filter = false;
     while(true)
     {
-        _c4dbgpf("plain scalar line: [{}]~~~{}~~~", s.len, s);
+        _c4dbgpf("plain scalar line: {}", _prs(s));
         for(size_t i = 0; i < s.len; ++i)
         {
             const char curr = s.str[i];
@@ -1379,7 +1379,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
             {
             case '-':
                 next_peeked = next_peeked.trimr("\n\r");
-                _c4dbgpf("doc begin? peeked=[{}]~~~{}{}~~~", next_peeked.len, next_peeked.len >= 3 ? next_peeked.first(3) : next_peeked, next_peeked.len > 3 ? "..." : "");
+                _c4dbgpf("doc begin? peeked={}", _prs(next_peeked, 3));
                 if(_is_doc_begin_token(next_peeked))
                 {
                     _c4dbgp("doc begin! scalar ended");
@@ -1388,7 +1388,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
                 break;
             case '.':
                 next_peeked = next_peeked.trimr("\n\r");
-                _c4dbgpf("doc end? peeked=[{}]~~~{}{}~~~", next_peeked.len, next_peeked.len >= 3 ? next_peeked.first(3) : next_peeked, next_peeked.len > 3 ? "..." : "");
+                _c4dbgpf("doc end? peeked={}", _prs(next_peeked, 3));
                 if(_is_doc_end_token(next_peeked))
                 {
                     _c4dbgp("doc end! scalar ended");
@@ -1419,7 +1419,7 @@ ended_scalar:
     sc->scalar = m_buf.range(start_offset, m_evt_handler->m_curr->pos.offset).trimr(" \n\r\t");
     sc->needs_filter = needs_filter;
 
-    _c4dbgpf("scalar was [{}]~~~{}~~~", sc->scalar.len, sc->scalar);
+    _c4dbgpf("scalar was {}", _prs(sc->scalar));
 
     return true;
 }
@@ -1993,7 +1993,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
     {
         const csubstr line = m_evt_handler->m_curr->line_contents.rem;
         bool line_is_blank = true;
-        _c4dbgpf("scanning single quoted scalar @ line[{}]: ~~~{}~~~", m_evt_handler->m_curr->pos.line, line);
+        _c4dbgpf("scanning single quoted scalar @ line[{}]: {}", m_evt_handler->m_curr->pos.line, _prs(line));
         for(size_t i = 0; i < line.len; ++i)
         {
             const char curr = line.str[i];
@@ -2177,7 +2177,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
     }
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, s.begins_with('|') || s.begins_with('>'), m_evt_handler->m_curr->pos);
 
-    _c4dbgpf("blck: specs=[{}]~~~{}~~~", s.len, s);
+    _c4dbgpf("blck: specs={}", _prs(s));
 
     // parse the spec
     BlockChomp_e chomp = CHOMP_CLIP; // default to clip unless + or - are used
@@ -2246,7 +2246,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         #if defined(__GNUC__) && (__GNUC__ == 12 || __GNUC__ == 13)
         C4_DONT_OPTIMIZE(lc.rem);
         #endif
-        _c4dbgpf("blck: peeking at [{}]~~~{}~~~", lc.rem.trimr("\r\n").len, lc.rem.trimr("\r\n"));
+        _c4dbgpf("blck: peeking at {}", _prs(lc.rem.trimr("\r\n")));
         // evaluate termination conditions
         if(indentation != npos)
         {
@@ -2266,7 +2266,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
             }
             else if(indentation == 0)
             {
-                _c4dbgpf("blck: noindent. lc.rem=[{}]~~~{}~~~", lc.rem.len, lc.rem);
+                _c4dbgpf("blck: noindent. lc.rem={}", _prs(lc.rem));
                 if(_is_doc_token(lc.rem))
                 {
                     _c4dbgp("blck: stop. indentation=0 and doc ended");
@@ -2419,7 +2419,7 @@ bool ParseEngine<EventHandler>::_filter_ws_handle_to_first_non_space(FilterProce
         else // a legit whitespace
         {
             proc.copy();
-            _c4dbgfws("legit whitespace. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+            _c4dbgfws("legit whitespace. sofar={}", _prs(proc.sofar()));
         }
         return true;
     }
@@ -2470,7 +2470,7 @@ void ParseEngine<EventHandler>::_filter_nl_plain(FilterProcessor &C4_RESTRICT pr
 {
     _RYML_ASSERT_PARSE_(this->callbacks(), proc.curr() == '\n', m_evt_handler->m_curr->pos);
 
-    _c4dbgfps("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    _c4dbgfps("found newline. sofar={}", _prs(proc.sofar()));
     size_t ii = proc.rpos;
     const size_t numnl_following = _count_following_newlines(proc.src, &ii, indentation);
     if(numnl_following)
@@ -2484,7 +2484,7 @@ void ParseEngine<EventHandler>::_filter_nl_plain(FilterProcessor &C4_RESTRICT pr
         if(ret != npos)
         {
             proc.set(' ');
-             _c4dbgfps("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+             _c4dbgfps("single newline. convert to space. ret={}/{}. sofar={}", ii, proc.src.len, _prs(proc.sofar()));
         }
         else
         {
@@ -2500,12 +2500,12 @@ template<class FilterProcessor>
 auto ParseEngine<EventHandler>::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) -> decltype(proc.result())
 {
     _RYML_ASSERT_PARSE_(this->callbacks(), indentation != npos, m_evt_handler->m_curr->pos);
-    _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
+    _c4dbgfps("before={}", _prs(proc.src));
 
     while(proc.has_more_chars())
     {
         const char curr = proc.curr();
-        _c4dbgfps("'{}', sofar=[{}]~~~{}~~~", _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfps("'{}', sofar={}", _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case ' ':
@@ -2527,7 +2527,7 @@ auto ParseEngine<EventHandler>::_filter_plain(FilterProcessor &C4_RESTRICT proc,
         }
     }
 
-    _c4dbgfps("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
+    _c4dbgfps("after={}", _prs(proc.sofar()));
 
     return proc.result();
 }
@@ -2568,7 +2568,7 @@ void ParseEngine<EventHandler>::_filter_nl_squoted(FilterProcessor &C4_RESTRICT 
 {
     _RYML_ASSERT_PARSE_(this->callbacks(), proc.curr() == '\n', m_evt_handler->m_curr->pos);
 
-    _c4dbgfsq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    _c4dbgfsq("found newline. sofar={}", _prs(proc.sofar()));
     size_t ii = proc.rpos;
     const size_t numnl_following = _count_following_newlines(proc.src, &ii);
     if(numnl_following)
@@ -2582,12 +2582,12 @@ void ParseEngine<EventHandler>::_filter_nl_squoted(FilterProcessor &C4_RESTRICT 
         if(ret != npos)
         {
             proc.set(' ');
-            _c4dbgfsq("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+            _c4dbgfsq("single newline. convert to space. ret={}/{}. sofar={}", ii, proc.src.len, _prs(proc.sofar()));
         }
         else
         {
             proc.set(' ');
-            _c4dbgfsq("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+            _c4dbgfsq("single newline. convert to space. ii={}/{}. sofar={}", ii, proc.src.len, _prs(proc.sofar()));
         }
     }
     proc.rpos = ii;
@@ -2597,14 +2597,14 @@ template<class EventHandler>
 template<class FilterProcessor>
 auto ParseEngine<EventHandler>::_filter_squoted(FilterProcessor &C4_RESTRICT proc) -> decltype(proc.result())
 {
-    _c4dbgfsq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
+    _c4dbgfsq("before={}", _prs(proc.src));
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
     while(proc.has_more_chars())
     {
         const char curr = proc.curr();
-        _c4dbgfsq("'{}', sofar=[{}]~~~{}~~~", _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfsq("'{}', sofar={}", _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case ' ':
@@ -2639,7 +2639,7 @@ auto ParseEngine<EventHandler>::_filter_squoted(FilterProcessor &C4_RESTRICT pro
         }
     }
 
-    _c4dbgfsq(": #filteredchars={} after=~~~[{}]{}~~~", proc.src.len-proc.sofar().len, proc.sofar().len, proc.sofar());
+    _c4dbgfsq(": #filteredchars={} after={}", proc.src.len-proc.sofar().len, _prs(proc.sofar()));
 
     return proc.result();
 }
@@ -2679,7 +2679,7 @@ void ParseEngine<EventHandler>::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT 
 {
     _RYML_ASSERT_PARSE_(this->callbacks(), proc.curr() == '\n', m_evt_handler->m_curr->pos);
 
-    _c4dbgfdq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    _c4dbgfdq("found newline. sofar={}", _prs(proc.sofar()));
     size_t ii = proc.rpos;
     const size_t numnl_following = _count_following_newlines(proc.src, &ii);
     if(numnl_following)
@@ -2693,12 +2693,12 @@ void ParseEngine<EventHandler>::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT 
         if(ret != npos)
         {
             proc.set(' ');
-            _c4dbgfdq("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+            _c4dbgfdq("single newline. convert to space. ret={}/{}. sofar={}", ii, proc.src.len, _prs(proc.sofar()));
         }
         else
         {
             proc.set(' ');
-            _c4dbgfdq("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+            _c4dbgfdq("single newline. convert to space. ii={}/{}. sofar={}", ii, proc.src.len, _prs(proc.sofar()));
         }
         if(ii < proc.src.len && proc.src.str[ii] == '\\')
         {
@@ -2887,7 +2887,7 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
     {
         _c4err("unknown character '{}' after '\\' pos={}", _c4prc(next), proc.rpos);
     }
-    _c4dbgfdq("backslash...sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    _c4dbgfdq("backslash...sofar={}", _prs(proc.sofar()));
 }
 
 
@@ -2895,13 +2895,13 @@ template<class EventHandler>
 template<class FilterProcessor>
 auto ParseEngine<EventHandler>::_filter_dquoted(FilterProcessor &C4_RESTRICT proc) -> decltype(proc.result())
 {
-    _c4dbgfdq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
+    _c4dbgfdq("before={}", _prs(proc.src));
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
     while(proc.has_more_chars())
     {
         const char curr = proc.curr();
-        _c4dbgfdq("'{}' sofar=[{}]~~~{}~~~", _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfdq("'{}' sofar={}", _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case ' ':
@@ -2935,7 +2935,7 @@ auto ParseEngine<EventHandler>::_filter_dquoted(FilterProcessor &C4_RESTRICT pro
         }
         }
     }
-    _c4dbgfdq("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
+    _c4dbgfdq("after={}", _prs(proc.sofar()));
     return proc.result();
 }
 
@@ -3245,7 +3245,7 @@ template<class EventHandler>
 template<class FilterProcessor>
 auto ParseEngine<EventHandler>::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) -> decltype(proc.result())
 {
-    _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
+    _c4dbgfbl("indentation={} before={}", indentation, _prs(proc.src));
 
     size_t contents_len = _handle_all_whitespace(proc, chomp);
     if(!contents_len)
@@ -3253,7 +3253,7 @@ auto ParseEngine<EventHandler>::_filter_block_literal(FilterProcessor &C4_RESTRI
 
     contents_len = _extend_to_chomp(proc, contents_len);
 
-    _c4dbgfbl("to filter=[{}]~~~{}~~~", contents_len, proc.src.first(contents_len));
+    _c4dbgfbl("to filter={}", _prs(proc.src.first(contents_len)));
 
     _filter_block_indentation(proc, indentation);
 
@@ -3261,7 +3261,7 @@ auto ParseEngine<EventHandler>::_filter_block_literal(FilterProcessor &C4_RESTRI
     while(proc.has_more_chars(/*maxpos*/contents_len))
     {
         const char curr = proc.curr();
-        _c4dbgfbl("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfbl("'{}' sofar={}",  _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case '\n':
@@ -3280,11 +3280,11 @@ auto ParseEngine<EventHandler>::_filter_block_literal(FilterProcessor &C4_RESTRI
         }
     }
 
-    _c4dbgfbl("before chomp: #tochomp={}   sofar=[{}]~~~{}~~~", proc.rem().len, proc.sofar().len, proc.sofar());
+    _c4dbgfbl("before chomp: #tochomp={}   sofar={}", proc.rem().len, _prs(proc.sofar()));
 
     _filter_chomp(proc, chomp, indentation);
 
-    _c4dbgfbl("final=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
+    _c4dbgfbl("final={}", _prs(proc.sofar()));
 
     return proc.result();
 }
@@ -3326,7 +3326,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_newlines_leading(FilterProc
     while(proc.has_more_chars(len))
     {
         const char curr = proc.curr();
-        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfbf("'{}' sofar={}",  _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case '\n':
@@ -3394,7 +3394,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_newlines(FilterProcessor &C
     while(proc.has_more_chars(len))
     {
         const char curr = proc.curr();
-        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfbf("'{}' sofar={}",  _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case '\n':
@@ -3483,7 +3483,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_indented_block(FilterProces
     while(proc.has_more_chars(len))
     {
         const char curr = proc.curr();
-        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfbf("'{}' sofar={}",  _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case '\n':
@@ -3532,7 +3532,7 @@ template<class EventHandler>
 template<class FilterProcessor>
 auto ParseEngine<EventHandler>::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) -> decltype(proc.result())
 {
-    _c4dbgfbf("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
+    _c4dbgfbf("indentation={} before={}", indentation, _prs(proc.src));
 
     size_t contents_len = _handle_all_whitespace(proc, chomp);
     if(!contents_len)
@@ -3540,7 +3540,7 @@ auto ParseEngine<EventHandler>::_filter_block_folded(FilterProcessor &C4_RESTRIC
 
     contents_len = _extend_to_chomp(proc, contents_len);
 
-    _c4dbgfbf("to filter=[{}]~~~{}~~~", contents_len, proc.src.first(contents_len));
+    _c4dbgfbf("to filter={}", _prs(proc.src.first(contents_len)));
 
     _filter_block_folded_newlines_leading(proc, indentation, contents_len);
 
@@ -3548,7 +3548,7 @@ auto ParseEngine<EventHandler>::_filter_block_folded(FilterProcessor &C4_RESTRIC
     while(proc.has_more_chars(/*maxpos*/contents_len))
     {
         const char curr = proc.curr();
-        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfbf("'{}' sofar={}",  _c4prc(curr), _prs(proc.sofar()));
         switch(curr)
         {
         case '\n':
@@ -3566,11 +3566,11 @@ auto ParseEngine<EventHandler>::_filter_block_folded(FilterProcessor &C4_RESTRIC
         }
     }
 
-    _c4dbgfbf("before chomp: #tochomp={}   sofar=[{}]~~~{}~~~", proc.rem().len, proc.sofar().len, proc.sofar());
+    _c4dbgfbf("before chomp: #tochomp={}   sofar={}", proc.rem().len, _prs(proc.sofar()));
 
     _filter_chomp(proc, chomp, indentation);
 
-    _c4dbgfbf("final=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
+    _c4dbgfbf("final={}", proc.sofar().len, _prs(proc.sofar()));
 
     return proc.result();
 }
@@ -3599,10 +3599,10 @@ FilterResult ParseEngine<EventHandler>::filter_scalar_block_folded_in_place(subs
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_plain(substr s, size_t indentation)
 {
-    _c4dbgpf("filtering plain scalar: s=[{}]~~~{}~~~", s.len, s);
+    _c4dbgpf("filtering plain scalar: s={}", _prs(s));
     FilterResult r = this->filter_scalar_plain_in_place(s, s.len, indentation);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, r.valid(), m_evt_handler->m_curr->pos);
-    _c4dbgpf("filtering plain scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+    _c4dbgpf("filtering plain scalar: success! s={}", _prs(r.get()));
     return r.get();
 }
 
@@ -3611,10 +3611,10 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_plain(substr s, size_t indenta
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_squot(substr s)
 {
-    _c4dbgpf("filtering squo scalar: s=[{}]~~~{}~~~", s.len, s);
+    _c4dbgpf("filtering squo scalar: s={}", _prs(s));
     FilterResult r = this->filter_scalar_squoted_in_place(s, s.len);
     _RYML_ASSERT_PARSE_(this->callbacks(), r.valid(), m_evt_handler->m_curr->pos);
-    _c4dbgpf("filtering squo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+    _c4dbgpf("filtering squo scalar: success! s={}", _prs(r.get()));
     return r.get();
 }
 
@@ -3624,11 +3624,11 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_squot(substr s)
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_dquot(substr s)
 {
-    _c4dbgpf("filtering dquo scalar: s=[{}]~~~{}~~~", s.len, s);
+    _c4dbgpf("filtering dquo scalar: s={}", _prs(s));
     FilterResultExtending r = this->filter_scalar_dquoted_in_place(s, s.len);
     if(C4_LIKELY(r.valid()))
     {
-        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        _c4dbgpf("filtering dquo scalar: success! s={}", _prs(r.get()));
         return r.get();
     }
     else
@@ -3644,7 +3644,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_dquot(substr s)
             _c4dbgpf("filtering dquo scalar: ... result now needs {} was {}", rsd.required_len(), len);
             _RYML_ASSERT_PARSE_(this->callbacks(), rsd.required_len() <= len, m_evt_handler->m_curr->pos); // may be smaller!
             _RYML_CHECK_PARSE_(m_evt_handler->m_stack.m_callbacks, rsd.valid(), m_evt_handler->m_curr->pos);
-            _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
+            _c4dbgpf("filtering dquo scalar: success! s={}", _prs(rsd.get()));
             return rsd.get();
         }
         return dst;
@@ -3681,7 +3681,7 @@ csubstr ParseEngine<EventHandler>::_move_scalar_left_and_add_newline(substr s)
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t indentation, BlockChomp_e chomp)
 {
-    _c4dbgpf("filtering block literal scalar: s=[{}]~~~{}~~~", s.len, s);
+    _c4dbgpf("filtering block literal scalar: s={}", _prs(s));
     FilterResult r = this->filter_scalar_block_literal_in_place(s, s.len, indentation, chomp);
     csubstr result;
     if(C4_LIKELY(r.valid()))
@@ -3696,7 +3696,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t inden
         // so we shift left the scalar by one place
         result = _move_scalar_left_and_add_newline(s);
     }
-    _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", result.len, result);
+    _c4dbgpf("filtering block literal scalar: success! s={}", _prs(result));
     return result;
 }
 
@@ -3705,7 +3705,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t inden
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_folded(substr s, size_t indentation, BlockChomp_e chomp)
 {
-    _c4dbgpf("filtering block folded scalar: s=[{}]~~~{}~~~", s.len, s);
+    _c4dbgpf("filtering block folded scalar: s={}", _prs(s));
     FilterResult r = this->filter_scalar_block_folded_in_place(s, s.len, indentation, chomp);
     csubstr result;
     if(C4_LIKELY(r.valid()))
@@ -3720,7 +3720,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_folded(substr s, size_t indent
         // so we shift left the scalar by one place
         result = _move_scalar_left_and_add_newline(s);
     }
-    _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", result.len, result);
+    _c4dbgpf("filtering block folded scalar: success! s={}", _prs(result));
     return result;
 }
 
@@ -5162,14 +5162,14 @@ seqflow_start:
         else if(first == '*')
         {
             csubstr ref = _scan_ref_seq();
-            _c4dbgpf("seqflow[RVAL]: ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("seqflow[RVAL]: ref! {}", _prs(ref));
             m_evt_handler->set_val_ref(ref);
             addrem_flags(RNXT, RVAL);
         }
         else if(first == '&')
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("seqflow[RVAL]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("seqflow[RVAL]: anchor! {}", _prs(anchor));
             m_evt_handler->set_val_anchor(anchor);
             if(_maybe_scan_following_comma())
             {
@@ -5181,7 +5181,7 @@ seqflow_start:
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("seqflow[RVAL]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("seqflow[RVAL]: tag! {}", _prs(tag));
             _check_tag(tag);
             m_evt_handler->set_val_tag(tag);
             if(_maybe_scan_following_comma())
@@ -5371,13 +5371,13 @@ mapflow_start:
         else if(first == '&')
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("mapflow[RKEY]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("mapflow[RKEY]: key anchor! {}", _prs(anchor));
             m_evt_handler->set_key_anchor(anchor);
         }
         else if(first == '*')
         {
             csubstr ref = _scan_ref_map();
-            _c4dbgpf("mapflow[RKEY]: key ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("mapflow[RKEY]: key ref! {}", _prs(ref));
             m_evt_handler->set_key_ref(ref);
             addrem_flags(RKCL, RKEY);
         }
@@ -5410,7 +5410,7 @@ mapflow_start:
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("mapflow[RKEY]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("mapflow[RKEY]: tag! {}", _prs(tag));
             _check_tag(tag);
             m_evt_handler->set_key_tag(tag);
         }
@@ -5530,20 +5530,20 @@ mapflow_start:
         else if(first == '*')
         {
             csubstr ref = _scan_ref_map();
-            _c4dbgpf("mapflow[RVAL]: key ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("mapflow[RVAL]: key ref! {}", _prs(ref));
             m_evt_handler->set_val_ref(ref);
             addrem_flags(RNXT, RVAL);
         }
         else if(first == '&')
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("mapflow[RVAL]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("mapflow[RVAL]: key anchor! {}", _prs(anchor));
             m_evt_handler->set_val_anchor(anchor);
         }
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("mapflow[RVAL]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("mapflow[RVAL]: tag! {}", _prs(tag));
             _check_tag(tag);
             m_evt_handler->set_val_tag(tag);
         }
@@ -5642,13 +5642,13 @@ mapflow_start:
         else if(first == '&')
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("mapflow[QMRK]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("mapflow[QMRK]: key anchor! {}", _prs(anchor));
             m_evt_handler->set_key_anchor(anchor);
         }
         else if(first == '*')
         {
             csubstr ref = _scan_ref_map();
-            _c4dbgpf("mapflow[QMRK]: key ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("mapflow[QMRK]: key ref! {}", _prs(ref));
             m_evt_handler->set_key_ref(ref);
             addrem_flags(RKCL, QMRK);
         }
@@ -5681,7 +5681,7 @@ mapflow_start:
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("mapflow[QMRK]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("mapflow[QMRK]: tag! {}", _prs(tag));
             _check_tag(tag);
             m_evt_handler->set_key_tag(tag);
         }
@@ -5972,7 +5972,7 @@ seqblck_start:
         else if(first == '&')
         {
             const csubstr anchor = _scan_anchor();
-            _c4dbgpf("seqblck[RVAL]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("seqblck[RVAL]: anchor! {}", _prs(anchor));
             // we need to buffer the anchors, as there may be two
             // consecutive anchors in here
             _add_annotation(&m_pending_anchors, anchor, startindent, startline);
@@ -5980,7 +5980,7 @@ seqblck_start:
         else if(first == '*')
         {
             csubstr ref = _scan_ref_seq();
-            _c4dbgpf("seqblck[RVAL]: ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("seqblck[RVAL]: ref! {}", _prs(ref));
             if(!_maybe_scan_following_colon())
             {
                 _c4dbgp("seqblck[RVAL]: set ref as val!");
@@ -6005,7 +6005,7 @@ seqblck_start:
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("seqblck[RVAL]: val tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("seqblck[RVAL]: val tag! {}", _prs(tag));
             // we need to buffer the tags, as there may be two
             // consecutive tags in here
             _add_annotation(&m_pending_tags, tag, startindent, startline);
@@ -6101,8 +6101,7 @@ seqblck_start:
             else
             {
                 _skipchars(" \t");
-                rem = m_evt_handler->m_curr->line_contents.rem;
-                if(!rem.len)
+                if(!m_evt_handler->m_curr->line_contents.rem.len)
                 {
                     _c4dbgp("seqblck[RNXT]: again");
                     goto seqblck_again;
@@ -6174,11 +6173,7 @@ seqblck_start:
             // may be an indentless sequence nested in a map...
             //if(m_evt_handler->m_stack.size() >= 2)
             #ifdef RYML_DBG
-            char flagbuf_[128];
-            for(auto const& s : m_evt_handler->m_stack)
-            {
-                _dbg_printf("state[{}]: ind={} node={} flags={}\n", s.level, s.indref, s.node_id, detail::_parser_flags_to_str(flagbuf_, s.flags));
-            }
+            _print_state_stack();
             #endif
             if(m_evt_handler->m_parent && has_all(RMAP|RBLCK, m_evt_handler->m_parent) && m_evt_handler->m_curr->indref == m_evt_handler->m_parent->indref)
             {
@@ -6356,7 +6351,7 @@ mapblck_start:
         else if(first == '*')
         {
             csubstr ref = _scan_ref_map();
-            _c4dbgpf("mapblck[RKEY]: key ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("mapblck[RKEY]: key ref! {}", _prs(ref));
             _handle_annotations_before_blck_key_scalar();
             m_evt_handler->set_key_ref(ref);
             addrem_flags(RVAL, RKEY);
@@ -6367,13 +6362,13 @@ mapblck_start:
         else if(first == '&')
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("mapblck[RKEY]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("mapblck[RKEY]: key anchor! {}", _prs(anchor));
             _add_annotation(&m_pending_anchors, anchor, startindent, startline);
         }
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("mapblck[RKEY]: key tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("mapblck[RKEY]: key tag! {}", _prs(tag));
             _add_annotation(&m_pending_tags, tag, startindent, startline);
         }
         else if(first == '[')
@@ -6742,7 +6737,7 @@ mapblck_start:
         else if(first == '*')
         {
             csubstr ref = _scan_ref_map();
-            _c4dbgpf("mapblck[RVAL]: ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("mapblck[RVAL]: ref! {}", _prs(ref));
             if(startindent == m_evt_handler->m_curr->indref)
             {
                 _c4dbgpf("mapblck[RVAL]: same indentation {}", startindent);
@@ -6777,7 +6772,7 @@ mapblck_start:
         else if(first == '&')
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("mapblck[RVAL]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("mapblck[RVAL]: anchor! {}", _prs(anchor));
             if(startindent == m_evt_handler->m_curr->indref)
             {
                 _c4dbgp("mapblck[RVAL]: anchor for next key. val is missing!");
@@ -6792,7 +6787,7 @@ mapblck_start:
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("mapblck[RVAL]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("mapblck[RVAL]: tag! {}", _prs(tag));
             if(startindent == m_evt_handler->m_curr->indref)
             {
                 _c4dbgp("mapblck[RVAL]: tag for next key. val is missing!");
@@ -7202,7 +7197,7 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
     else if(first == '*')
     {
         csubstr ref = _scan_ref_map();
-        _c4dbgpf("mapblck[QMRK]: key ref! [{}]~~~{}~~~", ref.len, ref);
+        _c4dbgpf("mapblck[QMRK]: key ref! {}", _prs(ref));
         addrem_flags(RKCL, QMRK);
         if(!_maybe_scan_following_colon())
         {
@@ -7225,13 +7220,13 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
     else if(first == '&')
     {
         csubstr anchor = _scan_anchor();
-        _c4dbgpf("mapblck[QMRK]: key anchor! [{}]~~~{}~~~", anchor.len, anchor);
+        _c4dbgpf("mapblck[QMRK]: key anchor! {}", _prs(anchor));
         _add_annotation(&m_pending_anchors, anchor, startindent, startline);
     }
     else if(first == '!')
     {
         csubstr tag = _scan_tag();
-        _c4dbgpf("mapblck[QMRK]: key tag! [{}]~~~{}~~~", tag.len, tag);
+        _c4dbgpf("mapblck[QMRK]: key tag! {}", _prs(tag));
         _add_annotation(&m_pending_tags, tag, startindent, startline);
     }
     else if(first == '-')
@@ -7439,7 +7434,7 @@ void ParseEngine<EventHandler>::_handle_unk_json()
         rem = m_evt_handler->m_curr->line_contents.rem;
         if(!rem.len)
             return;
-        _c4dbgpf("rem is now [{}]~~~{}~~~", rem.len, rem);
+        _c4dbgpf("rem is now {}", _prs(rem));
     }
 
     if(rem.begins_with('['))
@@ -7549,7 +7544,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         rem = m_evt_handler->m_curr->line_contents.rem;
         if(!rem.len)
             return;
-        _c4dbgpf("rem is now [{}]~~~{}~~~", rem.len, rem);
+        _c4dbgpf("rem is now {}", _prs(rem));
     }
 
     if(m_evt_handler->m_curr->line_contents.indentation == 0u && (_at_line_begin() || (m_bom_len && (m_evt_handler->m_curr->pos.line == m_bom_line))))
@@ -7703,7 +7698,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         m_evt_handler->begin_map_val_block();
         addrem_flags(RMAP|RBLCK|QMRK, RKEY|RVAL|RTOP|RUNK|RDOC);
         m_doc_empty = false;
-        _set_indentation(remindent); //_save_indentation();
+        _set_indentation(remindent);
         _line_progressed(1);
         _maybe_skip_whitespace_tokens();
     }
@@ -7734,7 +7729,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     else if(first == '&')
     {
         csubstr anchor = _scan_anchor();
-        _c4dbgpf("anchor! [{}]~~~{}~~~", anchor.len, anchor);
+        _c4dbgpf("anchor! {}", _prs(anchor));
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         const size_t line = m_evt_handler->m_curr->pos.line;
@@ -7745,7 +7740,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     else if(first == '*')
     {
         csubstr ref = _scan_ref_map();
-        _c4dbgpf("ref! [{}]~~~{}~~~", ref.len, ref);
+        _c4dbgpf("ref! {}", _prs(ref));
         m_evt_handler->check_trailing_doc_token();
         _maybe_begin_doc();
         m_doc_empty = false;
@@ -7771,7 +7766,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     else if(first == '!')
     {
         csubstr tag = _scan_tag();
-        _c4dbgpf("unk: val tag! [{}]~~~{}~~~", tag.len, tag);
+        _c4dbgpf("unk: val tag! {}", _prs(tag));
         // we need to buffer the tags, as there may be two
         // consecutive tags in here
         const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
@@ -7951,7 +7946,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
         rem = m_evt_handler->m_curr->line_contents.rem;
         if(!rem.len)
             return;
-        _c4dbgpf("rem is now [{}]~~~{}~~~", rem.len, rem);
+        _c4dbgpf("rem is now {}", _prs(rem));
     }
 
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, rem.len > 0, m_evt_handler->m_curr->pos);
@@ -8027,7 +8022,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
         else if(rem.begins_with('&'))
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("usty[RMAP]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("usty[RMAP]: anchor! {}", _prs(anchor));
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
             const size_t line = m_evt_handler->m_curr->pos.line;
             _add_annotation(&m_pending_anchors, anchor, indentation, line);
@@ -8036,7 +8031,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
         else if(first == '*')
         {
             csubstr ref = _scan_ref_map();
-            _c4dbgpf("usty[RMAP]: ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("usty[RMAP]: ref! {}", _prs(ref));
             if(!_maybe_scan_following_colon())
             {
                 _c4err("cannot read a VAL to a map");
@@ -8058,7 +8053,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("usty[RMAP]: val tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("usty[RMAP]: val tag! {}", _prs(tag));
             // we need to buffer the tags, as there may be two
             // consecutive tags in here
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
@@ -8218,7 +8213,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
         else if(first == '&')
         {
             csubstr anchor = _scan_anchor();
-            _c4dbgpf("usty[UNK]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
+            _c4dbgpf("usty[UNK]: anchor! {}", _prs(anchor));
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);
             const size_t line = m_evt_handler->m_curr->pos.line;
             _add_annotation(&m_pending_anchors, anchor, indentation, line);
@@ -8227,7 +8222,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
         else if(first == '*')
         {
             csubstr ref = _scan_ref_map();
-            _c4dbgpf("usty[UNK]: ref! [{}]~~~{}~~~", ref.len, ref);
+            _c4dbgpf("usty[UNK]: ref! {}", _prs(ref));
             if(!_maybe_scan_following_colon())
             {
                 _c4dbgp("usty[UNK]: set val ref");
@@ -8251,7 +8246,7 @@ C4_COLD void ParseEngine<EventHandler>::_handle_usty()
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
-            _c4dbgpf("usty[UNK]: val tag! [{}]~~~{}~~~", tag.len, tag);
+            _c4dbgpf("usty[UNK]: val tag! {}", _prs(tag));
             // we need to buffer the tags, as there may be two
             // consecutive tags in here
             const size_t indentation = m_evt_handler->m_curr->line_contents.current_col(rem);

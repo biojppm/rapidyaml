@@ -1,7 +1,8 @@
 #ifndef C4_TEST_MAIN_HPP_
 #define C4_TEST_MAIN_HPP_
 
-
+/** we need to ensure callbacks are always enabled in the tests, even
+ * when RYML_NO_DEFAULT_CALLBACKS is defined */
 #define RYML_DEFINE_TEST_MAIN()           \
 int main(int argc, char **argv)           \
 {                                         \

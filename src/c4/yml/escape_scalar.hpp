@@ -54,7 +54,7 @@ void escape_scalar_fn(Fn &&fn, csubstr scalar, bool keep_newlines=false)
     csubstr repl;      // replacement string
     bool newl = false; // to add a newline
     // cast to u8 to avoid having to deal with negative
-    // signed chars (which are present some platforms)
+    // signed chars (which are present in some platforms)
     uint8_t const* C4_RESTRICT s = reinterpret_cast<uint8_t const*>(scalar.str); // NOLINT(*-reinterpret-cast)
     // NOLINTBEGIN(*-goto)
     for(size_t i = 0; i < scalar.len; ++i)
@@ -163,9 +163,9 @@ void escape_scalar_fn(Fn &&fn, csubstr scalar, bool keep_newlines=false)
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
 /** Escape a scalar to an existing buffer, using @ref escape_scalar_fn
  *
- * @note This is a utility/debugging functions, so it is provided in this
+ * @note This is a utility/debugging function, so it is provided in this
  * (optional) header. For this reason, we inline it to obey to the
- * One-Definition Rule. But then we set the noinline attribute to
+ * One Definition Rule. But then we set the noinline attribute to
  * ensure they are not inlined in calling code. */
 inline C4_NO_INLINE size_t escape_scalar(substr buffer, csubstr scalar, bool keep_newlines=false)
 {
@@ -175,7 +175,7 @@ inline C4_NO_INLINE size_t escape_scalar(substr buffer, csubstr scalar, bool kee
             memcpy(buffer.str + pos, repl.str, repl.len);
         pos += repl.len;
     };
-    escape_scalar_fn(_append, scalar, keep_newlines);
+    escape_scalar_fn(std::ref(_append), scalar, keep_newlines);
     return pos;
 }
 C4_SUPPRESS_WARNING_GCC_POP
@@ -190,11 +190,19 @@ struct escaped_scalar
 };
 
 /** formatting implementation to escape a scalar with @ref escape_scalar()x */
-inline size_t to_chars(substr buf, escaped_scalar e)
+inline C4_NO_INLINE size_t to_chars(substr buf, escaped_scalar e)
 {
     return escape_scalar(buf, e.scalar, e.keep_newlines);
 }
-
+/** dumping implementation to escape a scalar with @ref escape_scalar_fn()x */
+template<class SinkPfn>
+C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr buf, escaped_scalar const& e)
+{
+    (void)buf;
+    C4_ASSERT(!buf.overlaps(e.scalar));
+    escape_scalar_fn(std::forward<SinkPfn>(sinkfn), e.scalar, e.keep_newlines);
+    return 0;
+}
 
 } // namespace yml
 } // namespace c4
