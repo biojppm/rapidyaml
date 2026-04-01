@@ -170,12 +170,12 @@ C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
 inline C4_NO_INLINE size_t escape_scalar(substr buffer, csubstr scalar, bool keep_newlines=false)
 {
     size_t pos = 0;
-    auto _append = [&pos, &buffer](csubstr repl){
+    auto append_ = [&pos, &buffer](csubstr repl){
         if(repl.len && (pos + repl.len <= buffer.len))
             memcpy(buffer.str + pos, repl.str, repl.len);
         pos += repl.len;
     };
-    escape_scalar_fn(std::ref(_append), scalar, keep_newlines);
+    escape_scalar_fn(append_, scalar, keep_newlines);
     return pos;
 }
 C4_SUPPRESS_WARNING_GCC_POP

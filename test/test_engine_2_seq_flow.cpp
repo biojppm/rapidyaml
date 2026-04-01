@@ -400,43 +400,43 @@ ENGINE_TEST(DashScalar2_1,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err0_0, Location(2, 1),
+ENGINE_TEST_ERRLOC(DocTokens0Err0_0, Location(2, 1),
                    "["         "\n"
                    "--- ,"     "\n"
                    "..."       "\n"
                    "]"         "\n"
                    )
-ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err0_1, Location(2, 1),
+ENGINE_TEST_ERRLOC(DocTokens0Err0_1, Location(2, 1),
                    "["         "\n"
                    "... ,"      "\n"
                    "---"       "\n"
                    "]"         "\n"
                    )
-ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err1_0, Location(2, 1),
+ENGINE_TEST_ERRLOC(DocTokens0Err1_0, Location(2, 1),
                    "["         "\n"
                    "---,"      "\n"
                    "..."       "\n"
                    "]"         "\n"
                    )
-ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err1_1, Location(2, 1),
+ENGINE_TEST_ERRLOC(DocTokens0Err1_1, Location(2, 1),
                    "["         "\n"
                    "...,"      "\n"
                    "---"       "\n"
                    "]"         "\n"
                    )
-ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err2_0, Location(2, 1),
+ENGINE_TEST_ERRLOC(DocTokens0Err2_0, Location(2, 1),
                    "["         "\n"
                    "---,"      "\n"
                    "..."       "\n"
                    "]"         "\n"
                    )
-ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err2_1, Location(2, 1),
+ENGINE_TEST_ERRLOC(DocTokens0Err2_1, Location(2, 1),
                    "["         "\n"
                    "...\t,"    "\n"
                    "---\t"     "\n"
                    "]"         "\n"
                    )
-ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err3, Location(4, 1),
+ENGINE_TEST_ERRLOC(DocTokens0Err3, Location(4, 1),
                    "["         "\n"
                    ""          "\n"
                    ""          "\n"
@@ -447,7 +447,8 @@ ENGINE_TEST_ERRLOC(SeqFlowDocTokens0Err3, Location(4, 1),
                    ""          "\n"
                    "]"         "\n"
                    )
-ENGINE_TEST(SeqFlowDocTokens0Ok,
+
+ENGINE_TEST(DocTokens0Ok,
             "["         "\n"
             " --- ,"     "\n"
             " ..."       "\n"
@@ -477,6 +478,897 @@ ENGINE_TEST(SeqFlowDocTokens0Ok,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(SeqNestedIndentTab, Location(3, 1),
+                   "- ["      "\n"
+                   " foo,"     "\n"
+                   "\tfoo,"   "\n"
+                   " ]"       "\n"
+                   )
+
+
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_00, Location(5, 1),
+                   "- ["     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   "- ["     "\n"
+                   "a"     "\n" // error here
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_0, Location(6, 1),
+                   "- ["     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   "- ["     "\n"
+                   " a"     "\n"
+                   "]"     "\n" // error here
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_1, Location(3, 1),
+                   "- ["     "\n"
+                   " a,"     "\n"
+                   "a"     "\n" // error here
+                   "]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_2, Location(3, 1),
+                   "- ["     "\n"
+                   " a"     "\n"
+                   ","     "\n" // error here
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_3, Location(3, 1),
+                   "- ["     "\n"
+                   " a"     "\n"
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_4, Location(6, 1),
+                   "- ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"     "\n"
+                   " a"     "\n"
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_5_0, Location(7, 1),
+                   "- ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_5_1, Location(8, 1),
+                   "- ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test this case as well
+                   "    "   "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_5_2, Location(9, 1),
+                   "- ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test this case as well
+                   "    "   "\n" // important to test this case as well
+                   "    "   "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_6_0, Location(7, 1),
+                   "- ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_6_1, Location(8, 1),
+                   "- ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent0_6_2, Location(9, 1),
+                   "- ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+
+
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_00, Location(5, 3),
+                   "- - ["     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   "  - ["     "\n"
+                   "  a"     "\n" // error here
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_0, Location(6, 3),
+                   "- - ["     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   "  - ["     "\n"
+                   "   a"     "\n"
+                   "  ]"     "\n" // error here
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_1, Location(3, 3),
+                   "- - ["     "\n"
+                   "   a,"     "\n"
+                   "  a"     "\n" // error here
+                   "  ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_2, Location(3, 3),
+                   "- - ["     "\n"
+                   "   a"     "\n"
+                   "  ,"     "\n" // error here
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_3, Location(3, 3),
+                   "- - ["     "\n"
+                   "   a"     "\n"
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_4, Location(6, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"     "\n"
+                   "   a"     "\n"
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_5_0, Location(7, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_5_1, Location(8, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test this case as well
+                   "      "   "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_5_2, Location(9, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test this case as well
+                   "      "   "\n" // important to test this case as well
+                   "      "   "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_6_0, Location(7, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_6_1, Location(8, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_6_2, Location(9, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_7_0, Location(7, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   " "       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_7_1, Location(8, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   " "       "\n" // important to test this case as well
+                   " "       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent1_7_2, Location(9, 3),
+                   "- - ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   " "       "\n" // important to test this case as well
+                   " "       "\n" // important to test this case as well
+                   " "       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_00, Location(5, 5),
+                   "- - - ["     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   "    - ["     "\n"
+                   "    a"     "\n" // error here
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_0, Location(6, 5),
+                   "- - - ["     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   "    - ["     "\n"
+                   "     a"     "\n"
+                   "    ]"     "\n" // error here
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_1, Location(3, 5),
+                   "- - - ["     "\n"
+                   "     a,"     "\n"
+                   "    a"     "\n" // error here
+                   "    ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_2, Location(3, 5),
+                   "- - - ["     "\n"
+                   "     a"     "\n"
+                   "    ,"     "\n" // error here
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_3, Location(3, 5),
+                   "- - - ["     "\n"
+                   "     a"     "\n"
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_4, Location(6, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"     "\n"
+                   "     a"     "\n"
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_5_0, Location(7, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_5_1, Location(8, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test this case as well
+                   "        "   "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_5_2, Location(9, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test this case as well
+                   "        "   "\n" // important to test this case as well
+                   "        "   "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_6_0, Location(7, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_6_1, Location(8, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_6_2, Location(9, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_7_0, Location(7, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   " "       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_7_1, Location(8, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   " "       "\n" // important to test this case as well
+                   " "       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndent2_7_2, Location(9, 5),
+                   "- - - ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   " "       "\n" // important to test this case as well
+                   " "       "\n" // important to test this case as well
+                   " "       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(MapNestedIndent0_00, Location(5, 1),
+                   "k: ["     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   "k: ["     "\n"
+                   "a"     "\n" // error here
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_0, Location(6, 1),
+                   "k: ["     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   "k: ["     "\n"
+                   " a"     "\n"
+                   "]"     "\n" // error here
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_1, Location(3, 1),
+                   "k: ["     "\n"
+                   " a,"     "\n"
+                   "a"     "\n" // error here
+                   "]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_2, Location(3, 1),
+                   "k: ["     "\n"
+                   " a"     "\n"
+                   ","     "\n" // error here
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_3, Location(3, 1),
+                   "k: ["     "\n"
+                   " a"     "\n"
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_4, Location(6, 1),
+                   "k: ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"     "\n"
+                   " a"     "\n"
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_5_0, Location(7, 1),
+                   "k: ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_5_1, Location(8, 1),
+                   "k: ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test this case as well
+                   "    "   "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_5_2, Location(9, 1),
+                   "k: ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test this case as well
+                   "    "   "\n" // important to test this case as well
+                   "    "   "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_6_0, Location(7, 1),
+                   "k: ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_6_1, Location(8, 1),
+                   "k: ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent0_6_2, Location(9, 1),
+                   "k: ["     "\n"
+                   "  a"     "\n"
+                   " b"     "\n"
+                   " ,"      "\n"
+                   " a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "b"     "\n"
+                   ","     "\n"
+                   " a"     "\n"
+                   " ]"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(MapNestedIndent1_00, Location(1 + 5, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   "  k: ["     "\n"
+                   "  a"     "\n" // error here
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_0, Location(1 + 6, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   "  k: ["     "\n"
+                   "   a"     "\n"
+                   "  ]"     "\n" // error here
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_1, Location(1 + 3, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "   a,"     "\n"
+                   "  a"     "\n" // error here
+                   "  ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_2, Location(1 + 3, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "   a"     "\n"
+                   "  ,"     "\n" // error here
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_3, Location(1 + 3, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "   a"     "\n"
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_4, Location(1 + 6, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"     "\n"
+                   "   a"     "\n"
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_5_0, Location(1 + 7, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_5_1, Location(1 + 8, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test this case as well
+                   "      "   "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_5_2, Location(1 + 9, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test this case as well
+                   "      "   "\n" // important to test this case as well
+                   "      "   "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_6_0, Location(1 + 7, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   ""        "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_6_1, Location(1 + 8, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent1_6_2, Location(1 + 9, 1 + 2),
+                   "k:"     "\n"
+                   "  k: ["     "\n"
+                   "    a"     "\n"
+                   "   b"     "\n"
+                   "   ,"      "\n"
+                   "   a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "  b"     "\n"
+                   "  ,"     "\n"
+                   "   a"     "\n"
+                   "   ]"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(MapNestedIndent2_00, Location(2 + 5, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   "    k: ["     "\n"
+                   "    a"     "\n" // error here
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_0, Location(2 + 6, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   "    k: ["     "\n"
+                   "     a"     "\n"
+                   "    ]"     "\n" // error here
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_1, Location(2 + 3, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "     a,"     "\n"
+                   "    a"     "\n" // error here
+                   "    ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_2, Location(2 + 3, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "     a"     "\n"
+                   "    ,"     "\n" // error here
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_3, Location(2 + 3, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "     a"     "\n"
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_4, Location(2 + 6, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"     "\n"
+                   "     a"     "\n"
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_5_0, Location(2 + 7, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_5_1, Location(2 + 8, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test this case as well
+                   "        "   "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_5_2, Location(2 + 9, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test this case as well
+                   "        "   "\n" // important to test this case as well
+                   "        "   "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_6_0, Location(2 + 7, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   ""        "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_6_1, Location(2 + 8, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "     ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapNestedIndent2_6_2, Location(2 + 9, 1 + 4),
+                   "k:"     "\n"
+                   "  k:"     "\n"
+                   "    k: ["     "\n"
+                   "      a"     "\n"
+                   "     b"     "\n"
+                   "     ,"      "\n"
+                   "     a"     "\n"
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   ""       "\n" // important to test this case as well
+                   "    b"     "\n"
+                   "    ,"     "\n"
+                   "     a"     "\n"
+                   "     ]"     "\n"
+                   )
 
 } // namespace yml
 } // namespace c4

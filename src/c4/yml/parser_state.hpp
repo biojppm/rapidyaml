@@ -60,9 +60,6 @@ struct LineContents
     size_t  num_cols;    ///< number of columns in the line, excluding newline
                          ///< characters (ie the initial size of rem)
     size_t  indentation; ///< number of spaces on the beginning of the line.
-                         ///< TODO this should not be a member of this object.
-                         ///< We only care about indentation in block mode, so
-                         ///< this should be moved to the parser state.
 
     LineContents() RYML_NOEXCEPT = default;
 

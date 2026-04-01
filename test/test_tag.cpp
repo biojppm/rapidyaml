@@ -1232,9 +1232,9 @@ R"([
 
 ADD_CASE_TO_GROUP("tagged explicit sequence in map, std tags",
 R"(some_seq: !!its_type [
-!!int 0,
-!!str 0
-]
+ !!int 0,
+ !!str 0
+ ]
 )",
 N(MB, L{N(KP|SFM, "some_seq", TL("!!its_type", L{
               N(VP, TS("!!int", "0")),
@@ -1245,9 +1245,9 @@ N(MB, L{N(KP|SFM, "some_seq", TL("!!its_type", L{
 
 ADD_CASE_TO_GROUP("tagged explicit sequence in map, usr tags",
 R"(some_seq: !its_type [
-!int 0,
-!str 0
-]
+ !int 0,
+ !str 0
+ ]
 )",
 N(MB, L{N(KP|SFM, "some_seq", TL("!its_type", L{
               N(VP, TS("!int", "0")),

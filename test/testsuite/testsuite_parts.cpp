@@ -4,15 +4,16 @@ namespace c4 {
 namespace yml {
 
 
+namespace {
+
 // g++-5 does not like creating a csubstr directly from the literal.
 // so we use this macro (undefined at the end) to make the
 // declarations less verbose:
 #define _(testcase, reason) AllowedFailure{csubstr(testcase), csubstr(reason)}
 
-
 // To see the test case contents, refer to this URL:
 // https://github.com/yaml/yaml-test-suite/tree/master/src
-constexpr const AllowedFailure allowed_failures[] = {
+const AllowedFailure allowed_failures[] = {
 
     //-------------------------------------------------------------------------
     // SECTION 1. Known issues on valid YAML
@@ -37,18 +38,15 @@ constexpr const AllowedFailure allowed_failures[] = {
     // block seq
     _("JKF3-error"              , "should not accept multiline unindented double quoted scalar"),
     _("SY6V-error"              , "should not accept - after anchor"),
-    _("Y79Y_003-error"          , "should not accept leading tabs in flow value"), // same for maps
 
     // block maps
     _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
     _("5U3A-error"              , "should not accept opening a sequence on same line as block key"),
-    _("9C9N-error"              , "should not accept non-indented flow sequence"),
     _("C2SP-error"              , "should not accept flow sequence key with terminating ] on the next line"),
     _("7LBH-error"              , "should not accept multiline double quoted keys"),
     _("D49Q-error"              , "should not accept multiline single quoted keys"),
     _("DK95_06-error"           , "should not accept tab indentation"),
     _("QB6E-error"              , "should not accept unindented multiline double quoted scalar"),
-    _("VJP3_00-error"           , "should not accept non-indented flow map value"),
     _("Y79Y_006-error"          , "should not accept tab after ?"),
     _("Y79Y_007-error"          , "should not accept tab after : succeeding ?"),
     _("Y79Y_008-error"          , "should not accept tab after ?"),
@@ -191,8 +189,10 @@ constexpr const AllowedFailure container_key_cases[] = {
 
 };
 
+#undef _
 
-static AllowedFailure is_failure_expected_(csubstr casename, cspan<AllowedFailure> afs)
+
+AllowedFailure is_failure_expected_(csubstr casename, cspan<AllowedFailure> afs)
 {
     _RYML_CHECK_BASIC(casename.not_empty());
     for(AllowedFailure const& af : afs)
@@ -200,6 +200,8 @@ static AllowedFailure is_failure_expected_(csubstr casename, cspan<AllowedFailur
             return af;
     return {};
 }
+} // namespace anon
+
 
 AllowedFailure is_failure_expected(csubstr casename)
 {

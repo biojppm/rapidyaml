@@ -66,19 +66,13 @@ R"(a: [plain
 N(MB, L{N(KP|SFM, "a", L{N(VP, "plain scalar follows")})})
 );
 
-// FIXME: this should be a parse error
-ADD_CASE_TO_GROUP("plain scalar indentation, 3.1",
+ADD_CASE_TO_GROUP("plain scalar indentation, 3.1", EXPECT_PARSE_ERROR,
 R"(a: [plain
  scalar
  follows
 ]
 b: c
-)",
-N(MB, L{
-  N(KP|SFM, "a", L{N(VP, "plain scalar follows")}),
-  N(KP|VP, "b", "c"),
-})
-);
+)");
 
 ADD_CASE_TO_GROUP("4 chars",
 R"(

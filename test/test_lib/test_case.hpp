@@ -305,6 +305,7 @@ typedef enum {
     JSON_READ = (1<<4),
     HAS_CONTAINER_KEYS = (1<<5),
     HAS_MULTILINE_SCALAR = (1<<6),
+    NO_TREE_PARSE = (1<<7),
 } TestCaseFlags_e;
 
 

@@ -147,6 +147,7 @@ struct _prs
     {
     }
 };
+// LCOV_EXCL_START
 inline C4_NO_INLINE size_t to_chars(substr buf, _prs const& v)
 {
     csubstr s = v.subject;
@@ -161,6 +162,7 @@ inline C4_NO_INLINE size_t to_chars(substr buf, _prs const& v)
         :
         c4::format(buf, "[{}]~~~{}{}~~~", v.subject.len, escaped_scalar(s, v.keep_newlines), ellipsis);
 }
+// LCOV_EXCL_STOP
 template<class SinkPfn>
 C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr buf, _prs const& v)
 {

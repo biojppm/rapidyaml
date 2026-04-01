@@ -273,7 +273,6 @@ TEST(simple_map, test_suite_UT92_0)
     });
 }
 
-#ifdef TO_BE_FIXED
 TEST(simple_map, test_suite_UT92_1)
 {
     Tree tree;
@@ -291,7 +290,6 @@ TEST(simple_map, test_suite_UT92_1)
         print_tree(tree);
     });
 }
-#endif
 
 TEST(simple_map, two_nested_flow_maps_not_accepted_because_of_container_key)
 {

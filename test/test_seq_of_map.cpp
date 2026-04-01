@@ -277,7 +277,7 @@ R"('implicit block key' : [
   'implicit flow key 3' : value3,
   'implicit flow key m' : {key1: val1, key2: val2},
   'implicit flow key s' : [val1, val2],
-])",
+ ])",
 N(MB, L{
   N(KS|SFM, "implicit block key", L{
     N(MFS, L{N(KS|VP, "implicit flow key 1", "value1")}),
@@ -296,15 +296,15 @@ R"({a : [
 ],
 b : [
   :
-foo
+ foo
 ],
 c : [
   :
-,
+ ,
   :
 ]})",
 N(MFM, L{
-  N(KP|SFM, "a", L{N(MFM, L{N(KN|VP, "", "foo")}),}),
+  N(KP|SFM, "a", L{N(MFS, L{N(KN|VP, "", "foo")}),}),
   N(KP|SFM, "b", L{N(MFM, L{N(KN|VP, "", "foo")}),}),
   N(KP|SFM, "c", L{N(MFM, L{N(KN|VN, "", {})}), N(MFM, L{N(KN|VN, "", {})}),}),
 })

@@ -54,3 +54,9 @@
     # etc
     ]
     ```
+  - nested flow containers now respect the contextual parent indentation ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
+    ```yaml
+    - - - [
+        a  # now this is a parse error
+         ]
+    ```

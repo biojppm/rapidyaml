@@ -452,6 +452,7 @@ private:
     bool    _scan_scalar_seq_json(ScannedScalar *C4_RESTRICT sc);
     bool    _scan_scalar_plain_unk(ScannedScalar *C4_RESTRICT sc);
     bool    _is_valid_start_scalar_plain_flow(csubstr s);
+    bool    _scan_scalar_plain_handle_newline(csubstr s, size_t offs);
 
     ScannedScalar _scan_scalar_squot();
     ScannedScalar _scan_scalar_dquot();
@@ -502,6 +503,7 @@ private:
     void  _handle_usty();
 
     void  _handle_flow_skip_whitespace();
+    void  _handle_flow_line_beginning();
 
     void  _end_map_flow();
     void  _end_seq_flow();
