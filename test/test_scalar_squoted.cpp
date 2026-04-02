@@ -151,15 +151,14 @@ string'
   string'
 ---
 - 'quoted
-string'
+ string'
 ---
 'quoted
-  string': 'quoted
-  string'
+ string': 'quoted
+ string'
 ---
-'quoted
-string': 'quoted
-string'
+'quoted string': 'quoted
+ string'
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         EXPECT_EQ(t.docref(0).val(), "quoted string");
@@ -177,9 +176,9 @@ TEST(single_quoted, test_suite_R4YG)
     csubstr yaml = R"(
 - '	
 
-detected
+ detected
 
-'
+ '
 
 )";
     test_check_emit_check(yaml, [](Tree const &t){
@@ -533,16 +532,16 @@ R"(' 1st non-empty
 N(VS, " 1st non-empty\n2nd non-empty 3rd non-empty ")
 );
 
-/* FIXME - tab is invalid indentation on line 4 (before 3rd non-empty)
+
 ADD_CASE_TO_GROUP("squoted indentation, 1", EXPECT_PARSE_ERROR,
 R"(- ' 1st non-empty
 
  2nd non-empty
 	3rd non-empty '
 )",
-Location(1,1)
+Location(4,1)
 );
-*/
+
 
 ADD_CASE_TO_GROUP("squoted indentation, 2",
 R"(- ' 1st non-empty
@@ -551,6 +550,119 @@ R"(- ' 1st non-empty
  	3rd non-empty '
 )",
 N(SB, L{N(VS, " 1st non-empty\n2nd non-empty 3rd non-empty ")})
+);
+
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+bar'
+)",
+  Location(3, 1)
+);
+
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 1", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+ bar'
+)",
+  Location(3, 1)
+);
+
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 2", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+  bar'
+)",
+  Location(3, 1)
+);
+
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 4",
+R"(
+- - 'bar
+   bar'
+)",
+  N(SB, L{N(SB, L{N(VS, "bar bar")})})
+);
+
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, empty", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces lt indent", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+  
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces eq indent", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+   
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces gt indent", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+    
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces gt indent + tabs", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+      	
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces eq indent + tabs 1", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+    	
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces eq indent + tabs 2", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+   	
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces lt indent + tabs 1", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+  	
+bar'
+)",
+  Location(3, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces lt indent + tabs 2", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+ 	
+bar'
+)",
+  Location(3, 1)
+);
+ADD_CASE_TO_GROUP("squoted, invalid indentation JKF3, 0, spaces lt indent + tabs 3", EXPECT_PARSE_ERROR,
+R"(
+- - 'bar
+	
+bar'
+)",
+  Location(3, 1)
 );
 
 }

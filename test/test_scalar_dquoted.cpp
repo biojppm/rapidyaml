@@ -419,7 +419,6 @@ INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
 TEST(double_quoted, issue486)
 {
     csubstr srcs[] = {
-        "foo: \"test,\nbar\"", // this is invalid YAML, but ryml can parse it (but won't in the future)
         "foo: \"test,\n bar\"" // ... this is valid
     };
     auto check = [](Tree const &t){
@@ -616,15 +615,15 @@ string"
   string"
 ---
 - "quoted
-string"
+ string"
 ---
 "quoted
   string": "quoted
   string"
 ---
 "quoted
-string": "quoted
-string"
+ string": "quoted
+ string"
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         EXPECT_EQ(t.docref(0).val(), "quoted string");
@@ -709,10 +708,9 @@ TEST(double_quoted, test_suite_R4YG)
     csubstr yaml = R"(
 - "	
 
-detected
+ detected
 
-"
-
+ "
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         EXPECT_EQ(t[0].val(), csubstr("\t\ndetected\n"));
@@ -1050,7 +1048,121 @@ that has multiple lines
 )",
 N(MB, L{N(KD|VP, "This is a key\nthat has multiple lines\n", "and this is its value")})
 );
-}
+
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+bar"
+)",
+  Location(3, 1)
+);
+
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 1", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+ bar"
+)",
+  Location(3, 1)
+);
+
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 2", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+  bar"
+)",
+  Location(3, 1)
+);
+
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 4",
+R"(
+- - "bar
+   bar"
+)",
+  N(SB, L{N(SB, L{N(VD, "bar bar")})})
+);
+
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, empty", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces lt indent", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+  
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces eq indent", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+   
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces gt indent", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+    
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces gt indent + tabs", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+      	
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces eq indent + tabs 1", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+    	
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces eq indent + tabs 2", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+   	
+bar"
+)",
+  Location(4, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces lt indent + tabs 1", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+  	
+bar"
+)",
+  Location(3, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces lt indent + tabs 2", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+ 	
+bar"
+)",
+  Location(3, 1)
+);
+ADD_CASE_TO_GROUP("dquoted, invalid indentation JKF3, 0, spaces lt indent + tabs 3", EXPECT_PARSE_ERROR,
+R"(
+- - "bar
+	
+bar"
+)",
+  Location(3, 1)
+);
+
+} // CASE_GROUP(DOUBLE_QUOTED)
 
 } // namespace yml
 } // namespace c4

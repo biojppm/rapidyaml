@@ -453,6 +453,7 @@ private:
     bool    _scan_scalar_plain_unk(ScannedScalar *C4_RESTRICT sc);
     bool    _is_valid_start_scalar_plain_flow(csubstr s);
     bool    _scan_scalar_plain_handle_newline(csubstr s, size_t offs);
+    void    _check_valid_newline_in_quoted_scalar();
 
     ScannedScalar _scan_scalar_squot();
     ScannedScalar _scan_scalar_dquot();

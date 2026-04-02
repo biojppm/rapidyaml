@@ -1159,7 +1159,7 @@ TEST(block_folded, test_suite_4QFQ_0)
     child2
 - ' child2
 
-'
+ '
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         const csubstr v = " child2\n";
@@ -1180,7 +1180,7 @@ TEST(block_folded, test_suite_4QFQ_1)
     child2
 - ' child2
 
-'
+ '
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         const csubstr v = " child2\n";

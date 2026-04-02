@@ -1993,6 +1993,28 @@ void ParseEngine<EventHandler>::_handle_indentation_pop_from_block_map()
 
 //-----------------------------------------------------------------------------
 template<class EventHandler>
+void ParseEngine<EventHandler>::_check_valid_newline_in_quoted_scalar()
+{
+    // check contextual indentation
+    const size_t minindent = m_evt_handler->m_curr->indref + ((has_any(RMAP|RSEQ) && has_any(RBLCK)));
+    _c4dbgpf("indent={} vs minindent={} indref={}", m_evt_handler->m_curr->line_contents.indentation, minindent, m_evt_handler->m_curr->indref);
+    if(m_evt_handler->m_curr->line_contents.indentation < minindent)
+    {
+        _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks,
+                            m_evt_handler->m_curr->line_contents.indentation == m_evt_handler->m_curr->line_contents.rem.first_not_of(' '),
+                            m_evt_handler->m_curr->pos);
+        csubstr trimmed = m_evt_handler->m_curr->line_contents.rem.sub(m_evt_handler->m_curr->line_contents.indentation);
+        _c4dbgpf("trimmed.len={} line={}", trimmed.len, _prs(m_evt_handler->m_curr->line_contents.rem, true));
+        if(C4_UNLIKELY(!!trimmed.len))
+        {
+            _c4err("bad indentation");
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+template<class EventHandler>
 typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_scan_scalar_squot()
 {
     // quoted scalars can spread over multiple lines!
@@ -2069,6 +2091,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
 
         _line_ended();
         _scan_line();
+        _check_valid_newline_in_quoted_scalar();
     }
 
     if(pos == npos)
@@ -2117,24 +2140,20 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
 
     size_t numlines = 1; // we already have one line
     size_t pos = npos; // find the pos of the matching quote
-    auto *st = m_evt_handler->m_curr; // prevent erroneous hoist of the assignment out of the loop
+    ParserState const* C4_RESTRICT st = m_evt_handler->m_curr; // prevent erroneous hoist of the assignment out of the loop
     while( ! _finished_file())
     {
-        const csubstr line = st->line_contents.rem;
-        #if defined(__GNUC__) && (__GNUC__ == 11 || __GNUC__ == 8)
-        C4_DONT_OPTIMIZE(line); // prevent erroneous hoist of the assignment out of the loop
-        #endif
         bool line_is_blank = true;
-        _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", st->pos.line, line);
-        for(size_t i = 0; i < line.len; ++i)
+        _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", st->pos.line, st->line_contents.rem);
+        for(size_t i = 0; i < st->line_contents.rem.len; ++i)
         {
-            const char curr = line.str[i];
+            const char curr = st->line_contents.rem.str[i];
             if(curr != ' ')
                 line_is_blank = false;
             // every \ is an escape
             if(curr == '\\')
             {
-                const char next = i+1 < line.len ? line.str[i+1] : '~';
+                const char next = i+1 < st->line_contents.rem.len ? st->line_contents.rem.str[i+1] : '~';
                 needs_filter = true;
                 if(next == '"' || next == '\\')
                     ++i;
@@ -2150,11 +2169,11 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
         needs_filter = needs_filter
             || (numlines > 1)
             || line_is_blank
-            || (_at_line_begin() && line.begins_with(' '));
+            || (_at_line_begin() && st->line_contents.rem.begins_with(' '));
 
         if(pos == npos)
         {
-            _line_progressed(line.len);
+            _line_progressed(st->line_contents.rem.len);
             ++numlines;
         }
         else
@@ -2168,6 +2187,8 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
 
         _line_ended();
         _scan_line();
+
+        _check_valid_newline_in_quoted_scalar();
     }
 
     if(pos == npos)

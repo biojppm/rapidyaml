@@ -36,17 +36,13 @@ const AllowedFailure allowed_failures[] = {
     _("Y79Y_005-error"          , "cannot use tab for indentation of block entry"),
 
     // block seq
-    _("JKF3-error"              , "should not accept multiline unindented double quoted scalar"),
     _("SY6V-error"              , "should not accept - after anchor"),
 
     // block maps
     _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
     _("5U3A-error"              , "should not accept opening a sequence on same line as block key"),
     _("C2SP-error"              , "should not accept flow sequence key with terminating ] on the next line"),
-    _("7LBH-error"              , "should not accept multiline double quoted keys"),
-    _("D49Q-error"              , "should not accept multiline single quoted keys"),
     _("DK95_06-error"           , "should not accept tab indentation"),
-    _("QB6E-error"              , "should not accept unindented multiline double quoted scalar"),
     _("Y79Y_006-error"          , "should not accept tab after ?"),
     _("Y79Y_007-error"          , "should not accept tab after : succeeding ?"),
     _("Y79Y_008-error"          , "should not accept tab after ?"),
@@ -58,7 +54,6 @@ const AllowedFailure allowed_failures[] = {
     // double-quoted scalars
     _("5TRB-error"              , "should not accept document-end marker in double quoted string"),
     _("9MQT_01-error"           , "should not accept document-end marker in double quoted string"),
-    _("DK95_01-error"           , "should not accept leading tabs in double quoted multiline scalar"),
 
     // block scalars
     _("S4GJ-error"              , "should not accept text after block scalar indicator"),
