@@ -338,6 +338,16 @@ dquoted_case test_cases_filter[] = {
     //dqc("	\n\ndetected\n\n", "\t\ndetected\n"), // this case cannot be prefixed with anything.
     dqc(R"(This is a key\nthat has multiple lines\n)", "This is a key\nthat has multiple lines\n"),
     dqc("This is a key\n\nthat has multiple lines\n\n", "This is a key\nthat has multiple lines\n"),
+    dqc(R"( ---)",  " ---"),
+    // 85
+    dqc(R"( ...)",  " ..."),
+    dqc(R"( --- )",  " --- "),
+    dqc(R"( ... )",  " ... "),
+    dqc(R"(  ---  )",  "  ---  "),
+    dqc(R"(  ...  )",  "  ...  "),
+    // 90
+    dqc(" ---\n",  " --- "),
+    dqc(" ...\n",  " ... "),
     #undef dqc
 };
 C4_SUPPRESS_WARNING_MSVC_POP

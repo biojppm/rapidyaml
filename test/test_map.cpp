@@ -420,7 +420,7 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, Location lc={})
 
 TEST(simple_map, no_map_key_flow)
 {
-    verify_error_is_reported("map key", R"({ first: Sammy, last: Sosa }: foo)", Location{1,30});
+    verify_error_is_reported("map key", R"({ first: Sammy, last: Sosa }: foo)", Location{1,30+1});
 }
 
 TEST(simple_map, no_map_key_block)
@@ -430,12 +430,12 @@ TEST(simple_map, no_map_key_block)
   last: Sosa
 :
   foo
-)", Location{2,9});
+)", Location{2,9+1});
 }
 
 TEST(simple_map, no_seq_key_flow)
 {
-    verify_error_is_reported("seq key", R"([Sammy, Sosa]: foo)", Location{1, 15});
+    verify_error_is_reported("seq key", R"([Sammy, Sosa]: foo)", Location{1, 15+1});
 }
 
 TEST(simple_map, no_seq_key_block)
@@ -671,7 +671,7 @@ TEST(simple_map, tokens_after_flow_9_1)
 
 TEST(simple_map, tokens_after_flow_10_0)
 {
-    verify_error_is_reported("", "{ first: Sammy, last: Sosa }: foo", Location{1,30});// fixme
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }: foo", Location{1,30+1});// fixme
 }
 
 TEST(simple_map, tokens_after_flow_10_1)

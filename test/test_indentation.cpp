@@ -401,7 +401,729 @@ N(KP|VP, "c", "d"),
 })
 );
 
-}
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs comments",
+R"(
+   	# asd
+-
+   	# asd
+  a
+   	# asd
+)",
+N(SB, L{N(VP, "a")})
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs plain unk 0",
+R"(
+		foo
+)",
+N(VP, "foo")
+);
+ADD_CASE_TO_GROUP("leading tabs plain unk 1",
+R"(
+ 		foo
+)",
+N(VP, "foo")
+);
+ADD_CASE_TO_GROUP("leading tabs plain unk 2",
+R"(
+   		foo
+)",
+N(VP, "foo")
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs plain seq 0 RVAL", EXPECT_PARSE_ERROR,
+                  R"(
+-
+		foo
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 0 RNXT",
+R"(
+-
+ 		foo
+		
+- bar
+)",
+N(SB, L{N(VP, "foo"), N(VP, "bar")})
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 1 RVAL",
+R"(
+-
+ 		foo
+)",
+N(SB, L{N(VP, "foo")})
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 1 RNXT",
+R"(
+-
+ 		foo
+ 		
+- bar
+)",
+N(SB, L{N(VP, "foo"), N(VP, "bar")})
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 1 RNXT 2", EXPECT_PARSE_ERROR,
+R"(
+    - foo
+  		- bar
+)",
+Location(3, 1));
+ADD_CASE_TO_GROUP("leading tabs plain seq 1 RNXT 3", EXPECT_PARSE_ERROR,
+R"(
+    - foo
+		  - bar
+)",
+Location(3, 5)
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 1 RNXT 4", EXPECT_PARSE_ERROR,
+R"(
+    - foo
+ 		 - bar
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 1 RNXT 5", EXPECT_PARSE_ERROR,
+R"(
+    - foo
+    	 - bar
+)",
+Location(3, 5)
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 1 RNXT 6",
+R"(
+    - foo
+     	  - bar
+)",
+N(SB, L{N(VP, "foo - bar")})
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 2 RVAL",
+R"(
+-
+   		foo
+)",
+N(SB, L{N(VP, "foo")})
+);
+ADD_CASE_TO_GROUP("leading tabs plain seq 2 RNXT",
+R"(
+-
+   		foo
+   		
+- bar
+)",
+N(SB, L{N(VP, "foo"), N(VP, "bar")})
+);
+
+ADD_CASE_TO_GROUP("leading tabs plain map 0", EXPECT_PARSE_ERROR,
+R"(
+a:
+		foo
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs plain map 1",
+R"(
+a:
+ 		foo
+)",
+N(MB, L{N(KP|VP, "a", "foo")})
+);
+ADD_CASE_TO_GROUP("leading tabs plain map 2",
+R"(
+a:
+   		foo
+)",
+N(MB, L{N(KP|VP, "a", "foo")})
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs squo unk 0",
+R"(
+		'foo'
+)",
+N(VS, "foo")
+);
+ADD_CASE_TO_GROUP("leading tabs squo unk 1",
+R"(
+ 		'foo'
+)",
+N(VS, "foo")
+);
+ADD_CASE_TO_GROUP("leading tabs squo unk 2",
+R"(
+   		'foo'
+)",
+N(VS, "foo")
+);
+
+
+ADD_CASE_TO_GROUP("leading tabs squo seq 0", EXPECT_PARSE_ERROR,
+R"(
+-
+		'foo'
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs squo seq 1",
+R"(
+-
+ 		'foo'
+)",
+N(SB, L{N(VS, "foo")})
+);
+ADD_CASE_TO_GROUP("leading tabs squo seq 2",
+R"(
+-
+   		'foo'
+)",
+N(SB, L{N(VS, "foo")})
+);
+
+ADD_CASE_TO_GROUP("leading tabs squo map 0", EXPECT_PARSE_ERROR,
+R"(
+a:
+		'foo'
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs squo map 1",
+R"(
+a:
+ 		'foo'
+)",
+N(MB, L{N(KP|VS, "a", "foo")})
+);
+ADD_CASE_TO_GROUP("leading tabs squo map 2",
+R"(
+a:
+   		'foo'
+)",
+N(MB, L{N(KP|VS, "a", "foo")})
+);
+
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs literal unk 0",
+R"(
+		|
+ foo
+)",
+N(VL, "foo\n")
+);
+ADD_CASE_TO_GROUP("leading tabs literal unk 1",
+R"(
+ 		|
+   foo
+)",
+N(VL, "foo\n")
+);
+ADD_CASE_TO_GROUP("leading tabs literal unk 2",
+R"(
+   		|
+   foo
+)",
+N(VL, "foo\n")
+);
+
+
+ADD_CASE_TO_GROUP("leading tabs literal seq 0", EXPECT_PARSE_ERROR,
+R"(
+-
+		|
+   foo
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs literal seq 1",
+R"(
+-
+ 		|
+   foo
+)",
+N(SB, L{N(VL, "foo\n")})
+);
+ADD_CASE_TO_GROUP("leading tabs literal seq 2",
+R"(
+-
+   		|
+   foo
+)",
+N(SB, L{N(VL, "foo\n")})
+);
+
+ADD_CASE_TO_GROUP("leading tabs literal map 0", EXPECT_PARSE_ERROR,
+R"(
+a:
+		|
+   foo
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs literal map 1",
+R"(
+a:
+ 		|
+   foo
+)",
+N(MB, L{N(KP|VL, "a", "foo\n")})
+);
+ADD_CASE_TO_GROUP("leading tabs literal map 2",
+R"(
+a:
+   		|
+   foo
+)",
+N(MB, L{N(KP|VL, "a", "foo\n")})
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs folded unk 0",
+R"(
+		>
+ foo
+)",
+N(VF, "foo\n")
+);
+ADD_CASE_TO_GROUP("leading tabs folded unk 1",
+R"(
+ 		>
+   foo
+)",
+N(VF, "foo\n")
+);
+ADD_CASE_TO_GROUP("leading tabs folded unk 2",
+R"(
+   		>
+   foo
+)",
+N(VF, "foo\n")
+);
+
+
+ADD_CASE_TO_GROUP("leading tabs folded seq 0", EXPECT_PARSE_ERROR,
+R"(
+-
+		>
+   foo
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs folded seq 1",
+R"(
+-
+ 		>
+   foo
+)",
+N(SB, L{N(VF, "foo\n")})
+);
+ADD_CASE_TO_GROUP("leading tabs folded seq 2",
+R"(
+-
+   		>
+   foo
+)",
+N(SB, L{N(VF, "foo\n")})
+);
+
+ADD_CASE_TO_GROUP("leading tabs folded map 0", EXPECT_PARSE_ERROR,
+R"(
+a:
+		>
+   foo
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs folded map 1",
+R"(
+a:
+ 		>
+   foo
+)",
+N(MB, L{N(KP|VF, "a", "foo\n")})
+);
+ADD_CASE_TO_GROUP("leading tabs folded map 2",
+R"(
+a:
+   		>
+   foo
+)",
+N(MB, L{N(KP|VF, "a", "foo\n")})
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs, seq block unk 0", EXPECT_PARSE_ERROR,
+R"(
+  		 - a
+  		 - b
+  		 - c
+)",
+Location(2, 6)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block unk 1", EXPECT_PARSE_ERROR,
+R"(
+ 		 - a
+ 		 - b
+ 		 - c
+)",
+Location(2, 5)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block unk 2", EXPECT_PARSE_ERROR,
+R"(
+		 - a
+		 - b
+		 - c
+)",
+Location(2, 4)
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs, map block unk 0", EXPECT_PARSE_ERROR,
+R"(
+  		 a: v
+  		 b: v
+  		 c: v
+)",
+Location(2, 9)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block unk 1", EXPECT_PARSE_ERROR,
+R"(
+ 		 a: v
+ 		 b: v
+ 		 c: v
+)",
+Location(2, 8)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block unk 2", EXPECT_PARSE_ERROR,
+R"(
+		 a: v
+		 b: v
+		 c: v
+)",
+Location(2, 7)
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in seq 0", EXPECT_PARSE_ERROR,
+R"(
+-
+  		 - a
+  		 - b
+  		 - c
+)",
+Location(3, 6)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in seq 1", EXPECT_PARSE_ERROR,
+R"(
+-
+ 		 - a
+ 		 - b
+ 		 - c
+)",
+Location(3, 5)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in seq 2", EXPECT_PARSE_ERROR,
+R"(
+-
+		 - a
+		 - b
+		 - c
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in seq 3", EXPECT_PARSE_ERROR,
+R"(
+-
+ 	 - a
+ 	 - b
+ 	 - c
+)",
+Location(3, 4)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in seq 4", EXPECT_PARSE_ERROR,
+R"(
+-
+  	 - a
+  	 - b
+  	 - c
+)",
+Location(3, 5)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in seq 5", EXPECT_PARSE_ERROR,
+R"(
+-
+   	 - a
+   	 - b
+   	 - c
+)",
+Location(3, 6)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in seq 6",
+R"(
+-
+    - a
+    - b
+    - c
+)",
+N(SB, L{N(SB, L{N(VP, "a"), N(VP, "b"), N(VP, "c")})})
+);
+
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in map 0", EXPECT_PARSE_ERROR,
+R"(
+map:
+  		 - a
+  		 - b
+  		 - c
+)",
+Location(3, 6)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in map 1", EXPECT_PARSE_ERROR,
+R"(
+map:
+ 		 - a
+ 		 - b
+ 		 - c
+)",
+Location(3, 5)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq block nested in map 2", EXPECT_PARSE_ERROR,
+R"(
+map:
+		 - a
+		 - b
+		 - c
+)",
+Location(3, 1)
+);
+
+
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs, map block nested in seq 0", EXPECT_PARSE_ERROR,
+R"(
+-
+  		 a: v
+  		 b: v
+  		 c: v
+)",
+Location(3, 9)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in seq 1", EXPECT_PARSE_ERROR,
+R"(
+-
+ 		 a: v
+ 		 b: v
+ 		 c: v
+)",
+Location(3, 8)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in seq 2", EXPECT_PARSE_ERROR,
+R"(
+-
+		 a: v
+		 b: v
+		 c: v
+)",
+Location(3, 1)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in seq 3", EXPECT_PARSE_ERROR,
+R"(
+-
+ 	 a: v
+ 	 b: v
+ 	 c: v
+)",
+Location(3, 7)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in seq 4", EXPECT_PARSE_ERROR,
+R"(
+-
+  	 a: v
+  	 b: v
+  	 c: v
+)",
+Location(3, 8)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in seq 5", EXPECT_PARSE_ERROR,
+R"(
+-
+   	 a: v
+   	 b: v
+   	 c: v
+)",
+Location(3, 9)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in seq 6",
+R"(
+-
+    a: v
+    b: v
+    c: v
+)",
+N(SB, L{N(MB, L{N(KP|VP, "a", "v"), N(KP|VP, "b", "v"), N(KP|VP, "c", "v")})})
+);
+
+ADD_CASE_TO_GROUP("leading tabs, map block nested in map 0", EXPECT_PARSE_ERROR,
+R"(
+map:
+  		 a: v
+  		 b: v
+  		 c: v
+)",
+Location(3, 9)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in map 1", EXPECT_PARSE_ERROR,
+R"(
+map:
+ 		 a: v
+ 		 b: v
+ 		 c: v
+)",
+Location(3, 8)
+);
+ADD_CASE_TO_GROUP("leading tabs, map block nested in map 2", EXPECT_PARSE_ERROR,
+R"(
+map:
+		 a: v
+		 b: v
+		 c: v
+)",
+Location(3, 1)
+);
+
+
+//-----------------------------------------------------------------------------
+
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 1.0", EXPECT_PARSE_ERROR,
+R"(
+- - a
+- 	- a
+)",
+Location(3, 4)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 1.1", EXPECT_PARSE_ERROR,
+R"(
+- - a
+- 	 - a
+)",
+Location(3, 5)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 1.2", EXPECT_PARSE_ERROR,
+R"(
+- - a
+-  	  - a
+)",
+Location(3, 7)
+);
+
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 2.0", EXPECT_PARSE_ERROR,
+R"(
+- - - a
+- - 	- a
+)",
+Location(3, 6)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 2.1", EXPECT_PARSE_ERROR,
+R"(
+- - - a
+- - 	 - a
+)",
+Location(3, 7)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 2.2", EXPECT_PARSE_ERROR,
+R"(
+- - - a
+- -  	  - a
+)",
+Location(3, 9)
+);
+
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 3.0", EXPECT_PARSE_ERROR,
+R"(
+- - - - a
+- - - 	- a
+)",
+Location(3, 8)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 3.1", EXPECT_PARSE_ERROR,
+R"(
+- - - - a
+- - - 	 - a
+)",
+Location(3, 9)
+);
+ADD_CASE_TO_GROUP("leading tabs, seq nested with tabs, 3.2", EXPECT_PARSE_ERROR,
+R"(
+- - - - a
+- - -  	  - a
+)",
+Location(3, 11)
+);
+
+
+//-----------------------------------------------------------------------------
+ADD_CASE_TO_GROUP("test suite Y79Y/000", EXPECT_PARSE_ERROR,
+R"(
+foo: |
+	
+bar: 1
+)",
+Location(3,1)
+);
+ADD_CASE_TO_GROUP("test suite Y79Y/000 2",
+R"(
+foo: |
+ 	
+bar: 1
+)",
+N(MB, L{
+  N(KP|VL, "foo", "\t\n"),
+  N(KP|VP, "bar", "1"),
+})
+);
+ADD_CASE_TO_GROUP("test suite Y79Y/002",
+R"(
+- [
+	
+ foo
+ ]
+)",
+N(SB, L{N(SFM, L{N(VP, "foo")})})
+);
+ADD_CASE_TO_GROUP("test suite Y79Y/003", EXPECT_PARSE_ERROR,
+R"(
+- [
+	foo,
+ foo
+ ]
+)",
+Location(3, 1)
+);
+
+
+} // CASE_GROUP(INDENTATION)
 
 } // namespace yml
 } // namespace c4

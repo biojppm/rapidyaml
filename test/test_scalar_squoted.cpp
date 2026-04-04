@@ -126,6 +126,16 @@ squoted_case test_cases_filter[] = {
     sqc(R"(    a aaaa    )",  "    a aaaa    "),
     sqc(R"(     a aaaa     )",  "     a aaaa     "),
     sqc(R"(x\ny:z\tx $%^&*()x)", "x\\ny:z\\tx $%^&*()x"),
+    sqc(R"( ---)",  " ---"),
+    sqc(R"( ...)",  " ..."),
+    // 45
+    sqc(R"( --- )",  " --- "),
+    sqc(R"( ... )",  " ... "),
+    sqc(R"(  ---  )",  "  ---  "),
+    sqc(R"(  ...  )",  "  ...  "),
+    sqc(" ---\n",  " --- "),
+    // 50
+    sqc(" ...\n",  " ... "),
     #undef sqc
 };
 

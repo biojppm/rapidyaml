@@ -29,31 +29,18 @@ const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // These invalid YAML cases should materialize parse errors, and currently don't.
-    // tc=Y79Y_004 ; td=`echo $tc | sed s:_:/:g`  // NOLINT
 
     // flow seq
     _("Y79Y_004-error"          , "cannot use tab for indentation of block entry"),
-    _("Y79Y_005-error"          , "cannot use tab for indentation of block entry"),
 
     // block seq
     _("SY6V-error"              , "should not accept - after anchor"),
 
     // block maps
-    _("4EJS-error"              , "should not accept tabs as indendation in a mapping"),
     _("5U3A-error"              , "should not accept opening a sequence on same line as block key"),
     _("C2SP-error"              , "should not accept flow sequence key with terminating ] on the next line"),
-    _("DK95_06-error"           , "should not accept tab indentation"),
     _("Y79Y_006-error"          , "should not accept tab after ?"),
-    _("Y79Y_007-error"          , "should not accept tab after : succeeding ?"),
     _("Y79Y_008-error"          , "should not accept tab after ?"),
-    _("Y79Y_009-error"          , "should not accept tab after : succeeding ?"),
-
-    // single-quoted scalars
-    _("RXY3-error"              , "should not accept document-end marker in single quoted string"),
-
-    // double-quoted scalars
-    _("5TRB-error"              , "should not accept document-end marker in double quoted string"),
-    _("9MQT_01-error"           , "should not accept document-end marker in double quoted string"),
 
     // block scalars
     _("S4GJ-error"              , "should not accept text after block scalar indicator"),
@@ -66,6 +53,13 @@ const AllowedFailure allowed_failures[] = {
     // directives
     _("H7TQ-error"              , "should not accept extra words after directive"),
     _("QLJ7-error"              , "tag directives should apply only to the next doc (?)"),
+
+    // issue only with tabs
+    #ifdef RYML_WITH_TAB_TOKENS
+    _("Y79Y_005-error"          , "cannot use tab for indentation of block entry"),
+    _("Y79Y_007-error"          , "should not accept tab after : succeeding ?"),
+    _("Y79Y_009-error"          , "should not accept tab after : succeeding ?"),
+    #endif
 
 
     //-------------------------------------------------------------------------

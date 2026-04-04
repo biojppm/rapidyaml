@@ -8,6 +8,8 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+static constexpr const bool singleline = false; // NOLINT
+
 ENGINE_TEST(DocEmpty,
             "",
             "+STR\n"
@@ -189,41 +191,7 @@ ENGINE_TEST(DocEmptyTermErr,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err0,
-                   Location(2, 5),
-                   "foo: bar\n"
-                   "... bad\n"
-                   )
-ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err1,
-                   Location(2, 5),
-                   "foo: bar\n"
-                   "... [bad]\n"
-                   )
-ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err2,
-                   Location(2, 5),
-                   "foo: bar\n"
-                   "... {bad: yes}\n"
-                   )
-ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err3,
-                   Location(2, 5),
-                   "foo:\n"
-                   "... bad\n"
-                   )
-ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err4,
-                   Location(2, 5),
-                   "foo:\n"
-                   "... bad\n"
-                   )
-ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err5,
-                   Location(2, 5),
-                   "?\n"
-                   "... bad\n"
-                   )
-ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err6,
-                   Location(2, 5),
-                   "? foo\n"
-                   "... bad\n"
-                   )
+
 ENGINE_TEST(DocTerm_MapBlck_ok,
             "foo: bar\n"
             "... #bad\n"
@@ -249,29 +217,358 @@ ENGINE_TEST(DocTerm_MapBlck_ok,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err0,
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err0_0,
+                   Location(2, 5),
+                   "foo: bar\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_err0_1,
+            "foo: bar\n"
+            "--- bad\n"
+            ,
+            "---\n"
+            "foo: bar\n"
+            "--- bad\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :bad\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("bad"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err1_0,
+                   Location(2, 5),
+                   "foo: bar\n"
+                   "... [bad]\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_err1_1,
+            "foo: bar\n"
+            "--- [bad]\n"
+            ,
+            "---\n"
+            "foo: bar\n"
+            "--- [bad]\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "+SEQ []\n"
+            "=VAL :bad\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("bad"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err2_0,
+                   Location(2, 5),
+                   "foo: bar\n"
+                   "... {bad: yes}\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_err2_1,
+            "foo: bar\n"
+            "--- {bad: yes}\n"
+            ,
+            "---\n"
+            "foo: bar\n"
+            "--- {bad: yes}\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "+MAP {}\n"
+            "=VAL :bad\n"
+            "=VAL :yes\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("bad"));
+    ___(ps.set_val_scalar_plain("yes"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err3_0,
+                   Location(2, 5),
+                   "foo:\n"
+                   "... bad\n"
+    )
+ENGINE_TEST(DocTerm_MapBlck_err3_1,
+            "foo:\n"
+            "--- bad\n"
+            ,
+            "---\n"
+            "foo: \n"
+            "--- bad\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :bad\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("bad"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err4_0,
+                   Location(2, 5),
+                   "foo:\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_err4_1,
+            "foo:\n"
+            "--- bad\n"
+            ,
+            "---\n"
+            "foo: \n"
+            "--- bad\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :bad\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("bad"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err5_0,
+                   Location(2, 5),
+                   "?\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_err5_1,
+            "?\n"
+            "--- bad\n"
+            ,
+            "---\n"
+            ": \n"
+            "--- bad\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :bad\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("bad"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err6_0,
+                   Location(2, 5),
+                   "? foo\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_err6_1,
+            "? foo\n"
+            "--- bad\n"
+            ,
+            "---\n"
+            "foo: \n"
+            "--- bad\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :bad\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("bad"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(DocTerm_MapBlck_err7_0,
+                   Location(3, 5),
+                   "? foo\n"
+                   ":\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST(DocTerm_MapBlck_err7_1,
+            "? foo\n"
+            ":\n"
+            "--- bad\n"
+            ,
+            "---\n"
+            "foo: \n"
+            "--- bad\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :foo\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :bad\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("bad"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err0_0,
                    Location(2, 5),
                    "- foo\n"
                    "... bad\n"
                    )
-ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err1,
+ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err0_1,
                    Location(2, 5),
                    "-\n"
                    "... bad\n"
                    )
+ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err1_0,
+                   Location(3, 5),
+                   "-\n"
+                   "  - foo\n"
+                   "... bad\n"
+                   )
+ENGINE_TEST_ERRLOC(DocTerm_SeqBlck_err1_1,
+                   Location(3, 5),
+                   "-\n"
+                   "  -\n"
+                   "... bad\n"
+                   )
+
 
 ENGINE_TEST_ERRLOC(DocTerm_MapFlow_err0,
                    Location(2, 5),
                    "{key: val}\n"
                    "... bad\n"
                    )
-
 ENGINE_TEST_ERRLOC(DocTerm_SeqFlow_err0,
                    Location(2, 5),
                    "{key: val}\n"
                    "... bad\n"
                    )
-
 ENGINE_TEST_ERRLOC(DocTerm_ScalarPlain_err0,
                    Location(2, 5),
                    "scalar\n"
@@ -292,11 +589,118 @@ ENGINE_TEST_ERRLOC(DocTerm_ScalarLit_err0,
                    "|\n  scalar\n"
                    "... bad\n"
                    )
-ENGINE_TEST_ERRLOC(DocTerm_FoldedLit_err0,
-                   Location(3, 5),
-                   ">\n  scalar\n"
-                   "... bad\n"
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(SquotedDoc_0,
+                   Location(2, 1),
+                   "'\n"
+                   "---\n"
+                   "'\n"
                    )
+ENGINE_TEST_ERRLOC(SquotedDoc_1,
+                   Location(2, 1),
+                   "'\n"
+                   "...\n"
+                   "'\n"
+                   )
+ENGINE_TEST(SquotedDoc_2,
+            HAS_MULTILINE_SCALAR,
+            "'\n"
+            " ---\n"
+            "'\n"
+            ,
+            "' --- '\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "=VAL ' --- \n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_scalar_squoted(" --- "));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(SquotedDoc_3,
+            HAS_MULTILINE_SCALAR,
+            "'\n"
+            " ...\n"
+            "'\n"
+            ,
+            "' ... '\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "=VAL ' ... \n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_scalar_squoted(" ... "));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DquotedDoc_0,
+                   Location(2, 1),
+                   "'\n"
+                   "---\n"
+                   "'\n"
+                   )
+ENGINE_TEST_ERRLOC(DquotedDoc_1,
+                   Location(2, 1),
+                   "\"\n"
+                   "...\n"
+                   "\"\n"
+                   )
+ENGINE_TEST(DquotedDoc_2,
+            HAS_MULTILINE_SCALAR,
+            "\"\n"
+            " ---\n"
+            "\"\n"
+            ,
+            "\" --- \"\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "=VAL \" --- \n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_scalar_dquoted(" --- "));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(DquotedDoc_3,
+            HAS_MULTILINE_SCALAR,
+            "\"\n"
+            " ...\n"
+            "\"\n"
+            ,
+            "\" ... \"\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "=VAL \" ... \n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.set_val_scalar_dquoted(" ... "));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
 
 
 //-----------------------------------------------------------------------------
@@ -328,6 +732,7 @@ ENGINE_TEST(DocEmptyExplMult,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
 
 //-----------------------------------------------------------------------------
 

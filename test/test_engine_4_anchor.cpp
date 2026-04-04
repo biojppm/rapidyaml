@@ -1253,7 +1253,7 @@ ENGINE_TEST(DoubleAnchorKeyMap,
 ENGINE_TEST_ERRLOC(AnchorAndAliasAsBlockMapKey_SU74_1, Location(2,10), ""
                    "key1: &alias value1\n"
                    "&b *alias : value2\n")
-ENGINE_TEST_ERRLOC(AnchorAndAliasAsBlockMapKey_SU74_2, Location(2,8), ""
+ENGINE_TEST_ERRLOC(AnchorAndAliasAsBlockMapKey_SU74_2, Location(2,7), ""
                    "key1: &alias value1\n"
                    "*alias &b: value2\n")
 

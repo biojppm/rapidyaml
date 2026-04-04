@@ -13,68 +13,10 @@ static constexpr const bool singleline = false;
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine0Err, Location(5,1,6), "a: b: c")
-ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine1Err, Location(5,1,6), "a: b: ")
-ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine2Err, Location(5,1,6), "a: b:")
-ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine3Err, Location(2,1,3), ": : :")
-ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine4Err, Location(2,1,3), ": : : :")
-ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine5Err, Location(9,1,10), "'a': 'b': 'c'")
-ENGINE_TEST_ERRLOC(SimpleMapBlockSameLine6Err, Location(9,1,10), "\"a\": \"b\": \"c\"")
-ENGINE_TEST(SimpleMapBlockSameLine7, HAS_MULTILINE_SCALAR,
-            ""
-            "? |-\n"
-            " a\n"
-            ": b: c\n"
-            ""
-            ,
-            ""
-            "? |-\n"
-            "  a\n"
-            ":\n"
-            "  b: c\n"
-            ""
-            ,
-            ""
-            "+STR\n"
-            "+DOC\n"
-            "+MAP\n"
-            "=VAL |a\n"
-            "+MAP\n"
-            "=VAL :b\n"
-            "=VAL :c\n"
-            "-MAP\n"
-            "-MAP\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_map_val_block());
-    ___(ps.set_key_scalar_literal("a"));
-    ___(ps.begin_map_val_block());
-    ___(ps.set_key_scalar_plain("b"));
-    ___(ps.set_val_scalar_plain("c"));
-    ___(ps.end_map_block());
-    ___(ps.end_map_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-
-ENGINE_TEST_ERRLOC(SimpleMapErrLiteralKey, Location(9,2,1),
-                   "foo: bar\n"
-                   "| literal: val\n"
-    )
-ENGINE_TEST_ERRLOC(SimpleMapErrFoldedKey, Location(9,2,1),
-                   "foo: bar\n"
-                   "> folded: val\n"
-    )
-
-
-//-----------------------------------------------------------------------------
-
-ENGINE_TEST(SimpleMapBlock,
-            "foo: bar\nfoo2: bar2\nfoo3: bar3\n"
+ENGINE_TEST(Block,
+            "foo: bar\n"
+            "foo2: bar2\n"
+            "foo3: bar3\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -105,7 +47,7 @@ ENGINE_TEST(SimpleMapBlock,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapBlockEmptyFlowMap,
+ENGINE_TEST(BlockEmptyFlowMap,
             "foo: {}\n"
             ,
             "+STR\n"
@@ -129,7 +71,7 @@ ENGINE_TEST(SimpleMapBlockEmptyFlowMap,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapBlockEmptyFlowSeq,
+ENGINE_TEST(BlockEmptyFlowSeq,
             "foo: []\n"
             ,
             "+STR\n"
@@ -153,8 +95,11 @@ ENGINE_TEST(SimpleMapBlockEmptyFlowSeq,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapBlockEmptyVals,
-            "a:\nb:\nc:\nd:\n"
+ENGINE_TEST(BlockEmptyVals,
+            "a:\n"
+            "b:\n"
+            "c:\n"
+            "d:\n"
             ,
             "a: \nb: \nc: \nd: \n"
             ,
@@ -192,7 +137,7 @@ ENGINE_TEST(SimpleMapBlockEmptyVals,
     ps.end_stream();
 }
 
-ENGINE_TEST(SimpleMapBlockEmptyKeys,
+ENGINE_TEST(BlockEmptyKeys,
             ": a\n: b\n: c\n: d\n"
             ,
             "+STR\n"
@@ -229,7 +174,7 @@ ENGINE_TEST(SimpleMapBlockEmptyKeys,
     ps.end_stream();
 }
 
-ENGINE_TEST(SimpleMapBlockEmpty,
+ENGINE_TEST(BlockEmpty,
             ":\n:\n:\n:\n"
             ,
             ": \n: \n: \n: \n"
@@ -268,7 +213,7 @@ ENGINE_TEST(SimpleMapBlockEmpty,
     ps.end_stream();
 }
 
-ENGINE_TEST(SimpleMapIndentlessSeq,
+ENGINE_TEST(IndentlessSeq,
             "foo:\n"
             "- bar\n"
             "-\n"
@@ -336,7 +281,7 @@ ENGINE_TEST(SimpleMapIndentlessSeq,
 }
 
 
-ENGINE_TEST(SimpleMapContainerKey1Block0_0,
+ENGINE_TEST(ContainerKey1Block0_0,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
@@ -386,7 +331,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block0_0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapContainerKey1Block0_1,
+ENGINE_TEST(ContainerKey1Block0_1,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
@@ -436,7 +381,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block0_1,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapContainerKey1Block1_0,
+ENGINE_TEST(ContainerKey1Block1_0,
             HAS_CONTAINER_KEYS,
             "[this,is,a,seq,key]: [and,now,a,seq,val]"
             ,
@@ -491,7 +436,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block1_0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapContainerKey1Block1_1,
+ENGINE_TEST(ContainerKey1Block1_1,
             HAS_CONTAINER_KEYS,
             "[this,is,a,seq,key]: [and,now,a,seq,val]"
             ,
@@ -546,7 +491,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block1_1,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapContainerKey1Block2_0,
+ENGINE_TEST(ContainerKey1Block2_0,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
@@ -596,7 +541,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block2_0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapContainerKey1Block2_1,
+ENGINE_TEST(ContainerKey1Block2_1,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
@@ -646,7 +591,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block2_1,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapContainerKey1Block3_0,
+ENGINE_TEST(ContainerKey1Block3_0,
             HAS_CONTAINER_KEYS,
             "---\n"
             "{a: map}: [a,seq]\n"
@@ -710,7 +655,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block3_0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SimpleMapContainerKey1Block3_1,
+ENGINE_TEST(ContainerKey1Block3_1,
             HAS_CONTAINER_KEYS,
             "---\n"
             "{a: map}: [a,seq]\n"
@@ -778,7 +723,7 @@ ENGINE_TEST(SimpleMapContainerKey1Block3_1,
 // the examples above have the starting '[' / '{' at the beginning,
 // where it is parsed in UNK state. This one has those tokens already
 // in RMAP|RBLCK|RKEY state, ie, they don't come first.
-ENGINE_TEST(SimpleMapContainerKey2Block_1,
+ENGINE_TEST(ContainerKey2Block_1,
             HAS_CONTAINER_KEYS,
             "\n"
             "foo: bar\n"
@@ -1025,8 +970,9 @@ ENGINE_TEST(MapMapMapBlock,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(MapKeyBlock,
-            HAS_CONTAINER_KEYS, Location(6,1,7),
-            "? foo: bar\n: baz"
+            HAS_CONTAINER_KEYS, Location(7,1,8),
+            "? foo: bar\n"
+            ": baz"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1055,7 +1001,8 @@ ENGINE_TEST(MapKeyBlock,
 
 ENGINE_TEST(MapKeyBlockFlow,
             HAS_CONTAINER_KEYS, Location(2,1,3),
-            "? {foo: bar}\n: baz"
+            "? {foo: bar}\n"
+            ": baz"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1707,6 +1654,419 @@ ENGINE_TEST_ERRLOC_(colon_on_newl_after_second_map_0_2, HAS_CONTAINER_KEYS, Expe
                     ": bar\n"
                     "{foo: bar}\n"
                     "  : yes")
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(BlockSameLine0Err, Location(5+1,1,6+1), "a: b: c")
+ENGINE_TEST_ERRLOC(BlockSameLine1Err, Location(5+1,1,6+1), "a: b: ")
+ENGINE_TEST_ERRLOC(BlockSameLine2Err, Location(5,1,6), "a: b:")
+ENGINE_TEST_ERRLOC(BlockSameLine3Err, Location(2,1,3), ": : :")
+ENGINE_TEST_ERRLOC(BlockSameLine4Err, Location(2,1,3), ": : : :")
+ENGINE_TEST_ERRLOC(BlockSameLine5Err, Location(9+1,1,10+1), "'a': 'b': 'c'")
+ENGINE_TEST_ERRLOC(BlockSameLine6Err, Location(9+1,1,10+1), "\"a\": \"b\": \"c\"")
+ENGINE_TEST(BlockSameLine7, HAS_MULTILINE_SCALAR,
+            ""
+            "? |-\n"
+            " a\n"
+            ": b: c\n"
+            ""
+            ,
+            ""
+            "? |-\n"
+            "  a\n"
+            ":\n"
+            "  b: c\n"
+            ""
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL |a\n"
+            "+MAP\n"
+            "=VAL :b\n"
+            "=VAL :c\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_literal("a"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("b"));
+    ___(ps.set_val_scalar_plain("c"));
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+ENGINE_TEST_ERRLOC(ErrLiteralKey, Location(9,2,1),
+                   "foo: bar\n"
+                   "| literal: val\n"
+    )
+ENGINE_TEST_ERRLOC(ErrFoldedKey, Location(9,2,1),
+                   "foo: bar\n"
+                   "> folded: val\n"
+    )
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(IndentationMore0,
+            "a:\n"
+            "  b:\n"
+            ""
+            ,
+            "a:\n"
+            "  b: \n"
+            ""
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "+MAP\n"
+            "=VAL :b\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("b"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(IndentationMore0Empty,
+            "a:\n"
+            "  : c\n"
+            ""
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "+MAP\n"
+            "=VAL :\n"
+            "=VAL :c\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain("c"));
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(IndentationJump0DocStartLevel0_rkey,
+            "a: b\n"
+            "--- c\n"
+            ""
+            ,
+            "---\n"
+            "a: b\n"
+            "--- c\n"
+            ""
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :c\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("c"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(IndentationJump0DocStartLevel0_rval,
+            "a:\n"
+            "--- c\n"
+            ""
+            ,
+            "---\n"
+            "a: \n"
+            "--- c\n"
+            ""
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :c\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("c"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(IndentationJump0DocEndLevel0_rkey,
+            "a: b\n"
+            "...\n"
+            ,
+            "a: b\n"
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-DOC ...\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(IndentationJump0DocEndLevel0_rval,
+            "a:\n"
+            "...\n"
+            ""
+            ,
+            "a: \n"
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC ...\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(IndentationJump0DocStartLevel1_rkey,
+            "map:\n"
+            "  a: b\n"
+            "--- c\n"
+            ""
+            ,
+            "---\n"
+            "map:\n"
+            "  a: b\n"
+            "--- c\n"
+            ""
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :map\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :c\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("c"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(IndentationJump0DocStartLevel1_rval,
+            "map:\n"
+            "  a:\n"
+            "--- c\n"
+            ""
+            ,
+            "---\n"
+            "map:\n"
+            "  a: \n"
+            "--- c\n"
+            ""
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :map\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "+DOC ---\n"
+            "=VAL :c\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("c"));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(IndentationJump0DocEndLevel1_rkey,
+            "map:\n"
+            "  a: b\n"
+            "...\n"
+            ""
+            ,
+            "map:\n"
+            "  a: b\n"
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :map\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC ...\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(IndentationJump0DocEndLevel1_rval,
+            "map:\n"
+            "  a:\n"
+            "...\n"
+            ""
+            ,
+            "map:\n"
+            "  a: \n"
+            ,
+            ""
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :map\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC ...\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("map"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_map_block());
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
 
 } // namespace yml
 } // namespace c4

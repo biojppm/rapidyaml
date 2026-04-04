@@ -451,6 +451,14 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_0, Location(5, 1),
                    "a"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_0tab, Location(5, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   "\ta"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_1, Location(6, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -458,6 +466,15 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_1, Location(6, 1),
                    "- {"    "\n"
                    " a"     "\n"
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_1tab, Location(6, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_0, Location(7, 1),
@@ -470,6 +487,16 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_0, Location(7, 1),
                    "b"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_0tab, Location(7, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_1, Location(8, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -479,6 +506,17 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_1, Location(8, 1),
                    "    "   "\n" // important to test all line with spaces
                    "    "   "\n" // important to test all line with spaces
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_1tab, Location(8, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_2, Location(9, 1),
@@ -493,6 +531,18 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_2, Location(9, 1),
                    "b"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_2_2tab, Location(9, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_0, Location(7, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -501,6 +551,16 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_0, Location(7, 1),
                    " a"     "\n"
                    ""   "\n" // important to test all line with spaces
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_0tab, Location(7, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_1, Location(8, 1),
@@ -512,6 +572,17 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_1, Location(8, 1),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_1tab, Location(8, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_2, Location(9, 1),
@@ -527,6 +598,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_2, Location(9, 1),
                    " }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey0_3_2tab, Location(9, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
+                   " }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_0, Location(9, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -537,6 +621,18 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_0, Location(9, 1),
                    " a"      "\n"
                    " :"      "\n"
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_0tab, Location(9, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_1, Location(10, 1),
@@ -550,6 +646,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_1, Location(10, 1),
                    " :"      "\n"
                    " b"      "\n"
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_1tab, Location(10, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_0, Location(11, 1),
@@ -566,6 +675,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_0, Location(11, 1),
                    "c"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_0tab, Location(11, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_1, Location(12, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -579,6 +702,21 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_1, Location(12, 1),
                    "    "   "\n" // important to test all line with spaces
                    "    "   "\n" // important to test all line with spaces
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_1tab, Location(12, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_2, Location(13, 1),
@@ -597,6 +735,22 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_2, Location(13, 1),
                    "c"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_2_2tab, Location(13, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_0, Location(11, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -609,6 +763,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_0, Location(11, 1),
                    " b"      "\n"
                    ""   "\n" // important to test all line with spaces
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_0tab, Location(11, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_1, Location(12, 1),
@@ -624,6 +792,21 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_1, Location(12, 1),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_1tab, Location(12, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_2, Location(13, 1),
@@ -643,6 +826,23 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_2, Location(13, 1),
                    " }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal0_3_2tab, Location(13, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
+                   " }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentColon0_0, Location(8, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -652,6 +852,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentColon0_0, Location(8, 1),
                    "- {"    "\n"
                    " a"      "\n"
                    ":"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(SeqNestedIndentColon0_0tab, Location(8, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"      "\n"
+                   "\t:"      "\n"
                    " b"      "\n"
                    " }"     "\n"
                    )
@@ -669,6 +882,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentBracket0_0, Location(10, 1),
                    "}"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentBracket0_0tab, Location(10, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "\t}"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentBracket0_1, Location(11, 1),
                    "- {"    "\n"
                    " a"     "\n"
@@ -681,6 +907,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentBracket0_1, Location(11, 1),
                    " b"      "\n"
                    " ,"     "\n"
                    "}"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(SeqNestedIndentBracket0_1tab, Location(11, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " ,"     "\n"
+                   "\t}"     "\n"
                    )
 
 ENGINE_TEST_ERRLOC(SeqNestedIndentComma0_0, Location(10, 1),
@@ -700,12 +940,37 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentComma0_0, Location(10, 1),
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentComma0_0tab, Location(10, 1),
+                   "- {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "- {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "\t,"       "\n"
+                   " }"     "\n"
+                   )
+
+
+//-----------------------------------------------------------------------------
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_0, Location(5, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
                    "   }"     "\n"
                    "  - {"    "\n"
                    "  a"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_0tab, Location(5, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "  \ta"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_1, Location(6, 3),
@@ -715,6 +980,15 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_1, Location(6, 3),
                    "  - {"    "\n"
                    "   a"     "\n"
                    "  b"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_1tab, Location(6, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "  \tb"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_0, Location(7, 3),
@@ -727,6 +1001,16 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_0, Location(7, 3),
                    "  b"      "\n"
                    "   }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_0tab, Location(7, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test all line with spaces
+                   "  \tb"      "\n"
+                   "   }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_1, Location(8, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
@@ -736,6 +1020,17 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_1, Location(8, 3),
                    "      "   "\n" // important to test all line with spaces
                    "      "   "\n" // important to test all line with spaces
                    "  b"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_1tab, Location(8, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test all line with spaces
+                   "      "   "\n" // important to test all line with spaces
+                   "  \tb"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_2, Location(9, 3),
@@ -750,6 +1045,18 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_2, Location(9, 3),
                    "  b"      "\n"
                    "   }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_2_2tab, Location(9, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "      "   "\n" // important to test all line with spaces
+                   "      "   "\n" // important to test all line with spaces
+                   "      "   "\n" // important to test all line with spaces
+                   "  \tb"      "\n"
+                   "   }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_0, Location(7, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
@@ -758,6 +1065,16 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_0, Location(7, 3),
                    "   a"     "\n"
                    "  "   "\n" // important to test all line with spaces
                    "  b"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_0tab, Location(7, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "  "   "\n" // important to test all line with spaces
+                   "  \tb"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_1, Location(8, 3),
@@ -769,6 +1086,17 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_1, Location(8, 3),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "  b"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_1tab, Location(8, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "  \tb"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_2, Location(9, 3),
@@ -784,6 +1112,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_2, Location(9, 3),
                    "   }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey1_3_2tab, Location(9, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "  \tb"      "\n"
+                   "   }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_0, Location(9, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
@@ -794,6 +1135,18 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_0, Location(9, 3),
                    "   a"      "\n"
                    "   :"      "\n"
                    "  b"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_0tab, Location(9, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"     "\n"
+                   "   b"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"      "\n"
+                   "   :"      "\n"
+                   "  \tb"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_1, Location(10, 3),
@@ -807,6 +1160,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_1, Location(10, 3),
                    "   :"      "\n"
                    "   b"      "\n"
                    "  c"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_1tab, Location(10, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "  \tc"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_0, Location(11, 3),
@@ -823,6 +1189,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_0, Location(11, 3),
                    "  c"      "\n"
                    "   }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_0tab, Location(11, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "      "   "\n" // important to test all line with spaces
+                   "  \tc"      "\n"
+                   "   }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_1, Location(12, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
@@ -836,6 +1216,21 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_1, Location(12, 3),
                    "      "   "\n" // important to test all line with spaces
                    "      "   "\n" // important to test all line with spaces
                    "  c"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_1tab, Location(12, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "      "   "\n" // important to test all line with spaces
+                   "      "   "\n" // important to test all line with spaces
+                   "  \tc"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_2, Location(13, 3),
@@ -854,6 +1249,22 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_2, Location(13, 3),
                    "  c"      "\n"
                    "   }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_2_2tab, Location(13, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "      "   "\n" // important to test all line with spaces
+                   "      "   "\n" // important to test all line with spaces
+                   "      "   "\n" // important to test all line with spaces
+                   "  \tc"      "\n"
+                   "   }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_0, Location(11, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
@@ -866,6 +1277,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_0, Location(11, 3),
                    "   b"      "\n"
                    "  "   "\n" // important to test all line with spaces
                    "  c"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_0tab, Location(11, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "  "   "\n" // important to test all line with spaces
+                   "  \tc"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_1, Location(12, 3),
@@ -881,6 +1306,21 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_1, Location(12, 3),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "  c"      "\n"
+                   "   }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_1tab, Location(12, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "  \tc"      "\n"
                    "   }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_2, Location(13, 3),
@@ -900,6 +1340,23 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_2, Location(13, 3),
                    "   }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal1_3_2tab, Location(13, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"     "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "  \tc"      "\n"
+                   "   }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentColon1_0, Location(8, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
@@ -909,6 +1366,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentColon1_0, Location(8, 3),
                    "  - {"    "\n"
                    "   a"      "\n"
                    "  :"      "\n"
+                   "   b"      "\n"
+                   "   }"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(SeqNestedIndentColon1_0tab, Location(8, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"     "\n"
+                   "   b"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"      "\n"
+                   "  \t:"      "\n"
                    "   b"      "\n"
                    "   }"     "\n"
                    )
@@ -926,6 +1396,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentBracket1_0, Location(10, 3),
                    "  }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentBracket1_0tab, Location(10, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"     "\n"
+                   "   b"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"      "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "  \t}"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentBracket1_1, Location(11, 3),
                    "- - {"    "\n"
                    "   a"     "\n"
@@ -938,6 +1421,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentBracket1_1, Location(11, 3),
                    "   b"      "\n"
                    "   ,"     "\n"
                    "  }"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(SeqNestedIndentBracket1_1tab, Location(11, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"     "\n"
+                   "   b"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"      "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "   ,"     "\n"
+                   "  \t}"     "\n"
                    )
 
 ENGINE_TEST_ERRLOC(SeqNestedIndentComma1_0, Location(10, 3),
@@ -957,12 +1454,37 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentComma1_0, Location(10, 3),
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentComma1_0tab, Location(10, 3),
+                   "- - {"    "\n"
+                   "   a"     "\n"
+                   "   :"     "\n"
+                   "   b"     "\n"
+                   "   }"     "\n"
+                   "  - {"    "\n"
+                   "   a"      "\n"
+                   "   :"      "\n"
+                   "   b"      "\n"
+                   "  \t,"       "\n"
+                   "   }"     "\n"
+                   )
+
+
+//-----------------------------------------------------------------------------
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_0, Location(5, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
                    "     }"     "\n"
                    "    - {"    "\n"
                    "    a"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_0tab, Location(5, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "    \ta"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_1, Location(6, 5),
@@ -972,6 +1494,15 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_1, Location(6, 5),
                    "    - {"    "\n"
                    "     a"     "\n"
                    "    b"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_1tab, Location(6, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "    \tb"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_0, Location(7, 5),
@@ -984,6 +1515,16 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_0, Location(7, 5),
                    "    b"      "\n"
                    "     }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_0tab, Location(7, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test all line with spaces
+                   "    \tb"      "\n"
+                   "     }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_1, Location(8, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
@@ -993,6 +1534,17 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_1, Location(8, 5),
                    "        "   "\n" // important to test all line with spaces
                    "        "   "\n" // important to test all line with spaces
                    "    b"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_1tab, Location(8, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test all line with spaces
+                   "        "   "\n" // important to test all line with spaces
+                   "    \tb"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_2, Location(9, 5),
@@ -1007,6 +1559,18 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_2, Location(9, 5),
                    "    b"      "\n"
                    "     }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_2_2tab, Location(9, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "        "   "\n" // important to test all line with spaces
+                   "        "   "\n" // important to test all line with spaces
+                   "        "   "\n" // important to test all line with spaces
+                   "    \tb"      "\n"
+                   "     }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_0, Location(7, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
@@ -1015,6 +1579,16 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_0, Location(7, 5),
                    "     a"     "\n"
                    "    "   "\n" // important to test all line with spaces
                    "    b"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_0tab, Location(7, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    \tb"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_1, Location(8, 5),
@@ -1026,6 +1600,17 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_1, Location(8, 5),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "    b"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_1tab, Location(8, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "    \tb"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_2, Location(9, 5),
@@ -1041,6 +1626,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_2, Location(9, 5),
                    "     }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentKey2_3_2tab, Location(9, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "    \tb"      "\n"
+                   "     }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_0, Location(9, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
@@ -1051,6 +1649,18 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_0, Location(9, 5),
                    "     a"      "\n"
                    "     :"      "\n"
                    "    b"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_0tab, Location(9, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"     "\n"
+                   "     b"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"      "\n"
+                   "     :"      "\n"
+                   "    \tb"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_1, Location(10, 5),
@@ -1064,6 +1674,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_1, Location(10, 5),
                    "     :"      "\n"
                    "     b"      "\n"
                    "    c"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_1tab, Location(10, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "    \tc"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_0, Location(11, 5),
@@ -1080,6 +1703,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_0, Location(11, 5),
                    "    c"      "\n"
                    "     }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_0tab, Location(11, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "        "   "\n" // important to test all line with spaces
+                   "    \tc"      "\n"
+                   "     }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_1, Location(12, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
@@ -1093,6 +1730,21 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_1, Location(12, 5),
                    "        "   "\n" // important to test all line with spaces
                    "        "   "\n" // important to test all line with spaces
                    "    c"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_1tab, Location(12, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "        "   "\n" // important to test all line with spaces
+                   "        "   "\n" // important to test all line with spaces
+                   "    \tc"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_2, Location(13, 5),
@@ -1111,6 +1763,22 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_2, Location(13, 5),
                    "    c"      "\n"
                    "     }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_2_2tab, Location(13, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "        "   "\n" // important to test all line with spaces
+                   "        "   "\n" // important to test all line with spaces
+                   "        "   "\n" // important to test all line with spaces
+                   "    \tc"      "\n"
+                   "     }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_0, Location(11, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
@@ -1123,6 +1791,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_0, Location(11, 5),
                    "     b"      "\n"
                    "    "   "\n" // important to test all line with spaces
                    "    c"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_0tab, Location(11, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    \tc"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_1, Location(12, 5),
@@ -1138,6 +1820,21 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_1, Location(12, 5),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "    c"      "\n"
+                   "     }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_1tab, Location(12, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "    \tc"      "\n"
                    "     }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_2, Location(13, 5),
@@ -1157,6 +1854,23 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_2, Location(13, 5),
                    "     }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentVal2_3_2tab, Location(13, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"     "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "    \tc"      "\n"
+                   "     }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentColon2_0, Location(8, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
@@ -1166,6 +1880,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentColon2_0, Location(8, 5),
                    "    - {"    "\n"
                    "     a"      "\n"
                    "    :"      "\n"
+                   "     b"      "\n"
+                   "     }"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(SeqNestedIndentColon2_0tab, Location(8, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"     "\n"
+                   "     b"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"      "\n"
+                   "    \t:"      "\n"
                    "     b"      "\n"
                    "     }"     "\n"
                    )
@@ -1183,6 +1910,19 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentBracket2_0, Location(10, 5),
                    "    }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentBracket2_0tab, Location(10, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"     "\n"
+                   "     b"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"      "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "    \t}"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(SeqNestedIndentBracket2_1, Location(11, 5),
                    "- - - {"    "\n"
                    "     a"     "\n"
@@ -1195,6 +1935,20 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentBracket2_1, Location(11, 5),
                    "     b"      "\n"
                    "     ,"     "\n"
                    "    }"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(SeqNestedIndentBracket2_1tab, Location(11, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"     "\n"
+                   "     b"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"      "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "     ,"     "\n"
+                   "    \t}"     "\n"
                    )
 
 ENGINE_TEST_ERRLOC(SeqNestedIndentComma2_0, Location(10, 5),
@@ -1214,12 +1968,37 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentComma2_0, Location(10, 5),
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST_ERRLOC(SeqNestedIndentComma2_0tab, Location(10, 5),
+                   "- - - {"    "\n"
+                   "     a"     "\n"
+                   "     :"     "\n"
+                   "     b"     "\n"
+                   "     }"     "\n"
+                   "    - {"    "\n"
+                   "     a"      "\n"
+                   "     :"      "\n"
+                   "     b"      "\n"
+                   "    \t,"       "\n"
+                   "     }"     "\n"
+                   )
+
+
+//-----------------------------------------------------------------------------
+
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_0, Location(5, 1),
                    "k: {"    "\n"
                    " a"     "\n"
                    " }"     "\n"
                    "k: {"    "\n"
                    "a"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_0tab, Location(5, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   "\ta"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_1, Location(6, 1),
@@ -1229,6 +2008,15 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_1, Location(6, 1),
                    "k: {"    "\n"
                    " a"     "\n"
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_1tab, Location(6, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_0, Location(7, 1),
@@ -1241,6 +2029,16 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_0, Location(7, 1),
                    "b"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_0tab, Location(7, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_1, Location(8, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1250,6 +2048,17 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_1, Location(8, 1),
                    "    "   "\n" // important to test all line with spaces
                    "    "   "\n" // important to test all line with spaces
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_1tab, Location(8, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_2, Location(9, 1),
@@ -1264,6 +2073,18 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_2, Location(9, 1),
                    "b"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_2_2tab, Location(9, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_0, Location(7, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1272,6 +2093,16 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_0, Location(7, 1),
                    " a"     "\n"
                    ""   "\n" // important to test all line with spaces
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_0tab, Location(7, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_1, Location(8, 1),
@@ -1283,6 +2114,17 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_1, Location(8, 1),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_1tab, Location(8, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_2, Location(9, 1),
@@ -1298,6 +2140,19 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_2, Location(9, 1),
                    " }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_3_2tab, Location(9, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tb"      "\n"
+                   " }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_0, Location(9, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1308,6 +2163,18 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_0, Location(9, 1),
                    " a"      "\n"
                    " :"      "\n"
                    "b"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_0tab, Location(9, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   "\tb"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_1, Location(10, 1),
@@ -1321,6 +2188,19 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_1, Location(10, 1),
                    " :"      "\n"
                    " b"      "\n"
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_1tab, Location(10, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_0, Location(11, 1),
@@ -1337,6 +2217,20 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_0, Location(11, 1),
                    "c"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_0tab, Location(11, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_1, Location(12, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1350,6 +2244,21 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_1, Location(12, 1),
                    "    "   "\n" // important to test all line with spaces
                    "    "   "\n" // important to test all line with spaces
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_1tab, Location(12, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_2, Location(13, 1),
@@ -1368,6 +2277,22 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_2, Location(13, 1),
                    "c"      "\n"
                    " }"     "\n"
                    )
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_2_2tab, Location(13, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "    "   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
+                   " }"     "\n"
+                   )
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_0, Location(11, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1380,6 +2305,20 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_0, Location(11, 1),
                    " b"      "\n"
                    ""   "\n" // important to test all line with spaces
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_0tab, Location(11, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_1, Location(12, 1),
@@ -1395,6 +2334,21 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_1, Location(12, 1),
                    ""   "\n" // important to test all line with spaces
                    ""   "\n" // important to test all line with spaces
                    "c"      "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_1tab, Location(12, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
                    " }"     "\n"
                    )
 ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_2, Location(13, 1),
@@ -1414,6 +2368,23 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_2, Location(13, 1),
                    " }"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(MapValNestedIndentVal0_3_2tab, Location(13, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   ""   "\n" // important to test all line with spaces
+                   "\tc"      "\n"
+                   " }"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(MapValNestedIndentColon0_0, Location(8, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1423,6 +2394,19 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentColon0_0, Location(8, 1),
                    "k: {"    "\n"
                    " a"      "\n"
                    ":"      "\n"
+                   " b"      "\n"
+                   " }"     "\n"
+                   )
+
+ENGINE_TEST_ERRLOC(MapValNestedIndentColon0_0tab, Location(8, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"      "\n"
+                   "\t:"      "\n"
                    " b"      "\n"
                    " }"     "\n"
                    )
@@ -1440,6 +2424,19 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentBracket0_0, Location(10, 1),
                    "}"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(MapValNestedIndentBracket0_0tab, Location(10, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "\t}"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(MapValNestedIndentBracket0_1, Location(11, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1454,6 +2451,20 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentBracket0_1, Location(11, 1),
                    "}"     "\n"
                    )
 
+ENGINE_TEST_ERRLOC(MapValNestedIndentBracket0_1tab, Location(11, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   " ,"     "\n"
+                   "\t}"     "\n"
+                   )
+
 ENGINE_TEST_ERRLOC(MapValNestedIndentComma0_0, Location(10, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1465,6 +2476,19 @@ ENGINE_TEST_ERRLOC(MapValNestedIndentComma0_0, Location(10, 1),
                    " :"      "\n"
                    " b"      "\n"
                    ","       "\n"
+                   " }"     "\n"
+                   )
+ENGINE_TEST_ERRLOC(MapValNestedIndentComma0_0tab, Location(10, 1),
+                   "k: {"    "\n"
+                   " a"     "\n"
+                   " :"     "\n"
+                   " b"     "\n"
+                   " }"     "\n"
+                   "k: {"    "\n"
+                   " a"      "\n"
+                   " :"      "\n"
+                   " b"      "\n"
+                   "\t,"       "\n"
                    " }"     "\n"
                    )
 
@@ -1485,6 +2509,17 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_0, keyflags, ExpectedErrorType::err_p
                     " }"     "\n"
                     ": v"     "\n"
 )
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(6, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "?: {"    "\n"
+                    "\ta"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_1, keyflags, ExpectedErrorType::err_parse,
                     Location(7, 1),
                     "? {"    "\n"
@@ -1494,6 +2529,18 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_1, keyflags, ExpectedErrorType::err_p
                     "? {"    "\n"
                     " a"     "\n"
                     "b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_1tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(7, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    "\tb"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1510,6 +2557,19 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_2_0, keyflags, ExpectedErrorType::err
                     " }"     "\n"
                     ": v"     "\n"
 )
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_2_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(8, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    "    "   "\n" // important to test all line with spaces
+                    "\tb"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_2_1, keyflags, ExpectedErrorType::err_parse,
                     Location(9, 1),
                     "? {"    "\n"
@@ -1521,6 +2581,20 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_2_1, keyflags, ExpectedErrorType::err
                     "    "   "\n" // important to test all line with spaces
                     "    "   "\n" // important to test all line with spaces
                     "b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_2_1tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(9, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    "    "   "\n" // important to test all line with spaces
+                    "    "   "\n" // important to test all line with spaces
+                    "\tb"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1539,6 +2613,21 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_2_2, keyflags, ExpectedErrorType::err
                     " }"     "\n"
                     ": v"     "\n"
 )
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_2_2tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(10, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    "    "   "\n" // important to test all line with spaces
+                    "    "   "\n" // important to test all line with spaces
+                    "    "   "\n" // important to test all line with spaces
+                    "\tb"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_3_0, keyflags, ExpectedErrorType::err_parse,
                     Location(8, 1),
                     "? {"    "\n"
@@ -1549,6 +2638,19 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_3_0, keyflags, ExpectedErrorType::err
                     " a"     "\n"
                     ""   "\n" // important to test all line with spaces
                     "b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_3_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(8, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    ""   "\n" // important to test all line with spaces
+                    "\tb"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1563,6 +2665,20 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_3_1, keyflags, ExpectedErrorType::err
                     ""   "\n" // important to test all line with spaces
                     ""   "\n" // important to test all line with spaces
                     "b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_3_1tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(9, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    ""   "\n" // important to test all line with spaces
+                    ""   "\n" // important to test all line with spaces
+                    "\tb"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1582,6 +2698,22 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_3_2, keyflags, ExpectedErrorType::err
                     ": v"     "\n"
 )
 
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentKey0_3_2tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(10, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    ""   "\n" // important to test all line with spaces
+                    ""   "\n" // important to test all line with spaces
+                    ""   "\n" // important to test all line with spaces
+                    "\tb"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_0, keyflags, ExpectedErrorType::err_parse,
                     Location(10, 1),
                     "? {"    "\n"
@@ -1594,6 +2726,21 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_0, keyflags, ExpectedErrorType::err_p
                     " a"      "\n"
                     " :"      "\n"
                     "b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(10, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"     "\n"
+                    " b"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"      "\n"
+                    " :"      "\n"
+                    "\tb"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1610,6 +2757,22 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_1, keyflags, ExpectedErrorType::err_p
                     " :"      "\n"
                     " b"      "\n"
                     "c"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_1tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(11, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    "\tc"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1630,6 +2793,23 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_2_0, keyflags, ExpectedErrorType::err
                     " }"     "\n"
                     ": v"     "\n"
 )
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_2_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(12, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    "    "   "\n" // important to test all line with spaces
+                    "\tc"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_2_1, keyflags, ExpectedErrorType::err_parse,
                     Location(13, 1),
                     "? {"    "\n"
@@ -1645,6 +2825,24 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_2_1, keyflags, ExpectedErrorType::err
                     "    "   "\n" // important to test all line with spaces
                     "    "   "\n" // important to test all line with spaces
                     "c"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_2_1tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(13, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    "    "   "\n" // important to test all line with spaces
+                    "    "   "\n" // important to test all line with spaces
+                    "\tc"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1667,6 +2865,25 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_2_2, keyflags, ExpectedErrorType::err
                     " }"     "\n"
                     ": v"     "\n"
 )
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_2_2tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(14, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    "    "   "\n" // important to test all line with spaces
+                    "    "   "\n" // important to test all line with spaces
+                    "    "   "\n" // important to test all line with spaces
+                    "\tc"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_3_0, keyflags, ExpectedErrorType::err_parse,
                     Location(12, 1),
                     "? {"    "\n"
@@ -1681,6 +2898,23 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_3_0, keyflags, ExpectedErrorType::err
                     " b"      "\n"
                     ""   "\n" // important to test all line with spaces
                     "c"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_3_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(12, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    ""   "\n" // important to test all line with spaces
+                    "\tc"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1699,6 +2933,24 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_3_1, keyflags, ExpectedErrorType::err
                     ""   "\n" // important to test all line with spaces
                     ""   "\n" // important to test all line with spaces
                     "c"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_3_1tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(13, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    ""   "\n" // important to test all line with spaces
+                    ""   "\n" // important to test all line with spaces
+                    "\tc"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
 )
@@ -1722,6 +2974,26 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_3_2, keyflags, ExpectedErrorType::err
                     ": v"     "\n"
 )
 
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentVal0_3_2tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(14, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    ""   "\n" // important to test all line with spaces
+                    ""   "\n" // important to test all line with spaces
+                    ""   "\n" // important to test all line with spaces
+                    "\tc"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentColon0_0, keyflags, ExpectedErrorType::err_parse,
                     Location(9, 1),
                     "? {"    "\n"
@@ -1733,6 +3005,22 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentColon0_0, keyflags, ExpectedErrorType::err
                     "? {"    "\n"
                     " a"      "\n"
                     ":"      "\n"
+                    " b"      "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
+
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentColon0_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(9, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"     "\n"
+                    " b"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"      "\n"
+                    "\t:"      "\n"
                     " b"      "\n"
                     " }"     "\n"
                     ": v"     "\n"
@@ -1754,6 +3042,22 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentBracket0_0, keyflags, ExpectedErrorType::e
                     ": v"     "\n"
 )
 
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentBracket0_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(11, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"     "\n"
+                    " b"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"     "\n"
+                    " a"      "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    "\t}"     "\n"
+                    ": v"     "\n"
+)
+
 ENGINE_TEST_ERRLOC_(MapKeyNestedIndentBracket0_1, keyflags, ExpectedErrorType::err_parse,
                     Location(12, 1),
                     "? {"    "\n"
@@ -1768,6 +3072,23 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentBracket0_1, keyflags, ExpectedErrorType::e
                     " b"      "\n"
                     " ,"     "\n"
                     "}"     "\n"
+                    ": v"     "\n"
+)
+
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentBracket0_1tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(12, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"     "\n"
+                    " b"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"      "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    " ,"     "\n"
+                    "\t}"     "\n"
                     ": v"     "\n"
 )
 
@@ -1788,6 +3109,26 @@ ENGINE_TEST_ERRLOC_(MapKeyNestedIndentComma0_0, keyflags, ExpectedErrorType::err
                     ": v"     "\n"
 )
 
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC_(MapKeyNestedIndentComma0_0tab, keyflags, ExpectedErrorType::err_parse,
+                    Location(11, 1),
+                    "? {"    "\n"
+                    " a"     "\n"
+                    " :"     "\n"
+                    " b"     "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+                    "? {"    "\n"
+                    " a"      "\n"
+                    " :"      "\n"
+                    " b"      "\n"
+                    "\t,"       "\n"
+                    " }"     "\n"
+                    ": v"     "\n"
+)
 
 
 //-----------------------------------------------------------------------------
