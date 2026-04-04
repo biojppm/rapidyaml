@@ -211,7 +211,7 @@ typedef enum BlockChomp_ {
     CHOMP_STRIP,   //!< no newline at end     (-)
     CHOMP_KEEP     //!< all newlines from end (+)
 } BlockChomp_e;
-/** @cond endcond */
+/** @endcond */
 
 
 /** Quickly inspect the source to estimate the number of nodes the

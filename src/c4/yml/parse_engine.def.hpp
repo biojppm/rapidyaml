@@ -2164,6 +2164,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
     while( ! _finished_file())
     {
         bool line_is_blank = true;
+        C4_DONT_OPTIMIZE(m_evt_handler->m_curr->line_contents.rem); // prevent hoisting
         csubstr rem = m_evt_handler->m_curr->line_contents.rem;
         _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", m_evt_handler->m_curr->pos.line, rem);
         if(C4_UNLIKELY(_is_doc_token(rem)))
