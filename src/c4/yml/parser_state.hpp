@@ -161,22 +161,49 @@ public:
     C4_ALWAYS_INLINE bool indentation_eq() const noexcept
     {
         _RYML_ASSERT_BASIC(indref != npos);
-        return line_contents.indentation != npos && line_contents.indentation == indref;
+        return line_contents.indentation != npos
+            && line_contents.indentation == indref;
+    }
+    C4_ALWAYS_INLINE bool indentation_eq_extra() const noexcept
+    {
+        _RYML_ASSERT_BASIC(indref != npos);
+        return line_contents.indentation != npos
+            && line_contents.indentation == indref + 1u;
     }
     C4_ALWAYS_INLINE bool indentation_ge() const noexcept
     {
         _RYML_ASSERT_BASIC(indref != npos);
-        return line_contents.indentation != npos && line_contents.indentation >= indref;
+        return line_contents.indentation != npos
+            && line_contents.indentation >= indref;
+    }
+    C4_ALWAYS_INLINE bool indentation_ge_extra() const noexcept
+    {
+        _RYML_ASSERT_BASIC(indref != npos);
+        return line_contents.indentation != npos
+            && line_contents.indentation >= indref + 1u;
     }
     C4_ALWAYS_INLINE bool indentation_gt() const noexcept
     {
         _RYML_ASSERT_BASIC(indref != npos);
-        return line_contents.indentation != npos && line_contents.indentation > indref;
+        return line_contents.indentation != npos
+            && line_contents.indentation > indref;
+    }
+    C4_ALWAYS_INLINE bool indentation_gt_extra() const noexcept
+    {
+        _RYML_ASSERT_BASIC(indref != npos);
+        return line_contents.indentation != npos
+            && line_contents.indentation > indref + 1u;
     }
     C4_ALWAYS_INLINE bool indentation_lt() const noexcept
     {
         _RYML_ASSERT_BASIC(indref != npos);
         return line_contents.indentation != npos && line_contents.indentation < indref;
+    }
+    C4_ALWAYS_INLINE bool indentation_lt_extra() const noexcept
+    {
+        _RYML_ASSERT_BASIC(indref != npos);
+        return line_contents.indentation != npos
+            && line_contents.indentation < indref + 1u;
     }
 };
 static_assert(std::is_standard_layout<ParserState>::value, "ParserState not standard");

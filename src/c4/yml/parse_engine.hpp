@@ -205,12 +205,13 @@ class ConstNodeRef;
 struct FilterResult;
 struct FilterResultExtending;
 
-
+/** @cond dev */
 typedef enum BlockChomp_ {
     CHOMP_CLIP,    //!< single newline at end (default)
     CHOMP_STRIP,   //!< no newline at end     (-)
     CHOMP_KEEP     //!< all newlines from end (+)
 } BlockChomp_e;
+/** @cond endcond */
 
 
 /** Quickly inspect the source to estimate the number of nodes the
@@ -506,6 +507,13 @@ private:
     void  _handle_flow_skip_whitespace();
     void  _handle_flow_line_beginning();
 
+    void   _handle_block_line_beginning(bool extra);
+    size_t _handle_block_skip_leading_whitespace();
+    C4_ALWAYS_INLINE
+    size_t _handle_block_get_whitespace_mark() const noexcept { return m_evt_handler->m_curr->pos.offset; }
+    void   _handle_block_check_leading_tabs(size_t prev_mark) { return _handle_block_check_leading_tabs(prev_mark, m_evt_handler->m_curr->pos.offset); }
+    void   _handle_block_check_leading_tabs(size_t start_mark, size_t end_mark);
+
     void  _end_map_flow();
     void  _end_seq_flow();
     void  _end_map_blck();
@@ -537,12 +545,14 @@ private:
     void  _handle_indentation_pop(ParserState const* dst);
 
     void _maybe_skip_comment();
+    void _maybe_skip_comment_strict();
     void _skip_comment();
     void _maybe_skip_whitespace_tokens();
     void _maybe_skipchars(char c);
     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
     void _maybe_skipchars_up_to(char c, size_t max_to_skip);
     #endif
+    void _skipchars(char);
     template<size_t N>
     void _skipchars(const char (&chars)[N]);
     bool _maybe_scan_following_colon() noexcept;
@@ -594,9 +604,9 @@ private:
     void   _scan_line();
     substr _peek_next_line(size_t pos=npos) const;
 
-    bool _at_line_begin() const
+    C4_ALWAYS_INLINE bool _at_line_begin() const noexcept
     {
-        return m_evt_handler->m_curr->line_contents.rem.begin() == m_evt_handler->m_curr->line_contents.full.begin();
+        return m_evt_handler->m_curr->line_contents.rem.str == m_evt_handler->m_curr->line_contents.full.str;
     }
 
     void _relocate_arena(csubstr prev_arena, substr next_arena);
