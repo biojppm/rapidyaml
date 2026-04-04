@@ -47,7 +47,7 @@ namespace yml {
  * ```
  */
 template<class Fn>
-void escape_scalar_fn(Fn &&fn, csubstr scalar, bool keep_newlines=false)
+C4_NO_INLINE void escape_scalar_fn(Fn &&fn, csubstr scalar, bool keep_newlines=false)
 {
     size_t prev = 0;   // the last position that was flushed
     size_t skip = 0;   // how much to add to prev
@@ -161,10 +161,72 @@ void escape_scalar_fn(Fn &&fn, csubstr scalar, bool keep_newlines=false)
 
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
+
+/** Adjust a position in a scalar, increasing it to account for any
+ * escaped characters.
+ *
+ * @note This is a utility/debugging function, so it is provided in
+ * this optional header. For this reason, we inline it to obey to the
+ * One Definition Rule. But then we set the noinline attribute to
+ * ensure they are not inlined in calling code. */
+inline C4_NO_INLINE size_t adjust_pos_with_escapes(csubstr scalar, size_t pos, bool keep_newlines=false)
+{
+    // cast to u8 to avoid having to deal with negative
+    // signed chars (which are present in some platforms)
+    uint8_t const* C4_RESTRICT s = reinterpret_cast<uint8_t const*>(scalar.str); // NOLINT(*-reinterpret-cast)
+    size_t len = pos < scalar.len ? pos : scalar.len;
+    const size_t newbump = keep_newlines ? 2 : 1;
+    for(size_t i = 0; i < len; ++i)
+    {
+        switch(s[i])
+        {
+        case UINT8_C(0x5c): // '\\'
+        case UINT8_C(0x09): // \t
+        case UINT8_C(0x0d): // \r
+        case UINT8_C(0x00): // \0
+        case UINT8_C(0x0c): // \f (form feed)
+        case UINT8_C(0x08): // \b (backspace)
+        case UINT8_C(0x07): // \a (bell)
+        case UINT8_C(0x0b): // \v (vertical tab)
+        case UINT8_C(0x1b): // \e (escape)
+            ++pos;
+            break;
+        case UINT8_C(0x0a): // \n
+            pos += newbump;
+            break;
+        case UINT8_C(0xc2): // AKA -0x3e
+            if(i+1 < scalar.len)
+            {
+                if(s[i+1] == UINT8_C(0xa0) // AKA -0x60 -> \_
+                   ||
+                   s[i+1] == UINT8_C(0x85)) // AKA -0x7b -> \N
+                    ++pos;
+            }
+            break;
+        case UINT8_C(0xe2): // AKA -0x1e
+            if(i+2 < scalar.len)
+            {
+                if(s[i+1] == UINT8_C(0x80)) // AKA -0x80
+                {
+                    if(s[i+2] == UINT8_C(0xa8) // AKA -0x58 -> \L
+                       ||
+                       s[i+2] == UINT8_C(0xa9)) // AKA -0x57 -> \P
+                        ++pos;
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return pos;
+}
+
+
 /** Escape a scalar to an existing buffer, using @ref escape_scalar_fn
  *
- * @note This is a utility/debugging function, so it is provided in this
- * (optional) header. For this reason, we inline it to obey to the
+ * @note This is a utility/debugging function, so it is provided in
+ * this optional header. For this reason, we inline it to obey to the
  * One Definition Rule. But then we set the noinline attribute to
  * ensure they are not inlined in calling code. */
 inline C4_NO_INLINE size_t escape_scalar(substr buffer, csubstr scalar, bool keep_newlines=false)

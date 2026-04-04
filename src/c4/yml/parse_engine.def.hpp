@@ -454,14 +454,16 @@ C4_NO_INLINE void ParseEngine<EventHandler>::_fmt_msg(DumpFn &&dumpfn) const
         _dbg_dump(std::forward<DumpFn>(dumpfn), "{}:{}: ", st->pos.line, st->pos.col);
         csubstr maybe_full_content = (contents.len < 80u ? contents : contents.first(80u));
         csubstr maybe_ellipsis = (contents.len < 80u ? csubstr{} : csubstr("..."));
-        _dbg_dump(std::forward<DumpFn>(dumpfn), "{}{}  (size={})\n", maybe_full_content, maybe_ellipsis, contents.len);
+        _dbg_dump(std::forward<DumpFn>(dumpfn), "{}{}  (size={})\n", escaped_scalar(maybe_full_content, /*escape*/true), maybe_ellipsis, contents.len);
         // highlight the remaining portion of the previous line
-        size_t firstcol = (size_t)(lc.rem.begin() - lc.full.begin());
+        size_t firstcol = (size_t)(lc.rem.str - lc.full.str);
         size_t lastcol = firstcol + lc.rem.len;
-        for(size_t i = 0; i < offs + firstcol; ++i)
+        size_t firstcol_adj = adjust_pos_with_escapes(lc.full, firstcol);
+        size_t len = adjust_pos_with_escapes(lc.rem, lc.rem.len);
+        for(size_t i = 0; i < offs + firstcol_adj; ++i)
             std::forward<DumpFn>(dumpfn)(" ");
         std::forward<DumpFn>(dumpfn)("^");
-        for(size_t i = 1, e = (lc.rem.len < 80u ? lc.rem.len : 80u); i < e; ++i)
+        for(size_t i = 1, e = (len < 80u ? len : 80u); i < e; ++i)
             std::forward<DumpFn>(dumpfn)("~");
         _dbg_dump(std::forward<DumpFn>(dumpfn), "{}  (cols {}-{})\n", maybe_ellipsis, firstcol+1, lastcol+1);
     }

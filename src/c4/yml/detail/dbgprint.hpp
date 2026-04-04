@@ -17,7 +17,7 @@
 #else
 #   define _c4dbgt(fmt, ...)   do {                                     \
                                    if(_dbg_enabled()) {                 \
-                                       this->_dbg ("{}:{}: "   fmt     , __FILE__, __LINE__, __VA_ARGS__); \
+                                       this->_dbg("{}:{}: "   fmt     , __FILE__, __LINE__, __VA_ARGS__); \
                                    }                                    \
                                } while(0)
 #   define _c4dbgpf(fmt, ...)  _dbg_printf("{}:{}: "   fmt "\n", __FILE__, __LINE__, __VA_ARGS__)
