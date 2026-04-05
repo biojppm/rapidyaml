@@ -143,26 +143,6 @@ TEST(seq_of_map, missing_scalars_v3)
     EXPECT_EQ(t["a"][1].first_child().val().str, nullptr) << (const void*)t["a"][1].first_child().val().str;
 }
 
-#ifdef RYML_WITH_TAB_TOKENS
-TEST(seq_of_map, test_suite_6BCT)
-{
-    Tree t = parse_in_arena(R"(
-- foo0: bar0
--	 foo1	 :	 bar1	 
-- 	foo2 	: 	bar2 	
-)");
-    #ifdef RYML_DBG
-    print_tree(t);
-    #endif
-    ASSERT_TRUE(t[0].is_map());
-    ASSERT_TRUE(t[1].is_map());
-    ASSERT_TRUE(t[2].is_map());
-    EXPECT_EQ(t[0]["foo0"].val(), csubstr("bar0"));
-    EXPECT_EQ(t[1]["foo1"].val(), csubstr("bar1"));
-    EXPECT_EQ(t[2]["foo2"].val(), csubstr("bar2"));
-}
-#endif
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -277,7 +257,7 @@ R"('implicit block key' : [
   'implicit flow key 3' : value3,
   'implicit flow key m' : {key1: val1, key2: val2},
   'implicit flow key s' : [val1, val2],
-])",
+ ])",
 N(MB, L{
   N(KS|SFM, "implicit block key", L{
     N(MFS, L{N(KS|VP, "implicit flow key 1", "value1")}),
@@ -296,15 +276,15 @@ R"({a : [
 ],
 b : [
   :
-foo
+ foo
 ],
 c : [
   :
-,
+ ,
   :
 ]})",
 N(MFM, L{
-  N(KP|SFM, "a", L{N(MFM, L{N(KN|VP, "", "foo")}),}),
+  N(KP|SFM, "a", L{N(MFS, L{N(KN|VP, "", "foo")}),}),
   N(KP|SFM, "b", L{N(MFM, L{N(KN|VP, "", "foo")}),}),
   N(KP|SFM, "c", L{N(MFM, L{N(KN|VN, "", {})}), N(MFM, L{N(KN|VN, "", {})}),}),
 })
@@ -361,6 +341,17 @@ N(SB, L{
   N(MB, L{N(KP|VP, TS("!foo", "a1"), "v1"), N(KP|VP, TS("!foo", "a2"), "v2"), N(KP|VP, TS("!foo", "a3"), "v3")}),
 })
 );
+
+#ifdef RYML_WITH_TAB_TOKENS
+ADD_CASE_TO_GROUP("seq of maps, test suite 6BCT", EXPECT_PARSE_ERROR,
+R"(
+- foo0: bar0
+-	 foo1	 :	 bar1	 
+- 	foo2 	: 	bar2 	
+)",
+Location(3, 12)
+);
+#endif
 
 }
 

@@ -43,6 +43,7 @@ std::vector<std::string> inject_comments_in_src(std::string const& src_)
 
 void test_expected_error_testsuite_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location)
 {
+    SCOPED_TRACE("test_expected_error_testsuite_from_yaml");
     (void)tcflags;
     ExpectError::check_error(errtype, [&]{
         std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end()); // g++ 4.8 fails with std::string
@@ -56,6 +57,7 @@ void test_expected_error_testsuite_from_yaml(ExpectedErrorType errtype, TestCase
 
 void test_expected_error_ints_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location)
 {
+    SCOPED_TRACE("test_expected_error_ints_from_yaml");
     (void)tcflags;
     ExpectError::check_error(errtype, [&]{
         std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end()); // g++ 4.8 fails with std::string
@@ -68,7 +70,8 @@ void test_expected_error_ints_from_yaml(ExpectedErrorType errtype, TestCaseFlags
 
 void test_expected_error_tree_from_yaml(ExpectedErrorType errtype, TestCaseFlags_e tcflags, std::string const& parsed_yaml, Location const& expected_error_location)
 {
-    if(tcflags & HAS_CONTAINER_KEYS)
+    SCOPED_TRACE("test_expected_error_tree_from_yaml");
+    if(tcflags & (HAS_CONTAINER_KEYS|NO_TREE_PARSE))
         return;
     else
     {
@@ -89,6 +92,7 @@ void test_expected_error_tree_from_yaml(ExpectedErrorType errtype, TestCaseFlags
 
 void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
 {
+    SCOPED_TRACE("test_engine_testsuite_from_yaml");
     extra::EventHandlerTestSuite::EventSink sink;
     extra::EventHandlerTestSuite handler(&sink);
     handler.reset();
@@ -102,6 +106,7 @@ void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::st
 
 void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
 {
+    SCOPED_TRACE("test_engine_ints_from_yaml");
     extra::EventHandlerInts handler{};
     using IntType = extra::ievt::DataType;
     //NOTE! crashes in MIPS64 Debug c++20 (but not c++11) when size is 0:
@@ -166,6 +171,7 @@ void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string 
 
 void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
+    SCOPED_TRACE("test_engine_tree_from_yaml");
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
     {
         test_expected_error_tree_from_yaml(ExpectedErrorType::err_parse,
@@ -192,6 +198,7 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string 
 
 void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
+    SCOPED_TRACE("test_engine_roundtrip_from_yaml");
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     csubstr filename = "(testyaml)";
@@ -232,6 +239,7 @@ void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::st
 
 void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    SCOPED_TRACE("test_engine_testsuite_from_yaml_with_comments");
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -249,6 +257,7 @@ void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test
 
 void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    SCOPED_TRACE("test_engine_ints_from_yaml_with_comments");
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
     const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
@@ -264,6 +273,7 @@ void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case
 
 void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    SCOPED_TRACE("test_engine_tree_from_yaml_with_comments");
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -281,6 +291,7 @@ void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case
 
 void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
+    SCOPED_TRACE("test_engine_roundtrip_from_yaml_with_comments");
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)

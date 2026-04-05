@@ -31,11 +31,37 @@
     foo: bar
     ... bad tokens
     ```
-  - comments directly after comma in flow containers ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
+  - `-` is invalid scalar in flow sequences ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
     ```yaml
-    [a,b,# bad comment
-     ]
+    [-]
     ---
-    {a: b,# bad comment
-     }
+    [-,-]
+    ---
+    [--,-]
+    ---
+    [-
+     ]
+    ```
+  - doc start/begin tokens at zero indentation in seq flow ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
+    ```yaml
+    [
+    ---,
+    --- ,
+    ---\t,
+    ...,
+    ... ,
+    ...\t,
+    # etc
+    ]
+    ```
+  - nested flow containers now enforce the contextual parent indentation ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
+    ```yaml
+    - - - [
+        a  # now this is a parse error
+         ]
+    ```
+  - single/double-quoted scalars now enforce the contextual parent indentation ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
+    ```yaml
+    - - - "a
+        b"  # now this is a parse error
     ```

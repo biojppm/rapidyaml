@@ -13,7 +13,7 @@ namespace yml {
 static constexpr const bool singleline = false;
 
 ENGINE_TEST(Qmrk0,
-            HAS_CONTAINER_KEYS, Location(41,3,19),
+            HAS_CONTAINER_KEYS, Location(41+1,3,19+1),
             "\n"
             "a simple key: a value\n"
             "? an explicit key: another value\n"
@@ -80,7 +80,7 @@ ENGINE_TEST(Qmrk1_0,
 }
 
 ENGINE_TEST(Qmrk1_1,
-            HAS_CONTAINER_KEYS, Location(19,2,19),
+            HAS_CONTAINER_KEYS, Location(19+1,2,19+1),
             "\n"
             "? an explicit key: another value\n"
             "a simple key: a value\n"
@@ -116,7 +116,7 @@ ENGINE_TEST(Qmrk1_1,
 }
 
 ENGINE_TEST(Qmrk1_2,
-            HAS_CONTAINER_KEYS, Location(25,2,21),
+            HAS_CONTAINER_KEYS, Location(25+1,2,21+1),
             "map:\n"
             "  ? an explicit key: another value\n"
             "  a simple key: a value\n"
@@ -393,7 +393,7 @@ ENGINE_TEST(Qmrk4,
 }
 
 ENGINE_TEST(Qmrk5,
-            HAS_CONTAINER_KEYS, Location(4,1,5),
+            HAS_CONTAINER_KEYS, Location(4+1,1,5+1),
             "? a: b\n"
             "?\n"
             "?\n"
@@ -435,7 +435,7 @@ ENGINE_TEST(Qmrk5,
 
 
 ENGINE_TEST(Qmrk6,
-            HAS_CONTAINER_KEYS, Location(21,2,21),
+            HAS_CONTAINER_KEYS, Location(21+1,2,21+1),
             "\n"
             "- ? an explicit key: another value\n"
             "  a simple key: a value\n"

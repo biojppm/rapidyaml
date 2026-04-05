@@ -321,7 +321,7 @@ C4_NO_INLINE void test_engine_roundtrip_from_events(EngineEvtTestCase const& tes
         SCOPED_TRACE("test_invariants_orig");
         test_invariants(event_tree);
     }
-    std::string emitted0 = emitrs_yaml<std::string>(event_tree);
+    const std::string emitted0 = emitrs_yaml<std::string>(event_tree);
     EXPECT_EQ(test_case.expected_emitted, emitted0);
     std::string copy = emitted0;
     Tree after_roundtrip = parse_in_place(to_substr(copy), test_case.opts);

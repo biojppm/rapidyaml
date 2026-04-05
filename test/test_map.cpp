@@ -273,7 +273,6 @@ TEST(simple_map, test_suite_UT92_0)
     });
 }
 
-#ifdef TO_BE_FIXED
 TEST(simple_map, test_suite_UT92_1)
 {
     Tree tree;
@@ -291,7 +290,6 @@ TEST(simple_map, test_suite_UT92_1)
         print_tree(tree);
     });
 }
-#endif
 
 TEST(simple_map, two_nested_flow_maps_not_accepted_because_of_container_key)
 {
@@ -422,7 +420,7 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, Location lc={})
 
 TEST(simple_map, no_map_key_flow)
 {
-    verify_error_is_reported("map key", R"({ first: Sammy, last: Sosa }: foo)", Location{1,30});
+    verify_error_is_reported("map key", R"({ first: Sammy, last: Sosa }: foo)", Location{1,30+1});
 }
 
 TEST(simple_map, no_map_key_block)
@@ -432,12 +430,12 @@ TEST(simple_map, no_map_key_block)
   last: Sosa
 :
   foo
-)", Location{2,9});
+)", Location{2,9+1});
 }
 
 TEST(simple_map, no_seq_key_flow)
 {
-    verify_error_is_reported("seq key", R"([Sammy, Sosa]: foo)", Location{1, 15});
+    verify_error_is_reported("seq key", R"([Sammy, Sosa]: foo)", Location{1, 15+1});
 }
 
 TEST(simple_map, no_seq_key_block)
@@ -673,7 +671,7 @@ TEST(simple_map, tokens_after_flow_9_1)
 
 TEST(simple_map, tokens_after_flow_10_0)
 {
-    verify_error_is_reported("", "{ first: Sammy, last: Sosa }: foo", Location{1,30});// fixme
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }: foo", Location{1,30+1});// fixme
 }
 
 TEST(simple_map, tokens_after_flow_10_1)

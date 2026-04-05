@@ -390,7 +390,7 @@ void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorBasic const& e = s_jmp_err_basic);
         (void)e;
-        #if defined(RYML_DBG)
+        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
         std::cout << "---------------\n";
         std::cout << "got an expected parse error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
@@ -422,7 +422,7 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorParse const& e = s_jmp_err_parse);
         (void)e;
-        #if defined(RYML_DBG)
+        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
         std::cout << "---------------\n";
         std::cout << "got an expected parse error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
@@ -477,7 +477,7 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorVisit const& e = s_jmp_err_visit);
         (void)e;
-        #if defined(RYML_DBG)
+        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
         std::cout << "---------------\n";
         std::cout << "got an expected visit error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
