@@ -91,7 +91,8 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
-ryml_add_test(engine_1_doc)
+ryml_add_test(engine_1_doc_1)
+ryml_add_test(engine_1_doc_2)
 ryml_add_test(engine_2_seq_block)
 ryml_add_test(engine_2_seq_flow)
 ryml_add_test(engine_3_map_block)
@@ -163,7 +164,8 @@ if(CMAKE_COMPILER_IS_GNUCXX
 endif()
 # MSVC bigobj
 if(MSVC)
-    target_compile_options(ryml-test-engine_1_doc            PRIVATE /bigobj)
+    target_compile_options(ryml-test-engine_1_doc_1          PRIVATE /bigobj)
+    target_compile_options(ryml-test-engine_1_doc_2          PRIVATE /bigobj)
     target_compile_options(ryml-test-engine_2_seq_block      PRIVATE /bigobj)
     target_compile_options(ryml-test-engine_2_seq_flow       PRIVATE /bigobj)
     target_compile_options(ryml-test-engine_3_map_block      PRIVATE /bigobj)
