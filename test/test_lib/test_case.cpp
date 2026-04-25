@@ -501,13 +501,13 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     {
         FAIL() << "got an unexpected exception";
     }, )
-    if(context.m_error == ExpectedErrorType::err_none)
+    if(context.m_error != ExpectedErrorType::err_none)
     {
-        FAIL() << "no error occurred";
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
     }
     else
     {
-        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
+        FAIL() << "no error occurred";
     }
 }
 
@@ -543,13 +543,13 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
     {
         FAIL() << "got an unexpected exception";
     }, )
-    if(context.m_error == ExpectedErrorType::err_none)
+    if(context.m_error != ExpectedErrorType::err_none)
     {
-        FAIL() << "no error occurred";
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
     }
     else
     {
-        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
+        FAIL() << "no error occurred";
     }
 }
 
@@ -732,9 +732,140 @@ void print_test_tree(const char *message, TestCaseNode const& t)
     printf("--------------------------------------\n");
 }
 
+void test_invariants(NodeType ty)
+{
+    #define EXPECT_ALL(v, flags) EXPECT_EQ(((v) & (flags)), flags)
+    #define EXPECT_ONE(v, flags, one) EXPECT_EQ(((v) & (flags)), one)
+    #define EXPECT_ANY(v, flags) EXPECT_NE(((v) & (flags)), 0)
+    #define EXPECT_NONE(v, flags) EXPECT_EQ(((v) & (flags)), 0)
+    type_bits STREAMONLY = (STREAM & ~SEQ);
+    if(ty & (KEYNIL|KEYREF|KEY_STYLE))
+    {
+        EXPECT_ALL(ty, KEY);
+    }
+    if(ty & (VALNIL|VALREF|VAL_STYLE))
+    {
+        EXPECT_ALL(ty, VAL);
+    }
+    if(ty & (KEYTAG|KEYANCH))
+    {
+        EXPECT_ALL(ty, KEY);
+    }
+    if(ty & (VALTAG|VALANCH))
+    {
+        EXPECT_ANY(ty, VAL|SEQ|MAP);
+    }
+    if(ty & KEYREF)
+    {
+        EXPECT_NONE(ty, KEYTAG|KEYANCH|KEY_STYLE);
+    }
+    if(ty & VALREF)
+    {
+        EXPECT_NONE(ty, VALTAG|VALANCH|VAL_STYLE|CONTAINER_STYLE);
+    }
+    if(ty & VAL)
+    {
+        EXPECT_NONE(ty, MAP|SEQ|STREAM|CONTAINER_STYLE);
+    }
+    if(ty & MAP)
+    {
+        EXPECT_NONE(ty, VAL|SEQ|STREAM|VAL_STYLE);
+    }
+    if(ty & SEQ)
+    {
+        EXPECT_NONE(ty, VAL|MAP|VAL_STYLE);
+    }
+    if(ty & DOC)
+    {
+        EXPECT_NONE(ty, STREAMONLY|KEY);
+    }
+    if(ty & STREAMONLY)
+    {
+        EXPECT_NONE(ty, DOC|MAP|KEY);
+    }
+    if(ty & (MAP|SEQ|VAL))
+    {
+        if(ty & MAP)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, MAP);
+        }
+        if(ty & SEQ)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, SEQ);
+        }
+        if(ty & VAL)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, VAL);
+        }
+    }
+    if(ty & CONTAINER_STYLE)
+    {
+        EXPECT_NONE(ty, VAL);
+        if(ty & FLOW_SL)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_SL);
+        }
+        if(ty & FLOW_ML)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_ML);
+        }
+        if(ty & BLOCK)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, BLOCK);
+        }
+    }
+    if(ty & KEY_STYLE)
+    {
+        if(ty & KEY_PLAIN)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_PLAIN);
+        }
+        if(ty & KEY_SQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_SQUO);
+        }
+        if(ty & KEY_DQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_DQUO);
+        }
+        if(ty & KEY_LITERAL)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_LITERAL);
+        }
+        if(ty & KEY_FOLDED)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_FOLDED);
+        }
+    }
+    if(ty & VAL_STYLE)
+    {
+        if(ty & KEY_PLAIN)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_PLAIN);
+        }
+        if(ty & KEY_SQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_SQUO);
+        }
+        if(ty & KEY_DQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_DQUO);
+        }
+        if(ty & KEY_LITERAL)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_LITERAL);
+        }
+        if(ty & KEY_FOLDED)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_FOLDED);
+        }
+    }
+}
+
 void test_invariants(ConstNodeRef const& n)
 {
     SCOPED_TRACE(n.id());
+    test_invariants(n.type());
     if(n.is_root())
     {
         EXPECT_FALSE(n.has_other_siblings());
@@ -748,6 +879,14 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_val());
+    }
+    if(n.has_key())
+    {
+        EXPECT_TRUE(n.parent().readable());
+        if(n.parent().readable())
+        {
+            EXPECT_TRUE(n.parent().is_map());
+        }
     }
     // check sibling reciprocity
     for(ConstNodeRef s : n.siblings())
@@ -774,6 +913,10 @@ void test_invariants(ConstNodeRef const& n)
             EXPECT_TRUE(n.parent().is_seq());
             EXPECT_TRUE(n.parent().is_stream());
         }
+        if(n.parent().is_map())
+        {
+            EXPECT_TRUE(n.has_key());
+        }
     }
     else
     {
@@ -798,6 +941,16 @@ void test_invariants(ConstNodeRef const& n)
             if(ch.type() != NOTYPE)
             {
                 EXPECT_TRUE(ch.has_key());
+            }
+        }
+    }
+    if(n.is_stream() && !n.is_seq())
+    {
+        for(ConstNodeRef ch : n.children())
+        {
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.is_doc());
             }
         }
     }
@@ -850,8 +1003,6 @@ void test_invariants(ConstNodeRef const& n)
     {
         test_invariants(ch);
     }
-
-    #undef _MORE_INFO
 }
 
 
@@ -914,8 +1065,8 @@ void test_invariants(Tree const& t)
     size_t count = test_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());
 
-    check_invariants(t);
     test_invariants(t.rootref());
+    check_invariants(t);
 
     if(!testing::UnitTest::GetInstance()->current_test_info()->result()->Passed())
     {

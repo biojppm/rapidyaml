@@ -47,9 +47,9 @@ TEST(general, emitting)
     std::string cmpbuf;
 
     Tree tree;
-    auto r = tree.rootref();
+    NodeRef r = tree.rootref();
 
-    r |= MAP;  // this is needed to make the root a map
+    r.set_map();
 
     r["foo"] = "1"; // ryml works only with strings.
     // Note that the tree will be __pointing__ at the
@@ -57,8 +57,8 @@ TEST(general, emitting)
     // to make sure they have at least the same
     // lifetime as the tree.
 
-    auto s = r["seq"]; // does not change the tree until s is written to.
-    s |= SEQ;
+    NodeRef s = r["seq"]; // does not change the tree until s is written to.
+    s.set_seq();
     r["seq"].append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
     r["seq"].append_child() = "bar1";
     r["seq"].append_child() = "bar2";

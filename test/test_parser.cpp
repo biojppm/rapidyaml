@@ -895,13 +895,12 @@ protected:
     void SetUp() override
     {
         NodeRef root = ref.rootref();
-        root |= MAP;
-        root |= FLOW_SL;
+        root.set_map(FLOW_SL);
         NodeRef keyval = root.append_child();
         NodeRef keyseq = root.append_child();
         keyval << key("this") << "is";
         keyseq << key("a");
-        keyseq |= SEQ;
+        keyseq.set_seq();
         keyseq.append_child() << "yaml";
         keyseq.append_child() << "example";
     }
@@ -1176,13 +1175,12 @@ protected:
     void SetUp() override
     {
         NodeRef root = ref.rootref();
-        root |= MAP;
-        root |= FLOW_SL;
+        root.set_map(FLOW_SL);
         NodeRef keyval = root.append_child();
         NodeRef keyseq = root.append_child();
         keyval << key("this") << "is";
         keyseq << key("a");
-        keyseq |= SEQ;
+        keyseq.set_seq();
         keyseq.append_child() << "json";
         keyseq.append_child() << "example";
     }
@@ -1499,10 +1497,10 @@ protected:
     void SetUp() override
     {
         dst_val.rootref().set_val("val");
-        dst_map_flow.rootref() |= MAP|FLOW_SL;
-        dst_map_blck.rootref() |= MAP|BLOCK;
-        dst_seq_flow.rootref() |= SEQ|FLOW_SL;
-        dst_seq_blck.rootref() |= SEQ|BLOCK;
+        dst_map_flow.rootref().set_map(FLOW_SL);
+        dst_map_blck.rootref().set_map(BLOCK);
+        dst_seq_flow.rootref().set_seq(FLOW_SL);
+        dst_seq_blck.rootref().set_seq(BLOCK);
     }
 
 };
@@ -1841,9 +1839,9 @@ TEST_F(ParseToMapFlowTest, empty__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, empty__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(empty), dst);
-    EXPECT_FALSE(dst.has_val());
+    EXPECT_FALSE(dst.readable());
 }
 
 
@@ -1856,9 +1854,9 @@ TEST_F(ParseToMapFlowTest, whitespace__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, whitespace__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(whitespace), dst);
-    EXPECT_FALSE(dst.has_val());
+    EXPECT_FALSE(dst.readable());
 }
 
 
@@ -1873,7 +1871,7 @@ TEST_F(ParseToMapFlowTest, val_plain__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_plain), dst);
     const Tree expected = parse_in_arena("dst: this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -1893,7 +1891,7 @@ TEST_F(ParseToMapFlowTest, val_plain_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_plain_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_plain_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -1913,7 +1911,7 @@ TEST_F(ParseToMapFlowTest, val_plain_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_plain_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_plain_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -1933,7 +1931,7 @@ TEST_F(ParseToMapFlowTest, val_squo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_squo), dst);
     const Tree expected = parse_in_arena("dst: this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -1953,7 +1951,7 @@ TEST_F(ParseToMapFlowTest, val_squo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_squo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_squo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -1973,7 +1971,7 @@ TEST_F(ParseToMapFlowTest, val_squo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_squo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_squo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -1993,7 +1991,7 @@ TEST_F(ParseToMapFlowTest, val_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_dquo), dst);
     const Tree expected = parse_in_arena("dst: this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2013,7 +2011,7 @@ TEST_F(ParseToMapFlowTest, val_dquo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_dquo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_dquo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2033,7 +2031,7 @@ TEST_F(ParseToMapFlowTest, val_dquo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_dquo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_dquo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2053,7 +2051,7 @@ TEST_F(ParseToMapFlowTest, val_literal__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_literal), dst);
     const Tree expected = parse_in_arena("dst: this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2073,7 +2071,7 @@ TEST_F(ParseToMapFlowTest, val_literal_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_literal_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_literal_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2093,7 +2091,7 @@ TEST_F(ParseToMapFlowTest, val_literal_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_literal_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_literal_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2113,7 +2111,7 @@ TEST_F(ParseToMapFlowTest, val_folded__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_folded), dst);
     const Tree expected = parse_in_arena("dst: this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2133,7 +2131,7 @@ TEST_F(ParseToMapFlowTest, val_folded_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_folded_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_folded_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2153,7 +2151,7 @@ TEST_F(ParseToMapFlowTest, val_folded_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_folded_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_folded_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2173,7 +2171,7 @@ TEST_F(ParseToMapFlowTest, val_ref__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_ref_to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_ref), dst);
     const Tree expected = parse_in_arena("dst: *ref");
     _c4dbg_tree("expected", expected);
@@ -2192,7 +2190,7 @@ TEST_F(ParseToMapFlowTest, seq_flow__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_flow), dst);
     const Tree expected = parse_in_arena("dst: [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2211,7 +2209,7 @@ TEST_F(ParseToMapFlowTest, seq_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2230,7 +2228,7 @@ TEST_F(ParseToMapFlowTest, seq_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!seq [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2249,7 +2247,7 @@ TEST_F(ParseToMapFlowTest, seq_blck__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_blck__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_blck), dst);
     const Tree expected = parse_in_arena("dst: [seq, block, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2270,7 +2268,7 @@ TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_flow), dst);
     const Tree expected = parse_in_arena("{dst: {map: flow, yes: it is}}");
     _c4dbg_tree("expected", expected);
@@ -2299,7 +2297,7 @@ TEST_F(ParseToMapFlowTest, map_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2320,7 +2318,7 @@ TEST_F(ParseToMapFlowTest, map_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2341,7 +2339,7 @@ TEST_F(ParseToMapFlowTest, map_block_keyless__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_keyless__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_keyless), dst);
     const Tree expected = parse_in_arena("dst : { : block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2362,7 +2360,7 @@ TEST_F(ParseToMapFlowTest, map_block_plain__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_plain), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2383,7 +2381,7 @@ TEST_F(ParseToMapFlowTest, map_block_squo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_squo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2404,7 +2402,7 @@ TEST_F(ParseToMapFlowTest, map_block_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_dquo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2425,7 +2423,7 @@ TEST_F(ParseToMapFlowTest, map_block_literal__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_literal), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2446,7 +2444,7 @@ TEST_F(ParseToMapFlowTest, map_block_folded__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_folded), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2467,7 +2465,7 @@ TEST_F(ParseToMapFlowTest, map_block_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2488,7 +2486,7 @@ TEST_F(ParseToMapFlowTest, map_block_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2509,7 +2507,7 @@ TEST_F(ParseToMapFlowTest, map_block_ref__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_ref__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_ref), dst);
     const Tree expected = parse_in_arena("dst: {*map : block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2535,7 +2533,7 @@ TEST_F(ParseToMapBlockTest, val_plain__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_plain), dst);
     const Tree expected = parse_in_arena("dst: this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -2555,7 +2553,7 @@ TEST_F(ParseToMapBlockTest, val_plain_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_plain_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_plain_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -2575,7 +2573,7 @@ TEST_F(ParseToMapBlockTest, val_plain_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_plain_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_plain_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -2595,7 +2593,7 @@ TEST_F(ParseToMapBlockTest, val_squo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_squo), dst);
     const Tree expected = parse_in_arena("dst: this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -2615,7 +2613,7 @@ TEST_F(ParseToMapBlockTest, val_squo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_squo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_squo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -2635,7 +2633,7 @@ TEST_F(ParseToMapBlockTest, val_squo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_squo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_squo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -2655,7 +2653,7 @@ TEST_F(ParseToMapBlockTest, val_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_dquo), dst);
     const Tree expected = parse_in_arena("dst: this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2675,7 +2673,7 @@ TEST_F(ParseToMapBlockTest, val_dquo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_dquo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_dquo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2695,7 +2693,7 @@ TEST_F(ParseToMapBlockTest, val_dquo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_dquo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_dquo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2715,7 +2713,7 @@ TEST_F(ParseToMapBlockTest, val_literal__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_literal), dst);
     const Tree expected = parse_in_arena("dst: this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2735,7 +2733,7 @@ TEST_F(ParseToMapBlockTest, val_literal_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_literal_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_literal_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2755,7 +2753,7 @@ TEST_F(ParseToMapBlockTest, val_literal_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_literal_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_literal_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2775,7 +2773,7 @@ TEST_F(ParseToMapBlockTest, val_folded__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_folded), dst);
     const Tree expected = parse_in_arena("dst: this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2795,7 +2793,7 @@ TEST_F(ParseToMapBlockTest, val_folded_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_folded_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_folded_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2815,7 +2813,7 @@ TEST_F(ParseToMapBlockTest, val_folded_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_folded_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_folded_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2835,7 +2833,7 @@ TEST_F(ParseToMapBlockTest, val_ref__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_ref_to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_ref), dst);
     const Tree expected = parse_in_arena("dst: *ref");
     _c4dbg_tree("expected", expected);
@@ -2854,7 +2852,7 @@ TEST_F(ParseToMapBlockTest, seq_flow__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_flow), dst);
     const Tree expected = parse_in_arena("dst: [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2873,7 +2871,7 @@ TEST_F(ParseToMapBlockTest, seq_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2892,7 +2890,7 @@ TEST_F(ParseToMapBlockTest, seq_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!seq [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2911,7 +2909,7 @@ TEST_F(ParseToMapBlockTest, seq_blck__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_blck__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_blck), dst);
     const Tree expected = parse_in_arena("dst: [seq, block, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2932,7 +2930,7 @@ TEST_F(ParseToMapBlockTest, map_flow__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_flow), dst);
     const Tree expected = parse_in_arena("dst:\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2961,7 +2959,7 @@ TEST_F(ParseToMapBlockTest, map_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2982,7 +2980,7 @@ TEST_F(ParseToMapBlockTest, map_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -3003,7 +3001,7 @@ TEST_F(ParseToMapBlockTest, map_block_keyless__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_keyless__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_keyless), dst);
     const Tree expected = parse_in_arena("dst : { : block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3024,7 +3022,7 @@ TEST_F(ParseToMapBlockTest, map_block_plain__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_plain), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3045,7 +3043,7 @@ TEST_F(ParseToMapBlockTest, map_block_squo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_squo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3066,7 +3064,7 @@ TEST_F(ParseToMapBlockTest, map_block_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_dquo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3087,7 +3085,7 @@ TEST_F(ParseToMapBlockTest, map_block_literal__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_literal), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3108,7 +3106,7 @@ TEST_F(ParseToMapBlockTest, map_block_folded__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_folded), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3129,7 +3127,7 @@ TEST_F(ParseToMapBlockTest, map_block_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3150,7 +3148,7 @@ TEST_F(ParseToMapBlockTest, map_block_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3171,7 +3169,7 @@ TEST_F(ParseToMapBlockTest, map_block_ref__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_ref__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_ref), dst);
     const Tree expected = parse_in_arena("dst: {*map : block, yes: it is}");
     _c4dbg_tree("expected", expected);

@@ -50,7 +50,7 @@ TEST(serialize, type_as_str)
     c4::yml::Tree t;
 
     auto r = t.rootref();
-    r |= c4::yml::MAP;
+    r.set_map();
 
     vec2<int> v2in{10, 11};
     vec2<int> v2out;
@@ -95,9 +95,9 @@ TEST(general, emitting)
     std::string cmpbuf2;
 
     Tree tree;
-    auto r = tree.rootref();
+    NodeRef r = tree.rootref();
 
-    r |= MAP;  // this is needed to make the root a map
+    r.set_map();  // this is needed to make the root a map
 
     r["foo"] = "1"; // ryml works only with strings.
     // Note that the tree will be __pointing__ at the
@@ -105,8 +105,8 @@ TEST(general, emitting)
     // to make sure they have at least the same
     // lifetime as the tree.
 
-    auto s = r["seq"]; // does not change the tree until s is written to.
-    s |= SEQ;
+    NodeRef s = r["seq"]; // does not change the tree until s is written to.
+    s.set_seq();
     r["seq"].append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
     r["seq"].append_child() = "bar1";
     r["seq"].append_child() = "bar2";
@@ -192,7 +192,7 @@ TEST(emit_json, issue72)
     Tree t;
     NodeRef r = t.rootref();
 
-    r |= MAP;
+    r.set_map();
     r["1"] = "null";
     r["2"] = "true";
     r["3"] = "false";
@@ -666,7 +666,7 @@ TEST(parse_json, empty_lines_on_seq)
 ])";
     Tree expected;
     NodeRef root = expected.rootref();
-    root |= SEQ|FLOW_SL;
+    root.set_seq(FLOW_SL);
     root.append_child() = "0";
     root.append_child() = "1";
     root.append_child() = "2";
@@ -695,11 +695,11 @@ TEST(parse_json, empty_lines_on_map)
 })";
     Tree expected;
     NodeRef root = expected.rootref();
-    root |= MAP|FLOW_SL;
-    root.append_child({"0", "0"});
-    root.append_child({"1", "1"});
-    root.append_child({"2", "2"});
-    root.append_child({"3", "3"});
+    root.set_map(FLOW_SL);
+    (root.append_child() = key("0")) = "0";
+    (root.append_child() = key("1")) = "1";
+    (root.append_child() = key("2")) = "2";
+    (root.append_child() = key("3")) = "3";
     Tree actual = parse_json_in_arena(json);
     test_compare(expected, actual);
 }
@@ -709,11 +709,13 @@ TEST(parse_json, seq_nested_on_map)
     csubstr json = R"({"seq":[0,1],"key":val})";
     Tree expected;
     NodeRef root = expected.rootref();
-    root |= MAP|FLOW_SL;
-    NodeRef seq = root.append_child({KEYSEQ, "seq"});
+    root.set_map(FLOW_SL);
+    NodeRef seq = root.append_child();
+    seq = key("seq");
+    seq.set_seq();
     seq.append_child() = "0";
     seq.append_child() = "1";
-    root.append_child({"key", "val"});
+    (root.append_child() = key("key")) = "val";
     Tree actual = parse_json_in_arena(json);
     test_compare(expected, actual);
 }
@@ -723,8 +725,9 @@ TEST(parse_json, seq_nested_on_seq_with_trailing_comma)
     csubstr json = R"([[0,1,],2,3,])";
     Tree expected;
     NodeRef root = expected.rootref();
-    root |= SEQ|FLOW_SL;
-    NodeRef seq = root.append_child(SEQ);
+    root.set_seq(FLOW_SL);
+    NodeRef seq = root.append_child();
+    seq.set_seq();
     seq.append_child() = "0";
     seq.append_child() = "1";
     root.append_child() = "2";

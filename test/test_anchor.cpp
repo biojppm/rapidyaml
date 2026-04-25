@@ -220,7 +220,7 @@ orig3: &orig3 {and: more}
 copy: {}
 )");
     NodeRef seq = t["copy"]["<<"];
-    seq |= SEQ;
+    seq.set_seq();
     seq.append_child().set_val_ref("orig1");
     seq.append_child().set_val_ref("orig2");
     seq.append_child().set_val_ref("orig3");
@@ -380,7 +380,7 @@ Tree github566_make_map(NodeType_e root_style)
 {
     Tree tree;
     NodeRef root = tree.rootref();
-    root |= MAP|root_style;
+    root.set_map(root_style);
     root.set_val_anchor("ref0");
     root["a"] = "1";
     NodeRef self = root["self"];
@@ -393,7 +393,7 @@ Tree github566_make_seq(NodeType_e root_style)
 {
     Tree tree;
     NodeRef root = tree.rootref();
-    root |= SEQ|root_style;
+    root.set_seq(root_style);
     root.set_val_anchor("ref0");
     root[0] = "1";
     root[1].set_val("*ref0");

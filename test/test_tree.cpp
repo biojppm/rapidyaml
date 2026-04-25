@@ -1177,11 +1177,13 @@ TEST(Tree, operator_square_brackets_seq)
     Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
     Tree &m = t;
     Tree const& cm = t;
+    EXPECT_EQ(m[0].tree(), &t);
     EXPECT_EQ(m[0].val(), "0");
     EXPECT_EQ(m[1].val(), "1");
     EXPECT_EQ(m[2].val(), "2");
     EXPECT_EQ(m[3].val(), "3");
     EXPECT_EQ(m[4].val(), "4");
+    EXPECT_EQ(cm[0].tree(), &t);
     EXPECT_EQ(cm[0].val(), "0");
     EXPECT_EQ(cm[1].val(), "1");
     EXPECT_EQ(cm[2].val(), "2");
@@ -1190,8 +1192,8 @@ TEST(Tree, operator_square_brackets_seq)
     //
     verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; }, visit);
     verify_assertion(t, [&](Tree const&){ return cm[NONE]; }, visit);
-    verify_assertion(t, [&](Tree const&){ return cm[0][0]; }, visit);
-    verify_assertion(t, [&](Tree const&){ return cm["a"]; }, visit);
+    verify_assertion(t, [&](Tree const&){ return m[5][0]; }, visit);
+    verify_assertion(t, [&](Tree const&){ return m[5]["a"]; }, visit);
 }
 
 TEST(Tree, operator_square_brackets_map)
@@ -1211,7 +1213,7 @@ TEST(Tree, operator_square_brackets_map)
     EXPECT_EQ(cm["e"].val(), "4");
     //
     verify_assertion(t, [&](Tree const&){ return cm["f"]; }, visit);
-    verify_assertion(t, [&](Tree const&){ return cm["g"]["h"]; }, visit);
+    verify_assertion(t, [&](Tree const&){ return m["f"]["h"]; }, visit);
 }
 
 TEST(Tree, noderef_at_seq)
@@ -4206,7 +4208,7 @@ TEST(Tree, lookup_path_or_modify)
 
     {
         Tree t;
-        t.rootref() |= MAP;
+        t.rootref().set_map();
         csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
         auto result = t.lookup_path(bigpath);
         EXPECT_EQ(result.target, (id_type)NONE);
@@ -4332,7 +4334,7 @@ TEST(set_root_as_stream, empty_tree)
 TEST(set_root_as_stream, already_with_stream)
 {
     Tree t;
-    t.to_stream(t.root_id());
+    t.set_stream(t.root_id());
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), true);
     EXPECT_EQ(r.num_children(), 0u);
@@ -4539,7 +4541,7 @@ TEST(set_root_as_stream, root_is_docval)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r.set_type(DOCVAL);
+    r.set_doc();
     r.set_val("bar");
     r.set_val_tag("<!foo>");
     EXPECT_EQ(r.is_stream(), false);

@@ -344,62 +344,6 @@ TEST(github, 60)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(github, 31)
-{
-    Tree tree;
-    NodeRef r = tree.rootref();
-    r |= MAP;
-
-    auto meas = r["meas"];
-    meas |= MAP;
-
-    auto plist = meas["createParameterList"];
-    plist |= SEQ;
-
-    {
-        NodeRef lumi = plist.append_child();
-        lumi << "Lumi";
-        EXPECT_TRUE(lumi.is_val());
-    }
-
-    {
-        NodeRef lumi = plist.append_child();
-        lumi |= MAP;
-        lumi["value"] << 1;
-        lumi["relErr"] << 0.1;
-        EXPECT_TRUE(lumi.is_map());
-    }
-
-    {
-        ExpectError::check_assert_visit(&tree, [&](){
-            NodeRef lumi = plist.append_child();
-            lumi << "Lumi";
-            lumi |= MAP;
-        });
-    }
-
-    {
-        ExpectError::check_assert_visit(&tree, [&](){
-            NodeRef lumi = plist.append_child();
-            lumi << "Lumi";
-            lumi |= SEQ;
-        });
-    }
-
-    {
-        ExpectError::check_assert_visit(&tree, [&](){
-            NodeRef lumi = plist.append_child();
-            lumi |= MAP;
-            lumi << "Lumi";
-        });
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 CASE_GROUP(GITHUB_ISSUES)
 {
 

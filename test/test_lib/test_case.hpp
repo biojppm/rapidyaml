@@ -129,6 +129,7 @@ void test_compare(Tree const& actual, id_type node_actual,
 
 void test_arena_not_shared(Tree const& a, Tree const& b);
 
+void test_invariants(NodeType ty);
 void test_invariants(Tree const& t);
 void test_invariants(ConstNodeRef const& n);
 

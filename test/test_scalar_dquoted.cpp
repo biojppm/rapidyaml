@@ -852,9 +852,9 @@ TEST(double_quoted, github253)
     {
         Tree tree;
         NodeRef root = tree.rootref();
-        root |= MAP;
+        root.set_map();
         root["t"] = "t't\\nt";
-        root["t"] |= VAL_DQUO;
+        root["t"].set_val_style(VAL_DQUO);
         std::string s = emitrs_yaml<std::string>(tree);
         Tree tree2 = parse_in_arena(to_csubstr(s));
         EXPECT_EQ(tree2["t"].val(), tree["t"].val());
@@ -862,9 +862,9 @@ TEST(double_quoted, github253)
     {
         Tree tree;
         NodeRef root = tree.rootref();
-        root |= MAP;
+        root.set_map();
         root["t"] = "t't\\nt";
-        root["t"] |= VAL_SQUO;
+        root["t"].set_val_style(VAL_SQUO);
         std::string s = emitrs_yaml<std::string>(tree);
         Tree tree2 = parse_in_arena(to_csubstr(s));
         EXPECT_EQ(tree2["t"].val(), tree["t"].val());
@@ -872,9 +872,9 @@ TEST(double_quoted, github253)
     {
         Tree tree;
         NodeRef root = tree.rootref();
-        root |= MAP;
+        root.set_map();
         root["s"] = "t\rt";
-        root["s"] |= VAL_DQUO;
+        root["s"].set_val_style(VAL_DQUO);
         std::string s = emitrs_yaml<std::string>(tree);
         EXPECT_EQ(s, "s: \"t\\rt\"\n");
         Tree tree2 = parse_in_arena(to_csubstr(s));
