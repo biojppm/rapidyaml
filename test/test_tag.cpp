@@ -1343,8 +1343,8 @@ TEST(tags, test_suite_735Y)
 foo : bar
 )";
     test_check_emit_check(yaml_without_seq, [](Tree const &t){
-        EXPECT_TRUE(t.rootref().is_map());
-        EXPECT_TRUE(t.rootref().has_val_tag());
+        EXPECT_TRUE(t.rootref().type().is_map());
+        EXPECT_TRUE(t.rootref().type().has_val_tag());
         EXPECT_EQ(t.rootref()["foo"].val(), csubstr("bar"));
     });
 
@@ -1361,28 +1361,28 @@ foo : bar
   foo : bar
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_TRUE(t.rootref().type().is_seq());
         ASSERT_EQ(t.rootref().num_children(), 5u);
         //
-        EXPECT_TRUE(t[0].is_map());
-        EXPECT_TRUE(!t[0].has_val_tag());
+        EXPECT_TRUE(t[0].type().is_map());
+        EXPECT_TRUE(!t[0].type().has_val_tag());
         EXPECT_EQ(t[0]["foo"].val(), csubstr("bar"));
         //
-        EXPECT_TRUE(t[1].is_map());
-        EXPECT_TRUE(!t[1].has_val_tag());
+        EXPECT_TRUE(t[1].type().is_map());
+        EXPECT_TRUE(!t[1].type().has_val_tag());
         EXPECT_EQ(t[1]["foo"].val(), csubstr("bar"));
         //
-        EXPECT_TRUE(t[2].is_map());
-        EXPECT_TRUE(!t[2].has_val_tag());
+        EXPECT_TRUE(t[2].type().is_map());
+        EXPECT_TRUE(!t[2].type().has_val_tag());
         EXPECT_EQ(t[2]["foo"].val(), csubstr("bar"));
         //
-        EXPECT_TRUE(t[3].is_map());
-        ASSERT_TRUE(t[3].has_val_tag());
+        EXPECT_TRUE(t[3].type().is_map());
+        ASSERT_TRUE(t[3].type().has_val_tag());
         EXPECT_EQ(t[3].val_tag(), csubstr("!!map"));
         EXPECT_EQ(t[3]["foo"].val(), csubstr("bar"));
         //
-        EXPECT_TRUE(t[4].is_map());
-        ASSERT_TRUE(t[4].has_val_tag());
+        EXPECT_TRUE(t[4].type().is_map());
+        ASSERT_TRUE(t[4].type().has_val_tag());
         EXPECT_EQ(t[4].val_tag(), csubstr("!!map"));
         EXPECT_EQ(t[4]["foo"].val(), csubstr("bar"));
     });
@@ -1418,8 +1418,8 @@ TEST(tags, parsing)
     EXPECT_EQ(t[0]["key2"].val_tag(), csubstr("<!val>"));
     EXPECT_EQ(t[0]["key3"].key_tag(), csubstr("<key>"));
     EXPECT_EQ(t[0]["key3"].val_tag(), csubstr("<val>"));
-    EXPECT_EQ(t[0]["<!key> key4"].has_key_tag(), false);
-    EXPECT_EQ(t[0]["<!key> key4"].has_val_tag(), false);
+    EXPECT_EQ(t[0]["<!key> key4"].type().has_key_tag(), false);
+    EXPECT_EQ(t[0]["<!key> key4"].type().has_val_tag(), false);
     EXPECT_EQ(t[0]["<!key> key4"].key(), csubstr("<!key> key4"));
     EXPECT_EQ(t[0]["<!key> key4"].val(), csubstr("<!val> val4"));
     EXPECT_EQ(t[1].val_tag(), csubstr("<tag:yaml.org,2002:map>"));
@@ -1430,7 +1430,7 @@ TEST(tags, parsing)
     EXPECT_EQ(t[2].val_tag(), csubstr("<tag:yaml.org,2002:seq>"));
     EXPECT_EQ(t[2][0].val_tag(), csubstr("!val"));
     EXPECT_EQ(t[2][1].val_tag(), csubstr("!str"));
-    EXPECT_FALSE(t[2][2].has_val_tag()); // not tag
+    EXPECT_FALSE(t[2][2].type().has_val_tag()); // not tag
     EXPECT_EQ(t[2][2].val(), csubstr("<!str> val")); // not tag
     EXPECT_EQ(t[2][3].val_tag(), csubstr("<!str>"));
     EXPECT_EQ(t[2][4].val_tag(), csubstr("<!!str>"));
@@ -1483,8 +1483,8 @@ TEST(tags, setting)
         t.set_key(child, "key2");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag2");
-        EXPECT_TRUE(t.has_key(child));
-        EXPECT_FALSE(t.has_val(child));
+        EXPECT_TRUE(t.type(child).has_key());
+        EXPECT_FALSE(t.type(child).has_val());
         EXPECT_EQ(t.key(child), "key2");
         EXPECT_EQ(t.key_tag(child), "!keytag");
         EXPECT_EQ(t.val_tag(child), "!valtag2");
@@ -1497,8 +1497,8 @@ TEST(tags, setting)
         t.set_key(child, "key2");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag2");
-        EXPECT_TRUE(t.has_key(child));
-        EXPECT_FALSE(t.has_val(child));
+        EXPECT_TRUE(t.type(child).has_key());
+        EXPECT_FALSE(t.type(child).has_val());
         EXPECT_EQ(t.key(child), "key2");
         EXPECT_EQ(t.key_tag(child), "!keytag");
         EXPECT_EQ(t.val_tag(child), "!valtag2");
@@ -1511,8 +1511,8 @@ TEST(tags, setting)
         t.set_val(child, "val");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag");
-        EXPECT_TRUE(t.has_key(child));
-        EXPECT_TRUE(t.has_val(child));
+        EXPECT_TRUE(t.type(child).has_key());
+        EXPECT_TRUE(t.type(child).has_val());
         EXPECT_EQ(t.key(child), "key");
         EXPECT_EQ(t.val(child), "val");
         EXPECT_EQ(t.key_tag(child), "!keytag");
@@ -1522,12 +1522,12 @@ TEST(tags, setting)
     // a val
     {
         id_type seqid = t[1].id();
-        ASSERT_TRUE(t.is_seq(seqid));
+        ASSERT_TRUE(t.type(seqid).is_seq());
         id_type child = t.append_child(seqid);
         t.set_val(child, "val");
         t.set_val_tag(child, "!valtag");
-        EXPECT_FALSE(t.has_key(child));
-        EXPECT_TRUE(t.has_val(child));
+        EXPECT_FALSE(t.type(child).has_key());
+        EXPECT_TRUE(t.type(child).has_val());
         EXPECT_EQ(t.val(child), "val");
         EXPECT_EQ(t.val_tag(child), "!valtag");
     }
@@ -1549,7 +1549,7 @@ TEST(tags, errors)
     ASSERT_NE(val, (id_type)npos);
 
     // cannot get key tag in a node that does not have a key tag
-    EXPECT_FALSE(t.has_key_tag(empty_keyval));
+    EXPECT_FALSE(t.type(empty_keyval).has_key_tag());
     ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.key_tag(empty_keyval), "");
     });
@@ -1566,11 +1566,11 @@ TEST(tags, errors)
         EXPECT_EQ(t.key_tag(val), "");
     });
     // cannot get val tag in a node that does not have a val tag
-    EXPECT_FALSE(t.has_val_tag(empty_val));
+    EXPECT_FALSE(t.type(empty_val).has_val_tag());
     ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(empty_val), "");
     });
-    EXPECT_FALSE(t.has_val_tag(empty_keyval));
+    EXPECT_FALSE(t.type(empty_val).has_val_tag());
     ExpectError::check_assert_visit(&t, [&](){
         EXPECT_EQ(t.val_tag(empty_keyval), "");
     });
@@ -1587,26 +1587,26 @@ TEST(tags, errors)
         EXPECT_EQ(t.val_tag(val), "");
     });
     // cannot set key tag in a node that does not have a key
-    EXPECT_FALSE(t.has_key(empty_keyval));
+    EXPECT_FALSE(t.type(empty_keyval).has_key());
     ExpectError::check_assert_visit(&t, [&](){
         t.set_key_tag(empty_keyval, "!keytag");
     });
-    EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
+    EXPECT_FALSE(t.type(val).has_key_tag()); // must stay the same
     ExpectError::check_assert_visit(&t, [&](){
         t.set_key_tag(val, "!valtag");
     });
-    EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
+    EXPECT_FALSE(t.type(val).has_key_tag()); // must stay the same
     // cannot set val tag in a node that does not have a val
-    EXPECT_FALSE(t.has_val(empty_val));
+    EXPECT_FALSE(t.type(empty_val).has_val());
     ExpectError::check_assert_visit(&t, [&](){
         t.set_val_tag(empty_val, "!valtag");
     });
-    EXPECT_FALSE(t.has_val_tag(empty_val)); // must stay the same
-    EXPECT_FALSE(t.has_val(empty_keyval));
+    EXPECT_FALSE(t.type(empty_val).has_val_tag()); // must stay the same
+    EXPECT_FALSE(t.type(empty_keyval).has_val());
     ExpectError::check_assert_visit(&t, [&](){
         t.set_val_tag(empty_keyval, "!valtag");
     });
-    EXPECT_FALSE(t.has_val_tag(empty_keyval)); // must stay the same
+    EXPECT_FALSE(t.type(empty_val).has_val_tag()); // must stay the same
 }
 
 
@@ -1678,10 +1678,10 @@ TEST(tags, EHF6)
   j: !!seq
      [ a, !!str b]
 })");
-        ASSERT_TRUE(t.rootref().has_val_tag());
+        ASSERT_TRUE(t.rootref().type().has_val_tag());
         EXPECT_EQ(t.rootref().val_tag(), "!!map");
-        ASSERT_TRUE(t["k"].has_val_tag());
-        ASSERT_TRUE(t["j"].has_val_tag());
+        ASSERT_TRUE(t["k"].type().has_val_tag());
+        ASSERT_TRUE(t["j"].type().has_val_tag());
         EXPECT_EQ(t["k"].val_tag(), "!!seq");
         EXPECT_EQ(t["j"].val_tag(), "!!seq");
     }
@@ -1690,14 +1690,14 @@ TEST(tags, EHF6)
   !!map { !!str k: v},
   !!map { !!str ? k: v}
 ])");
-        ASSERT_TRUE(t.rootref().has_val_tag());
+        ASSERT_TRUE(t.rootref().type().has_val_tag());
         EXPECT_EQ(t.rootref().val_tag(), "!!seq");
-        ASSERT_TRUE(t[0].has_val_tag());
-        ASSERT_TRUE(t[1].has_val_tag());
+        ASSERT_TRUE(t[0].type().has_val_tag());
+        ASSERT_TRUE(t[1].type().has_val_tag());
         EXPECT_EQ(t[0].val_tag(), "!!map");
         EXPECT_EQ(t[1].val_tag(), "!!map");
-        ASSERT_TRUE(t[0]["k"].has_key_tag());
-        ASSERT_TRUE(t[1]["k"].has_key_tag());
+        ASSERT_TRUE(t[0]["k"].type().has_key_tag());
+        ASSERT_TRUE(t[1]["k"].type().has_key_tag());
         EXPECT_EQ(t[0]["k"].key_tag(), "!!str");
         EXPECT_EQ(t[1]["k"].key_tag(), "!!str");
     }
@@ -1720,13 +1720,13 @@ TEST(tags, ys0)
 {
     csubstr yaml = "!yamlscript/v0/bare\n--- !code\n42\n";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_TRUE(t.rootref().is_stream());
-        EXPECT_TRUE(t.docref(0).is_val());
-        EXPECT_TRUE(t.docref(0).has_val_tag());
+        EXPECT_TRUE(t.rootref().type().is_stream());
+        EXPECT_TRUE(t.docref(0).type().is_val());
+        EXPECT_TRUE(t.docref(0).type().has_val_tag());
         EXPECT_EQ(t.docref(0).val_tag(), "!yamlscript/v0/bare");
         EXPECT_EQ(t.docref(0).val(), csubstr{});
-        EXPECT_TRUE(t.docref(1).is_val());
-        EXPECT_TRUE(t.docref(1).has_val_tag());
+        EXPECT_TRUE(t.docref(1).type().is_val());
+        EXPECT_TRUE(t.docref(1).type().has_val_tag());
         EXPECT_EQ(t.docref(1).val_tag(), "!code");
         EXPECT_EQ(t.docref(1).val(), "42");
     });

@@ -83,8 +83,8 @@ public:
         if(C4_UNLIKELY(id >= tree->capacity()))
             _RYML_ERR_BASIC_(tree->callbacks(), "invalid node");
         if(C4_UNLIKELY(!tree->is_root(id)))
-            if(C4_UNLIKELY(tree->is_map(tree->parent(id))))
-                if(C4_UNLIKELY(!tree->has_key(id)))
+            if(C4_UNLIKELY(tree->parent_is_map(id)))
+                if(C4_UNLIKELY(!tree->type(id).has_key()))
                     _RYML_ERR_BASIC_(tree->callbacks(), "destination node belongs to a map and has no key");
         m_tree = tree;
         if(m_tree->is_root(id))
@@ -193,7 +193,7 @@ public:
     {
         _c4dbgp("begin_doc_expl");
         _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->root_id() == m_curr->node_id, m_tree, m_curr->node_id);
-        if(m_tree->is_stream(m_tree->root_id())) //if(_should_push_on_begin_doc())
+        if(m_tree->type(m_tree->root_id()).is_stream())
         {
             _c4dbgp("push!");
             _push();
@@ -204,9 +204,9 @@ public:
             _set_root_as_stream();
             const id_type root = m_tree->root_id();
             const id_type first = m_tree->first_child(root);
-            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_stream(root), m_tree, root);
+            _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->type(root).is_stream(), m_tree, root);
             _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->num_children(root) == 1u, m_tree, root);
-            if(m_tree->is_container(first) || m_tree->is_val(first))
+            if(m_tree->type(first).is_container() || m_tree->type(first).is_val())
             {
                 _c4dbgp("push!");
                 _push();
@@ -366,12 +366,12 @@ public:
      */
     void actually_val_is_first_key_of_new_map_flow()
     {
-        if(C4_UNLIKELY(m_tree->is_container(m_curr->node_id)))
+        if(C4_UNLIKELY(m_tree->type(m_curr->node_id).is_container()))
             _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
-        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->is_seq(m_parent->node_id), m_tree, m_parent->node_id);
-        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->is_container(m_curr->node_id), m_tree, m_curr->node_id);
-        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->has_key(m_curr->node_id), m_tree, m_curr->node_id);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, m_tree->type(m_parent->node_id).is_seq(), m_tree, m_parent->node_id);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->type(m_curr->node_id).is_container(), m_tree, m_curr->node_id);
+        _RYML_ASSERT_VISIT_(m_stack.m_callbacks, !m_tree->type(m_curr->node_id).has_key(), m_tree, m_curr->node_id);
         const NodeData tmp = _val2key_(*m_curr->tr_data);
         _disable_(_VALMASK|VAL_STYLE|VALNIL);
         m_curr->tr_data->m_val = {};
@@ -713,9 +713,9 @@ public:
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->root_id() == 0u, m_tree, m_tree->root_id());
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_curr->node_id == 0u, m_tree, m_curr->node_id);
         m_tree->set_root_as_stream();
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_stream(m_tree->root_id()), m_tree, m_tree->root_id());
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->type(m_tree->root_id()).is_stream(), m_tree, m_tree->root_id());
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_children(m_tree->root_id()), m_tree, m_tree->root_id());
-        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_doc(m_tree->first_child(m_tree->root_id())), m_tree, m_tree->root_id());
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->type(m_tree->first_child(m_tree->root_id())).is_doc(), m_tree, m_tree->root_id());
         _set_state_(m_curr, m_tree->root_id());
     }
 

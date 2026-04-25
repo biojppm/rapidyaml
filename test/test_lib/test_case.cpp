@@ -99,40 +99,40 @@ void test_compare(Tree const& actual, id_type node_actual,
     NodeType type_expected = expected.type(node_expected) & cmp_mask;
     RYML_COMPARE_NODE_TYPE(type_actual, type_expected, ==, EQ);
 
-    EXPECT_EQ(actual.has_key(node_actual), expected.has_key(node_expected));
-    if(actual.has_key(node_actual) && expected.has_key(node_expected))
+    EXPECT_EQ(actual.type(node_actual).has_key(), expected.type(node_expected).has_key());
+    if(actual.type(node_actual).has_key() && expected.type(node_expected).has_key())
     {
         EXPECT_EQ(actual.key(node_actual), expected.key(node_expected));
     }
 
-    EXPECT_EQ(actual.has_val(node_actual), expected.has_val(node_expected));
-    if(actual.has_val(node_actual) && expected.has_val(node_expected))
+    EXPECT_EQ(actual.type(node_actual).has_val(), expected.type(node_expected).has_val());
+    if(actual.type(node_actual).has_val() && expected.type(node_expected).has_val())
     {
         EXPECT_EQ(actual.val(node_actual), expected.val(node_expected));
     }
 
-    EXPECT_EQ(actual.has_key_tag(node_actual), expected.has_key_tag(node_expected));
-    if(actual.has_key_tag(node_actual) && expected.has_key_tag(node_expected))
+    EXPECT_EQ(actual.type(node_actual).has_key_tag(), expected.type(node_expected).has_key_tag());
+    if(actual.type(node_actual).has_key_tag() && expected.type(node_expected).has_key_tag())
     {
         EXPECT_EQ(actual.key_tag(node_actual), expected.key_tag(node_expected));
     }
 
-    EXPECT_EQ(actual.has_val_tag(node_actual), expected.has_val_tag(node_expected));
-    if(actual.has_val_tag(node_actual) && expected.has_val_tag(node_expected))
+    EXPECT_EQ(actual.type(node_actual).has_val_tag(), expected.type(node_expected).has_val_tag());
+    if(actual.type(node_actual).has_val_tag() && expected.type(node_expected).has_val_tag())
     {
         csubstr actual_tag = actual.val_tag(node_actual);
         csubstr expected_tag = expected.val_tag(node_expected);
         EXPECT_EQ(actual_tag, expected_tag);
     }
 
-    EXPECT_EQ(actual.has_key_anchor(node_actual), expected.has_key_anchor(node_expected));
-    if(actual.has_key_anchor(node_actual) && expected.has_key_anchor(node_expected))
+    EXPECT_EQ(actual.type(node_actual).has_key_anchor(), expected.type(node_expected).has_key_anchor());
+    if(actual.type(node_actual).has_key_anchor() && expected.type(node_expected).has_key_anchor())
     {
         EXPECT_EQ(actual.key_anchor(node_actual), expected.key_anchor(node_expected));
     }
 
-    EXPECT_EQ(actual.has_val_anchor(node_actual), expected.has_val_anchor(node_expected));
-    if(actual.has_val_anchor(node_actual) && expected.has_val_anchor(node_expected))
+    EXPECT_EQ(actual.type(node_actual).has_val_anchor(), expected.type(node_expected).has_val_anchor());
+    if(actual.type(node_actual).has_val_anchor() && expected.type(node_expected).has_val_anchor())
     {
         EXPECT_EQ(actual.val_anchor(node_actual), expected.val_anchor(node_expected));
     }
@@ -608,7 +608,7 @@ void print_path(ConstNodeRef const& n)
     ConstNodeRef p = n;
     while(p.readable())
     {
-        if(p.has_key())
+        if(p.type().has_key())
         {
             len += 1 + p.key().len;
         }
@@ -625,7 +625,7 @@ void print_path(ConstNodeRef const& n)
     p = n;
     while(p.readable())
     {
-        if(p.has_key())
+        if(p.type().has_key())
         {
             size_t tl = p.key().len;
             int ret = snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
@@ -866,26 +866,27 @@ void test_invariants(ConstNodeRef const& n)
 {
     SCOPED_TRACE(n.id());
     test_invariants(n.type());
+    NodeType ty = n.type();
     if(n.is_root())
     {
         EXPECT_FALSE(n.has_other_siblings());
     }
     // vals cannot be containers
-    if( ! n.empty() && ! n.is_doc())
+    if( ! n.empty() && ! ty.is_doc())
     {
-        EXPECT_NE(n.has_val(), n.is_container());
+        EXPECT_NE(ty.has_val(), ty.is_container());
     }
     if(n.has_children())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_val());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_val());
     }
-    if(n.has_key())
+    if(ty.has_key())
     {
         EXPECT_TRUE(n.parent().readable());
         if(n.parent().readable())
         {
-            EXPECT_TRUE(n.parent().is_map());
+            EXPECT_TRUE(n.parent().type().is_map());
         }
     }
     // check sibling reciprocity
@@ -893,7 +894,7 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(n.has_key() && s.has_key())
+        if(ty.has_key() && ty.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
@@ -908,92 +909,92 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_EQ(n.parent().num_children(), n.num_siblings());
         EXPECT_EQ(n.parent().num_children(), n.num_other_siblings()+id_type(1));
         // doc parent must be a seq and a stream
-        if(n.is_doc())
+        if(ty.is_doc())
         {
-            EXPECT_TRUE(n.parent().is_seq());
-            EXPECT_TRUE(n.parent().is_stream());
+            EXPECT_TRUE(n.parent().type().is_seq());
+            EXPECT_TRUE(n.parent().type().is_stream());
         }
-        if(n.parent().is_map())
+        if(n.parent().type().is_map())
         {
-            EXPECT_TRUE(n.has_key());
+            EXPECT_TRUE(ty.has_key());
         }
     }
     else
     {
         EXPECT_TRUE(n.is_root());
     }
-    if(n.is_seq())
+    if(ty.is_seq())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_map());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_map());
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_FALSE(ch.is_keyval());
-            EXPECT_FALSE(ch.has_key());
+            EXPECT_FALSE(ch.type().is_keyval());
+            EXPECT_FALSE(ch.type().has_key());
         }
     }
-    if(n.is_map())
+    if(ty.is_map())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_seq());
-        for(ConstNodeRef ch : n.children())
-        {
-            if(ch.type() != NOTYPE)
-            {
-                EXPECT_TRUE(ch.has_key());
-            }
-        }
-    }
-    if(n.is_stream() && !n.is_seq())
-    {
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_seq());
         for(ConstNodeRef ch : n.children())
         {
             if(ch.type() != NOTYPE)
             {
-                EXPECT_TRUE(ch.is_doc());
+                EXPECT_TRUE(ch.type().has_key());
             }
         }
     }
-    if(n.has_key_anchor())
+    if(ty.is_stream() && !ty.is_seq())
+    {
+        for(ConstNodeRef ch : n.children())
+        {
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.type().is_doc());
+            }
+        }
+    }
+    if(ty.has_key_anchor())
     {
         EXPECT_FALSE(n.key_anchor().empty());
-        EXPECT_FALSE(n.is_key_ref());
+        EXPECT_FALSE(ty.is_key_ref());
     }
-    if(n.has_val_anchor())
+    if(ty.has_val_anchor())
     {
         EXPECT_FALSE(n.val_anchor().empty());
-        EXPECT_FALSE(n.is_val_ref());
+        EXPECT_FALSE(ty.is_val_ref());
     }
-    if(n.is_key_ref())
+    if(ty.is_key_ref())
     {
         EXPECT_FALSE(n.key_ref().empty());
-        EXPECT_FALSE(n.has_key_anchor());
+        EXPECT_FALSE(ty.has_key_anchor());
     }
-    if(n.is_val_ref())
+    if(ty.is_val_ref())
     {
         EXPECT_FALSE(n.val_ref().empty());
-        EXPECT_FALSE(n.has_val_anchor());
+        EXPECT_FALSE(ty.has_val_anchor());
     }
-    if(n.has_key())
+    if(ty.has_key())
     {
-        if(n.is_key_quoted())
+        if(ty.is_key_quoted())
         {
-            EXPECT_FALSE(n.key_is_null());
+            EXPECT_FALSE(ty.key_is_null());
         }
         if(n.key_is_null())
         {
-            EXPECT_FALSE(n.is_key_quoted());
+            EXPECT_FALSE(ty.is_key_quoted());
         }
     }
-    if(n.has_val() && n.is_val_quoted())
+    if(ty.has_val() && ty.is_val_quoted())
     {
-        if(n.is_val_quoted())
+        if(ty.is_val_quoted())
         {
             EXPECT_FALSE(n.val_is_null());
         }
-        if(n.val_is_null())
+        if(ty.val_is_null())
         {
-            EXPECT_FALSE(n.is_val_quoted());
+            EXPECT_FALSE(ty.is_val_quoted());
         }
     }
     // ... add more tests here

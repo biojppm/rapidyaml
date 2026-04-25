@@ -342,40 +342,25 @@ C4_MUST_BE_TRIVIAL_COPY(NodeScalar);
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** convenience class to initialize nodes */
-struct NodeInit
+/** @cond dev */
+struct RYML_DEPRECATED("do not use") NodeInit
 {
-
     NodeType   type;
     NodeScalar key;
     NodeScalar val;
-
-public:
-
-    /// initialize as an empty node
     NodeInit() : type(NOTYPE), key(), val() {}
-    /// initialize as a typed node
     NodeInit(NodeType_e t) : type(t), key(), val() {}
-    /// initialize as a sequence member
     NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
-    /// initialize as a sequence member with explicit type
     NodeInit(NodeScalar const& v, NodeType_e t) : type(t|VAL), key(), val(v) { _add_flags(); }
-    /// initialize as a mapping member
     NodeInit(              NodeScalar const& k, NodeScalar const& v) : type(KEYVAL), key(k), val(v) { _add_flags(); }
-    /// initialize as a mapping member with explicit type
     NodeInit(NodeType_e t, NodeScalar const& k, NodeScalar const& v) : type(t), key(k), val(v) { _add_flags(); }
-    /// initialize as a mapping member with explicit type (eg for SEQ or MAP)
     NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t), key(k), val( ) { _add_flags(KEY); }
-
-public:
-
     void clear()
     {
         type.clear();
         key.clear();
         val.clear();
     }
-
     void _add_flags(type_bits more_flags=0)
     {
         type = (type|more_flags);
@@ -388,20 +373,16 @@ public:
         if( ! val.anchor.empty())
             type = (type|VALANCH);
     }
-
     bool _check() const
     {
-        // key cannot be empty
         _RYML_ASSERT_BASIC(key.scalar.empty() == ((type & KEY) == 0));
-        // key tag cannot be empty
         _RYML_ASSERT_BASIC(key.tag.empty() == ((type & KEYTAG) == 0));
-        // val may be empty even though VAL is set. But when VAL is not set, val must be empty
         _RYML_ASSERT_BASIC(((type & VAL) != 0) || val.scalar.empty());
-        // val tag cannot be empty
         _RYML_ASSERT_BASIC(val.tag.empty() == ((type & VALTAG) == 0));
         return true;
     }
 };
+/** @endcond*/
 
 
 //-----------------------------------------------------------------------------
@@ -572,49 +553,27 @@ public:
     NodeType type(id_type node) const { return _p(node)->m_type; }
     const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
 
-    csubstr    const& key       (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); return _p(node)->m_key.scalar; }
-    csubstr    const& key_tag   (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key_tag(node), this, node); return _p(node)->m_key.tag; }
-    csubstr    const& key_ref   (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, is_key_ref(node), this, node); return _p(node)->m_key.anchor; }
-    csubstr    const& key_anchor(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key_anchor(node), this, node); return _p(node)->m_key.anchor; }
-    NodeScalar const& keysc     (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); return _p(node)->m_key; }
+    csubstr    const& key       (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_key(), this, node); return _p(node)->m_key.scalar; }
+    csubstr    const& key_tag   (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_key_tag(), this, node); return _p(node)->m_key.tag; }
+    csubstr    const& key_ref   (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).is_key_ref(), this, node); return _p(node)->m_key.anchor; }
+    csubstr    const& key_anchor(id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_key_anchor(), this, node); return _p(node)->m_key.anchor; }
+    NodeScalar const& keysc     (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_key(), this, node); return _p(node)->m_key; }
 
-    csubstr    const& val       (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node), this, node); return _p(node)->m_val.scalar; }
-    csubstr    const& val_tag   (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_val_tag(node), this, node); return _p(node)->m_val.tag; }
-    csubstr    const& val_ref   (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, is_val_ref(node), this, node); return _p(node)->m_val.anchor; }
-    csubstr    const& val_anchor(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_val_anchor(node), this, node); return _p(node)->m_val.anchor; }
-    NodeScalar const& valsc     (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node), this, node); return _p(node)->m_val; }
+    csubstr    const& val       (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_val(), this, node); return _p(node)->m_val.scalar; }
+    csubstr    const& val_tag   (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_val_tag(), this, node); return _p(node)->m_val.tag; }
+    csubstr    const& val_ref   (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).is_val_ref(), this, node); return _p(node)->m_val.anchor; }
+    csubstr    const& val_anchor(id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_val_anchor(), this, node); return _p(node)->m_val.anchor; }
+    NodeScalar const& valsc     (id_type node) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_val(), this, node); return _p(node)->m_val; }
 
     /** @} */
 
 public:
 
-    /** @name node type predicates */
+    /** @name node type predicates: see the predicates in @ref NodeType */
     /** @{ */
 
-    C4_ALWAYS_INLINE bool type_has_any(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_any(bits); }
-    C4_ALWAYS_INLINE bool type_has_all(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_all(bits); }
-    C4_ALWAYS_INLINE bool type_has_none(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_none(bits); }
-
-    C4_ALWAYS_INLINE bool is_stream(id_type node) const { return _p(node)->m_type.is_stream(); }
-    C4_ALWAYS_INLINE bool is_doc(id_type node) const { return _p(node)->m_type.is_doc(); }
-    C4_ALWAYS_INLINE bool is_container(id_type node) const { return _p(node)->m_type.is_container(); }
-    C4_ALWAYS_INLINE bool is_map(id_type node) const { return _p(node)->m_type.is_map(); }
-    C4_ALWAYS_INLINE bool is_seq(id_type node) const { return _p(node)->m_type.is_seq(); }
-    C4_ALWAYS_INLINE bool has_key(id_type node) const { return _p(node)->m_type.has_key(); }
-    C4_ALWAYS_INLINE bool has_val(id_type node) const { return _p(node)->m_type.has_val(); }
-    C4_ALWAYS_INLINE bool is_val(id_type node) const { return _p(node)->m_type.is_val(); }
-    C4_ALWAYS_INLINE bool is_keyval(id_type node) const { return _p(node)->m_type.is_keyval(); }
-    C4_ALWAYS_INLINE bool has_key_tag(id_type node) const { return _p(node)->m_type.has_key_tag(); }
-    C4_ALWAYS_INLINE bool has_val_tag(id_type node) const { return _p(node)->m_type.has_val_tag(); }
-    C4_ALWAYS_INLINE bool has_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
-    C4_ALWAYS_INLINE bool has_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
-    C4_ALWAYS_INLINE bool has_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
-    C4_ALWAYS_INLINE bool is_key_ref(id_type node) const { return _p(node)->m_type.is_key_ref(); }
-    C4_ALWAYS_INLINE bool is_val_ref(id_type node) const { return _p(node)->m_type.is_val_ref(); }
-    C4_ALWAYS_INLINE bool is_ref(id_type node) const { return _p(node)->m_type.is_ref(); }
-
-    C4_ALWAYS_INLINE bool parent_is_seq(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_parent(node), this, node); return is_seq(_p(node)->m_parent); }
-    C4_ALWAYS_INLINE bool parent_is_map(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_parent(node), this, node); return is_map(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_seq(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_parent(node), this, node); return type(_p(node)->m_parent).is_seq(); }
+    C4_ALWAYS_INLINE bool parent_is_map(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_parent(node), this, node); return type(_p(node)->m_parent).is_map(); }
 
     /** true when the node has an anchor named a */
     C4_ALWAYS_INLINE bool has_anchor(id_type node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
@@ -622,23 +581,11 @@ public:
     /** true if the node key is empty, or its scalar verifies @ref scalar_is_null().
      * @warning the node must verify @ref Tree::has_key() (asserted) (ie must be a member of a map)
      * @see https://github.com/biojppm/rapidyaml/issues/413 */
-    C4_ALWAYS_INLINE bool key_is_null(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && (n->m_type.key_is_null() || scalar_is_null(n->m_key.scalar)); }
+    C4_ALWAYS_INLINE bool key_is_null(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_key(), this, node); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && (n->m_type.key_is_null() || scalar_is_null(n->m_key.scalar)); }
     /** true if the node val is empty, or its scalar verifies @ref scalar_is_null().
      * @warning the node must verify @ref Tree::has_val() (asserted) (ie must be a scalar / must not be a container)
      * @see https://github.com/biojppm/rapidyaml/issues/413 */
-    C4_ALWAYS_INLINE bool val_is_null(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node), this, node); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && (n->m_type.val_is_null() || scalar_is_null(n->m_val.scalar)); }
-
-    /// true if the key was a scalar requiring filtering and was left
-    /// unfiltered during the parsing (see ParserOptions)
-    C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
-    /// true if the val was a scalar requiring filtering and was left
-    /// unfiltered during the parsing (see ParserOptions)
-    C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
-
-    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
-    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
-    RYML_DEPRECATED("use has_anchor()")        bool is_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
-    RYML_DEPRECATED("use has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { return _p(node)->m_type.has_anchor() || _p(node)->m_type.is_ref(); }
+    C4_ALWAYS_INLINE bool val_is_null(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, type(node).has_val(), this, node); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && (n->m_type.val_is_null() || scalar_is_null(n->m_val.scalar)); }
 
     /** @} */
 
@@ -694,6 +641,23 @@ public:
     id_type root_id() const { _RYML_ASSERT_VISIT_(m_callbacks, m_cap > 0 && m_size > 0, this, id_type(0)); return 0; }
     #endif
 
+    /** gets the @p i document node index. requires that the root node is a stream. */
+    id_type doc(id_type i) const { id_type rid = root_id(); _RYML_ASSERT_VISIT_(m_callbacks, type(rid).is_stream(), this, rid); return child(rid, i); }
+
+    /** get the document which is a parent document of node i, or the root if the tree is not a stream */
+    id_type ancestor_doc(id_type node) const
+    {
+        NodeData const *nd;
+        do
+        {
+            nd = _p(node);
+            if(nd->m_type.is_doc() || nd->m_parent == NONE)
+                break;
+            node = nd->m_parent;
+        } while(nd->m_parent != NONE);
+        return node;
+    }
+
     id_type parent(id_type node) const { return _p(node)->m_parent; }
 
     id_type prev_sibling(id_type node) const { return _p(node)->m_prev_sibling; }
@@ -721,23 +685,6 @@ public:
     id_type depth_asc(id_type node) const; /**< O(log(num_tree_nodes)) get the ascending depth of the node: number of levels between root and node */
     id_type depth_desc(id_type node) const; /**< O(num_tree_nodes) get the descending depth of the node: number of levels between node and deepest child */
 
-    /** gets the @p i document node index. requires that the root node is a stream. */
-    id_type doc(id_type i) const { id_type rid = root_id(); _RYML_ASSERT_VISIT_(m_callbacks, is_stream(rid), this, rid); return child(rid, i); }
-
-    /** get the document which is a parent document of node i, or the root if the tree is not a stream */
-    id_type ancestor_doc(id_type node) const
-    {
-        NodeData const *nd;
-        do
-        {
-            nd = _p(node);
-            if(nd->m_type.is_doc() || nd->m_parent == NONE)
-                break;
-            node = nd->m_parent;
-        } while(nd->m_parent != NONE);
-        return node;
-    }
-
     /** @} */
 
 public:
@@ -745,34 +692,9 @@ public:
     /** @name node style predicates and modifiers. see the corresponding predicate in NodeType */
     /** @{ */
 
-    C4_ALWAYS_INLINE bool is_container_styled(id_type node) const { return _p(node)->m_type.is_container_styled(); }
-    C4_ALWAYS_INLINE bool is_block(id_type node) const { return _p(node)->m_type.is_block(); }
-    C4_ALWAYS_INLINE bool is_flow_sl(id_type node) const { return _p(node)->m_type.is_flow_sl(); }
-    C4_ALWAYS_INLINE bool is_flow_ml(id_type node) const { return _p(node)->m_type.is_flow_ml(); }
-    C4_ALWAYS_INLINE bool is_flow(id_type node) const { return _p(node)->m_type.is_flow(); }
-
-    C4_ALWAYS_INLINE bool is_key_styled(id_type node) const { return _p(node)->m_type.is_key_styled(); }
-    C4_ALWAYS_INLINE bool is_val_styled(id_type node) const { return _p(node)->m_type.is_val_styled(); }
-    C4_ALWAYS_INLINE bool is_key_literal(id_type node) const { return _p(node)->m_type.is_key_literal(); }
-    C4_ALWAYS_INLINE bool is_val_literal(id_type node) const { return _p(node)->m_type.is_val_literal(); }
-    C4_ALWAYS_INLINE bool is_key_folded(id_type node) const { return _p(node)->m_type.is_key_folded(); }
-    C4_ALWAYS_INLINE bool is_val_folded(id_type node) const { return _p(node)->m_type.is_val_folded(); }
-    C4_ALWAYS_INLINE bool is_key_squo(id_type node) const { return _p(node)->m_type.is_key_squo(); }
-    C4_ALWAYS_INLINE bool is_val_squo(id_type node) const { return _p(node)->m_type.is_val_squo(); }
-    C4_ALWAYS_INLINE bool is_key_dquo(id_type node) const { return _p(node)->m_type.is_key_dquo(); }
-    C4_ALWAYS_INLINE bool is_val_dquo(id_type node) const { return _p(node)->m_type.is_val_dquo(); }
-    C4_ALWAYS_INLINE bool is_key_plain(id_type node) const { return _p(node)->m_type.is_key_plain(); }
-    C4_ALWAYS_INLINE bool is_val_plain(id_type node) const { return _p(node)->m_type.is_val_plain(); }
-    C4_ALWAYS_INLINE bool is_key_quoted(id_type node) const { return _p(node)->m_type.is_key_quoted(); }
-    C4_ALWAYS_INLINE bool is_val_quoted(id_type node) const { return _p(node)->m_type.is_val_quoted(); }
-    C4_ALWAYS_INLINE bool is_quoted(id_type node) const { return _p(node)->m_type.is_quoted(); }
-
-    C4_ALWAYS_INLINE NodeType key_style(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); return _p(node)->m_type.key_style(); }
-    C4_ALWAYS_INLINE NodeType val_style(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node) || is_root(node), this, node); return _p(node)->m_type.val_style(); }
-
-    C4_ALWAYS_INLINE void set_container_style(id_type node, NodeType_e style) { _RYML_ASSERT_VISIT_(m_callbacks, is_container(node), this, node); _p(node)->m_type.set_container_style(style); }
-    C4_ALWAYS_INLINE void set_key_style(id_type node, NodeType_e style) { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); _p(node)->m_type.set_key_style(style); }
-    C4_ALWAYS_INLINE void set_val_style(id_type node, NodeType_e style) { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node), this, node); _p(node)->m_type.set_val_style(style); }
+    C4_ALWAYS_INLINE void set_container_style(id_type node, NodeType_e style) { _p(node)->m_type.set_container_style(style); }
+    C4_ALWAYS_INLINE void set_key_style(id_type node, NodeType_e style) { _p(node)->m_type.set_key_style(style); }
+    C4_ALWAYS_INLINE void set_val_style(id_type node, NodeType_e style) { _p(node)->m_type.set_val_style(style); }
 
     void clear_style(id_type node, bool recurse=false);
     void set_style_conditionally(id_type node,
@@ -796,7 +718,7 @@ public:
 
     void set_doc(id_type node)
     {
-        _RYML_ASSERT_VISIT_(m_callbacks, is_root(node) || (is_root(parent(node)) && is_stream(parent(node))), this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, is_root(node) || (is_root(parent(node)) && type(parent(node)).is_stream()), this, node);
         _p(node)->m_type |= DOC;
     }
 
@@ -874,13 +796,23 @@ public:
         _p(node)->m_type |= MAP|more_flags;
     }
 
-    void set_key_tag(id_type node, csubstr tag) { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
-    void set_val_tag(id_type node, csubstr tag) { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node) || is_container(node), this, node); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
+    void set_key_tag(id_type node, csubstr tag) noexcept
+    {
+        NodeData *C4_RESTRICT nd = _p(node);
+        nd->m_type |= KEYTAG;
+        nd->m_key.tag = tag;
+    }
+    void set_val_tag(id_type node, csubstr tag) noexcept
+    {
+        NodeData *C4_RESTRICT nd = _p(node);
+        nd->m_type |= VALTAG;
+        nd->m_val.tag = tag;
+    }
 
-    void set_key_anchor(id_type node, csubstr anchor) { _RYML_ASSERT_VISIT_(m_callbacks,  ! is_key_ref(node), this, node); _p(node)->m_key.anchor = anchor.triml('&'); _add_flags(node, KEYANCH); }
-    void set_val_anchor(id_type node, csubstr anchor) { _RYML_ASSERT_VISIT_(m_callbacks,  ! is_val_ref(node), this, node); _p(node)->m_val.anchor = anchor.triml('&'); _add_flags(node, VALANCH); }
-    void set_key_ref   (id_type node, csubstr ref   ) { _RYML_ASSERT_VISIT_(m_callbacks,  ! has_key_anchor(node), this, node); NodeData* C4_RESTRICT n = _p(node); n->m_key.set_ref_maybe_replacing_scalar(ref, n->m_type.has_key()); _add_flags(node, KEY|KEYREF); }
-    void set_val_ref   (id_type node, csubstr ref   ) { _RYML_ASSERT_VISIT_(m_callbacks,  ! has_val_anchor(node), this, node); NodeData* C4_RESTRICT n = _p(node); n->m_val.set_ref_maybe_replacing_scalar(ref, n->m_type.has_val()); _add_flags(node, VAL|VALREF); }
+    void set_key_anchor(id_type node, csubstr anchor) RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks,  ! type(node).is_key_ref(), this, node); _p(node)->m_key.anchor = anchor.triml('&'); _add_flags(node, KEYANCH); }
+    void set_val_anchor(id_type node, csubstr anchor) RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks,  ! type(node).is_val_ref(), this, node); _p(node)->m_val.anchor = anchor.triml('&'); _add_flags(node, VALANCH); }
+    void set_key_ref   (id_type node, csubstr ref   ) RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks,  ! type(node).has_key_anchor(), this, node); NodeData* C4_RESTRICT n = _p(node); n->m_key.set_ref_maybe_replacing_scalar(ref, n->m_type.has_key()); _add_flags(node, KEY|KEYREF); }
+    void set_val_ref   (id_type node, csubstr ref   ) RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_callbacks,  ! type(node).has_val_anchor(), this, node); NodeData* C4_RESTRICT n = _p(node); n->m_val.set_ref_maybe_replacing_scalar(ref, n->m_type.has_val()); _add_flags(node, VAL|VALREF); }
 
     void rem_key_anchor(id_type node) { _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYANCH); }
     void rem_val_anchor(id_type node) { _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
@@ -958,9 +890,6 @@ public:
 
     c4::yml::TagDirectiveRange tag_directives() const { return m_tag_directives.directives(); }
 
-    RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
-    RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
-
     /** @} */
 
 public:
@@ -974,7 +903,7 @@ public:
     C4_ALWAYS_INLINE id_type insert_child(id_type parent, id_type after)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, parent != NONE, this, parent);
-        _RYML_ASSERT_VISIT_(m_callbacks, is_container(parent) || is_root(parent), this, parent);
+        _RYML_ASSERT_VISIT_(m_callbacks, type(parent).is_container() || is_root(parent), this, parent);
         _RYML_ASSERT_VISIT_(m_callbacks, after == NONE || (_p(after)->m_parent == parent), this, parent);
         id_type child = _claim();
         _set_hierarchy(child, parent, after);
@@ -1117,7 +1046,6 @@ public:
     size_t arena_capacity() const { return m_arena.len; }
     /** get the current slack of the tree's internal arena */
     size_t arena_slack() const { _RYML_ASSERT_VISIT_(m_callbacks, m_arena.len >= m_arena_pos, this, NONE); return m_arena.len - m_arena_pos; }
-    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
 
     /** get the current arena */
     csubstr arena() const { return m_arena.first(m_arena_pos); }
@@ -1370,12 +1298,12 @@ public:
         if(f & KEY)
         {
             _RYML_ASSERT_VISIT_(m_callbacks, !is_root(node), this, node);
-            _RYML_ASSERT_VISIT_(m_callbacks, is_map(parent(node)), this, node);
+            _RYML_ASSERT_VISIT_(m_callbacks, type(parent(node)).is_map(), this, node);
         }
         if((f & VAL) && !is_root(node))
         {
             auto pid = parent(node); C4_UNUSED(pid);
-            _RYML_ASSERT_VISIT_(m_callbacks, is_map(pid) || is_seq(pid), this, node);
+            _RYML_ASSERT_VISIT_(m_callbacks, type(parent(node)).is_map() || type(parent(node)).is_seq(), this, node);
         }
     }
     #endif
@@ -1506,7 +1434,57 @@ public:
     C4_SUPPRESS_WARNING_MSVC_PUSH
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
-    C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+    RYML_DEPRECATED("use .type(node).type_has_any(bits)") C4_ALWAYS_INLINE bool type_has_any(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_any(bits); }
+    RYML_DEPRECATED("use .type(node).type_has_all(bits)") C4_ALWAYS_INLINE bool type_has_all(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_all(bits); }
+    RYML_DEPRECATED("use .type(node).type_has_none(bits)") C4_ALWAYS_INLINE bool type_has_none(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_none(bits); }
+    RYML_DEPRECATED("use .type(node).is_stream()") C4_ALWAYS_INLINE bool is_stream(id_type node) const { return _p(node)->m_type.is_stream(); }
+    RYML_DEPRECATED("use .type(node).is_doc()") C4_ALWAYS_INLINE bool is_doc(id_type node) const { return _p(node)->m_type.is_doc(); }
+    RYML_DEPRECATED("use .type(node).is_container()") C4_ALWAYS_INLINE bool is_container(id_type node) const { return _p(node)->m_type.is_container(); }
+    RYML_DEPRECATED("use .type(node).is_map()") C4_ALWAYS_INLINE bool is_map(id_type node) const { return _p(node)->m_type.is_map(); }
+    RYML_DEPRECATED("use .type(node).is_seq()") C4_ALWAYS_INLINE bool is_seq(id_type node) const { return _p(node)->m_type.is_seq(); }
+    RYML_DEPRECATED("use .type(node).has_key()") C4_ALWAYS_INLINE bool has_key(id_type node) const { return _p(node)->m_type.has_key(); }
+    RYML_DEPRECATED("use .type(node).has_val()") C4_ALWAYS_INLINE bool has_val(id_type node) const { return _p(node)->m_type.has_val(); }
+    RYML_DEPRECATED("use .type(node).is_val()") C4_ALWAYS_INLINE bool is_val(id_type node) const { return _p(node)->m_type.is_val(); }
+    RYML_DEPRECATED("use .type(node).is_keyval()") C4_ALWAYS_INLINE bool is_keyval(id_type node) const { return _p(node)->m_type.is_keyval(); }
+    RYML_DEPRECATED("use .type(node).has_key_tag()") C4_ALWAYS_INLINE bool has_key_tag(id_type node) const { return _p(node)->m_type.has_key_tag(); }
+    RYML_DEPRECATED("use .type(node).has_val_tag()") C4_ALWAYS_INLINE bool has_val_tag(id_type node) const { return _p(node)->m_type.has_val_tag(); }
+    RYML_DEPRECATED("use .type(node).has_key_anchor()") C4_ALWAYS_INLINE bool has_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
+    RYML_DEPRECATED("use .type(node).has_val_anchor()") C4_ALWAYS_INLINE bool has_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
+    RYML_DEPRECATED("use .type(node).has_anchor()") C4_ALWAYS_INLINE bool has_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
+    RYML_DEPRECATED("use .type(node).is_key_ref()") C4_ALWAYS_INLINE bool is_key_ref(id_type node) const { return _p(node)->m_type.is_key_ref(); }
+    RYML_DEPRECATED("use .type(node).is_val_ref()") C4_ALWAYS_INLINE bool is_val_ref(id_type node) const { return _p(node)->m_type.is_val_ref(); }
+    RYML_DEPRECATED("use .type(node).is_ref()") C4_ALWAYS_INLINE bool is_ref(id_type node) const { return _p(node)->m_type.is_ref(); }
+    RYML_DEPRECATED("use .type(node).has_key_anchor()") bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
+    RYML_DEPRECATED("use .type(node).has_val_anchor()") bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
+    RYML_DEPRECATED("use .type(node).has_anchor()") bool is_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
+    RYML_DEPRECATED("use .type(node).has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { return _p(node)->m_type.has_anchor() || _p(node)->m_type.is_ref(); }
+    RYML_DEPRECATED("use .type(node).is_key_unfiltered(bits)") C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
+    RYML_DEPRECATED("use .type(node).is_val_unfiltered(bits)") C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
+    RYML_DEPRECATED("use .type(node).is_container_styled()") C4_ALWAYS_INLINE bool is_container_styled(id_type node) const { return _p(node)->m_type.is_container_styled(); }
+    RYML_DEPRECATED("use .type(node).is_block()") C4_ALWAYS_INLINE bool is_block(id_type node) const { return _p(node)->m_type.is_block(); }
+    RYML_DEPRECATED("use .type(node).is_flow_sl()") C4_ALWAYS_INLINE bool is_flow_sl(id_type node) const { return _p(node)->m_type.is_flow_sl(); }
+    RYML_DEPRECATED("use .type(node).is_flow_ml()") C4_ALWAYS_INLINE bool is_flow_ml(id_type node) const { return _p(node)->m_type.is_flow_ml(); }
+    RYML_DEPRECATED("use .type(node).is_flow()") C4_ALWAYS_INLINE bool is_flow(id_type node) const { return _p(node)->m_type.is_flow(); }
+    RYML_DEPRECATED("use .type(node).is_key_styled()") C4_ALWAYS_INLINE bool is_key_styled(id_type node) const { return _p(node)->m_type.is_key_styled(); }
+    RYML_DEPRECATED("use .type(node).is_val_styled()") C4_ALWAYS_INLINE bool is_val_styled(id_type node) const { return _p(node)->m_type.is_val_styled(); }
+    RYML_DEPRECATED("use .type(node).is_key_literal()") C4_ALWAYS_INLINE bool is_key_literal(id_type node) const { return _p(node)->m_type.is_key_literal(); }
+    RYML_DEPRECATED("use .type(node).is_val_literal()") C4_ALWAYS_INLINE bool is_val_literal(id_type node) const { return _p(node)->m_type.is_val_literal(); }
+    RYML_DEPRECATED("use .type(node).is_key_folded()") C4_ALWAYS_INLINE bool is_key_folded(id_type node) const { return _p(node)->m_type.is_key_folded(); }
+    RYML_DEPRECATED("use .type(node).is_val_folded()") C4_ALWAYS_INLINE bool is_val_folded(id_type node) const { return _p(node)->m_type.is_val_folded(); }
+    RYML_DEPRECATED("use .type(node).is_key_squo()") C4_ALWAYS_INLINE bool is_key_squo(id_type node) const { return _p(node)->m_type.is_key_squo(); }
+    RYML_DEPRECATED("use .type(node).is_val_squo()") C4_ALWAYS_INLINE bool is_val_squo(id_type node) const { return _p(node)->m_type.is_val_squo(); }
+    RYML_DEPRECATED("use .type(node).is_key_dquo()") C4_ALWAYS_INLINE bool is_key_dquo(id_type node) const { return _p(node)->m_type.is_key_dquo(); }
+    RYML_DEPRECATED("use .type(node).is_val_dquo()") C4_ALWAYS_INLINE bool is_val_dquo(id_type node) const { return _p(node)->m_type.is_val_dquo(); }
+    RYML_DEPRECATED("use .type(node).is_key_plain()") C4_ALWAYS_INLINE bool is_key_plain(id_type node) const { return _p(node)->m_type.is_key_plain(); }
+    RYML_DEPRECATED("use .type(node).is_val_plain()") C4_ALWAYS_INLINE bool is_val_plain(id_type node) const { return _p(node)->m_type.is_val_plain(); }
+    RYML_DEPRECATED("use .type(node).is_key_quoted()") C4_ALWAYS_INLINE bool is_key_quoted(id_type node) const { return _p(node)->m_type.is_key_quoted(); }
+    RYML_DEPRECATED("use .type(node).is_val_quoted()") C4_ALWAYS_INLINE bool is_val_quoted(id_type node) const { return _p(node)->m_type.is_val_quoted(); }
+    RYML_DEPRECATED("use .type(node).is_quoted()") C4_ALWAYS_INLINE bool is_quoted(id_type node) const { return _p(node)->m_type.is_quoted(); }
+    RYML_DEPRECATED("use .type(node).key_style()") C4_ALWAYS_INLINE NodeType key_style(id_type node) const { return _p(node)->m_type.key_style(); }
+    RYML_DEPRECATED("use .type(node).val_style()") C4_ALWAYS_INLINE NodeType val_style(id_type node) const { return _p(node)->m_type.val_style(); }
+    RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
+    RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
+    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
     RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
     RYML_DEPRECATED("use set_key()+set_val()") void to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags=0);
     RYML_DEPRECATED("use set_key()+set_map()") void to_map(id_type node, csubstr key, type_bits more_flags=0);
@@ -1545,6 +1523,7 @@ public:
     }
     C4_SUPPRESS_WARNING_MSVC_POP
     C4_SUPPRESS_WARNING_GCC_CLANG_POP
+    C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
     /** @endcond */ // LCOV_EXCL_STOP
 };
 

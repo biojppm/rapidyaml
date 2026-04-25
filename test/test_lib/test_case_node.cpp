@@ -128,7 +128,7 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
 
     if(type & SEQ)
     {
-        EXPECT_FALSE(n[pos].has_key());
+        EXPECT_FALSE(n[pos].type().has_key());
         EXPECT_EQ(n[pos].get()->m_key.scalar, children[(size_t)pos].key);
         ConstNodeRef actualch = n.child(pos);
         SCOPED_TRACE(actualch.id());
@@ -139,16 +139,16 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
     {
         ConstNodeRef actualfch = n[pos];
         SCOPED_TRACE(actualfch.id());
-        EXPECT_TRUE(actualfch.has_key());
-        if(actualfch.has_key())
+        EXPECT_TRUE(actualfch.type().has_key());
+        if(actualfch.type().has_key())
         {
             EXPECT_EQ(actualfch.key(), expectedch.key);
         }
 
         if( ! expectedch.key_tag.empty())
         {
-            EXPECT_TRUE(actualfch.has_key_tag());
-            if(actualfch.has_key_tag())
+            EXPECT_TRUE(actualfch.type().has_key_tag());
+            if(actualfch.type().has_key_tag())
             {
                 EXPECT_EQ(actualfch.key_tag(), expectedch.key_tag);
             }
@@ -159,16 +159,16 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
     {
         ConstNodeRef actualch = n[pos];
         SCOPED_TRACE(actualch.id());
-        EXPECT_TRUE(actualch.has_val());
-        if(actualch.has_val())
+        EXPECT_TRUE(actualch.type().has_val());
+        if(actualch.type().has_val())
         {
             EXPECT_EQ(actualch.val(), expectedch.val);
         }
 
         if( ! expectedch.val_tag.empty())
         {
-            EXPECT_TRUE(actualch.has_val_tag());
-            if(actualch.has_val_tag())
+            EXPECT_TRUE(actualch.type().has_val_tag());
+            if(actualch.type().has_val_tag())
             {
                 EXPECT_EQ(actualch.val_tag(), expectedch.val_tag);
             }
@@ -196,12 +196,12 @@ void TestCaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) c
 
     EXPECT_EQ(actual.num_children(), children.size());
 
-    if(actual.has_key())
+    if(actual.type().has_key())
     {
         EXPECT_EQ(actual.key(), key);
     }
 
-    if(actual.has_val())
+    if(actual.type().has_val())
     {
         EXPECT_EQ(actual.val(), val);
     }
