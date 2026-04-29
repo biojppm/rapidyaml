@@ -224,6 +224,16 @@ static void test_non_first_dash_bom_error(csubstr fmt, csubstr bom, Location loc
     }, loc);
 }
 
+TEST_P(TestNonFirstDashBOM, success_prevline)
+{
+    const bomspec p = GetParam();
+    SCOPED_TRACE(p.name);
+    csubstr fmt("{}\n"
+                "- a\n"
+                "- b\n");
+    test_non_first_dash_bom_success(fmt, p.bom);
+}
+
 TEST_P(TestNonFirstDashBOM, success_before_no_spaces)
 {
     const bomspec p = GetParam();

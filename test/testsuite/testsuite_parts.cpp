@@ -20,7 +20,7 @@ const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    // Nothing to see here! All valid YAML cases in the test suite parse correctly.
+    // empty. yay!
 
 
     //-------------------------------------------------------------------------
@@ -28,10 +28,7 @@ const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    // block scalars
     _("S98Z-error"              , "error: block scalar with more spaces than first content line"),
-    // block maps
-    _("CXX2-error"              , "error: map with anchor after document start token"), // same for scalars/seqs
 
 
     //-------------------------------------------------------------------------

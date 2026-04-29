@@ -266,7 +266,9 @@ ENGINE_TEST(AnchorSeqFlowWithRefMultiLine,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorMapBlock,
-            "&map\n&key1 key1: &val1 val1\n&key2 key2: &val2 val2\n"
+            "&map\n"
+            "&key1 key1: &val1 val1\n"
+            "&key2 key2: &val2 val2\n"
             ,
             "+STR\n"
             "+DOC\n"

@@ -498,6 +498,17 @@ ENGINE_TEST(TagPlacementSeqBlock,
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST_ERRLOC(TagPlacementMapFlow0_err0, Location(2, 10), ""
+            "{\n"
+            "!tag !tag,\n"
+            "}\n"
+            "")
+ENGINE_TEST_ERRLOC(TagPlacementMapFlow0_err0_anchors, Location(2, 12), ""
+            "{\n"
+            "&anch &anch,\n"
+            "}\n"
+            "")
+
 ENGINE_TEST(TagPlacementMapFlow0, HAS_CONTAINER_KEYS,
             ""
             "{\n"
