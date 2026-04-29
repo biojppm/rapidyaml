@@ -1,5 +1,7 @@
 ## General fixes and improvements
 
+This release focuses in compliance with the YAML standard, mostly by ensuring parse errors in invalid YAML cases.
+
 - Narrow the scope of `%TAG` to only the following document, as per the standard ([PR#588](https://github.com/biojppm/rapidyaml/pull/588)). This required or prompted some API changes:
    - Added new type `TagDirectives`
    - Added `ParseOptions::resolve_tags()` and `ParseOptions::resolve_tags_all()` options to enforce resolution of tags while parsing. When disabled (which is the default), the tree still has `Tree::resolve_tags()` to perform post-parsing or programmatic resolution.
@@ -16,7 +18,6 @@
 ## YAML fixes: valid cases
 
 Fix parsing of **valid** YAML corner cases:
-  - Ensure tags/anchors are not omitted. This was happening in some flow maps ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)).
   - Ambiguity of tags/anchors in ? mode ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
     ```yaml
     ? &mapanchor
@@ -55,6 +56,7 @@ Fix parsing of **valid** YAML corner cases:
     ? ? - c   # nested explicit keys were also fixed
       ? - d
     ```
+  - Missing tags/anchors in some flow maps ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)).
 
 
 ## YAML fixes: invalid cases
@@ -165,9 +167,9 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     ```
   - directives with extra tokens ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
     ```yaml
-    %YAML 1.2 this is wrong
-    %YAML 1.2 # this is ok
-    %TAG ! my- ! this is also wrong
+    %YAML 1.2 blabla     # invalid
+    %YAML 1. # this is ok
+    %TAG ! my- ! blabla  # this is also wrong
     ---
     ```
   - multiline implicit keys are invalid ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
@@ -182,5 +184,27 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
         seq]: invalid
     {multiline:
         map}: invalid
-   ```
-
+    ```
+  - invalid block containers after document open ([PR#592](https://github.com/biojppm/rapidyaml/pull/592)):
+    ```yaml
+    --- a: b  # invalid
+    --- - a   # invalid
+    --- ? a   # invalid
+    ```
+  - invalid block containers after in-block open ([PR#592](https://github.com/biojppm/rapidyaml/pull/592)):
+    ```yaml
+    a: - b  # invalid
+    a: ? b  # invalid
+    ```
+  - same-line repeated annotations ([PR#592](https://github.com/biojppm/rapidyaml/pull/592)):
+    ```yaml
+    !a
+    !b foo: bar  # ok
+    ---
+    &a
+    &b foo: bar  # ok
+    ---
+    !a !b foo: bar  # invalid
+    ---
+    &a &b foo: bar  # invalid
+    ```
