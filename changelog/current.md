@@ -208,3 +208,13 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     ---
     &a &b foo: bar  # invalid
     ```
+  - Fix parsing of invalid YAML: block scalars with deindented first line ([PR#593](https://github.com/biojppm/rapidyaml/pull/593)):
+    ```yaml
+    # the _ characters are not part of the YAML;
+    # they are used here only to show the leading whitespace
+    empty block scalar: >
+     _
+      _
+       _
+     # comment
+    ```

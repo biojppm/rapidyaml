@@ -1602,6 +1602,114 @@ TEST(block_folded, test_suite_P2AD)
     });
 }
 
+void check_err_at(csubstr yaml, Location const& loc)
+{
+    Tree tree;
+    ExpectError::check_error_parse(&tree, [&]{
+        parse_in_arena(yaml, &tree);
+    }, loc);
+}
+void check_S98Z(csubstr yaml)
+{
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("empty block scalar"));
+        EXPECT_EQ(t["empty block scalar"].val(), "\n\n\n# comment\n");
+    });
+}
+
+TEST(block_folded, test_suite_S98Z_0)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+ # comment
+)", Location(5, 1));
+}
+TEST(block_folded, test_suite_S98Z_0_noncomment)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+ not comment
+)", Location(5, 1));
+}
+TEST(block_folded, test_suite_S98Z_1)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+  # comment
+)", Location(5, 1));
+}
+TEST(block_folded, test_suite_S98Z_1_noncomment)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+  not comment
+)", Location(5, 1));
+}
+TEST(block_folded, test_suite_S98Z_2)
+{
+    check_S98Z(R"(empty block scalar: >
+ 
+  
+   
+   # comment
+)");
+}
+
+TEST(block_literal, test_suite_S98Z_0)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+ # comment
+)", Location(5, 1));
+}
+TEST(block_literal, test_suite_S98Z_0_noncomment)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+ not comment
+)", Location(5, 1));
+}
+TEST(block_literal, test_suite_S98Z_1)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+  # comment
+)", Location(5, 1));
+}
+TEST(block_literal, test_suite_S98Z_1_noncomment)
+{
+    check_err_at(R"(empty block scalar: |
+ 
+  
+   
+  not comment
+)", Location(5, 1));
+}
+TEST(block_literal, test_suite_S98Z_2)
+{
+    check_S98Z(R"(empty block scalar: |
+ 
+  
+   
+   # comment
+)");
+}
+
 
 TEST(block_folded, test_suite_R4YG)
 {

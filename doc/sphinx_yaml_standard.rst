@@ -1,8 +1,8 @@
 YAML standard conformance
 =========================
 
-ryml is feature-complete with regards to the YAML specification, and
-it passes 100% (ie, all) of the valid YAML cases in the YAML test
+ryml is fully conformant and feature-complete with regards to the YAML
+specification, and it passes all of the cases in the YAML test
 suite. All the YAML features are well covered in the unit tests, and
 expected to work, unless in the exceptions noted below.
 
@@ -33,13 +33,10 @@ Deliberate deviations
 ryml deliberately makes no effort to follow the standard in the
 following situations:
 
--  ryml's tree does NOT accept containers as map keys: keys stored in
-   the tree must always be scalars. But note that this is a limitation
-   only of the final tree. The event-based parse engine DOES parse
-   container keys, as it is meant to be used by other programming
-   languages to create their native data-structures, and it is fully
-   tested and fully conformant (other than the general error
-   permissiveness noted below).
+-  ryml's parser engine correctly handles all YAML features. But the 
+   destination tree does NOT accept containers as map keys: map keys
+   must always be scalars. But note that this is a limitation
+   only of the final tree.
 -  Tab characters after ``:`` and ``-`` are not accepted tokens, unless
    ryml is compiled with the macro ``RYML_WITH_TAB_TOKENS``. This
    requirement exists because checking for tabs introduces branching
@@ -48,8 +45,8 @@ following situations:
 -  Non-unique map keys are allowed. Enforcing key uniqueness in the
    parser or in the tree would cause log-linear parsing complexity (for
    root children on a mostly flat tree), and would increase code size
-   through added structural, logical and cyclomatic complexity. So
-   enforcing uniqueness in the parser would hurt users who may not care
+   through added structural, logical and cyclomatic complexity. Enforcing
+   uniqueness in the parser would hurt users who may not care
    about it (they may not care either because non-uniqueness is OK for
    their use case, or because it is impossible to occur). On the other
    hand, any user who requires uniqueness can easily enforce it by doing
@@ -63,30 +60,14 @@ following situations:
    arbitrary limit reflects the usual practice of having at most 1 or 2
    tag directives; also, be aware that this feature is under
    consideration for removal in YAML 1.3.
--  Byte Order Marks: while ryml correctly handles BOMs at the beginning
-   of the stream or documents (as per the standard), BOMs inside
-   scalars are ignored. The `standard mandates that they should be
-   quoted <https://yaml.org/spec/1.2.2/#52-character-encodings>` when
-   emitted; this is not done.
-
-
-Known (unintended) deviations
------------------------------
-
-ryml tends to be on the permissive side, tolerating several cases
-where the YAML standard dictates that there should be an error. This
-may be good or bad, but in any case is being improved on, meaning **ryml
-will grow progressively less tolerant of invalid YAML in the coming
-releases**. So we strongly suggest to stay away from those dark corners
-of YAML which are generally a source of problems; this is good
-practice anyway.
 
 
 
 YAML test suite
 ---------------
 
-As part of its CI testing, ryml uses the `YAML test suite <https://github.com/yaml/yaml-test-suite>`__.  This is
+As part of its CI testing, ryml uses and passes all the cases from the
+`YAML test suite <https://github.com/yaml/yaml-test-suite>`__. This is
 an extensive and merciless set of reference cases covering the full
 YAML spec. Each of these cases has several subparts:
  - ``in-yaml``: mildly, plainly or extremely difficult-to-parse YAML
@@ -120,18 +101,10 @@ tests per case part.
 With multiple parts per case and ~400 reference
 cases in the test suite, this makes over several hundred thousand
 individual tests to which ryml is subjected, which are added to the
-unit tests in ryml, which also employ the same extensive combinatorial
+unit tests in ryml, also employing the same extensive combinatorial
 approach.
 
 Also, note that in `their own words <http://matrix.yaml.info/>`__, the
 tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
-the extreme focus of the test suite, currently ryml only fails a minor
-fraction of the test cases, mostly related with the deliberate
-limitations noted above.
-
-Other than those limitations, by far the main issue with ryml is that
-several standard-mandated parse errors fail to materialize (this will
-be addressed in the coming releases). For the up-to-date list of ryml
-failures in the test-suite, refer to the `list of known exceptions <test/test_suite/test_suite_parts.cpp>`__ from ryml's test
-suite runner, which is used as part of ryml's CI setup.
+the extreme focus of the test suite, ryml passes all of its test cases.
