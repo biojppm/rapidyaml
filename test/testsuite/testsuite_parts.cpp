@@ -17,18 +17,14 @@ const AllowedFailure allowed_failures[] = {
 
     //-------------------------------------------------------------------------
     // SECTION 1. Known issues on valid YAML (TO-DO)
-    //
-    // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // empty. yay!
 
 
     //-------------------------------------------------------------------------
     // SECTION 2. Missing errors on invalid YAML (TO-DO)
-    //
-    // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    _("S98Z-error"              , "error: block scalar with more spaces than first content line"),
+    // empty. yay!
 
 
     //-------------------------------------------------------------------------
@@ -37,7 +33,9 @@ const AllowedFailure allowed_failures[] = {
     // These tests are skipped because they cover parts of YAML that
     // are deliberately not implemented by ryml.
 
-    #ifndef RYML_WITH_TAB_TOKENS
+    #ifdef RYML_WITH_TAB_TOKENS
+    // empty. yay!
+    #else
     // '-', ':' or '?' followed directly by '\t' are
     // supported only when the above macro is defined
     _("6BCT-in_yaml"            , "tab after : and -"),
@@ -54,8 +52,8 @@ const AllowedFailure allowed_failures[] = {
     #endif
 
     // Container keys are deliberately not supported by the ryml tree.
-    // But they ARE supported by the parse engine. So they are dealt
-    // with separately using the event parser. See below.
+    // But they ARE supported by the parse engine. So they are handled
+    // separately using the event parser. See below.
 
 
     //-------------------------------------------------------------------------

@@ -19,12 +19,11 @@ alternative C/C++ libraries:
    copies, polymorphism and slow C++ stream serializations. This is
    generally a sure way of making your code slower, and strong evidence
    of this can be seen in the benchmark results above.
-
-Recently `libfyaml <https://github.com/pantoniou/libfyaml>`__ appeared.
-This is a newer C library, fully conformant to the YAML standard with an
-amazing 100% success in the test suite; it also offers the tree as a
-data structure. As a downside, it does not work in Windows, and it is
-also multiple times slower parsing and emitting.
+-  `libfyaml <https://github.com/pantoniou/libfyaml>`__. This is a
+   newer C library, also fully conformant to the YAML standard; it
+   also offers the tree as a data structure. As a downside, it does
+   not work in Windows, and it is also multiple times slower parsing
+   and emitting.
 
 When performance and low latency are important, using contiguous
 structures for better cache behavior and to prevent the library from

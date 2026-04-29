@@ -2293,7 +2293,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
     _scan_line();
 
     // start with a zero-length block, already pointing at the right place
-    substr raw_block(_buf().data() + m_evt_handler->m_curr->pos.offset, size_t(0));// m_evt_handler->m_curr->line_contents.full.sub(0, 0);
+    substr raw_block(_buf().data() + m_evt_handler->m_curr->pos.offset, size_t(0));
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, raw_block.begin() == m_evt_handler->m_curr->line_contents.full.str, m_evt_handler->m_curr->pos);
 
     // read every full line into a raw block,
@@ -2313,7 +2313,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         #if defined(__GNUC__) && (__GNUC__ == 12 || __GNUC__ == 13)
         C4_DONT_OPTIMIZE(lc.rem);
         #endif
-        _c4dbgpf("blck: peeking at {}", _prs(lc.rem.trimr("\r\n")));
+        _c4dbgpf("blck: peeking at {}", _prs(lc.rem.trimr("\r\n"), true));
         // evaluate termination conditions
         if(indentation != npos)
         {
@@ -2383,8 +2383,10 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                     }
                     else
                     {
+                        if(lc.indentation >= indref)
+                            _c4err("parse error: first non-empty block line should have at least the original indentation");
+                        _c4dbgp("blck: finished");
                         break;
-                        //_c4err("parse error: first non-empty block line should have at least the original indentation");
                     }
                 }
             }
