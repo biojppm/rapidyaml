@@ -10,7 +10,7 @@ namespace yml {
 
 #define INSTANTIATE_BOM_TESTS(name)                                 \
     using name = testing::TestWithParam<bomspec>;                   \
-    INSTANTIATE_TEST_SUITE_P(_, name,                               \
+    INSTANTIATE_TEST_SUITE_P(BOM, name,                             \
                              testing::ValuesIn(bomspecs.begin(),    \
                                                bomspecs.end()),     \
                              namefor<bomspec>)
@@ -68,7 +68,7 @@ static void test_bom_formatted_success_(bomspec spec, Fn &&check, csubstr fmt)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-INSTANTIATE_BOM_TESTS(BOMSeqBlock);
+INSTANTIATE_BOM_TESTS(SeqBlock);
 
 namespace {
 void check_seq_block(Tree const& t, bomspec const&)
@@ -80,7 +80,7 @@ void check_seq_block(Tree const& t, bomspec const&)
 }
 } // namespace
 
-TEST_P(BOMSeqBlock, success_prevline)
+TEST_P(SeqBlock, success_prevline)
 {
     test_bom_formatted_success(GetParam(), check_seq_block,
                                "{}\n"
@@ -89,7 +89,7 @@ TEST_P(BOMSeqBlock, success_prevline)
                                "");
 }
 
-TEST_P(BOMSeqBlock, success_before_no_spaces)
+TEST_P(SeqBlock, success_before_no_spaces)
 {
     test_bom_formatted_success(GetParam(), check_seq_block,
                                "{}- a\n"
@@ -97,7 +97,7 @@ TEST_P(BOMSeqBlock, success_before_no_spaces)
                                "");
 }
 
-TEST_P(BOMSeqBlock, success_before_interleaved_spaces)
+TEST_P(SeqBlock, success_before_interleaved_spaces)
 {
     test_bom_formatted_success(GetParam(), check_seq_block,
                                "{}    - a\n"
@@ -105,7 +105,7 @@ TEST_P(BOMSeqBlock, success_before_interleaved_spaces)
                                "");
 }
 
-TEST_P(BOMSeqBlock, err_after)
+TEST_P(SeqBlock, err_after)
 {
     if(GetParam().name == "NOBOM")
         return;
@@ -116,7 +116,7 @@ TEST_P(BOMSeqBlock, err_after)
                              "");
 }
 
-TEST_P(BOMSeqBlock, err_before_anchor)
+TEST_P(SeqBlock, err_before_anchor)
 {
     size_t expected_col = GetParam().bom.len + 4; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -125,7 +125,7 @@ TEST_P(BOMSeqBlock, err_before_anchor)
                              "");
 }
 
-TEST_P(BOMSeqBlock, err_before_tag)
+TEST_P(SeqBlock, err_before_tag)
 {
     size_t expected_col = GetParam().bom.len + 4; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -134,7 +134,7 @@ TEST_P(BOMSeqBlock, err_before_tag)
                              "");
 }
 
-TEST_P(BOMSeqBlock, err_doc_0)
+TEST_P(SeqBlock, err_doc_0)
 {
     size_t expected_col = GetParam().bom.len + 5; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -142,7 +142,7 @@ TEST_P(BOMSeqBlock, err_doc_0)
                              "");
 }
 
-TEST_P(BOMSeqBlock, err_doc_1)
+TEST_P(SeqBlock, err_doc_1)
 {
     if(GetParam().bom.empty())
         return;
@@ -157,7 +157,7 @@ TEST_P(BOMSeqBlock, err_doc_1)
                                "");
 }
 
-TEST_P(BOMSeqBlock, err_doc_2)
+TEST_P(SeqBlock, err_doc_2)
 {
     if(GetParam().bom.empty())
         return;
@@ -178,7 +178,7 @@ TEST_P(BOMSeqBlock, err_doc_2)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-INSTANTIATE_BOM_TESTS(BOMQmrk);
+INSTANTIATE_BOM_TESTS(Qmrk);
 
 namespace {
 void check_qmrk(Tree const& t, bomspec const&)
@@ -206,7 +206,7 @@ void check_qmrk_misleading2(Tree const& t, bomspec const& spec, csubstr fmt)
 }
 } // namespace
 
-TEST_P(BOMQmrk, success_prevline)
+TEST_P(Qmrk, success_prevline)
 {
     test_bom_formatted_success(GetParam(), check_qmrk,
                                "{}\n"
@@ -215,7 +215,7 @@ TEST_P(BOMQmrk, success_prevline)
                                "");
 }
 
-TEST_P(BOMQmrk, success_before_no_spaces)
+TEST_P(Qmrk, success_before_no_spaces)
 {
     test_bom_formatted_success(GetParam(), check_qmrk,
                                "{}? a\n"
@@ -223,7 +223,7 @@ TEST_P(BOMQmrk, success_before_no_spaces)
                                "");
 }
 
-TEST_P(BOMQmrk, success_before_interleaved_spaces)
+TEST_P(Qmrk, success_before_interleaved_spaces)
 {
     test_bom_formatted_success(GetParam(), check_qmrk,
                                "{}    ? a\n"
@@ -231,7 +231,7 @@ TEST_P(BOMQmrk, success_before_interleaved_spaces)
                                "");
 }
 
-TEST_P(BOMQmrk, err_after)
+TEST_P(Qmrk, err_after)
 {
     if(GetParam().name == "NOBOM")
         return;
@@ -241,7 +241,7 @@ TEST_P(BOMQmrk, err_after)
                              "");
 }
 
-TEST_P(BOMQmrk, err_before_anchor)
+TEST_P(Qmrk, err_before_anchor)
 {
     size_t expected_col = GetParam().bom.len + 4; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -250,7 +250,7 @@ TEST_P(BOMQmrk, err_before_anchor)
                              "");
 }
 
-TEST_P(BOMQmrk, err_before_tag)
+TEST_P(Qmrk, err_before_tag)
 {
     size_t expected_col = GetParam().bom.len + 4; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -259,7 +259,7 @@ TEST_P(BOMQmrk, err_before_tag)
                              "");
 }
 
-TEST_P(BOMQmrk, err_doc_0)
+TEST_P(Qmrk, err_doc_0)
 {
     size_t expected_col = GetParam().bom.len + 5; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -267,7 +267,7 @@ TEST_P(BOMQmrk, err_doc_0)
                              "");
 }
 
-TEST_P(BOMQmrk, err_doc_1)
+TEST_P(Qmrk, err_doc_1)
 {
     if(GetParam().bom.empty())
         return;
@@ -279,7 +279,7 @@ TEST_P(BOMQmrk, err_doc_1)
                                "");
 }
 
-TEST_P(BOMQmrk, err_doc_2)
+TEST_P(Qmrk, err_doc_2)
 {
     if(GetParam().bom.empty())
         return;
@@ -296,7 +296,7 @@ TEST_P(BOMQmrk, err_doc_2)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-INSTANTIATE_BOM_TESTS(BOMMapBlock);
+INSTANTIATE_BOM_TESTS(MapBlock);
 
 namespace {
 void check_map_block(Tree const& t, bomspec const&)
@@ -320,7 +320,7 @@ void check_map_block_misleading(Tree const& t, bomspec const& spec, csubstr fmt)
 }
 } // namespace
 
-TEST_P(BOMMapBlock, success_prevline)
+TEST_P(MapBlock, success_prevline)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}\n"
@@ -329,7 +329,7 @@ TEST_P(BOMMapBlock, success_prevline)
                                "");
 }
 
-TEST_P(BOMMapBlock, success_before_no_spaces)
+TEST_P(MapBlock, success_before_no_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}a: b\n"
@@ -337,7 +337,7 @@ TEST_P(BOMMapBlock, success_before_no_spaces)
                                "");
 }
 
-TEST_P(BOMMapBlock, success_before_interleaved_spaces)
+TEST_P(MapBlock, success_before_interleaved_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}    a: b\n"
@@ -345,7 +345,7 @@ TEST_P(BOMMapBlock, success_before_interleaved_spaces)
                                "");
 }
 
-TEST_P(BOMMapBlock, err_after)
+TEST_P(MapBlock, err_after)
 {
     if(GetParam().name == "NOBOM")
         return;
@@ -356,7 +356,7 @@ TEST_P(BOMMapBlock, err_after)
                              "");
 }
 
-TEST_P(BOMMapBlock, success_before_anchor)
+TEST_P(MapBlock, success_before_anchor)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}&a a: b\n"
@@ -364,7 +364,7 @@ TEST_P(BOMMapBlock, success_before_anchor)
                                "");
 }
 
-TEST_P(BOMMapBlock, success_before_tag)
+TEST_P(MapBlock, success_before_tag)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}!t a: b\n"
@@ -372,35 +372,35 @@ TEST_P(BOMMapBlock, success_before_tag)
                                "");
 }
 
-TEST_P(BOMMapBlock, multiple_annots_0_0)
+TEST_P(MapBlock, multiple_annots_0_0)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}&key !ktag a: b\n"
                                "c: d\n"
                                "");
 }
-TEST_P(BOMMapBlock, multiple_annots_0_0_spaces)
+TEST_P(MapBlock, multiple_annots_0_0_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}    &key !ktag a: b\n"
                                "    c: d\n"
                                "");
 }
-TEST_P(BOMMapBlock, multiple_annots_0_1)
+TEST_P(MapBlock, multiple_annots_0_1)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}!ktag &key a: b\n"
                                "c: d\n"
                                "");
 }
-TEST_P(BOMMapBlock, multiple_annots_0_1_spaces)
+TEST_P(MapBlock, multiple_annots_0_1_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}    !ktag &key a: b\n"
                                "    c: d\n"
                                "");
 }
-TEST_P(BOMMapBlock, multiple_annots_1_0)
+TEST_P(MapBlock, multiple_annots_1_0)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}&map !mtag\n"
@@ -408,7 +408,7 @@ TEST_P(BOMMapBlock, multiple_annots_1_0)
                                "c: d\n"
                                "");
 }
-TEST_P(BOMMapBlock, multiple_annots_1_0_spaces)
+TEST_P(MapBlock, multiple_annots_1_0_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}    &map !mtag\n"
@@ -416,7 +416,7 @@ TEST_P(BOMMapBlock, multiple_annots_1_0_spaces)
                                "    c: d\n"
                                "");
 }
-TEST_P(BOMMapBlock, multiple_annots_1_1)
+TEST_P(MapBlock, multiple_annots_1_1)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}!mtag &map\n"
@@ -424,7 +424,7 @@ TEST_P(BOMMapBlock, multiple_annots_1_1)
                                "c: d\n"
                                "");
 }
-TEST_P(BOMMapBlock, multiple_annots_1_1_spaces)
+TEST_P(MapBlock, multiple_annots_1_1_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block,
                                "{}    !mtag &map\n"
@@ -432,8 +432,72 @@ TEST_P(BOMMapBlock, multiple_annots_1_1_spaces)
                                "    c: d\n"
                                "");
 }
+TEST_P(MapBlock, multiple_annots_2_0)
+{
+    test_bom_formatted_success(GetParam(), check_map_block,
+                               "{}!mtag &map\n"
+                               "&key a: b\n"
+                               "c: d\n"
+                               "");
+}
+TEST_P(MapBlock, multiple_annots_2_0_spaces)
+{
+    test_bom_formatted_success(GetParam(), check_map_block,
+                               "{}    !mtag &map\n"
+                               "    &key a: b\n"
+                               "    c: d\n"
+                               "");
+}
+TEST_P(MapBlock, multiple_annots_2_1)
+{
+    test_bom_formatted_success(GetParam(), check_map_block,
+                               "{}!mtag &map\n"
+                               "!ktag a: b\n"
+                               "c: d\n"
+                               "");
+}
+TEST_P(MapBlock, multiple_annots_2_1_spaces)
+{
+    test_bom_formatted_success(GetParam(), check_map_block,
+                               "{}    !mtag &map\n"
+                               "    !ktag a: b\n"
+                               "    c: d\n"
+                               "");
+}
+TEST_P(MapBlock, multiple_annots_3_0)
+{
+    test_bom_formatted_success(GetParam(), check_map_block,
+                               "{}!mtag &map\n"
+                               "a: b\n"
+                               "c: d\n"
+                               "");
+}
+TEST_P(MapBlock, multiple_annots_3_1_spaces)
+{
+    test_bom_formatted_success(GetParam(), check_map_block,
+                               "{}    !mtag &map\n"
+                               "    a: b\n"
+                               "    c: d\n"
+                               "");
+}
+TEST_P(MapBlock, err_multiple_anchors)
+{
+    size_t expected_col = GetParam().bom.len + 16; // FIXME
+    test_bom_formatted_error(GetParam(), Location(1, expected_col),
+                             "{}&ktag &another a: b\n"
+                             "c: d\n"
+                             "");
+}
+TEST_P(MapBlock, err_multiple_tags)
+{
+    size_t expected_col = GetParam().bom.len + 16; // FIXME
+    test_bom_formatted_error(GetParam(), Location(1, expected_col),
+                             "{}!ktag !another a: b\n"
+                             "c: d\n"
+                             "");
+}
 
-TEST_P(BOMMapBlock, err_doc_0)
+TEST_P(MapBlock, err_doc_0)
 {
     size_t expected_col = GetParam().bom.len + 8; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -441,7 +505,7 @@ TEST_P(BOMMapBlock, err_doc_0)
                              "");
 }
 
-TEST_P(BOMMapBlock, err_doc_0_tag)
+TEST_P(MapBlock, err_doc_0_tag)
 {
     size_t expected_col = GetParam().bom.len + 11; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -449,7 +513,7 @@ TEST_P(BOMMapBlock, err_doc_0_tag)
                              "");
 }
 
-TEST_P(BOMMapBlock, err_doc_0_anchor)
+TEST_P(MapBlock, err_doc_0_anchor)
 {
     size_t expected_col = GetParam().bom.len + 11; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -457,7 +521,7 @@ TEST_P(BOMMapBlock, err_doc_0_anchor)
                              "");
 }
 
-TEST_P(BOMMapBlock, err_doc_0_tag_anchor)
+TEST_P(MapBlock, err_doc_0_tag_anchor)
 {
     size_t expected_col = GetParam().bom.len + 14; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -466,7 +530,7 @@ TEST_P(BOMMapBlock, err_doc_0_tag_anchor)
 }
 
 
-TEST_P(BOMMapBlock, err_doc_1)
+TEST_P(MapBlock, err_doc_1)
 {
     if(GetParam().bom.empty())
         return;
@@ -478,7 +542,7 @@ TEST_P(BOMMapBlock, err_doc_1)
                                "");
 }
 
-TEST_P(BOMMapBlock, err_doc_1_tag)
+TEST_P(MapBlock, err_doc_1_tag)
 {
     if(GetParam().bom.empty())
         return;
@@ -490,7 +554,7 @@ TEST_P(BOMMapBlock, err_doc_1_tag)
                                "");
 }
 
-TEST_P(BOMMapBlock, err_doc_1_anchor)
+TEST_P(MapBlock, err_doc_1_anchor)
 {
     if(GetParam().bom.empty())
         return;
@@ -502,7 +566,7 @@ TEST_P(BOMMapBlock, err_doc_1_anchor)
                                "");
 }
 
-TEST_P(BOMMapBlock, err_doc_1_tag_anchor)
+TEST_P(MapBlock, err_doc_1_tag_anchor)
 {
     if(GetParam().bom.empty())
         return;
@@ -514,7 +578,7 @@ TEST_P(BOMMapBlock, err_doc_1_tag_anchor)
                                "");
 }
 
-TEST_P(BOMMapBlock, err_doc_2)
+TEST_P(MapBlock, err_doc_2)
 {
     size_t expected_col = GetParam().bom.len + 9; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -527,7 +591,7 @@ TEST_P(BOMMapBlock, err_doc_2)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-INSTANTIATE_BOM_TESTS(BOMMapBlockNoKey);
+INSTANTIATE_BOM_TESTS(MapBlockNoKey);
 
 namespace {
 void check_map_block_nokey(Tree const& t, bomspec const&)
@@ -551,7 +615,7 @@ void check_map_block_nokey_misleading(Tree const& t, bomspec const& spec, csubst
 }
 } // namespace
 
-TEST_P(BOMMapBlockNoKey, success_prevline)
+TEST_P(MapBlockNoKey, success_prevline)
 {
     test_bom_formatted_success(GetParam(), check_map_block_nokey,
                                "{}\n"
@@ -560,7 +624,7 @@ TEST_P(BOMMapBlockNoKey, success_prevline)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, success_before_no_spaces)
+TEST_P(MapBlockNoKey, success_before_no_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block_nokey,
                                "{}: b\n"
@@ -568,7 +632,7 @@ TEST_P(BOMMapBlockNoKey, success_before_no_spaces)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, success_before_interleaved_spaces)
+TEST_P(MapBlockNoKey, success_before_interleaved_spaces)
 {
     test_bom_formatted_success(GetParam(), check_map_block_nokey,
                                "{}    : b\n"
@@ -576,7 +640,7 @@ TEST_P(BOMMapBlockNoKey, success_before_interleaved_spaces)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_after)
+TEST_P(MapBlockNoKey, err_after)
 {
     if(GetParam().name == "NOBOM")
         return;
@@ -587,7 +651,7 @@ TEST_P(BOMMapBlockNoKey, err_after)
                              "");
 }
 
-TEST_P(BOMMapBlockNoKey, success_before_anchor)
+TEST_P(MapBlockNoKey, success_before_anchor)
 {
     test_bom_formatted_success(GetParam(), check_map_block_nokey,
                                "{}&a : b\n"
@@ -595,7 +659,7 @@ TEST_P(BOMMapBlockNoKey, success_before_anchor)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, success_before_tag)
+TEST_P(MapBlockNoKey, success_before_tag)
 {
     test_bom_formatted_success(GetParam(), check_map_block_nokey,
                                "{}!t : b\n"
@@ -603,7 +667,7 @@ TEST_P(BOMMapBlockNoKey, success_before_tag)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_0)
+TEST_P(MapBlockNoKey, err_doc_0)
 {
     size_t expected_col = GetParam().bom.len + 5; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -611,7 +675,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_0)
                              "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_0_tag)
+TEST_P(MapBlockNoKey, err_doc_0_tag)
 {
     size_t expected_col = GetParam().bom.len + 8; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -619,7 +683,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_0_tag)
                              "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_0_anchor)
+TEST_P(MapBlockNoKey, err_doc_0_anchor)
 {
     size_t expected_col = GetParam().bom.len + 8; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -627,7 +691,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_0_anchor)
                              "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_0_tag_anchor)
+TEST_P(MapBlockNoKey, err_doc_0_tag_anchor)
 {
     size_t expected_col = GetParam().bom.len + 11; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
@@ -636,7 +700,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_0_tag_anchor)
 }
 
 
-TEST_P(BOMMapBlockNoKey, err_doc_1)
+TEST_P(MapBlockNoKey, err_doc_1)
 {
     if(GetParam().bom.empty())
         return;
@@ -648,7 +712,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_1)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_1_tag)
+TEST_P(MapBlockNoKey, err_doc_1_tag)
 {
     if(GetParam().bom.empty())
         return;
@@ -660,7 +724,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_1_tag)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_1_anchor)
+TEST_P(MapBlockNoKey, err_doc_1_anchor)
 {
     if(GetParam().bom.empty())
         return;
@@ -672,7 +736,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_1_anchor)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_1_tag_anchor)
+TEST_P(MapBlockNoKey, err_doc_1_tag_anchor)
 {
     if(GetParam().bom.empty())
         return;
@@ -684,7 +748,7 @@ TEST_P(BOMMapBlockNoKey, err_doc_1_tag_anchor)
                                "");
 }
 
-TEST_P(BOMMapBlockNoKey, err_doc_2)
+TEST_P(MapBlockNoKey, err_doc_2)
 {
     if(GetParam().bom.empty())
         return;

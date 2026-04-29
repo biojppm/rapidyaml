@@ -1254,6 +1254,25 @@ ENGINE_TEST(DoubleAnchorKeyMap,
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST_ERRLOC(_4JVG_TooManyAnchors0, Location(2,11), ""
+                   "top2: &node2\n"
+                   "  &v2 val2"
+                   "")
+ENGINE_TEST_ERRLOC(_4JVG_TooManyAnchors1, Location(1,18), ""
+                   "top2: &node2 &v2 val2"
+                   "")
+
+ENGINE_TEST_ERRLOC(_4JVG_TooManyTags0, Location(2,11), ""
+                   "top2: !node2\n"
+                   "  !v2 val2"
+                   "")
+ENGINE_TEST_ERRLOC(_4JVG_TooManyTags1, Location(1,18), ""
+                   "top2: !node2 !v2 val2"
+                   "")
+
+
+//-----------------------------------------------------------------------------
+
 ENGINE_TEST_ERRLOC(SU74_AnchorAndAliasAsBlockMapKey_1, Location(2,10), ""
                    "key1: &alias value1\n"
                    "&b *alias : value2\n")

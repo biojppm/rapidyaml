@@ -802,7 +802,7 @@ csubstr ParseEngine<EventHandler>::_scan_tag(csubstr *orig)
     if(!t.begins_with("!<"))
     {
         _c4dbgp("begins with '!'");
-        _set_first(t, t.first_of(" ,]}\t"));
+        _set_first(t, t.first_of(" ,\t"));
         if(C4_UNLIKELY(t.first_of("[{") != npos))
             _c4err("invalid tag");
         _line_progressed(t.len);
@@ -4296,6 +4296,10 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 {
     _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, str.str ? str : csubstr("(arena full)"), indentation, line);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
+    if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
+    {
+        _c4err("parse error");
+    }
     dst->annotations[dst->num_entries].str = str;
     dst->annotations[dst->num_entries].indentation = indentation;
     dst->annotations[dst->num_entries].line = line;
@@ -4308,6 +4312,10 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 {
     _c4dbgpf("store annotation[{}]: '{}'->'{}' indentation={} line={}", dst->num_entries, orig, str.str ? str : csubstr("(arena full)"), indentation, line);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
+    if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
+    {
+        _c4err("parse error");
+    }
     dst->annotations[dst->num_entries].str = str;
     dst->annotations[dst->num_entries].indentation = indentation;
     dst->annotations[dst->num_entries].line = line;
@@ -4337,7 +4345,7 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
         }
         else
         {
-            _c4err("too many tags"); // LCOV_EXCL_LINE
+            _c4err("too many tags");
         }
     }
     if(m_pending_anchors.num_entries)
@@ -4350,7 +4358,7 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
         }
         else
         {
-            _c4err("too many anchors"); // LCOV_EXCL_LINE
+            _c4err("too many anchors");
         }
     }
     m_evt_handler->set_key_scalar_plain_empty();
@@ -8159,8 +8167,7 @@ void ParseEngine<EventHandler>::_handle_unk_get_first_non_pending_token_pos(csub
         _c4assert(second.is_sub(s.sub(pos)));
         csubstr spos = s.sub(pos);
         size_t more = spos.first_not_of(" \t");
-        if(more == npos)
-            more = spos.len;
+        _c4assert(more != npos); // because the annotations are on the same line
         _c4dbgpf("runk: next nonspace: {}", pos + more);
         pos += more;
         _c4dbgpf("runk: after skip annotation whitespace: pos={} {}", pos, _prs(s.sub(pos), true));
@@ -8194,12 +8201,11 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
             total += !!valid_if_same_line(&m_pending_anchors.annotations[i]);
         for(size_t i = 0; i < m_pending_tags.num_entries; ++i)
             total += !!valid_if_same_line(&m_pending_tags.annotations[i]);
-        if(total == 0)
-        {
-            _c4dbgp("no annotations on same line");
-            return 0;
-        }
         _c4dbgpf("{} annotations on same line", total);
+        _c4assert(total > 0); // because this function is only called
+                              // while not at the first token. That
+                              // means we must have same-line
+                              // annotations.
         auto get_first_on_same_line = [this](EntryPtr not_this_one){
             for(size_t i = 0; i < m_pending_anchors.num_entries; ++i)
                 if(&m_pending_anchors.annotations[i] != not_this_one
@@ -8209,7 +8215,7 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
                 if(&m_pending_tags.annotations[i] != not_this_one
                    && m_pending_tags.annotations[i].line == m_evt_handler->m_curr->pos.line)
                     return &m_pending_tags.annotations[i];
-            return (EntryPtr)nullptr;
+            return (EntryPtr)nullptr; // LCOV_EXCL_LINE
         };
         _c4assert(total >= 1);
         // assign to first
@@ -8218,8 +8224,7 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
         _c4dbgpf("first annotation: {} indent={} line={}", first->str, first->indentation, first->line);
         if(total > 1)
         {
-            if(C4_UNLIKELY(total > 2))
-                _c4err("too many anchors/tags");
+            _c4assert(total == 2);
             // assign to second
             second = get_first_on_same_line(first);
             _c4assert(second);

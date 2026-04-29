@@ -1507,8 +1507,6 @@ TEST(Parser, parse_without_filtering_where_none_required)
 
 TEST(Parser, parse_without_filtering_where_it_is_required)
 {
-    EventHandlerTree evt_handler = {};
-    Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     csubstr yaml = R"(? plain
     key
 : plain
@@ -1534,17 +1532,47 @@ TEST(Parser, parse_without_filtering_where_it_is_required)
   folded
   value
 )";
-    const Tree tree = parse_in_arena(&parser, yaml);
-    EXPECT_TRUE(tree[0].type() & KEY_UNFILT);
-    EXPECT_TRUE(tree[0].type() & VAL_UNFILT);
-    EXPECT_TRUE(tree[1].type() & KEY_UNFILT);
-    EXPECT_TRUE(tree[1].type() & VAL_UNFILT);
-    EXPECT_TRUE(tree[2].type() & KEY_UNFILT);
-    EXPECT_TRUE(tree[2].type() & VAL_UNFILT);
-    EXPECT_TRUE(tree[3].type() & KEY_UNFILT);
-    EXPECT_TRUE(tree[3].type() & VAL_UNFILT);
-    EXPECT_TRUE(tree[4].type() & KEY_UNFILT);
-    EXPECT_TRUE(tree[4].type() & VAL_UNFILT);
+    auto check_tree = [](Tree const& tree, bool with_filtering){
+        ASSERT_TRUE(tree.rootref().is_map());
+        EXPECT_EQ(!!(tree[0].type() & KEY_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[0].type() & VAL_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[1].type() & KEY_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[1].type() & VAL_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[2].type() & KEY_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[2].type() & VAL_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[3].type() & KEY_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[3].type() & VAL_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[4].type() & KEY_UNFILT), !with_filtering);
+        EXPECT_EQ(!!(tree[4].type() & VAL_UNFILT), !with_filtering);
+        ASSERT_EQ(tree.rootref().num_children(), 5);
+        if(with_filtering)
+        {
+            EXPECT_EQ(tree[0].key(), "plain key");
+            EXPECT_EQ(tree[0].val(), "plain val");
+            EXPECT_EQ(tree[1].key(), "squo key");
+            EXPECT_EQ(tree[1].val(), "squo val");
+            EXPECT_EQ(tree[2].key(), "dquo key");
+            EXPECT_EQ(tree[2].val(), "dquo val");
+            EXPECT_EQ(tree[3].key(), "literal\nkey\n");
+            EXPECT_EQ(tree[3].val(), "literal\nvalue\n");
+            EXPECT_EQ(tree[4].key(), "folded key\n");
+            EXPECT_EQ(tree[4].val(), "folded value\n");
+        }
+    };
+    {
+        SCOPED_TRACE("with filtering");
+        EventHandlerTree evt_handler = {};
+        Parser parser(&evt_handler, ParserOptions().scalar_filtering(true));
+        const Tree tree = parse_in_arena(&parser, yaml);
+        check_tree(tree, true);
+    }
+    {
+        SCOPED_TRACE("without filtering");
+        EventHandlerTree evt_handler = {};
+        Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
+        const Tree tree = parse_in_arena(&parser, yaml);
+        check_tree(tree, false);
+    }
 }
 
 } // namespace yml

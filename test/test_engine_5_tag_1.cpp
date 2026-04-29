@@ -17,9 +17,41 @@ static const ParserOptions resolve_all_tags = ParserOptions{}.resolve_tags(true)
 
 
 //-----------------------------------------------------------------------------
+
 ENGINE_TEST_ERRLOC(TagUnterminated0, Location(2,3),
                    "- !<foo> xxx\n"
                    "- !<foo")
+ENGINE_TEST_ERRLOC(TagUnterminated0Unk, Location(2,1),
+                   "\n"
+                   "!<foo xxx\n"
+                   "")
+
+ENGINE_TEST_ERRLOC(TagInvalid0, Location(1,3),
+                   "- !a[b xxx\n"
+                   "")
+ENGINE_TEST_ERRLOC(TagInvalid0Unk, Location(2,1),
+                   "\n"
+                   "!a[b xxx\n"
+                   "")
+
+ENGINE_TEST_ERRLOC(TagInvalid1, Location(1,3),
+                   "- !a[b xxx\n"
+                   "- !<foo")
+ENGINE_TEST_ERRLOC(TagInvalid1Unk, Location(2,1),
+                   "\n"
+                   "!a[b xxx\n"
+                   "")
+
+ENGINE_TEST_ERRLOC(TagInvalid2, Location(1,3),
+                   "- !a{b xxx\n"
+                   "- !<foo")
+ENGINE_TEST_ERRLOC(TagInvalid2Unk, Location(2,1),
+                   "\n"
+                   "!a{b xxx\n"
+                   "")
+
+
+//-----------------------------------------------------------------------------
 
 ENGINE_TEST(TagPlacementSeqFlow0,
             ""
