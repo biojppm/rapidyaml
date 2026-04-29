@@ -37,7 +37,7 @@ handlers (using using either exceptions, `longjmp()` or
 allocation and eg, exception-throwing callbacks.
 
 ryml does not depend on the STL, ie, it does not use any std container
-as part of its data structures), but it can serialize and deserialize
+as part of its data structures, but it can serialize and deserialize
 these containers into the data tree, with the use of optional
 headers. ryml ships with [c4core](https://github.com/biojppm/c4core), a
 small C++ utilities multiplatform library.

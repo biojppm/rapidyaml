@@ -145,9 +145,10 @@ public:
 
 public:
 
-    void print() const
+    void print(bool print_all=true) const
     {
-        extra::events_ints_print(to_csubstr(src), to_csubstr(arena), ints.data(), (int)ints.size());
+        size_t sz = print_all ? ints.size() : num_ints();
+        extra::events_ints_print(to_csubstr(src), to_csubstr(arena), ints.data(), (int)sz);
     }
     void test(const EngineEvtTestCase& test_case) const
     {
@@ -179,6 +180,18 @@ public:
             print();
         }
     }
+    size_t num_ints() const
+    {
+        size_t sz = ints.size();
+        for(size_t i = 0; i < sz; ++i)
+        {
+            if(ints[i] & extra::ievt::WSTR) // NOLINT
+                i += 2; // NOLINT
+            else if(!ints[i])
+                return i;
+        }
+        return sz;
+    }
 };
 } // namespace
 
@@ -193,9 +206,7 @@ void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case, Even
         event_producer(events_tr);
     });
     if(testing::Test::HasFailure())
-    {
         buffers.print();
-    }
 }
 
 void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts event_producer)
@@ -206,9 +217,7 @@ void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProdu
     buffers.prepare_events(events_tr, test_case, test_case.yaml, -1, test_case.expected_emitted.size());
     event_producer(events_tr);
     if(buffers.resize_post_events(events_tr, test_case.yaml))
-    {
         event_producer(events_tr);
-    }
     ASSERT_TRUE(events_tr.handler.fits_buffers());
     buffers.test(test_case);
 }
@@ -224,9 +233,7 @@ void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, Expe
         parser.parse_in_place_ev(test_case.fileline, to_substr(buffers.src));
     }, test_case.expected_error_location);
     if(testing::Test::HasFailure())
-    {
-        buffers.print();
-    }
+        buffers.print(/*all*/false);
 }
 
 void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)

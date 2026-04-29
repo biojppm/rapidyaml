@@ -6,7 +6,7 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
-TEST(explicit_key, test_suite_5WE3)
+TEST(qmrk, test_suite_5WE3)
 {
     csubstr yaml = R"(
 ? explicit key # Empty value
@@ -25,7 +25,7 @@ TEST(explicit_key, test_suite_5WE3)
         EXPECT_EQ(t["block key\n"][1], csubstr("two"));
     });
 }
-TEST(explicit_key, test_suite_5WE3_with_leading_space)
+TEST(qmrk, test_suite_5WE3_with_leading_space)
 {
     csubstr yaml = R"(
 ? key
@@ -37,7 +37,7 @@ TEST(explicit_key, test_suite_5WE3_with_leading_space)
     EXPECT_EQ(tree["key"][0].val(), "one");
     EXPECT_EQ(tree["key"][1].val(), "two");
 }
-TEST(explicit_key, test_suite_5WE3_with_leading_tab)
+TEST(qmrk, test_suite_5WE3_with_leading_tab)
 {
     csubstr yaml = R"(
 ? key
@@ -50,7 +50,7 @@ TEST(explicit_key, test_suite_5WE3_with_leading_tab)
     }, Location(4, 5));
 }
 
-TEST(explicit_key, test_suite_652Z)
+TEST(qmrk, test_suite_652Z)
 {
     csubstr yaml = R"(
 ?foo: bar  # not an explicit key in RUNK
@@ -71,7 +71,7 @@ TEST(explicit_key, test_suite_652Z)
 }
 
 
-TEST(explicit_key, test_suite_DFF7_v1)
+TEST(qmrk, test_suite_DFF7_v1)
 {
     csubstr yaml = R"(
 {
@@ -92,7 +92,7 @@ implicit: entry,
     });
 }
 
-TEST(explicit_key, test_suite_DFF7_v2)
+TEST(qmrk, test_suite_DFF7_v2)
 {
     csubstr yaml = R"(
 {
@@ -119,7 +119,7 @@ TEST(explicit_key, test_suite_DFF7_v2)
 }
 
 
-TEST(explicit_key, test_suite_FRK4)
+TEST(qmrk, test_suite_FRK4)
 {
     csubstr yaml = R"(
 {
@@ -142,7 +142,7 @@ TEST(explicit_key, test_suite_FRK4)
 //-----------------------------------------------------------------------------
 
 
-CASE_GROUP(EXPLICIT_KEY)
+CASE_GROUP(QMRK)
 {
 
 ADD_CASE_TO_GROUP("explicit key, last value missing",

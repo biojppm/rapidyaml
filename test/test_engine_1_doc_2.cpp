@@ -597,6 +597,87 @@ ENGINE_TEST(SuddenDoc1,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine0, Location(1, 5),
+                   "--- - a\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine0_1, Location(1, 5),
+                   "--- - &a a\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine0_2, Location(1, 5),
+                   "--- - !t a\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine0_3, Location(1, 5),
+                   "--- - &a !t a\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine0_4, Location(1, 5),
+                   "--- - !t &a a\n"
+    )
+
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine1_1, Location(1, 8),
+                   "--- &a - a\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine1_2, Location(1, 8),
+                   "--- !t - a\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine1_3, Location(1, 11),
+                   "--- &a !t - a\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrSeqBlckSameLine1_4, Location(1, 11),
+                   "--- !t &a - a\n"
+    )
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLine0, Location(1, 8),
+                   "--- a: b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLine1, Location(1, 11),
+                   "--- &a a: b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLine2, Location(1, 11),
+                   "--- !t a: b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLine3, Location(1, 14),
+                   "--- &a !t a: b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLine4, Location(1, 14),
+                   "--- !t &a a: b\n"
+    )
+
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLineNoKey0, Location(1, 5),
+                   "--- : b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLineNoKey1, Location(1, 8),
+                   "--- &a : b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLineNoKey2, Location(1, 8),
+                   "--- !t : b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLineNoKey3, Location(1, 11),
+                   "--- &a !t : b\n"
+    )
+ENGINE_TEST_ERRLOC(DocErrMapBlckSameLineNoKey4, Location(1, 11),
+                   "--- !t &a : b\n"
+    )
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DocErrQmrkSameLine0, Location(1, 5),
+                   "--- ? a\n"
+                   "    : b\n"
+    )
+
 } // namespace yml
 } // namespace c4
 

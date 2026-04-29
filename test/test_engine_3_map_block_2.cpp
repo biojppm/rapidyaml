@@ -1130,6 +1130,85 @@ ENGINE_TEST(MapKeyBlock4Ref0,
 }
 
 
+//-----------------------------------------------------------------------------
+
+
+ENGINE_TEST_ERRLOC(ErrSameLine0_0_0, Location(1, 9), "map: a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_0_1, Location(1, 12), "map: &a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_0_2, Location(1, 12), "map: !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_0_3, Location(1, 15), "map: &a !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_0_4, Location(1, 15), "map: !a &a a: b\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine0_1_0, Location(1, 6), "map: - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_1_1, Location(1, 9), "map: &a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_1_2, Location(1, 9), "map: !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_1_3, Location(1, 12), "map: &a !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_1_4, Location(1, 12), "map: !a &a - a\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine0_2_0, Location(1, 6), "map: ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_2_1, Location(1, 9), "map: &a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_2_2, Location(1, 9), "map: !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_2_3, Location(1, 12), "map: &a !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine0_2_4, Location(1, 12), "map: !a &a ? a\n")
+
+
+ENGINE_TEST_ERRLOC(ErrSameLine1_0_0, Location(2, 11), "nested:\n  map: a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_0_1, Location(2, 14), "nested:\n  map: &a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_0_2, Location(2, 14), "nested:\n  map: !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_0_3, Location(2, 17), "nested:\n  map: &a !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_0_4, Location(2, 17), "nested:\n  map: !a &a a: b\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine1_1_0, Location(2, 8), "nested:\n  map: - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_1_1, Location(2, 11), "nested:\n  map: &a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_1_2, Location(2, 11), "nested:\n  map: !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_1_3, Location(2, 14), "nested:\n  map: &a !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_1_4, Location(2, 14), "nested:\n  map: !a &a - a\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine1_2_0, Location(2, 8), "nested:\n  map: ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_2_1, Location(2, 11), "nested:\n  map: &a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_2_2, Location(2, 11), "nested:\n  map: !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_2_3, Location(2, 14), "nested:\n  map: &a !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine1_2_4, Location(2, 14), "nested:\n  map: !a &a ? a\n")
+
+
+ENGINE_TEST_ERRLOC(ErrSameLine2_0_0, Location(1, 11), "- map: a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_0_1, Location(1, 14), "- map: &a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_0_2, Location(1, 14), "- map: !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_0_3, Location(1, 17), "- map: &a !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_0_4, Location(1, 17), "- map: !a &a a: b\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine2_1_0, Location(1, 8), "- map: - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_1_1, Location(1, 11), "- map: &a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_1_2, Location(1, 11), "- map: !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_1_3, Location(1, 14), "- map: &a !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_1_4, Location(1, 14), "- map: !a &a - a\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine2_2_0, Location(1, 8), "- map: ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_2_1, Location(1, 11), "- map: &a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_2_2, Location(1, 11), "- map: !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_2_3, Location(1, 14), "- map: &a !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine2_2_4, Location(1, 14), "- map: !a &a ? a\n")
+
+
+ENGINE_TEST_ERRLOC(ErrSameLine3_0_0, Location(1, 8), "--- a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_0_1, Location(1, 11), "--- &a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_0_2, Location(1, 11), "--- !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_0_3, Location(1, 14), "--- &a !a a: b\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_0_4, Location(1, 14), "--- !a &a a: b\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine3_1_0, Location(1, 5), "--- - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_1_1, Location(1, 8), "--- &a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_1_2, Location(1, 8), "--- !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_1_3, Location(1, 11), "--- &a !a - a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_1_4, Location(1, 11), "--- !a &a - a\n")
+
+ENGINE_TEST_ERRLOC(ErrSameLine3_2_0, Location(1, 5), "--- ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_2_1, Location(1, 8), "--- &a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_2_2, Location(1, 8), "--- !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_2_3, Location(1, 11), "--- &a !a ? a\n")
+ENGINE_TEST_ERRLOC(ErrSameLine3_2_4, Location(1, 11), "--- !a &a ? a\n")
+
+
 } // namespace yml
 } // namespace c4
 

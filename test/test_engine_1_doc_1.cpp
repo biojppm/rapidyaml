@@ -176,7 +176,7 @@ ENGINE_TEST(DocEmptyTerm4_2,
 }
 
 
-ENGINE_TEST(DocEmptyTermErr,
+ENGINE_TEST(DocEmptyTermNotErr,
             "...\n...\n"
             ,
             ""

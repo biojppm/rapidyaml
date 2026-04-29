@@ -266,7 +266,9 @@ ENGINE_TEST(AnchorSeqFlowWithRefMultiLine,
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorMapBlock,
-            "&map\n&key1 key1: &val1 val1\n&key2 key2: &val2 val2\n"
+            "&map\n"
+            "&key1 key1: &val1 val1\n"
+            "&key2 key2: &val2 val2\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1248,6 +1250,25 @@ ENGINE_TEST(DoubleAnchorKeyMap,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(_4JVG_TooManyAnchors0, Location(2,11), ""
+                   "top2: &node2\n"
+                   "  &v2 val2"
+                   "")
+ENGINE_TEST_ERRLOC(_4JVG_TooManyAnchors1, Location(1,18), ""
+                   "top2: &node2 &v2 val2"
+                   "")
+
+ENGINE_TEST_ERRLOC(_4JVG_TooManyTags0, Location(2,11), ""
+                   "top2: !node2\n"
+                   "  !v2 val2"
+                   "")
+ENGINE_TEST_ERRLOC(_4JVG_TooManyTags1, Location(1,18), ""
+                   "top2: !node2 !v2 val2"
+                   "")
 
 
 //-----------------------------------------------------------------------------

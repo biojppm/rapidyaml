@@ -453,6 +453,7 @@ private:
     csubstr _scan_ref_seq();
     csubstr _scan_ref_map();
     csubstr _scan_tag();
+    csubstr _scan_tag(csubstr *orig);
 
 public: // exposed for testing
 
@@ -490,10 +491,15 @@ private:
 
     void  _handle_unk();
     void  _handle_unk_json();
+
     void  _handle_usty();
 
     void  _handle_flow_skip_whitespace();
     void  _handle_flow_line_beginning();
+
+    size_t _handle_unk_check_left_tokens(size_t realindent, size_t col, bool skip_annotations=true);
+    void   _handle_unk_get_first_non_pending_token_pos(csubstr s, size_t *indent, size_t *first_non_token_pos);
+    void   _handle_unk_begin_doc();
 
     size_t _handle_block_skip_leading_whitespace();
     C4_ALWAYS_INLINE
@@ -646,6 +652,7 @@ private:
             csubstr str;
             size_t indentation;
             size_t line;
+            csubstr orig;
         };
         Entry annotations[2];
         uint8_t num_entries;
@@ -653,6 +660,7 @@ private:
 
     void _handle_colon();
     void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line);
+    void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line, csubstr orig);
     void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str);
     C4_ALWAYS_INLINE void _clear_annotations(Annotation *C4_RESTRICT dst) noexcept { dst->num_entries = 0; }
     bool _annotations_require_key_container() const;
@@ -663,6 +671,7 @@ private:
     void _handle_annotations_before_start_mapblck_as_key();
     void _handle_annotations_and_indentation_after_start_mapblck(size_t key_indentation, size_t key_line);
     size_t _select_indentation_from_annotations(size_t val_indentation, size_t val_line);
+    uint32_t _get_annotations_same_line(csubstr token_soup, csubstr * first, csubstr * second) const;
     void _handle_keyref(csubstr alias);
     void _handle_valref(csubstr alias);
     csubstr _resolve_tag(csubstr tag);

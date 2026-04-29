@@ -435,22 +435,25 @@ void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorBasic const& e = s_jmp_err_basic);
         (void)e;
-        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
-        std::cout << "---------------\n";
-        std::cout << "got an expected parse error:\n" << e.what() << "\n";
-        std::cout << "---------------\n";
+        #if defined(_RYML_WITH_EXCEPTIONS)
+        _c4dbgpf("---------------------\n""got an expected exception: {}""---------------------\n", e.what());
         #endif
     }
     C4_IF_EXCEPTIONS_(catch(...)
     {
-        _c4dbgp("---------------\n"
-                "got an unexpected exception!\n"
-                "---------------\n");
+        FAIL() << "got an unexpected exception";
     }, )
-    EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
-    if(only_basic)
+    if(context.m_error == ExpectedErrorType::err_none)
     {
-        EXPECT_EQ(context.m_error, ExpectedErrorType::err_basic);
+        FAIL() << "no error occurred";
+    }
+    else
+    {
+        EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
+        if(only_basic)
+        {
+            EXPECT_EQ(context.m_error, ExpectedErrorType::err_basic);
+        }
     }
 }
 
@@ -492,18 +495,17 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
     {
-        std::cout << "---------------\n";
-        std::cout << "got an unexpected exception!:\n" << exc.what() << "\n";
-        std::cout << "---------------\n";
+        FAIL() << "got an unexpected exception:" << exc.what() << "\n";
     }, )
     C4_IF_EXCEPTIONS_(catch(...)
     {
-        _c4dbgp("---------------\n"
-                "got an unexpected exception!\n"
-                "---------------\n");
+        FAIL() << "got an unexpected exception";
     }, )
-    EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
-    if(context.m_error != ExpectedErrorType::err_none)
+    if(context.m_error == ExpectedErrorType::err_none)
+    {
+        FAIL() << "no error occurred";
+    }
+    else
     {
         EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
     }
@@ -535,18 +537,17 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
     {
-        std::cout << "---------------\n";
-        std::cout << "got an unexpected exception!:\n" << exc.what() << "\n";
-        std::cout << "---------------\n";
+        FAIL() << "got an unexpected exception:" << exc.what() << "\n";
     }, )
     C4_IF_EXCEPTIONS_(catch(...)
     {
-        std::cout << "---------------\n";
-        std::cout << "got an unexpected exception!\n";
-        std::cout << "---------------\n";
+        FAIL() << "got an unexpected exception";
     }, )
-    EXPECT_NE(context.m_error, ExpectedErrorType::err_none);
-    if(context.m_error != ExpectedErrorType::err_none)
+    if(context.m_error == ExpectedErrorType::err_none)
+    {
+        FAIL() << "no error occurred";
+    }
+    else
     {
         EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
     }
