@@ -132,6 +132,20 @@ endif()
 #-------------------------------------------------------
 # developer targets
 
+option(RYML_SAVE_TEST_YAML "" OFF)
+if(RYML_SAVE_TEST_YAML)
+    target_compile_definitions(ryml PUBLIC RYML_SAVE_TEST_YAML)
+    set(RYML_TEST_FUZZ OFF CACHE BOOL "" FORCE)
+    set(RYML_TEST_SUITE OFF CACHE BOOL "" FORCE)
+endif()
+function(ryml_maybe_dump_test_yaml target)
+    if(RYML_SAVE_TEST_YAML)
+        target_compile_definitions(${target} PRIVATE RYML_SAVE_TEST_YAML)
+        target_sources(${target} PRIVATE ${PROJECT_SOURCE_DIR}/test/test_lib/test_save.cpp)
+        target_link_libraries(${target} PRIVATE c4fs gtest)
+    endif()
+endfunction()
+
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS OR RYML_BUILD_TOOLS)
     include(ext/testbm.cmake)
