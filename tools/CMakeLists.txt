@@ -9,8 +9,6 @@ c4_add_executable(ryml-yaml-events
     SOURCES yaml_events.cpp
       ../src_extra/c4/yml/extra/event_handler_ints.hpp
       ../src_extra/c4/yml/extra/event_handler_ints.cpp
-      ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
-      ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
       ../src_extra/c4/yml/extra/ints_utils.hpp
       ../src_extra/c4/yml/extra/ints_utils.cpp
       ../src_extra/c4/yml/extra/ints_to_testsuite.hpp

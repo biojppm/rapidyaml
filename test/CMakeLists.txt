@@ -36,8 +36,6 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_save.cpp
        ../src_extra/c4/yml/extra/event_handler_ints.cpp
        ../src_extra/c4/yml/extra/event_handler_ints.hpp
-       ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
-       ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
        ../src_extra/c4/yml/extra/ints_utils.cpp
        ../src_extra/c4/yml/extra/ints_utils.hpp
        ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
@@ -125,7 +123,6 @@ ryml_add_test(engine_6_qmrk_3 BIG)
 ryml_add_test(engine_6_qmrk_4 BIG)
 ryml_add_test(engine_7_seqimap)
 ryml_add_test(engine_8_scalars_tokens)
-ryml_add_test(extra_testsuite)
 ryml_add_test(extra_ints)
 ryml_add_test(version)
 ryml_add_test(callbacks)
@@ -240,7 +237,6 @@ if(RYML_TEST_TOOLS)
         if(${with_tree})
             ryml_add_event_tool_test_(${name}-tree ${expect_success} "tst ${args}" "${contents}")
         endif()
-        ryml_add_event_tool_test_(${name}-evts ${expect_success} "tss ${args}" "${contents}")
         ryml_add_event_tool_test_(${name}-ints ${expect_success} "tsi ${args}" "${contents}")
         ryml_add_event_tool_test_(${name}-rymlints ${expect_success} "ri ${args}" "${contents}")
     endfunction()
@@ -305,8 +301,6 @@ if(RYML_TEST_SUITE)
         SOURCES
             ../src_extra/c4/yml/extra/event_handler_ints.cpp
             ../src_extra/c4/yml/extra/event_handler_ints.hpp
-            ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
-            ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
             ../src_extra/c4/yml/extra/ints_utils.cpp
             ../src_extra/c4/yml/extra/ints_utils.hpp
             ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
@@ -427,10 +421,6 @@ if(RYML_TEST_FUZZ)
         endforeach()
     endfunction()
     ryml_add_fuzz_test(parse_emit)
-    ryml_add_fuzz_test(events_testsuite
-        ../src_extra/c4/yml/extra/event_handler_testsuite.hpp
-        ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
-        ../src_extra/c4/yml/extra/string.hpp)
     ryml_add_fuzz_test(events_ints
         ../src_extra/c4/yml/extra/event_handler_ints.hpp
         ../src_extra/c4/yml/extra/event_handler_ints.cpp)

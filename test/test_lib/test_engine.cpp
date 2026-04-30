@@ -19,67 +19,12 @@ void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *f
     print_tree(*ps.m_tree);
 }
 
-void _print_handler_info(extra::EventHandlerTestSuite const& ps, csubstr stmt, const char *file, int line)
-{
-    _dbg_printf("{}:{}: {}", file, line, stmt);
-    ps._dbg_print();
-}
-
 void _print_handler_info(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line)
 {
     _dbg_printf("{}:{}: {}\n", file, line, stmt);
     (void)ps;
 }
 #endif
-
-
-//-----------------------------------------------------------------------------
-
-void test_engine_error_testsuite_from_events(const EngineEvtTestCase& tc, EventProducerTestSuite fn)
-{
-    ExpectError::check_error_parse([&]{
-        test_engine_testsuite_from_events(tc, fn);
-    });
-}
-
-void test_engine_testsuite_from_events(const EngineEvtTestCase& test_case, EventProducerTestSuite event_producer)
-{
-    SCOPED_TRACE("test_engine_testsuite_from_events");
-    extra::EventHandlerTestSuite::EventSink sink;
-    extra::EventHandlerTestSuite handler(&sink);
-    handler.reset();
-    event_producer(handler);
-    csubstr result = sink;
-    _c4dbgpf("~~~\n{}~~~\n", result);
-    EXPECT_EQ(std::string(result.str, result.len), test_case.expected_events);
-}
-
-void test_expected_error_testsuite_from_yaml(const EngineEvtTestCase& test_case, ExpectedErrorType errtype)
-{
-    SCOPED_TRACE("test_expected_error_testsuite_from_yaml");
-    ExpectError::check_error(errtype, [&]{
-        std::vector<char> copy(test_case.yaml.begin(), test_case.yaml.end()); // g++ 4.8 fails with std::string
-        extra::EventHandlerTestSuite::EventSink sink;
-        extra::EventHandlerTestSuite handler(&sink);
-        handler.reset();
-        ParseEngine<extra::EventHandlerTestSuite> parser(&handler, test_case.opts);
-        parser.parse_in_place_ev(test_case.fileline, to_substr(copy));
-    }, test_case.expected_error_location);
-}
-
-void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
-{
-    SCOPED_TRACE("test_engine_testsuite_from_yaml");
-    extra::EventHandlerTestSuite::EventSink sink;
-    extra::EventHandlerTestSuite handler(&sink);
-    handler.reset();
-    ParseEngine<extra::EventHandlerTestSuite> parser(&handler, test_case.opts);
-    std::vector<char> copy(parsed_yaml.begin(), parsed_yaml.end()); // g++ 4.8 fails with std::string
-    parser.parse_in_place_ev(test_case.fileline, to_substr(copy));
-    csubstr result = sink;
-    _c4dbgpf("~~~\n{}~~~\n", result);
-    EXPECT_EQ(std::string(result.str, result.len), test_case.expected_events);
-}
 
 
 //-----------------------------------------------------------------------------
@@ -481,24 +426,6 @@ std::vector<std::string> inject_comments_in_src(std::string const& src_)
     return result;
 }
 } // anon
-
-void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test_case)
-{
-    SCOPED_TRACE("test_engine_testsuite_from_yaml_with_comments");
-    if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
-        return;
-    if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
-        return;
-    const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
-    for(size_t i = 0; i < injected_comment_cases.size(); ++i)
-    {
-        const std::string& transformed_str = injected_comment_cases[i];
-        RYML_TRACE_FMT("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comment_cases.size(), transformed_str.size(), to_csubstr(transformed_str));
-        SCOPED_TRACE(transformed_str);
-        SCOPED_TRACE("commented");
-        test_engine_testsuite_from_yaml(test_case, transformed_str);
-    }
-}
 
 void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
