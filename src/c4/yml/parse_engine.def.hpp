@@ -48,6 +48,21 @@
 #define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) without
 #endif
 
+// helper to export cases to the YAML test suite
+#ifndef RYML_SAVE_TEST_YAML
+#define _RYML_SAVE_TEST_YAML(filename, src)
+#define _RYML_SAVE_TEST_JSON(filename, src)
+#else
+#define _RYML_SAVE_TEST_YAML(filename, src) c4::yml::ryml_save_test_yaml(filename, src)
+#define _RYML_SAVE_TEST_JSON(filename, src) c4::yml::ryml_save_test_json(filename, src)
+namespace c4 {
+namespace yml {
+void ryml_save_test_yaml(csubstr filename, csubstr src);
+void ryml_save_test_json(csubstr filename, csubstr src);
+} // namespace yml
+} // namespace c4
+#endif
+
 
 // scaffold:
 #define _c4dbgnextline()                           \
@@ -8726,6 +8741,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::parse_json_in_place_ev(csubstr filename, substr src)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_stack.size() >= 1);
+    _RYML_SAVE_TEST_JSON(filename, src);
     m_evt_handler->start_parse(filename.str, src);
     m_evt_handler->begin_stream();
     _reset();
@@ -8768,6 +8784,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
 {
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_stack.size() >= 1);
+    _RYML_SAVE_TEST_YAML(filename, src);
     m_evt_handler->start_parse(filename.str, src);
     m_evt_handler->begin_stream();
     _reset();

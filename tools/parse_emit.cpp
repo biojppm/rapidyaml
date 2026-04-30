@@ -86,6 +86,20 @@ Options:
         );
 }
 bool timing_enabled = false;
+bool is_arg0(c4::csubstr arg, c4::csubstr argshort, c4::csubstr arglong) noexcept
+{
+    return (arg == argshort) || (arg == arglong);
+}
+bool is_arg1(c4::csubstr arg, c4::csubstr argshort, c4::csubstr arglong, int i, int argc)
+{
+    if(is_arg0(arg, argshort, arglong))
+    {
+        if(i + 1 >= argc)
+            _RYML_ERR_BASIC("missing argument value: {}", arg);
+        return true;
+    }
+    return false;
+}
 bool parse_args(int argc, const char *argv[], Args &args)
 {
     args = {};
@@ -98,28 +112,16 @@ bool parse_args(int argc, const char *argv[], Args &args)
     for(int i = 1; i+1 < argc; ++i)
     {
         c4::csubstr arg = c4::to_csubstr(argv[i]);
-        auto arg0_is = [&](c4::csubstr argshort, c4::csubstr arglong){
-            return (arg == argshort) || (arg == arglong);
-        };
-        auto arg1_is = [&](c4::csubstr argshort, c4::csubstr arglong){
-            if(arg0_is(argshort, arglong))
-            {
-                if(i + 1 >= argc)
-                    _RYML_ERR_BASIC("missing argument value: {}", arg);
-                return true;
-            }
-            return false;
-        };
-        if /**/(arg1_is("-e", "--reserve")) C4_CHECK(c4::from_chars(c4::to_csubstr(argv[++i]), &args.reserve_size));
-        else if(arg1_is("-r", "--resolve")) args.resolve_refs = true;
-        else if(arg1_is("-o", "--output")) args.output = c4::to_csubstr(argv[++i]);
-        else if(arg0_is("-k", "--keep-refs")) args.keep_refs = true;
-        else if(arg0_is("-p", "--print-tree")) args.print_tree = true;
-        else if(arg0_is("-q", "--quiet")) args.quiet = true;
-        else if(arg0_is("-j", "--json")) args.emit_as_json = true;
-        else if(arg0_is("-s", "--string")) args.emit_to_string = true;
-        else if(arg0_is("-t", "--timed")) args.timed_sections = true;
-        else if(arg0_is("-h", "--help"))
+        if /**/(is_arg1(arg, "-e", "--reserve"   , i, argc)) C4_CHECK(c4::from_chars(c4::to_csubstr(argv[++i]), &args.reserve_size));
+        else if(is_arg1(arg, "-o", "--output"    , i, argc)) args.output = c4::to_csubstr(argv[++i]);
+        else if(is_arg0(arg, "-r", "--resolve"            )) args.resolve_refs = true;
+        else if(is_arg0(arg, "-k", "--keep-refs"          )) args.keep_refs = true;
+        else if(is_arg0(arg, "-p", "--print-tree"         )) args.print_tree = true;
+        else if(is_arg0(arg, "-q", "--quiet"              )) args.quiet = true;
+        else if(is_arg0(arg, "-j", "--json"               )) args.emit_as_json = true;
+        else if(is_arg0(arg, "-s", "--string"             )) args.emit_to_string = true;
+        else if(is_arg0(arg, "-t", "--timed"              )) args.timed_sections = true;
+        else if(is_arg0(arg, "-h", "--help"               ))
         {
             print_usage(argv[0]);
             return false;
@@ -335,7 +337,7 @@ void process_file(Args const& args, std::string *contents)
         else
         {
             C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
-            FILE *output = fopen(args.output.str, "wb");
+            FILE *output = fopen(args.output.str, "wb"); // NOLINT
             if (!output)
                 _RYML_ERR_BASIC("could not open file: {}", args.output.str);
             {

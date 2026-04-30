@@ -46,7 +46,7 @@ enum class evts_type
 
 struct Args
 {
-    csubstr filename = "-";
+    csubstr filename = "stdin";
     evts_type evts = evts_type::testsuite_src;
     int ints_size = -1; // estimate by default
     bool ints_size_force = false; // do not force the estimated size
@@ -86,6 +86,9 @@ The following options influence the behavior of the program:
 
     --timings,--timing,-t
          print task timings and size information (to stderr)
+
+    --quiet,-q
+         do not emit, only parse
 
 The following options influence the behavior of testsuite_ints and ryml_ints:
 
@@ -143,6 +146,7 @@ Callbacks create_custom_callbacks();
 
 
 ParserOptions parse_opts = {};
+bool quiet = false;
 bool timing_enabled = false;
 double src_size = 0;
 namespace stdc = std::chrono;
@@ -163,8 +167,8 @@ struct stopwatch
         if(!timing_enabled) return;
         stdc::duration<double, std::milli> delta = clock_type::now() - start;
         for(stopwatch const* sw : stack)
-            fprintf(stderr, "%s:", sw->name);
-        fprintf(stderr, " %.6fms (%.3fMB/s)\n", delta.count(), src_size / delta.count() * 1.e-3);
+            fprintf(stderr, "%s:", sw->name); // NOLINT
+        fprintf(stderr, " %.6fms (%.3fMB/s)\n", delta.count(), src_size / delta.count() * 1.e-3); // NOLINT
         stack.resize(stack.size()-1);
     }
     static std::vector<stopwatch*> stack;
@@ -192,7 +196,7 @@ int main(int argc, const char *argv[])
             STOPWATCH("load_file");
             src = load_file(args.filename);
             src_size = (double)src.size();
-            if(timing_enabled) fprintf(stderr, "src_size=%zuB\n", src.size());
+            if(timing_enabled) fprintf(stderr, "src_size=%zuB\n", src.size()); // NOLINT
         }
         STOPWATCH("process");
         switch(args.evts)
@@ -204,9 +208,10 @@ int main(int argc, const char *argv[])
                 STOPWATCH("testsuite_src");
                 evts = emit_testsuite_events(args.filename, to_substr(src));
             }
+            if(!quiet)
             {
                 STOPWATCH("print");
-                std::fwrite(evts.data(), 1, evts.size(), stdout);
+                std::fwrite(evts.data(), 1, evts.size(), stdout); // NOLINT
             }
             break;
         }
@@ -217,9 +222,10 @@ int main(int argc, const char *argv[])
                 STOPWATCH("testsuite_tree");
                 evts = emit_testsuite_events_from_tree(args.filename, to_substr(src));
             }
+            if(!quiet)
             {
                 STOPWATCH("print");
-                std::fwrite(evts.data(), 1, evts.size(), stdout);
+                std::fwrite(evts.data(), 1, evts.size(), stdout); // NOLINT
             }
             break;
         }
@@ -233,9 +239,10 @@ int main(int argc, const char *argv[])
                 STOPWATCH("testsuite_ints");
                 ts_evts = emit_testsuite_events_from_ints(args.filename, to_substr(src), int_evts, args.ints_size_force);
             }
+            if(!quiet)
             {
                 STOPWATCH("print");
-                std::fwrite(ts_evts.data(), 1, ts_evts.size(), stdout);
+                std::fwrite(ts_evts.data(), 1, ts_evts.size(), stdout); // NOLINT
             }
             break;
         }
@@ -273,11 +280,14 @@ std::string emit_testsuite_events_from_tree(csubstr filename, substr filecontent
         STOPWATCH("parse");
         parse_in_place(filename, filecontents, &tree, parse_opts);
     }
+    std::string result;
+    if(!quiet)
     {
         STOPWATCH("emit_events");
-        std::string result = emit_events_from_tree<std::string>(tree);
+        result = emit_events_from_tree<std::string>(tree);
         return result;
     }
+    return result;
 }
 
 extra::string emit_testsuite_events(csubstr filename, substr filecontents)
@@ -312,7 +322,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
         parser.parse_in_place_ev(filename, src);
     }
     size_t sz = (size_t)handler.required_size_events();
-    if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu. arena_size=%zu\n", evts.size(), sz, arena.size());
+    if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu. arena_size=%zu vs needed=%zu\n", evts.size(), sz, arena.size(), handler.required_size_arena()); // NOLINT
     if (!handler.fits_buffers())
     {
         if(fail_size)
@@ -347,12 +357,13 @@ std::string emit_testsuite_events_from_ints(csubstr filename, substr filecontent
     std::string arena;
     csubstr parsed;
     {
-        STOPWATCH("events");
+        STOPWATCH("parse");
         parsed = parse_events_ints(filename, filecontents, buf, arena, evts, fail_size);
     }
     std::string result;
+    if(!quiet)
     {
-        STOPWATCH("emit");
+        STOPWATCH("emit_ts");
         extra::events_ints_to_testsuite(parsed, to_substr(arena), evts.data(), (I)evts.size(), &result);
     }
     return result;
@@ -368,8 +379,9 @@ void emit_ints_events(csubstr filename, substr filecontents, IntEvents &evts, bo
         STOPWATCH("events");
         parsed = parse_events_ints(filename, filecontents, buf, arena, evts, fail_size);
     }
+    if(!quiet)
     {
-        STOPWATCH("emit");
+        STOPWATCH("emit_ints");
         extra::events_ints_print(parsed, to_substr(arena), evts.data(), (I)evts.size());
     }
 }
@@ -380,7 +392,7 @@ int estimate_ints_size(csubstr filecontents, int size)
     {
         STOPWATCH("estimate_size");
         int est = extra::estimate_events_ints_size(filecontents);
-        if(timing_enabled) fprintf(stderr, "estimated_size=%d*%d=%d\n", -size, est, -size * est);
+        if(timing_enabled) fprintf(stderr, "estimated_size=%d*%d=%d\n", -size, est, -size * est); // NOLINT
         size = -size * est;
     }
     return size;
@@ -449,6 +461,10 @@ bool Args::parse(Args *args, int argc, const char *argv[], int *errcode)
         {
             timing_enabled = true;
         }
+        else if(arg == "--quiet" || arg == "-q")
+        {
+            quiet = true;
+        }
         else if(arg == "--resolve-tags" || arg == "-rt")
         {
             parse_opts = parse_opts.resolve_tags(true).resolve_tags_all(true);
@@ -485,7 +501,7 @@ std::string load_file(csubstr filename)
     }
     else if(!fs::path_exists(filename.str))
     {
-        std::fprintf(stderr, "%s: file not found (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str()); // LCOV_EXCL_LINE
+        std::fprintf(stderr, "%s: file not found (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str()); // LCOV_EXCL_LINE // NOLINT
         err_basic(RYML_LOC_HERE(), "file not found"); // LCOV_EXCL_LINE
     }
     return fs::file_get_contents<std::string>(filename.str);

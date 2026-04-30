@@ -38,4 +38,7 @@ include(../../ext/testbm.cmake)
 
 enable_testing()
 set(RYML_DEFINED_FROM_SINGLEHEADER ON)
+function(ryml_maybe_dump_test_yaml target)
+    # nothing to do
+endfunction()
 add_subdirectory(../../test test)

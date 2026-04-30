@@ -7,6 +7,7 @@ function(ryml_add_test_no_lib test_name)
         target_compile_definitions(${test_name} PRIVATE RYML_DBG)
         c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
     endif()
+    ryml_maybe_dump_test_yaml(${test_name})
     c4_add_test(${test_name})
 endfunction()
 ryml_add_test_no_lib(ryml-test-quickstart
@@ -32,6 +33,7 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_engine.cpp
        test_lib/test_events_ints_helpers.hpp
        test_lib/test_events_ints_helpers.cpp
+       test_lib/test_save.cpp
        ../src_extra/c4/yml/extra/event_handler_ints.cpp
        ../src_extra/c4/yml/extra/event_handler_ints.hpp
        ../src_extra/c4/yml/extra/event_handler_testsuite.cpp
@@ -53,6 +55,9 @@ endif()
 if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
 endif()
+if(RYML_SAVE_TEST_YAML)
+    target_compile_definitions(ryml-_testlib PUBLIC RYML_SAVE_TEST_YAML)
+endif()
 
 c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
     SOURCES test_lib/test_main.cpp test_lib/test_main.hpp
@@ -72,9 +77,11 @@ function(ryml_add_test test_name)
         SOURCES test_${test_name}.cpp
         LIBS ryml-_testlib ryml-_testmain
         FOLDER test)
+    if(RYML_SAVE_TEST_YAML)
+        target_sources(${t} PRIVATE test_lib/test_save.cpp)
+    endif()
     c4_add_test(${t})
-    # MSVC bigobj
-    if(MSVC AND _BIG)
+    if(MSVC AND _BIG) # MSVC bigobj
         target_compile_options(${t} PRIVATE /bigobj)
     endif()
 endfunction()
@@ -250,6 +257,7 @@ if(RYML_TEST_TOOLS)
     ryml_add_event_tool_test(fail_badcmd FALSE "barbar" "foo")
     ryml_add_event_tool_test_all(success TRUE "" "{foo: bar, baz: [exactly]}")
     ryml_add_event_tool_test_all(success_timing TRUE " --timing" "{foo: bar, baz: [exactly]}")
+    ryml_add_event_tool_test_all(success_quiet TRUE " --quiet" "{foo: bar, baz: [exactly]}")
     ryml_add_event_tool_test_tsonly(success_contkeys TRUE "" "{{this: is, a: keymap}: [seq,val]}")
     ryml_add_event_tool_test(success_evts_ints_resize TRUE "tsi --ints-size 1" "{{this: is, a: keymap}: [seq,val]}")
     ryml_add_event_tool_test(fail_evts_ints_resize FALSE "tsi --ints-size" "{{this: is, a: keymap}: [seq,val]}")
