@@ -7,6 +7,144 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+TEST(TagCache, empty)
+{
+    TagCache tc;
+    EXPECT_FALSE(tc.find({}, 0));
+}
+
+TEST(TagCache, find_works)
+{
+    {
+        TagCache tc;
+        tc.add("!!str", "asdasd", 0, 0);
+        TagCache::LookupResult ret = tc.find("!!str", 0);
+        ASSERT_TRUE(ret);
+    }
+    csubstr empty = {};
+    empty.len = 10;
+    {
+        TagCache tc;
+        tc.add("!!str", empty, 0, 0);
+        TagCache::LookupResult ret = tc.find("!!str", 0);
+        ASSERT_TRUE(ret);
+    }
+    {
+        TagCache tc;
+        tc.add("!!str", empty, 1, 0);
+        tc.add("!!str", empty, 0, 0);
+        TagCache::LookupResult ret0 = tc.find("!!str", 0);
+        TagCache::LookupResult ret1 = tc.find("!!str", 1);
+        ASSERT_TRUE(ret0);
+        ASSERT_TRUE(ret1);
+        EXPECT_EQ(ret0.pos, 0);
+        EXPECT_EQ(ret1.pos, 1);
+    }
+    {
+        TagCache tc;
+        tc.add("!!str", empty, 0, 0);
+        tc.add("!!str", empty, 1, 1);
+        TagCache::LookupResult ret0 = tc.find("!!str", 0);
+        TagCache::LookupResult ret1 = tc.find("!!str", 1);
+        ASSERT_TRUE(ret0);
+        ASSERT_TRUE(ret1);
+        EXPECT_EQ(ret0.pos, 0);
+        EXPECT_EQ(ret1.pos, 1);
+        TagCache::LookupResult ret2 = tc.find("!!str", 2);
+        ASSERT_FALSE(ret2);
+        EXPECT_EQ(ret2.pos, 2);
+    }
+}
+
+TEST(TagCache, basic)
+{
+    const TagCache::Entry universe_[] = {
+        #define _(t)                                                     \
+            TagCache::Entry{csubstr(t), csubstr(t "-doc0"), /*docid*/0}, \
+            TagCache::Entry{csubstr(t), csubstr(t "-doc1"), /*docid*/1}
+        _("00"), _("01"), _("02"), _("03"), _("04"), _("05"), _("06"), _("07"), _("08"), _("09"),
+        #undef _
+    };
+    cspan<TagCache::Entry> universe = universe_;
+    const size_t sz = universe.size();
+    TagCache tc;
+    auto showcache = [&](csubstr msg){
+        std::cout << msg;
+        for(size_t j = 0; j < tc.m_entries.size(); ++j)
+            std::cout << "entry[" << j << "]={'"<< tc.m_entries[j].tag << "','" << tc.m_entries[j].resolved << "',docid=" << tc.m_entries[j].doc_id << "}\n";
+    };
+    auto check_sorted = [&]{
+        for(size_t i = 1; i < tc.m_entries.size(); ++i)
+        {
+            RYML_TRACE_FMT("check_sorted: i={}", i);
+            TagCache::Entry const& prev = tc.m_entries[i-1];
+            TagCache::Entry const& curr = tc.m_entries[i];
+            bool ok = prev.tag < curr.tag || (prev.tag == curr.tag && prev.doc_id < curr.doc_id);
+            if(!ok)
+            {
+                FAIL() << "sort error at position=" << i;
+                showcache("");
+                break;
+            }
+        }
+    };
+    bool exceeded_sso_size = false;
+    auto check_add = [&](id_type i, id_type expected_pos, id_type linear_threshold){
+        RYML_TRACE_FMT("lazy_add: i={}", i);
+        ASSERT_LT(i, universe.size());
+        TagCache::Entry const& u = universe[i];
+        TagCache::LookupResult ret = tc.find(u.tag, u.doc_id, linear_threshold);
+        RYML_TRACE_FMT("ret: pos={} resolved='{}'", ret.pos, ret.resolved);
+        EXPECT_FALSE(ret);
+        if(expected_pos != NONE)
+        {
+            ASSERT_EQ(ret.pos, expected_pos);
+        }
+        tc.add(u.tag, u.resolved, u.doc_id, ret.pos);
+        check_sorted();
+        TagCache::LookupResult ret2 = tc.find(u.tag, u.doc_id, linear_threshold);
+        EXPECT_TRUE(ret2);
+        EXPECT_EQ(ret2.pos, ret.pos);
+        EXPECT_EQ(ret2.resolved, u.resolved);
+        if(tc.m_entries.size())
+            exceeded_sso_size = true;
+    };
+    for(id_type threshold_ = 0; threshold_ < sz; ++threshold_)
+    {
+        id_type threshold = sz - 1 - threshold_; // start with linear first
+        RYML_TRACE_FMT("threshold={}", threshold);
+        {
+            SCOPED_TRACE("in order");
+            tc.clear();
+            for(size_t i = 0 ; i < sz; ++i)
+            {
+                RYML_TRACE_FMT("i={} search={}", i, i < threshold ? "linear" : "binary");
+                check_add(i, i, threshold);
+            }
+        }
+        {
+            SCOPED_TRACE("in reverse order");
+            tc.clear();
+            for(size_t i = 0 ; i < sz; ++i)
+            {
+                RYML_TRACE_FMT("i={} search={}", i, i < threshold ? "linear" : "binary");
+                check_add(sz - 1 - i, 0, threshold);
+            }
+        }
+        {
+            SCOPED_TRACE("extremities first");
+            tc.clear();
+            for(size_t i = 0 ; i < sz; ++i)
+            {
+                RYML_TRACE_FMT("i={} search={}", i, i < threshold ? "linear" : "binary");
+                id_type entry = (i & 1u) ? sz - i : i;
+                check_add(entry, NONE, threshold);
+            }
+        }
+    }
+    EXPECT_TRUE(exceeded_sso_size);
+}
+
 
 //-----------------------------------------------------------------------------
 
@@ -696,7 +834,8 @@ void test_fail_tag_resolve(csubstr yaml, ExpectedErrorType errtype=errvisit)
     t = parse_in_arena(yaml);
     _c4dbg_tree(t);
     ExpectError::check_error(errtype, &t, [&]{
-        t.resolve_tags();
+        TagCache tag_cache;
+        t.resolve_tags(tag_cache);
     });
 }
 
@@ -726,7 +865,8 @@ TEST(tag_directives, errors_resolving_tags_1)
 TEST(tag_directives, errors_resolving_tags_2_not_an_error_1)
 {
     Tree t = parse_in_arena(R"(!local foo)");
-    t.resolve_tags();
+    TagCache tag_cache;
+    t.resolve_tags(tag_cache);
     EXPECT_EQ(t.rootref().val_tag(), "<!local>");
     EXPECT_EQ(t.rootref().val(), "foo");
  }
@@ -734,7 +874,8 @@ TEST(tag_directives, errors_resolving_tags_2_not_an_error_1)
 TEST(tag_directives, errors_resolving_tags_2_not_an_error_2)
 {
     Tree t = parse_in_arena(R"(! foo)");
-    t.resolve_tags();
+    TagCache tag_cache;
+    t.resolve_tags(tag_cache);
     EXPECT_EQ(t.rootref().val_tag(), "<!>");
     EXPECT_EQ(t.rootref().val(), "foo");
  }
@@ -755,7 +896,8 @@ TEST(tag_directives, resolve_tags)
     EXPECT_EQ(t.docref(1)[0].key_tag(), "!m!light");
     EXPECT_EQ(t.docref(1)[0].val_tag(), "!m!light");
     EXPECT_EQ(t.num_tag_directives(), 2u);
-    t.resolve_tags();
+    TagCache tag_cache;
+    t.resolve_tags(tag_cache);
     EXPECT_EQ(t.docref(0)[0].key_tag(), "<!my-light>");
     EXPECT_EQ(t.docref(0)[0].val_tag(), "<!my-light>");
     EXPECT_EQ(t.docref(1)[0].key_tag(), "<!meta-light>");
@@ -773,7 +915,8 @@ TEST(tag_directives, resolve_tags)
 TEST(tag_directives, safe_with_empty_tree)
 {
     Tree t(0);
-    t.resolve_tags();
+    TagCache tag_cache;
+    t.resolve_tags(tag_cache);
     EXPECT_TRUE(t.empty());
 }
 
@@ -785,16 +928,18 @@ TEST(tag_directives, decode_uri_chars)
 ---
 - !e!%61%62%63%21 baz
 )");
-        t.resolve_tags();
+        TagCache tag_cache;
+        t.resolve_tags(tag_cache);
         EXPECT_EQ(t.docref(0)[0].val_tag(), csubstr("<tag:example.com,2000:app/abc!>"));
     }
     {
         Tree t;
-        auto checkerr = [&t](csubstr yaml){
+        TagCache tag_cache;
+        auto checkerr = [&](csubstr yaml){
             ExpectError::check_error_basic(&t, [&]{
                 t.clear();
                 t = parse_in_arena(yaml);
-                t.resolve_tags();
+                t.resolve_tags(tag_cache);
             });
         };
         {
@@ -940,6 +1085,204 @@ TEST(tag_directives, lookup_qmrk_2)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+void test_tree_normalize_(std::string const& input, std::string expected={})
+{
+    SCOPED_TRACE(input);
+    if(expected.empty())
+        expected = input;
+    Tree tree = parse_in_arena(to_csubstr(input));
+    tree.normalize_tags();
+    EXPECT_EQ(expected, emitrs_yaml<std::string>(tree));
+}
+#define test_tree_normalize(...)                \
+    {                                           \
+        SCOPED_TRACE("here");                   \
+        test_tree_normalize_(__VA_ARGS__);      \
+    }
+
+TEST(tags, tree_normalize_empty_tree)
+{
+    Tree t(0);
+    EXPECT_TRUE(t.empty());
+    t.normalize_tags();
+    EXPECT_TRUE(t.empty());
+}
+TEST(tags, tree_normalize)
+{
+    test_tree_normalize("");
+    test_tree_normalize(""
+            "- !!str s\n"
+            "- !!int 0\n"
+            "");
+    test_tree_normalize(""
+            "- !<tag:yaml.org,2002:str> s\n"
+            "- !<tag:yaml.org,2002:int> 0\n"
+            "",
+            ""
+            "- !!str s\n"
+            "- !!int 0\n"
+            "");
+}
+
+void test_tree_normalize_long_(std::string const& input, std::string expected={})
+{
+    SCOPED_TRACE(input);
+    if(expected.empty())
+        expected = input;
+    Tree tree = parse_in_arena(to_csubstr(input));
+    tree.normalize_tags_long();
+    EXPECT_EQ(expected, emitrs_yaml<std::string>(tree));
+}
+#define test_tree_normalize_long(...)           \
+    {                                           \
+        SCOPED_TRACE("here");                   \
+        test_tree_normalize_long_(__VA_ARGS__); \
+    }
+
+
+TEST(tags, tree_normalize_long_empty_tree)
+{
+    Tree t(0);
+    EXPECT_TRUE(t.empty());
+    t.normalize_tags_long();
+    EXPECT_TRUE(t.empty());
+}
+
+TEST(tags, tree_normalize_long)
+{
+    test_tree_normalize_long("");
+    test_tree_normalize_long(""
+            "- !!str s\n"
+            "- !!int 0\n"
+            "- !!foo 0\n"
+            ,
+            "- !<tag:yaml.org,2002:str> s\n"
+            "- !<tag:yaml.org,2002:int> 0\n"
+            "- !!foo 0\n"
+            "");
+    test_tree_normalize_long(""
+            "- !<tag:yaml.org,2002:str> s\n"
+            "- !<tag:yaml.org,2002:int> 0\n"
+            "- !<tag:yaml.org,2002:foo> 0\n"
+            "",
+            ""
+            "- !<tag:yaml.org,2002:str> s\n"
+            "- !<tag:yaml.org,2002:int> 0\n"
+            "- !<tag:yaml.org,2002:foo> 0\n"
+            "");
+}
+
+void test_tree_resolve_(std::string const& input, std::string expected={}, bool all_tags=true)
+{
+    SCOPED_TRACE(input);
+    if(expected.empty())
+        expected = input;
+    Tree tree = parse_in_arena(to_csubstr(input));
+    TagCache cache;
+    tree.resolve_tags(cache, all_tags);
+    std::string actual = emitrs_yaml<std::string>(tree);
+    SCOPED_TRACE(actual);
+    EXPECT_EQ(expected, actual);
+}
+#define test_tree_resolve(...)                  \
+    {                                           \
+        SCOPED_TRACE("here");                   \
+        test_tree_resolve_(__VA_ARGS__);        \
+    }
+
+TEST(tags, tree_resolve_tags_0)
+{
+    test_tree_resolve("");
+    Tree tree;
+    TagCache tag_cache;
+    tree.resolve_tags(tag_cache); // ok?
+}
+
+TEST(tags, tree_resolve_tags_1)
+{
+    test_tree_resolve(""
+            "- !<foo> 0\n"
+            "- !!str s\n"
+            "- !!int 0\n"
+            "- !!foo 0\n"
+            "- !foo 0\n"
+            "- !<foo> 0\n"
+            "- !<!foo> 0\n"
+            ,
+            "- !<foo> 0\n"
+            "- !!str s\n"
+            "- !!int 0\n"
+            "- !<tag:yaml.org,2002:foo> 0\n"
+            "- !<!foo> 0\n"
+            "- !<foo> 0\n"
+            "- !<!foo> 0\n"
+            ""
+            ,
+            false);
+}
+
+TEST(tags, tree_resolve_tags_2)
+{
+    test_tree_resolve(""
+            "- !<tag:yaml.org,2002:str> s\n"
+            "- !<tag:yaml.org,2002:int> 0\n"
+            "",
+            ""
+            "- !<tag:yaml.org,2002:str> s\n"
+            "- !<tag:yaml.org,2002:int> 0\n"
+            ""
+            ,
+            false);
+}
+
+TEST(tags, tree_resolve_tags_3)
+{
+    std::string const yaml =
+        ""
+        "%TAG ! xmark-\n"
+        "%TAG !c! custom-\n"
+        "---\n"
+        "- !!str s\n"
+        "- !!foo s\n"
+        "- !!string s\n"
+        "- !foo s\n"
+        "- !<foo> s\n"
+        "- !<!foo> s\n"
+        "- !c!foo s\n"
+        "- !c!bar s\n"
+        "";
+    test_tree_resolve(yaml,
+                      "%TAG ! xmark-\n"
+                      "%TAG !c! custom-\n"
+                      "---\n"
+                      "- !!str s\n"
+                      "- !<tag:yaml.org,2002:foo> s\n"
+                      "- !<tag:yaml.org,2002:string> s\n"
+                      "- !<xmark-foo> s\n"
+                      "- !<foo> s\n"
+                      "- !<!foo> s\n"
+                      "- !<custom-foo> s\n"
+                      "- !<custom-bar> s\n"
+                      "");
+    test_tree_resolve(yaml,
+                      "%TAG ! xmark-\n"
+                      "%TAG !c! custom-\n"
+                      "---\n"
+                      "- !!str s\n"
+                      "- !<tag:yaml.org,2002:foo> s\n"
+                      "- !<tag:yaml.org,2002:string> s\n"
+                      "- !<xmark-foo> s\n"
+                      "- !<foo> s\n"
+                      "- !<!foo> s\n"
+                      "- !<custom-foo> s\n"
+                      "- !<custom-bar> s\n"
+                      "",
+                      false);
+}
+
+
+//-----------------------------------------------------------------------------
+
 TEST(tags, test_suite_6WLZ)
 {
     Tree t0 = parse_in_arena(R"(--- !foo "bar"
@@ -951,7 +1294,8 @@ TEST(tags, test_suite_6WLZ)
     EXPECT_EQ(t0.docref(0).val_tag(), "!foo");
     EXPECT_EQ(t0.docref(1).val_tag(), "!foo");
     EXPECT_EQ(t0.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
-    t0.resolve_tags();
+    TagCache tag_cache0;
+    t0.resolve_tags(tag_cache0);
     EXPECT_EQ(t0.docref(0).val_tag(), "<!foo>");
     EXPECT_EQ(t0.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
     EXPECT_EQ(t0.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
@@ -964,7 +1308,8 @@ TEST(tags, test_suite_6WLZ)
 )");
     //
     Tree t1 = parse_in_arena(to_csubstr(emitted0));
-    t1.resolve_tags();
+    TagCache tag_cache1;
+    t1.resolve_tags(tag_cache1);
     EXPECT_EQ(t1.docref(0).val_tag(), "<!foo>");
     EXPECT_EQ(t1.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
     EXPECT_EQ(t1.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
@@ -972,7 +1317,8 @@ TEST(tags, test_suite_6WLZ)
     EXPECT_EQ(emitted1, emitted0);
     //
     Tree t2 = parse_in_arena(to_csubstr(emitted1));
-    t2.resolve_tags();
+    TagCache tag_cache2;
+    t2.resolve_tags(tag_cache2);
     EXPECT_EQ(t2.docref(0).val_tag(), "<!foo>");
     EXPECT_EQ(t2.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
     EXPECT_EQ(t2.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
@@ -980,7 +1326,8 @@ TEST(tags, test_suite_6WLZ)
     EXPECT_EQ(emitted2, emitted0);
     //
     Tree t3 = parse_in_arena(to_csubstr(emitted2));
-    t3.resolve_tags();
+    TagCache tag_cache3;
+    t3.resolve_tags(tag_cache3);
     EXPECT_EQ(t3.docref(0).val_tag(), "<!foo>");
     EXPECT_EQ(t3.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
     EXPECT_EQ(t3.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");

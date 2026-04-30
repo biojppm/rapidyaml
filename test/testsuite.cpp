@@ -265,7 +265,8 @@ struct TestSequenceLevel
         _nfo_print_tree("PARSED", tree_parsed_from_src);
         if(tree_parsed_from_src.num_tag_directives())
         {
-            tree_parsed_from_src.resolve_tags();
+            TagCache tag_cache;
+            tree_parsed_from_src.resolve_tags(tag_cache);
             _nfo_print_tree("RESOLVED TAGS", tree_parsed_from_src);
         }
         tree_parsed_from_src.normalize_tags_long();
@@ -452,8 +453,9 @@ struct TestSequenceLevel
             // workaround for lack of idempotency in tag normalization.
             Tree from_prev = parse_in_arena(to_csubstr(that.emitted_from_tree_parsed_from_src), parser_options);
             Tree from_this = parse_in_arena(to_csubstr(emitted_from_tree_parsed_from_src), parser_options);
-            from_prev.resolve_tags();
-            from_this.resolve_tags();
+            TagCache tag_cache;
+            from_prev.resolve_tags(tag_cache);
+            from_this.resolve_tags(tag_cache);
             test_compare(from_prev, from_this);
         }
     }

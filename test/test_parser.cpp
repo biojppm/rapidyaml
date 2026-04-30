@@ -248,29 +248,52 @@ TEST(Parser, callbacks_ctor)
     EXPECT_EQ(cbt.num_deallocs, 0u);
 }
 
-TEST(Parser, reserve_capacity)
+TEST(Parser, reserve_stack)
 {
     CallbacksTester cbt("test", 30000/*Bytes*/);
     {
         Parser::handler_type evt_handler = {cbt.callbacks()};
+        using Stack = detail::stack<EventHandlerTreeState>;
+        Stack const& stack = evt_handler.m_stack;
+        enum : id_type { sso_size = Stack::sso_size }; // NOLINT
         Parser parser(&evt_handler);
-        EXPECT_EQ(cbt.num_allocs, 0u);
-        EXPECT_EQ(cbt.num_deallocs, 0u);
-        parser.reserve_stack(18);
-        EXPECT_GE(parser.stack_capacity(), 18);
-        EXPECT_EQ(cbt.num_allocs, 1u);
-        EXPECT_EQ(cbt.num_deallocs, 0u);
-        parser.reserve_stack(24);
-        EXPECT_GE(parser.stack_capacity(), 24);
-        EXPECT_EQ(cbt.num_allocs, 2u);
-        EXPECT_EQ(cbt.num_deallocs, 1u);
-        parser.reserve_stack(28);
-        EXPECT_GE(parser.stack_capacity(), 28);
-        EXPECT_EQ(cbt.num_allocs, 3u);
-        EXPECT_EQ(cbt.num_deallocs, 2u);
+        for(id_type cap = 0; cap <= sso_size; ++cap)
+        {
+            SCOPED_TRACE(cap);
+            parser.reserve_stack(cap);
+            EXPECT_EQ(cbt.num_allocs, 0u);
+            EXPECT_EQ(cbt.num_deallocs, 0u);
+            EXPECT_EQ(stack.capacity(), sso_size);
+        }
+        for(id_type cap = sso_size + 1; cap <= 2u * sso_size; ++cap)
+        {
+            SCOPED_TRACE(cap);
+            parser.reserve_stack(cap);
+            EXPECT_GE(parser.stack_capacity(), cap);
+            EXPECT_EQ(parser.stack_capacity(), sso_size * 2u);
+            EXPECT_EQ(cbt.num_allocs, 1u);
+            EXPECT_EQ(cbt.num_deallocs, 0u);
+        }
+        for(id_type cap = (2u * sso_size) + 1u; cap < 4u * sso_size; ++cap)
+        {
+            SCOPED_TRACE(cap);
+            parser.reserve_stack(cap);
+            EXPECT_GE(parser.stack_capacity(), cap);
+            EXPECT_EQ(parser.stack_capacity(), sso_size * 4u);
+            EXPECT_EQ(cbt.num_allocs, 2u);
+            EXPECT_EQ(cbt.num_deallocs, 1u);
+        }
+        for(id_type cap = 0; cap < 4u * sso_size; ++cap)
+        {
+            SCOPED_TRACE(cap);
+            parser.reserve_stack(cap);
+            EXPECT_EQ(stack.capacity(), sso_size * 4u);
+            EXPECT_EQ(cbt.num_allocs, 2u);
+            EXPECT_EQ(cbt.num_deallocs, 1u);
+        }
     }
-    EXPECT_EQ(cbt.num_allocs, 3u);
-    EXPECT_EQ(cbt.num_deallocs, 3u);
+    EXPECT_EQ(cbt.num_allocs, 2u);
+    EXPECT_EQ(cbt.num_deallocs, 2u);
     cbt.check();
 }
 

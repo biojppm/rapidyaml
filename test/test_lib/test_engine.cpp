@@ -289,22 +289,67 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string 
         test_expected_error_tree_from_yaml(test_case, ExpectedErrorType::err_parse);
         return;
     }
-    Tree tree = {};
-    EventHandlerTree handler(&tree, tree.root_id());
-    ASSERT_EQ(&tree, handler.m_tree);
+    Tree parsed_tree = {};
+    EventHandlerTree handler(&parsed_tree, parsed_tree.root_id());
+    ASSERT_EQ(&parsed_tree, handler.m_tree);
     ParseEngine<EventHandlerTree> parser(&handler, test_case.opts);
     ASSERT_EQ(&handler, parser.m_evt_handler);
-    ASSERT_EQ(&tree, parser.m_evt_handler->m_tree);
+    ASSERT_EQ(&parsed_tree, parser.m_evt_handler->m_tree);
     std::vector<char> copy(yaml.begin(), yaml.end()); // g++ 4.8 fails with std::string
     parser.parse_in_place_ev(test_case.fileline, to_substr(copy));
-    #ifdef RYML_DBG
-    print_tree("parsed_tree", tree);
-    #endif
-    std::string actual = emitrs_yaml<std::string>(tree);
-    if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+    std::string actual_emitted = emitrs_yaml<std::string>(parsed_tree);
+    auto show_info = [&]{
+        printf("source: ~~~\n%.*s~~~\n", (int)test_case.yaml.size(), test_case.yaml.data());
+        print_tree("parsed_tree", parsed_tree);
+        printf("emitted: ~~~\n%.*s~~~\n", (int)actual_emitted.size(), actual_emitted.data());
+    };
     {
-        _c4dbgpf("~~~\n{}~~~\n", actual);
-        EXPECT_EQ(test_case.expected_emitted, actual);
+        SCOPED_TRACE("test parsed tree");
+        test_invariants(parsed_tree);
+        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+        {
+            EXPECT_EQ(test_case.expected_emitted, actual_emitted);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        show_info();
+        return;
+    }
+    // test also Tree::resolve_tags(): if the parser options are set
+    // to resolve, then parse again into an unresolved tree, and
+    // compare to the original (resolved) tree from above
+    if(!test_case.opts.resolve_tags())
+        return;
+    ParserOptions unresolved_opts = test_case.opts;
+    bool resolve_all = test_case.opts.resolve_tags_all();
+    unresolved_opts.resolve_tags(false);
+    Tree unresolved_tree;
+    EventHandlerTree unresolved_handler(&unresolved_tree, unresolved_tree.root_id());
+    ParseEngine<EventHandlerTree> unresolved_parser(&unresolved_handler, unresolved_opts);
+    std::vector<char> unresolved_copy(yaml.begin(), yaml.end()); // g++ 4.8 fails with std::string
+    unresolved_parser.parse_in_place_ev(test_case.fileline, to_substr(unresolved_copy));
+    TagCache tag_cache;
+    Tree resolved_tree = unresolved_tree;
+    resolved_tree.resolve_tags(tag_cache, resolve_all);
+    std::string resolved_emitted = emitrs_yaml<std::string>(resolved_tree);
+    {
+        SCOPED_TRACE("test Tree::resolve_tags()");
+        test_invariants(unresolved_tree);
+        test_invariants(resolved_tree);
+        test_compare(resolved_tree, parsed_tree, "resolved_tree", "tree");
+        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+        {
+            EXPECT_EQ(test_case.expected_emitted, resolved_emitted);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        show_info();
+        print_tree("unresolved", unresolved_tree);
+        printf("resolve_all=%d\n", resolve_all);
+        print_tree("resolved", resolved_tree);
+        printf("resolved_emitted: ~~~\n%.*s~~~\n", (int)resolved_emitted.size(), resolved_emitted.data());
     }
 }
 

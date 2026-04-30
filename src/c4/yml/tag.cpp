@@ -532,5 +532,78 @@ err:
     }
 }
 
+
+//-----------------------------------------------------------------------------
+TagCache::LookupResult TagCache::find(csubstr tag, id_type doc_id, id_type linear_threshold) const noexcept
+{
+    LookupResult ret = {};
+    id_type sz = m_entries.size();
+    if(sz < linear_threshold) // do a linear search on small size
+    {
+        for(size_t i = 0; i < sz; ++i)
+        {
+            Entry const& C4_RESTRICT e = m_entries[i];
+            if(e.tag == tag && e.doc_id == doc_id)
+            {
+                ret.resolved = e.resolved;
+                ret.pos = i;
+                return ret;
+            }
+            else if(e.tag > tag || ((e.tag == tag) && e.doc_id > doc_id))
+            {
+                ret.pos = i;
+                return ret;
+            }
+        }
+        ret.pos = sz;
+    }
+    else // do a binary search on larger size
+    {
+        id_type first = 0;
+        id_type count = sz;
+        while(count)
+        {
+            id_type halfsz = count / id_type(2);
+            id_type mid = first + halfsz;
+            _RYML_ASSERT_BASIC_(m_entries.m_callbacks, mid < sz);
+            Entry const& C4_RESTRICT e = m_entries[mid];
+            if(e.tag < tag || (e.tag == tag && e.doc_id < doc_id))
+            {
+                first = mid + 1;
+                _RYML_ASSERT_BASIC_(m_entries.m_callbacks, count >= halfsz + 1);
+                count -= halfsz + 1;
+            }
+            else
+            {
+                count = halfsz;
+            }
+        }
+        ret.pos = first;
+        if(first < sz)
+        {
+            Entry const& C4_RESTRICT e = m_entries[first];
+            if(e.tag == tag && e.doc_id == doc_id)
+            {
+                ret.resolved = m_entries[first].resolved;
+            }
+        }
+    }
+    return ret;
+}
+
+void TagCache::add(csubstr tag, csubstr resolved, id_type doc_id, const_iterator pos) RYML_NOEXCEPT
+{
+    const id_type sz = m_entries.size();
+    _RYML_ASSERT_BASIC_(m_entries.m_callbacks, pos <= sz);
+    _RYML_ASSERT_BASIC_(m_entries.m_callbacks, pos == sz || tag < m_entries[pos].tag || (tag == m_entries[pos].tag && doc_id < m_entries[pos].doc_id));
+    m_entries.resize(sz + 1);
+    if(pos < sz)
+        memmove(m_entries.m_stack + pos + 1, m_entries.m_stack + pos, (sz - pos) * sizeof(Entry));
+    m_entries.m_stack[pos].tag = tag;
+    m_entries.m_stack[pos].resolved = resolved;
+    m_entries.m_stack[pos].doc_id = doc_id;
+    _c4dbgpf("tagcache: add entry @pos={}:  docid={}  {} -> {}", pos, doc_id, tag, _maybe_null_str(resolved));
+}
+
 } // namespace yml
 } // namespace c4

@@ -227,6 +227,7 @@ void Tree::_copy(Tree const& that)
     m_free_tail = that.m_free_tail;
     m_arena_pos = that.m_arena_pos;
     m_arena = that.m_arena;
+    m_tag_directives = that.m_tag_directives;
     if(that.m_arena.str)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, that.m_arena.len > 0, this, NONE);
@@ -236,7 +237,6 @@ void Tree::_copy(Tree const& that)
         _relocate(arena); // does a memcpy of the arena and updates nodes using the old arena
         m_arena = arena;
     }
-    m_tag_directives.clear();
 }
 
 void Tree::_move(Tree & that) noexcept
@@ -1464,47 +1464,72 @@ size_t Tree::resolve_tag(substr output, csubstr tag, id_type node_id) const
 }
 
 namespace {
-csubstr _transform_tag(Tree *t, csubstr tag, id_type node, id_type doc_id)
+// return the extra size needed for the arena to accomodate the resolved tag
+size_t _transform_tag(Tree *t, id_type node_id, id_type doc_id, TagCache &cache, csubstr tag, csubstr *resolved)
 {
-    (void)node;
-    _c4dbgpf("doc={} [{}] resolving tag ~~~{}~~~", doc_id, node, tag);
-    size_t required_size = t->resolve_tag(substr{}, tag, doc_id);
-    if(!required_size)
+    _c4dbgpf("tag: doc={} node={} resolving tag ~~~{}~~~", doc_id, node_id, tag);
+    (void)node_id;
+    size_t reqsize = 0;
+    if(tag.begins_with('<'))
     {
-        if(tag.begins_with("!<"))
-            tag = tag.sub(1);
-        _c4dbgpf("doc={} [{}] resolved tag: ~~~{}~~~", doc_id, node, tag);
-        return tag;
+        *resolved = tag;
     }
-    const char *prev_arena = t->arena().str;(void)prev_arena;
-    substr buf = t->alloc_arena(required_size);
-    _RYML_ASSERT_VISIT_(t->m_callbacks, t->arena().str == prev_arena, t, node);
-    size_t actual_size = t->resolve_tag(buf, tag, doc_id);
-    _RYML_ASSERT_VISIT_(t->m_callbacks, actual_size <= required_size, t, node);
-    _c4dbgpf("doc={} [{}] resolved tag: ~~~{}~~~", doc_id, node, buf.first(actual_size));
-    return buf.first(actual_size);
+    else
+    {
+        _RYML_ASSERT_VISIT_(t->callbacks(), !tag.begins_with("!<"), t, node_id); // this should have been handled elsewhere
+        TagCache::LookupResult ret = cache.find(tag, doc_id);
+        if(ret)
+        {
+            _c4dbgpf("tag: doc={} node={} resolving tag: found in cache[{}]: {}", doc_id, node_id, ret.pos, _prs(ret.resolved));
+            *resolved = ret.resolved;
+        }
+        else
+        {
+            _c4dbgpf("tag: doc={} node={} tag not in cache ~~~{}~~~", doc_id, node_id, tag);
+            substr buf = t->m_arena.sub(t->m_arena_pos);
+            reqsize = t->resolve_tag(buf, tag, doc_id);
+            if(!reqsize)
+            {
+                *resolved = tag;
+            }
+            else if(reqsize <= buf.len)
+            {
+                t->m_arena_pos += reqsize;
+                *resolved = buf.first(reqsize);
+                cache.add(tag, *resolved, doc_id, ret.pos);
+                reqsize = 0;
+            }
+            else
+            {
+                _c4dbgpf("tag: doc={} node={} extra size needed: {}", doc_id, node_id, reqsize);
+            }
+            _c4dbgpf("tag: doc={} node={} resolved tag: ~~~{}~~~", doc_id, node_id, *resolved);
+        }
+    }
+    return reqsize;
 }
-void _resolve_tags(Tree *t, id_type node, id_type doc_id)
+size_t _resolve_tags(Tree *t, id_type node, id_type doc_id, TagCache &cache, bool all=true)
 {
     NodeData *C4_RESTRICT d = t->_p(node);
-    if(d->m_type & KEYTAG)
-        d->m_key.tag = _transform_tag(t, d->m_key.tag, node, doc_id);
-    if(d->m_type & VALTAG)
-        d->m_val.tag = _transform_tag(t, d->m_val.tag, node, doc_id);
+    size_t extra_size = 0;
+    if((d->m_type & KEYTAG) && (all || is_custom_tag(d->m_key.tag)))
+        extra_size += _transform_tag(t, node, doc_id, cache, d->m_key.tag, &d->m_key.tag);
+    if((d->m_type & VALTAG) && (all || is_custom_tag(d->m_val.tag)))
+        extra_size += _transform_tag(t, node, doc_id, cache, d->m_val.tag, &d->m_val.tag);
     for(id_type child = t->first_child(node); child != NONE; child = t->next_sibling(child))
-        _resolve_tags(t, child, doc_id);
+        extra_size += _resolve_tags(t, child, doc_id, cache);
+    return extra_size;
 }
-size_t _count_resolved_tags_size(Tree const* t, id_type node, id_type doc_id)
+size_t _resolve_tags(Tree *t, TagCache &cache, bool all)
 {
-    size_t sz = 0;
-    NodeData const* C4_RESTRICT d = t->_p(node);
-    if(d->m_type & KEYTAG)
-        sz += t->resolve_tag(substr{}, d->m_key.tag, doc_id);
-    if(d->m_type & VALTAG)
-        sz += t->resolve_tag(substr{}, d->m_val.tag, doc_id);
-    for(id_type child = t->first_child(node); child != NONE; child = t->next_sibling(child))
-        sz += _count_resolved_tags_size(t, child, doc_id);
-    return sz;
+   id_type r = t->root_id();
+    size_t extra_size = 0;
+    if(!t->is_stream(r))
+        extra_size += _resolve_tags(t, r, r, cache, all);
+    else
+        for(id_type doc_id = t->first_child(r); doc_id != NONE; doc_id = t->next_sibling(doc_id))
+            extra_size += _resolve_tags(t, doc_id, doc_id, cache, all);
+    return extra_size;
 }
 void _normalize_tags(Tree *t, id_type node)
 {
@@ -1528,27 +1553,21 @@ void _normalize_tags_long(Tree *t, id_type node)
 }
 } // namespace
 
-void Tree::resolve_tags()
+void Tree::resolve_tags(TagCache &cache, bool all)
 {
     if(empty())
         return;
-    size_t needed_size = 0;
-    id_type r = root_id();
-    if(!is_stream(r))
+    // try to resolve. While doing so, get the extra size needed for
+    // the arena, if the arena is currently too small.
+    size_t extra_size = _resolve_tags(this, cache, all);
+    // if the arena requires extra size, grow it and then resolve the
+    // missing entries
+    if(extra_size)
     {
-        needed_size = _count_resolved_tags_size(this, root_id(), r);
-        if(needed_size)
-            reserve_arena(arena_size() + needed_size);
-        _resolve_tags(this, r, r);
-    }
-    else
-    {
-        for(id_type doc_id = first_child(r); doc_id != NONE; doc_id = next_sibling(doc_id))
-            needed_size += _count_resolved_tags_size(this, doc_id, doc_id);
-        if(needed_size)
-            reserve_arena(arena_size() + needed_size);
-        for(id_type doc_id = first_child(r); doc_id != NONE; doc_id = next_sibling(doc_id))
-            _resolve_tags(this, doc_id, doc_id);
+        _c4dbgpf("tag: extrasize={} -- retry! {}->{}", extra_size, m_arena.len, m_arena.len + extra_size);
+        _grow_arena(extra_size);
+        extra_size = _resolve_tags(this, cache, all);
+        _RYML_ASSERT_BASIC_(callbacks(), extra_size == 0);
     }
 }
 
