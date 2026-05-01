@@ -5,22 +5,10 @@
 #include <ryml_all.hpp>
 #else
 #include <c4/yml/detail/stack.hpp>
-#include "c4/yml/extra/event_handler_testsuite.hpp"
 #endif
 
 namespace c4 {
 namespace yml {
-
-
-std::string emit_events_from_source(substr src)
-{
-    extra::EventHandlerTestSuite::EventSink sink;
-    extra::EventHandlerTestSuite handler(&sink);
-    ParseEngine<extra::EventHandlerTestSuite> parser(&handler);
-    parser.parse_in_place_ev("(testyaml)", src);
-    csubstr result = sink;
-    return std::string(result.str, result.len);
-}
 
 
 namespace /*anon*/ {

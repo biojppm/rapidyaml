@@ -11,7 +11,6 @@
 #endif
 #include <c4/yml/extra/string.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
-#include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <testsuite/testsuite_events.hpp>
@@ -38,7 +37,6 @@ using namespace c4::yml;
 
 enum class evts_type
 {
-    testsuite_src,
     testsuite_ints,
     testsuite_tree,
     ryml_ints,
@@ -47,7 +45,7 @@ enum class evts_type
 struct Args
 {
     csubstr filename = "stdin";
-    evts_type evts = evts_type::testsuite_src;
+    evts_type evts = evts_type::testsuite_ints;
     int ints_size = -1; // estimate by default
     bool ints_size_force = false; // do not force the estimated size
     static bool parse(Args *args, int argc, const char *argv[], int *errcode);
@@ -59,12 +57,6 @@ ryml-yaml-events <command> <options> [-]        # read from stdin (default)
 ryml-yaml-events <command> <options> <file>     # read from file
 
 The command must be one of the following:
-
-    testsuite_src,ts_src,tss
-         emit test suite events directly from source: parse the YAML
-         source, and directly emit events during the parse (ie, no
-         ryml tree is created). This is the default behavior when the
-         option is omitted.
 
     testsuite_tree,ts_tree,tst
          emit test suite events from tree: parse the YAML source,
@@ -108,14 +100,10 @@ The following options influence the behavior of testsuite_ints and ryml_ints:
          which requires two parses and two string copies of the
          original source buffer.
 
-    --no-resolve-tags,-nrt
-         do not resolve tags. Default is to resolve tags.
+    --resolve-tags,-rt
+         resolve tags. Default is not to resolve tags.
 
 EXAMPLES:
-
-  $ ryml-yaml-events ts_src            # parse stdin to test suite events, then print the events
-  $ ryml-yaml-events ts_src -          # parse stdin to test suite events, then print the events
-  $ ryml-yaml-events ts_src <file>     # parse file to test suite events, then print the events
 
   $ ryml-yaml-events ts_tree           # parse stdin to ryml tree, emit test suite events from created tree
   $ ryml-yaml-events ts_tree -         # parse stdin to ryml tree, emit test suite events from created tree
@@ -137,7 +125,6 @@ EXAMPLES:
 using IntEvents = std::vector<extra::ievt::DataType>;
 
 std::string load_file(csubstr filename);
-extra::string emit_testsuite_events(csubstr filename, substr filecontents);
 std::string emit_testsuite_events_from_tree(csubstr filename, substr filecontents);
 std::string emit_testsuite_events_from_ints(csubstr filename, substr filecontents, IntEvents &evts, bool fail_size);
 void emit_ints_events(csubstr filename, substr filecontents, IntEvents &evts, bool fail_size);
@@ -201,20 +188,6 @@ int main(int argc, const char *argv[])
         STOPWATCH("process");
         switch(args.evts)
         {
-        case evts_type::testsuite_src:
-        {
-            extra::string evts;
-            {
-                STOPWATCH("testsuite_src");
-                evts = emit_testsuite_events(args.filename, to_substr(src));
-            }
-            if(!quiet)
-            {
-                STOPWATCH("print");
-                std::fwrite(evts.data(), 1, evts.size(), stdout); // NOLINT
-            }
-            break;
-        }
         case evts_type::testsuite_tree:
         {
             std::string evts;
@@ -290,18 +263,6 @@ std::string emit_testsuite_events_from_tree(csubstr filename, substr filecontent
     return result;
 }
 
-extra::string emit_testsuite_events(csubstr filename, substr filecontents)
-{
-    extra::EventHandlerTestSuite::EventSink sink = {};
-    extra::EventHandlerTestSuite handler(&sink, create_custom_callbacks());
-    ParseEngine<extra::EventHandlerTestSuite> parser(&handler, parse_opts);
-    {
-        STOPWATCH("parse");
-        parser.parse_in_place_ev(filename, filecontents);
-    }
-    return sink;
-}
-
 csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &parsed, std::string &arena, IntEvents &evts, bool fail_size)
 {
     using I = extra::ievt::DataType;
@@ -325,6 +286,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
     if(timing_enabled) fprintf(stderr, "current_size=%zu vs needed_size=%zu. arena_size=%zu vs needed=%zu\n", evts.size(), sz, arena.size(), handler.required_size_arena()); // NOLINT
     if (!handler.fits_buffers())
     {
+        STOPWATCH("retry");
         if(fail_size)
         {
             _RYML_ERR_BASIC("buffers too small");
@@ -419,12 +381,7 @@ bool Args::parse(Args *args, int argc, const char *argv[], int *errcode)
     bool has_cmd = false;
     {
         csubstr s = to_csubstr(argv[1]);
-        if(s == "testsuite_src" || s == "ts_src" || s == "tss")
-        {
-            args->evts = evts_type::testsuite_src;
-            has_cmd = true;
-        }
-        else if(s == "testsuite_tree" || s == "ts_tree" || s == "tst")
+        if(s == "testsuite_tree" || s == "ts_tree" || s == "tst")
         {
             args->evts = evts_type::testsuite_tree;
             has_cmd = true;
@@ -483,6 +440,8 @@ bool Args::parse(Args *args, int argc, const char *argv[], int *errcode)
         }
         else
         {
+            if(arg == "-")
+                arg = "stdin";
             args->filename = arg;
         }
     }
@@ -491,7 +450,7 @@ bool Args::parse(Args *args, int argc, const char *argv[], int *errcode)
 
 std::string load_file(csubstr filename)
 {
-    if(filename == "-") // read from stdin
+    if(filename == "-" || filename == "stdin") // read from stdin
     {   // LCOV_EXCL_START
         std::string buf;
         buf.reserve(128);

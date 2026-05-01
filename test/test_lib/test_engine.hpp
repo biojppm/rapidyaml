@@ -13,7 +13,7 @@
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/test_events_ints_helpers.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
-#include "c4/yml/extra/event_handler_testsuite.hpp"
+#include "c4/yml/extra/string.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 
 
@@ -103,14 +103,6 @@ static const EngineEvtTestCase test_case_err_##name(                    \
     "");                                                                \
                                                                         \
                                                                         \
-TEST(name, err_testsuite_from_yaml)                                     \
-{                                                                       \
-    SCOPED_TRACE(#name ".err_testsuite_from_yaml");                     \
-    test_expected_error_testsuite_from_yaml(test_case_err_##name,       \
-                                            ExpectedErrorType::err_parse); \
-}                                                                       \
-                                                                        \
-                                                                        \
 TEST(name, err_ints_from_yaml)                                          \
 {                                                                       \
     SCOPED_TRACE(#name ".err_ints_from_yaml");                          \
@@ -147,7 +139,6 @@ void events_##name(EvtHandlerClass &handler);
                                                                         \
                                                                         \
 /* explicitly instantiate the event producers */                        \
-template void events_##name<extra::EventHandlerTestSuite>(extra::EventHandlerTestSuite&); \
 template void events_##name<EventHandlerIntsTr>(EventHandlerIntsTr&);   \
 template void events_##name<EventHandlerTree>(EventHandlerTree&);       \
                                                                         \
@@ -175,12 +166,6 @@ void events_##name(EvtHandlerClass &ps)
 ENGINE_TEST_DECLARE_CASE(name, __VA_ARGS__)                             \
                                                                         \
                                                                         \
-TEST(name, testsuite_from_events)                                       \
-{                                                                       \
-    SCOPED_TRACE(#name ".testsuite_from_events");                       \
-    test_engine_testsuite_from_events(test_case_##name,                 \
-                                      &events_##name<extra::EventHandlerTestSuite>); \
-}                                                                       \
                                                                         \
 TEST(name, ints_from_events)                                            \
 {                                                                       \
@@ -197,12 +182,6 @@ TEST(name, tree_from_events)                                            \
 }                                                                       \
                                                                         \
                                                                         \
-                                                                        \
-TEST(name, testsuite_from_yaml)                                         \
-{                                                                       \
-    SCOPED_TRACE(#name ".testsuite_from_yaml");                         \
-    test_engine_testsuite_from_yaml(test_case_##name);                  \
-}                                                                       \
                                                                         \
 TEST(name, ints_from_yaml)                                              \
 {                                                                       \
@@ -233,12 +212,6 @@ TEST(name, roundtrip_from_yaml)                                         \
                                                                         \
                                                                         \
                                                                         \
-TEST(name, testsuite_from_yaml_with_comments)                           \
-{                                                                       \
-    SCOPED_TRACE(#name ".testsuite_from_yaml_with_comments");           \
-    test_engine_testsuite_from_yaml_with_comments(test_case_##name);    \
-}                                                                       \
-                                                                        \
 TEST(name, ints_from_yaml_with_comments)                                \
 {                                                                       \
     SCOPED_TRACE(#name ".ints_from_yaml_with_comments");                \
@@ -268,19 +241,9 @@ template<class Handler, class ArgTransformer> struct EventTransformer;
 template<class Handler> struct TransformToSourceBufferOrArena;
 using EventHandlerIntsTr = EventTransformer<extra::EventHandlerInts, TransformToSourceBufferOrArena<extra::EventHandlerInts>>;
 
-using EventProducerTestSuite = void (*)(extra::EventHandlerTestSuite &);
 using EventProducerInts = void (*)(EventHandlerIntsTr &);
 using EventProducerTree = void (*)(EventHandlerTree &);
 
-
-//-----------------------------------------------------------------------------
-
-void test_engine_testsuite_from_events(const EngineEvtTestCase& test_case, EventProducerTestSuite evts);
-void test_engine_error_testsuite_from_events(const EngineEvtTestCase& tc, EventProducerTestSuite evts);
-void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-inline void test_engine_testsuite_from_yaml(EngineEvtTestCase const& test_case) { test_engine_testsuite_from_yaml(test_case, test_case.yaml); }
-void test_engine_testsuite_from_yaml_with_comments(EngineEvtTestCase const& test_case);
-void test_expected_error_testsuite_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype);
 
 
 //-----------------------------------------------------------------------------
@@ -327,7 +290,6 @@ void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test
 
 
 void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *file, int line);
-void _print_handler_info(extra::EventHandlerTestSuite const& ps, csubstr stmt, const char *file, int line);
 void _print_handler_info(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line);
 
 template<class Handler, class ArgTransformer>

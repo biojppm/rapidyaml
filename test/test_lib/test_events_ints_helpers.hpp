@@ -3,7 +3,6 @@
 
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
-#include <c4/yml/extra/event_handler_testsuite.hpp>
 #include <gtest/gtest.h>
 
 

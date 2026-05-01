@@ -12,7 +12,6 @@
 #include "testsuite/testsuite_common.hpp"
 #include "testsuite/testsuite_parts.hpp"
 #include "testsuite/testsuite_events.hpp"
-#include "c4/yml/extra/event_handler_testsuite.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
 #include <c4/fs/fs.hpp>
@@ -158,10 +157,6 @@ struct TestSequenceLevel
     std::string         emitted_from_tree_parsed_from_src;
     std::string         emitted_from_tree_parsed_from_src_json;
 
-    extra::EventHandlerTestSuite::EventSink evt_str_sink;
-    extra::EventHandlerTestSuite evt_handler_str;
-    ParseEngine<extra::EventHandlerTestSuite> parser_str;
-
     extra::EventHandlerInts evt_handler_ints;
     ParseEngine<extra::EventHandlerInts> parser_ints;
     std::vector<extra::EventHandlerInts::value_type> buffer_ints;
@@ -182,9 +177,6 @@ struct TestSequenceLevel
         , evt_handler_tree_json()
         , parser_tree(&evt_handler_tree, parser_options)
         , parser_tree_json(&evt_handler_tree_json, parser_options)
-        , evt_str_sink()
-        , evt_handler_str(&evt_str_sink)
-        , parser_str(&evt_handler_str, parser_options)
         , evt_handler_ints()
         , parser_ints(&evt_handler_ints, parser_options)
         , buffer_ints()
@@ -317,21 +309,6 @@ struct TestSequenceLevel
         tree_was_parsed_json = true;
     }
 
-    void parse_yaml_to_events()
-    {
-        if(events_were_generated)
-            return;
-        if(prev)
-            receive_src(*prev);
-        _nfo_logf("level[{}]: parsing source to events:\n{}", level, src_evts);
-        evt_str_sink.clear();
-        evt_handler_str.reset();
-        evt_handler_str.m_stack.m_callbacks = get_callbacks();
-        parser_str.parse_in_place_ev(filename, to_substr(src_evts));
-        EXPECT_NE(evt_str_sink.size(), 0);
-        events_were_generated = true;
-    }
-
     void parse_yaml_to_events_ints()
     {
         using I = extra::ievt::DataType;
@@ -347,25 +324,31 @@ struct TestSequenceLevel
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
         EXPECT_GE(size_estimated, evt_handler_ints.required_size_events());
         size_t sz = (size_t)evt_handler_ints.required_size_events();
+        size_t sza = evt_handler_ints.required_size_arena();
         if (!evt_handler_ints.fits_buffers())
         {
             buffer_ints.resize(sz);
-            arena_evts_ints.resize(evt_handler_ints.required_size_arena());
-            src_evts_ints = src_orig;
+            arena_evts_ints.resize(sza);
+            src_evts_ints = src_tree;
             evt_handler_ints.reset(to_substr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
             parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
             size_t sz2 = (size_t)evt_handler_ints.required_size_events();
+            size_t sza2 = evt_handler_ints.required_size_arena();
             ASSERT_EQ(sz2, sz);
+            ASSERT_EQ(sza2, sza);
             sz = sz2;
+            ASSERT_EQ((size_t)evt_handler_ints.required_size_events(), buffer_ints.size());
+            ASSERT_EQ(evt_handler_ints.required_size_arena(), arena_evts_ints.size());
+            ASSERT_TRUE(evt_handler_ints.fits_buffers());
         }
         ASSERT_LE(sz, buffer_ints.size());
         buffer_ints.resize(sz);
         #ifdef RYML_DBG
-        extra::events_ints_print(to_csubstr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)sz);
+        extra::events_ints_print(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         #endif
-        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)sz);
+        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         EXPECT_GT(evt_handler_ints.required_size_events(), 0);
-        extra::events_ints_to_testsuite(to_csubstr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
+        extra::events_ints_to_testsuite(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
         events_ints_were_generated = true;
     }
 
@@ -583,28 +566,6 @@ struct TestSequenceData
         }
     }
 
-    void parse_yaml_to_events(size_t num)
-    {
-        SKIP_IF(allowed_failure);
-        //SKIP_IF(has_container_keys); // DO IT!
-        for(size_t i = 0; i < num; ++i)
-        {
-            if(!expect_error)
-            {
-                levels[i].parse_yaml_to_events();
-                if(has_container_keys)
-                    break;
-            }
-            else
-            {
-                ExpectError::check_error_parse([&]{
-                    levels[i].parse_yaml_to_events();
-                });
-                break; // because we expect error, we cannot go on to the next
-            }
-        }
-    }
-
     void parse_yaml_to_events_ints(size_t num)
     {
         SKIP_IF(allowed_failure);
@@ -738,20 +699,11 @@ struct TestSequenceData
         parse_yaml_to_tree(num);
         for(size_t i = 0; i < num; ++i)
         {
-            levels[i].parse_yaml_to_events();
-            events->compare_events(levels[i].evt_str_sink,
+            levels[i].parse_yaml_to_events_ints();
+            events->compare_events(to_csubstr(levels[i].evts_test_suite_from_ints),
                                    /*ignore_container_style*/false,
                                    /*ignore_scalar_style*/(num>0));
         }
-    }
-    void compare_events_str(size_t num, TestSuiteCaseEvents *events)
-    {
-        ASSERT_EQ(num, 1); // FIXME
-        SKIP_IF(allowed_failure);
-        parse_yaml_to_events(1);
-        events->compare_events(levels[0].evt_str_sink,
-                               /*ignore_container_style*/false,
-                               /*ignore_scalar_style*/(num>0));
     }
     void compare_events_ints_str(size_t num, TestSuiteCaseEvents *events)
     {
@@ -777,18 +729,6 @@ struct TestSequenceData
             levels[0].parse_yaml_to_tree();
         });
         m_expected_error_to_tree_checked = true;
-    }
-    void check_expected_error_events()
-    {
-        SKIP_IF(allowed_failure);
-        //SKIP_IF(has_container_keys); // DO IT!
-        if(m_expected_error_to_events_checked)
-            return;
-        SCOPED_TRACE("check_expected_error_events");
-        ExpectError::check_error_parse([this]{
-            levels[0].parse_yaml_to_events();
-        });
-        m_expected_error_to_events_checked = true;
     }
     void check_expected_error_events_ints()
     {
@@ -933,31 +873,11 @@ TEST(which##_errors, check_expected_error_src_to_tree)                  \
     g_suite_case->which.check_expected_error();                         \
 }                                                                       \
                                                                         \
-TEST(which##_errors, check_expected_error_src_to_events)                \
-{                                                                       \
-    SKIP_IF(!g_suite_case->test_case_expects_error);                    \
-    SCOPED_TRACE("check_expected_error_src_to_events");                 \
-    g_suite_case->which.check_expected_error_events();                  \
-}                                                                       \
-                                                                        \
 TEST(which##_errors, check_expected_error_src_to_events_ints)           \
 {                                                                       \
     SKIP_IF(!g_suite_case->test_case_expects_error);                    \
     SCOPED_TRACE("check_expected_error_src_to_events_ints");            \
     g_suite_case->which.check_expected_error_events_ints();             \
-}                                                                       \
-                                                                        \
-                                                                        \
-/*-----------------------------------------------*/                     \
-                                                                        \
-TEST(which##_events_from_src, parse_yaml_to_events)                     \
-{                                                                       \
-    g_suite_case->which.parse_yaml_to_events(1);                        \
-}                                                                       \
-                                                                        \
-TEST(which##_events_from_src, compare_events_to_ref_events)             \
-{                                                                       \
-    g_suite_case->which.compare_events_ints_str(1, &g_suite_case->events); \
 }                                                                       \
                                                                         \
                                                                         \
@@ -995,11 +915,11 @@ struct which : public ::testing::TestWithParam<size_t>                  \
 {                                                                       \
 };                                                                      \
                                                                         \
-TEST_P(which, 0_parse_yaml_to_events)                                   \
+TEST_P(which, 0_parse_yaml_to_events_ints)                              \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
     _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
-    g_suite_case->which.parse_yaml_to_events(1 + GetParam());           \
+    g_suite_case->which.parse_yaml_to_events_ints(1 + GetParam());      \
 }                                                                       \
                                                                         \
 TEST_P(which, 0_parse_yaml_to_tree)                                     \
