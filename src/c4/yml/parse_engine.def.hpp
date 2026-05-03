@@ -4329,7 +4329,7 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line)
 {
-    _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, str.str ? str : csubstr("(arena full)"), indentation, line);
+    _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, _maybe_null_str(str), indentation, line);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
     if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
     {
@@ -4345,7 +4345,7 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line, csubstr orig)
 {
-    _c4dbgpf("store annotation[{}]: '{}'->'{}' indentation={} line={}", dst->num_entries, orig, str.str ? str : csubstr("(arena full)"), indentation, line);
+    _c4dbgpf("store annotation[{}]: '{}'->'{}' indentation={} line={}", dst->num_entries, orig, _maybe_null_str(str), indentation, line);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
     if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
     {
@@ -8265,7 +8265,7 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
     {
         _c4dbgpf("there are {} pending annotations: {} anchors + {} tags", total, m_pending_anchors.num_entries, m_pending_tags.num_entries);
         auto valid_if_same_line = [this](EntryPtr entry){
-            _c4dbgpf("pending: {} indent={} line={} vs currline={}", entry->str, entry->indentation, entry->line, m_evt_handler->m_curr->pos.line);
+            _c4dbgpf("pending: {} indent={} line={} vs currline={}", _maybe_null_str(entry->str), entry->indentation, entry->line, m_evt_handler->m_curr->pos.line);
             return (entry->line == m_evt_handler->m_curr->pos.line) ? entry : nullptr;
         };
         // now select annotations only on the same line
@@ -8294,14 +8294,14 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
         // assign to first
         first = get_first_on_same_line(nullptr);
         _c4assert(first);
-        _c4dbgpf("first annotation: {} indent={} line={}", first->str, first->indentation, first->line);
+        _c4dbgpf("first annotation: {} indent={} line={}", _maybe_null_str(first->str), first->indentation, first->line);
         if(total > 1)
         {
             _c4assert(total == 2);
             // assign to second
             second = get_first_on_same_line(first);
             _c4assert(second);
-            _c4dbgpf("second annotation: {} indent={} line={}", second->str, second->indentation, second->line);
+            _c4dbgpf("second annotation: {} indent={} line={}", _maybe_null_str(second->str), second->indentation, second->line);
         }
         auto extract_string = [&](EntryPtr e){
             // tags can be null when the arena ran out of space
@@ -8311,7 +8311,7 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
                 _c4assert(tag.str);
                 _c4assert(tag.len);
                 _c4assert(tag.is_sub(token_soup));
-                _c4dbgpf("tag: {} -> {}", e->str.str ? e->str : csubstr("(out of size)"), tag);
+                _c4dbgpf("tag: {} -> {}", _maybe_null_str(e->str), tag);
                 return tag;
             }
             csubstr anchor = e->str;
