@@ -1120,6 +1120,33 @@ void verify_error_(csubstr src, Function &&fn, ExpectedErrorType errtype=Expecte
 
 
 constexpr const ExpectedErrorType visit = ExpectedErrorType::err_visit;
+
+TEST(Tree, get)
+{
+    Tree t = parse_in_arena("[0, 1, 2, 3]");
+    Tree const& ct = t;
+    {
+        EXPECT_EQ(t.get(NONE), nullptr);
+        EXPECT_EQ(t.id(t.get(NONE)), NONE);
+        EXPECT_EQ(t.id(t.get(0)), 0);
+        EXPECT_EQ(t.id(t.get(1)), 1);
+        EXPECT_EQ(t.id(t.get(2)), 2);
+        EXPECT_EQ(t.id(t.get(3)), 3);
+        EXPECT_EQ(t.id(t.get(4)), 4);
+        verify_assertion(t, [](Tree & tree){ return tree.get(tree.capacity()); }, visit);
+    }
+    {
+        EXPECT_EQ(ct.get(NONE), nullptr);
+        EXPECT_EQ(ct.id(ct.get(NONE)), NONE);
+        EXPECT_EQ(ct.id(ct.get(0)), 0);
+        EXPECT_EQ(ct.id(ct.get(1)), 1);
+        EXPECT_EQ(ct.id(ct.get(2)), 2);
+        EXPECT_EQ(ct.id(ct.get(3)), 3);
+        EXPECT_EQ(ct.id(ct.get(4)), 4);
+        verify_assertion(t, [&](Tree &){ return ct.get(ct.capacity()); }, visit);
+    }
+}
+
 TEST(Tree, ref)
 {
     Tree t = parse_in_arena("[0, 1, 2, 3]");
@@ -5169,8 +5196,12 @@ TEST(Tree, unfiltered)
     EXPECT_FALSE(tree[4].is_val_unfiltered());
     EXPECT_EQ(tree[3].key(), "literal key");
     EXPECT_EQ(tree[3].val(), "literal val");
+    EXPECT_EQ(tree[3].keysc().scalar, "literal key");
+    EXPECT_EQ(tree[3].valsc().scalar, "literal val");
     EXPECT_EQ(tree[4].key(), "folded key");
     EXPECT_EQ(tree[4].val(), "folded val");
+    EXPECT_EQ(tree[4].keysc().scalar, "folded key");
+    EXPECT_EQ(tree[4].valsc().scalar, "folded val");
     EventHandlerTree evt_handler = {};
     Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     const Tree tree2 = parse_in_arena(&parser, style_yaml);

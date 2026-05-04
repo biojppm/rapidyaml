@@ -3,7 +3,7 @@
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
-#include <c4/base64.hpp>
+#include <c4/format_base64.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif

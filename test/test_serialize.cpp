@@ -3,6 +3,7 @@
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
+#include <c4/format_base64.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
@@ -25,82 +26,64 @@
 
 RYML_DEFINE_TEST_MAIN()
 
+
+using substr = c4::substr;
+using csubstr = c4::csubstr;
+
+
+//-----------------------------------------------------------------------------
+
 namespace foo {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
-template<class T>
-struct vec3
-{
-    T x, y, z;
-};
-template<class T>
-struct vec4
-{
-    T x, y, z, w;
-};
+template<class T> struct vec2 { T x, y; };
+template<class T> size_t to_chars(substr buf, vec2<T> v) { return c4::format(buf, "({},{})", v.x, v.y); }
+template<class T> bool from_chars(csubstr buf, vec2<T> *v) { return c4::yml::npos != c4::unformat(buf, "({},{})", v->x, v->y); }
 
-template<class T> size_t to_chars(c4::substr buf, vec2<T> v) { return c4::format(buf, "({},{})", v.x, v.y); }
-template<class T> size_t to_chars(c4::substr buf, vec3<T> v) { return c4::format(buf, "({},{},{})", v.x, v.y, v.z); }
-template<class T> size_t to_chars(c4::substr buf, vec4<T> v) { return c4::format(buf, "({},{},{},{})", v.x, v.y, v.z, v.w); }
+template<class T> struct vec3 { T x, y, z; };
+template<class T> size_t to_chars(substr buf, vec3<T> v) { return c4::format(buf, "({},{},{})", v.x, v.y, v.z); }
+template<class T> bool from_chars(csubstr buf, vec3<T> *v) { return c4::yml::npos != c4::unformat(buf, "({},{},{})", v->x, v->y, v->z); }
 
-template<class T> bool from_chars(c4::csubstr buf, vec2<T> *v) { size_t ret = c4::unformat(buf, "({},{})", v->x, v->y); return ret != c4::yml::npos; }
-template<class T> bool from_chars(c4::csubstr buf, vec3<T> *v) { size_t ret = c4::unformat(buf, "({},{},{})", v->x, v->y, v->z); return ret != c4::yml::npos; }
-template<class T> bool from_chars(c4::csubstr buf, vec4<T> *v) { size_t ret = c4::unformat(buf, "({},{},{},{})", v->x, v->y, v->z, v->w); return ret != c4::yml::npos; }
+template<class T> struct vec4 { T x, y, z, w; };
+template<class T> size_t to_chars(substr buf, vec4<T> v) { return c4::format(buf, "({},{},{},{})", v.x, v.y, v.z, v.w); }
+template<class T> bool from_chars(csubstr buf, vec4<T> *v) { return c4::yml::npos != c4::unformat(buf, "({},{},{},{})", v->x, v->y, v->z, v->w); }
 } // namespace foo
 
 
 //-----------------------------------------------------------------------------
 
 namespace foo2 {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
-template<class T> size_t serialize_scalar(c4::substr buf, vec2<T> v) { return c4::format(buf, "({},{})", v.x, v.y); }
-template<class T> bool from_chars(c4::csubstr buf, vec2<T> *v) { size_t ret = c4::unformat(buf, "({},{})", v->x, v->y); return ret != c4::yml::npos; }
+template<class T> struct vec2 { T x, y; };
+template<class T> size_t serialize_scalar(substr buf, vec2<T> v) { return c4::format(buf, "({},{})", v.x, v.y); }
+template<class T> bool from_chars(csubstr buf, vec2<T> *v) { return c4::yml::npos != c4::unformat(buf, "({},{})", v->x, v->y); }
 } // namespace foo2
 
 
 //-----------------------------------------------------------------------------
 
 template<class Vec2>
-c4::substr arena_helper_vec2(c4::yml::Tree *tree, Vec2 v)
+csubstr arena_helper_vec2(c4::yml::Tree * tree, Vec2 v)
 {
-    c4::substr rem(tree->m_arena.sub(tree->m_arena_pos));
-    size_t num = c4::format(rem, "({},{})", v.x, v.y);
-    if(num > rem.len)
-    {
-        rem = tree->_grow_arena(num);
-        num = c4::format(rem, "({},{})", v.x, v.y);
-        _RYML_ASSERT_VISIT_(tree->m_callbacks, num <= rem.len, tree, c4::yml::NONE);
-    }
-    rem = tree->_request_span(num);
-    return rem;
+    substr buf(tree->arena_rem()); // get the free part of the tree's arena.
+    size_t num = c4::format(buf, "({},{})", v.x, v.y); // try to write into it
+    substr ret = tree->alloc_arena(num); // consume the required size
+    if(num > buf.len) // was the buffer too small?
+        c4::format(ret, "({},{})", v.x, v.y); // do it again with the new buffer
+    return ret;
 }
 
 template<class Vec2>
-bool from_chars_helper_vec2(c4::csubstr buf, Vec2 *v)
+bool from_chars_helper_vec2(csubstr buf, Vec2 *v)
 {
-    size_t ret = c4::unformat(buf, "({},{})", v->x, v->y);
-    return ret != c4::yml::npos;
+    return c4::yml::npos != c4::unformat(buf, "({},{})", v->x, v->y);
 }
 
 
 namespace foo3 {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
-template<class T> c4::substr serialize_to_arena(c4::yml::Tree *tree, vec2<T> v)
+template<class T> struct vec2 { T x, y; };
+template<class T> csubstr serialize_to_arena(c4::yml::Tree * tree, vec2<T> v)
 {
     return arena_helper_vec2(tree, v);
 }
-template<class T> bool from_chars(c4::csubstr buf, vec2<T> *v)
+template<class T> bool from_chars(csubstr buf, vec2<T> *v)
 {
     return from_chars_helper_vec2(buf, v);
 }
@@ -110,12 +93,8 @@ template<class T> bool from_chars(c4::csubstr buf, vec2<T> *v)
 //-----------------------------------------------------------------------------
 
 namespace foo4 {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
-template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v)
+template<class T> struct vec2 { T x, y; };
+template<class T> void write(c4::yml::Tree * tree, c4::yml::id_type id, vec2<T> const& v)
 {
     tree->set_val(id, arena_helper_vec2(tree, v));
 }
@@ -125,13 +104,11 @@ template<class T> void write_key(c4::yml::Tree *tree, c4::yml::id_type id, vec2<
 }
 template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
-    c4::csubstr s = tree->val(id);
-    return from_chars_helper_vec2(s, v);
+    return from_chars_helper_vec2(tree->val(id), v);
 }
 template<class T> bool read_key(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
-    c4::csubstr s = tree->key(id);
-    return from_chars_helper_vec2(s, v);
+    return from_chars_helper_vec2(tree->key(id), v);
 }
 } // namespace foo4
 
@@ -139,11 +116,7 @@ template<class T> bool read_key(c4::yml::Tree const* tree, c4::yml::id_type id, 
 //-----------------------------------------------------------------------------
 
 namespace foo5 {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef *n, vec2<T> v)
 {
     n->set_val(arena_helper_vec2(n->tree(), v));
@@ -164,11 +137,7 @@ template<class T> bool read_key(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 
 
 namespace foo5_ref {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 {
     n.set_val(arena_helper_vec2(n.tree(), v));
@@ -185,15 +154,11 @@ template<class T> bool read_key(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
     return from_chars_helper_vec2<vec2<T>>(n.key(), v);
 }
-} // namespace foo5
+} // namespace foo5_ref
 
 
 namespace foo5_pass_by_value {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef n, vec2<T> v)
 {
     n.set_val(arena_helper_vec2(n.tree(), v));
@@ -216,11 +181,7 @@ template<class T> bool read_key(c4::yml::ConstNodeRef n, vec2<T> *v)
 //-----------------------------------------------------------------------------
 
 namespace foo6_optimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v)
 {
     tree->set_map(id);
@@ -239,14 +200,8 @@ template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2
 } // namespace foo6_optimistic
 
 
-//-----------------------------------------------------------------------------
-
 namespace foo6_pessimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v)
 {
     tree->set_map(id);
@@ -274,11 +229,7 @@ template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2
 //-----------------------------------------------------------------------------
 
 namespace foo7_optimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 {
     n.set_map();
@@ -294,14 +245,8 @@ template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 } // namespace foo5
 
 
-//-----------------------------------------------------------------------------
-
 namespace foo7_pessimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 {
     n.set_map();
@@ -327,11 +272,7 @@ template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 //-----------------------------------------------------------------------------
 
 namespace foo8_optimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v)
 {
     tree->set_seq(id);
@@ -347,14 +288,8 @@ template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2
 } // namespace foo8_optimistic
 
 
-//-----------------------------------------------------------------------------
-
 namespace foo8_pessimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v)
 {
     tree->set_seq(id);
@@ -380,11 +315,7 @@ template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2
 //-----------------------------------------------------------------------------
 
 namespace foo9_optimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 {
     n.set_seq();
@@ -400,14 +331,8 @@ template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 } // namespace foo5
 
 
-//-----------------------------------------------------------------------------
-
 namespace foo9_pessimistic {
-template<class T>
-struct vec2
-{
-    T x, y;
-};
+template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 {
     n.set_seq();
@@ -476,7 +401,7 @@ v4: '(1000,1001,1002,1003)'
 }
 
 template<template<class> class Vec2T>
-void test_serialization_roundtrip_vec2()
+void test_serialization_roundtrip_vec2(std::string const& expected)
 {
     c4::yml::Tree t;
     NodeRef r = t.rootref();
@@ -489,9 +414,10 @@ void test_serialization_roundtrip_vec2()
         EXPECT_EQ(v2in.x, v2out.x);
         EXPECT_EQ(v2in.y, v2out.y);
     }
+    EXPECT_EQ(expected, emitrs_yaml<std::string>(t));
 }
 template<template<class> class Vec2T>
-void test_serialization_roundtrip_vec2_with_key()
+void test_serialization_roundtrip_vec2_with_key(std::string const& expected)
 {
     c4::yml::Tree t;
     NodeRef r = t.rootref();
@@ -517,78 +443,135 @@ void test_serialization_roundtrip_vec2_with_key()
         EXPECT_EQ(v2in_val.x, v2out_val.x);
         EXPECT_EQ(v2in_val.y, v2out_val.y);
     }
+    EXPECT_EQ(expected, emitrs_yaml<std::string>(t));
 }
 
 TEST(serialize, type_as_str__foo2_serialize_scalar)
 {
-    test_serialization_roundtrip_vec2_with_key<foo2::vec2>();
+    test_serialization_roundtrip_vec2_with_key<foo2::vec2>(""
+        ""
+        "v2: '(10,11)'\n"
+        "'(1,2)': '(3,4)'\n"
+        "");
 }
 
 TEST(serialize, type_as_str__foo3_serialize_to_arena)
 {
-    test_serialization_roundtrip_vec2_with_key<foo3::vec2>();
+    test_serialization_roundtrip_vec2_with_key<foo3::vec2>(""
+        ""
+        "v2: '(10,11)'\n"
+        "'(1,2)': '(3,4)'\n"
+        "");
 }
 
 TEST(serialize, type_as_str__foo4_tree_read)
 {
-    test_serialization_roundtrip_vec2_with_key<foo4::vec2>();
+    test_serialization_roundtrip_vec2_with_key<foo4::vec2>(""
+        ""
+        "v2: '(10,11)'\n"
+        "'(1,2)': '(3,4)'\n"
+        "");
 }
 
 TEST(serialize, type_as_str__foo5_node_read)
 {
-    test_serialization_roundtrip_vec2_with_key<foo5::vec2>();
+    test_serialization_roundtrip_vec2_with_key<foo5::vec2>(""
+        ""
+        "v2: '(10,11)'\n"
+        "'(1,2)': '(3,4)'\n"
+        "");
 }
 
 TEST(serialize, type_as_str__foo5_ref_node_read)
 {
-    test_serialization_roundtrip_vec2_with_key<foo5_ref::vec2>();
+    test_serialization_roundtrip_vec2_with_key<foo5_ref::vec2>(""
+        ""
+        "v2: '(10,11)'\n"
+        "'(1,2)': '(3,4)'\n"
+        "");
 }
 
 TEST(serialize, type_as_str__foo5_pass_by_value_node_read)
 {
-    test_serialization_roundtrip_vec2_with_key<foo5_pass_by_value::vec2>();
+    test_serialization_roundtrip_vec2_with_key<foo5_pass_by_value::vec2>(""
+        ""
+        "v2: '(10,11)'\n"
+        "'(1,2)': '(3,4)'\n"
+        "");
 }
 
 
 TEST(serialize, tree__foo6_optimistic)
 {
-    test_serialization_roundtrip_vec2<foo6_optimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo6_optimistic::vec2>(""
+        "v2:\n"
+        "  x: 10\n"
+        "  y: 11\n"
+        "");
 }
 
 TEST(serialize, tree__foo6_pessimistic)
 {
-    test_serialization_roundtrip_vec2<foo6_pessimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo6_pessimistic::vec2>(""
+        "v2:\n"
+        "  x: 10\n"
+        "  y: 11\n"
+        "");
 }
 
 TEST(serialize, tree__foo7_optimistic)
 {
-    test_serialization_roundtrip_vec2<foo7_optimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo7_optimistic::vec2>(""
+        "v2:\n"
+        "  x: 10\n"
+        "  y: 11\n"
+        "");
 }
 
 TEST(serialize, tree__foo7_pessimistic)
 {
-    test_serialization_roundtrip_vec2<foo7_pessimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo7_pessimistic::vec2>(""
+        "v2:\n"
+        "  x: 10\n"
+        "  y: 11\n"
+        "");
 }
 
 
 TEST(serialize, tree__foo8_optimistic)
 {
-    test_serialization_roundtrip_vec2<foo8_optimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo8_optimistic::vec2>(""
+        "v2:\n"
+        "  - 10\n"
+        "  - 11\n"
+        "");
 }
 
 TEST(serialize, tree__foo8_pessimistic)
 {
-    test_serialization_roundtrip_vec2<foo8_pessimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo8_pessimistic::vec2>(""
+        "v2:\n"
+        "  - 10\n"
+        "  - 11\n"
+        "");
 }
 
 TEST(serialize, tree__foo9_optimistic)
 {
-    test_serialization_roundtrip_vec2<foo9_optimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo9_optimistic::vec2>(""
+        "v2:\n"
+        "  - 10\n"
+        "  - 11\n"
+        "");
 }
 
 TEST(serialize, tree__foo9_pessimistic)
 {
-    test_serialization_roundtrip_vec2<foo9_pessimistic::vec2>();
+    test_serialization_roundtrip_vec2<foo9_pessimistic::vec2>(""
+        "v2:\n"
+        "  - 10\n"
+        "  - 11\n"
+        "");
 }
 
 
@@ -734,6 +717,121 @@ TEST(serialize, integral)
     });
 }
 
+TEST(serialize, error_deserializing_containers)
+{
+    csubstr yaml = R"(--- {}
+--- []
+)";
+    const Tree t = parse_in_arena(yaml);
+    ASSERT_TRUE(t.rootref().type().is_stream());
+    ASSERT_TRUE(t.docref(0).type().is_map());
+    ASSERT_TRUE(t.docref(1).type().is_seq());
+    {
+        int i;
+        ExpectError::check_error_visit(&t, [&]{ t.rootref() >> i; }, t.rootref().id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(0) >> i; }, t.docref(0).id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(1) >> i; }, t.docref(1).id());
+        ExpectError::check_error_visit(&t, [&]{ t.rootref() >> key(i); }, t.rootref().id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(0) >> key(i); }, t.docref(0).id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(1) >> key(i); }, t.docref(1).id());
+    }
+    {
+        csubstr s;
+        ExpectError::check_error_visit(&t, [&]{ t.rootref() >> s; }, t.rootref().id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(0) >> s; }, t.docref(0).id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(1) >> s; }, t.docref(1).id());
+        ExpectError::check_error_visit(&t, [&]{ t.rootref() >> key(s); }, t.rootref().id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(0) >> key(s); }, t.docref(0).id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(1) >> key(s); }, t.docref(1).id());
+    }
+    {
+        // base64
+        char buf_[256];
+        substr s = buf_;
+        ExpectError::check_error_visit(&t, [&]{ t.rootref() >> fmt::base64(s); }, t.rootref().id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(0) >> fmt::base64(s); }, t.docref(0).id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(1) >> fmt::base64(s); }, t.docref(1).id());
+        ExpectError::check_error_visit(&t, [&]{ t.rootref() >> key(fmt::base64(s)); }, t.rootref().id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(0) >> key(fmt::base64(s)); }, t.docref(0).id());
+        ExpectError::check_error_visit(&t, [&]{ t.docref(1) >> key(fmt::base64(s)); }, t.docref(1).id());
+    }
+}
+
+TEST(serialize, deserializing_to_csubstr_and_base64)
+{
+    csubstr yaml = R"(str: Brevity is the soul of wit.
+base64: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu
+QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu: base64
+)";
+    const Tree t = parse_in_arena(yaml);
+    ConstNodeRef r = t.rootref();
+    ASSERT_TRUE(r.type().is_map());
+    csubstr s;
+    ASSERT_EQ(r[0].key(), "str");
+    ASSERT_EQ(r[0].val(), "Brevity is the soul of wit.");
+    ASSERT_EQ(r[1].key(), "base64");
+    ASSERT_EQ(r[1].val(), "QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu");
+    ASSERT_EQ(r[2].key(), "QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu");
+    ASSERT_EQ(r[2].val(), "base64");
+    r[0] >> s; EXPECT_EQ(s, "Brevity is the soul of wit."); EXPECT_EQ(s, r[0].val());
+    r[1] >> s; EXPECT_EQ(s, "QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu"); EXPECT_EQ(s, r[1].val());
+    r[2] >> s; EXPECT_EQ(s, "base64"); EXPECT_EQ(s, r[2].val());
+    r[0] >> key(s); EXPECT_EQ(s, "str"); EXPECT_EQ(s, r[0].key());
+    r[1] >> key(s); EXPECT_EQ(s, "base64"); EXPECT_EQ(s, r[1].key());
+    r[2] >> key(s); EXPECT_EQ(s, "QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu"); EXPECT_EQ(s, r[2].key());
+    {
+        std::string buf;
+        size_t szk = 0;
+        EXPECT_TRUE(r[1].deserialize_val(fmt::base64(buf, &szk)));
+        EXPECT_EQ(buf.size(), szk); EXPECT_EQ(buf, "Brevity is the soul of wit.");
+        to_substr(buf).fill('a'); EXPECT_NE(buf, "Brevity is the soul of wit.");
+        //
+        EXPECT_TRUE(r[2].deserialize_key(fmt::base64(buf, &szk)));
+        EXPECT_EQ(buf.size(), szk); EXPECT_EQ(buf, "Brevity is the soul of wit.");
+        to_substr(buf).fill('a'); EXPECT_NE(buf, "Brevity is the soul of wit.");
+        //
+        r[1] >> fmt::base64(buf, &szk);
+        EXPECT_EQ(buf.size(), szk); EXPECT_EQ(buf, "Brevity is the soul of wit.");
+        to_substr(buf).fill('a'); EXPECT_NE(buf, "Brevity is the soul of wit.");
+        //
+        r[2] >> key(fmt::base64(buf, &szk));
+        EXPECT_EQ(buf.size(), szk); EXPECT_EQ(buf, "Brevity is the soul of wit.");
+        to_substr(buf).fill('a'); EXPECT_NE(buf, "Brevity is the soul of wit.");
+        //
+        r[1] >> fmt::base64(to_substr(buf), &szk);
+        EXPECT_EQ(buf.size(), szk); EXPECT_EQ(buf, "Brevity is the soul of wit.");
+        //
+        r[2] >> key(fmt::base64(to_substr(buf), &szk));
+        EXPECT_EQ(buf.size(), szk); EXPECT_EQ(buf, "Brevity is the soul of wit.");
+        //
+        {
+            SCOPED_TRACE("r[1] val");
+            EXPECT_FALSE(base64_valid(r[1].key().str, r[1].key().len));
+            EXPECT_FALSE(r[1].deserialize_key(fmt::base64(buf)));
+            EXPECT_FALSE(r[1].deserialize_key(fmt::base64(buf, &szk)));
+            EXPECT_FALSE(r[1].deserialize_key(fmt::base64(to_substr(buf))));
+            EXPECT_FALSE(r[1].deserialize_key(fmt::base64(to_substr(buf), &szk)));
+            ExpectError::check_error_visit(&t, [&]{ r[1] >> key(fmt::base64(buf)); }, r[1].id());
+            ExpectError::check_error_visit(&t, [&]{ r[1] >> key(fmt::base64(buf, &szk)); }, r[1].id());
+            ExpectError::check_error_visit(&t, [&]{ r[1] >> key(fmt::base64(to_substr(buf))); }, r[1].id());
+            ExpectError::check_error_visit(&t, [&]{ r[1] >> key(fmt::base64(to_substr(buf), &szk)); }, r[1].id());
+        }
+        //
+        {
+            SCOPED_TRACE("r[2] key");
+            EXPECT_FALSE(base64_valid(r[2].val().str, r[2].val().len));
+            EXPECT_FALSE(r[2].deserialize_val(fmt::base64(buf)));
+            EXPECT_FALSE(r[2].deserialize_val(fmt::base64(buf, &szk)));
+            EXPECT_FALSE(r[2].deserialize_val(fmt::base64(to_substr(buf))));
+            EXPECT_FALSE(r[2].deserialize_val(fmt::base64(to_substr(buf), &szk)));
+            ExpectError::check_error_visit(&t, [&]{ r[2] >> fmt::base64(buf); }, r[2].id());
+            ExpectError::check_error_visit(&t, [&]{ r[2] >> fmt::base64(buf, &szk); }, r[2].id());
+            ExpectError::check_error_visit(&t, [&]{ r[2] >> fmt::base64(to_substr(buf)); }, r[2].id());
+            ExpectError::check_error_visit(&t, [&]{ r[2] >> fmt::base64(to_substr(buf), &szk); }, r[2].id());
+        }
+    }
+}
+
 // inf and nan are tested in test_number.cpp
 
 TEST(serialize, std_string)
@@ -828,14 +926,14 @@ TEST(deserialize, issue434_0)
     Tree tree = parse_in_arena("{empty: }");
     ConstNodeRef cnode = tree["empty"];
     NodeRef node = tree["empty"];
-    {
+    ExpectError::check_error_visit(&tree, [&]{
         int value = 0;
-        EXPECT_FALSE(read(cnode, &value));
-    }
-    {
+        bool ret = read(cnode, &value); (void)ret;
+    });
+    ExpectError::check_error_visit(&tree, [&]{
         int value = 0;
-        EXPECT_FALSE(read(node, &value));
-    }
+        bool ret = read(node, &value); (void)ret;
+    });
     ExpectError::check_error_visit(&tree, [&]{
         int value = 0;
         cnode >> value;
@@ -844,14 +942,14 @@ TEST(deserialize, issue434_0)
         int value = 0;
         node >> value;
     });
-    {
+    ExpectError::check_error_visit(&tree, [&]{
         double value = 0;
-        EXPECT_FALSE(read(cnode, &value));
-    }
-    {
+        bool ret = read(cnode, &value); (void)ret;
+    });
+    ExpectError::check_error_visit(&tree, [&]{
         double value = 0;
-        EXPECT_FALSE(read(node, &value));
-    }
+        bool ret = read(node, &value); (void)ret;
+    });
     ExpectError::check_error_visit(&tree, [&]{
         double value = 0;
         cnode >> value;

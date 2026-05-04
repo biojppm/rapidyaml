@@ -46,6 +46,7 @@ typedef enum : DataType {
     // Structure flags
     KEY_ = (1 << 0),  ///< as key
     VAL_ = (1 << 1),  ///< as value
+
     /// special flag to enable look-back in the event array. it
     /// signifies that the previous event has a string, meaning that
     /// the jump back to that event is 3 positions. without this flag it

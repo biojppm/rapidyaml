@@ -85,7 +85,7 @@ void ensure_callbacks();
     // desired; ryml itself does not use any STL container.
     // For this sample, we will be using std interop, so...
     #include <ryml_std.hpp> // optional header, provided for std:: interop
-    #include <c4/base64.hpp> // optional header, provided for base64 encoding
+    #include <c4/format_base64.hpp> // optional header, provided for base64 encoding
     #include <c4/format.hpp> // needed for the formatting examples below
     // optional header, definitions for error utilities to implement
     // error callbacks:
@@ -187,6 +187,7 @@ int main(int argc, const char* argv[])
     sample_style_flow_ml_filter();
     sample_json();
     sample_anchors_and_aliases();
+    sample_anchors_and_aliases_create();
     sample_tags();
     sample_tag_directives();
     sample_docs();
@@ -3206,6 +3207,7 @@ void sample_formatting()
  */
 void sample_base64()
 {
+    // let's start by creating a tree with base64 vals and keys
     ryml::Tree tree;
     tree.rootref().set_map();
     struct text_and_base64 { ryml::csubstr text, base64; };
@@ -3217,14 +3219,14 @@ void sample_base64()
     };
     // to encode base64 and write the result to val:
     for(text_and_base64 c : cases)
-    {
         tree[c.text] << ryml::fmt::base64(c.text);
-        CHECK(tree[c.text].val() == c.base64);
-    }
     // to encode base64 and write the result to key:
     for(text_and_base64 c : cases)
-    {
         tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
+    // check the result:
+    for(text_and_base64 c : cases)
+    {
+        CHECK(tree[c.text].val() == c.base64);
         CHECK(tree[c.base64].val() == c.text);
     }
     CHECK(ryml::emitrs_yaml<std::string>(tree) ==
@@ -3242,130 +3244,89 @@ QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold.
     ryml::substr buf1 = buf1_;  // this is where we will write the result (using >>)
     ryml::substr buf2 = buf2_;  // this is where we will write the result (using deserialize_val()/deserialize_key())
     std::string result = {}; // show also how to decode to a std::string
-    // to decode the val base64 and write the result to buf:
+    // to decode base64 and write the result to buf:
     for(const text_and_base64 c : cases)
     {
-        // write the decoded result into the given buffer
-        tree[c.text] >> ryml::fmt::base64(buf1); // cannot know the needed size
-        size_t len = tree[c.text].deserialize_val(ryml::fmt::base64(buf2)); // returns the needed size
+        // decode base64 and write the decoded result into the given
+        // buffer (buf1):
+        tree[c.text] >> ryml::fmt::base64(buf1);
+        // The base64() tag function is used to get the
+        // deserialization using c4::decode_base64(). The
+        // deserialization will respect the limits of the buffer, and
+        // fail with an error if the buffer is too small (or if the
+        // base64 encoding is wrong). But when it succeeds, the
+        // resulting decoded length is unknown. To address that, it is
+        // possible to pass a length parameter to the tag function:
+        size_t len = 0;
+        tree[c.text] >> ryml::fmt::base64(buf2, &len);
         CHECK(len <= buf1.len);
         CHECK(len <= buf2.len);
         CHECK(c.text.len == len);
         CHECK(buf1.first(len) == c.text);
         CHECK(buf2.first(len) == c.text);
-        //
-        // interop with std::string: using substr
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        len = tree[c.text].deserialize_val(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = tree[c.text].deserialize_val(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
-        //
-        // interop with std::string: using blob
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::blob strblob(&result[0], result.size());
-        CHECK(strblob.buf == result.data());
-        CHECK(strblob.len == result.size());
-        len = tree[c.text].deserialize_val(ryml::fmt::base64(strblob)); // returns the needed size
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            strblob = {&result[0], result.size()};
-            CHECK(strblob.buf == result.data());
-            CHECK(strblob.len == result.size());
-            len = tree[c.text].deserialize_val(ryml::fmt::base64(strblob)); // returns the needed size
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
-        //
-        // Note also these are just syntatic wrappers to simplify client code.
-        // You can call into the lower level functions without much effort:
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::csubstr encoded = tree[c.text].val();
-        CHECK(encoded == c.base64);
-        len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
-    }
-    // to decode the key base64 and write the result to buf:
-    for(const text_and_base64 c : cases)
-    {
-        // write the decoded result into the given buffer
-        tree[c.base64] >> ryml::key(ryml::fmt::base64(buf1)); // cannot know the needed size
-        size_t len = tree[c.base64].deserialize_key(ryml::fmt::base64(buf2)); // returns the needed size
+        // likewise for keys:
+        tree[c.base64] >> ryml::key(ryml::fmt::base64(buf1, &len));
         CHECK(len <= buf1.len);
-        CHECK(len <= buf2.len);
-        CHECK(c.text.len == len);
         CHECK(buf1.first(len) == c.text);
-        CHECK(buf2.first(len) == c.text);
-        // interop with std::string: using substr
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        len = tree[c.base64].deserialize_key(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = tree[c.base64].deserialize_key(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        }
-        result.resize(len); // trim to the length of the decoded buffer
+        //
+        // interop with std::string:
+        result.clear(); // this is not needed. We do it to show that
+                        // the std::string is resized to fit the
+                        // decoded payload.
+        tree[c.text] >> ryml::fmt::base64(result);
+        CHECK(result == c.text);
+        // likewise for keys:
+        tree[c.base64] >> ryml::key(ryml::fmt::base64(result));
         CHECK(result == c.text);
         //
-        // interop with std::string: using blob
+        // Manual interop with std::string: using substr.
+        // This shows how to manually resize the destination
+        // buffer, and is similar to the implementation for containers.
         result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::blob strblob = {&result[0], result.size()};
-        CHECK(strblob.buf == result.data());
-        CHECK(strblob.len == result.size());
-        len = tree[c.base64].deserialize_key(ryml::fmt::base64(strblob)); // returns the needed size
+        len = 0;
+        // try to read into the buffer, and get back the required size
+        // (in len)
+        auto payload = ryml::fmt::base64(ryml::to_substr(result), &len);
+        bool ok = tree[c.text].deserialize_val(&payload);
         if(len > result.size()) // the size was not enough; resize and call again
         {
             result.resize(len);
-            strblob = {&result[0], result.size()};
-            CHECK(strblob.buf == result.data());
-            CHECK(strblob.len == result.size());
-            len = tree[c.base64].deserialize_key(ryml::fmt::base64(strblob)); // returns the needed size
+            payload = ryml::fmt::base64(ryml::to_substr(result), &len); // reassign
+            ok = tree[c.text].deserialize_val(&payload);
         }
+        CHECK(ok);
         result.resize(len); // trim to the length of the decoded buffer
         CHECK(result == c.text);
-        //
-        // Note also these are just syntactic wrappers to simplify client code.
-        // You can call into the lower level functions without much effort:
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::csubstr encoded = tree[c.base64].key();
-        CHECK(encoded == c.base64);
-        len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
+        // likewise for keys
     }
     // directly encode variables
     {
         const uint64_t valin = UINT64_C(0xdeadbeef);
-        uint64_t valout = 0;
         tree["deadbeef"] << c4::fmt::base64(valin); // sometimes cbase64() is needed to avoid ambiguity
-        size_t len = tree["deadbeef"].deserialize_val(ryml::fmt::base64(valout));
-        CHECK(len <= sizeof(valout));
+        uint64_t valout = 0;
+        size_t len = 0;
+        tree["deadbeef"] >> ryml::fmt::base64(valout, &len);
+        CHECK(len == sizeof(valout));
         CHECK(valout == UINT64_C(0xdeadbeef)); // base64 roundtrip is bit-accurate
+    }
+    {
+        const double valin = 123456.7891011;
+        tree["float"] << c4::fmt::base64(valin);
+        double valout = 0;
+        size_t len = 0;
+        tree["float"] >> ryml::fmt::base64(valout, &len);
+        CHECK(len == sizeof(valout));
+        CHECK(memcmp(&valout, &valin, sizeof(valout)) == 0); // base64 roundtrip is bit-accurate
     }
     // directly encode memory ranges
     {
         const uint32_t data_in[11] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xdeadbeef};
         uint32_t data_out[11] = {};
+        tree["int_data"] << ryml::fmt::base64(data_in, 11);
         CHECK(memcmp(data_in, data_out, sizeof(data_in)) != 0); // before the roundtrip
-        tree["int_data"] << c4::fmt::base64(data_in);
-        size_t len = tree["int_data"].deserialize_val(ryml::fmt::base64(data_out));
-        CHECK(len <= sizeof(data_out));
+        size_t len = 0;
+        tree["int_data"] >> ryml::fmt::base64(data_out, 11, &len);
+        CHECK(len == sizeof(data_out));
         CHECK(memcmp(data_in, data_out, sizeof(data_in)) == 0); // after the roundtrip
     }
 }

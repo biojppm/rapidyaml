@@ -630,11 +630,12 @@ TEST(Parser, alloc_arena)
     Parser parser(&evt_handler);
     evt_handler.reset(&tree, tree.root_id());
     evt_handler.start_parse("filename", substr{});
-    substr bufa = evt_handler.alloc_arena(64);
+    size_t force_realloc = 512;
+    substr bufa = evt_handler.alloc_arena(force_realloc);
     bufa.fill('a');
     csubstr prev = bufa;
     csubstr prev_arena = tree.arena();
-    substr bufb = parser._alloc_arena(64, &bufa);
+    substr bufb = parser._alloc_arena(force_realloc, &bufa);
     csubstr curr_arena = tree.arena();
     EXPECT_NE(prev_arena.str, curr_arena.str);
     EXPECT_NE(prev.str, bufa.str);
@@ -922,11 +923,21 @@ protected:
         EXPECT_EQ(actual["a"].key(), "a");
         EXPECT_EQ(actual["a"][0].val(), "yaml");
         EXPECT_EQ(actual["a"][1].val(), "example");
-        EXPECT_TRUE(actual["this"].key().is_sub(expected_arena));
-        EXPECT_TRUE(actual["this"].val().is_sub(expected_arena));
-        EXPECT_TRUE(actual["a"].key().is_sub(expected_arena));
-        EXPECT_TRUE(actual["a"][0].val().is_sub(expected_arena));
-        EXPECT_TRUE(actual["a"][1].val().is_sub(expected_arena));
+        #define EXPECT_IN_ARENA(expr, arena)    \
+        {                                       \
+            RYML_TRACE_FMT("is_sub={}\n"        \
+                "    {}=[{}]~~~{}~~~\n"         \
+                "    {}=[{}]~~~{}~~~",          \
+                (expr).is_sub(arena),           \
+                #expr, (expr).len, expr,        \
+                #arena, (arena).len, arena);    \
+            EXPECT_TRUE((expr).is_sub(arena));  \
+        }
+        EXPECT_IN_ARENA(actual["this"].key(), expected_arena);
+        EXPECT_IN_ARENA(actual["this"].val(), expected_arena);
+        EXPECT_IN_ARENA(actual["a"].key(), expected_arena);
+        EXPECT_IN_ARENA(actual["a"][0].val(), expected_arena);
+        EXPECT_IN_ARENA(actual["a"][1].val(), expected_arena);
         if(expected_arena.str != actual.arena().str)
         {
             EXPECT_TRUE(actual.arena().empty());
@@ -1217,6 +1228,14 @@ protected:
         keyseq.append_child() << "example";
     }
 
+    void check_tree(Tree const& actual)
+    {
+        // armv4/armv5 -O3 builds were assuming the arena had its
+        // original size (0). prevent it this way:
+        csubstr expected_arena = actual.arena();
+        C4_DONT_OPTIMIZE(expected_arena);
+        check_tree(actual, expected_arena);
+    }
     void check_tree(Tree const& actual, csubstr expected_arena)
     {
         ASSERT_TRUE(actual.rootref().is_map());
@@ -1365,28 +1384,44 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_2_1)
     Tree actual;
     parse_json_in_arena(cjson, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_2_2)
 {
     Tree actual;
     parse_json_in_arena(filename, cjson, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_3_1)
 {
     Tree actual;
     parse_json_in_arena(cjson, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_3_2)
 {
     Tree actual;
     parse_json_in_arena(filename, cjson, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_1)
 {
@@ -1394,7 +1429,11 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_1)
     parse_json_in_arena(cjson, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_2)
 {
@@ -1402,7 +1441,11 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_2)
     parse_json_in_arena(filename, cjson, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 
 TEST_F(ParseOverloadJsonTest, in_arena_parser_1_1)

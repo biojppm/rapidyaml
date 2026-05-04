@@ -8285,7 +8285,7 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
                 if(&m_pending_tags.annotations[i] != not_this_one
                    && m_pending_tags.annotations[i].line == m_evt_handler->m_curr->pos.line)
                     return &m_pending_tags.annotations[i];
-            C4_UNREACHABLE();
+            C4_UNREACHABLE(); // LCOV_EXCL_LINE
             return (EntryPtr)nullptr; // LCOV_EXCL_LINE
         };
         _c4assert(total >= 1);
