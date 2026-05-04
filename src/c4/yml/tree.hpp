@@ -653,10 +653,22 @@ public:
 
 public:
 
-    /** @name tag directives */
+    /** @name tags and tag directives */
     /** @{ */
 
-    void resolve_tags();
+    /** Resolve tags in the tree such as `!!str` ->
+     * `<tag:yaml.org,2002:str>`, `!foo` -> `<!foo>` and custom tags
+     * as well, ie tags of the form `!handle!tag` for which there is a
+     * corresponding `%TAG` directive
+     *
+     * @param cache an object of type @ref TagCache to minimize memory
+     *        usage by avoiding repeated instantiation of the resolved
+     *        tags in the tree's arena.
+     *
+     * @param all if true, resolve all tags; if false resolve only
+     *        custom tags, ie those that have a prefix such as
+     *        `!m!tag` with a matching `%TAG` directive */
+    void resolve_tags(TagCache &cache, bool all=true);
     void normalize_tags();
     void normalize_tags_long();
 
@@ -1324,6 +1336,11 @@ public:
     Callbacks m_callbacks;
 
     TagDirectives m_tag_directives;
+
+public:
+    /** @cond dev */
+    RYML_DEPRECATED("use Tree::resolve_tags(TagCache&)") void resolve_tags() { TagCache cache; resolve_tags(cache); }
+    /** @endcond */
 };
 
 

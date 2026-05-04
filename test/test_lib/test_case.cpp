@@ -88,7 +88,7 @@ void test_compare(Tree const& actual, id_type node_actual,
                   id_type depth, const char *actual_name, const char *expected_name,
                   type_bits cmp_mask)
 {
-    RYML_TRACE_FMT("{}[{}] vs {}[{}]. depth={}", actual_name, node_actual, expected_name, node_expected, depth);
+    RYML_TRACE_FMT("actual={}[{}] vs expected={}[{}]. depth={}", actual_name, node_actual, expected_name, node_expected, depth);
 
     ASSERT_NE(node_actual, (id_type)NONE);
     ASSERT_NE(node_expected, (id_type)NONE);

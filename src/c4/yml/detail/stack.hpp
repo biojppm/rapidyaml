@@ -97,7 +97,7 @@ public:
 
     void clear()
     {
-        m_size = 0;
+        _free();
     }
 
     void resize(id_type sz)
@@ -112,10 +112,7 @@ public:
     {
         _RYML_ASSERT_BASIC_(m_callbacks, !csubstr((const char*)&n, sizeof(T)).overlaps(csubstr((const char*)m_stack, m_capacity * sizeof(T))));
         if(m_size == m_capacity)
-        {
-            id_type cap = m_capacity == 0 ? N : 2 * m_capacity;
-            reserve(cap);
-        }
+            reserve(m_capacity + 1);
         m_stack[m_size] = n;
         ++m_size;
     }
@@ -124,10 +121,7 @@ public:
     {
         _RYML_ASSERT_BASIC_(m_callbacks, m_size > 0);
         if(m_size == m_capacity)
-        {
-            id_type cap = m_capacity == 0 ? N : 2 * m_capacity;
-            reserve(cap);
-        }
+            reserve(m_capacity + 1);
         m_stack[m_size] = m_stack[m_size - 1];
         ++m_size;
     }
@@ -159,11 +153,11 @@ public:
     using       iterator = T       *;
     using const_iterator = T const *;
 
-    iterator begin() { return m_stack; }
-    iterator end  () { return m_stack + m_size; }
+    iterator begin() noexcept { return m_stack; }
+    iterator end  () noexcept { return m_stack + m_size; }
 
-    const_iterator begin() const { return (const_iterator)m_stack; }
-    const_iterator end  () const { return (const_iterator)m_stack + m_size; }
+    const_iterator begin() const noexcept { return (const_iterator)m_stack; }
+    const_iterator end  () const noexcept { return (const_iterator)m_stack + m_size; }
 
 public:
 
@@ -180,25 +174,22 @@ public:
 //-----------------------------------------------------------------------------
 
 template<class T, id_type N>
-void stack<T, N>::reserve(id_type sz)
+void stack<T, N>::reserve(id_type cap)
 {
-    if(sz <= m_size)
+    _RYML_ASSERT_BASIC_(m_callbacks, m_size <= m_capacity);
+    _RYML_ASSERT_BASIC_(m_callbacks, m_capacity);
+    if(cap <= m_capacity || (cap <= N && m_stack == m_buf))
         return;
-    if(sz <= N)
-    {
-        m_stack = m_buf;
-        m_capacity = N;
-        return;
-    }
-    T *buf = (T*) m_callbacks.m_allocate((size_t)sz * sizeof(T), m_stack, m_callbacks.m_user_data);
-    _RYML_ASSERT_BASIC_(m_callbacks, ((uintptr_t)buf % alignof(T)) == 0u);
-    memcpy(buf, m_stack, (size_t)m_size * sizeof(T));
+    id_type next = 2 * m_capacity;
+    cap = cap > next ? cap : next;
+    T *ptr = (T*) m_callbacks.m_allocate((size_t)cap * sizeof(T), m_stack, m_callbacks.m_user_data);
+    _RYML_ASSERT_BASIC_(m_callbacks, ((uintptr_t)ptr % alignof(T)) == 0u);
+    if(m_size)
+        memcpy(ptr, m_stack, (size_t)m_size * sizeof(T));
     if(m_stack != m_buf)
-    {
         m_callbacks.m_free(m_stack, (size_t)m_capacity * sizeof(T), m_callbacks.m_user_data);
-    }
-    m_stack = buf;
-    m_capacity = sz;
+    m_stack = ptr;
+    m_capacity = cap;
 }
 
 
@@ -212,13 +203,13 @@ void stack<T, N>::_free()
     {
         m_callbacks.m_free(m_stack, (size_t)m_capacity * sizeof(T), m_callbacks.m_user_data);
         m_stack = m_buf;
-        m_size = N;
         m_capacity = N;
     }
     else
     {
         _RYML_ASSERT_BASIC_(m_callbacks, m_capacity == N);
     }
+    m_size = 0;
 }
 
 

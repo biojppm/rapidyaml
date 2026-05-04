@@ -5150,10 +5150,21 @@ void sample_tag_directives()
 %TAG !m! !meta-
 --- !m!light green
 )");
-    // tags are not resolved by default. Use .resolve_tags() to
-    // accomplish this:
-    tree.resolve_tags();
+    // tags are not resolved by default. Use Tree::resolve_tags()
+    // to accomplish this in an existing tree:
+    ryml::TagCache tag_cache; // reduces memory requirements by reusing resolved tags
+    tree.resolve_tags(tag_cache);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(%TAG !m! !my-
+--- !<!my-light> fluorescent
+...
+%TAG !m! !meta-
+--- !<!meta-light> green
+)");
+    // You can also Use ParserOptions to force resolution of tags
+    // while parsing:
+    ryml::ParserOptions opts = ryml::ParserOptions{}.resolve_tags(true);
+    ryml::Tree resolved_tree = ryml::parse_in_arena(ryml::to_csubstr(yaml), opts);
+    CHECK(ryml::emitrs_yaml<std::string>(resolved_tree) == R"(%TAG !m! !my-
 --- !<!my-light> fluorescent
 ...
 %TAG !m! !meta-

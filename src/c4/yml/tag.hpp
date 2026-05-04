@@ -1,7 +1,12 @@
 #ifndef _C4_YML_TAG_HPP_
 #define _C4_YML_TAG_HPP_
 
+#ifndef _C4_YML_COMMON_HPP_
 #include <c4/yml/common.hpp>
+#endif
+#ifndef _C4_YML_DETAIL_STACK_HPP_
+#include <c4/yml/detail/stack.hpp>
+#endif
 
 namespace c4 {
 namespace yml {
@@ -54,6 +59,47 @@ RYML_EXPORT csubstr normalize_tag_long(csubstr tag, substr output);
 /** is a tag of the form `!handle!tag`? */
 RYML_EXPORT bool is_custom_tag(csubstr tag);
 RYML_EXPORT bool is_valid_tag_handle(csubstr handle);
+
+
+//-----------------------------------------------------------------------------
+
+/** Accelerator structure to reduce memory requirements by enabling
+ * reuse of resolved tags. */
+struct RYML_EXPORT TagCache
+{
+    struct Entry
+    {
+        csubstr tag;
+        csubstr resolved;
+        id_type doc_id;
+    };
+    using Entries = detail::stack<Entry>;
+    using const_iterator = id_type;
+    struct LookupResult
+    {
+        csubstr resolved;
+        const_iterator pos;
+        operator bool() const noexcept { return resolved.len > 0; }
+    };
+
+public:
+
+    TagCache() noexcept : m_entries() {}
+    LookupResult find(csubstr tag, id_type doc_id, id_type linear_threshold=Entries::sso_size) const noexcept;
+    void add(csubstr tag, csubstr resolved, id_type doc_id, const_iterator pos) RYML_NOEXCEPT;
+
+    void clear() noexcept { m_entries.clear(); }
+
+public:
+
+    /** @cond dev */
+    Entries m_entries;
+    /** @endcond */
+
+};
+
+
+//-----------------------------------------------------------------------------
 
 struct RYML_EXPORT TagDirective
 {

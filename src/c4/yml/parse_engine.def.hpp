@@ -476,17 +476,35 @@ void ParseEngine<EventHandler>::_relocate_arena(csubstr prev_arena, substr next_
     }
     _ryml_relocate(m_evt_handler->m_src);
     for(size_t i = 0; i < m_pending_tags.num_entries; ++i)
-        _ryml_relocate(m_pending_tags.annotations[i].str); // LCOV_EXCL_LINE
-    for(size_t i = 0; i < m_pending_anchors.num_entries; ++i)
-        _ryml_relocate(m_pending_anchors.annotations[i].str); // LCOV_EXCL_LINE
-    TagDirectives &tds = m_evt_handler->tag_directives();
-    for(size_t i = 0, sz = tds.size(); i < sz; ++i)
     {
-        _ryml_relocate(tds.m_directives[i].handle); // LCOV_EXCL_LINE
-        _ryml_relocate(tds.m_directives[i].prefix); // LCOV_EXCL_LINE
+        _ryml_relocate(m_pending_tags.annotations[i].str);  // LCOV_EXCL_LINE
+        _ryml_relocate(m_pending_tags.annotations[i].orig); // LCOV_EXCL_LINE
+    }
+    for(size_t i = 0; i < m_pending_anchors.num_entries; ++i)
+    {
+        _ryml_relocate(m_pending_anchors.annotations[i].str);
+        _ryml_relocate(m_pending_anchors.annotations[i].orig);
+    }
+    {
+        TagDirectives &tds = m_evt_handler->tag_directives();
+        for(size_t i = 0, sz = tds.size(); i < sz; ++i)
+        {
+            _ryml_relocate(tds.m_directives[i].handle);
+            _ryml_relocate(tds.m_directives[i].prefix);
+        }
+    }
+    {
+        TagCache &tch = m_evt_handler->tag_cache();
+        for(id_type i = 0, sz = tch.m_entries.size(); i < sz; ++i)
+        {
+            _ryml_relocate(tch.m_entries[i].tag);
+            _ryml_relocate(tch.m_entries[i].resolved);
+        }
     }
     if(other)
-        _ryml_relocate(*other); // LCOV_EXCL_LINE
+    {
+        _ryml_relocate(*other);
+    }
     #undef _ryml_relocate
 }
 
@@ -4311,7 +4329,7 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line)
 {
-    _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, str.str ? str : csubstr("(arena full)"), indentation, line);
+    _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, _maybe_null_str(str), indentation, line);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
     if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
     {
@@ -4327,7 +4345,7 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line, csubstr orig)
 {
-    _c4dbgpf("store annotation[{}]: '{}'->'{}' indentation={} line={}", dst->num_entries, orig, str.str ? str : csubstr("(arena full)"), indentation, line);
+    _c4dbgpf("store annotation[{}]: '{}'->'{}' indentation={} line={}", dst->num_entries, orig, _maybe_null_str(str), indentation, line);
     _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
     if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
     {
@@ -4608,27 +4626,65 @@ template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_resolve_tag(csubstr tag)
 {
     _c4dbgpf("resolving tag: {} curr_doc={}", _prs(tag), m_evt_handler->m_curr_doc);
+    _c4assert(tag.is_sub(_buf()));
+    TagCache::LookupResult ret = m_evt_handler->tag_cache().find(tag, m_evt_handler->m_curr_doc);
+    if(ret)
+    {
+        _c4dbgpf("resolving tag: found in cache[{}]: {}", ret.pos, _prs(ret.resolved));
+        return ret.resolved;
+    }
+    _c4dbgpf("resolving tag: not in cache: {} curr_doc={}", _prs(tag), m_evt_handler->m_curr_doc);
     size_t bufsz = 0;
     substr buf = m_evt_handler->arena_rem();
     TagDirectives const& C4_RESTRICT tds = m_evt_handler->tag_directives();
     csubstr ttag = tds.resolve(buf, &bufsz, tag, m_evt_handler->m_curr_doc,
                                m_evt_handler->m_curr->pos,
                                m_evt_handler->m_stack.m_callbacks);
-    _c4dbgpf("resolving tag: bufsz={}", bufsz);
-    if(bufsz)
+    _c4dbgpf("resolving tag: bufsz={} ttag.len={} !!ttag.str={}", bufsz, ttag.len, !!ttag.str);
+    _c4assert((bufsz > buf.len) == (!ttag.str));
+    _c4assert(!!bufsz == (ttag.len == bufsz));
+    // try again if the arena size was not enough
+    if(!ttag.str)
     {
-        substr bufretry = _alloc_arena(bufsz, &tag);
-        if(C4_UNLIKELY(bufsz > buf.len))
+        _c4dbgpf("tag requires arena, but it was small. arena.len={} arena.slack={} tag.required={}", m_evt_handler->arena_rem().len, m_evt_handler->arena().len, ttag.len);
+        _c4assert(ttag.len == bufsz);
+        buf = _alloc_arena(bufsz, &tag);
+        if(buf.str) // the alloc may fail eg with the ints handler
         {
-            if(bufretry.str) // some handlers may be just counting the required arena size
-            {
-                ttag = tds.resolve(bufretry, &bufsz, tag, m_evt_handler->m_curr_doc,
-                                   m_evt_handler->m_curr->pos,
-                                   m_evt_handler->m_stack.m_callbacks);
-            }
+            ttag = tds.resolve(buf, &bufsz, tag, m_evt_handler->m_curr_doc,
+                               m_evt_handler->m_curr->pos,
+                               m_evt_handler->m_stack.m_callbacks);
+        }
+        _c4assert(ttag.len == bufsz);
+        _c4assert(!ttag.str || ttag.is_sub(m_evt_handler->arena()));
+    }
+    else if(bufsz) // if we succeeded writing into the arena, grow it as needed
+    {
+        _c4dbgp("tag required arena. update size");
+        _c4assert(ttag.len == bufsz);
+        _c4assert(ttag.is_sub(buf));
+        (void)_alloc_arena(bufsz);
+    }
+    C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4127) // conditional expression is constant
+    if C4_IF_CONSTEXPR (EventHandler::requires_strings_on_buffers) // NOLINT
+    {
+        _c4dbgpf("handler requires tags in buffers. !!ttag.str={} in_arena={} in_src={}", !!ttag.str, ttag.is_sub(m_evt_handler->arena()), ttag.is_sub(_buf()));
+        // is the resolved tag not in any of those buffers?
+        if(ttag.str && !ttag.is_sub(m_evt_handler->arena()) && !ttag.is_sub(_buf()))
+        {
+            _c4dbgpf("copying resolved tag to arena: slack={} required={}", m_evt_handler->arena_rem().len, ttag.len);
+            buf = _alloc_arena(ttag.len, &tag);
+            if(buf.str) // the alloc may fail eg with the ints handler
+                memcpy(buf.str, ttag.str, ttag.len);
+            ttag.str = buf.str; // keep the current len!
+            _c4assert(!ttag.str || ttag.is_sub(m_evt_handler->arena()));
         }
     }
-    _c4dbgpf("resolving tag: {} -->  {}", _prs(tag), _prs(ttag.str ? ttag : csubstr("(arena full)")));
+    C4_SUPPRESS_WARNING_MSVC_POP
+    _c4dbgpf("resolved tag: {} -->  [{}]~~~{}~~~", _prs(tag), ttag.len, _maybe_null_str(ttag));
+    _c4assert(ttag.len > 0);
+    // cache the hard-earned result!
+    m_evt_handler->tag_cache().add(tag, ttag, m_evt_handler->m_curr_doc, ret.pos);
     return ttag;
 }
 
@@ -8209,7 +8265,7 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
     {
         _c4dbgpf("there are {} pending annotations: {} anchors + {} tags", total, m_pending_anchors.num_entries, m_pending_tags.num_entries);
         auto valid_if_same_line = [this](EntryPtr entry){
-            _c4dbgpf("pending: {} indent={} line={} vs currline={}", entry->str, entry->indentation, entry->line, m_evt_handler->m_curr->pos.line);
+            _c4dbgpf("pending: {} indent={} line={} vs currline={}", _maybe_null_str(entry->str), entry->indentation, entry->line, m_evt_handler->m_curr->pos.line);
             return (entry->line == m_evt_handler->m_curr->pos.line) ? entry : nullptr;
         };
         // now select annotations only on the same line
@@ -8238,28 +8294,29 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
         // assign to first
         first = get_first_on_same_line(nullptr);
         _c4assert(first);
-        _c4dbgpf("first annotation: {} indent={} line={}", first->str, first->indentation, first->line);
+        _c4dbgpf("first annotation: {} indent={} line={}", _maybe_null_str(first->str), first->indentation, first->line);
         if(total > 1)
         {
             _c4assert(total == 2);
             // assign to second
             second = get_first_on_same_line(first);
             _c4assert(second);
-            _c4dbgpf("second annotation: {} indent={} line={}", second->str, second->indentation, second->line);
+            _c4dbgpf("second annotation: {} indent={} line={}", _maybe_null_str(second->str), second->indentation, second->line);
         }
         auto extract_string = [&](EntryPtr e){
-            if(e->str.begins_with_any("!<"))
+            // tags can be null when the arena ran out of space
+            if(!e->str.str || e->str.begins_with_any("!<"))
             {
                 csubstr tag = e->orig;
                 _c4assert(tag.str);
                 _c4assert(tag.len);
                 _c4assert(tag.is_sub(token_soup));
-                _c4dbgpf("tag: {} -> {}", e->str, tag);
+                _c4dbgpf("tag: {} -> {}", _maybe_null_str(e->str), tag);
                 return tag;
             }
             csubstr anchor = e->str;
-            _c4assert(anchor.str);
             _c4assert(anchor.len);
+            _c4assert(anchor.str);
             _c4assert(anchor.is_sub(token_soup));
             _c4assert(!anchor.begins_with('&'));
             _c4assert(anchor.str - token_soup.str > 0);

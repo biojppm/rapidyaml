@@ -37,6 +37,7 @@ struct EventHandlerTree : public EventHandlerStack<EventHandlerTree, EventHandle
      * @{ */
 
     using state = EventHandlerTreeState;
+    enum { requires_strings_on_buffers = false };
 
     /** @} */
 
@@ -45,6 +46,7 @@ public:
     /** @cond dev */
     Tree *C4_RESTRICT m_tree;
     id_type m_curr_doc;
+    TagCache m_tag_cache;
 
     #ifdef RYML_DBG
     #define _enable_(bits) _enable__<bits>(); _c4dbgpf("node[{}]: enable {}", m_curr->node_id, #bits)
@@ -91,11 +93,13 @@ public:
             _reset_parser_state(m_curr, id, id);
         }
         m_curr_doc = m_tree->ancestor_doc(id);
+        m_tag_cache.clear();
     }
 
     Callbacks const& callbacks() const { return m_stack.m_callbacks; }
 
     C4_ALWAYS_INLINE TagDirectives& tag_directives() { return m_tree->m_tag_directives; } // NOLINT(readability-make-member-function-const)
+    C4_ALWAYS_INLINE TagCache &tag_cache() { return m_tag_cache; }
 
     /** @} */
 

@@ -441,6 +441,7 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
 
     using value_type = ievt::DataType;
     using state = EventHandlerIntsState; // our internal state must inherit from parser state
+    enum { requires_strings_on_buffers = true };
 
     /** @} */
 
@@ -455,6 +456,7 @@ public:
     size_t m_arena_pos;
     id_type m_curr_doc;
     TagDirectives m_tag_directives;
+    TagCache m_tag_cache;
 
     // undefined at the end
     #define _enable_(bits) _enable__<bits>()
@@ -492,6 +494,7 @@ public:
         m_evt_prev = 0;
         m_curr_doc = 0;
         m_tag_directives.clear();
+        m_tag_cache.clear();
     }
 
     /** get the size needed for the event buffer from the previous parse
@@ -523,6 +526,7 @@ public:
     }
 
     C4_ALWAYS_INLINE TagDirectives &tag_directives() { return m_tag_directives; }
+    C4_ALWAYS_INLINE TagCache &tag_cache() { return m_tag_cache; }
 
     /** @} */
 
@@ -929,14 +933,16 @@ public:
     void set_key_tag(csubstr tag)
     {
         _c4dbgpf("{}/{}: set key tag [{}]~~~{}~~~", m_evt_pos, m_evt_size, tag.len, tag.str ? tag : csubstr("(arena full)"));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, _is_sub_(tag));
         _enable_(c4::yml::KEYTAG);
-        _send_tag_(tag, ievt::KEY_);
+        _send_str_(tag, ievt::KEY_|ievt::TAG_);
     }
     void set_val_tag(csubstr tag)
     {
         _c4dbgpf("{}/{}: set val tag [{}]~~~{}~~~", m_evt_pos, m_evt_size, tag.len, tag.str ? tag : csubstr("(arena full)"));
+        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, _is_sub_(tag));
         _enable_(c4::yml::VALTAG);
-        _send_tag_(tag, ievt::VAL_);
+        _send_str_(tag, ievt::VAL_|ievt::TAG_);
     }
 
     /** @} */
@@ -1201,19 +1207,6 @@ public:
         m_curr->evt_id = m_evt_pos;
         m_evt_prev = m_evt_pos;
         m_evt_pos += 3;
-    }
-
-    void _send_tag_(csubstr tag, ievt::EventFlags flags)
-    {
-        if(C4_UNLIKELY(!_is_sub_(tag)))
-        {
-            _c4dbgpf("{}/{}: tag not in src/arena. copying.", m_evt_pos, m_evt_size);
-            substr copy = alloc_arena(tag.len);
-            if(tag.len && copy.str)
-                memcpy(copy.str, tag.str, tag.len);
-            tag = copy;
-        }
-        _send_str_(tag, flags|ievt::TAG_);
     }
 
     void _mark_parent_with_children_()

@@ -13,6 +13,7 @@ This release focuses in compliance with the YAML standard, mostly by ensuring pa
    - `NodeType`: rename TAGD->TAGH and TAGV->TAGP
    - Internal changes to improve the design of event handlers, moving relocation and error checking logic to `ParseEngine`, where it is most suited.
    - Fix warnings with clang-tidy 22
+- Add `TagCache` accelerator structure (in `c4/yml/tag.hpp`), used by `Tree::resolve_tags()` and while parsing. This reduces significantly the arena requirements for heavily-tagged YAML by allowing reuse of resolved tags.
 
 
 ## YAML fixes: valid cases

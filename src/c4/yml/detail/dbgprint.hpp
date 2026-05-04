@@ -118,6 +118,24 @@ inline C4_NO_INLINE void __c4presc(const char *s, size_t len, bool keep_newlines
     __c4presc(csubstr(s, len), keep_newlines);
 }
 
+struct _maybe_null_str
+{
+    csubstr s;
+    _maybe_null_str(csubstr s_) noexcept : s(s_) {}
+};
+// LCOV_EXCL_START
+inline C4_NO_INLINE size_t to_chars(substr buf, _maybe_null_str const& v)
+{
+    return c4::format(buf, v.s.str ? v.s : csubstr("(out of size)"));
+}
+// LCOV_EXCL_STOP
+template<class SinkPfn>
+C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr /*buf*/, _maybe_null_str const& v)
+{
+    std::forward<SinkPfn>(sinkfn)(v.s.str ? v.s : csubstr("(out of size)"));
+    return 0; // no space needed in the buffer
+}
+
 /** print string as [{s.len}]~~~{s}~~~ */
 struct _prs
 {
@@ -205,6 +223,7 @@ C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr buf, _prs const& v)
     }
     return sz; // we require this space in the buffer
 }
+
 } // namespace yml
 } // namespace c4
 
