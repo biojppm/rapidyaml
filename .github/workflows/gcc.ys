@@ -29,7 +29,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   tabtokens:
-    :: setup-job('gcc' 'tabtokens')
+    :: setup-dependent-job('gcc' 'tabtokens')
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -42,7 +42,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   noexceptions:
-    :: setup-job('gcc' 'noexceptions')
+    :: setup-dependent-job('gcc' 'noexceptions')
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -55,7 +55,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   nocallbacks:
-    :: setup-job('gcc' 'nocallbacks')
+    :: setup-dependent-job('gcc' 'nocallbacks')
     name: nocallbacks/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -68,7 +68,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   dbg:
-    :: setup-job('gcc' 'dbg')
+    :: setup-dependent-job('gcc' 'dbg')
     name: dbg/${{matrix.name}}/${{matrix.gcc}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -118,7 +118,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   misbuild:
-    :: setup-job('gcc' 'misbuild')
+    :: setup-dependent-job('gcc' 'misbuild')
     name: misbuild#${{matrix.issue}}/gcc${{matrix.gcc}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -175,7 +175,7 @@ jobs:
 
   # split these two valgrind jobs to make them faster
   vg1:
-    :: setup-job('gcc' 'vg1')
+    :: setup-dependent-job('gcc' 'vg1')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -189,7 +189,7 @@ jobs:
     - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
     - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
   vg2:
-    :: setup-job('gcc' 'vg2')
+    :: setup-dependent-job('gcc' 'vg2')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -205,7 +205,7 @@ jobs:
   #----------------------------------------------------------------------------
   # without valgrind: older versions
   extended:
-    :: setup-job('gcc' 'extended')
+    :: setup-dependent-job('gcc' 'extended')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -248,7 +248,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   gccsan:
-    :: setup-job('gcc' 'gccsan')
+    :: setup-dependent-job('gcc' 'gccsan')
     name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('22.04')
     needs: canary
@@ -265,7 +265,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   arm:
-    :: setup-job('gcc' 'arm') + runs-on-docker-c4core('18.04')
+    :: setup-dependent-job('gcc' 'arm') + runs-on-docker-c4core('18.04')
     name: arm/c++${{matrix.std}}/${{matrix.bt}}
     needs: canary
     strategy:
@@ -303,7 +303,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   #analyzer:
-  #  :: setup-job('gcc' 'analyzer')
+  #  :: setup-dependent-job('gcc' 'analyzer')
   #  name: analyzer/${{matrix.bits}}bit/${{matrix.bt}}
   #  :: runs-on-docker-c4core('${{matrix.img}}')
   #  strategy:

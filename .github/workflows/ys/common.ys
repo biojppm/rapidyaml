@@ -53,6 +53,11 @@ defn setup-job(workflowname jobname)::
 
 
 #----------------------------------------------------------
+defn setup-dependent-job(workflowname jobname)::
+  continue-on-error: false
+
+
+#----------------------------------------------------------
 defn runs-on-docker-c4core(which)::
   runs-on: ubuntu-24.04
   container:: "ghcr.io/biojppm/c4core/ubuntu$which:latest"

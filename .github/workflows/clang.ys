@@ -21,7 +21,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   tabtokens:
-    :: setup-job('clang' 'tabtokens')
+    :: setup-dependent-job('clang' 'tabtokens')
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
     needs: canary
@@ -34,7 +34,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   noexceptions:
-    :: setup-job('clang' 'noexceptions')
+    :: setup-dependent-job('clang' 'noexceptions')
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
     needs: canary
@@ -48,7 +48,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   nocallbacks:
-    :: setup-job('clang' 'nocallbacks')
+    :: setup-dependent-job('clang' 'nocallbacks')
     name: nocallbacks/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     :: runs-on-docker-c4core('22.04')
     needs: canary
@@ -61,7 +61,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   extended:
-    :: setup-job('clang' 'extended')
+    :: setup-dependent-job('clang' 'extended')
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
     :: runs-on-docker-c4core('${{matrix.img}}')
     needs: canary
@@ -121,7 +121,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   clangsan:
-    :: setup-job('clang' 'clangsan')
+    :: setup-dependent-job('clang' 'clangsan')
     name: san/${{matrix.bt}}/c++${{matrix.std}}
     :: runs-on-docker-c4core('22.04')
     needs: canary

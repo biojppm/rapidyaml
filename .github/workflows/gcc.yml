@@ -167,7 +167,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   tabtokens:
-    if: always()
     continue-on-error: false
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
@@ -316,7 +315,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   noexceptions:
-    if: always()
     continue-on-error: false
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
@@ -465,7 +463,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   nocallbacks:
-    if: always()
     continue-on-error: false
     name: nocallbacks/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
@@ -614,7 +611,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   dbg:
-    if: always()
     continue-on-error: false
     name: dbg/${{matrix.name}}/${{matrix.gcc}}
     runs-on: ubuntu-24.04
@@ -717,7 +713,6 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build --target ryml-test-run
   misbuild:
-    if: always()
     continue-on-error: false
     name: misbuild#${{matrix.issue}}/gcc${{matrix.gcc}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
@@ -781,7 +776,6 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build --target ryml-test-run
   vg1:
-    if: always()
     continue-on-error: false
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
     runs-on: ubuntu-24.04
@@ -1006,7 +1000,6 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   vg2:
-    if: always()
     continue-on-error: false
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
     runs-on: ubuntu-24.04
@@ -1193,7 +1186,6 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   extended:
-    if: always()
     continue-on-error: false
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
     runs-on: ubuntu-24.04
@@ -1566,7 +1558,6 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   gccsan:
-    if: always()
     continue-on-error: false
     name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
@@ -1696,7 +1687,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   arm:
-    if: always()
     continue-on-error: false
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu18.04:latest

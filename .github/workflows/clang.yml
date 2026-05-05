@@ -93,7 +93,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   tabtokens:
-    if: always()
     continue-on-error: false
     name: tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
@@ -168,7 +167,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   noexceptions:
-    if: always()
     continue-on-error: false
     name: noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
@@ -243,7 +241,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   nocallbacks:
-    if: always()
     continue-on-error: false
     name: nocallbacks/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     runs-on: ubuntu-24.04
@@ -318,7 +315,6 @@ jobs:
     - name: shared32-pack
       run: source .github/setenv.sh && c4_package shared32
   extended:
-    if: always()
     continue-on-error: false
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg${{matrix.vg}}
     runs-on: ubuntu-24.04
@@ -764,7 +760,6 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
   clangsan:
-    if: always()
     continue-on-error: false
     name: san/${{matrix.bt}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
