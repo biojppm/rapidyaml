@@ -2140,6 +2140,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
     // a span to the end of the file, skipping the opening quote
     substr s = _buf().sub(m_evt_handler->m_curr->pos.offset + 1);
     _line_progressed(1); // advance over the opening quote
+    _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, !m_evt_handler->m_curr->at_line_beginning(), m_evt_handler->m_curr->pos);
 
     bool needs_filter = false;
     size_t pos = npos; // find the pos of the matching quote
@@ -2147,7 +2148,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
     {
         const csubstr line = m_evt_handler->m_curr->line_contents.rem;
         _c4dbgpf("scanning single quoted scalar @ line[{}]: {}", m_evt_handler->m_curr->pos.line, _prs(line));
-        if(C4_UNLIKELY(_is_doc_token(line)))
+        if(C4_UNLIKELY(m_evt_handler->m_curr->at_line_beginning() && _is_doc_token(line)))
             _c4err("token can not appear at line begin");
         for(size_t i = 0; i < line.len; ++i)
         {
@@ -2205,6 +2206,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
     // a span to the end of the file, skipping the opening quote
     substr s = _buf().sub(m_evt_handler->m_curr->pos.offset + 1);
     _line_progressed(1); // advance over the opening quote
+    _RYML_ASSERT_PARSE_(m_evt_handler->m_stack.m_callbacks, !m_evt_handler->m_curr->at_line_beginning(), m_evt_handler->m_curr->pos);
 
     bool needs_filter = false;
     size_t pos = npos; // find the pos of the matching quote
@@ -2215,7 +2217,7 @@ typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_sc
         #endif
         csubstr rem = m_evt_handler->m_curr->line_contents.rem;
         _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", m_evt_handler->m_curr->pos.line, rem);
-        if(C4_UNLIKELY(_is_doc_token(rem)))
+        if(C4_UNLIKELY(m_evt_handler->m_curr->at_line_beginning() && _is_doc_token(rem)))
             _c4err("token can not appear at line begin");
         for(size_t i = 0; i < rem.len; ++i)
         {

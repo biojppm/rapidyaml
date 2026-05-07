@@ -678,6 +678,126 @@ ENGINE_TEST_ERRLOC(DocErrQmrkSameLine0, Location(1, 5),
                    "    : b\n"
     )
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DocGithub597_0_squo, Location(2, 1),
+                   "'\n"
+                   "...\n"
+                   "'\n"
+    )
+ENGINE_TEST_ERRLOC(DocGithub597_0_dquo, Location(2, 1),
+                   "\"\n"
+                   "...\n"
+                   "\"\n"
+    )
+
+ENGINE_TEST(DocGithub597_1_dashes,
+            "test: --- t\n"
+            "test: '--- t\'\n"
+            "test: \"--- t\"\n"
+            "\"--- t\": \"--- t\"\n"
+            "'--- t': '--- t'\n"
+            ,
+            "test:   --- t\n"
+            "test: '--- t\'\n"
+            "test: \"--- t\"\n"
+            "\"--- t\": \"--- t\"\n"
+            "'--- t': '--- t'\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :test\n"
+            "=VAL :--- t\n"
+            "=VAL :test\n"
+            "=VAL '--- t\n"
+            "=VAL :test\n"
+            "=VAL \"--- t\n"
+            "=VAL \"--- t\n"
+            "=VAL \"--- t\n"
+            "=VAL '--- t\n"
+            "=VAL '--- t\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("test"));
+    ___(ps.set_val_scalar_plain("--- t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("test"));
+    ___(ps.set_val_scalar_squoted("--- t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("test"));
+    ___(ps.set_val_scalar_dquoted("--- t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_dquoted("--- t"));
+    ___(ps.set_val_scalar_dquoted("--- t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_squoted("--- t"));
+    ___(ps.set_val_scalar_squoted("--- t"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DocGithub597_2_ellipsis,
+            "test: ... t\n"
+            "test: '... t\'\n"
+            "test: \"... t\"\n"
+            "\"... t\": \"... t\"\n"
+            "'... t': '... t'\n"
+            ,
+            "test:   ... t\n"
+            "test: '... t\'\n"
+            "test: \"... t\"\n"
+            "\"... t\": \"... t\"\n"
+            "'... t': '... t'\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :test\n"
+            "=VAL :... t\n"
+            "=VAL :test\n"
+            "=VAL '... t\n"
+            "=VAL :test\n"
+            "=VAL \"... t\n"
+            "=VAL \"... t\n"
+            "=VAL \"... t\n"
+            "=VAL '... t\n"
+            "=VAL '... t\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("test"));
+    ___(ps.set_val_scalar_plain("... t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("test"));
+    ___(ps.set_val_scalar_squoted("... t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("test"));
+    ___(ps.set_val_scalar_dquoted("... t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_dquoted("... t"));
+    ___(ps.set_val_scalar_dquoted("... t"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_squoted("... t"));
+    ___(ps.set_val_scalar_squoted("... t"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 } // namespace yml
 } // namespace c4
 
