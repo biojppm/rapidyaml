@@ -1,0 +1,1 @@
+- Fix [#597](https://github.com/biojppm/rapidyaml/pull/597): parse error when quoted scalars start with `...` or `---` ([PR#598](https://github.com/biojppm/rapidyaml/pull/598)). This fixes a regression introduced in ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)), while trying to ensure a parse error when `...` or `---` occur in quoted scalars at a line begin.
