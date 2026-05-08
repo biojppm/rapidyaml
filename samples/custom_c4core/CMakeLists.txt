@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
 
-include(../../ext/c4core/cmake/c4Project.cmake)
 project(ryml-quickstart
     DESCRIPTION "Shows how to use a custom c4core version,
                  different from ryml's c4core submodule"
     LANGUAGES CXX)
+include(../../ext/c4core/cmake/c4Project.cmake)
 c4_project(VERSION 0.1.0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 

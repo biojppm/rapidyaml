@@ -74,23 +74,18 @@ void ryml_save_test_json(csubstr filename, csubstr src);
     } while(0)
 
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#   pragma warning(disable: 4702/*unreachable code*/)
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wtype-limits" // to remove a warning on an assertion that a size_t >= 0. Later on, this size_t will turn into a template argument, and then it can become < 0.
-#   pragma clang diagnostic ignored "-Wformat-nonliteral"
-#   pragma clang diagnostic ignored "-Wold-style-cast"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits" // to remove a warning on an assertion that a size_t >= 0. Later on, this size_t will turn into a template argument, and then it can become < 0.
-#   pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#   pragma GCC diagnostic ignored "-Wold-style-cast"
-#   if __GNUC__ >= 7
-#       pragma GCC diagnostic ignored "-Wduplicated-branches"
-#   endif
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_MSVC(4296) // expression is always 'boolean_value'
+C4_SUPPRESS_WARNING_MSVC(4702) // unreachable code
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wtype-limits") // to remove a warning on an assertion that a size_t >= 0. Later on, this size_t will turn into a template argument, and then it can become < 0.
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wformat-nonliteral")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+#if defined(__GNUC__) && (__GNUC__ >= 6)
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+#endif
+#if defined(__GNUC__) && (__GNUC__ >= 7)
+C4_SUPPRESS_WARNING_GCC("-Wduplicated-branches")
 #endif
 
 // NOLINTBEGIN(hicpp-signed-bitwise,cppcoreguidelines-avoid-goto,hicpp-avoid-goto,hicpp-multiway-paths-covered,modernize-avoid-c-style-cast)
@@ -8290,6 +8285,7 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
                 if(&m_pending_tags.annotations[i] != not_this_one
                    && m_pending_tags.annotations[i].line == m_evt_handler->m_curr->pos.line)
                     return &m_pending_tags.annotations[i];
+            C4_UNREACHABLE();
             return (EntryPtr)nullptr; // LCOV_EXCL_LINE
         };
         _c4assert(total >= 1);
@@ -8916,12 +8912,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
 #undef _c4assert
 #undef _c4err
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_MSVC_POP
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 #endif // _C4_YML_PARSE_ENGINE_DEF_HPP_

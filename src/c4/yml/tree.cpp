@@ -918,13 +918,11 @@ void Tree::set_root_as_stream()
 void Tree::remove_children(id_type node)
 {
     _RYML_ASSERT_VISIT_(m_callbacks, get(node) != nullptr, this, node);
-    #if __GNUC__ >= 6
-    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference")
+    C4_SUPPRESS_WARNING_GCC_PUSH
+    #if defined(__GNUC__) && __GNUC__ >= 6
+    C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
     #endif
     id_type ich = get(node)->m_first_child;
-    #if __GNUC__ >= 6
-    C4_SUPPRESS_WARNING_GCC_POP
-    #endif
     while(ich != NONE)
     {
         remove_children(ich);
@@ -935,6 +933,7 @@ void Tree::remove_children(id_type node)
             break;
         ich = next;
     }
+    C4_SUPPRESS_WARNING_GCC_POP
 }
 
 bool Tree::change_type(id_type node, NodeType type)

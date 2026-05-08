@@ -2217,21 +2217,26 @@ cars: GTO
             keys.emplace_back(n.key());
             vals.emplace_back(n.has_val() ? n.val() : ryml::csubstr{});
         }
-        CHECK(keys[0] == "doe");
-        CHECK(vals[0] == "a deer, a female deer");
-        CHECK(keys[1] == "ray");
-        CHECK(vals[1] == "a drop of golden sun");
-        CHECK(keys[2] == "pi");
-        CHECK(vals[2] == "3.14159");
-        CHECK(keys[3] == "xmas");
-        CHECK(vals[3] == "true");
-        CHECK(root[5].has_key());
-        CHECK(root[5].is_seq());
-        CHECK(root[5].key() == "calling-birds");
-        CHECK(!root[5].has_val()); // it is a map, so not a val
-        //CHECK(root[5].val() == ""); // ERROR! node does not have a val.
-        CHECK(keys[5] == "calling-birds");
-        CHECK(vals[5] == "");
+        CHECK(keys.size() >= 6);
+        CHECK(vals.size() >= 6);
+        if(keys.size() >= 6 && vals.size() >= 6)
+        {
+            CHECK(keys[0] == "doe");
+            CHECK(vals[0] == "a deer, a female deer");
+            CHECK(keys[1] == "ray");
+            CHECK(vals[1] == "a drop of golden sun");
+            CHECK(keys[2] == "pi");
+            CHECK(vals[2] == "3.14159");
+            CHECK(keys[3] == "xmas");
+            CHECK(vals[3] == "true");
+            CHECK(root[5].has_key());
+            CHECK(root[5].is_seq());
+            CHECK(root[5].key() == "calling-birds");
+            CHECK(!root[5].has_val()); // it is a map, so not a val
+            //CHECK(root[5].val() == ""); // ERROR! node does not have a val.
+            CHECK(keys[5] == "calling-birds");
+            CHECK(vals[5] == "");
+        }
     }
 
     // iterate siblings
