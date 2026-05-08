@@ -9,7 +9,13 @@
 #include "c4/yml/event_handler_stack.hpp"
 #endif
 
-C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702) // unreachable code
+C4_SUPPRESS_WARNING_GCC_PUSH
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_MSVC(4702) // unreachable code
+#if defined(__GNUC__) && __GNUC__ >= 6
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+#endif
+
 // NOLINTBEGIN(hicpp-signed-bitwise)
 
 namespace c4 {
@@ -778,5 +784,6 @@ public:
 
 // NOLINTEND(hicpp-signed-bitwise)
 C4_SUPPRESS_WARNING_MSVC_POP
+C4_SUPPRESS_WARNING_GCC_POP
 
 #endif /* _C4_YML_EVENT_HANDLER_TREE_HPP_ */
