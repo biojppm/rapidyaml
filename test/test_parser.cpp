@@ -905,6 +905,14 @@ protected:
         keyseq.append_child() << "example";
     }
 
+    void check_tree(Tree const& actual)
+    {
+        // armv4/armv5 -O3 builds were assuming the arena had its
+        // original size (0). prevent it this way:
+        csubstr expected_arena = actual.arena();
+        C4_DONT_OPTIMIZE(expected_arena);
+        check_tree(actual, expected_arena);
+    }
     void check_tree(Tree const& actual, csubstr expected_arena)
     {
         ASSERT_TRUE(actual.rootref().is_map());
@@ -1040,45 +1048,61 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_1_1)
 {
     const Tree actual = parse_in_arena(cyaml);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_1_2)
 {
     const Tree actual = parse_in_arena(filename, cyaml);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_2_1)
 {
     Tree actual;
     parse_in_arena(cyaml, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_2_2)
 {
     Tree actual;
     parse_in_arena(filename, cyaml, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_3_1)
 {
     Tree actual;
     parse_in_arena(cyaml, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_3_2)
 {
     Tree actual;
     parse_in_arena(filename, cyaml, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 // workaround for optimizer problem in armv4 and armv5 with -O3: when
-// the calling the parser overloads that take a NodeRef, the compiler
-// optimizes the tree away
+// calling the parser overloads that take a NodeRef, the compiler
+// optimizes the tree away, assuming it did not change.
 static C4_NO_INLINE void ensure_compiler_knows_tree_was_changed(Tree *t)
 {
     C4_DONT_OPTIMIZE(*t);
@@ -1090,7 +1114,11 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_1)
     parse_in_arena(cyaml, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_2)
 {
@@ -1098,7 +1126,11 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_2)
     parse_in_arena(filename, cyaml, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 
 TEST_F(ParseOverloadYamlTest, in_arena_parser_1_1)
