@@ -146,6 +146,8 @@ C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT, std::nullptr_t /
 
 /** @cond dev */
 
+struct LocationResolver;
+
 template<class T> void write(Tree * tree, id_type id, T const& v);
 template<class T> void write_key(Tree *, id_type id, T const& v);
 
@@ -508,10 +510,10 @@ public:
     C4_ALWAYS_INLINE bool val_is_null(id_type node) const { RYML_ASSERT_VISIT_CB_(m_callbacks, has_val(node), this, node); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && (n->m_type.val_is_null() || scalar_is_null(n->m_val.scalar)); }
 
     /// true if the key was a scalar requiring filtering and was left
-    /// unfiltered during the parsing (see ParserOptions)
+    /// unfiltered during the parsing (see @ref ParserOptions)
     C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
     /// true if the val was a scalar requiring filtering and was left
-    /// unfiltered during the parsing (see ParserOptions)
+    /// unfiltered during the parsing (see @ref ParserOptions)
     C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
 
     RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
@@ -1291,12 +1293,12 @@ public:
     /** @{ */
 
     /** Get the location of a node from the parse used to parse this tree. */
-    Location location(Parser const& p, id_type node) const;
+    Location location(LocationResolver const& p, id_type node) const;
 
 private:
 
-    bool _location_from_node(Parser const& p, id_type node, Location *C4_RESTRICT loc, id_type level) const;
-    bool _location_from_cont(Parser const& p, id_type node, Location *C4_RESTRICT loc) const;
+    bool _location_from_node(LocationResolver const& p, id_type node, Location *C4_RESTRICT loc, id_type level) const;
+    bool _location_from_cont(LocationResolver const& p, id_type node, Location *C4_RESTRICT loc) const;
 
     /** @} */
 

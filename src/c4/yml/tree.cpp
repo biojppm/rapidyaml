@@ -7,8 +7,11 @@
 #ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
 #endif
-#ifndef C4_YML_REFERENCE_RESOLVERS_HPP_
+#ifndef C4_YML_REFERENCE_RESOLVER_HPP_
 #include "c4/yml/reference_resolver.hpp"
+#endif
+#ifndef C4_YML_LOCATION_RESOLVER_HPP_
+#include "c4/yml/location_resolver.hpp"
 #endif
 
 
@@ -1889,37 +1892,16 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 }
 
 
-} // namespace yml
-} // namespace c4
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-#ifndef C4_YML_EVENT_HANDLER_TREE_HPP_
-#include "c4/yml/event_handler_tree.hpp"
-#endif
-#ifndef C4_YML_PARSE_ENGINE_DEF_HPP_
-#include "c4/yml/parse_engine.def.hpp"
-#endif
-#ifndef C4_YML_PARSE_HPP_
-#include "c4/yml/parse.hpp"
-#endif
-
-namespace c4 {
-namespace yml {
-
-Location Tree::location(Parser const& parser, id_type node) const
+Location Tree::location(LocationResolver const& resolver, id_type node) const
 {
     // try hard to avoid getting the location from a null string.
     Location loc;
-    if(_location_from_node(parser, node, &loc, 0))
+    if(_location_from_node(resolver, node, &loc, 0))
         return loc;
-    return parser.val_location(parser.source().str);
+    return resolver.val_location(resolver.m_src.str);
 }
 
-bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_RESTRICT loc, id_type level) const
+bool Tree::_location_from_node(LocationResolver const& resolver, id_type node, Location *C4_RESTRICT loc, id_type level) const
 {
     NodeType ty = type(node);
     if(ty.has_key())
@@ -1927,9 +1909,9 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
         csubstr k = key(node);
         if C4_LIKELY(k.str != nullptr)
         {
-            RYML_ASSERT_BASIC_CB_(m_callbacks, k.is_sub(parser.source()));
-            RYML_ASSERT_BASIC_CB_(m_callbacks, parser.source().is_super(k));
-            *loc = parser.val_location(k.str);
+            RYML_ASSERT_BASIC_CB_(m_callbacks, k.is_sub(resolver.m_src));
+            RYML_ASSERT_BASIC_CB_(m_callbacks, resolver.m_src.is_super(k));
+            *loc = resolver.val_location(k.str);
             return true;
         }
     }
@@ -1939,16 +1921,16 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
         csubstr v = val(node);
         if C4_LIKELY(v.str != nullptr)
         {
-            RYML_ASSERT_BASIC_CB_(m_callbacks, v.is_sub(parser.source()));
-            RYML_ASSERT_BASIC_CB_(m_callbacks, parser.source().is_super(v));
-            *loc = parser.val_location(v.str);
+            RYML_ASSERT_BASIC_CB_(m_callbacks, v.is_sub(resolver.m_src));
+            RYML_ASSERT_BASIC_CB_(m_callbacks, resolver.m_src.is_super(v));
+            *loc = resolver.val_location(v.str);
             return true;
         }
     }
 
     if(ty.is_container())
     {
-        if(_location_from_cont(parser, node, loc))
+        if(_location_from_cont(resolver, node, loc))
             return true;
     }
 
@@ -1959,7 +1941,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
             const id_type prev = prev_sibling(node);
             if(prev != NONE)
             {
-                if(_location_from_node(parser, prev, loc, level+1))
+                if(_location_from_node(resolver, prev, loc, level+1))
                     return true;
             }
         }
@@ -1968,7 +1950,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
             const id_type next = next_sibling(node);
             if(next != NONE)
             {
-                if(_location_from_node(parser, next, loc, level+1))
+                if(_location_from_node(resolver, next, loc, level+1))
                     return true;
             }
         }
@@ -1977,7 +1959,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
             const id_type parent = this->parent(node);
             if(parent != NONE)
             {
-                if(_location_from_node(parser, parent, loc, level+1))
+                if(_location_from_node(resolver, parent, loc, level+1))
                     return true;
             }
         }
@@ -1985,7 +1967,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
     return false;
 }
 
-bool Tree::_location_from_cont(Parser const& parser, id_type node, Location *C4_RESTRICT loc) const
+bool Tree::_location_from_cont(LocationResolver const& parser, id_type node, Location *C4_RESTRICT loc) const
 {
     RYML_ASSERT_BASIC_CB_(m_callbacks, type(node).is_container());
     if(!type(node).is_stream())
@@ -2007,7 +1989,7 @@ bool Tree::_location_from_cont(Parser const& parser, id_type node, Location *C4_
     }
     else // it's a stream
     {
-        *loc = parser.val_location(parser.source().str); // just return the front of the buffer
+        *loc = parser.val_location(parser.m_src.str); // just return the front of the buffer
     }
     return true;
 }
