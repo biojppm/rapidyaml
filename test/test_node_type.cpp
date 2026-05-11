@@ -732,7 +732,7 @@ TEST_P(TestScalarStyle, choose_flow)
     NodeType actual = scalar_style_choose_flow(p.scalar);
     NodeType expected = p.style_flow.type;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
-    EXPECT_EQ(actual, expected);
+    RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }
 
 TEST_P(TestScalarStyle, choose_block)
@@ -741,7 +741,7 @@ TEST_P(TestScalarStyle, choose_block)
     NodeType actual = scalar_style_choose_block(p.scalar);
     NodeType expected = p.style_block.type;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
-    EXPECT_EQ(actual, expected);
+    RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }
 
 TEST_P(TestScalarStyle, choose_json)
@@ -750,7 +750,114 @@ TEST_P(TestScalarStyle, choose_json)
     NodeType actual = scalar_style_json_choose(p.scalar);
     NodeType expected = p.style_json.type;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
-    EXPECT_EQ(actual, expected);
+    RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
+}
+
+
+//-----------------------------------------------------------------------------
+
+void test_scalar_roundtrip_on_seq(csubstr scalar, NodeType seq_style, NodeType expected_style)
+{
+    if(!scalar.str)
+        return;
+    Tree t;
+    NodeRef r = t.rootref();
+    r |= SEQ|seq_style;
+    for(size_t i = 0; i < 4; ++i)
+    {
+        r.append_child() = scalar;
+        EXPECT_FALSE(r.type().is_val_styled()); // no style is set
+    }
+    std::string emitted = emitrs_yaml<std::string>(t);
+    const Tree parsed = parse_in_arena(to_csubstr(emitted));
+    for(ConstNodeRef ch : parsed.rootref().children())
+    {
+        EXPECT_EQ(ch.val(), scalar);
+        EXPECT_TRUE(ch.type().is_val_styled()); // style is set on the roundtrip
+        NodeType actual_style = ch.type() & expected_style;
+        RYML_COMPARE_NODE_TYPE(expected_style, actual_style, ==, EQ);
+    }
+    if(testing::Test::HasFailure())
+    {
+        printf("emitted=~~~\n%s\n~~~\n", emitted.c_str());
+        print_tree("orig", t);
+        print_tree("roundtrip", parsed);
+    }
+}
+
+void test_scalar_roundtrip_on_map(csubstr scalar, NodeType map_style, NodeType expected_style_key, NodeType expected_style_val)
+{
+    if(!scalar.str)
+        return;
+    Tree t;
+    NodeRef r = t.rootref();
+    r |= MAP|map_style;
+    NodeRef vals = r["vals"];
+    NodeRef keys = r["keys"];
+    vals |= MAP|map_style;
+    keys |= MAP|map_style;
+    csubstr names[] = {"0", "1", "2", "3"};
+    for(csubstr name : names)
+    {
+        NodeRef k = keys.append_child();
+        NodeRef v = vals.append_child();
+        k.set_key(scalar);
+        v.set_key(name);
+        k.set_val(name);
+        v.set_val(scalar);
+        EXPECT_FALSE(k.type().is_key_styled()); // no style is set
+        EXPECT_FALSE(v.type().is_val_styled()); // no style is set
+    }
+    std::string emitted = emitrs_yaml<std::string>(t);
+    const Tree parsed = parse_in_arena(to_csubstr(emitted));
+    for(ConstNodeRef ch : parsed["keys"].children())
+    {
+        EXPECT_EQ(ch.key(), scalar);
+        EXPECT_TRUE(ch.type().is_key_styled()); // style is set on the roundtrip
+        NodeType actual_style = ch.type() & expected_style_key;
+        RYML_COMPARE_NODE_TYPE(expected_style_key, actual_style, ==, EQ);
+    }
+    for(ConstNodeRef ch : parsed["vals"].children())
+    {
+        EXPECT_EQ(ch.val(), scalar);
+        EXPECT_TRUE(ch.type().is_val_styled()); // style is set on the roundtrip
+        NodeType actual_style = ch.type() & expected_style_val;
+        RYML_COMPARE_NODE_TYPE(expected_style_val, actual_style, ==, EQ);
+    }
+    if(testing::Test::HasFailure())
+    {
+        printf("emitted=~~~\n%s\n~~~\n", emitted.c_str());
+        print_tree("orig", t);
+        print_tree("roundtrip", parsed);
+    }
+}
+
+TEST_P(TestScalarStyle, roundtrip_flow_seq)
+{
+    scalar_style_spec const& p = GetParam();
+    test_scalar_roundtrip_on_seq(p.scalar, FLOW_ML, p.style_flow & VAL_STYLE);
+}
+
+TEST_P(TestScalarStyle, roundtrip_block_seq)
+{
+    scalar_style_spec const& p = GetParam();
+    test_scalar_roundtrip_on_seq(p.scalar, BLOCK, p.style_block & VAL_STYLE);
+}
+
+TEST_P(TestScalarStyle, roundtrip_flow_map)
+{
+    scalar_style_spec const& p = GetParam();
+    test_scalar_roundtrip_on_map(p.scalar, FLOW_ML,
+                                 p.style_flow & KEY_STYLE,
+                                 p.style_flow & VAL_STYLE);
+}
+
+TEST_P(TestScalarStyle, roundtrip_block_map)
+{
+    scalar_style_spec const& p = GetParam();
+    test_scalar_roundtrip_on_map(p.scalar, BLOCK,
+                                 p.style_block & KEY_STYLE,
+                                 p.style_block & VAL_STYLE);
 }
 
 C4_SUPPRESS_WARNING_GCC_CLANG_POP

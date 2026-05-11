@@ -61,17 +61,21 @@
             char rtypebuf[256];                                         \
             csubstr ltype = NodeType::type_str_sub(ltypebuf, (NodeType_e)lhs); \
             csubstr rtype = NodeType::type_str_sub(rtypebuf, (NodeType_e)rhs); \
+            EXPECT_##testop(lhs, rhs);                                  \
+            std::cout << __FILE__  << ":" << __LINE__ << ": ...\n";     \
             if(ltype.str && rtype.str)                                  \
             {                                                           \
-                EXPECT_##testop(lhs, rhs)                               \
-                    << "  " << ltype.str << " (" << (lhs)  << ")" << "=" << #lhs \
+                std::cout                                               \
+                    << "  " << ltype << " (" << (lhs)  << ")" << "=" << #lhs \
                     << "\n"                                             \
-                    << "  " << rtype.str << " (" << (rhs)  << ")" << "=" << #rhs; \
+                    << "  " << rtype << " (" << (rhs)  << ")" << "=" << #rhs \
+                    << "\n";                                            \
             }                                                           \
             else                                                        \
             {                                                           \
-                EXPECT_##testop(lhs, rhs)                               \
-                    << "(type too large to fit print buffer)";          \
+                std::cout                                               \
+                    << "(type too large to fit print buffer)"           \
+                    << "\n";                                            \
             }                                                           \
         }                                                               \
     } while(0)
