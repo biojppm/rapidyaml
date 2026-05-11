@@ -79,24 +79,23 @@ TEST(NodeType, type_str)
 {
     {
         char bufsmall[2];
-        EXPECT_EQ(NodeType().type_str(bufsmall).len, 1 + 6); // NOTYPE
-        EXPECT_EQ(NodeType().type_str(bufsmall).str, nullptr); // NOTYPE
-        EXPECT_EQ(NodeType(VAL).type_str(bufsmall).len, 1 + 3);
-        EXPECT_EQ(NodeType(VAL).type_str(bufsmall).str, nullptr);
-        EXPECT_EQ(NodeType(KEYVAL).type_str(bufsmall).len, 1 + 7);
-        EXPECT_EQ(NodeType(KEYVAL|KEYANCH|VALANCH).type_str(bufsmall).len, 1 + 19);
-        EXPECT_EQ(NodeType(KEYVAL|KEYANCH|VALANCH).type_str(bufsmall).str, nullptr);
+        EXPECT_EQ(NodeType().type_str_sub(bufsmall).len, 6); // NOTYPE
+        EXPECT_EQ(NodeType().type_str_sub(bufsmall).str, nullptr); // NOTYPE
+        EXPECT_EQ(NodeType(VAL).type_str_sub(bufsmall).len, 3);
+        EXPECT_EQ(NodeType(VAL).type_str_sub(bufsmall).str, nullptr);
+        EXPECT_EQ(NodeType(KEYVAL).type_str_sub(bufsmall).len, 7);
+        EXPECT_EQ(NodeType(KEYVAL|KEYANCH|VALANCH).type_str_sub(bufsmall).len, 19);
+        EXPECT_EQ(NodeType(KEYVAL|KEYANCH|VALANCH).type_str_sub(bufsmall).str, nullptr);
     }
 #define teststr(bits, str)                                        \
     {                                                             \
         char buf[128] = {0};                                      \
         memset(buf, 1, sizeof(buf));                              \
         csubstr expected = str;                                   \
-        csubstr actual = NodeType(bits).type_str(buf);            \
-        ASSERT_LT(actual.len + 1, C4_COUNTOF(buf));               \
+        csubstr actual = NodeType(bits).type_str_sub(buf);        \
+        ASSERT_LT(actual.len, C4_COUNTOF(buf));                   \
         EXPECT_EQ(actual, expected);                              \
-        EXPECT_EQ(NodeType(bits).type_str(buf), expected);        \
-        EXPECT_EQ(buf[expected.len], '\0');                       \
+        EXPECT_EQ(NodeType(bits).type_str_sub(buf), expected);    \
     }
     teststr(0, "NOTYPE")
     teststr(NOTYPE, "NOTYPE")
@@ -473,6 +472,288 @@ TEST(NodeType, is_quoted)
     EXPECT_TRUE(NodeType(KEY|VALQUO).is_quoted());
     EXPECT_TRUE(NodeType(VAL|KEYQUO).is_quoted());
 }
+
+
+//-----------------------------------------------------------------------------
+
+namespace {
+struct scalar_style_spec
+{
+    csubstr scalar;
+    NodeType style_flow;
+    NodeType style_block;
+    NodeType style_json;
+    int elm;
+    int line;
+    int entry;
+};
+csubstr mknullstr() { csubstr s; s.str = nullptr; s.len = 0; return s; }
+const csubstr zerolen("", size_t(0));
+
+const NodeType P = SCALAR_PLAIN;
+const NodeType S = SCALAR_SQUO;
+const NodeType D = SCALAR_DQUO;
+int elmcount = 0;
+int entrycount = 0;
+const scalar_style_spec scalars[] = {
+    #define _(s, flow, block, json) scalar_style_spec{csubstr(s), flow, block, json, elmcount++, __LINE__, entrycount++}
+    #define __(s, flow, block, json) scalar_style_spec{csubstr(s), flow, block, json, elmcount++, __LINE__, (entrycount = 0, entrycount++)}
+    #define ___(s, flow, block, json) scalar_style_spec{s, flow, block, json, elmcount++, __LINE__, entrycount++}
+    // special
+    ___(mknullstr(), P, P, D),
+    ___(zerolen, S, S, D),
+    // regular scalar
+    __("foo", P, P, D),
+    __("foo", P, P, D),
+    __("bar", P, P, D),
+    __("foo space", P, P, D),
+    __("bar space", P, P, D),
+    // whitespace
+    __(" ", S, S, D),
+    __("\t", S, S, D),
+    __("\n", S, S, D),
+    // numbers
+    __("0", P, P, P), _("00", P, P, D), _("000", P, P, D),
+    __("1", P, P, P), _("01", P, P, D), _("001", P, P, D),
+    __("10", P, P, P), _("010", P, P, D), _("0010", P, P, D),
+    __("0.1", P, P, P), _("-0.1", P, P, P), _("+0.1", P, P, P),
+    __(".1", P, P, P), _("-.1", P, P, P), _("+.1", P, P, P),
+    __("01", P, P, D),  _("0x1", P, P, D), _("0o1", P, P, D), _("0b1", P, P, D), _("0x1", P, P, D), _("0o1", P, P, D), _("0b1", P, P, D),
+    __("01", P, P, D),  _("0X1", P, P, D), _("0O1", P, P, D), _("0B1", P, P, D), _("0X1", P, P, D), _("0O1", P, P, D), _("0B1", P, P, D),
+    __("-01", P, P, P), _("-0x1", P, P, P), _("-0o1", P, P, P), _("-0b1", P, P, P), _("-0x1", P, P, P), _("-0o1", P, P, P), _("-0b1", P, P, P),
+    __("-01", P, P, P), _("-0X1", P, P, P), _("-0O1", P, P, P), _("-0B1", P, P, P), _("-0X1", P, P, P), _("-0O1", P, P, P), _("-0B1", P, P, P),
+    __("+01", P, P, P), _("+0x1", P, P, P), _("+0o1", P, P, P), _("+0b1", P, P, P), _("+0x1", P, P, P), _("+0o1", P, P, P), _("+0b1", P, P, P),
+    __("+01", P, P, P), _("+0X1", P, P, P), _("+0O1", P, P, P), _("+0B1", P, P, P), _("+0X1", P, P, P), _("+0O1", P, P, P), _("+0B1", P, P, P),
+    __("2.35e-10", P, P, P),
+    __("-2.35e-10", P, P, P),
+    __("+2.35e-10", P, P, P),
+    __("0.034", P, P, P),
+    __("0.034", P, P, P),
+    __("-0.034", P, P, P),
+    __("-0.034", P, P, P),
+    __("+0.034", P, P, P),
+    __("+0.034", P, P, P),
+    __(".034x", P, P, D),
+    __("-.0123", P, P, P),
+    __("+.0123", P, P, P),
+    __("-.034x", P, P, D),
+    __("+.034x", P, P, D),
+    // inf
+    __(".inf", P, P, P), _(".INF", P, P, P), _(".Inf", P, P, P),
+    __("-.inf", P, P, P), _("-.INF", P, P, P), _("-.Inf", P, P, P),
+    __("+.inf", P, P, P), _("+.INF", P, P, P), _("+.Inf", P, P, P),
+    __(".infnot", P, P, D), _(".INFnot", P, P, D), _(".Infnot", P, P, D),
+    __("-.infnot", P, P, D), _("-.INFnot", P, P, D), _("-.Infnot", P, P, D),
+    __("+.infnot", P, P, D), _("+.INFnot", P, P, D), _("+.Infnot", P, P, D),
+    // nan
+    __(".nan", P, P, P), _(".NAN", P, P, P), _(".Nan", P, P, P), _(".NaN", P, P, P),
+    __("-.nan", P, P, D), _("-.NAN", P, P, D), _("-.Nan", P, P, D), _("-.NaN", P, P, D),
+    __("+.nan", P, P, D), _("+.NAN", P, P, D), _("+.Nan", P, P, D), _("+.NaN", P, P, D),
+    __(".nannot", P, P, D), _(".NANnot", P, P, D), _(".Nannot", P, P, D),
+    // bool
+    __("true", P, P, P),
+    __("false", P, P, P),
+    __("True", P, P, D),
+    __("False", P, P, D),
+    // dubious
+    __("+.notinf", P, P, D), _("+.:", S, S, D),
+    __("-.notinf", P, P, D), _("-:", S, S, D),
+    __(":", S, S, D), _(": ", S, S, D), _(":\t", S, S, D),
+    __("-", S, S, D), _("- ", S, S, D), _("-\t", S, S, D),
+    __("?", S, S, D), _("? ", S, S, D), _("?\t", S, S, D),
+    __(":a", P, P, D), _(":ab", P, P, D), _(":a b", P, P, D), _(":a\tb", P, P, D),
+    __("-a", P, P, D), _("-ab", P, P, D), _("-a b", P, P, D), _("-a\tb", P, P, D),
+    __("?a", P, P, D), _("?ab", P, P, D), _("?a b", P, P, D), _("?a\tb", P, P, D),
+    __(":a,", S, P, D), _(":ab,", S, P, D), _(":a\tb,", S, P, D),
+    __("-a,", S, P, D), _("-ab,", S, P, D), _("-a\tb,", S, P, D),
+    __("?a,", S, P, D), _("?ab,", S, P, D), _("?a\tb,", S, P, D),
+    __("b[c]d", S, P, D), _("b{c}d", S, P, D), _("b,c,d", S, P, D),
+    __("(0,1)", S, P, D), _("-0,1", S, P, D),
+    __("::", S, S, D), _(":: ", S, S, D), _("::\t", S, S, D),
+    __("--", P, P, D), _("-- ", S, S, D), _("--\t", S, S, D),
+    __("??", P, P, D), _("?? ", S, S, D), _("??\t", S, S, D),
+    // tags
+    __("!!str", S, S, D),
+    __("!str", S, S, D),
+    __("!<!foo>", S, S, D),
+    __("<!foo>", P, P, D),
+    __("<!foo> scalar", P, P, D),
+    // anchors
+    __("&notanchor", S, S, D),
+    // invalid characters at beginning
+    __("%invalidplain", S, S, D), _("but%validplain", P, P, D),
+    __("`invalidplain", S, S, D), _("but`validplain", P, P, D),
+    __("#invalidplain", S, S, D), _("but#validplain", P, P, D),
+    __(",invalidplain", S, S, D), _("but,validplain", S, P, D),
+    __("- invalidplain", S, S, D), _("but- validplain", P, P, D),
+    __(": invalidplain", S, S, D), _("also: invalidplain", S, S, D),
+    __("? invalidplain", S, S, D), _("but? invalidplain", P, P, D),
+    __("# invalidplain", S, S, D), _("also# invalidplain", S, S, D),
+};
+std::string namefor(scalar_style_spec const& param)
+{
+    return c4::formatrs<std::string>("elm{}__line{}__entry{}",
+                                     fmt::zpad(param.elm, 3),
+                                     fmt::zpad(param.line, 3),
+                                     param.entry);
+}
+template<class T>
+std::string namefor(testing::TestParamInfo<T> const& pinfo)
+{
+    return namefor(pinfo.param);
+}
+
+struct TestScalarStyle : public testing::TestWithParam<scalar_style_spec> {};
+
+INSTANTIATE_TEST_SUITE_P(_, TestScalarStyle, testing::ValuesIn(scalars), namefor<scalar_style_spec>);
+
+struct showtype_ { NodeType ty; };
+showtype_ showtype(NodeType ty) { return {ty}; }
+size_t to_chars(substr buf, showtype_ s)
+{
+    size_t pos = s.ty.type_str(buf);
+    buf = buf.sub(pos < buf.len ? pos : buf.len);
+    pos += format(buf, "({})", s.ty.type);
+    return pos;
+}
+
+const csubstr plain_flow_invalid_at_beginning[] = {
+    csubstr(" "), csubstr("\t"), csubstr("\r"), csubstr("\n"),
+    csubstr("!"), csubstr("&"), csubstr("*"), csubstr(","),
+    csubstr("\""), csubstr("'"), csubstr("{"), csubstr("}"),
+};
+const csubstr plain_flow_invalid_in_bulk[] = {
+    csubstr(": "), csubstr(":\t"),
+    csubstr("# "), csubstr("#\t"),
+};
+const csubstr plain_flow_invalid_at_end[] = {
+    csubstr(" "), csubstr("\t"), csubstr("\r"), csubstr("\n"),
+    csubstr(","), csubstr("{"), csubstr("}"), csubstr("["), csubstr("]"),
+    csubstr("# "), csubstr("#\t"), csubstr("#"),
+    csubstr(": "), csubstr(":\t"), csubstr(":"),
+};
+
+const csubstr plain_block_invalid_at_beginning[] = {
+    csubstr(" "), csubstr("\t"), csubstr("\r"), csubstr("\n"),
+    csubstr("!"), csubstr("&"), csubstr("*"), csubstr(","),
+    csubstr("\""), csubstr("'"), csubstr("{"), csubstr("}"),
+};
+const csubstr plain_block_invalid_in_bulk[] = {
+    csubstr(": "), csubstr(":\t"),
+    csubstr("# "), csubstr("#\t"),
+};
+const csubstr plain_block_invalid_at_end[] = {
+    csubstr(" "), csubstr("\t"), csubstr("\r"), csubstr("\n"),
+    csubstr("# "), csubstr("#\t"), csubstr("#"),
+    csubstr(": "), csubstr(":\t"), csubstr(":"),
+};
+
+#define SHOWPARAM(p, fmt, ...)                                      \
+    RYML_TRACE_FMT("test\n"                                         \
+                   "{}:{}: scalar=[{}]~~~{}~~~\n"                   \
+                   "{}:{}: " fmt,                                   \
+                   __FILE__, (p).line, (p).scalar.len, (p).scalar,  \
+                   __FILE__, (p).line, __VA_ARGS__)
+
+} // namespace
+
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+
+TEST_P(TestScalarStyle, query_plain_flow)
+{
+    scalar_style_spec const& p = GetParam();
+    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.type));
+    EXPECT_EQ(scalar_style_query_plain_flow(p.scalar), p.style_flow == P);
+    EXPECT_EQ(scalar_style_query_plain(p.scalar, /*flow*/true), p.style_flow == P);
+    if(p.style_flow == P)
+    {
+        std::string buf;
+        for(csubstr invalid : plain_flow_invalid_at_beginning)
+        {
+            catrs(&buf, invalid, p.scalar);
+            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
+            EXPECT_FALSE(scalar_style_query_plain_flow(to_csubstr(buf)));
+            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/true));
+        }
+        for(csubstr invalid : plain_flow_invalid_in_bulk)
+        {
+            catrs(&buf, p.scalar, invalid, p.scalar);
+            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
+            EXPECT_FALSE(scalar_style_query_plain_flow(to_csubstr(buf)));
+            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/true));
+        }
+        for(csubstr invalid : plain_flow_invalid_at_end)
+        {
+            catrs(&buf, p.scalar, invalid);
+            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
+            EXPECT_FALSE(scalar_style_query_plain_flow(to_csubstr(buf)));
+            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/true));
+        }
+    }
+}
+
+TEST_P(TestScalarStyle, query_plain_block)
+{
+    scalar_style_spec const& p = GetParam();
+    SHOWPARAM(p, "expected_block={}", showtype(p.style_block.type));
+    EXPECT_EQ(scalar_style_query_plain_block(p.scalar), p.style_block == P);
+    EXPECT_EQ(scalar_style_query_plain(p.scalar, /*flow*/false), p.style_block == P);
+    if(p.style_flow == P)
+    {
+        std::string buf;
+        for(csubstr invalid : plain_block_invalid_at_beginning)
+        {
+            catrs(&buf, invalid, p.scalar);
+            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
+            EXPECT_FALSE(scalar_style_query_plain_block(to_csubstr(buf)));
+            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/false));
+        }
+        for(csubstr invalid : plain_block_invalid_in_bulk)
+        {
+            catrs(&buf, p.scalar, invalid, p.scalar);
+            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
+            EXPECT_FALSE(scalar_style_query_plain_block(to_csubstr(buf)));
+            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/false));
+        }
+        for(csubstr invalid : plain_block_invalid_at_end)
+        {
+            catrs(&buf, p.scalar, invalid);
+            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
+            EXPECT_FALSE(scalar_style_query_plain_block(to_csubstr(buf)));
+            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/false));
+        }
+    }
+}
+
+TEST_P(TestScalarStyle, choose_flow)
+{
+    scalar_style_spec const& p = GetParam();
+    NodeType actual = scalar_style_choose_flow(p.scalar);
+    NodeType expected = p.style_flow.type;
+    SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
+    EXPECT_EQ(actual, expected);
+}
+
+TEST_P(TestScalarStyle, choose_block)
+{
+    scalar_style_spec const& p = GetParam();
+    NodeType actual = scalar_style_choose_block(p.scalar);
+    NodeType expected = p.style_block.type;
+    SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
+    EXPECT_EQ(actual, expected);
+}
+
+TEST_P(TestScalarStyle, choose_json)
+{
+    scalar_style_spec const& p = GetParam();
+    NodeType actual = scalar_style_json_choose(p.scalar);
+    NodeType expected = p.style_json.type;
+    SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
+    EXPECT_EQ(actual, expected);
+}
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml
 } // namespace c4

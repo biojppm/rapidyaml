@@ -59,8 +59,8 @@
         {                                                               \
             char ltypebuf[256];                                         \
             char rtypebuf[256];                                         \
-            csubstr ltype = NodeType::type_str(ltypebuf, (NodeType_e)lhs); \
-            csubstr rtype = NodeType::type_str(rtypebuf, (NodeType_e)rhs); \
+            csubstr ltype = NodeType::type_str_sub(ltypebuf, (NodeType_e)lhs); \
+            csubstr rtype = NodeType::type_str_sub(rtypebuf, (NodeType_e)rhs); \
             if(ltype.str && rtype.str)                                  \
             {                                                           \
                 EXPECT_##testop(lhs, rhs)                               \

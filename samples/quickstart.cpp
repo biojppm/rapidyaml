@@ -2326,7 +2326,7 @@ void sample_create_trees()
     xmas5["turtle-doves"] = "two";
     root["cars"] = "GTO";
 
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(doe: 'a deer, a female deer'
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(doe: a deer, a female deer
 ray: a drop of golden sun
 pi: 3.14159
 xmas: true
@@ -3231,12 +3231,12 @@ void sample_base64()
         tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
         CHECK(tree[c.base64].val() == c.text);
     }
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
-'The fool doth think he is wise, but the wise man knows himself to be a fool.': VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(Love all, trust a few, do wrong to none.: TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
+The fool doth think he is wise, but the wise man knows himself to be a fool.: VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==
 Brevity is the soul of wit.: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu
 All that glitters is not gold.: QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu
-TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==: 'Love all, trust a few, do wrong to none.'
-VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==: 'The fool doth think he is wise, but the wise man knows himself to be a fool.'
+TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==: Love all, trust a few, do wrong to none.
+VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==: The fool doth think he is wise, but the wise man knows himself to be a fool.
 QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu: Brevity is the soul of wit.
 QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold.
 )");
@@ -3620,9 +3620,9 @@ void sample_user_scalar_types()
     CHECK(v4in.y == v4out.y);
     CHECK(v4in.z == v4out.z);
     CHECK(v4in.w == v4out.w);
-    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(10,11)'
-v3: '(100,101,102)'
-v4: '(1000,1001,1002,1003)'
+    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: (10,11)
+v3: (100,101,102)
+v4: (1000,1001,1002,1003)
 )");
 
     // note that only the used functions are needed:
@@ -3648,9 +3648,9 @@ v4: '(1000,1001,1002,1003)'
     CHECK(eov4in.x == pov4out.x);
     CHECK(eov4in.y == pov4out.y);
     CHECK(eov4in.z == pov4out.z);
-    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(20,21)'
-v3: '(30,31,32)'
-v4: '(40,41,42,43)'
+    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: (20,21)
+v3: (30,31,32)
+v4: (40,41,42,43)
 )");
 }
 
@@ -3824,9 +3824,9 @@ void sample_user_container_types()
         CHECK(mt_out.map.map_member.find(kv.first) != mt_out.map.map_member.end());
         CHECK(mt_out.map.map_member[kv.first] == kv.second);
     }
-    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(20,21)'
-v3: '(30,31,32)'
-v4: '(40,41,42,43)'
+    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: (20,21)
+v3: (30,31,32)
+v4: (40,41,42,43)
 seq:
   - 101
   - 102
@@ -3851,9 +3851,9 @@ map:
   @see also the STL section in @ref doc_serialization */
 void sample_std_types()
 {
-    std::string yml_std_string = R"(- v2: '(20,21)'
-  v3: '(30,31,32)'
-  v4: '(40,41,42,43)'
+    std::string yml_std_string = R"(- v2: (20,21)
+  v3: (30,31,32)
+  v4: (40,41,42,43)
   seq:
     - 101
     - 102
@@ -3866,9 +3866,9 @@ void sample_std_types()
     1001: 2001
     1002: 2002
     1003: 2003
-- v2: '(120,121)'
-  v3: '(130,131,132)'
-  v4: '(140,141,142,143)'
+- v2: (120,121)
+  v3: (130,131,132)
+  v4: (140,141,142,143)
   seq:
     - 1101
     - 1102
@@ -3881,9 +3881,9 @@ void sample_std_types()
     11001: 12001
     11002: 12002
     11003: 12003
-- v2: '(220,221)'
-  v3: '(230,231,232)'
-  v4: '(240,241,242,243)'
+- v2: (220,221)
+  v3: (230,231,232)
+  v4: (240,241,242,243)
   seq:
     - 2101
     - 2102
@@ -4497,14 +4497,14 @@ block seq:
   - block val 1
   - block val 2
   - quoted
-'flow map, singleline':
+flow map, singleline:
   flow key: flow val
-'flow seq, singleline':
+flow seq, singleline:
   - flow val
   - flow val
-'flow map, multiline':
+flow map, multiline:
   flow key: flow val
-'flow seq, multiline':
+flow seq, multiline:
   - flow val
   - flow val
 )");
@@ -4522,14 +4522,14 @@ block seq:
   - block val 1
   - block val 2
   - quoted
-'flow map, singleline':
+flow map, singleline:
   flow key: flow val
-'flow seq, singleline':
+flow seq, singleline:
   - flow val
   - flow val
-'flow map, multiline':
+flow map, multiline:
   flow key: flow val
-'flow seq, multiline':
+flow seq, multiline:
   - flow val
   - flow val
 )");
@@ -4808,9 +4808,9 @@ void sample_json()
     // so now when emitting you will get this:
     // (the scalars with a comma are single-quote)
     CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
-          R"(doe: 'a deer, a female deer'
+          R"(doe: a deer, a female deer
 ray: a drop of golden sun
-me: 'a name, I call myself'
+me: a name, I call myself
 far: a long long way to go
 )");
     // you can do custom style changes based on a type mask. this

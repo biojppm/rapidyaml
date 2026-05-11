@@ -555,12 +555,18 @@ TEST(serialize, issue442_50)
 }
 TEST(serialize, issue442_60)
 {
-    EXPECT_TRUE(scalar_style_query_plain("123"));
-    EXPECT_TRUE(scalar_style_query_plain("-123"));
-    EXPECT_TRUE(scalar_style_query_plain("+123"));
-    EXPECT_EQ(scalar_style_choose("123"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_choose("-123"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_choose("+123"), SCALAR_PLAIN);
+    EXPECT_TRUE(scalar_style_query_plain_flow("123"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-123"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+123"));
+    EXPECT_EQ(scalar_style_choose_flow("123"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_flow("-123"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_flow("+123"), SCALAR_PLAIN);
+    EXPECT_TRUE(scalar_style_query_plain_block("123"));
+    EXPECT_TRUE(scalar_style_query_plain_block("-123"));
+    EXPECT_TRUE(scalar_style_query_plain_block("+123"));
+    EXPECT_EQ(scalar_style_choose_block("123"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_block("-123"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_block("+123"), SCALAR_PLAIN);
     {
         Tree tree;
         tree.rootref() << "123";
@@ -584,12 +590,18 @@ TEST(serialize, issue442_60)
 }
 TEST(serialize, issue442_61)
 {
-    EXPECT_TRUE(scalar_style_query_plain("2.35e-10"));
-    EXPECT_TRUE(scalar_style_query_plain("-2.35e-10"));
-    EXPECT_TRUE(scalar_style_query_plain("+2.35e-10"));
-    EXPECT_EQ(scalar_style_choose("2.35e-10"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_choose("-2.35e-10"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_choose("+2.35e-10"), SCALAR_PLAIN);
+    EXPECT_TRUE(scalar_style_query_plain_flow("2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+2.35e-10"));
+    EXPECT_EQ(scalar_style_choose_flow("2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_flow("-2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_flow("+2.35e-10"), SCALAR_PLAIN);
+    EXPECT_TRUE(scalar_style_query_plain_block("2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain_block("-2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain_block("+2.35e-10"));
+    EXPECT_EQ(scalar_style_choose_block("2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_block("-2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_block("+2.35e-10"), SCALAR_PLAIN);
     {
         Tree tree;
         tree.rootref() << 2.35e-10;

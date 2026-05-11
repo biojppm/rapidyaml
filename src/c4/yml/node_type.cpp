@@ -60,7 +60,7 @@ const char* NodeType::type_str(NodeType_e ty) noexcept
     }
 }
 
-csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
+size_t NodeType::type_str(substr buf, NodeType_e flags) noexcept
 {
     size_t pos = 0;
     bool gotone = false;
@@ -122,18 +122,7 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
 
     #undef _prflag
 
-    if(pos < buf.len)
-    {
-        buf[pos] = '\0';
-        return buf.first(pos);
-    }
-    else
-    {
-        csubstr failed;
-        failed.len = pos + 1;
-        failed.str = nullptr;
-        return failed;
-    }
+    return pos;
 }
 
 
@@ -142,86 +131,212 @@ csubstr NodeType::type_str(substr buf, NodeType_e flags) noexcept
 // see https://www.yaml.info/learn/quote.html#noplain
 bool scalar_style_query_squo(csubstr s) noexcept
 {
-    return ! s.first_of_any("\n ", "\n\t");
+    // cannot have leading whitespace after a newline
+    for(size_t i = 0; i < s.len; ++i)
+    {
+        if(s.str[i] == '\n' && i + 1 < s.len)
+        {
+            char next = s.str[i + 1];
+            if(next == ' ' || next == '\t')
+                return false;
+        }
+    }
+    return true;
 }
 
 // see https://www.yaml.info/learn/quote.html#noplain
-bool scalar_style_query_plain(csubstr s) noexcept
+bool scalar_style_query_plain_flow(csubstr s) noexcept
 {
-    if(s.begins_with("-."))
+    if(!s.len)
+        return !s.str;
+    // first
+    switch(s.str[0])
     {
-        if(s == "-.inf" || s == "-.INF")
-            return true;
-        else if(s.sub(2).is_number())
-            return true;
+    case ' ': case '\n': case '\t': case '\r':
+    case '!': case '&': case '*': case ',':
+    case '"': case '\'': case '|': case '>':
+    case '{': case '}': case '[': case ']':
+    case '#': case '`': case '%':
+        return false;
+    case '-': case ':': case '?':
+        if (s.len == 1 || (s.str[1] == ' ' || s.str[1] == '\t'))
+            return false;
+        break;
     }
-    else if(s.begins_with_any("0123456789.-+") && s.is_number())
+    // bulk
+    for(size_t i = 1; i + 1 < s.len; ++i)
     {
-        return true;
+        switch(s.str[i])
+        {
+        case ',': case '{': case '}': case '[': case ']':
+            return false;
+        case '#': case ':':
+            if(s.str[i+1] == ' ' || s.str[i+1] == '\t')
+                return false;
+            break;
+        }
     }
-    return ( ! s.begins_with_any("-:?*&,'\"{}[]|>%#@`\r")) // @ and ` are reserved characters
-        && ( ! s.ends_with_any(":#"))
-             // make this check in the last place, as it has linear
-             // complexity, while the previous ones are
-             // constant-time
-        && (s.first_of("\n#:[]{},") == npos);
+    // last
+    if(s.len > 1)
+    {
+        switch(s.back())
+        {
+        case ' ': case '\n': case '\t': case '\r':
+        case ',':
+        case '{': case '}':
+        case '[': case ']':
+        case '#':
+        case ':':
+            return false;
+        }
+    }
+    return true;
 }
 
-NodeType_e scalar_style_choose(csubstr s) noexcept
+bool scalar_style_query_plain_block(csubstr s) noexcept
+{
+    if(!s.len)
+        return !s.str;
+    // first
+    switch(s.str[0])
+    {
+    case ' ': case '\n': case '\t': case '\r':
+    case '!': case '&': case '*': case ',':
+    case '"': case '\'': case '|': case '>':
+    case '{': case '}': case '[': case ']':
+    case '#': case '`': case '%':
+        return false;
+    case '-': case ':': case '?':
+        if (s.len == 1 || (s.str[1] == ' ' || s.str[1] == '\t'))
+            return false;
+        break;
+    }
+    // bulk
+    for(size_t i = 1; i + 1 < s.len; ++i)
+    {
+        switch(s.str[i])
+        {
+        case '#': case ':':
+            if(s.str[i+1] == ' ' || s.str[i+1] == '\t')
+                return false;
+            break;
+        }
+    }
+    // last
+    if(s.len > 1)
+    {
+        switch(s.back())
+        {
+        case ' ': case '\n': case '\t': case '\r':
+        case '#':
+        case ':':
+            return false;
+        }
+    }
+    return true;
+}
+
+NodeType_e scalar_style_choose_flow(csubstr s) noexcept
 {
     if(s.len)
     {
-        if(s.begins_with_any(" \n\t")
-           ||
-           s.ends_with_any(" \n\t"))
-        {
-            return SCALAR_DQUO;
-        }
-        else if( ! scalar_style_query_plain(s))
-        {
-            return scalar_style_query_squo(s) ? SCALAR_SQUO : SCALAR_DQUO;
-        }
-        // nothing remarkable - use plain
-        return SCALAR_PLAIN;
+        if(scalar_style_query_plain_flow(s))
+            return SCALAR_PLAIN;
+        else if(scalar_style_query_squo(s))
+            return SCALAR_SQUO;
+        return SCALAR_DQUO;
     }
     return s.str ? SCALAR_SQUO : SCALAR_PLAIN;
 }
 
-NodeType_e scalar_style_json_choose(csubstr s) noexcept
+NodeType_e scalar_style_choose_block(csubstr s) noexcept
 {
-    // do not quote special cases
-    bool plain = (
-        (s == "true" || s == "false" || s == "null")
-        ||
+    if(s.len)
+    {
+        if(scalar_style_query_plain_block(s))
+            return SCALAR_PLAIN;
+        else if(scalar_style_query_squo(s))
+            return SCALAR_SQUO;
+        return SCALAR_DQUO;
+    }
+    return s.str ? SCALAR_SQUO : SCALAR_PLAIN;
+}
+
+
+bool scalar_is_null(csubstr s) noexcept
+{
+    return s.str == nullptr ||
+        (s.len == 1 && (s.str[0] == '~')) ||
+        (s.len == 4 && ((0 == memcmp("null", s.str, 4))
+                        || (0 == memcmp("Null", s.str, 4))
+                        || (0 == memcmp("NULL", s.str, 4))));
+}
+
+
+//-----------------------------------------------------------------------------
+
+namespace {
+
+#define rest_is(c1, c2) ((s.str[1] == (c1)) && (s.str[2] == (c2)))
+bool is_inf_or_nan(csubstr s) noexcept
+{
+    _RYML_ASSERT_BASIC(!s.begins_with("-."));
+    _RYML_ASSERT_BASIC(!s.begins_with("+."));
+    _RYML_ASSERT_BASIC(!s.begins_with("."));
+    _RYML_ASSERT_BASIC(s.len == 3);
+    switch(s.str[0])
+    {
+    case 'i': return rest_is('n', 'f');
+    case 'I': return rest_is('n', 'f') || rest_is('N', 'F');
+    case 'n': return rest_is('a', 'n');
+    case 'N': return rest_is('a', 'n') || rest_is('A', 'N') || rest_is('a', 'N');
+    }
+    return false;
+}
+bool is_inf(csubstr s) noexcept
+{
+    _RYML_ASSERT_BASIC(!s.begins_with("-."));
+    _RYML_ASSERT_BASIC(!s.begins_with("+."));
+    _RYML_ASSERT_BASIC(!s.begins_with("."));
+    _RYML_ASSERT_BASIC(s.len == 3);
+    switch(s.str[0])
+    {
+    case 'i': return rest_is('n', 'f');
+    case 'I': return rest_is('n', 'f') || rest_is('N', 'F');
+    }
+    return false;
+}
+#undef rest_is
+
+bool json_is_plain_number(csubstr s) noexcept
+{
+    return s.is_number()
+        &&
         (
-            // do not quote numbers
-            s.is_number()
-            &&
-            (
-                (
-                    // quote integral numbers if they have a leading 0
-                    // https://github.com/biojppm/rapidyaml/issues/291
-                    (!(s.len > 1 && s.begins_with('0')))
-                    // do not quote reals with leading 0
-                    // https://github.com/biojppm/rapidyaml/issues/313
-                    || (s.find('.') != csubstr::npos)
-                )
-            )
-        )
-        ||
-        (
-            (s.len > 3)
-            &&
-            (
-                (s[0] == '.' && (s == ".inf" || s == ".Inf" || s == ".INF"
-                                 ||
-                                 s == ".nan" || s == ".NaN" || s == ".NAN"))
-                ||
-                (s[0] == '-' && (s == "-.inf" || s == "-.Inf" || s == "-.INF"))
-            )
-        )
-    );
-    return plain ? SCALAR_PLAIN : SCALAR_DQUO;
+            // quote integral numbers if they have a leading 0
+            // https://github.com/biojppm/rapidyaml/issues/291
+            (!(s.len > 1 && s.begins_with('0')))
+            // do not quote reals with leading 0
+            // https://github.com/biojppm/rapidyaml/issues/313
+            || (s.find('.') != csubstr::npos)
+        );
+}
+bool json_is_special_scalar(csubstr s)  noexcept
+{
+    if(s.len == 4)
+        return 0 == memcmp("true", s.str, 4)
+            || 0 == memcmp("null", s.str, 4)
+            || (s[0] == '.' && is_inf_or_nan(s.sub(1)));
+    else if(s.len == 5)
+        return 0 == memcmp("false", s.str, 5)
+            || ((s[0] == '-' || s[0] == '+') && s[1] == '.' && is_inf(s.sub(2)));
+    return false;
+}
+} // namespace
+NodeType_e scalar_style_choose_json(csubstr s) noexcept
+{
+    // do not quote numbers or special scalars
+    return json_is_plain_number(s) || json_is_special_scalar(s) ? SCALAR_PLAIN : SCALAR_DQUO;
 }
 
 } // namespace yml
