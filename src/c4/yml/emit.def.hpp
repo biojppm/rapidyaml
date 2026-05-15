@@ -231,7 +231,7 @@ void Emitter<Writer>::_visit_doc_val(id_type id)
     // appear at 0-indentation
     NodeType ty = m_tree->type(id);
     const csubstr val = m_tree->val(id);
-    const type_bits val_style = ty & VAL_STYLE;
+    type_bits val_style = ty & VAL_STYLE;
     const bool is_ambiguous = ((ty & VAL_PLAIN) || !val_style)
         && (val.begins_with("...") || val.begins_with("---"));
     if(is_ambiguous)
@@ -250,7 +250,7 @@ void Emitter<Writer>::_visit_doc_val(id_type id)
     else
     {
         if(!val_style)
-            ty = scalar_style_choose_block(val);
+            val_style = scalar_style_choose_block(val);
         _blck_write_scalar(val, val_style);
     }
     if(is_ambiguous)

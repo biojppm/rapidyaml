@@ -144,6 +144,23 @@ bool scalar_style_query_squo(csubstr s) noexcept
     return true;
 }
 
+namespace {
+bool _is_wsnl(char c) noexcept
+{
+    return c == ' ' || c == '\n' || c == '\t' || c == '\r';
+}
+bool _is_valid_bulk(csubstr s, size_t i)
+{
+    C4_ASSERT(i >= 1 && i+1 < s.len);
+    C4_ASSERT(s.str[i] == ':' || s.str[i] == '#');
+    switch(s.str[i])
+    {
+    case ':': return !_is_wsnl(s.str[i+1]);
+    case '#': return !_is_wsnl(s.str[i-1]);
+    }
+    C4_UNREACHABLE();
+}
+} // namespace
 // see https://www.yaml.info/learn/quote.html#noplain
 bool scalar_style_query_plain_flow(csubstr s) noexcept
 {
@@ -156,7 +173,7 @@ bool scalar_style_query_plain_flow(csubstr s) noexcept
     case '!': case '&': case '*': case ',':
     case '"': case '\'': case '|': case '>':
     case '{': case '}': case '[': case ']':
-    case '#': case '`': case '%':
+    case '#': case '`': case '%': case '@':
         return false;
     case '-': case ':': case '?':
         if (s.len == 1 || (s.str[1] == ' ' || s.str[1] == '\t'))
@@ -170,8 +187,8 @@ bool scalar_style_query_plain_flow(csubstr s) noexcept
         {
         case ',': case '{': case '}': case '[': case ']':
             return false;
-        case '#': case ':':
-            if(s.str[i+1] == ' ' || s.str[i+1] == '\t')
+        case ':': case '#':
+            if(!_is_valid_bulk(s, i))
                 return false;
             break;
         }
@@ -204,7 +221,7 @@ bool scalar_style_query_plain_block(csubstr s) noexcept
     case '!': case '&': case '*': case ',':
     case '"': case '\'': case '|': case '>':
     case '{': case '}': case '[': case ']':
-    case '#': case '`': case '%':
+    case '#': case '`': case '%': case '@':
         return false;
     case '-': case ':': case '?':
         if (s.len == 1 || (s.str[1] == ' ' || s.str[1] == '\t'))
@@ -216,10 +233,9 @@ bool scalar_style_query_plain_block(csubstr s) noexcept
     {
         switch(s.str[i])
         {
-        case '#': case ':':
-            if(s.str[i+1] == ' ' || s.str[i+1] == '\t')
+        case ':': case '#':
+            if(!_is_valid_bulk(s, i))
                 return false;
-            break;
         }
     }
     // last

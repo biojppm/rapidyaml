@@ -5,6 +5,7 @@
 #include <c4/format.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
+#include <c4/yml/escape_scalar.hpp>
 #endif
 #include "./test_lib/test_case.hpp"
 
@@ -476,6 +477,9 @@ TEST(NodeType, is_quoted)
 
 //-----------------------------------------------------------------------------
 
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+
 namespace {
 struct scalar_style_spec
 {
@@ -558,9 +562,9 @@ const scalar_style_spec scalars[] = {
     // dubious
     __("+.notinf", P, P, D), _("+.:", S, S, D),
     __("-.notinf", P, P, D), _("-:", S, S, D),
-    __(":", S, S, D), _(": ", S, S, D), _(":\t", S, S, D),
-    __("-", S, S, D), _("- ", S, S, D), _("-\t", S, S, D),
-    __("?", S, S, D), _("? ", S, S, D), _("?\t", S, S, D),
+    __(":", S, S, D), _(": ", S, S, D), _(":\t", S, S, D), _(":\n", S, S, D), _(":\r\n", S, S, D),
+    __("-", S, S, D), _("- ", S, S, D), _("-\t", S, S, D), _("-\n", S, S, D), _("-\r\n", S, S, D),
+    __("?", S, S, D), _("? ", S, S, D), _("?\t", S, S, D), _("?\n", S, S, D), _("?\r\n", S, S, D),
     __(":a", P, P, D), _(":ab", P, P, D), _(":a b", P, P, D), _(":a\tb", P, P, D),
     __("-a", P, P, D), _("-ab", P, P, D), _("-a b", P, P, D), _("-a\tb", P, P, D),
     __("?a", P, P, D), _("?ab", P, P, D), _("?a b", P, P, D), _("?a\tb", P, P, D),
@@ -583,12 +587,17 @@ const scalar_style_spec scalars[] = {
     // invalid characters at beginning
     __("%invalidplain", S, S, D), _("but%validplain", P, P, D),
     __("`invalidplain", S, S, D), _("but`validplain", P, P, D),
+    __("@invalidplain", S, S, D), _("but@validplain", P, P, D),
     __("#invalidplain", S, S, D), _("but#validplain", P, P, D),
     __(",invalidplain", S, S, D), _("but,validplain", S, P, D),
-    __("- invalidplain", S, S, D), _("but- validplain", P, P, D),
-    __(": invalidplain", S, S, D), _("also: invalidplain", S, S, D),
-    __("? invalidplain", S, S, D), _("but? invalidplain", P, P, D),
-    __("# invalidplain", S, S, D), _("also# invalidplain", S, S, D),
+    __("- invalidplain", S, S, D), _("but- validplain",     P, P, D), _("and -validplain", P, P, D),
+    /*                          */__("but-\nvalidplain",    P, P, D), _("and\n-validplain", P, P, D),
+    __(": invalidplain", S, S, D), _("also: invalidplain",  S, S, D), _("while :validplain", P, P, D),
+    /*                          */__("also:\ninvalidplain", S, S, D), _("while\n:validplain", P, P, D),
+    __("? invalidplain", S, S, D), _("but? validplain",     P, P, D), _("also ?validplain", P, P, D),
+    /*                          */__("but?\nvalidplain",    P, P, D), _("also\n?validplain", P, P, D),
+    __("# invalidplain", S, S, D), _("but# validplain",     P, P, D), _("while #invalidplain", S, S, D),
+    /*                          */__("but#\nvalidplain",    P, P, D), _("while\n#invalidplain", S, S, D),
 };
 std::string namefor(scalar_style_spec const& param)
 {
@@ -623,11 +632,16 @@ const csubstr plain_flow_invalid_at_beginning[] = {
     csubstr("\""), csubstr("'"), csubstr("{"), csubstr("}"),
 };
 const csubstr plain_flow_invalid_in_bulk[] = {
-    csubstr(": "), csubstr(":\t"),
-    csubstr("# "), csubstr("#\t"),
+    csubstr(": "), csubstr(":\t"), csubstr(":\n"), csubstr(":\r"),
+    csubstr(" #"), csubstr("\t#"), csubstr("\n#"), csubstr("\r#"),
+    csubstr(","), csubstr("{"), csubstr("}"), csubstr("["), csubstr("]"),
+};
+const csubstr plain_flow_valid_in_bulk[] = {
+    csubstr(" :"), csubstr("\t:"), csubstr("\n:"), csubstr("\r\n:"),
+    csubstr("# "), csubstr("#\t"), csubstr("#\n"), csubstr("#\r"),
 };
 const csubstr plain_flow_invalid_at_end[] = {
-    csubstr(" "), csubstr("\t"), csubstr("\r"), csubstr("\n"),
+    csubstr(" "), csubstr("\t"), csubstr("\r\n"), csubstr("\n"),
     csubstr(","), csubstr("{"), csubstr("}"), csubstr("["), csubstr("]"),
     csubstr("# "), csubstr("#\t"), csubstr("#"),
     csubstr(": "), csubstr(":\t"), csubstr(":"),
@@ -639,8 +653,12 @@ const csubstr plain_block_invalid_at_beginning[] = {
     csubstr("\""), csubstr("'"), csubstr("{"), csubstr("}"),
 };
 const csubstr plain_block_invalid_in_bulk[] = {
-    csubstr(": "), csubstr(":\t"),
-    csubstr("# "), csubstr("#\t"),
+    csubstr(": "), csubstr(":\t"), csubstr(":\n"), csubstr(":\r"),
+    csubstr(" #"), csubstr("\t#"), csubstr("\n#"), csubstr("\r#"),
+};
+const csubstr plain_block_valid_in_bulk[] = {
+    csubstr(" :"), csubstr("\t:"), csubstr("\n:"), csubstr("\r:"),
+    csubstr("# "), csubstr("#\t"), csubstr("#\n"), csubstr("#\r"),
 };
 const csubstr plain_block_invalid_at_end[] = {
     csubstr(" "), csubstr("\t"), csubstr("\r"), csubstr("\n"),
@@ -648,17 +666,153 @@ const csubstr plain_block_invalid_at_end[] = {
     csubstr(": "), csubstr(":\t"), csubstr(":"),
 };
 
+
+using ScalarBuildFn = bool (*)(std::string *buf, csubstr str, csubstr scalar, bool expect_valid);
+
+bool make_case_at_beginning(std::string *buf, csubstr str, csubstr scalar, bool expect_valid)
+{
+    (void)expect_valid;
+    catrs(buf, str, scalar);
+    return true;
+}
+
+bool make_case_in_bulk(std::string *buf, csubstr str, csubstr scalar, bool expect_valid)
+{
+    (void)expect_valid;
+    catrs(buf, scalar, str, scalar);
+    return true;
+}
+
+bool make_case_at_end(std::string *buf, csubstr str, csubstr scalar, bool expect_valid)
+{
+    (void)expect_valid;
+    catrs(buf, scalar, str);
+    return true;
+}
+
+
 #define SHOWPARAM(p, fmt, ...)                                      \
     RYML_TRACE_FMT("test\n"                                         \
                    "{}:{}: scalar=[{}]~~~{}~~~\n"                   \
                    "{}:{}: " fmt,                                   \
-                   to_csubstr(__FILE__), (p).line, (p).scalar.len, (p).scalar,  \
+                   to_csubstr(__FILE__), (p).line,                  \
+                   (p).scalar.len, escaped_scalar((p).scalar),      \
                    to_csubstr(__FILE__), (p).line, __VA_ARGS__)
 
-void test_scalar_roundtrip_on_seq(csubstr scalar, NodeType seq_style, NodeType expected_style)
+void test_plain_valid(scalar_style_spec const& p, bool flow, cspan<csubstr> cases, bool expected, ScalarBuildFn fn)
 {
-    if(!scalar.str)
+    if(p.style_flow != P || !p.scalar.len || p.scalar.first_not_of(" \n\t\r") == npos)
         return;
+    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.type));
+    std::string buf;
+    size_t i = 0;
+    for(csubstr c : cases)
+    {
+        if(!fn(&buf, c, p.scalar, expected))
+            continue;
+        csubstr str = to_csubstr(buf);
+        bool ok = (expected == flow ? scalar_style_query_plain_flow(str)
+                   : scalar_style_query_plain_block(str));
+        ok = ok && (expected == scalar_style_query_plain(str, flow));
+        if(ok)
+            continue;
+        RYML_TRACE_FMT("case[{}/{}]='{}' scalar='{}' str='{}'", i++, cases.size(), escaped_scalar(c), escaped_scalar(p.scalar), escaped_scalar(str));
+        if(flow)
+        {
+            EXPECT_EQ(scalar_style_query_plain_flow(str), expected);
+            EXPECT_EQ(scalar_style_query_plain_flow(str),
+                      scalar_style_query_plain(str, flow));
+        }
+        else
+        {
+            EXPECT_EQ(scalar_style_query_plain_block(str), expected);
+            EXPECT_EQ(scalar_style_query_plain_block(str),
+                      scalar_style_query_plain(str, !flow));
+        }
+        break;
+    }
+}
+
+substr erase(substr buf, char c)
+{
+    size_t len = 0;
+    bool skip = false;
+    for(size_t i = 0; i < buf.len; ++i)
+    {
+        if(buf.str[i] != c)
+        {
+            if(skip)
+                buf.str[len++] = buf.str[i];
+        }
+        else
+        {
+            len = i;
+            skip = true;
+        }
+    }
+    buf.len = len;
+    return buf;
+}
+
+void compare_scalar(csubstr expected, csubstr actual)
+{
+    if(expected != actual)
+    {
+        RYML_TRACE_FMT("actual  ={}", escaped_scalar(actual));
+        RYML_TRACE_FMT("expected={}", escaped_scalar(expected));
+        if(expected.find('\r') == csubstr::npos)
+        {
+            EXPECT_EQ(expected, actual);
+        }
+        else
+        {
+            std::string filtered_(expected.begin(), expected.end());
+            csubstr filtered = erase(to_substr(filtered_), '\r');
+            RYML_TRACE_FMT("filtered={}", escaped_scalar(filtered));
+            EXPECT_EQ(filtered, actual);
+        }
+    }
+}
+
+void test_scalar_roundtrip_as_root(scalar_style_spec const& p, NodeType expected_style)
+{
+    SHOWPARAM(p, "roundtrip_as_root", 0);
+    csubstr scalar = p.scalar;
+    if(!scalar.str || !scalar.len || scalar.first_not_of(" \n\t\r") == npos)
+        return;
+    Tree t;
+    t.rootref() = scalar;
+    std::string emitted = emitrs_yaml<std::string>(t);
+    const Tree parsed = parse_in_arena(to_csubstr(emitted));
+    ConstNodeRef r = parsed.rootref();
+    bool fail = false;
+    if(r.has_val())
+    {
+        compare_scalar(scalar, r.val());
+        EXPECT_TRUE(r.type().is_val_styled()); // style is set on the roundtrip
+        NodeType actual_style = r.type() & expected_style;
+        RYML_COMPARE_NODE_TYPE(expected_style, actual_style, ==, EQ);
+    }
+    else
+    {
+        fail = true;
+    }
+    if(fail || testing::Test::HasFailure())
+    {
+        printf("emitted=~~~\n%s\n~~~\n", emitted.c_str());
+        print_tree("orig", t);
+        print_tree("roundtrip", parsed);
+    }
+    if(fail)
+        FAIL() << "not a val: ~~~" << emitted << "~~~";
+}
+
+void test_scalar_roundtrip_on_seq(scalar_style_spec const& p, NodeType seq_style, NodeType expected_style)
+{
+    csubstr scalar = p.scalar;
+    if(!scalar.len)
+        return;
+    SHOWPARAM(p, "roundtrip_on_seq", 0);
     Tree t;
     NodeRef r = t.rootref();
     r |= SEQ|seq_style;
@@ -671,23 +825,25 @@ void test_scalar_roundtrip_on_seq(csubstr scalar, NodeType seq_style, NodeType e
     const Tree parsed = parse_in_arena(to_csubstr(emitted));
     for(ConstNodeRef ch : parsed.rootref().children())
     {
-        EXPECT_EQ(ch.val(), scalar);
+        compare_scalar(scalar, ch.val());
         EXPECT_TRUE(ch.type().is_val_styled()); // style is set on the roundtrip
         NodeType actual_style = ch.type() & expected_style;
         RYML_COMPARE_NODE_TYPE(expected_style, actual_style, ==, EQ);
     }
     if(testing::Test::HasFailure())
     {
-        printf("emitted=~~~\n%s\n~~~\n", emitted.c_str());
+        printf("emitted=~~~\n%s\n~~~\n", catrs<std::string>(escaped_scalar(to_csubstr(emitted))).c_str());
         print_tree("orig", t);
         print_tree("roundtrip", parsed);
     }
 }
 
-void test_scalar_roundtrip_on_map(csubstr scalar, NodeType map_style, NodeType expected_style_key, NodeType expected_style_val)
+void test_scalar_roundtrip_on_map(scalar_style_spec const& p, NodeType map_style, NodeType expected_style_key, NodeType expected_style_val)
 {
+    csubstr scalar = p.scalar;
     if(!scalar.str)
         return;
+    SHOWPARAM(p, "roundtrip_on_map", 0);
     Tree t;
     NodeRef r = t.rootref();
     r |= MAP|map_style;
@@ -711,14 +867,14 @@ void test_scalar_roundtrip_on_map(csubstr scalar, NodeType map_style, NodeType e
     const Tree parsed = parse_in_arena(to_csubstr(emitted));
     for(ConstNodeRef ch : parsed["keys"].children())
     {
-        EXPECT_EQ(ch.key(), scalar);
+        compare_scalar(scalar, ch.key());
         EXPECT_TRUE(ch.type().is_key_styled()); // style is set on the roundtrip
         NodeType actual_style = ch.type() & expected_style_key;
         RYML_COMPARE_NODE_TYPE(expected_style_key, actual_style, ==, EQ);
     }
     for(ConstNodeRef ch : parsed["vals"].children())
     {
-        EXPECT_EQ(ch.val(), scalar);
+        compare_scalar(scalar, ch.val());
         EXPECT_TRUE(ch.type().is_val_styled()); // style is set on the roundtrip
         NodeType actual_style = ch.type() & expected_style_val;
         RYML_COMPARE_NODE_TYPE(expected_style_val, actual_style, ==, EQ);
@@ -731,76 +887,84 @@ void test_scalar_roundtrip_on_map(csubstr scalar, NodeType map_style, NodeType e
     }
 }
 
-} // namespace
+bool flow = true;
+bool block = false;
 
-C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
-C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+} // namespace
 
 TEST_P(TestScalarStyle, query_plain_flow)
 {
     scalar_style_spec const& p = GetParam();
     SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.type));
     EXPECT_EQ(scalar_style_query_plain_flow(p.scalar), p.style_flow == P);
-    EXPECT_EQ(scalar_style_query_plain(p.scalar, /*flow*/true), p.style_flow == P);
-    if(p.style_flow == P)
-    {
-        std::string buf;
-        for(csubstr invalid : plain_flow_invalid_at_beginning)
-        {
-            catrs(&buf, invalid, p.scalar);
-            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
-            EXPECT_FALSE(scalar_style_query_plain_flow(to_csubstr(buf)));
-            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/true));
-        }
-        for(csubstr invalid : plain_flow_invalid_in_bulk)
-        {
-            catrs(&buf, p.scalar, invalid, p.scalar);
-            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
-            EXPECT_FALSE(scalar_style_query_plain_flow(to_csubstr(buf)));
-            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/true));
-        }
-        for(csubstr invalid : plain_flow_invalid_at_end)
-        {
-            catrs(&buf, p.scalar, invalid);
-            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
-            EXPECT_FALSE(scalar_style_query_plain_flow(to_csubstr(buf)));
-            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/true));
-        }
-    }
+    EXPECT_EQ(scalar_style_query_plain_flow(p.scalar),
+              scalar_style_query_plain(p.scalar, flow));
 }
+
+TEST_P(TestScalarStyle, query_plain_flow_invalid_at_beginning)
+{
+    test_plain_valid(GetParam(), flow, plain_flow_invalid_at_beginning, false,
+                     make_case_at_beginning);
+}
+
+TEST_P(TestScalarStyle, query_plain_flow_invalid_in_bulk)
+{
+    test_plain_valid(GetParam(), flow, plain_flow_invalid_in_bulk, false,
+                     make_case_in_bulk);
+}
+
+TEST_P(TestScalarStyle, query_plain_flow_valid_in_bulk)
+{
+    test_plain_valid(GetParam(), flow, plain_flow_valid_in_bulk, true,
+                     make_case_in_bulk);
+}
+
+TEST_P(TestScalarStyle, query_plain_flow_invalid_at_end)
+{
+    test_plain_valid(GetParam(), flow, plain_flow_invalid_at_end, false,
+                     make_case_at_end);
+}
+
+
+//-----------------------------------------------------------------------------
+// block
 
 TEST_P(TestScalarStyle, query_plain_block)
 {
     scalar_style_spec const& p = GetParam();
     SHOWPARAM(p, "expected_block={}", showtype(p.style_block.type));
     EXPECT_EQ(scalar_style_query_plain_block(p.scalar), p.style_block == P);
-    EXPECT_EQ(scalar_style_query_plain(p.scalar, /*flow*/false), p.style_block == P);
-    if(p.style_flow == P)
-    {
-        std::string buf;
-        for(csubstr invalid : plain_block_invalid_at_beginning)
-        {
-            catrs(&buf, invalid, p.scalar);
-            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
-            EXPECT_FALSE(scalar_style_query_plain_block(to_csubstr(buf)));
-            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/false));
-        }
-        for(csubstr invalid : plain_block_invalid_in_bulk)
-        {
-            catrs(&buf, p.scalar, invalid, p.scalar);
-            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
-            EXPECT_FALSE(scalar_style_query_plain_block(to_csubstr(buf)));
-            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/false));
-        }
-        for(csubstr invalid : plain_block_invalid_at_end)
-        {
-            catrs(&buf, p.scalar, invalid);
-            RYML_TRACE_FMT("invalid='{}' scalar='{}' buf='{}'", invalid, p.scalar, buf);
-            EXPECT_FALSE(scalar_style_query_plain_block(to_csubstr(buf)));
-            EXPECT_FALSE(scalar_style_query_plain(to_csubstr(buf), /*flow*/false));
-        }
-    }
+    EXPECT_EQ(scalar_style_query_plain_block(p.scalar),
+              scalar_style_query_plain(p.scalar, block));
 }
+
+TEST_P(TestScalarStyle, query_plain_block_invalid_at_beginning)
+{
+    test_plain_valid(GetParam(), block, plain_block_invalid_at_beginning, false,
+                     make_case_at_beginning);
+}
+
+TEST_P(TestScalarStyle, query_plain_block_invalid_in_bulk)
+{
+    test_plain_valid(GetParam(), block, plain_block_invalid_in_bulk, false,
+                     make_case_in_bulk);
+}
+
+TEST_P(TestScalarStyle, query_plain_block_valid_in_bulk)
+{
+    test_plain_valid(GetParam(), block, plain_block_valid_in_bulk, true,
+                     make_case_in_bulk);
+}
+
+TEST_P(TestScalarStyle, query_plain_block_invalid_at_end)
+{
+    test_plain_valid(GetParam(), block, plain_block_invalid_at_end, false,
+                     make_case_at_end);
+}
+
+
+//-----------------------------------------------------------------------------
+// choose
 
 TEST_P(TestScalarStyle, choose_flow)
 {
@@ -832,22 +996,28 @@ TEST_P(TestScalarStyle, choose_json)
 
 //-----------------------------------------------------------------------------
 
+TEST_P(TestScalarStyle, roundtrip_as_root)
+{
+    scalar_style_spec const& p = GetParam();
+    test_scalar_roundtrip_as_root(p, p.style_block & VAL_STYLE);
+}
+
 TEST_P(TestScalarStyle, roundtrip_flow_seq)
 {
     scalar_style_spec const& p = GetParam();
-    test_scalar_roundtrip_on_seq(p.scalar, FLOW_ML, p.style_flow & VAL_STYLE);
+    test_scalar_roundtrip_on_seq(p, FLOW_ML, p.style_flow & VAL_STYLE);
 }
 
 TEST_P(TestScalarStyle, roundtrip_block_seq)
 {
     scalar_style_spec const& p = GetParam();
-    test_scalar_roundtrip_on_seq(p.scalar, BLOCK, p.style_block & VAL_STYLE);
+    test_scalar_roundtrip_on_seq(p, BLOCK, p.style_block & VAL_STYLE);
 }
 
 TEST_P(TestScalarStyle, roundtrip_flow_map)
 {
     scalar_style_spec const& p = GetParam();
-    test_scalar_roundtrip_on_map(p.scalar, FLOW_ML,
+    test_scalar_roundtrip_on_map(p, FLOW_ML,
                                  p.style_flow & KEY_STYLE,
                                  p.style_flow & VAL_STYLE);
 }
@@ -855,7 +1025,7 @@ TEST_P(TestScalarStyle, roundtrip_flow_map)
 TEST_P(TestScalarStyle, roundtrip_block_map)
 {
     scalar_style_spec const& p = GetParam();
-    test_scalar_roundtrip_on_map(p.scalar, BLOCK,
+    test_scalar_roundtrip_on_map(p, BLOCK,
                                  p.style_block & KEY_STYLE,
                                  p.style_block & VAL_STYLE);
 }
