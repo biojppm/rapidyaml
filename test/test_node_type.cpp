@@ -1002,19 +1002,33 @@ TEST_P(TestScalarStyle, roundtrip_as_root)
     test_scalar_roundtrip_as_root(p, p.style_block & VAL_STYLE);
 }
 
-TEST_P(TestScalarStyle, roundtrip_flow_seq)
+TEST_P(TestScalarStyle, roundtrip_seq_flow_sl)
+{
+    scalar_style_spec const& p = GetParam();
+    test_scalar_roundtrip_on_seq(p, FLOW_SL, p.style_flow & VAL_STYLE);
+}
+
+TEST_P(TestScalarStyle, roundtrip_seq_flow_ml)
 {
     scalar_style_spec const& p = GetParam();
     test_scalar_roundtrip_on_seq(p, FLOW_ML, p.style_flow & VAL_STYLE);
 }
 
-TEST_P(TestScalarStyle, roundtrip_block_seq)
+TEST_P(TestScalarStyle, roundtrip_seq_block)
 {
     scalar_style_spec const& p = GetParam();
     test_scalar_roundtrip_on_seq(p, BLOCK, p.style_block & VAL_STYLE);
 }
 
-TEST_P(TestScalarStyle, roundtrip_flow_map)
+TEST_P(TestScalarStyle, roundtrip_map_flow_sl)
+{
+    scalar_style_spec const& p = GetParam();
+    test_scalar_roundtrip_on_map(p, FLOW_SL,
+                                 p.style_flow & KEY_STYLE,
+                                 p.style_flow & VAL_STYLE);
+}
+
+TEST_P(TestScalarStyle, roundtrip_map_flow_ml)
 {
     scalar_style_spec const& p = GetParam();
     test_scalar_roundtrip_on_map(p, FLOW_ML,
@@ -1022,7 +1036,7 @@ TEST_P(TestScalarStyle, roundtrip_flow_map)
                                  p.style_flow & VAL_STYLE);
 }
 
-TEST_P(TestScalarStyle, roundtrip_block_map)
+TEST_P(TestScalarStyle, roundtrip_map_block)
 {
     scalar_style_spec const& p = GetParam();
     test_scalar_roundtrip_on_map(p, BLOCK,
