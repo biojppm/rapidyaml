@@ -2983,23 +2983,19 @@ void sample_formatting()
         ryml::csubstr result = ryml::catsep_sub(buf_, ' ', a, b, c);
         CHECK(result == "0 1 2");
         int aa = -1, bb = -2, cc = -3;
-        char sep = 'b';
-        size_t num_characters = ryml::uncatsep(result, sep, aa, bb, cc);
+        size_t num_characters = ryml::uncatsep(result, " ", aa, bb, cc);
         CHECK(num_characters == result.size());
         CHECK(aa == a);
         CHECK(bb == b);
         CHECK(cc == c);
-        CHECK(sep == ' ');
 
-        sep = '_';
-        result = ryml::catsep_sub(buf_, ' ', 10, 20, 30);
-        CHECK(result == "10 20 30");
-        num_characters = ryml::uncatsep(result, sep, aa, bb, cc);
+        result = ryml::catsep_sub(buf_, "--", 10, 20, 30);
+        CHECK(result == "10--20--30");
+        num_characters = ryml::uncatsep(result, "--", aa, bb, cc);
         CHECK(num_characters == result.size());
         CHECK(aa == 10);
         CHECK(bb == 20);
         CHECK(cc == 30);
-        CHECK(sep == ' ');
     }
 
     // formatting individual arguments
