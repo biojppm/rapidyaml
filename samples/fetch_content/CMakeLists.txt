@@ -16,7 +16,7 @@ FetchContent_MakeAvailable(ryml)
 add_executable(ryml-quickstart ../quickstart.cpp)
 target_link_libraries(ryml-quickstart ryml::ryml)
 
-add_custom_target(run ryml-quickstart
-    COMMAND $<TARGET_FILE:ryml-quickstart>
+add_custom_target(run
+    COMMAND $<TARGET_FILE:ryml-quickstart> --quiet
     DEPENDS ryml-quickstart
-    COMMENT "running: $<TARGET_FILE:ryml-quickstart>")
+    COMMENT "running: $<TARGET_FILE:ryml-quickstart> --quiet")

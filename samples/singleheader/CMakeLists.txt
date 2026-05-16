@@ -11,6 +11,7 @@ target_compile_features(ryml-quickstart PUBLIC cxx_std_11)
 target_compile_definitions(ryml-quickstart PUBLIC -DRYML_SINGLE_HEADER)
 target_include_directories(ryml-quickstart PUBLIC "${SINGLE_HEADER_DIR}")
 
-add_custom_target(run ryml-quickstart
-    COMMAND $<TARGET_FILE:ryml-quickstart>
-    DEPENDS ryml-quickstart)
+add_custom_target(run
+    COMMAND $<TARGET_FILE:ryml-quickstart> --quiet
+    DEPENDS ryml-quickstart
+    COMMENT "running: $<TARGET_FILE:ryml-quickstart> --quiet")

@@ -1,7 +1,8 @@
+#pragma once
 #ifndef C4_YML_EXPORT_HPP_
 #define C4_YML_EXPORT_HPP_
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
     #ifdef RYML_SHARED
         #ifdef RYML_EXPORTS
             #define RYML_EXPORT __declspec(dllexport)
