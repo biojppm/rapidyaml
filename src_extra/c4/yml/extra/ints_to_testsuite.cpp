@@ -33,11 +33,11 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-size_t events_ints_to_testsuite(csubstr parsed_yaml,
-                                        csubstr arena,
-                                        ievt::DataType const* evts_ints,
-                                        ievt::DataType evts_ints_sz,
-                                        substr evts_test_suite)
+C4_NODISCARD RYML_EXPORT size_t events_ints_to_testsuite(csubstr parsed_yaml,
+                                                         csubstr arena,
+                                                         ievt::DataType const* evts_ints,
+                                                         ievt::DataType evts_ints_sz,
+                                                         substr evts_test_suite)
 {
     auto getstr = [&](ievt::DataType i){
         bool in_arena = evts_ints[i] & ievt::AREN;
@@ -115,9 +115,10 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
         append(evt);
         append_esc(val);
     };
-    for(ievt::DataType i = 0; i < evts_ints_sz; )
+    ievt::DataType evt = 0;
+    for(ievt::DataType i = 0; i < evts_ints_sz; i += (evt & ievt::WSTR) ? 3 : 1)
     {
-        ievt::DataType evt = evts_ints[i];
+        evt = evts_ints[i];
         if(evt & ievt::SCLR)
         {
             csubstr s = getstr(i);
@@ -192,8 +193,6 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
         {
             append("-STR\n");
         }
-
-        i += (evt & ievt::WSTR) ? 3 : 1;
     }
     return sz;
 }

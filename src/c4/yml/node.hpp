@@ -21,6 +21,7 @@
 #   pragma warning(push)
 #   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
 #   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
+#   pragma warning(disable: 4996/*deprecated*/)
 #endif
 
 // NOLINTBEGIN(modernize-avoid-c-style-cast)

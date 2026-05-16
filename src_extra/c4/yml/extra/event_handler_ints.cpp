@@ -18,11 +18,11 @@ namespace c4 {
 namespace yml {
 
 // instantiate the template
-template class ParseEngine<extra::EventHandlerInts>;
+template class RYML_EXPORT ParseEngine<extra::EventHandlerInts>;
 
 namespace extra {
 
-int32_t estimate_events_ints_size(csubstr src)
+RYML_EXPORT int32_t estimate_events_ints_size(csubstr src)
 {
     int32_t count = 7; // BSTR + BDOC + =VAL + EDOC + ESTR
     for(size_t i = 0; i < src.len; ++i)

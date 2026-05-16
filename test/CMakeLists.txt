@@ -1,25 +1,58 @@
 c4_setup_testing(GTEST)
 
+function(ryml_get_target_exe target_name target_file)
+    if(CMAKE_CROSSCOMPILING)
+        set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
+    else()
+        set(tgt $<TARGET_FILE:${target_name}>)
+    endif()
+    set(${target_file} ${tgt} PARENT_SCOPE)
+endfunction()
+
+function(ryml_setup_test_target_props target_name)
+    if(RYML_DBG)
+        target_compile_definitions(${target_name} PRIVATE RYML_DBG)
+        c4_target_compile_flags(${target_name} PUBLIC GCC -Wno-useless-cast)
+    endif()
+    if(RYML_SAVE_TEST_YAML)
+        target_compile_definitions(${target_name} PUBLIC RYML_SAVE_TEST_YAML)
+    endif()
+    get_target_property(target_type ${target_name} TYPE)
+    if(target_type STREQUAL "SHARED_LIBRARY")
+        set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    endif ()
+endfunction()
+
+function(ryml_add_test_exe_no_lib name)
+    c4_add_executable(${name} LIBS ryml FOLDER test ${ARGN})
+    ryml_setup_test_target_props(${name})
+    ryml_maybe_dump_test_yaml(${name})
+    add_dependencies(ryml-test-build ${name})
+endfunction()
 
 function(ryml_add_test_no_lib test_name)
-    c4_add_executable(${test_name} LIBS ryml FOLDER test ${ARGN})
-    if(RYML_DBG)
-        target_compile_definitions(${test_name} PRIVATE RYML_DBG)
-        c4_target_compile_flags(${test_name} PUBLIC GCC -Wno-useless-cast)
-    endif()
-    ryml_maybe_dump_test_yaml(${test_name})
+    ryml_add_test_exe_no_lib(${test_name} ${ARGN})
     c4_add_test(${test_name})
 endfunction()
-ryml_add_test_no_lib(ryml-test-quickstart
+
+ryml_add_test_exe_no_lib(ryml-test-quickstart
     SOURCES ../samples/quickstart.cpp)
 ryml_add_test_no_lib(ryml-test-quickstart-ints
-    SOURCES
-        ../samples/quickstart-ints.cpp
-        ../src_extra/c4/yml/extra/event_handler_ints.hpp
-        ../src_extra/c4/yml/extra/event_handler_ints.cpp
-        ../src_extra/c4/yml/extra/ints_utils.hpp
-        ../src_extra/c4/yml/extra/ints_utils.cpp
-    INC_DIRS ../src_extra)
+    SOURCES ../samples/quickstart-ints.cpp)
+# c4_add_test() cannot be used with multiple tests from the same exe,
+# so we use explicit add_test()+valgrind
+ryml_get_target_exe(ryml-test-quickstart quickstart_exe)
+add_test(NAME ryml-test-quickstart-quiet COMMAND ${quickstart_exe} --quiet)
+add_test(NAME ryml-test-quickstart COMMAND ${quickstart_exe})
+if(RYML_VALGRIND AND NOT CMAKE_CROSSCOMPILING)
+    separate_arguments(_vg_opts UNIX_COMMAND "${RYML_VALGRIND_OPTIONS}")
+    add_test(NAME ryml-test-quickstart-quiet-valgrind
+        COMMAND valgrind ${_vg_opts} $<TARGET_FILE:ryml-test-quickstart> --quiet
+        COMMAND_EXPAND_LISTS)
+    add_test(NAME ryml-test-quickstart-valgrind
+        COMMAND valgrind ${_vg_opts} $<TARGET_FILE:ryml-test-quickstart>
+        COMMAND_EXPAND_LISTS)
+endif()
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
@@ -34,29 +67,10 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_events_ints_helpers.hpp
        test_lib/test_events_ints_helpers.cpp
        test_lib/test_save.cpp
-       ../src_extra/c4/yml/extra/event_handler_ints.cpp
-       ../src_extra/c4/yml/extra/event_handler_ints.hpp
-       ../src_extra/c4/yml/extra/ints_utils.cpp
-       ../src_extra/c4/yml/extra/ints_utils.hpp
-       ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
-       ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
-       ../src_extra/c4/yml/extra/string.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
     FOLDER test)
-if(BUILD_SHARED_LIBS)
-    # this is needed to resolve get_case() because it is provided by
-    # the test linking to this library
-    set_target_properties(ryml-_testlib PROPERTIES
-        POSITION_INDEPENDENT_CODE ON)
-endif()
-if(RYML_DBG)
-    target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
-endif()
-if(RYML_SAVE_TEST_YAML)
-    target_compile_definitions(ryml-_testlib PUBLIC RYML_SAVE_TEST_YAML)
-endif()
-
+ryml_setup_test_target_props(ryml-_testlib)
 c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
     SOURCES test_lib/test_main.cpp test_lib/test_main.hpp
     LIBS ryml
@@ -92,9 +106,7 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
        test_lib/test_group.cpp
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
-if(RYML_DBG)
-    target_compile_definitions(ryml-_testgroup PUBLIC RYML_DBG)
-endif()
+ryml_setup_test_target_props(ryml-_testgroup)
 function(ryml_add_test_case_group name)
     ryml_add_test(${name} ${ARGN})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
@@ -121,8 +133,8 @@ ryml_add_test(engine_6_qmrk_1 BIG)
 ryml_add_test(engine_6_qmrk_2 BIG)
 ryml_add_test(engine_6_qmrk_3 BIG)
 ryml_add_test(engine_6_qmrk_4 BIG)
-ryml_add_test(engine_7_seqimap)
-ryml_add_test(engine_8_scalars_tokens)
+ryml_add_test(engine_7_seqimap BIG)
+ryml_add_test(engine_8_scalars_tokens BIG)
 ryml_add_test(extra_ints)
 ryml_add_test(version)
 ryml_add_test(callbacks)
@@ -186,15 +198,6 @@ endif()
 
 #-------------------------------------------------------------------------
 # test the tools as well
-
-function(ryml_get_target_exe target_name target_file)
-    if(CMAKE_CROSSCOMPILING)
-        set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
-    else()
-        set(tgt $<TARGET_FILE:${target_name}>)
-    endif()
-    set(${target_file} ${tgt} PARENT_SCOPE)
-endfunction()
 
 if(NOT EMSCRIPTEN)
     option(RYML_TEST_TOOLS "Enable tests for the tools. Requires file system access." ON)
@@ -285,10 +288,6 @@ option(RYML_TEST_SUITE "Enable cases from yaml-test-suite, https://github.com/ya
 if(RYML_TEST_SUITE)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
-    c4_require_subproject(c4log REMOTE
-        GIT_REPOSITORY https://github.com/biojppm/c4log
-        GIT_TAG master)
-
     set(tsdir ${ed}/yaml-test-suite)
     c4_download_remote_proj(yaml-test-suite suite_dir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
@@ -299,13 +298,6 @@ if(RYML_TEST_SUITE)
 
     c4_add_executable(ryml-test-suite
         SOURCES
-            ../src_extra/c4/yml/extra/event_handler_ints.cpp
-            ../src_extra/c4/yml/extra/event_handler_ints.hpp
-            ../src_extra/c4/yml/extra/ints_utils.cpp
-            ../src_extra/c4/yml/extra/ints_utils.hpp
-            ../src_extra/c4/yml/extra/ints_to_testsuite.cpp
-            ../src_extra/c4/yml/extra/ints_to_testsuite.hpp
-            ../src_extra/c4/yml/extra/string.hpp
             testsuite.cpp
             testsuite/testsuite_common.hpp
             testsuite/testsuite_events_emitter.cpp
@@ -412,8 +404,7 @@ if(RYML_TEST_FUZZ)
         ryml_get_target_exe(ryml-test-fuzz-${name} tgtexe)
         function(ryml_add_fuzz_test_file name_ dir file)
             string(REPLACE "/" "_" fuzz_name "${file}")
-            add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name}
-                COMMAND ${tgtexe} ${dir}/${file})
+            add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name} COMMAND ${tgtexe} ${dir}/${file})
             set_tests_properties(ryml-test-fuzz-${name_}-${fuzz_name} PROPERTIES TIMEOUT 10)
         endfunction()
         foreach(fuzz_file ${fuzz_files})
@@ -421,7 +412,5 @@ if(RYML_TEST_FUZZ)
         endforeach()
     endfunction()
     ryml_add_fuzz_test(parse_emit)
-    ryml_add_fuzz_test(events_ints
-        ../src_extra/c4/yml/extra/event_handler_ints.hpp
-        ../src_extra/c4/yml/extra/event_handler_ints.cpp)
+    ryml_add_fuzz_test(events_ints)
 endif()

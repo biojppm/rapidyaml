@@ -19,8 +19,8 @@ typedef enum : ParserFlag_t { // NOLINT
     RUNK = 0x01 <<  1,   ///< reading unknown state (when starting): must determine whether scalar, map or seq
     RMAP = 0x01 <<  2,   ///< reading a map
     RSEQ = 0x01 <<  3,   ///< reading a seq
-    RFLOW = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
-    RBLCK = 0x01 <<  5,   ///< reading in block mode
+    RFLOW = 0x01 <<  4,  ///< reading is inside explicit flow chars: [] or {}
+    RBLCK = 0x01 <<  5,  ///< reading in block mode
     QMRK = 0x01 <<  6,   ///< reading an explicit key (`? key`)
     RKEY = 0x01 <<  7,   ///< reading a key
     RVAL = 0x01 <<  9,   ///< reading a val
@@ -33,7 +33,7 @@ typedef enum : ParserFlag_t { // NOLINT
     NDOC = 0x01 << 15,   ///< no document mode. a document has ended and another has not started yet.
     USTY = 0x01 << 16,   ///< reading in unknown style mode - must determine FLOW or BLCK
     //! reading an implicit map nested in an explicit seq.
-    //! eg, {key: [key2: value2, key3: value3]}
+    //! eg,          {key: [key2: value2, key3: value3]}
     //! is parsed as {key: [{key2: value2}, {key3: value3}]}
     RSEQIMAP = 0x01 << 17,
 } ParserState_e;
@@ -42,7 +42,7 @@ typedef enum : ParserFlag_t { // NOLINT
 /** @cond dev */
 #ifdef RYML_DBG
 namespace detail {
-csubstr _parser_flags_to_str(substr buf, ParserFlag_t flags);
+RYML_EXPORT csubstr _parser_flags_to_str(substr buf, ParserFlag_t flags);
 } // namespace detail
 #endif
 /** @endcond */

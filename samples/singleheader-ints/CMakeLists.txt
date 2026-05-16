@@ -15,4 +15,4 @@ target_include_directories(ryml-quickstart-ints PUBLIC "${SINGLE_HEADER_DIR}")
 add_custom_target(run
     COMMAND $<TARGET_FILE:ryml-quickstart-ints> --quiet
     DEPENDS ryml-quickstart-ints
-    COMMENT "running: $<TARGET_FILE:ryml-quickstart> --quiet")
+    COMMENT "running: $<TARGET_FILE:ryml-quickstart-ints> --quiet")

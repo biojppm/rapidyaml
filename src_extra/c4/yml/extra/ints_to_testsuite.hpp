@@ -16,18 +16,22 @@ namespace extra {
 /** @addtogroup doc_event_handlers
  * @{ */
 
+
 /** Create a testsuite event string from integer events.
  *
- * This overload receives a buffer where the string should be written,
- * and returns the size needed for the buffer. If that size is larger
- * than the buffer's size, the user must resize the buffer and call
- * again. */
-RYML_EXPORT C4_NODISCARD
+ * This overload receives a buffer where the string is to be written,
+ * and returns the size needed to accomodate the result. The size of
+ * the buffer is strictly respected. The caller must check that the
+ * returned size is smaller than the buffer's size to ensure that the
+ * result is complete. If that's not the case, the user must resize
+ * the buffer and call again. */
+C4_NODISCARD RYML_EXPORT
 size_t events_ints_to_testsuite(csubstr parsed_yaml,
                                 csubstr arena,
                                 ievt::DataType const* evts_ints,
                                 ievt::DataType evts_ints_sz,
                                 substr evts_testsuite);
+
 
 /** Create a testsuite event string from integer events, writing into
  * an output container. */
@@ -46,6 +50,7 @@ void events_ints_to_testsuite(csubstr parsed_yaml,
     }
     evts_testsuite->resize(len);
 }
+
 
 /** Create a testsuite event string from integer events, returning a
  * new container with the result. */

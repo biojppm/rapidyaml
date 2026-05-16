@@ -260,7 +260,7 @@ RYML_EXPORT bool scalar_style_query_plain(csubstr s) noexcept;
 /** YAML-sense query of nullity. returns true if the scalar points
  * to `nullptr` or is otherwise equal to one of the strings
  * `"~"`,`"null"`,`"Null"`,`"NULL"` */
-RYML_EXPORT inline C4_NO_INLINE bool scalar_is_null(csubstr s) noexcept
+inline bool scalar_is_null(csubstr s) noexcept
 {
     return s.str == nullptr ||
         s == "~" ||

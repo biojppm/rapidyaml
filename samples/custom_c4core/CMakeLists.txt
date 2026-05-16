@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 project(ryml-quickstart
-    DESCRIPTION "Shows how to use a custom c4core version,
-                 different from ryml's c4core submodule"
+    DESCRIPTION "Shows how to use a custom c4core version different from ryml's c4core submodule"
     LANGUAGES CXX)
 include(../../ext/c4core/cmake/c4Project.cmake)
 c4_project(VERSION 0.1.0 STANDALONE
@@ -20,13 +19,22 @@ c4_require_subproject(ryml SUBDIRECTORY ../..)
 
 add_executable(ryml-quickstart ../quickstart.cpp)
 target_link_libraries(ryml-quickstart ryml::ryml)
-if(BUILD_SHARED_LIBS)
-    # simplify things by placing the exe next to the dll
-    set_target_properties(ryml-quickstart PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:ryml>)
+
+if(WIN32)
+    function(maybe_copy_dll_to_exe_dir exe lib)
+        if(TARGET ${lib})
+            get_target_property(type ${lib} TYPE)
+            if((type STREQUAL SHARED_LIBRARY) OR (type STREQUAL MODULE_LIBRARY))
+                add_custom_command(TARGET ${exe} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${lib}> $<TARGET_FILE_DIR:${exe}>)
+            endif()
+        endif()
+    endfunction()
+    maybe_copy_dll_to_exe_dir(ryml-quickstart ryml::ryml)
+    maybe_copy_dll_to_exe_dir(ryml-quickstart c4core::c4core)
 endif()
 
-add_custom_target(
+add_custom_target(run
     COMMAND $<TARGET_FILE:ryml-quickstart> --quiet
     DEPENDS ryml-quickstart
     COMMENT "running: $<TARGET_FILE:ryml-quickstart> --quiet")

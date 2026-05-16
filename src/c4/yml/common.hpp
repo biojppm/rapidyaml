@@ -273,6 +273,7 @@ typedef enum Encoding_ { // NOLINT
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // csubstr needs to have dll-interface to be used by clients of Location
 
 /** holds a source or yaml file position, for example when an error is
  * detected; See also @ref location_format() and @ref
@@ -300,6 +301,8 @@ struct RYML_EXPORT Location
     C4_NO_INLINE Location(const char *n, size_t b, size_t l, size_t c) noexcept : offset(b   ), line(l), col(c   ), name(to_csubstr(n)) {}
 };
 static_assert(std::is_standard_layout<Location>::value, "Location not trivial");
+
+C4_SUPPRESS_WARNING_MSVC_POP
 
 /// @cond dev
 #define RYML_LOC_HERE() (::c4::yml::Location(__FILE__, static_cast<size_t>(__LINE__)))

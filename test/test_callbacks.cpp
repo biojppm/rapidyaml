@@ -6,7 +6,6 @@
 #endif
 #include <stdexcept>
 #include <csetjmp>
-#include "c4/yml/extra/string.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 
 
@@ -47,7 +46,6 @@ static_assert(c4::is_string<const char(&&)[2]>::value, "dump directly");
 static_assert(c4::is_string<substr>::value, "dump directly");
 static_assert(c4::is_string<csubstr>::value, "dump directly");
 static_assert(c4::is_string<std::string>::value, "dump directly");
-static_assert(c4::is_string<extra::string>::value, "dump directly");
 
 template<class T>
 constexpr bool check_dump_directly()
@@ -68,7 +66,6 @@ static_assert(check_dump_directly<char[2]>(), "dump directly");
 static_assert(check_dump_directly<char(&)[2]>(), "dump directly");
 static_assert(check_dump_directly<char(&&)[2]>(), "dump directly");
 static_assert(check_dump_directly<std::string>(), "dump directly");
-static_assert(check_dump_directly<extra::string>(), "dump directly");
 
 
 std::string stored_msg;

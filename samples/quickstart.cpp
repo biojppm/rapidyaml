@@ -357,19 +357,22 @@ void sample_lightning_overview()
 
     // emit tree
     std::string expected = "{foo: 1,bar: [10,11,12],john: doe}";
-    // emit to std::string
+    // emit tree to std::string
     CHECK(ryml::emitrs_yaml<std::string>(tree) == expected);
-    // emit to FILE*
-    ryml::emit_yaml(tree, stdout);
-    // emit to streams:
-    std::cout << tree;
+    // emit tree to FILE*
+    ryml::emit_yaml(tree, stdout); printf("\n");
+    // emit tree to ostream
+    std::cout << tree << "\n";
 
     // emit node
     ryml::ConstNodeRef foo = tree["foo"];
-    // to std::string
-    CHECK(ryml::emitrs_yaml<std::string>(foo) == "foo: 1\n");
-    std::cout << foo; // emit node to ostream
-    ryml::emit_yaml(foo, stdout); // emit node to FILE*
+    expected = "foo: 1\n";
+    // emit node to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(foo) == expected);
+    // emit node to FILE*
+    ryml::emit_yaml(foo, stdout);
+    // emit node to ostream
+    std::cout << foo;
 }
 
 
@@ -6186,11 +6189,13 @@ bool report_check(int line, const char *predicate, bool result)
     const char *msg = predicate ? "OK! " : "OK!";
     if(!result)
     {
-        ++num_failed_checks;
-        msg = predicate ?  "FAIL: " : "FAIL";
+        ++num_failed_checks;                  // LCOV_EXCL_LINE
+        msg = predicate ?  "FAIL: " : "FAIL"; // LCOV_EXCL_LINE
     }
     if(!result || !quiet_mode)
+    {
         std::cout << __FILE__ << ':' << line << ": " << msg << (predicate ? predicate : "") << std::endl;
+    }
     return result;
 }
 
