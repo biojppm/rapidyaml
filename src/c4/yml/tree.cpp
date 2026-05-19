@@ -849,7 +849,8 @@ id_type Tree::move(Tree *src, id_type node, id_type new_parent, id_type after)
 void Tree::set_root_as_stream()
 {
     id_type root = root_id();
-    if(is_stream(root))
+    NodeType ty = type(root);
+    if(ty.is_stream())
         return;
     _c4dbgpf("set_root_as_stream. rootty={}", type(root).type);
     bool empty_root = ((type(root) & (SEQ|MAP|VAL)) == 0);
@@ -865,7 +866,7 @@ void Tree::set_root_as_stream()
     id_type next_doc;
     if(!has_children(root))
     {
-        if(is_container(root))
+        if(ty.is_container())
         {
             next_doc = append_child(root);
             _copy_props_wo_key(next_doc, root);
@@ -882,7 +883,7 @@ void Tree::set_root_as_stream()
     }
     else
     {
-        _RYML_ASSERT_VISIT_(m_callbacks, !has_key(root), this, root);
+        _RYML_ASSERT_VISIT_(m_callbacks, !ty.has_key(), this, root);
         next_doc = append_child(root);
         _copy_props_wo_key(next_doc, root);
         _add_flags(next_doc, DOC);
@@ -929,19 +930,20 @@ void Tree::remove_children(id_type node)
 }
 
 //-----------------------------------------------------------------------------
-bool Tree::change_type(id_type node, NodeType type)
+bool Tree::change_type(id_type node, NodeType next)
 {
-    _RYML_ASSERT_VISIT_(m_callbacks, type.is_val() || type.is_map() || type.is_seq(), this, node);
-    _RYML_ASSERT_VISIT_(m_callbacks, type.is_val() + type.is_map() + type.is_seq() == 1, this, node);
-    _RYML_ASSERT_VISIT_(m_callbacks, type.has_key() == has_key(node) || (has_key(node) && !type.has_key()), this, node);
+    NodeType curr = type(node);
+    _RYML_ASSERT_VISIT_(m_callbacks, next.is_val() || next.is_map() || next.is_seq(), this, node);
+    _RYML_ASSERT_VISIT_(m_callbacks, next.is_val() + next.is_map() + next.is_seq() == 1, this, node);
+    _RYML_ASSERT_VISIT_(m_callbacks, next.has_key() == curr.has_key() || (curr.has_key() && !next.has_key()), this, node);
     NodeData *d = _p(node);
-    if(type.is_map() && is_map(node))
+    if(next.is_map() && curr.is_map())
         return false;
-    else if(type.is_seq() && is_seq(node))
+    else if(next.is_seq() && curr.is_seq())
         return false;
-    else if(type.is_val() && is_val(node))
+    else if(next.is_val() && curr.is_val())
         return false;
-    d->m_type = (d->m_type & (~(MAP|SEQ|VAL|CONTAINER_STYLE|KEY_STYLE|VAL_STYLE))) | type;
+    d->m_type = (d->m_type & (~(MAP|SEQ|VAL|CONTAINER_STYLE|KEY_STYLE|VAL_STYLE))) | next;
     remove_children(node);
     return true;
 }
@@ -1037,11 +1039,12 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
 
     // for each child to be duplicated...
     id_type prev = after;
+    NodeType pty = type(parent);
     for(id_type i = src->first_child(node); i != NONE; i = src->next_sibling(i))
     {
         _c4dbgpf("duplicate_no_rep: {} -> {}/{}", i, parent, prev);
         _RYML_CHECK_VISIT_(m_callbacks, this != src || (parent != i && !is_ancestor(parent, i)), this, parent);
-        if(is_seq(parent))
+        if(pty.is_seq())
         {
             _c4dbgpf("duplicate_no_rep: {} is seq", parent);
             prev = duplicate(src, i, parent, prev);
@@ -1049,7 +1052,7 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
         else
         {
             _c4dbgpf("duplicate_no_rep: {} is map", parent);
-            _RYML_ASSERT_VISIT_(m_callbacks, is_map(parent), this, parent);
+            _RYML_ASSERT_VISIT_(m_callbacks, pty.is_map(), this, parent);
             // does the parent already have a node with key equal to that of the current duplicate?
             id_type dstnode_dup = NONE, dstnode_dup_pos = NONE;
             {
@@ -1114,34 +1117,36 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
         src_node = src->root_id();
     if(dst_node == NONE)
         dst_node = root_id();
-    _RYML_ASSERT_VISIT_(m_callbacks, src->has_val(src_node) || src->is_seq(src_node) || src->is_map(src_node), src, src_node);
-    if(src->has_val(src_node))
+    NodeType srcty = src->type(src_node);
+    NodeType dstty = type(dst_node);
+    _RYML_ASSERT_VISIT_(m_callbacks, srcty.has_val() || srcty.is_seq() || srcty.is_map(), src, src_node);
+    if(srcty.has_val())
     {
         type_bits mask_src = ~STYLE; // keep the existing style if it is already a val
-        if( ! has_val(dst_node))
+        if( ! dstty.has_val())
         {
             if(has_children(dst_node))
                 remove_children(dst_node);
             mask_src |= VAL_STYLE; // copy the src style
         }
-        if(src->is_keyval(src_node))
+        if(srcty.is_keyval())
         {
             _copy_props(dst_node, src, src_node, mask_src);
         }
         else
         {
-            _RYML_ASSERT_VISIT_(m_callbacks, src->is_val(src_node), src, src_node);
+            _RYML_ASSERT_VISIT_(m_callbacks, srcty.is_val(), src, src_node);
             _copy_props_wo_key(dst_node, src, src_node, mask_src);
         }
     }
-    else if(src->is_seq(src_node))
+    else if(srcty.is_seq())
     {
-        if( ! is_seq(dst_node))
+        if( ! dstty.is_seq())
         {
             if(has_children(dst_node))
                 remove_children(dst_node);
             _clear_type(dst_node);
-            if(src->has_key(src_node))
+            if(srcty.has_key())
                 set_key(dst_node, src->key(src_node));
             set_seq(dst_node);
             _p(dst_node)->m_type = src->_p(src_node)->m_type;
@@ -1155,13 +1160,13 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
     }
     else
     {
-        _RYML_ASSERT_VISIT_(m_callbacks, src->is_map(src_node), src, src_node);
-        if( ! is_map(dst_node))
+        _RYML_ASSERT_VISIT_(m_callbacks, srcty.is_map(), src, src_node);
+        if( ! dstty.is_map())
         {
             if(has_children(dst_node))
                 remove_children(dst_node);
             _clear_type(dst_node);
-            if(src->has_key(src_node))
+            if(srcty.has_key())
                 set_key(dst_node, src->key(src_node));
             set_map(dst_node);
             _p(dst_node)->m_type = src->_p(src_node)->m_type;
@@ -1248,7 +1253,7 @@ id_type Tree::child_pos(id_type node, id_type ch) const
 id_type Tree::find_child(id_type node, csubstr const& name) const
 {
     _RYML_ASSERT_VISIT_(m_callbacks, node != NONE, this, node);
-    _RYML_ASSERT_VISIT_(m_callbacks, is_map(node), this, node);
+    _RYML_ASSERT_VISIT_(m_callbacks, type(node).is_map(), this, node);
     if(_p(node)->m_first_child == NONE)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, _p(node)->m_last_child == NONE, this, node);
@@ -1326,7 +1331,7 @@ void Tree::to_val(id_type node, csubstr val, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || ! parent_is_map(node), this, node);
-    _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(node) && !is_map(node), this, node);
+    _RYML_ASSERT_VISIT_(m_callbacks, !type(node).is_seq() && !type(node).is_map(), this, node);
     _set_flags(node, VAL|more_flags);
     _p(node)->m_key.clear();
     _p(node)->m_val = val;
@@ -1336,7 +1341,7 @@ void Tree::to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flag
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || parent_is_map(node), this, node);
-    _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(node) && !is_map(node), this, node);
+    _RYML_ASSERT_VISIT_(m_callbacks, !type(node).is_seq() && !type(node).is_map(), this, node);
     _set_flags(node, KEYVAL|more_flags);
     _p(node)->m_key = key;
     _p(node)->m_val = val;
@@ -1549,12 +1554,9 @@ void Tree::resolve_tags(TagCache &cache, bool all)
 {
     if(empty())
         return;
-    // try to resolve. While doing so, get the extra size needed for
-    // the arena, if the arena is currently too small.
-    size_t extra_size = _resolve_tags(this, cache, all);
-    // if the arena requires extra size, grow it and then resolve the
-    // missing entries
-    if(extra_size)
+    size_t needed_size = 0;
+    id_type r = root_id();
+    if(!type(r).is_stream())
     {
         _c4dbgpf("tag: extrasize={} -- retry! {}->{}", extra_size, m_arena.len, m_arena.len + extra_size);
         _grow_arena(extra_size);
@@ -1690,13 +1692,13 @@ id_type Tree::_next_node(lookup_result * r, _lookup_path_token *parent) const
     {
         _RYML_ASSERT_VISIT_(m_callbacks, !token.value.begins_with('['), this, r->closest);
         //_RYML_ASSERT_VISIT_(m_callbacks, is_container(r->closest) || r->closest == NONE);
-        _RYML_ASSERT_VISIT_(m_callbacks, is_map(r->closest), this, r->closest);
+        _RYML_ASSERT_VISIT_(m_callbacks, type(r->closest).is_map(), this, r->closest);
         node = find_child(r->closest, token.value);
     }
     else if(token.type == KEYVAL)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, r->unresolved().empty(), this, r->closest);
-        if(is_map(r->closest))
+        if(type(r->closest).is_map())
             node = find_child(r->closest, token.value);
     }
     else if(token.type == KEY)
@@ -1734,17 +1736,18 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
         return NONE;
 
     id_type node = NONE;
+    NodeType ty = type(r->closest);
     if(token.type == MAP || token.type == SEQ)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, !token.value.begins_with('['), this, r->closest);
         //_RYML_ASSERT_VISIT_(m_callbacks, is_container(r->closest) || r->closest == NONE);
-        if( ! is_container(r->closest))
+        if( ! ty.is_container())
         {
             set_map(r->closest);
         }
         else
         {
-            if(is_map(r->closest))
+            if(ty.is_map())
             {
                 node = find_child(r->closest, token.value);
             }
@@ -1758,7 +1761,7 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
         }
         if(node == NONE)
         {
-            _RYML_ASSERT_VISIT_(m_callbacks, is_map(r->closest), this, r->closest);
+            _RYML_ASSERT_VISIT_(m_callbacks, ty.is_map(), this, r->closest);
             node = append_child(r->closest);
             NodeData *n = _p(node);
             n->m_key.scalar = token.value;
@@ -1768,7 +1771,7 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
     else if(token.type == KEYVAL)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, r->unresolved().empty(), this, r->closest);
-        if(is_map(r->closest))
+        if(ty.is_map())
         {
             node = find_child(r->closest, token.value);
             if(node == NONE)
@@ -1776,7 +1779,7 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
         }
         else
         {
-            _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(r->closest), this, r->closest);
+            _RYML_ASSERT_VISIT_(m_callbacks, !ty.is_seq(), this, r->closest);
             _add_flags(r->closest, MAP);
             node = append_child(r->closest);
         }
@@ -1792,11 +1795,11 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
         id_type idx;
         if( ! from_chars(token.value, &idx))
              return NONE;
-        if( ! is_container(r->closest))
+        if( ! ty.is_container())
         {
             set_seq(r->closest);
         }
-        _RYML_ASSERT_VISIT_(m_callbacks, is_container(r->closest), this, r->closest);
+        _RYML_ASSERT_VISIT_(m_callbacks, ty.is_container(), this, r->closest);
         node = child(r->closest, idx);
         if(node == NONE)
         {
@@ -1806,13 +1809,13 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
                 node = append_child(r->closest);
                 if(i < idx)
                 {
-                    if(is_map(r->closest))
+                    if(ty.is_map())
                     {
                         _clear_type(node);
                         set_key(node, {});
                         set_val(node, {});
                     }
-                    else if(is_seq(r->closest))
+                    else if(ty.is_seq())
                     {
                         _clear_type(node);
                         set_val(node, {});
@@ -1906,7 +1909,8 @@ Location Tree::location(Parser const& parser, id_type node) const
 
 bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_RESTRICT loc, id_type level) const
 {
-    if(has_key(node))
+    NodeType ty = type(node);
+    if(ty.has_key())
     {
         csubstr k = key(node);
         if(C4_LIKELY(k.str != nullptr))
@@ -1918,7 +1922,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
         }
     }
 
-    if(has_val(node))
+    if(ty.has_val())
     {
         csubstr v = val(node);
         if(C4_LIKELY(v.str != nullptr))
@@ -1930,7 +1934,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
         }
     }
 
-    if(is_container(node))
+    if(ty.is_container())
     {
         if(_location_from_cont(parser, node, loc))
             return true;
@@ -1971,14 +1975,14 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
 
 bool Tree::_location_from_cont(Parser const& parser, id_type node, Location *C4_RESTRICT loc) const
 {
-    _RYML_ASSERT_BASIC_(m_callbacks, is_container(node));
-    if(!is_stream(node))
+    _RYML_ASSERT_BASIC_(m_callbacks, type(node).is_container());
+    if(!type(node).is_stream())
     {
         const char *node_start = _p(node)->m_val.scalar.str;  // this was stored in the container
         if(has_children(node))
         {
             id_type child = first_child(node);
-            if(has_key(child))
+            if(type(child).has_key())
             {
                 // when a map starts, the container was set after the key
                 csubstr k = key(child);

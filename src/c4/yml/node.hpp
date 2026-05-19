@@ -222,75 +222,6 @@ public:
     C4_ALWAYS_INLINE bool key_is_null() const RYML_NOEXCEPT { _C4RR(); return tree_->key_is_null(id_); } /**< Forward to @ref Tree::key_is_null(). Node must be readable. */
     C4_ALWAYS_INLINE bool val_is_null() const RYML_NOEXCEPT { _C4RR(); return tree_->val_is_null(id_); } /**< Forward to @ref Tree::val_is_null(). Node must be readable. */
 
-    C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { _C4RR(); return tree_->is_key_unfiltered(id_); } /**< Forward to @ref Tree::is_key_unfiltered(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { _C4RR(); return tree_->is_val_unfiltered(id_); } /**< Forward to @ref Tree::is_val_unfiltered(). Node must be readable. */
-
-    /** @} */
-
-public:
-
-    /** @name node type predicates */
-    /** @{ */
-
-    C4_ALWAYS_INLINE bool empty()            const RYML_NOEXCEPT { _C4RR(); return tree_->empty(id_); } /**< Forward to @ref Tree::empty(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_stream()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_stream(id_); } /**< Forward to @ref Tree::is_stream(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_doc()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_doc(id_); } /**< Forward to @ref Tree::is_doc(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_container()     const RYML_NOEXCEPT { _C4RR(); return tree_->is_container(id_); } /**< Forward to @ref Tree::is_container(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_map()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_map(id_); } /**< Forward to @ref Tree::is_map(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_seq()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_seq(id_); } /**< Forward to @ref Tree::is_seq(). Node must be readable. */
-    C4_ALWAYS_INLINE bool has_val()          const RYML_NOEXCEPT { _C4RR(); return tree_->has_val(id_); } /**< Forward to @ref Tree::has_val(). Node must be readable. */
-    C4_ALWAYS_INLINE bool has_key()          const RYML_NOEXCEPT { _C4RR(); return tree_->has_key(id_); } /**< Forward to @ref Tree::has_key(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_val(id_); } /**< Forward to @ref Tree::is_val(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_keyval()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_keyval(id_); } /**< Forward to @ref Tree::is_keyval(). Node must be readable. */
-    C4_ALWAYS_INLINE bool has_key_tag()      const RYML_NOEXCEPT { _C4RR(); return tree_->has_key_tag(id_); } /**< Forward to @ref Tree::has_key_tag(). Node must be readable. */
-    C4_ALWAYS_INLINE bool has_val_tag()      const RYML_NOEXCEPT { _C4RR(); return tree_->has_val_tag(id_); } /**< Forward to @ref Tree::has_val_tag(). Node must be readable. */
-    C4_ALWAYS_INLINE bool has_key_anchor()   const RYML_NOEXCEPT { _C4RR(); return tree_->has_key_anchor(id_); } /**< Forward to @ref Tree::has_key_anchor(). Node must be readable. */
-    C4_ALWAYS_INLINE bool has_val_anchor()   const RYML_NOEXCEPT { _C4RR(); return tree_->has_val_anchor(id_); } /**< Forward to @ref Tree::has_val_anchor(). Node must be readable. */
-    C4_ALWAYS_INLINE bool has_anchor()       const RYML_NOEXCEPT { _C4RR(); return tree_->has_anchor(id_); } /**< Forward to @ref Tree::has_anchor(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_key_ref()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_ref(id_); } /**< Forward to @ref Tree::is_key_ref(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_ref()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_ref(id_); } /**< Forward to @ref Tree::is_val_ref(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_ref()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_ref(id_); } /**< Forward to @ref Tree::is_ref(). Node must be readable. */
-    C4_ALWAYS_INLINE bool parent_is_seq()    const RYML_NOEXCEPT { _C4RR(); return tree_->parent_is_seq(id_); } /**< Forward to @ref Tree::parent_is_seq(). Node must be readable. */
-    C4_ALWAYS_INLINE bool parent_is_map()    const RYML_NOEXCEPT { _C4RR(); return tree_->parent_is_map(id_); } /**< Forward to @ref Tree::parent_is_map(). Node must be readable. */
-
-    /** @} */
-
-public:
-
-    /** @name style predicates */
-    /** @{ */
-
-    // documentation to the right -->
-
-    C4_ALWAYS_INLINE bool type_has_any(NodeType_e bits)  const RYML_NOEXCEPT { _C4RR(); return tree_->type_has_any(id_, bits); }  /**< Forward to @ref Tree::type_has_any(). Node must be readable. */
-    C4_ALWAYS_INLINE bool type_has_all(NodeType_e bits)  const RYML_NOEXCEPT { _C4RR(); return tree_->type_has_all(id_, bits); }  /**< Forward to @ref Tree::type_has_all(). Node must be readable. */
-    C4_ALWAYS_INLINE bool type_has_none(NodeType_e bits) const RYML_NOEXCEPT { _C4RR(); return tree_->type_has_none(id_, bits); } /**< Forward to @ref Tree::type_has_none(). Node must be readable. */
-
-    C4_ALWAYS_INLINE NodeType key_style()       const RYML_NOEXCEPT { _C4RR(); return tree_->key_style(id_); } /**< Forward to @ref Tree::key_style(). Node must be readable. */
-    C4_ALWAYS_INLINE NodeType val_style()       const RYML_NOEXCEPT { _C4RR(); return tree_->val_style(id_); } /**< Forward to @ref Tree::val_style(). Node must be readable. */
-
-    C4_ALWAYS_INLINE bool is_container_styled() const RYML_NOEXCEPT { _C4RR(); return tree_->is_container_styled(id_); } /**< Forward to @ref Tree::is_container_styled(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_block()            const RYML_NOEXCEPT { _C4RR(); return tree_->is_block(id_); }   /**< Forward to @ref Tree::is_block(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_flow_sl()          const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_sl(id_); } /**< Forward to @ref Tree::is_flow_sl(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_flow_ml()          const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_ml(id_); } /**< Forward to @ref Tree::is_flow_ml(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_flow()             const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow(id_); }    /**< Forward to @ref Tree::is_flow(). Node must be readable. */
-
-    C4_ALWAYS_INLINE bool is_key_styled()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_styled(id_); }  /**< Forward to @ref Tree::is_key_styled(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_styled()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_styled(id_); }  /**< Forward to @ref Tree::is_val_styled(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_key_literal()      const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_literal(id_); } /**< Forward to @ref Tree::is_key_literal(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_literal()      const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_literal(id_); } /**< Forward to @ref Tree::is_val_literal(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_key_folded()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_folded(id_); }  /**< Forward to @ref Tree::is_key_folded(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_folded()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_folded(id_); }  /**< Forward to @ref Tree::is_val_folded(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_key_squo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_squo(id_); }    /**< Forward to @ref Tree::is_key_squo(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_squo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_squo(id_); }    /**< Forward to @ref Tree::is_val_squo(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_key_dquo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_dquo(id_); }    /**< Forward to @ref Tree::is_key_dquo(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_dquo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_dquo(id_); }    /**< Forward to @ref Tree::is_val_dquo(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_key_plain()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_plain(id_); }   /**< Forward to @ref Tree::is_key_plain(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_plain()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_plain(id_); }   /**< Forward to @ref Tree::is_val_plain(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_key_quoted()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_quoted(id_); }  /**< Forward to @ref Tree::is_key_quoted(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_quoted()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_quoted(id_); }  /**< Forward to @ref Tree::is_val_quoted(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_quoted()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_quoted(id_); }      /**< Forward to @ref Tree::is_quoted(). Node must be readable. */
-
     /** @} */
 
 public:
@@ -299,6 +230,8 @@ public:
     /** @{ */
 
     // documentation to the right -->
+
+    C4_ALWAYS_INLINE bool empty()      const RYML_NOEXCEPT { _C4RR(); return tree_->empty(id_); } /**< Forward to @ref Tree::empty(). Node must be readable. */
 
     C4_ALWAYS_INLINE bool is_root()    const RYML_NOEXCEPT { _C4RR(); return tree_->is_root(id_); } /**< Forward to @ref Tree::is_root(). Node must be readable. */
     C4_ALWAYS_INLINE bool has_parent() const RYML_NOEXCEPT { _C4RR(); return tree_->has_parent(id_); } /**< Forward to @ref Tree::has_parent()  Node must be readable. */
@@ -454,6 +387,55 @@ public:
     RYML_DEPRECATED("use has_val_anchor()")  bool is_val_hanchor() const noexcept { _C4RR(); return tree_->has_val_anchor(id_); }
     RYML_DEPRECATED("use has_anchor()")      bool is_anchor()     const noexcept { _C4RR(); return tree_->has_anchor(id_); }
     RYML_DEPRECATED("use has_anchor() || is_ref()") bool is_anchor_or_ref() const noexcept { _C4RR(); return tree_->is_anchor_or_ref(id_); }
+
+    RYML_DEPRECATED("use type().is_stream()")      C4_ALWAYS_INLINE bool is_stream()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_stream(id_); } /**< Forward to @ref Tree::is_stream(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_doc()")         C4_ALWAYS_INLINE bool is_doc()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_doc(id_); } /**< Forward to @ref Tree::is_doc(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_container()")   C4_ALWAYS_INLINE bool is_container()     const RYML_NOEXCEPT { _C4RR(); return tree_->is_container(id_); } /**< Forward to @ref Tree::is_container(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_map()")         C4_ALWAYS_INLINE bool is_map()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_map(id_); } /**< Forward to @ref Tree::is_map(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_seq()")         C4_ALWAYS_INLINE bool is_seq()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_seq(id_); } /**< Forward to @ref Tree::is_seq(). Node must be readable. */
+    RYML_DEPRECATED("use type().has_val()")        C4_ALWAYS_INLINE bool has_val()          const RYML_NOEXCEPT { _C4RR(); return tree_->has_val(id_); } /**< Forward to @ref Tree::has_val(). Node must be readable. */
+    RYML_DEPRECATED("use type().has_key()")        C4_ALWAYS_INLINE bool has_key()          const RYML_NOEXCEPT { _C4RR(); return tree_->has_key(id_); } /**< Forward to @ref Tree::has_key(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val()")         C4_ALWAYS_INLINE bool is_val()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_val(id_); } /**< Forward to @ref Tree::is_val(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_keyval()")      C4_ALWAYS_INLINE bool is_keyval()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_keyval(id_); } /**< Forward to @ref Tree::is_keyval(). Node must be readable. */
+    RYML_DEPRECATED("use type().has_key_tag()")    C4_ALWAYS_INLINE bool has_key_tag()      const RYML_NOEXCEPT { _C4RR(); return tree_->has_key_tag(id_); } /**< Forward to @ref Tree::has_key_tag(). Node must be readable. */
+    RYML_DEPRECATED("use type().has_val_tag()")    C4_ALWAYS_INLINE bool has_val_tag()      const RYML_NOEXCEPT { _C4RR(); return tree_->has_val_tag(id_); } /**< Forward to @ref Tree::has_val_tag(). Node must be readable. */
+    RYML_DEPRECATED("use type().has_key_anchor()") C4_ALWAYS_INLINE bool has_key_anchor()   const RYML_NOEXCEPT { _C4RR(); return tree_->has_key_anchor(id_); } /**< Forward to @ref Tree::has_key_anchor(). Node must be readable. */
+    RYML_DEPRECATED("use type().has_val_anchor()") C4_ALWAYS_INLINE bool has_val_anchor()   const RYML_NOEXCEPT { _C4RR(); return tree_->has_val_anchor(id_); } /**< Forward to @ref Tree::has_val_anchor(). Node must be readable. */
+    RYML_DEPRECATED("use type().has_anchor()")     C4_ALWAYS_INLINE bool has_anchor()       const RYML_NOEXCEPT { _C4RR(); return tree_->has_anchor(id_); } /**< Forward to @ref Tree::has_anchor(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_ref()")     C4_ALWAYS_INLINE bool is_key_ref()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_ref(id_); } /**< Forward to @ref Tree::is_key_ref(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_ref()")     C4_ALWAYS_INLINE bool is_val_ref()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_ref(id_); } /**< Forward to @ref Tree::is_val_ref(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_ref()")         C4_ALWAYS_INLINE bool is_ref()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_ref(id_); } /**< Forward to @ref Tree::is_ref(). Node must be readable. */
+    RYML_DEPRECATED("use type().parent_is_seq()")  C4_ALWAYS_INLINE bool parent_is_seq()    const RYML_NOEXCEPT { _C4RR(); return tree_->parent_is_seq(id_); } /**< Forward to @ref Tree::parent_is_seq(). Node must be readable. */
+    RYML_DEPRECATED("use type().parent_is_map()")  C4_ALWAYS_INLINE bool parent_is_map()    const RYML_NOEXCEPT { _C4RR(); return tree_->parent_is_map(id_); } /**< Forward to @ref Tree::parent_is_map(). Node must be readable. */
+
+    RYML_DEPRECATED("use type().is_key_unfiltered()") C4_ALWAYS_INLINE bool is_key_unfiltered() const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_unfiltered(id_); } /**< Forward to @ref Tree::is_key_unfiltered(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_unfiltered()") C4_ALWAYS_INLINE bool is_val_unfiltered() const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_unfiltered(id_); } /**< Forward to @ref Tree::is_val_unfiltered(). Node must be readable. */
+
+    RYML_DEPRECATED("use type().") C4_ALWAYS_INLINE bool type_has_any(NodeType_e bits)  const RYML_NOEXCEPT { _C4RR(); return tree_->type_has_any(id_, bits); }  /**< Forward to @ref Tree::type_has_any(). Node must be readable. */
+    RYML_DEPRECATED("use type().") C4_ALWAYS_INLINE bool type_has_all(NodeType_e bits)  const RYML_NOEXCEPT { _C4RR(); return tree_->type_has_all(id_, bits); }  /**< Forward to @ref Tree::type_has_all(). Node must be readable. */
+    RYML_DEPRECATED("use type().") C4_ALWAYS_INLINE bool type_has_none(NodeType_e bits) const RYML_NOEXCEPT { _C4RR(); return tree_->type_has_none(id_, bits); } /**< Forward to @ref Tree::type_has_none(). Node must be readable. */
+    RYML_DEPRECATED("use type().key_style()")      C4_ALWAYS_INLINE NodeType key_style()       const RYML_NOEXCEPT { _C4RR(); return tree_->key_style(id_); } /**< Forward to @ref Tree::key_style(). Node must be readable. */
+    RYML_DEPRECATED("use type().val_style()")      C4_ALWAYS_INLINE NodeType val_style()       const RYML_NOEXCEPT { _C4RR(); return tree_->val_style(id_); } /**< Forward to @ref Tree::val_style(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_container_styled()") C4_ALWAYS_INLINE bool is_container_styled() const RYML_NOEXCEPT { _C4RR(); return tree_->is_container_styled(id_); } /**< Forward to @ref Tree::is_container_styled(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_block()")       C4_ALWAYS_INLINE bool is_block()            const RYML_NOEXCEPT { _C4RR(); return tree_->is_block(id_); }   /**< Forward to @ref Tree::is_block(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_flow_sl()")     C4_ALWAYS_INLINE bool is_flow_sl()          const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_sl(id_); } /**< Forward to @ref Tree::is_flow_sl(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_flow_ml()")     C4_ALWAYS_INLINE bool is_flow_ml()          const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_ml(id_); } /**< Forward to @ref Tree::is_flow_ml(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_flow()")        C4_ALWAYS_INLINE bool is_flow()             const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow(id_); }    /**< Forward to @ref Tree::is_flow(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_styled()")  C4_ALWAYS_INLINE bool is_key_styled()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_styled(id_); }  /**< Forward to @ref Tree::is_key_styled(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_styled()")  C4_ALWAYS_INLINE bool is_val_styled()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_styled(id_); }  /**< Forward to @ref Tree::is_val_styled(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_literal()") C4_ALWAYS_INLINE bool is_key_literal()      const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_literal(id_); } /**< Forward to @ref Tree::is_key_literal(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_literal()") C4_ALWAYS_INLINE bool is_val_literal()      const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_literal(id_); } /**< Forward to @ref Tree::is_val_literal(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_folded()")  C4_ALWAYS_INLINE bool is_key_folded()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_folded(id_); }  /**< Forward to @ref Tree::is_key_folded(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_folded()")  C4_ALWAYS_INLINE bool is_val_folded()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_folded(id_); }  /**< Forward to @ref Tree::is_val_folded(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_squo()")    C4_ALWAYS_INLINE bool is_key_squo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_squo(id_); }    /**< Forward to @ref Tree::is_key_squo(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_squo()")    C4_ALWAYS_INLINE bool is_val_squo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_squo(id_); }    /**< Forward to @ref Tree::is_val_squo(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_dquo()")    C4_ALWAYS_INLINE bool is_key_dquo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_dquo(id_); }    /**< Forward to @ref Tree::is_key_dquo(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_dquo()")    C4_ALWAYS_INLINE bool is_val_dquo()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_dquo(id_); }    /**< Forward to @ref Tree::is_val_dquo(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_plain()")   C4_ALWAYS_INLINE bool is_key_plain()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_plain(id_); }   /**< Forward to @ref Tree::is_key_plain(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_plain()")   C4_ALWAYS_INLINE bool is_val_plain()        const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_plain(id_); }   /**< Forward to @ref Tree::is_val_plain(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_key_quoted()")  C4_ALWAYS_INLINE bool is_key_quoted()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_quoted(id_); }  /**< Forward to @ref Tree::is_key_quoted(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_val_quoted()")  C4_ALWAYS_INLINE bool is_val_quoted()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_quoted(id_); }  /**< Forward to @ref Tree::is_val_quoted(). Node must be readable. */
+    RYML_DEPRECATED("use type().is_quoted()")      C4_ALWAYS_INLINE bool is_quoted()           const RYML_NOEXCEPT { _C4RR(); return tree_->is_quoted(id_); }      /**< Forward to @ref Tree::is_quoted(). Node must be readable. */
     C4_SUPPRESS_WARNING_MSVC_POP
     C4_SUPPRESS_WARNING_GCC_CLANG_POP
     /** @endcond */ // LCOV_EXCL_STOP
@@ -671,7 +653,7 @@ public:
         _RYML_CHECK_BASIC(m_tree != nullptr);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (m_id >= 0 && m_id < m_tree->capacity()), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
-        _RYML_CHECK_VISIT_(m_tree->m_callbacks, m_tree->is_map(m_id), m_tree, m_id);
+        _RYML_CHECK_VISIT_(m_tree->m_callbacks, type().is_map(), m_tree, m_id);
         id_type ch = m_tree->find_child(m_id, key);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, ch != NONE, m_tree, m_id);
         return {m_tree, ch};
@@ -693,7 +675,7 @@ public:
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (m_id >= 0 && m_id < cap), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (pos >= 0 && pos < cap), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
-        _RYML_CHECK_VISIT_(m_tree->m_callbacks, m_tree->is_container(m_id), m_tree, m_id);
+        _RYML_CHECK_VISIT_(m_tree->m_callbacks, type().is_container(), m_tree, m_id);
         const id_type ch = m_tree->child(m_id, pos);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, ch != NONE, m_tree, m_id);
         return {m_tree, ch};
@@ -1335,7 +1317,7 @@ public:
         _RYML_CHECK_BASIC(m_tree != nullptr);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (m_id >= 0 && m_id < m_tree->capacity()), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
-        _RYML_CHECK_VISIT_(m_tree->m_callbacks, m_tree->is_map(m_id), m_tree, m_id);
+        _RYML_CHECK_VISIT_(m_tree->m_callbacks, type().is_map(), m_tree, m_id);
         id_type ch = m_tree->find_child(m_id, key);
         return ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, key);
     }
@@ -1372,7 +1354,7 @@ public:
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (m_id >= 0 && m_id < cap), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (pos >= 0 && pos < cap), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
-        _RYML_CHECK_VISIT_(m_tree->m_callbacks, m_tree->is_container(m_id), m_tree, m_id);
+        _RYML_CHECK_VISIT_(m_tree->m_callbacks, type().is_container(), m_tree, m_id);
         id_type ch = m_tree->child(m_id, pos);
         return ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, pos);
     }
@@ -1391,7 +1373,7 @@ public:
         _RYML_CHECK_BASIC(m_tree != nullptr);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (m_id >= 0 && m_id < m_tree->capacity()), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
-        _RYML_CHECK_VISIT_(m_tree->m_callbacks, m_tree->is_map(m_id), m_tree, m_id);
+        _RYML_CHECK_VISIT_(m_tree->m_callbacks, type().is_map(), m_tree, m_id);
         id_type ch = m_tree->find_child(m_id, key);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, ch != NONE, m_tree, m_id);
         return {m_tree, ch};
@@ -1413,7 +1395,7 @@ public:
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (m_id >= 0 && m_id < cap), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, (pos >= 0 && pos < cap), m_tree, m_id);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
-        _RYML_CHECK_VISIT_(m_tree->m_callbacks, m_tree->is_container(m_id), m_tree, m_id);
+        _RYML_CHECK_VISIT_(m_tree->m_callbacks, type().is_container(), m_tree, m_id);
         const id_type ch = m_tree->child(m_id, pos);
         _RYML_CHECK_VISIT_(m_tree->m_callbacks, ch != NONE, m_tree, m_id);
         return {m_tree, ch};
@@ -1662,49 +1644,40 @@ public:
     RYML_DEPRECATED("use one of readable(), is_seed() or !invalid()") inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
     RYML_DEPRECATED("use !readable()") bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
     RYML_DEPRECATED("use readable()")  bool operator!= (std::nullptr_t) const { return !(m_tree == nullptr || m_id == NONE || is_seed()); }
-
-    RYML_DEPRECATED("use `this->val() == s`") bool operator== (csubstr s) const { _C4RR(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, has_val(), m_tree, m_id); return m_tree->val(m_id) == s; }
-    RYML_DEPRECATED("use `this->val() != s`") bool operator!= (csubstr s) const { _C4RR(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, has_val(), m_tree, m_id); return m_tree->val(m_id) != s; }
-
+    RYML_DEPRECATED("use `this->val() == s`") bool operator== (csubstr s) const { _C4RR(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, type().has_val(), m_tree, m_id); return m_tree->val(m_id) == s; }
+    RYML_DEPRECATED("use `this->val() != s`") bool operator!= (csubstr s) const { _C4RR(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, type().has_val(), m_tree, m_id); return m_tree->val(m_id) != s; }
     RYML_DEPRECATED("") void operator= (NodeType_e t)
     {
         _apply_seed();
         m_tree->_add_flags(m_id, t);
     }
-
     RYML_DEPRECATED("") void operator|= (NodeType_e t)
     {
         _apply_seed();
         m_tree->_add_flags(m_id, t);
     }
-
     RYML_DEPRECATED("") void operator= (NodeInit const& v)
     {
         _apply_seed();
         _apply(v);
     }
-
     RYML_DEPRECATED("") void operator= (NodeScalar const& v)
     {
         _apply_seed();
         _apply(v);
     }
-
     RYML_DEPRECATED("") void _apply(csubstr v)
     {
         m_tree->set_val(m_id, v);
     }
-
     RYML_DEPRECATED("") void _apply(NodeScalar const& v)
     {
         m_tree->_set_val(m_id, v);
     }
-
     RYML_DEPRECATED("") void _apply(NodeInit const& i)
     {
         m_tree->_set(m_id, i);
     }
-
     RYML_DEPRECATED("") NodeRef insert_child(NodeInit const& i, NodeRef after)
     {
         _C4RR();
@@ -1713,7 +1686,6 @@ public:
         r._apply(i);
         return r;
     }
-
     RYML_DEPRECATED("") NodeRef prepend_child(NodeInit const& i)
     {
         _C4RR();
@@ -1721,7 +1693,6 @@ public:
         r._apply(i);
         return r;
     }
-
     RYML_DEPRECATED("") NodeRef append_child(NodeInit const& i)
     {
         _C4RR();
@@ -1729,7 +1700,6 @@ public:
         r._apply(i);
         return r;
     }
-
     RYML_DEPRECATED("") NodeRef insert_sibling(NodeInit const& i, ConstNodeRef const& after)
     {
         _C4RR();
@@ -1738,7 +1708,6 @@ public:
         r._apply(i);
         return r;
     }
-
     RYML_DEPRECATED("") NodeRef prepend_sibling(NodeInit const& i)
     {
         _C4RR();
@@ -1746,7 +1715,6 @@ public:
         r._apply(i);
         return r;
     }
-
     RYML_DEPRECATED("") NodeRef append_sibling(NodeInit const& i)
     {
         _C4RR();
@@ -1754,7 +1722,6 @@ public:
         r._apply(i);
         return r;
     }
-
     void _add_flags(NodeType f)
     {
         _C4RR();
