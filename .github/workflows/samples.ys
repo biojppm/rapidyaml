@@ -3,41 +3,32 @@
 :use common: :all
 :: workflow-setup()
 
-# TODO: https://github.com/msys2/setup-msys2
-
 jobs:
   samples:
     :: setup-job('samples' 'samples')
-    name: ${{matrix.name}}
+    name: ${{matrix.name}}/${{matrix.bt}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
         include:
-        - {name: linux/Debug/static        , os: ubuntu-24.04, bt: Debug  , args:            -DBUILD_SHARED_LIBS=OFF}
-        - {name: linux/Debug/shared        , os: ubuntu-24.04, bt: Debug  , args:            -DBUILD_SHARED_LIBS=ON}
-        - {name: linux/Release/static      , os: ubuntu-24.04, bt: Release, args:            -DBUILD_SHARED_LIBS=OFF}
-        - {name: linux/Release/shared      , os: ubuntu-24.04, bt: Release, args:            -DBUILD_SHARED_LIBS=ON}
+        - {name: linux/static      , os: ubuntu-24.04, bt: Debug  , args: -DBUILD_SHARED_LIBS=OFF}
+        - {name: linux/shared      , os: ubuntu-24.04, bt: Release, args: -DBUILD_SHARED_LIBS=ON}
         #
-        - {name: macos/Debug/static        , os: macos-latest, bt: Debug  , args:            -DBUILD_SHARED_LIBS=OFF}
-        - {name: macos/Debug/shared        , os: macos-latest, bt: Debug  , args:            -DBUILD_SHARED_LIBS=ON}
-        - {name: macos/Release/static      , os: macos-latest, bt: Release, args:            -DBUILD_SHARED_LIBS=OFF}
-        - {name: macos/Release/shared      , os: macos-latest, bt: Release, args:            -DBUILD_SHARED_LIBS=ON}
+        - {name: macos/static      , os: macos-latest, bt: Debug  , args: -DBUILD_SHARED_LIBS=OFF}
+        - {name: macos/shared      , os: macos-latest, bt: Release, args: -DBUILD_SHARED_LIBS=ON}
         #
-        - {name: win/Debug/static          , os: windows-2022, bt: Debug  , args:            -DBUILD_SHARED_LIBS=OFF}
-        - {name: win/Debug/shared          , os: windows-2022, bt: Debug  , args:            -DBUILD_SHARED_LIBS=ON}
-        - {name: win/Release/static        , os: windows-2022, bt: Release, args:            -DBUILD_SHARED_LIBS=OFF}
-        - {name: win/Release/shared        , os: windows-2022, bt: Release, args:            -DBUILD_SHARED_LIBS=ON}
+        - {name: win/static        , os: windows-latest, bt: Debug  , args: -DBUILD_SHARED_LIBS=OFF}
+        - {name: win/shared        , os: windows-latest, bt: Release, args: -DBUILD_SHARED_LIBS=ON}
         #
-        - {name: win/clangCL/Debug/static  , os: windows-2022, bt: Debug  , args: -T ClangCL -DBUILD_SHARED_LIBS=OFF}
-        - {name: win/clangCL/Debug/shared  , os: windows-2022, bt: Debug  , args: -T ClangCL -DBUILD_SHARED_LIBS=ON}
-        - {name: win/clangCL/Release/static, os: windows-2022, bt: Release, args: -T ClangCL -DBUILD_SHARED_LIBS=OFF}
-        - {name: win/clangCL/Release/shared, os: windows-2022, bt: Release, args: -T ClangCL -DBUILD_SHARED_LIBS=ON}
+        - {name: win/clangcl/static, os: windows-latest, bt: Debug  , args: -DBUILD_SHARED_LIBS=OFF -T ClangCL}
+        - {name: win/clangcl/shared, os: windows-latest, bt: Release, args: -DBUILD_SHARED_LIBS=ON  -T ClangCL}
         #
-        - {name: win/clang++/Debug/static  , os: windows-2022, bt: Debug  , args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=OFF}
-        - {name: win/clang++/Debug/shared  , os: windows-2022, bt: Debug  , args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON}
-        - {name: win/clang++/Release/static, os: windows-2022, bt: Release, args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=OFF}
-        - {name: win/clang++/Release/shared, os: windows-2022, bt: Release, args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON}
+        - {name: win/clang++/static, os: windows-latest, bt: Debug  , args: -DBUILD_SHARED_LIBS=OFF -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
+        - {name: win/clang++/shared, os: windows-latest, bt: Release, args: -DBUILD_SHARED_LIBS=ON  -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
+        #
+        - {name: win/gcc/static    , os: windows-latest, bt: Debug  , args: -DBUILD_SHARED_LIBS=OFF -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
+        - {name: win/gcc/shared    , os: windows-latest, bt: Release, args: -DBUILD_SHARED_LIBS=ON  -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
     env: !:merge*
     - ! load('share/env.yaml')
     - CMANY: ON

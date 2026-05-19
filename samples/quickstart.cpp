@@ -746,19 +746,24 @@ john: doe)";
     CHECK(root["newmap (serialized)"].num_children() == 0);
     CHECK(root["newmap (serialized)"].is_map());
     //
-    // When the tree is mutable, operator[] first searches the tree
-    // for the does not mutate the tree until the returned node is
-    // written to.
+    // When the tree is const, operator[] searches the tree for a
+    // matching key/position, and returns it, or raises an error if
+    // none is found.
     //
-    // Until such time, the NodeRef object keeps in itself the required
-    // information to write to the proper place in the tree. This is
-    // called being in a "seed" state.
+    // When the tree is mutable, operator[] will not mutate the tree
+    // until the returned node is written to. operator[] first
+    // searches the tree for a node matching the key/position and
+    // returns it if it exists; otherwise, the result is a NodeRef
+    // object which keeps in itself the required information to write
+    // to the proper place in the tree. This is called being in a
+    // "seed" state.
     //
-    // This means that passing a key/index which does not exist will
-    // not mutate the tree, but will instead store (in the node) the
-    // proper place of the tree to be able to do so, if and when it is
-    // required. This is why the node is said to be in "seed" state -
-    // it allows creating the entry in the tree in the future.
+    // This means that passing a key/position which does not exist
+    // will not mutate the tree, but will instead store (in the
+    // returned NodeRef) the proper place of the tree to be able to do
+    // so, if and when it is required. This is why the node is said to
+    // be in "seed" state - it allows creating the entry in the tree
+    // in the future.
     //
     // This is a significant difference from eg, the behavior of
     // std::map, which mutates the map immediately within the call to

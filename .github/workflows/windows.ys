@@ -19,10 +19,10 @@ items =::
         - {std: 17, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
         - {std: 20, name: vs2022/64, os: 2022, gen: Visual Studio 17 2022, arch:   x64}
         - {std: 20, name: vs2022/32, os: 2022, gen: Visual Studio 17 2022, arch: Win32}
-        - {std: 11, name: vs2022/64, os: latest, gen: Visual Studio 18 2026, arch:   x64}
-        - {std: 11, name: vs2022/32, os: latest, gen: Visual Studio 18 2026, arch: Win32}
-        - {std: 23, name: vs2022/64, os: latest, gen: Visual Studio 18 2026, arch:   x64}
-        - {std: 23, name: vs2022/32, os: latest, gen: Visual Studio 18 2026, arch: Win32}
+        - {std: 11, name: vs2026/64, os: latest, gen: Visual Studio 18 2026, arch:   x64}
+        - {std: 11, name: vs2026/32, os: latest, gen: Visual Studio 18 2026, arch: Win32}
+        - {std: 23, name: vs2026/64, os: latest, gen: Visual Studio 18 2026, arch:   x64}
+        - {std: 23, name: vs2026/32, os: latest, gen: Visual Studio 18 2026, arch: Win32}
 
 :: # code mode
   defn define-flavor-job(name cmkflags cxxflags="")::
@@ -41,6 +41,7 @@ items =::
     - :: run-vs-manual-with-flags('${{matrix.gen}}' '${{matrix.arch}}' 'Release' 'ON'  ('/MDd /O3 /Ob3 /DNDEBUG ' + cxxflags) cmkflags)
 
   =>: nil # this is needed to expose the function above
+
 
 jobs:
 
@@ -76,63 +77,42 @@ jobs:
   #  #                    name           cmkflags  cflags
   #  :: define-flavor-job('noexceptions' ''        '-D_HAS_EXCEPTIONS=0 /GR- /EHs- /EHc- /wd4611')
 
-  clangvs:
-    :: setup-job('windows' 'vsclang')
-    name: clangvs/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: windows-${{matrix.os}}
+  othercompilers:
+    :: setup-job('windows' 'othercompilers')
+    name: ${{matrix.name}}/${{matrix.bt}}/c++${{matrix.std}}
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-        - {std: 11, name: vs2022/debug/static  , os: 2022, gen: Visual Studio 17 2022, bt: Debug  , shared: OFF}
-        - {std: 11, name: vs2022/release/shared, os: 2022, gen: Visual Studio 17 2022, bt: Release, shared: ON }
-        - {std: 20, name: vs2022/debug/shared  , os: 2022, gen: Visual Studio 17 2022, bt: Debug  , shared: OFF}
-        - {std: 20, name: vs2022/release/shared, os: 2022, gen: Visual Studio 17 2022, bt: Release, shared: ON }
+        - {std: 11, name: clangcl/static, bt: Debug  , shared: OFF, cxx: -G "Visual Studio 18 2026" -T ClangCL}
+        - {std: 11, name: clangcl/shared, bt: Release, shared: ON , cxx: -G "Visual Studio 18 2026" -T ClangCL}
+        - {std: 20, name: clangcl/static, bt: Debug  , shared: OFF, cxx: -G "Visual Studio 18 2026" -T ClangCL}
+        - {std: 20, name: clangcl/shared, bt: Release, shared: ON , cxx: -G "Visual Studio 18 2026" -T ClangCL}
+        #
+        - {std: 11, name: clang++/static, bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
+        - {std: 11, name: clang++/shared, bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
+        - {std: 20, name: clang++/static, bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
+        - {std: 20, name: clang++/shared, bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
+        #
+        # mingw release builds are failing the tests:
+        # see https://github.com/biojppm/rapidyaml/issues/603
+        - {std: 11, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
+        - {std: 11, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
+        #- {std: 11, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
+        - {std: 20, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
+        - {std: 20, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
+        #- {std: 20, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
     steps:
     - :: checkout-action
     - name: config
       run: |
         cmake -B build/ \
-              -G "${{matrix.gen}}" -T ClangCL \
-              -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
-              -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-              -DCMAKE_CXX_FLAGS=' /DWIN32 /D_WINDOWS /W3 /GR /EHsc /D_CRT_SECURE_NO_WARNINGS ' \
-              -DCMAKE_C_FLAGS=' /DWIN32 /D_WINDOWS /W3 /GR /EHsc /D_CRT_SECURE_NO_WARNINGS ' \
-              -DBUILD_SHARED_LIBS=${{matrix.shared}} \
-              -DRYML_DEV=ON \
-              -DRYML_BUILD_BENCHMARKS=OFF
-    - name: build
-      run: |
-        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel --verbose
-    - name: test
-      run: |
-        source .github/setenv.sh
-        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
-        cmake --build build --target ryml-test-run --config ${{matrix.bt}}
-
-  clangraw:
-    :: setup-job('windows' 'winclang')
-    name: clangraw/c++${{matrix.std}}/${{matrix.bt}}
-    runs-on: windows-${{matrix.os}}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - {std: 11, name: debug/static  , os: 2022, gen: Unix Makefiles, bt: Debug  , shared: OFF}
-        - {std: 11, name: release/shared, os: 2022, gen: Unix Makefiles, bt: Release, shared: ON }
-        - {std: 20, name: debug/shared  , os: 2022, gen: Unix Makefiles, bt: Debug  , shared: OFF}
-        - {std: 20, name: release/shared, os: 2022, gen: Unix Makefiles, bt: Release, shared: ON }
-    steps:
-    - :: checkout-action
-    - name: config
-      run: |
-        cmake -B build/ \
-              -G "${{matrix.gen}}" \
-              -DCMAKE_CXX_COMPILER=clang++ \
-              -DCMAKE_C_COMPILER=clang \
+              ${{matrix.cxx}} \
               -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
               -DCMAKE_CXX_STANDARD=${{matrix.std}} \
               -DBUILD_SHARED_LIBS=${{matrix.shared}} \
+              "${{matrix.extra}}" \
               -DRYML_DEV=ON \
               -DRYML_BUILD_BENCHMARKS=OFF
     - name: build
