@@ -139,7 +139,7 @@ static bool fleq(T a, T b)
 TEST(number, nan_0)
 {
     Tree t;
-    t.rootref() |= SEQ;
+    t.rootref().set_seq();
     t[0] << std::numeric_limits<float>::quiet_NaN();
     t[1] << std::numeric_limits<double>::quiet_NaN();
     EXPECT_EQ(t[0].val(), ".nan");
@@ -244,7 +244,7 @@ set:
 TEST(number, inf_0)
 {
     Tree t;
-    t.rootref() |= SEQ;
+    t.rootref().set_seq();
     const float finf = std::numeric_limits<float>::infinity();
     const double dinf = std::numeric_limits<double>::infinity();
     t[0] << finf;

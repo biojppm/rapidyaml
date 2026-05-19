@@ -844,7 +844,7 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1_0)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r |= SEQ|BLOCK;
+    r.set_seq(BLOCK);
     csubstr v0 = "\n";
     csubstr v1 = "\n";
     csubstr v2 = "last";
@@ -862,7 +862,7 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r |= SEQ|BLOCK;
+    r.set_seq(BLOCK);
     csubstr v0 = "\n\n";
     csubstr v1 = "\n\n";
     csubstr v2 = "last";

@@ -56,7 +56,6 @@ c4_add_library(ryml
         c4/yml/fwd.hpp
         c4/yml/export.hpp
         c4/yml/node.hpp
-        c4/yml/node.cpp
         c4/yml/node_type.hpp
         c4/yml/node_type.cpp
         c4/yml/parser_state.hpp
@@ -183,8 +182,7 @@ endif()
 #-------------------------------------------------------
 # developer targets
 
-
-option(RYML_SAVE_TEST_YAML "" OFF)
+option(RYML_SAVE_TEST_YAML "save the YAML parsed in all the tests" OFF)
 if(RYML_SAVE_TEST_YAML)
     target_compile_definitions(ryml PUBLIC RYML_SAVE_TEST_YAML)
     set(RYML_TEST_FUZZ OFF CACHE BOOL "" FORCE)

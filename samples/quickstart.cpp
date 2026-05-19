@@ -85,7 +85,8 @@ void ensure_callbacks();
     // desired; ryml itself does not use any STL container.
     // For this sample, we will be using std interop, so...
     #include <ryml_std.hpp> // optional header, provided for std:: interop
-    #include <c4/format.hpp> // needed for the examples below
+    #include <c4/format_base64.hpp> // optional header, provided for base64 encoding
+    #include <c4/format.hpp> // needed for the formatting examples below
     // optional header, definitions for error utilities to implement
     // error callbacks:
     #include <c4/yml/error.def.hpp>
@@ -186,6 +187,7 @@ int main(int argc, const char* argv[])
     sample_style_flow_ml_filter();
     sample_json();
     sample_anchors_and_aliases();
+    sample_anchors_and_aliases_create();
     sample_tags();
     sample_tag_directives();
     sample_docs();
@@ -729,8 +731,8 @@ john: doe)";
     CHECK(root["bar"][3].val() == "oh so nice (serialized)");
     // adding a seq node:
     CHECK(root.num_children() == 7);
-    wroot["newseq"] |= ryml::SEQ;
-    wroot.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
+    wroot["newseq"].set_seq();
+    (wroot.append_child() << ryml::key("newseq (serialized)")).set_seq();
     CHECK(root.num_children() == 9);
     CHECK(root["newseq"].num_children() == 0);
     CHECK(root["newseq"].is_seq());
@@ -738,8 +740,8 @@ john: doe)";
     CHECK(root["newseq (serialized)"].is_seq());
     // adding a map node:
     CHECK(root.num_children() == 9);
-    wroot["newmap"] |= ryml::MAP;
-    wroot.append_child() << ryml::key("newmap (serialized)") |= ryml::MAP;
+    wroot["newmap"].set_map();
+    (wroot.append_child() << ryml::key("newmap (serialized)")).set_map();
     CHECK(root.num_children() == 11);
     CHECK(root["newmap"].num_children() == 0);
     CHECK(root["newmap"].is_map());
@@ -2037,15 +2039,15 @@ bar2: [22,32]
     CHECK(root[3].is_map());
     CHECK(root[3]["champagne"].val() == "Dom Perignon");
     CHECK(root[3]["coffee"].val() == "Arabica");
-
-    // watchout: to add to an existing node within a map, the node's
-    // key must be separately set first:
-    ryml::NodeRef more = mroot[3].append_child({ryml::KEYMAP, "more"});
-    ryml::NodeRef beer = mroot[3].append_child({ryml::KEYSEQ, "beer"});
-    ryml::NodeRef always = mroot[3].append_child({ryml::KEY, "always"});
-    ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
-    ryml::parse_in_arena("- Rochefort 10\n- Busch\n- Leffe Rituel", beer);
-    ryml::parse_in_arena("lots\nof\nwater", always);
+    mroot[3]["more"].set_map();
+    mroot[3]["beer"].set_seq();
+CHECK(mroot[3]["more"].readable());
+CHECK(mroot[3]["more"].key() == "more");
+CHECK(mroot[3]["more"].is_map());
+CHECK(!mroot[3]["more"].is_val());
+    ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", mroot[3]["more"]);
+    ryml::parse_in_arena("- Rochefort 10\n- Busch\n- Leffe Rituel", mroot[3]["beer"]);
+    ryml::parse_in_arena("lots\nof\nwater", mroot[3]["always"]);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - {x0: 1,x1: 2}
@@ -2083,7 +2085,7 @@ bar2: [22,32]
 )");
 
     // or nested:
-    ryml::parse_in_arena("[Kasteel Donker]", beer);
+    ryml::parse_in_arena("[Kasteel Donker]", mroot[3]["beer"]);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - {x0: 1,x1: 2}
@@ -2274,7 +2276,7 @@ void sample_create_trees()
 
     ryml::Tree tree;
     ryml::NodeRef root = tree.rootref();
-    root |= ryml::MAP; // mark root as a map
+    root.set_map(); // mark root as a map
     doe = root["doe"];
     CHECK(!doe.invalid()); // it's now pointing at the tree
     CHECK(doe.is_seed()); // but the tree has nothing there, so this is only a seed
@@ -2305,17 +2307,17 @@ void sample_create_trees()
     root["xmas"] << ryml::fmt::boolalpha(true);
     root["french-hens"] << 3;
     ryml::NodeRef calling_birds = root["calling-birds"];
-    calling_birds |= ryml::SEQ;
+    calling_birds.set_seq();
     calling_birds.append_child() = "huey";
     calling_birds.append_child() = "dewey";
     calling_birds.append_child() = "louie";
     calling_birds.append_child() = "fred";
     ryml::NodeRef xmas5 = root["xmas-fifth-day"];
-    xmas5 |= ryml::MAP;
+    xmas5.set_map();
     xmas5["calling-birds"] = "four";
     xmas5["french-hens"] << 3;
     xmas5["golden-rings"] << 5;
-    xmas5["partridges"] |= ryml::MAP;
+    xmas5["partridges"].set_map();
     xmas5["partridges"]["count"] << 1;
     xmas5["partridges"]["location"] = "a pear tree";
     xmas5["turtle-doves"] = "two";
@@ -2698,7 +2700,7 @@ non_null: [nULL, non_null, non null, null it is not]
     CHECK(tilde  .len != 0); CHECK(tilde  .str != nullptr); CHECK(tilde   != nullptr);
     tree.clear();
     tree.clear_arena();
-    tree.rootref() |= ryml::MAP;
+    tree.rootref().set_map();
     // serializes as an empty plain scalar:
     tree["empty_null"] << null; CHECK(tree.arena() == "");
     // serializes as an empty quoted scalar:
@@ -3205,8 +3207,9 @@ void sample_formatting()
  */
 void sample_base64()
 {
+    // let's start by creating a tree with base64 vals and keys
     ryml::Tree tree;
-    tree.rootref() |= ryml::MAP;
+    tree.rootref().set_map();
     struct text_and_base64 { ryml::csubstr text, base64; };
     text_and_base64 cases[] = {
         {{"Love all, trust a few, do wrong to none."}, {"TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg=="}},
@@ -3216,17 +3219,18 @@ void sample_base64()
     };
     // to encode base64 and write the result to val:
     for(text_and_base64 c : cases)
-    {
         tree[c.text] << ryml::fmt::base64(c.text);
-        CHECK(tree[c.text].val() == c.base64);
-    }
     // to encode base64 and write the result to key:
     for(text_and_base64 c : cases)
-    {
         tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
+    // check the result:
+    for(text_and_base64 c : cases)
+    {
+        CHECK(tree[c.text].val() == c.base64);
         CHECK(tree[c.base64].val() == c.text);
     }
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
 'The fool doth think he is wise, but the wise man knows himself to be a fool.': VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==
 Brevity is the soul of wit.: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu
 All that glitters is not gold.: QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu
@@ -3235,134 +3239,94 @@ VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNl
 QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu: Brevity is the soul of wit.
 QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold.
 )");
+    // to decode base64:
     char buf1_[128], buf2_[128];
     ryml::substr buf1 = buf1_;  // this is where we will write the result (using >>)
     ryml::substr buf2 = buf2_;  // this is where we will write the result (using deserialize_val()/deserialize_key())
     std::string result = {}; // show also how to decode to a std::string
-    // to decode the val base64 and write the result to buf:
+    // to decode base64 and write the result to buf:
     for(const text_and_base64 c : cases)
     {
-        // write the decoded result into the given buffer
-        tree[c.text] >> ryml::fmt::base64(buf1); // cannot know the needed size
-        size_t len = tree[c.text].deserialize_val(ryml::fmt::base64(buf2)); // returns the needed size
+        // decode base64 and write the decoded result into the given
+        // buffer (buf1):
+        tree[c.text] >> ryml::fmt::base64(buf1);
+        // The base64() tag function is used to get the
+        // deserialization using c4::decode_base64(). The
+        // deserialization will respect the limits of the buffer, and
+        // fail with an error if the buffer is too small (or if the
+        // base64 encoding is wrong). But when it succeeds, the
+        // resulting decoded length is unknown. To address that, it is
+        // possible to pass a length parameter to the tag function:
+        size_t len = 0;
+        tree[c.text] >> ryml::fmt::base64(buf2, &len);
         CHECK(len <= buf1.len);
         CHECK(len <= buf2.len);
         CHECK(c.text.len == len);
         CHECK(buf1.first(len) == c.text);
         CHECK(buf2.first(len) == c.text);
-        //
-        // interop with std::string: using substr
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        len = tree[c.text].deserialize_val(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = tree[c.text].deserialize_val(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
-        //
-        // interop with std::string: using blob
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::blob strblob(&result[0], result.size());
-        CHECK(strblob.buf == result.data());
-        CHECK(strblob.len == result.size());
-        len = tree[c.text].deserialize_val(ryml::fmt::base64(strblob)); // returns the needed size
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            strblob = {&result[0], result.size()};
-            CHECK(strblob.buf == result.data());
-            CHECK(strblob.len == result.size());
-            len = tree[c.text].deserialize_val(ryml::fmt::base64(strblob)); // returns the needed size
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
-        //
-        // Note also these are just syntatic wrappers to simplify client code.
-        // You can call into the lower level functions without much effort:
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::csubstr encoded = tree[c.text].val();
-        CHECK(encoded == c.base64);
-        len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
-    }
-    // to decode the key base64 and write the result to buf:
-    for(const text_and_base64 c : cases)
-    {
-        // write the decoded result into the given buffer
-        tree[c.base64] >> ryml::key(ryml::fmt::base64(buf1)); // cannot know the needed size
-        size_t len = tree[c.base64].deserialize_key(ryml::fmt::base64(buf2)); // returns the needed size
+        // likewise for keys:
+        tree[c.base64] >> ryml::key(ryml::fmt::base64(buf1, &len));
         CHECK(len <= buf1.len);
-        CHECK(len <= buf2.len);
-        CHECK(c.text.len == len);
         CHECK(buf1.first(len) == c.text);
-        CHECK(buf2.first(len) == c.text);
-        // interop with std::string: using substr
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        len = tree[c.base64].deserialize_key(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = tree[c.base64].deserialize_key(ryml::fmt::base64(ryml::to_substr(result))); // returns the needed size
-        }
-        result.resize(len); // trim to the length of the decoded buffer
+        //
+        // interop with std::string:
+        result.clear(); // this is not needed. We do it to show that
+                        // the std::string is resized to fit the
+                        // decoded payload.
+        tree[c.text] >> ryml::fmt::base64(result);
+        CHECK(result == c.text);
+        // likewise for keys:
+        tree[c.base64] >> ryml::key(ryml::fmt::base64(result));
         CHECK(result == c.text);
         //
-        // interop with std::string: using blob
+        // Manual interop with std::string: using substr.
+        // This shows how to manually resize the destination
+        // buffer, and is similar to the implementation for containers.
         result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::blob strblob = {&result[0], result.size()};
-        CHECK(strblob.buf == result.data());
-        CHECK(strblob.len == result.size());
-        len = tree[c.base64].deserialize_key(ryml::fmt::base64(strblob)); // returns the needed size
+        len = 0;
+        // try to read into the buffer, and get back the required size
+        // (in len)
+        auto payload = ryml::fmt::base64(ryml::to_substr(result), &len);
+        bool ok = tree[c.text].deserialize_val(&payload);
         if(len > result.size()) // the size was not enough; resize and call again
         {
             result.resize(len);
-            strblob = {&result[0], result.size()};
-            CHECK(strblob.buf == result.data());
-            CHECK(strblob.len == result.size());
-            len = tree[c.base64].deserialize_key(ryml::fmt::base64(strblob)); // returns the needed size
+            payload = ryml::fmt::base64(ryml::to_substr(result), &len); // reassign
+            ok = tree[c.text].deserialize_val(&payload);
         }
+        CHECK(ok);
         result.resize(len); // trim to the length of the decoded buffer
         CHECK(result == c.text);
-        //
-        // Note also these are just syntactic wrappers to simplify client code.
-        // You can call into the lower level functions without much effort:
-        result.clear(); // this is not needed. We do it just to show that the first call can fail.
-        ryml::csubstr encoded = tree[c.base64].key();
-        CHECK(encoded == c.base64);
-        len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        if(len > result.size()) // the size was not enough; resize and call again
-        {
-            result.resize(len);
-            len = base64_decode(encoded, ryml::blob{&result[0], result.size()});
-        }
-        result.resize(len); // trim to the length of the decoded buffer
-        CHECK(result == c.text);
+        // likewise for keys
     }
     // directly encode variables
     {
         const uint64_t valin = UINT64_C(0xdeadbeef);
-        uint64_t valout = 0;
         tree["deadbeef"] << c4::fmt::base64(valin); // sometimes cbase64() is needed to avoid ambiguity
-        size_t len = tree["deadbeef"].deserialize_val(ryml::fmt::base64(valout));
-        CHECK(len <= sizeof(valout));
+        uint64_t valout = 0;
+        size_t len = 0;
+        tree["deadbeef"] >> ryml::fmt::base64(valout, &len);
+        CHECK(len == sizeof(valout));
         CHECK(valout == UINT64_C(0xdeadbeef)); // base64 roundtrip is bit-accurate
+    }
+    {
+        const double valin = 123456.7891011;
+        tree["float"] << c4::fmt::base64(valin);
+        double valout = 0;
+        size_t len = 0;
+        tree["float"] >> ryml::fmt::base64(valout, &len);
+        CHECK(len == sizeof(valout));
+        CHECK(memcmp(&valout, &valin, sizeof(valout)) == 0); // base64 roundtrip is bit-accurate
     }
     // directly encode memory ranges
     {
         const uint32_t data_in[11] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xdeadbeef};
         uint32_t data_out[11] = {};
+        tree["int_data"] << ryml::fmt::base64(data_in, 11);
         CHECK(memcmp(data_in, data_out, sizeof(data_in)) != 0); // before the roundtrip
-        tree["int_data"] << c4::fmt::base64(data_in);
-        size_t len = tree["int_data"].deserialize_val(ryml::fmt::base64(data_out));
-        CHECK(len <= sizeof(data_out));
+        size_t len = 0;
+        tree["int_data"] >> ryml::fmt::base64(data_out, 11, &len);
+        CHECK(len == sizeof(data_out));
         CHECK(memcmp(data_in, data_out, sizeof(data_in)) == 0); // after the roundtrip
     }
 }
@@ -3592,7 +3556,7 @@ void sample_user_scalar_types()
     ryml::Tree t;
 
     auto r = t.rootref();
-    r |= ryml::MAP;
+    r.set_map();
 
     vec2<int> v2in{10, 11};
     vec2<int> v2out{1, 2};
@@ -3718,20 +3682,20 @@ struct my_type
 template<class T>
 void write(ryml::NodeRef *n, my_seq_type<T> const& seq)
 {
-    *n |= ryml::SEQ;
+    n->set_seq();
     for(auto const& v : seq.seq_member)
         n->append_child() << v;
 }
 template<class K, class V>
 void write(ryml::NodeRef *n, my_map_type<K, V> const& map)
 {
-    *n |= ryml::MAP;
+    n->set_map();
     for(auto const& v : map.map_member)
         n->append_child() << ryml::key(v.first) << v.second;
 }
 void write(ryml::NodeRef *n, my_type const& val)
 {
-    *n |= ryml::MAP;
+    n->set_map();
     // these are leaf nodes:
     n->append_child() << ryml::key("v2") << val.v2;
     n->append_child() << ryml::key("v3") << val.v3;
@@ -4010,7 +3974,7 @@ void sample_float_precision()
     {
         ryml::Tree serialized;
         ryml::NodeRef root = serialized.rootref();
-        root |= ryml::SEQ;
+        root.set_seq();
         for(const double v : reference)
             root.append_child() << ryml::fmt::real(v, num_digits_original, ryml::FTOA_FLOAT);
         check_precision(serialized); // OK - now within bounds!
@@ -4020,7 +3984,7 @@ void sample_float_precision()
     {
         ryml::Tree serialized;
         ryml::NodeRef root = serialized.rootref();
-        root |= ryml::SEQ;
+        root.set_seq();
         char tmp[64];
         for(const double v : reference)
         {
@@ -4926,7 +4890,7 @@ void sample_anchors_and_aliases_create()
     // part 1: anchor/ref
     {
         ryml::Tree t;
-        t.rootref() |= ryml::MAP|ryml::BLOCK;
+        t.rootref().set_map(ryml::BLOCK);
         t["kanchor"] = "2";
         t["kanchor"].set_key_anchor("kanchor");
         t["vanchor"] = "3";
@@ -4983,7 +4947,7 @@ orig3: &orig3 {and: more}
 copy: {}
 )");
         ryml::NodeRef seq = t["copy"]["<<"];
-        seq |= ryml::SEQ;
+        seq.set_seq();
         seq.append_child().set_val_ref("orig1");
         seq.append_child().set_val_ref("orig2");
         seq.append_child().set_val_ref("orig3");

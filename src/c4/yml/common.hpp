@@ -4,9 +4,16 @@
 /** @file common.hpp Common utilities and infrastructure used by ryml. */
 
 #include <cstddef>
+
+#ifndef _C4_SUBSTR_HPP_
 #include <c4/substr.hpp>
+#endif
+#ifndef _C4_CHARCONV_HPP_
 #include <c4/charconv.hpp>
+#endif
+#ifndef _C4_YML_CHARCONV_HPP_
 #include <c4/yml/export.hpp>
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -19,6 +26,12 @@
 #ifndef RYML_DEFAULT_TREE_ARENA_CAPACITY
 /// default capacity for the tree's arena when not set explicitly
 #define RYML_DEFAULT_TREE_ARENA_CAPACITY (0)
+#endif
+
+#ifndef RYML_DEFAULT_TREE_ARENA_CAPACITY_START
+/// default starting capacity for the tree's arena when it is first
+/// allocated. should be larger than @ref RYML_DEFAULT_TREE_ARENA_CAPACITY
+#define RYML_DEFAULT_TREE_ARENA_CAPACITY_START (256)
 #endif
 
 
@@ -41,16 +54,6 @@
 /// individual values in the message; final messages will be larger
 /// than this value (see @ref RYML_ERRMSG_SIZE). This is also used for
 /// the detailed debug log messages when RYML_DBG is defined.
-#define RYML_LOGBUF_SIZE (256)
-#endif
-
-
-#ifndef RYML_LOGBUF_SIZE
-/// size for the buffer used to format individual values to string
-/// while preparing an error message. This is only used for formatting
-/// individual values in the message; final messages will be larger
-/// than this value (see @ref RYML_ERRMSG_SIZE). This size is also
-/// used for the detailed debug log messages when RYML_DBG is defined.
 #define RYML_LOGBUF_SIZE (256)
 #endif
 static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
@@ -147,6 +150,10 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
  * Contains information on how to serialize and deserialize
  * fundamental types, user scalar types, user container types and
  * interop with std scalar/container types.
+ *
+ */
+
+/** @defgroup doc_serialization_helpers Serialization helpers
  *
  */
 
@@ -601,6 +608,33 @@ public:
     }
 };
 
+
+/** @} */
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** @addtogroup doc_serialization_helpers
+ *
+ * @{
+ */
+
+/** A tag type to select the key when (de)serializing with operator<<
+ * or operator>> */
+template<class K>
+struct Key
+{
+    K &&k; // NOLINT
+};
+/** A tag function to select the key when (de)serializing with
+ * operator<< or operator>> */
+template<class K>
+C4_ALWAYS_INLINE Key<K> key(K && k)
+{
+    return Key<K>{std::forward<K>(k)};
+}
 
 /** @} */
 

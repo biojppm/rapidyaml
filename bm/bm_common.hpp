@@ -9,8 +9,6 @@
 #include <vector>
 #include <iostream>
 
-#include <benchmark/benchmark.h>
-
 // warning suppressions for thirdparty code
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -41,6 +39,7 @@
 #   pragma GCC diagnostic ignored "-Wshadow"
 #   pragma GCC diagnostic ignored "-Wunused-parameter"
 #   pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#   pragma GCC diagnostic ignored "-Wunused-const-variable"
 #   pragma GCC diagnostic ignored "-Wfloat-equal"
 #   pragma GCC diagnostic ignored "-Wpedantic"
 #   pragma GCC diagnostic ignored "-Wuseless-cast"
@@ -51,6 +50,7 @@
 #       pragma GCC diagnostic ignored "-Wclass-memaccess" // rapidjson/document.h:1952:24
 #   endif
 #endif
+#include <benchmark/benchmark.h>
 #include "./libyaml.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
