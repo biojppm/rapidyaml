@@ -2,10 +2,13 @@
 
 # take the build type from the command line, or default to release
 cfg=${1:-Release}
+shift
 # force cmake's FetchContent to choose a specific branch, or use the default
-branch=${2:-master}
+branch=${1:-master}
+shift
 # force cmake's FetchContent to choose a specific repo, or use the default
-repo=${3:-https://github.com/biojppm/rapidyaml}
+repo=${1:-https://github.com/biojppm/rapidyaml}
+shift
 
 # make sure to run from where this file is
 cd $(dirname $0)
@@ -13,6 +16,7 @@ cd $(dirname $0)
 cmake -S . -B ./build/$cfg \
       -DCMAKE_BUILD_TYPE=$cfg \
       -DRYML_BRANCH_NAME=$branch \
-      -DRYML_REPO_URL=$repo
+      -DRYML_REPO_URL=$repo \
+      "$@"
 # build and run the sample
-cmake --build ./build/$cfg --config $cfg --target run
+cmake --build ./build/$cfg --config $cfg --target run --parallel

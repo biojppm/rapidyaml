@@ -145,8 +145,6 @@ INSTRUCTIONS:
         am.onlyif(has_evt(Event.ints), "src_extra/c4/yml/extra/event_handler_ints.hpp"),
         am.onlyif(has_evt(Event.ints_utils), "src_extra/c4/yml/extra/ints_utils.hpp"),
         am.onlyif(has_evt(Event.ints_to_testsuite), "src_extra/c4/yml/extra/ints_to_testsuite.hpp"),
-        am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/string.hpp"),
-        am.onlyif(has_evt(Event.testsuite), "src_extra/c4/yml/extra/event_handler_testsuite.hpp"),
         "src/c4/yml/parse_engine.hpp",
         "src/c4/yml/preprocess.hpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.hpp"),

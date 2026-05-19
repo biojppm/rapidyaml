@@ -3,16 +3,9 @@
 
 RYML_DEFINE_TEST_MAIN()
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-//#   pragma warning(disable: 4127/*conditional expression is constant*/)
-//#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#endif
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_CLANG("-Wdollar-in-identifier-extension")
 
 namespace c4 {
 namespace yml {
@@ -89,10 +82,5 @@ N(MFM, L{__(a), __(b), __(c), __(.foo), __(.), __(-a), __(+b), __(/b), __(:c), _
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
+C4_SUPPRESS_WARNING_MSVC_POP

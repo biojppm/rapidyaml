@@ -8,11 +8,10 @@
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #include <c4/yml/escape_scalar.hpp>
-#endif
-#include <c4/yml/extra/string.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
+#endif
 #include <testsuite/testsuite_events.hpp>
 #include <c4/fs/fs.hpp>
 #include <cstdio>
@@ -27,7 +26,7 @@ std::jmp_buf jmp_env = {};
 c4::csubstr jmp_msg = {};
 #endif
 
-C4_SUPPRESS_WARNING_GCC("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 
 //-----------------------------------------------------------------------------

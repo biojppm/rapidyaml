@@ -13,7 +13,7 @@ namespace yml {
  */
 
 /** Reusable object to resolve references/aliases in a @ref Tree. */
-struct RYML_EXPORT ReferenceResolver
+struct ReferenceResolver
 {
     ReferenceResolver() = default;
 
@@ -48,7 +48,7 @@ struct RYML_EXPORT ReferenceResolver
      * Attack](https://en.wikipedia.org/wiki/Billion_laughs_attack).
      *
      */
-    void resolve(Tree *tree, bool clear_anchors=true);
+    RYML_EXPORT void resolve(Tree *tree, bool clear_anchors=true);
 
 public:
 

@@ -119,6 +119,57 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     endif()
 endif()
 
+if(RYML_STANDALONE AND (WIN32 AND BUILD_SHARED_LIBS))
+    target_compile_definitions(ryml PUBLIC C4CORE_SHARED)
+endif()
+
+
+#-------------------------------------------------------
+
+option(RYML_EXTRA_ALL "" OFF)
+option(RYML_EXTRA_INTS "" OFF)
+option(RYML_EXTRA_INTS_UTILS "" OFF)
+option(RYML_EXTRA_INTS_TESTSUITE "" OFF)
+if(RYML_EXTRA_ALL OR RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS OR RYML_BUILD_TOOLS)
+    set(RYML_EXTRA_ALL            ON CACHE BOOL "" FORCE)
+    set(RYML_EXTRA_INTS           ON CACHE BOOL "" FORCE)
+    set(RYML_EXTRA_INTS_UTILS     ON CACHE BOOL "" FORCE)
+    set(RYML_EXTRA_INTS_TESTSUITE ON CACHE BOOL "" FORCE)
+endif()
+
+if(RYML_EXTRA_ALL
+        OR RYML_EXTRA_INTS
+        OR RYML_EXTRA_INTS_UTILS
+        OR RYML_EXTRA_INTS_TESTSUITE)
+    # test the extra facilities as well
+    if(RYML_EXTRA_INTS OR RYML_EXTRA_ALL)
+        list(APPEND RYML_EXTRA_SRC
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_handler_ints.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_handler_ints.hpp"
+        )
+    endif()
+    if(RYML_EXTRA_INTS_UTILS OR RYML_EXTRA_ALL)
+        list(APPEND RYML_EXTRA_SRC
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_utils.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_utils.hpp"
+        )
+    endif()
+    if(RYML_EXTRA_TESTSUITE OR RYML_EXTRA_ALL)
+        list(APPEND RYML_EXTRA_SRC
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_to_testsuite.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_to_testsuite.hpp"
+        )
+    endif()
+    target_include_directories(ryml PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src_extra>
+    )
+    target_sources(ryml PRIVATE ${RYML_EXTRA_SRC})
+    _c4cat_filter_hdrs("${RYML_EXTRA_SRC}" _ryml_extra_hdr)
+    c4_install_files("${_ryml_extra_hdr}" "include" "${CMAKE_CURRENT_LIST_DIR}/src_extra")
+    # extern libraries, used only for testing/benchmarking
+    include(ext/testbm.cmake)
+endif()
+
 
 #-------------------------------------------------------
 
@@ -131,6 +182,7 @@ endif()
 
 #-------------------------------------------------------
 # developer targets
+
 
 option(RYML_SAVE_TEST_YAML "" OFF)
 if(RYML_SAVE_TEST_YAML)
@@ -145,11 +197,6 @@ function(ryml_maybe_dump_test_yaml target)
         target_link_libraries(${target} PRIVATE c4fs gtest)
     endif()
 endfunction()
-
-# extern libraries, used only for testing/benchmarking
-if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS OR RYML_BUILD_TOOLS)
-    include(ext/testbm.cmake)
-endif()
 
 if(RYML_BUILD_TOOLS)
     add_subdirectory(tools)

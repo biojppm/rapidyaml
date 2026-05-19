@@ -31,7 +31,7 @@ RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT
  * @see ParseEngine
  * @see EventHandlerTree
  * */
-using Parser = RYML_EXPORT ParseEngine<EventHandlerTree>;
+using Parser = ParseEngine<EventHandlerTree>;
 
 
 //-----------------------------------------------------------------------------

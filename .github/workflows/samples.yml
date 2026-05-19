@@ -22,23 +22,92 @@ jobs:
   samples:
     if: always()
     continue-on-error: false
+    name: ${{matrix.name}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
         include:
-        - bt: Debug
+        - name: linux/Debug/static
           os: ubuntu-24.04
-        - bt: Release
+          bt: Debug
+          args: -DBUILD_SHARED_LIBS=OFF
+        - name: linux/Debug/shared
           os: ubuntu-24.04
-        - bt: Debug
-          os: windows-2022
-        - bt: Release
-          os: windows-2022
-        - bt: Debug
+          bt: Debug
+          args: -DBUILD_SHARED_LIBS=ON
+        - name: linux/Release/static
+          os: ubuntu-24.04
+          bt: Release
+          args: -DBUILD_SHARED_LIBS=OFF
+        - name: linux/Release/shared
+          os: ubuntu-24.04
+          bt: Release
+          args: -DBUILD_SHARED_LIBS=ON
+        - name: macos/Debug/static
           os: macos-latest
-        - bt: Release
+          bt: Debug
+          args: -DBUILD_SHARED_LIBS=OFF
+        - name: macos/Debug/shared
           os: macos-latest
+          bt: Debug
+          args: -DBUILD_SHARED_LIBS=ON
+        - name: macos/Release/static
+          os: macos-latest
+          bt: Release
+          args: -DBUILD_SHARED_LIBS=OFF
+        - name: macos/Release/shared
+          os: macos-latest
+          bt: Release
+          args: -DBUILD_SHARED_LIBS=ON
+        - name: win/Debug/static
+          os: windows-2022
+          bt: Debug
+          args: -DBUILD_SHARED_LIBS=OFF
+        - name: win/Debug/shared
+          os: windows-2022
+          bt: Debug
+          args: -DBUILD_SHARED_LIBS=ON
+        - name: win/Release/static
+          os: windows-2022
+          bt: Release
+          args: -DBUILD_SHARED_LIBS=OFF
+        - name: win/Release/shared
+          os: windows-2022
+          bt: Release
+          args: -DBUILD_SHARED_LIBS=ON
+        - name: win/clangCL/Debug/static
+          os: windows-2022
+          bt: Debug
+          args: -T ClangCL -DBUILD_SHARED_LIBS=OFF
+        - name: win/clangCL/Debug/shared
+          os: windows-2022
+          bt: Debug
+          args: -T ClangCL -DBUILD_SHARED_LIBS=ON
+        - name: win/clangCL/Release/static
+          os: windows-2022
+          bt: Release
+          args: -T ClangCL -DBUILD_SHARED_LIBS=OFF
+        - name: win/clangCL/Release/shared
+          os: windows-2022
+          bt: Release
+          args: -T ClangCL -DBUILD_SHARED_LIBS=ON
+        - name: win/clang++/Debug/static
+          os: windows-2022
+          bt: Debug
+          args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=OFF
+        - name: win/clang++/Debug/shared
+          os: windows-2022
+          bt: Debug
+          args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON
+        - name: win/clang++/Release/static
+          os: windows-2022
+          bt: Release
+          args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=OFF
+        - name: win/clang++/Release/shared
+          os: windows-2022
+          bt: Release
+          args: -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -64,23 +133,19 @@ jobs:
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: singleheader
-      run: cd samples/singleheader && ./run.sh $BT
+      run: cd samples/singleheader && ./run.sh $BT ${{matrix.args}}
     - name: singleheader-ints
-      run: cd samples/singleheader-ints && ./run.sh $BT
-    - name: singleheaderlib-static
-      run: cd samples/singleheaderlib && ./run_static.sh $BT
-    - name: singleheaderlib-shared
-      run: cd samples/singleheaderlib && ./run_shared.sh $BT
-    - name: singleheaderlib-ints-static
-      run: cd samples/singleheaderlib-ints && ./run_static.sh $BT
-    - name: singleheaderlib-ints-shared
-      run: cd samples/singleheaderlib-ints && ./run_shared.sh $BT
+      run: cd samples/singleheader-ints && ./run.sh $BT ${{matrix.args}}
+    - name: singleheaderlib
+      run: cd samples/singleheaderlib && ./run.sh $BT ${{matrix.args}}
+    - name: singleheaderlib-ints
+      run: cd samples/singleheaderlib-ints && ./run.sh $BT ${{matrix.args}}
     - name: add_subdirectory
-      run: cd samples/add_subdirectory && ./run.sh $BT
+      run: cd samples/add_subdirectory && ./run.sh $BT ${{matrix.args}}
     - name: find_package
-      run: cd samples/find_package && ./run.sh $BT
+      run: cd samples/find_package && ./run.sh $BT ${{matrix.args}}
     - name: custom_c4core
-      run: cd samples/custom_c4core && ./run.sh $BT
+      run: cd samples/custom_c4core && ./run.sh $BT ${{matrix.args}}
     - name: fetch_content
       run: |
         # run this sample only if the branch exists on the repo
@@ -91,5 +156,5 @@ jobs:
         branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         echo branch=$branch
         if [ ! -z "$(git ls-remote $repo | grep $branch)" ] ; then
-           ./run.sh $BT $branch "$repo"
+           ./run.sh $BT $branch "$repo" ${{matrix.args}}
         fi

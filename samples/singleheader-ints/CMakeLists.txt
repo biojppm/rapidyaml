@@ -12,6 +12,7 @@ target_compile_definitions(ryml-quickstart-ints PUBLIC -DRYML_SINGLE_HEADER)
 target_compile_definitions(ryml-quickstart-ints PUBLIC -DRYML_SINGLE_HEADER_INTS)
 target_include_directories(ryml-quickstart-ints PUBLIC "${SINGLE_HEADER_DIR}")
 
-add_custom_target(run ryml-quickstart-ints
-    COMMAND $<TARGET_FILE:ryml-quickstart-ints>
-    DEPENDS ryml-quickstart-ints)
+add_custom_target(run
+    COMMAND $<TARGET_FILE:ryml-quickstart-ints> --quiet
+    DEPENDS ryml-quickstart-ints
+    COMMENT "running: $<TARGET_FILE:ryml-quickstart-ints> --quiet")

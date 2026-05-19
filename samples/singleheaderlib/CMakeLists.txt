@@ -16,11 +16,15 @@ target_link_libraries(ryml-quickstart PRIVATE ryml)
 target_compile_definitions(ryml-quickstart PUBLIC -DRYML_SINGLE_HEADER_LIB)
 
 # adjustments for shared library
-if(BUILD_SHARED_LIBS)
+if(WIN32 AND BUILD_SHARED_LIBS)
     # RYML_SHARED should be propagated to targets consuming ryml
     target_compile_definitions(ryml PUBLIC -DRYML_SHARED)
+    # simplify things by placing the exe next to the dll
+    set_target_properties(ryml-quickstart PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:ryml>)
 endif()
 
-add_custom_target(run ryml-quickstart
-    COMMAND $<TARGET_FILE:ryml-quickstart>
-    DEPENDS ryml-quickstart)
+add_custom_target(run
+    COMMAND $<TARGET_FILE:ryml-quickstart> --quiet
+    DEPENDS ryml-quickstart
+    COMMENT "running: $<TARGET_FILE:ryml-quickstart> --quiet")

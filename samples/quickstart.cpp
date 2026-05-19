@@ -60,6 +60,7 @@
  * @{ */
 
 /** @cond dev */
+void handle_args(int, const char*[]);
 int report_checks();
 void ensure_callbacks();
 /** @endcond */
@@ -152,8 +153,9 @@ void sample_per_tree_allocator();   ///< set per-tree allocators
 void sample_static_trees();         ///< how to use static trees in ryml
 void sample_location_tracking();    ///< track node YAML source locations in the parsed tree
 
-int main()
+int main(int argc, const char* argv[])
 {
+    handle_args(argc, argv);
     ensure_callbacks();
     sample_lightning_overview();
     sample_quick_overview();
@@ -354,17 +356,23 @@ void sample_lightning_overview()
     CHECK(bar[2].val() == "12");
 
     // emit tree
-    // to std::string
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"({foo: 1,bar: [10,11,12],john: doe})");
-    std::cout << tree; // emit to ostream
-    ryml::emit_yaml(tree, stdout); // emit to FILE*
+    std::string expected = "{foo: 1,bar: [10,11,12],john: doe}";
+    // emit tree to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == expected);
+    // emit tree to FILE*
+    ryml::emit_yaml(tree, stdout); printf("\n");
+    // emit tree to ostream
+    std::cout << tree << "\n";
 
     // emit node
     ryml::ConstNodeRef foo = tree["foo"];
-    // to std::string
-    CHECK(ryml::emitrs_yaml<std::string>(foo) == "foo: 1\n");
-    std::cout << foo; // emit node to ostream
-    ryml::emit_yaml(foo, stdout); // emit node to FILE*
+    expected = "foo: 1\n";
+    // emit node to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(foo) == expected);
+    // emit node to FILE*
+    ryml::emit_yaml(foo, stdout);
+    // emit node to ostream
+    std::cout << foo;
 }
 
 
@@ -879,6 +887,9 @@ I am something: indeed
     // emit to a FILE*
     ryml::emit_yaml(tree, stdout);
     // emit to a stream
+    // (this is templated on the stream, so it works both with
+    // standard streams like std::ostream/std::stringstream, or with
+    // user-defined streams not inheriting from ostream)
     std::stringstream ss;
     ss << tree;
     std::string stream_result = ss.str();
@@ -6159,8 +6170,18 @@ seq with key:
 namespace /*anon*/ {
 static int num_checks = 0;
 static int num_failed_checks = 0;
+static bool quiet_mode = false;
 } // namespace /*anon*/
 
+void handle_args(int argc, const char* argv[])
+{
+    auto arg_matches = [](const char *arg, const char *shortform, const char *longform) {
+        return (0 == strcmp(arg, shortform) || 0 == strcmp(arg, longform));
+    };
+    for(int i = 1; i < argc; ++i)
+        if(arg_matches(argv[i], "-q", "--quiet"))
+            quiet_mode = true;
+}
 
 bool report_check(int line, const char *predicate, bool result)
 {
@@ -6168,10 +6189,13 @@ bool report_check(int line, const char *predicate, bool result)
     const char *msg = predicate ? "OK! " : "OK!";
     if(!result)
     {
-        ++num_failed_checks;
-        msg = predicate ?  "FAIL: " : "FAIL";
+        ++num_failed_checks;                  // LCOV_EXCL_LINE
+        msg = predicate ?  "FAIL: " : "FAIL"; // LCOV_EXCL_LINE
     }
-    std::cout << __FILE__ << ':' << line << ": " << msg << (predicate ? predicate : "") << std::endl;
+    if(!result || !quiet_mode)
+    {
+        std::cout << __FILE__ << ':' << line << ": " << msg << (predicate ? predicate : "") << std::endl;
+    }
     return result;
 }
 

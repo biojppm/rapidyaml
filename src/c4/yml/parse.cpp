@@ -20,7 +20,8 @@ namespace c4 {
 namespace yml {
 
 // instantiate the parser class
-template class ParseEngine<EventHandlerTree>;
+template class RYML_EXPORT ParseEngine<EventHandlerTree>;
+
 
 namespace {
 void _reset_tree_handler(Parser *parser, Tree *t, id_type node_id)

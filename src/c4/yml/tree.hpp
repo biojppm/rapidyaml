@@ -1024,7 +1024,7 @@ public:
     /** @name lookup */
     /** @{ */
 
-    struct lookup_result
+    struct RYML_EXPORT lookup_result
     {
         id_type  target;
         id_type  closest;

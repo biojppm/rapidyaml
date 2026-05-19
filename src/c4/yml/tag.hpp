@@ -11,6 +11,8 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // csubstr needs to have dll-interface to be used by clients of LookupResult
+
 class Tree;
 
 /** @addtogroup doc_tag_utils
@@ -65,7 +67,7 @@ RYML_EXPORT bool is_valid_tag_handle(csubstr handle);
 
 /** Accelerator structure to reduce memory requirements by enabling
  * reuse of resolved tags. */
-struct RYML_EXPORT TagCache
+struct TagCache
 {
     struct Entry
     {
@@ -75,7 +77,7 @@ struct RYML_EXPORT TagCache
     };
     using Entries = detail::stack<Entry>;
     using const_iterator = id_type;
-    struct LookupResult
+    struct RYML_EXPORT LookupResult
     {
         csubstr resolved;
         const_iterator pos;
@@ -85,8 +87,8 @@ struct RYML_EXPORT TagCache
 public:
 
     TagCache() noexcept : m_entries() {}
-    LookupResult find(csubstr tag, id_type doc_id, id_type linear_threshold=Entries::sso_size) const noexcept;
-    void add(csubstr tag, csubstr resolved, id_type doc_id, const_iterator pos) RYML_NOEXCEPT;
+    RYML_EXPORT LookupResult find(csubstr tag, id_type doc_id, id_type linear_threshold=Entries::sso_size) const noexcept;
+    RYML_EXPORT void add(csubstr tag, csubstr resolved, id_type doc_id, const_iterator pos) RYML_NOEXCEPT;
 
     void clear() noexcept { m_entries.clear(); }
 
@@ -149,6 +151,8 @@ RYML_EXPORT size_t transform_tag(substr output, csubstr handle, csubstr prefix, 
                                  bool with_brackets=true);
 
 /** @} */
+
+C4_SUPPRESS_WARNING_MSVC_POP
 
 } // namespace yml
 } // namespace c4

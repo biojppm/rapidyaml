@@ -16,7 +16,21 @@ FetchContent_MakeAvailable(ryml)
 add_executable(ryml-quickstart ../quickstart.cpp)
 target_link_libraries(ryml-quickstart ryml::ryml)
 
-add_custom_target(run ryml-quickstart
-    COMMAND $<TARGET_FILE:ryml-quickstart>
+if(WIN32)
+    function(maybe_copy_dll_to_exe_dir exe lib)
+        if(TARGET ${lib})
+            get_target_property(type ${lib} TYPE)
+            if((type STREQUAL SHARED_LIBRARY) OR (type STREQUAL MODULE_LIBRARY))
+                add_custom_command(TARGET ${exe} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${lib}> $<TARGET_FILE_DIR:${exe}>)
+            endif()
+        endif()
+    endfunction()
+    maybe_copy_dll_to_exe_dir(ryml-quickstart ryml::ryml)
+    maybe_copy_dll_to_exe_dir(ryml-quickstart c4core::c4core)
+endif()
+
+add_custom_target(run
+    COMMAND $<TARGET_FILE:ryml-quickstart> --quiet
     DEPENDS ryml-quickstart
-    COMMENT "running: $<TARGET_FILE:ryml-quickstart>")
+    COMMENT "running: $<TARGET_FILE:ryml-quickstart> --quiet")

@@ -12,8 +12,8 @@
 #include <gtest/gtest.h>
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/test_events_ints_helpers.hpp"
+#include "./test_lib/string.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
-#include "c4/yml/extra/string.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 
 

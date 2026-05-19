@@ -678,7 +678,7 @@ INSTANTIATE_TEST_SUITE_P(IntEvents, IntEventsTest, testing::ValuesIn(test_cases)
 // get_case() function. So this is here to act as placeholder until (if?)
 // proper test cases are added here. This was detected in #47 (thanks
 // @cburgard).
-RYML_EXPORT Case const* get_case(csubstr)
+Case const* get_case(csubstr)
 {
     return nullptr;
 }
