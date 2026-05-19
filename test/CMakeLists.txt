@@ -35,24 +35,29 @@ function(ryml_add_test_no_lib test_name)
     c4_add_test(${test_name})
 endfunction()
 
+# quickstart tests
 ryml_add_test_exe_no_lib(ryml-test-quickstart
     SOURCES ../samples/quickstart.cpp)
 ryml_add_test_no_lib(ryml-test-quickstart-ints
     SOURCES ../samples/quickstart-ints.cpp)
-# c4_add_test() cannot be used with multiple tests from the same exe,
-# so we use explicit add_test()+valgrind
-ryml_get_target_exe(ryml-test-quickstart quickstart_exe)
-add_test(NAME ryml-test-quickstart-quiet COMMAND ${quickstart_exe} --quiet)
-add_test(NAME ryml-test-quickstart COMMAND ${quickstart_exe})
-if(RYML_VALGRIND AND NOT CMAKE_CROSSCOMPILING)
+function(ryml_add_quickstart_test targetname testname)
+    ryml_get_target_exe(${targetname} exe)
     separate_arguments(_vg_opts UNIX_COMMAND "${RYML_VALGRIND_OPTIONS}")
-    add_test(NAME ryml-test-quickstart-quiet-valgrind
-        COMMAND valgrind ${_vg_opts} $<TARGET_FILE:ryml-test-quickstart> --quiet
-        COMMAND_EXPAND_LISTS)
-    add_test(NAME ryml-test-quickstart-valgrind
-        COMMAND valgrind ${_vg_opts} $<TARGET_FILE:ryml-test-quickstart>
-        COMMAND_EXPAND_LISTS)
-endif()
+    # c4_add_test() cannot be used with multiple tests from the same
+    # exe, so we use explicit add_test()+valgrind. Also, use
+    # RESOURCE_LOCK to prevent the tests from running simultaneously
+    add_test(NAME ${testname} COMMAND ${exe} ${ARGN})
+    set(lockid quickstart-lock)
+    set_tests_properties(${testname} PROPERTIES RESOURCE_LOCK ${lockid})
+    if(RYML_VALGRIND)
+        add_test(NAME ${testname}-valgrind
+            COMMAND valgrind ${_vg_opts} $<TARGET_FILE:${targetname}> ${ARGN}
+            COMMAND_EXPAND_LISTS)
+        set_tests_properties(${testname}-valgrind PROPERTIES RESOURCE_LOCK ${lockid})
+    endif()
+endfunction()
+ryml_add_quickstart_test(ryml-test-quickstart ryml-test-quickstart)
+ryml_add_quickstart_test(ryml-test-quickstart ryml-test-quickstart-quiet --quiet)
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
