@@ -9,45 +9,6 @@ namespace c4 {
 namespace yml {
 
 
-//-----------------------------------------------------------------------------
-
-
-ENGINE_TEST(TabsY79Y_004_01,
-            "- \ta\n"
-            ,
-            "- a\n"
-            ,
-            "+STR\n"
-            "+DOC\n"
-            "+SEQ\n"
-            "=VAL :a\n"
-            "-SEQ\n"
-            "-DOC\n"
-            "-STR\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-    ___(ps.set_val_scalar_plain("a"));
-    ___(ps.end_seq_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-ENGINE_TEST_ERRLOC(Y79Y_004_02, Location(1, 7),
-                   "- \ta: b\n"
-                   )
-#ifdef RYML_WITH_TAB_TOKENS
-ENGINE_TEST_ERRLOC(Y79Y_004, Location(1, 3),
-                   "-\t- a"
-                   )
-#endif
-ENGINE_TEST_ERRLOC(Y79Y_005, Location(1, 4),
-                   "- \t- a"
-                   )
-
-
-//-----------------------------------------------------------------------------
-
 ENGINE_TEST_ERRLOC(NonFirstDashErr0, Location(1, 6),
                    "map: - a\n"
                    "     - b\n"

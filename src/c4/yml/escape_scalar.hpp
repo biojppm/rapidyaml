@@ -241,6 +241,7 @@ inline C4_NO_INLINE size_t adjust_pos_with_escapes(csubstr scalar, size_t pos, b
 inline C4_NO_INLINE size_t escape_scalar(substr buffer, csubstr scalar, bool keep_newlines=false)
 {
     size_t pos = 0;
+    C4_ASSERT(!buffer.overlaps(scalar));
     auto append_ = [&pos, &buffer](csubstr repl){
         if(repl.len && (pos + repl.len <= buffer.len))
             memcpy(buffer.str + pos, repl.str, repl.len);
@@ -249,10 +250,9 @@ inline C4_NO_INLINE size_t escape_scalar(substr buffer, csubstr scalar, bool kee
     escape_scalar_fn(append_, scalar, keep_newlines);
     return pos;
 }
-C4_SUPPRESS_WARNING_GCC_POP
 
 
-/** formatting helper to escape a scalar with @ref escape_scalar() */
+/** formatting helper to escape a scalar with @ref escape_scalar_fn() */
 struct escaped_scalar
 {
     escaped_scalar(csubstr s, bool keep_newl=false) : scalar(s), keep_newlines(keep_newl) {}
@@ -274,6 +274,8 @@ C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr buf, escaped_scalar const& e)
     escape_scalar_fn(std::forward<SinkPfn>(sinkfn), e.scalar, e.keep_newlines);
     return 0;
 }
+
+C4_SUPPRESS_WARNING_GCC_POP
 
 } // namespace yml
 } // namespace c4

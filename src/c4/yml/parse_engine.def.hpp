@@ -4302,8 +4302,14 @@ void ParseEngine<EventHandler>::_handle_block_check_leading_tabs(size_t start_ma
     {
         csubstr leading = _buf().range(start_mark, end_mark);
         _c4dbgpf("block: leading[{}-{}]={}", start_mark, end_mark, _prs(leading, true));
-        if(leading.find('\t') != npos)
-            _c4err("invalid tab character to the left");
+        size_t pos = leading.find('\t');
+        if(pos != npos)
+        {
+            size_t fno = leading.first_not_of(" \t");
+            if(fno == npos || pos < fno)
+                _c4err("invalid tab character to the left");
+        }
+        (void)leading;
     }
 }
 
