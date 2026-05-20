@@ -10,9 +10,9 @@ function(ryml_get_target_exe target_name target_file)
 endfunction()
 
 function(ryml_setup_test_target_props target_name)
+    c4_target_compile_flags(${target_name} PUBLIC GCC -Wno-useless-cast)
     if(RYML_DBG)
-        target_compile_definitions(${target_name} PRIVATE RYML_DBG)
-        c4_target_compile_flags(${target_name} PUBLIC GCC -Wno-useless-cast)
+        target_compile_definitions(${target_name} PUBLIC RYML_DBG)
     endif()
     if(RYML_SAVE_TEST_YAML)
         target_compile_definitions(${target_name} PUBLIC RYML_SAVE_TEST_YAML)
@@ -36,10 +36,8 @@ function(ryml_add_test_no_lib test_name)
 endfunction()
 
 # quickstart tests
-ryml_add_test_exe_no_lib(ryml-test-quickstart
-    SOURCES ../samples/quickstart.cpp)
-ryml_add_test_no_lib(ryml-test-quickstart-ints
-    SOURCES ../samples/quickstart-ints.cpp)
+ryml_add_test_no_lib(ryml-test-quickstart-ints SOURCES ../samples/quickstart-ints.cpp)
+ryml_add_test_exe_no_lib(ryml-test-quickstart  SOURCES ../samples/quickstart.cpp)
 function(ryml_add_quickstart_test targetname testname)
     ryml_get_target_exe(${targetname} exe)
     separate_arguments(_vg_opts UNIX_COMMAND "${RYML_VALGRIND_OPTIONS}")

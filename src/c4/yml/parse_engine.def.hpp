@@ -1001,11 +1001,24 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_handle_newline(csubstr s, siz
             _c4dbgpf("newl[PLAIN]: next_line.len={}", next_line.len);
             if(next_line.len)
             {
-                next_line = next_line.triml(" \t");
-                if(next_line.begins_with_any(",]#:")) // any of the characters we're interested in
+                size_t fno = next_line.first_not_of(" \t");
+                if(fno != csubstr::npos)
                 {
-                    _c4dbgpf("newl[PLAIN]: found terminating character beginning next line: '{}'", next_line.str[0]);
-                    return false;
+                    _c4assert(fno < next_line.len);
+                    switch(next_line.str[fno])
+                    {
+                    case ',': case ']': case '#':
+                        _c4dbgpf("newl[PLAIN]: found terminating character beginning next line: '{}'", next_line.str[fno]);
+                        return false;
+                    case ':': // cannot be succeeded by whitespace
+                        _c4dbgp("newl[PLAIN]: found :");
+                        if(fno + 1 == next_line.len || _is_blck_token(next_line.sub(fno)))
+                        {
+                            _c4dbgpf("newl[PLAIN]: found terminating character beginning next line: '{}'", next_line.str[fno]);
+                            return false;
+                        }
+                        break;
+                    }
                 }
             }
         }

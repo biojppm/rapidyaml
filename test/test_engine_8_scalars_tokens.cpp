@@ -134,6 +134,28 @@ ENGINE_TEST(PlainScalarWithColonSeq,
     ___(ps.end_stream());
 }
 
+ENGINE_TEST(PlainScalarWithColonSeqFlow, HAS_MULTILINE_SCALAR,
+            "[while\n:validplain]"
+            ,
+            "[\n  while :validplain\n]\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL :while :validplain\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_scalar_plain("while :validplain"));
+    ___(ps.end_seq_flow(multiline));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 
 //-----------------------------------------------------------------------------
 
