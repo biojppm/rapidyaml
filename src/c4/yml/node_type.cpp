@@ -1,4 +1,10 @@
+#ifndef _C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
+#endif
+#ifndef _C4_YML_ERROR_HPP_
+#include "c4/yml/error.hpp"
+#endif
+
 
 namespace c4 {
 namespace yml {

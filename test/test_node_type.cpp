@@ -137,18 +137,18 @@ TEST(NodeType, type_str)
 
 TEST(NodeType, scalar_style_choose_json)
 {
-    EXPECT_EQ(scalar_style_json_choose("true"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("false"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("null"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("0.1"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("-0.1"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("+0.1"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose(".1"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("+.1"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("-.1"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("01"), SCALAR_DQUO);
-    EXPECT_EQ(scalar_style_json_choose("foo"), SCALAR_DQUO);
-    EXPECT_EQ(scalar_style_json_choose("bar"), SCALAR_DQUO);
+    EXPECT_EQ(scalar_style_choose_json("true"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("false"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("null"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("-0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("+0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json(".1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("+.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("-.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("01"), SCALAR_DQUO);
+    EXPECT_EQ(scalar_style_choose_json("foo"), SCALAR_DQUO);
+    EXPECT_EQ(scalar_style_choose_json("bar"), SCALAR_DQUO);
 }
 
 TEST(NodeType, scalar_style_choose)

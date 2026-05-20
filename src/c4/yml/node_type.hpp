@@ -253,48 +253,73 @@ public:
 /** @name scalar style helpers
  * @{ */
 
-/** choose a YAML emitting style based on the scalar's contents */
+/** choose a YAML scalar style based on the scalar's contents, while
+ * in flow mode. Plain scalars [have more constraints in flow mode
+ * than in block
+ * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
+ * scalar_style_choose_block() is the block mode analogous
+ * function. */
 RYML_EXPORT NodeType_e scalar_style_choose_flow(csubstr scalar) noexcept;
-/** choose a YAML emitting style based on the scalar's contents */
+/** choose a YAML scalar style based on the scalar's contents, while
+ * in block mode. Plain scalars [have more constraints in flow mode
+ * than in block
+ * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
+ * scalar_style_choose_block() is the flow mode analogous function. */
 RYML_EXPORT NodeType_e scalar_style_choose_block(csubstr scalar) noexcept;
+/** choose a YAML emitting style based on the scalar's
+ * contents. Legacy compatibility function: assumes flow mode which is
+ * more constraining, and delegates to either @ref
+ * scalar_style_choose_flow() or @ref scalar_style_choose_block(). */
+inline NodeType_e scalar_style_choose(csubstr s, bool flow=true) noexcept
+{
+    return flow ? scalar_style_choose_flow(s) : scalar_style_choose_block(s);
+}
 
-/** choose a json style based on the scalar's contents */
+
+/** choose a json scalar style based on the scalar's contents */
 RYML_EXPORT NodeType_e scalar_style_choose_json(csubstr scalar) noexcept;
+/** @cond dev */
+// LCOV_EXCL_START
+RYML_DEPRECATED("use scalar_style_choose_json()")
+inline NodeType_e scalar_style_json_choose(csubstr scalar) noexcept
+{
+    return scalar_style_choose_json(scalar);
+}
+// LCOV_EXCL_STOP
+/** @endcond */
+
 
 /** query whether a scalar can be encoded using single quotes.
  * It may not be possible, notably when there is leading
  * whitespace after a newline. */
 RYML_EXPORT bool scalar_style_query_squo(csubstr s) noexcept;
 
-/** query whether a scalar can be encoded using plain style (no
- * quotes, not a literal/folded block scalar). */
+/** query whether a scalar can be encoded using plain style while in
+ * flow mode. Plain scalars [have more constraints in flow mode than
+ * in block
+ * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
+ * scalar_style_query_plain_block() is the block mode analogous function.*/
 RYML_EXPORT bool scalar_style_query_plain_flow(csubstr s) noexcept;
-/** query whether a scalar can be encoded using plain style (no
- * quotes, not a literal/folded block scalar). */
+/** query whether a scalar can be encoded using plain style while in
+ * block mode. Plain scalars [have more constraints in flow mode than
+ * in block
+ * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
+ * scalar_style_query_plain_flow() is the flow mode analogous function.*/
 RYML_EXPORT bool scalar_style_query_plain_block(csubstr s) noexcept;
+/** query whether a scalar can be encoded using plain style. Legacy
+ * compatibility function: assumes flow mode which is more
+ * constraining, and delegates to either @ref
+ * scalar_style_query_plain_flow() or @ref
+ * scalar_style_query_plain_block(). */
+inline bool scalar_style_query_plain(csubstr s, bool flow=true) noexcept
+{
+    return flow ? scalar_style_query_plain_flow(s) : scalar_style_query_plain_block(s);
+}
 
 /** YAML-sense query of nullity. returns true if the scalar points
  * to `nullptr` or is otherwise equal to one of the strings
  * `"~"`,`"null"`,`"Null"`,`"NULL"` */
 RYML_EXPORT bool scalar_is_null(csubstr s) noexcept;
-
-/** @cond dev */
-RYML_DEPRECATED("use scalar_style_choose_flow() or scalar_style_choose_block()")
-inline NodeType_e scalar_style_choose(csubstr s, bool flow=true) noexcept
-{
-    return flow ? scalar_style_choose_flow(s) : scalar_style_choose_block(s);
-}
-RYML_DEPRECATED("use scalar_style_choose_json()")
-inline NodeType_e scalar_style_json_choose(csubstr scalar) noexcept
-{
-    return scalar_style_choose_json(scalar);
-}
-RYML_DEPRECATED("use scalar_style_query_plain_flow() or scalar_style_query_plain_block()")
-inline bool scalar_style_query_plain(csubstr s, bool flow=true) noexcept
-{
-    return flow ? scalar_style_query_plain_flow(s) : scalar_style_query_plain_block(s);
-}
-/** @endcond */
 
 /** @} */
 
