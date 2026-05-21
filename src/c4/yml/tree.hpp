@@ -656,10 +656,11 @@ public:
     /** @name tags and tag directives */
     /** @{ */
 
-    /** Resolve tags in the tree such as `!!str` ->
-     * `<tag:yaml.org,2002:str>`, `!foo` -> `<!foo>` and custom tags
-     * as well, ie tags of the form `!handle!tag` for which there is a
-     * corresponding `%TAG` directive
+    /** Resolve tags in the tree such as `"!!str"` ->
+     * `"<tag:yaml.org,2002:str>"`, `"!foo"` ->
+     * `"<!foo>"` and custom tags as well, ie tags of the form
+     * `"!handle!tag"` for which there is a corresponding `"%%TAG"`
+     * directive
      *
      * @param cache an object of type @ref TagCache to minimize memory
      *        usage by avoiding repeated instantiation of the resolved
@@ -667,7 +668,7 @@ public:
      *
      * @param all if true, resolve all tags; if false resolve only
      *        custom tags, ie those that have a prefix such as
-     *        `!m!tag` with a matching `%TAG` directive */
+     *        `"!m!tag"` with a matching `"%TAG"` directive */
     void resolve_tags(TagCache &cache, bool all=true);
     void normalize_tags();
     void normalize_tags_long();
@@ -688,8 +689,10 @@ public:
 
     c4::yml::TagDirectiveRange tag_directives() const { return m_tag_directives.directives(); }
 
+    /** @cond dev */
     RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
     RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
+    /** @endcond */
 
     /** @} */
 

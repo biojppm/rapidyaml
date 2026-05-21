@@ -255,7 +255,8 @@ TEST(number, inf_0)
     EXPECT_EQ(t[1].val(), ".inf");
     EXPECT_EQ(t[2].val(), "-.inf");
     EXPECT_EQ(t[3].val(), "-.inf");
-    EXPECT_EQ(scalar_style_choose("-.inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_flow("-.inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_block("-.inf"), SCALAR_PLAIN);
     EXPECT_EQ(emitrs_yaml<std::string>(t),
               R"(- .inf
 - .inf
@@ -514,21 +515,21 @@ TEST(number, github_312__proposed_8e888_cannot_be_converted)
 
 TEST(number, github_312_535__json_styles_for_special_values)
 {
-    EXPECT_EQ(scalar_style_json_choose("nan"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("inf"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("infinity"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("-infinity"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose(".nan"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose(".NaN"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose(".NAN"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("inf"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("-inf"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose(".inf"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("-.inf"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose(".Inf"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("-.Inf"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose(".INF"), SCALAR_PLAIN);
-    EXPECT_EQ(scalar_style_json_choose("-.INF"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("nan"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("infinity"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("-infinity"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json(".nan"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json(".NaN"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json(".NAN"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("-inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json(".inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("-.inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json(".Inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("-.Inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json(".INF"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose_json("-.INF"), SCALAR_PLAIN);
 }
 
 TEST(number, github_312_535)
