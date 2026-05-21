@@ -112,7 +112,11 @@ jobs:
     steps:
       - :: checkout-manual
       - name: install
-        run: c4core-install clang++-${{matrix.cxx}}
+        run: |
+          # retry if it fails
+          c4core-install clang++-${{matrix.cxx}} \
+          || c4core-install clang++-${{matrix.cxx}} \
+          || c4core-install clang++-${{matrix.cxx}}
       - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}')
       - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
       - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')

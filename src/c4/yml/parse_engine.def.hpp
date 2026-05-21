@@ -1001,11 +1001,24 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_handle_newline(csubstr s, siz
             _c4dbgpf("newl[PLAIN]: next_line.len={}", next_line.len);
             if(next_line.len)
             {
-                next_line = next_line.triml(" \t");
-                if(next_line.begins_with_any(",]#:")) // any of the characters we're interested in
+                size_t fno = next_line.first_not_of(" \t");
+                if(fno != csubstr::npos)
                 {
-                    _c4dbgpf("newl[PLAIN]: found terminating character beginning next line: '{}'", next_line.str[0]);
-                    return false;
+                    _c4assert(fno < next_line.len);
+                    switch(next_line.str[fno])
+                    {
+                    case ',': case ']': case '#':
+                        _c4dbgpf("newl[PLAIN]: found terminating character beginning next line: '{}'", next_line.str[fno]);
+                        return false;
+                    case ':': // cannot be succeeded by whitespace
+                        _c4dbgp("newl[PLAIN]: found :");
+                        if(fno + 1 == next_line.len || _is_blck_token(next_line.sub(fno)))
+                        {
+                            _c4dbgpf("newl[PLAIN]: found terminating character beginning next line: '{}'", next_line.str[fno]);
+                            return false;
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -4289,8 +4302,14 @@ void ParseEngine<EventHandler>::_handle_block_check_leading_tabs(size_t start_ma
     {
         csubstr leading = _buf().range(start_mark, end_mark);
         _c4dbgpf("block: leading[{}-{}]={}", start_mark, end_mark, _prs(leading, true));
-        if(leading.find('\t') != npos)
-            _c4err("invalid tab character to the left");
+        size_t pos = leading.find('\t');
+        if(pos != npos)
+        {
+            size_t fno = leading.first_not_of(" \t");
+            if(fno == npos || pos < fno)
+                _c4err("invalid tab character to the left");
+        }
+        (void)leading;
     }
 }
 
