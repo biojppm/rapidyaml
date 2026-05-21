@@ -568,7 +568,11 @@ jobs:
         # show the last commit
         git log --name-status HEAD^..HEAD
     - name: install
-      run: c4core-install clang++-${{matrix.cxx}}
+      run: |
+        # retry if it fails
+        c4core-install clang++-${{matrix.cxx}} \
+        || c4core-install clang++-${{matrix.cxx}} \
+        || c4core-install clang++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
         echo "Debug ::: -m${{matrix.bits}}"

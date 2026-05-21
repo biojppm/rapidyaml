@@ -684,7 +684,12 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - run: git config --system --add safe.directory '*'
-    - run: c4core-install g++-${{matrix.gcc}}
+    - name: install
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure (issue \#${{matrix.issue}})
@@ -750,7 +755,12 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - run: git config --system --add safe.directory '*'
-    - run: c4core-install g++-${{matrix.gcc}}
+    - name: install
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure (issue \#${{matrix.issue}})
@@ -884,7 +894,11 @@ jobs:
         # show the last commit
         git log --name-status HEAD^..HEAD
     - name: install
-      run: c4core-install g++-${{matrix.cxx}}
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
         echo "Debug ::: -m${{matrix.bits}}"
@@ -1108,7 +1122,11 @@ jobs:
         # show the last commit
         git log --name-status HEAD^..HEAD
     - name: install
-      run: c4core-install g++-${{matrix.cxx}}
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
         echo "Release ::: -O3 -DNDEBUG -m${{matrix.bits}}"
@@ -1780,7 +1798,13 @@ jobs:
         # show the last commit
         git log --name-status HEAD^..HEAD
     - name: install gcc-arm-linux-gnueabihf
-      run: c4core-install arm-linux-gnueabihf; c4core-install qemu
+      run: |
+        c4core-install arm-linux-gnueabihf \
+        || c4core-install arm-linux-gnueabihf \
+        || c4core-install arm-linux-gnueabihf
+        c4core-install qemu \
+        || c4core-install qemu \
+        || c4core-install qemu
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure---------------------------------------------------

@@ -87,7 +87,12 @@ jobs:
     env:: load('share/env.yaml') + {'CXX_' '${{matrix.gcc}}'}
     steps:
     - :: checkout-action-docker
-    - run: c4core-install g++-${{matrix.gcc}}
+    - name: install
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure (issue \#${{matrix.issue}})
@@ -131,7 +136,12 @@ jobs:
     env:: load('share/env.yaml') + {'CXX_' '${{matrix.gcc}}'}
     steps:
     - :: checkout-action-docker
-    - run: c4core-install g++-${{matrix.gcc}}
+    - name: install
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}} \
+        || c4core-install g++-${{matrix.gcc}}
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure (issue \#${{matrix.issue}})
@@ -184,7 +194,11 @@ jobs:
     steps:
     - :: checkout-manual
     - name: install
-      run: c4core-install g++-${{matrix.cxx}}
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}}
     - :: run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}')
     - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
     - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
@@ -198,7 +212,11 @@ jobs:
     steps:
     - :: checkout-manual
     - name: install
-      run: c4core-install g++-${{matrix.cxx}}
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}}
     - :: run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
     - :: run-gcc-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
 
@@ -287,9 +305,13 @@ jobs:
     steps:
     - :: checkout-manual
     - name: install gcc-arm-linux-gnueabihf
-      run:
-        c4core-install arm-linux-gnueabihf;
-        c4core-install qemu
+      run: |
+        c4core-install arm-linux-gnueabihf \
+        || c4core-install arm-linux-gnueabihf \
+        || c4core-install arm-linux-gnueabihf
+        c4core-install qemu \
+        || c4core-install qemu \
+        || c4core-install qemu
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: configure---------------------------------------------------
