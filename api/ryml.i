@@ -652,11 +652,15 @@ public:
     /** return a preset string based on the node type */
     static const char* type_str(NodeType_e t) noexcept;
 
-    /** fill a string with the node type flags. If the string is small, returns {null, len} */
-    c4::csubstr type_str(c4::substr buf) const noexcept;
+    /** fill a string with the node type flags. */
+    size_t type_str(c4::substr buf) const noexcept;
+    /** fill a string with the node type flags. */
+    static size_t type_str(c4::substr buf, NodeType_e t) noexcept;
 
+    /** fill a string with the node type flags. If the string is small, returns {null, len} */
+    c4::csubstr type_str_sub(c4::substr buf) const noexcept;
     /** fill a string with the node type flags. If the string is small, returns {null, len}  */
-    static c4::csubstr type_str(c4::substr buf, NodeType_e t) noexcept;
+    static c4::csubstr type_str_sub(c4::substr buf, NodeType_e t) noexcept;
 
 public:
 
