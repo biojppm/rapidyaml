@@ -231,7 +231,7 @@ void Emitter<Writer>::_visit_doc_val(id_type id)
     // appear at 0-indentation
     NodeType ty = m_tree->type(id);
     const csubstr val = m_tree->val(id);
-    const type_bits val_style = ty & VAL_STYLE;
+    type_bits val_style = ty & VAL_STYLE;
     const bool is_ambiguous = ((ty & VAL_PLAIN) || !val_style)
         && (val.begins_with("...") || val.begins_with("---"));
     if(is_ambiguous)
@@ -250,7 +250,7 @@ void Emitter<Writer>::_visit_doc_val(id_type id)
     else
     {
         if(!val_style)
-            ty = scalar_style_choose(val);
+            val_style = scalar_style_choose_block(val);
         _blck_write_scalar(val, val_style);
     }
     if(is_ambiguous)
@@ -381,7 +381,7 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
         _write_pws_and_pend(_PWS_NONE);
         csubstr key = m_tree->key(node);
         if(!(ty & (NodeType_e)_styles_flow_key))
-            ty |= scalar_style_choose(key) & (NodeType_e)_styles_flow_key;
+            ty |= scalar_style_choose_flow(key) & (NodeType_e)_styles_flow_key;
         _flow_write_scalar(key, ty & (NodeType_e)_styles_flow_key);
     }
     _write_pws_and_pend(_PWS_SPACE);
@@ -478,7 +478,7 @@ void Emitter<Writer>::_blck_map_open_entry(id_type node)
     NodeType ty = m_tree->type(node);
     csubstr key = m_tree->key(node);
     if(!(ty & (KEY_STYLE|KEYREF)))
-        ty |= (scalar_style_choose(key) & KEY_STYLE);
+        ty |= (scalar_style_choose_block(key) & KEY_STYLE);
     _write_pws_and_pend(_PWS_NONE);
     if(ty & KEYANCH)
     {
@@ -564,7 +564,7 @@ void Emitter<Writer>::_visit_blck_seq(id_type node)
             if(!ty.is_val_ref())
             {
                 if(!(ty & VAL_STYLE))
-                    ty |= (scalar_style_choose(val) & VAL_STYLE);
+                    ty |= (scalar_style_choose_block(val) & VAL_STYLE);
                 _blck_write_scalar(val, ty & VAL_STYLE);
             }
             else
@@ -610,7 +610,7 @@ void Emitter<Writer>::_visit_blck_map(id_type node)
             if(!ty.is_val_ref())
             {
                 if(!(ty & VAL_STYLE))
-                    ty |= (scalar_style_choose(val) & VAL_STYLE);
+                    ty |= (scalar_style_choose_block(val) & VAL_STYLE);
                 _blck_write_scalar(val, ty & VAL_STYLE);
             }
             else
@@ -655,7 +655,7 @@ void Emitter<Writer>::_visit_flow_sl_seq(id_type node)
             if(!ty.is_val_ref())
             {
                 if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose(val) & (NodeType_e)_styles_flow_val);
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
                 _flow_write_scalar(val, ty & (NodeType_e)_styles_flow_val);
             }
             else
@@ -696,7 +696,7 @@ void Emitter<Writer>::_visit_flow_ml_seq(id_type node)
             if(!ty.is_val_ref())
             {
                 if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose(val) & (NodeType_e)_styles_flow_val);
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
                 _flow_write_scalar(val, ty & (NodeType_e)_styles_flow_val);
             }
             else
@@ -737,7 +737,7 @@ void Emitter<Writer>::_visit_flow_sl_map(id_type node)
             if(!ty.is_val_ref())
             {
                 if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose(val) & (NodeType_e)_styles_flow_val);
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
                 _flow_write_scalar(val, ty & (NodeType_e)_styles_flow_val);
             }
             else
@@ -779,7 +779,7 @@ void Emitter<Writer>::_visit_flow_ml_map(id_type node)
             if(!ty.is_val_ref())
             {
                 if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose(val) & (NodeType_e)_styles_flow_val);
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
                 _flow_write_scalar(val, ty & (NodeType_e)_styles_flow_val);
             }
             else
@@ -1433,7 +1433,7 @@ void Emitter<Writer>::_json_writev(id_type id, NodeType ty)
     {
         // use double quoted style if the style is marked quoted
         bool dquoted = ((ty & VALQUO)
-                        || (scalar_style_json_choose(val) & SCALAR_DQUO)); // choose the style
+                        || (scalar_style_choose_json(val) & SCALAR_DQUO)); // choose the style
         if(dquoted)
             _json_write_scalar_dquo(val);
         else if(_json_maybe_write_naninf(val))

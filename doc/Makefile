@@ -37,6 +37,13 @@ doxy:
 	## finally, run doxygen
 	$(DOXYGEN) $(DOXYGEN_OPTS) Doxyfile
 
+doxy_test:
+	$(MAKE) --keep-going _doxy_warnfail doxy _doxy_warnpass
+_doxy_warnfail:
+	sed "s/WARN_AS_ERROR\(.*\)= .*/WARN_AS_ERROR\1= FAIL_ON_WARNINGS_PRINT/g" -i Doxyfile
+_doxy_warnpass:
+	sed "s/WARN_AS_ERROR\(.*\)= .*/WARN_AS_ERROR\1= NO/g" -i Doxyfile
+
 clean:
 	rm -rf doxygen/
 	if [ ! -z "$(BUILDDIR)" ] ; then rm -rf "$(BUILDDIR)" ; fi

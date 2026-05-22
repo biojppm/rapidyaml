@@ -18,6 +18,13 @@
  *
  * Happy ryml'ing!
  *
+ * ### Note on use of raw strings
+ *
+ * This sample uses C strings instead of C++11 R"(raw strings)"
+ * because the doxygen parser is badly broken when handling raw
+ * strings.
+ *
+ *
  * ### Some guidance on building
  *
  * The directories that exist side-by-side with this file contain
@@ -186,6 +193,7 @@ int main(int argc, const char* argv[])
     sample_style_flow_ml_filter();
     sample_json();
     sample_anchors_and_aliases();
+    sample_anchors_and_aliases_create();
     sample_tags();
     sample_tag_directives();
     sample_docs();
@@ -296,10 +304,9 @@ bool report_check(int line, const char *predicate, bool result);
 #   define CHECK(predicate) assert(predicate)  // enable doxygen to link to the functions called inside CHECK()
 #else
 #   if !(defined(__GNUC__) && (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
-    /// a quick'n'dirty assertion to verify a predicate
+        /// a quick'n'dirty assertion to verify a predicate
 #       define CHECK(predicate) do { if(!report_check(__LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
 #   else // GCC 4.8 has a problem with the CHECK() macro
-/// a quick'n'dirty assertion to verify a predicate
 #       define CHECK CheckPredicate{__FILE__, __LINE__}
         struct CheckPredicate
         {
@@ -382,15 +389,16 @@ void sample_lightning_overview()
 void sample_quick_overview()
 {
     // Parse YAML code in place, potentially mutating the buffer:
-    char yml_buf[] = R"(
-foo: 1
-bar: [2, 3]
-john: doe)";
+    char yml_buf[] = ""
+        "foo: 1"         "\n"
+        "bar: [2, 3]"    "\n"
+        "john: doe"      "\n"
+        "";
     ryml::Tree tree = ryml::parse_in_place(yml_buf);
 
     // The resulting tree contains only views to the parsed string. If
     // the string was parsed in place, then the string must outlive
-    // the tree! This works in this case because both `yml_buf` and `tree`
+    // the tree! This works here because both `yml_buf` and `tree`
     // live on the same scope, so have the same lifetime.
 
     // It is also possible to:
@@ -859,8 +867,8 @@ john: doe)";
         // using .at() reliably produces an error:
         CHECK(errh.check_error_occurs([&]{
             return seed_node.at("is").at("an").at("invalid").at("operation");
-            //              ^
-            //              error occurs here because it is unreadable
+            //               ^
+            //               error occurs here because it is unreadable
         }));
         // ... but using [] fails only when RYML_USE_ASSERT is
         // defined. otherwise, it's the dreaded Undefined Behavior:
@@ -875,19 +883,20 @@ john: doe)";
     //------------------------------------------------------------------
     // Emitting:
 
-    ryml::csubstr expected_result = R"(foo: says who
-bar: [20,30,oh so nice,oh so nice (serialized)]
-john: in_scope
-float: 2.4
-digits: 2.400000
-newkeyval: shiny and new
-newkeyval (serialized): shiny and new (serialized)
-newseq: []
-newseq (serialized): []
-newmap: {}
-newmap (serialized): {}
-I am something: indeed
-)";
+    ryml::csubstr expected_result =
+        "foo: says who"                                         "\n"
+        "bar: [20,30,oh so nice,oh so nice (serialized)]"       "\n"
+        "john: in_scope"                                        "\n"
+        "float: 2.4"                                            "\n"
+        "digits: 2.400000"                                      "\n"
+        "newkeyval: shiny and new"                              "\n"
+        "newkeyval (serialized): shiny and new (serialized)"    "\n"
+        "newseq: []"                                            "\n"
+        "newseq (serialized): []"                               "\n"
+        "newmap: {}"                                            "\n"
+        "newmap (serialized): {}"                               "\n"
+        "I am something: indeed"                                "\n"
+        "";
 
     // emit to a FILE*
     ryml::emit_yaml(tree, stdout);
@@ -965,19 +974,23 @@ I am something: indeed
 
     //------------------------------------------------------------------
     // Dealing with UTF8
-    ryml::Tree langs = ryml::parse_in_arena(R"(
-en: Planet (Gas)
-fr: Planète (Gazeuse)
-ru: Планета (Газ)
-ja: 惑星（ガス）
-zh: 行星（气体）
-# UTF8 decoding only happens in double-quoted strings,
-# as per the YAML standard
-decode this: "\u263A c\x61f\xE9"
-and this as well: "\u2705 \U0001D11E"
-not decoded: '\u263A \xE2\x98\xBA'
-neither this: '\u2705 \U0001D11E'
-)");
+    ryml::Tree langs = ryml::parse_in_arena(""
+        "#"                                                       "\n"
+        "# UTF8/16/32 can be placed directly in any scalar:"      "\n"
+        "#"                                                       "\n"
+        "en: Planet (Gas)"                                        "\n"
+        "fr: Planète (Gazeuse)"                                   "\n"
+        "ru: Планета (Газ)"                                      "\n"
+        "ja: 惑星（ガス）"                                        "\n"
+        "zh: 行星（气体）"                                        "\n"
+        "#"                                                       "\n"
+        "# UTF8 decoding only happens in double-quoted strings,"  "\n"
+        "# as per the YAML standard"                              "\n"
+        "#"                                                       "\n"
+        "decode this: \"\\u263A c\\x61f\\xE9\""                   "\n"
+        "and this as well: \"\\u2705 \\U0001D11E\""               "\n"
+        "not decoded: '\\u263A \\xE2\\x98\\xBA'"                  "\n"
+        "neither this: '\\u2705 \\U0001D11E'"                     "\n");
     // in-place UTF8 just works:
     CHECK(langs["en"].val() == "Planet (Gas)");
     CHECK(langs["fr"].val() == "Planète (Gazeuse)");
@@ -1394,8 +1407,8 @@ void sample_substr()
 
     // unquoted():
     {
-        CHECK(ryml::csubstr(R"('this is is single quoted')").unquoted() == "this is is single quoted");
-        CHECK(ryml::csubstr(R"("this is is double quoted")").unquoted() == "this is is double quoted");
+        CHECK(ryml::csubstr( "'this is is single quoted'" ).unquoted() == "this is is single quoted");
+        CHECK(ryml::csubstr("\"this is is double quoted\"").unquoted() == "this is is double quoted");
     }
 
     // stripl(): remove pattern from the left
@@ -1780,24 +1793,24 @@ void sample_substr()
         CHECK(ryml::csubstr(  "0/1/2/"  ). pop_right('/', skip_empty) ==   "2/"   );
         CHECK(ryml::csubstr(  "0/1/2//" ). pop_right('/', skip_empty) ==   "2//"  );
         // gpop_right(): pop all but the first element (greedy pop)
-        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_right('/'            ) ==     "1/2");
-        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_right('/'            ) ==     "1/2/"  );
-        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_right('/'            ) ==     "1/2//"  );
-        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_right('/'            ) ==   "0/1/2");
-        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_right('/'            ) ==   "0/1/2/"  );
-        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_right('/'            ) ==   "0/1/2//"  );
-        CHECK(ryml::csubstr("//0/1/2"   ).gpop_right('/'            ) ==  "/0/1/2");
-        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_right('/'            ) ==  "/0/1/2/"  );
-        CHECK(ryml::csubstr("//0/1/2//" ).gpop_right('/'            ) ==  "/0/1/2//"  );
-        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2");
-        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/"  );
-        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//"  );
-        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2");
-        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/"  );
-        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//"  );
-        CHECK(ryml::csubstr("//0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2");
-        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/"  );
-        CHECK(ryml::csubstr("//0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//"  );
+        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_right('/'            ) ==     "1/2"  );
+        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_right('/'            ) ==     "1/2/" );
+        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_right('/'            ) ==     "1/2//");
+        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_right('/'            ) ==   "0/1/2"  );
+        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_right('/'            ) ==   "0/1/2/" );
+        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_right('/'            ) ==   "0/1/2//");
+        CHECK(ryml::csubstr("//0/1/2"   ).gpop_right('/'            ) ==  "/0/1/2"  );
+        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_right('/'            ) ==  "/0/1/2/" );
+        CHECK(ryml::csubstr("//0/1/2//" ).gpop_right('/'            ) ==  "/0/1/2//");
+        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2"  );
+        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/" );
+        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//");
+        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2"  );
+        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/" );
+        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//");
+        CHECK(ryml::csubstr("//0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2"  );
+        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/" );
+        CHECK(ryml::csubstr("//0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//");
     }
 }
 
@@ -1821,16 +1834,15 @@ void sample_substr()
 void sample_parse_file()
 {
     const char filename[] = "ryml_example.yml";
-
+    ryml::csubstr yaml = ""
+        "foo: 1"  "\n"
+        "bar:"    "\n"
+        "- 2"     "\n"
+        "- 3"     "\n";
     // because this is a minimal sample, it assumes nothing on the
     // environment/OS (other than that it can read/write files). So we
     // create the file on the fly:
-    file_put_contents(filename, ryml::csubstr(R"(
-foo: 1
-bar:
-- 2
-- 3
-)"));
+    file_put_contents(filename, yaml);
 
     // now we can load it into a std::string (for example):
     {
@@ -1975,9 +1987,10 @@ void sample_parse_reuse_tree()
     tree.reserve_arena(256); // reserve 256 characters (good enough for this sample)
 
     // now parse into the tree:
-    ryml::csubstr yaml = R"(foo: 1
-bar: [2, 3]
-)";
+    ryml::csubstr yaml = ""
+        "foo: 1"        "\n"
+        "bar: [2,3]"    "\n"
+        "";
     ryml::parse_in_arena(yaml, &tree);
 
     ryml::ConstNodeRef root = tree.crootref();
@@ -1991,17 +2004,16 @@ bar: [2, 3]
     CHECK(root["bar"].key() == "bar");
     CHECK(root["bar"][0].val() == "2");
     CHECK(root["bar"][1].val() == "3");
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
-bar: [2,3]
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == yaml);
 
     // WATCHOUT: parsing into an existing tree will APPEND to it:
     ryml::parse_in_arena("{foo2: 12, bar2: [22, 32]}", &tree);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
-bar: [2,3]
-foo2: 12
-bar2: [22,32]
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "foo: 1"         "\n"
+          "bar: [2,3]"     "\n"
+          "foo2: 12"       "\n"
+          "bar2: [22,32]"  "\n"
+          "");
     CHECK(root.num_children() == 4);
     CHECK(root["foo2"].is_keyval());
     CHECK(root["foo2"].key() == "foo2");
@@ -2012,7 +2024,8 @@ bar2: [22,32]
     CHECK(root["bar2"][0].val() == "22");
     CHECK(root["bar2"][1].val() == "32");
 
-    // clear first before parsing into an existing tree.
+    // if you want to fully replace the tree, you need to clear first
+    // before parsing into an existing tree:
     tree.clear();
     tree.clear_arena();  // you may or may not want to clear the arena
     ryml::parse_in_arena("- a\n- b\n- {x0: 1, x1: 2}", &tree);
@@ -2027,12 +2040,13 @@ bar2: [22,32]
     // we can parse directly into a node nested deep in an existing tree:
     ryml::NodeRef mroot = tree.rootref(); // modifiable root
     ryml::parse_in_arena("champagne: Dom Perignon\ncoffee: Arabica", mroot.append_child());
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
-- b
-- {x0: 1,x1: 2}
-- champagne: Dom Perignon
-  coffee: Arabica
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "- a"                              "\n"
+          "- b"                              "\n"
+          "- {x0: 1,x1: 2}"                  "\n"
+          "- champagne: Dom Perignon"        "\n"
+          "  coffee: Arabica"                "\n"
+          "");
     CHECK(root.is_seq());
     CHECK(root[0].val() == "a");
     CHECK(root[1].val() == "b");
@@ -2051,63 +2065,68 @@ bar2: [22,32]
     ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
     ryml::parse_in_arena("- Rochefort 10\n- Busch\n- Leffe Rituel", beer);
     ryml::parse_in_arena("lots\nof\nwater", always);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
-- b
-- {x0: 1,x1: 2}
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-  always: lots of water
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "- a"                              "\n"
+          "- b"                              "\n"
+          "- {x0: 1,x1: 2}"                  "\n"
+          "- champagne: Dom Perignon"        "\n"
+          "  coffee: Arabica"                "\n"
+          // note these were added:
+          "  more:"                          "\n"
+          "    vinho verde: Soalheiro"       "\n"
+          "    vinho tinto: Redoma 2017"     "\n"
+          "  beer:"                          "\n"
+          "    - Rochefort 10"               "\n"
+          "    - Busch"                      "\n"
+          "    - Leffe Rituel"               "\n"
+          "  always: lots of water"          "\n"
+          "");
 
     // can append at the top:
     ryml::parse_in_arena("- foo\n- bar\n- baz\n- bat", mroot);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
-- b
-- {x0: 1,x1: 2}
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-  always: lots of water
-- foo
-- bar
-- baz
-- bat
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "- a"                              "\n"
+          "- b"                              "\n"
+          "- {x0: 1,x1: 2}"                  "\n"
+          "- champagne: Dom Perignon"        "\n"
+          "  coffee: Arabica"                "\n"
+          "  more:"                          "\n"
+          "    vinho verde: Soalheiro"       "\n"
+          "    vinho tinto: Redoma 2017"     "\n"
+          "  beer:"                          "\n"
+          "    - Rochefort 10"               "\n"
+          "    - Busch"                      "\n"
+          "    - Leffe Rituel"               "\n"
+          "  always: lots of water"          "\n"
+          // note these were added
+          "- foo"                            "\n"
+          "- bar"                            "\n"
+          "- baz"                            "\n"
+          "- bat"                            "\n"
+          "");
 
     // or nested:
     ryml::parse_in_arena("[Kasteel Donker]", beer);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
-- b
-- {x0: 1,x1: 2}
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-    - Kasteel Donker
-  always: lots of water
-- foo
-- bar
-- baz
-- bat
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+          "- a"                              "\n"
+          "- b"                              "\n"
+          "- {x0: 1,x1: 2}"                  "\n"
+          "- champagne: Dom Perignon"        "\n"
+          "  coffee: Arabica"                "\n"
+          "  more:"                          "\n"
+          "    vinho verde: Soalheiro"       "\n"
+          "    vinho tinto: Redoma 2017"     "\n"
+          "  beer:"                          "\n"
+          "    - Rochefort 10"               "\n"
+          "    - Busch"                      "\n"
+          "    - Leffe Rituel"               "\n"
+          "    - Kasteel Donker"             "\n"  // added this
+          "  always: lots of water"          "\n"
+          "- foo"                            "\n"
+          "- bar"                            "\n"
+          "- baz"                            "\n"
+          "- bat"                            "\n"
+          "");
 }
 
 
@@ -2130,11 +2149,13 @@ void sample_parse_reuse_parser()
     parser.reserve_stack(20); // But this will cause an allocation
                               // because it is above 16.
 
-    ryml::Tree champagnes = parse_in_arena(&parser, "champagnes.yml", "[Dom Perignon, Gosset Grande Reserve, Jacquesson 742]");
-    CHECK(ryml::emitrs_yaml<std::string>(champagnes) == "[Dom Perignon,Gosset Grande Reserve,Jacquesson 742]");
+    ryml::csubstr yaml = "[Dom Perignon,Gosset Grande Reserve,Jacquesson 742]";
+    ryml::Tree champagnes = parse_in_arena(&parser, "champagnes.yml", yaml);
+    CHECK(ryml::emitrs_yaml<std::string>(champagnes) == yaml);
 
-    ryml::Tree beers = parse_in_arena(&parser, "beers.yml", "[Rochefort 10, Busch, Leffe Rituel, Kasteel Donker]");
-    CHECK(ryml::emitrs_yaml<std::string>(beers) == "[Rochefort 10,Busch,Leffe Rituel,Kasteel Donker]");
+    yaml = "[Rochefort 10,Busch,Leffe Rituel,Kasteel Donker]";
+    ryml::Tree beers = parse_in_arena(&parser, "beers.yml", yaml);
+    CHECK(ryml::emitrs_yaml<std::string>(beers) == yaml);
 }
 
 
@@ -2164,34 +2185,46 @@ void sample_parse_reuse_tree_and_parser()
     parser.reserve_stack(20); // But this will cause an allocation
                               // because it is above 16.
 
-    ryml::csubstr champagnes = "- Dom Perignon\n- Gosset Grande Reserve\n- Jacquesson 742";
-    ryml::csubstr beers = "- Rochefort 10\n- Busch\n- Leffe Rituel\n- Kasteel Donker";
-    ryml::csubstr wines = "- Soalheiro\n- Niepoort Redoma 2017\n- Vina Esmeralda";
+    ryml::csubstr champagnes = ""
+        "- Dom Perignon\n"
+        "- Gosset Grande Reserve\n"
+        "- Jacquesson 742\n"
+        "";
+    ryml::csubstr beers = ""
+        "- Rochefort 10\n"
+        "- Busch\n"
+        "- Leffe Rituel\n"
+        "- Kasteel Donker\n"
+        "";
+    ryml::csubstr wines = ""
+        "- Soalheiro\n"
+        "- Niepoort Redoma 2017\n"
+        "- Vina Esmeralda\n"
+        "";
 
     parse_in_arena(&parser, "champagnes.yml", champagnes, &tree);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- Dom Perignon
-- Gosset Grande Reserve
-- Jacquesson 742
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == champagnes);
 
     // watchout: this will APPEND to the given tree:
     parse_in_arena(&parser, "beers.yml", beers, &tree);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- Dom Perignon
-- Gosset Grande Reserve
-- Jacquesson 742
-- Rochefort 10
-- Busch
-- Leffe Rituel
-- Kasteel Donker
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "- Dom Perignon\n"
+          "- Gosset Grande Reserve\n"
+          "- Jacquesson 742\n"
+          "- Rochefort 10\n"
+          "- Busch\n"
+          "- Leffe Rituel\n"
+          "- Kasteel Donker\n"
+          "");
 
     // if you don't wish to append, clear the tree first:
     tree.clear();
     parse_in_arena(&parser, "wines.yml", wines, &tree);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- Soalheiro
-- Niepoort Redoma 2017
-- Vina Esmeralda
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+        "- Soalheiro\n"
+        "- Niepoort Redoma 2017\n"
+        "- Vina Esmeralda\n"
+        "");
 }
 
 
@@ -2203,26 +2236,27 @@ void sample_parse_reuse_tree_and_parser()
  */
 void sample_iterate_trees()
 {
-    const ryml::Tree tree = ryml::parse_in_arena(R"(doe: "a deer, a female deer"
-ray: "a drop of golden sun"
-pi: 3.14159
-xmas: true
-french-hens: 3
-calling-birds:
-   - huey
-   - dewey
-   - louie
-   - fred
-xmas-fifth-day:
-  calling-birds: four
-  french-hens: 3
-  golden-rings: 5
-  partridges:
-    count: 1
-    location: a pear tree
-  turtle-doves: two
-cars: GTO
-)");
+    const ryml::Tree tree = ryml::parse_in_arena(
+        "doe: a deer, a female deer"      "\n"
+        "ray: a drop of golden sun"       "\n"
+        "pi: 3.14159"                     "\n"
+        "xmas: true"                      "\n"
+        "french-hens: 3"                  "\n"
+        "calling-birds:"                  "\n"
+        "   - huey"                       "\n"
+        "   - dewey"                      "\n"
+        "   - louie"                      "\n"
+        "   - fred"                       "\n"
+        "xmas-fifth-day:"                 "\n"
+        "  calling-birds: four"           "\n"
+        "  french-hens: 3"                "\n"
+        "  golden-rings: 5"               "\n"
+        "  partridges:"                   "\n"
+        "    count: 1"                    "\n"
+        "    location: a pear tree"       "\n"
+        "  turtle-doves: two"             "\n"
+        "cars: GTO"                       "\n"
+        "");
     ryml::ConstNodeRef root = tree.crootref();
 
     // iterate children
@@ -2326,26 +2360,27 @@ void sample_create_trees()
     xmas5["turtle-doves"] = "two";
     root["cars"] = "GTO";
 
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(doe: 'a deer, a female deer'
-ray: a drop of golden sun
-pi: 3.14159
-xmas: true
-french-hens: 3
-calling-birds:
-  - huey
-  - dewey
-  - louie
-  - fred
-xmas-fifth-day:
-  calling-birds: four
-  french-hens: 3
-  golden-rings: 5
-  partridges:
-    count: 1
-    location: a pear tree
-  turtle-doves: two
-cars: GTO
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "doe: a deer, a female deer"       "\n"
+          "ray: a drop of golden sun"        "\n"
+          "pi: 3.14159"                      "\n"
+          "xmas: true"                       "\n"
+          "french-hens: 3"                   "\n"
+          "calling-birds:"                   "\n"
+          "  - huey"                         "\n"
+          "  - dewey"                        "\n"
+          "  - louie"                        "\n"
+          "  - fred"                         "\n"
+          "xmas-fifth-day:"                  "\n"
+          "  calling-birds: four"            "\n"
+          "  french-hens: 3"                 "\n"
+          "  golden-rings: 5"                "\n"
+          "  partridges:"                    "\n"
+          "    count: 1"                     "\n"
+          "    location: a pear tree"        "\n"
+          "  turtle-doves: two"              "\n"
+          "cars: GTO"                        "\n"
+          "");
 }
 
 
@@ -2614,15 +2649,15 @@ void sample_fundamental_types()
 void sample_empty_null_values()
 {
     // reading empty/null values - see also sample_formatting()
-    ryml::Tree tree = ryml::parse_in_arena(R"(
-plain:
-squoted: ''
-dquoted: ""
-literal: |
-folded: >
-all_null: [~, null, Null, NULL]
-non_null: [nULL, non_null, non null, null it is not]
-)");
+    ryml::Tree tree = ryml::parse_in_arena(""
+        "plain:"                                                  "\n"
+        "squoted: ''"                                             "\n"
+        "dquoted: \"\""                                           "\n"
+        "literal: |"                                              "\n"
+        "folded: >"                                               "\n"
+        "all_null: [~, null, Null, NULL]"                         "\n"
+        "non_null: [nULL, non_null, non null, null it is not]"    "\n"
+        "");
     // first, remember that .has_val() is a structural predicate
     // indicating the node is a leaf, and not a container.
     CHECK(tree["plain"].has_val()); // has a val, even if it's empty!
@@ -2713,11 +2748,12 @@ non_null: [nULL, non_null, non null, null it is not]
     // serializes as the normal '~' string:
     tree["str_tilde"] << tilde; CHECK(tree.arena() == "null~");
     // this is the resulting yaml:
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(empty_null: 
-empty_nonnull: ''
-str_null: null
-str_tilde: ~
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "empty_null: "         "\n"
+          "empty_nonnull: ''"    "\n"
+          "str_null: null"       "\n"
+          "str_tilde: ~"         "\n"
+          "");
     // To enforce a particular concept of what is a null string, you
     // can use the appropriate condition based on pointer nulity or
     // other appropriate criteria.
@@ -2731,11 +2767,12 @@ str_tilde: ~
     tree["str_null"] << null_if_nullptr(strnull);
     tree["str_tilde"] << null_if_nullptr(tilde);
     // this is the resulting yaml:
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(empty_null: null
-empty_nonnull: ''
-str_null: null
-str_tilde: ~
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "empty_null: null"    "\n"
+          "empty_nonnull: ''"   "\n"
+          "str_null: null"      "\n"
+          "str_tilde: ~"        "\n"
+          "");
     //
     // As another example, nulity check based on the YAML nulity
     // predicate:
@@ -2747,11 +2784,12 @@ str_tilde: ~
     tree["str_null"] << null_if_predicate(strnull);
     tree["str_tilde"] << null_if_predicate(tilde);
     // this is the resulting yaml:
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(empty_null: null
-empty_nonnull: ''
-str_null: null
-str_tilde: null
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "empty_null: null"    "\n"
+          "empty_nonnull: ''"   "\n"
+          "str_null: null"      "\n"
+          "str_tilde: null"     "\n"
+          "");
     //
     // As another example, nulity check based on the YAML nulity
     // predicate, but returning "~" to simbolize nulity:
@@ -2763,11 +2801,12 @@ str_tilde: null
     tree["str_null"] << tilde_if_predicate(strnull);
     tree["str_tilde"] << tilde_if_predicate(tilde);
     // this is the resulting yaml:
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(empty_null: ~
-empty_nonnull: ''
-str_null: ~
-str_tilde: ~
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "empty_null: ~"         "\n"
+          "empty_nonnull: ''"     "\n"
+          "str_null: ~"           "\n"
+          "str_tilde: ~"          "\n"
+          "");
 }
 
 
@@ -3157,7 +3196,7 @@ void sample_formatting()
         CHECK("0x1.2d53ap+20" == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_HEXA)));   // AKA %a
 
         // --------------------------------------------------------------
-        // fmt::raw(): dump data in machine format (respecting alignment)
+        // fmt::raw(): dump data in raw (binary) machine format (respecting alignment)
         // --------------------------------------------------------------
         {
             C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wcast-align")  // we're casting the values directly, so alignment is strictly respected.
@@ -3183,14 +3222,11 @@ void sample_formatting()
                 CHECK(0 == memcmp(expected.str, actual.str, expected.len));
                 //
                 // read back:
-                uint32_t result;
-                auto reader = fmt::raw(result); // keeps a reference to result
-                CHECK(&result == (uint32_t*)reader.buf);
-                CHECK(reader.len == sizeof(uint32_t));
-                uncat(actual, reader);
+                uint32_t result = 0;
+                auto reader = fmt::raw(result);
+                CHECK(uncat(actual, reader));
                 // and compare:
                 // (vs2017/release/32bit does not reload result from cache, so force it)
-                result = *(uint32_t*)reader.buf;
                 CHECK(result == value); // roundtrip completed successfully
             }
             C4_SUPPRESS_WARNING_GCC_CLANG_POP
@@ -3206,16 +3242,14 @@ void sample_formatting()
 //-----------------------------------------------------------------------------
 
 /** demonstrates how to read and write base64-encoded blobs.
- @see @ref doc_base64
- */
+ * @see @ref doc_base64 */
 void sample_base64()
 {
     ryml::Tree tree;
     tree.rootref() |= ryml::MAP;
     struct text_and_base64 { ryml::csubstr text, base64; };
     text_and_base64 cases[] = {
-        {{"Love all, trust a few, do wrong to none."}, {"TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg=="}},
-        {{"The fool doth think he is wise, but the wise man knows himself to be a fool."}, {"VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg=="}},
+        {{"Hello, World!"}, {"SGVsbG8sIFdvcmxkIQ=="}},
         {{"Brevity is the soul of wit."}, {"QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu"}},
         {{"All that glitters is not gold."}, {"QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu"}},
     };
@@ -3231,15 +3265,14 @@ void sample_base64()
         tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
         CHECK(tree[c.base64].val() == c.text);
     }
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
-'The fool doth think he is wise, but the wise man knows himself to be a fool.': VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==
-Brevity is the soul of wit.: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu
-All that glitters is not gold.: QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu
-TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==: 'Love all, trust a few, do wrong to none.'
-VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==: 'The fool doth think he is wise, but the wise man knows himself to be a fool.'
-QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu: Brevity is the soul of wit.
-QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold.
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "Hello, World!: SGVsbG8sIFdvcmxkIQ=="                                         "\n"
+          "Brevity is the soul of wit.: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu"           "\n"
+          "All that glitters is not gold.: QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu"    "\n"
+          "SGVsbG8sIFdvcmxkIQ==: Hello, World!"                                         "\n"
+          "QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu: Brevity is the soul of wit."           "\n"
+          "QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold."    "\n"
+          "");
     char buf1_[128], buf2_[128];
     ryml::substr buf1 = buf1_;  // this is where we will write the result (using >>)
     ryml::substr buf2 = buf2_;  // this is where we will write the result (using deserialize_val()/deserialize_key())
@@ -3620,10 +3653,11 @@ void sample_user_scalar_types()
     CHECK(v4in.y == v4out.y);
     CHECK(v4in.z == v4out.z);
     CHECK(v4in.w == v4out.w);
-    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(10,11)'
-v3: '(100,101,102)'
-v4: '(1000,1001,1002,1003)'
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+          "v2: (10,11)"                 "\n"
+          "v3: (100,101,102)"           "\n"
+          "v4: (1000,1001,1002,1003)"   "\n"
+          "");
 
     // note that only the used functions are needed:
     //   - if a type is only parsed, then only from_chars() is needed
@@ -3648,10 +3682,11 @@ v4: '(1000,1001,1002,1003)'
     CHECK(eov4in.x == pov4out.x);
     CHECK(eov4in.y == pov4out.y);
     CHECK(eov4in.z == pov4out.z);
-    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(20,21)'
-v3: '(30,31,32)'
-v4: '(40,41,42,43)'
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+          "v2: (20,21)"        "\n"
+          "v3: (30,31,32)"     "\n"
+          "v4: (40,41,42,43)"  "\n"
+          "");
 }
 
 
@@ -3824,22 +3859,23 @@ void sample_user_container_types()
         CHECK(mt_out.map.map_member.find(kv.first) != mt_out.map.map_member.end());
         CHECK(mt_out.map.map_member[kv.first] == kv.second);
     }
-    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(20,21)'
-v3: '(30,31,32)'
-v4: '(40,41,42,43)'
-seq:
-  - 101
-  - 102
-  - 103
-  - 104
-  - 105
-  - 106
-  - 107
-map:
-  1001: 2001
-  1002: 2002
-  1003: 2003
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+          "v2: (20,21)"         "\n"
+          "v3: (30,31,32)"      "\n"
+          "v4: (40,41,42,43)"   "\n"
+          "seq:"                "\n"
+          "  - 101"             "\n"
+          "  - 102"             "\n"
+          "  - 103"             "\n"
+          "  - 104"             "\n"
+          "  - 105"             "\n"
+          "  - 106"             "\n"
+          "  - 107"             "\n"
+          "map:"                "\n"
+          "  1001: 2001"        "\n"
+          "  1002: 2002"        "\n"
+          "  1003: 2003"        "\n"
+          "");
 }
 
 
@@ -3847,56 +3883,57 @@ map:
 
 /** demonstrates usage with the std implementations provided by ryml
     in the ryml_std.hpp header
-  @see @ref doc_sample_container_types
-  @see also the STL section in @ref doc_serialization */
+    @see @ref doc_sample_container_types
+    @see also the STL section in @ref doc_serialization */
 void sample_std_types()
 {
-    std::string yml_std_string = R"(- v2: '(20,21)'
-  v3: '(30,31,32)'
-  v4: '(40,41,42,43)'
-  seq:
-    - 101
-    - 102
-    - 103
-    - 104
-    - 105
-    - 106
-    - 107
-  map:
-    1001: 2001
-    1002: 2002
-    1003: 2003
-- v2: '(120,121)'
-  v3: '(130,131,132)'
-  v4: '(140,141,142,143)'
-  seq:
-    - 1101
-    - 1102
-    - 1103
-    - 1104
-    - 1105
-    - 1106
-    - 1107
-  map:
-    11001: 12001
-    11002: 12002
-    11003: 12003
-- v2: '(220,221)'
-  v3: '(230,231,232)'
-  v4: '(240,241,242,243)'
-  seq:
-    - 2101
-    - 2102
-    - 2103
-    - 2104
-    - 2105
-    - 2106
-    - 2107
-  map:
-    21001: 22001
-    21002: 22002
-    21003: 22003
-)";
+    std::string yml_std_string = ""
+        "- v2: (20,21)"              "\n"
+        "  v3: (30,31,32)"           "\n"
+        "  v4: (40,41,42,43)"        "\n"
+        "  seq:"                     "\n"
+        "    - 101"                  "\n"
+        "    - 102"                  "\n"
+        "    - 103"                  "\n"
+        "    - 104"                  "\n"
+        "    - 105"                  "\n"
+        "    - 106"                  "\n"
+        "    - 107"                  "\n"
+        "  map:"                     "\n"
+        "    1001: 2001"             "\n"
+        "    1002: 2002"             "\n"
+        "    1003: 2003"             "\n"
+        "- v2: (120,121)"            "\n"
+        "  v3: (130,131,132)"        "\n"
+        "  v4: (140,141,142,143)"    "\n"
+        "  seq:"                     "\n"
+        "    - 1101"                 "\n"
+        "    - 1102"                 "\n"
+        "    - 1103"                 "\n"
+        "    - 1104"                 "\n"
+        "    - 1105"                 "\n"
+        "    - 1106"                 "\n"
+        "    - 1107"                 "\n"
+        "  map:"                     "\n"
+        "    11001: 12001"           "\n"
+        "    11002: 12002"           "\n"
+        "    11003: 12003"           "\n"
+        "- v2: (220,221)"            "\n"
+        "  v3: (230,231,232)"        "\n"
+        "  v4: (240,241,242,243)"    "\n"
+        "  seq:"                     "\n"
+        "    - 2101"                 "\n"
+        "    - 2102"                 "\n"
+        "    - 2103"                 "\n"
+        "    - 2104"                 "\n"
+        "    - 2105"                 "\n"
+        "    - 2106"                 "\n"
+        "    - 2107"                 "\n"
+        "  map:"                     "\n"
+        "    21001: 22001"           "\n"
+        "    21002: 22002"           "\n"
+        "    21003: 22003"           "\n"
+        "";
     // parse in-place using the std::string above
     ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yml_std_string));
     // my_type is a container-of-containers type. see above its
@@ -3922,12 +3959,12 @@ void sample_float_precision()
     const double precision_safe = 1.e-14;
     const size_t num_digits_safe = 14;
     const size_t num_digits_original = 17;
-    auto get_num_digits = [](ryml::csubstr number){ return number.sub(2).len; };
+    auto get_num_digits = [](ryml::csubstr number){ return number.len - 2u; };
     //
     // no significant precision is lost when reading
     // floating point numbers:
     {
-        ryml::Tree tree = ryml::parse_in_arena(R"([1.23234412342131234, 2.12323123143434237, 3.67847983572591234])");
+        ryml::Tree tree = ryml::parse_in_arena("[1.23234412342131234, 2.12323123143434237, 3.67847983572591234]");
         std::vector<double> output;
         tree.rootref() >> output;
         CHECK(output.size() == reference.size());
@@ -3946,17 +3983,20 @@ void sample_float_precision()
         serialized.rootref() << reference;
         std::cout << serialized;
         // Without std::to_chars() there is a loss of precision:
-        #if (!C4CORE_HAVE_STD_TOCHARS) // This macro is defined when std::to_chars() is available.
-        CHECK(ryml::emitrs_yaml<std::string>(serialized) == R"(- 1.23234
-- 2.12323
-- 3.67848
-)" || (bool)"this is indicative; the exact results will vary from platform to platform.");
+        #if (!C4CORE_HAVE_STD_TOCHARS) // check if std::to_chars() is available.
+        CHECK((ryml::emitrs_yaml<std::string>(serialized) == ""
+              "- 1.23234"   "\n"
+              "- 2.12323"   "\n"
+              "- 3.67848"   "\n"
+              "") || (bool)"this is indicative; the exact results will vary from platform to platform.");
         C4_UNUSED(num_digits_safe);
-        #else  // ... but when using C++17 and above, the results are eminently equal:
-        CHECK((ryml::emitrs_yaml<std::string>(serialized) == R"(- 1.2323441234213124
-- 2.1232312314343424
-- 3.6784798357259123
-)") || (bool)"this is indicative; the exact results will vary from platform to platform.");
+        // ... but when using C++17 and above, the results are eminently equal:
+        #else
+        CHECK((ryml::emitrs_yaml<std::string>(serialized) == ""
+               "- 1.2323441234213124"   "\n"
+               "- 2.1232312314343424"   "\n"
+               "- 3.6784798357259123"   "\n"
+               "") || (bool)"this is indicative; the exact results will vary from platform to platform.");
         size_t pos = 0;
         for(ryml::ConstNodeRef child : serialized.rootref().children())
         {
@@ -3997,10 +4037,11 @@ void sample_float_precision()
     auto check_precision = [&](ryml::Tree const& serialized){
         std::cout << serialized;
         // now it works!
-        CHECK((ryml::emitrs_yaml<std::string>(serialized) == R"(- 1.23234412342131239
-- 2.12323123143434245
-- 3.67847983572591231
-)") || (bool)"this is indicative; the exact results will vary from platform to platform.");
+        CHECK((ryml::emitrs_yaml<std::string>(serialized) == ""
+               "- 1.23234412342131239"   "\n"
+               "- 2.12323123143434245"   "\n"
+               "- 3.67847983572591231"   "\n"
+               "") || (bool)"this is indicative; the exact results will vary from platform to platform.");
         size_t pos = 0;
         for(ryml::ConstNodeRef child : serialized.rootref().children())
         {
@@ -4048,30 +4089,35 @@ void sample_float_precision()
 /** demonstrates how to emit to a linear container of char */
 void sample_emit_to_container()
 {
-    // it is possible to emit to any linear container of char.
 
-    ryml::csubstr ymla = "- 1\n- 2\n";
-    ryml::csubstr ymlb = R"(- a
-- b
-- x0: 1
-  x1: 2
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-- foo
-- bar
-- baz
-- bat
-)";
+    ryml::csubstr ymla =
+        "- 1\n"
+        "- 2\n"
+        "";
+    ryml::csubstr ymlb =
+        "- a"                           "\n"
+        "- b"                           "\n"
+        "- x0: 1"                       "\n"
+        "  x1: 2"                       "\n"
+        "- champagne: Dom Perignon"     "\n"
+        "  coffee: Arabica"             "\n"
+        "  more:"                       "\n"
+        "    vinho verde: Soalheiro"    "\n"
+        "    vinho tinto: Redoma 2017"  "\n"
+        "  beer:"                       "\n"
+        "    - Rochefort 10"            "\n"
+        "    - Busch"                   "\n"
+        "    - Leffe Rituel"            "\n"
+        "- foo"                         "\n"
+        "- bar"                         "\n"
+        "- baz"                         "\n"
+        "- bat"                         "\n"
+        "";
     const ryml::Tree treea = ryml::parse_in_arena(ymla);
     const ryml::Tree treeb = ryml::parse_in_arena(ymlb);
 
+    // it is possible to emit to any linear container of char.
+    //
     // eg, std::vector<char>
     {
         // do a blank call on an empty buffer to find the required size.
@@ -4110,10 +4156,11 @@ void sample_emit_to_container()
 
         // you can also emit nested nodes:
         another = ryml::emitrs_yaml<std::vector<char>>(treeb[3][2]);
-        CHECK(ryml::to_csubstr(another) == R"(more:
-  vinho verde: Soalheiro
-  vinho tinto: Redoma 2017
-)");
+        CHECK(ryml::to_csubstr(another) == ""
+              "more:"                           "\n"
+              "  vinho verde: Soalheiro"        "\n"
+              "  vinho tinto: Redoma 2017"      "\n"
+              "");
     }
 
 
@@ -4156,10 +4203,11 @@ void sample_emit_to_container()
 
         // you can also emit nested nodes:
         another = ryml::emitrs_yaml<std::string>(treeb[3][2]);
-        CHECK(ryml::to_csubstr(another) == R"(more:
-  vinho verde: Soalheiro
-  vinho tinto: Redoma 2017
-)");
+        CHECK(ryml::to_csubstr(another) == ""
+              "more:"                           "\n"
+              "  vinho verde: Soalheiro"        "\n"
+              "  vinho tinto: Redoma 2017"      "\n"
+              "");
     }
 }
 
@@ -4169,24 +4217,25 @@ void sample_emit_to_container()
 /** demonstrates how to emit to a stream-like structure */
 void sample_emit_to_stream()
 {
-    ryml::csubstr ymlb = R"(- a
-- b
-- x0: 1
-  x1: 2
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-- foo
-- bar
-- baz
-- bat
-)";
+    ryml::csubstr ymlb =
+        "- a"                           "\n"
+        "- b"                           "\n"
+        "- x0: 1"                       "\n"
+        "  x1: 2"                       "\n"
+        "- champagne: Dom Perignon"     "\n"
+        "  coffee: Arabica"             "\n"
+        "  more:"                       "\n"
+        "    vinho verde: Soalheiro"    "\n"
+        "    vinho tinto: Redoma 2017"  "\n"
+        "  beer:"                       "\n"
+        "    - Rochefort 10"            "\n"
+        "    - Busch"                   "\n"
+        "    - Leffe Rituel"            "\n"
+        "- foo"                         "\n"
+        "- bar"                         "\n"
+        "- baz"                         "\n"
+        "- bat"                         "\n"
+        "";
     const ryml::Tree tree = ryml::parse_in_arena(ymlb);
 
     std::string s;
@@ -4204,32 +4253,33 @@ void sample_emit_to_stream()
         std::stringstream ss;
         ss << ryml::as_json(tree); // works with any stream having .operator<<() and .write()
         s = ss.str();
-        CHECK(ryml::to_csubstr(s) == R"([
-  "a",
-  "b",
-  {
-    "x0": 1,
-    "x1": 2
-  },
-  {
-    "champagne": "Dom Perignon",
-    "coffee": "Arabica",
-    "more": {
-      "vinho verde": "Soalheiro",
-      "vinho tinto": "Redoma 2017"
-    },
-    "beer": [
-      "Rochefort 10",
-      "Busch",
-      "Leffe Rituel"
-    ]
-  },
-  "foo",
-  "bar",
-  "baz",
-  "bat"
-]
-)");
+        CHECK(ryml::to_csubstr(s) ==
+              "["                                        "\n"
+              "  \"a\","                                 "\n"
+              "  \"b\","                                 "\n"
+              "  {"                                      "\n"
+              "    \"x0\": 1,"                           "\n"
+              "    \"x1\": 2"                            "\n"
+              "  },"                                     "\n"
+              "  {"                                      "\n"
+              "    \"champagne\": \"Dom Perignon\","     "\n"
+              "    \"coffee\": \"Arabica\","             "\n"
+              "    \"more\": {"                          "\n"
+              "      \"vinho verde\": \"Soalheiro\","    "\n"
+              "      \"vinho tinto\": \"Redoma 2017\""   "\n"
+              "    },"                                   "\n"
+              "    \"beer\": ["                          "\n"
+              "      \"Rochefort 10\","                  "\n"
+              "      \"Busch\","                         "\n"
+              "      \"Leffe Rituel\""                   "\n"
+              "    ]"                                    "\n"
+              "  },"                                     "\n"
+              "  \"foo\","                               "\n"
+              "  \"bar\","                               "\n"
+              "  \"baz\","                               "\n"
+              "  \"bat\""                                "\n"
+              "]"                                        "\n"
+              "");
     }
 
     // emit a nested node
@@ -4237,10 +4287,11 @@ void sample_emit_to_stream()
         std::stringstream ss;
         ss << tree[3][2]; // works with any stream having .operator<<() and .write()
         s = ss.str();
-        CHECK(ryml::to_csubstr(s) == R"(more:
-  vinho verde: Soalheiro
-  vinho tinto: Redoma 2017
-)");
+        CHECK(ryml::to_csubstr(s) == ""
+              "more:"                             "\n"
+              "  vinho verde: Soalheiro"          "\n"
+              "  vinho tinto: Redoma 2017"        "\n"
+              "");
     }
 
     // emit a nested node as json
@@ -4248,11 +4299,12 @@ void sample_emit_to_stream()
         std::stringstream ss;
         ss << ryml::as_json(tree[3][2]); // works with any stream having .operator<<() and .write()
         s = ss.str();
-        CHECK(ryml::to_csubstr(s) == R"("more": {
-  "vinho verde": "Soalheiro",
-  "vinho tinto": "Redoma 2017"
-}
-)");
+        CHECK(ryml::to_csubstr(s) ==
+              "\"more\": {"                           "\n"
+              "  \"vinho verde\": \"Soalheiro\","     "\n"
+              "  \"vinho tinto\": \"Redoma 2017\""    "\n"
+              "}"                                     "\n"
+              "");
     }
 }
 
@@ -4262,24 +4314,25 @@ void sample_emit_to_stream()
 /** demonstrates how to emit to a FILE* */
 void sample_emit_to_file()
 {
-    ryml::csubstr yml = R"(- a
-- b
-- x0: 1
-  x1: 2
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-- foo
-- bar
-- baz
-- bat
-)";
+    ryml::csubstr yml = ""
+        "- a"                           "\n"
+        "- b"                           "\n"
+        "- x0: 1"                       "\n"
+        "  x1: 2"                       "\n"
+        "- champagne: Dom Perignon"     "\n"
+        "  coffee: Arabica"             "\n"
+        "  more:"                       "\n"
+        "    vinho verde: Soalheiro"    "\n"
+        "    vinho tinto: Redoma 2017"  "\n"
+        "  beer:"                       "\n"
+        "    - Rochefort 10"            "\n"
+        "    - Busch"                   "\n"
+        "    - Leffe Rituel"            "\n"
+        "- foo"                         "\n"
+        "- bar"                         "\n"
+        "- baz"                         "\n"
+        "- bat"                         "\n"
+        "";
     const ryml::Tree tree = ryml::parse_in_arena(yml);
     // this is emitting to stdout, but of course you can pass in any
     // FILE* obtained from fopen()
@@ -4295,40 +4348,43 @@ void sample_emit_to_file()
 /** just like parsing into a nested node, you can also emit from a nested node. */
 void sample_emit_nested_node()
 {
-    const ryml::Tree tree = ryml::parse_in_arena(R"(- a
-- b
-- x0: 1
-  x1: 2
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-    - - and so
-      - many other
-      - wonderful beers
-- more
-- seq
-- members
-- here
-)");
-    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"]) == R"(beer:
-  - Rochefort 10
-  - Busch
-  - Leffe Rituel
-  - - and so
-    - many other
-    - wonderful beers
-)");
+    const ryml::Tree tree = ryml::parse_in_arena(""
+        "- a"                            "\n"
+        "- b"                            "\n"
+        "- x0: 1"                        "\n"
+        "  x1: 2"                        "\n"
+        "- champagne: Dom Perignon"      "\n"
+        "  coffee: Arabica"              "\n"
+        "  more:"                        "\n"
+        "    vinho verde: Soalheiro"     "\n"
+        "    vinho tinto: Redoma 2017"   "\n"
+        "  beer:"                        "\n"
+        "    - Rochefort 10"             "\n"
+        "    - Busch"                    "\n"
+        "    - Leffe Rituel"             "\n"
+        "    - - and so"                 "\n"
+        "      - many other"             "\n"
+        "      - wonderful beers"        "\n"
+        "- more"                         "\n"
+        "- seq"                          "\n"
+        "- members"                      "\n"
+        "- here"                         "\n"
+        "");
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"]) == ""
+          "beer:"                    "\n"
+          "  - Rochefort 10"         "\n"
+          "  - Busch"                "\n"
+          "  - Leffe Rituel"         "\n"
+          "  - - and so"             "\n"
+          "    - many other"         "\n"
+          "    - wonderful beers"    "\n"
+          "");
     CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10");
-    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][3]) == R"(- and so
-- many other
-- wonderful beers
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][3]) == ""
+          "- and so"                 "\n"
+          "- many other"             "\n"
+          "- wonderful beers"        "\n"
+          "");
 }
 
 
@@ -4341,22 +4397,23 @@ void sample_style()
     // we will be using this helper throughout this function
     auto tostr = [](ryml::ConstNodeRef n) { return ryml::emitrs_yaml<std::string>(n); };
     // let's parse this yaml:
-    ryml::csubstr yaml = R"(block map:
-  block key: block val
-block seq:
-  - block val 1
-  - block val 2
-  - 'quoted'
-flow map, singleline: {flow key: flow val}
-flow seq, singleline: [flow val,flow val]
-flow map, multiline: {
-    flow key: flow val
-  }
-flow seq, multiline: [
-    flow val,
-    flow val
-  ]
-)";
+    ryml::csubstr yaml = ""
+        "block map:"                                   "\n"
+        "  block key: block val"                       "\n"
+        "block seq:"                                   "\n"
+        "  - block val 1"                              "\n"
+        "  - block val 2"                              "\n"
+        "  - 'quoted'"                                 "\n"
+        "flow map, singleline: {flow key: flow val}"   "\n"
+        "flow seq, singleline: [flow val,flow val]"    "\n"
+        "flow map, multiline: {"                       "\n"
+        "    flow key: flow val"                       "\n"
+        "  }"                                          "\n"
+        "flow seq, multiline: ["                       "\n"
+        "    flow val,"                                "\n"
+        "    flow val"                                 "\n"
+        "  ]"                                          "\n"
+        "";
     ryml::Tree tree = ryml::parse_in_arena(yaml);
     // while parsing, ryml marks parsed nodes with their original style:
     CHECK(tree.rootref().is_block());
@@ -4392,21 +4449,36 @@ flow seq, multiline: [
     {
         ryml::NodeRef n = tree["block map"]; // Let's look at one node
         // It looks like this originally:
-        CHECK(tostr(n) == "block map:\n  block key: block val\n");
+        CHECK(tostr(n) ==
+              "block map:\n"
+              "  block key: block val\n"
+              "");
         // let's modify its style:
         n.set_key_style(ryml::KEY_SQUO);      // scalar style: to single-quoted scalar
         n.set_container_style(ryml::FLOW_SL); // container style: to flow singleline
         // now it looks like this:
-        CHECK(tostr(n) == "'block map': {block key: block val}\n");
+        CHECK(tostr(n) ==
+              "'block map': {block key: block val}\n"
+              "");
     }
     // next example
     {
         ryml::NodeRef n = tree["block seq"];
-        CHECK(tostr(n) == "block seq:\n  - block val 1\n  - block val 2\n  - 'quoted'\n");
+        CHECK(tostr(n) == ""
+              "block seq:\n"
+              "  - block val 1\n"
+              "  - block val 2\n"
+              "  - 'quoted'\n"
+              "");
         n.set_key_style(ryml::KEY_DQUO);       // scalar style: to double-quoted scalar
         n.set_container_style(ryml::FLOW_ML);  // container style: to flow multiline
         n[2].set_val_style(ryml::VAL_PLAIN);   // scalar style: to plain
-        CHECK(tostr(n) == "\"block seq\": [\n    block val 1,\n    block val 2,\n    quoted\n  ]\n");
+        CHECK(tostr(n) == ""
+              "\"block seq\": [\n"
+              "    block val 1,\n"
+              "    block val 2,\n"
+              "    quoted\n"
+              "  ]\n");
     }
     // next example
     {
@@ -4414,14 +4486,25 @@ flow seq, multiline: [
         CHECK(tostr(n) == "flow map, singleline: {flow key: flow val}\n");
         n.set_container_style(ryml::BLOCK);
         n["flow key"].set_val_style(ryml::VAL_LITERAL);
-        CHECK(tostr(n) == "flow map, singleline:\n  flow key: |-\n    flow val\n");
+        CHECK(tostr(n) == ""
+              "flow map, singleline:\n"
+              "  flow key: |-\n"
+              "    flow val\n"
+              "");
     }
     // next example
     {
         ryml::NodeRef n = tree["flow map, multiline"];
-        CHECK(tostr(n) == "flow map, multiline: {\n    flow key: flow val\n  }\n");
+        CHECK(tostr(n) == ""
+              "flow map, multiline: {\n"
+              "    flow key: flow val\n"
+              "  }\n"
+              "");
         n.set_container_style(ryml::BLOCK);
-        CHECK(tostr(n) == "flow map, multiline:\n  flow key: flow val\n");
+        CHECK(tostr(n) == ""
+              "flow map, multiline:\n"
+              "  flow key: flow val\n"
+              "");
     }
     // next example
     {
@@ -4431,58 +4514,69 @@ flow seq, multiline: [
         n.set_container_style(ryml::BLOCK);
         n[0].set_val_style(ryml::VAL_SQUO);
         n[1].set_val_style(ryml::VAL_DQUO);
-        CHECK(tostr(n) == "? >-\n  flow seq, singleline\n:\n  - 'flow val'\n  - \"flow val\"\n");
+        CHECK(tostr(n) == ""
+              "? >-\n"
+              "  flow seq, singleline\n"
+              ":\n"
+              "  - 'flow val'\n"
+              "  - \"flow val\"\n"
+              "");
     }
     // next example
     {
         ryml::NodeRef n = tree["flow seq, multiline"];
-        CHECK(tostr(n) == "flow seq, multiline: [\n    flow val,\n    flow val\n  ]\n");
+        CHECK(tostr(n) == ""
+              "flow seq, multiline: [\n"
+              "    flow val,\n"
+              "    flow val\n"
+              "  ]\n"
+              "");
         n.set_container_style(ryml::FLOW_SL);
         CHECK(tostr(n) == "flow seq, multiline: [flow val,flow val]\n");
     }
     // note the full tree now:
     CHECK(tostr(tree) != yaml);
     CHECK(tostr(tree) ==
-          R"('block map': {block key: block val}
-"block seq": [
-    block val 1,
-    block val 2,
-    quoted
-  ]
-flow map, singleline:
-  flow key: |-
-    flow val
-? >-
-  flow seq, singleline
-:
-  - 'flow val'
-  - "flow val"
-flow map, multiline:
-  flow key: flow val
-flow seq, multiline: [flow val,flow val]
-)");
+          "'block map': {block key: block val}"         "\n"
+          "\"block seq\": ["                            "\n"
+          "    block val 1,"                            "\n"
+          "    block val 2,"                            "\n"
+          "    quoted"                                  "\n"
+          "  ]"                                         "\n"
+          "flow map, singleline:"                       "\n"
+          "  flow key: |-"                              "\n"
+          "    flow val"                                "\n"
+          "? >-"                                        "\n"
+          "  flow seq, singleline"                      "\n"
+          ":"                                           "\n"
+          "  - 'flow val'"                              "\n"
+          "  - \"flow val\""                            "\n"
+          "flow map, multiline:"                        "\n"
+          "  flow key: flow val"                        "\n"
+          "flow seq, multiline: [flow val,flow val]"    "\n"
+          "");
     // you can clear the style of single nodes:
     tree["block map"].clear_style();
     tree["block seq"].clear_style();
     CHECK(tostr(tree) ==
-          R"(block map:
-  block key: block val
-block seq:
-  - block val 1
-  - block val 2
-  - quoted
-flow map, singleline:
-  flow key: |-
-    flow val
-? >-
-  flow seq, singleline
-:
-  - 'flow val'
-  - "flow val"
-flow map, multiline:
-  flow key: flow val
-flow seq, multiline: [flow val,flow val]
-)");
+          "block map:"                                    "\n"
+          "  block key: block val"                        "\n"
+          "block seq:"                                    "\n"
+          "  - block val 1"                               "\n"
+          "  - block val 2"                               "\n"
+          "  - quoted"                                    "\n"
+          "flow map, singleline:"                         "\n"
+          "  flow key: |-"                                "\n"
+          "    flow val"                                  "\n"
+          "? >-"                                          "\n"
+          "  flow seq, singleline"                        "\n"
+          ":"                                             "\n"
+          "  - 'flow val'"                                "\n"
+          "  - \"flow val\""                              "\n"
+          "flow map, multiline:"                          "\n"
+          "  flow key: flow val"                          "\n"
+          "flow seq, multiline: [flow val,flow val]"      "\n"
+          "");
     // you can clear the style recursively:
     tree.rootref().clear_style(/*recurse*/true);
     // when emitting nodes which have no style set, ryml will default
@@ -4491,23 +4585,23 @@ flow seq, multiline: [flow val,flow val]
     // (at the cost of a scan over each scalar). Note that ryml picks
     // single-quoted for scalars containing commas:
     CHECK(tostr(tree) ==
-          R"(block map:
-  block key: block val
-block seq:
-  - block val 1
-  - block val 2
-  - quoted
-'flow map, singleline':
-  flow key: flow val
-'flow seq, singleline':
-  - flow val
-  - flow val
-'flow map, multiline':
-  flow key: flow val
-'flow seq, multiline':
-  - flow val
-  - flow val
-)");
+          "block map:"              "\n"
+          "  block key: block val"  "\n"
+          "block seq:"              "\n"
+          "  - block val 1"         "\n"
+          "  - block val 2"         "\n"
+          "  - quoted"              "\n"
+          "flow map, singleline:"   "\n"
+          "  flow key: flow val"    "\n"
+          "flow seq, singleline:"   "\n"
+          "  - flow val"            "\n"
+          "  - flow val"            "\n"
+          "flow map, multiline:"    "\n"
+          "  flow key: flow val"    "\n"
+          "flow seq, multiline:"    "\n"
+          "  - flow val"            "\n"
+          "  - flow val"            "\n"
+          "");
     // you can set the style based on type conditions:
     //
     // eg, set a single key to single-quoted
@@ -4516,23 +4610,23 @@ block seq:
                                               /*addflags*/ryml::KEY_SQUO,
                                               /*recurse*/false);
     CHECK(tostr(tree) ==
-          R"('block map':
-  block key: block val
-block seq:
-  - block val 1
-  - block val 2
-  - quoted
-'flow map, singleline':
-  flow key: flow val
-'flow seq, singleline':
-  - flow val
-  - flow val
-'flow map, multiline':
-  flow key: flow val
-'flow seq, multiline':
-  - flow val
-  - flow val
-)");
+          "'block map':"             "\n"
+          "  block key: block val"   "\n"
+          "block seq:"               "\n"
+          "  - block val 1"          "\n"
+          "  - block val 2"          "\n"
+          "  - quoted"               "\n"
+          "flow map, singleline:"    "\n"
+          "  flow key: flow val"     "\n"
+          "flow seq, singleline:"    "\n"
+          "  - flow val"             "\n"
+          "  - flow val"             "\n"
+          "flow map, multiline:"     "\n"
+          "  flow key: flow val"     "\n"
+          "flow seq, multiline:"     "\n"
+          "  - flow val"             "\n"
+          "  - flow val"             "\n"
+          "");
     // change all keys to single-quoted:
     tree.rootref().set_style_conditionally(/*type_mask*/ryml::KEY,
                                            /*remflags*/ryml::KEY_STYLE,
@@ -4554,35 +4648,35 @@ block seq:
                                            /*addflags*/ryml::BLOCK,
                                            /*recurse*/true);
     // done!
-    CHECK(tostr(tree) ==
-          R"('block map':
-  'block key': "block val"
-'block seq': ["block val 1","block val 2","quoted"]
-'flow map, singleline':
-  'flow key': "flow val"
-'flow seq, singleline': ["flow val","flow val"]
-'flow map, multiline':
-  'flow key': "flow val"
-'flow seq, multiline': ["flow val","flow val"]
-)");
+    CHECK(tostr(tree) == ""
+          "'block map':"                                               "\n"
+          "  'block key': \"block val\""                               "\n"
+          "'block seq': [\"block val 1\",\"block val 2\",\"quoted\"]"  "\n"
+          "'flow map, singleline':"                                    "\n"
+          "  'flow key': \"flow val\""                                 "\n"
+          "'flow seq, singleline': [\"flow val\",\"flow val\"]"        "\n"
+          "'flow map, multiline':"                                     "\n"
+          "  'flow key': \"flow val\""                                 "\n"
+          "'flow seq, multiline': [\"flow val\",\"flow val\"]"         "\n"
+          "");
     // you can also set a conditional style in a single node (or its branch if recurse is true):
     tree["flow seq, singleline"].set_style_conditionally(/*type_mask*/ryml::SEQ,
                                                          /*remflags*/ryml::CONTAINER_STYLE,
                                                          /*addflags*/ryml::BLOCK,
                                                          /*recurse*/false);
-    CHECK(tostr(tree) ==
-          R"('block map':
-  'block key': "block val"
-'block seq': ["block val 1","block val 2","quoted"]
-'flow map, singleline':
-  'flow key': "flow val"
-'flow seq, singleline':
-  - "flow val"
-  - "flow val"
-'flow map, multiline':
-  'flow key': "flow val"
-'flow seq, multiline': ["flow val","flow val"]
-)");
+    CHECK(tostr(tree) == ""
+          "'block map':"                                                   "\n"
+          "  'block key': \"block val\""                                   "\n"
+          "'block seq': [\"block val 1\",\"block val 2\",\"quoted\"]"      "\n"
+          "'flow map, singleline':"                                        "\n"
+          "  'flow key': \"flow val\""                                     "\n"
+          "'flow seq, singleline':"                                        "\n"
+          "  - \"flow val\""                                               "\n"
+          "  - \"flow val\""                                               "\n"
+          "'flow map, multiline':"                                         "\n"
+          "  'flow key': \"flow val\""                                     "\n"
+          "'flow seq, multiline': [\"flow val\",\"flow val\"]"             "\n"
+        "");
     // see also:
     //  - ryml::scalar_style_choose()
     //  - ryml::scalar_style_json_choose()
@@ -4612,71 +4706,71 @@ void sample_style_flow_ml_indent()
     tree["map"]["seq"][4].set_container_style(ryml::FLOW_ML);
     // by default FLOW_ML prints one value per line, indented:
     CHECK(tostr(tree, defaults) ==
-          R"({
-  map: {
-    seq: [
-      0,
-      1,
-      2,
-      3,
-      [
-        40,
-        41
-      ]
-    ]
-  }
-}
-)");
+          "{"              "\n"
+          "  map: {"       "\n"
+          "    seq: ["     "\n"
+          "      0,"       "\n"
+          "      1,"       "\n"
+          "      2,"       "\n"
+          "      3,"       "\n"
+          "      ["        "\n"
+          "        40,"    "\n"
+          "        41"     "\n"
+          "      ]"        "\n"
+          "    ]"          "\n"
+          "  }"            "\n"
+          "}"              "\n"
+          "");
     // if we use the noindent options, then each value is put at the
     // beginning of the line
     CHECK(tostr(tree, noindent) ==
-          R"({
-map: {
-seq: [
-0,
-1,
-2,
-3,
-[
-40,
-41
-]
-]
-}
-}
-)");
+          "{"            "\n"
+          "map: {"       "\n"
+          "seq: ["       "\n"
+          "0,"           "\n"
+          "1,"           "\n"
+          "2,"           "\n"
+          "3,"           "\n"
+          "["            "\n"
+          "40,"          "\n"
+          "41"           "\n"
+          "]"            "\n"
+          "]"            "\n"
+          "}"            "\n"
+          "}"            "\n"
+          "");
     // Note that the noindent option will safely respect any prior
     // indent level from enclosing block containers! For example:
     tree.rootref().set_container_style(ryml::BLOCK);
-    CHECK(tostr(tree, noindent) == // notice it is indented at the map level
-          R"(map: {
-  seq: [
-  0,
-  1,
-  2,
-  3,
-  [
-  40,
-  41
-  ]
-  ]
-  }
-)");
+    CHECK(tostr(tree, noindent) == ""// notice it is indented at the map level
+          "map: {"       "\n"
+          "  seq: ["     "\n"
+          "  0,"         "\n"
+          "  1,"         "\n"
+          "  2,"         "\n"
+          "  3,"         "\n"
+          "  ["          "\n"
+          "  40,"        "\n"
+          "  41"         "\n"
+          "  ]"          "\n"
+          "  ]"          "\n"
+          "  }"          "\n"
+          "");
     // Let's set it one BLOCK level further:
     tree["map"].set_container_style(ryml::BLOCK);
     CHECK(tostr(tree, noindent) == // notice it is indented one more level
-          R"(map:
-  seq: [
-    0,
-    1,
-    2,
-    3,
-    [
-    40,
-    41
-    ]
-    ]
-)");
+          "map:"         "\n"
+          "  seq: ["     "\n"
+          "    0,"       "\n"
+          "    1,"       "\n"
+          "    2,"       "\n"
+          "    3,"       "\n"
+          "    ["        "\n"
+          "    40,"      "\n"
+          "    41"       "\n"
+          "    ]"        "\n"
+          "    ]"        "\n"
+          "");
 }
 
 
@@ -4686,36 +4780,38 @@ seq: [
  * container being parsed is FLOW_ML */
 void sample_style_flow_ml_filter()
 {
-    ryml::csubstr yaml = R"({
-  map: {
-    seq: [
-      0,
-      1,
-      2,
-      3,
-      [
-        40,
-        41
-      ]
-    ]
-  }
-}
-)";
-    ryml::csubstr yaml_not_indented = R"({
-map: {
-seq: [
-0,
-1,
-2,
-3,
-[
-40,
-41
-]
-]
-}
-}
-)";
+    ryml::csubstr yaml = ""
+        "{"              "\n"
+        "  map: {"       "\n"
+        "    seq: ["     "\n"
+        "      0,"       "\n"
+        "      1,"       "\n"
+        "      2,"       "\n"
+        "      3,"       "\n"
+        "      ["        "\n"
+        "        40,"    "\n"
+        "        41"     "\n"
+        "      ]"        "\n"
+        "    ]"          "\n"
+        "  }"            "\n"
+        "}"              "\n"
+        "";
+    ryml::csubstr yaml_not_indented = ""
+        "{"              "\n"
+        "map: {"         "\n"
+        "seq: ["         "\n"
+        "0,"             "\n"
+        "1,"             "\n"
+        "2,"             "\n"
+        "3,"             "\n"
+        "["              "\n"
+        "40,"            "\n"
+        "41"             "\n"
+        "]"              "\n"
+        "]"              "\n"
+        "}"              "\n"
+        "}"              "\n"
+        "";
     // note that the parser defaults to detect multiline flow
     // (FLOW_ML) containers:
     {
@@ -4753,13 +4849,14 @@ seq: [
  * info on clearing the style flags (example below). */
 void sample_json()
 {
-    ryml::csubstr json = R"({
-  "doe": "a deer, a female deer",
-  "ray": "a drop of golden sun",
-  "me": "a name, I call myself",
-  "far": "a long long way to go"
-}
-)";
+    ryml::csubstr json = ""
+        "{"                                         "\n"
+        "  \"doe\": \"a deer, a female deer\","     "\n"
+        "  \"ray\": \"a drop of golden sun\","      "\n"
+        "  \"me\": \"a name, I call myself\","      "\n"
+        "  \"far\": \"a long long way to go\""      "\n"
+        "}"                                         "\n"
+        "";
     // Since JSON is a subset of YAML, parsing JSON is just the
     // same as YAML:
     ryml::Tree tree = ryml::parse_in_arena(json);
@@ -4795,24 +4892,24 @@ void sample_json()
     // If you want to avoid this, you will need to clear the style.
     json_tree.rootref().clear_style(); // clear the style of the map, but do not recurse
     // note that this is now block mode. That is because when no
-    // style is set, the YAML emit function will default to block mode.
-    CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
-          R"("doe": "a deer, a female deer"
-"ray": "a drop of golden sun"
-"me": "a name, I call myself"
-"far": "a long long way to go"
-)");
+    // style is set, ryml defaults to emitting in block mode.
+    CHECK(ryml::emitrs_yaml<std::string>(json_tree) == ""
+          "\"doe\": \"a deer, a female deer\""   "\n"
+          "\"ray\": \"a drop of golden sun\""    "\n"
+          "\"me\": \"a name, I call myself\""    "\n"
+          "\"far\": \"a long long way to go\""   "\n"
+          "");
     // if you don't want the double quotes in the scalar, you can
     // recurse:
     json_tree.rootref().clear_style(/*recurse*/true);
     // so now when emitting you will get this:
     // (the scalars with a comma are single-quote)
-    CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
-          R"(doe: 'a deer, a female deer'
-ray: a drop of golden sun
-me: 'a name, I call myself'
-far: a long long way to go
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(json_tree) == ""
+          "doe: a deer, a female deer"      "\n"
+          "ray: a drop of golden sun"       "\n"
+          "me: a name, I call myself"       "\n"
+          "far: a long long way to go"      "\n"
+          "");
     // you can do custom style changes based on a type mask. this
     // will change set the style of all scalar values to single-quoted
     json_tree.rootref().set_style_conditionally(ryml::VAL,
@@ -4820,11 +4917,11 @@ far: a long long way to go
                                                 /*addflags*/ryml::VAL_SQUO,
                                                 /*recurse*/true);
     CHECK(ryml::emitrs_yaml<std::string>(json_tree) ==
-          R"(doe: 'a deer, a female deer'
-ray: 'a drop of golden sun'
-me: 'a name, I call myself'
-far: 'a long long way to go'
-)");
+          "doe: 'a deer, a female deer'"    "\n"
+          "ray: 'a drop of golden sun'"     "\n"
+          "me: 'a name, I call myself'"     "\n"
+          "far: 'a long long way to go'"    "\n"
+          "");
     // see in particular sample_style() for more examples
 }
 
@@ -4853,47 +4950,49 @@ every node has an alias/anchor). This potential cost is the reason for
 requiring an explicit call to @ref c4::yml::Tree::resolve() */
 void sample_anchors_and_aliases()
 {
-    std::string unresolved = R"(base: &base
-  name: Everyone has same name
-foo: &foo
-  <<: *base
-  age: 10
-bar: &bar
-  <<: *base
-  age: 20
-bill_to: &id001
-  street: |-
-    123 Tornado Alley
-    Suite 16
-  city: East Centerville
-  state: KS
-ship_to: *id001
-&keyref key: &valref val
-*valref : *keyref
-)";
-    std::string resolved = R"(base:
-  name: Everyone has same name
-foo:
-  name: Everyone has same name
-  age: 10
-bar:
-  name: Everyone has same name
-  age: 20
-bill_to:
-  street: |-
-    123 Tornado Alley
-    Suite 16
-  city: East Centerville
-  state: KS
-ship_to:
-  street: |-
-    123 Tornado Alley
-    Suite 16
-  city: East Centerville
-  state: KS
-key: val
-val: key
-)";
+    std::string unresolved = ""
+        "base: &base"                       "\n"
+        "  name: Everyone has same name"    "\n"
+        "foo: &foo"                         "\n"
+        "  <<: *base"                       "\n"
+        "  age: 10"                         "\n"
+        "bar: &bar"                         "\n"
+        "  <<: *base"                       "\n"
+        "  age: 20"                         "\n"
+        "bill_to: &id001"                   "\n"
+        "  street: |-"                      "\n"
+        "    123 Tornado Alley"             "\n"
+        "    Suite 16"                      "\n"
+        "  city: East Centerville"          "\n"
+        "  state: KS"                       "\n"
+        "ship_to: *id001"                   "\n"
+        "&keyref key: &valref val"          "\n"
+        "*valref : *keyref"                 "\n"
+        "";
+    std::string resolved = ""
+        "base:"                             "\n"
+        "  name: Everyone has same name"    "\n"
+        "foo:"                              "\n"
+        "  name: Everyone has same name"    "\n"
+        "  age: 10"                         "\n"
+        "bar:"                              "\n"
+        "  name: Everyone has same name"    "\n"
+        "  age: 20"                         "\n"
+        "bill_to:"                          "\n"
+        "  street: |-"                      "\n"
+        "    123 Tornado Alley"             "\n"
+        "    Suite 16"                      "\n"
+        "  city: East Centerville"          "\n"
+        "  state: KS"                       "\n"
+        "ship_to:"                          "\n"
+        "  street: |-"                      "\n"
+        "    123 Tornado Alley"             "\n"
+        "    Suite 16"                      "\n"
+        "  city: East Centerville"          "\n"
+        "  state: KS"                       "\n"
+        "key: val"                          "\n"
+        "val: key"                          "\n"
+        "";
 
     ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(unresolved));
     // by default, references are not resolved when parsing:
@@ -4940,69 +5039,78 @@ void sample_anchors_and_aliases_create()
         t["kref"].set_val_ref("kanchor");
         t["vref"].set_val_ref("vanchor");
         t["nref"] = "*vanchor";  // NOTE: this is not set as a reference in the tree!
-        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(&kanchor kanchor: 2
-vanchor: &vanchor 3
-kref: *kanchor
-vref: *vanchor
-nref: '*vanchor'
-)"); // note that ryml emits nref with quotes to disambiguate (because no style was set)
+        CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+              "&kanchor kanchor: 2"  "\n"
+              "vanchor: &vanchor 3"  "\n"
+              "kref: *kanchor"       "\n"
+              "vref: *vanchor"       "\n"
+              // note that ryml emits nref with quotes to disambiguate
+              // (because no style was set)
+              "nref: '*vanchor'"     "\n"
+              "");
         t.resolve();
-        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(kanchor: 2
-vanchor: 3
-kref: kanchor
-vref: 3
-nref: '*vanchor'
-)"); // note that nref was not resolved
+        CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+              "kanchor: 2"           "\n"
+              "vanchor: 3"           "\n"
+              "kref: kanchor"        "\n"
+              "vref: 3"              "\n"
+              // note that nref was not resolved
+              "nref: '*vanchor'"     "\n"
+              "");
     }
 
     // part 2: simple inheritance (ie, adding `<<: *anchor` nodes)
     {
-        ryml::Tree t = ryml::parse_in_arena(R"(
-orig: &orig {foo: bar, baz: bat}
-copy: {}
-notcopy: {}
-notref: {}
-)");
+        ryml::Tree t = ryml::parse_in_arena(""
+            "orig: &orig {foo: bar, baz: bat}"  "\n"
+            "copy: {}"                          "\n"
+            "notcopy: {}"                       "\n"
+            "notref: {}"                        "\n"
+            "");
         t["copy"]["<<"].set_val_ref("orig");
         t["notcopy"]["test"].set_val_ref("orig");
         t["notcopy"]["<<"].set_val_ref("orig");
         t["notref"]["<<"] = "*orig"; // not a reference! .set_val_ref() was not called
-        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig: &orig {foo: bar,baz: bat}
-copy: {<<: *orig}
-notcopy: {test: *orig,<<: *orig}
-notref: {<<: '*orig'}
-)");
+        CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+              "orig: &orig {foo: bar,baz: bat}"      "\n"
+              "copy: {<<: *orig}"                    "\n"
+              "notcopy: {test: *orig,<<: *orig}"     "\n"
+              "notref: {<<: '*orig'}"                "\n"
+              "");
         t.resolve();
-        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig: {foo: bar,baz: bat}
-copy: {foo: bar,baz: bat}
-notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}
-notref: {<<: '*orig'}
-)");
+        CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+              "orig: {foo: bar,baz: bat}"                                "\n"
+              "copy: {foo: bar,baz: bat}"                                "\n"
+              "notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}"   "\n"
+              "notref: {<<: '*orig'}"                                    "\n"
+              "");
     }
 
     // part 3: multiple inheritance (ie, `<<: [*ref1,*ref2,*etc]`)
     {
-        ryml::Tree t = ryml::parse_in_arena(R"(orig1: &orig1 {foo: bar}
-orig2: &orig2 {baz: bat}
-orig3: &orig3 {and: more}
-copy: {}
-)");
+        ryml::Tree t = ryml::parse_in_arena(""
+            "orig1: &orig1 {foo: bar}"       "\n"
+            "orig2: &orig2 {baz: bat}"       "\n"
+            "orig3: &orig3 {and: more}"      "\n"
+            "copy: {}"                       "\n"
+            "");
         ryml::NodeRef seq = t["copy"]["<<"];
         seq |= ryml::SEQ;
         seq.append_child().set_val_ref("orig1");
         seq.append_child().set_val_ref("orig2");
         seq.append_child().set_val_ref("orig3");
-        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig1: &orig1 {foo: bar}
-orig2: &orig2 {baz: bat}
-orig3: &orig3 {and: more}
-copy: {<<: [*orig1,*orig2,*orig3]}
-)");
+        CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+              "orig1: &orig1 {foo: bar}"                  "\n"
+              "orig2: &orig2 {baz: bat}"                  "\n"
+              "orig3: &orig3 {and: more}"                 "\n"
+              "copy: {<<: [*orig1,*orig2,*orig3]}"        "\n"
+              "");
         t.resolve();
-        CHECK(ryml::emitrs_yaml<std::string>(t) == R"(orig1: {foo: bar}
-orig2: {baz: bat}
-orig3: {and: more}
-copy: {foo: bar,baz: bat,and: more}
-)");
+        CHECK(ryml::emitrs_yaml<std::string>(t) == ""
+              "orig1: {foo: bar}"                        "\n"
+              "orig2: {baz: bat}"                        "\n"
+              "orig3: {and: more}"                       "\n"
+              "copy: {foo: bar,baz: bat,and: more}"      "\n");
     }
 }
 
@@ -5011,27 +5119,28 @@ copy: {foo: bar,baz: bat,and: more}
 
 void sample_tags()
 {
-    const std::string yaml = R"(--- !!map
-a: 0
-b: 1
---- !map
-a: b
---- !!seq
-- a
-- b
---- !!str a b
---- !!str 'a: b'
----
-!!str a: b
---- !!set
-? a
-? b
---- !!set
-a:
---- !!seq
-- !!int 0
-- !!str 1
-)";
+    const std::string yaml = ""
+        "--- !!map"           "\n"
+        "a: 0"                "\n"
+        "b: 1"                "\n"
+        "--- !map"            "\n"
+        "a: b"                "\n"
+        "--- !!seq"           "\n"
+        "- a"                 "\n"
+        "- b"                 "\n"
+        "--- !!str a b"       "\n"
+        "--- !!str 'a: b'"    "\n"
+        "---"                 "\n"
+        "!!str a: b"          "\n"
+        "--- !!set"           "\n"
+        "? a"                 "\n"
+        "? b"                 "\n"
+        "--- !!set"           "\n"
+        "a:"                  "\n"
+        "--- !!seq"           "\n"
+        "- !!int 0"           "\n"
+        "- !!str 1"           "\n"
+        "";
     const ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yaml));
     const ryml::ConstNodeRef root = tree.rootref();
     CHECK(root.is_stream());
@@ -5100,50 +5209,52 @@ a:
     // with a key and/or val tag:
     ryml::Tree normalized_tree = tree;
     normalized_tree.normalize_tags(); // normalize all tags in short form
-    CHECK(ryml::emitrs_yaml<std::string>(normalized_tree) == R"(--- !!map
-a: 0
-b: 1
---- !map
-a: b
---- !!seq
-- a
-- b
---- !!str a b
---- !!str 'a: b'
----
-!!str a: b
---- !!set
-a: 
-b: 
---- !!set
-a: 
---- !!seq
-- !!int 0
-- !!str 1
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(normalized_tree) == ""
+          "--- !!map"          "\n"
+          "a: 0"               "\n"
+          "b: 1"               "\n"
+          "--- !map"           "\n"
+          "a: b"               "\n"
+          "--- !!seq"          "\n"
+          "- a"                "\n"
+          "- b"                "\n"
+          "--- !!str a b"      "\n"
+          "--- !!str 'a: b'"   "\n"
+          "---"                "\n"
+          "!!str a: b"         "\n"
+          "--- !!set"          "\n"
+          "a: "                "\n"
+          "b: "                "\n"
+          "--- !!set"          "\n"
+          "a: "                "\n"
+          "--- !!seq"          "\n"
+          "- !!int 0"          "\n"
+          "- !!str 1"          "\n"
+          "");
     ryml::Tree normalized_tree_long = tree;
     normalized_tree_long.normalize_tags_long(); // normalize all tags in short form
-    CHECK(ryml::emitrs_yaml<std::string>(normalized_tree_long) == R"(--- !<tag:yaml.org,2002:map>
-a: 0
-b: 1
---- !map
-a: b
---- !<tag:yaml.org,2002:seq>
-- a
-- b
---- !<tag:yaml.org,2002:str> a b
---- !<tag:yaml.org,2002:str> 'a: b'
----
-!<tag:yaml.org,2002:str> a: b
---- !<tag:yaml.org,2002:set>
-a: 
-b: 
---- !<tag:yaml.org,2002:set>
-a: 
---- !<tag:yaml.org,2002:seq>
-- !<tag:yaml.org,2002:int> 0
-- !<tag:yaml.org,2002:str> 1
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(normalized_tree_long) == ""
+          "--- !<tag:yaml.org,2002:map>"          "\n"
+          "a: 0"                                  "\n"
+          "b: 1"                                  "\n"
+          "--- !map"                              "\n"
+          "a: b"                                  "\n"
+          "--- !<tag:yaml.org,2002:seq>"          "\n"
+          "- a"                                   "\n"
+          "- b"                                   "\n"
+          "--- !<tag:yaml.org,2002:str> a b"      "\n"
+          "--- !<tag:yaml.org,2002:str> 'a: b'"   "\n"
+          "---"                                   "\n"
+          "!<tag:yaml.org,2002:str> a: b"         "\n"
+          "--- !<tag:yaml.org,2002:set>"          "\n"
+          "a: "                                   "\n"
+          "b: "                                   "\n"
+          "--- !<tag:yaml.org,2002:set>"          "\n"
+          "a: "                                   "\n"
+          "--- !<tag:yaml.org,2002:seq>"          "\n"
+          "- !<tag:yaml.org,2002:int> 0"          "\n"
+          "- !<tag:yaml.org,2002:str> 1"          "\n"
+          "");
 }
 
 
@@ -5151,42 +5262,46 @@ a:
 
 void sample_tag_directives()
 {
-    const std::string yaml = R"(
-%TAG !m! !my-
---- # Bulb here
-!m!light fluorescent
-...
-%TAG !m! !meta-
---- # Color here
-!m!light green
-)";
+    const std::string yaml = ""
+        "%TAG !m! !my-"             "\n"
+        "--- # Bulb here"           "\n"
+        "!m!light fluorescent"      "\n"
+        "..."                       "\n"
+        "%TAG !m! !meta-"           "\n"
+        "--- # Color here"          "\n"
+        "!m!light green"            "\n"
+        "";
+    // tags are not resolved by default:
     ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yaml));
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(%TAG !m! !my-
---- !m!light fluorescent
-...
-%TAG !m! !meta-
---- !m!light green
-)");
-    // tags are not resolved by default. Use Tree::resolve_tags()
-    // to accomplish this in an existing tree:
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "%TAG !m! !my-"               "\n"
+          "--- !m!light fluorescent"    "\n"
+          "..."                         "\n"
+          "%TAG !m! !meta-"             "\n"
+          "--- !m!light green"          "\n"
+          "");
+    // Use Tree::resolve_tags() to accomplish this in an existing
+    // tree:
     ryml::TagCache tag_cache; // reduces memory requirements by reusing resolved tags
     tree.resolve_tags(tag_cache);
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(%TAG !m! !my-
---- !<!my-light> fluorescent
-...
-%TAG !m! !meta-
---- !<!meta-light> green
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
+          "%TAG !m! !my-"                    "\n"
+          "--- !<!my-light> fluorescent"     "\n"
+          "..."                              "\n"
+          "%TAG !m! !meta-"                  "\n"
+          "--- !<!meta-light> green"         "\n"
+          "");
     // You can also Use ParserOptions to force resolution of tags
     // while parsing:
     ryml::ParserOptions opts = ryml::ParserOptions{}.resolve_tags(true);
     ryml::Tree resolved_tree = ryml::parse_in_arena(ryml::to_csubstr(yaml), opts);
-    CHECK(ryml::emitrs_yaml<std::string>(resolved_tree) == R"(%TAG !m! !my-
---- !<!my-light> fluorescent
-...
-%TAG !m! !meta-
---- !<!meta-light> green
-)");
+    CHECK(ryml::emitrs_yaml<std::string>(resolved_tree) == ""
+          "%TAG !m! !my-"                      "\n"
+          "--- !<!my-light> fluorescent"       "\n"
+          "..."                                "\n"
+          "%TAG !m! !meta-"                    "\n"
+          "--- !<!meta-light> green"           "\n"
+          "");
     // see also tree.normalize_tags()
     // see also tree.normalize_tags_long()
 }
@@ -5196,18 +5311,19 @@ void sample_tag_directives()
 
 void sample_docs()
 {
-    std::string yml = R"(---
-a: 0
-b: 1
----
-c: 2
-d: 3
----
-- 4
-- 5
-- 6
-- 7
-)";
+    std::string yml = ""
+        "---"        "\n"
+        "a: 0"       "\n"
+        "b: 1"       "\n"
+        "---"        "\n"
+        "c: 2"       "\n"
+        "d: 3"       "\n"
+        "---"        "\n"
+        "- 4"        "\n"
+        "- 5"        "\n"
+        "- 6"        "\n"
+        "- 7"        "\n"
+        "";
     ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yml));
     CHECK(ryml::emitrs_yaml<std::string>(tree) == yml);
 
@@ -5230,7 +5346,9 @@ d: 3
         CHECK(tree.is_stream(stream_id));
         CHECK(!tree.is_doc(stream_id));
         CHECK(tree.num_children(stream_id) == 3);
-        for(ryml::id_type doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(stream_id))
+        for(ryml::id_type doc_id = tree.first_child(stream_id);
+            doc_id != ryml::NONE;
+            doc_id = tree.next_sibling(stream_id))
             CHECK(tree.is_doc(doc_id));
         CHECK(tree.doc(0) == tree.child(stream_id, 0));
         CHECK(tree.doc(1) == tree.child(stream_id, 1));
@@ -5286,9 +5404,23 @@ d: 3
     // them separately:
     {
         const std::string expected_json[] = {
-            "{\n  \"a\": 0,\n  \"b\": 1\n}\n",
-            "{\n  \"c\": 2,\n  \"d\": 3\n}\n",
-            "[\n  4,\n  5,\n  6,\n  7\n]\n",
+            "{"            "\n"
+            "  \"a\": 0,"  "\n"
+            "  \"b\": 1"   "\n"
+            "}"            "\n"
+            "",
+            "{"            "\n"
+            "  \"c\": 2,"  "\n"
+            "  \"d\": 3"   "\n"
+            "}"            "\n"
+            "",
+            "["            "\n"
+            "  4,"         "\n"
+            "  5,"         "\n"
+            "  6,"         "\n"
+            "  7"          "\n"
+            "]"            "\n"
+            "",
         };
         // using the node API
         {
@@ -5305,7 +5437,9 @@ d: 3
             ryml::id_type count = 0;
             const ryml::id_type stream_id = tree.root_id();
             CHECK(tree.num_children(stream_id) == (ryml::id_type)C4_COUNTOF(expected_json));
-            for(ryml::id_type doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(doc_id))
+            for(ryml::id_type doc_id = tree.first_child(stream_id);
+                doc_id != ryml::NONE;
+                doc_id = tree.next_sibling(doc_id))
             {
                 CHECK(ryml::emitrs_json<std::string>(tree, doc_id) == expected_json[count++]);
             }
@@ -5383,12 +5517,14 @@ void sample_error_basic()
 #endif
 }
 
+
 void sample_error_parse()
 {
-    ryml::csubstr ymlsrc = R"({
-  a: b
-   [
-)";
+    ryml::csubstr ymlsrc = ""
+        "{"       "\n"
+        "  a: b"  "\n"
+        "   ["    "\n"
+        "";
     ryml::csubstr ymlfile = "file.yml";
     auto cause_parse_error = [&]{
         return ryml::parse_in_arena(ymlfile, ymlsrc);
@@ -5417,20 +5553,21 @@ void sample_error_parse()
             msg_ctx.append(s.str, s.len);
         }, errh.saved_parse_loc, ymlsrc, "err");
         CHECK(ryml::to_csubstr(msg_ctx).begins_with("file.yml:3: col=4 (12B): ERROR: [parse] invalid character: '['"));
-        CHECK(ryml::to_csubstr(msg_ctx).ends_with(R"(file.yml:3: col=4 (12B): err:
-err:
-err:        [
-err:         |
-err:         (here)
-err:
-err: see region:
-err:
-err:     {
-err:       a: b
-err:        [
-err:         |
-err:         (here)
-)"));
+        CHECK(ryml::to_csubstr(msg_ctx).ends_with(
+                  "file.yml:3: col=4 (12B): err:"     "\n"
+                  "err:"                              "\n"
+                  "err:        ["                     "\n"
+                  "err:         |"                    "\n"
+                  "err:         (here)"               "\n"
+                  "err:"                              "\n"
+                  "err: see region:"                  "\n"
+                  "err:"                              "\n"
+                  "err:     {"                        "\n"
+                  "err:       a: b"                   "\n"
+                  "err:        ["                     "\n"
+                  "err:         |"                    "\n"
+                  "err:         (here)"               "\n"
+                  ""));
         //
         // Let's now check the location (see the message above):
         CHECK(errh.saved_parse_loc.name == ymlfile);
@@ -5497,20 +5634,21 @@ err:         (here)
         full += '\n';
         ryml::location_format_with_context(dumpfn, exc.errdata_parse.ymlloc, ymlsrc, "err", 3);
         CHECK(ryml::to_csubstr(full).begins_with("file.yml:3: col=4 (12B): ERROR: [parse] invalid character: '['"));
-        CHECK(ryml::to_csubstr(full).ends_with(R"(file.yml:3: col=4 (12B): err:
-err:
-err:        [
-err:         |
-err:         (here)
-err:
-err: see region:
-err:
-err:     {
-err:       a: b
-err:        [
-err:         |
-err:         (here)
-)"));
+        CHECK(ryml::to_csubstr(full).ends_with(
+                  "file.yml:3: col=4 (12B): err:"      "\n"
+                  "err:"                               "\n"
+                  "err:        ["                      "\n"
+                  "err:         |"                     "\n"
+                  "err:         (here)"                "\n"
+                  "err:"                               "\n"
+                  "err: see region:"                   "\n"
+                  "err:"                               "\n"
+                  "err:     {"                         "\n"
+                  "err:       a: b"                    "\n"
+                  "err:        ["                      "\n"
+                  "err:         |"                     "\n"
+                  "err:         (here)"                "\n"
+                  ""));
     }
     CHECK(gotit);
     gotit = false;
@@ -5649,11 +5787,12 @@ void sample_error_visit_location()
     ryml::EventHandlerTree evt_handler{};
     ryml::Parser parser(&evt_handler, opts);
     ryml::csubstr ymlfile = "file.yml";
-    ryml::csubstr ymlsrc = R"(foo: bar
-char: a
-int: a
-float: 123.456
-)";
+    ryml::csubstr ymlsrc = ""
+        "foo: bar"           "\n"
+        "char: a"            "\n"
+        "int: a"             "\n"
+        "float: 123.456"     "\n"
+        "";
     const ryml::Tree tree = ryml::parse_in_arena(&parser, ymlfile, ymlsrc);
     // This function will cause a visit error when being called:
     auto cause_visit_error = [&]{
@@ -5692,21 +5831,22 @@ float: 123.456
         ryml::location_format_with_context([&msg](ryml::csubstr s){
             msg.append(s.str, s.len);
         }, ymlloc, ymlsrc, "err", /*number of lines to show before the error*/3);
-        CHECK(ryml::to_csubstr(msg).ends_with(R"(file.yml:3: col=0 (24B): err:
-err:
-err:     float: 123.456
-err:     |
-err:     (here)
-err:
-err: see region:
-err:
-err:     foo: bar
-err:     char: a
-err:     int: a
-err:     float: 123.456
-err:     |
-err:     (here)
-)"));
+        CHECK(ryml::to_csubstr(msg).ends_with(
+                  "file.yml:3: col=0 (24B): err:"     "\n"
+                  "err:"                              "\n"
+                  "err:     float: 123.456"           "\n"
+                  "err:     |"                        "\n"
+                  "err:     (here)"                   "\n"
+                  "err:"                              "\n"
+                  "err: see region:"                  "\n"
+                  "err:"                              "\n"
+                  "err:     foo: bar"                 "\n"
+                  "err:     char: a"                  "\n"
+                  "err:     int: a"                   "\n"
+                  "err:     float: 123.456"           "\n"
+                  "err:     |"                        "\n"
+                  "err:     (here)"                   "\n"
+                  ""));
     }
 }
 
@@ -5996,10 +6136,12 @@ void sample_location_tracking()
     // NOTE: locations are zero-based. If you intend to show the
     // location to a human user, you may want to pre-increment the line
     // and column by 1.
-    ryml::csubstr yaml = R"({
-aa: contents,
-foo: [one, [two, three]]
-})";
+    ryml::csubstr yaml = ""
+        "{"                          "\n"
+        "aa: contents,"              "\n"
+        "foo: [one, [two, three]]"   "\n"
+        "}"                          "\n"
+        "";
     // A parser is needed to track locations, and it has to be
     // explicitly set to do it. Location tracking is disabled by
     // default.
@@ -6079,22 +6221,23 @@ foo: [one, [two, three]]
     CHECK(loc.col == 0u);
 
     // NOTES ABOUT CONTAINER LOCATIONS
-    ryml::Tree tree2 = parse_in_arena(&parser, "containers.yaml", R"(
-a new: buffer
-to: be parsed
-map with key:
-  first: value
-  second: value
-seq with key:
-  - first value
-  - second value
-  -
-    - nested first value
-    - nested second value
-  -
-    nested first: value
-    nested second: value
-)");
+    ryml::Tree tree2 = parse_in_arena(&parser, "containers.yaml",
+        ""                            "\n"
+        "a new: buffer"               "\n"
+        "to: be parsed"               "\n"
+        "map with key:"               "\n"
+        "  first: value"              "\n"
+        "  second: value"             "\n"
+        "seq with key:"               "\n"
+        "  - first value"             "\n"
+        "  - second value"            "\n"
+        "  -"                         "\n"
+        "    - nested first value"    "\n"
+        "    - nested second value"   "\n"
+        "  -"                         "\n"
+        "    nested first: value"     "\n"
+        "    nested second: value"    "\n"
+        "");
     // (Likewise, the docval tree can no longer be used to query.)
     //
     // For key-less block-style maps, the location of the container
@@ -6524,7 +6667,6 @@ void file_put_contents(const char *filename, const char *buf, size_t sz, const c
 }
 C4_SUPPRESS_WARNING_CLANG_POP
 C4_SUPPRESS_WARNING_MSVC_POP
-
 /** @} */ // doc_sample_helpers
 
 /** @} */ // doc_quickstart

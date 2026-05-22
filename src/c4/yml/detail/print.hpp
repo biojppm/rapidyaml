@@ -85,7 +85,7 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
     if(print_address) printf(" %p", (void const*)p.get(node));
     if(p.is_root(node)) printf(" [ROOT]");
     char typebuf[128];
-    csubstr typestr = type.type_str(typebuf);
+    csubstr typestr = type.type_str_sub(typebuf);
     _RYML_CHECK_BASIC(typestr.str);
     printf(" %.*s", (int)typestr.len, typestr.str);
     if(p.has_key(node))

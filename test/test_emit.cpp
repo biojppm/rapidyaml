@@ -238,10 +238,14 @@ TEST(emit_nested, basic)
 
 TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
 {
-    EXPECT_EQ(scalar_style_query_plain(": odd"), false);
-    EXPECT_EQ(scalar_style_query_plain(":\todd"), false);
-    EXPECT_EQ(scalar_style_choose(": odd"), SCALAR_SQUO);
-    EXPECT_EQ(scalar_style_choose(":\todd"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_query_plain_flow(": odd"), false);
+    EXPECT_EQ(scalar_style_query_plain_flow(":\todd"), false);
+    EXPECT_EQ(scalar_style_choose_flow(": odd"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_choose_flow(":\todd"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_query_plain_block(": odd"), false);
+    EXPECT_EQ(scalar_style_query_plain_block(":\todd"), false);
+    EXPECT_EQ(scalar_style_choose_block(": odd"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_choose_block(":\todd"), SCALAR_SQUO);
     {
         Tree t;
         NodeRef r = t.rootref();
