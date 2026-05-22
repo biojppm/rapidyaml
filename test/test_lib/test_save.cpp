@@ -113,7 +113,7 @@ static void save_impl(csubstr filename, csubstr extension, csubstr src)
     csubstr savename = to_substr(h.fullname).first(h.indexpos + len);
     // done! dump the file
     printf("saving %.*s\n", (int)savename.len, savename.str);
-    c4::fs::file_put_contents(savename.str, src);
+    ryml::file_put_contents(src, savename.str);
 }
 
 void ryml_save_test_yaml(csubstr filename, csubstr src)

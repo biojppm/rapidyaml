@@ -3,6 +3,7 @@
 #include <ryml.hpp>
 #include <ryml_std.hpp>
 #include <c4/fs/fs.hpp>
+#include "c4/yml/file.hpp"
 #include "c4/yml/parse.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 
@@ -212,7 +213,7 @@ USAGE: bm <case.yml>
         std::cout << "running case: " << bm_name << "/" << filename.basename() << "\n";
         std::cout << "file: " << filename << "\n";
         std::cout << "-----------------------------------\n";
-        c4::fs::file_get_contents(file, &src);
+        ryml::file_get_contents(&src, file);
         if(src.back() != '\0')
         {
             src.push_back('\0');
