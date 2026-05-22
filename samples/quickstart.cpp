@@ -18,11 +18,12 @@
  *
  * Happy ryml'ing!
  *
+ *
  * ### Note on use of raw strings
  *
- * This sample uses C strings instead of C++11 R"(raw strings)"
- * because the doxygen parser is badly broken when handling raw
- * strings.
+ * This sample uses multiline C strings instead of C++11 R"(raw
+ * strings)" because the doxygen parser is badly broken when handling
+ * raw strings.
  *
  *
  * ### Some guidance on building
@@ -43,7 +44,7 @@
  * include(FetchContent)
  * FetchContent_Declare(ryml
  *     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
- *     GIT_TAG v0.12.1
+ *     GIT_TAG v0.13.0
  *     GIT_SHALLOW FALSE  # ensure submodules are checked out
  * )
  * FetchContent_MakeAvailable(ryml)
@@ -87,14 +88,18 @@ void ensure_callbacks();
 #elif defined(RYML_SINGLE_HEADER_LIB) // using the single header from a library
     #include <ryml_all.hpp>
 #else
+    // umbrella header bringing all of ryml. for compilation speed,
+    // prefer using individual includes.
     #include <ryml.hpp>
-    // <ryml_std.hpp> is needed if interop with std containers is
-    // desired; ryml itself does not use any STL container.
-    // For this sample, we will be using std interop, so...
+    // ryml itself does not use any STL container, so <ryml_std.hpp>
+    // is needed if interop with std containers is desired.
+    // This is an umbrella include bringing all the interop
+    // headers implemented in ryml; again, for compilation speed,
+    // prefer using individual includes.
     #include <ryml_std.hpp> // optional header, provided for std:: interop
     #include <c4/format.hpp> // needed for the examples below
     // optional header, definitions for error utilities to implement
-    // error callbacks:
+    // user-defined error callbacks:
     #include <c4/yml/error.def.hpp>
 #endif
 

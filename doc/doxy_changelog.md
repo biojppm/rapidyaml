@@ -6,6 +6,47 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
+## 0.13.0
+
+[Github release: 0.13.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.13.0)
+
+- [PR#606](https://github.com/biojppm/rapidyaml/pull/606): scalar style utilities now are specific to flow/block mode. This enables stable-style roundtrips of block-mode plain scalars with characters invalid in flow mode:
+  @code{yaml}
+  # these scalars were previously emitted as single-quoted style
+  # because they were conservatively assumed to be in flow mode.
+  - doe: a deer, a female deer
+  - (10,11)
+  - also scalars containing [] and {}
+  @endcode
+  - [scalar_style_choose()](@ref c4::yml::scalar_style_choose()) was split into [scalar_style_choose_flow()](@ref c4::yml::scalar_style_choose_flow()) and [scalar_style_choose_block()](@ref c4::yml::scalar_style_choose_block())
+  - [scalar_style_query_plain()](@ref c4::yml::scalar_style_query_plain()) was split into [scalar_style_query_plain_flow()](@ref c4::yml::scalar_style_query_plain_flow()) and [scalar_style_query_plain_block()](@ref c4::yml::scalar_style_query_plain_block())
+  - [NodeType::type_str_sub()](@ref c4::yml::NodeType::type_str()): remove zero-termination, use common approach of returning required size
+  - Add [NodeType::type_str_sub()](@ref c4::yml::NodeType::type_str_sub())
+- [PR#605](https://github.com/biojppm/rapidyaml/pull/605): fix parse errors:
+  - `:` and `#` on continuation lines of multiline plain scalars:
+     @code{yaml}
+     [plain
+      :scalar] # leading colon belongs to the scalar
+     @endcode
+  - Tabs inside quoted scalars opening a map were mistook for indentation tabs:
+    @code{yaml}
+    foo:
+      '\ta': b
+    @endcode
+- [PR#604](https://github.com/biojppm/rapidyaml/pull/604): add string_view and span to the @ref c4/yml/std/std.hpp interop umbrella header.
+- Fix [600](https://github.com/biojppm/rapidyaml/issues/600): shared symbols not exported in clang on Windows ([PR#601](https://github.com/biojppm/rapidyaml/pull/601)).
+- Fix [256](https://github.com/biojppm/rapidyaml/issues/256): installation directory on Linux 64bit ([PR#599](https://github.com/biojppm/rapidyaml/pull/599)). See also original fix at [cmake#16](https://github.com/biojppm/cmake/pull/16). Big thanks to \@GabrielBarrantes and \@musicinmybrain, not just for their fixes but also for all their downstream work!
+- [PR#591](https://github.com/biojppm/rapidyaml/pull/591): Add missing includes to avoid compilation warning. Thanks \@GabrielBarrantes!
+- Update c4core to [0.3.0](https://github.com/biojppm/c4core/releases/tag/v0.3.0)
+
+
+### Thanks
+
+ - \@GabrielBarrantes
+ - \@musicinmybrain
+
+
+----------------------------
 ## 0.12.1
 
 [Github release: 0.12.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.12.1)
@@ -23,31 +64,31 @@ This release focuses in compliance with the YAML standard, mostly by ensuring pa
 ### General fixes and improvements
 
 - Narrow the scope of `%TAG` to only the following document, as per the standard ([PR#588](https://github.com/biojppm/rapidyaml/pull/588)). This required or prompted some API changes:
-   - Added new type `TagDirectives`
-   - Added `ParseOptions::resolve_tags()` and `ParseOptions::resolve_tags_all()` options to allow controling resolution of tags while parsing. When disabled (which is the default), the tree still has `Tree::resolve_tags()` to perform post-parsing or programmatic resolution.
-   - Changed `TagDirective` to point at its in-scope document, changed API to reflect this.
-   - `ParseEngine` now has an instance of `TagDirectives`, and is in charge of updating it and checking for directive errors.
-   - Removed the old `TagDirective m_tag_directives[]` members from the ints and testsuite handlers. `Tree` also has its own `TagDirectives` member, redundantly updated during parsing: this enables programmatic manipulation the tree's tag directives .
+   - Added new type [TagDirectives](@ref c4::yml::TagDirectives)
+   - Added [ParserOptions::resolve_tags()](@ref c4::yml::ParserOptions::resolve_tags()) and [ParserOptions::resolve_tags_all()](@ref c4::yml::ParserOptions::resolve_tags_all()) options to allow controling resolution of tags while parsing. When disabled (which is the default), the tree still has `Tree::resolve_tags()` to perform post-parsing or programmatic resolution.
+   - Changed [TagDirective](@ref c4::yml::TagDirective) to point at its in-scope document, changed API to reflect this.
+   - [ParseEngine](@ref c4::yml::ParseEngine) now has an instance of [TagDirectives](@ref c4::yml::TagDirectives), and is in charge of updating it and checking for directive errors.
+   - Removed the old `TagDirective m_tag_directives[]` members from the ints and testsuite handlers. [Tree](@ref c4::yml::Tree) also has its own [TagDirectives](@ref c4::yml::TagDirectives) member, redundantly updated during parsing: this enables programmatic manipulation the tree's tag directives .
    - The event handlers now track the current document id, in order to enable the document scope check for `%TAG` directives. This required adding node id tracking to the ints and testsuite handlers.
-   - Added `Tree::ancestor_doc(node_id)` and `ConstNodeRef::ancestor_doc()` to query for the parent document of a node. This is needed to implement resolution of tags.
-   - `NodeType`: rename tag directive types `TAGD`->`TAGH` (tag handle) and `TAGV`->`TAGP` (tag prefix).
-   - Internal changes to improve the design of event handlers, moving relocation and error checking logic to `ParseEngine`, where it is most suited.
+   - Added [Tree::ancestor_doc(node_id)](@ref c4::yml::Tree::ancestor_doc()) and [ConstNodeRef::ancestor_doc()](@ref c4::yml::ConstNodeRef::ancestor_doc()) to query for the parent document of a node. This is needed to implement resolution of tags.
+   - [NodeType](@ref c4::yml::NodeType): rename tag directive types `TAGD`->`TAGH` (tag handle) and `TAGV`->`TAGP` (tag prefix).
+   - Internal changes to improve the design of event handlers, moving relocation and error checking logic to [ParseEngine](@ref c4::yml::ParseEngine), where it is most suited.
    - Fix warnings with clang-tidy 22
-- [PR#596](https://github.com/biojppm/rapidyaml/pull/596): Add `TagCache` accelerator structure (in `c4/yml/tag.hpp`), used by `Tree::resolve_tags()` and the parser engine. This reduces significantly the arena requirements for heavily-tagged YAML by ensuring reuse of resolved tags.
+- [PR#596](https://github.com/biojppm/rapidyaml/pull/596): Add [TagCache](@ref c4::yml::TagCache) accelerator structure (in `c4/yml/tag.hpp`), used by [Tree::resolve_tags()](@ref c4::yml::Tree::resolve_tags()) and the parser engine. This reduces significantly the arena requirements for heavily-tagged YAML by ensuring reuse of resolved tags.
 
 
 ### YAML fixes: valid cases
 
 Fix parsing of **valid** YAML corner cases:
   - Ambiguity of tags/anchors in ? mode ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     ? &mapanchor
       key: val
     ?
       &keyanchor key: val
-    ```
+    @endcode
   - flow tags/anchors with omitted plain scalar ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     # ... likewise for !tag
     - [&anchor,&anchor]
     - {&anchor,&anchor}
@@ -57,9 +98,9 @@ Fix parsing of **valid** YAML corner cases:
     - {: &anchor,: &anchor}
     ---
     ? anchor
-    ```
+    @endcode
   - flow tags/anchors terminating with `:` (the colon is part of the tag/anchor) ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     # ... likewise for !tag:
     - [&anchor:,&anchor:]
     - {&anchor:,&anchor:}
@@ -69,14 +110,14 @@ Fix parsing of **valid** YAML corner cases:
     - {: &anchor:,: &anchor:}
     ---
     ? anchor
-    ```
+    @endcode
   - Fix corner cases of explicit keys now allow same-line containers ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     ? - a     # same-line container key now parses successfully. both seqs and maps
     : - b     # same-line container val now parses successfully. both seqs and maps
     ? ? - c   # nested explicit keys were also fixed
       ? - d
-    ```
+    @endcode
   - Missing tags/anchors in some flow maps ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)).
 
 
@@ -84,16 +125,16 @@ Fix parsing of **valid** YAML corner cases:
 
 Ensure parse errors for **invalid** YAML cases, and improve reported error location:
   - `%TAG` directives are valid only in the following document ([PR#588](https://github.com/biojppm/rapidyaml/pull/588)).
-    ```yaml
+    @code{yaml}
     %TAG !m my-
     --- !m!first a
     --- !m!second a  # error: %TAG directive out of scope here
     ...
     %TAG !m your-
     --- !m!second a  # ok: %TAG provided now.
-    ```
+    @endcode
   - colon on newline at top level ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
-    ```yaml
+    @code{yaml}
     scalar
     : bad
     ---
@@ -102,9 +143,9 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     ---
     {map: }
     : bad
-    ```
+    @endcode
   - colon on newline generally in block containers ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
-    ```yaml
+    @code{yaml}
     bad cases:
       scalar
         : bad colon
@@ -112,20 +153,20 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
         : bad colon
       {map: }
         : bad colon
-    ```
+    @endcode
   - colon on newline in flow sequences ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
-    ```yaml
+    @code{yaml}
     [a
       : 
       b]
-    ```
+    @endcode
   - tokens after explicit document end ([PR#585](https://github.com/biojppm/rapidyaml/pull/585)):
-    ```yaml
+    @code{yaml}
     foo: bar
     ... bad tokens
-    ```
+    @endcode
   - `-` is invalid scalar in flow sequences ([PR#586](https://github.com/biojppm/rapidyaml/pull/586)):
-    ```yaml
+    @code{yaml}
     [-]
     ---
     [-,-]
@@ -134,16 +175,14 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     ---
     [-
      ]
-    ```
+    @endcode
   - doc start/begin tokens at zero indentation in seq flow and quoted scalars ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     [
     ---,
     --- ,
-    ---\t,
     ...,
     ... ,
-    ...\t,
     # etc
     ]
     ---
@@ -156,45 +195,45 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     --- # error as well
     ... # error as well
     '
-    ```
+    @endcode
   - nested flow containers now enforce the contextual parent indentation ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     - - - [
         a  # now this is a parse error
          ]
     - - - [
          a  # this is ok
          ]
-    ```
+    @endcode
   - single/double-quoted scalars now enforce the contextual parent indentation ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     - - - "a
         b"  # now this is a parse error
     - - - "a
          b"  # this is ok
-    ```
+    @endcode
   - plain scalars in block mode starting with `,` ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     all invalid:
       - , foo
       - ,foo
       - ,
-    ```
+    @endcode
   - references with anchors or tags ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     all invalid:
       - &anchor *ref
       - !tag *ref
-    ```
+    @endcode
   - directives with extra tokens ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     %YAML 1.2 blabla     # invalid
     %YAML 1. # this is ok
     %TAG ! my- ! blabla  # this is also wrong
     ---
-    ```
+    @endcode
   - multiline implicit keys are invalid ([PR#587](https://github.com/biojppm/rapidyaml/pull/587)):
-    ```yaml
+    @code{yaml}
     multiline
         plain: invalid
     'multiline
@@ -205,20 +244,20 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
         seq]: invalid
     {multiline:
         map}: invalid
-    ```
+    @endcode
   - invalid block containers after document open ([PR#592](https://github.com/biojppm/rapidyaml/pull/592)):
-    ```yaml
+    @code{yaml}
     --- a: b  # invalid
     --- - a   # invalid
     --- ? a   # invalid
-    ```
+    @endcode
   - invalid block containers after in-block open ([PR#592](https://github.com/biojppm/rapidyaml/pull/592)):
-    ```yaml
+    @code{yaml}
     a: - b  # invalid
     a: ? b  # invalid
-    ```
+    @endcode
   - same-line repeated annotations ([PR#592](https://github.com/biojppm/rapidyaml/pull/592)):
-    ```yaml
+    @code{yaml}
     !a
     !b foo: bar  # ok
     ---
@@ -228,9 +267,9 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     !a !b foo: bar  # invalid
     ---
     &a &b foo: bar  # invalid
-    ```
+    @endcode
   - Fix parsing of invalid YAML: block scalars with deindented first line ([PR#593](https://github.com/biojppm/rapidyaml/pull/593)):
-    ```yaml
+    @code{yaml}
     # the _ characters are not part of the YAML;
     # they are used here only to show the leading whitespace
     empty block scalar: >
@@ -238,7 +277,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
       _
        _
      # comment
-    ```
+    @endcode
 
 
 
@@ -248,14 +287,14 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 [Github release: 0.11.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.11.1)
 
 - [PR#583](https://github.com/biojppm/rapidyaml/pull/583): Fix corner cases of container keys. Eg, parsing of [explicit keys forming valid YAML](https://play.yaml.com/?show=xd#PwogID8gICMgd2FzIGNhdXNpbmcgYSBwYXJzZSBlcnJvcgo/ICAgICMgcG9wcGluZyB3YXMgYWxzbyBjYXVzaW5nIGEgcGFyc2UgZXJyb3IKLS0tCj8gW2E6IGJdOiB4CjogeQo=) like:
-  ```yaml
+  @code{yaml}
   ?
     ?  # was causing a parse error
   ?    # popping was also causing a parse error
   ---
   ? [a: b]: x
   : y
-  ```
+  @endcode
   With this fix, **rapidyaml now has a 100% success rate for valid YAML cases** in the YAML test suite.
 - [PR#580](https://github.com/biojppm/rapidyaml/pull/580): fix compilation error when `RYML_NO_DEFAULT_CALLBACKS` is defined (thanks \@toge)
 - [PR#582](https://github.com/biojppm/rapidyaml/pull/582): fix compilation error with clang-cl
@@ -280,13 +319,13 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 ### New features
 
-- [PR#550](https://github.com/biojppm/rapidyaml/pull/550) - Implement flow multiline style (`FLOW_ML`):
+- [PR#550](https://github.com/biojppm/rapidyaml/pull/550) - Implement flow multiline style ([FLOW_ML](@ref c4::yml::FLOW_ML)):
   - The parser now detects this style automatically for flow seqs or maps when the terminating bracket sits on a line different from the opening bracket.
-  - Added `ParserOptions::detect_flow_ml()` to enable/disable this behavior
-  - Added `EmitOptions::indent_flow_ml()` to control indentation of `FLOW_ML` containers
+  - Added [ParserOptions::detect_flow_ml()](@ref c4::yml::ParserOptions::detect_flow_ml()) to enable/disable this behavior
+  - Added [EmitOptions::indent_flow_ml()](@ref c4::yml::EmitOptions::indent_flow_ml()) to control indentation of [FLOW_ML](@ref c4::yml::FLOW_ML) containers
   - The emit implementation was refactored, and is now significantly cleaner
   - Emitted YAML will now have anchors emitted before tags, as is customary ([see example](https://play.yaml.io/main/parser?input=LSAhdGFnICZhbmNob3IgfAogIG5vdGUgaG93IHRoZSBhbmNob3IgY29tZXMKICBmaXJzdCBpbiB0aGUgZXZlbnRz)).
-  - Added `ParserOptions` defaulted argument to temp-parser overloads of `parse_{yaml,json}_in_{place,arena}()`
+  - Added [ParserOptions](@ref c4::yml::ParserOptions) defaulted argument to temp-parser overloads of `parse_{yaml,json}_in_{place,arena}()`
   - [PR#567](https://github.com/biojppm/rapidyaml/pull/567) (fixes [#566](https://github.com/biojppm/rapidyaml/issues/566)) fixes a regression from this refactor where top-level container anchors were wrongly emitted in the same line if no style was set on the container.
 
 
@@ -294,25 +333,25 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 - **BREAKING** [PR#503](https://github.com/biojppm/rapidyaml/pull/503) (fixes [#399](https://github.com/biojppm/rapidyaml/issues/399)): change error callbacks.
   - Errors in ryml now have one of these types:
-    - parse error: when parsing YAML/JSON. See: `pfn_error_parse`,  `ErrorDataParse`, `ExceptionParse`, `err_parse_format()`, `sample_error_parse`.
-    - visit error: when visiting a tree (reading or writing). See: `pfn_error_visit`,  `ErrorDataVisit`, `ExceptionVisit`, `err_visit_format()`, `sample_error_visit`.
-    - basic error: other, non specific errors. See: `pfn_error_basic`,  `ErrorDataBasic`, `ExceptionBasic`, `err_basic_format()`, `sample_error_basic`.
+    - parse error: when parsing YAML/JSON. See: [pfn_error_parse](@ref c4::yml::pfn_error_parse),  [ErrorDataParse](@ref c4::yml::ErrorDataParse), [ExceptionParse](@ref c4::yml::ExceptionParse), [err_parse_format()](@ref c4::yml::err_parse_format()), [sample_error_parse](@ref sample_error_parse).
+    - visit error: when visiting a tree (reading or writing). See: [pfn_error_visit](@ref c4::yml::pfn_error_visit),  [ErrorDataVisit](@ref c4::yml::ErrorDataVisit), [ExceptionVisit](@ref c4::yml::ExceptionVisit), [err_visit_format()](@ref c4::yml::err_visit_format()), [sample_error_visit](@ref sample_error_visit).
+    - basic error: other, non specific errors. See: [pfn_error_basic](@ref c4::yml::pfn_error_basic),  [ErrorDataBasic](@ref c4::yml::ErrorDataBasic), [ExceptionBasic](@ref c4::yml::ExceptionBasic), [err_basic_format()](@ref c4::yml::err_basic_format()), [sample_error_basic](@ref sample_error_basic).
     - parse and visit errors/exceptions can be treated/caught as basic errors/exceptions.
   - Add message formatting functions to simplify user-provided implementation of error callbacks:
-    - `err_parse_format()`: format/print a full error message for a parse error
-    - `err_visit_format()`: format/print a full error message for a visit error
-    - `err_basic_format()`: format/print a full error message for a basic error
-    - `location_format()`: format/print a location
-    - `location_format_with_context()`: useful to create a rich error message showing the YAML region causing the error, maybe even for a visit error if the source is kept and locations are enabled.
-    - `format_exc()`: format an exception (when exceptions are enabled)
+    - [err_parse_format()](@ref c4::yml::err_parse_format()): format/print a full error message for a parse error
+    - [err_visit_format()](@ref c4::yml::err_visit_format()): format/print a full error message for a visit error
+    - [err_basic_format()](@ref c4::yml::err_basic_format()): format/print a full error message for a basic error
+    - [location_format()](@ref c4::yml::location_format()): format/print a location
+    - [location_format_with_context()](@ref c4::yml::location_format_with_context()): useful to create a rich error message showing the YAML region causing the error, maybe even for a visit error if the source is kept and locations are enabled.
+    - [format_exc()](@ref c4::yml::format_exc()): format an exception (when exceptions are enabled)
   - See the new header `c4/yml/error.hpp` (and `c4/yml/error.def.hpp` for definitions of the functions in `c4/yml/error.hpp`)
-  - See the relevant sample functions in the quickstart sample: `sample_error_basic`, `sample_error_parse` and `sample_error_visit`.
-  - There are breaking user-facing changes in the `Callbacks` structure:
-    - Removed member `m_error `
-    - Added members `m_error_basic`, `m_error_parse`, `m_error_visit`
-    - Added methods `.set_error_basic()`, `.set_error_parse()` and `.set_error_visit()`.
-- **BREAKING** [PR#557](https://github.com/biojppm/rapidyaml/pull/557) - `Tree` is now non-empty by default, and `Tree::root_id()` will no longer modify the tree when it is empty. To create an empty tree, it is now necessary to use the capacity constructor with a capacity of zero:
-  ```c++
+  - See the relevant sample functions in the quickstart sample: [sample_error_basic](@ref sample_error_basic), [sample_error_parse](@ref sample_error_parse) and [sample_error_visit](@ref sample_error_visit).
+  - There are breaking user-facing changes in the [Callbacks](@ref c4::yml::Callbacks) structure:
+    - Removed member `m_error`
+    - Added members [m_error_basic](@ref c4::yml::Callbacks::m_error_basic), [m_error_parse](@ref c4::yml::Callbacks::m_error_parse), [m_error_visit](@ref c4::yml::Callbacks::m_error_visit)
+    - Added methods [.set_error_basic()](@ref c4::yml::Callbacks::set_error_basic()), [.set_error_parse()](@ref c4::yml::Callbacks::set_error_parse()) and [.set_error_visit()](@ref c4::yml::Callbacks::set_error_visit()).
+- **BREAKING** [PR#557](https://github.com/biojppm/rapidyaml/pull/557) - [Tree](@ref c4::yml::Tree) is now non-empty by default, and [.root_id()](@ref c4::yml::Tree::root_id()) will no longer modify the tree when it is empty. To create an empty tree, it is now necessary to use the capacity constructor with a capacity of zero:
+  @code{c++}
   // breaking change: default-constructed tree is now non-empty
   Tree tree;
   assert(!tree.empty()); // MODIFIED! was empty on previous version
@@ -323,7 +362,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
   assert(tree.empty()); // as expected
   // but watchout, this is no longer possible:
   //id_type root = tree.root_id(); // ERROR: cannot get root of empty tree.
-  ```
+  @endcode
   This changeset also enables the python library to call `root_id()` on a default-constructed tree (fixes [#556](https://github.com/biojppm/rapidyaml/issues/556)).
 
 
@@ -331,18 +370,18 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 - [PR#561](https://github.com/biojppm/rapidyaml/pull/561) (fixes [#559](https://github.com/biojppm/rapidyaml/issues/559)) - Byte Order Mark: account for BOM length when determining block indentation
 - [PR#547](https://github.com/biojppm/rapidyaml/pull/547) - Fix parsing of implicit first documents with empty sequences, caused by a problem in `Tree::set_root_as_stream()`:
-  ```yaml
+  @code{yaml}
   []  # this container was lost during parsing
   ---
   more data here
-  ```
+  @endcode
 - [PR#576](https://github.com/biojppm/rapidyaml/pull/576) - `extra::events_ints_print()`: Prevent integer overflow in bounds check (thanks \@bytecodesky).
 
 
 ### JSON emitting changes
 
 - [PR#574](https://github.com/biojppm/rapidyaml/pull/574) (fixes [#535](https://github.com/biojppm/rapidyaml/issues/535) and [#312](https://github.com/biojppm/rapidyaml/issues/312)) - improve handling of `.inf`, `.nan` and some float formats when emitting to JSON. For example, the tree
-  ```yaml
+  @code{yaml}
   {
     inf: [inf, infinity, .inf, .Inf, .INF, -inf, -infinity, -.inf, -.Inf, -.INF],
     nan: [nan, .nan, .NaN, .NAN],
@@ -350,9 +389,9 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     zero: [10, 01],
     normal: [0.1, 0.2e3, 4.e5],
   }
-  ```
+  @endcode
   is now emitted to JSON as:
-  ```json
+  @code{json}
   {
     ".inf": [".inf",".inf",".inf",".inf","-.inf","-.inf","-.inf","-.inf","-.inf","-.inf"],
     ".nan": [".nan",".nan",".nan",".nan"],
@@ -360,7 +399,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
     "zero": [10,"01"],
     "normal": [0.1,0.2e3,4.e5]
   }
-  ```
+  @endcode
   Previously, some inf and nan cases were emitted without quotes; now they are all emitted with the fixed strings `.nan` and `.inf`, which helps in cases where the JSON may be loaded in JavaScript. Note also the added zeroes for some floats, eg `.1` or `-2.` turning into `0.1` and `-2.0`.
 
 
@@ -447,32 +486,32 @@ This handler is meant for use by other programming languages, and it supports co
 - [PR#503](https://github.com/biojppm/rapidyaml/pull/503): ensure parse error on `a: b: c` and similar cases containing nested maps opening on the same line.
 - [PR#502](https://github.com/biojppm/rapidyaml/pull/502): fix parse errors or missing tags:
   - missing tags in empty documents:
-    ```yaml
+    @code{yaml}
     !yamlscript/v0/bare
     --- !code
     42
-    ```
+    @endcode
   - trailing empty keys or vals:
-    ```yaml
+    @code{yaml}
     a:
        :
-    ```
+    @endcode
   - missing tags in trailing empty keys or vals:
-    ```yaml
+    @code{yaml}
     a: !tag
       !tag : !tag
-    ```
+    @endcode
   - missing tags in complex maps:
-    ```yaml
+    @code{yaml}
     ? a: !tag
       !tag : !tag
     :
       !tag : !tag
-    ```
+    @endcode
 - [PR#501](https://github.com/biojppm/rapidyaml/pull/501): fix missing tag in `- !!seq []`.
 - [PR#508](https://github.com/biojppm/rapidyaml/pull/508): fix build with cmake 4.
 - [PR#517](https://github.com/biojppm/rapidyaml/pull/517) (fixes [#516](https://github.com/biojppm/rapidyaml/issues/516)): fix python wheels for windows and macosx.
-- Fix [#120](https://github.com/biojppm/rapidyaml/issues/120) (again): add workaround for #define emit in Qt
+- Fix [#120](https://github.com/biojppm/rapidyaml/issues/120) (again): add workaround for `#define` emit in Qt
 
 
 ### Thanks
@@ -512,14 +551,14 @@ This handler is meant for use by other programming languages, and it supports co
   - loongarch64
 - Fix [#476](https://github.com/biojppm/rapidyaml/issues/476) ([PR#493](https://github.com/biojppm/rapidyaml/pull/493)): add handling of Byte Order Marks.
 - [PR#492](https://github.com/biojppm/rapidyaml/pull/492): fix emit of explicit keys when indented:
-  ```yaml
+  @code{yaml}
   fixed:
       ? explicit key
       : value
   previously:
       ? explicit key
   : value   # this was not indented
-  ```
+  @endcode
 - [PR#492](https://github.com/biojppm/rapidyaml/pull/492): fix parser reset for full reuse (`m_doc_empty` was not resetted), which would cause problems under specific scenarios in subsequent reuse.
 - [PR#485](https://github.com/biojppm/rapidyaml/pull/485): improve the CI workflows (thanks to \@ingydotnet):
   - amazing code reuse and organization, thanks to the use of YamlScript to generate the final workflows
@@ -555,7 +594,7 @@ This handler is meant for use by other programming languages, and it supports co
 ### New features
 
 - [PR#459](https://github.com/biojppm/rapidyaml/pull/459): Add [version functions and macros](@ref c4/yml/version.hpp):
-  ```cpp
+  @code{c++}
   #define RYML_VERSION "0.7.1"
   #define RYML_VERSION_MAJOR 0
   #define RYML_VERSION_MINOR 7
@@ -564,7 +603,7 @@ This handler is meant for use by other programming languages, and it supports co
   int version_major();
   int version_minor();
   int version_patch();
-  ```
+  @endcode
 
 ### Fixes
 
@@ -614,18 +653,18 @@ Most of the changes are from the giant Parser refactor described below. Before g
 
 - [PR#431](https://github.com/biojppm/rapidyaml/pull/431) - append-emitting to existing containers in the `emitrs_` functions, suggested in [#345](https://github.com/biojppm/rapidyaml/issues/345). This was achieved by adding a `bool append=false` as the last parameter of these functions.
 - [PR#431](https://github.com/biojppm/rapidyaml/pull/431) - add depth query methods:
-  ```cpp
+  @code{c++}
   Tree::depth_asc(id_type) const;   // O(log(num_tree_nodes)) get the depth of a node ascending (ie, from root to node)
   Tree::depth_desc(id_type) const;  // O(num_tree_nodes) get the depth of a node descending (ie, from node to deep-most leaf node)
   ConstNodeRef::depth_asc() const;  // likewise
   ConstNodeRef::depth_desc() const;
   NodeRef::depth_asc() const;
   NodeRef::depth_desc() const;
-  ```
+  @endcode
 - [PR#432](https://github.com/biojppm/rapidyaml/pull/432) - Added a function to estimate the required tree capacity, based on yaml markup:
-  ```cpp
+  @code{c++}
   size_t estimate_tree_capacity(csubstr); // estimate number of nodes resulting from yaml
-  ```
+  @endcode
 
 
 ------
@@ -659,7 +698,7 @@ The parser was completely refactored ([PR#414](https://github.com/biojppm/rapidy
   - Filtering can now be disabled while parsing, to ensure a fully-readonly parse (but this feature is still experimental and somewhat untested, given the scope of the rewrite work).
   - The parser now offers methods to filter scalars in place or out of place.
 - Style flags were added to `NodeType_e`:
-  ```cpp
+  @code{c++}
     FLOW_SL     ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
     FLOW_ML     ///< mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
     BLOCK       ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
@@ -673,9 +712,9 @@ The parser was completely refactored ([PR#414](https://github.com/biojppm/rapidy
     VAL_DQUO    ///< mark val scalar as double quoted "
     KEY_PLAIN   ///< mark key scalar as plain scalar (unquoted, even when multiline)
     VAL_PLAIN   ///< mark val scalar as plain scalar (unquoted, even when multiline)
-  ```
+  @endcode
 - Style predicates were added to `NodeType`, `Tree`, `ConstNodeRef` and `NodeRef`:
-  ```cpp
+  @code{c++}
     bool is_container_styled() const;
     bool is_block() const 
     bool is_flow_sl() const;
@@ -694,15 +733,15 @@ The parser was completely refactored ([PR#414](https://github.com/biojppm/rapidy
     bool is_val_dquo() const;
     bool is_key_plain() const;
     bool is_val_plain() const;
-  ```
+  @endcode
 - Style modifiers were also added:
-  ```cpp
+  @code{c++}
     void set_container_style(NodeType_e style);
     void set_key_style(NodeType_e style);
     void set_val_style(NodeType_e style);
-  ```
+  @endcode
 - Emit helper predicates were added, and are used when an emitted node was built programatically without style flags:
-  ```cpp
+  @code{c++}
   /** choose a YAML emitting style based on the scalar's contents */
   NodeType_e scalar_style_choose(csubstr scalar) noexcept;
   /** query whether a scalar can be encoded using single quotes.
@@ -712,7 +751,7 @@ The parser was completely refactored ([PR#414](https://github.com/biojppm/rapidy
   /** query whether a scalar can be encoded using plain style (no
    * quotes, not a literal/folded block scalar). */
   bool scalar_style_query_plain(csubstr s) noexcept;
-  ```
+  @endcode
 
 ### Breaking changes
 
@@ -800,7 +839,7 @@ Emit performance improved everywhere by over 1.5x and as much as 3x-4x for YAML 
 
 Fix major error handling problem reported in [#389](https://github.com/biojppm/rapidyaml/issues/389) ([PR#411](https://github.com/biojppm/rapidyaml/pull/411)):
 
-  - The [NodeRef](@ref c4::yml::NodeRef) and [ConstNodeRef](@ref c4::yml::ConstNodeRef) classes are now conditional noexcept using `RYML_NOEXCEPT`, which evaluates either to nothing when assertions are enabled, and to `noexcept` otherwise. The problem was that these classes had many methods explicitly marked `noexcept`, but were doing assertions which could throw exceptions, causing an abort instead of a throw whenever the assertion called an exception-throwing error callback.
+  - The [NodeRef](@ref c4::yml::NodeRef) and [ConstNodeRef](@ref c4::yml::ConstNodeRef) classes are now conditional `noexcept` using `RYML_NOEXCEPT`, which evaluates either to nothing when assertions are enabled, and to `noexcept` otherwise. The problem was that these classes had many methods explicitly marked `noexcept`, but were doing assertions which could throw exceptions, causing an abort instead of a throw whenever the assertion called an exception-throwing error callback.
   - This problem was compounded by assertions being enabled in every build type -- despite the intention to have them only in debug builds. There was a problem in the preprocessor code to enable assertions which led to assertions being enabled in release builds even when `RYML_USE_ASSERT` was defined to 0. Thanks to \@jdrouhard for reporting this.
   - Although the code is and was extensively tested, the testing was addressing mostly the happy path. Tests were added to ensure that the error behavior is as intended.
   - Together with this changeset, a major revision was carried out of the asserting/checking status of each function in the node classes. In most cases, assertions were added to functions that were missing them. So **beware** - some user code that was invalid will now assert or error out. Also, assertions and checks are now directed as much as possible to the callbacks of the closest scope: ie, if a tree has custom callbacks, errors within the tree class should go through those callbacks.
@@ -814,12 +853,12 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
     - [.is_seed()](@ref c4::yml::NodeRef::is_seed()) when the object points at an hypotethic tree+node
     - The previous state `.valid()` was deprecated: its semantics were confusing as it actually could be any of `.readable()` or `.is_seed()`
   - Deprecated also the following methods for [NodeRef](@ref c4::yml::NodeRef)/[ConstNodeRef](@ref c4::yml::ConstNodeRef):
-    ```c++
+    @code{c++}
     RYML_DEPRECATED() bool operator== (std::nullptr_t) const;
     RYML_DEPRECATED() bool operator!= (std::nullptr_t) const;
     RYML_DEPRECATED() bool operator== (csubstr val) const;
     RYML_DEPRECATED() bool operator!= (csubstr val) const;
-    ```
+    @endcode
   - Added macros and respective cmake options to control error handling:
     - `RYML_USE_ASSERT` - enable assertions regardless of build type. This is disabled by default. This macro was already defined; the current PR adds the cmake option.
     - `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS` - make the default error handler provided by ryml throw exceptions instead of calling `std::abort()`. This is disabled by default.
@@ -831,14 +870,14 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 
 ### More fixes
 
-- `Tree::arena() const`  was returning a `substr`; this was an error. This function was changed to:
+- `Tree::arena() const` was returning a `substr`; this was an error. This function was changed to:
   ```
   csubstr Tree::arena() const;
   substr Tree::arena();
   ```
 - Fix [#390](https://github.com/biojppm/rapidyaml/issues/390) - `csubstr::first_real_span()` failed on scientific numbers with one digit in the exponent ([PR#415](https://github.com/biojppm/rapidyaml/pull/415)).
 - Fix [#361](https://github.com/biojppm/rapidyaml/issues/361) - parse error on map scalars containing `:` and starting on the next line:
-  ```yaml
+  @code{yaml}
   ---
   # failed to parse:
   description:
@@ -846,7 +885,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
   ---
   # but this was ok:
   description: foo:bar
-  ```
+  @endcode
 - [PR#368](https://github.com/biojppm/rapidyaml/pull/368) - fix pedantic compiler warnings.
 - Fix [#373](https://github.com/biojppm/rapidyaml/issues/373) - false parse error with empty quoted keys in block-style map ([PR#374](https://github.com/biojppm/rapidyaml/pull/374)).
 - Fix [#356](https://github.com/biojppm/rapidyaml/issues/356) - fix overzealous check in `emit_as()`. An id may be larger than the tree's size, eg when nodes were removed. ([PR#357](https://github.com/biojppm/rapidyaml/pull/357)).
@@ -875,7 +914,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 ### Breaking changes
 
 - Make the node API const-correct ([PR#267](https://github.com/biojppm/rapidyaml/pull/267)): added `ConstNodeRef` to hold a constant reference to a node. As the name implies, a `ConstNodeRef` object cannot be used in any tree-mutating operation. It is also smaller than the existing `NodeRef` (and faster because it does not need to check its own validity on every access). As a result of this change, there are now some constraints when obtaining a ref from a tree, and existing code is likely to break in this type of situation:
-  ```c++
+  @code{c++}
   const Tree const_tree = ...;
   NodeRef nr = const_tree.rootref(); // ERROR (was ok): cannot obtain a mutating NodeRef from a const Tree
   ConstNodeRef cnr = const_tree.rootref(); // ok
@@ -891,14 +930,14 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
   
   nr = cnr; // ERROR: cannot obtain NodeRef from ConstNodeRef
   cnr = nr; // ok
-  ```
+  @endcode
   The use of `ConstNodeRef` also needs to be propagated through client code. One such place is when deserializing types:
-  ```c++
+  @code{c++}
   // needs to be changed from:
   template<class T> bool read(ryml::NodeRef const& n, T *var);
   // ... to:
   template<class T> bool read(ryml::ConstNodeRef const& n, T *var);
-  ```
+  @endcode
   - The initial version of `ConstNodeRef/NodeRef` had the problem that const methods in the CRTP base did not participate in overload resolution ([#294](https://github.com/biojppm/rapidyaml/issues/294)), preventing calls from `const NodeRef` objects. This was fixed by moving non-const methods to the CRTP base and disabling them with SFINAE ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
   - Also added disambiguation iteration methods: `.cbegin()`, `.cend()`, `.cchildren()`, `.csiblings()` ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
 - Deprecate `emit()` and `emitrs()` ([#120](https://github.com/biojppm/rapidyaml/issues/120), [PR#303](https://github.com/biojppm/rapidyaml/pull/303)): use `emit_yaml()` and `emitrs_yaml()` instead. This was done to improve compatibility with Qt, which leaks a macro named `emit`. For more information, see [#120](https://github.com/biojppm/rapidyaml/issues/120).
@@ -908,17 +947,17 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
     - Deprecate `emit_in_place()`, add `emit_yaml_in_place()` and `emit_json_in_place()`.
     - Calling the deprecated functions will now trigger a warning.
 - Location querying is no longer done lazily ([#260](https://github.com/biojppm/rapidyaml/issues/260), [PR#307](https://github.com/biojppm/rapidyaml/pull/307)). It now requires explicit opt-in when instantiating the parser. With this change, the accelerator structure for location querying is now built when parsing:
-  ```c++
+  @code{c++}
   Parser parser(ParserOptions().locations(true));
   // now parsing also builds location lookup:
   Tree t = parser.parse_in_arena("myfile.yml", "foo: bar");
   assert(parser.location(t["foo"]).line == 0u);
-  ```
+  @endcode
   - Locations are disabled by default:
-  ```c++
+  @code{c++}
   Parser parser;
   assert(parser.options().locations() == false);
-  ```
+  @endcode
 - Deprecate `Tree::arena_pos()`: use `Tree::arena_size()` instead ([PR#290](https://github.com/biojppm/rapidyaml/pull/290)).
 - Deprecate pointless `has_siblings()`: use `Tree::has_other_siblings()` instead ([PR#330](https://github.com/biojppm/rapidyaml/pull/330).
 
@@ -953,7 +992,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 ### Fixes
 
 - Fix [#233](https://github.com/biojppm/rapidyaml/issues/233) - accept leading colon in the first key of a flow map (`UNK` node) [PR#234](https://github.com/biojppm/rapidyaml/pull/234):
-  ```yaml
+  @code{yaml}
   :foo:           # parse error on the leading colon
     :bar: a       # parse error on the leading colon
     :barbar: b    # was ok
@@ -962,9 +1001,9 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
     bar: a        # was ok
     :barbar: b    # was ok
     :barbarbar: c # was ol
-  ```
+  @endcode
 - Fix [#253](https://github.com/biojppm/rapidyaml/issues/253): double-quoted emitter should encode carriage-return `\r` to preserve roundtrip equivalence:
-  ```yaml
+  @code{c++}
   Tree tree;
   NodeRef root = tree.rootref();
   root |= MAP;
@@ -974,9 +1013,9 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
   EXPECT_EQ(s, "s: \"t\\rt\"\n");
   Tree tree2 = parse_in_arena(to_csubstr(s));
   EXPECT_EQ(tree2["s"].val(), tree["s"].val());
-  ```
+  @endcode
 - Fix parsing of empty block folded+literal scalars when they are the last child of a container (part of [PR#264](https://github.com/biojppm/rapidyaml/issues/264)):
-  ```yaml
+  @code{yaml}
   seq:
     - ""
     - ''
@@ -998,20 +1037,20 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
     c: |
     d: >  # error, the resulting val included all the YAML from the next node
   lastly: the last
-  ```
+  @endcode
 - Fix [#274](https://github.com/biojppm/rapidyaml/issues/274) ([PR#296](https://github.com/biojppm/rapidyaml/pull/296)): Lists with unindented items and trailing empty values parse incorrectly:
-  ```yaml
+  @code{yaml}
   foo:
   - bar
   -
   baz: qux
-  ```
+  @endcode
   was wrongly parsed as
-  ```yaml
+  @code{yaml}
   foo:
   - bar
   - baz: qux
-  ```
+  @endcode
 - Fix [#277](https://github.com/biojppm/rapidyaml/issues/277) ([PR#340](https://github.com/biojppm/rapidyaml/pull/340)): merge fails with duplicate keys.
 - Fix [#337](https://github.com/biojppm/rapidyaml/issues/337) ([PR#338](https://github.com/biojppm/rapidyaml/pull/338)): empty lines in block scalars shall not have tab characters `\t`.
 - Fix [#268](https://github.com/biojppm/rapidyaml/issues/268) ([PR#339](https://github.com/biojppm/rapidyaml/pull/339)): don't override key type_bits when copying val. This was causing problematic resolution of anchors/references.
@@ -1025,12 +1064,12 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 - Fix [#324](https://github.com/biojppm/rapidyaml/issues/324) ([PR#328](https://github.com/biojppm/rapidyaml/pull/328)): eager assertion prevented moving nodes to the first position in a parent.
 - Fix `Tree::_clear_val()`: was clearing key instead ([PR#335](https://github.com/biojppm/rapidyaml/pull/335)).
 - YAML test suite events emitter: fix emission of inheriting nodes. The events for `{<<: *anchor, foo: bar}` are now correctly emitted as:
-  ```yaml
+  @code{yaml}
   =VAL :<<  # previously was =ALI <<
   =ALI *anchor
   =VAL :foo
   =VAL :bar
-  ```
+  @endcode
 - Fix [#246](https://github.com/biojppm/rapidyaml/issues/246): add missing `#define` for the include guard of the amalgamated header.
 - Fix [#326](https://github.com/biojppm/rapidyaml/issues/326): honor runtime settings for calling debugbreak, add option to disable any calls to debugbreak.
 - Fix [cmake#8](https://github.com/biojppm/cmake/issues/8): `SOVERSION` missing from shared libraries.
@@ -1070,24 +1109,24 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 - Deprecate `c4::yml::parse()` and `c4::yml::Parser::parse()` overloads; all these functions will be removed in short order. Until removal, any call from client code will trigger a compiler warning.
 - Add `parse()` alternatives, either `parse_in_place()` or `parse_in_arena()`:
   - `parse_in_place()` receives only `substr` buffers, ie mutable YAML source buffers. Trying to pass a `csubstr` buffer to `parse_in_place()` will cause a compile error:
-    ```c++
+    @code{c++}
     substr readwrite = /*...*/;
     Tree tree = parse_in_place(readwrite); // OK
     
     csubstr readonly = /*...*/;
     Tree tree = parse_in_place(readonly); // compile error
-    ```
+    @endcode
   - `parse_in_arena()` receives only `csubstr` buffers, ie immutable YAML source buffers. Prior to parsing, the buffer is copied to the tree's arena, then the copy is parsed in place. Because `parse_in_arena()` is meant for immutable buffers, overloads receiving a `substr` YAML buffer are now declared but marked deprecated, and intentionally left undefined, such that calling `parse_in_arena()` with a `substr` will cause a linker error as well as a compiler warning.
-    ```c++
+    @code{c++}
     substr readwrite = /*...*/;
     Tree tree = parse_in_arena(readwrite); // compile warning+linker error
-    ```
+    @endcode
     This is to prevent an accidental extra copy of the mutable source buffer to the tree's arena: `substr` is implicitly convertible to `csubstr`. If you really intend to parse an originally mutable buffer in the tree's arena, convert it first explicitly to immutable by assigning the `substr` to a `csubstr` prior to calling `parse_in_arena()`:
-    ```c++
+    @code{c++}
     substr readwrite = /*...*/;
     csubstr readonly = readwrite; // ok
     Tree tree = parse_in_arena(readonly); // ok
-    ```
+    @endcode
     This problem does not occur with `parse_in_place()` because `csubstr` is not implicitly convertible to `substr`. 
 - In the python API, `ryml.parse()` was removed and not just deprecated; the `parse_in_arena()` and `parse_in_place()` now replace this.
 - `Callbacks`: changed behavior in `Parser` and `Tree`:
@@ -1100,7 +1139,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 ### New features
 
 - Add tracking of source code locations. This is useful for reporting semantic errors after the parsing phase (ie where the YAML is syntatically valid and parsing is successful, but the tree contents are semantically invalid). The locations can be obtained lazily from the parser when the first location is queried:
-  ```c++
+  @code{c++}
   // To obtain locations, use of the parser is needed:
   ryml::Parser parser;
   ryml::Tree tree = parser.parse_in_arena("source.yml", R"({
@@ -1150,16 +1189,16 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   assert(loc.col == 17u);
   // NOTE: reusing the parser with a new YAML source buffer
   // will invalidate the accelerator.
-  ```
+  @endcode
   See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/bfb073265abf8c58bbeeeed7fb43270e9205c71c/samples/quickstart.cpp#L3759). Thanks to \@cschreib for submitting a working example proving how simple it could be to achieve this.
 - `Parser`:
   - add `source()` and `filename()` to get the latest buffer and filename to be parsed
   - add `callbacks()` to get the parser's callbacks
 - Add `from_tag_long()` and `normalize_tag_long()`:
-  ```c++
+  @code{c++}
   assert(from_tag_long(TAG_MAP) == "<tag:yaml.org,2002:map>");
   assert(normalize_tag_long("!!map") == "<tag:yaml.org,2002:map>");
-  ```
+  @endcode
 - Add an experimental API to resolve tags based on the tree's tag directives. This API is still imature and will likely be subject to changes, so we won't document it yet.
 - Regarding emit styles (see issue [#37](https://github.com/biojppm/rapidyaml/issues/37)): add an experimental API to force flow/block style on container nodes, as well as block-literal/block-folded/double-quoted/single-quoted/plain styles on scalar nodes. This API is also immature and will likely be subject to changes, so we won't document it yet. But if you are desperate for this functionality, the new facilities will let you go further.
 - Add preliminary support for bare-metal ARM architectures, with CI tests pending implementation of QEMU action. ([#193](https://github.com/biojppm/rapidyaml/issues/193), [c4core#63](https://github.com/biojppm/c4core/issues/63)).
@@ -1169,17 +1208,17 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 ### Fixes
 
 - Fix edge cases of parsing of explicit keys (ie keys after `?`) ([PR#212](https://github.com/biojppm/rapidyaml/pulls/212)):
-  ```yaml
+  @code{yaml}
   # all these were fixed:
   ? : # empty
   ? explicit key   # this comment was not parsed correctly
   ?    # trailing empty key was not added to the map
-  ```
+  @endcode
 - Fixed parsing of tabs used as whitespace tokens after `:` or `-`. This feature [is costly (see some benchmark results here)](https://github.com/biojppm/rapidyaml/pull/211#issuecomment-1030688035) and thus it is disabled by default, and requires defining a macro or cmake option `RYML_WITH_TAB_TOKENS` to enable ([PR#211](https://github.com/biojppm/rapidyaml/pulls/211)).
 - Allow tab indentation in flow seqs ([PR#215](https://github.com/biojppm/rapidyaml/pulls/215)) (6CA3).
 - ryml now parses successfully compact JSON code `{"like":"this"}` without any need for preprocessing. This code was not valid YAML 1.1, but was made valid in YAML 1.2. So the `preprocess_json()` functions, used to insert spaces after `:` are no longer necessary and have been removed. If you were using these functions, remove the calls and just pass the original source directly to ryml's parser ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
 - Fix handling of indentation when parsing block scalars ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
-  ```yaml
+  @code{yaml}
   ---
   |
   hello
@@ -1202,9 +1241,9 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   bar: |
    ciao
    qua
-  ```
+  @endcode
 - Fix parsing of maps when opening a scope with whitespace before the colon ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
-  ```yaml
+  @code{yaml}
   foo0 : bar
   ---
   foo1 : bar  # the " :" was causing an assert
@@ -1214,19 +1253,19 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   foo3	: bar
   ---
   foo4   	  : bar
-  ```
+  @endcode
 - Ensure container keys preserve quote flags when the key is quoted ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
 - Ensure scalars beginning with `%` are emitted with quotes (([PR#216](https://github.com/biojppm/rapidyaml/pulls/216)).
 - Fix [#203](https://github.com/biojppm/rapidyaml/issues/203): when parsing, do not convert `null` or `~` to null scalar strings. Now the scalar strings contain the verbatim contents of the original scalar; to query whether a scalar value is null, use `Tree::key_is_null()/val_is_null()` and `NodeRef::key_is_null()/val_is_null()` which return true if it is empty or any of the unquoted strings `~`, `null`, `Null`, or `NULL`. ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)):
-- Fix [#205](https://github.com/biojppm/rapidyaml/issues/205): fix parsing of escaped characters in double-quoted strings: `"\\\"\n\r\t\<TAB>\/\<SPC>\0\b\f\a\v\e\_\N\L\P"` ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
-- Fix [#204](https://github.com/biojppm/rapidyaml/issues/204): add decoding of unicode codepoints `\x` `\u` `\U` in double-quoted scalars:
-  ```c++
+- Fix [#205](https://github.com/biojppm/rapidyaml/issues/205): fix parsing of escaped characters in double-quoted strings: \c `"\\\"\n\r\t\<TAB>\/\<SPC>\0\b\f\a\v\e\_\N\L\P"` ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
+- Fix [#204](https://github.com/biojppm/rapidyaml/issues/204): add decoding of unicode codepoints \c "\x" \c "\u" \c "\U" in double-quoted scalars:
+  @code{c++}
   Tree tree = parse_in_arena(R"(["\u263A \xE2\x98\xBA \u2705 \U0001D11E"])");
   assert(tree[0].val() == "☺ ☺ ✅ 𝄞");
-  ```
+  @endcode
   This is mandated by the YAML standard and was missing from ryml ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
 - Fix emission of nested nodes which are sequences: when these are given as the emit root, the `- ` from the parent node was added ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
-  ```c++
+  @code{c++}
   const ryml::Tree tree = ryml::parse_in_arena(R"(
   - - Rochefort 10
     - Busch
@@ -1245,9 +1284,9 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   - many other
   - wonderful beers
   )");
-  ```
+  @endcode
 - Fix parsing of isolated `!`: should be an empty val tagged with `!` (UKK06-02) ([PR#215](https://github.com/biojppm/rapidyaml/pulls/215)).
-- Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
+- Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `\#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept `null` with upper or mixed case: `Null` or `NULL`. Previously, only low-case `null` was accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
@@ -1307,7 +1346,7 @@ As a consequence of the above changes, the global memory resource getters and se
 
 Here's an example of the required changes in client code. First the old client code (from the quickstart):
 
-```c++
+@code{c++}
 struct PerTreeMemoryExample : public ryml::MemoryResource
 {
     void *allocate(size_t len, void * hint) override;
@@ -1321,11 +1360,11 @@ PerTreeMemoryExample mr2;
 ryml::Parser parser = {ryml::Allocator(&mrp)};
 ryml::Tree   tree1  = {ryml::Allocator(&mr1)};
 ryml::Tree   tree2  = {ryml::Allocator(&mr2)};
-```
+@endcode
 
 Should now be rewritten to:
 
-```c++
+@code{c++}
 struct PerTreeMemoryExample
 {
     ryml::Callbacks callbacks() const; // helper to create the callbacks
@@ -1338,20 +1377,20 @@ PerTreeMemoryExample mr2;
 ryml::Parser parser = {mrp.callbacks()};
 ryml::Tree   tree1  = {mr1.callbacks()};
 ryml::Tree   tree2  = {mr2.callbacks()};
-```
+@endcode
 
 
 ### New features
 - Add amalgamation into a single header file ([PR #172](https://github.com/biojppm/rapidyaml/pull/172)):
   - The amalgamated header will be available together with the deliverables from each release.
   - To generate the amalgamated header:
-    ```console
+    @code
     $ python tools/amalgamate.py ryml_all.hpp
-    ```
+    @encode
   - To use the amalgamated header:
     - Include at will in any header of your project.
     - In one - and only one - of your project source files, `#define RYML_SINGLE_HDR_DEFINE_NOW` and then `#include <ryml_all.hpp>`. This will enable the function and class definitions in the header file. For example, here's a sample program:
-      ```c++
+      @code{c++}
       #include <iostream>
       #define RYML_SINGLE_HDR_DEFINE_NOW // do this before the include
       #include <ryml_all.hpp>
@@ -1360,9 +1399,9 @@ ryml::Tree   tree2  = {mr2.callbacks()};
           auto tree = ryml::parse("{foo: bar}");
           std::cout << tree["foo"].val() << "\n";
       }
-      ```
+      @endcode
 - Add `Tree::change_type()` and `NodeRef::change_type()` ([PR #171](https://github.com/biojppm/rapidyaml/pull/171)):
-  ```c++
+  @code{c++}
   // clears a node and sets its type to a different type (one of `VAL`, `SEQ`, `MAP`):
   Tree t = parse("{keyval0: val0, keyval1: val1, keyval2: val2}");
   t[0].change_type(VAL);
@@ -1370,25 +1409,25 @@ ryml::Tree   tree2  = {mr2.callbacks()};
   t[2].change_type(SEQ);
   Tree expected = parse("{keyval0: val0, keyval1: {}, keyval2: []}");
   assert(emitrs<std::string>(t) == emitrs<std::string>(expected));
-  ```
+  @endcode
 - Add support for compilation with emscripten (WebAssembly+javascript) ([PR #176](https://github.com/biojppm/rapidyaml/pull/176)).
 
 ### Fixes
 
 - Take block literal indentation as relative to current indentation level, rather than as an absolute indentation level ([PR #178](https://github.com/biojppm/rapidyaml/pull/178)):
-  ```yaml
+  @code{yaml}
   foo:
     - |
      child0
     - |2
       child2  # indentation is 4, not 2
-  ```
+  @endcode
 - Fix parsing when seq member maps start without a key ([PR #178](https://github.com/biojppm/rapidyaml/pull/178)):
-  ```yaml
+  @code{yaml}
   # previously this resulted in a parse error
   - - : empty key
   - - : another empty key
-  ```
+  @endcode
 - Prefer passing `substr` and `csubstr` by value instead of const reference ([PR #171](https://github.com/biojppm/rapidyaml/pull/171))
 - Fix [#173](https://github.com/biojppm/rapidyaml/issues/173): add alias target `ryml::ryml` ([PR #174](https://github.com/biojppm/rapidyaml/pull/174))
 - Speedup compilation of tests by removing linking with yaml-cpp and libyaml. ([PR #177](https://github.com/biojppm/rapidyaml/pull/177))
@@ -1412,7 +1451,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 - Add support for CPU architectures aarch64, ppc64le, s390x.
 - Update c4core to [0.1.7](https://github.com/biojppm/c4core/releases/tag/v0.1.7)
 - `Tree` and `NodeRef`: add document getter `doc()` and `docref()`
-  ```c++
+  @code{c++}
   Tree tree = parse(R"(---
   doc0
   ---
@@ -1430,7 +1469,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   // stream.doc(i), same as above, given NodeRef
   assert(stream.doc(0).val() == "doc0");
   assert(stream.doc(1).val() == "doc1");
-  ```
+  @endcode
 
 ### Fixes
 
@@ -1439,7 +1478,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 #### Flow maps
 
 - Fix parse of multiline plain scalars inside flow maps ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # test case UT92
   # all parsed as "matches %": 20
   - { matches
@@ -1449,21 +1488,21 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   - { matches
   %:
    20 }
-  ```
+  @endcode
 
 
 #### Tags
 
 - Fix parsing of tags followed by comments in sequences ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # test case 735Y
   - !!map # Block collection
     foo : bar
-  ```
+  @endcode
 
 #### Quoted scalars
 - Fix filtering of tab characters in quoted scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   ---
   # test case 5GBF
   "Empty line
@@ -1477,9 +1516,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   <SPC>2nd non-empty<SPC>
   <TAB>3rd non-empty '
   # now correctly parsed as " 1st non-empty\n2nd non-empty 3rd non-empty "
-  ```
+  @endcode
 - Fix filtering of backslash characters in double-quoted scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # test cases NP9H, Q8AD
   "folded<SPC>
   to a space,<TAB>
@@ -1487,9 +1526,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   to a line feed, or <TAB>\
    \ <TAB>non-content"
   # now correctly parsed as "folded to a space,\nto a line feed, or \t \tnon-content"
-  ```
+  @endcode
 - Ensure filtering of multiline quoted scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # all scalars now correctly parsed as "quoted string",
   # both for double and single quotes
   ---
@@ -1511,22 +1550,22 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   "quoted
   string": "quoted
   string"
-  ```
+  @endcode
 
 
 #### Block scalars
 - Ensure no newlines are added when emitting block scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161))
 - Fix parsing of block spec with both chomping and indentation: chomping may come before or after the indentation ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # the block scalar specs below now have the same effect.
   # test cases: D83L, P2AD
   - |2-
     explicit indent and chomp
   - |-2
     chomp and explicit indent
-  ```
+  @endcode
 - Fix [inference of block indentation](https://yaml.org/spec/1.2.2/#8111-block-indentation-indicator) with leading blank lines ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # test cases: 4QFQ, 7T8X
   - >
    
@@ -1544,9 +1583,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   
    # Comment
   # parsed as "\n\nliteral\n \n\ntext\n"
-  ```
+  @endcode
 - Fix parsing of same-indentation block scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # test case W4TN
   # all docs have the same value: "%!PS-Adobe-2.0"
   --- |
@@ -1569,9 +1608,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   %!PS-Adobe-2.0
   --- >
   %!PS-Adobe-2.0
-  ```
+  @endcode
 - Folded block scalars: fix folding of newlines at the border of indented parts ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # test case 6VJK
   # now correctly parsed as "Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"
   >
@@ -1591,9 +1630,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
     <SPC><TAB><SPC>bar
   
     baz
-  ```
+  @endcode
 - Folded block scalars: fix folding of newlines when the indented part is at the begining of the scalar ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   # test case F6MC
   a: >2
      more indented
@@ -1605,11 +1644,11 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
      more indented
     regular
   # parsed as b: "\n\n more indented\nregular\n"
-  ```
+  @endcode
 
 #### Plain scalars
 - Fix parsing of whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
-  ```yaml
+  @code{yaml}
   ---
   # test case NB6Z
   key:
@@ -1634,9 +1673,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   
   e
   # is now correctly parsed as "a b c d\ne"
-  ```
+  @endcode
 - Fix parsing of unindented plain scalars at the root level scope ([PR #161](https://github.com/biojppm/rapidyaml/pull/161))
-  ```yaml
+  @code{yaml}
   --- # this parsed
   Bare
    scalar
@@ -1665,9 +1704,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   ---word1
   word2
   # now correctly parsed as "---word1 word2"
-  ```
+  @endcode
 - Fix parsing of comments within plain scalars
-  ```yaml
+  @code{yaml}
   # test case 7TMG
   --- # now correctly parsed as "word1"
   word1
@@ -1676,7 +1715,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   [ word1
   # comment
   , word2]
-  ```
+  @endcode
 
 #### Python API
 - Add missing node predicates in SWIG API definition ([PR #166](https://github.com/biojppm/rapidyaml/pull/166)):
@@ -1709,23 +1748,23 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 ### Breaking changes
 
 - Fix parsing behavior of root-level scalars: now these are parsed into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull/144/commits/5ba0d56904daef1509f0073695145c4835ab1b30), from [PR #144](https://github.com/biojppm/rapidyaml/pull/144)). Eg,
-  ```yaml
+  @code{yaml}
   ---
   this is a scalar
   --- # previously this was parsed as
   - this is a scalar
-  ```
+  @endcode
 - Cleanup type predicate API ([PR #155](https://github.com/biojppm/rapidyaml/pull/155))):
   - ensure all type predicates from `Tree` and `NodeRef` forward to the corresponding predicate in `NodeType`
   - remove all type predicates and methods from `NodeData`; use the equivalent call from `Tree` or `NodeRef`. For example, for `is_map()`:
-    ```c++
+    @code{c++}
     Tree t = parse("{foo: bar}");
     size_t map_id = t.root_id();
     NodeRef map = t.rootref();
     t.get(map_id)->is_map(); // compile error: no longer exists
     assert(t.is_map(map_id)); // OK
     assert(map.is_map()); // OK
-    ```
+    @endcode
   - Further cleanup to the type predicate API will be done in the future, especially around the `.has_*()` vs corresponding `.is_*()` naming scheme.
 
 
@@ -1742,7 +1781,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 #### Anchors and references
 - Fix resolving of nodes with keyref+valref ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): `{&a a: &b b, *b: *a}`
 - Fix parsing of implicit scalars when tags are present ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   - &a  # test case PW8X
   - a
   - &a : a
@@ -1751,18 +1790,18 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   - ? &d
   - ? &e
     : &a
-  ```
+  @endcode
 - Fix [#151](https://github.com/biojppm/rapidyaml/issues/151): scalars beginning with `*` or `&` or `<<` are now correctly quoted when emitting ([PR #156](https://github.com/biojppm/rapidyaml/pull/156)).
 - Also from [PR #156](https://github.com/biojppm/rapidyaml/pull/156), map inheritance nodes like `<<: *anchor` or `<<: [*anchor1, *anchor2]` now have a `KEYREF` flag in their type (until a call to `Tree::resolve()`):
-  ```c++
+  @code{c++}
   Tree tree = parse("{map: &anchor {foo: bar}, copy: {<<: *anchor}}");
   assert(tree["copy"]["<<"].is_key_ref()); // previously this did not hold
   assert(tree["copy"]["<<"].is_val_ref()); // ... but this did
-  ```
+  @endcode
 
 #### Tags
 - Fix parsing of tag dense maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
-  ```yaml
+  @code{yaml}
   --- !!map {
     k: !!seq [ a, !!str b],
     j: !!seq
@@ -1780,16 +1819,16 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
     !!str k1: v1
     !!str k2: v2
     !!str k3: v3
-  ```
+  @endcode
 
 #### Whitespace
 - Fix parsing of double-quoted scalars with tabs ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   "This has a\ttab"
   # is now correctly parsed as "This has a<TAB>tab"
-  ```
+  @endcode
 - Fix filtering of leading and trailing whitespace within double-quoted scalars ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   # test case 4ZYM, 7A4E, TL85
   "
   <SPC><SPC>foo<SPC>
@@ -1798,9 +1837,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   <SPC><SPC>baz
   "
   # is now correctly parsed as " foo\nbar\nbaz "
-  ```
+  @endcode
 - Fix parsing of tabs within YAML tokens ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   ---<TAB>scalar   # test case K54U
   ---<TAB>{}       # test case Q5MG
   ---              # test case DC7X
@@ -1808,23 +1847,23 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   seq:<TAB>
    - a<TAB>
   c: d<TAB>#X
-  ```
+  @endcode
 - Fix parsing of flow-style maps with ommitted values without any space ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   # test case 4ABK
   - {foo: , bar: , baz: }  # this was parsed correctly as {foo: ~, bar: ~, baz: ~}
   - {foo:, bar:, baz:}     # ... but this was parsed as {'foo:': , 'bar:': ~, 'baz:': ~}
-  ```
+  @endcode
 
 #### Scalars
 - Unescape forward slashes in double quoted string ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   --- escaped slash: "a\/b"   # test case 3UYS
   # is now parsed as:
   --- escaped slash: "a/b"
-  ```
+  @endcode
 - Fix filtering of indented regions in folded scalars ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   # test case 7T8X
   - >
     
@@ -1840,26 +1879,26 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
     
     last
     line
-  ```
+  @endcode
   is now correctly parsed as `\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n`.
 - Fix parsing of special characters within plain scalars ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   # test case 3MYT
   k:#foo
     &a !t s
     !t s
   # now correctly parsed as "k:#foo &a !t s !t s"
-  ```
+  @endcode
 - Fix parsing of comments after complex keys ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   # test case X8DW
   ? key
   # comment 
   : value
   # now correctly parsed as {key: value}
-  ```
+  @endcode
 - Fix parsing of consecutive complex keys within maps ([PR #145](https://github.com/biojppm/rapidyaml/pull/145))
-  ```yaml
+  @code{yaml}
   # test case 7W2P, ZWK4
   ? a
   ? b
@@ -1867,63 +1906,63 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
   ? d
   e:
   # now correctly parsed as {a: ~, b: ~, c: ~, d: ~, e: ~}
-  ```
+  @endcode
 - Fix [#152](https://github.com/biojppm/rapidyaml/issues/152):  parse error with folded scalars that are the last in a container ([PR #157](https://github.com/biojppm/rapidyaml/pull/157)):
-  ```yaml
+  @code{yaml}
   exec:
     command:
       # before the fix, this folded scalar failed to parse
       - |
         exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
     parses: no
-  ```
+  @endcode
 - Fix: documents consisting of a quoted scalar now retain the VALQUO flag ([PR #156](https://github.com/biojppm/rapidyaml/pull/156))
-  ```c++
+  @code{c++}
   Tree tree = parse("'this is a quoted scalar'");
   assert(tree.rootref().is_doc());
   assert(tree.rootref().is_val());
   assert(tree.rootref().is_val_quoted());
-  ```
+  @endcode
 
 
 #### Document structure
 - Empty docs are now parsed as a docval with a null node:
-  ```yaml
+  @code{yaml}
   ---   # test cases 6XDY, 6ZKB, 9BXL, PUW8
   ---
   ---
-  ```
+  @endcode
   is now parsed as
-  ```yaml
+  @code{yaml}
   --- ~
   --- ~
   --- ~
-  ```
+  @endcode
 - Prevent creation of DOC nodes from stream-level comments or tags ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
-  ```yaml
+  @code{yaml}
   !foo "bar"
   ...
   # Global
   %TAG ! tag:example.com,2000:app/
   ---
   !foo "bar"
-  ```
+  @endcode
   was parsed as
-  ```yaml
+  @code{yaml}
   ---
   !foo "bar"
   ---
   # notice the empty doc in here
   ---
   !foo "bar"
-  ```
+  @endcode
   and it is now correctly parsed as
-  ```yaml
+  @code{yaml}
   ---
   !foo "bar"
   ---
   !foo "bar"
-  ```
+  @endcode
   (other than the known limitation that ryml does not do tag lookup).
 
 
@@ -1991,17 +2030,17 @@ Please be aware that there are still some anticipated breaking changes in the AP
      * use github actions for testing and releasing
   * [MR#88](https://github.com/biojppm/rapidyaml/pull/88): [fix MacOS compilation and installs](https://github.com/biojppm/rapidyaml/issues/75). This is a fix from [c4core](https://github.com/biojppm/cmake/issues/1).
   * [MR#88](https://github.com/biojppm/rapidyaml/pull/88): [fix boolean handling](https://github.com/biojppm/rapidyaml/issues/74). This is a fix from [c4core](https://github.com/biojppm/c4core/pull/18/).  `true` and  `false` are now parsed correctly into `bool` variables:
-    ```c++
+    @code{c++}
     auto tree = parse("{foo: true, bar: false}");
-    ```
+    @endcode
     Emitting `bool` variables still defaults to `0`/`1`, like the default behaviour in the STL. To explicitly request `true`/`false` use `c4::fmt::boolalpha()`:
-    ```c++
+    @code{c++}
     node << var;                     // "1"    or "0"
     node << c4::fmt::boolalpha(var); // "true" or "false"
-    ```
+    @endcode
 * 2020/September
   * [***Breaking change***] [MR#85](https://github.com/biojppm/rapidyaml/pull/85) null values in YAML are now parsed to null strings instead of YAML null token "~":
-    ```c++
+    @code{c++}
     auto tree = parse("{foo: , bar: ''}");
     // previous:
     assert(tree["foo"].val() == "~");
@@ -2009,19 +2048,19 @@ Please be aware that there are still some anticipated breaking changes in the AP
     // now:
     assert(tree["foo"].val() == nullptr); // notice that this is now null
     assert(tree["bar"].val() == "");
-    ```
+    @endcode
   * [MR#85](https://github.com/biojppm/rapidyaml/pull/85) Commas after tags are now allowed:
-    ```yaml
+    @code{yaml}
     {foo: !!str, bar: ''}  # now the comma does not cause an error
-    ```
+    @endcode
   * [MR#81](https://github.com/biojppm/rapidyaml/pull/81): Always compile with extra pedantic warnings.
 * 2020/May
   *  [***Breaking change***] the error callback now receives a source location object:
-    ```c++
+    @code{c++}
     // previous
     using pfn_error = void (*)(const char* msg, size_t msg_len, void *user_data);
     // now:
     using pfn_error = void (*)(const char* msg, size_t msg_len, Location location, void *user_data);
-    ```
+    @endcode
   * Parser fixes to improve test suite success: [MR#73](https://github.com/biojppm/rapidyaml/pull/73), [MR#71](https://github.com/biojppm/rapidyaml/pull/71), [MR#68](https://github.com/biojppm/rapidyaml/pull/68), [MR#67](https://github.com/biojppm/rapidyaml/pull/67), [MR#66](https://github.com/biojppm/rapidyaml/pull/66)
   * Fix compilation as DLL on windows [MR#69](https://github.com/biojppm/rapidyaml/pull/69)
