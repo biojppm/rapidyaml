@@ -16,7 +16,8 @@ build:
     # golang: "1.19"
   commands:
     - pip install -r doc/requirements.txt
-    - make -C doc html
+    - doxygen --version
+    - make -C doc html DOXY_FORCE_VER=1
     - mkdir -p _readthedocs
     - mv -v doc/_build/html _readthedocs/
 

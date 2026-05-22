@@ -48,8 +48,7 @@ jobs:
     continue-on-error: false
     runs-on: ubuntu-24.04
     env:
-      DOXY_VERSION: 1.12.0
-      DOXY_DIR: /tmp/doxydir/bin
+      DOXY_DIR: /tmp/doxydir
     steps:
     - name: checkout (action)
       uses: actions/checkout@v4
@@ -57,9 +56,9 @@ jobs:
         submodules: recursive
         fetch-depth: 0
     - name: install python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
-        python-version: 3.9
+        python-version: 3.12
     - name: install requirements
       run: pip install -r doc/requirements.txt
     - name: install wget
@@ -68,28 +67,22 @@ jobs:
         sudo apt install -y wget
     - name: install doxygen
       run: |
-        ver=$DOXY_VERSION
-        uver=$(echo $ver | sed "s:\.:_:g")
-        name=$(dirname $DOXY_DIR)
-        dst=$(dirname $name)
-        url="https://github.com/doxygen/doxygen/releases/download/Release_$uver/doxygen-$ver.linux.bin.tar.gz"
-        ( \
-          cd $dst ; \
-          wget $url ; \
-          tar xvfz $(basename $url) ; \
-          ls -lFhp | grep dox ; \
-          mv -v doxygen-$ver $name ; \
-        )
-    - name: doxygen version
-      run: |
-        export PATH=$DOXY_DIR:$PATH
+        set -xe
+        make -C doc doxy_install DOXY_FORCE_VER=1 DOXY_DIR=$DOXY_DIR
+        export PATH=$DOXY_DIR/bin:$PATH
         which doxygen
         doxygen --version
-    - name: check doxygen docs
+    - name: test doxygen docs
       run: |
-        export PATH=$DOXY_DIR:$PATH
-        make -C doc doxy_test
-    - name: check sphinx
+        set -xe
+        export PATH=$DOXY_DIR/bin:$PATH
+        which doxygen
+        doxygen --version
+        make -C doc doxy_test DOXY_FORCE_VER=1 DOXY_DIR=$DOXY_DIR
+    - name: test sphinx
       run: |
-        export PATH=$DOXY_DIR:$PATH
-        make -C doc html
+        set -xe
+        export PATH=$DOXY_DIR/bin:$PATH
+        which doxygen
+        doxygen --version
+        make -C doc html DOXY_FORCE_VER=1 DOXY_DIR=$DOXY_DIR
