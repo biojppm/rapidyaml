@@ -7,6 +7,8 @@
 #include <c4/yml/common.hpp>
 #endif
 
+#include <cstdlib>
+
 /// @cond dev
 #if (defined(C4_EXCEPTIONS) && (!defined(RYML_NO_DEFAULT_CALLBACKS) && defined(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS))) || defined(__DOXYGEN__)
 #define _RYML_WITH_EXCEPTIONS
@@ -328,7 +330,7 @@ C4_NORETURN C4_NO_INLINE void err_basic(Callbacks const& callbacks, ErrorDataBas
     char errbuf[RYML_ERRMSG_SIZE];
     csubstr msg = detail::_mk_err_msg(errbuf, to_csubstr(fmt), args...);
     callbacks.m_error_basic(msg, errdata, callbacks.m_user_data);
-    abort(); // the call above should not return, but force it here in case it does // LCOV_EXCL_LINE
+    std::abort(); // the call above should not return, but force it here in case it does // LCOV_EXCL_LINE
     C4_UNREACHABLE_AFTER_ERR();
 }
 /** trigger a basic error to its respective handler, with a formatted error message. Like (1), but use the current global callbacks. */
@@ -387,7 +389,7 @@ C4_NORETURN C4_NO_INLINE void err_parse(Callbacks const& callbacks, ErrorDataPar
     // fall to basic error if there is no parse handler set, but use errdata.ymlloc instead of errdata.cpploc
     else if(callbacks.m_error_basic)
         callbacks.m_error_basic(msg, errdata.ymlloc, callbacks.m_user_data);
-    abort(); // the call above should not return, so force it here in case it does // LCOV_EXCL_LINE
+    std::abort(); // the call above should not return, so force it here in case it does // LCOV_EXCL_LINE
     C4_UNREACHABLE_AFTER_ERR();
 }
 /** trigger a parse error to its respective handler, with a formatted error message. Like (1), but use the current global callbacks. */
@@ -449,7 +451,7 @@ C4_NORETURN C4_NO_INLINE void err_visit(Callbacks const& callbacks, ErrorDataVis
     // fall to basic error if there is no visit handler set
     else if(callbacks.m_error_basic)
         callbacks.m_error_basic(msg, errdata.cpploc, callbacks.m_user_data);
-    abort(); // the call above should not return, so force it here in case it does // LCOV_EXCL_LINE
+    std::abort(); // the call above should not return, so force it here in case it does // LCOV_EXCL_LINE
     C4_UNREACHABLE_AFTER_ERR();
 }
 /** trigger a visit error to its respective handler, with a formatted error message. Like (1), but use the current global callbacks. */

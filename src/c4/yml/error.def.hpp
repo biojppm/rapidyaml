@@ -7,6 +7,8 @@
 #include <c4/yml/error.hpp>
 #endif
 
+#include <cassert>
+
 // NOLINTBEGIN(bugprone-use-after-move,hicpp-invalid-access-moved)
 
 namespace c4 {
