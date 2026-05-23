@@ -76,14 +76,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - {name: 64bit_g , std: 11, gcc: 13 , bt: Debug  , img: 22.04, cxxflags:      }
-        - {name: 64bit_O1, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags:      -O1 -DNDEBUG}
-        - {name: 64bit_O2, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags:      -O2 -DNDEBUG}
-        - {name: 64bit_O3, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags:      -O3 -DNDEBUG}
-        - {name: 32bit_g , std: 11, gcc: 13 , bt: Debug  , img: 22.04, cxxflags: -m32 }
-        - {name: 32bit_O1, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags: -m32 -O1 -DNDEBUG}
-        - {name: 32bit_O2, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags: -m32 -O2 -DNDEBUG}
-        - {name: 32bit_O3, std: 11, gcc: 13 , bt: Release, img: 22.04, cxxflags: -m32 -O3 -DNDEBUG}
+        - {name: 64bit_g , std: 11, gcc: 16 , bt: Debug  , img: 24.04, cxxflags:                  }
+        - {name: 64bit_O1, std: 11, gcc: 16 , bt: Release, img: 24.04, cxxflags:      -O1 -DNDEBUG}
+        - {name: 64bit_O2, std: 11, gcc: 16 , bt: Release, img: 24.04, cxxflags:      -O2 -DNDEBUG}
+        - {name: 64bit_O3, std: 11, gcc: 16 , bt: Release, img: 24.04, cxxflags:      -O3 -DNDEBUG}
+        - {name: 32bit_g , std: 11, gcc: 16 , bt: Debug  , img: 24.04, cxxflags: -m32             }
+        - {name: 32bit_O1, std: 11, gcc: 16 , bt: Release, img: 24.04, cxxflags: -m32 -O1 -DNDEBUG}
+        - {name: 32bit_O2, std: 11, gcc: 16 , bt: Release, img: 24.04, cxxflags: -m32 -O2 -DNDEBUG}
+        - {name: 32bit_O3, std: 11, gcc: 16 , bt: Release, img: 24.04, cxxflags: -m32 -O3 -DNDEBUG}
     env:: load('share/env.yaml') + {'CXX_' '${{matrix.gcc}}'}
     steps:
     - :: checkout-action-docker
@@ -170,28 +170,22 @@ jobs:
   #----------------------------------------------------------------------------
   # with valgrind: it's too slow; only latest gcc
 
-  strategy-latest-gcc =::
+  vg-gcc-matrix =::
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
+    strategy:
       fail-fast: false
       matrix:
         include:
-          - {std: 20, cxx: 14, bits: 64, vg: ON , img: 22.04}
-          - {std: 20, cxx: 14, bits: 32, vg: ON , img: 22.04}
-          - {std: 17, cxx: 14, bits: 64, vg: ON , img: 22.04}
-          - {std: 17, cxx: 14, bits: 32, vg: ON , img: 22.04}
-          - {std: 14, cxx: 14, bits: 64, vg: ON , img: 22.04}
-          - {std: 14, cxx: 14, bits: 32, vg: ON , img: 22.04}
-          - {std: 11, cxx: 14, bits: 64, vg: ON , img: 22.04}
-          - {std: 11, cxx: 14, bits: 32, vg: ON , img: 22.04}
-
-  # split these two valgrind jobs to make them faster
-  vg1:
-    :: setup-dependent-job('gcc' 'vg1')
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
-    :: runs-on-docker-c4core('${{matrix.img}}')
-    needs: canary
-    strategy:: strategy-latest-gcc
+          - {std: 23, cxx: 16, bits: 64, vg: ON , img: 24.04}
+          - {std: 20, cxx: 16, bits: 64, vg: ON , img: 24.04}
+          - {std: 17, cxx: 16, bits: 64, vg: ON , img: 24.04}
+          - {std: 14, cxx: 16, bits: 64, vg: ON , img: 24.04}
+          - {std: 11, cxx: 16, bits: 64, vg: ON , img: 24.04}
+          - {std: 11, cxx: 16, bits: 32, vg: ON , img: 24.04}
     env:: load('share/env.yaml')
-    steps:
+
+  vg-gcc-steps =::
     - :: checkout-manual
     - name: install
       run: |
@@ -199,26 +193,32 @@ jobs:
         c4core-install g++-${{matrix.cxx}} \
         || c4core-install g++-${{matrix.cxx}} \
         || c4core-install g++-${{matrix.cxx}}
+
+  # split the valgrind jobs to make them faster
+  vg1:
+    :: setup-dependent-job('gcc' 'vg1')
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/OD_O2
+    :: vg-gcc-matrix
+    steps:
+    - :: vg-gcc-steps
     - :: run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}')
-    - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
     - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
   vg2:
     :: setup-dependent-job('gcc' 'vg2')
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
-    :: runs-on-docker-c4core('${{matrix.img}}')
-    needs: canary
-    strategy:: strategy-latest-gcc
-    env:: load('share/env.yaml')
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/Os_O1
+    :: vg-gcc-matrix
     steps:
-    - :: checkout-manual
-    - name: install
-      run: |
-        # retry if it fails
-        c4core-install g++-${{matrix.cxx}} \
-        || c4core-install g++-${{matrix.cxx}} \
-        || c4core-install g++-${{matrix.cxx}}
-    - :: run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
+    - :: vg-gcc-steps
     - :: run-gcc-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
+    - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
+  vg3:
+    :: setup-dependent-job('gcc' 'vg3')
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3
+    :: vg-gcc-matrix
+    steps:
+    - :: vg-gcc-steps
+    - :: run-gcc-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
+
 
   #----------------------------------------------------------------------------
   # without valgrind: older versions
@@ -231,6 +231,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - {std: 11, cxx: 15  , bits: 64, vg: OFF, img: 24.04}
+        - {std: 11, cxx: 15  , bits: 32, vg: OFF, img: 24.04}
+        - {std: 11, cxx: 14  , bits: 64, vg: OFF, img: 24.04}
+        - {std: 11, cxx: 14  , bits: 32, vg: OFF, img: 24.04}
         - {std: 11, cxx: 13  , bits: 64, vg: OFF, img: 22.04}
         - {std: 11, cxx: 13  , bits: 32, vg: OFF, img: 22.04}
         - {std: 11, cxx: 12  , bits: 64, vg: OFF, img: 22.04}
@@ -257,7 +261,11 @@ jobs:
     steps:
     - :: checkout-manual
     - name: install
-      run: c4core-install g++-${{matrix.cxx}}
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}}
     - :: run-gcc-manual-with-flags('Debug'                '-m${{matrix.bits}}' '${{matrix.halfnprocs}}')
     - :: run-gcc-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}' '${{matrix.halfnprocs}}')
     - :: run-gcc-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}' '${{matrix.halfnprocs}}')
@@ -268,7 +276,7 @@ jobs:
   gccsan:
     :: setup-dependent-job('gcc' 'gccsan')
     name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
-    :: runs-on-docker-c4core('22.04')
+    :: runs-on-docker-c4core('24.04')
     needs: canary
     strategy:
       fail-fast: false
@@ -277,7 +285,7 @@ jobs:
           ? for
               san qw(asan lsan tsan ubsan)
               std [11 14 17 20]
-          : ! { std:: std, cxx: g++-14, bt:: san, bitlinks: static64 }
+          : ! { std:: std, cxx: g++-16, bt:: san, bitlinks: static64 }
     env:: load('share/env.yaml')
     steps:: checkout-action-docker + install-cxx + run-steps
 
