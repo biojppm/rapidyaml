@@ -7,10 +7,14 @@ include(../../ext/c4core/cmake/c4Project.cmake)
 c4_project(VERSION 0.1.0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
+set(C4CORE_TAG master CACHE STRING "tag/hash for the c4core repo")
+message(STATUS "Using c4core version: ${C4CORE_TAG}")
+
 # download a different c4core version from the repo
 c4_require_subproject(c4core REMOTE
     GIT_REPOSITORY https://github.com/biojppm/c4core.git
-    GIT_TAG master)
+    GIT_TAG ${C4CORE_TAG})
+
 # and now, within ryml's CMakeLists.txt, the call to
 # c4_require_subproject(c4core) will use the version
 # downloaded above, instead of the submodule version from

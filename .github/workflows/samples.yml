@@ -113,7 +113,7 @@ jobs:
     - name: find_package
       run: cd samples/find_package && ./run.sh $BT ${{matrix.args}}
     - name: custom_c4core
-      run: cd samples/custom_c4core && ./run.sh $BT ${{matrix.args}}
+      run: cd samples/custom_c4core && ./run.sh $BT . ${{matrix.args}}
     - name: fetch_content
       run: |
         # run this sample only if the branch exists on the repo
