@@ -7601,8 +7601,10 @@ bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
         _c4dbgp("mapblck[RKCL]: found the colon");
         _line_progressed(1);
         _maybe_skipchars(' ');
-        #if defined(__GNUC__) && (__GNUC__ >= 12)                       \
-            && ((C4_WORDSIZE == 4) || defined(C4_CPU_S390_X) || defined(C4_CPU_PPC64))
+        #if defined(__GNUC__) && (                                      \
+            ((__GNUC__ >= 12) && ((C4_WORDSIZE == 4) || defined(C4_CPU_S390_X) || defined(C4_CPU_PPC64))) \
+            ||                                                          \
+            (__GNUC__ == 16 && defined(C4_CPU_X86_64)))
         C4_DONT_OPTIMIZE(m_evt_handler->m_curr->line_contents.rem);
         #endif
         // sequence is valid after the RKCL ':'

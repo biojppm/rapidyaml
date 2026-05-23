@@ -622,51 +622,51 @@ jobs:
         include:
         - name: 64bit_g
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Debug
-          img: 22.04
+          img: 24.04
           cxxflags: null
         - name: 64bit_O1
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Release
-          img: 22.04
+          img: 24.04
           cxxflags: -O1 -DNDEBUG
         - name: 64bit_O2
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Release
-          img: 22.04
+          img: 24.04
           cxxflags: -O2 -DNDEBUG
         - name: 64bit_O3
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Release
-          img: 22.04
+          img: 24.04
           cxxflags: -O3 -DNDEBUG
         - name: 32bit_g
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Debug
-          img: 22.04
+          img: 24.04
           cxxflags: -m32
         - name: 32bit_O1
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Release
-          img: 22.04
+          img: 24.04
           cxxflags: -m32 -O1 -DNDEBUG
         - name: 32bit_O2
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Release
-          img: 22.04
+          img: 24.04
           cxxflags: -m32 -O2 -DNDEBUG
         - name: 32bit_O3
           std: 11
-          gcc: 13
+          gcc: 16
           bt: Release
-          img: 22.04
+          img: 24.04
           cxxflags: -m32 -O3 -DNDEBUG
     env:
       STD: ${{matrix.std}}
@@ -787,7 +787,7 @@ jobs:
         cmake --build build --target ryml-test-run
   vg1:
     continue-on-error: false
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/D_O1_O2
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/OD_O2
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     needs: canary
@@ -795,46 +795,36 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - std: 23
+          cxx: 16
+          bits: 64
+          vg: 'ON'
+          img: 24.04
         - std: 20
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
-        - std: 20
-          cxx: 14
-          bits: 32
-          vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 17
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
-        - std: 17
-          cxx: 14
-          bits: 32
-          vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 14
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
-        - std: 14
-          cxx: 14
-          bits: 32
-          vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 11
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 11
-          cxx: 14
+          cxx: 16
           bits: 32
           vg: 'ON'
-          img: 22.04
+          img: 24.04
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -939,44 +929,6 @@ jobs:
         cmake --build build/Debug --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
-      run: |
-        rm -rf build/Release
-        export C4_EXTERN_DIR=`pwd`/build/extern
-        cmake -S . -B build/Release \
-          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
-          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
-          -DC4_CXX_STANDARD=${{matrix.std}} \
-          -DRYML_CXX_STANDARD=${{matrix.std}} \
-          -DRYML_BUILD_TESTS=ON \
-          -DRYML_VALGRIND=${{matrix.vg}} \
-          -DRYML_DEV=ON \
-          -DRYML_BUILD_BENCHMARKS=OFF \
-          -DRYML_DBG=OFF
-    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
-      run: |
-        source .github/setenv.sh
-        numprocs=`_c4getnumcores`
-        if [ -n "0"] ; then
-            if [ "0" == "1" ] ; then
-                if (( $numprocs > 1 )) ; then
-                    numprocs=$(($numprocs / 2))
-                fi
-            fi
-        fi
-        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
-        cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
-      run: |
-        source .github/setenv.sh
-        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
-        cmake --build build/Release --target ryml-test-run
-    - name: '---------------------------------------------------------'
-      run: |
         echo "Release ::: -O2 -DNDEBUG -m${{matrix.bits}}"
     - name: 'configure Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
       run: |
@@ -1015,7 +967,7 @@ jobs:
         cmake --build build/Release --target ryml-test-run
   vg2:
     continue-on-error: false
-    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3_Os
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/Os_O1
     runs-on: ubuntu-24.04
     container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
     needs: canary
@@ -1023,46 +975,216 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - std: 23
+          cxx: 16
+          bits: 64
+          vg: 'ON'
+          img: 24.04
         - std: 20
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
+          img: 24.04
+        - std: 17
+          cxx: 16
+          bits: 64
+          vg: 'ON'
+          img: 24.04
+        - std: 14
+          cxx: 16
+          bits: 64
+          vg: 'ON'
+          img: 24.04
+        - std: 11
+          cxx: 16
+          bits: 64
+          vg: 'ON'
+          img: 24.04
+        - std: 11
+          cxx: 16
+          bits: 32
+          vg: 'ON'
+          img: 24.04
+    env:
+      STD: ${{matrix.std}}
+      CXX_: ${{matrix.cxx}}
+      BT: ${{matrix.bt}}
+      BITLINKS: ${{matrix.bitlinks}}
+      VG: ${{matrix.vg}}
+      SAN: ${{matrix.san}}
+      LINT: ${{matrix.lint}}
+      OS: ${{matrix.os}}
+    steps:
+    - name: checkout (manually)
+      run: |
+        set -xeo pipefail
+        env | sort
+        echo GITHUB_SERVER_URL=$GITHUB_SERVER_URL
+        echo GITHUB_REPOSITORY=$GITHUB_REPOSITORY
+        echo GITHUB_REF=$GITHUB_REF
+        echo GITHUB_REF_NAME=$GITHUB_REF_NAME
+        echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+        repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+        # check the branch
+        # https://stackoverflow.com/questions/58033366
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        echo branch=$branch
+        # does the branch exist in the repo?
+        if [ -z "$(git ls-remote $repo | grep $branch)" ] ; then
+            echo "branch $branch does not exist on $repo"
+            # refs/pull/485/merge -> pull/485/head
+            branch=`echo ${GITHUB_REF#refs/} | sed -e 's:merge:head:g'`
+            echo "... falling back to $branch"
+            # does the fallback exist?
+            if [ -z "(git ls-remote $repo | grep $branch)" ] ; then
+                echo "branch $branch does not exist on $repo"
+                exit 1
+            else
+                echo "branch $branch exists on $repo"
+                localbranch=$(echo $branch | sed -e 's@[/:]@_@g')
+                branch=$branch:$localbranch
+                echo "naming locally as $branch"
+            fi
+        fi
+        # finally, create the local repo
+        git init -q .
+        # needed for running in the docker image.
+        # see https://github.com/actions/checkout/issues/1169
+        git config --system --add safe.directory '*'
+        # finally, do it!
+        git remote add origin $repo
+        git fetch origin $branch
+        git reset --hard FETCH_HEAD
+        git submodule update --init --recursive
+        # show the log
+        git log --graph --date=relative --date-order --color=always \
+                --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
+            | head -30 \
+            || echo -n
+        # show the last commit
+        git log --name-status HEAD^..HEAD
+    - name: install
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}}
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        if [ -n "0"] ; then
+            if [ "0" == "1" ] ; then
+                if (( $numprocs > 1 )) ; then
+                    numprocs=$(($numprocs / 2))
+                fi
+            fi
+        fi
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
+        cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
+    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-run
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}}"
+    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
+          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_VALGRIND=${{matrix.vg}} \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        if [ -n "0"] ; then
+            if [ "0" == "1" ] ; then
+                if (( $numprocs > 1 )) ; then
+                    numprocs=$(($numprocs / 2))
+                fi
+            fi
+        fi
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
+        cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
+    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-run
+  vg3:
+    continue-on-error: false
+    name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}/vg/O3
+    runs-on: ubuntu-24.04
+    container: ghcr.io/biojppm/c4core/ubuntu${{matrix.img}}:latest
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - std: 23
+          cxx: 16
+          bits: 64
+          vg: 'ON'
+          img: 24.04
         - std: 20
-          cxx: 14
-          bits: 32
+          cxx: 16
+          bits: 64
           vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 17
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
-        - std: 17
-          cxx: 14
-          bits: 32
-          vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 14
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
-        - std: 14
-          cxx: 14
-          bits: 32
-          vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 11
-          cxx: 14
+          cxx: 16
           bits: 64
           vg: 'ON'
-          img: 22.04
+          img: 24.04
         - std: 11
-          cxx: 14
+          cxx: 16
           bits: 32
           vg: 'ON'
-          img: 22.04
+          img: 24.04
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -1165,44 +1287,6 @@ jobs:
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
-    - name: '---------------------------------------------------------'
-      run: |
-        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
-      run: |
-        rm -rf build/Release
-        export C4_EXTERN_DIR=`pwd`/build/extern
-        cmake -S . -B build/Release \
-          -DCMAKE_CXX_COMPILER=g++-${{matrix.cxx}} \
-          -DCMAKE_C_COMPILER=gcc-${{matrix.cxx}} \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
-          -DC4_CXX_STANDARD=${{matrix.std}} \
-          -DRYML_CXX_STANDARD=${{matrix.std}} \
-          -DRYML_BUILD_TESTS=ON \
-          -DRYML_VALGRIND=${{matrix.vg}} \
-          -DRYML_DEV=ON \
-          -DRYML_BUILD_BENCHMARKS=OFF \
-          -DRYML_DBG=OFF
-    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
-      run: |
-        source .github/setenv.sh
-        numprocs=`_c4getnumcores`
-        if [ -n "0"] ; then
-            if [ "0" == "1" ] ; then
-                if (( $numprocs > 1 )) ; then
-                    numprocs=$(($numprocs / 2))
-                fi
-            fi
-        fi
-        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
-        cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
-      run: |
-        source .github/setenv.sh
-        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
-        cmake --build build/Release --target ryml-test-run
   extended:
     continue-on-error: false
     name: extended/${{matrix.cxx}}/${{matrix.bits}}bit/c++${{matrix.std}}
@@ -1213,6 +1297,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - std: 11
+          cxx: 15
+          bits: 64
+          vg: 'OFF'
+          img: 24.04
+        - std: 11
+          cxx: 15
+          bits: 32
+          vg: 'OFF'
+          img: 24.04
+        - std: 11
+          cxx: 14
+          bits: 64
+          vg: 'OFF'
+          img: 24.04
+        - std: 11
+          cxx: 14
+          bits: 32
+          vg: 'OFF'
+          img: 24.04
         - std: 11
           cxx: 13
           bits: 64
@@ -1384,7 +1488,11 @@ jobs:
         # show the last commit
         git log --name-status HEAD^..HEAD
     - name: install
-      run: c4core-install g++-${{matrix.cxx}}
+      run: |
+        # retry if it fails
+        c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}} \
+        || c4core-install g++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
         echo "Debug ::: -m${{matrix.bits}}"
@@ -1579,74 +1687,74 @@ jobs:
     continue-on-error: false
     name: gccsan/${{matrix.bt}}/${{matrix.cxx}}/c++${{matrix.std}}
     runs-on: ubuntu-24.04
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+    container: ghcr.io/biojppm/c4core/ubuntu24.04:latest
     needs: canary
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
-          cxx: g++-14
+          cxx: g++-16
           bt: asan
           bitlinks: static64
         - std: 14
-          cxx: g++-14
+          cxx: g++-16
           bt: asan
           bitlinks: static64
         - std: 17
-          cxx: g++-14
+          cxx: g++-16
           bt: asan
           bitlinks: static64
         - std: 20
-          cxx: g++-14
+          cxx: g++-16
           bt: asan
           bitlinks: static64
         - std: 11
-          cxx: g++-14
+          cxx: g++-16
           bt: lsan
           bitlinks: static64
         - std: 14
-          cxx: g++-14
+          cxx: g++-16
           bt: lsan
           bitlinks: static64
         - std: 17
-          cxx: g++-14
+          cxx: g++-16
           bt: lsan
           bitlinks: static64
         - std: 20
-          cxx: g++-14
+          cxx: g++-16
           bt: lsan
           bitlinks: static64
         - std: 11
-          cxx: g++-14
+          cxx: g++-16
           bt: tsan
           bitlinks: static64
         - std: 14
-          cxx: g++-14
+          cxx: g++-16
           bt: tsan
           bitlinks: static64
         - std: 17
-          cxx: g++-14
+          cxx: g++-16
           bt: tsan
           bitlinks: static64
         - std: 20
-          cxx: g++-14
+          cxx: g++-16
           bt: tsan
           bitlinks: static64
         - std: 11
-          cxx: g++-14
+          cxx: g++-16
           bt: ubsan
           bitlinks: static64
         - std: 14
-          cxx: g++-14
+          cxx: g++-16
           bt: ubsan
           bitlinks: static64
         - std: 17
-          cxx: g++-14
+          cxx: g++-16
           bt: ubsan
           bitlinks: static64
         - std: 20
-          cxx: g++-14
+          cxx: g++-16
           bt: ubsan
           bitlinks: static64
     env:
