@@ -1134,6 +1134,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
                     _c4err("parse error"); // no return
                 }
             }
+            break;
         default:
             ;
         }
