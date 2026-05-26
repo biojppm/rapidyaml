@@ -289,7 +289,7 @@ struct RYML_EXPORT Location
 
     operator bool () const noexcept { return !name.empty() || line != npos || offset != npos || col != npos; }
 
-    C4_NO_INLINE Location() noexcept : offset(npos), line(npos), col(npos), name() {};
+    C4_NO_INLINE Location() noexcept : offset(npos), line(npos), col(npos), name() {}
     C4_NO_INLINE Location(                         size_t l          ) noexcept : offset(npos), line(l), col(npos), name() {}
     C4_NO_INLINE Location(                         size_t l, size_t c) noexcept : offset(npos), line(l), col(c   ), name() {}
     C4_NO_INLINE Location(               size_t b, size_t l, size_t c) noexcept : offset(b   ), line(l), col(c   ), name() {}

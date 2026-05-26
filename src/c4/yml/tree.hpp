@@ -1442,7 +1442,7 @@ template<class T>
 size_t to_chars_float(substr buf, T val)
 {
     static_assert(std::is_floating_point<T>::value, "must be floating point");
-    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
+    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal")
     if(C4_UNLIKELY(std::isnan(val)))
         return to_chars(buf, csubstr(".nan"));
     else if(C4_UNLIKELY(val == std::numeric_limits<T>::infinity()))

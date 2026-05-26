@@ -725,7 +725,7 @@ public:
     {
         _C4RR();
         return from_chars(val(), &v);
-    };
+    }
 
     /** @} */
 
