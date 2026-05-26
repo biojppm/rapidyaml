@@ -247,11 +247,11 @@ public:
     /** @name YAML map events */
     /** @{ */
 
-    void begin_map_key_flow()
+    C4_NORETURN void begin_map_key_flow()
     {
         _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
-    void begin_map_key_block()
+    C4_NORETURN void begin_map_key_block()
     {
         _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
@@ -297,11 +297,11 @@ public:
     /** @name YAML seq events */
     /** @{ */
 
-    void begin_seq_key_flow()
+    C4_NORETURN void begin_seq_key_flow()
     {
         _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
-    void begin_seq_key_block()
+    C4_NORETURN void begin_seq_key_block()
     {
         _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
@@ -386,7 +386,7 @@ public:
      * See the documentation for @ref doc_event_handlers, which has
      * important notes about this event.
      */
-    void actually_val_is_first_key_of_new_map_block()
+    C4_NORETURN void actually_val_is_first_key_of_new_map_block()
     {
         _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
     }
