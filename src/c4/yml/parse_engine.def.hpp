@@ -1616,7 +1616,7 @@ substr ParseEngine<EventHandler>::_peek_next_line(size_t pos) const
 
 next_is_empty:
     _c4dbgpf("peek next line @ {}: (len=0)''", pos);
-    return {};
+    return rem;
 }
 
 //-----------------------------------------------------------------------------
