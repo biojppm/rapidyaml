@@ -1,4 +1,5 @@
 #include "./test_lib/test_engine.hpp"
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702)
 
 // WARNING: don't use raw string literals -- g++4.8 cannot accept them
 // as macro arguments
@@ -1411,3 +1412,5 @@ Case const* get_case(csubstr /*name*/)
 }
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_MSVC_POP

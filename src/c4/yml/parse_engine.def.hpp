@@ -463,7 +463,8 @@ void ParseEngine<EventHandler>::_relocate_arena(csubstr prev_arena, substr next_
     if((s).str >= pb && (s).str <= pe)              \
     {                                               \
         (s).str = next_arena.str + ((s).str - pb);  \
-    }
+    }                                               \
+    ((void)0)
     for(ParserState &st : m_evt_handler->m_stack)
     {
         _ryml_relocate(st.line_contents.rem);
@@ -1134,6 +1135,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
                     _c4err("parse error"); // no return
                 }
             }
+            break;
         default:
             ;
         }
@@ -1615,7 +1617,7 @@ substr ParseEngine<EventHandler>::_peek_next_line(size_t pos) const
 
 next_is_empty:
     _c4dbgpf("peek next line @ {}: (len=0)''", pos);
-    return {};
+    return rem;
 }
 
 //-----------------------------------------------------------------------------
@@ -3583,11 +3585,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_indented_block(FilterProces
                 {
                     const char c = rem[first];
                     _c4dbgfbf("firstns={}='{}'", first, _c4prc(c));
-                    if(c == '\n' || c == '\r')
-                    {
-                        ;
-                    }
-                    else
+                    if(c != '\n' && c != '\r')
                     {
                         _c4dbgfbf("done with indented block",  first);
                         goto endloop;
