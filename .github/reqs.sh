@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -x
+set -xe
 
 # input environment variables:
 # OS: the operating system
@@ -237,6 +237,9 @@ function _c4_gather_compilers()
 {
     cxx=$1
     case $cxx in
+        g++-16     ) _c4_addgcc 16 ;;
+        g++-15     ) _c4_addgcc 15 ;;
+        g++-14     ) _c4_addgcc 14 ;;
         g++-13     ) _c4_addgcc 13 ;;
         g++-12     ) _c4_addgcc 12 ;;
         g++-11     ) _c4_addgcc 11 ;;
@@ -248,6 +251,13 @@ function _c4_gather_compilers()
         g++-5      ) _c4_addgcc 5  ;;
         g++-4.9    ) _c4_addgcc 4.9 ;;  # https://askubuntu.com/questions/1036108/install-gcc-4-9-at-ubuntu-18-04
         g++-4.8    ) _c4_addgcc 4.8 ;;
+        clang++-22 ) _c4_addclang 22  ;;
+        clang++-21 ) _c4_addclang 21  ;;
+        clang++-20 ) _c4_addclang 20  ;;
+        clang++-19 ) _c4_addclang 19  ;;
+        clang++-18 ) _c4_addclang 18  ;;
+        clang++-17 ) _c4_addclang 17  ;;
+        clang++-16 ) _c4_addclang 16  ;;
         clang++-15 ) _c4_addclang 15  ;;
         clang++-14 ) _c4_addclang 14  ;;
         clang++-13 ) _c4_addclang 13  ;;
@@ -262,13 +272,13 @@ function _c4_gather_compilers()
         clang++-4.0) _c4_addclang 4.0 ;;
         clang++-3.9) _c4_addclang 3.9 ;;
         all)
-            for ver in 11 10 9 8 7 6 5 4.9 4.8 ; do
+            for ver in 16 15 14 13 12 11 10 9 8 7 6 5 4.9 4.8 ; do
                 all="$all g++-$ver"
             done
             if [ "$UBUNTU_RELEASE_NAME" == "jammy" ] ; then  # jammy is 22.04
                 all="g++-13 g++-12 $all"
             fi
-            for ver in 15 14 13 12 11 10 9 8 7 6.0 5.0 4.0 3.9 ; do
+            for ver in 22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6.0 5.0 4.0 3.9 ; do
                 all="$all clang++-$ver"
             done
             echo "installing all compilers: $all"
@@ -311,8 +321,13 @@ function _c4_addgcc()
             _add_src gcc-4.9 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main"
             _add_src gcc-4.9 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe"
             ;;
-        *)
+        15 | 16 )
+            sudo apt-get update
+            sudo apt-get install -y software-properties-common
+            sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
             ;;
+        *)
+           ;;
     esac
     case $gccversion in
         4.9 )
