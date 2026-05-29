@@ -34,9 +34,7 @@ jobs:
     - CMANY: ON
     steps:
     - :: checkout-action
-    - name: python3
-      uses: actions/setup-python@v5
-      with: {python-version: 3.9}
+    - :: install-python-action
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info

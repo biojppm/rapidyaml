@@ -64,6 +64,13 @@ defn runs-on-docker-c4core(which)::
 
 
 #----------------------------------------------------------
+install-python-action =::
+- name: Install python 3.12
+  uses: actions/setup-python@v6
+  with: { python-version: '3.12' }
+
+
+#----------------------------------------------------------
 checkout-action =::
 - name: checkout (action)
   uses: actions/checkout@v4

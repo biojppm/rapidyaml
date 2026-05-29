@@ -125,10 +125,10 @@ jobs:
       run: echo 'nothing to do'
     - name: Verify vars.sh
       run: env | grep SRC
-    - name: Install python 3.9
-      uses: actions/setup-python@v5
+    - name: Install python 3.12
+      uses: actions/setup-python@v6
       with:
-        python-version: 3.9
+        python-version: '3.12'
     - name: Install requirements
       run: sudo -E pip install git-archive-all
     - name: Create source packages

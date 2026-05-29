@@ -56,9 +56,7 @@ jobs:
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
       run: source .github/setenv.sh && c4_show_info
-    - name: Install python 3.9
-      uses: actions/setup-python@v5
-      with: { python-version: 3.9 }
+    - :: install-python-action
     - name: preinstall
       run: |
         if [ "${{matrix.sdir}}" == "test/test_install" ] ; then
