@@ -56,9 +56,7 @@ jobs:
     steps:
     - :: checkout-action
     - :: version-get-vars
-    - name: Install python 3.9
-      uses: actions/setup-python@v5
-      with: { python-version: 3.9 }
+    - :: install-python-action
     - name: Install requirements
       run: sudo -E pip install git-archive-all
     - name: Create source packages

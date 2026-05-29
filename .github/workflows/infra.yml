@@ -55,10 +55,10 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
-    - name: install python
+    - name: Install python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: 3.12
+        python-version: '3.12'
     - name: install requirements
       run: pip install -r doc/requirements.txt
     - name: install wget

@@ -92,10 +92,10 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
-    - name: python3
-      uses: actions/setup-python@v5
+    - name: Install python 3.12
+      uses: actions/setup-python@v6
       with:
-        python-version: 3.9
+        python-version: '3.12'
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info

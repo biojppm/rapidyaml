@@ -39,9 +39,7 @@ jobs:
       DOXY_DIR: /tmp/doxydir
     steps:
       - :: checkout-action
-      - name: install python
-        uses: actions/setup-python@v6
-        with: {python-version: 3.12}
+      - :: install-python-action
       - name: install requirements
         run: pip install -r doc/requirements.txt
       - name: install wget
