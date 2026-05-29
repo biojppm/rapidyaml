@@ -5,6 +5,7 @@
 #include <c4/yml/detail/print.hpp>
 #include <c4/yml/parse.hpp>
 #include <c4/yml/emit.hpp>
+#include <c4/yml/file.hpp>
 #include <c4/yml/common.hpp>
 #include <c4/yml/error.def.hpp>
 #endif
@@ -73,7 +74,7 @@ Options:
   -o,--output <filename> emit to the given filename (default: %s)
 
 )",
-            exename,
+            c4::to_csubstr(exename).basename().str,
             (int)defs.reserve_size,
             defs.resolve_refs ? "resolve refs" : "do not resolve refs",
             defs.keep_refs ? "keep refs" : "remove refs",
@@ -145,19 +146,14 @@ bool parse_args(int argc, const char *argv[], Args &args)
 void read_file(csubstr filename, std::string *buf)
 {
     buf->clear();
-    if(filename == "-") // read from stdin
+    if(filename == "-" || filename == "stdin") // read from stdin
     {
-        for(int c = std::getchar(); c != EOF; c = std::getchar())
-        {
-            buf->push_back((char)c);
-            if(buf->size() == buf->capacity())
-                buf->reserve(2u * (buf->capacity() >= 128u ? buf->capacity() : 128u));
-        }
+        yml::stdin_get_contents(buf);
     }
     else
     {
         _RYML_CHECK_BASIC_MSG(fs::path_exists(filename.str), "file not found: {} (cwd={})", filename, fs::cwd<std::string>());
-        fs::file_get_contents<std::string>(filename.str, buf);
+        yml::file_get_contents(buf, filename.str);
     }
 }
 

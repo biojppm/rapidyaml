@@ -4,6 +4,7 @@
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/error.def.hpp>
 #include <c4/yml/parse.hpp>
+#include <c4/yml/file.hpp>
 #include <c4/yml/error.def.hpp>
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
@@ -450,19 +451,15 @@ bool Args::parse(Args *args, int argc, const char *argv[], int *errcode)
 std::string load_file(csubstr filename)
 {
     if(filename == "-" || filename == "stdin") // read from stdin
-    {   // LCOV_EXCL_START
-        std::string buf;
-        buf.reserve(128);
-        for(int c = std::getchar(); c != EOF; c = std::getchar())
-            buf.push_back(static_cast<char>(c));
-        return buf;    // LCOV_EXCL_STOP
+    {
+        return c4::yml::stdin_get_contents<std::string>(); // LCOV_EXCL_LINE
     }
     else if(!fs::path_exists(filename.str))
     {
         std::fprintf(stderr, "%s: file not found (cwd=%s)\n", filename.str, fs::cwd<std::string>().c_str()); // LCOV_EXCL_LINE // NOLINT
         err_basic(RYML_LOC_HERE(), "file not found"); // LCOV_EXCL_LINE
     }
-    return fs::file_get_contents<std::string>(filename.str);
+    return c4::yml::file_get_contents<std::string>(filename.str);
 }
 
 [[noreturn]] C4_NO_INLINE void throwerr(csubstr msg)

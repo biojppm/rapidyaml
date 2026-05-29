@@ -52,6 +52,7 @@ c4_add_library(ryml
         c4/yml/escape_scalar.hpp
         c4/yml/event_handler_stack.hpp
         c4/yml/event_handler_tree.hpp
+        c4/yml/file.hpp
         c4/yml/filter_processor.hpp
         c4/yml/fwd.hpp
         c4/yml/export.hpp

@@ -98,6 +98,8 @@ void ensure_callbacks();
     // prefer using individual includes.
     #include <ryml_std.hpp> // optional header, provided for std:: interop
     #include <c4/format.hpp> // needed for the examples below
+    // optional header to save/load files:
+    #include <c4/yml/file.hpp>
     // optional header, definitions for error utilities to implement
     // user-defined error callbacks:
     #include <c4/yml/error.def.hpp>
@@ -292,13 +294,6 @@ struct ScopedErrorHandlerExample : public ErrorHandlerExample
 // needed to setup the callbacks when ryml does not provide them
 void ensure_callbacks();
 ryml::Callbacks default_callbacks();
-
-
-// helper functions for sample_parse_file()
-template<class CharContainer> CharContainer file_get_contents(const char *filename);
-template<class CharContainer> size_t        file_get_contents(const char *filename, CharContainer *v);
-template<class CharContainer> void          file_put_contents(const char *filename, CharContainer const& v, const char* access="wb");
-void                                        file_put_contents(const char *filename, const char *buf, size_t sz, const char* access);
 
 
 bool report_check(int line, const char *predicate, bool result);
@@ -1827,19 +1822,17 @@ void sample_substr()
  *
  *  ryml offers no overload to directly parse files from disk; it only
  *  parses source buffers (which may be mutable or immutable). It is
- *  up to the caller to load the file contents into a buffer before
- *  parsing with ryml.
+ *  up to the caller to first load the file contents into a buffer
+ *  before parsing with ryml. To help with this you can use the
+ *  (efficient) helper [file_get_contents](@ref
+ *  c4::yml::file_get_contents()). See also the analogous
+ *  [file_put_contents](@ref c4::yml::file_put_contents())
  *
- *  But that does not mean that loading a file is unimportant. There
- *  are many ways to achieve this in C++, but for convenience and to
- *  enable you to quickly get up to speed, here is an example
- *  implementation loading a file from disk and then parsing the
- *  resulting buffer with ryml.
  * @see doc_parse  */
 void sample_parse_file()
 {
     const char filename[] = "ryml_example.yml";
-    ryml::csubstr yaml = ""
+    std::string yaml = ""
         "foo: 1"  "\n"
         "bar:"    "\n"
         "- 2"     "\n"
@@ -1847,11 +1840,11 @@ void sample_parse_file()
     // because this is a minimal sample, it assumes nothing on the
     // environment/OS (other than that it can read/write files). So we
     // create the file on the fly:
-    file_put_contents(filename, yaml);
+    ryml::file_put_contents(yaml, filename);
 
     // now we can load it into a std::string (for example):
     {
-        std::string contents = file_get_contents<std::string>(filename);
+        std::string contents = ryml::file_get_contents<std::string>(filename);
         ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(contents)); // immutable (csubstr) overload
         CHECK(tree["foo"].val() == "1");
         CHECK(tree["bar"][0].val() == "2");
@@ -1860,8 +1853,8 @@ void sample_parse_file()
 
     // or we can use a vector<char> instead:
     {
-        std::vector<char> contents = file_get_contents<std::vector<char>>(filename);
-        ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(contents)); // mutable (csubstr) overload
+        std::vector<char> contents = ryml::file_get_contents<std::vector<char>>(filename);
+        ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(contents)); // mutable (substr) overload
         CHECK(tree["foo"].val() == "1");
         CHECK(tree["bar"][0].val() == "2");
         CHECK(tree["bar"][1].val() == "3");
@@ -6622,56 +6615,6 @@ void ErrorHandlerExample::check_disabled() const
 }
 
 
-//-----------------------------------------------------------------------------
-// helper functions for sample_parse_file()
-
-C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen: this function may be unsafe
-C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
-/** load a file from disk into an existing CharContainer */
-template<class CharContainer>
-size_t file_get_contents(const char *filename, CharContainer *v)
-{
-    std::FILE *fp = std::fopen(filename, "rb"); // NOLINT
-    if(fp == nullptr) _RYML_ERR_BASIC("{}: could not open file", filename);
-    std::fseek(fp, 0, SEEK_END); // NOLINT
-    long sz = std::ftell(fp); // NOLINT
-    v->resize(static_cast<typename CharContainer::size_type>(sz));
-    if(sz)
-    {
-        std::rewind(fp); // NOLINT
-        size_t ret = std::fread(&(*v)[0], 1, v->size(), fp);
-        if(ret != (size_t)sz) _RYML_ERR_BASIC("{}: failed to read: expect {}B, got {}B", filename, sz, ret);
-    }
-    std::fclose(fp); // NOLINT
-    return v->size();
-}
-
-/** load a file from disk and return a newly created CharContainer */
-template<class CharContainer>
-CharContainer file_get_contents(const char *filename)
-{
-    CharContainer cc;
-    file_get_contents(filename, &cc);
-    return cc;
-}
-
-/** save a buffer into a file */
-template<class CharContainer>
-void file_put_contents(const char *filename, CharContainer const& v, const char* access)
-{
-    file_put_contents(filename, v.empty() ? "" : &v[0], v.size(), access);
-}
-
-/** save a buffer into a file */
-void file_put_contents(const char *filename, const char *buf, size_t sz, const char* access)
-{
-    std::FILE *fp = std::fopen(filename, access);
-    if(fp == nullptr) _RYML_ERR_BASIC("{}: could not open file", filename);
-    std::fwrite(buf, 1, sz, fp); // NOLINT
-    std::fclose(fp); // NOLINT
-}
-C4_SUPPRESS_WARNING_CLANG_POP
-C4_SUPPRESS_WARNING_MSVC_POP
 /** @} */ // doc_sample_helpers
 
 /** @} */ // doc_quickstart
