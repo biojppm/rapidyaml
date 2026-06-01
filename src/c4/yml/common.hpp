@@ -56,16 +56,6 @@
 /// the detailed debug log messages when RYML_DBG is defined.
 #define RYML_LOGBUF_SIZE (256)
 #endif
-
-
-#ifndef RYML_LOGBUF_SIZE
-/// size for the buffer used to format individual values to string
-/// while preparing an error message. This is only used for formatting
-/// individual values in the message; final messages will be larger
-/// than this value (see @ref RYML_ERRMSG_SIZE). This size is also
-/// used for the detailed debug log messages when RYML_DBG is defined.
-#define RYML_LOGBUF_SIZE (256)
-#endif
 static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 
 
