@@ -55,7 +55,7 @@
       cmake --build build --target ryml-test-run
 
   defn define-job(matrixvar)::
-    name:: "${{matrix.arch}}/c++${{matrix.std}}"
+    name:: "${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}"
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -75,48 +75,47 @@
           ${{matrix.tc}}-g++${{matrix.version}} --version
           ${{matrix.tc}}-g++${{matrix.version}} -dM -E - </dev/null | sort
           ${{matrix.tc}}-g++${{matrix.version}} ${{matrix.flags}} -dM -E - </dev/null | sort
-      - :: xcompile-steps("${{matrix.arch}}" "Debug"  )
-      - :: xcompile-steps("${{matrix.arch}}" "Release")
+      - :: xcompile-steps("${{matrix.arch}}" "${{matrix.bt}}")
 
   =>: nil
 
 matrix-items =::
-  #                                                           heavybuild: use less workers to build on:
-  #                                                           0: nowhere; always use nproc
-  #                                                           1=release
-  #                                                           2=release+debug
-  - {arch: armv7      , tc: arm-linux-gnueabihf    , std: 11, heavybuild: 0, flags: -march=armv7+fp}
-  - {arch: armv7      , tc: arm-linux-gnueabihf    , std: 20, heavybuild: 1, flags: -march=armv7+fp}
-  - {arch: armv6      , tc: arm-linux-gnueabi      , std: 11, heavybuild: 0, flags: -march=armv6+fp}
-  - {arch: armv6      , tc: arm-linux-gnueabi      , std: 20, heavybuild: 1, flags: -march=armv6+fp}
-  - {arch: armv5      , tc: arm-linux-gnueabi      , std: 11, heavybuild: 0, flags: -march=armv5te+fp}
-  - {arch: armv5      , tc: arm-linux-gnueabi      , std: 20, heavybuild: 1, flags: -march=armv5te+fp}
-  - {arch: armv4      , tc: arm-linux-gnueabi      , std: 11, heavybuild: 0, flags: -march=armv4}
-  - {arch: armv4      , tc: arm-linux-gnueabi      , std: 20, heavybuild: 1, flags: -march=armv4}
-  - {arch: aarch64    , tc: aarch64-linux-gnu      , std: 11, heavybuild: 1} # this is armv8
-  - {arch: aarch64    , tc: aarch64-linux-gnu      , std: 20, heavybuild: 2} # this is armv8
-  - {arch: loongarch64, tc: loongarch64-linux-gnu  , std: 11, heavybuild: 0, version: -14}
-  - {arch: loongarch64, tc: loongarch64-linux-gnu  , std: 20, heavybuild: 1, version: -14}
-  - {arch: mips       , tc: mips-linux-gnu         , std: 11, heavybuild: 0}
-  - {arch: mips       , tc: mips-linux-gnu         , std: 20, heavybuild: 1}
-  - {arch: mipsel     , tc: mipsel-linux-gnu       , std: 11, heavybuild: 0}
-  - {arch: mipsel     , tc: mipsel-linux-gnu       , std: 20, heavybuild: 1}
-  - {arch: mips64     , tc: mips64-linux-gnuabi64  , std: 11, heavybuild: 2}
-  - {arch: mips64     , tc: mips64-linux-gnuabi64  , std: 20, heavybuild: 2}
-  - {arch: mips64el   , tc: mips64el-linux-gnuabi64, std: 11, heavybuild: 2}
-  - {arch: mips64el   , tc: mips64el-linux-gnuabi64, std: 20, heavybuild: 2}
-  - {arch: riscv64    , tc: riscv64-linux-gnu      , std: 11, heavybuild: 0}
-  - {arch: riscv64    , tc: riscv64-linux-gnu      , std: 20, heavybuild: 1}
-  - {arch: s390x      , tc: s390x-linux-gnu        , std: 11, heavybuild: 0}
-  - {arch: s390x      , tc: s390x-linux-gnu        , std: 20, heavybuild: 1}
-  - {arch: ppc        , tc: powerpc-linux-gnu      , std: 11, heavybuild: 0}
-  - {arch: ppc        , tc: powerpc-linux-gnu      , std: 20, heavybuild: 1}
-  - {arch: ppc64      , tc: powerpc64-linux-gnu    , std: 11, heavybuild: 0}
-  - {arch: ppc64      , tc: powerpc64-linux-gnu    , std: 20, heavybuild: 1}
-  - {arch: ppc64le    , tc: powerpc64le-linux-gnu  , std: 11, heavybuild: 0}
-  - {arch: ppc64le    , tc: powerpc64le-linux-gnu  , std: 20, heavybuild: 1}
-  - {arch: sparc64    , tc: sparc64-linux-gnu      , std: 11, heavybuild: 0}
-  - {arch: sparc64    , tc: sparc64-linux-gnu      , std: 20, heavybuild: 1}
+  #                                                                        heavybuild: use less workers to build on:
+  #                                                                        0: nowhere; always use nproc
+  #                                                                        1=release
+  #                                                                        2=release+debug
+  - {arch: armv7      , std: 23, bt: Release, tc: arm-linux-gnueabihf    , heavybuild: 1, flags: -march=armv7+fp}
+  - {arch: armv7      , std: 11, bt: Debug  , tc: arm-linux-gnueabihf    , heavybuild: 0, flags: -march=armv7+fp}
+  - {arch: armv6      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv6+fp}
+  - {arch: armv6      , std: 11, bt: Debug  , tc: arm-linux-gnueabi      , heavybuild: 0, flags: -march=armv6+fp}
+  - {arch: armv5      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv5te+fp}
+  - {arch: armv5      , std: 11, bt: Debug  , tc: arm-linux-gnueabi      , heavybuild: 0, flags: -march=armv5te+fp}
+  - {arch: armv4      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv4}
+  - {arch: armv4      , std: 11, bt: Debug  , tc: arm-linux-gnueabi      , heavybuild: 0, flags: -march=armv4}
+  - {arch: aarch64    , std: 23, bt: Release, tc: aarch64-linux-gnu      , heavybuild: 2} # this is armv8
+  - {arch: aarch64    , std: 11, bt: Debug  , tc: aarch64-linux-gnu      , heavybuild: 1} # this is armv8
+  - {arch: loongarch64, std: 23, bt: Release, tc: loongarch64-linux-gnu  , heavybuild: 1, version: -14}
+  - {arch: loongarch64, std: 11, bt: Debug  , tc: loongarch64-linux-gnu  , heavybuild: 0, version: -14}
+  - {arch: mips       , std: 23, bt: Release, tc: mips-linux-gnu         , heavybuild: 1}
+  - {arch: mips       , std: 11, bt: Debug  , tc: mips-linux-gnu         , heavybuild: 0}
+  - {arch: mipsel     , std: 23, bt: Release, tc: mipsel-linux-gnu       , heavybuild: 1}
+  - {arch: mipsel     , std: 11, bt: Debug  , tc: mipsel-linux-gnu       , heavybuild: 0}
+  - {arch: mips64     , std: 23, bt: Release, tc: mips64-linux-gnuabi64  , heavybuild: 2}
+  - {arch: mips64     , std: 11, bt: Debug  , tc: mips64-linux-gnuabi64  , heavybuild: 2}
+  - {arch: mips64el   , std: 23, bt: Release, tc: mips64el-linux-gnuabi64, heavybuild: 2}
+  - {arch: mips64el   , std: 11, bt: Debug  , tc: mips64el-linux-gnuabi64, heavybuild: 2}
+  - {arch: riscv64    , std: 23, bt: Release, tc: riscv64-linux-gnu      , heavybuild: 1}
+  - {arch: riscv64    , std: 11, bt: Debug  , tc: riscv64-linux-gnu      , heavybuild: 0}
+  - {arch: s390x      , std: 23, bt: Release, tc: s390x-linux-gnu        , heavybuild: 1}
+  - {arch: s390x      , std: 11, bt: Debug  , tc: s390x-linux-gnu        , heavybuild: 0}
+  - {arch: ppc        , std: 23, bt: Release, tc: powerpc-linux-gnu      , heavybuild: 1}
+  - {arch: ppc        , std: 11, bt: Debug  , tc: powerpc-linux-gnu      , heavybuild: 0}
+  - {arch: ppc64      , std: 23, bt: Release, tc: powerpc64-linux-gnu    , heavybuild: 1}
+  - {arch: ppc64      , std: 11, bt: Debug  , tc: powerpc64-linux-gnu    , heavybuild: 0}
+  - {arch: ppc64le    , std: 23, bt: Release, tc: powerpc64le-linux-gnu  , heavybuild: 1}
+  - {arch: ppc64le    , std: 11, bt: Debug  , tc: powerpc64le-linux-gnu  , heavybuild: 0}
+  - {arch: sparc64    , std: 23, bt: Release, tc: sparc64-linux-gnu      , heavybuild: 1}
+  - {arch: sparc64    , std: 11, bt: Debug  , tc: sparc64-linux-gnu      , heavybuild: 0}
   # TODO xtensa!
 
 
@@ -128,7 +127,7 @@ jobs:
 
   xcompile:
     needs: [canary]
-    :: setup-job('embedded' 'xcompile')
+    :: setup-dependent-job('embedded' 'xcompile')
     :: define-job(rest(matrix-items))
 
 
