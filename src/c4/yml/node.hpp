@@ -34,9 +34,6 @@ namespace yml {
  *
  * @{
  */
-template<class K> struct Key { K && k; }; // NOLINT
-
-template<class K> C4_ALWAYS_INLINE Key<K> key(K && k) { return Key<K>{std::forward<K>(k)}; }
 
 
 template<class T> void write(NodeRef *n, T const& v);

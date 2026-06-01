@@ -555,6 +555,43 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** @addtogroup doc_tree
+ *
+ * @{
+ */
+
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+
+/** A tag type to select the key when building the tree, or when
+ * (de)serializing with operator<< or operator>> */
+template<class K>
+struct RYML_LEGACY_OPERATOR("prefer .set_key() methods in the Tree and node")
+Key
+{
+    K &&k; // NOLINT
+};
+
+/** A tag function to select the key when building the tree, or when
+ * (de)serializing with operator<< or operator>> */
+template<class K>
+RYML_LEGACY_OPERATOR("prefer .set_key() methods in the Tree and node")
+C4_ALWAYS_INLINE Key<K> key(K && k)
+{
+    return Key<K>{std::forward<K>(k)};
+}
+
+C4_SUPPRESS_WARNING_POP
+
+/** @} */
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 /// @cond dev
 
 #define _RYML_CB_ALLOC_HINT(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
