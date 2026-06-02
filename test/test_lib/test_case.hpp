@@ -10,6 +10,7 @@
 #include "c4/format.hpp"
 #include <c4/yml/yml.hpp>
 #include <c4/yml/detail/dbgprint.hpp>
+#include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
 

@@ -1150,6 +1150,13 @@ TEST(block_literal, indentation_indicator_1)
     }
     {
         SCOPED_TRACE("here");
+        Tree t;
+        ExpectError::check_error_parse(&t, [&t]{
+            t = parse_in_arena("--- >#");
+        });
+    }
+    {
+        SCOPED_TRACE("here");
         Tree t = parse_in_arena("--- | # comment\n  a");
         EXPECT_EQ(t.docref(0).val(), "a\n");
     }
@@ -1246,6 +1253,25 @@ A ($api-model):
 $(answer:trim)
 )");
     });
+}
+
+
+TEST(block_literal, github612)
+{
+    for(const char blockchar : {'|', '>'})
+    {
+        RYML_TRACE_FMT("blockchar={}", blockchar);
+        for(const char *ws : {"", " ", "\t", "   ", "\t\t\t", " \t ", "\t \t", " #comment", "\t#comment"})
+        {
+            csubstr fmt = "\n"
+                "- type: string"        "\n"
+                "  description: {}{}"   "\n";
+            std::string yaml = formatrs<std::string>(fmt, blockchar, ws);
+            RYML_TRACE_FMT("ws={}\nyaml={}", blockchar, escaped_scalar(to_csubstr(yaml)));
+            const Tree t = parse_in_place(to_substr(yaml));
+            EXPECT_EQ(t[0]["description"].val(), "");
+        }
+    }
 }
 
 
