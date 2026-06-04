@@ -165,7 +165,6 @@ INSTRUCTIONS:
         am.onlyif(has_evt(Event.ints_to_testsuite), "src_extra/c4/yml/extra/ints_to_testsuite.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.cpp"),
-        am.onlyif(has_evt(Event.tree), "src/c4/yml/node.cpp"),
         "src/c4/yml/preprocess.cpp",
         am.onlyif(has_evt(Event.tree), "src/c4/yml/detail/checks.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/detail/print.hpp"),

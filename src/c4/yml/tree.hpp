@@ -49,10 +49,12 @@ namespace yml {
 template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type;
 template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type;
 template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_floating_point<T>::value, bool>::type;
+template<class T> bool read(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper);
 
 template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type;
 template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type;
 template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_floating_point<T>::value, bool>::type;
+template<class T> bool readkey(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper);
 /** @endcond */
 
 
@@ -1355,6 +1357,18 @@ public:
  *
  * @{
  */
+
+template<class T>
+bool read(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper)
+{
+    return C4_LIKELY(!(tree->type(id) & VALNIL)) ? from_chars(tree->val(id), wrapper) : false;
+}
+template<class T>
+bool readkey(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper)
+{
+    return C4_LIKELY(!(tree->type(id) & KEYNIL)) ? from_chars(tree->key(id), wrapper) : false;
+}
+
 
 
 // NON-ARITHMETIC -------------------------------------------------------------

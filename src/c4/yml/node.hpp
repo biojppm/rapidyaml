@@ -6,7 +6,6 @@
 #include <cstddef>
 
 #include "c4/yml/tree.hpp"
-#include "c4/base64.hpp"
 
 #ifdef __clang__
 #   pragma clang diagnostic push
@@ -39,21 +38,21 @@ namespace yml {
  *
  * @{
  */
-template<class K> struct Key { K & k; }; // NOLINT
-template<> struct Key<fmt::const_base64_wrapper> { fmt::const_base64_wrapper wrapper; };
-template<> struct Key<fmt::base64_wrapper> { fmt::base64_wrapper wrapper; };
+template<class K> struct Key { K && k; }; // NOLINT
 
-template<class K> C4_ALWAYS_INLINE Key<K> key(K & k) { return Key<K>{k}; }
-C4_ALWAYS_INLINE Key<fmt::const_base64_wrapper> key(fmt::const_base64_wrapper w) { return {w}; }
-C4_ALWAYS_INLINE Key<fmt::base64_wrapper> key(fmt::base64_wrapper w) { return {w}; }
+template<class K> C4_ALWAYS_INLINE Key<K> key(K && k) { return Key<K>{std::forward<K>(k)}; }
 
 
 template<class T> void write(NodeRef *n, T const& v);
 
 template<class T> inline bool read(ConstNodeRef const& C4_RESTRICT n, T *v);
+template<class T> inline bool read(ConstNodeRef const& C4_RESTRICT n, T const& wrapper);
 template<class T> inline bool read(NodeRef const& C4_RESTRICT n, T *v);
+template<class T> inline bool read(NodeRef const& C4_RESTRICT n, T const& wrapper);
 template<class T> inline bool readkey(ConstNodeRef const& C4_RESTRICT n, T *v);
+template<class T> inline bool readkey(ConstNodeRef const& C4_RESTRICT n, T const& wrapper);
 template<class T> inline bool readkey(NodeRef const& C4_RESTRICT n, T *v);
+template<class T> inline bool readkey(NodeRef const& C4_RESTRICT n, T const& wrapper);
 
 /** @} */
 
@@ -647,6 +646,14 @@ public:
             _RYML_ERR_VISIT_(tree_->m_callbacks, tree_, id_, "could not deserialize value");
         return *((ConstImpl const*)this);
     }
+    template<class T>
+    ConstImpl const& operator>> (T const& wrapper) const
+    {
+        _C4RR();
+        if( ! read((ConstImpl const&)*this, wrapper))
+            _RYML_ERR_VISIT_(tree_->m_callbacks, tree_, id_, "could not deserialize value");
+        return *((ConstImpl const*)this);
+    }
 
     /** deserialize the node's key to the given variable, forwarding
      * to the user-overrideable @ref read() function; use @ref key()
@@ -692,42 +699,6 @@ public:
             return false;
         }
     }
-
-    /** @name deserialization_base64 */
-    /** @{ */
-
-    /** deserialize the node's key as base64. lightweight wrapper over @ref deserialize_key() */
-    ConstImpl const& operator>> (Key<fmt::base64_wrapper> w) const
-    {
-        deserialize_key(w.wrapper);
-        return *((ConstImpl const*)this);
-    }
-
-    /** deserialize the node's val as base64. lightweight wrapper over @ref deserialize_val() */
-    ConstImpl const& operator>> (fmt::base64_wrapper w) const
-    {
-        deserialize_val(w);
-        return *((ConstImpl const*)this);
-    }
-
-    /** decode the base64-encoded key and assign the
-     * decoded blob to the given buffer/
-     * @return the size of base64-decoded blob */
-    size_t deserialize_key(fmt::base64_wrapper v) const
-    {
-        _C4RR();
-        return from_chars(key(), &v);
-    }
-    /** decode the base64-encoded key and assign the
-     * decoded blob to the given buffer/
-     * @return the size of base64-decoded blob */
-    size_t deserialize_val(fmt::base64_wrapper v) const
-    {
-        _C4RR();
-        return from_chars(val(), &v);
-    }
-
-    /** @} */
 
     /** @} */
 
@@ -1274,15 +1245,6 @@ public:
         return 0;
     }
 
-    /** encode a blob as base64 into the tree's arena, then assign the
-     * result to the node's key
-     * @return the size of base64-encoded blob */
-    size_t set_key_serialized(fmt::const_base64_wrapper w);
-    /** encode a blob as base64 into the tree's arena, then assign the
-     * result to the node's val
-     * @return the size of base64-encoded blob */
-    size_t set_val_serialized(fmt::const_base64_wrapper w);
-
     /** serialize a variable, then assign the result to the node's val */
     NodeRef& operator<< (csubstr s)
     {
@@ -1317,18 +1279,6 @@ public:
     {
         _apply_seed();
         set_key_serialized(v.k);
-        return *this;
-    }
-
-    NodeRef& operator<< (Key<fmt::const_base64_wrapper> w)
-    {
-        set_key_serialized(w.wrapper);
-        return *this;
-    }
-
-    NodeRef& operator<< (fmt::const_base64_wrapper w)
-    {
-        set_val_serialized(w);
         return *this;
     }
 
@@ -1640,11 +1590,21 @@ C4_ALWAYS_INLINE bool read(ConstNodeRef const& C4_RESTRICT n, T *v)
 {
     return read(n.m_tree, n.m_id, v);
 }
+template<class T>
+C4_ALWAYS_INLINE bool read(ConstNodeRef const& C4_RESTRICT n, T const &wrapper)
+{
+    return read(n.m_tree, n.m_id, wrapper);
+}
 
 template<class T>
 C4_ALWAYS_INLINE bool read(NodeRef const& C4_RESTRICT n, T *v)
 {
     return read(n.tree(), n.id(), v);
+}
+template<class T>
+C4_ALWAYS_INLINE bool read(NodeRef const& C4_RESTRICT n, T const& wrapper)
+{
+    return read(n.tree(), n.id(), wrapper);
 }
 
 template<class T>
@@ -1652,11 +1612,21 @@ C4_ALWAYS_INLINE bool readkey(ConstNodeRef const& C4_RESTRICT n, T *v)
 {
     return readkey(n.m_tree, n.m_id, v);
 }
+template<class T>
+C4_ALWAYS_INLINE bool readkey(ConstNodeRef const& C4_RESTRICT n, T const& wrapper)
+{
+    return readkey(n.m_tree, n.m_id, wrapper);
+}
 
 template<class T>
 C4_ALWAYS_INLINE bool readkey(NodeRef const& C4_RESTRICT n, T *v)
 {
     return readkey(n.tree(), n.id(), v);
+}
+template<class T>
+C4_ALWAYS_INLINE bool readkey(NodeRef const& C4_RESTRICT n, T const& wrapper)
+{
+    return readkey(n.tree(), n.id(), wrapper);
 }
 
 /** @} */
