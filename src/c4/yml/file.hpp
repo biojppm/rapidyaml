@@ -106,7 +106,7 @@ void file_put_contents(ContiguousContainer const& v, const char *filename, const
 inline void file_get_contents(const char *filename, FILE *fp, size_t filesz, void *buf, size_t bufsz)
 {
     _RYML_ASSERT_BASIC(filesz <= bufsz);(void)bufsz;
-    size_t read = std::fread(buf, 1, filesz, fp);
+    size_t read = std::fread(buf, 1, filesz, fp); // NOLINT(clang-analyzer-unix.Errno)
     if(C4_UNLIKELY(read != filesz))
         _RYML_ERR_BASIC("{}: failed file read: expected={}B actual={}B", filename, filesz, read); // LCOV_EXCL_LINE
 }

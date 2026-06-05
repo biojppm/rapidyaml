@@ -23,7 +23,7 @@
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wold-style-cast")
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
 
 
 namespace c4 {
@@ -108,10 +108,10 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::DataType const*
             csubstr region = !in_arena ? parsed_yaml : arena;
             bool safe = (evts[evtpos + 1] >= 0)
                 && (evts[evtpos + 2] >= 0)
-                && (evts[evtpos + 1] <= (int)region.len)
-		&& (evts[evtpos + 2] <= ((int)region.len - evts[evtpos + 1]));
+                && (evts[evtpos + 1] <= (ievt::DataType)region.len) // NOLINT(use-integer-sign-comparison) // clang-tidy is wrong here
+		&& (evts[evtpos + 2] <= ((ievt::DataType)region.len - evts[evtpos + 1]));
             const char *str = safe ? (region.str + evts[evtpos + 1]) : "ERR!!!";
-            int len = safe ? evts[evtpos + 2] : 6;
+            ievt::DataType len = safe ? evts[evtpos + 2] : 6;
             printf(": %d [%d]~~~%.*s~~~", evts[evtpos+1], evts[evtpos+2], len, str);
             if(in_arena)
                 printf(" (arenasz=%zu)", arena.len);
@@ -126,6 +126,6 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::DataType const*
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
 C4_SUPPRESS_WARNING_CLANG_POP
 C4_SUPPRESS_WARNING_GCC_POP

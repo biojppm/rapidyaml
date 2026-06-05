@@ -3069,7 +3069,7 @@ C4_NO_INLINE inline size_t _find_last_newline_and_larger_indentation(csubstr s, 
 {
     if(indentation + 1 > s.len)
         return npos;
-    for(size_t i = s.len-indentation-1; i != size_t(-1); --i)
+    for(size_t i = s.len-indentation-1; i != size_t(-1); --i) // NOLINT
     {
         if(s.str[i] == '\n')
         {

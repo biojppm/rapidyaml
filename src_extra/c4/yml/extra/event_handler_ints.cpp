@@ -63,6 +63,7 @@ RYML_EXPORT int32_t estimate_events_ints_size(csubstr src)
     return count;
 }
 
+// NOLINTBEGIN(hicpp-signed-bitwise)
 // ensure the ievt flags work despite being signed
 namespace ievt {
 static_assert((MASK & BSTR) == BSTR, "overflow?");
@@ -93,9 +94,9 @@ static_assert((MASK & AREN) == AREN, "overflow?");
 static_assert((MASK & PSTR) == PSTR, "overflow?");
 static_assert((MASK & UNFILT) == UNFILT, "overflow?");
 static_assert((MASK & LAST) == LAST, "overflow?");
-static_assert((MASK & MASK) == MASK, "overflow?");
 static_assert((MASK & WSTR) == WSTR, "overflow?");
 } // namespace ievt
+// NOLINTEND(hicpp-signed-bitwise)
 
 } // namespace extra
 } // namespace yml

@@ -5,13 +5,13 @@
 
 jobs:
   clang_tidy:
-    :: setup-job('clang_tidy' 'clang_tidy') + runs-on-docker-c4core('22.04')
+    :: setup-job('clang_tidy' 'clang_tidy') + runs-on-docker-c4core('24.04')
     name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
     strategy:
       fail-fast: false
       matrix:
         include:
-        - {std: 11, clang: 18, bt: Debug, bits: 64}
+        - {std: 11, clang: 22, bt: Debug, bits: 64}
     env:: load('share/env.yaml')
     steps:
       - :: checkout-action-docker
