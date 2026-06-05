@@ -11,6 +11,25 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+TEST(asdasd,  asasldkjas)
+{
+    csubstr sstr = "ptr";
+    /* */ char mbuf[] = "ptr";
+    const char cbuf[] = "ptr";
+    EXPECT_EQ(sstr, mbuf);
+    EXPECT_EQ(sstr, cbuf);
+    EXPECT_EQ(mbuf, sstr);
+    EXPECT_EQ(cbuf, sstr);
+    EXPECT_EQ(sstr, (const char*)mbuf);
+    EXPECT_EQ(sstr, (const char*)cbuf);
+    EXPECT_EQ((const char*)mbuf, sstr);
+    EXPECT_EQ((const char*)cbuf, sstr);
+    EXPECT_EQ(sstr, (char*)mbuf);
+    EXPECT_EQ((char*)mbuf, sstr);
+    EXPECT_EQ(sstr, "ptr");
+    EXPECT_EQ("ptr", sstr);
+}
+
 template<class I>
 auto mkvals() -> typename std::enable_if<std::is_signed<I>::value, std::vector<I>>::type
 {
@@ -33,21 +52,21 @@ void test_ints()
     for(I val : values)
     {
         I out;
-        r["dec"].append_child() << val;
-        r["hex"].append_child() << fmt::hex(val);
-        r["bin"].append_child() << fmt::bin(val);
-        r["oct"].append_child() << fmt::oct(val);
+        r["dec"].append_child().save(val);
+        r["hex"].append_child().save(fmt::hex(val));
+        r["bin"].append_child().save(fmt::bin(val));
+        r["oct"].append_child().save(fmt::oct(val));
         out = notval(val);
-        r["dec"].last_child() >> out;
+        r["dec"].last_child().load(&out);
         EXPECT_EQ(out, val);
         out = notval(val);
-        r["hex"].last_child() >> out;
+        r["hex"].last_child().load(&out);
         EXPECT_EQ(out, val);
         out = notval(val);
-        r["bin"].last_child() >> out;
+        r["bin"].last_child().load(&out);
         EXPECT_EQ(out, val);
         out = notval(val);
-        r["oct"].last_child() >> out;
+        r["oct"].last_child().load(&out);
         EXPECT_EQ(out, val);
     }
     {
@@ -62,16 +81,16 @@ void test_ints()
         for(I val : values)
         {
             I out = notval(val);
-            parsed["dec"][pos] >> out;
+            parsed["dec"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["hex"][pos] >> out;
+            parsed["hex"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["bin"][pos]>> out;
+            parsed["bin"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["oct"][pos] >> out;
+            parsed["oct"][pos].load(&out);
             EXPECT_EQ(out, val);
             ++pos;
         }
@@ -92,16 +111,16 @@ void test_ints()
         for(I val : values)
         {
             I out = notval(val);
-            parsed["dec"][pos] >> out;
+            parsed["dec"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["hex"][pos] >> out;
+            parsed["hex"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["bin"][pos]>> out;
+            parsed["bin"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["oct"][pos] >> out;
+            parsed["oct"][pos].load(&out);
             EXPECT_EQ(out, val);
             ++pos;
         }
@@ -140,8 +159,8 @@ TEST(number, nan_0)
 {
     Tree t;
     t.rootref().set_seq();
-    t[0] << std::numeric_limits<float>::quiet_NaN();
-    t[1] << std::numeric_limits<double>::quiet_NaN();
+    t[0].save(std::numeric_limits<float>::quiet_NaN());
+    t[1].save(std::numeric_limits<double>::quiet_NaN());
     EXPECT_EQ(t[0].val(), ".nan");
     EXPECT_EQ(t[1].val(), ".nan");
     EXPECT_EQ(emitrs_yaml<std::string>(t),
@@ -180,8 +199,8 @@ set:
                 double d = 0.;
                 EXPECT_FALSE(std::isnan(f));
                 EXPECT_FALSE(std::isnan(d));
-                ch >> f;
-                ch >> d;
+                ch.load(&f);
+                ch.load(&d);
                 EXPECT_TRUE(std::isnan(f));
                 EXPECT_TRUE(std::isnan(d));
             }
@@ -190,8 +209,8 @@ set:
                 double d = 0.;
                 EXPECT_FALSE(std::isnan(f));
                 EXPECT_FALSE(std::isnan(d));
-                ch >> key(f);
-                ch >> key(d);
+                ch.load_key(&f);
+                ch.load_key(&d);
                 EXPECT_TRUE(std::isnan(f));
                 EXPECT_TRUE(std::isnan(d));
             }
@@ -200,10 +219,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -247,10 +266,10 @@ TEST(number, inf_0)
     t.rootref().set_seq();
     const float finf = std::numeric_limits<float>::infinity();
     const double dinf = std::numeric_limits<double>::infinity();
-    t[0] << finf;
-    t[1] << dinf;
-    t[2] << -finf;
-    t[3] << -dinf;
+    t[0].save(finf);
+    t[1].save(dinf);
+    t[2].save(-finf);
+    t[3].save(-dinf);
     EXPECT_EQ(t[0].val(), ".inf");
     EXPECT_EQ(t[1].val(), ".inf");
     EXPECT_EQ(t[2].val(), "-.inf");
@@ -312,8 +331,8 @@ set:
                 EXPECT_FALSE(fleq(d, dinf));
                 EXPECT_FALSE(std::isinf(f));
                 EXPECT_FALSE(std::isinf(d));
-                ch >> f;
-                ch >> d;
+                ch.load(&f);
+                ch.load(&d);
                 EXPECT_TRUE(fleq(f, finf));
                 EXPECT_TRUE(fleq(d, dinf));
                 EXPECT_TRUE(std::isinf(f));
@@ -326,8 +345,8 @@ set:
                 EXPECT_FALSE(fleq(d, dinf));
                 EXPECT_FALSE(std::isinf(f));
                 EXPECT_FALSE(std::isinf(d));
-                ch >> key(f);
-                ch >> key(d);
+                ch.load_key(&f);
+                ch.load_key(&d);
                 EXPECT_TRUE(fleq(f, finf));
                 EXPECT_TRUE(fleq(d, dinf));
                 EXPECT_TRUE(std::isinf(f));
@@ -338,10 +357,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -414,16 +433,16 @@ set:
             {
                 float f = 0.f;
                 double d = 0.;
-                ch >> f;
-                ch >> d;
+                ch.load(&f);
+                ch.load(&d);
                 EXPECT_TRUE(fleq(f, -finf));
                 EXPECT_TRUE(fleq(d, -dinf));
             }
             {
                 float f = 0.f;
                 double d = 0.;
-                ch >> key(f);
-                ch >> key(d);
+                ch.load_key(&f);
+                ch.load_key(&d);
                 EXPECT_TRUE(fleq(f, -finf));
                 EXPECT_TRUE(fleq(d, -dinf));
             }
@@ -432,10 +451,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -511,16 +530,16 @@ set:
             {
                 float f = 0.f;
                 double d = 0.;
-                ch >> f;
-                ch >> d;
+                ch.load(&f);
+                ch.load(&d);
                 EXPECT_TRUE(fleq(f, finf));
                 EXPECT_TRUE(fleq(d, dinf));
             }
             {
                 float f = 0.f;
                 double d = 0.;
-                ch >> key(f);
-                ch >> key(d);
+                ch.load_key(&f);
+                ch.load_key(&d);
                 EXPECT_TRUE(fleq(f, finf));
                 EXPECT_TRUE(fleq(d, dinf));
             }
@@ -529,10 +548,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -581,7 +600,7 @@ static void checkinf_(ConstNodeRef const& n)
     SCOPED_TRACE(val);
     T fa = T(0);
     EXPECT_FALSE(std::isinf(fa));
-    n >> fa;
+    n.load(&fa);
     EXPECT_TRUE(std::isinf(fa));
 }
 #define checkinf(n) do { SCOPED_TRACE(#n); checkinf_<float>(n);  checkinf_<double>(n); } while(0)
@@ -592,7 +611,7 @@ static void checknan_(ConstNodeRef const& n)
     SCOPED_TRACE(val);
     T fa = T(0);
     EXPECT_FALSE(std::isnan(fa));
-    n >> fa;
+    n.load(&fa);
     EXPECT_TRUE(std::isnan(fa));
 }
 #define checknan(n) do { SCOPED_TRACE(#n); checknan_<float>(n);  checknan_<double>(n); } while(0)
@@ -611,8 +630,8 @@ TEST(number, github_312__proposed_8e888_cannot_be_converted)
     EXPECT_FALSE(from_chars_float("-8e888", &f));
     EXPECT_FALSE(from_chars_float("-8e888", &d));
     Tree t = parse_in_arena("8e888");
-    ExpectError::check_error_visit(&t, [&]{ t.rootref() >> f; });
-    ExpectError::check_error_visit(&t, [&]{ t.rootref() >> d; });
+    ExpectError::check_error_visit(&t, [&]{ t.rootref().load(&f); });
+    ExpectError::check_error_visit(&t, [&]{ t.rootref().load(&d); });
 }
 
 TEST(number, github_312_535__json_styles_for_special_values)

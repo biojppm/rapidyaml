@@ -263,7 +263,7 @@ enum class ExpectedErrorType : int { err_none = 0, err_basic = 1, err_parse = 2,
 
 #define RYML_EXPECT_ERROR(...)                  \
     do {                                        \
-        SCOPED_TRACE("here");                   \
+        SCOPED_TRACE("call");                   \
         ExpectError:: __VA_ARGS__ ;             \
     } while(0)
 
@@ -305,12 +305,12 @@ struct ExpectError
     static void check_assert_parse(Tree *tree, fntestref fn, Location const& expected={});
     static void check_assert_parse(Tree const *tree, fntestref fn, Location const& expected={});
 
-    static void check_error_visit(            fntestref fn, id_type id=npos) { check_error_visit((Tree*)nullptr, fn, id); }
-    static void check_error_visit(Tree *tree, fntestref fn, id_type id=npos);
-    static void check_error_visit(Tree const *tree, fntestref fn, id_type id=npos);
-    static void check_assert_visit(            fntestref fn, id_type id=npos) { check_assert_visit((Tree*)nullptr, fn, id); }
-    static void check_assert_visit(Tree *tree, fntestref fn, id_type id=npos);
-    static void check_assert_visit(Tree const *tree, fntestref fn, id_type id=npos);
+    static void check_error_visit(            fntestref fn, id_type id=NONE) { check_error_visit((Tree*)nullptr, fn, id); }
+    static void check_error_visit(Tree *tree, fntestref fn, id_type id=NONE);
+    static void check_error_visit(Tree const *tree, fntestref fn, id_type id=NONE);
+    static void check_assert_visit(            fntestref fn, id_type id=NONE) { check_assert_visit((Tree*)nullptr, fn, id); }
+    static void check_assert_visit(Tree *tree, fntestref fn, id_type id=NONE);
+    static void check_assert_visit(Tree const *tree, fntestref fn, id_type id=NONE);
 };
 
 

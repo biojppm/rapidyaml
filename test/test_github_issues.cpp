@@ -358,22 +358,22 @@ TEST(github, 31)
 
     {
         NodeRef lumi = plist.append_child();
-        lumi << "Lumi";
+        lumi.save("Lumi");
         EXPECT_TRUE(lumi.is_val());
     }
 
     {
         NodeRef lumi = plist.append_child();
         lumi.set_map();
-        lumi["value"] << 1;
-        lumi["relErr"] << 0.1;
+        lumi["value"].save(1);
+        lumi["relErr"].save(0.1);
         EXPECT_TRUE(lumi.is_map());
     }
 
     {
         ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
-            lumi << "Lumi";
+            lumi.save("Lumi");
             lumi.set_map();
         });
     }
@@ -381,7 +381,7 @@ TEST(github, 31)
     {
         ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
-            lumi << "Lumi";
+            lumi.save("Lumi");
             lumi.set_seq();
         });
     }
@@ -390,7 +390,7 @@ TEST(github, 31)
         ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi.set_map();
-            lumi << "Lumi";
+            lumi.save("Lumi");
         });
     }
 }

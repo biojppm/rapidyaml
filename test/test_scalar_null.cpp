@@ -412,23 +412,23 @@ block:
         EXPECT_NE(btilde  , nullptr);
         //
         std::string s;
-        s = "asd"; fdquoted >> s; EXPECT_EQ(s, "");
-        s = "asd"; bdquoted >> s; EXPECT_EQ(s, "");
-        s = "asd"; fsquoted >> s; EXPECT_EQ(s, "");
-        s = "asd"; bsquoted >> s; EXPECT_EQ(s, "");
-        s = "asd"; bliteral >> s; EXPECT_EQ(s, "");
-        s = "asd"; bfolded  >> s; EXPECT_EQ(s, "");
-        s = "asd"; ExpectError::check_error_visit(&t, [&]{ fplain >> s; }, fplain.id());
-        s = "asd"; ExpectError::check_error_visit(&t, [&]{ bplain >> s; }, bplain.id());
-        s = "asd"; fenull >> s; EXPECT_EQ(s, "null");
-        s = "asd"; benull >> s; EXPECT_EQ(s, "null");
-        s = "asd"; ftilde >> s; EXPECT_EQ(s, "~");
-        s = "asd"; btilde >> s; EXPECT_EQ(s, "~");
+        s = "asd"; fdquoted.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; bdquoted.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; fsquoted.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; bsquoted.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; bliteral.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; bfolded.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; fplain.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; bplain.load(&s); EXPECT_EQ(s, "");
+        s = "asd"; fenull.load(&s); EXPECT_EQ(s, "null");
+        s = "asd"; benull.load(&s); EXPECT_EQ(s, "null");
+        s = "asd"; ftilde.load(&s); EXPECT_EQ(s, "~");
+        s = "asd"; btilde.load(&s); EXPECT_EQ(s, "~");
         // check error also for integral and float types
-        ExpectError::check_error_visit(&t, [&]{ int   val = 0; fplain >> val; }, fplain.id());
-        ExpectError::check_error_visit(&t, [&]{ int   val = 0; bplain >> val; }, bplain.id());
-        ExpectError::check_error_visit(&t, [&]{ float val = 0; fplain >> val; }, fplain.id());
-        ExpectError::check_error_visit(&t, [&]{ float val = 0; bplain >> val; }, bplain.id());
+        ExpectError::check_error_visit(&t, [&]{ int   val = 0; fplain.load(&val); }, fplain.id());
+        ExpectError::check_error_visit(&t, [&]{ int   val = 0; bplain.load(&val); }, bplain.id());
+        ExpectError::check_error_visit(&t, [&]{ float val = 0; fplain.load(&val); }, fplain.id());
+        ExpectError::check_error_visit(&t, [&]{ float val = 0; bplain.load(&val); }, bplain.id());
     });
 }
 
@@ -554,23 +554,23 @@ block:
         EXPECT_NE(btilde.key()  , csubstr{});
         //
         std::string s;
-        s = "asd"; fdquoted >> key(s); EXPECT_EQ(s, "");
-        s = "asd"; bdquoted >> key(s); EXPECT_EQ(s, "");
-        s = "asd"; fsquoted >> key(s); EXPECT_EQ(s, "");
-        s = "asd"; bsquoted >> key(s); EXPECT_EQ(s, "");
-        s = "asd"; bliteral >> key(s); EXPECT_EQ(s, "");
-        s = "asd"; bfolded  >> key(s); EXPECT_EQ(s, "");
-        s = "asd"; ExpectError::check_error_visit(&t, [&]{ fplain >> key(s); }, fplain.id());
-        s = "asd"; ExpectError::check_error_visit(&t, [&]{ bplain >> key(s); }, bplain.id());
-        s = "asd"; fenull >> key(s); EXPECT_EQ(s, "null");
-        s = "asd"; benull >> key(s); EXPECT_EQ(s, "null");
-        s = "asd"; ftilde >> key(s); EXPECT_EQ(s, "~");
-        s = "asd"; btilde >> key(s); EXPECT_EQ(s, "~");
+        s = "asd"; fdquoted.load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; bdquoted.load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; fsquoted.load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; bsquoted.load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; bliteral.load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; bfolded .load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; fplain.load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; bplain.load_key(&s); EXPECT_EQ(s, "");
+        s = "asd"; fenull.load_key(&s); EXPECT_EQ(s, "null");
+        s = "asd"; benull.load_key(&s); EXPECT_EQ(s, "null");
+        s = "asd"; ftilde.load_key(&s); EXPECT_EQ(s, "~");
+        s = "asd"; btilde.load_key(&s); EXPECT_EQ(s, "~");
         // check error also for integral and float types
-        ExpectError::check_error_visit(&t, [&]{ int   k = 0; fplain >> key(k); }, fplain.id());
-        ExpectError::check_error_visit(&t, [&]{ int   k = 0; bplain >> key(k); }, bplain.id());
-        ExpectError::check_error_visit(&t, [&]{ float k = 0; fplain >> key(k); }, fplain.id());
-        ExpectError::check_error_visit(&t, [&]{ float k = 0; bplain >> key(k); }, bplain.id());
+        ExpectError::check_error_visit(&t, [&]{ int   k = 0; fplain.load_key(&k); }, fplain.id());
+        ExpectError::check_error_visit(&t, [&]{ int   k = 0; bplain.load_key(&k); }, bplain.id());
+        ExpectError::check_error_visit(&t, [&]{ float k = 0; fplain.load_key(&k); }, fplain.id());
+        ExpectError::check_error_visit(&t, [&]{ float k = 0; bplain.load_key(&k); }, bplain.id());
     });
 }
 
@@ -592,9 +592,9 @@ b:
         test_check_emit_check(yaml, [](Tree const& t){
             EXPECT_TRUE(t[0].val_is_null());
             EXPECT_TRUE(t[1].val_is_null());
-            ExpectError::check_error_visit(&t, [&] { std::string s; t["a"] >> s; }, t["a"].id());
-            ExpectError::check_error_visit(&t, [&] { int s; t["a"] >> s; }, t["a"].id());
-            ExpectError::check_error_visit(&t, [&] { float s; t["a"] >> s; }, t["a"].id());
+            { std::string s; t["a"].load(&s); EXPECT_EQ(s, ""); }
+            ExpectError::check_error_visit(&t, [&] { int s; t["a"].load(&s); }, t["a"].id());
+            ExpectError::check_error_visit(&t, [&] { float s; t["a"].load(&s); }, t["a"].id());
         });
     }
 }
@@ -613,9 +613,9 @@ TEST(empty_scalar, issue471_key)
         test_check_emit_check(yaml, [](Tree const& t){
             EXPECT_TRUE(t[0].key_is_null());
             EXPECT_TRUE(t[1].key_is_null());
-            ExpectError::check_error_visit(&t, [&] { std::string s; t[0] >> key(s); }, t[0].id());
-            ExpectError::check_error_visit(&t, [&] { int s; t[0] >> key(s); }, t[0].id());
-            ExpectError::check_error_visit(&t, [&] { float s; t[0] >> key(s); }, t[0].id());
+            { std::string s; t[0].load_key(&s); EXPECT_EQ(s, ""); }
+            ExpectError::check_error_visit(&t, [&] { int s; t[0].load_key(&s); }, t[0].id());
+            ExpectError::check_error_visit(&t, [&] { float s; t[0].load_key(&s); }, t[0].id());
         });
     }
 }
@@ -775,8 +775,8 @@ TEST(empty_scalar, std_string)
     EXPECT_EQ(nullss.str, nullptr);
     EXPECT_EQ(nullss.len, 0u);
     Tree tree = parse_in_arena("{ser: {}, eq: {}}");
-    tree["ser"]["stdstr"] << stdss;
-    tree["ser"]["nullss"] << nullss;
+    tree["ser"]["stdstr"].save(stdss);
+    tree["ser"]["nullss"].save(nullss);
     tree["eq"]["stdstr"].set_val(stdss);
     tree["eq"]["nullss"].set_val(nullss);
     EXPECT_EQ(emitrs_yaml<std::string>(tree),
@@ -925,42 +925,42 @@ TEST(empty_scalar, build_zero_length_string)
     {
         NodeRef quoted = addseq("s-quoted");
         quoted.append_child().set_val("", VAL_SQUO);
-        (quoted.append_child() << ""   ).set_val_style(VAL_SQUO);
+        quoted.append_child().save("", VAL_SQUO);
         quoted.append_child().set_val(empty, VAL_SQUO);
-        (quoted.append_child() << empty).set_val_style(VAL_SQUO);
+        quoted.append_child().save(empty, VAL_SQUO);
         quoted.append_child().set_val(stdss, VAL_SQUO);
-        (quoted.append_child() << stdss).set_val_style(VAL_SQUO);
+        quoted.append_child().save(stdss, VAL_SQUO);
     }
     {
         NodeRef quoted = addseq("d-quoted");
-        {NodeRef r = quoted.append_child(); r.set_val("", VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r << ""     ; r.set_val_style(VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r.set_val(empty, VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r << empty  ; r.set_val_style(VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r.set_val(stdss, VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r << stdss  ; r.set_val_style(VAL_DQUO);}
+        quoted.append_child().set_val("", VAL_DQUO);
+        quoted.append_child().save("", VAL_DQUO);
+        quoted.append_child().set_val(empty, VAL_DQUO);
+        quoted.append_child().save(empty, VAL_DQUO);
+        quoted.append_child().set_val(stdss, VAL_DQUO);
+        quoted.append_child().save(stdss, VAL_DQUO);
     }
     {
         NodeRef quoted_null = addseq("quoted_null");
-        {NodeRef r = quoted_null.append_child(); r.set_val(nullss, VAL_SQUO);}
-        {NodeRef r = quoted_null.append_child(); r << nullss ; r.set_val_style(VAL_SQUO);}
-        {NodeRef r = quoted_null.append_child(); r << nullptr; r.set_val_style(VAL_SQUO);}
+        quoted_null.append_child().set_val(nullss, VAL_SQUO);
+        quoted_null.append_child().save(nullss, VAL_SQUO);
+        quoted_null.append_child().save(nullptr, VAL_SQUO);
     }
     {
         NodeRef non_quoted = addseq("nonquoted");
         non_quoted.append_child().set_val("");
-        non_quoted.append_child() << "";
+        non_quoted.append_child().save("");
         non_quoted.append_child().set_val(empty);
-        non_quoted.append_child() << empty;
+        non_quoted.append_child().save(empty);
         non_quoted.append_child().set_val(stdss);
-        non_quoted.append_child() << stdss;
+        non_quoted.append_child().save(stdss);
     }
     {
         NodeRef non_quoted_null = addseq("nonquoted_null");
         non_quoted_null.append_child().set_val(nullss);
-        non_quoted_null.append_child() << nullss;
+        non_quoted_null.append_child().save(nullss);
         non_quoted_null.append_child().set_val(nullptr);
-        non_quoted_null.append_child() << nullptr;
+        non_quoted_null.append_child().save(nullptr);
     }
 
     // quoted cases will never be null, regardless of the

@@ -75,16 +75,16 @@ seq:
 )";
     EXPECT_EQ(cmpbuf, exp);
 
-    // serializing: using operator<< instead of operator=
+    // serializing: using .save() instead of .set_val()
     // will make the tree serialize the value into a char
     // arena inside the tree. This arena can be reserved at will.
     int ch3 = 33, ch4 = 44;
-    s.append_child() << ch3;
-    s.append_child() << ch4;
+    s.append_child().save(ch3);
+    s.append_child().save(ch4);
 
     {
         std::string tmp = "child5";
-        s.append_child() << tmp;   // requires #include <c4/yml/std/string.hpp>
+        s.append_child().save(tmp);   // requires #include <c4/yml/std/string.hpp>
         // now tmp can go safely out of scope, as it was
         // serialized to the tree's internal string arena
         // Note the include highlighted above is required so that ryml
@@ -104,8 +104,9 @@ seq:
     EXPECT_EQ(cmpbuf, exp);
 
     // to serialize keys:
-    int k=66;
-    r.append_child() << key(k) << 7;
+    NodeRef ch = r.append_child();
+    ch.save_key(66);
+    ch.save(7);
 
     emitrs_yaml(tree, &cmpbuf);
     exp = R"(foo: 1
@@ -126,7 +127,7 @@ TEST(general, map_to_root)
     std::string cmpbuf; const char *exp;
     std::map<std::string, int> m({{"bar", 2}, {"foo", 1}});
     Tree t;
-    t.rootref() << m;
+    t.rootref().save(m);
 
     emitrs_yaml(t, &cmpbuf);
     exp = R"(bar: 2
@@ -134,11 +135,11 @@ foo: 1
 )";
     EXPECT_EQ(cmpbuf, exp);
 
-    t["foo"] << 10;
-    t["bar"] << 20;
+    t["foo"].save(10);
+    t["bar"].save(20);
 
     m.clear();
-    t.rootref() >> m;
+    t.rootref().load(&m);
 
     EXPECT_EQ(m["foo"], 10);
     EXPECT_EQ(m["bar"], 20);
