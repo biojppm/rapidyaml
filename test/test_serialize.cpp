@@ -3,6 +3,7 @@
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
+#include <c4/format_base64.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
@@ -235,6 +236,16 @@ TEST(serialize, integral)
         ExpectError::check_error_visit(&t, [&]{ t[5] >> key(i); });
         ExpectError::check_error_visit(&t, [&]{ t[6] >> key(i); });
     });
+}
+
+TEST(serialize, base64)
+{
+    Tree t = parse_in_arena("{'Hello, World!': SGVsbG8sIFdvcmxkIQ==, not: base64}");
+    print_tree(t);
+    std::string result;
+    t["Hello, World!"] >> fmt::base64(result);
+    EXPECT_EQ("Hello, World!", result);
+    ExpectError::check_error_visit(&t, [&]{ t["not"] >> fmt::base64(result); }, t["not"].id());
 }
 
 // inf and nan are tested in test_number.cpp

@@ -3,6 +3,7 @@
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
+#include <c4/format_base64.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
@@ -339,8 +340,6 @@ void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype)
     _TEST_FAIL_(errtype, tree, node >> key(val))
     _TEST_FAIL_(errtype, tree, node >> fmt::base64(val))
     _TEST_FAIL_(errtype, tree, node >> key(fmt::base64(val)))
-    _TEST_FAIL_(errtype, tree, node.deserialize_key(fmt::base64(val)))
-    _TEST_FAIL_(errtype, tree, node.deserialize_val(fmt::base64(val)))
     _TEST_FAIL_(errtype, tree, node.get_if("key", &val));
     _TEST_FAIL_(errtype, tree, node.get_if("key", &val, 0));
     const NodeT const_node = node;

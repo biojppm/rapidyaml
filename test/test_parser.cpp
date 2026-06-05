@@ -23,7 +23,10 @@ C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
     {                                                               \
         RYML_TRACE_FMT("offs={}", offs);                            \
         substr sub = buf.sub(offs);                                 \
-        EXPECT_TRUE(sub.begins_with(begins_with_)) << buf.sub(offs); \
+        if(!to_csubstr(begins_with_).empty())                       \
+        {                                                           \
+            EXPECT_TRUE(sub.begins_with(begins_with_)) << buf.sub(offs); \
+        }                                                           \
         lc.reset_with_next_line(buf, offs);                         \
         EXPECT_EQ(lc.rem, csubstr(rem_));                           \
         EXPECT_EQ(lc.full, csubstr(full_));                         \
