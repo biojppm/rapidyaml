@@ -5,7 +5,7 @@
 github_url = "https://github.com/biojppm/rapidyaml/"
 
 [version]
-current = "0.13.0"
+current = "0.14.0"
 
 # Example of a semver regexp.
 # Make sure this matches current_version before
@@ -42,7 +42,7 @@ src = "doc/Doxyfile"
 search = "PROJECT_NUMBER\\s*=\\s*{current_version}"
 [[file]]
 src = "samples/quickstart.cpp"
-search = "GIT_TAG \\s*v{current_version}"
+search = "v{current_version}"
 [[file]]
 src = "doc/doxy_main.md"
 search = ".*{current_version}.*"

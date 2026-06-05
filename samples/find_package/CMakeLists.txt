@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 project(ryml-quickstart LANGUAGES CXX)
 
 find_package(ryml REQUIRED)
+message(STATUS "Found ryml: ${ryml_DIR}")
 
 add_executable(ryml-quickstart ../quickstart.cpp)
 target_link_libraries(ryml-quickstart PRIVATE ryml::ryml)  # note the namespace!

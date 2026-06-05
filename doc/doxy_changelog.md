@@ -6,6 +6,39 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
+## 0.14.0
+
+[Github release: 0.14.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.14.0)
+
+- [PR#607](https://github.com/biojppm/rapidyaml/pull/607): add file utilities:
+  - [file_put_contents()](@ref c4::yml::file_put_contents())
+  - [file_get_contents()](@ref c4::yml::file_get_contents())
+  - [stdin_get_contents()](@ref c4::yml::stdin_get_contents())
+- [PR#609](https://github.com/biojppm/rapidyaml/pull/609): fix misbuild in gcc 16.
+- [PR#610](https://github.com/biojppm/rapidyaml/pull/610): fix clang warnings: `-Weverything`. Thanks [\@TedLyngmo](https://github.com/TedLyngmo)!
+- [PR#613](https://github.com/biojppm/rapidyaml/pull/613): fix [#612](https://github.com/biojppm/rapidyaml/pull/612): parse error on whitespace-only after block scalar indicators `|` or `>`:
+  @code{yaml}
+  space after: >\space
+  tag after: >\t
+  @endcode
+- [PR#614](https://github.com/biojppm/rapidyaml/pull/614) improve base64 serialization facilities:
+  @code{c++}
+  std::string decoded;
+  tree["node"] >> fmt::base64(decoded); // now possible
+  // also can now obtain the size explicitly:
+  substr buf = ...;
+  size_t required = 0;
+  tree["node"] >> fmt::base64(buf, &required);
+  @endcode
+- Update c4core to [0.4.0](https://github.com/biojppm/c4core/releases/tag/v0.4.0).
+
+
+### Thanks
+
+- [\@TedLyngmo](https://github.com/TedLyngmo)
+
+
+----------------------------
 ## 0.13.0
 
 [Github release: 0.13.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.13.0)
@@ -35,15 +68,15 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
     @endcode
 - [PR#604](https://github.com/biojppm/rapidyaml/pull/604): add string_view and span to the @ref c4/yml/std/std.hpp interop umbrella header.
 - Fix [600](https://github.com/biojppm/rapidyaml/issues/600): shared symbols not exported in clang on Windows ([PR#601](https://github.com/biojppm/rapidyaml/pull/601)).
-- Fix [256](https://github.com/biojppm/rapidyaml/issues/256): installation directory on Linux 64bit ([PR#599](https://github.com/biojppm/rapidyaml/pull/599)). See also original fix at [cmake#16](https://github.com/biojppm/cmake/pull/16). Big thanks to \@GabrielBarrantes and \@musicinmybrain, not just for their fixes but also for all their downstream work!
-- [PR#591](https://github.com/biojppm/rapidyaml/pull/591): Add missing includes to avoid compilation warning. Thanks \@GabrielBarrantes!
+- Fix [256](https://github.com/biojppm/rapidyaml/issues/256): installation directory on Linux 64bit ([PR#599](https://github.com/biojppm/rapidyaml/pull/599)). See also original fix at [cmake#16](https://github.com/biojppm/cmake/pull/16). Big thanks to [\@GabrielBarrantes](https://github.com/GabrielBarrantes) and [\@musicinmybrain](https://github.com/musicinmybrain), not just for their fixes but also for all their downstream work!
+- [PR#591](https://github.com/biojppm/rapidyaml/pull/591): Add missing includes to avoid compilation warning. Thanks [\@GabrielBarrantes](https://github.com/GabrielBarrantes)!
 - Update c4core to [0.3.0](https://github.com/biojppm/c4core/releases/tag/v0.3.0)
 
 
 ### Thanks
 
- - \@GabrielBarrantes
- - \@musicinmybrain
+ - [\@GabrielBarrantes](https://github.com/GabrielBarrantes)
+ - [\@musicinmybrain](https://github.com/musicinmybrain)
 
 
 ----------------------------
@@ -296,7 +329,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
   : y
   @endcode
   With this fix, **rapidyaml now has a 100% success rate for valid YAML cases** in the YAML test suite.
-- [PR#580](https://github.com/biojppm/rapidyaml/pull/580): fix compilation error when `RYML_NO_DEFAULT_CALLBACKS` is defined (thanks \@toge)
+- [PR#580](https://github.com/biojppm/rapidyaml/pull/580): fix compilation error when `RYML_NO_DEFAULT_CALLBACKS` is defined (thanks [\@toge](https://github.com/toge))
 - [PR#582](https://github.com/biojppm/rapidyaml/pull/582): fix compilation error with clang-cl
 - Fix [#584](https://github.com/biojppm/rapidyaml/pull/584): install: `RYML_VERSION` was missing from rymlConfig.cmake
 - Update c4core to [0.2.11](https://github.com/biojppm/c4core/releases/tag/v0.2.11)
@@ -309,7 +342,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 ### Thanks
 
-- \@toge
+- [\@toge](https://github.com/toge)
 
 
 ----------------------------
@@ -375,7 +408,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
   ---
   more data here
   @endcode
-- [PR#576](https://github.com/biojppm/rapidyaml/pull/576) - `extra::events_ints_print()`: Prevent integer overflow in bounds check (thanks \@bytecodesky).
+- [PR#576](https://github.com/biojppm/rapidyaml/pull/576) - `extra::events_ints_print()`: Prevent integer overflow in bounds check (thanks [\@bytecodesky](https://github.com/bytecodesky)).
 
 
 ### JSON emitting changes
@@ -427,7 +460,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 ### Thanks
 
-- \@bytecodesky
+- [\@bytecodesky](https://github.com/bytecodesky)
 
 
 
@@ -451,9 +484,9 @@ This handler is meant for use by other programming languages, and it supports co
 
 ### Fixes
 
-- Fix [#524](https://github.com/biojppm/rapidyaml/issues/524) ([PR#525](https://github.com/biojppm/rapidyaml/pull/525)): problem parsing nested map value in complex map. Kudos to \@MatthewSteel!
-- [PR#542](https://github.com/biojppm/rapidyaml/pull/542): `\x` Unicode sequences were not decoded. Thanks to \@mutativesystems!
-- [PR#541](https://github.com/biojppm/rapidyaml/pull/541): `std::is_trivial` deprecated in c++26. Thanks to \@P3RK4N!
+- Fix [#524](https://github.com/biojppm/rapidyaml/issues/524) ([PR#525](https://github.com/biojppm/rapidyaml/pull/525)): problem parsing nested map value in complex map. Kudos to [\@MatthewSteel](https://github.com/MatthewSteel)!
+- [PR#542](https://github.com/biojppm/rapidyaml/pull/542): `\x` Unicode sequences were not decoded. Thanks to [\@mutativesystems](https://github.com/mutativesystems)!
+- [PR#541](https://github.com/biojppm/rapidyaml/pull/541): `std::is_trivial` deprecated in c++26. Thanks to [\@P3RK4N](https://github.com/P3RK4N)!
 - Fix [#529](https://github.com/biojppm/rapidyaml/issues/529) ([PR#530](https://github.com/biojppm/rapidyaml/pull/530)): double-quoted `"<<"` was mistaken for an inheriting reference.
 - [PR#543](https://github.com/biojppm/rapidyaml/pull/543): improvements to experimental style API:
   - Add getters to [NodeType](@ref c4::yml::NodeType), [Tree](@ref c4::yml::Tree), [NodeRef](@ref c4::yml::NodeRef), and [ConstNodeRef](@ref c4::yml::ConstNodeRef):
@@ -468,9 +501,9 @@ This handler is meant for use by other programming languages, and it supports co
 
 ### Thanks
 
-- \@MatthewSteel
-- \@mutativesystems
-- \@P3RK4N
+- [\@MatthewSteel](https://github.com/MatthewSteel)
+- [\@mutativesystems](https://github.com/mutativesystems)
+- [\@P3RK4N](https://github.com/P3RK4N)
 
 
 ----------------------------
@@ -516,7 +549,7 @@ This handler is meant for use by other programming languages, and it supports co
 
 ### Thanks
 
-- \@davidrudlstorfer
+- [\@davidrudlstorfer](https://github.com/davidrudlstorfer)
 
 
 ----------------------------
@@ -560,7 +593,7 @@ This handler is meant for use by other programming languages, and it supports co
   : value   # this was not indented
   @endcode
 - [PR#492](https://github.com/biojppm/rapidyaml/pull/492): fix parser reset for full reuse (`m_doc_empty` was not resetted), which would cause problems under specific scenarios in subsequent reuse.
-- [PR#485](https://github.com/biojppm/rapidyaml/pull/485): improve the CI workflows (thanks to \@ingydotnet):
+- [PR#485](https://github.com/biojppm/rapidyaml/pull/485): improve the CI workflows (thanks to [\@ingydotnet](https://github.com/ingydotnet)):
   - amazing code reuse and organization, thanks to the use of YamlScript to generate the final workflows
   - all optimization levels are now covered for gcc, clang and Visual Studio.
 - [PR#499](https://github.com/biojppm/rapidyaml/pull/499): fix warnings with `-Wundef`.
@@ -568,9 +601,9 @@ This handler is meant for use by other programming languages, and it supports co
 
 ### Thanks
 
-- \@ingydotnet
-- \@perlpunk
-- \@Delian0
+- [\@ingydotnet](https://github.com/ingydotnet)
+- [\@perlpunk](https://github.com/perlpunk)
+- [\@Delian0](https://github.com/Delian0)
 
 
 ---------------------------------------
@@ -584,7 +617,7 @@ This handler is meant for use by other programming languages, and it supports co
 
 ### Thanks
 
-- \@musicinmybrain
+- [\@musicinmybrain](https://github.com/musicinmybrain)
 
 
 ---------------------------------------
@@ -622,10 +655,10 @@ This handler is meant for use by other programming languages, and it supports co
 
 ### Thanks
 
-- \@marcalff
-- \@toge
-- \@musicinmybrain
-- \@buty4649
+- [\@marcalff](https://github.com/marcalff)
+- [\@toge](https://github.com/toge)
+- [\@musicinmybrain](https://github.com/musicinmybrain)
+- [\@buty4649](https://github.com/buty4649)
 
 
 ---------------------------------------
@@ -840,7 +873,7 @@ Emit performance improved everywhere by over 1.5x and as much as 3x-4x for YAML 
 Fix major error handling problem reported in [#389](https://github.com/biojppm/rapidyaml/issues/389) ([PR#411](https://github.com/biojppm/rapidyaml/pull/411)):
 
   - The [NodeRef](@ref c4::yml::NodeRef) and [ConstNodeRef](@ref c4::yml::ConstNodeRef) classes are now conditional `noexcept` using `RYML_NOEXCEPT`, which evaluates either to nothing when assertions are enabled, and to `noexcept` otherwise. The problem was that these classes had many methods explicitly marked `noexcept`, but were doing assertions which could throw exceptions, causing an abort instead of a throw whenever the assertion called an exception-throwing error callback.
-  - This problem was compounded by assertions being enabled in every build type -- despite the intention to have them only in debug builds. There was a problem in the preprocessor code to enable assertions which led to assertions being enabled in release builds even when `RYML_USE_ASSERT` was defined to 0. Thanks to \@jdrouhard for reporting this.
+  - This problem was compounded by assertions being enabled in every build type -- despite the intention to have them only in debug builds. There was a problem in the preprocessor code to enable assertions which led to assertions being enabled in release builds even when `RYML_USE_ASSERT` was defined to 0. Thanks to [\@jdrouhard](https://github.com/jdrouhard) for reporting this.
   - Although the code is and was extensively tested, the testing was addressing mostly the happy path. Tests were added to ensure that the error behavior is as intended.
   - Together with this changeset, a major revision was carried out of the asserting/checking status of each function in the node classes. In most cases, assertions were added to functions that were missing them. So **beware** - some user code that was invalid will now assert or error out. Also, assertions and checks are now directed as much as possible to the callbacks of the closest scope: ie, if a tree has custom callbacks, errors within the tree class should go through those callbacks.
   - Also, the intended assertion behavior is now in place: *no assertions in release builds*. **Beware** as well - user code which was relying on this will now silently succeed and return garbage in release builds. See the next points, which may help.
@@ -902,9 +935,9 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 
 ### Thanks
 
-- \@Neko-Box-Coder
-- \@jdrouhard
-- \@dmachaj
+- [\@Neko-Box-Coder](https://github.com/Neko-Box-Coder)
+- [\@jdrouhard](https://github.com/jdrouhard)
+- [\@dmachaj](https://github.com/dmachaj)
 
 
 ---------------------------------------
@@ -1082,8 +1115,8 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 
 ### Thanks
 
-- \@NaN-git
-- \@dancingbug
+- [\@NaN-git](https://github.com/NaN-git)
+- [\@dancingbug](https://github.com/dancingbug)
 
 
 ---------------------------------------
@@ -1099,7 +1132,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 ## 0.4.0
 [Github release: 0.4.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.4.0)
 
-This release improves compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite/) (thanks \@ingydotnet and \@perlpunk for extensive and helpful cooperation), and adds node location tracking using the parser.
+This release improves compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite/) (thanks [\@ingydotnet](https://github.com/ingydotnet) and [\@perlpunk](https://github.com/perlpunk) for extensive and helpful cooperation), and adds node location tracking using the parser.
 
 
 ### Breaking changes
@@ -1190,7 +1223,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   // NOTE: reusing the parser with a new YAML source buffer
   // will invalidate the accelerator.
   @endcode
-  See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/bfb073265abf8c58bbeeeed7fb43270e9205c71c/samples/quickstart.cpp#L3759). Thanks to \@cschreib for submitting a working example proving how simple it could be to achieve this.
+  See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/bfb073265abf8c58bbeeeed7fb43270e9205c71c/samples/quickstart.cpp#L3759). Thanks to [\@cschreib](https://github.com/cschreib) for submitting a working example proving how simple it could be to achieve this.
 - `Parser`:
   - add `source()` and `filename()` to get the latest buffer and filename to be parsed
   - add `callbacks()` to get the parser's callbacks
@@ -1321,13 +1354,13 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Thanks
 
-- \@ingydotnet
-- \@perlpunk
-- \@cschreib
-- \@fargies
-- \@Xeonacid
-- \@aviktorov
-- \@xTVaser
+- [\@ingydotnet](https://github.com/ingydotnet
+- [\@perlpunk](https://github.com/perlpunk)
+- [\@cschreib](https://github.com/cschreib)
+- [\@fargies](https://github.com/fargies)
+- [\@Xeonacid](https://github.com/Xeonacid)
+- [\@aviktorov](https://github.com/aviktorov)
+- [\@xTVaser](https://github.com/xTVaser)
 
 
 ---------------------------------------
@@ -1437,7 +1470,7 @@ ryml::Tree   tree2  = {mr2.callbacks()};
 
 ### Thanks
 
-- \@aviktorov
+- [\@aviktorov](https://github.com/aviktorov)
 
 
 
@@ -1727,9 +1760,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 
 ### Thanks
 
-- \@mbs-c
-- \@simu
-- \@QuellaZhang
+- \@[mbs-c](https://github.com/mbs-c)
+- [\@simu](https://github.com/simu)
+- [\@QuellaZhang](https://github.com/QuellaZhang)
 
 
 ---------------------------------------
@@ -1976,7 +2009,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 
 ### Special thanks
 
-- \@Gei0r
+- [\@Gei0r](https://github.com/Gei0r)
 
 
 
@@ -2011,9 +2044,9 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 - Fix python packaging ([PR #102](https://github.com/biojppm/rapidyaml/pull/102))
 
 ### Special thanks
-- \@Gei0r
-- \@litghost
-- \@costashatz
+- [\@Gei0r](https://github.com/Gei0r)
+- [\@litghost](https://github.com/litghost)
+- [\@costashatz](https://github.com/costashatz)
 
 
 ---------------------------------------
