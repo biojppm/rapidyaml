@@ -34,7 +34,7 @@ using type_bits = uint32_t;
 typedef enum : type_bits { // NOLINT
     #define __(v) (type_bits(1) << v) // a convenience define, undefined below // NOLINT
     NOTYPE  = 0,         ///< no node type or style is set
-    KEY     = __(0),     ///< is member of a map
+    KEY     = __(0),     ///< the scalar to the left of `:` in a map's member
     VAL     = __(1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ
     MAP     = __(2),     ///< a map: a parent of KEYVAL/KEYSEQ/KEYMAP nodes
     SEQ     = __(3),     ///< a seq: a parent of VAL/SEQ/MAP nodes
@@ -52,16 +52,102 @@ typedef enum : type_bits { // NOLINT
     //
     // unfiltered flags:
     //
-    KEY_UNFILT  = __(14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
-    VAL_UNFILT  = __(15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+    KEY_UNFILT  = __(14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
+    VAL_UNFILT  = __(15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
     //
     // style flags:
     //
     FLOW_SL     = __(16), ///< mark container with single-line flow style
+                          ///<  - seqs as
+                          ///<    @code{yaml}
+                          ///<    [val1,val2]
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is not set, or
+                          ///<    @code{yaml}
+                          ///<    [val1, val2]
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
+                          ///<  - maps as
+                          ///<    @code{yaml}
+                          ///<    {key1: val1,key2: val2}
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is not set, or
+                          ///<    @code{yaml}
+                          ///<    {key1: val1, key2: val2}
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
     FLOW_ML1    = __(17), ///< mark container with multi-line flow style, 1 element per line
+                          ///<  - seqs as
+                          ///<    @code{yaml}
+                          ///<    [
+                          ///<      val1,
+                          ///<      val2
+                          ///<    ]
+                          ///<    @endcode
+                          ///<  - maps as
+                          ///<    @code{yaml}
+                          ///<    {
+                          ///<      key: val,
+                          ///<      key2: val2
+                          ///<    }
+                          ///<    @endcode
     FLOW_MLN    = __(18), ///< mark container with multi-line flow style, n elements per line,
+                          ///< wrapped (as set by @ref EmitOptions::max_cols()):
+                          ///<  - seqs as
+                          ///<    @code{yaml}
+                          ///<    [
+                          ///<      val,val,...
+                          ///<      val,val,...
+                          ///<      val,val,...
+                          ///<      ...
+                          ///<      val
+                          ///<    ]
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is not set, or
+                          ///<    @code{yaml}
+                          ///<    [
+                          ///<      val, val,...
+                          ///<      val, val,...
+                          ///<      val, val,...
+                          ///<      ...
+                          ///<      val
+                          ///<    ]
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
+                          ///<  - maps as
+                          ///<    @code{yaml}
+                          ///<    {
+                          ///<      key: val,key: val,...
+                          ///<      key: val,key: val,...
+                          ///<      ...
+                          ///<      key: val
+                          ///<    }
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is not set, or
+                          ///<    @code{yaml}
+                          ///<    {
+                          ///<      key: val, key: val,...
+                          ///<      key: val, key: val,...
+                          ///<      ...
+                          ///<      key: val
+                          ///<    }
+                          ///<    @endcode
+                          ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
     FLOW_SPC    = __(19), ///< mark container with spaces after comma when in flow mode.
+                          ///< Applies to both @ref FLOW_SL and @ref FLOW_MLN (but not
+                          ///< to @ref FLOW_ML1), and can be overriden globally by
+                          ///< @ref EmitOptions::force_flow_spc().
     BLOCK       = __(20), ///< mark container with block style
+                          ///<  - seqs as
+                          ///<    @code{yaml}
+                          ///<    - val1
+                          ///<    - val2
+                          ///<    @endcode
+                          ///<  - maps as
+                          ///<    @code{yaml}
+                          ///<    key1: val1
+                          ///<    key2: val2
+                          ///<    @endcode
     KEY_LITERAL = __(21), ///< mark key scalar as multiline, block literal |
     VAL_LITERAL = __(22), ///< mark val scalar as multiline, block literal |
     KEY_FOLDED  = __(23), ///< mark key scalar as multiline, block folded >
@@ -75,30 +161,30 @@ typedef enum : type_bits { // NOLINT
     //
     // type combination masks:
     //
-    KEYVAL  = KEY|VAL,
-    KEYSEQ  = KEY|SEQ,
-    KEYMAP  = KEY|MAP,
-    DOCMAP  = DOC|MAP,
-    DOCSEQ  = DOC|SEQ,
-    DOCVAL  = DOC|VAL,
+    KEYVAL  = KEY|VAL, ///< mask of @ref KEY|@ref VAL
+    KEYSEQ  = KEY|SEQ, ///< mask of @ref KEY|@ref SEQ
+    KEYMAP  = KEY|MAP, ///< mask of @ref KEY|@ref MAP
+    DOCMAP  = DOC|MAP, ///< mask of @ref DOC|@ref MAP
+    DOCSEQ  = DOC|SEQ, ///< mask of @ref DOC|@ref SEQ
+    DOCVAL  = DOC|VAL, ///< mask of @ref DOC|@ref VAL
     //
     // style combination masks:
     //
-    SCALAR_LITERAL = KEY_LITERAL|VAL_LITERAL,
-    SCALAR_FOLDED  = KEY_FOLDED|VAL_FOLDED,
-    SCALAR_SQUO    = KEY_SQUO|VAL_SQUO,
-    SCALAR_DQUO    = KEY_DQUO|VAL_DQUO,
-    SCALAR_PLAIN   = KEY_PLAIN|VAL_PLAIN,
-    KEYQUO         = KEY_SQUO|KEY_DQUO|KEY_FOLDED|KEY_LITERAL, ///< key style is one of ', ", > or |
-    VALQUO         = VAL_SQUO|VAL_DQUO|VAL_FOLDED|VAL_LITERAL, ///< val style is one of ', ", > or |
-    KEY_STYLE      = KEY_LITERAL|KEY_FOLDED|KEY_SQUO|KEY_DQUO|KEY_PLAIN, ///< mask of all the scalar styles for key (not container styles!)
-    VAL_STYLE      = VAL_LITERAL|VAL_FOLDED|VAL_SQUO|VAL_DQUO|VAL_PLAIN, ///< mask of all the scalar styles for val (not container styles!)
-    SCALAR_STYLE   = KEY_STYLE|VAL_STYLE,
-    CONTAINER_STYLE_BLOCK = BLOCK,
-    CONTAINER_STYLE       = FLOW_SL|FLOW_ML|BLOCK,
-    STYLE          = SCALAR_STYLE | CONTAINER_STYLE,
+    SCALAR_LITERAL = KEY_LITERAL|VAL_LITERAL,  ///< mask of @ref KEY_LITERAL|@ref VAL_LITERAL,
+    SCALAR_FOLDED  = KEY_FOLDED|VAL_FOLDED,  ///< mask of @ref KEY_FOLDED|@ref VAL_FOLDED,
+    SCALAR_SQUO    = KEY_SQUO|VAL_SQUO,  ///< mask of @ref KEY_SQUO|@ref VAL_SQUO,
+    SCALAR_DQUO    = KEY_DQUO|VAL_DQUO,  ///< mask of @ref KEY_DQUO|@ref VAL_DQUO,
+    SCALAR_PLAIN   = KEY_PLAIN|VAL_PLAIN,  ///< mask of @ref KEY_PLAIN|@ref VAL_PLAIN,
+    KEYQUO         = KEY_SQUO|KEY_DQUO|KEY_FOLDED|KEY_LITERAL, ///< key style is one of `'">|`. mask of @ref KEY_SQUO|@ref KEY_DQUO|@ref KEY_FOLDED|@ref KEY_LITERAL
+    VALQUO         = VAL_SQUO|VAL_DQUO|VAL_FOLDED|VAL_LITERAL, ///< val style is one of `'">|`. mask of @ref VAL_SQUO|@ref VAL_DQUO|@ref VAL_FOLDED|@ref VAL_LITERAL
+    KEY_STYLE      = KEYQUO|KEY_PLAIN, ///< mask of @ref KEYQUO|@ref KEY_PLAIN : all the key scalar styles for key (not container styles!)
+    VAL_STYLE      = VALQUO|VAL_PLAIN, ///< mask of @ref VALQUO|@ref VAL_PLAIN : all the val scalar styles for val (not container styles!)
+    SCALAR_STYLE   = KEY_STYLE|VAL_STYLE, ///< mask of @ref KEY_STYLE|@ref VAL_STYLE : all the key+val scalar styles
     FLOW_MLX       = FLOW_ML1|FLOW_MLN, ///< mask of @ref FLOW_ML1|@ref FLOW_MLN : all the flow multiline styles
     CONTAINER_STYLE_FLOW  = FLOW_SL|FLOW_MLX|FLOW_SPC, ///< mask of @ref FLOW_SL|@ref FLOW_MLX|@ref FLOW_SPC : all flow flags
+    CONTAINER_STYLE_BLOCK = BLOCK, ///< alias to @ref BLOCK
+    CONTAINER_STYLE       = CONTAINER_STYLE_FLOW|CONTAINER_STYLE_BLOCK, ///< mask of @ref CONTAINER_STYLE_FLOW|@ref CONTAINER_STYLE_BLOCK : all container style flags
+    STYLE          = SCALAR_STYLE | CONTAINER_STYLE, ///< mask of @ref SCALAR_STYLE | @ref CONTAINER_STYLE : all style flags
     /** @cond dev */
     //
     // mixed masks
