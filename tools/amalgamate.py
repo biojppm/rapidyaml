@@ -129,6 +129,7 @@ INSTRUCTIONS:
         "src/c4/yml/error.def.hpp",
         "src/c4/yml/escape_scalar.hpp",
         "src/c4/yml/node_type.hpp",
+        "src/c4/yml/parse_options.hpp",
         "src/c4/yml/detail/stack.hpp",
         "src/c4/yml/file.hpp",
         "src/c4/yml/tag.hpp",
