@@ -121,7 +121,9 @@ size_t NodeType::type_str(substr buf, NodeType_e flags) noexcept
     _prflag(MAP, "MAP");
     _prflag(SEQ, "SEQ");
     _prflag(FLOW_SL, "FLOWSL");
-    _prflag(FLOW_ML, "FLOWML");
+    _prflag(FLOW_ML1, "FLOWML1");
+    _prflag(FLOW_MLN, "FLOWMLN");
+    _prflag(FLOW_SPC, "FLOWSPC");
     _prflag(BLOCK, "BLCK");
     if(pos == 0)
         _prflag(NOTYPE, "NOTYPE");

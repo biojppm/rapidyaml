@@ -57,19 +57,21 @@ typedef enum : type_bits { // NOLINT
     //
     // style flags:
     //
-    FLOW_SL     = __(16), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
-    FLOW_ML     = __(17), ///< mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
-    BLOCK       = __(18), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
-    KEY_LITERAL = __(19), ///< mark key scalar as multiline, block literal |
-    VAL_LITERAL = __(20), ///< mark val scalar as multiline, block literal |
-    KEY_FOLDED  = __(21), ///< mark key scalar as multiline, block folded >
-    VAL_FOLDED  = __(22), ///< mark val scalar as multiline, block folded >
-    KEY_SQUO    = __(23), ///< mark key scalar as single quoted '
-    VAL_SQUO    = __(24), ///< mark val scalar as single quoted '
-    KEY_DQUO    = __(25), ///< mark key scalar as double quoted "
-    VAL_DQUO    = __(26), ///< mark val scalar as double quoted "
-    KEY_PLAIN   = __(27), ///< mark key scalar as plain scalar (unquoted, even when multiline)
-    VAL_PLAIN   = __(28), ///< mark val scalar as plain scalar (unquoted, even when multiline)
+    FLOW_SL     = __(16), ///< mark container with single-line flow style
+    FLOW_ML1    = __(17), ///< mark container with multi-line flow style, 1 element per line
+    FLOW_MLN    = __(18), ///< mark container with multi-line flow style, n elements per line,
+    FLOW_SPC    = __(19), ///< mark container with spaces after comma when in flow mode.
+    BLOCK       = __(20), ///< mark container with block style
+    KEY_LITERAL = __(21), ///< mark key scalar as multiline, block literal |
+    VAL_LITERAL = __(22), ///< mark val scalar as multiline, block literal |
+    KEY_FOLDED  = __(23), ///< mark key scalar as multiline, block folded >
+    VAL_FOLDED  = __(24), ///< mark val scalar as multiline, block folded >
+    KEY_SQUO    = __(25), ///< mark key scalar as single quoted '
+    VAL_SQUO    = __(26), ///< mark val scalar as single quoted '
+    KEY_DQUO    = __(27), ///< mark key scalar as double quoted "
+    VAL_DQUO    = __(28), ///< mark val scalar as double quoted "
+    KEY_PLAIN   = __(29), ///< mark key scalar as plain scalar (unquoted, even when multiline)
+    VAL_PLAIN   = __(30), ///< mark val scalar as plain scalar (unquoted, even when multiline)
     //
     // type combination masks:
     //
@@ -92,16 +94,33 @@ typedef enum : type_bits { // NOLINT
     KEY_STYLE      = KEY_LITERAL|KEY_FOLDED|KEY_SQUO|KEY_DQUO|KEY_PLAIN, ///< mask of all the scalar styles for key (not container styles!)
     VAL_STYLE      = VAL_LITERAL|VAL_FOLDED|VAL_SQUO|VAL_DQUO|VAL_PLAIN, ///< mask of all the scalar styles for val (not container styles!)
     SCALAR_STYLE   = KEY_STYLE|VAL_STYLE,
-    CONTAINER_STYLE_FLOW  = FLOW_SL|FLOW_ML,
     CONTAINER_STYLE_BLOCK = BLOCK,
     CONTAINER_STYLE       = FLOW_SL|FLOW_ML|BLOCK,
     STYLE          = SCALAR_STYLE | CONTAINER_STYLE,
+    FLOW_MLX       = FLOW_ML1|FLOW_MLN, ///< mask of @ref FLOW_ML1|@ref FLOW_MLN : all the flow multiline styles
+    CONTAINER_STYLE_FLOW  = FLOW_SL|FLOW_MLX|FLOW_SPC, ///< mask of @ref FLOW_SL|@ref FLOW_MLX|@ref FLOW_SPC : all flow flags
+    /** @cond dev */
     //
     // mixed masks
     _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
     _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
     #undef __
+    #if C4_CPP >= 17                                  \
+        || (defined(__GNUC__) && __GNUC__ >= 6)       \
+        || (defined(_MSC_VER) && !defined(__clang__))
+    #define RYML_HAS_DEPRECATED_ENUMS__
+    FLOW_ML RYML_DEPRECATED("use one of FLOW_ML{1,N,X}") = FLOW_ML1,
+    #endif
+    /** @endcond */
 } NodeType_e;
+/** @cond dev */
+#if !defined(RYML_HAS_DEPRECATED_ENUMS__)
+// defined here because the current c++ standard / compiler cannot
+// handle deprecated enums
+RYML_DEPRECATED("use one of FLOW_ML{1,N,X}")
+constexpr const NodeType_e FLOW_ML = FLOW_ML1;
+#endif
+/** @endcond */
 
 constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator|  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) | ((type_bits)rhs)); }
 constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator&  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) & ((type_bits)rhs)); }
@@ -200,10 +219,6 @@ public:
     C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { return (type & (KEY_UNFILT)) != 0; }
     C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { return (type & (VAL_UNFILT)) != 0; }
 
-    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor() const noexcept { return has_key_anchor(); }
-    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor() const noexcept { return has_val_anchor(); }
-    RYML_DEPRECATED("use has_anchor()")        bool is_anchor() const noexcept { return has_anchor(); }
-    RYML_DEPRECATED("use has_anchor() || is_ref()") bool is_anchor_or_ref() const noexcept { return has_anchor() || is_ref(); }
     /** @} */
 
 public:
@@ -214,8 +229,11 @@ public:
     C4_ALWAYS_INLINE bool is_container_styled() const noexcept { return (type & (CONTAINER_STYLE)) != 0; }
     C4_ALWAYS_INLINE bool is_block() const noexcept { return (type & (BLOCK)) != 0; }
     C4_ALWAYS_INLINE bool is_flow_sl() const noexcept { return (type & (FLOW_SL)) != 0; }
-    C4_ALWAYS_INLINE bool is_flow_ml() const noexcept { return (type & (FLOW_ML)) != 0; }
-    C4_ALWAYS_INLINE bool is_flow() const noexcept { return (type & (FLOW_ML|FLOW_SL)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow_ml1() const noexcept { return (type & (FLOW_ML1)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow_mln() const noexcept { return (type & (FLOW_MLN)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow_mlx() const noexcept { return (type & (FLOW_ML1|FLOW_MLN)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow() const noexcept { return (type & (FLOW_ML1|FLOW_MLN|FLOW_SL)) != 0; }
+    C4_ALWAYS_INLINE bool has_flow_space() const noexcept { return (type & (FLOW_SPC)) != 0; }
 
     C4_ALWAYS_INLINE bool is_key_styled() const noexcept { return (type & (KEY_STYLE)) != 0; }
     C4_ALWAYS_INLINE bool is_val_styled() const noexcept { return (type & (VAL_STYLE)) != 0; }
@@ -243,6 +261,17 @@ public:
 
     /** @} */
 
+public: // deprecated methods
+
+    /** @cond dev */ // LCOV_EXCL_START
+    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor() const noexcept { return has_key_anchor(); }
+    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor() const noexcept { return has_val_anchor(); }
+    RYML_DEPRECATED("use has_anchor()")        bool is_anchor() const noexcept { return has_anchor(); }
+    RYML_DEPRECATED("use has_anchor() || is_ref()") bool is_anchor_or_ref() const noexcept { return has_anchor() || is_ref(); }
+
+    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()")
+    bool is_flow_ml() const noexcept { return (type & (FLOW_ML1)) != 0; }
+    /** @endcond */ // LCOV_EXCL_STOP
 };
 
 
@@ -278,15 +307,13 @@ inline NodeType_e scalar_style_choose(csubstr s, bool flow=true) noexcept
 
 /** choose a json scalar style based on the scalar's contents */
 RYML_EXPORT NodeType_e scalar_style_choose_json(csubstr scalar) noexcept;
-/** @cond dev */
-// LCOV_EXCL_START
+/** @cond dev */ // LCOV_EXCL_START
 RYML_DEPRECATED("use scalar_style_choose_json()")
 inline NodeType_e scalar_style_json_choose(csubstr scalar) noexcept
 {
     return scalar_style_choose_json(scalar);
 }
-// LCOV_EXCL_STOP
-/** @endcond */
+/** @endcond */ // LCOV_EXCL_STOP
 
 
 /** query whether a scalar can be encoded using single quotes.
