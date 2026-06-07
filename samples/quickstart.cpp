@@ -4285,10 +4285,7 @@ void sample_emit_to_file()
     const ryml::Tree tree = ryml::parse_in_arena(yml);
     // this is emitting to stdout, but of course you can pass in any
     // FILE* obtained from fopen()
-    size_t len = ryml::emit_yaml(tree, tree.root_id(), stdout);
-    // the return value is the number of characters that were written
-    // to the file
-    CHECK(len == yml.len);
+    ryml::emit_yaml(tree, tree.root_id(), stdout);
 }
 
 

@@ -350,9 +350,6 @@ struct CaseDataLineEndings
 
     Tree parsed_tree{0};
 
-    size_t numbytes_stdout;
-    size_t numbytes_stdout_json;
-
     std::string emit_buf;
     csubstr emitted_yml;
 

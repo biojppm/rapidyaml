@@ -32,48 +32,35 @@ namespace yml {
 struct WriterFile
 {
     FILE * m_file;
-    size_t m_pos;
 
-    WriterFile(FILE *f = nullptr) : m_file(f ? f : stdout), m_pos(0) {}
-
-    substr _get(bool /*error_on_excess*/) const
-    {
-        substr sp;
-        sp.str = nullptr;
-        sp.len = m_pos;
-        return sp;
-    }
+    WriterFile(FILE *f = nullptr) noexcept : m_file(f ? f : stdout) {}
 
     template<size_t N>
-    void _do_write(const char (&a)[N]) noexcept
+    void _do_write(const char (&a)[N]) noexcept // NOLINT
     {
         static_assert(N > 1, "empty string");
         (void)fwrite(a, sizeof(char), N - 1, m_file);
-        m_pos += N - 1;
     }
 
-    void _do_write(csubstr s) noexcept
+    void _do_write(csubstr s) noexcept // NOLINT
     {
         if(s.len)
         {
             C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wsign-conversion")
             (void)fwrite(s.str, sizeof(csubstr::char_type), s.len, m_file);
-            m_pos += s.len;
             C4_SUPPRESS_WARNING_GCC_CLANG_POP
         }
     }
 
-    void _do_write(const char c) noexcept
+    void _do_write(const char c) noexcept // NOLINT
     {
         (void)fputc(c, m_file);
-        ++m_pos;
     }
 
-    void _do_write(const char c, size_t num_times) noexcept
+    void _do_write(const char c, size_t num_times) noexcept // NOLINT
     {
         for(size_t i = 0; i < num_times; ++i)
             (void)fputc(c, m_file);
-        m_pos += num_times;
     }
 };
 
@@ -92,24 +79,14 @@ template<class OStream>
 struct WriterOStream
 {
     OStream* m_stream;
-    size_t   m_pos;
 
-    WriterOStream(OStream &s) : m_stream(&s), m_pos(0) {}
-
-    substr _get(bool /*error_on_excess*/) const noexcept
-    {
-        substr sp;
-        sp.str = nullptr;
-        sp.len = m_pos;
-        return sp;
-    }
+    WriterOStream(OStream &s) noexcept : m_stream(&s) {}
 
     template<size_t N>
     void _do_write(const char (&a)[N]) noexcept
     {
         static_assert(N > 1, "empty string");
         m_stream->write(a, N - 1);
-        m_pos += N - 1;
     }
 
     void _do_write(csubstr s) noexcept
@@ -118,7 +95,6 @@ struct WriterOStream
         {
             C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wsign-conversion")
             m_stream->write(s.str, s.len);
-            m_pos += s.len;
             C4_SUPPRESS_WARNING_GCC_CLANG_POP
         }
     }
@@ -126,14 +102,12 @@ struct WriterOStream
     void _do_write(const char c) noexcept
     {
         m_stream->put(c);
-        ++m_pos;
     }
 
     void _do_write(const char c, size_t num_times) noexcept
     {
         for(size_t i = 0; i < num_times; ++i)
             m_stream->put(c);
-        m_pos += num_times;
     }
 };
 

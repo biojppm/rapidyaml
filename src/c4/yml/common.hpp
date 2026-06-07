@@ -104,6 +104,50 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
  * @see sample::sample_emit_style
  */
 
+/** @defgroup doc_emit_to_buffer Emit to a memory buffer
+ * @ingroup doc_emit
+ */
+/** @defgroup doc_emit_to_buffer_from_root Emit full tree
+ * @ingroup doc_emit_to_buffer
+ */
+/** @defgroup doc_emit_to_buffer_from_node_id Emit from nested node id
+ * @ingroup doc_emit_to_buffer
+ */
+/** @defgroup doc_emit_to_buffer_from_noderef Emit from ConstNodeRef
+ * @ingroup doc_emit_to_buffer
+ */
+
+/** @defgroup doc_emit_to_container Emit to a contiguous memory container like std::string or std::vector<char>
+ * @ingroup doc_emit
+ */
+/** @defgroup doc_emit_to_container_from_root Emit full tree
+ * @ingroup doc_emit_to_container
+ */
+/** @defgroup doc_emit_to_container_from_node_id Emit from nested node id
+ * @ingroup doc_emit_to_container
+ */
+/** @defgroup doc_emit_to_container_from_noderef Emit from ConstNodeRef
+ * @ingroup doc_emit_to_container
+ */
+
+/** @defgroup doc_emit_to_file Emit to file
+ * @ingroup doc_emit
+ */
+/** @defgroup doc_emit_to_file_from_root Emit full tree
+ * @ingroup doc_emit_to_file
+ */
+/** @defgroup doc_emit_to_file_from_node_id Emit from nested node id
+ * @ingroup doc_emit_to_file
+ */
+/** @defgroup doc_emit_to_file_from_noderef Emit from ConstNodeRef
+ * @ingroup doc_emit_to_file
+ */
+
+/** @defgroup doc_emit_to_ostream Emit to an STL-like ostream
+ * @ingroup doc_emit
+ */
+
+
 /** @defgroup doc_node_type Node types
  */
 
