@@ -5,6 +5,63 @@
 Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/blob/master/changelog/current.md)
 
 
+
+----------------------------
+## 0.15.0
+
+[Github release: 0.15.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.15.0)
+
+- [PR#615](https://github.com/biojppm/rapidyaml/pull/615): add flow style customization:
+  - Add [FLOW_SPC](@ref c4::yml::FLOW_SPC) to force space after comma in flow style containers:
+    @code{c++}
+    c4::yml::Tree tree = c4::yml::parse_in_arena("[0,1,2,3,4,5,6]");
+    CHECK(c4::yml::emitrs_yaml<std::string>(tree), "[0,1,2,3,4,5,6]");
+    // add spaces:
+    tree.rootref().set_container_style(c4::yml::FLOW_SL|c4::yml::FLOW_SPC);
+    CHECK(c4::yml::emitrs_yaml<std::string>(tree), "[0, 1, 2, 3, 4, 5, 6]");
+    @endcode
+  - Add [FLOW_MLN](@ref c4::yml::FLOW_MLN) (flow multiline, multi-values per line, wrapped at max columns). The old `FLOW_ML` was deprecated, and is now known as [FLOW_ML1](@ref c4::yml::FLOW_ML1) (flow multiline, 1 value per line):
+    @code{c++}
+    tree.rootref().set_container_style(c4::yml::FLOW_ML1);
+    CHECK(c4::yml::emitrs_yaml<std::string>(tree),
+          "[\n"
+          "  0,\n"
+          "  1,\n"
+          "  2,\n"
+          "  3,\n"
+          "  4,\n"
+          "  5,\n"
+          "  6\n"
+          "]\n");
+    tree.rootref().set_container_style(c4::yml::FLOW_MLN);
+    CHECK(c4::yml::emitrs_yaml<std::string>(tree),
+          "[\n"
+          "  0,1,2,3,4,5,6\n"
+          "]\n");
+    @endcode
+  - Add [FLOW_MLX](@ref c4::yml::FLOW_MLX) mask to match both [FLOW_ML1](@ref c4::yml::FLOW_ML1) and [FLOW_MLN](@ref c4::yml::FLOW_MLN)
+  - Add [EmitOptions::max_cols()](@ref c4::yml::EmitOptions::max_cols()) to control wrapping of [FLOW_MLN](@ref c4::yml::FLOW_MLN):
+    @code{c++}
+    auto maxcols8 = c4::yml::EmitOptions{}.max_cols(8);
+    CHECK(c4::yml::emitrs_yaml<std::string>(tree, maxcols8),
+          "[\n"
+          "  0,1,2,\n"
+          "  3,4,5,\n"
+          "  6\n"
+          "]\n");
+    @endcode
+  - Add [EmitOptions::force_flow_spc()](@ref c4::yml::EmitOptions::force_flow_spc()) to override all per-node settings of [FLOW_SPC](@ref c4::yml::FLOW_SPC) when emitting:
+    @code{c++}
+    auto force_spaces = c4::yml::EmitOptions{}.force_flow_spc(true);
+    CHECK(c4::yml::emitrs_yaml<std::string>(tree, force_spaces),
+          "[\n"
+          "  0, 1, 2, 3, 4, 5, 6\n"
+          "]\n");
+    @endcode
+  - Add [ParserOptions::flow_ml_style()](@ref c4::yml::ParserOptions::flow_ml_style()) to choose the multiline flow style to assign while parsing. The default value is still [FLOW_ML1](@ref c4::yml::FLOW_ML1) (the old behavior), but this option allows picking any of [FLOW_MLN](@ref c4::yml::FLOW_MLN) or [FLOW_ML1](@ref c4::yml::FLOW_ML1).
+  - See [sample_style_flow_formatting()](@ref sample_style_flow_formatting()) in the quickstart for more info.
+
+
 ----------------------------
 ## 0.14.0
 
