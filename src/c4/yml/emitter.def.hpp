@@ -1,33 +1,64 @@
-#ifndef _C4_YML_EMIT_DEF_HPP_
-#define _C4_YML_EMIT_DEF_HPP_
+#ifndef _C4_YML_EMITTER_DEF_HPP_
+#define _C4_YML_EMITTER_DEF_HPP_
 
-#ifndef _C4_YML_EMIT_HPP_
-#include "c4/yml/emit.hpp"
+/** @file emitter.def.hpp */
+
+#ifndef _C4_YML_EMITTER_HPP_
+#include "c4/yml/emitter.hpp"
 #endif
-
-/** @file emit.def.hpp Definitions for emit functions. */
+#ifndef _C4_YML_TREE_HPP_
+#include "c4/yml/tree.hpp"
+#endif
 #ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
 #include "c4/yml/detail/dbgprint.hpp"
 #endif
+#ifndef _C4_YML_ERROR_HPP_
+#include "c4/yml/error.hpp"
+#endif
+
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 // NOLINTBEGIN(modernize-avoid-c-style-cast)
 
 namespace c4 {
 namespace yml {
 
+namespace {
+C4_SUPPRESS_WARNING_GCC_PUSH
+#if defined(__GNUC__) && (__GNUC__ < 5) && (!defined(__clang__))
+// g++-4.x has problems with the operand types here...
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wparentheses")
+#endif
+enum : type_bits { // NOLINT
+    _styles_block_key = KEY_LITERAL|KEY_FOLDED,
+    _styles_block_val = VAL_LITERAL|VAL_FOLDED,
+    _styles_block     = ((type_bits)_styles_block_key) | ((type_bits)_styles_block_val),
+    _styles_flow_key  = KEY_STYLE & (~((type_bits)_styles_block_key)),
+    _styles_flow_val  = VAL_STYLE & (~((type_bits)_styles_block_val)),
+    _styles_flow      = ((type_bits)_styles_flow_key) | ((type_bits)_styles_flow_val),
+    _styles_squo      = KEY_SQUO|VAL_SQUO,
+    _styles_dquo      = KEY_DQUO|VAL_DQUO,
+    _styles_plain     = KEY_PLAIN|VAL_PLAIN,
+    _styles_literal   = KEY_LITERAL|VAL_LITERAL,
+    _styles_folded    = KEY_FOLDED|VAL_FOLDED,
+};
+C4_SUPPRESS_WARNING_GCC_POP
+} // namespace
+
+
 template<class Writer>
-void Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id)
+void Emitter<Writer>::emit_as(EmitType_e type, Tree const* tree, id_type id)
 {
-    if(tree.empty())
+    if(!tree || tree->empty())
     {
-        _RYML_ASSERT_BASIC_(tree.callbacks(), id == NONE);
+        _RYML_ASSERT_BASIC_(tree->callbacks(), id == NONE);
         return;
     }
     if(id == NONE)
-        id = tree.root_id();
-    _RYML_CHECK_VISIT_(tree.callbacks(), id < tree.capacity(), &tree, id);
-    m_tree = &tree;
+        id = tree->root_id();
+    _RYML_CHECK_VISIT_(tree->callbacks(), id < tree->capacity(), tree, id);
+    m_tree = tree;
     m_col = 0;
     m_depth = 0;
     m_ilevel = 0;
@@ -401,6 +432,37 @@ void Emitter<Writer>::_flow_map_open_entry(id_type node)
 
 
 //-----------------------------------------------------------------------------
+
+template<class Writer>
+C4_NODISCARD bool Emitter<Writer>::_maybe_start_flow_pws_ml(id_type node) noexcept
+{
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->type(node) & (FLOW_ML1|FLOW_MLN), m_tree, node);
+    if(m_flow_pws.active)
+        return false;
+    NodeType ty = m_tree->type(node);
+    if(m_opts.force_flow_spc())
+        ty |= FLOW_SPC;
+    m_flow_pws.start(ty, m_opts.max_cols());
+    return true;
+}
+
+template<class Writer>
+C4_NODISCARD typename Emitter<Writer>::flow_pws Emitter<Writer>::_setup_flow_pws_sl(id_type node) noexcept
+{
+    flow_pws ret = {};
+    if(m_flow_pws.active)
+    {
+        ret = m_flow_pws;
+    }
+    else
+    {
+        NodeType ty = m_tree->type(node);
+        if(m_opts.force_flow_spc())
+            ty |= FLOW_SPC;
+        ret.start(ty, 0);
+    }
+    return ret;
+}
 
 template<class Writer>
 void Emitter<Writer>::flow_pws::start(NodeType ty, size_t max_cols_) noexcept
@@ -1616,4 +1678,4 @@ void Emitter<Writer>::_json_write_number(csubstr s)
 // NOLINTEND(modernize-avoid-c-style-cast)
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
-#endif /* _C4_YML_EMIT_DEF_HPP_ */
+#endif /* _C4_YML_EMITTTER_DEF_HPP_ */

@@ -1,3 +1,17 @@
 - [PR#616](https://github.com/biojppm/rapidyaml/pull/616): Clean emit API **[BREAKING]**
   - `WriterFile` and `WriterOStream` no longer track the number of emitted bytes.
   - `error_on_excess` is now used in the emit-to-buffer overloads, and no longer in the main `Emitter::emit_as()` driver function.
+- [PR#617](https://github.com/biojppm/rapidyaml/pull/617): Clean emit API, part 2: tidy emit classes among new header files:
+  - c4/yml/emit_buf.cpp
+  - c4/yml/emit_buf.hpp
+  - c4/yml/emit_container.hpp
+  - c4/yml/emit_file.cpp
+  - c4/yml/emit_file.hpp
+  - c4/yml/emit_options.hpp
+  - c4/yml/emit_ostream.hpp
+  - c4/yml/emitter.hpp
+  - c4/yml/emitter.def.hpp
+  - c4/yml/writer_buf.hpp
+  - c4/yml/writer_file.hpp
+  - c4/yml/writer_ostream.hpp
+  `c4/yml/writer.hpp` and `c4/yml/emit.hpp` still bring in everything as before, but should now be avoided in favor of including only the specific headers needed by the user.. This enables better compilation speeds. Other than some internal changes (in the types passed to the main driver function `Emitter::parse_as()`), there are no logic changes.

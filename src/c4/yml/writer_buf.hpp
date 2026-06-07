@@ -1,0 +1,87 @@
+#ifndef _C4_YML_WRITER_BUF_HPP_
+#define _C4_YML_WRITER_BUF_HPP_
+
+#ifndef _C4_YML_ERROR_HPP_
+#include "c4/yml/error.hpp"
+#endif
+
+#include <string.h> // memcpy(), memset()
+
+namespace c4 {
+namespace yml {
+
+
+/** A writer to a memory buffer, in the form of a @ref substr . No
+ * overflow occurs; the buffer size is strictly respected.
+ *
+ * @ingroup doc_writers
+ * @ingroup doc_emit_to_buffer */
+struct RYML_EXPORT WriterBuf
+{
+    substr m_buf;
+    size_t m_pos;
+
+    WriterBuf(substr sp) noexcept : m_buf(sp), m_pos(0) {}
+
+public:
+
+    /** Return the buffer written so far, or optionally throw an error
+     * if the buffer was too small.  */
+    substr _get(bool error_on_excess) const
+    {
+        if(m_pos <= m_buf.len)
+        {
+            return m_buf.first(m_pos);
+        }
+        else if(!error_on_excess)
+        {
+            substr sp;
+            sp.str = nullptr;
+            sp.len = m_pos;
+            return sp;
+        }
+        else
+        {
+            _RYML_ERR_BASIC("not enough space in the given buffer");
+        }
+    }
+
+public:
+
+    template<size_t N>
+    void _do_write(const char (&a)[N]) noexcept
+    {
+        static_assert(N > 1, "empty string");
+        _RYML_ASSERT_BASIC( ! m_buf.overlaps(a));
+        if(m_pos + N-1 <= m_buf.len)
+            memcpy(m_buf.str + m_pos, a, N-1);
+        m_pos += N-1;
+    }
+
+    void _do_write(csubstr s) noexcept
+    {
+        _RYML_ASSERT_BASIC( ! s.overlaps(m_buf));
+        if(s.len && m_pos + s.len <= m_buf.len)
+            memcpy(m_buf.str + m_pos, s.str, s.len);
+        m_pos += s.len;
+    }
+
+    void _do_write(const char c) noexcept
+    {
+        if(m_pos + 1 <= m_buf.len)
+            m_buf.str[m_pos] = c;
+        ++m_pos;
+    }
+
+    void _do_write(const char c, size_t num_times) noexcept
+    {
+        if(m_pos + num_times <= m_buf.len)
+            memset(m_buf.str + m_pos, c, num_times);
+        m_pos += num_times;
+    }
+};
+
+} // namespace yml
+} // namespace c4
+
+#endif /* _C4_YML_WRITER_BUF_HPP_ */
