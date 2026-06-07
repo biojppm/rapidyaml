@@ -25,7 +25,7 @@ inline const char* _container_style_code(Tree const& p, id_type node)
 {
     if(p.is_container(node))
     {
-        if(p._p(node)->m_type & (FLOW_SL|FLOW_ML))
+        if(p._p(node)->m_type & (FLOW_SL|FLOW_MLX))
         {
             return "[FLOW]";
         }

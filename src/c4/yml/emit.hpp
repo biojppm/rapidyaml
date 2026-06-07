@@ -62,43 +62,106 @@ public:
 
     /** @cond dev */
     typedef enum : uint32_t { // NOLINT
-        EMIT_NONROOT_KEY = 1u << 0u,
-        EMIT_NONROOT_DASH = 1u << 1u,
+        INDENT_FLOW_ML = 1u << 0u,
+        FORCE_FLOW_SPC = 1u << 1u,
+        EMIT_NONROOT_KEY = 1u << 2u,
+        EMIT_NONROOT_DASH = 1u << 3u,
         EMIT_NONROOT_MARKUP = EMIT_NONROOT_KEY|EMIT_NONROOT_DASH,
-        INDENT_FLOW_ML = 1u << 2u,
         JSON_ERR_ON_TAG = 1u << 3u,
         JSON_ERR_ON_ANCHOR = 1u << 4u,
         _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
         DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML,
-    } EmitOptionFlags_e;
+    } Flags_e;
     /** @endcond */
+
+private:
+
+    EmitOptions& set_flags_(bool enabled, Flags_e f)
+    {
+        if(enabled)
+            m_flags |= f;
+        else
+            m_flags &= ~f;
+        return *this;
+    }
 
 public:
 
-    /** @name option flags
+    /** @name flow customization
      *
      * @{ */
 
-    C4_ALWAYS_INLINE bool emit_nonroot_key() const noexcept { return (m_option_flags & EMIT_NONROOT_KEY) != 0; }
-    EmitOptions& emit_nonroot_key(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | EMIT_NONROOT_KEY) : (m_option_flags & ~EMIT_NONROOT_KEY)); return *this; }
+    /** Indent the contents of @ref FLOW_ML1 and @ref FLOW_MLN
+     * containers. Enabled by default. */
+    C4_ALWAYS_INLINE bool indent_flow_ml() const noexcept { return (m_flags & INDENT_FLOW_ML) != 0; }
+    EmitOptions& indent_flow_ml(bool enabled) noexcept { return set_flags_(enabled, INDENT_FLOW_ML); }
 
-    C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_option_flags & EMIT_NONROOT_DASH) != 0; }
-    EmitOptions& emit_nonroot_dash(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | EMIT_NONROOT_DASH) : (m_option_flags & ~EMIT_NONROOT_DASH)); return *this; }
+    /** Force everywhere a space after comma in flow mode, overriding
+     * the @ref FLOW_SPC status of individual containers. This only
+     * applies to @ref FLOW_ML1 or @ref FLOW_MLN containers. Disabled
+     * by default. */
+    EmitOptions& force_flow_spc(bool enabled) noexcept { return set_flags_(enabled, FORCE_FLOW_SPC); }
+    C4_ALWAYS_INLINE bool force_flow_spc() const noexcept { return (m_flags & FORCE_FLOW_SPC) != 0; }
 
-    C4_ALWAYS_INLINE bool indent_flow_ml() const noexcept { return (m_option_flags & INDENT_FLOW_ML) != 0; }
-    EmitOptions& indent_flow_ml(bool enabled) noexcept { m_option_flags = (EmitOptionFlags_e)(enabled ? (m_option_flags | INDENT_FLOW_ML) : (m_option_flags & ~INDENT_FLOW_ML)); return *this; }
-
-    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return (EmitOptionFlags_e)(m_option_flags & _JSON_ERR_MASK); }
-    EmitOptions& json_error_flags(EmitOptionFlags_e d) noexcept { m_option_flags = (EmitOptionFlags_e)(d & _JSON_ERR_MASK); return *this; }
+    /** Set max columns for the emitted YAML in @ref FLOW_MLN
+     * mode. This will make the emitted YAML wrap around when the line
+     * reaches max cols, but only in containers with @ref FLOW_MLN
+     * mode. Defaults to 80 columns. */
+    EmitOptions& max_cols(id_type cols) noexcept { m_max_cols = cols; return *this; }
+    C4_ALWAYS_INLINE id_type max_cols() const noexcept { return m_max_cols; }
+    static constexpr const id_type max_cols_default = 80;
 
     /** @} */
 
 public:
 
-    /** @name max depth for the emitted tree
+    /** @name option flags - control emission of non-root (nested) nodes
      *
-     * This makes the emitter fail when emitting trees exceeding the
-     * max_depth.
+     * @{ */
+
+    /** When emit starts on a node which is not the root node, emit
+     * the node key as well. This will make the resuling YAML a map
+     * with the node as its single element. Enabled by default. */
+    EmitOptions& emit_nonroot_key(bool enabled) noexcept { return set_flags_(enabled, EMIT_NONROOT_KEY); }
+    C4_ALWAYS_INLINE bool emit_nonroot_key() const noexcept { return (m_flags & EMIT_NONROOT_KEY) != 0; }
+
+    /** When emit starts on a node which is not the root node, emit a
+     * leading dash. This will make the resulting YAML a seq with the
+     * node as its single element. Disabled by default. */
+    EmitOptions& emit_nonroot_dash(bool enabled) noexcept { return set_flags_(enabled, EMIT_NONROOT_DASH); }
+    C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_flags & EMIT_NONROOT_DASH) != 0; }
+
+    /** @} */
+
+public:
+
+    /** @name option flags - json behavior
+     *
+     * @{ */
+
+    /** Whether to trigger an error (or ignore the tag) when finding a tag
+     * in json mode. Disabled by default. */
+    EmitOptions& json_err_on_tag(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_TAG); }
+    C4_ALWAYS_INLINE bool json_err_on_tag() const noexcept { return (m_flags & JSON_ERR_ON_TAG) != 0; }
+
+    /** Whether to trigger an error (or ignore the anchor) when finding an
+     * anchor in json mode. Disabled by default. */
+    EmitOptions& json_err_on_anchor(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_ANCHOR); }
+    C4_ALWAYS_INLINE bool json_err_on_anchor() const noexcept { return (m_flags & JSON_ERR_ON_ANCHOR) != 0; }
+
+    /** @cond dev */
+    RYML_DEPRECATED("use .json_err_on_{tag,anchor}()") C4_ALWAYS_INLINE Flags_e json_error_flags() const noexcept { return (Flags_e)(m_flags & _JSON_ERR_MASK); }
+    RYML_DEPRECATED("use .json_err_on_{tag,anchor}()") EmitOptions& json_error_flags(Flags_e d) noexcept { m_flags = (d & _JSON_ERR_MASK); return *this; }
+    /** @endcond */
+
+    /** @} */
+
+public:
+
+    /** @name maximum depth for the emitted tree
+     *
+     * This prevents stack overflows by making the emitter fail when
+     * the tree exceeds the maximum depth.
      *
      * @{ */
     C4_ALWAYS_INLINE id_type max_depth() const noexcept { return m_max_depth; }
@@ -111,14 +174,15 @@ public:
     bool operator== (const EmitOptions& that) const noexcept
     {
         return m_max_depth == that.m_max_depth &&
-            m_option_flags == that.m_option_flags;
+            m_flags == that.m_flags;
     }
 
 private:
 
     /** @cond dev */
     id_type m_max_depth{max_depth_default};
-    EmitOptionFlags_e m_option_flags{DEFAULT_FLAGS};
+    id_type m_max_cols{max_cols_default};
+    uint32_t m_flags{DEFAULT_FLAGS};
     /** @endcond */
 };
 
@@ -148,6 +212,7 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        , m_flow_pws()
     {}
 
     /** Construct the emitter and its internal Writer state, using default emit options.
@@ -162,6 +227,7 @@ public:
         , m_depth()
         , m_ilevel()
         , m_pws()
+        , m_flow_pws()
     {}
 
 public:
@@ -211,6 +277,83 @@ public:
     /** get the max depth for emitted trees (to prevent a stack overflow) */
     id_type max_depth() const noexcept { return m_opts.max_depth(); }
 
+private: // pending whitespace
+
+    /// pending whitespace
+    typedef enum : uint32_t { _PWS_NONE = 0u, _PWS_SPACE = 1u, _PWS_NEWL = 2u } Pws_e; // NOLINT
+
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_none() noexcept
+    {
+        m_pws = _PWS_NONE;
+    }
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_newl() noexcept
+    {
+        m_pws = _PWS_NEWL;
+    }
+    /// set pending whitespace, ignoring pending
+    C4_ALWAYS_INLINE void _pend_space() noexcept
+    {
+        m_pws = _PWS_SPACE;
+    }
+    /// write pending whitespace, and then set the next pending whitespace
+    C4_ALWAYS_INLINE void _write_pws_and_pend(Pws_e next=_PWS_NONE) noexcept
+    {
+        if(m_pws == _PWS_SPACE)
+        {
+            _write(' ');
+        }
+        else if(m_pws == _PWS_NEWL)
+        {
+            _newl();
+            _indent(m_ilevel);
+        }
+        m_pws = next;
+    }
+
+    /// specs for obtaining pending whitespace in flow mode
+    struct flow_pws
+    {
+        size_t max_cols = 0; // leave this member first to avoid padding
+        Pws_e pend_after_comma = _PWS_NONE;
+        bool active = false;
+        C4_ALWAYS_INLINE Pws_e next_pws(size_t col) const noexcept
+        {
+            return (active && col >= max_cols) ? _PWS_NEWL : pend_after_comma;
+        }
+        void start(NodeType ty, size_t max_cols_) noexcept;
+        void stop() noexcept { active = false; }
+    };
+
+    C4_NODISCARD bool _maybe_start_flow_pws_ml(id_type node) noexcept
+    {
+        _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->type(node) & (FLOW_ML1|FLOW_MLN), m_tree, node);
+        if(m_flow_pws.active)
+            return false;
+        NodeType ty = m_tree->type(node);
+        if(m_opts.force_flow_spc())
+            ty |= FLOW_SPC;
+        m_flow_pws.start(ty, m_opts.max_cols());
+        return true;
+    }
+    C4_NODISCARD flow_pws _setup_flow_pws_sl(id_type node) noexcept
+    {
+        flow_pws ret = {};
+        if(m_flow_pws.active)
+        {
+            ret = m_flow_pws;
+        }
+        else
+        {
+            NodeType ty = m_tree->type(node);
+            if(m_opts.force_flow_spc())
+                ty |= FLOW_SPC;
+            ret.start(ty, 0);
+        }
+        return ret;
+    }
+
 private:
 
     /** @cond dev */
@@ -240,13 +383,12 @@ private:
     void _blck_seq_open_entry(id_type id);
     void _blck_map_open_entry(id_type id);
     void _blck_close_entry(id_type id);
-    void _blck_write_qmrk(id_type id, csubstr key, type_bits type, bool has_qmrk_comments);
     void _blck_write_scalar(csubstr str, type_bits type);
 
     void _flow_seq_open_entry(id_type id);
     void _flow_map_open_entry(id_type id);
-    void _flow_close_entry_sl(id_type id, id_type last_sibling);
-    void _flow_close_entry_ml(id_type id, id_type last_sibling);
+    void _flow_close_entry_sl(id_type id, id_type last_sibling, Pws_e pend_after);
+    void _flow_close_entry_ml(id_type id, id_type last_sibling, Pws_e pend_after);
     void _flow_write_scalar(csubstr str, type_bits type);
 
 private:
@@ -327,41 +469,6 @@ private:
         m_col = 0;
     }
 
-private: // pending whitespace
-
-    /// pending whitespace
-    typedef enum : uint32_t { _PWS_NONE, _PWS_SPACE, _PWS_NEWL } Pws_e; // NOLINT
-
-    /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void _pend_none() noexcept
-    {
-        m_pws = _PWS_NONE;
-    }
-    /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void _pend_newl() noexcept
-    {
-        m_pws = _PWS_NEWL;
-    }
-    /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void _pend_space() noexcept
-    {
-        m_pws = _PWS_SPACE;
-    }
-    /// write pending whitespace, and then set the next pending whitespace
-    C4_ALWAYS_INLINE void _write_pws_and_pend(Pws_e next=_PWS_NONE) noexcept
-    {
-        if(m_pws == _PWS_SPACE)
-        {
-            _write(' ');
-        }
-        else if(m_pws == _PWS_NEWL)
-        {
-            _newl();
-            _indent(m_ilevel);
-        }
-        m_pws = next;
-    }
-
 private:
 
     Tree const* C4_RESTRICT m_tree;
@@ -370,13 +477,14 @@ private:
     id_type     m_depth;
     id_type     m_ilevel;
     Pws_e       m_pws;
+    flow_pws    m_flow_pws;
 
 private:
 
-    // g++-4.8 has problems with the operand types here...
+    C4_SUPPRESS_WARNING_GCC_PUSH
     #if defined(__GNUC__) && (__GNUC__ < 5) && (!defined(__clang__))
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wparentheses"
+    // g++-4.x has problems with the operand types here...
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wparentheses")
     #endif
     enum : type_bits { // NOLINT
         _styles_block_key = KEY_LITERAL|KEY_FOLDED,
@@ -391,9 +499,7 @@ private:
         _styles_literal   = KEY_LITERAL|VAL_LITERAL,
         _styles_folded    = KEY_FOLDED|VAL_FOLDED,
     };
-    #if defined(__GNUC__) && (__GNUC__ < 5) && (!defined(__clang__))
-    #pragma GCC diagnostic pop
-    #endif
+    C4_SUPPRESS_WARNING_GCC_POP
 
     /** @endcond */
 };
