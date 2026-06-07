@@ -150,8 +150,8 @@ void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 void sample_emit_to_file();         ///< emit to a FILE*
 void sample_emit_nested_node();     ///< pick a nested node as the root when emitting
 void sample_style();                ///< query/set node styles
-void sample_style_flow_ml_indent(); ///< control indentation of FLOW_ML containers
-void sample_style_flow_ml_filter(); ///< set the parser to pick FLOW_SL even if the container is multiline
+void sample_style_flow_formatting();///< control formatting of flow containers
+void sample_style_flow_ml_indent(); ///< control indentation of FLOW_ML1 and FLOW_MLN containers
 void sample_json();                 ///< JSON parsing and emitting
 void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
 void sample_anchors_and_aliases_create(); ///< how to create YAML anchors and aliases
@@ -197,8 +197,8 @@ int main(int argc, const char* argv[])
     sample_emit_to_file();
     sample_emit_nested_node();
     sample_style();
+    sample_style_flow_formatting();
     sample_style_flow_ml_indent();
-    sample_style_flow_ml_filter();
     sample_json();
     sample_anchors_and_aliases();
     sample_anchors_and_aliases_create();
@@ -4318,6 +4318,8 @@ void sample_emit_nested_node()
         "- members"                      "\n"
         "- here"                         "\n"
         "");
+    // Let's now emit the beer node. Note that its key is also
+    // emitted, making the result a map with a single child:
     CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"]) == ""
           "beer:"                    "\n"
           "  - Rochefort 10"         "\n"
@@ -4327,23 +4329,54 @@ void sample_emit_nested_node()
           "    - many other"         "\n"
           "    - wonderful beers"    "\n"
           "");
-    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10");
+    // You can use EmitOptions to prevent the key from being
+    // emitted. Note how the result is now just the contents without
+    // the key, and therefore the root is now a seq:
+    auto without_key = ryml::EmitOptions{}.emit_nonroot_key(false);
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"], without_key) == ""
+          "- Rochefort 10"         "\n"
+          "- Busch"                "\n"
+          "- Leffe Rituel"         "\n"
+          "- - and so"             "\n"
+          "  - many other"         "\n"
+          "  - wonderful beers"    "\n"
+          "");
+    // For sequences, the behavior is opposite. Notice how the leading
+    // dash defaults to omit:
     CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][3]) == ""
           "- and so"                 "\n"
           "- many other"             "\n"
           "- wonderful beers"        "\n"
           "");
+    // And likewise, you can use EmitOptions to force the dash:
+    auto with_dash = ryml::EmitOptions{}.emit_nonroot_dash(true);
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][3], with_dash) == ""
+          "- - and so"                 "\n" // note the added dash and indentation
+          "  - many other"             "\n"
+          "  - wonderful beers"        "\n"
+          "");
+    // Example: emit a scalar node (seq member):
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10");
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0], with_dash) == "- Rochefort 10\n");
+    // Example: emit a scalar node (map member):
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["more"][0]) == "vinho verde: Soalheiro\n");
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["more"][0], without_key) == "Soalheiro");
 }
 
 
 //-----------------------------------------------------------------------------
 
-/** [experimental] query/set/modify node style to control
- * formatting of emitted YAML code. */
+/** query/set/modify node style to control formatting of emitted YAML
+ * code. */
 void sample_style()
 {
-    // we will be using this helper throughout this function
-    auto tostr = [](ryml::ConstNodeRef n) { return ryml::emitrs_yaml<std::string>(n); };
+    // we will be using these helpers throughout this function
+    auto tostr = [](ryml::ConstNodeRef n) {
+        return ryml::emitrs_yaml<std::string>(n);
+    };
+    auto tostr_opts = [](ryml::ConstNodeRef n, ryml::EmitOptions opts) {
+        return ryml::emitrs_yaml<std::string>(n, opts);
+    };
     // let's parse this yaml:
     ryml::csubstr yaml = ""
         "block map:"                                   "\n"
@@ -4373,12 +4406,12 @@ void sample_style()
     CHECK(tree["flow seq, multiline"].is_key_plain());
     CHECK(tree["block map"].is_block());
     CHECK(tree["block seq"].is_block());
-    // flow is either singleline (FLOW_SL) or multiline (FLOW_ML)
+    // flow is either singleline (FLOW_SL) or multiline (FLOW_ML1)
     CHECK(tree["flow map, singleline"].is_flow_sl());
     CHECK(tree["flow seq, singleline"].is_flow_sl());
-    CHECK(tree["flow map, multiline"].is_flow_ml());
-    CHECK(tree["flow seq, multiline"].is_flow_ml());
-    // is_flow() is equivalent to (is_flow_sl() || is_flow_ml())
+    CHECK(tree["flow map, multiline"].is_flow_ml1());
+    CHECK(tree["flow seq, multiline"].is_flow_ml1());
+    // is_flow() is equivalent to (is_flow_sl() || is_flow_ml1() || is_flow_mln())
     CHECK(tree["flow map, singleline"].is_flow());
     CHECK(tree["flow seq, singleline"].is_flow());
     CHECK(tree["flow map, multiline"].is_flow());
@@ -4419,14 +4452,44 @@ void sample_style()
               "  - 'quoted'\n"
               "");
         n.set_key_style(ryml::KEY_DQUO);       // scalar style: to double-quoted scalar
-        n.set_container_style(ryml::FLOW_ML);  // container style: to flow multiline
         n[2].set_val_style(ryml::VAL_PLAIN);   // scalar style: to plain
+        n.set_container_style(ryml::FLOW_MLN); // container style: to flow multiline, N values per line
+        CHECK(tostr(n) == ""
+              "\"block seq\": [\n"
+              "    block val 1,block val 2,quoted\n"
+              "  ]\n");
+        n.set_container_style(ryml::FLOW_MLN|ryml::FLOW_SPC); // force space after comma
+        CHECK(tostr(n) == ""
+              "\"block seq\": [\n"
+              "    block val 1, block val 2, quoted\n"
+              "  ]\n");
+        auto maxcols20 = ryml::EmitOptions{}.max_cols(20); // set the max number of cols for FLOW_MLN
+        CHECK(tostr_opts(n, maxcols20) == ""
+              "\"block seq\": [\n"
+              "    block val 1, block val 2,\n"
+              "    quoted\n"
+              "  ]\n");
+        n.set_container_style(ryml::FLOW_MLN); // no spaces now
+        CHECK(tostr_opts(n, maxcols20) == ""
+              "\"block seq\": [\n"
+              "    block val 1,block val 2,\n"
+              "    quoted\n"
+              "  ]\n");
+        n.set_container_style(ryml::FLOW_SL); // to flow singleline
+        CHECK(tostr(n) == ""
+              "\"block seq\": [block val 1,block val 2,quoted]\n");
+        n.set_container_style(ryml::FLOW_SL|ryml::FLOW_SPC); // now with space after comma
+        CHECK(tostr(n) == ""
+              "\"block seq\": [block val 1, block val 2, quoted]\n");
+        n.set_container_style(ryml::FLOW_ML1); // to flow multiline, 1 value per line
         CHECK(tostr(n) == ""
               "\"block seq\": [\n"
               "    block val 1,\n"
               "    block val 2,\n"
               "    quoted\n"
               "  ]\n");
+        /// @see See more details about formatting flow containers in
+        /// @ref sample_style_flow_formatting() (below).
     }
     // next example
     {
@@ -4625,17 +4688,216 @@ void sample_style()
           "  'flow key': \"flow val\""                                     "\n"
           "'flow seq, multiline': [\"flow val\",\"flow val\"]"             "\n"
         "");
-    // see also:
-    //  - ryml::scalar_style_choose()
-    //  - ryml::scalar_style_json_choose()
-    //  - ryml::scalar_style_query_squo()
-    //  - ryml::scalar_style_query_plain()
+    /// see also:
+    ///  - @ref ryml::scalar_style_choose_block()
+    ///  - @ref ryml::scalar_style_choose_flow()
+    ///  - @ref ryml::scalar_style_choose_json()
+    ///  - @ref ryml::scalar_style_query_squo()
+    ///  - @ref ryml::scalar_style_query_plain()
 }
 
 
 //-----------------------------------------------------------------------------
 
-/** [experimental] control the indentation of emitted FLOW_ML containers */
+/** Shows how to control formatting of flow styles. */
+void sample_style_flow_formatting()
+{
+    // we will be using this helper throughout this function
+    auto tostr = [](ryml::ConstNodeRef n, ryml::EmitOptions opts) {
+        return ryml::emitrs_yaml<std::string>(n, opts);
+    };
+    const ryml::EmitOptions emit_defaults = ryml::EmitOptions{};
+    // let's parse this, which is in FLOW_ML1 (flow multiline, 1 value per line):
+    ryml::csubstr yaml = ""
+        "{"              "\n"
+        "  map: {"       "\n"
+        "    seq: ["     "\n"
+        "      0,"       "\n"
+        "      1,"       "\n"
+        "      2,"       "\n"
+        "      3,"       "\n"
+        "      [40,41]"  "\n"
+        "    ]"          "\n"
+        "  }"            "\n"
+        "}"              "\n"
+        "";
+    // note that the parser defaults to detecting multiline flow
+    // (FLOW_ML1) containers:
+    {
+        const ryml::Tree tree = ryml::parse_in_arena(yaml);
+        CHECK(tree["map"].is_flow_ml1()); // etc
+        CHECK(tree["map"]["seq"].is_flow_ml1()); // etc
+        CHECK(tree["map"]["seq"][4].is_flow_sl()); // etc
+        // emitted yaml is exactly equal to parsed yaml:
+        CHECK(tostr(tree, emit_defaults) == yaml);
+    }
+    // if you prefer to shorten the emitted yaml, you can set the
+    // parser to disable flow multiline detection. It will then pick
+    // singleline flow (FLOW_SL) for all flow containers:
+    {
+        const ryml::ParserOptions opts = ryml::ParserOptions{}
+            .detect_flow_ml(false);
+        const ryml::Tree tree = ryml::parse_in_arena(yaml, opts);
+        CHECK(tree["map"].is_flow_sl()); // etc
+        // notice how this is smaller now:
+        CHECK(tostr(tree, emit_defaults) ==
+              "{map: {seq: [0,1,2,3,[40,41]]}}");
+        // you can also force spaces everywhere without adding
+        // FLOW_SPC in individual containers:
+        const ryml::EmitOptions with_spaces = ryml::EmitOptions{}
+            .force_flow_spc(true);
+        CHECK(tostr(tree, with_spaces) ==
+              "{map: {seq: [0, 1, 2, 3, [40, 41]]}}");
+    }
+    // or you can still have the default detection of flow_ml, but set
+    // it to pick FLOW_MLN (multiline, n values per line), instead of
+    // the default FLOW_ML1 (multiline, 1 values per line)
+    {
+        const ryml::ParserOptions opts = ryml::ParserOptions{}
+            .flow_ml_style(ryml::FLOW_MLN);
+        const ryml::Tree tree = ryml::parse_in_arena(yaml, opts);
+        CHECK(tree["map"].is_flow_mln());
+        CHECK(tree["map"]["seq"][4].is_flow_sl()); // [40,41] is FLOW_SL
+        CHECK(tostr(tree, emit_defaults) ==
+              "{"                           "\n"
+              "  map: {"                    "\n"
+              "    seq: ["                  "\n"
+              "      0,1,2,3,[40,41]"       "\n"
+              "    ]"                       "\n"
+              "  }"                         "\n"
+              "}"                           "\n");
+        // now with spaces:
+        const ryml::EmitOptions with_spaces = ryml::EmitOptions{}
+            .force_flow_spc(true);
+        CHECK(tostr(tree, with_spaces) ==
+              "{"                           "\n"
+              "  map: {"                    "\n"
+              "    seq: ["                  "\n"
+              "      0, 1, 2, 3, [40, 41]"  "\n"
+              "    ]"                       "\n"
+              "  }"                         "\n"
+              "}"                           "\n");
+    }
+    // you can also disable indentation of both FLOW_ML1 and FLOW_MLN
+    // (see more details in @ref sample_style_flow_ml_indent())
+    {
+        const ryml::EmitOptions noindent = ryml::EmitOptions{}
+            .indent_flow_ml(false);
+        const ryml::Tree tree = ryml::parse_in_arena(yaml);
+        CHECK(tree["map"].is_flow_ml1());
+        CHECK(tree["map"]["seq"][4].is_flow_sl()); // [40,41] is FLOW_SL
+        CHECK(tostr(tree, noindent) == ""
+              "{"              "\n"
+              "map: {"         "\n"
+              "seq: ["         "\n"
+              "0,"             "\n"
+              "1,"             "\n"
+              "2,"             "\n"
+              "3,"             "\n"
+              "[40,41]"        "\n"
+              "]"              "\n"
+              "}"              "\n"
+              "}"              "\n"
+              "");
+    }
+    // finally, you can control the number of columns in FLOW_MLN:
+    {
+        // let's pick a different example to make this clearer
+        ryml::csubstr yaml2 = ""
+            "[" "\n"
+            "  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,"                   "\n"
+            "  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, "        "\n"
+            "  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, "        "\n"
+            "  30, 31, 32, 33, 34, 35, 36, 37, 38, 39, "        "\n"
+            "  40, 41, 42, 43, 44, 45, 46, 47, 48, 49, "        "\n"
+            "  50, 51, 52, 53, 54, 55, 56, 57, 58, 59, "        "\n"
+            "  60, 61, 62, 63, 64, 65, 66, 67, 68, 69, "        "\n"
+            "  70, 71, 72, 73, 74, 75, 76, 77, 78, 79  "        "\n"
+            "]";
+        // Let's force the parser to pick FLOW_MLN instead of
+        // FLOW_ML1. We're doing that because wrapping is only done in
+        // FLOW_MLN and -- as their names imply -- FLOW_SL is
+        // single-line, and FLOW_ML1 is 1 value per line.
+        const ryml::ParserOptions opts = ryml::ParserOptions{}
+            .flow_ml_style(ryml::FLOW_MLN);
+        const ryml::Tree tree = ryml::parse_in_arena(yaml2, opts);
+        CHECK(tree.rootref().type().is_flow_mln());
+        // default max columns is 80:
+        CHECK(tostr(tree, emit_defaults) == ""
+              "[\n"
+              "  0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,\n"
+              "  30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,\n"
+              "  56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79\n"
+              "]\n"
+              "");
+        // let's try setting max columns to 40:
+        const ryml::EmitOptions maxcols40 = ryml::EmitOptions{}
+            .max_cols(40);
+        CHECK(tostr(tree, maxcols40) == ""
+              "[\n"
+              "  0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,\n"
+              "  16,17,18,19,20,21,22,23,24,25,26,27,28,\n"
+              "  29,30,31,32,33,34,35,36,37,38,39,40,41,\n"
+              "  42,43,44,45,46,47,48,49,50,51,52,53,54,\n"
+              "  55,56,57,58,59,60,61,62,63,64,65,66,67,\n"
+              "  68,69,70,71,72,73,74,75,76,77,78,79\n"
+              "]\n"
+              "");
+        // Note that you can globally force spaces everywhere through
+        // the emit options:
+        const ryml::EmitOptions with_spaces = ryml::EmitOptions{}
+            .force_flow_spc(true);
+        CHECK(tostr(tree, with_spaces) == ""
+              "[\n"
+              "  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,\n"
+              "  22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,\n"
+              "  42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,\n"
+              "  62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79\n"
+              "]\n"
+              "");
+        // and you can combine spaces with max columns:
+        const ryml::EmitOptions maxcols40_spc = ryml::EmitOptions{}
+            .max_cols(40)
+            .force_flow_spc(true);
+        CHECK(tostr(tree, maxcols40_spc) == ""
+              "[\n"
+              "  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,\n"
+              "  12, 13, 14, 15, 16, 17, 18, 19, 20, 21,\n"
+              "  22, 23, 24, 25, 26, 27, 28, 29, 30, 31,\n"
+              "  32, 33, 34, 35, 36, 37, 38, 39, 40, 41,\n"
+              "  42, 43, 44, 45, 46, 47, 48, 49, 50, 51,\n"
+              "  52, 53, 54, 55, 56, 57, 58, 59, 60, 61,\n"
+              "  62, 63, 64, 65, 66, 67, 68, 69, 70, 71,\n"
+              "  72, 73, 74, 75, 76, 77, 78, 79\n"
+              "]\n"
+              "");
+        // and you can combine spaces with max columns with no indentation:
+        const ryml::EmitOptions maxcols40_spc_noindent = ryml::EmitOptions{}
+            .max_cols(40)
+            .force_flow_spc(true)
+            .indent_flow_ml(false);
+        CHECK(tostr(tree, maxcols40_spc_noindent) == ""
+              "[\n"
+              "0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,\n"
+              "13, 14, 15, 16, 17, 18, 19, 20, 21, 22,\n"
+              "23, 24, 25, 26, 27, 28, 29, 30, 31, 32,\n"
+              "33, 34, 35, 36, 37, 38, 39, 40, 41, 42,\n"
+              "43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n"
+              "53, 54, 55, 56, 57, 58, 59, 60, 61, 62,\n"
+              "63, 64, 65, 66, 67, 68, 69, 70, 71, 72,\n"
+              "73, 74, 75, 76, 77, 78, 79\n"
+              "]\n"
+              "");
+    }
+    // Note that FLOW_SPC is /not/ detected by the parser, and that
+    // depending on the parse options, either FLOW_ML1 or FLOW_MLN
+    // will be used for /all/ multiline flow containers.
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** control the indentation of emitted flow multiline containers */
 void sample_style_flow_ml_indent()
 {
     // we will be using this helper throughout this function
@@ -4647,12 +4909,12 @@ void sample_style_flow_ml_indent()
     ryml::EmitOptions defaults = {};
     ryml::EmitOptions noindent = ryml::EmitOptions{}.indent_flow_ml(false);
     CHECK(tostr(tree, defaults) == "{map: {seq: [0,1,2,3,[40,41]]}}");
-    // let's now set the style to FLOW_ML (it was FLOW_SL)
-    tree.rootref().set_container_style(ryml::FLOW_ML);
-    tree["map"].set_container_style(ryml::FLOW_ML);
-    tree["map"]["seq"].set_container_style(ryml::FLOW_ML);
-    tree["map"]["seq"][4].set_container_style(ryml::FLOW_ML);
-    // by default FLOW_ML prints one value per line, indented:
+    // let's now set the style to FLOW_ML1 (it was FLOW_SL)
+    tree.rootref().set_container_style(ryml::FLOW_ML1);
+    tree["map"].set_container_style(ryml::FLOW_ML1);
+    tree["map"]["seq"].set_container_style(ryml::FLOW_ML1);
+    tree["map"]["seq"][4].set_container_style(ryml::FLOW_ML1);
+    // by default FLOW_ML1 prints one value per line, indented:
     CHECK(tostr(tree, defaults) ==
           "{"              "\n"
           "  map: {"       "\n"
@@ -4724,73 +4986,6 @@ void sample_style_flow_ml_indent()
 
 //-----------------------------------------------------------------------------
 
-/** [experimental] set the parser to pick FLOW_SL even if the
- * container being parsed is FLOW_ML */
-void sample_style_flow_ml_filter()
-{
-    ryml::csubstr yaml = ""
-        "{"              "\n"
-        "  map: {"       "\n"
-        "    seq: ["     "\n"
-        "      0,"       "\n"
-        "      1,"       "\n"
-        "      2,"       "\n"
-        "      3,"       "\n"
-        "      ["        "\n"
-        "        40,"    "\n"
-        "        41"     "\n"
-        "      ]"        "\n"
-        "    ]"          "\n"
-        "  }"            "\n"
-        "}"              "\n"
-        "";
-    ryml::csubstr yaml_not_indented = ""
-        "{"              "\n"
-        "map: {"         "\n"
-        "seq: ["         "\n"
-        "0,"             "\n"
-        "1,"             "\n"
-        "2,"             "\n"
-        "3,"             "\n"
-        "["              "\n"
-        "40,"            "\n"
-        "41"             "\n"
-        "]"              "\n"
-        "]"              "\n"
-        "}"              "\n"
-        "}"              "\n"
-        "";
-    // note that the parser defaults to detect multiline flow
-    // (FLOW_ML) containers:
-    {
-        const ryml::Tree tree = ryml::parse_in_arena(yaml);
-        CHECK(tree["map"].is_flow_ml()); // etc
-        // emitted yaml is exactly equal to parsed yaml:
-        CHECK(ryml::emitrs_yaml<std::string>(tree) == yaml);
-    }
-    // if you prefer to shorten the emitted yaml, you can set the
-    // parser to set singleline flow (FLOW_SL) on all flow containers:
-    {
-        const ryml::ParserOptions opts = ryml::ParserOptions{}.detect_flow_ml(false);
-        const ryml::Tree tree = ryml::parse_in_arena(yaml, opts);
-        CHECK(tree["map"].is_flow_sl()); // etc
-        // notice how this is smaller now:
-        CHECK(ryml::emitrs_yaml<std::string>(tree) ==
-              R"({map: {seq: [0,1,2,3,[40,41]]}})");
-    }
-    // you can also keep FLOW_ML, but control its indentation:
-    // (see more details in @ref sample_style_flow_ml_indent())
-    {
-        const ryml::EmitOptions noindent = ryml::EmitOptions{}.indent_flow_ml(false);
-        const ryml::Tree tree = ryml::parse_in_arena(yaml);
-        CHECK(tree["map"].is_flow_ml()); // etc
-        CHECK(ryml::emitrs_yaml<std::string>(tree, noindent) == yaml_not_indented);
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-
 /** shows how to parse and emit JSON.
  *
  * To emit YAML parsed from JSON, see also @ref sample_style() for
@@ -4835,10 +5030,9 @@ void sample_json()
     // Note that when parsing JSON, ryml will the style of each node
     // in the JSON. This means that if you emit as YAML it will look
     // mostly the same as the JSON:
-    std::cout << ryml::emitrs_yaml<std::string>(json_tree);
     CHECK(ryml::emitrs_yaml<std::string>(json_tree) == json);
     // If you want to avoid this, you will need to clear the style.
-    json_tree.rootref().clear_style(); // clear the style of the map, but do not recurse
+    json_tree.rootref().clear_style(); // clear the style of the map (without recursing)
     // note that this is now block mode. That is because when no
     // style is set, ryml defaults to emitting in block mode.
     CHECK(ryml::emitrs_yaml<std::string>(json_tree) == ""
@@ -4859,7 +5053,7 @@ void sample_json()
           "far: a long long way to go"      "\n"
           "");
     // you can do custom style changes based on a type mask. this
-    // will change set the style of all scalar values to single-quoted
+    // will change the style of all scalar values to single-quoted
     json_tree.rootref().set_style_conditionally(ryml::VAL,
                                                 /*remflags*/ryml::VAL_STYLE,
                                                 /*addflags*/ryml::VAL_SQUO,

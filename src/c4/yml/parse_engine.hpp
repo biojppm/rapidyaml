@@ -4,6 +4,12 @@
 #ifndef _C4_YML_PARSER_STATE_HPP_
 #include "c4/yml/parser_state.hpp"
 #endif
+#ifndef _C4_YML_PARSE_OPTIONS_HPP_
+#include "c4/yml/parse_options.hpp"
+#endif
+#ifndef _C4_YML_FWD_HPP_
+#include "c4/yml/fwd.hpp"
+#endif
 
 
 #if defined(_MSC_VER)
@@ -199,13 +205,10 @@ namespace yml {
  * ```
  */
 
-class Tree;
-class NodeRef;
-class ConstNodeRef;
-struct FilterResult;
-struct FilterResultExtending;
 
 /** @cond dev */
+struct FilterResult;
+struct FilterResultExtending;
 typedef enum BlockChomp_ { // NOLINT
     CHOMP_CLIP,    //!< single newline at end (default)
     CHOMP_STRIP,   //!< no newline at end     (-)
@@ -630,7 +633,6 @@ private:
     C4_NO_INLINE void _print_state_stack() const;
     C4_NO_INLINE void _print_state_stack(substr buf) const;
     #endif
-
 
 private:
 

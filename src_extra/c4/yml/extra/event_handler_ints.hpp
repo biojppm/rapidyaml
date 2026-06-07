@@ -671,7 +671,7 @@ public:
         _send_flag_only_(ievt::EMAP);
     }
 
-    void end_map_flow(bool /*multiline*/)
+    void end_map_flow(bool /*multiline*/, NodeType_e /*multiline_style*/=FLOW_ML1)
     {
         _pop();
         _send_flag_only_(ievt::EMAP);
@@ -724,7 +724,7 @@ public:
         _send_flag_only_(ievt::ESEQ);
     }
 
-    void end_seq_flow(bool /*multiline*/)
+    void end_seq_flow(bool /*multiline*/, NodeType_e /*multiline_style*/=FLOW_ML1)
     {
         _pop();
         _send_flag_only_(ievt::ESEQ);

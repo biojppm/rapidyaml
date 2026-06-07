@@ -166,11 +166,11 @@ constexpr const NodeType_e VF = (VAL|VAL_FOLDED);  ///< val, block-folded scalar
 
 constexpr const NodeType_e SB = (SEQ|BLOCK);       ///< sequence, block-style
 constexpr const NodeType_e SFS = (SEQ|FLOW_SL);    ///< sequence, flow-style, single-line
-constexpr const NodeType_e SFM = (SEQ|FLOW_ML);    ///< sequence, flow-style, multi-line
+constexpr const NodeType_e SFM = (SEQ|FLOW_ML1);   ///< sequence, flow-style, multi-line
 
 constexpr const NodeType_e MB = (MAP|BLOCK);       ///< map, flow-style
 constexpr const NodeType_e MFS = (MAP|FLOW_SL);    ///< map, flow-style, single-line
-constexpr const NodeType_e MFM = (MAP|FLOW_ML);    ///< map, flow-style, multi-line
+constexpr const NodeType_e MFM = (MAP|FLOW_ML1);   ///< map, flow-style, multi-line
 
 C4_SUPPRESS_WARNING_GCC_POP
 

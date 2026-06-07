@@ -427,7 +427,7 @@ self: *ref0
 }
 TEST(anchors, github566_map_FLOW_ML)
 {
-    const Tree orig = github566_make_map(FLOW_ML);
+    const Tree orig = github566_make_map(FLOW_ML1);
     github566_cmp(0xffffffff, orig, R"(&ref0 {
   a: 1,
   self: *ref0
@@ -457,9 +457,9 @@ TEST(anchors, github566_seq_BLOCK)
 - *ref0
 )");
 }
-TEST(anchors, github566_seq_FLOW_ML)
+TEST(anchors, github566_seq_FLOW_ML1)
 {
-    const Tree orig = github566_make_seq(FLOW_ML);
+    const Tree orig = github566_make_seq(FLOW_ML1);
     github566_cmp(0xffffffff, orig, R"(&ref0 [
   1,
   *ref0
@@ -965,7 +965,7 @@ TEST(simple_anchor, key_anchor_error_json)
     Tree tree = parse_in_arena("{&k key: val}");
     EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
     ExpectError::check_error_visit(&tree, [&]{
-        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_ANCHOR));
+        emitrs_json<std::string>(tree, EmitOptions{}.json_err_on_anchor(true));
     });
 }
 
@@ -974,7 +974,7 @@ TEST(simple_anchor, val_anchor_error_json)
     Tree tree = parse_in_arena("{key: &v val}");
     EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
     ExpectError::check_error_visit(&tree, [&]{
-        emitrs_json<std::string>(tree, EmitOptions{}.json_error_flags(EmitOptions::JSON_ERR_ON_ANCHOR));
+        emitrs_json<std::string>(tree, EmitOptions{}.json_err_on_anchor(true));
     });
 }
 

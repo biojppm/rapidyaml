@@ -352,10 +352,10 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 ### New features
 
-- [PR#550](https://github.com/biojppm/rapidyaml/pull/550) - Implement flow multiline style ([FLOW_ML](@ref c4::yml::FLOW_ML)):
+- [PR#550](https://github.com/biojppm/rapidyaml/pull/550) - Implement flow multiline style ([FLOW_ML](@ref c4::yml::FLOW_ML1)):
   - The parser now detects this style automatically for flow seqs or maps when the terminating bracket sits on a line different from the opening bracket.
   - Added [ParserOptions::detect_flow_ml()](@ref c4::yml::ParserOptions::detect_flow_ml()) to enable/disable this behavior
-  - Added [EmitOptions::indent_flow_ml()](@ref c4::yml::EmitOptions::indent_flow_ml()) to control indentation of [FLOW_ML](@ref c4::yml::FLOW_ML) containers
+  - Added [EmitOptions::indent_flow_ml()](@ref c4::yml::EmitOptions::indent_flow_ml()) to control indentation of [FLOW_ML](@ref c4::yml::FLOW_ML1) containers
   - The emit implementation was refactored, and is now significantly cleaner
   - Emitted YAML will now have anchors emitted before tags, as is customary ([see example](https://play.yaml.io/main/parser?input=LSAhdGFnICZhbmNob3IgfAogIG5vdGUgaG93IHRoZSBhbmNob3IgY29tZXMKICBmaXJzdCBpbiB0aGUgZXZlbnRz)).
   - Added [ParserOptions](@ref c4::yml::ParserOptions) defaulted argument to temp-parser overloads of `parse_{yaml,json}_in_{place,arena}()`

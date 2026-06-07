@@ -277,9 +277,14 @@ public:
 
     C4_ALWAYS_INLINE bool is_container_styled() const RYML_NOEXCEPT { _C4RR(); return tree_->is_container_styled(id_); } /**< Forward to @ref Tree::is_container_styled(). Node must be readable. */
     C4_ALWAYS_INLINE bool is_block()            const RYML_NOEXCEPT { _C4RR(); return tree_->is_block(id_); }   /**< Forward to @ref Tree::is_block(). Node must be readable. */
+    C4_ALWAYS_INLINE bool is_flow()             const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow(id_); }     /**< Forward to @ref Tree::is_flow(). Node must be readable. */
     C4_ALWAYS_INLINE bool is_flow_sl()          const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_sl(id_); } /**< Forward to @ref Tree::is_flow_sl(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_flow_ml()          const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_ml(id_); } /**< Forward to @ref Tree::is_flow_ml(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_flow()             const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow(id_); }    /**< Forward to @ref Tree::is_flow(). Node must be readable. */
+    RYML_DEPRECATED("use one of .is_flow_ml{1,x,n}()")
+    C4_ALWAYS_INLINE bool is_flow_ml()          const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_ml1(id_); } /**< Forward to @ref Tree::is_flow_ml1(). Node must be readable. */
+    C4_ALWAYS_INLINE bool is_flow_ml1()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_ml1(id_); } /**< Forward to @ref Tree::is_flow_ml1(). Node must be readable. */
+    C4_ALWAYS_INLINE bool is_flow_mln()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_mln(id_); } /**< Forward to @ref Tree::is_flow_mln(). Node must be readable. */
+    C4_ALWAYS_INLINE bool is_flow_mlx()         const RYML_NOEXCEPT { _C4RR(); return tree_->is_flow_mlx(id_); } /**< Forward to @ref Tree::is_flow_mlx(). Node must be readable. */
+    C4_ALWAYS_INLINE bool has_flow_space()      const RYML_NOEXCEPT { _C4RR(); return tree_->has_flow_space(id_); }  /**< Forward to @ref Tree::has_flow_space(). Node must be readable. */
 
     C4_ALWAYS_INLINE bool is_key_styled()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_styled(id_); }  /**< Forward to @ref Tree::is_key_styled(). Node must be readable. */
     C4_ALWAYS_INLINE bool is_val_styled()       const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_styled(id_); }  /**< Forward to @ref Tree::is_val_styled(). Node must be readable. */

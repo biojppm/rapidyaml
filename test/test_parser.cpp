@@ -860,9 +860,9 @@ TEST(parse_flow_ml, respects_parser_options)
         for(ParserOptions opts : {defaults, flow_ml})
         {
             test_check_emit_check_with_parser(to_csubstr(yaml), opts, [&](const Tree& t, Parser const&){
-                EXPECT_TRUE(t.rootref().is_flow_ml());
-                EXPECT_TRUE(t["map"].is_flow_ml());
-                EXPECT_TRUE(t["seq"].is_flow_ml());
+                EXPECT_TRUE(t.rootref().is_flow_ml1());
+                EXPECT_TRUE(t["map"].is_flow_ml1());
+                EXPECT_TRUE(t["seq"].is_flow_ml1());
                 EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
             });
         }
@@ -870,9 +870,9 @@ TEST(parse_flow_ml, respects_parser_options)
     {
         SCOPED_TRACE("custom behavior: do not detect flow_ml");
         test_check_emit_check_with_parser(to_csubstr(yaml), no_flow_ml, [](const Tree& t, Parser const&){
-            EXPECT_FALSE(t.rootref().is_flow_ml());
-            EXPECT_FALSE(t["map"].is_flow_ml());
-            EXPECT_FALSE(t["seq"].is_flow_ml());
+            EXPECT_FALSE(t.rootref().is_flow_ml1());
+            EXPECT_FALSE(t["map"].is_flow_ml1());
+            EXPECT_FALSE(t["seq"].is_flow_ml1());
             EXPECT_EQ(emitrs_yaml<std::string>(t),
                       "{foo: 0,bar: 1,map: {hell: yeah},seq: [hell,yeah]}");
         });

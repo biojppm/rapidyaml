@@ -4,6 +4,9 @@
 #ifndef _C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
+#ifndef _C4_YML_PARSE_OPTIONS_HPP_
+#include "c4/yml/parse_options.hpp"
+#endif
 
 namespace c4 {
 namespace yml {
@@ -19,17 +22,18 @@ RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT
  * @{ */
 
 /** This is the main ryml parser, where the parser events are handled
- * to create a ryml tree.
+ * to create a ryml tree (see @ref doc_event_handlers).
  *
- * @warning This class cannot parse YAML where there are container
- * keys. This is not a limitation of the @ref ParseEngine, but of the
+ * @warning This class cannot parse YAML which has container
+ * keys. This is not a limitation of the @ref ParseEngine itself, but of the
  * @ref EventHandlerTree, which is present because the @ref Tree does
  * not accept containers as keys. However, the @ref ParseEngine *can*
  * parse container keys; consult its documentation for more details.
  *
- * @see ParserOptions
- * @see ParseEngine
- * @see EventHandlerTree
+ * @see @ref ParserOptions
+ * @see @ref ParseEngine
+ * @see @ref EventHandlerTree
+ * @see @ref doc_event_handlers
  * */
 using Parser = ParseEngine<EventHandlerTree>;
 
