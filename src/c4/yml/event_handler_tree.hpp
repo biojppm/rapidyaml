@@ -279,14 +279,14 @@ public:
         _pop();
     }
 
-    void end_map_flow(bool multiline)
+    void end_map_flow(bool multiline, NodeType_e multiline_style=FLOW_ML1)
     {
         _c4dbgpf("node[{}]: end_map. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
         _pop();
         if(multiline)
         {
             _disable_(FLOW_SL);
-            _enable_(FLOW_ML);
+            _enable__(multiline_style);
         }
     }
 
@@ -329,14 +329,14 @@ public:
         _pop();
     }
 
-    void end_seq_flow(bool multiline)
+    void end_seq_flow(bool multiline, NodeType_e multiline_style=FLOW_ML1)
     {
         _c4dbgpf("node[{}]: end_seq. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
         _pop();
         if(multiline)
         {
             _disable_(FLOW_SL);
-            _enable_(FLOW_ML);
+            _enable__(multiline_style);
         }
     }
 
@@ -680,6 +680,10 @@ public:
 
 public:
 
+    C4_ALWAYS_INLINE void _enable__(type_bits bits) noexcept
+    {
+        m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
+    }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _enable__() noexcept
     {
         m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
