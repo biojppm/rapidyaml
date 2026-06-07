@@ -16,9 +16,13 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
-std::string emit2str(Tree const& t)
+std::string emit2str(Tree const& t, EmitOptions const& opts={})
 {
-    return emitrs_yaml<std::string>(t);
+    return emitrs_yaml<std::string>(t, opts);
+}
+EmitOptions maxcols(id_type max)
+{
+    return EmitOptions{}.max_cols(max);
 }
 
 inline void test_container_nostyle(ConstNodeRef n)
@@ -27,7 +31,9 @@ inline void test_container_nostyle(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_block());
     EXPECT_FALSE(n.type().is_flow());
     EXPECT_FALSE(n.type().is_flow_sl());
-    EXPECT_FALSE(n.type().is_flow_ml());
+    EXPECT_FALSE(n.type().is_flow_ml1());
+    EXPECT_FALSE(n.type().is_flow_mln());
+    EXPECT_FALSE(n.type().is_flow_mlx());
 }
 
 inline void test_container_block(ConstNodeRef n)
@@ -36,7 +42,9 @@ inline void test_container_block(ConstNodeRef n)
     EXPECT_TRUE(n.type().is_block());
     EXPECT_FALSE(n.type().is_flow());
     EXPECT_FALSE(n.type().is_flow_sl());
-    EXPECT_FALSE(n.type().is_flow_ml());
+    EXPECT_FALSE(n.type().is_flow_ml1());
+    EXPECT_FALSE(n.type().is_flow_mln());
+    EXPECT_FALSE(n.type().is_flow_mlx());
 }
 
 inline void test_container_flow_sl(ConstNodeRef n)
@@ -45,7 +53,9 @@ inline void test_container_flow_sl(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_block());
     EXPECT_TRUE(n.type().is_flow());
     EXPECT_TRUE(n.type().is_flow_sl());
-    EXPECT_FALSE(n.type().is_flow_ml());
+    EXPECT_FALSE(n.type().is_flow_ml1());
+    EXPECT_FALSE(n.type().is_flow_mln());
+    EXPECT_FALSE(n.type().is_flow_mlx());
 }
 
 inline void test_container_flow_ml(ConstNodeRef n)
@@ -54,7 +64,9 @@ inline void test_container_flow_ml(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_block());
     EXPECT_TRUE(n.type().is_flow());
     EXPECT_FALSE(n.type().is_flow_sl());
-    EXPECT_TRUE(n.type().is_flow_ml());
+    EXPECT_TRUE(n.type().is_flow_ml1() ||
+                n.type().is_flow_mln());
+    EXPECT_TRUE(n.type().is_flow_mlx());
 }
 
 inline void test_key_plain(ConstNodeRef n)
@@ -180,12 +192,68 @@ TEST(style, flags)
 {
     Tree tree = parse_in_arena("foo: bar");
     test_container_block(tree.rootref());
-    tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
-    tree._add_flags(tree.root_id(), FLOW_SL);
+    tree.set_container_style(tree.root_id(), FLOW_SL);
     test_container_flow_sl(tree.rootref());
-    tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
-    tree._add_flags(tree.root_id(), FLOW_ML);
+    tree.set_container_style(tree.root_id(), FLOW_ML1);
     test_container_flow_ml(tree.rootref());
+    tree.set_container_style(tree.root_id(), FLOW_MLN);
+    test_container_flow_ml(tree.rootref());
+
+    NodeRef r = tree;
+    r.clear_style();
+    r.set_container_style(FLOW_SL);
+    EXPECT_FALSE(r.is_block());
+    EXPECT_TRUE(r.is_flow());
+    EXPECT_TRUE(r.is_flow_sl());
+    EXPECT_FALSE(r.is_flow_ml1());
+    EXPECT_FALSE(r.is_flow_mln());
+    EXPECT_FALSE(r.is_flow_mlx());
+    EXPECT_FALSE(r.has_flow_space());
+    //
+    r.set_container_style(FLOW_SL|FLOW_SPC);
+    EXPECT_FALSE(r.is_block());
+    EXPECT_TRUE(r.is_flow());
+    EXPECT_TRUE(r.is_flow_sl());
+    EXPECT_FALSE(r.is_flow_ml1());
+    EXPECT_FALSE(r.is_flow_mln());
+    EXPECT_FALSE(r.is_flow_mlx());
+    EXPECT_TRUE(r.has_flow_space());
+    //
+    r.set_container_style(FLOW_ML1);
+    EXPECT_FALSE(r.is_block());
+    EXPECT_TRUE(r.is_flow());
+    EXPECT_FALSE(r.is_flow_sl());
+    EXPECT_TRUE(r.is_flow_ml1());
+    EXPECT_FALSE(r.is_flow_mln());
+    EXPECT_TRUE(r.is_flow_mlx());
+    EXPECT_FALSE(r.has_flow_space());
+    //
+    r.set_container_style(FLOW_ML1|FLOW_SPC);
+    EXPECT_FALSE(r.is_block());
+    EXPECT_TRUE(r.is_flow());
+    EXPECT_FALSE(r.is_flow_sl());
+    EXPECT_TRUE(r.is_flow_ml1());
+    EXPECT_FALSE(r.is_flow_mln());
+    EXPECT_TRUE(r.is_flow_mlx());
+    EXPECT_TRUE(r.has_flow_space());
+    //
+    r.set_container_style(FLOW_MLN);
+    EXPECT_FALSE(r.is_block());
+    EXPECT_TRUE(r.is_flow());
+    EXPECT_FALSE(r.is_flow_sl());
+    EXPECT_FALSE(r.is_flow_ml1());
+    EXPECT_TRUE(r.is_flow_mln());
+    EXPECT_TRUE(r.is_flow_mlx());
+    EXPECT_FALSE(r.has_flow_space());
+    //
+    r.set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_FALSE(r.is_block());
+    EXPECT_TRUE(r.is_flow());
+    EXPECT_FALSE(r.is_flow_sl());
+    EXPECT_FALSE(r.is_flow_ml1());
+    EXPECT_TRUE(r.is_flow_mln());
+    EXPECT_TRUE(r.is_flow_mlx());
+    EXPECT_TRUE(r.has_flow_space());
 }
 
 
@@ -394,8 +462,7 @@ TEST(scalar, block_literal__key)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), KEY_STYLE);
-    tree._add_flags(tree[0].id(), KEY_LITERAL);
+    tree[0].set_key_style(KEY_LITERAL);
     test_key_literal(tree[0]);
     test_val_folded(tree[0]);
     EXPECT_EQ(emit2str(tree), R"(? |-
@@ -413,8 +480,7 @@ TEST(scalar, block_literal__val)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), VAL_STYLE);
-    tree._add_flags(tree[0].id(), VAL_LITERAL);
+    tree[0].set_val_style(VAL_LITERAL);
     test_key_plain(tree[0]);
     test_val_literal(tree[0]);
     EXPECT_EQ(emit2str(tree), R"(this is the key: |-
@@ -429,8 +495,8 @@ TEST(scalar, block_literal__key_val)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), KEY_STYLE|VAL_STYLE);
-    tree._add_flags(tree[0].id(), KEY_LITERAL|VAL_LITERAL);
+    tree[0].set_key_style(KEY_LITERAL);
+    tree[0].set_val_style(VAL_LITERAL);
     test_key_literal(tree[0]);
     test_val_literal(tree[0]);
     EXPECT_EQ(emit2str(tree), R"(? |-
@@ -450,8 +516,7 @@ TEST(scalar, block_folded__key)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), KEY_STYLE);
-    tree._add_flags(tree[0].id(), KEY_FOLDED);
+    tree[0].set_key_style(KEY_FOLDED);
     test_key_folded(tree[0]);
     test_val_folded(tree[0]);
     EXPECT_EQ(emit2str(tree), R"(? >-
@@ -469,8 +534,7 @@ TEST(scalar, block_folded__val)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), VAL_STYLE);
-    tree._add_flags(tree[0].id(), VAL_FOLDED);
+    tree[0].set_val_style(VAL_FOLDED);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
     EXPECT_EQ(emit2str(tree), R"(this is the key: >-
@@ -486,8 +550,8 @@ TEST(scalar, block_folded__key_val)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), KEY_STYLE|VAL_STYLE);
-    tree._add_flags(tree[0].id(), KEY_FOLDED|VAL_FOLDED);
+    tree[0].set_key_style(KEY_FOLDED);
+    tree[0].set_val_style(VAL_FOLDED);
     test_key_folded(tree[0]);
     test_val_folded(tree[0]);
     EXPECT_EQ(emit2str(tree), R"(? >-
@@ -508,8 +572,7 @@ TEST(scalar, squo__key)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), KEY_STYLE);
-    tree._add_flags(tree[0].id(), KEY_SQUO);
+    tree[0].set_key_style(KEY_SQUO);
     test_key_squo(tree[0]);
     test_val_folded(tree[0]);
     EXPECT_EQ(emit2str(tree), R"('this is the key': >-
@@ -525,8 +588,7 @@ TEST(scalar, squo__val)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), VAL_STYLE);
-    tree._add_flags(tree[0].id(), VAL_SQUO);
+    tree[0].set_val_style(VAL_SQUO);
     test_key_plain(tree[0]);
     test_val_squo(tree[0]);
     EXPECT_EQ(emit2str(tree), R"(this is the key: 'this is the multiline "val" with
@@ -541,8 +603,8 @@ TEST(scalar, squo__key_val)
     Tree tree = parse_in_arena(scalar_yaml);
     test_key_plain(tree[0]);
     test_val_folded(tree[0]);
-    tree._rem_flags(tree[0].id(), KEY_STYLE|VAL_STYLE);
-    tree._add_flags(tree[0].id(), KEY_SQUO|VAL_SQUO);
+    tree[0].set_key_style(KEY_SQUO);
+    tree[0].set_val_style(VAL_SQUO);
     test_key_squo(tree[0]);
     test_val_squo(tree[0]);
     EXPECT_EQ(emit2str(tree), R"('this is the key': 'this is the multiline "val" with
@@ -572,7 +634,8 @@ bar
     EXPECT_TRUE(tree.docref(0).is_doc());
     EXPECT_TRUE(tree.docref(0).is_val());
     EXPECT_EQ(emit2str(tree), "--- scalar %YAML 1.2\n--- foo\n--- bar\n");
-    tree._add_flags(tree.root_id(), FLOW_SL);
+    NodeRef r = tree;
+    r.set_container_style(FLOW_SL);
     EXPECT_EQ(emit2str(tree), "--- scalar %YAML 1.2\n--- foo\n--- bar\n");
 }
 
@@ -584,8 +647,8 @@ bar
 TEST(seq, block)
 {
     Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
-    tree._add_flags(tree.root_id(), BLOCK);
+    NodeRef r = tree;
+    r.set_container_style(BLOCK);
     EXPECT_EQ(emit2str(tree), R"(- 1
 - 2
 - 3
@@ -598,9 +661,570 @@ TEST(seq, block)
 TEST(seq, flow_sl)
 {
     Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
-    tree._add_flags(tree.root_id(), FLOW_SL);
+    NodeRef r = tree;
+    r.set_container_style(FLOW_SL);
     EXPECT_EQ(emit2str(tree), R"([1,2,3,4,5,6])");
+    r.set_container_style(FLOW_SL|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), R"([1, 2, 3, 4, 5, 6])");
+}
+
+static void test_seq_flow_ml1(NodeType extra={}) // NOLINT
+{
+    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_ML1|extra);
+    EXPECT_EQ(emit2str(tree),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(0)),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(1)),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(10)),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(100)),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+}
+TEST(seq, flow_ml1)
+{
+    test_seq_flow_ml1();
+}
+TEST(seq, flow_ml1_spc)
+{
+    test_seq_flow_ml1(FLOW_SPC);
+}
+
+TEST(seq, flow_mln)
+{
+    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_MLN);
+    EXPECT_EQ(emit2str(tree),
+              "[\n"
+              "  1,2,3,4,5,6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(3)),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(4)),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(5)),
+              "[\n"
+              "  1,2,\n"
+              "  3,4,\n"
+              "  5,6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(6)),
+              "[\n"
+              "  1,2,\n"
+              "  3,4,\n"
+              "  5,6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(7)),
+              "[\n"
+              "  1,2,3,\n"
+              "  4,5,6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(8)),
+              "[\n"
+              "  1,2,3,\n"
+              "  4,5,6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(9)),
+              "[\n"
+              "  1,2,3,4,\n"
+              "  5,6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(10)),
+              "[\n"
+              "  1,2,3,4,\n"
+              "  5,6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(11)),
+              "[\n"
+              "  1,2,3,4,5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(12)),
+              "[\n"
+              "  1,2,3,4,5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(13)),
+              "[\n"
+              "  1,2,3,4,5,6\n"
+              "]\n");
+}
+
+TEST(seq, flow_mln_spc)
+{
+    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree),
+              "[\n"
+              "  1, 2, 3, 4, 5, 6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(4)),
+              "[\n"
+              "  1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(6)),
+              "[\n"
+              "  1, 2,\n"
+              "  3, 4,\n"
+              "  5, 6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(8)),
+              "[\n"
+              "  1, 2,\n"
+              "  3, 4,\n"
+              "  5, 6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(9)),
+              "[\n"
+              "  1, 2, 3,\n"
+              "  4, 5, 6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(12)),
+              "[\n"
+              "  1, 2, 3, 4,\n"
+              "  5, 6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(15)),
+              "[\n"
+              "  1, 2, 3, 4, 5,\n"
+              "  6\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(18)),
+              "[\n"
+              "  1, 2, 3, 4, 5, 6\n"
+              "]\n");
+}
+
+TEST(seq, flow_ml_nested_1_ml1)
+{
+    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    NodeRef r = tree;
+    EXPECT_EQ(emit2str(tree), "[[1,2,3,4,5,6],10,20,25,[100,200,300,400],30,40,50,[7,8,9,10,11,12]]");
+    r.set_container_style(FLOW_SL|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), "[[1,2,3,4,5,6], 10, 20, 25, [100,200,300,400], 30, 40, 50, [7,8,9,10,11,12]]");
+    r.set_container_style(FLOW_SL);
+    r[0].set_container_style(FLOW_SL|FLOW_SPC);
+    r[4].set_container_style(FLOW_SL|FLOW_SPC);
+    r[8].set_container_style(FLOW_SL|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), "[[1, 2, 3, 4, 5, 6],10,20,25,[100, 200, 300, 400],30,40,50,[7, 8, 9, 10, 11, 12]]");
+    r[0].set_container_style(FLOW_SL);
+    r[4].set_container_style(FLOW_SL);
+    r[8].set_container_style(FLOW_SL);
+    r.set_container_style(FLOW_ML1);
+    EXPECT_EQ(emit2str(tree),
+              "[\n"
+              "  [1,2,3,4,5,6],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [100,200,300,400],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [7,8,9,10,11,12]\n"
+              "]\n");
+    r.set_container_style(FLOW_ML1|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree),
+              "[\n"
+              "  [1,2,3,4,5,6],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [100,200,300,400],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [7,8,9,10,11,12]\n"
+              "]\n");
+}
+
+TEST(seq, flow_ml_nested_2_mln)
+{
+    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_MLN);
+    EXPECT_EQ(emit2str(tree, maxcols(0)),
+              "[\n"
+              "  [1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [100,\n"
+              "  200,\n"
+              "  300,\n"
+              "  400],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [7,\n"
+              "  8,\n"
+              "  9,\n"
+              "  10,\n"
+              "  11,\n"
+              "  12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(1)),
+              "[\n"
+              "  [1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [100,\n"
+              "  200,\n"
+              "  300,\n"
+              "  400],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [7,\n"
+              "  8,\n"
+              "  9,\n"
+              "  10,\n"
+              "  11,\n"
+              "  12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(10)),
+              "[\n"
+              "  [1,2,3,4,\n"
+              "  5,6],10,\n"
+              "  20,25,[100,\n"
+              "  200,300,\n"
+              "  400],30,\n"
+              "  40,50,[7,\n"
+              "  8,9,10,11,\n"
+              "  12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(16)),
+              "[\n"
+              "  [1,2,3,4,5,6],\n"
+              "  10,20,25,[100,\n"
+              "  200,300,400],30,\n"
+              "  40,50,[7,8,9,10,\n"
+              "  11,12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)),
+              "[\n"
+              "  [1,2,3,4,5,6],10,20,\n"
+              "  25,[100,200,300,400],\n"
+              "  30,40,50,[7,8,9,10,\n"
+              "  11,12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(24)),
+              "[\n"
+              "  [1,2,3,4,5,6],10,20,25,\n"
+              "  [100,200,300,400],30,40,\n"
+              "  50,[7,8,9,10,11,12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(30)),
+              "[\n"
+              "  [1,2,3,4,5,6],10,20,25,[100,\n"
+              "  200,300,400],30,40,50,[7,8,9,\n"
+              "  10,11,12]\n"
+              "]\n");
+}
+
+TEST(seq, flow_ml_nested_2_mln_spc)
+{
+    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree, maxcols(0)),
+              "[\n"
+              "  [1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [100,\n"
+              "  200,\n"
+              "  300,\n"
+              "  400],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [7,\n"
+              "  8,\n"
+              "  9,\n"
+              "  10,\n"
+              "  11,\n"
+              "  12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(1)),
+              "[\n"
+              "  [1,\n"
+              "  2,\n"
+              "  3,\n"
+              "  4,\n"
+              "  5,\n"
+              "  6],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [100,\n"
+              "  200,\n"
+              "  300,\n"
+              "  400],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [7,\n"
+              "  8,\n"
+              "  9,\n"
+              "  10,\n"
+              "  11,\n"
+              "  12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(10)),
+              "[\n"
+              "  [1, 2, 3,\n"
+              "  4, 5, 6],\n"
+              "  10, 20,\n"
+              "  25, [100,\n"
+              "  200, 300,\n"
+              "  400], 30,\n"
+              "  40, 50,\n"
+              "  [7, 8, 9,\n"
+              "  10, 11,\n"
+              "  12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(16)),
+              "[\n"
+              "  [1, 2, 3, 4, 5,\n"
+              "  6], 10, 20, 25,\n"
+              "  [100, 200, 300,\n"
+              "  400], 30, 40,\n"
+              "  50, [7, 8, 9,\n"
+              "  10, 11, 12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)),
+              "[\n"
+              "  [1, 2, 3, 4, 5, 6],\n"
+              "  10, 20, 25, [100,\n"
+              "  200, 300, 400], 30,\n"
+              "  40, 50, [7, 8, 9,\n"
+              "  10, 11, 12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(24)),
+              "[\n"
+              "  [1, 2, 3, 4, 5, 6], 10,\n"
+              "  20, 25, [100, 200, 300,\n"
+              "  400], 30, 40, 50, [7,\n"
+              "  8, 9, 10, 11, 12]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(30)),
+              "[\n"
+              "  [1, 2, 3, 4, 5, 6], 10, 20,\n"
+              "  25, [100, 200, 300, 400], 30,\n"
+              "  40, 50, [7, 8, 9, 10, 11, 12]\n"
+              "]\n");
+}
+
+TEST(seq, flow_ml_nested_2_mln_spc_nested)
+{
+    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_MLN|FLOW_SPC);
+    r[0].set_container_style(FLOW_MLN|FLOW_SPC);
+    r[4].set_container_style(FLOW_MLN|FLOW_SPC);
+    r[8].set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree, maxcols(0)),
+              "[\n"
+              "  [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [\n"
+              "    100,\n"
+              "    200,\n"
+              "    300,\n"
+              "    400\n"
+              "  ],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [\n"
+              "    7,\n"
+              "    8,\n"
+              "    9,\n"
+              "    10,\n"
+              "    11,\n"
+              "    12\n"
+              "  ]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(1)),
+              "[\n"
+              "  [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ],\n"
+              "  10,\n"
+              "  20,\n"
+              "  25,\n"
+              "  [\n"
+              "    100,\n"
+              "    200,\n"
+              "    300,\n"
+              "    400\n"
+              "  ],\n"
+              "  30,\n"
+              "  40,\n"
+              "  50,\n"
+              "  [\n"
+              "    7,\n"
+              "    8,\n"
+              "    9,\n"
+              "    10,\n"
+              "    11,\n"
+              "    12\n"
+              "  ]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(10)),
+              "[\n"
+              "  [\n"
+              "    1, 2,\n"
+              "    3, 4,\n"
+              "    5, 6\n"
+              "  ], 10, 20,\n"
+              "  25, [\n"
+              "    100, 200,\n"
+              "    300, 400\n"
+              "  ], 30, 40,\n"
+              "  50, [\n"
+              "    7, 8,\n"
+              "    9, 10,\n"
+              "    11, 12\n"
+              "  ]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(16)),
+              "[\n"
+              "  [\n"
+              "    1, 2, 3, 4,\n"
+              "    5, 6\n"
+              "  ], 10, 20, 25,\n"
+              "  [\n"
+              "    100, 200, 300,\n"
+              "    400\n"
+              "  ], 30, 40, 50,\n"
+              "  [\n"
+              "    7, 8, 9, 10,\n"
+              "    11, 12\n"
+              "  ]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)),
+              "[\n"
+              "  [\n"
+              "    1, 2, 3, 4, 5, 6\n"
+              "  ], 10, 20, 25, [\n"
+              "    100, 200, 300, 400\n"
+              "  ], 30, 40, 50, [\n"
+              "    7, 8, 9, 10, 11,\n"
+              "    12\n"
+              "  ]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(24)),
+              "[\n"
+              "  [\n"
+              "    1, 2, 3, 4, 5, 6\n"
+              "  ], 10, 20, 25, [\n"
+              "    100, 200, 300, 400\n"
+              "  ], 30, 40, 50, [\n"
+              "    7, 8, 9, 10, 11, 12\n"
+              "  ]\n"
+              "]\n");
+    EXPECT_EQ(emit2str(tree, maxcols(30)),
+              "[\n"
+              "  [\n"
+              "    1, 2, 3, 4, 5, 6\n"
+              "  ], 10, 20, 25, [\n"
+              "    100, 200, 300, 400\n"
+              "  ], 30, 40, 50, [\n"
+              "    7, 8, 9, 10, 11, 12\n"
+              "  ]\n"
+              "]\n");
 }
 
 
@@ -614,6 +1238,9 @@ TEST(keyseq, block)
     tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
     tree._add_flags(tree.root_id(), BLOCK);
     EXPECT_EQ(emit2str(tree), R"(foo: [1,2,3,4,5,6]
+)");
+    tree._add_flags(tree["foo"].id(), FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), R"(foo: [1, 2, 3, 4, 5, 6]
 )");
     tree._rem_flags(tree["foo"].id(), CONTAINER_STYLE);
     tree._add_flags(tree["foo"].id(), BLOCK);
@@ -630,8 +1257,23 @@ TEST(keyseq, block)
     tree._add_flags(tree.root_id(), BLOCK);
     EXPECT_EQ(emit2str(tree), R"(foo: [1,[2,3],4,[5,6]]
 )");
+    tree._add_flags(tree["foo"].id(), FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), R"(foo: [1, [2,3], 4, [5,6]]
+)");
+    tree._add_flags(tree["foo"][1].id(), FLOW_SPC);
+    tree._add_flags(tree["foo"][3].id(), FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), R"(foo: [1, [2, 3], 4, [5, 6]]
+)");
     tree._rem_flags(tree["foo"].id(), CONTAINER_STYLE);
     tree._add_flags(tree["foo"].id(), BLOCK);
+    EXPECT_EQ(emit2str(tree), R"(foo:
+  - 1
+  - [2, 3]
+  - 4
+  - [5, 6]
+)");
+    tree._rem_flags(tree["foo"][1].id(), FLOW_SPC);
+    tree._rem_flags(tree["foo"][3].id(), FLOW_SPC);
     EXPECT_EQ(emit2str(tree), R"(foo:
   - 1
   - [2,3]
@@ -666,6 +1308,397 @@ TEST(keyseq, flow_sl)
 )");
 }
 
+TEST(keyseq, flow_ml1)
+{
+    Tree tree = parse_in_arena("foo: [1, 2, 3, 4, 5, 6]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_ML1);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [1,2,3,4,5,6]\n"
+              "}\n");
+    r.set_container_style(FLOW_ML1|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [1,2,3,4,5,6]\n"
+              "}\n");
+    r["foo"].set_container_style(FLOW_ML1);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    r["foo"].set_container_style(FLOW_MLN);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,5,6\n"
+              "  ]\n"
+              "}\n");
+    r["foo"].set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3, 4, 5, 6\n"
+              "  ]\n"
+              "}\n");
+}
+
+TEST(keyseq, flow_mln_0)
+{
+    Tree tree = parse_in_arena("foo: [1, 2, 3, 4, 5, 6]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_ML1);
+    r["foo"].set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3, 4, 5, 6\n"
+              "  ]\n"
+              "}\n");
+    r["foo"].set_container_style(FLOW_MLN);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(5)),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(6)),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(7)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,\n"
+              "    3,4,\n"
+              "    5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(8)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,\n"
+              "    3,4,\n"
+              "    5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(9)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,\n"
+              "    4,5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(10)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,\n"
+              "    4,5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(11)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,\n"
+              "    5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(12)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,\n"
+              "    5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(13)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(14)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(15)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,5,6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)),
+              "{\n"
+              "  foo: [\n"
+              "    1,2,3,4,5,6\n"
+              "  ]\n"
+              "}\n");
+}
+
+TEST(keyseq, flow_mln_1)
+{
+    Tree tree = parse_in_arena("foo: [1, 2, 3, 4, 5, 6]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_ML1);
+    r["foo"].set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3, 4, 5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(5)),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(6)),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(7)),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    2,\n"
+              "    3,\n"
+              "    4,\n"
+              "    5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(8)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2,\n"
+              "    3, 4,\n"
+              "    5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(9)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2,\n"
+              "    3, 4,\n"
+              "    5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(10)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2,\n"
+              "    3, 4,\n"
+              "    5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(11)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3,\n"
+              "    4, 5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(12)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3,\n"
+              "    4, 5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(13)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3,\n"
+              "    4, 5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(14)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3, 4,\n"
+              "    5, 6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(17)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3, 4, 5,\n"
+              "    6\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)),
+              "{\n"
+              "  foo: [\n"
+              "    1, 2, 3, 4, 5, 6\n"
+              "  ]\n"
+              "}\n");
+}
+
+TEST(keyseq, flow_mln_nested)
+{
+    Tree tree = parse_in_arena("foo: [1, [2, 3], 4, [5, 6]]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_SL);
+    EXPECT_EQ(emit2str(tree), R"({foo: [1,[2,3],4,[5,6]]})");
+    r.set_container_style(FLOW_ML1);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [1,[2,3],4,[5,6]]\n"
+              "}\n");
+    r["foo"].set_container_style(FLOW_MLN);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1,[2,3],4,[5,6]\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(5)),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    [2,\n"
+              "    3],\n"
+              "    4,\n"
+              "    [5,\n"
+              "    6]\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(7)),
+              "{\n"
+              "  foo: [\n"
+              "    1,[2,\n"
+              "    3],\n"
+              "    4,[5,\n"
+              "    6]\n"
+              "  ]\n"
+              "}\n");
+    //
+    r.set_container_style(BLOCK);
+    r["foo"].set_container_style(BLOCK);
+    r["foo"][1].set_container_style(FLOW_SL);
+    r["foo"][3].set_container_style(FLOW_SL);
+    EXPECT_EQ(emit2str(tree), R"(foo:
+  - 1
+  - [2,3]
+  - 4
+  - [5,6]
+)");
+}
+
+TEST(keyseq, flow_mln_nested_2)
+{
+    Tree tree = parse_in_arena("foo: [1, [2, 3, 20, 30, 40], 4, [5, 6, 70, 80, 90]]");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_SL);
+    EXPECT_EQ(emit2str(tree), R"({foo: [1,[2,3,20,30,40],4,[5,6,70,80,90]]})");
+    r.set_container_style(FLOW_ML1);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [1,[2,3,20,30,40],4,[5,6,70,80,90]]\n"
+              "}\n");
+    r["foo"].set_container_style(FLOW_MLN);
+    EXPECT_EQ(emit2str(tree),
+              "{\n"
+              "  foo: [\n"
+              "    1,[2,3,20,30,40],4,[5,6,70,80,90]\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(5)),
+              "{\n"
+              "  foo: [\n"
+              "    1,\n"
+              "    [2,\n"
+              "    3,\n"
+              "    20,\n"
+              "    30,\n"
+              "    40],\n"
+              "    4,\n"
+              "    [5,\n"
+              "    6,\n"
+              "    70,\n"
+              "    80,\n"
+              "    90]\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(7)),
+              "{\n"
+              "  foo: [\n"
+              "    1,[2,\n"
+              "    3,20,\n"
+              "    30,\n"
+              "    40],\n"
+              "    4,[5,\n"
+              "    6,70,\n"
+              "    80,\n"
+              "    90]\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(12)),
+              "{\n"
+              "  foo: [\n"
+              "    1,[2,3,20,\n"
+              "    30,40],4,\n"
+              "    [5,6,70,\n"
+              "    80,90]\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)),
+              "{\n"
+              "  foo: [\n"
+              "    1,[2,3,20,30,40],\n"
+              "    4,[5,6,70,80,90]\n"
+              "  ]\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(25)),
+              "{\n"
+              "  foo: [\n"
+              "    1,[2,3,20,30,40],4,[5,\n"
+              "    6,70,80,90]\n"
+              "  ]\n"
+              "}\n");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -674,8 +1707,8 @@ TEST(keyseq, flow_sl)
 TEST(map, block)
 {
     Tree tree = parse_in_arena("{1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}");
-    tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
-    tree._add_flags(tree.root_id(), BLOCK);
+    NodeRef r = tree;
+    r.set_container_style(BLOCK);
     EXPECT_EQ(emit2str(tree), R"(1: 10
 2: 10
 3: 10
@@ -694,9 +1727,116 @@ TEST(map, flow_sl)
 5: 10
 6: 10
 )");
-    tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
-    tree._add_flags(tree.root_id(), FLOW_SL);
+    NodeRef r = tree;
+    r.set_container_style(FLOW_SL);
     EXPECT_EQ(emit2str(tree), R"({1: 10,2: 10,3: 10,4: 10,5: 10,6: 10})");
+    r.set_container_style(FLOW_SL|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), R"({1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10})");
+    r.set_container_style(FLOW_SL);
+    EXPECT_EQ(emit2str(tree), R"({1: 10,2: 10,3: 10,4: 10,5: 10,6: 10})");
+}
+
+TEST(map, flow_ml_1)
+{
+    Tree tree = parse_in_arena(R"(1: 10
+2: 10
+3: 10
+4: 10
+5: 10
+6: 10
+7: 10
+8: 10
+9: 10
+10: 10
+11: 10
+12: 10
+)");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_ML1);
+    EXPECT_EQ(emit2str(tree), ""
+              "{\n"
+              "  1: 10,\n"
+              "  2: 10,\n"
+              "  3: 10,\n"
+              "  4: 10,\n"
+              "  5: 10,\n"
+              "  6: 10,\n"
+              "  7: 10,\n"
+              "  8: 10,\n"
+              "  9: 10,\n"
+              "  10: 10,\n"
+              "  11: 10,\n"
+              "  12: 10\n"
+              "}\n");
+    r.set_container_style(FLOW_ML1|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), ""
+              "{\n"
+              "  1: 10,\n"
+              "  2: 10,\n"
+              "  3: 10,\n"
+              "  4: 10,\n"
+              "  5: 10,\n"
+              "  6: 10,\n"
+              "  7: 10,\n"
+              "  8: 10,\n"
+              "  9: 10,\n"
+              "  10: 10,\n"
+              "  11: 10,\n"
+              "  12: 10\n"
+              "}\n");
+}
+
+TEST(map, flow_ml_n)
+{
+    Tree tree = parse_in_arena(R"(1: 10
+2: 10
+3: 10
+4: 10
+5: 10
+6: 10
+7: 10
+8: 10
+9: 10
+10: 10
+11: 10
+12: 10
+)");
+    NodeRef r = tree;
+    r.set_container_style(FLOW_MLN);
+    EXPECT_EQ(emit2str(tree), ""
+              "{\n"
+              "  1: 10,2: 10,3: 10,4: 10,5: 10,6: 10,7: 10,8: 10,9: 10,10: 10,11: 10,12: 10\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(40)), ""
+              "{\n"
+              "  1: 10,2: 10,3: 10,4: 10,5: 10,6: 10,7: 10,\n"
+              "  8: 10,9: 10,10: 10,11: 10,12: 10\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)), ""
+              "{\n"
+              "  1: 10,2: 10,3: 10,\n"
+              "  4: 10,5: 10,6: 10,\n"
+              "  7: 10,8: 10,9: 10,\n"
+              "  10: 10,11: 10,12: 10\n"
+              "}\n");
+    r.set_container_style(FLOW_MLN|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), ""
+              "{\n"
+              "  1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10, 9: 10, 10: 10, 11: 10,\n"
+              "  12: 10\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(40)), ""
+              "{\n"
+              "  1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10,\n"
+              "  7: 10, 8: 10, 9: 10, 10: 10, 11: 10, 12: 10\n"
+              "}\n");
+    EXPECT_EQ(emit2str(tree, maxcols(20)), ""
+              "{\n"
+              "  1: 10, 2: 10, 3: 10,\n"
+              "  4: 10, 5: 10, 6: 10,\n"
+              "  7: 10, 8: 10, 9: 10,\n"
+              "  10: 10, 11: 10, 12: 10\n"
+              "}\n");
 }
 
 
@@ -707,10 +1847,12 @@ TEST(map, flow_sl)
 TEST(keymap, block)
 {
     Tree tree = parse_in_arena("{foo: {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}}");
-    tree._rem_flags(tree.root_id(), CONTAINER_STYLE);
-    tree._add_flags(tree.root_id(), BLOCK);
-    tree._rem_flags(tree["foo"].id(), CONTAINER_STYLE);
-    tree._add_flags(tree["foo"].id(), BLOCK);
+    NodeRef r = tree;
+    r.set_container_style(BLOCK);
+    EXPECT_EQ(emit2str(tree), "foo: {1: 10,2: 10,3: 10,4: 10,5: 10,6: 10}\n");
+    r["foo"].set_container_style(FLOW_SL|FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), "foo: {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}\n");
+    r["foo"].set_container_style(BLOCK);
     EXPECT_EQ(emit2str(tree), R"(foo:
   1: 10
   2: 10
@@ -760,6 +1902,14 @@ TEST(keymap, flow_sl)
   2: {2: 10,3: 10}
   4: 10
   5: {5: 10,6: 10}
+)");
+    tree._add_flags(tree["foo"][1].id(), FLOW_SPC);
+    tree._add_flags(tree["foo"][3].id(), FLOW_SPC);
+    EXPECT_EQ(emit2str(tree), R"(foo:
+  1: 10
+  2: {2: 10, 3: 10}
+  4: 10
+  5: {5: 10, 6: 10}
 )");
 }
 

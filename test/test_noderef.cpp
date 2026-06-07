@@ -229,7 +229,7 @@ const auto errbasic = ExpectedErrorType::err_basic;
 const auto errvisit = ExpectedErrorType::err_visit;
 const auto errany = ExpectedErrorType::err_any;
 
-#define _TEST_FAIL_(errtype, tree, method_expr)     \
+#define _TEST_FAIL_(errtype, tree, method_expr) \
     {                                           \
         SCOPED_TRACE(#method_expr);             \
         ExpectError::check_assert(errtype, tree, [&]{ \
@@ -292,7 +292,10 @@ void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype)
     _TEST_FAIL_(errtype, tree, node.is_block())
     _TEST_FAIL_(errtype, tree, node.is_flow())
     _TEST_FAIL_(errtype, tree, node.is_flow_sl())
-    _TEST_FAIL_(errtype, tree, node.is_flow_ml())
+    _TEST_FAIL_(errtype, tree, node.is_flow_ml1())
+    _TEST_FAIL_(errtype, tree, node.is_flow_mln())
+    _TEST_FAIL_(errtype, tree, node.is_flow_mlx())
+    _TEST_FAIL_(errtype, tree, node.has_flow_space())
     _TEST_FAIL_(errtype, tree, node.is_key_styled())
     _TEST_FAIL_(errtype, tree, node.is_val_styled())
     _TEST_FAIL_(errtype, tree, node.is_key_literal())

@@ -5023,28 +5023,45 @@ void test_nostyle(ConstNodeRef n)
 {
     EXPECT_FALSE(n.is_block());
     EXPECT_FALSE(n.is_flow_sl());
-    EXPECT_FALSE(n.is_flow_ml());
+    EXPECT_FALSE(n.is_flow_ml1());
+    EXPECT_FALSE(n.is_flow_mln());
+    EXPECT_FALSE(n.is_flow_mlx());
     EXPECT_FALSE(n.is_flow());
 }
 void test_block(ConstNodeRef n)
 {
     EXPECT_TRUE(n.is_block());
     EXPECT_FALSE(n.is_flow_sl());
-    EXPECT_FALSE(n.is_flow_ml());
+    EXPECT_FALSE(n.is_flow_mlx());
+    EXPECT_FALSE(n.is_flow_ml1());
+    EXPECT_FALSE(n.is_flow_mln());
     EXPECT_FALSE(n.is_flow());
 }
 void test_flow_sl(ConstNodeRef n)
 {
     EXPECT_FALSE(n.is_block());
     EXPECT_TRUE(n.is_flow_sl());
-    EXPECT_FALSE(n.is_flow_ml());
+    EXPECT_FALSE(n.is_flow_mlx());
+    EXPECT_FALSE(n.is_flow_ml1());
+    EXPECT_FALSE(n.is_flow_mln());
     EXPECT_TRUE(n.is_flow());
 }
-void test_flow_ml(ConstNodeRef n)
+void test_flow_ml1(ConstNodeRef n)
 {
     EXPECT_FALSE(n.is_block());
     EXPECT_FALSE(n.is_flow_sl());
-    EXPECT_TRUE(n.is_flow_ml());
+    EXPECT_TRUE(n.is_flow_mlx());
+    EXPECT_TRUE(n.is_flow_ml1());
+    EXPECT_FALSE(n.is_flow_mln());
+    EXPECT_TRUE(n.is_flow());
+}
+void test_flow_mln(ConstNodeRef n)
+{
+    EXPECT_FALSE(n.is_block());
+    EXPECT_FALSE(n.is_flow_sl());
+    EXPECT_TRUE(n.is_flow_mlx());
+    EXPECT_FALSE(n.is_flow_ml1());
+    EXPECT_TRUE(n.is_flow_mln());
     EXPECT_TRUE(n.is_flow());
 }
 
@@ -5057,8 +5074,10 @@ void test_container_styles(NodeRef n)
     test_block(n);
     n.set_container_style(FLOW_SL);
     test_flow_sl(n);
-    n.set_container_style(FLOW_ML);
-    test_flow_ml(n);
+    n.set_container_style(FLOW_ML1);
+    test_flow_ml1(n);
+    n.set_container_style(FLOW_MLN);
+    test_flow_mln(n);
     n.set_container_style(orig);
 }
 
