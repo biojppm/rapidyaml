@@ -7,7 +7,16 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
-<a name="v0.15.1"/>
+<a name="v0.15.2"></a>
+## 0.15.2
+
+[Github release: 0.15.2](https://github.com/biojppm/rapidyaml/releases/tag/v0.15.2)
+
+- Workaround for Doxygen changelog (use of HTML anchors in .md: doxy 1.15 fails but 1.16 succeeds).
+
+
+----------------------------
+<a name="v0.15.1"></a>
 ## 0.15.1
 
 [Github release: 0.15.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.15.1)
@@ -19,7 +28,7 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
-<a name="v0.15.0"/>
+<a name="v0.15.0"></a>
 ## 0.15.0
 
 [Github release: 0.15.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.15.0)
@@ -76,7 +85,7 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
-<a name="v0.14.0"/>
+<a name="v0.14.0"></a>
 ## 0.14.0
 
 [Github release: 0.14.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.14.0)
@@ -110,7 +119,7 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
-<a name="v0.13.0"/>
+<a name="v0.13.0"></a>
 ## 0.13.0
 
 [Github release: 0.13.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.13.0)
@@ -152,7 +161,7 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
-<a name="v0.12.1"/>
+<a name="v0.12.1"></a>
 ## 0.12.1
 
 [Github release: 0.12.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.12.1)
@@ -161,7 +170,7 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
 
 
 ----------------------------
-<a name="v0.12.0"/>
+<a name="v0.12.0"></a>
 ## 0.12.0
 
 [Github release: 0.12.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.12.0)
@@ -389,7 +398,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 
 ----------------------------
-<a name="v0.11.1"/>
+<a name="v0.11.1"></a>
 ## 0.11.1
 
 [Github release: 0.11.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.11.1)
@@ -421,7 +430,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 
 ----------------------------
-<a name="v0.11.0"/>
+<a name="v0.11.0"></a>
 ## 0.11.0
 
 [Github release: 0.11.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.11.0)
@@ -541,7 +550,7 @@ Ensure parse errors for **invalid** YAML cases, and improve reported error locat
 
 
 ----------------------------
-<a name="v0.10.0"/>
+<a name="v0.10.0"></a>
 ## 0.10.0
 
 [Github release: 0.10.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.10.0)
@@ -584,7 +593,7 @@ This handler is meant for use by other programming languages, and it supports co
 
 
 ----------------------------
-<a name="v0.9.0"/>
+<a name="v0.9.0"></a>
 ## 0.9.0
 
 [Github release: 0.9.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.9.0)
@@ -631,7 +640,7 @@ This handler is meant for use by other programming languages, and it supports co
 
 
 ----------------------------
-<a name="v0.8.0"/>
+<a name="v0.8.0"></a>
 ## 0.8.0
 
 [Github release: 0.8.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.8.0)
@@ -686,7 +695,7 @@ This handler is meant for use by other programming languages, and it supports co
 
 
 ---------------------------------------
-<a name="v0.7.2"/>
+<a name="v0.7.2"></a>
 ## 0.7.2
 - [0.7.2](https://github.com/biojppm/rapidyaml/releases/tag/v0.7.2)
 
@@ -701,7 +710,7 @@ This handler is meant for use by other programming languages, and it supports co
 
 
 ---------------------------------------
-<a name="v0.7.1"/>
+<a name="v0.7.1"></a>
 ## 0.7.1
 [Github release: 0.7.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.7.1)
 
@@ -743,7 +752,7 @@ This handler is meant for use by other programming languages, and it supports co
 
 
 ---------------------------------------
-<a name="v0.7.0"/>
+<a name="v0.7.0"></a>
 ## 0.7.0
 [Github release: 0.7.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.7.0)
 
@@ -941,7 +950,7 @@ Emit performance improved everywhere by over 1.5x and as much as 3x-4x for YAML 
 
 
 ---------------------------------------
-<a name="v0.6.0"/>
+<a name="v0.6.0"></a>
 ## 0.6.0
 [Github release: 0.6.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.6.0)
 
@@ -1024,7 +1033,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 
 
 ---------------------------------------
-<a name="v0.5.0"/>
+<a name="v0.5.0"></a>
 ## 0.5.0
 [Github release: 0.5.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.5.0)
 
@@ -1204,7 +1213,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 
 
 ---------------------------------------
-<a name="v0.4.1"/>
+<a name="v0.4.1"></a>
 ## 0.4.1
 [Github release: 0.4.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.4.1)
 
@@ -1214,7 +1223,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 
 
 ---------------------------------------
-<a name="v0.4.0"/>
+<a name="v0.4.0"></a>
 ## 0.4.0
 [Github release: 0.4.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.4.0)
 
@@ -1450,7 +1459,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 
 ---------------------------------------
-<a name="v0.3.0"/>
+<a name="v0.3.0"></a>
 ## 0.3.0
 [Github release: 0.3.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.3.0)
 
@@ -1562,7 +1571,7 @@ ryml::Tree   tree2  = {mr2.callbacks()};
 
 
 ---------------------------------------
-<a name="v0.2.3"/>
+<a name="v0.2.3"></a>
 ## 0.2.3
 [Github release: 0.2.3](https://github.com/biojppm/rapidyaml/releases/tag/v0.2.3)
 
@@ -1854,7 +1863,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 
 
 ---------------------------------------
-<a name="v0.2.2"/>
+<a name="v0.2.2"></a>
 ## 0.2.2
 [Github release: 0.2.2](https://github.com/biojppm/rapidyaml/releases/tag/v0.2.2)
 
@@ -1862,7 +1871,7 @@ Yank python package 0.2.1, was accidentally created while iterating the PyPI sub
 
 
 ---------------------------------------
-<a name="v0.2.1"/>
+<a name="v0.2.1"></a>
 ## 0.2.1
 [Github release: 0.2.1](https://github.com/biojppm/rapidyaml/releases/tag/v0.2.1)
 
@@ -2104,7 +2113,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 
 
 ---------------------------------------
-<a name="v0.2.0"/>
+<a name="v0.2.0"></a>
 ## 0.2.0
 
 [Github release: 0.2.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.2.0)
@@ -2141,7 +2150,7 @@ This release is focused on bug fixes and compliance with the [YAML test suite](h
 
 
 ---------------------------------------
-<a name="v0.1.0"/>
+<a name="v0.1.0"></a>
 ## 0.1.0
 [Github release: 0.1.0](https://github.com/biojppm/rapidyaml/releases/tag/v0.1.0)
 

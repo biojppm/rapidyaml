@@ -31,7 +31,7 @@
  * The directories that exist side-by-side with this file contain
  * several examples on how to build this with cmake, such that you can
  * hit the ground running. See [the relevant section of the main
- * README](https://github.com/biojppm/rapidyaml/tree/v0.15.1?tab=readme-ov-file#quickstart-samples)
+ * README](https://github.com/biojppm/rapidyaml/tree/v0.15.2?tab=readme-ov-file#quickstart-samples)
  * for an overview of the different choices. I suggest starting first
  * with the `add_subdirectory` example, treating it just like any
  * other self-contained cmake project.
@@ -44,7 +44,7 @@
  * include(FetchContent)
  * FetchContent_Declare(ryml
  *     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
- *     GIT_TAG v0.15.1
+ *     GIT_TAG v0.15.2
  *     GIT_SHALLOW FALSE  # ensure submodules are checked out
  * )
  * FetchContent_MakeAvailable(ryml)
