@@ -1,6 +1,7 @@
 #ifdef RYML_SAVE_TEST_YAML
 
 #include <c4/yml/common.hpp>
+#include <c4/yml/file.hpp>
 #include <c4/yml/error.hpp>
 #include <c4/error.hpp>
 #include <c4/format.hpp>
@@ -17,7 +18,7 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 namespace c4 {
 namespace yml {
 
-static char savedir[] = "./yamldump\0";
+static char savedir[] = "./yamldump";
 
 struct savehelper
 {
@@ -25,7 +26,7 @@ struct savehelper
     std::vector<char> basename;
     std::vector<char> fullname;
     size_t indexpos;
-    void reset_from_notest(csubstr filename)
+    void reset_from_no_test(csubstr filename)
     {
         char buf[1024];
         ssize_t ret = readlink("/proc/self/exe", buf, sizeof(buf)-1);
@@ -73,7 +74,7 @@ struct savehelper
     }
     void prepare_fullname()
     {
-        printf("new test! %.*s\n", (int)basename.size(), &basename.front());
+        printf("new test! %.*s[%zu]\n", (int)basename.size(), basename.data(), basename.size());
         c4::formatrs(&fullname, "{}/{}--", savedir, basename);
         indexpos = fullname.size();
         fullname.resize(fullname.size() + 32);
@@ -94,7 +95,7 @@ static void save_impl(csubstr filename, csubstr extension, csubstr src)
         if(curr)
             h.reset_from_gtest(curr);
         else
-            h.reset_from_notest(filename);
+            h.reset_from_no_test(filename);
     }
     if(to_csubstr(h.basename).find("FilterTest_filter") != npos)
         return; // this case is not interesting, and very noisy
@@ -113,7 +114,7 @@ static void save_impl(csubstr filename, csubstr extension, csubstr src)
     csubstr savename = to_substr(h.fullname).first(h.indexpos + len);
     // done! dump the file
     printf("saving %.*s\n", (int)savename.len, savename.str);
-    ryml::file_put_contents(src, savename.str);
+    file_put_contents(src, savename.str);
 }
 
 void ryml_save_test_yaml(csubstr filename, csubstr src)

@@ -495,7 +495,7 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
     {
-        FAIL() << "got an unexpected exception:" << exc.what() << "\n";
+        FAIL() << "got an unexpected exception: " << exc.what() << "\n";
     }, )
     C4_IF_EXCEPTIONS_(catch(...)
     {
