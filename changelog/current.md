@@ -1,0 +1,3 @@
+- [PR#616](https://github.com/biojppm/rapidyaml/pull/616): Clean emit API **[BREAKING]**
+  - `WriterFile` and `WriterOStream` no longer track the number of emitted bytes.
+  - `error_on_excess` is now used in the emit-to-buffer overloads, and no longer in the main `Emitter::emit_as()` driver function.

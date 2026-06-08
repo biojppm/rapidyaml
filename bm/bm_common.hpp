@@ -10,8 +10,6 @@
 #include <vector>
 #include <iostream>
 
-#include <benchmark/benchmark.h>
-
 // warning suppressions for thirdparty code
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -38,6 +36,12 @@
 #   endif
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
+#   if __GNUC__ >= 7
+#   pragma GCC diagnostic ignored "-Wduplicated-branches"
+#   endif
+#   if __GNUC__ >= 6
+#   pragma GCC diagnostic ignored "-Wunused-const-variable"
+#   endif
 #   pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #   pragma GCC diagnostic ignored "-Wshadow"
 #   pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -52,6 +56,7 @@
 #       pragma GCC diagnostic ignored "-Wclass-memaccess" // rapidjson/document.h:1952:24
 #   endif
 #endif
+#include <benchmark/benchmark.h>
 #include "./libyaml.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>

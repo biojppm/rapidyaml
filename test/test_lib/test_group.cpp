@@ -172,8 +172,7 @@ void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
-    cd->numbytes_stdout = emit_yaml(cd->parsed_tree);
-    EXPECT_EQ(cd->numbytes_stdout, cd->emitted_yml.size());
+    emit_yaml(cd->parsed_tree);
 }
 
 //-----------------------------------------------------------------------------
@@ -185,8 +184,7 @@ void YmlTestCase::_test_emit_json_stdout(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
-    cd->numbytes_stdout_json = emit_json(cd->parsed_tree);
-    EXPECT_EQ(cd->numbytes_stdout_json, cd->emitted_json.size());
+    emit_json(cd->parsed_tree);
 }
 
 //-----------------------------------------------------------------------------
@@ -327,7 +325,6 @@ void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
     _ensure_emit(cd);
     csubstr emitted = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
     EXPECT_EQ(emitted.len, cd->emit_buf.size());
-    EXPECT_EQ(emitted.len, cd->numbytes_stdout);
     #ifdef RYML_DBG
     printf("%.*s", (int)emitted.len, emitted.str);
     #endif
@@ -344,7 +341,6 @@ void YmlTestCase::_test_emit_json_string(CaseDataLineEndings *cd)
     _ensure_emit_json(cd);
     auto emitted = emitrs_json(cd->parsed_tree, &cd->emit_buf);
     EXPECT_EQ(emitted.len, cd->emitjson_buf.size());
-    EXPECT_EQ(emitted.len, cd->numbytes_stdout_json);
     #ifdef RYML_DBG
     printf("%.*s", (int)emitted.len, emitted.str);
     #endif

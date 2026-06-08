@@ -17,12 +17,12 @@ namespace c4 {
 namespace yml {
 
 template<class Writer>
-substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, bool error_on_excess)
+void Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id)
 {
     if(tree.empty())
     {
         _RYML_ASSERT_BASIC_(tree.callbacks(), id == NONE);
-        return {};
+        return;
     }
     if(id == NONE)
         id = tree.root_id();
@@ -40,7 +40,6 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& tree, id_type id, b
     else
         _RYML_ERR_BASIC_(m_tree->callbacks(), "unknown emit type"); // LCOV_EXCL_LINE
     m_tree = nullptr;
-    return this->Writer::_get(error_on_excess);
 }
 
 /** @cond dev */
