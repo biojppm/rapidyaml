@@ -106,6 +106,7 @@ void ensure_callbacks();
     #include <c4/yml/error.def.hpp>
 #endif
 
+
 // these are needed for the examples below
 #include <iostream>
 #include <sstream>
@@ -4201,7 +4202,7 @@ void sample_emit_to_stream()
         std::stringstream ss;
         ss << ryml::as_json(tree); // works with any stream having .operator<<() and .write()
         s = ss.str();
-        CHECK(ryml::to_csubstr(s) ==
+        CHECK(s ==
               "["                                        "\n"
               "  \"a\","                                 "\n"
               "  \"b\","                                 "\n"
@@ -4235,7 +4236,7 @@ void sample_emit_to_stream()
         std::stringstream ss;
         ss << tree[3][2]; // works with any stream having .operator<<() and .write()
         s = ss.str();
-        CHECK(ryml::to_csubstr(s) == ""
+        CHECK(s == ""
               "more:"                             "\n"
               "  vinho verde: Soalheiro"          "\n"
               "  vinho tinto: Redoma 2017"        "\n"
@@ -4706,6 +4707,9 @@ void sample_style_flow_formatting()
     auto tostr = [](ryml::ConstNodeRef n, ryml::EmitOptions opts) {
         return ryml::emitrs_yaml<std::string>(n, opts);
     };
+    auto tostr_json = [](ryml::ConstNodeRef n, ryml::EmitOptions opts) {
+        return ryml::emitrs_json<std::string>(n, opts);
+    };
     const ryml::EmitOptions emit_defaults = ryml::EmitOptions{};
     // let's parse this, which is in FLOW_ML1 (flow multiline, 1 value per line):
     ryml::csubstr yaml = ""
@@ -4730,6 +4734,20 @@ void sample_style_flow_formatting()
         CHECK(tree["map"]["seq"][4].is_flow_sl()); // etc
         // emitted yaml is exactly equal to parsed yaml:
         CHECK(tostr(tree, emit_defaults) == yaml);
+        // json looks like similar:
+        CHECK(tostr_json(tree, emit_defaults) ==
+              "{\n"
+              "  \"map\": {\n"
+              "    \"seq\": [\n"
+              "      0,\n"
+              "      1,\n"
+              "      2,\n"
+              "      3,\n"
+              "      [40,41]\n"
+              "    ]\n"
+              "  }\n"
+              "}\n"
+              "");
     }
     // if you prefer to shorten the emitted yaml, you can set the
     // parser to disable flow multiline detection. It will then pick
@@ -4742,12 +4760,18 @@ void sample_style_flow_formatting()
         // notice how this is smaller now:
         CHECK(tostr(tree, emit_defaults) ==
               "{map: {seq: [0,1,2,3,[40,41]]}}");
+        // and json as well
+        CHECK(tostr_json(tree, emit_defaults) ==
+              "{\"map\": {\"seq\": [0,1,2,3,[40,41]]}}");
         // you can also force spaces everywhere without adding
         // FLOW_SPC in individual containers:
         const ryml::EmitOptions with_spaces = ryml::EmitOptions{}
             .force_flow_spc(true);
         CHECK(tostr(tree, with_spaces) ==
               "{map: {seq: [0, 1, 2, 3, [40, 41]]}}");
+        // and json as well
+        CHECK(tostr_json(tree, with_spaces) ==
+              "{\"map\": {\"seq\": [0, 1, 2, 3, [40, 41]]}}");
     }
     // or you can still have the default detection of flow_ml, but set
     // it to pick FLOW_MLN (multiline, n values per line), instead of
@@ -4766,6 +4790,14 @@ void sample_style_flow_formatting()
               "    ]"                       "\n"
               "  }"                         "\n"
               "}"                           "\n");
+        CHECK(tostr_json(tree, emit_defaults) ==
+              "{"                           "\n"
+              "  \"map\": {"                "\n"
+              "    \"seq\": ["              "\n"
+              "      0,1,2,3,[40,41]"       "\n"
+              "    ]"                       "\n"
+              "  }"                         "\n"
+              "}"                           "\n");
         // now with spaces:
         const ryml::EmitOptions with_spaces = ryml::EmitOptions{}
             .force_flow_spc(true);
@@ -4773,6 +4805,14 @@ void sample_style_flow_formatting()
               "{"                           "\n"
               "  map: {"                    "\n"
               "    seq: ["                  "\n"
+              "      0, 1, 2, 3, [40, 41]"  "\n"
+              "    ]"                       "\n"
+              "  }"                         "\n"
+              "}"                           "\n");
+        CHECK(tostr_json(tree, with_spaces) ==
+              "{"                           "\n"
+              "  \"map\": {"                "\n"
+              "    \"seq\": ["              "\n"
               "      0, 1, 2, 3, [40, 41]"  "\n"
               "    ]"                       "\n"
               "  }"                         "\n"
@@ -4790,6 +4830,19 @@ void sample_style_flow_formatting()
               "{"              "\n"
               "map: {"         "\n"
               "seq: ["         "\n"
+              "0,"             "\n"
+              "1,"             "\n"
+              "2,"             "\n"
+              "3,"             "\n"
+              "[40,41]"        "\n"
+              "]"              "\n"
+              "}"              "\n"
+              "}"              "\n"
+              "");
+        CHECK(tostr_json(tree, noindent) == ""
+              "{"              "\n"
+              "\"map\": {"     "\n"
+              "\"seq\": ["     "\n"
               "0,"             "\n"
               "1,"             "\n"
               "2,"             "\n"
@@ -4830,10 +4883,27 @@ void sample_style_flow_formatting()
               "  56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79\n"
               "]\n"
               "");
+        CHECK(tostr_json(tree, emit_defaults) == ""
+              "[\n"
+              "  0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,\n"
+              "  29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,\n"
+              "  55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79\n"
+              "]\n"
+              "");
         // let's try setting max columns to 40:
         const ryml::EmitOptions maxcols40 = ryml::EmitOptions{}
             .max_cols(40);
         CHECK(tostr(tree, maxcols40) == ""
+              "[\n"
+              "  0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,\n"
+              "  16,17,18,19,20,21,22,23,24,25,26,27,28,\n"
+              "  29,30,31,32,33,34,35,36,37,38,39,40,41,\n"
+              "  42,43,44,45,46,47,48,49,50,51,52,53,54,\n"
+              "  55,56,57,58,59,60,61,62,63,64,65,66,67,\n"
+              "  68,69,70,71,72,73,74,75,76,77,78,79\n"
+              "]\n"
+              "");
+        CHECK(tostr_json(tree, maxcols40) == ""
               "[\n"
               "  0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,\n"
               "  16,17,18,19,20,21,22,23,24,25,26,27,28,\n"
@@ -4848,6 +4918,14 @@ void sample_style_flow_formatting()
         const ryml::EmitOptions with_spaces = ryml::EmitOptions{}
             .force_flow_spc(true);
         CHECK(tostr(tree, with_spaces) == ""
+              "[\n"
+              "  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,\n"
+              "  22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,\n"
+              "  42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,\n"
+              "  62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79\n"
+              "]\n"
+              "");
+        CHECK(tostr_json(tree, with_spaces) == ""
               "[\n"
               "  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,\n"
               "  22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,\n"
@@ -4871,12 +4949,36 @@ void sample_style_flow_formatting()
               "  72, 73, 74, 75, 76, 77, 78, 79\n"
               "]\n"
               "");
+        CHECK(tostr_json(tree, maxcols40_spc) == ""
+              "[\n"
+              "  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,\n"
+              "  12, 13, 14, 15, 16, 17, 18, 19, 20, 21,\n"
+              "  22, 23, 24, 25, 26, 27, 28, 29, 30, 31,\n"
+              "  32, 33, 34, 35, 36, 37, 38, 39, 40, 41,\n"
+              "  42, 43, 44, 45, 46, 47, 48, 49, 50, 51,\n"
+              "  52, 53, 54, 55, 56, 57, 58, 59, 60, 61,\n"
+              "  62, 63, 64, 65, 66, 67, 68, 69, 70, 71,\n"
+              "  72, 73, 74, 75, 76, 77, 78, 79\n"
+              "]\n"
+              "");
         // and you can combine spaces with max columns with no indentation:
         const ryml::EmitOptions maxcols40_spc_noindent = ryml::EmitOptions{}
             .max_cols(40)
             .force_flow_spc(true)
             .indent_flow_ml(false);
         CHECK(tostr(tree, maxcols40_spc_noindent) == ""
+              "[\n"
+              "0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,\n"
+              "13, 14, 15, 16, 17, 18, 19, 20, 21, 22,\n"
+              "23, 24, 25, 26, 27, 28, 29, 30, 31, 32,\n"
+              "33, 34, 35, 36, 37, 38, 39, 40, 41, 42,\n"
+              "43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n"
+              "53, 54, 55, 56, 57, 58, 59, 60, 61, 62,\n"
+              "63, 64, 65, 66, 67, 68, 69, 70, 71, 72,\n"
+              "73, 74, 75, 76, 77, 78, 79\n"
+              "]\n"
+              "");
+        CHECK(tostr_json(tree, maxcols40_spc_noindent) == ""
               "[\n"
               "0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,\n"
               "13, 14, 15, 16, 17, 18, 19, 20, 21, 22,\n"
@@ -5453,7 +5555,7 @@ void sample_tag_directives()
 
 void sample_docs()
 {
-    std::string yml = ""
+    ryml::csubstr yml = ""
         "---"        "\n"
         "a: 0"       "\n"
         "b: 1"       "\n"
@@ -5466,7 +5568,7 @@ void sample_docs()
         "- 6"        "\n"
         "- 7"        "\n"
         "";
-    ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yml));
+    ryml::Tree tree = ryml::parse_in_arena(yml);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == yml);
 
     // iteration through docs
@@ -5537,55 +5639,60 @@ void sample_docs()
         CHECK(tree.val(tree.child(doc2_id, 3)) == "7");
     }
 
-    // Note: since json does not have streams, you cannot emit the above
-    // tree as json when you start from the root:
-    //CHECK(ryml::emitrs_json<std::string>(tree) == yml); // RUNTIME ERROR!
-
-    // but, althouth emitting streams as json is not possible,
-    // you can iterate through individual documents and emit
-    // them separately:
+    // Note: ryml emits streams as a JSON seq by default:
+    CHECK(ryml::emitrs_json<std::string>(tree) ==
+          "["              "\n"
+          "  {"            "\n"
+          "    \"a\": 0,"  "\n"
+          "    \"b\": 1"   "\n"
+          "  },"           "\n"
+          "  {"            "\n"
+          "    \"c\": 2,"  "\n"
+          "    \"d\": 3"   "\n"
+          "  },"           "\n"
+          "  ["            "\n"
+          "    4,"         "\n"
+          "    5,"         "\n"
+          "    6,"         "\n"
+          "    7"          "\n"
+          "  ]"            "\n"
+          "]\n"
+          "");
+    // ... but you can use EmitOptions{} to set the emitter to fail if
+    // it finds a stream:
     {
+        ScopedErrorHandlerExample errh; // calls ryml::set_callbacks()
+        ryml::Tree err_tree = ryml::parse_in_arena(yml);
+        CHECK(err_tree.callbacks() == errh.callbacks());
+        auto err_opts = ryml::EmitOptions{}.json_err_on_stream(true);
+        CHECK(errh.check_error_occurs([&]{
+            return ryml::emitrs_json<std::string>(err_tree, err_opts);
+        }));
+        // in which case, you can avoid the error by emitting the
+        // documents one-by-one:
         const std::string expected_json[] = {
             "{"            "\n"
             "  \"a\": 0,"  "\n"
             "  \"b\": 1"   "\n"
             "}"            "\n"
-            "",
+            ,
             "{"            "\n"
             "  \"c\": 2,"  "\n"
             "  \"d\": 3"   "\n"
             "}"            "\n"
-            "",
+            ,
             "["            "\n"
             "  4,"         "\n"
             "  5,"         "\n"
             "  6,"         "\n"
             "  7"          "\n"
             "]"            "\n"
-            "",
         };
-        // using the node API
-        {
-            ryml::id_type count = 0;
-            const ryml::ConstNodeRef stream = tree.rootref();
-            CHECK(stream.num_children() == (ryml::id_type)C4_COUNTOF(expected_json));
-            for(ryml::ConstNodeRef doc : stream.children())
-            {
-                CHECK(ryml::emitrs_json<std::string>(doc) == expected_json[count++]);
-            }
-        }
-        // equivalent: using the index API
-        {
-            ryml::id_type count = 0;
-            const ryml::id_type stream_id = tree.root_id();
-            CHECK(tree.num_children(stream_id) == (ryml::id_type)C4_COUNTOF(expected_json));
-            for(ryml::id_type doc_id = tree.first_child(stream_id);
-                doc_id != ryml::NONE;
-                doc_id = tree.next_sibling(doc_id))
-            {
-                CHECK(ryml::emitrs_json<std::string>(tree, doc_id) == expected_json[count++]);
-            }
-        }
+        ryml::id_type count = 0;
+        const ryml::ConstNodeRef stream = err_tree;
+        CHECK(stream.num_children() == (ryml::id_type)C4_COUNTOF(expected_json));
+        for(ryml::ConstNodeRef doc : stream.children())
+            CHECK(ryml::emitrs_json<std::string>(doc, err_opts) == expected_json[count++]);
     }
 }
 

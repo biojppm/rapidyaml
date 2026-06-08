@@ -1277,40 +1277,65 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s, id_type ilevel)
 
 //-----------------------------------------------------------------------------
 
+namespace detail {
+inline type_bits json_type_(type_bits ty)
+{
+    enum : type_bits { // NOLINT
+        ml_bits = (BLOCK|(STREAM & ~SEQ)), // remove SEQ from STREAM to test
+        sl_bits = (CONTAINER_STYLE & ~FLOW_SPC),
+    };
+    if(ty & ml_bits)
+    {
+        ty &= ~BLOCK;
+        ty |= FLOW_ML1;
+    }
+    else if((ty & (SEQ|MAP)) && !(ty & sl_bits))
+    {
+        ty |= FLOW_SL;
+    }
+    return ty;
+}
+} // namespace detail
+
+
 template<class Writer>
 void Emitter<Writer>::_json_emit(id_type id)
 {
     NodeType ty = m_tree->type(id);
-    if(ty.is_flow_sl() || !(ty & CONTAINER_STYLE))
+    // JSON does not have streams
+    if(C4_UNLIKELY(ty.is_stream() && m_opts.json_err_on_stream()))
+        _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "found stream node");
+    static_assert(STREAM & SEQ, "STREAM must be a SEQ");
+    ty = detail::json_type_(ty);
+    if(ty.is_flow_mlx())
     {
-        _json_visit_sl(id, 0);
+        _json_visit_ml(id, ty, 0);
+        _newl();
     }
     else
     {
-        _json_visit_ml(id, 0);
-        _newl();
+        _json_visit_sl(id, ty, 0);
     }
 }
 
 template<class Writer>
-void Emitter<Writer>::_json_visit_sl(id_type id, id_type depth)
+void Emitter<Writer>::_json_visit_sl(id_type id, NodeType ty, id_type depth)
 {
-    _RYML_CHECK_VISIT_(m_tree->callbacks(), !m_tree->is_stream(id), m_tree, id); // JSON does not have streams
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
-    NodeType ty = m_tree->type(id);
-    if(ty.is_keyval())
+    if(ty.is_val())
+    {
+        _json_writev(id, ty);
+    }
+    else if(ty.is_keyval())
     {
         _json_writek(id, ty);
         _write(": ");
         _json_writev(id, ty);
     }
-    else if(ty.is_val())
-    {
-        _json_writev(id, ty);
-    }
     else if(ty.is_container())
     {
+        ty = detail::json_type_(ty);
         if(ty.has_key())
         {
             _json_writek(id, ty);
@@ -1320,40 +1345,44 @@ void Emitter<Writer>::_json_visit_sl(id_type id, id_type depth)
             _write('[');
         else if(ty.is_map())
             _write('{');
+
+        for(id_type child = m_tree->first_child(id); child != NONE; child = m_tree->next_sibling(child))
+        {
+            if(child != m_tree->first_child(id))
+            {
+                if((ty & FLOW_SPC) || m_opts.force_flow_spc())
+                    _write(", ");
+                else
+                    _write(',');
+            }
+            _json_visit_sl(child, m_tree->type(child), depth+1);
+        }
+
+        if(ty.is_seq())
+            _write(']');
+        else if(ty.is_map())
+            _write('}');
     }  // container
-
-    for(id_type child = m_tree->first_child(id); child != NONE; child = m_tree->next_sibling(child))
-    {
-        if(child != m_tree->first_child(id))
-            _write(',');
-        _json_visit_sl(child, depth+1);
-    }
-
-    if(ty.is_seq())
-        _write(']');
-    else if(ty.is_map())
-        _write('}');
 }
 
 template<class Writer>
-void Emitter<Writer>::_json_visit_ml(id_type id, id_type depth)
+void Emitter<Writer>::_json_visit_ml(id_type id, NodeType ty, id_type depth)
 {
-    _RYML_CHECK_VISIT_(m_tree->callbacks(), !m_tree->is_stream(id), m_tree, id); // JSON does not have streams
     if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
-    NodeType ty = m_tree->type(id);
-    if(ty.is_keyval())
+    if(ty.is_val())
+    {
+        _json_writev(id, ty);
+    }
+    else if(ty.is_keyval())
     {
         _json_writek(id, ty);
         _write(": ");
         _json_writev(id, ty);
     }
-    else if(ty.is_val())
-    {
-        _json_writev(id, ty);
-    }
     else if(ty.is_container())
     {
+        ty = detail::json_type_(ty);
         if(ty.has_key())
         {
             _json_writek(id, ty);
@@ -1363,36 +1392,49 @@ void Emitter<Writer>::_json_visit_ml(id_type id, id_type depth)
             _write('[');
         else if(ty.is_map())
             _write('{');
-    }  // container
 
-    if(m_tree->has_children(id))
-    {
-        ++depth;
-        if(m_opts.indent_flow_ml()) ++m_ilevel;
-        const id_type first = m_tree->first_child(id);
-        const id_type last = m_tree->last_child(id);
-        for(id_type child = first; child != NONE; child = m_tree->next_sibling(child))
+        if(m_tree->has_children(id))
         {
+            ++depth;
+            if(m_opts.indent_flow_ml()) ++m_ilevel;
             _newl();
             _indent(m_ilevel);
-            NodeType chty = m_tree->type(child);
-            if(chty.is_flow_sl() || !(chty & CONTAINER_STYLE))
-                _json_visit_sl(child, depth);
-            else
-                _json_visit_ml(child, depth);
-            if(child != last)
-                _write(',');
+            for(id_type first = m_tree->first_child(id), child = first;
+                child != NONE;
+                child = m_tree->next_sibling(child))
+            {
+                if(child != first)
+                {
+                    _write(',');
+                    const size_t maxcols = m_opts.max_cols();
+                    if((ty & FLOW_MLN) && (m_col+1 < maxcols))
+                    {
+                        if((ty & FLOW_SPC) || m_opts.force_flow_spc())
+                            _write(' ');
+                    }
+                    else if((ty & FLOW_ML1) || (m_col+1 >= maxcols))
+                    {
+                        _newl();
+                        _indent(m_ilevel);
+                    }
+                }
+                NodeType chty = m_tree->type(child);
+                if(chty.is_flow_sl())
+                    _json_visit_sl(child, chty, depth);
+                else
+                    _json_visit_ml(child, chty, depth);
+            }
+            if(m_opts.indent_flow_ml()) --m_ilevel;
+            --depth;
+            _newl();
+            _indent(m_ilevel);
         }
-        if(m_opts.indent_flow_ml()) --m_ilevel;
-        --depth;
-        _newl();
-        _indent(m_ilevel);
-    }
 
-    if(ty.is_seq())
-        _write(']');
-    else if(ty.is_map())
-        _write('}');
+        if(ty.is_seq())
+            _write(']');
+        else if(ty.is_map())
+            _write('}');
+    }
 }
 
 template<class Writer>

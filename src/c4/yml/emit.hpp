@@ -67,9 +67,10 @@ public:
         EMIT_NONROOT_KEY = 1u << 2u,
         EMIT_NONROOT_DASH = 1u << 3u,
         EMIT_NONROOT_MARKUP = EMIT_NONROOT_KEY|EMIT_NONROOT_DASH,
-        JSON_ERR_ON_TAG = 1u << 3u,
-        JSON_ERR_ON_ANCHOR = 1u << 4u,
-        _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
+        JSON_ERR_ON_STREAM = 1u << 4u,
+        JSON_ERR_ON_TAG = 1u << 5u,
+        JSON_ERR_ON_ANCHOR = 1u << 6u,
+        _JSON_ERR_MASK = JSON_ERR_ON_STREAM|JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
         DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML,
     } Flags_e;
     /** @endcond */
@@ -138,6 +139,11 @@ public:
     /** @name option flags - json behavior
      *
      * @{ */
+
+    /** Whether to trigger an error when findind a stream
+     * in json mode. Disabled by default. */
+    EmitOptions& json_err_on_stream(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_STREAM); }
+    C4_ALWAYS_INLINE bool json_err_on_stream() const noexcept { return (m_flags & JSON_ERR_ON_STREAM) != 0; }
 
     /** Whether to trigger an error (or ignore the tag) when finding a tag
      * in json mode. Disabled by default. */
@@ -405,8 +411,8 @@ private:
 
 private:
 
-    void _json_visit_ml(id_type id, id_type depth);
-    void _json_visit_sl(id_type id, id_type depth);
+    void _json_visit_ml(id_type id, NodeType ty, id_type depth);
+    void _json_visit_sl(id_type id, NodeType ty, id_type depth);
     bool _json_maybe_write_naninf(csubstr s);
     void _json_writek(id_type id, NodeType ty);
     void _json_writev(id_type id, NodeType ty);
