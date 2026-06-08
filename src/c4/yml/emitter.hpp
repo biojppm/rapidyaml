@@ -92,11 +92,6 @@ public:
     /** set the emit options for this object */
     void options(EmitOptions opts) noexcept { m_opts = opts; }
 
-    /** set the max depth for emitted trees (to prevent a stack overflow) */
-    void max_depth(id_type max_depth) noexcept { m_opts.max_depth(max_depth); }
-    /** get the max depth for emitted trees (to prevent a stack overflow) */
-    id_type max_depth() const noexcept { return m_opts.max_depth(); }
-
 private: // pending whitespace
 
     /// pending whitespace
@@ -273,6 +268,13 @@ private:
     id_type     m_ilevel;
     Pws_e       m_pws;
     flow_pws    m_flow_pws;
+
+public: // deprecated method
+
+    /** @cond dev */ // LCOV_EXCL_START
+    RYML_DEPRECATED("use .options()") void max_depth(id_type max_depth) noexcept { m_opts.max_depth(max_depth); }
+    RYML_DEPRECATED("use .options()") id_type max_depth() const noexcept { return m_opts.max_depth(); }
+    /** @endcond */ // LCOV_EXCL_STOP
 
 };
 
