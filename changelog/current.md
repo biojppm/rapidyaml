@@ -1,4 +1,0 @@
-- [PR#618](https://github.com/biojppm/rapidyaml/pull/618):
-  - JSON now adheres to flow style customization from [PR#615](https://github.com/biojppm/rapidyaml/pull/615)
-  - JSON now emits YAML streams as a top-level seq. The old behavior of throwing an error on streams can be obtained by using the new `EmitOptions::json_err_on_stream()`.
-  - Fix error in `EmitOptions` where `EmitOptions::emit_nonroot_dash()` had the same effect as `EmitOptions::json_err_on_tag()`.
