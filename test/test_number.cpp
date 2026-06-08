@@ -263,6 +263,9 @@ TEST(number, inf_0)
 - -.inf
 - -.inf
 )");
+    EXPECT_TRUE(scalar_is_special_json(".inf"));
+    EXPECT_TRUE(scalar_is_special_json("-.inf"));
+    EXPECT_TRUE(scalar_is_special_json("+.inf"));
     EXPECT_EQ(emitrs_json<std::string>(t),
               R"([".inf",".inf","-.inf","-.inf"])");
 }
@@ -457,6 +460,105 @@ set:
     "-.inf": "-.inf",
     "-.inf": "-.inf",
     "-.inf": "-.inf"
+  },
+  "set": {
+    "nothing0": "nothing",
+    "nothing1": "nothing"
+  }
+}
+)");
+    });
+}
+
+TEST(number, inf_3)
+{
+    csubstr yaml = R"(
+good:
+  +.inf: +.inf
+  +.inf:   +.inf
+  +.Inf: +.Inf
+  +.INF: +.INF
+  +inf: +inf
+  +infinity: +infinity
+  infinity: infinity
+  +.inf:
+    +.inf
+set:
+  nothing0: nothing
+  nothing1: nothing
+)";
+    test_check_emit_check(yaml, [](Tree const& t){
+        float finf = std::numeric_limits<float>::infinity();
+        double dinf = std::numeric_limits<double>::infinity();
+        EXPECT_EQ(t["good"][0].val(), "+.inf");
+        EXPECT_EQ(t["good"][1].val(), "+.inf");
+        EXPECT_EQ(t["good"][2].val(), "+.Inf");
+        EXPECT_EQ(t["good"][3].val(), "+.INF");
+        EXPECT_EQ(t["good"][4].val(), "+inf");
+        EXPECT_EQ(t["good"][5].val(), "+infinity");
+        EXPECT_EQ(t["good"][6].val(), "infinity");
+        EXPECT_EQ(t["good"][7].val(), "+.inf");
+        EXPECT_EQ(t["good"][0].key(), "+.inf");
+        EXPECT_EQ(t["good"][1].key(), "+.inf");
+        EXPECT_EQ(t["good"][2].key(), "+.Inf");
+        EXPECT_EQ(t["good"][3].key(), "+.INF");
+        EXPECT_EQ(t["good"][4].key(), "+inf");
+        EXPECT_EQ(t["good"][5].key(), "+infinity");
+        EXPECT_EQ(t["good"][6].key(), "infinity");
+        EXPECT_EQ(t["good"][7].key(), "+.inf");
+        for(ConstNodeRef ch : t["good"]){
+            SCOPED_TRACE(ch.key());
+            {
+                float f = 0.f;
+                double d = 0.;
+                ch >> f;
+                ch >> d;
+                EXPECT_TRUE(fleq(f, finf));
+                EXPECT_TRUE(fleq(d, dinf));
+            }
+            {
+                float f = 0.f;
+                double d = 0.;
+                ch >> key(f);
+                ch >> key(d);
+                EXPECT_TRUE(fleq(f, finf));
+                EXPECT_TRUE(fleq(d, dinf));
+            }
+        }
+        for(ConstNodeRef ch : t["set"]){
+            SCOPED_TRACE(ch.key());
+            float f = 0.f;
+            double d = 0.;
+            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
+            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+        }
+        EXPECT_EQ(emitrs_yaml<std::string>(t),
+                  R"(good:
+  +.inf: +.inf
+  +.inf: +.inf
+  +.Inf: +.Inf
+  +.INF: +.INF
+  +inf: +inf
+  +infinity: +infinity
+  infinity: infinity
+  +.inf: +.inf
+set:
+  nothing0: nothing
+  nothing1: nothing
+)");
+        EXPECT_EQ(emitrs_json<std::string>(t),
+                  R"({
+  "good": {
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf"
   },
   "set": {
     "nothing0": "nothing",

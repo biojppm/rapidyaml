@@ -1500,22 +1500,59 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
 template<class Writer>
 bool Emitter<Writer>::json_maybe_write_naninf_(csubstr s)
 {
-    if(s == "nan" || s == ".nan" || s == ".NaN" || s == ".NAN")
+    switch(s.len)
     {
-        write_("\".nan\"");
-        return true;
+    case 3: case 4: case 5: // inf, nan, .nan, -.inf
+    case 8: case 9: // infinity, -infinity
+        break;
+    default:
+        return false;
     }
-    else if(s == "inf" || s == ".inf" || s == ".Inf" || s == ".INF" || s == "infinity")
+    const char first = s.str[0];
+    csubstr rest = s.sub(1);
+    if(s.len == 4 && first == '.')
     {
-        write_("\".inf\"");
-        return true;
+        if(scalar_is_inf3(rest))
+            goto write_inf_positive; // NOLINT
+        else if(scalar_is_nan3(rest))
+            goto write_nan; // NOLINT
     }
-    else if(s == "-inf" || s == "-.inf" || s == "-.Inf" || s == "-.INF" || s == "-infinity")
+    else if(first == '-' || first == '+') // begins with sign: must be inf
     {
-        write_("\"-.inf\"");
-        return true;
+        // match [-+].inf
+        if((rest.len == 4 && rest.str[0] == '.' && scalar_is_inf3(rest.sub(1)))
+           // match [-+]inf
+           || (rest.len == 3 && scalar_is_inf3(rest))
+           // match [-+]infinity
+           || (rest.len == 8 && (0 == memcmp(rest.str, "infinity", 8))))
+        {
+            if(first == '-')
+                goto write_inf_negative; // NOLINT
+            else
+                goto write_inf_positive; // NOLINT
+        }
+    }
+    else if(s.len == 8 && (0 == memcmp(s.str, "infinity", 8)))
+    {
+        goto write_inf_positive; // NOLINT
+    }
+    else if(s.len == 3)
+    {
+        if(scalar_is_inf3(s))
+            goto write_inf_positive; // NOLINT
+        else if(scalar_is_nan3(s))
+            goto write_nan; // NOLINT
     }
     return false;
+write_inf_positive:
+    write_("\".inf\"");
+    return true;
+write_inf_negative:
+    write_("\"-.inf\"");
+    return true;
+write_nan:
+    write_("\".nan\"");
+    return true;
 }
 
 template<class Writer>
