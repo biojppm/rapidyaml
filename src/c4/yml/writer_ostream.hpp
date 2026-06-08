@@ -28,13 +28,13 @@ struct WriterOStream
     WriterOStream(OStream *s) noexcept : m_stream(s) {}
 
     template<size_t N>
-    void _do_write(const char (&a)[N]) noexcept
+    void append(const char (&a)[N]) noexcept
     {
         static_assert(N > 1, "empty string");
         m_stream->write(a, N - 1);
     }
 
-    void _do_write(csubstr s) noexcept
+    void append(csubstr s) noexcept
     {
         if(s.len)
         {
@@ -44,12 +44,12 @@ struct WriterOStream
         }
     }
 
-    void _do_write(const char c) noexcept
+    void append(const char c) noexcept
     {
         m_stream->put(c);
     }
 
-    void _do_write(const char c, size_t num_times) noexcept
+    void append(const char c, size_t num_times) noexcept
     {
         for(size_t i = 0; i < num_times; ++i)
             m_stream->put(c);

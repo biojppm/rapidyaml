@@ -103,31 +103,31 @@ private: // pending whitespace
     typedef enum : uint32_t { _PWS_NONE = 0u, _PWS_SPACE = 1u, _PWS_NEWL = 2u } Pws_e; // NOLINT
 
     /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void _pend_none() noexcept
+    C4_ALWAYS_INLINE void pend_none_() noexcept
     {
         m_pws = _PWS_NONE;
     }
     /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void _pend_newl() noexcept
+    C4_ALWAYS_INLINE void pend_newl_() noexcept
     {
         m_pws = _PWS_NEWL;
     }
     /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void _pend_space() noexcept
+    C4_ALWAYS_INLINE void pend_space_() noexcept
     {
         m_pws = _PWS_SPACE;
     }
     /// write pending whitespace, and then set the next pending whitespace
-    C4_ALWAYS_INLINE void _write_pws_and_pend(Pws_e next=_PWS_NONE) noexcept
+    C4_ALWAYS_INLINE void write_pws_and_pend_(Pws_e next=_PWS_NONE) noexcept
     {
         if(m_pws == _PWS_SPACE)
         {
-            _write(' ');
+            write_(' ');
         }
         else if(m_pws == _PWS_NEWL)
         {
-            _newl();
-            _indent(m_ilevel);
+            newl_();
+            indent_(m_ilevel);
         }
         m_pws = next;
     }
@@ -146,121 +146,121 @@ private: // pending whitespace
         void stop() noexcept { active = false; }
     };
 
-    C4_NODISCARD bool _maybe_start_flow_pws_ml(id_type node) noexcept;
-    C4_NODISCARD flow_pws _setup_flow_pws_sl(id_type node) noexcept;
+    C4_NODISCARD bool maybe_start_flow_pws_ml_(id_type node) noexcept;
+    C4_NODISCARD flow_pws setup_flow_pws_sl_(id_type node) noexcept;
 
 private:
 
-    void _emit_yaml(id_type id);
+    void emit_yaml_(id_type id);
 
-    void _visit_stream(id_type id);
-    void _visit_doc(id_type id);
-    void _visit_doc_val(id_type id);
-    void _visit_blck_container(id_type id);
-    void _visit_flow_container(id_type id);
+    void visit_stream_(id_type id);
+    void visit_doc_(id_type id);
+    void visit_doc_val_(id_type id);
+    void visit_blck_container_(id_type id);
+    void visit_flow_container_(id_type id);
 
-    void _visit_flow_sl(id_type id);
-    void _visit_flow_sl_seq(id_type id);
-    void _visit_flow_sl_map(id_type id);
+    void visit_flow_sl_(id_type id);
+    void visit_flow_sl_seq_(id_type id);
+    void visit_flow_sl_map_(id_type id);
 
-    void _visit_flow_ml(id_type id);
-    void _visit_flow_ml_seq(id_type id);
-    void _visit_flow_ml_map(id_type id);
+    void visit_flow_ml_(id_type id);
+    void visit_flow_ml_seq_(id_type id);
+    void visit_flow_ml_map_(id_type id);
 
-    void _visit_blck(id_type id);
-    void _visit_blck_seq(id_type id);
-    void _visit_blck_map(id_type id);
+    void visit_blck_(id_type id);
+    void visit_blck_seq_(id_type id);
+    void visit_blck_map_(id_type id);
 
-    void _top_open_entry(id_type id);
-    void _top_close_entry(id_type id);
-    void _blck_seq_open_entry(id_type id);
-    void _blck_map_open_entry(id_type id);
-    void _blck_close_entry(id_type id);
-    void _blck_write_scalar(csubstr str, type_bits type);
+    void top_open_entry_(id_type id);
+    void top_close_entry_(id_type id);
+    void blck_seq_open_entry_(id_type id);
+    void blck_map_open_entry_(id_type id);
+    void blck_close_entry_(id_type id);
+    void blck_write_scalar_(csubstr str, type_bits type);
 
-    void _flow_seq_open_entry(id_type id);
-    void _flow_map_open_entry(id_type id);
-    void _flow_close_entry_sl(id_type id, id_type last_sibling, Pws_e pend_after);
-    void _flow_close_entry_ml(id_type id, id_type last_sibling, Pws_e pend_after);
-    void _flow_write_scalar(csubstr str, type_bits type);
-
-private:
-
-    void _json_emit(id_type id);
-    void _write_scalar_literal(csubstr s, id_type level);
-    void _write_scalar_folded(csubstr s, id_type level);
-    void _write_scalar_squo(csubstr s, id_type level);
-    void _write_scalar_dquo(csubstr s, id_type level);
-    void _write_scalar_plain(csubstr s, id_type level);
-
-    size_t _write_escaped_newlines(csubstr s, size_t i);
-    size_t _write_indented_block(csubstr s, size_t i, id_type level);
+    void flow_seq_open_entry_(id_type id);
+    void flow_map_open_entry_(id_type id);
+    void flow_close_entry_sl_(id_type id, id_type last_sibling, Pws_e pend_after);
+    void flow_close_entry_ml_(id_type id, id_type last_sibling, Pws_e pend_after);
+    void flow_write_scalar_(csubstr str, type_bits type);
 
 private:
 
-    void _json_visit_ml(id_type id, NodeType ty, id_type depth);
-    void _json_visit_sl(id_type id, NodeType ty, id_type depth);
-    bool _json_maybe_write_naninf(csubstr s);
-    void _json_writek(id_type id, NodeType ty);
-    void _json_writev(id_type id, NodeType ty);
-    void _json_write_scalar_dquo(csubstr s);
-    void _json_write_number(csubstr s);
+    void json_emit_(id_type id);
+    void write_scalar_literal_(csubstr s, id_type level);
+    void write_scalar_folded_(csubstr s, id_type level);
+    void write_scalar_squo_(csubstr s, id_type level);
+    void write_scalar_dquo_(csubstr s, id_type level);
+    void write_scalar_plain_(csubstr s, id_type level);
+
+    size_t write_escaped_newlines_(csubstr s, size_t i);
+    size_t write_indented_block_(csubstr s, size_t i, id_type level);
 
 private:
 
-    void _write_tag(csubstr tag)
+    void json_visit_ml_(id_type id, NodeType ty, id_type depth);
+    void json_visit_sl_(id_type id, NodeType ty, id_type depth);
+    bool json_maybe_write_naninf_(csubstr s);
+    void json_writek_(id_type id, NodeType ty);
+    void json_writev_(id_type id, NodeType ty);
+    void json_write_scalar_dquo_(csubstr s);
+    void json_write_number_(csubstr s);
+
+private:
+
+    void write_tag_(csubstr tag)
     {
         if(!tag.begins_with('!'))
-            _write('!');
-        _write(tag);
+            write_('!');
+        write_(tag);
     }
-    void _write_ref(csubstr ref)
+    void write_ref_(csubstr ref)
     {
         if(ref != "<<")
         {
             if(!ref.begins_with('*'))
-                _write('*');
-            _write(ref);
+                write_('*');
+            write_(ref);
         }
     }
 
 private:
 
-    C4_ALWAYS_INLINE void _indent(id_type level)
+    C4_ALWAYS_INLINE void indent_(id_type level)
     {
         C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
         size_t num = static_cast<size_t>(2u * level);
-        this->Writer::_do_write(' ', num);
+        this->Writer::append(' ', num);
         m_col += num;
         C4_SUPPRESS_WARNING_GCC_POP
     }
 
     template<size_t N>
-    C4_ALWAYS_INLINE void _write(const char (&a)[N])
+    C4_ALWAYS_INLINE void write_(const char (&a)[N])
     {
-        this->Writer::_do_write(std::forward<const char (&)[N]>(a));
+        this->Writer::append(std::forward<const char (&)[N]>(a));
         m_col += N-1;
     }
-    C4_ALWAYS_INLINE void _write(csubstr s)
+    C4_ALWAYS_INLINE void write_(csubstr s)
     {
-        this->Writer::_do_write(s);
+        this->Writer::append(s);
         m_col += s.len;
     }
-    C4_ALWAYS_INLINE void _write(char c)
+    C4_ALWAYS_INLINE void write_(char c)
     {
-        this->Writer::_do_write(c);
+        this->Writer::append(c);
         ++m_col;
     }
-    C4_ALWAYS_INLINE void _write(char c, size_t num)
+    C4_ALWAYS_INLINE void write_(char c, size_t num)
     {
-        this->Writer::_do_write(c, num);
+        this->Writer::append(c, num);
         m_col += num;
     }
 
     /// write a newline and reset the column
-    C4_ALWAYS_INLINE void _newl()
+    C4_ALWAYS_INLINE void newl_()
     {
-        this->Writer::_do_write('\n');
+        this->Writer::append('\n');
         m_col = 0;
     }
 

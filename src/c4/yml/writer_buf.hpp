@@ -27,7 +27,7 @@ public:
 
     /** Return the buffer written so far, or optionally throw an error
      * if the buffer was too small.  */
-    substr _get(bool error_on_excess) const
+    substr get_result(bool error_on_excess) const
     {
         if(m_pos <= m_buf.len)
         {
@@ -49,7 +49,7 @@ public:
 public:
 
     template<size_t N>
-    void _do_write(const char (&a)[N]) noexcept
+    void append(const char (&a)[N]) noexcept
     {
         static_assert(N > 1, "empty string");
         _RYML_ASSERT_BASIC( ! m_buf.overlaps(a));
@@ -58,7 +58,7 @@ public:
         m_pos += N-1;
     }
 
-    void _do_write(csubstr s) noexcept
+    void append(csubstr s) noexcept
     {
         _RYML_ASSERT_BASIC( ! s.overlaps(m_buf));
         if(s.len && m_pos + s.len <= m_buf.len)
@@ -66,14 +66,14 @@ public:
         m_pos += s.len;
     }
 
-    void _do_write(const char c) noexcept
+    void append(const char c) noexcept
     {
         if(m_pos + 1 <= m_buf.len)
             m_buf.str[m_pos] = c;
         ++m_pos;
     }
 
-    void _do_write(const char c, size_t num_times) noexcept
+    void append(const char c, size_t num_times) noexcept
     {
         if(m_pos + num_times <= m_buf.len)
             memset(m_buf.str + m_pos, c, num_times);

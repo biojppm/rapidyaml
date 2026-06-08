@@ -22,16 +22,16 @@ struct RYML_EXPORT WriterFile
 {
     FILE * m_file;
 
-    WriterFile(FILE *f = nullptr) : m_file(f ? f : stdout) {}
+    WriterFile(FILE *f = nullptr) noexcept : m_file(f ? f : stdout) {}
 
     template<size_t N>
-    void _do_write(const char (&a)[N]) noexcept
+    void append(const char (&a)[N]) noexcept // NOLINT(*-make-member-function-const)
     {
         static_assert(N > 1, "empty string");
         (void)fwrite(a, sizeof(char), N - 1, m_file);
     }
 
-    void _do_write(csubstr s) noexcept
+    void append(csubstr s) noexcept // NOLINT(*-make-member-function-const)
     {
         if(s.len)
         {
@@ -41,12 +41,12 @@ struct RYML_EXPORT WriterFile
         }
     }
 
-    void _do_write(const char c) noexcept
+    void append(const char c) noexcept // NOLINT(*-make-member-function-const)
     {
         (void)fputc(c, m_file);
     }
 
-    void _do_write(const char c, size_t num_times) noexcept
+    void append(const char c, size_t num_times) noexcept // NOLINT(*-make-member-function-const)
     {
         for(size_t i = 0; i < num_times; ++i)
             (void)fputc(c, m_file);
