@@ -25,13 +25,13 @@ struct RYML_EXPORT WriterFile
     WriterFile(FILE *f = nullptr) noexcept : m_file(f ? f : stdout) {}
 
     template<size_t N>
-    void append(const char (&a)[N]) noexcept // NOLINT(*-make-member-function-const)
+    C4_ALWAYS_INLINE void append(const char (&a)[N]) noexcept // NOLINT(*-make-member-function-const)
     {
         static_assert(N > 1, "empty string");
         (void)fwrite(a, sizeof(char), N - 1, m_file);
     }
 
-    void append(csubstr s) noexcept // NOLINT(*-make-member-function-const)
+    C4_ALWAYS_INLINE void append(csubstr s) noexcept // NOLINT(*-make-member-function-const)
     {
         if(s.len)
         {
@@ -41,12 +41,12 @@ struct RYML_EXPORT WriterFile
         }
     }
 
-    void append(const char c) noexcept // NOLINT(*-make-member-function-const)
+    C4_ALWAYS_INLINE void append(const char c) noexcept // NOLINT(*-make-member-function-const)
     {
         (void)fputc(c, m_file);
     }
 
-    void append(const char c, size_t num_times) noexcept // NOLINT(*-make-member-function-const)
+    C4_ALWAYS_INLINE void append(const char c, size_t num_times) noexcept // NOLINT(*-make-member-function-const)
     {
         for(size_t i = 0; i < num_times; ++i)
             (void)fputc(c, m_file);

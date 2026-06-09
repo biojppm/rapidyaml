@@ -1,5 +1,6 @@
 #include "./bm_common.hpp"
 
+#include <fstream>
 
 /** this is used by the benchmarks.
  *
@@ -23,6 +24,23 @@ int main(int argc, char** argv)
 
 #define ONLY_FOR_JSON \
     if(!s_bm_case->is_json) { st.SkipWithError("not a json file"); return; }
+
+namespace {
+
+void reset(std::ostringstream &s)
+{
+    s.str("");
+    s.clear();
+}
+void reset(std::ofstream &s)
+{
+    s.clear();
+    s.seekp(0, std::ios::beg); // back to the start!
+}
+void reset(FILE *f)
+{
+    (void)fseek(f, 0, SEEK_SET);
+}
 
 
 void bm_rapidjson(bm::State& st)
@@ -55,6 +73,7 @@ void bm_jsoncpp(bm::State& st)
         ONLY_FOR_JSON;
         os << root;
         str = os.str();
+        reset(os);
     }
     s_bm_case->report(st);
 }
@@ -72,6 +91,7 @@ void bm_nlohmann(bm::State& st)
         ONLY_FOR_JSON;
         os << root;
         str = os.str();
+        reset(os);
     }
     s_bm_case->report(st);
 }
@@ -113,6 +133,7 @@ void bm_fyaml_ostream(bm::State& st)
     {
         fy_emit_document(emitter, doc);
         str = os.str();
+        reset(os);
     }
     s_bm_case->report(st);
     fy_document_destroy(doc);
@@ -173,6 +194,7 @@ void bm_yamlcpp(bm::State& st)
     {
         os << node;
         str = os.str();
+        reset(os);
     }
     s_bm_case->report(st);
 }
@@ -187,11 +209,59 @@ void bm_ryml_yaml_ostream(bm::State& st)
     {
         os << tree;
         str = os.str();
+        reset(os);
     }
     s_bm_case->report(st);
 }
 
-void bm_ryml_yaml_json_ostream(bm::State& st)
+void bm_ryml_yaml_ofstream(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::ofstream os(c4::fs::tmpnam<std::string>());
+    for(auto _ : st)
+    {
+        os << tree;
+        reset(os);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_yaml_file(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::string name = c4::fs::tmpnam<std::string>();
+    FILE *f = fopen(name.c_str(), "wb");
+    C4_CHECK(f);
+    for(auto _ : st)
+    {
+        emit_yaml(tree, f);
+        reset(f);
+    }
+    (void)fclose(f);
+    s_bm_case->report(st);
+}
+
+void bm_ryml_yaml_str_file(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::string name = c4::fs::tmpnam<std::string>();
+    FILE *f = fopen(name.c_str(), "wb");
+    C4_CHECK(f);
+    std::string str;
+    for(auto _ : st)
+    {
+        emitrs_yaml(tree, &str);
+        ryml::file_put_contents(str, f, name.c_str());
+        reset(f);
+    }
+    (void)fclose(f);
+    s_bm_case->report(st);
+}
+
+void bm_ryml_json_ostream(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
@@ -201,7 +271,55 @@ void bm_ryml_yaml_json_ostream(bm::State& st)
     {
         os << ryml::as_json(tree);
         str = os.str();
+        reset(os);
     }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_json_ofstream(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::ofstream os(c4::fs::tmpnam<std::string>());
+    for(auto _ : st)
+    {
+        os << ryml::as_json(tree);
+        reset(os);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_json_file(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::string name = c4::fs::tmpnam<std::string>();
+    FILE *f = fopen(name.c_str(), "wb");
+    C4_CHECK(f);
+    for(auto _ : st)
+    {
+        emit_json(tree, f);
+        reset(f);
+    }
+    (void)fclose(f);
+    s_bm_case->report(st);
+}
+
+void bm_ryml_json_str_file(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::string name = c4::fs::tmpnam<std::string>();
+    FILE *f = fopen(name.c_str(), "wb");
+    C4_CHECK(f);
+    std::string str;
+    for(auto _ : st)
+    {
+        emitrs_json(tree, &str);
+        ryml::file_put_contents(str, f, name.c_str());
+        reset(f);
+    }
+    (void)fclose(f);
     s_bm_case->report(st);
 }
 
@@ -217,7 +335,7 @@ void bm_ryml_yaml_str(bm::State& st)
     s_bm_case->report(st);
 }
 
-void bm_ryml_yaml_json_str(bm::State& st)
+void bm_ryml_json_str(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
@@ -242,7 +360,7 @@ void bm_ryml_yaml_str_reserve(bm::State& st)
     s_bm_case->report(st);
 }
 
-void bm_ryml_yaml_json_str_reserve(bm::State& st)
+void bm_ryml_json_str_reserve(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     std::string str;
@@ -256,11 +374,17 @@ void bm_ryml_yaml_json_str_reserve(bm::State& st)
 }
 
 BENCHMARK(bm_ryml_yaml_str_reserve);
-BENCHMARK(bm_ryml_yaml_json_str_reserve);
+BENCHMARK(bm_ryml_json_str_reserve);
 BENCHMARK(bm_ryml_yaml_str);
-BENCHMARK(bm_ryml_yaml_json_str);
+BENCHMARK(bm_ryml_json_str);
 BENCHMARK(bm_ryml_yaml_ostream);
-BENCHMARK(bm_ryml_yaml_json_ostream);
+BENCHMARK(bm_ryml_json_ostream);
+BENCHMARK(bm_ryml_yaml_ofstream);
+BENCHMARK(bm_ryml_json_ofstream);
+BENCHMARK(bm_ryml_yaml_file);
+BENCHMARK(bm_ryml_json_file);
+BENCHMARK(bm_ryml_yaml_str_file);
+BENCHMARK(bm_ryml_json_str_file);
 #ifdef RYML_HAVE_LIBFYAML
 BENCHMARK(bm_fyaml_str_reserve);
 BENCHMARK(bm_fyaml_str);
@@ -270,3 +394,5 @@ BENCHMARK(bm_yamlcpp);
 BENCHMARK(bm_rapidjson);
 BENCHMARK(bm_jsoncpp);
 BENCHMARK(bm_nlohmann);
+
+} // namespace anon

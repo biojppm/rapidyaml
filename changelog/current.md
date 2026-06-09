@@ -18,3 +18,28 @@
     - There are no external logic changes: all the `emit_*()` functions remain the same.
     - Other changes in this PR:
       - Added `Tree::root_id_maybe()` which is safe to call on an empty tree.
+      - Deprecate `Emitter::max_depth()`
+      - Deprecate `Emitter::options()` setter
+- [PR#618](https://github.com/biojppm/rapidyaml/pull/618): Clean emit API pt3:
+  - Improve handling of NaN and Inf in json emitting.
+  - Expose scalar style helpers for json emitting:
+    ```c++
+    /** JSON-sense query of plain number */
+    bool scalar_is_plain_number_json(csubstr s);
+    /** JSON-sense query of plain number */
+    bool scalar_is_special_json(csubstr s);
+    /** Query if a scalar is nan (nan, NaN, NAN)
+     * @warning length must be 3 (asserted)
+     */
+    bool scalar_is_inf3(csubstr s);
+    /** Query if a scalar is inf (inf, Inf, INF)
+     * @warning length must be 3 (asserted)
+     */
+    bool scalar_is_nan3(csubstr s);
+    /** Same as scalar_is_inf3() || scalar_is_nan3()
+     * @warning length must be 3 (asserted)
+     */
+    bool scalar_is_inf_or_nan3(csubstr s);
+    ```
+  - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
+  - `file_put_contents()`: add `FILE*` overloads

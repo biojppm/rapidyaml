@@ -434,6 +434,25 @@ inline bool scalar_style_query_plain(csubstr s, bool flow=true) noexcept
  * `"~"`,`"null"`,`"Null"`,`"NULL"` */
 RYML_EXPORT bool scalar_is_null(csubstr s) noexcept;
 
+
+/** JSON-sense query of plain number */
+RYML_EXPORT bool scalar_is_plain_number_json(csubstr s) noexcept;
+/** JSON-sense query of plain number */
+RYML_EXPORT bool scalar_is_special_json(csubstr s)  noexcept;
+
+/** Query if a scalar is nan (nan, NaN, NAN)
+ * @warning length must be 3 (asserted)
+ */
+RYML_EXPORT bool scalar_is_inf3(csubstr s) noexcept;
+/** Query if a scalar is inf (inf, Inf, INF)
+ * @warning length must be 3 (asserted)
+ */
+RYML_EXPORT bool scalar_is_nan3(csubstr s) noexcept;
+/** Same as scalar_is_inf3() || scalar_is_nan3()
+ * @warning length must be 3 (asserted)
+ */
+RYML_EXPORT bool scalar_is_inf_or_nan3(csubstr s) noexcept;
+
 /** @} */
 
 /** @} */

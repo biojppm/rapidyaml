@@ -12,11 +12,6 @@ namespace yml {
 
 /** A writer that outputs to an STL-like ostream.
  *
- * @warning This writer is *much* slower than @ref WriterFile, and
- * @ref WriterFile should be preferred to this. The slowness is due to
- * how std::ostream works, and not because of anything in the code of
- * this class.
- *
  * @ingroup doc_writers
  * @ingroup doc_emit_to_ostream
  */
@@ -28,13 +23,13 @@ struct WriterOStream
     WriterOStream(OStream *s) noexcept : m_stream(s) {}
 
     template<size_t N>
-    void append(const char (&a)[N]) noexcept
+    C4_ALWAYS_INLINE void append(const char (&a)[N]) noexcept
     {
         static_assert(N > 1, "empty string");
         m_stream->write(a, N - 1);
     }
 
-    void append(csubstr s) noexcept
+    C4_ALWAYS_INLINE void append(csubstr s) noexcept
     {
         if(s.len)
         {
@@ -44,12 +39,12 @@ struct WriterOStream
         }
     }
 
-    void append(const char c) noexcept
+    C4_ALWAYS_INLINE void append(const char c) noexcept
     {
         m_stream->put(c);
     }
 
-    void append(const char c, size_t num_times) noexcept
+    C4_ALWAYS_INLINE void append(const char c, size_t num_times) noexcept
     {
         for(size_t i = 0; i < num_times; ++i)
             m_stream->put(c);

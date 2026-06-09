@@ -300,40 +300,42 @@ bool scalar_is_null(csubstr s) noexcept
 
 //-----------------------------------------------------------------------------
 
-namespace {
-
-#define rest_is(c1, c2) ((s.str[1] == (c1)) && (s.str[2] == (c2)))
-bool is_inf_or_nan(csubstr s) noexcept
+#define ryml_rest_is_(c1, c2) ((s.str[1] == (c1)) && (s.str[2] == (c2)))
+bool scalar_is_inf3(csubstr s) noexcept
 {
-    _RYML_ASSERT_BASIC(!s.begins_with("-."));
-    _RYML_ASSERT_BASIC(!s.begins_with("+."));
-    _RYML_ASSERT_BASIC(!s.begins_with("."));
     _RYML_ASSERT_BASIC(s.len == 3);
     switch(s.str[0])
     {
-    case 'i': return rest_is('n', 'f');
-    case 'I': return rest_is('n', 'f') || rest_is('N', 'F');
-    case 'n': return rest_is('a', 'n');
-    case 'N': return rest_is('a', 'n') || rest_is('A', 'N') || rest_is('a', 'N');
+    case 'i': return ryml_rest_is_('n', 'f');
+    case 'I': return ryml_rest_is_('n', 'f') || ryml_rest_is_('N', 'F');
     }
     return false;
 }
-bool is_inf(csubstr s) noexcept
+bool scalar_is_nan3(csubstr s) noexcept
 {
-    _RYML_ASSERT_BASIC(!s.begins_with("-."));
-    _RYML_ASSERT_BASIC(!s.begins_with("+."));
-    _RYML_ASSERT_BASIC(!s.begins_with("."));
     _RYML_ASSERT_BASIC(s.len == 3);
     switch(s.str[0])
     {
-    case 'i': return rest_is('n', 'f');
-    case 'I': return rest_is('n', 'f') || rest_is('N', 'F');
+    case 'n': return ryml_rest_is_('a', 'n');
+    case 'N': return ryml_rest_is_('a', 'N') || ryml_rest_is_('a', 'n') || ryml_rest_is_('A', 'N');
     }
     return false;
 }
-#undef rest_is
+bool scalar_is_inf_or_nan3(csubstr s) noexcept
+{
+    _RYML_ASSERT_BASIC(s.len == 3);
+    switch(s.str[0])
+    {
+    case 'i': return ryml_rest_is_('n', 'f');
+    case 'I': return ryml_rest_is_('n', 'f') || ryml_rest_is_('N', 'F');
+    case 'n': return ryml_rest_is_('a', 'n');
+    case 'N': return ryml_rest_is_('a', 'N') || ryml_rest_is_('a', 'n') || ryml_rest_is_('A', 'N');
+    }
+    return false;
+}
+#undef ryml_rest_is_
 
-bool json_is_plain_number(csubstr s) noexcept
+bool scalar_is_plain_number_json(csubstr s) noexcept
 {
     return s.is_number()
         &&
@@ -346,22 +348,26 @@ bool json_is_plain_number(csubstr s) noexcept
             || (s.find('.') != csubstr::npos)
         );
 }
-bool json_is_special_scalar(csubstr s)  noexcept
+
+bool scalar_is_special_json(csubstr s) noexcept
 {
     if(s.len == 4)
         return 0 == memcmp("true", s.str, 4)
             || 0 == memcmp("null", s.str, 4)
-            || (s[0] == '.' && is_inf_or_nan(s.sub(1)));
+            || ((s[0] == '.') && scalar_is_inf_or_nan3(s.sub(1)))
+            || ((s[0] == '-' || s[0] == '+') && scalar_is_inf3(s.sub(1)));
     else if(s.len == 5)
         return 0 == memcmp("false", s.str, 5)
-            || ((s[0] == '-' || s[0] == '+') && s[1] == '.' && is_inf(s.sub(2)));
+            || ((s[0] == '-' || s[0] == '+') && s[1] == '.' && scalar_is_inf3(s.sub(2)));
+    else if(s.len == 3)
+        return scalar_is_inf_or_nan3(s);
     return false;
 }
-} // namespace
+
 NodeType_e scalar_style_choose_json(csubstr s) noexcept
 {
     // do not quote numbers or special scalars
-    return json_is_plain_number(s) || json_is_special_scalar(s) ? SCALAR_PLAIN : SCALAR_DQUO;
+    return scalar_is_plain_number_json(s) || scalar_is_special_json(s) ? SCALAR_PLAIN : SCALAR_DQUO;
 }
 
 } // namespace yml
