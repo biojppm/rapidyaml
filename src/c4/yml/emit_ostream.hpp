@@ -82,7 +82,7 @@ struct as_yaml
 template<class OStream>
 inline OStream& operator<< (OStream& stream, Tree const& tree)
 {
-    EmitterOStream<OStream> em(&stream);
+    EmitterOStream<OStream> em(EmitOptions{}, &stream);
     em.emit_as(EMIT_YAML, &tree);
     return stream;
 }
@@ -94,12 +94,12 @@ inline OStream& operator<< (OStream& stream, ConstNodeRef const& node)
 {
     if(!node.readable())
         return stream;
-    EmitterOStream<OStream> em(&stream);
+    EmitterOStream<OStream> em(EmitOptions{}, &stream);
     em.emit_as(EMIT_YAML, node.tree(), node.id());
     return stream;
 }
 
-/** emit json to an STL-like stream */
+/** emit JSON to an STL-like stream */
 template<class OStream>
 inline OStream& operator<< (OStream& stream, as_json const& json_spec)
 {
@@ -111,7 +111,7 @@ inline OStream& operator<< (OStream& stream, as_json const& json_spec)
     return stream;
 }
 
-/** emit yaml to an STL-like stream */
+/** emit YAML to an STL-like stream */
 template<class OStream>
 inline OStream& operator<< (OStream& stream, as_yaml const& yaml_spec)
 {

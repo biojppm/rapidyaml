@@ -81,6 +81,34 @@ std::string emitrs_append(csubstr first_part, Emit &&fn)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+TEST(emitter, options)
+{
+    const EmitOptions defaults{};
+    const EmitOptions maxcols = EmitOptions{}.max_cols(10);
+    const EmitOptions maxdepth = EmitOptions{}.max_depth(2);
+    const EmitOptions erronstream = EmitOptions{}.json_err_on_stream(true);
+    EXPECT_FALSE(maxcols == defaults);
+    EXPECT_FALSE(maxdepth == defaults);
+    EXPECT_FALSE(erronstream == defaults);
+    {
+        EmitterFile em(defaults);
+        EXPECT_EQ(em.options(), defaults);
+    }
+    {
+        EmitterFile em(maxcols);
+        EXPECT_EQ(em.options(), maxcols);
+    }
+    {
+        EmitterFile em(maxdepth);
+        EXPECT_EQ(em.options(), maxdepth);
+    }
+    {
+        EmitterFile em(erronstream);
+        EXPECT_EQ(em.options(), erronstream);
+    }
+}
+
+
 TEST(as_yaml, basic)
 {
     Tree et;
@@ -330,8 +358,8 @@ void test_emits(Tree const& t, id_type id, std::string const& expected_yaml, std
         EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, id, f); }), expected_json);
         EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ oss << as_yaml(t, id); }), expected_yaml);
         EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ oss << as_json(t, id); }), expected_json);
-        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(buf); em.emit_as(EMIT_YAML, &t, id); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
-        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(buf); em.emit_as(EMIT_JSON, &t, id); return em.get_result(/*error_on_excess*/true); }), expected_json);
+        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_YAML, &t, id); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
+        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_JSON, &t, id); return em.get_result(/*error_on_excess*/true); }), expected_json);
         EXPECT_EQ(emitrs_yaml<std::string>(t, id), expected_yaml);
         EXPECT_EQ(emitrs_json<std::string>(t, id), expected_json);
         EXPECT_EQ(emitrs_append(to_csubstr(append_prefix), [&](std::string *s) { emitrs_yaml(t, id, s, /*append*/true); } ), append_prefix + expected_yaml);
@@ -381,16 +409,16 @@ void test_emits(Tree const& t, std::string const& expected_yaml, std::string con
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, buf); }), expected_json);
         EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(t, f); }), expected_yaml);
         EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, f); }), expected_json);
-        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(buf); em.emit_as(EMIT_YAML, &t); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
-        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(buf); em.emit_as(EMIT_JSON, &t); return em.get_result(/*error_on_excess*/true); }), expected_json);
-        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(f); em.emit_as(EMIT_YAML, &t); }), expected_yaml);
-        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(f); em.emit_as(EMIT_JSON, &t); }), expected_json);
+        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_YAML, &t); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
+        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_JSON, &t); return em.get_result(/*error_on_excess*/true); }), expected_json);
+        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(EmitOptions{}, f); em.emit_as(EMIT_YAML, &t); }), expected_yaml);
+        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(EmitOptions{}, f); em.emit_as(EMIT_JSON, &t); }), expected_json);
         if(!t.empty())
         {
             EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ oss << as_yaml(t); }), expected_yaml);
             EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ oss << as_json(t); }), expected_json);
-            EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ EmitterOStream<std::ostringstream> em(&oss); em.emit_as(EMIT_YAML, &t); }), expected_yaml);
-            EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ EmitterOStream<std::ostringstream> em(&oss); em.emit_as(EMIT_JSON, &t); }), expected_json);
+            EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ EmitterOStream<std::ostringstream> em(EmitOptions{}, &oss); em.emit_as(EMIT_YAML, &t); }), expected_yaml);
+            EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ EmitterOStream<std::ostringstream> em(EmitOptions{}, &oss); em.emit_as(EMIT_JSON, &t); }), expected_json);
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t), expected_yaml);
         EXPECT_EQ(emitrs_json<std::string>(t), expected_json);
@@ -440,10 +468,10 @@ void test_emits(ConstNodeRef n, std::string const& expected_yaml, std::string co
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(n, buf); }), expected_json);
         EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(n, f); }), expected_yaml);
         EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(n, f); }), expected_json);
-        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(buf); em.emit_as(EMIT_YAML, n.tree(), n.id()); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
-        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(buf); em.emit_as(EMIT_JSON, n.tree(), n.id()); return em.get_result(/*error_on_excess*/true); }), expected_json);
-        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(f); em.emit_as(EMIT_YAML, n.tree(), n.id()); }), expected_yaml);
-        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(f); em.emit_as(EMIT_JSON, n.tree(), n.id()); }), expected_json);
+        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_YAML, n.tree(), n.id()); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
+        EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_JSON, n.tree(), n.id()); return em.get_result(/*error_on_excess*/true); }), expected_json);
+        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(EmitOptions{}, f); em.emit_as(EMIT_YAML, n.tree(), n.id()); }), expected_yaml);
+        EXPECT_EQ(emit2file([&](FILE *f){ EmitterFile em(EmitOptions{}, f); em.emit_as(EMIT_JSON, n.tree(), n.id()); }), expected_json);
         EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ oss <<         n; }), expected_yaml);
         EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ oss << as_yaml(n); }), expected_yaml);
         EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ oss << as_json(n); }), expected_json);

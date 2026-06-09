@@ -14,6 +14,7 @@
 namespace c4 {
 namespace yml {
 
+
 /** @cond dev */
 // fwd declarations
 class Tree;
@@ -51,33 +52,9 @@ public:
         , m_flow_pws()
     {}
 
-    /** Construct the emitter and its internal Writer state, using default emit options.
-     * @param args arguments to be forwarded to the constructor of the writer.
-     */
-    template<class ...WriterArgs>
-    Emitter(WriterArgs &&...args) noexcept
-        : Writer(std::forward<WriterArgs>(args)...)
-        , m_tree()
-        , m_opts()
-        , m_col()
-        , m_depth()
-        , m_ilevel()
-        , m_pws()
-        , m_flow_pws()
-    {}
-
 public:
 
     /** emit!
-     *
-     * When writing to a buffer, returns a substr of the emitted YAML.
-     * If the given buffer has insufficient space, the returned substr
-     * will be null and its size will be the needed space. Whatever
-     * the size of the buffer, it is guaranteed that no writes are
-     * done past its end.
-     *
-     * When writing to a file, the returned substr will be null, but its
-     * length will be set to the number of bytes written.
      *
      * @param type specify what to emit (YAML or JSON)
      * @param tree the tree to emit
@@ -89,8 +66,6 @@ public:
 
     /** get the emit options for this object */
     EmitOptions const& options() const noexcept { return m_opts; }
-    /** set the emit options for this object */
-    void options(EmitOptions opts) noexcept { m_opts = opts; }
 
 private: // pending whitespace
 
@@ -98,22 +73,22 @@ private: // pending whitespace
     typedef enum : uint32_t { _PWS_NONE = 0u, _PWS_SPACE = 1u, _PWS_NEWL = 2u } Pws_e; // NOLINT
 
     /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void pend_none_() noexcept
+    C4_ALWAYS_INLINE void pend_none_() noexcept // LCOV_EXCL_LINE
     {
         m_pws = _PWS_NONE;
     }
     /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void pend_newl_() noexcept
+    C4_ALWAYS_INLINE void pend_newl_() noexcept // LCOV_EXCL_LINE
     {
         m_pws = _PWS_NEWL;
     }
     /// set pending whitespace, ignoring pending
-    C4_ALWAYS_INLINE void pend_space_() noexcept
+    C4_ALWAYS_INLINE void pend_space_() noexcept // LCOV_EXCL_LINE
     {
         m_pws = _PWS_SPACE;
     }
     /// write pending whitespace, and then set the next pending whitespace
-    C4_ALWAYS_INLINE void write_pws_and_pend_(Pws_e next=_PWS_NONE) noexcept
+    C4_ALWAYS_INLINE void write_pws_and_pend_(Pws_e next=_PWS_NONE) noexcept // LCOV_EXCL_LINE
     {
         if(m_pws == _PWS_SPACE)
         {
@@ -133,7 +108,7 @@ private: // pending whitespace
         size_t max_cols = 0; // leave this member first to avoid padding
         Pws_e pend_after_comma = _PWS_NONE;
         bool active = false;
-        C4_ALWAYS_INLINE Pws_e next_pws(size_t col) const noexcept
+        C4_ALWAYS_INLINE Pws_e next_pws(size_t col) const noexcept // LCOV_EXCL_LINE
         {
             return (active && col >= max_cols) ? _PWS_NEWL : pend_after_comma;
         }
@@ -221,7 +196,24 @@ private:
 
 private:
 
-    C4_ALWAYS_INLINE void indent_(id_type level)
+    template<size_t N>
+    C4_ALWAYS_INLINE void write_(const char (&a)[N]) // LCOV_EXCL_LINE
+    {
+        this->Writer::append(std::forward<const char (&)[N]>(a));
+        m_col += N-1;
+    }
+    C4_ALWAYS_INLINE void write_(csubstr s) // LCOV_EXCL_LINE
+    {
+        this->Writer::append(s);
+        m_col += s.len;
+    }
+    C4_ALWAYS_INLINE void write_(char c) // LCOV_EXCL_LINE
+    {
+        this->Writer::append(c);
+        ++m_col;
+    }
+
+    C4_ALWAYS_INLINE void indent_(id_type level) // LCOV_EXCL_LINE
     {
         C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
         size_t num = static_cast<size_t>(2u * level);
@@ -230,30 +222,8 @@ private:
         C4_SUPPRESS_WARNING_GCC_POP
     }
 
-    template<size_t N>
-    C4_ALWAYS_INLINE void write_(const char (&a)[N])
-    {
-        this->Writer::append(std::forward<const char (&)[N]>(a));
-        m_col += N-1;
-    }
-    C4_ALWAYS_INLINE void write_(csubstr s)
-    {
-        this->Writer::append(s);
-        m_col += s.len;
-    }
-    C4_ALWAYS_INLINE void write_(char c)
-    {
-        this->Writer::append(c);
-        ++m_col;
-    }
-    C4_ALWAYS_INLINE void write_(char c, size_t num)
-    {
-        this->Writer::append(c, num);
-        m_col += num;
-    }
-
     /// write a newline and reset the column
-    C4_ALWAYS_INLINE void newl_()
+    C4_ALWAYS_INLINE void newl_() // LCOV_EXCL_LINE
     {
         this->Writer::append('\n');
         m_col = 0;
@@ -269,9 +239,10 @@ private:
     Pws_e       m_pws;
     flow_pws    m_flow_pws;
 
-public: // deprecated method
+public: // deprecated methods
 
     /** @cond dev */ // LCOV_EXCL_START
+    RYML_DEPRECATED("create a new emitter") void options(EmitOptions) noexcept { ; }
     RYML_DEPRECATED("use .options()") void max_depth(id_type max_depth) noexcept { m_opts.max_depth(max_depth); }
     RYML_DEPRECATED("use .options()") id_type max_depth() const noexcept { return m_opts.max_depth(); }
     /** @endcond */ // LCOV_EXCL_STOP

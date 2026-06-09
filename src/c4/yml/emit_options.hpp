@@ -11,7 +11,7 @@ namespace yml {
 /** A lightweight object containing options to be used when emitting.
  * @ingroup doc_emit
  */
-struct EmitOptions
+struct RYML_EXPORT EmitOptions
 {
 public:
 
@@ -100,18 +100,18 @@ public:
      * Controls the behavior when emitting JSON.
      * @{ */
 
-    /** Whether to trigger an error when findind a stream
-     * in json mode. Disabled by default. */
+    /** Whether to trigger an error (or emit as seq) when finding a
+     * stream in json mode. Disabled by default. */
     EmitOptions& json_err_on_stream(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_STREAM); }
     C4_ALWAYS_INLINE bool json_err_on_stream() const noexcept { return (m_flags & JSON_ERR_ON_STREAM) != 0; }
 
-    /** Whether to trigger an error (or ignore the tag) when finding a tag
-     * in json mode. Disabled by default. */
+    /** Whether to trigger an error (or ignore the tag) when finding a
+     * tag in json mode. Disabled by default. */
     EmitOptions& json_err_on_tag(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_TAG); }
     C4_ALWAYS_INLINE bool json_err_on_tag() const noexcept { return (m_flags & JSON_ERR_ON_TAG) != 0; }
 
-    /** Whether to trigger an error (or ignore the anchor) when finding an
-     * anchor in json mode. Disabled by default. */
+    /** Whether to trigger an error (or ignore the anchor) when
+     * finding an anchor in json mode. Disabled by default. */
     EmitOptions& json_err_on_anchor(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_ANCHOR); }
     C4_ALWAYS_INLINE bool json_err_on_anchor() const noexcept { return (m_flags & JSON_ERR_ON_ANCHOR) != 0; }
 
@@ -134,8 +134,9 @@ public:
 
     bool operator== (const EmitOptions& that) const noexcept
     {
-        return m_max_depth == that.m_max_depth &&
-            m_flags == that.m_flags;
+        return m_max_depth == that.m_max_depth
+            && m_max_cols == that.m_max_cols
+            && m_flags == that.m_flags;
     }
 
 private:

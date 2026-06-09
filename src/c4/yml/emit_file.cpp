@@ -32,7 +32,7 @@ void emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
 
 void emit_yaml(Tree const& t, id_type id, FILE *f)
 {
-    EmitterFile em(f);
+    EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_YAML, &t, id);
 }
 
@@ -44,7 +44,7 @@ void emit_json(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
 
 void emit_json(Tree const& t, id_type id, FILE *f)
 {
-    EmitterFile em(f);
+    EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_JSON, &t, id);
 }
 
@@ -59,7 +59,7 @@ void emit_yaml(Tree const& t, EmitOptions const& opts, FILE *f)
 
 void emit_yaml(Tree const& t, FILE *f)
 {
-    EmitterFile em(f);
+    EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_YAML, &t);
 }
 
@@ -72,7 +72,7 @@ void emit_json(Tree const& t, EmitOptions const& opts, FILE *f)
 
 void emit_json(Tree const& t, FILE *f)
 {
-    EmitterFile em(f);
+    EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_JSON, &t);
 }
 
@@ -91,7 +91,7 @@ void emit_yaml(ConstNodeRef const& r, FILE *f)
 {
     if(!r.readable())
         return;
-    EmitterFile em(f);
+    EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_YAML, r.tree(), r.id());
 }
 
@@ -107,7 +107,7 @@ void emit_json(ConstNodeRef const& r, FILE *f)
 {
     if(!r.readable())
         return;
-    EmitterFile em(f);
+    EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_JSON, r.tree(), r.id());
 }
 

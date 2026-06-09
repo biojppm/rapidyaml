@@ -11,6 +11,7 @@
 namespace c4 {
 namespace yml {
 
+
 /** @cond dev */
 // fwd declarations
 template<class Writer>
