@@ -147,6 +147,10 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
  * @ingroup doc_emit
  */
 
+/** @defgroup doc_writers Writer objects to use with an Emitter
+ * @ingroup doc_emit
+ */
+
 
 /** @defgroup doc_node_type Node types
  */

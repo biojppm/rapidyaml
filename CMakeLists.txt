@@ -45,8 +45,16 @@ c4_add_library(ryml
         c4/yml/detail/stack.hpp
         c4/yml/common.hpp
         c4/yml/common.cpp
-        c4/yml/emit.def.hpp
         c4/yml/emit.hpp
+        c4/yml/emit_buf.hpp
+        c4/yml/emit_buf.cpp
+        c4/yml/emit_container.hpp
+        c4/yml/emit_file.hpp
+        c4/yml/emit_file.cpp
+        c4/yml/emit_options.hpp
+        c4/yml/emit_ostream.hpp
+        c4/yml/emitter.def.hpp
+        c4/yml/emitter.hpp
         c4/yml/error.hpp
         c4/yml/error.def.hpp
         c4/yml/escape_scalar.hpp
@@ -80,6 +88,9 @@ c4_add_library(ryml
         c4/yml/version.hpp
         c4/yml/version.cpp
         c4/yml/writer.hpp
+        c4/yml/writer_buf.hpp
+        c4/yml/writer_file.hpp
+        c4/yml/writer_ostream.hpp
         c4/yml/yml.hpp
         ryml.natvis
     SOURCE_ROOT ${RYML_SRC_DIR}

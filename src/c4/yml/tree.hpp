@@ -258,7 +258,7 @@ public:
     Tree(id_type node_capacity, size_t arena_capacity=RYML_DEFAULT_TREE_ARENA_CAPACITY) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
     Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb);
 
-    ~Tree();
+    ~Tree() noexcept;
 
     Tree(Tree const& that);
     Tree(Tree     && that) noexcept;
@@ -281,6 +281,7 @@ public:
     void clear();
     void clear_arena() { m_arena_pos = 0; }
 
+    /** Query for zero size. The tree can be empty only when constructed with explicitly zero-capacity. */
     bool empty() const { return m_size == 0; }
 
     id_type size() const { return m_size; }
@@ -333,8 +334,10 @@ public:
     //! This function is implementation only; use at your own risk.
     NodeData const * _p(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node); return m_buf + node; }
 
-    //! Get the id of the root node. The tree must not be empty.
-    id_type root_id() const { _RYML_ASSERT_VISIT_(m_callbacks, m_cap > 0 && m_size > 0, this, id_type(0)); return 0; }
+    //! Get the id of the root node. The tree must not be empty. The tree can be empty only when constructed with explicitly zero-capacity.
+    id_type root_id() const { _RYML_ASSERT_VISIT_(m_callbacks, m_size > 0, this, id_type(0)); return 0; }
+    //! Get the id of the root node, or NONE if the tree is empty.
+    id_type root_id_maybe() const { return m_size ? 0 : id_type(NONE); }
 
     //! Get a NodeRef of a node by id
     NodeRef      ref(id_type node);

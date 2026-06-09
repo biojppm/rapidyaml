@@ -138,7 +138,7 @@ Tree::Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb)
         reserve_arena(arena_capacity);
 }
 
-Tree::~Tree()
+Tree::~Tree() noexcept
 {
     _free();
 }

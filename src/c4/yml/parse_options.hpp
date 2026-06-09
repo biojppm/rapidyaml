@@ -17,7 +17,7 @@
 namespace c4 {
 namespace yml {
 
-/** Options to give to the parser to control its behavior. */
+/** Options to give to the @ref ParseEngine to control its behavior. */
 struct RYML_EXPORT ParserOptions
 {
 private:
