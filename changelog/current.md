@@ -41,3 +41,4 @@
      */
     bool scalar_is_inf_or_nan3(csubstr s);
     ```
+  - `file_put_contents()`: add `FILE*` overloads

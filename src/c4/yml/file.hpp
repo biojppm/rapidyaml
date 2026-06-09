@@ -54,12 +54,27 @@ struct ScopedFILE
  */
 
 /** save a contiguous buffer into a file */
+inline void file_put_contents(void const* buf, size_t sz, FILE *file, const char* filename=nullptr)
+{
+    size_t written = std::fwrite(buf, 1, sz, file); // NOLINT
+    if(C4_UNLIKELY(written != sz))
+        _RYML_ERR_BASIC("{}: failed file write: expected={}B actual={}B", filename ? filename : "file", sz, written); // LCOV_EXCL_LINE
+}
+
+/** save a contiguous buffer into a file */
+template<class ContiguousContainer>
+void file_put_contents(ContiguousContainer const& v, FILE *file, const char *filename=nullptr)
+{
+    size_t vsz = static_cast<size_t>(v.size()) * sizeof(typename ContiguousContainer::value_type);
+    void const* vbuf = v.empty() ? nullptr : &v[0];
+    file_put_contents(vbuf, vsz, file, filename);
+}
+
+/** save a contiguous buffer into a file */
 inline void file_put_contents(void const* buf, size_t sz, const char *filename, const char* access="wb")
 {
     detail::ScopedFILE f(filename, access);
-    size_t written = std::fwrite(buf, 1, sz, f.file); // NOLINT
-    if(C4_UNLIKELY(written != sz))
-        _RYML_ERR_BASIC("{}: failed file write: expected={}B actual={}B", filename, sz, written); // LCOV_EXCL_LINE
+    file_put_contents(buf, sz, f.file, filename);
 }
 
 /** save a contiguous buffer into a file */
