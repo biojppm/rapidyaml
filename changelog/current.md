@@ -41,4 +41,5 @@
      */
     bool scalar_is_inf_or_nan3(csubstr s);
     ```
+  - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
   - `file_put_contents()`: add `FILE*` overloads
