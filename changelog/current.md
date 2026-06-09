@@ -2,16 +2,19 @@
   - `WriterFile` and `WriterOStream` no longer track the number of emitted bytes.
   - `error_on_excess` is now used in the emit-to-buffer overloads, and no longer in the main `Emitter::emit_as()` driver function.
 - [PR#617](https://github.com/biojppm/rapidyaml/pull/617): Clean emit API, part 2: tidy emit classes among new header files:
-  - c4/yml/emit_buf.cpp
-  - c4/yml/emit_buf.hpp
-  - c4/yml/emit_container.hpp
-  - c4/yml/emit_file.cpp
-  - c4/yml/emit_file.hpp
-  - c4/yml/emit_options.hpp
-  - c4/yml/emit_ostream.hpp
-  - c4/yml/emitter.hpp
-  - c4/yml/emitter.def.hpp
-  - c4/yml/writer_buf.hpp
-  - c4/yml/writer_file.hpp
-  - c4/yml/writer_ostream.hpp
-  `c4/yml/writer.hpp` and `c4/yml/emit.hpp` still bring in everything as before, but should now be avoided in favor of including only the specific headers needed by the user.. This enables better compilation speeds. Other than some internal changes (in the types passed to the main driver function `Emitter::parse_as()`), there are no logic changes.
+    - Top-level emit headers:
+      - `c4/yml/emit_container.hpp`: emit to resizeable contiguous char container (eg `std::string`, `std::vector<char>`)
+      - `c4/yml/emit_buf.hpp`: emit to char buffer (`substr`)
+      - `c4/yml/emit_file.hpp`: emit to C `FILE*`
+      - `c4/yml/emit_ostream.hpp`: emit to STL-like ostreams
+    - The old `c4/yml/emit.hpp` is now a pure umbrella header, including all of the above. For better compilation speed, avoid the umbrella header, and prefer including the concrete header (container, buf, file or stream).
+    - The rest of the emit code was split over these new implementation headers:
+      - `c4/yml/emit_options.hpp`: options to control emitting
+      - `c4/yml/emitter.hpp`: main emitter class
+      - `c4/yml/emitter.def.hpp`: definitions of main emitter class. 
+      - `c4/yml/writer_buf.hpp`: policy class to emit to char buffer (`substr`)
+      - `c4/yml/writer_file.hpp`: policy class to emit to C `FILE*`
+      - `c4/yml/writer_ostream.hpp`: policy class to emit to STL-like ostreams
+    - There are no external logic changes: all the `emit_*()` functions remain the same.
+    - Other changes in this PR:
+      - Added `Tree::root_id_maybe()` which is safe to call on an empty tree.

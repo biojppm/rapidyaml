@@ -23,37 +23,6 @@ namespace yml {
 template class RYML_EXPORT Emitter<WriterBuf>;
 
 
-// emit from tree and node id -----------------------
-
-substr emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, substr buf, bool error_on_excess)
-{
-    EmitterBuf em(opts, buf);
-    em.emit_as(EMIT_YAML, &t, id);
-    return em.get_result(error_on_excess);
-}
-
-substr emit_yaml(Tree const& t, id_type id, substr buf, bool error_on_excess)
-{
-    EmitterBuf em(EmitOptions{}, buf);
-    em.emit_as(EMIT_YAML, &t, id);
-    return em.get_result(error_on_excess);
-}
-
-substr emit_json(Tree const& t, id_type id, EmitOptions const& opts, substr buf, bool error_on_excess)
-{
-    EmitterBuf em(opts, buf);
-    em.emit_as(EMIT_JSON, &t, id);
-    return em.get_result(error_on_excess);
-}
-
-substr emit_json(Tree const& t, id_type id, substr buf, bool error_on_excess)
-{
-    EmitterBuf em(EmitOptions{}, buf);
-    em.emit_as(EMIT_JSON, &t, id);
-    return em.get_result(error_on_excess);
-}
-
-
 // emit from root -------------------------
 
 substr emit_yaml(Tree const& t, EmitOptions const& opts, substr buf, bool error_on_excess)
@@ -85,12 +54,41 @@ substr emit_json(Tree const& t, substr buf, bool error_on_excess)
 }
 
 
+// emit from tree and node id -----------------------
+
+substr emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, substr buf, bool error_on_excess)
+{
+    EmitterBuf em(opts, buf);
+    em.emit_as(EMIT_YAML, &t, id);
+    return em.get_result(error_on_excess);
+}
+
+substr emit_yaml(Tree const& t, id_type id, substr buf, bool error_on_excess)
+{
+    EmitterBuf em(EmitOptions{}, buf);
+    em.emit_as(EMIT_YAML, &t, id);
+    return em.get_result(error_on_excess);
+}
+
+substr emit_json(Tree const& t, id_type id, EmitOptions const& opts, substr buf, bool error_on_excess)
+{
+    EmitterBuf em(opts, buf);
+    em.emit_as(EMIT_JSON, &t, id);
+    return em.get_result(error_on_excess);
+}
+
+substr emit_json(Tree const& t, id_type id, substr buf, bool error_on_excess)
+{
+    EmitterBuf em(EmitOptions{}, buf);
+    em.emit_as(EMIT_JSON, &t, id);
+    return em.get_result(error_on_excess);
+}
+
+
 // emit from ConstNodeRef ------------------------
 
 substr emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, substr buf, bool error_on_excess)
 {
-    if(!r.readable())
-        return {};
     EmitterBuf em(opts, buf);
     em.emit_as(EMIT_YAML, r.tree(), r.id());
     return em.get_result(error_on_excess);
@@ -98,8 +96,6 @@ substr emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, substr buf, boo
 
 substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess)
 {
-    if(!r.readable())
-        return {};
     EmitterBuf em(EmitOptions{}, buf);
     em.emit_as(EMIT_YAML, r.tree(), r.id());
     return em.get_result(error_on_excess);
@@ -107,8 +103,6 @@ substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess)
 
 substr emit_json(ConstNodeRef const& r, EmitOptions const& opts, substr buf, bool error_on_excess)
 {
-    if(!r.readable())
-        return {};
     EmitterBuf em(opts, buf);
     em.emit_as(EMIT_JSON, r.tree(), r.id());
     return em.get_result(error_on_excess);
@@ -116,8 +110,6 @@ substr emit_json(ConstNodeRef const& r, EmitOptions const& opts, substr buf, boo
 
 substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess)
 {
-    if(!r.readable())
-        return {};
     EmitterBuf em(EmitOptions{}, buf);
     em.emit_as(EMIT_JSON, r.tree(), r.id());
     return em.get_result(error_on_excess);

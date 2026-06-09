@@ -21,7 +21,11 @@
 namespace c4 {
 namespace yml {
 
-/** @cond dev */
+
+//-------------------------------------------------
+// deprecated code
+
+/** @cond dev */ // LCOV_EXCL_START
 
 #define RYML_DEPRECATE_EMIT                                             \
     RYML_DEPRECATED("use emit_yaml() instead. "                         \
@@ -34,7 +38,7 @@ namespace yml {
 // see https://github.com/biojppm/rapidyaml/issues/120.
 // emit is defined in qobjectdefs.h (as an empty define).
 #ifdef emit
-#define RYML_TMP_EMIT_
+#define RYML_TMP_EMIT_ emit
 #undef emit
 #endif
 
@@ -103,7 +107,7 @@ RYML_DEPRECATE_EMITRS CharOwningContainer emitrs(ConstNodeRef const& n)
 #undef RYML_DEPRECATE_EMIT
 #undef RYML_DEPRECATE_EMITRS
 
-/** @endcond */
+/** @endcond */ // LCOV_EXCL_STOP
 
 
 } // namespace yml

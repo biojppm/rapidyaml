@@ -10,6 +10,7 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // substr needs to have dll-interface to be used by clients of WriterBuf
 
 /** A writer to a memory buffer, in the form of a @ref substr . No
  * overflow occurs; the buffer size is strictly respected.
@@ -80,6 +81,8 @@ public:
         m_pos += num_times;
     }
 };
+
+C4_SUPPRESS_WARNING_MSVC_POP
 
 } // namespace yml
 } // namespace c4

@@ -22,33 +22,6 @@ namespace yml {
 template class RYML_EXPORT Emitter<WriterFile>;
 
 
-// emit from tree and node id -----------------------
-
-void emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
-{
-    EmitterFile em(opts, f);
-    em.emit_as(EMIT_YAML, &t, id);
-}
-
-void emit_yaml(Tree const& t, id_type id, FILE *f)
-{
-    EmitterFile em(EmitOptions{}, f);
-    em.emit_as(EMIT_YAML, &t, id);
-}
-
-void emit_json(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
-{
-    EmitterFile em(opts, f);
-    em.emit_as(EMIT_JSON, &t, id);
-}
-
-void emit_json(Tree const& t, id_type id, FILE *f)
-{
-    EmitterFile em(EmitOptions{}, f);
-    em.emit_as(EMIT_JSON, &t, id);
-}
-
-
 // emit from root -------------------------
 
 void emit_yaml(Tree const& t, EmitOptions const& opts, FILE *f)
@@ -77,36 +50,55 @@ void emit_json(Tree const& t, FILE *f)
 }
 
 
+// emit from tree and node id -----------------------
+
+void emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
+{
+    EmitterFile em(opts, f);
+    em.emit_as(EMIT_YAML, &t, id);
+}
+
+void emit_yaml(Tree const& t, id_type id, FILE *f)
+{
+    EmitterFile em(EmitOptions{}, f);
+    em.emit_as(EMIT_YAML, &t, id);
+}
+
+void emit_json(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
+{
+    EmitterFile em(opts, f);
+    em.emit_as(EMIT_JSON, &t, id);
+}
+
+void emit_json(Tree const& t, id_type id, FILE *f)
+{
+    EmitterFile em(EmitOptions{}, f);
+    em.emit_as(EMIT_JSON, &t, id);
+}
+
+
 // emit from ConstNodeRef ------------------------
 
 void emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, FILE *f)
 {
-    if(!r.readable())
-        return;
     EmitterFile em(opts, f);
     em.emit_as(EMIT_YAML, r.tree(), r.id());
 }
 
 void emit_yaml(ConstNodeRef const& r, FILE *f)
 {
-    if(!r.readable())
-        return;
     EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_YAML, r.tree(), r.id());
 }
 
 void emit_json(ConstNodeRef const& r, EmitOptions const& opts, FILE *f)
 {
-    if(!r.readable())
-        return;
     EmitterFile em(opts, f);
     em.emit_as(EMIT_JSON, r.tree(), r.id());
 }
 
 void emit_json(ConstNodeRef const& r, FILE *f)
 {
-    if(!r.readable())
-        return;
     EmitterFile em(EmitOptions{}, f);
     em.emit_as(EMIT_JSON, r.tree(), r.id());
 }

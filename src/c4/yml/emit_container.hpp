@@ -6,8 +6,8 @@
 #ifndef _C4_YML_EMIT_BUF_HPP_
 #include "c4/yml/emit_buf.hpp"
 #endif
-#ifndef _C4_YML_TREE_HPP_
-#include "c4/yml/tree.hpp"
+#ifndef _C4_YML_EMIT_OPTIONS_HPP_
+#include "c4/yml/emit_options.hpp"
 #endif
 #ifndef _C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
@@ -18,14 +18,15 @@ namespace c4 {
 namespace yml {
 
 
+// emit from tree and node id ---------------------------
+
 /** @addtogroup doc_emit_to_container_from_node_id
  *
  * @{
  */
 
-// emit from tree and node id ---------------------------
 
-/** (1) emit+resize: emit YAML to the given `std::string`/`std::vector`-like
+/** (1) emit+resize: emit YAML to the given `std::string`/`std::vector<char>`-like
  * container, resizing it as needed to fit the emitted YAML. If @p append is
  * set to true, the emitted YAML is appended at the end of the container.
  *
@@ -33,19 +34,15 @@ namespace yml {
 template<class CharOwningContainer>
 substr emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    size_t startpos = append ? cont->size() : 0u;
+    const size_t startpos = append ? cont->size() : 0u;
     cont->resize(cont->capacity()); // otherwise the first emit would be certain to fail
     substr buf = to_substr(*cont).sub(startpos);
     substr ret = emit_yaml(t, id, opts, buf, /*error_on_excess*/false);
-    if(ret.str == nullptr && ret.len > 0)
+    cont->resize(startpos + ret.len);
+    if(ret.len && !ret.str)
     {
-        cont->resize(startpos + ret.len);
         buf = to_substr(*cont).sub(startpos);
         ret = emit_yaml(t, id, opts, buf, /*error_on_excess*/true);
-    }
-    else
-    {
-        cont->resize(startpos + ret.len);
     }
     return ret;
 }
@@ -56,7 +53,8 @@ substr emitrs_yaml(Tree const& t, id_type id, CharOwningContainer * cont, bool a
     return emitrs_yaml(t, id, EmitOptions{}, cont, append);
 }
 
-/** (1) emit+resize: emit JSON to the given `std::string`/`std::vector`-like
+
+/** (1) emit+resize: emit JSON to the given `std::string`/`std::vector<char>`-like
  * container, resizing it as needed to fit the emitted JSON. If @p append is
  * set to true, the emitted YAML is appended at the end of the container.
  *
@@ -68,15 +66,11 @@ substr emitrs_json(Tree const& t, id_type id, EmitOptions const& opts, CharOwnin
     cont->resize(cont->capacity()); // otherwise the first emit would be certain to fail
     substr buf = to_substr(*cont).sub(startpos);
     substr ret = emit_json(t, id, opts, buf, /*error_on_excess*/false);
-    if(ret.str == nullptr && ret.len > 0)
+    cont->resize(startpos + ret.len);
+    if(ret.len && !ret.str)
     {
-        cont->resize(startpos + ret.len);
         buf = to_substr(*cont).sub(startpos);
         ret = emit_json(t, id, opts, buf, /*error_on_excess*/true);
-    }
-    else
-    {
-        cont->resize(startpos + ret.len);
     }
     return ret;
 }
@@ -88,7 +82,7 @@ substr emitrs_json(Tree const& t, id_type id, CharOwningContainer * cont, bool a
 }
 
 
-/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
+/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector<char>`-like container. */
 template<class CharOwningContainer>
 CharOwningContainer emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts={})
 {
@@ -96,7 +90,7 @@ CharOwningContainer emitrs_yaml(Tree const& t, id_type id, EmitOptions const& op
     emitrs_yaml(t, id, opts, &c);
     return c;
 }
-/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
+/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector<char>`-like container. */
 template<class CharOwningContainer>
 CharOwningContainer emitrs_json(Tree const& t, id_type id, EmitOptions const& opts={})
 {
@@ -115,64 +109,53 @@ CharOwningContainer emitrs_json(Tree const& t, id_type id, EmitOptions const& op
  * @{
  */
 
-/** (1) emit+resize: YAML to the given `std::string`/`std::vector`-like
+
+/** (1) emit+resize: YAML to the given `std::string`/`std::vector<char>`-like
  * container, resizing it as needed to fit the emitted YAML.
  * @return a substr trimmed to the new emitted contents. */
 template<class CharOwningContainer>
 substr emitrs_yaml(Tree const& t, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    if(t.empty())
-        return {};
-    return emitrs_yaml(t, t.root_id(), opts, cont, append);
+    return emitrs_yaml(t, t.root_id_maybe(), opts, cont, append);
 }
 /** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_yaml(Tree const& t, CharOwningContainer * cont, bool append=false)
 {
-    if(t.empty())
-        return {};
-    return emitrs_yaml
-        (t, t.root_id(), EmitOptions{}, cont, append);
+    return emitrs_yaml(t, t.root_id_maybe(), EmitOptions{}, cont, append);
 }
 
-/** (1) emit+resize: JSON to the given `std::string`/`std::vector`-like
+
+/** (1) emit+resize: JSON to the given `std::string`/`std::vector<char>`-like
  * container, resizing it as needed to fit the emitted JSON.
  * @return a substr trimmed to the new emitted contents. */
 template<class CharOwningContainer>
 substr emitrs_json(Tree const& t, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    if(t.empty())
-        return {};
-    return emitrs_json(t, t.root_id(), opts, cont, append);
+    return emitrs_json(t, t.root_id_maybe(), opts, cont, append);
 }
 /** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_json(Tree const& t, CharOwningContainer * cont, bool append=false)
 {
-    if(t.empty())
-        return {};
-    return emitrs_json(t, t.root_id(), EmitOptions{}, cont, append);
+    return emitrs_json(t, t.root_id_maybe(), EmitOptions{}, cont, append);
 }
 
 
-/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
+/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector<char>`-like container. */
 template<class CharOwningContainer>
 CharOwningContainer emitrs_yaml(Tree const& t, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    if(t.empty())
-        return c;
-    emitrs_yaml(t, t.root_id(), opts, &c);
+    emitrs_yaml(t, t.root_id_maybe(), opts, &c);
     return c;
 }
-/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
+/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector<char>`-like container. */
 template<class CharOwningContainer>
 CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    if(t.empty())
-        return c;
-    emitrs_json(t, t.root_id(), opts, &c);
+    emitrs_json(t, t.root_id_maybe(), opts, &c);
     return c;
 }
 
@@ -186,7 +169,7 @@ CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={})
  * @{
  */
 
-/** (1) emit+resize: YAML to the given `std::string`/`std::vector`-like container,
+/** (1) emit+resize: YAML to the given `std::string`/`std::vector<char>`-like container,
  * resizing it as needed to fit the emitted YAML.
  * @return a substr trimmed to the new emitted contents */
 template<class CharOwningContainer>
@@ -205,7 +188,8 @@ substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
     return emitrs_yaml(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
 
-/** (1) emit+resize: JSON to the given `std::string`/`std::vector`-like container,
+
+/** (1) emit+resize: JSON to the given `std::string`/`std::vector<char>`-like container,
  * resizing it as needed to fit the emitted JSON.
  * @return a substr trimmed to the new emitted contents */
 template<class CharOwningContainer>
@@ -225,24 +209,22 @@ substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 }
 
 
-/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
+/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector<char>`-like container. */
 template<class CharOwningContainer>
 CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={})
 {
-    if(!n.readable())
-        return {};
     CharOwningContainer c;
-    emitrs_yaml(*n.tree(), n.id(), opts, &c);
+    if(n.readable())
+        emitrs_yaml(*n.tree(), n.id(), opts, &c);
     return c;
 }
-/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
+/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector<char>`-like container. */
 template<class CharOwningContainer>
 CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={})
 {
-    if(!n.readable())
-        return {};
     CharOwningContainer c;
-    emitrs_json(*n.tree(), n.id(), opts, &c);
+    if(n.readable())
+        emitrs_json(*n.tree(), n.id(), opts, &c);
     return c;
 }
 

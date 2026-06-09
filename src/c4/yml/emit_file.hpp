@@ -3,8 +3,8 @@
 
 /** @file emit_file.hpp */
 
-#ifndef _C4_YML_EMIT_OPTIONS_HPP_
-#include "c4/yml/emit_options.hpp"
+#ifndef _C4_YML_COMMON_HPP_
+#include "c4/yml/common.hpp"
 #endif
 
 
@@ -17,11 +17,35 @@ template<class Writer> class Emitter;
 struct WriterFile;
 class Tree;
 class ConstNodeRef;
+struct EmitOptions;
 /** @endcond */
 
 
 /** @ingroup doc_emit_to_file */
 using EmitterFile = Emitter<WriterFile>;
+
+
+// emit from root -------------------------
+
+/** @addtogroup doc_emit_to_file_from_root
+ *
+ * @{
+ */
+
+/** (1) emit YAML to the given file, starting at the root node. A null file defaults to stdout. */
+RYML_EXPORT void emit_yaml(Tree const& t, EmitOptions const& opts, FILE *f=nullptr);
+
+/** (2) like (1), but use default emit options */
+RYML_EXPORT void emit_yaml(Tree const& t, FILE *f=nullptr);
+
+
+/** (1) emit JSON to the given file. A null file defaults to stdout. */
+RYML_EXPORT void emit_json(Tree const& t, EmitOptions const& opts, FILE *f=nullptr);
+
+/** (2) like (1), but use default emit options */
+RYML_EXPORT void emit_json(Tree const& t, FILE *f=nullptr);
+
+/** @} */
 
 
 // emit from tree and node id -----------------------
@@ -34,42 +58,19 @@ using EmitterFile = Emitter<WriterFile>;
 
 /** (1) emit YAML to the given file, starting at the given node. A null
  * file defaults to stdout. */
-void emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, FILE *f);
+RYML_EXPORT void emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, FILE *f);
 
 /** (2) like (1), but use default emit options */
-void emit_yaml(Tree const& t, id_type id, FILE *f);
+RYML_EXPORT void emit_yaml(Tree const& t, id_type id, FILE *f);
 
 
 /** (1) emit JSON to the given file, starting at the given node. A null
  * file defaults to stdout. */
-void emit_json(Tree const& t, id_type id, EmitOptions const& opts, FILE *f);
+RYML_EXPORT void emit_json(Tree const& t, id_type id, EmitOptions const& opts, FILE *f);
 
 /** (2) like (1), but use default emit options */
-void emit_json(Tree const& t, id_type id, FILE *f);
+RYML_EXPORT void emit_json(Tree const& t, id_type id, FILE *f);
 
-
-/** @} */
-
-
-// emit from root -------------------------
-
-/** @addtogroup doc_emit_to_file_from_root
- *
- * @{
- */
-
-/** (1) emit YAML to the given file, starting at the root node. A null file defaults to stdout. */
-void emit_yaml(Tree const& t, EmitOptions const& opts, FILE *f=nullptr);
-
-/** (2) like (1), but use default emit options */
-void emit_yaml(Tree const& t, FILE *f=nullptr);
-
-
-/** (1) emit JSON to the given file. A null file defaults to stdout. */
-void emit_json(Tree const& t, EmitOptions const& opts, FILE *f=nullptr);
-
-/** (2) like (1), but use default emit options */
-void emit_json(Tree const& t, FILE *f=nullptr);
 
 /** @} */
 
@@ -83,18 +84,18 @@ void emit_json(Tree const& t, FILE *f=nullptr);
 
 /** (1) emit YAML to the given file. A null file defaults to stdout.
  * Return the number of bytes written. */
-void emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr);
+RYML_EXPORT void emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr);
 
 /** (2) like (1), but use default emit options */
-void emit_yaml(ConstNodeRef const& r, FILE *f=nullptr);
+RYML_EXPORT void emit_yaml(ConstNodeRef const& r, FILE *f=nullptr);
 
 
 /** (1) emit JSON to the given file. A null file defaults to stdout.
  * Return the number of bytes written. */
-void emit_json(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr);
+RYML_EXPORT void emit_json(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr);
 
 /** (2) like (1), but use default emit options */
-void emit_json(ConstNodeRef const& r, FILE *f=nullptr);
+RYML_EXPORT void emit_json(ConstNodeRef const& r, FILE *f=nullptr);
 
 /** @} */
 

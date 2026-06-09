@@ -56,12 +56,11 @@ std::string emit2buf(Emit &&fn)
     std::string buf;
     buf.resize(2048);
     substr out = fn(to_substr(buf));
+    buf.resize(out.len);
     if(out.len > buf.size())
     {
-        buf.resize(out.len);
         out = fn(to_substr(buf));
     }
-    buf.resize(out.len);
     _c4dbgpf("emit result: [{}]~~~{}~~~", buf.size(), to_csubstr(buf));
     return buf;
 }
@@ -539,7 +538,8 @@ void test_all_emits(ConstNodeRef n, std::string const &expected, std::string con
 
 TEST(emit, empty_tree)
 {
-    const Tree t; // must be const!
+    const Tree t(/*capacity*/0); // must be const!
+    ASSERT_TRUE(t.empty());
     std::string expected = R"()";
     test_emits(t, expected, expected);
 }

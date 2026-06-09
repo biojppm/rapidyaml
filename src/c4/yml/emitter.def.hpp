@@ -24,37 +24,36 @@ C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 namespace c4 {
 namespace yml {
 
-namespace {
+namespace detail {
 C4_SUPPRESS_WARNING_GCC_PUSH
+// g++-4.x has problems with the operand types and requires the
+// redundant casting
 #if defined(__GNUC__) && (__GNUC__ < 5) && (!defined(__clang__))
-// g++-4.x has problems with the operand types here...
-C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wparentheses")
+C4_SUPPRESS_WARNING_GCC("-Wparentheses")
 #endif
 enum : type_bits { // NOLINT
-    _styles_block_key = KEY_LITERAL|KEY_FOLDED,
-    _styles_block_val = VAL_LITERAL|VAL_FOLDED,
-    _styles_block     = ((type_bits)_styles_block_key) | ((type_bits)_styles_block_val),
-    _styles_flow_key  = KEY_STYLE & (~((type_bits)_styles_block_key)),
-    _styles_flow_val  = VAL_STYLE & (~((type_bits)_styles_block_val)),
-    _styles_flow      = ((type_bits)_styles_flow_key) | ((type_bits)_styles_flow_val),
-    _styles_squo      = KEY_SQUO|VAL_SQUO,
-    _styles_dquo      = KEY_DQUO|VAL_DQUO,
-    _styles_plain     = KEY_PLAIN|VAL_PLAIN,
-    _styles_literal   = KEY_LITERAL|VAL_LITERAL,
-    _styles_folded    = KEY_FOLDED|VAL_FOLDED,
+    styles_block_key_ = KEY_LITERAL|KEY_FOLDED,
+    styles_block_val_ = VAL_LITERAL|VAL_FOLDED,
+    styles_block_     = ((type_bits)styles_block_key_) | ((type_bits)styles_block_val_), // NOLINT
+    styles_flow_key_  = KEY_STYLE & (~((type_bits)styles_block_key_)), // NOLINT
+    styles_flow_val_  = VAL_STYLE & (~((type_bits)styles_block_val_)), // NOLINT
+    styles_flow_      = ((type_bits)styles_flow_key_) | ((type_bits)styles_flow_val_), // NOLINT
+    styles_squo_      = KEY_SQUO|VAL_SQUO,
+    styles_dquo_      = KEY_DQUO|VAL_DQUO,
+    styles_plain_     = KEY_PLAIN|VAL_PLAIN,
+    styles_literal_   = KEY_LITERAL|VAL_LITERAL,
+    styles_folded_    = KEY_FOLDED|VAL_FOLDED,
 };
 C4_SUPPRESS_WARNING_GCC_POP
-} // namespace
+} // namespace detail
 
 
 template<class Writer>
 void Emitter<Writer>::emit_as(EmitType_e type, Tree const* tree, id_type id)
 {
+    _RYML_ASSERT_BASIC_(tree->callbacks(), !tree || !tree->empty() || id == NONE);
     if(!tree || tree->empty())
-    {
-        _RYML_ASSERT_BASIC_(tree->callbacks(), id == NONE);
         return;
-    }
     if(id == NONE)
         id = tree->root_id();
     _RYML_CHECK_VISIT_(tree->callbacks(), id < tree->capacity(), tree, id);
@@ -75,8 +74,8 @@ void Emitter<Writer>::emit_as(EmitType_e type, Tree const* tree, id_type id)
 
 /** @cond dev */
 
-//-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
 
 // The startup logic is made complicated from it having to accept
 // initial non-root nodes, and having to deal with tricky tokens like
@@ -411,9 +410,9 @@ void Emitter<Writer>::flow_map_open_entry_(id_type node)
     {
         write_pws_and_pend_(_PWS_NONE);
         csubstr key = m_tree->key(node);
-        if(!(ty & (NodeType_e)_styles_flow_key))
-            ty |= scalar_style_choose_flow(key) & (NodeType_e)_styles_flow_key;
-        flow_write_scalar_(key, ty & (NodeType_e)_styles_flow_key);
+        if(!(ty & (NodeType_e)detail::styles_flow_key_))
+            ty |= scalar_style_choose_flow(key) & (NodeType_e)detail::styles_flow_key_;
+        flow_write_scalar_(key, ty & (NodeType_e)detail::styles_flow_key_);
     }
     write_pws_and_pend_(_PWS_SPACE);
     write_(':');
@@ -572,7 +571,7 @@ void Emitter<Writer>::blck_map_open_entry_(id_type node)
     else
     {
         write_pws_and_pend_(_PWS_NONE);
-        type_bits use_qmrk = ty & (NodeType_e)_styles_block_key;
+        type_bits use_qmrk = ty & (NodeType_e)detail::styles_block_key_;
         if(!use_qmrk)
         {
             blck_write_scalar_(key, ty & KEY_STYLE);
@@ -728,9 +727,9 @@ void Emitter<Writer>::visit_flow_sl_seq_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
-                flow_write_scalar_(val, ty & (NodeType_e)_styles_flow_val);
+                if(!(ty & (NodeType_e)detail::styles_flow_val_))
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
+                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
             }
             else
             {
@@ -770,9 +769,9 @@ void Emitter<Writer>::visit_flow_ml_seq_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
-                flow_write_scalar_(val, ty & (NodeType_e)_styles_flow_val);
+                if(!(ty & (NodeType_e)detail::styles_flow_val_))
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
+                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
             }
             else
             {
@@ -814,9 +813,9 @@ void Emitter<Writer>::visit_flow_sl_map_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
-                flow_write_scalar_(val, ty & (NodeType_e)_styles_flow_val);
+                if(!(ty & (NodeType_e)detail::styles_flow_val_))
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
+                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
             }
             else
             {
@@ -857,9 +856,9 @@ void Emitter<Writer>::visit_flow_ml_map_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)_styles_flow_val))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)_styles_flow_val);
-                flow_write_scalar_(val, ty & (NodeType_e)_styles_flow_val);
+                if(!(ty & (NodeType_e)detail::styles_flow_val_))
+                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
+                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
             }
             else
             {
@@ -956,16 +955,16 @@ void Emitter<Writer>::visit_flow_ml_(id_type node)
 template<class Writer>
 void Emitter<Writer>::flow_write_scalar_(csubstr str, type_bits ty)
 {
-    _RYML_ASSERT_BASIC_(m_tree->callbacks(), !(ty & _styles_block));
-    if((ty & _styles_plain) || !(ty & SCALAR_STYLE))
+    _RYML_ASSERT_BASIC_(m_tree->callbacks(), !(ty & detail::styles_block_));
+    if((ty & detail::styles_plain_) || !(ty & SCALAR_STYLE))
     {
         write_scalar_plain_(str, m_ilevel);
     }
-    else if(ty & _styles_squo)
+    else if(ty & detail::styles_squo_)
     {
         write_scalar_squo_(str, m_ilevel);
     }
-    else // if(ty & _styles_dquo)
+    else // if(ty & detail::styles_dquo_)
     {
         write_scalar_dquo_(str, m_ilevel);
     }
@@ -974,23 +973,23 @@ void Emitter<Writer>::flow_write_scalar_(csubstr str, type_bits ty)
 template<class Writer>
 void Emitter<Writer>::blck_write_scalar_(csubstr str, type_bits ty)
 {
-    if((ty & _styles_plain) || !(ty & SCALAR_STYLE))
+    if((ty & detail::styles_plain_) || !(ty & SCALAR_STYLE))
     {
         write_scalar_plain_(str, m_ilevel);
     }
-    else if(ty & _styles_squo)
+    else if(ty & detail::styles_squo_)
     {
         write_scalar_squo_(str, m_ilevel);
     }
-    else if(ty & _styles_dquo)
+    else if(ty & detail::styles_dquo_)
     {
         write_scalar_dquo_(str, m_ilevel);
     }
-    else if(ty & _styles_literal)
+    else if(ty & detail::styles_literal_)
     {
         write_scalar_literal_(str, m_ilevel);
     }
-    else // if(ty & _styles_folded)
+    else // if(ty & detail::styles_folded_)
     {
         write_scalar_folded_(str, m_ilevel);
     }
