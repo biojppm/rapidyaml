@@ -1330,6 +1330,7 @@ bool Tree::is_ancestor(id_type node, id_type ancestor) const
 
 //-----------------------------------------------------------------------------
 
+/** @cond dev */
 void Tree::to_val(id_type node, csubstr val, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
@@ -1399,6 +1400,7 @@ void Tree::to_stream(id_type node, type_bits more_flags)
     _p(node)->m_key.clear();
     _p(node)->m_val.clear();
 }
+/** @endcond */
 
 
 //-----------------------------------------------------------------------------

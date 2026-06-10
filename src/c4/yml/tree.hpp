@@ -506,8 +506,6 @@ public:
         return false;
     }
 
-    RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
-
     /** @} */
 
 public:
@@ -613,17 +611,72 @@ public:
     /** @name node type modifiers */
     /** @{ */
 
-    void to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags=0);
-    void to_map(id_type node, csubstr key, type_bits more_flags=0);
-    void to_seq(id_type node, csubstr key, type_bits more_flags=0);
-    void to_val(id_type node, csubstr val, type_bits more_flags=0);
-    void to_map(id_type node, type_bits more_flags=0);
-    void to_seq(id_type node, type_bits more_flags=0);
-    void to_doc(id_type node, type_bits more_flags=0);
-    void to_stream(id_type node, type_bits more_flags=0);
+    void set_stream(id_type node)
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, is_root(node), this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, (_p(node)->m_type & (DOC|MAP|VAL)) == 0, this, node);
+        _p(node)->m_type |= STREAM;
+    }
 
-    void set_key(id_type node, csubstr key) { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); _p(node)->m_key.scalar = key; }
-    void set_val(id_type node, csubstr val) { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node), this, node); _p(node)->m_val.scalar = val; }
+    void set_doc(id_type node)
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, is_root(node) || (is_root(parent(node)) && is_stream(parent(node))), this, node);
+        _p(node)->m_type |= DOC;
+    }
+
+    void set_val(id_type node, csubstr val) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, (_p(node)->m_type & (SEQ|MAP)) == 0, this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, (parent(node) == NONE || (_p(parent(node))->m_type & (SEQ|MAP))), this, node);
+        NodeData *C4_RESTRICT nd = _p(node);
+        nd->m_type |= VAL;
+        nd->m_val.scalar = val;
+    }
+    void set_val(id_type node, csubstr val, NodeType more_flags) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, (_p(node)->m_type & (SEQ|MAP)) == 0, this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, (parent(node) == NONE || (_p(parent(node))->m_type & (SEQ|MAP))), this, node);
+        NodeData *C4_RESTRICT nd = _p(node);
+        nd->m_type |= VAL|more_flags;
+        nd->m_val.scalar = val;
+    }
+
+    void set_key(id_type node, csubstr key) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, (parent(node) != NONE && (_p(parent(node))->m_type & MAP)), this, node);
+        NodeData *C4_RESTRICT nd = _p(node);
+        nd->m_type |= KEY;
+        nd->m_key.scalar = key;
+    }
+    void set_key(id_type node, csubstr key, NodeType more_flags) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, (parent(node) != NONE && (_p(parent(node))->m_type & MAP)), this, node);
+        NodeData *C4_RESTRICT nd = _p(node);
+        nd->m_type |= KEY|more_flags;
+        nd->m_key.scalar = key;
+    }
+
+    void set_seq(id_type node) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, (_p(node)->m_type & (VAL|MAP)) == 0, this, node);
+        _p(node)->m_type |= SEQ;
+    }
+    void set_seq(id_type node, NodeType more_flags) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, ((_p(node)->m_type|more_flags) & (VAL|MAP)) == 0, this, node);
+        _p(node)->m_type |= SEQ|more_flags;
+    }
+
+    void set_map(id_type node) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, (_p(node)->m_type & (VAL|SEQ)) == 0, this, node);
+        _p(node)->m_type |= MAP;
+    }
+    void set_map(id_type node, NodeType more_flags) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, ((_p(node)->m_type|more_flags) & (VAL|SEQ)) == 0, this, node);
+        _p(node)->m_type |= MAP|more_flags;
+    }
 
     void set_key_tag(id_type node, csubstr tag) { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
     void set_val_tag(id_type node, csubstr tag) { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node) || is_container(node), this, node); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
@@ -1133,94 +1186,10 @@ public:
 
     void _set_flags(id_type node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
     void _set_flags(id_type node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
-
     void _add_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    void _add_flags(id_type node, type_bits  f) { NodeData *d = _p(node);                f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
-
+    void _add_flags(id_type node, type_bits  f) { NodeData *d = _p(node); f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
     void _rem_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    void _rem_flags(id_type node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
-
-    void _set_key(id_type node, csubstr key, type_bits more_flags=0)
-    {
-        _p(node)->m_key.scalar = key;
-        _add_flags(node, KEY|more_flags);
-    }
-    void _set_key(id_type node, NodeScalar const& key, type_bits more_flags=0)
-    {
-        _p(node)->m_key = key;
-        _add_flags(node, KEY|more_flags);
-    }
-
-    void _set_val(id_type node, csubstr val, type_bits more_flags=0)
-    {
-        _RYML_ASSERT_VISIT_(m_callbacks, num_children(node) == 0, this, node);
-        _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(node) && !is_map(node), this, node);
-        _p(node)->m_val.scalar = val;
-        _add_flags(node, VAL|more_flags);
-    }
-    void _set_val(id_type node, NodeScalar const& val, type_bits more_flags=0)
-    {
-        _RYML_ASSERT_VISIT_(m_callbacks, num_children(node) == 0, this, node);
-        _RYML_ASSERT_VISIT_(m_callbacks,  ! is_container(node), this, node);
-        _p(node)->m_val = val;
-        _add_flags(node, VAL|more_flags);
-    }
-
-    void _set(id_type node, NodeInit const& i)
-    {
-        _RYML_ASSERT_VISIT_(m_callbacks, i._check(), this, node);
-        NodeData *n = _p(node);
-        _RYML_ASSERT_VISIT_(m_callbacks, n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar, this, node);
-        _add_flags(node, i.type);
-        if(n->m_key.scalar.empty())
-        {
-            if( ! i.key.scalar.empty())
-            {
-                _set_key(node, i.key.scalar);
-            }
-        }
-        n->m_key.tag = i.key.tag;
-        n->m_val = i.val;
-    }
-
-    void _set_parent_as_container_if_needed(id_type in)
-    {
-        NodeData const* n = _p(in);
-        id_type ip = parent(in);
-        if(ip != NONE)
-        {
-            if( ! (is_seq(ip) || is_map(ip)))
-            {
-                if((in == first_child(ip)) && (in == last_child(ip)))
-                {
-                    if( ! n->m_key.empty() || has_key(in))
-                    {
-                        _add_flags(ip, MAP);
-                    }
-                    else
-                    {
-                        _add_flags(ip, SEQ);
-                    }
-                }
-            }
-        }
-    }
-
-    void _seq2map(id_type node)
-    {
-        _RYML_ASSERT_VISIT_(m_callbacks, is_seq(node), this, node);
-        for(id_type i = first_child(node); i != NONE; i = next_sibling(i))
-        {
-            NodeData *C4_RESTRICT ch = _p(i);
-            if(ch->m_type.is_keyval())
-                continue;
-            ch->m_type.add(KEY);
-            ch->m_key = ch->m_val;
-        }
-        auto *C4_RESTRICT n = _p(node);
-        n->m_type.rem(SEQ);
-        n->m_type.add(MAP);
-    }
+    void _rem_flags(id_type node, type_bits  f) { NodeData *d = _p(node); f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
 
     id_type _do_reorder(id_type *node, id_type count);
 
@@ -1307,13 +1276,11 @@ private:
 
     void _clear_range(id_type first, id_type num);
 
-public:
     id_type _claim();
-private:
-    void   _claim_root();
-    void   _release(id_type node);
-    void   _free_list_add(id_type node);
-    void   _free_list_rem(id_type node);
+    void    _claim_root();
+    void    _release(id_type node);
+    void    _free_list_add(id_type node);
+    void    _free_list_rem(id_type node);
 
     void _set_hierarchy(id_type node, id_type parent, id_type after_sibling);
     void _rem_hierarchy(id_type node);
@@ -1337,9 +1304,52 @@ public:
     TagDirectives m_tag_directives;
 
 public:
-    /** @cond dev */
-    RYML_DEPRECATED("use Tree::resolve_tags(TagCache&)") void resolve_tags() { TagCache cache; resolve_tags(cache); }
-    /** @endcond */
+
+    /** @cond dev */ // LCOV_EXCL_START
+    C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+    C4_SUPPRESS_WARNING_MSVC_PUSH
+    C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+    C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+    C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+    RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
+    RYML_DEPRECATED("use set_key()+set_val()") void to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags=0);
+    RYML_DEPRECATED("use set_key()+set_map()") void to_map(id_type node, csubstr key, type_bits more_flags=0);
+    RYML_DEPRECATED("use set_key()+set_seq()") void to_seq(id_type node, csubstr key, type_bits more_flags=0);
+    RYML_DEPRECATED("use set_val()") void to_val(id_type node, csubstr val, type_bits more_flags=0);
+    RYML_DEPRECATED("use set_map()") void to_map(id_type node, type_bits more_flags=0);
+    RYML_DEPRECATED("use set_seq()") void to_seq(id_type node, type_bits more_flags=0);
+    RYML_DEPRECATED("use set_doc()") void to_doc(id_type node, type_bits more_flags=0);
+    RYML_DEPRECATED("use set_stream()") void to_stream(id_type node, type_bits more_flags=0);
+    RYML_DEPRECATED("use resolve_tags(TagCache&)") void resolve_tags() { TagCache cache; resolve_tags(cache); }
+    RYML_DEPRECATED("") void _set(id_type node, NodeInit const& i)
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, i._check(), this, node);
+        NodeData *n = _p(node);
+        _RYML_ASSERT_VISIT_(m_callbacks, n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar, this, node);
+        _add_flags(node, i.type);
+        if(n->m_key.scalar.empty())
+        {
+            if( ! i.key.scalar.empty())
+            {
+                set_key(node, i.key.scalar);
+            }
+        }
+        n->m_key.tag = i.key.tag;
+        n->m_val = i.val;
+    }
+    RYML_DEPRECATED("") void _set_key(id_type node, NodeScalar const& key, NodeType more_flags=0)
+    {
+        _p(node)->m_key = key;
+        _add_flags(node, KEY|more_flags);
+    }
+    RYML_DEPRECATED("") void _set_val(id_type node, NodeScalar const& val, NodeType more_flags=0)
+    {
+        _p(node)->m_val = val;
+        _add_flags(node, VAL|more_flags);
+    }
+    C4_SUPPRESS_WARNING_MSVC_POP
+    C4_SUPPRESS_WARNING_GCC_CLANG_POP
+    /** @endcond */ // LCOV_EXCL_STOP
 };
 
 

@@ -47,3 +47,4 @@
 - [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean Tree API:
   - Add `Tree::arena_rem()`
   - Add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with value of 256
+  - `Tree`: deprecate to_val() and friends -- add set_val() and friends
