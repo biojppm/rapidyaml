@@ -950,7 +950,7 @@ public:
      * existing arena, and thus change the contents of individual
      * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
      * cost, ensure that the arena is reserved to an appropriate size
-     * using .reserve_arena().
+     * using @ref Tree::reserve_arena().
      *
      * @see reserve_arena() */
     substr alloc_arena(size_t sz)
@@ -991,8 +991,8 @@ public:
     substr _grow_arena(size_t more)
     {
         size_t cap = m_arena.len + more;
+        cap = cap < RYML_DEFAULT_TREE_ARENA_CAPACITY_START ? RYML_DEFAULT_TREE_ARENA_CAPACITY_START : cap;
         cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
-        cap = cap < 64 ? 64 : cap;
         reserve_arena(cap);
         return m_arena.sub(m_arena_pos);
     }

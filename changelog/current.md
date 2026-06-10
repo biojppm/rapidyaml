@@ -46,3 +46,4 @@
 - [PR#622](https://github.com/biojppm/rapidyaml/pull/622): Remove preprocess utilities.
 - [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean Tree API:
   - Add `Tree::arena_rem()`
+  - Add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with value of 256
