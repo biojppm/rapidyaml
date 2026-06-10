@@ -877,6 +877,11 @@ public:
     /** get the current arena */
     substr arena() { return m_arena.first(m_arena_pos); } // NOLINT(readability-make-member-function-const)
 
+    /** get the free space at the end of the arena */
+    csubstr arena_rem() const { return m_arena.sub(m_arena_pos); }
+    /** get the free space at the end of the arena */
+    substr arena_rem() { return m_arena.sub(m_arena_pos); } // NOLINT(readability-make-member-function-const)
+
     /** return true if the given substring is part of the tree's string arena */
     C4_ALWAYS_INLINE bool in_arena(csubstr s) const
     {

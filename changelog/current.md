@@ -44,3 +44,5 @@
   - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
   - `file_put_contents()`: add `FILE*` overloads
 - [PR#622](https://github.com/biojppm/rapidyaml/pull/622): Remove preprocess utilities.
+- [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean Tree API:
+  - Add `Tree::arena_rem()`
