@@ -35,12 +35,17 @@
 C4_SUPPRESS_WARNING_MSVC_PUSH
 C4_SUPPRESS_WARNING_MSVC(4251) // needs to have dll-interface to be used by clients of struct
 C4_SUPPRESS_WARNING_MSVC(4296) // expression is always 'boolean_value'
+C4_SUPPRESS_WARNING_MSVC(4127) // conditional expression is constant
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
-
+C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+#if defined(__GNUC__) && (__GNUC__ >= 6)
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+#endif
 // NOLINTBEGIN(modernize-avoid-c-style-cast)
+
 
 namespace c4 {
 namespace yml {
@@ -101,7 +106,6 @@ C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT, std::nullptr_t)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
 
 /** @addtogroup doc_tree
  *
@@ -298,18 +302,8 @@ public:
     /** @name node getters */
     /** @{ */
 
-    //! get the index of a node belonging to this tree.
-    //! @p n can be nullptr, in which case NONE is returned
-    id_type id(NodeData const* n) const
-    {
-        if( ! n)
-            return NONE;
-        _RYML_ASSERT_VISIT_(m_callbacks, n >= m_buf && n < m_buf + m_cap, this, NONE);
-        return static_cast<id_type>(n - m_buf);
-    }
-
     //! get a pointer to a node's NodeData.
-    //! i can be NONE, in which case a nullptr is returned
+    //! node can be NONE, in which case a nullptr is returned
     NodeData *get(id_type node) // NOLINT(readability-make-member-function-const)
     {
         if(node == NONE)
@@ -318,7 +312,7 @@ public:
         return m_buf + node;
     }
     //! get a pointer to a node's NodeData.
-    //! i can be NONE, in which case a nullptr is returned.
+    //! node can be NONE, in which case a nullptr is returned.
     NodeData const *get(id_type node) const
     {
         if(node == NONE)
@@ -338,6 +332,23 @@ public:
     id_type root_id() const { _RYML_ASSERT_VISIT_(m_callbacks, m_size > 0, this, id_type(0)); return 0; }
     //! Get the id of the root node, or NONE if the tree is empty.
     id_type root_id_maybe() const { return m_size ? 0 : id_type(NONE); }
+    //! get the id of a node belonging to this tree.
+    //! @p n can be nullptr, in which case NONE is returned
+    //! @p n must belong to this tree
+    id_type id(NodeData const* n) const
+    {
+        if( ! n)
+            return NONE;
+        _RYML_ASSERT_VISIT_(m_callbacks, n >= m_buf && n < m_buf + m_cap, this, NONE);
+        return static_cast<id_type>(n - m_buf);
+    }
+
+    /** @} */
+
+public:
+
+    /** @name NodeRef helpers */
+    /** @{ */
 
     //! Get a NodeRef of a node by id
     NodeRef      ref(id_type node);
@@ -346,11 +357,11 @@ public:
     //! Get a NodeRef of a node by id
     ConstNodeRef cref(id_type node) const;
 
-    //! Get the root as a NodeRef
+    //! Get the root as a @ref NodeRef . Note that a non-const Tree implicitly converts to @ref NodeRef.
     NodeRef      rootref();
-    //! Get the root as a ConstNodeRef
+    //! Get the root as a @ref ConstNodeRef . Note that Tree implicitly converts to @ref ConstNodeRef.
     ConstNodeRef rootref() const;
-    //! Get the root as a ConstNodeRef
+    //! Get the root as a @ref ConstNodeRef . Note that Tree implicitly converts to @ref ConstNodeRef.
     ConstNodeRef crootref() const;
 
     //! get the i-th document of the stream
@@ -371,10 +382,10 @@ public:
     ConstNodeRef operator[] (csubstr key) const;
 
     //! find a root child (ie child of root) by index: return the root node's @p i-th child as a NodeRef
-    //! @note @p i is NOT the node id, but the child's position
+    //! @note @p i is NOT the node id, but the child's position within the parent
     NodeRef      operator[] (id_type i);
     //! find a root child (ie child of root) by index: return the root node's @p i-th child as a NodeRef
-    //! @note @p i is NOT the node id, but the child's position
+    //! @note @p i is NOT the node id, but the child's position within the parent
     ConstNodeRef operator[] (id_type i) const;
 
     /** @} */
@@ -476,7 +487,7 @@ public:
     bool has_child(id_type node, id_type ch) const { return _p(ch)->m_parent == node; }
     /** true if @p node has a child with key @p key */
     bool has_child(id_type node, csubstr key) const { return find_child(node, key) != NONE; }
-    /** true if @p node has any children key */
+    /** true if @p node has any children */
     bool has_children(id_type node) const { return _p(node)->m_first_child != NONE; }
 
     /** true if @p node has a sibling with id @p sib */
@@ -666,11 +677,10 @@ public:
     /** @name tags and tag directives */
     /** @{ */
 
-    /** Resolve tags in the tree such as `"!!str"` ->
-     * `"<tag:yaml.org,2002:str>"`, `"!foo"` ->
-     * `"<!foo>"` and custom tags as well, ie tags of the form
-     * `"!handle!tag"` for which there is a corresponding `"%%TAG"`
-     * directive
+    /** Resolve tags in the tree such as \c "!!str" ->
+     * \c "<tag:yaml.org,2002:str>", \c "!foo" -> \c "<!foo>" and custom tags
+     * as well, ie tags of the form \c "!handle!tag" for which there is a
+     * corresponding \c "%TAG" directive
      *
      * @param cache an object of type @ref TagCache to minimize memory
      *        usage by avoiding repeated instantiation of the resolved
@@ -678,7 +688,7 @@ public:
      *
      * @param all if true, resolve all tags; if false resolve only
      *        custom tags, ie those that have a prefix such as
-     *        `"!m!tag"` with a matching `"%TAG"` directive */
+     *        \c "!m!tag" with a matching \c "\%TAG" directive */
     void resolve_tags(TagCache &cache, bool all=true);
     void normalize_tags();
     void normalize_tags_long();
@@ -736,16 +746,6 @@ public:
 
 public:
 
-    #if defined(__clang__) // NOLINT
-    #   pragma clang diagnostic push
-    #   pragma clang diagnostic ignored "-Wnull-dereference"
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic push
-    #   if __GNUC__ >= 6
-    #       pragma GCC diagnostic ignored "-Wnull-dereference"
-    #   endif
-    #endif
-
     //! create and insert a new sibling of n. insert after "after"
     C4_ALWAYS_INLINE id_type insert_sibling(id_type node, id_type after)
     {
@@ -766,28 +766,6 @@ public:
 
     /** remove all the node's children, but keep the node itself */
     void remove_children(id_type node);
-
-    /** change the @p type of the node to one of MAP, SEQ or VAL.  @p
-     * type must have one and only one of MAP,SEQ,VAL; @p type may
-     * possibly have KEY, but if it does, then the @p node must also
-     * have KEY. Changing to the same type is a no-op. Otherwise,
-     * changing to a different type will initialize the node with an
-     * empty value of the desired type: changing to VAL will
-     * initialize with a null scalar (~), changing to MAP will
-     * initialize with an empty map ({}), and changing to SEQ will
-     * initialize with an empty seq ([]). */
-    bool change_type(id_type node, NodeType type);
-
-    bool change_type(id_type node, type_bits type)
-    {
-        return change_type(node, (NodeType)type);
-    }
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic pop
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic pop
-    #endif
 
 public:
 
@@ -823,6 +801,12 @@ public:
      * If the root is already a stream, this is a no-op.
      */
     void set_root_as_stream();
+
+    bool change_type(id_type node, NodeType type);
+    bool change_type(id_type node, type_bits type)
+    {
+        return change_type(node, (NodeType)type);
+    }
 
 public:
 
@@ -943,16 +927,14 @@ public:
         substr cp = alloc_arena(s.len);
         _RYML_ASSERT_VISIT_(m_callbacks, cp.len == s.len, this, NONE);
         _RYML_ASSERT_VISIT_(m_callbacks, !s.overlaps(cp), this, NONE);
-        #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC_PUSH
+        #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC("-Wstringop-overflow=") // no need for terminating \0
         C4_SUPPRESS_WARNING_GCC("-Wrestrict") // there's an assert to ensure no violation of restrict behavior
         #endif
         if(s.len)
             memcpy(cp.str, s.str, s.len);
-        #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC_POP
-        #endif
         return cp;
     }
 
@@ -1134,8 +1116,7 @@ public:
         if(f & KEY)
         {
             _RYML_ASSERT_VISIT_(m_callbacks, !is_root(node), this, node);
-            auto pid = parent(node); C4_UNUSED(pid);
-            _RYML_ASSERT_VISIT_(m_callbacks, is_map(pid), this, node);
+            _RYML_ASSERT_VISIT_(m_callbacks, is_map(parent(node)), this, node);
         }
         if((f & VAL) && !is_root(node))
         {
