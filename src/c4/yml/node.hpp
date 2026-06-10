@@ -74,35 +74,40 @@ struct child_iterator
 {
     using value_type = NodeRefType;
     using tree_type = typename NodeRefType::tree_type;
-
     tree_type * C4_RESTRICT m_tree;
     id_type m_child_id;
-
-    child_iterator(tree_type * t, id_type id) : m_tree(t), m_child_id(id) {}
-
-    child_iterator& operator++ () { _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_child_id != NONE, m_tree, NONE); m_child_id = m_tree->next_sibling(m_child_id); return *this; }
-    child_iterator& operator-- () { _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_child_id != NONE, m_tree, NONE); m_child_id = m_tree->prev_sibling(m_child_id); return *this; }
-
-    NodeRefType operator*  () const { return NodeRefType(m_tree, m_child_id); }
-    NodeRefType operator-> () const { return NodeRefType(m_tree, m_child_id); }
-
-    bool operator!= (child_iterator that) const { _RYML_ASSERT_VISIT(m_tree == that.m_tree, m_tree, NONE); return m_child_id != that.m_child_id; }
-    bool operator== (child_iterator that) const { _RYML_ASSERT_VISIT(m_tree == that.m_tree, m_tree, NONE); return m_child_id == that.m_child_id; }
+    child_iterator(tree_type * t, id_type id) noexcept : m_tree(t), m_child_id(id) {}
+    child_iterator& operator++ () RYML_NOEXCEPT { _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_child_id != NONE, m_tree, NONE); m_child_id = m_tree->next_sibling(m_child_id); return *this; }
+    NodeRefType operator*  () const RYML_NOEXCEPT { return NodeRefType(m_tree, m_child_id); }
+    bool operator!= (child_iterator that) const RYML_NOEXCEPT { _RYML_ASSERT_VISIT(m_tree == that.m_tree, m_tree, NONE); return m_child_id != that.m_child_id; }
 };
 
 template<class NodeRefType>
-struct children_view_
+struct children_view
 {
-    using n_iterator = child_iterator<NodeRefType>;
-
-    n_iterator b, e;
-
-    children_view_(n_iterator const& C4_RESTRICT b_,
-                          n_iterator const& C4_RESTRICT e_) : b(b_), e(e_) {}
-
-    n_iterator begin() const { return b; }
-    n_iterator end  () const { return e; }
+    using iterator = child_iterator<NodeRefType>;
+    using tree_type = typename NodeRefType::tree_type;
+    tree_type *tree;
+    id_type b, e;
+    children_view(tree_type *t, id_type b_, id_type e_) noexcept : tree(t), b(b_), e(e_) {}
+    C4_ALWAYS_INLINE iterator begin() const noexcept { return {tree, b}; }
+    C4_ALWAYS_INLINE iterator end  () const noexcept { return {tree, e}; }
 };
+
+template<class ViewType, class TreeType>
+static ViewType make_children_view(TreeType *C4_RESTRICT tree, id_type id) RYML_NOEXCEPT
+{
+    return ViewType(tree, tree->get(id)->m_first_child, NONE);
+}
+
+template<class ViewType, class TreeType>
+static ViewType make_siblings_view(TreeType *C4_RESTRICT tree, id_type id) RYML_NOEXCEPT
+{
+    NodeData const *nd = tree->get(id);
+    id_type first = (nd->m_parent != NONE) ? tree->get(nd->m_parent)->m_first_child : NONE;
+    return ViewType(tree, first, NONE);
+}
+
 
 // LCOV_EXCL_START
 template<class NodeRefType, class Visitor>
@@ -160,13 +165,14 @@ RYML_DEPRECATED("") bool _visit_stacked(NodeRefType &node, Visitor fn, id_type i
 } // detail
 /** @endcond */
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 
-/** a CRTP base providing read-only methods for @ref ConstNodeRef and @ref NodeRef */
 namespace detail {
+/** a CRTP base providing read-only methods for @ref ConstNodeRef and @ref NodeRef */
 template<class Impl, class ConstImpl>
 struct RoNodeMethods // NOLINT
 {
@@ -705,8 +711,8 @@ public:
 
     using iterator = detail::child_iterator<Impl>;
     using const_iterator = detail::child_iterator<ConstImpl>;
-    using children_view = detail::children_view_<Impl>;
-    using const_children_view = detail::children_view_<ConstImpl>;
+    using children_view = detail::children_view<Impl>;
+    using const_children_view = detail::children_view<ConstImpl>;
 
     template<class U=Impl>
     C4_ALWAYS_INLINE auto begin() RYML_NOEXCEPT -> _C4_IF_MUTABLE(iterator) { assert_readable__(); return iterator(tree__, tree__->first_child(id__)); }  /**< get a mutable iterator to the first child. NOT AVAILABLE for ConstNodeRef. */
@@ -721,33 +727,29 @@ public:
     C4_ALWAYS_INLINE const_iterator cend() const RYML_NOEXCEPT { assert_readable__(); return const_iterator(tree_, NONE); } /**< get an iterator to after the last child */
 
     template<class U=Impl>
-    C4_ALWAYS_INLINE auto children() RYML_NOEXCEPT -> _C4_IF_MUTABLE(children_view) { assert_readable__(); return children_view(begin(), end()); } /**< get an iterable view over children. NOT AVAILABLE for ConstNodeRef. */
-    C4_ALWAYS_INLINE const_children_view children() const RYML_NOEXCEPT { assert_readable__(); return const_children_view(begin(), end()); } /**< get an iterable view over children */
-    C4_ALWAYS_INLINE const_children_view cchildren() const RYML_NOEXCEPT { assert_readable__(); return const_children_view(begin(), end()); } /**< get an iterable view over children */
+    C4_ALWAYS_INLINE auto children() RYML_NOEXCEPT -> _C4_IF_MUTABLE(children_view) { assert_readable__(); return detail::make_children_view<children_view>(tree__, id__); } /**< get an iterable view over children. NOT AVAILABLE for ConstNodeRef. */
+    C4_ALWAYS_INLINE const_children_view children() const RYML_NOEXCEPT { assert_readable__(); return detail::make_children_view<const_children_view>(tree_, id_); } /**< get an iterable view over children */
+    C4_ALWAYS_INLINE const_children_view cchildren() const RYML_NOEXCEPT { assert_readable__(); return detail::make_children_view<const_children_view>(tree_, id_); } /**< get an iterable view over children */
 
     /** get an iterable view over all siblings (including the calling node) */
     template<class U=Impl>
     C4_ALWAYS_INLINE auto siblings() RYML_NOEXCEPT -> _C4_IF_MUTABLE(children_view)
     {
         assert_readable__();
-        NodeData const *nd = tree__->get(id__);
-        return (nd->m_parent != NONE) ? // does it have a parent?
-            children_view(iterator(tree__, tree_->get(nd->m_parent)->m_first_child), iterator(tree__, NONE))
-            :
-            children_view(end(), end());
+        return detail::make_siblings_view<children_view>(tree__, id__);
     }
     /** get an iterable view over all siblings (including the calling node) */
     C4_ALWAYS_INLINE const_children_view siblings() const RYML_NOEXCEPT
     {
         assert_readable__();
-        NodeData const *nd = tree_->get(id_);
-        return (nd->m_parent != NONE) ? // does it have a parent?
-            const_children_view(const_iterator(tree_, tree_->get(nd->m_parent)->m_first_child), const_iterator(tree_, NONE))
-            :
-            const_children_view(end(), end());
+        return detail::make_siblings_view<const_children_view>(tree_, id_);
     }
     /** get an iterable view over all siblings (including the calling node) */
-    C4_ALWAYS_INLINE const_children_view csiblings() const RYML_NOEXCEPT { return siblings(); }
+    C4_ALWAYS_INLINE const_children_view csiblings() const RYML_NOEXCEPT
+    {
+        assert_readable__();
+        return detail::make_siblings_view<const_children_view>(tree_, id_);
+    }
 
     /** @} */
 
