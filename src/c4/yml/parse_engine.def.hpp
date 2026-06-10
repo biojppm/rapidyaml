@@ -282,14 +282,14 @@ inline size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t
 //-----------------------------------------------------------------------------
 
 template<class EventHandler>
-ParseEngine<EventHandler>::~ParseEngine()
+ParseEngine<EventHandler>::~ParseEngine() noexcept
 {
     _free();
     _clr();
 }
 
 template<class EventHandler>
-ParseEngine<EventHandler>::ParseEngine(EventHandler *evt_handler, ParserOptions opts)
+ParseEngine<EventHandler>::ParseEngine(EventHandler *evt_handler, ParserOptions const& opts)
     : m_options(opts)
     , m_evt_handler(evt_handler)
     , m_pending_anchors()

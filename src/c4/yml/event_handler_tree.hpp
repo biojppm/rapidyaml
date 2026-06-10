@@ -69,9 +69,9 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerTree() : EventHandlerStack(), m_tree(), m_curr_doc() {}
-    EventHandlerTree(Callbacks const& cb) : EventHandlerStack(cb), m_tree(), m_curr_doc() {}
-    EventHandlerTree(Tree *tree, id_type id) : EventHandlerStack(tree->callbacks()), m_tree(tree), m_curr_doc()
+    EventHandlerTree() noexcept : EventHandlerStack(), m_tree(), m_curr_doc() {}
+    EventHandlerTree(Callbacks const& cb) noexcept : EventHandlerStack(cb), m_tree(), m_curr_doc() {}
+    EventHandlerTree(Tree *tree, id_type id) /*except!*/ : EventHandlerStack(tree->callbacks()), m_tree(tree), m_curr_doc()
     {
         reset(tree, id);
     }
@@ -81,7 +81,7 @@ public:
         if(C4_UNLIKELY(!tree))
             _RYML_ERR_BASIC_(m_stack.m_callbacks, "null tree");
         if(C4_UNLIKELY(id >= tree->capacity()))
-            _RYML_ERR_BASIC_(tree->callbacks(), "invalid node");
+            _RYML_ERR_VISIT_(tree->callbacks(), tree, id, "invalid node");
         if(C4_UNLIKELY(!tree->is_root(id)))
             if(C4_UNLIKELY(tree->is_map(tree->parent(id))))
                 if(C4_UNLIKELY(!tree->has_key(id)))

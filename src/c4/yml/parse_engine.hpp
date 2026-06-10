@@ -270,8 +270,8 @@ public:
     /** @name construction and assignment */
     /** @{ */
 
-    ParseEngine(EventHandler *evt_handler, ParserOptions opts={});
-    ~ParseEngine();
+    ParseEngine(EventHandler *evt_handler, ParserOptions const& opts={});
+    ~ParseEngine() noexcept;
 
     ParseEngine(ParseEngine &&) noexcept;
     ParseEngine(ParseEngine const&);

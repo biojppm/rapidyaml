@@ -15,12 +15,12 @@
       - `c4/yml/writer_buf.hpp`: policy class to emit to char buffer (`substr`)
       - `c4/yml/writer_file.hpp`: policy class to emit to C `FILE*`
       - `c4/yml/writer_ostream.hpp`: policy class to emit to STL-like ostreams
-    - There are no external logic changes: all the `emit_*()` functions remain the same.
+    - There are no semantic changes: all the `emit_*()` functions remain the same.
     - Other changes in this PR:
       - Added `Tree::root_id_maybe()` which is safe to call on an empty tree.
       - Deprecate `Emitter::max_depth()`
       - Deprecate `Emitter::options()` setter
-- [PR#618](https://github.com/biojppm/rapidyaml/pull/618): Clean emit API pt3:
+- [PR#618](https://github.com/biojppm/rapidyaml/pull/618): Clean emit API, part 3:
   - Improve handling of NaN and Inf in json emitting.
   - Expose scalar style helpers for json emitting:
     ```c++
@@ -44,7 +44,12 @@
   - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
   - `file_put_contents()`: add `FILE*` overloads
 - [PR#622](https://github.com/biojppm/rapidyaml/pull/622): Remove preprocess utilities.
-- [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean Tree API:
-  - Add `Tree::arena_rem()`
-  - Add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with value of 256
-  - `Tree`: deprecate to_val() and friends -- add set_val() and friends
+- [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean `Tree` API:
+  - Deprecate `NodeInit`
+  - `Tree`:
+    - deprecate to_val() and friends -- add set_val() and friends
+    - deprecate `NodeInit` methods
+    - add `Tree::arena_rem()`
+    - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with value of 256
+  - `parse_*()`: internal simplification, no semantic changes
+  
