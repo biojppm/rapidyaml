@@ -73,8 +73,6 @@ c4_add_library(ryml
         c4/yml/parse_engine.hpp
         c4/yml/parse_engine.def.hpp
         c4/yml/parse_options.hpp
-        c4/yml/preprocess.hpp
-        c4/yml/preprocess.cpp
         c4/yml/reference_resolver.hpp
         c4/yml/reference_resolver.cpp
         c4/yml/std/map.hpp
