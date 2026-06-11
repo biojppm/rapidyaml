@@ -1340,7 +1340,7 @@ public:
         _RYML_ASSERT_VISIT_(m_tree->m_callbacks, has_child(child), m_tree, m_id);
         _RYML_ASSERT_VISIT_(m_tree->m_callbacks, child.parent().id() == id(), m_tree, m_id);
         m_tree->remove(child.id());
-        child.clear();
+        child = NodeRef{};
     }
 
     //! remove the nth child of this node
@@ -1371,6 +1371,8 @@ public:
     void move(NodeRef const& parent, ConstNodeRef const& after)
     {
         assert_readable_();
+        parent.assert_readable_();
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, parent.m_tree == after.m_tree || after.m_id == NONE, m_tree, m_id);
         if(parent.m_tree == m_tree)
         {
             m_tree->move(m_id, parent.m_id, after.m_id);
