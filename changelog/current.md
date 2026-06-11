@@ -44,7 +44,7 @@
   - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
   - `file_put_contents()`: add `FILE*` overloads
 - [PR#622](https://github.com/biojppm/rapidyaml/pull/622): Remove preprocess utilities.
-- [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean `Tree` and `NodeRef`:
+- [PR#620](https://github.com/biojppm/rapidyaml/pull/620): Clean `Tree` and `NodeRef`:
   - Deprecate `NodeInit`
   - `Tree` and `NodeRef`:
     - deprecate `.to_val()` and friends -- add `.set_val()` and friends.
@@ -69,4 +69,6 @@
     - add `Tree::arena_rem()`
     - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with default value of 256
   - `parse_*()`: internal simplification, no semantic changes
-  
+- [PR#621](https://github.com/biojppm/rapidyaml/pull/621): Clean `NodeRef`:
+  - Simplify internal implementation of `{Const}NodeRef::{iterator,children_view}`.
+  - Stop using SFINAE on Node CRTP to distinguish const vs non const. No semantic changes. This should improve compilation speed of code with many node calls.
