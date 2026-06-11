@@ -108,8 +108,9 @@ struct children_view_
     n_iterator end  () const { return e; }
 };
 
+/** @cond dev */ // LCOV_EXCL_START
 template<class NodeRefType, class Visitor>
-bool _visit(NodeRefType &node, Visitor fn, id_type indentation_level, bool skip_root=false)
+RYML_DEPRECATED("") bool _visit(NodeRefType &node, Visitor fn, id_type indentation_level, bool skip_root=false)
 {
     id_type increment = 0;
     if( ! (node.is_root() && skip_root))
@@ -132,7 +133,7 @@ bool _visit(NodeRefType &node, Visitor fn, id_type indentation_level, bool skip_
 }
 
 template<class NodeRefType, class Visitor>
-bool _visit_stacked(NodeRefType &node, Visitor fn, id_type indentation_level, bool skip_root=false)
+RYML_DEPRECATED("") bool _visit_stacked(NodeRefType &node, Visitor fn, id_type indentation_level, bool skip_root=false)
 {
     id_type increment = 0;
     if( ! (node.is_root() && skip_root))
@@ -158,6 +159,7 @@ bool _visit_stacked(NodeRefType &node, Visitor fn, id_type indentation_level, bo
     }
     return false;
 }
+/** @endcond */ // LCOV_EXCL_STOP
 
 template<class Impl, class ConstImpl>
 struct RoNodeMethods;
@@ -768,39 +770,38 @@ public:
     /** get an iterable view over all siblings (including the calling node) */
     C4_ALWAYS_INLINE const_children_view csiblings() const RYML_NOEXCEPT { return siblings(); }
 
-    /** visit every child node calling fn(node) */
+    /** @} */
+
+public:
+
+    /** @cond dev */ // LCOV_EXCL_START
     template<class Visitor>
-    bool visit(Visitor fn, id_type indentation_level=0, bool skip_root=true) const RYML_NOEXCEPT
+    RYML_DEPRECATED("") bool visit(Visitor fn, id_type indentation_level=0, bool skip_root=true) const RYML_NOEXCEPT
     {
         _C4RR();
         return detail::_visit(*(ConstImpl const*)this, fn, indentation_level, skip_root);
     }
-    /** visit every child node calling fn(node) */
     template<class Visitor, class U=Impl>
-    auto visit(Visitor fn, id_type indentation_level=0, bool skip_root=true) RYML_NOEXCEPT
+    RYML_DEPRECATED("") auto visit(Visitor fn, id_type indentation_level=0, bool skip_root=true) RYML_NOEXCEPT
         -> _C4_IF_MUTABLE(bool)
     {
         _C4RR();
         return detail::_visit(*(Impl*)this, fn, indentation_level, skip_root);
     }
-
-    /** visit every child node calling fn(node, level) */
     template<class Visitor>
-    bool visit_stacked(Visitor fn, id_type indentation_level=0, bool skip_root=true) const RYML_NOEXCEPT
+    RYML_DEPRECATED("") bool visit_stacked(Visitor fn, id_type indentation_level=0, bool skip_root=true) const RYML_NOEXCEPT
     {
         _C4RR();
         return detail::_visit_stacked(*(ConstImpl const*)this, fn, indentation_level, skip_root);
     }
-    /** visit every child node calling fn(node, level) */
     template<class Visitor, class U=Impl>
-    auto visit_stacked(Visitor fn, id_type indentation_level=0, bool skip_root=true) RYML_NOEXCEPT
+    RYML_DEPRECATED("") auto visit_stacked(Visitor fn, id_type indentation_level=0, bool skip_root=true) RYML_NOEXCEPT
         -> _C4_IF_MUTABLE(bool)
     {
         _C4RR();
         return detail::_visit_stacked(*(Impl*)this, fn, indentation_level, skip_root);
     }
-
-    /** @} */
+    /** @endcond */ // LCOV_EXCL_STOP
 
     #if defined(__clang__)
     #   pragma clang diagnostic pop
@@ -891,8 +892,6 @@ public:
      * This method is provided for API equivalence between ConstNodeRef and NodeRef. */
     constexpr static C4_ALWAYS_INLINE bool is_seed() noexcept { return false; }
 
-    RYML_DEPRECATED("use one of readable(), is_seed() or !invalid()") bool valid() const noexcept { return m_tree != nullptr && m_id != NONE; }
-
     /** @} */
 
 public:
@@ -913,15 +912,17 @@ public:
     C4_ALWAYS_INLINE bool operator== (ConstNodeRef const& that) const RYML_NOEXCEPT { return that.m_tree == m_tree && m_id == that.m_id; }
     C4_ALWAYS_INLINE bool operator!= (ConstNodeRef const& that) const RYML_NOEXCEPT { return ! this->operator== (that); }
 
-    /** @cond dev */
+    /** @} */
+
+public:
+
+    /** @cond dev */ // LCOV_EXCL_START
+    RYML_DEPRECATED("use one of readable(), is_seed() or !invalid()") bool valid() const noexcept { return m_tree != nullptr && m_id != NONE; }
     RYML_DEPRECATED("use invalid()")  bool operator== (std::nullptr_t) const noexcept { return m_tree == nullptr || m_id == NONE; }
     RYML_DEPRECATED("use !invalid()") bool operator!= (std::nullptr_t) const noexcept { return !(m_tree == nullptr || m_id == NONE); }
-
     RYML_DEPRECATED("use (this->val() == s)") bool operator== (csubstr s) const RYML_NOEXCEPT { _RYML_ASSERT_BASIC(m_tree); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_id != NONE, m_tree, NONE); return m_tree->val(m_id) == s; }
     RYML_DEPRECATED("use (this->val() != s)") bool operator!= (csubstr s) const RYML_NOEXCEPT { _RYML_ASSERT_BASIC(m_tree); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_id != NONE, m_tree, NONE); return m_tree->val(m_id) != s; }
-    /** @endcond */
-
-    /** @} */
+    /** @endcond */ // LCOV_EXCL_STOP
 
 };
 

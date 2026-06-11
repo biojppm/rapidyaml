@@ -64,6 +64,7 @@
       ```
     - deprecate `NodeInit` and `NodeScalar` methods (use `.set_*()`)
     - deprecate single-arg `NodeRef::{duplicate,move}(ConstNodeRef)`
+    - deprecate `NodeRef::visit()` and `NodeRef::visit_stacked()`
     - add `Tree::arena_rem()`
     - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with default value of 256
   - `parse_*()`: internal simplification, no semantic changes
