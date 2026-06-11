@@ -1213,18 +1213,6 @@ public:
         m_tree->remove_children(m_id);
     }
 
-    void operator= (NodeType_e t)
-    {
-        _apply_seed();
-        m_tree->_add_flags(m_id, t);
-    }
-
-    void operator|= (NodeType_e t)
-    {
-        _apply_seed();
-        m_tree->_add_flags(m_id, t);
-    }
-
     void operator= (std::nullptr_t)
     {
         _apply_seed();
@@ -1454,19 +1442,6 @@ public:
         }
     }
 
-    /** duplicate the current node somewhere within its parent, and
-     * place it after the node @p after. To place into the first
-     * position of the parent, simply pass an empty or
-     * default-constructed reference like this: `n.move({})`. */
-    NodeRef duplicate(ConstNodeRef const& after) const
-    {
-        _C4RR();
-        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_tree == after.m_tree || after.m_id == NONE, m_tree, m_id);
-        id_type dup = m_tree->duplicate(m_id, m_tree->parent(m_id), after.m_id);
-        NodeRef r(m_tree, dup);
-        return r;
-    }
-
     /** duplicate the current node somewhere into a different @p parent
      * (possibly from a different tree), and place it after the node
      * @p after. To place into the first position of the parent,
@@ -1506,6 +1481,18 @@ public: // deprecated functions
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+
+    RYML_DEPRECATED("") void operator= (NodeType_e t)
+    {
+        create();
+        m_tree->_add_flags(m_id, t);
+    }
+
+    RYML_DEPRECATED("") void operator|= (NodeType_e t)
+    {
+        create();
+        m_tree->_add_flags(m_id, t);
+    }
 
     RYML_DEPRECATED("") void operator= (NodeInit const& v)
     {

@@ -901,8 +901,8 @@ TEST(empty_scalar, build_zero_length_string)
 {
     Tree tr;
     NodeRef root = tr.rootref();
-    root |= MAP;
-    auto addseq = [&root](csubstr name) { NodeRef n = root[name]; n |= SEQ; return n; };
+    root.set_map();
+    auto addseq = [&root](csubstr name) { NodeRef n = root[name]; n.set_seq(); return n; };
 
     // try both with nonnull-zero-length and null-zero-length
     std::string stdstr;

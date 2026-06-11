@@ -44,15 +44,22 @@
   - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
   - `file_put_contents()`: add `FILE*` overloads
 - [PR#622](https://github.com/biojppm/rapidyaml/pull/622): Remove preprocess utilities.
-- [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean `Tree` API:
+- [PR#619](https://github.com/biojppm/rapidyaml/pull/619): Clean `Tree` and `NodeRef`:
   - Deprecate `NodeInit`
-  - `Tree`:
-    - deprecate to_val() and friends -- add set_val() and friends
-    - deprecate `NodeInit` methods
+  - `Tree` and `NodeRef`:
+    - deprecate `.to_val()` and friends -- add `.set_val()` and friends.
+    - deprecate `operator|=(NodeType)` and `operator=(NodeType)` -- use appropriate overload `.set_*(T, NodeType)`. For example:
+      ```c++
+      // before
+      node |= MAP;
+      node["key"] = "val";
+      node["key"] |= VAL_SQUO;
+      // now:
+      node.set_map();
+      node["key"].set_val("val", VAL_SQUO);
+      ```
+    - deprecate `NodeInit` and `NodeScalar` methods (use `.set_*()`)
     - add `Tree::arena_rem()`
-    - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with value of 256
+    - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with default value of 256
   - `parse_*()`: internal simplification, no semantic changes
-  - `NodeRef`:
-    - deprecate `NodeInit` methods
-    - deprecate `NodeScalar` methods
   

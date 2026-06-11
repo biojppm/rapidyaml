@@ -323,7 +323,8 @@ void check_same_emit(Tree const& expected)
 TEST(style, noflags)
 {
     auto setcont = [](NodeRef n, NodeType t){
-        n |= t;
+        n.create();
+        n.tree()->_add_flags(n.id(), t);
         test_container_nostyle(n);
         return n;
     };

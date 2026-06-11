@@ -277,19 +277,17 @@ TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
     {
         Tree t;
         NodeRef r = t.rootref();
-        r |= SEQ|BLOCK;
-        r[0] = ": odd";
-        r[0] |= VAL_PLAIN;
-        r[1] = ":\todd";
-        r[1] |= VAL_PLAIN;
+        r.set_seq(BLOCK);
+        r[0].set_val(": odd", VAL_PLAIN);
+        r[1].set_val(":\todd", VAL_PLAIN);
         EXPECT_EQ(emitrs_yaml<std::string>(t), "- : odd\n- :\todd\n");
     }
     {
         Tree t;
         NodeRef r = t.rootref();
-        r |= SEQ|BLOCK;
-        r[0] = ": odd";
-        r[1] = ":\todd";
+        r.set_seq(BLOCK);
+        r[0].set_val(": odd");
+        r[1].set_val(":\todd");
         EXPECT_FALSE(r[0].is_val_plain());
         EXPECT_FALSE(r[1].is_val_plain());
         EXPECT_EQ(emitrs_yaml<std::string>(t), "- ': odd'\n- ':\todd'\n");
@@ -301,23 +299,21 @@ TEST(emit_block_map, ambiguous_plain_emitted_as_squo)
     {
         Tree t;
         NodeRef r = t.rootref();
-        r |= MAP|BLOCK;
+        r.set_map(BLOCK);
         r[0].set_key(": odd");
-        r[0] = ": odd";
+        r[0].set_val(": odd");
         r[1].set_key(":\todd");
-        r[1] = ":\todd";
+        r[1].set_val(":\todd");
         EXPECT_EQ(emitrs_yaml<std::string>(t), "': odd': ': odd'\n':\todd': ':\todd'\n");
     }
     {
         Tree t;
         NodeRef r = t.rootref();
-        r |= MAP|BLOCK;
-        r[0].set_key(": odd");
-        r[0] = ": odd";
-        r[0] |= KEY_PLAIN|VAL_PLAIN;
-        r[1].set_key(":\todd");
-        r[1] = ":\todd";
-        r[1] |= KEY_PLAIN|VAL_PLAIN;
+        r.set_map(BLOCK);
+        r[0].set_key(": odd", KEY_PLAIN);
+        r[0].set_val(": odd", VAL_PLAIN);
+        r[1].set_key(":\todd", KEY_PLAIN);
+        r[1].set_val(":\todd", VAL_PLAIN);
         EXPECT_EQ(emitrs_yaml<std::string>(t), ": odd: : odd\n:\todd: :\todd\n");
     }
 }
@@ -1619,7 +1615,7 @@ TEST(emit, percent_is_quoted)
     Tree ti = parse_in_arena("{}");
     ASSERT_TRUE(ti.rootref().is_map());
     ti["%ROOT"] = "%VAL";
-    ti["%ROOT2"] |= SEQ;
+    ti["%ROOT2"].set_seq();
     ti["%ROOT2"][0] = "%VAL";
     ti["%ROOT2"][1] = "%VAL";
     std::string yaml = emitrs_yaml<std::string>(ti);

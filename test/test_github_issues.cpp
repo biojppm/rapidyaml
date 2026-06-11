@@ -348,13 +348,13 @@ TEST(github, 31)
 {
     Tree tree;
     NodeRef r = tree.rootref();
-    r |= MAP;
+    r.set_map();
 
     auto meas = r["meas"];
-    meas |= MAP;
+    meas.set_map();
 
     auto plist = meas["createParameterList"];
-    plist |= SEQ;
+    plist.set_seq();
 
     {
         NodeRef lumi = plist.append_child();
@@ -364,7 +364,7 @@ TEST(github, 31)
 
     {
         NodeRef lumi = plist.append_child();
-        lumi |= MAP;
+        lumi.set_map();
         lumi["value"] << 1;
         lumi["relErr"] << 0.1;
         EXPECT_TRUE(lumi.is_map());
@@ -374,7 +374,7 @@ TEST(github, 31)
         ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi << "Lumi";
-            lumi |= MAP;
+            lumi.set_map();
         });
     }
 
@@ -382,14 +382,14 @@ TEST(github, 31)
         ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
             lumi << "Lumi";
-            lumi |= SEQ;
+            lumi.set_seq();
         });
     }
 
     {
         ExpectError::check_assert_visit(&tree, [&](){
             NodeRef lumi = plist.append_child();
-            lumi |= MAP;
+            lumi.set_map();
             lumi << "Lumi";
         });
     }

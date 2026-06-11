@@ -49,8 +49,8 @@ TEST(serialize, type_as_str)
 {
     c4::yml::Tree t;
 
-    auto r = t.rootref();
-    r |= c4::yml::MAP;
+    c4::yml::NodeRef r = t;
+    r.set_map();
 
     vec2<int> v2in{10, 11};
     vec2<int> v2out;
@@ -95,9 +95,9 @@ TEST(general, emitting)
     std::string cmpbuf2;
 
     Tree tree;
-    auto r = tree.rootref();
+    NodeRef r = tree;
 
-    r |= MAP;  // this is needed to make the root a map
+    r.set_map();  // this is needed to make the root a map
 
     r["foo"] = "1"; // ryml works only with strings.
     // Note that the tree will be __pointing__ at the
@@ -105,8 +105,8 @@ TEST(general, emitting)
     // to make sure they have at least the same
     // lifetime as the tree.
 
-    auto s = r["seq"]; // does not change the tree until s is written to.
-    s |= SEQ;
+    NodeRef s = r["seq"]; // does not change the tree until s is written to.
+    s.set_seq();
     r["seq"].append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
     r["seq"].append_child() = "bar1";
     r["seq"].append_child() = "bar2";
@@ -192,7 +192,7 @@ TEST(emit_json, issue72)
     Tree t;
     NodeRef r = t.rootref();
 
-    r |= MAP;
+    r.set_map();
     r["1"] = "null";
     r["2"] = "true";
     r["3"] = "false";
