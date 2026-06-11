@@ -163,8 +163,8 @@ C4_MUST_BE_TRIVIAL_COPY(NodeScalar);
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** convenience class to initialize nodes */
-struct NodeInit
+/** @cond dev */ // LCOV_EXCL_START
+struct RYML_DEPRECATED("") NodeInit
 {
 
     NodeType   type;
@@ -223,6 +223,7 @@ public:
         return true;
     }
 };
+/** @endcond */ // LCOV_EXCL_STOP
 
 
 //-----------------------------------------------------------------------------

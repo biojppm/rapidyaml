@@ -52,4 +52,7 @@
     - add `Tree::arena_rem()`
     - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with value of 256
   - `parse_*()`: internal simplification, no semantic changes
+  - `NodeRef`:
+    - deprecate `NodeInit` methods
+    - deprecate `NodeScalar` methods
   

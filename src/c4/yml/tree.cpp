@@ -1149,9 +1149,13 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
                 remove_children(dst_node);
             _clear_type(dst_node);
             if(src->has_key(src_node))
-                to_seq(dst_node, src->key(src_node));
+            {
+                set_key(dst_node, src->key(src_node), SEQ);
+            }
             else
-                to_seq(dst_node);
+            {
+                set_seq(dst_node);
+            }
             _p(dst_node)->m_type = src->_p(src_node)->m_type;
         }
         for(id_type sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
@@ -1170,9 +1174,9 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
                 remove_children(dst_node);
             _clear_type(dst_node);
             if(src->has_key(src_node))
-                to_map(dst_node, src->key(src_node));
+                set_key(dst_node, src->key(src_node), MAP);
             else
-                to_map(dst_node);
+                set_map(dst_node);
             _p(dst_node)->m_type = src->_p(src_node)->m_type;
         }
         for(id_type sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
@@ -1626,9 +1630,14 @@ id_type Tree::lookup_path_or_modify(csubstr default_value, csubstr path, id_type
 {
     id_type target = _lookup_path_or_create(path, start);
     if(parent_is_map(target))
-        to_keyval(target, key(target), default_value);
+    {
+        set_key(target, key(target));
+        set_val(target, default_value);
+    }
     else
-        to_val(target, default_value);
+    {
+        set_val(target, default_value);
+    }
     return target;
 }
 
@@ -1753,9 +1762,9 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
         if( ! is_container(r->closest))
         {
             if(has_key(r->closest))
-                to_map(r->closest, key(r->closest));
+                set_key(r->closest, key(r->closest), MAP);
             else
-                to_map(r->closest);
+                set_map(r->closest);
         }
         else
         {
@@ -1813,12 +1822,12 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
             {
                 csubstr k = key(r->closest);
                 _clear_type(r->closest);
-                to_seq(r->closest, k);
+                set_key(r->closest, k, SEQ);
             }
             else
             {
                 _clear_type(r->closest);
-                to_seq(r->closest);
+                set_seq(r->closest);
             }
         }
         _RYML_ASSERT_VISIT_(m_callbacks, is_container(r->closest), this, r->closest);
@@ -1832,9 +1841,14 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
                 if(i < idx)
                 {
                     if(is_map(r->closest))
-                        to_keyval(node, /*"~"*/{}, /*"~"*/{});
+                    {
+                        set_key(node, {});
+                        set_val(node, {});
+                    }
                     else if(is_seq(r->closest))
-                        to_val(node, /*"~"*/{});
+                    {
+                        set_val(node, {});
+                    }
                 }
             }
         }

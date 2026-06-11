@@ -12,15 +12,12 @@
 #include <gtest/gtest.h>
 #include <unordered_map>
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4389) // signed/unsigned mismatch
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#endif
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+C4_SUPPRESS_WARNING_MSVC(4389) // signed/unsigned mismatch
+C4_SUPPRESS_WARNING_CLANG("-Wdollar-in-identifier-extension")
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -4539,8 +4536,7 @@ TEST(set_root_as_stream, root_is_docval)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r.set_type(DOCVAL);
-    r.set_val("bar");
+    r.set_val("bar", DOC);
     r.set_val_tag("<!foo>");
     EXPECT_EQ(r.is_stream(), false);
     EXPECT_EQ(r.is_doc(), true);
@@ -5228,10 +5224,4 @@ Case const* get_case(csubstr /*name*/)
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_POP

@@ -2,6 +2,8 @@
 
 /** @addtogroup doc_quickstart
  *
+ * Best seen online at https://rapidyaml.readthedocs.io/v0.15.2/doxygen/
+ *
  * This file does a quick tour of ryml. It has multiple self-contained
  * and well-commented samples that illustrate how to use ryml, and how
  * it works.
@@ -38,6 +40,7 @@
  *
  * Or very quickly, to build and run this sample on your PC, start by
  * creating this `CMakeLists.txt`:
+ *
  * ```cmake
  * cmake_minimum_required(VERSION 3.13)
  * project(ryml-quickstart LANGUAGES CXX)
@@ -55,7 +58,9 @@
  *     DEPENDS ryml-quickstart
  *     COMMENT "running: $<TARGET_FILE:ryml-quickstart>")
  * ```
+ *
  * Now run the following commands in the same folder:
+ *
  * ```bash
  * # configure the project
  * cmake -S . -B build
@@ -2057,14 +2062,15 @@ void sample_parse_reuse_tree()
     CHECK(root[3]["champagne"].val() == "Dom Perignon");
     CHECK(root[3]["coffee"].val() == "Arabica");
 
-    // watchout: to add to an existing node within a map, the node's
-    // key must be separately set first:
-    ryml::NodeRef more = mroot[3].append_child({ryml::KEYMAP, "more"});
-    ryml::NodeRef beer = mroot[3].append_child({ryml::KEYSEQ, "beer"});
-    ryml::NodeRef always = mroot[3].append_child({ryml::KEY, "always"});
-    ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
-    ryml::parse_in_arena("- Rochefort 10\n- Busch\n- Leffe Rituel", beer);
-    ryml::parse_in_arena("lots\nof\nwater", always);
+    mroot[3]["more"] |= ryml::MAP;
+    mroot[3]["beer"] |= ryml::SEQ;
+    CHECK(mroot[3]["more"].readable());
+    CHECK(mroot[3]["more"].key() == "more");
+    CHECK(mroot[3]["more"].is_map());
+    CHECK(!mroot[3]["more"].is_val());
+    ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", mroot[3]["more"]);
+    ryml::parse_in_arena("- Rochefort 10\n- Busch\n- Leffe Rituel", mroot[3]["beer"]);
+    ryml::parse_in_arena("lots\nof\nwater", mroot[3]["always"]);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
           "- a"                              "\n"
           "- b"                              "\n"
@@ -2106,7 +2112,7 @@ void sample_parse_reuse_tree()
           "");
 
     // or nested:
-    ryml::parse_in_arena("[Kasteel Donker]", beer);
+    ryml::parse_in_arena("[Kasteel Donker]", mroot[3]["beer"]);
     CHECK(ryml::emitrs_yaml<std::string>(tree) ==
           "- a"                              "\n"
           "- b"                              "\n"

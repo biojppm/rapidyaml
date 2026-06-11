@@ -124,6 +124,10 @@ struct CaseData;
 Case const* get_case(csubstr name);
 CaseData* get_data(csubstr name);
 
+
+void test_compare(ConstNodeRef const& actual, ConstNodeRef const& expected,
+                  const char *actual_name="actual", const char *expected_name="expected",
+                  type_bits cmp_mask=_TYMASK);
 void test_compare(Tree const& actual, Tree const& expected,
                   const char *actual_name="actual", const char *expected_name="expected",
                   type_bits cmp_mask=_TYMASK);
@@ -134,6 +138,7 @@ void test_compare(Tree const& actual, id_type node_actual,
 
 void test_arena_not_shared(Tree const& a, Tree const& b);
 
+void test_invariants(NodeType ty);
 void test_invariants(Tree const& t);
 void test_invariants(ConstNodeRef const& n);
 

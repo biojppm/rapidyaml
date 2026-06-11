@@ -70,6 +70,21 @@ id_type _num_leaves(Tree const& t, id_type node)
 }
 
 
+void test_compare(ConstNodeRef const& actual, ConstNodeRef const& expected,
+                  const char *actual_name, const char *expected_name,
+                  type_bits cmp_mask)
+{
+    if(actual.is_root() && expected.is_root())
+        test_compare(*actual.tree(), *expected.tree(),
+                     actual_name, expected_name,
+                     cmp_mask);
+    else
+        test_compare(*actual.tree(), actual.id(),
+                     *expected.tree(), expected.id(),
+                     0,
+                     actual_name, expected_name,
+                     cmp_mask);
+}
 void test_compare(Tree const& actual, Tree const& expected,
                   const char *actual_name, const char *expected_name,
                   type_bits cmp_mask)
@@ -79,7 +94,11 @@ void test_compare(Tree const& actual, Tree const& expected,
         return;
     EXPECT_EQ(actual.size(), expected.size());
     EXPECT_EQ(_num_leaves(actual, actual.root_id()), _num_leaves(expected, expected.root_id()));
-    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0, actual_name, expected_name, cmp_mask);
+    test_compare(actual, actual.root_id(),
+                 expected, expected.root_id(),
+                 0,
+                 actual_name, expected_name,
+                 cmp_mask);
 }
 
 
@@ -120,9 +139,7 @@ void test_compare(Tree const& actual, id_type node_actual,
     EXPECT_EQ(actual.has_val_tag(node_actual), expected.has_val_tag(node_expected));
     if(actual.has_val_tag(node_actual) && expected.has_val_tag(node_expected))
     {
-        csubstr actual_tag = actual.val_tag(node_actual);
-        csubstr expected_tag = expected.val_tag(node_expected);
-        EXPECT_EQ(actual_tag, expected_tag);
+        EXPECT_EQ(actual.val_tag(node_actual), expected.val_tag(node_expected));
     }
 
     EXPECT_EQ(actual.has_key_anchor(node_actual), expected.has_key_anchor(node_expected));
@@ -404,7 +421,7 @@ void ExpectError::check_success(Tree *tree, fntestref fn)
     {
         FAIL() << "check expected success: failed!";
     }
-    ASSERT_EQ(context.m_error, ExpectedErrorType::err_none);
+    EXPECT_EQ(context.m_error, ExpectedErrorType::err_none);
 }
 
 void ExpectError::check_error_basic(Tree const* tree, fntestref fn, bool only_basic)
@@ -747,9 +764,148 @@ void print_test_tree(const char *message, TestCaseNode const& t)
     printf("--------------------------------------\n");
 }
 
+void test_invariants(NodeType ty)
+{
+    #define EXPECT_ALL(v, flags) EXPECT_EQ(((v) & (flags)), flags)
+    #define EXPECT_ONE(v, flags, one) EXPECT_EQ(((v) & (flags)), one)
+    #define EXPECT_ANY(v, flags) EXPECT_NE(((v) & (flags)), 0)
+    #define EXPECT_NONE(v, flags) EXPECT_EQ(((v) & (flags)), 0)
+    type_bits STREAMONLY = (STREAM & ~SEQ);
+    if(ty & (KEYNIL|KEYREF|KEY_STYLE))
+    {
+        EXPECT_ALL(ty, KEY);
+    }
+    if(ty & (VALNIL|VALREF|VAL_STYLE))
+    {
+        EXPECT_ALL(ty, VAL);
+    }
+    if(ty & (KEYTAG|KEYANCH))
+    {
+        EXPECT_ALL(ty, KEY);
+    }
+    if(ty & (VALTAG|VALANCH))
+    {
+        EXPECT_ANY(ty, VAL|SEQ|MAP);
+    }
+    if(ty & KEYREF)
+    {
+        EXPECT_NONE(ty, KEYTAG|KEYANCH|KEY_STYLE);
+    }
+    if(ty & VALREF)
+    {
+        EXPECT_NONE(ty, VALTAG|VALANCH|VAL_STYLE|CONTAINER_STYLE);
+    }
+    if(ty & VAL)
+    {
+        EXPECT_NONE(ty, MAP|SEQ|STREAM|CONTAINER_STYLE);
+    }
+    if(ty & MAP)
+    {
+        EXPECT_NONE(ty, VAL|SEQ|STREAM|VAL_STYLE);
+    }
+    if(ty & SEQ)
+    {
+        EXPECT_NONE(ty, VAL|MAP|VAL_STYLE);
+    }
+    if(ty & DOC)
+    {
+        EXPECT_NONE(ty, STREAMONLY|KEY);
+    }
+    if(ty & STREAMONLY)
+    {
+        EXPECT_NONE(ty, DOC|MAP|KEY);
+    }
+    if(ty & (MAP|SEQ|VAL))
+    {
+        if(ty & MAP)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, MAP);
+        }
+        if(ty & SEQ)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, SEQ);
+        }
+        if(ty & VAL)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, VAL);
+        }
+    }
+    if(ty & CONTAINER_STYLE)
+    {
+        EXPECT_NONE(ty, VAL);
+        if(ty & FLOW_SL)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_SL);
+        }
+        if(ty & FLOW_ML1)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_ML1);
+        }
+        if(ty & FLOW_MLN)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_MLN);
+        }
+        if(ty & FLOW_SPC)
+        {
+            EXPECT_ANY(ty, FLOW_MLX);
+        }
+        if(ty & BLOCK)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, BLOCK);
+        }
+    }
+    if(ty & KEY_STYLE)
+    {
+        if(ty & KEY_PLAIN)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_PLAIN);
+        }
+        if(ty & KEY_SQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_SQUO);
+        }
+        if(ty & KEY_DQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_DQUO);
+        }
+        if(ty & KEY_LITERAL)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_LITERAL);
+        }
+        if(ty & KEY_FOLDED)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_FOLDED);
+        }
+    }
+    if(ty & VAL_STYLE)
+    {
+        if(ty & KEY_PLAIN)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_PLAIN);
+        }
+        if(ty & KEY_SQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_SQUO);
+        }
+        if(ty & KEY_DQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_DQUO);
+        }
+        if(ty & KEY_LITERAL)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_LITERAL);
+        }
+        if(ty & KEY_FOLDED)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_FOLDED);
+        }
+    }
+}
+
 void test_invariants(ConstNodeRef const& n)
 {
     SCOPED_TRACE(n.id());
+    test_invariants(n.type());
     if(n.is_root())
     {
         EXPECT_FALSE(n.has_other_siblings());
@@ -763,6 +919,14 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_val());
+    }
+    if(n.has_key())
+    {
+        EXPECT_TRUE(n.parent().readable());
+        if(n.parent().readable())
+        {
+            EXPECT_TRUE(n.parent().is_map());
+        }
     }
     // check sibling reciprocity
     for(ConstNodeRef s : n.siblings())
@@ -789,6 +953,10 @@ void test_invariants(ConstNodeRef const& n)
             EXPECT_TRUE(n.parent().is_seq());
             EXPECT_TRUE(n.parent().is_stream());
         }
+        if(n.parent().is_map())
+        {
+            EXPECT_TRUE(n.has_key());
+        }
     }
     else
     {
@@ -813,6 +981,16 @@ void test_invariants(ConstNodeRef const& n)
             if(ch.type() != NOTYPE)
             {
                 EXPECT_TRUE(ch.has_key());
+            }
+        }
+    }
+    if(n.is_stream() && !n.is_seq())
+    {
+        for(ConstNodeRef ch : n.children())
+        {
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.is_doc());
             }
         }
     }
@@ -865,8 +1043,6 @@ void test_invariants(ConstNodeRef const& n)
     {
         test_invariants(ch);
     }
-
-    #undef _MORE_INFO
 }
 
 
@@ -929,8 +1105,8 @@ void test_invariants(Tree const& t)
     size_t count = test_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());
 
-    check_invariants(t);
     test_invariants(t.rootref());
+    check_invariants(t);
 
     if(!testing::UnitTest::GetInstance()->current_test_info()->result()->Passed())
     {

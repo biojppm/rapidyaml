@@ -1032,6 +1032,31 @@ public:
     NodeRef& operator= (NodeRef const&) noexcept = default;
     NodeRef& operator= (NodeRef     &&) noexcept = default;
 
+    /** same as .set_val(v) */
+    NodeRef& operator= (csubstr v)
+    {
+        set_val(v);
+        return *this;
+    }
+
+    /** same as .set_val(csubstr(v)) */
+    template<size_t N>
+    NodeRef& operator= (const char (&v)[N])
+    {
+        csubstr sv;
+        sv.assign<N>(v);
+        set_val(sv);
+        return *this;
+    }
+
+    /** same as .set_key(v.k) */
+    template<class T>
+    NodeRef& operator= (Key<T> const& C4_RESTRICT v)
+    {
+        set_key(v.k);
+        return *this;
+    }
+
     /** @} */
 
 public:
@@ -1103,60 +1128,88 @@ public:
     /** @name node_modifiers */
     /** @{ */
 
-    void create() { _apply_seed(); }
+    /// if this node is in seed state, create the node in the tree
+    void create()
+    {
+        _RYML_ASSERT_BASIC(m_tree != nullptr);
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_id != NONE && m_id < m_tree->capacity(), m_tree, m_id);
+        if(m_seed.str) // we have a seed key: use it to create the new map child
+        {
+            m_id = m_tree->append_child(m_id);
+            m_tree->set_key(m_id, m_seed);
+            m_seed.str = nullptr;
+            m_seed.len = (size_t)NONE;
+        }
+        else if(m_seed.len != (size_t)NONE) // we have a seed index: create a seq child at that position
+        {
+            _RYML_ASSERT_VISIT_(m_tree->m_callbacks, (size_t)m_tree->num_children(m_id) == m_seed.len, m_tree, m_id);
+            m_id = m_tree->append_child(m_id);
+            m_seed.str = nullptr;
+            m_seed.len = (size_t)NONE;
+        }
+    }
 
-    void change_type(NodeType t) { _C4RR(); m_tree->change_type(m_id, t); }
+    void set_stream() { create(); m_tree->set_stream(m_id); }
+    void set_doc() { create(); m_tree->set_doc(m_id); }
 
-    void set_type(NodeType t) { _apply_seed(); m_tree->_set_flags(m_id, t); }
-    void set_key(csubstr key) { _apply_seed(); m_tree->_set_key(m_id, key); }
-    void set_val(csubstr val) { _apply_seed(); m_tree->_set_val(m_id, val); }
-    void set_key_tag(csubstr key_tag) { _apply_seed(); m_tree->set_key_tag(m_id, key_tag); }
-    void set_val_tag(csubstr val_tag) { _apply_seed(); m_tree->set_val_tag(m_id, val_tag); }
-    void set_key_anchor(csubstr key_anchor) { _apply_seed(); m_tree->set_key_anchor(m_id, key_anchor); }
-    void set_val_anchor(csubstr val_anchor) { _apply_seed(); m_tree->set_val_anchor(m_id, val_anchor); }
-    void set_key_ref(csubstr key_ref) { _apply_seed(); m_tree->set_key_ref(m_id, key_ref); }
-    void set_val_ref(csubstr val_ref) { _apply_seed(); m_tree->set_val_ref(m_id, val_ref); }
+    void set_key(csubstr key) { create(); m_tree->set_key(m_id, key); }
+    void set_key(csubstr key, NodeType more_flags) { create(); m_tree->set_key(m_id, key, more_flags); }
 
-    void set_container_style(NodeType_e style) { _C4RR(); m_tree->set_container_style(m_id, style); }
-    void set_key_style(NodeType_e style) { _C4RR(); m_tree->set_key_style(m_id, style); }
-    void set_val_style(NodeType_e style) { _C4RR(); m_tree->set_val_style(m_id, style); }
-    void clear_style(bool recurse=false) { _C4RR(); m_tree->clear_style(m_id, recurse); }
+    void set_val(csubstr val) { create(); m_tree->set_val(m_id, val); }
+    void set_val(csubstr val, NodeType more_flags) { create(); m_tree->set_val(m_id, val, more_flags); }
+
+    void set_seq() { create(); m_tree->set_seq(m_id); }
+    void set_seq(NodeType more_flags) { create(); m_tree->set_seq(m_id, more_flags); }
+
+    void set_map() { create(); m_tree->set_map(m_id); }
+    void set_map(NodeType more_flags) { create(); m_tree->set_map(m_id, more_flags); }
+
+    void set_key_tag(csubstr key_tag) { create(); m_tree->set_key_tag(m_id, key_tag); }
+    void set_val_tag(csubstr val_tag) { create(); m_tree->set_val_tag(m_id, val_tag); }
+    void set_key_anchor(csubstr key_anchor) { create(); m_tree->set_key_anchor(m_id, key_anchor); }
+    void set_val_anchor(csubstr val_anchor) { create(); m_tree->set_val_anchor(m_id, val_anchor); }
+    void set_key_ref(csubstr key_ref) { create(); m_tree->set_key_ref(m_id, key_ref); }
+    void set_val_ref(csubstr val_ref) { create(); m_tree->set_val_ref(m_id, val_ref); }
+
+    void set_container_style(NodeType_e style) { create(); m_tree->set_container_style(m_id, style); }
+    void set_key_style(NodeType_e style) { create(); m_tree->set_key_style(m_id, style); }
+    void set_val_style(NodeType_e style) { create(); m_tree->set_val_style(m_id, style); }
+    void clear_style(bool recurse=false) { create(); m_tree->clear_style(m_id, recurse); }
     void set_style_conditionally(NodeType type_mask,
                                  NodeType rem_style_flags,
                                  NodeType add_style_flags,
                                  bool recurse=false)
     {
-        _C4RR(); m_tree->set_style_conditionally(m_id, type_mask, rem_style_flags, add_style_flags, recurse);
+        create();
+        m_tree->set_style_conditionally(m_id, type_mask, rem_style_flags, add_style_flags, recurse);
     }
 
 public:
 
+    void change_type(NodeType t) { _C4RR(); m_tree->change_type(m_id, t); }
+
     void clear()
     {
-        if(is_seed())
-            return;
+        _C4RR();
         m_tree->remove_children(m_id);
         m_tree->_clear(m_id);
     }
 
     void clear_key()
     {
-        if(is_seed())
-            return;
+        _C4RR();
         m_tree->_clear_key(m_id);
     }
 
     void clear_val()
     {
-        if(is_seed())
-            return;
+        _C4RR();
         m_tree->_clear_val(m_id);
     }
 
     void clear_children()
     {
-        if(is_seed())
-            return;
+        _apply_seed();
         m_tree->remove_children(m_id);
     }
 
@@ -1172,37 +1225,10 @@ public:
         m_tree->_add_flags(m_id, t);
     }
 
-    void operator= (NodeInit const& v)
-    {
-        _apply_seed();
-        _apply(v);
-    }
-
-    void operator= (NodeScalar const& v)
-    {
-        _apply_seed();
-        _apply(v);
-    }
-
     void operator= (std::nullptr_t)
     {
         _apply_seed();
         _apply(csubstr{});
-    }
-
-    void operator= (csubstr v)
-    {
-        _apply_seed();
-        _apply(v);
-    }
-
-    template<size_t N>
-    void operator= (const char (&v)[N])
-    {
-        _apply_seed();
-        csubstr sv;
-        sv.assign<N>(v);
-        _apply(sv);
     }
 
     /** @} */
@@ -1225,13 +1251,13 @@ public:
     {
         _apply_seed();
         csubstr s = m_tree->to_arena(k);
-        m_tree->_set_key(m_id, s);
+        m_tree->set_key(m_id, s);
         return s.len;
     }
     size_t set_key_serialized(std::nullptr_t)
     {
         _apply_seed();
-        m_tree->_set_key(m_id, csubstr{});
+        m_tree->set_key(m_id, csubstr{});
         return 0;
     }
 
@@ -1240,13 +1266,13 @@ public:
     {
         _apply_seed();
         csubstr s = m_tree->to_arena(v);
-        m_tree->_set_val(m_id, s);
+        m_tree->set_val(m_id, s);
         return s.len;
     }
     size_t set_val_serialized(std::nullptr_t)
     {
         _apply_seed();
-        m_tree->_set_val(m_id, csubstr{});
+        m_tree->set_val(m_id, csubstr{});
         return 0;
     }
 
@@ -1297,7 +1323,7 @@ private:
         if(m_seed.str) // we have a seed key: use it to create the new child
         {
             m_id = m_tree->append_child(m_id);
-            m_tree->_set_key(m_id, m_seed);
+            m_tree->set_key(m_id, m_seed);
             m_seed.str = nullptr;
             m_seed.len = (size_t)NONE;
         }
@@ -1316,17 +1342,7 @@ private:
 
     void _apply(csubstr v)
     {
-        m_tree->_set_val(m_id, v);
-    }
-
-    void _apply(NodeScalar const& v)
-    {
-        m_tree->_set_val(m_id, v);
-    }
-
-    void _apply(NodeInit const& i)
-    {
-        m_tree->_set(m_id, i);
+        m_tree->set_val(m_id, v);
     }
 
 public:
@@ -1342,15 +1358,6 @@ public:
         return r;
     }
 
-    NodeRef insert_child(NodeInit const& i, NodeRef after)
-    {
-        _C4RR();
-        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, after.m_tree == m_tree, m_tree, m_id);
-        NodeRef r(m_tree, m_tree->insert_child(m_id, after.m_id));
-        r._apply(i);
-        return r;
-    }
-
     NodeRef prepend_child()
     {
         _C4RR();
@@ -1358,26 +1365,10 @@ public:
         return r;
     }
 
-    NodeRef prepend_child(NodeInit const& i)
-    {
-        _C4RR();
-        NodeRef r(m_tree, m_tree->insert_child(m_id, NONE));
-        r._apply(i);
-        return r;
-    }
-
     NodeRef append_child()
     {
         _C4RR();
         NodeRef r(m_tree, m_tree->append_child(m_id));
-        return r;
-    }
-
-    NodeRef append_child(NodeInit const& i)
-    {
-        _C4RR();
-        NodeRef r(m_tree, m_tree->append_child(m_id));
-        r._apply(i);
         return r;
     }
 
@@ -1389,15 +1380,6 @@ public:
         return r;
     }
 
-    NodeRef insert_sibling(NodeInit const& i, ConstNodeRef const& after)
-    {
-        _C4RR();
-        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, after.m_tree == m_tree, m_tree, m_id);
-        NodeRef r(m_tree, m_tree->insert_sibling(m_id, after.m_id));
-        r._apply(i);
-        return r;
-    }
-
     NodeRef prepend_sibling()
     {
         _C4RR();
@@ -1405,26 +1387,10 @@ public:
         return r;
     }
 
-    NodeRef prepend_sibling(NodeInit const& i)
-    {
-        _C4RR();
-        NodeRef r(m_tree, m_tree->prepend_sibling(m_id));
-        r._apply(i);
-        return r;
-    }
-
     NodeRef append_sibling()
     {
         _C4RR();
         NodeRef r(m_tree, m_tree->append_sibling(m_id));
-        return r;
-    }
-
-    NodeRef append_sibling(NodeInit const& i)
-    {
-        _C4RR();
-        NodeRef r(m_tree, m_tree->append_sibling(m_id));
-        r._apply(i);
         return r;
     }
 
@@ -1509,36 +1475,112 @@ public:
     NodeRef duplicate(NodeRef const& parent, ConstNodeRef const& after) const
     {
         _C4RR();
+        //parent.assert_readable_();
         _RYML_ASSERT_VISIT_(m_tree->m_callbacks, parent.m_tree == after.m_tree || after.m_id == NONE, m_tree, m_id);
-        if(parent.m_tree == m_tree)
-        {
-            id_type dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
-            NodeRef r(m_tree, dup);
-            return r;
-        }
-        else
-        {
-            id_type dup = parent.m_tree->duplicate(m_tree, m_id, parent.m_id, after.m_id);
-            NodeRef r(parent.m_tree, dup);
-            return r;
-        }
+        id_type dup = parent.m_tree->duplicate(m_tree, m_id, parent.m_id, after.m_id);
+        NodeRef r(parent.m_tree, dup);
+        return r;
     }
 
-    void duplicate_children(NodeRef const& parent, ConstNodeRef const& after) const
+    NodeRef duplicate_children(NodeRef const& parent, ConstNodeRef const& after) const
     {
         _C4RR();
-        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, parent.m_tree == after.m_tree, m_tree, m_id);
-        if(parent.m_tree == m_tree)
-        {
-            m_tree->duplicate_children(m_id, parent.m_id, after.m_id);
-        }
-        else
-        {
-            parent.m_tree->duplicate_children(m_tree, m_id, parent.m_id, after.m_id);
-        }
+        //parent.assert_readable_();
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, parent.m_tree == after.m_tree || after.m_id == NONE, m_tree, m_id);
+        id_type last_dup = parent.m_tree->duplicate_children(m_tree, m_id, parent.m_id, after.m_id);
+        NodeRef r(parent.m_tree, last_dup);
+        return r;
     }
 
     /** @} */
+
+public: // deprecated functions
+
+    // these functions will be removed in future releases. If you
+    // disagree with a particular function being deprecated, let us
+    // know by opening a new issue at
+    // https://github.com/biojppm/rapidyaml/issues
+
+    /** @cond dev */ // LCOV_EXCL_START
+    C4_SUPPRESS_WARNING_PUSH
+    C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+    C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+    C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+
+    RYML_DEPRECATED("") void operator= (NodeInit const& v)
+    {
+        create();
+        _apply(v);
+    }
+
+    RYML_DEPRECATED("") void _apply(NodeInit const& i)
+    {
+        m_tree->_set(m_id, i);
+    }
+
+    RYML_DEPRECATED("") NodeRef insert_child(NodeInit const& i, NodeRef after)
+    {
+        _C4RR();
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, after.m_tree == m_tree, m_tree, m_id);
+        NodeRef r(m_tree, m_tree->insert_child(m_id, after.m_id));
+        r._apply(i);
+        return r;
+    }
+
+    RYML_DEPRECATED("") NodeRef prepend_child(NodeInit const& i)
+    {
+        _C4RR();
+        NodeRef r(m_tree, m_tree->insert_child(m_id, NONE));
+        r._apply(i);
+        return r;
+    }
+
+    RYML_DEPRECATED("") NodeRef append_child(NodeInit const& i)
+    {
+        _C4RR();
+        NodeRef r(m_tree, m_tree->append_child(m_id));
+        r._apply(i);
+        return r;
+    }
+
+    RYML_DEPRECATED("") NodeRef insert_sibling(NodeInit const& i, ConstNodeRef const& after)
+    {
+        _C4RR();
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, after.m_tree == m_tree, m_tree, m_id);
+        NodeRef r(m_tree, m_tree->insert_sibling(m_id, after.m_id));
+        r._apply(i);
+        return r;
+    }
+
+    RYML_DEPRECATED("") NodeRef prepend_sibling(NodeInit const& i)
+    {
+        _C4RR();
+        NodeRef r(m_tree, m_tree->prepend_sibling(m_id));
+        r._apply(i);
+        return r;
+    }
+
+    RYML_DEPRECATED("") NodeRef append_sibling(NodeInit const& i)
+    {
+        _C4RR();
+        NodeRef r(m_tree, m_tree->append_sibling(m_id));
+        r._apply(i);
+        return r;
+    }
+
+    RYML_DEPRECATED("") void _apply(NodeScalar const& v)
+    {
+        m_tree->_set_val(m_id, v);
+    }
+
+    RYML_DEPRECATED("") void operator= (NodeScalar const& v)
+    {
+        _apply_seed();
+        _apply(v);
+    }
+
+    C4_SUPPRESS_WARNING_POP
+    /** @endcond */ // LCOV_EXCL_STOP
 
 #undef _C4RR
 #undef _C4RID
