@@ -3,27 +3,23 @@
 
 /** @file node.hpp Node classes */
 
-#include <cstddef>
-
+#ifndef _C4_YML_TREE_HPP_
 #include "c4/yml/tree.hpp"
-
-#ifdef __clang__
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wtype-limits"
-#   pragma clang diagnostic ignored "-Wold-style-cast"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
-#   pragma GCC diagnostic ignored "-Wold-style-cast"
-#   pragma GCC diagnostic ignored "-Wuseless-cast"
-#elif defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#   pragma warning(disable: 4996/*deprecated*/)
 #endif
 
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wtype-limits")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+#if defined(__GNUC__) && __GNUC__ >= 6
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+#endif
+C4_SUPPRESS_WARNING_MSVC(4251/*needs to have dll-interface to be used by clients of struct*/)
+C4_SUPPRESS_WARNING_MSVC(4296/*expression is always 'boolean_value'*/)
+C4_SUPPRESS_WARNING_MSVC(4996/*deprecated*/)
 // NOLINTBEGIN(modernize-avoid-c-style-cast)
+
 
 namespace c4 {
 namespace yml {
@@ -108,7 +104,7 @@ struct children_view_
     n_iterator end  () const { return e; }
 };
 
-/** @cond dev */ // LCOV_EXCL_START
+// LCOV_EXCL_START
 template<class NodeRefType, class Visitor>
 RYML_DEPRECATED("") bool _visit(NodeRefType &node, Visitor fn, id_type indentation_level, bool skip_root=false)
 {
@@ -159,10 +155,8 @@ RYML_DEPRECATED("") bool _visit_stacked(NodeRefType &node, Visitor fn, id_type i
     }
     return false;
 }
-/** @endcond */ // LCOV_EXCL_STOP
+// LCOV_EXCL_STOP
 
-template<class Impl, class ConstImpl>
-struct RoNodeMethods;
 } // detail
 /** @endcond */
 
@@ -711,16 +705,6 @@ public:
 
 public:
 
-    #if defined(__clang__) // NOLINT
-    #   pragma clang diagnostic push
-    #   pragma clang diagnostic ignored "-Wnull-dereference"
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic push
-    #   if __GNUC__ >= 6
-    #       pragma GCC diagnostic ignored "-Wnull-dereference"
-    #   endif
-    #endif
-
     /** @name iteration */
     /** @{ */
 
@@ -774,6 +758,10 @@ public:
 
 public:
 
+    C4_SUPPRESS_WARNING_PUSH
+    C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+    C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+    C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
     /** @cond dev */ // LCOV_EXCL_START
     template<class Visitor>
     RYML_DEPRECATED("") bool visit(Visitor fn, id_type indentation_level=0, bool skip_root=true) const RYML_NOEXCEPT
@@ -802,12 +790,7 @@ public:
         return detail::_visit_stacked(*(Impl*)this, fn, indentation_level, skip_root);
     }
     /** @endcond */ // LCOV_EXCL_STOP
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic pop
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic pop
-    #endif
+    C4_SUPPRESS_WARNING_POP
 
     #undef _C4_IF_MUTABLE
     #undef _C4RR
@@ -1018,9 +1001,11 @@ public:
     NodeRef(Tree *t, id_type id, csubstr  seed_key) noexcept : m_tree(t), m_id(id), m_seed(seed_key) {}
     NodeRef(std::nullptr_t) noexcept : m_tree(nullptr), m_id(NONE), m_seed() {}
 
-    void _clear_seed() noexcept { /*do the following manually or an assert is triggered: */ m_seed.str = nullptr; m_seed.len = npos; }
-
     /** @} */
+
+private:
+
+    void _clear_seed() noexcept { /*do the following manually or an assert is triggered: */ m_seed.str = nullptr; m_seed.len = npos; }
 
 public:
 
@@ -1046,8 +1031,6 @@ public:
     bool is_seed() const noexcept { return (m_tree != nullptr && m_id != NONE) && (m_seed.str != nullptr || m_seed.len != (size_t)NONE); }
     /** true if the object is not invalid and not in seed state. @see the doc for @ref NodeRef */
     bool readable() const noexcept { return (m_tree != nullptr && m_id != NONE) && (m_seed.str == nullptr && m_seed.len == (size_t)NONE); }
-
-    RYML_DEPRECATED("use one of readable(), is_seed() or !invalid()") inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
 
     /** @} */
 
@@ -1079,13 +1062,7 @@ public:
     bool operator== (ConstNodeRef const& that) const { return m_tree == that.m_tree && m_id == that.m_id && !is_seed(); }
     bool operator!= (ConstNodeRef const& that) const { return ! this->operator==(that); }
 
-    /** @cond dev */
-    RYML_DEPRECATED("use !readable()") bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
-    RYML_DEPRECATED("use readable()")  bool operator!= (std::nullptr_t) const { return !(m_tree == nullptr || m_id == NONE || is_seed()); }
-
-    RYML_DEPRECATED("use `this->val() == s`") bool operator== (csubstr s) const { _C4RR(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, has_val(), m_tree, m_id); return m_tree->val(m_id) == s; }
-    RYML_DEPRECATED("use `this->val() != s`") bool operator!= (csubstr s) const { _C4RR(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, has_val(), m_tree, m_id); return m_tree->val(m_id) != s; }
-    /** @endcond */
+    /** @} */
 
 public:
 
@@ -1207,14 +1184,14 @@ public:
     template<class T>
     size_t set_key_serialized(T const& C4_RESTRICT k)
     {
-        _apply_seed();
+        create();
         csubstr s = m_tree->to_arena(k);
         m_tree->set_key(m_id, s);
         return s.len;
     }
     size_t set_key_serialized(std::nullptr_t)
     {
-        _apply_seed();
+        create();
         m_tree->set_key(m_id, csubstr{});
         return 0;
     }
@@ -1222,14 +1199,14 @@ public:
     template<class T>
     size_t set_val_serialized(T const& C4_RESTRICT v)
     {
-        _apply_seed();
+        create();
         csubstr s = m_tree->to_arena(v);
         m_tree->set_val(m_id, s);
         return s.len;
     }
     size_t set_val_serialized(std::nullptr_t)
     {
-        _apply_seed();
+        create();
         m_tree->set_val(m_id, csubstr{});
         return 0;
     }
@@ -1239,7 +1216,7 @@ public:
     {
         // this overload is needed to prevent ambiguity (there's also
         // operator<< for writing a substr to a stream)
-        _apply_seed();
+        create();
         write(this, s);
         _RYML_ASSERT_VISIT_(m_tree->m_callbacks, val() == s, m_tree, m_id);
         return *this;
@@ -1248,7 +1225,7 @@ public:
     template<class T>
     NodeRef& operator<< (T const& C4_RESTRICT v)
     {
-        _apply_seed();
+        create();
         write(this, v);
         return *this;
     }
@@ -1257,7 +1234,7 @@ public:
     template<class T>
     NodeRef& operator<< (Key<const T> const& C4_RESTRICT v)
     {
-        _apply_seed();
+        create();
         set_key_serialized(v.k);
         return *this;
     }
@@ -1266,37 +1243,12 @@ public:
     template<class T>
     NodeRef& operator<< (Key<T> const& C4_RESTRICT v)
     {
-        _apply_seed();
+        create();
         set_key_serialized(v.k);
         return *this;
     }
 
     /** @} */
-
-private:
-
-    void _apply_seed()
-    {
-        _C4RID();
-        if(m_seed.str) // we have a seed key: use it to create the new child
-        {
-            m_id = m_tree->append_child(m_id);
-            m_tree->set_key(m_id, m_seed);
-            m_seed.str = nullptr;
-            m_seed.len = (size_t)NONE;
-        }
-        else if(m_seed.len != (size_t)NONE) // we have a seed index: create a child at that position
-        {
-            _RYML_ASSERT_VISIT_(m_tree->m_callbacks, (size_t)m_tree->num_children(m_id) == m_seed.len, m_tree, m_id);
-            m_id = m_tree->append_child(m_id);
-            m_seed.str = nullptr;
-            m_seed.len = (size_t)NONE;
-        }
-        else
-        {
-            _RYML_ASSERT_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
-        }
-    }
 
 public:
 
@@ -1437,6 +1389,12 @@ public: // deprecated functions
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
 
+    RYML_DEPRECATED("use one of readable(), is_seed() or !invalid()") inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
+    RYML_DEPRECATED("use !readable()") bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
+    RYML_DEPRECATED("use readable()")  bool operator!= (std::nullptr_t) const { return !(m_tree == nullptr || m_id == NONE || is_seed()); }
+    RYML_DEPRECATED("use `this->val() == s`") bool operator== (csubstr s) const { assert_readable_(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, has_val(), m_tree, m_id); return m_tree->val(m_id) == s; }
+    RYML_DEPRECATED("use `this->val() != s`") bool operator!= (csubstr s) const { assert_readable_(); _RYML_ASSERT_VISIT_(m_tree->m_callbacks, has_val(), m_tree, m_id); return m_tree->val(m_id) != s; }
+
     RYML_DEPRECATED("") void operator= (NodeType_e t)
     {
         create();
@@ -1495,7 +1453,7 @@ public: // deprecated functions
 
     RYML_DEPRECATED("") void operator= (NodeScalar const& v)
     {
-        _apply_seed();
+        create();
         _apply(v);
     }
 
@@ -1676,12 +1634,6 @@ C4_ALWAYS_INLINE bool readkey(NodeRef const& C4_RESTRICT n, T const& wrapper)
 
 // NOLINTEND(modernize-avoid-c-style-cast)
 
-#ifdef __clang__
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
+C4_SUPPRESS_WARNING_POP
 
 #endif /* _C4_YML_NODE_HPP_ */
