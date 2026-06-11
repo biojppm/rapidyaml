@@ -453,7 +453,7 @@ TEST(double_quoted, leading_whitespace)
         Tree t = parse_in_arena("\"\"");
         ASSERT_TRUE(t.rootref().is_val());
         ASSERT_TRUE(t.rootref().type().is_val_dquo());
-        t.rootref() = val;
+        t.rootref().set_val(val);
         emitrs_yaml<std::string>(t, &emitted);
         _c4dbgpf("emitted: ~~~{}~~~", to_csubstr(emitted));
     }

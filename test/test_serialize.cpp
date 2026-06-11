@@ -304,29 +304,29 @@ mapflow: {*id0 : *id1,next: *id2}
     Tree tree;
     tree.rootref().set_map();
     tree["anchors"].set_seq();
-    tree["anchors"][0] = "val0";
+    tree["anchors"][0].set_val("val0");
     tree["anchors"][0].set_val_anchor("id0");
     tree["anchors"][1].set_map();
     tree["anchors"][1].set_val_anchor("id1");
-    tree["anchors"][1]["key1"] = "val1";
+    tree["anchors"][1]["key1"].set_val("val1");
     tree["anchors"][2].set_seq();
     tree["anchors"][2].set_val_anchor("id2");
-    tree["anchors"][2][0] = "val2";
+    tree["anchors"][2][0].set_val("val2");
     auto setseq = [](NodeRef n, NodeType style){
         n.set_seq(style);
-        n[0] = "id0";
+        n[0].set_val("id0");
         n[0].set_val_ref("id0");
-        n[1] = "id1";
+        n[1].set_val("id1");
         n[1].set_val_ref("id1");
-        n[2] = "id2";
+        n[2].set_val("id2");
         n[2].set_val_ref("id2");
     };
     auto setmap = [](NodeRef n, NodeType style){
         n.set_map(style);
-        n["*id0"] = "id0";
+        n["*id0"].set_val("id0");
         n["*id0"].set_key_ref("id0");
         n["*id0"].set_val_ref("id1");
-        n["next"] = "id2";
+        n["next"].set_val("id2");
         n["next"].set_val_ref("id2");
     };
     setseq(tree["seq"], BLOCK);

@@ -666,14 +666,14 @@ void sample_quick_overview()
     // desired then a NodeRef must be used instead:
     ryml::NodeRef wroot = tree.rootref(); // writeable root
 
-    // operator= assigns an existing string to the receiving node.
+    // .set_val() assigns an existing string to the receiving node.
     // The contents are NOT copied, and the string pointer will be in
     // effect until the tree goes out of scope! So BEWARE to only
     // assign from strings outliving the tree.
-    wroot["foo"] = "says you";
-    wroot["bar"][0] = "-2";
-    wroot["bar"][1] = "-3";
-    wroot["john"] = "ron";
+    wroot["foo"].set_val("says you");
+    wroot["bar"][0].set_val("-2");
+    wroot["bar"][1].set_val("-3");
+    wroot["john"].set_val("ron");
     // Now the tree is _pointing_ at the memory of the strings above.
     // In this case it is OK because those are static strings, located
     // in the executable's static section, and will outlive the tree.
@@ -724,7 +724,7 @@ void sample_quick_overview()
 
     // adding a keyval node to a map:
     CHECK(root.num_children() == 5);
-    wroot["newkeyval"] = "shiny and new"; // using these strings
+    wroot["newkeyval"].set_val("shiny and new"); // using these strings
     wroot.append_child() << ryml::key("newkeyval (serialized)") << "shiny and new (serialized)"; // serializes and assigns the serialization
     CHECK(root.num_children() == 7);
     CHECK(root["newkeyval"].key() == "newkeyval");
@@ -737,7 +737,7 @@ void sample_quick_overview()
     CHECK(   tree.in_arena(root["newkeyval (serialized)"].val())); // it's using a serialization of the string above
     // adding a val node to a seq:
     CHECK(root["bar"].num_children() == 2);
-    wroot["bar"][2] = "oh so nice";
+    wroot["bar"][2].set_val("oh so nice");
     wroot["bar"][3] << "oh so nice (serialized)";
     CHECK(root["bar"].num_children() == 4);
     CHECK(root["bar"][2].val() == "oh so nice");
@@ -807,7 +807,7 @@ void sample_quick_overview()
     CHECK(constsomething.invalid()); // NOTE: because a ConstNodeRef cannot be
                                      // used to mutate a tree, it is only valid()
                                      // if it is pointing at an existing node.
-    something = "indeed";  // this will commit the seed to the tree, mutating at the proper place
+    something.set_val("indeed");  // this will commit the seed to the tree, mutating at the proper place
     CHECK(root.has_child("I am something"));
     CHECK(root["I am something"].val() == "indeed");
     CHECK(!something.invalid()); // it was already valid
@@ -937,7 +937,7 @@ void sample_quick_overview()
     //constnoderef = "21";  // compile error
     //constnoderef << "22"; // compile error
     // ... but a NodeRef can:
-    noderef = "21";         // ok, can assign because it's not const
+    noderef.set_val("21");         // ok, can assign because it's not const
     CHECK(tree["bar"][0].val() == "21");
     noderef << "22";        // ok, can serialize and assign because it's not const
     CHECK(tree["bar"][0].val() == "22");
@@ -2326,7 +2326,7 @@ void sample_create_trees()
 
     // set the value of the node
     const char a_deer[] = "a deer, a female deer";
-    doe = a_deer;
+    doe.set_val(a_deer);
     // now the node really exists in the tree, and this ref is no
     // longer a seed:
     CHECK(!doe.is_seed());
@@ -2351,20 +2351,20 @@ void sample_create_trees()
     root["french-hens"] << 3;
     ryml::NodeRef calling_birds = root["calling-birds"];
     calling_birds.set_seq();
-    calling_birds.append_child() = "huey";
-    calling_birds.append_child() = "dewey";
-    calling_birds.append_child() = "louie";
-    calling_birds.append_child() = "fred";
+    calling_birds.append_child().set_val("huey");
+    calling_birds.append_child().set_val("dewey");
+    calling_birds.append_child().set_val("louie");
+    calling_birds.append_child().set_val("fred");
     ryml::NodeRef xmas5 = root["xmas-fifth-day"];
     xmas5.set_map();
-    xmas5["calling-birds"] = "four";
+    xmas5["calling-birds"].set_val("four");
     xmas5["french-hens"] << 3;
     xmas5["golden-rings"] << 5;
     xmas5["partridges"].set_map();
     xmas5["partridges"]["count"] << 1;
-    xmas5["partridges"]["location"] = "a pear tree";
-    xmas5["turtle-doves"] = "two";
-    root["cars"] = "GTO";
+    xmas5["partridges"]["location"].set_val("a pear tree");
+    xmas5["turtle-doves"].set_val("two");
+    root["cars"].set_val("GTO");
 
     CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
           "doe: a deer, a female deer"       "\n"
@@ -5278,14 +5278,14 @@ void sample_anchors_and_aliases_create()
     {
         ryml::Tree t;
         t.rootref().set_map(ryml::BLOCK);
-        t["kanchor"] = "2";
+        t["kanchor"].set_val("2");
         t["kanchor"].set_key_anchor("kanchor");
-        t["vanchor"] = "3";
+        t["vanchor"].set_val("3");
         t["vanchor"].set_val_anchor("vanchor");
         // to set a reference, need to call .set_val_ref()/.set_key_ref()
         t["kref"].set_val_ref("kanchor");
         t["vref"].set_val_ref("vanchor");
-        t["nref"] = "*vanchor";  // NOTE: this is not set as a reference in the tree!
+        t["nref"].set_val("*vanchor");  // NOTE: this is not set as a reference in the tree!
         CHECK(ryml::emitrs_yaml<std::string>(t) == ""
               "&kanchor kanchor: 2"  "\n"
               "vanchor: &vanchor 3"  "\n"
@@ -5317,7 +5317,7 @@ void sample_anchors_and_aliases_create()
         t["copy"]["<<"].set_val_ref("orig");
         t["notcopy"]["test"].set_val_ref("orig");
         t["notcopy"]["<<"].set_val_ref("orig");
-        t["notref"]["<<"] = "*orig"; // not a reference! .set_val_ref() was not called
+        t["notref"]["<<"].set_val("*orig"); // not a reference! .set_val_ref() was not called
         CHECK(ryml::emitrs_yaml<std::string>(t) == ""
               "orig: &orig {foo: bar,baz: bat}"      "\n"
               "copy: {<<: *orig}"                    "\n"

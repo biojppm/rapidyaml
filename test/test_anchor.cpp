@@ -132,12 +132,12 @@ TEST(anchors, programatic_key_ref)
     t._rem_flags(t.root_id(), CONTAINER_STYLE);
     t._add_flags(t.root_id(), BLOCK);
     NodeRef r = t.rootref();
-    r["kanchor"] = "2";
+    r["kanchor"].set_val("2");
     r["kanchor"].set_key_anchor("kanchor");
-    r["vanchor"] = "3";
+    r["vanchor"].set_val("3");
     r["vanchor"].set_val_anchor("vanchor");
-    r["*kanchor"] = "4";
-    r["*vanchor"] = "5";
+    r["*kanchor"].set_val("4");
+    r["*vanchor"].set_val("5");
     NodeRef ch = r.append_child();
     ch.set_key_ref("kanchor");
     ch.set_val("6");
@@ -167,9 +167,9 @@ TEST(anchors, programatic_val_ref)
     Tree t = parse_in_arena("{}");
     t._rem_flags(t.root_id(), CONTAINER_STYLE);
     t._add_flags(t.root_id(), BLOCK);
-    t["kanchor"] = "2";
+    t["kanchor"].set_val("2");
     t["kanchor"].set_key_anchor("kanchor");
-    t["vanchor"] = "3";
+    t["vanchor"].set_val("3");
     t["vanchor"].set_val_anchor("vanchor");
     t["kref"].set_val_ref("kanchor");
     t["vref"].set_val_ref("vanchor");
@@ -197,7 +197,7 @@ notref: {}
     t["copy"]["<<"].set_val_ref("orig");
     t["notcopy"]["test"].set_val_ref("orig");
     t["notcopy"]["<<"].set_val_ref("orig");
-    t["notref"]["<<"] = "*orig";
+    t["notref"]["<<"].set_val("*orig");
     _c4dbg_tree(t);
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: &orig {foo: bar,baz: bat}
 copy: {<<: *orig}
@@ -258,8 +258,8 @@ TEST(anchors, set_ref_leading_star_is_optional)
 {
     Tree t = parse_in_arena("{}");
 
-    t["*without"] = "0";
-    t["*with"] = "1";
+    t["*without"].set_val("0");
+    t["*with"].set_val("1");
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"({'*without': 0,'*with': 1})");
 
     t["*without"].set_key_ref("without");
@@ -382,7 +382,7 @@ Tree github566_make_map(NodeType_e root_style)
     NodeRef root = tree.rootref();
     root.set_map(root_style);
     root.set_val_anchor("ref0");
-    root["a"] = "1";
+    root["a"].set_val("1");
     NodeRef self = root["self"];
     self.set_val("*ref0");
     self.set_val_ref("ref0");
@@ -395,7 +395,7 @@ Tree github566_make_seq(NodeType_e root_style)
     NodeRef root = tree.rootref();
     root.set_seq(root_style);
     root.set_val_anchor("ref0");
-    root[0] = "1";
+    root[0].set_val("1");
     root[1].set_val("*ref0");
     root[1].set_val_ref("ref0");
     return tree;

@@ -1033,31 +1033,6 @@ public:
     NodeRef& operator= (NodeRef const&) noexcept = default;
     NodeRef& operator= (NodeRef     &&) noexcept = default;
 
-    /** same as .set_val(v) */
-    NodeRef& operator= (csubstr v)
-    {
-        set_val(v);
-        return *this;
-    }
-
-    /** same as .set_val(csubstr(v)) */
-    template<size_t N>
-    NodeRef& operator= (const char (&v)[N])
-    {
-        csubstr sv;
-        sv.assign<N>(v);
-        set_val(sv);
-        return *this;
-    }
-
-    /** same as .set_key(v.k) */
-    template<class T>
-    NodeRef& operator= (Key<T> const& C4_RESTRICT v)
-    {
-        set_key(v.k);
-        return *this;
-    }
-
     /** @} */
 
 public:
@@ -1214,12 +1189,6 @@ public:
         m_tree->remove_children(m_id);
     }
 
-    void operator= (std::nullptr_t)
-    {
-        _apply_seed();
-        _apply(csubstr{});
-    }
-
     /** @} */
 
 public:
@@ -1327,11 +1296,6 @@ private:
         {
             _RYML_ASSERT_VISIT_(m_tree->m_callbacks, readable(), m_tree, m_id);
         }
-    }
-
-    void _apply(csubstr v)
-    {
-        m_tree->set_val(m_id, v);
     }
 
 public:
@@ -1485,10 +1449,43 @@ public: // deprecated functions
         m_tree->_add_flags(m_id, t);
     }
 
+    RYML_DEPRECATED("use .set_val()") NodeRef& operator= (csubstr v)
+    {
+        set_val(v);
+        return *this;
+    }
+
+    template<size_t N>
+    RYML_DEPRECATED("use .set_val()") NodeRef& operator= (const char (&v)[N])
+    {
+        csubstr sv;
+        sv.assign<N>(v);
+        set_val(sv);
+        return *this;
+    }
+
+    RYML_DEPRECATED("use .set_val()") void operator= (std::nullptr_t)
+    {
+        set_val(csubstr{});
+    }
+
+    /** same as .set_key(v.k) */
+    template<class T>
+    RYML_DEPRECATED("use .set_key()") NodeRef& operator= (Key<T> const& C4_RESTRICT v)
+    {
+        set_key(v.k);
+        return *this;
+    }
+
     RYML_DEPRECATED("") void operator= (NodeInit const& v)
     {
         create();
         _apply(v);
+    }
+
+    RYML_DEPRECATED("") void _apply(csubstr v)
+    {
+        m_tree->set_val(m_id, v);
     }
 
     RYML_DEPRECATED("") void _apply(NodeScalar const& v)

@@ -34,15 +34,16 @@ TEST(NodeRef, general)
     NodeRef root(&t);
 
     root.set_map();
-    (root.append_child() = key("a")) = "0";
+    { NodeRef ch = root.append_child(); ch.set_key("a"); ch.set_val("0"); }
     root["b"].set_map();
     root["b"]["seq"].set_seq();
-    root["b"]["seq"][0] = "0";
-    root["b"]["seq"][1] = "1";
-    root["b"]["seq"][2] = "2";
-    (root["b"]["seq"][3] = "3").set_val_tag("!!str");
-    (root["b"]["seq"][3] = "3").set_val_tag("!!str");
-    NodeRef ch4 = root["b"]["seq"][3].append_sibling() = "4";
+    root["b"]["seq"][0].set_val("0");
+    root["b"]["seq"][1].set_val("1");
+    root["b"]["seq"][2].set_val("2");
+    { NodeRef ch = root["b"]["seq"][3]; ch.set_val("3"); ch.set_val_tag("!!str"); }
+    { NodeRef ch = root["b"]["seq"][3]; ch.set_val("3"); ch.set_val_tag("!!str"); }
+    NodeRef ch4 = root["b"]["seq"][3].append_sibling();
+    ch4.set_val("4");
     EXPECT_EQ(ch4.id(), root["b"]["seq"][4].id());
     EXPECT_EQ(ch4.get(), root["b"]["seq"][4].get());
     {
@@ -65,7 +66,7 @@ TEST(NodeRef, general)
     aaa.set_key("aaa", KEY_SQUO);
     EXPECT_EQ((type_bits)aaa.type(), (type_bits)(KEY|VAL|KEYTAG|VALTAG|KEY_SQUO|VAL_DQUO));
 
-    root["b"]["key"] = "val";
+    root["b"]["key"].set_val("val");
     NodeRef seq = root["b"]["seq"];
     NodeRef seq2 = root["b"]["seq2"];
     EXPECT_TRUE(seq2.is_seed());
@@ -84,20 +85,20 @@ TEST(NodeRef, general)
     EXPECT_NE(seq.get(), seq2.get());
     seq20 = root["b"]["seq2"][0];
     EXPECT_TRUE(seq20.is_seed());
-    root["b"]["seq2"][0] = "00";
+    root["b"]["seq2"][0].set_val("00");
     seq20 = root["b"]["seq2"][0];
     EXPECT_FALSE(seq20.is_seed());
     NodeRef before = root["b"]["key"];
     EXPECT_EQ(before.key(), "key");
     EXPECT_EQ(before.val(), "val");
-    root["b"]["seq2"][1] = "01";
+    root["b"]["seq2"][1].set_val("01");
     NodeRef after = root["b"]["key"];
     EXPECT_EQ(before.key(), "key");
     EXPECT_EQ(before.val(), "val");
     EXPECT_EQ(after.key(), "key");
     EXPECT_EQ(after.val(), "val");
-    root["b"]["seq2"][2] = "02";
-    root["b"]["seq2"][3] = "03";
+    root["b"]["seq2"][2].set_val("02");
+    root["b"]["seq2"][3].set_val("03");
     int iv = 0;
     root["b"]["seq2"][4] << 55;
     root["b"]["seq2"][4] >> iv;
@@ -549,12 +550,12 @@ TEST(NodeRef, append_child_1)
     Tree t;
     NodeRef root(&t);
     root.set_seq();
-    root.append_child() = "0";
-    root.append_child() = "1";
-    root.append_child() = "2";
-    root.append_child() = "3";
-    root.append_child() = "4";
-    root.append_child() = "5";
+    root.append_child().set_val("0");
+    root.append_child().set_val("1");
+    root.append_child().set_val("2");
+    root.append_child().set_val("3");
+    root.append_child().set_val("4");
+    root.append_child().set_val("5");
     noderef_check_tree(root);
 }
 
@@ -563,12 +564,12 @@ TEST(NodeRef, append_child_2)
     Tree t;
     NodeRef root(&t);
     root.set_seq();
-    root.append_child() << "0";
-    root.append_child() << "1";
-    root.append_child() << "2";
-    root.append_child() << "3";
-    root.append_child() << "4";
-    root.append_child() << "5";
+    root.append_child().set_val( "0");
+    root.append_child().set_val( "1");
+    root.append_child().set_val( "2");
+    root.append_child().set_val( "3");
+    root.append_child().set_val( "4");
+    root.append_child().set_val( "5");
     noderef_check_tree(root);
 }
 
@@ -577,12 +578,13 @@ TEST(NodeRef, append_sibling_1)
     Tree t;
     NodeRef root(&t);
     root.set_seq();
-    NodeRef first = root.append_child() = "0";
-    first.append_sibling() = "1";
-    first.append_sibling() = "2";
-    first.append_sibling() = "3";
-    first.append_sibling() = "4";
-    first.append_sibling() = "5";
+    NodeRef first = root.append_child();
+    first.set_val("0");
+    first.append_sibling().set_val("1");
+    first.append_sibling().set_val("2");
+    first.append_sibling().set_val("3");
+    first.append_sibling().set_val("4");
+    first.append_sibling().set_val("5");
     noderef_check_tree(root);
 }
 
@@ -633,12 +635,13 @@ TEST(NodeRef, prepend_sibling_1)
     Tree t;
     NodeRef root(&t);
     root.set_seq();
-    NodeRef last = root.prepend_child() = "5";
-    last.prepend_sibling() = "4";
-    last.prepend_sibling() = "3";
-    last.prepend_sibling() = "2";
-    last.prepend_sibling() = "1";
-    last.prepend_sibling() = "0";
+    NodeRef last = root.prepend_child();
+    last.set_val("5");
+    last.prepend_sibling().set_val("4");
+    last.prepend_sibling().set_val("3");
+    last.prepend_sibling().set_val("2");
+    last.prepend_sibling().set_val("1");
+    last.prepend_sibling().set_val("0");
     noderef_check_tree(root);
 }
 
@@ -662,12 +665,12 @@ TEST(NodeRef, insert_child_1)
     NodeRef root(&t);
     NodeRef none(&t, NONE);
     root.set_seq();
-    root.insert_child(none) = "3";
-    root.insert_child(root[0]) = "4";
-    root.insert_child(none) = "0";
-    root.insert_child(root[2]) = "5";
-    root.insert_child(root[0]) = "1";
-    root.insert_child(root[1]) = "2";
+    root.insert_child(none).set_val("3");
+    root.insert_child(root[0]).set_val("4");
+    root.insert_child(none).set_val("0");
+    root.insert_child(root[2]).set_val("5");
+    root.insert_child(root[0]).set_val("1");
+    root.insert_child(root[1]).set_val("2");
     noderef_check_tree(root);
 }
 
@@ -692,12 +695,13 @@ TEST(NodeRef, insert_sibling_1)
     NodeRef root(&t);
     NodeRef none(&t, NONE);
     root.set_seq();
-    NodeRef first = root.insert_child(none) = "3";
-    first.insert_sibling(root[0]) = "4";
-    first.insert_sibling(none) = "0";
-    first.insert_sibling(root[2]) = "5";
-    first.insert_sibling(root[0]) = "1";
-    first.insert_sibling(root[1]) = "2";
+    NodeRef first = root.insert_child(none);
+    first.set_val("3");
+    first.insert_sibling(root[0]).set_val("4");
+    first.insert_sibling(none).set_val("0");
+    first.insert_sibling(root[2]).set_val("5");
+    first.insert_sibling(root[0]).set_val("1");
+    first.insert_sibling(root[1]).set_val("2");
     noderef_check_tree(root);
 }
 
@@ -724,12 +728,12 @@ TEST(NodeRef, remove_child)
     NodeRef none(&t, NONE);
 
     root.set_seq();
-    root.insert_child(none) = "3";
-    root.insert_child(root[0]) = "4";
-    root.insert_child(none) = "0";
-    root.insert_child(root[2]) = "5";
-    root.insert_child(root[0]) = "1";
-    root.insert_child(root[1]) = "2";
+    root.insert_child(none).set_val("3");
+    root.insert_child(root[0]).set_val("4");
+    root.insert_child(none).set_val("0");
+    root.insert_child(root[2]).set_val("5");
+    root.insert_child(root[0]).set_val("1");
+    root.insert_child(root[1]).set_val("2");
 
     std::vector<int> vec({10, 20, 30, 40, 50, 60, 70, 80, 90});
     root.insert_child(root[0]) << vec; // 1

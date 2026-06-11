@@ -330,7 +330,7 @@ TEST(style, noflags)
     };
     auto setval = [](NodeRef n, csubstr key, csubstr val){
         NodeRef ch = n[key];
-        ch = val;
+        ch.set_val(val);
         test_key_nostyle(ch);
         test_val_nostyle(ch);
     };
@@ -361,18 +361,18 @@ TEST(style, noflags)
         NodeRef n = setcont(r["leading_ws"], MAP);
         {
             NodeRef sl = setcont(n["singleline"], MAP);
-            sl["space"] = " foo";
-            sl["tab"] = "\tfoo";
-            sl["space_and_tab0"] = " \tfoo";
-            sl["space_and_tab1"] = "\t foo";
+            sl["space"].set_val(" foo");
+            sl["tab"].set_val("\tfoo");
+            sl["space_and_tab0"].set_val(" \tfoo");
+            sl["space_and_tab1"].set_val("\t foo");
         }
         {
             NodeRef ml = setcont(n["multiline"], MAP);
-            ml["beg_________"] = "\n \tfoo";
-            ml["beg_mid_____"] = "\n \tfoo\nbar";
-            ml["beg_mid_end1"] = "\n \tfoo\nbar\n";
-            ml["beg_mid_end2"] = "\n \tfoo\nbar\n\n";
-            ml["beg_mid_end3"] = "\n \tfoo\nbar\n\n\n";
+            ml["beg_________"].set_val("\n \tfoo");
+            ml["beg_mid_____"].set_val("\n \tfoo\nbar");
+            ml["beg_mid_end1"].set_val("\n \tfoo\nbar\n");
+            ml["beg_mid_end2"].set_val("\n \tfoo\nbar\n\n");
+            ml["beg_mid_end3"].set_val("\n \tfoo\nbar\n\n\n");
         }
     }
     std::string emitted = emit2str(orig);

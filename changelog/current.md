@@ -48,6 +48,7 @@
   - Deprecate `NodeInit`
   - `Tree` and `NodeRef`:
     - deprecate `.to_val()` and friends -- add `.set_val()` and friends.
+    - deprecate `operator=(csubstr)` and friends -- use `.set_val()` instead.
     - deprecate `operator|=(NodeType)` and `operator=(NodeType)` -- use appropriate overload `.set_*(T, NodeType)`. For example:
       ```c++
       // before
