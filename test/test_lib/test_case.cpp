@@ -422,6 +422,21 @@ void ExpectError::check_error_visit(Tree const* tree, fntestref fn, id_type expe
     check_error_visit(const_cast<Tree*>(tree), fn, expected_id);
 }
 
+void ExpectError::check_assert_basic(Tree const* tree, fntestref fn, bool only_basic)
+{
+    check_assert_basic(const_cast<Tree*>(tree), fn, only_basic);
+}
+
+void ExpectError::check_assert_parse(Tree const* tree, fntestref fn, Location const& expected_location)
+{
+    check_assert_parse(const_cast<Tree*>(tree), fn, expected_location);
+}
+
+void ExpectError::check_assert_visit(Tree const* tree, fntestref fn, id_type expected_id)
+{
+    check_assert_visit(const_cast<Tree*>(tree), fn, expected_id);
+}
+
 void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
 {
     auto context = ExpectError(ExpectedErrorType::err_basic, tree);
@@ -501,13 +516,13 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     {
         FAIL() << "got an unexpected exception";
     }, )
-    if(context.m_error == ExpectedErrorType::err_none)
+    if(context.m_error != ExpectedErrorType::err_none)
     {
-        FAIL() << "no error occurred";
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
     }
     else
     {
-        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
+        FAIL() << "no error occurred";
     }
 }
 
@@ -537,19 +552,19 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
     {
-        FAIL() << "got an unexpected exception:" << exc.what() << "\n";
+        FAIL() << "got an unexpected exception:\n" << exc.what() << "\n";
     }, )
     C4_IF_EXCEPTIONS_(catch(...)
     {
         FAIL() << "got an unexpected exception";
     }, )
-    if(context.m_error == ExpectedErrorType::err_none)
+    if(context.m_error != ExpectedErrorType::err_none)
     {
-        FAIL() << "no error occurred";
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
     }
     else
     {
-        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
+        FAIL() << "no error occurred";
     }
 }
 
