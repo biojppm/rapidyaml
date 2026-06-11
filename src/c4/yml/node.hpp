@@ -1414,16 +1414,6 @@ public:
 
 public:
 
-    /** change the node's position within its parent, placing it after
-     * @p after. To move to the first position in the parent, simply
-     * pass an empty or default-constructed reference like this:
-     * `n.move({})`. */
-    void move(ConstNodeRef const& after)
-    {
-        _C4RR();
-        m_tree->move(m_id, after.m_id);
-    }
-
     /** move the node to a different @p parent (which may belong to a
      * different tree), placing it after @p after. When the
      * destination parent is in a new tree, then this node's tree
@@ -1500,6 +1490,17 @@ public: // deprecated functions
         _apply(v);
     }
 
+    RYML_DEPRECATED("") void _apply(NodeScalar const& v)
+    {
+        m_tree->_set_val(m_id, v);
+    }
+
+    RYML_DEPRECATED("") void operator= (NodeScalar const& v)
+    {
+        _apply_seed();
+        _apply(v);
+    }
+
     RYML_DEPRECATED("") void _apply(NodeInit const& i)
     {
         m_tree->_set(m_id, i);
@@ -1555,15 +1556,19 @@ public: // deprecated functions
         return r;
     }
 
-    RYML_DEPRECATED("") void _apply(NodeScalar const& v)
+    RYML_DEPRECATED("") void move(ConstNodeRef const& after)
     {
-        m_tree->_set_val(m_id, v);
+        _C4RR();
+        m_tree->move(m_id, after.m_id);
     }
 
-    RYML_DEPRECATED("") void operator= (NodeScalar const& v)
+    RYML_DEPRECATED("") NodeRef duplicate(ConstNodeRef const& after) const
     {
-        _apply_seed();
-        _apply(v);
+        _C4RR();
+        _RYML_ASSERT_VISIT_(m_tree->m_callbacks, m_tree == after.m_tree || after.m_id == NONE, m_tree, m_id);
+        id_type dup = m_tree->duplicate(m_id, m_tree->parent(m_id), after.m_id);
+        NodeRef r(m_tree, dup);
+        return r;
     }
 
     C4_SUPPRESS_WARNING_POP

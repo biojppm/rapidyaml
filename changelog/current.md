@@ -51,14 +51,19 @@
     - deprecate `operator|=(NodeType)` and `operator=(NodeType)` -- use appropriate overload `.set_*(T, NodeType)`. For example:
       ```c++
       // before
-      node |= MAP;
+      node |= MAP|BLOCK;
       node["key"] = "val";
       node["key"] |= VAL_SQUO;
+      node["seq"] |= SEQ|FLOW;
+      node["seq2"] |= SEQ;
       // now:
-      node.set_map();
+      node.set_map(BLOCK);
       node["key"].set_val("val", VAL_SQUO);
+      node["seq"].set_seq(FLOW);
+      node["seq2"].set_seq();
       ```
     - deprecate `NodeInit` and `NodeScalar` methods (use `.set_*()`)
+    - deprecate single-arg `NodeRef::{duplicate,move}(ConstNodeRef)`
     - add `Tree::arena_rem()`
     - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with default value of 256
   - `parse_*()`: internal simplification, no semantic changes
