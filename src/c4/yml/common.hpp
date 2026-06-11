@@ -214,11 +214,6 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
  * @see sample::sample_tags
  */
 
-/** @defgroup doc_preprocessors Preprocessors
- *
- * Functions for preprocessing YAML prior to parsing.
- */
-
 /** @defgroup doc_file_utils File utils
  *
  * Functions for loading/saving a file from/to disk.
