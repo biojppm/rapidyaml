@@ -70,4 +70,5 @@
     - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with default value of 256
   - `parse_*()`: internal simplification, no semantic changes
 - [PR#621](https://github.com/biojppm/rapidyaml/pull/621): Clean `NodeRef`:
-  - Simplify implementation of `{Const}NodeRef::{iterator,children_view}`
+  - Simplify internal implementation of `{Const}NodeRef::{iterator,children_view}`.
+  - Stop using SFINAE on Node CRTP to distinguish const vs non const. No semantic changes. This should improve compilation speed of code with many node calls.
