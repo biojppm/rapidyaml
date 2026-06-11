@@ -56,8 +56,8 @@ TEST(serialize, type_as_str)
 {
     c4::yml::Tree t;
 
-    auto r = t.rootref();
-    r |= c4::yml::MAP;
+    c4::yml::NodeRef r = t;
+    r.set_map();
 
     vec2<int> v2in{10, 11};
     vec2<int> v2out{1, 2};
@@ -302,31 +302,31 @@ mapflow: {*id0 : *id1,next: *id2}
 )";
 
     Tree tree;
-    tree.rootref() |= MAP;
-    tree["anchors"] |= SEQ;
-    tree["anchors"][0] = "val0";
+    tree.rootref().set_map();
+    tree["anchors"].set_seq();
+    tree["anchors"][0].set_val("val0");
     tree["anchors"][0].set_val_anchor("id0");
-    tree["anchors"][1] |= MAP;
+    tree["anchors"][1].set_map();
     tree["anchors"][1].set_val_anchor("id1");
-    tree["anchors"][1]["key1"] = "val1";
-    tree["anchors"][2] |= SEQ;
+    tree["anchors"][1]["key1"].set_val("val1");
+    tree["anchors"][2].set_seq();
     tree["anchors"][2].set_val_anchor("id2");
-    tree["anchors"][2][0] = "val2";
+    tree["anchors"][2][0].set_val("val2");
     auto setseq = [](NodeRef n, NodeType style){
-        n |= SEQ|style;
-        n[0] = "id0";
+        n.set_seq(style);
+        n[0].set_val("id0");
         n[0].set_val_ref("id0");
-        n[1] = "id1";
+        n[1].set_val("id1");
         n[1].set_val_ref("id1");
-        n[2] = "id2";
+        n[2].set_val("id2");
         n[2].set_val_ref("id2");
     };
     auto setmap = [](NodeRef n, NodeType style){
-        n |= MAP|style;
-        n["*id0"] = "id0";
+        n.set_map(style);
+        n["*id0"].set_val("id0");
         n["*id0"].set_key_ref("id0");
         n["*id0"].set_val_ref("id1");
-        n["next"] = "id2";
+        n["next"].set_val("id2");
         n["next"].set_val_ref("id2");
     };
     setseq(tree["seq"], BLOCK);
@@ -472,7 +472,7 @@ void test442(csubstr input, csubstr expected, NodeType style_flag)
         T obj = {};  // T is a scalar type like int, char, double, etc.
         tree[0] >> obj;
         Tree out_tree;
-        out_tree.rootref() |= SEQ;
+        out_tree.rootref().set_seq();
         out_tree[0] << obj;
         out_tree[0].set_val_style(style_flag);
         EXPECT_EQ(expected_str, emitrs_yaml<std::string>(out_tree));
@@ -488,7 +488,7 @@ void test442(csubstr input, csubstr expected, NodeType style_flag)
         T obj = {};  // T is a scalar type like int, char, double, etc.
         tree["val"] >> obj;
         Tree out_tree;
-        out_tree.rootref() |= MAP;
+        out_tree.rootref().set_map();
         out_tree["val"] << obj;
         out_tree["val"].set_val_style(style_flag);
         EXPECT_EQ(expected_str, emitrs_yaml<std::string>(out_tree));

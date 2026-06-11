@@ -28,6 +28,12 @@
 #define RYML_DEFAULT_TREE_ARENA_CAPACITY (0)
 #endif
 
+#ifndef RYML_DEFAULT_TREE_ARENA_CAPACITY_START
+/// default starting capacity for the tree's arena when it is first
+/// allocated. should be larger than @ref RYML_DEFAULT_TREE_ARENA_CAPACITY
+#define RYML_DEFAULT_TREE_ARENA_CAPACITY_START (256)
+#endif
+
 
 #ifndef RYML_LOCATIONS_SMALL_THRESHOLD
 /// threshold at which a location search will revert from linear to

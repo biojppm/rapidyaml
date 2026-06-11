@@ -19,17 +19,18 @@ namespace yml {
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 // undefined below
-#define testlc(lc, buf, offs, begins_with_, rem_, full_) \
-    {                                                               \
-        RYML_TRACE_FMT("offs={}", offs);                            \
-        substr sub = buf.sub(offs);                                 \
-        if(!to_csubstr(begins_with_).empty())                       \
-        {                                                           \
-            EXPECT_TRUE(sub.begins_with(begins_with_)) << buf.sub(offs); \
-        }                                                           \
-        lc.reset_with_next_line(buf, offs);                         \
-        EXPECT_EQ(lc.rem, csubstr(rem_));                           \
-        EXPECT_EQ(lc.full, csubstr(full_));                         \
+#define testlc(lc, buf, offs, begins_with_, rem_, full_)    \
+    {                                                       \
+        RYML_TRACE_FMT("offs={}", offs);                    \
+        substr sub = buf.sub(offs);                         \
+        if(!csubstr(begins_with_).empty())                  \
+        {                                                   \
+            EXPECT_TRUE(sub.begins_with(begins_with_))      \
+                << buf.sub(offs);                           \
+        }                                                   \
+        lc.reset_with_next_line(buf, offs);                 \
+        EXPECT_EQ(lc.rem, csubstr(rem_));                   \
+        EXPECT_EQ(lc.full, csubstr(full_));                 \
     }
 
 TEST(LineContents, basic)
@@ -633,11 +634,12 @@ TEST(Parser, alloc_arena)
     Parser parser(&evt_handler);
     evt_handler.reset(&tree, tree.root_id());
     evt_handler.start_parse("filename", substr{});
-    substr bufa = evt_handler.alloc_arena(64);
+    size_t force_realloc = 512;
+    substr bufa = evt_handler.alloc_arena(force_realloc);
     bufa.fill('a');
     csubstr prev = bufa;
     csubstr prev_arena = tree.arena();
-    substr bufb = parser._alloc_arena(64, &bufa);
+    substr bufb = parser._alloc_arena(force_realloc, &bufa);
     csubstr curr_arena = tree.arena();
     EXPECT_NE(prev_arena.str, curr_arena.str);
     EXPECT_NE(prev.str, bufa.str);
@@ -898,17 +900,24 @@ protected:
     void SetUp() override
     {
         NodeRef root = ref.rootref();
-        root |= MAP;
-        root |= FLOW_SL;
+        root.set_map(FLOW_SL);
         NodeRef keyval = root.append_child();
         NodeRef keyseq = root.append_child();
         keyval << key("this") << "is";
         keyseq << key("a");
-        keyseq |= SEQ;
+        keyseq.set_seq();
         keyseq.append_child() << "yaml";
         keyseq.append_child() << "example";
     }
 
+    void check_tree(Tree const& actual)
+    {
+        // armv4/armv5 -O3 builds were assuming the arena had its
+        // original size (0). prevent it this way:
+        csubstr expected_arena = actual.arena();
+        C4_DONT_OPTIMIZE(expected_arena);
+        check_tree(actual, expected_arena);
+    }
     void check_tree(Tree const& actual, csubstr expected_arena)
     {
         ASSERT_TRUE(actual.rootref().is_map());
@@ -918,11 +927,21 @@ protected:
         EXPECT_EQ(actual["a"].key(), "a");
         EXPECT_EQ(actual["a"][0].val(), "yaml");
         EXPECT_EQ(actual["a"][1].val(), "example");
-        EXPECT_TRUE(actual["this"].key().is_sub(expected_arena));
-        EXPECT_TRUE(actual["this"].val().is_sub(expected_arena));
-        EXPECT_TRUE(actual["a"].key().is_sub(expected_arena));
-        EXPECT_TRUE(actual["a"][0].val().is_sub(expected_arena));
-        EXPECT_TRUE(actual["a"][1].val().is_sub(expected_arena));
+        #define EXPECT_IN_ARENA(expr, arena)    \
+        {                                       \
+            RYML_TRACE_FMT("is_sub={}\n"        \
+                "    {}=[{}]~~~{}~~~\n"         \
+                "    {}=[{}]~~~{}~~~",          \
+                (expr).is_sub(arena),           \
+                #expr, (expr).len, expr,        \
+                #arena, (arena).len, arena);    \
+            EXPECT_TRUE((expr).is_sub(arena));  \
+        }
+        EXPECT_IN_ARENA(actual["this"].key(), expected_arena);
+        EXPECT_IN_ARENA(actual["this"].val(), expected_arena);
+        EXPECT_IN_ARENA(actual["a"].key(), expected_arena);
+        EXPECT_IN_ARENA(actual["a"][0].val(), expected_arena);
+        EXPECT_IN_ARENA(actual["a"][1].val(), expected_arena);
         if(expected_arena.str != actual.arena().str)
         {
             EXPECT_TRUE(actual.arena().empty());
@@ -1044,45 +1063,61 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_1_1)
 {
     const Tree actual = parse_in_arena(cyaml);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_1_2)
 {
     const Tree actual = parse_in_arena(filename, cyaml);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_2_1)
 {
     Tree actual;
     parse_in_arena(cyaml, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_2_2)
 {
     Tree actual;
     parse_in_arena(filename, cyaml, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_3_1)
 {
     Tree actual;
     parse_in_arena(cyaml, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_3_2)
 {
     Tree actual;
     parse_in_arena(filename, cyaml, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 // workaround for optimizer problem in armv4 and armv5 with -O3: when
-// the calling the parser overloads that take a NodeRef, the compiler
-// optimizes the tree away
+// calling the parser overloads that take a NodeRef, the compiler
+// optimizes the tree away, assuming it did not change.
 static C4_NO_INLINE void ensure_compiler_knows_tree_was_changed(Tree *t)
 {
     C4_DONT_OPTIMIZE(*t);
@@ -1094,7 +1129,11 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_1)
     parse_in_arena(cyaml, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_2)
 {
@@ -1102,7 +1141,11 @@ TEST_F(ParseOverloadYamlTest, in_arena_noparser_4_2)
     parse_in_arena(filename, cyaml, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 
 TEST_F(ParseOverloadYamlTest, in_arena_parser_1_1)
@@ -1179,17 +1222,24 @@ protected:
     void SetUp() override
     {
         NodeRef root = ref.rootref();
-        root |= MAP;
-        root |= FLOW_SL;
+        root.set_map(FLOW_SL);
         NodeRef keyval = root.append_child();
         NodeRef keyseq = root.append_child();
         keyval << key("this") << "is";
         keyseq << key("a");
-        keyseq |= SEQ;
+        keyseq.set_seq();
         keyseq.append_child() << "json";
         keyseq.append_child() << "example";
     }
 
+    void check_tree(Tree const& actual)
+    {
+        // armv4/armv5 -O3 builds were assuming the arena had its
+        // original size (0). prevent it this way:
+        csubstr expected_arena = actual.arena();
+        C4_DONT_OPTIMIZE(expected_arena);
+        check_tree(actual, expected_arena);
+    }
     void check_tree(Tree const& actual, csubstr expected_arena)
     {
         ASSERT_TRUE(actual.rootref().is_map());
@@ -1338,28 +1388,44 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_2_1)
     Tree actual;
     parse_json_in_arena(cjson, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_2_2)
 {
     Tree actual;
     parse_json_in_arena(filename, cjson, &actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_3_1)
 {
     Tree actual;
     parse_json_in_arena(cjson, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_3_2)
 {
     Tree actual;
     parse_json_in_arena(filename, cjson, &actual, actual.root_id());
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_1)
 {
@@ -1367,7 +1433,11 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_1)
     parse_json_in_arena(cjson, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_2)
 {
@@ -1375,7 +1445,11 @@ TEST_F(ParseOverloadJsonTest, in_arena_noparser_4_2)
     parse_json_in_arena(filename, cjson, actual.rootref());
     ensure_compiler_knows_tree_was_changed(&actual);
     test_compare(actual, ref);
-    check_tree(actual, actual.arena());
+    // in armv4/armv5, this was failing because inside check_tree(),
+    // the arena had len==0!
+    //check_tree(actual, actual.arena());
+    // so do this:
+    check_tree(actual);
 }
 
 TEST_F(ParseOverloadJsonTest, in_arena_parser_1_1)
@@ -1502,10 +1576,10 @@ protected:
     void SetUp() override
     {
         dst_val.rootref().set_val("val");
-        dst_map_flow.rootref() |= MAP|FLOW_SL;
-        dst_map_blck.rootref() |= MAP|BLOCK;
-        dst_seq_flow.rootref() |= SEQ|FLOW_SL;
-        dst_seq_blck.rootref() |= SEQ|BLOCK;
+        dst_map_flow.rootref().set_map(FLOW_SL);
+        dst_map_blck.rootref().set_map(BLOCK);
+        dst_seq_flow.rootref().set_seq(FLOW_SL);
+        dst_seq_blck.rootref().set_seq(BLOCK);
     }
 
 };
@@ -1844,9 +1918,9 @@ TEST_F(ParseToMapFlowTest, empty__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, empty__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(empty), dst);
-    EXPECT_FALSE(dst.has_val());
+    EXPECT_FALSE(dst.readable());
 }
 
 
@@ -1859,9 +1933,9 @@ TEST_F(ParseToMapFlowTest, whitespace__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, whitespace__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(whitespace), dst);
-    EXPECT_FALSE(dst.has_val());
+    EXPECT_FALSE(dst.readable());
 }
 
 
@@ -1876,7 +1950,7 @@ TEST_F(ParseToMapFlowTest, val_plain__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_plain), dst);
     const Tree expected = parse_in_arena("dst: this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -1896,7 +1970,7 @@ TEST_F(ParseToMapFlowTest, val_plain_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_plain_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_plain_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -1916,7 +1990,7 @@ TEST_F(ParseToMapFlowTest, val_plain_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_plain_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_plain_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -1936,7 +2010,7 @@ TEST_F(ParseToMapFlowTest, val_squo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_squo), dst);
     const Tree expected = parse_in_arena("dst: this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -1956,7 +2030,7 @@ TEST_F(ParseToMapFlowTest, val_squo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_squo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_squo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -1976,7 +2050,7 @@ TEST_F(ParseToMapFlowTest, val_squo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_squo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_squo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -1996,7 +2070,7 @@ TEST_F(ParseToMapFlowTest, val_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_dquo), dst);
     const Tree expected = parse_in_arena("dst: this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2016,7 +2090,7 @@ TEST_F(ParseToMapFlowTest, val_dquo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_dquo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_dquo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2036,7 +2110,7 @@ TEST_F(ParseToMapFlowTest, val_dquo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_dquo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_dquo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2056,7 +2130,7 @@ TEST_F(ParseToMapFlowTest, val_literal__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_literal), dst);
     const Tree expected = parse_in_arena("dst: this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2076,7 +2150,7 @@ TEST_F(ParseToMapFlowTest, val_literal_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_literal_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_literal_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2096,7 +2170,7 @@ TEST_F(ParseToMapFlowTest, val_literal_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_literal_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_literal_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2116,7 +2190,7 @@ TEST_F(ParseToMapFlowTest, val_folded__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_folded), dst);
     const Tree expected = parse_in_arena("dst: this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2136,7 +2210,7 @@ TEST_F(ParseToMapFlowTest, val_folded_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_folded_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_folded_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2156,7 +2230,7 @@ TEST_F(ParseToMapFlowTest, val_folded_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_folded_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_folded_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2176,7 +2250,7 @@ TEST_F(ParseToMapFlowTest, val_ref__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, val_ref_to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(val_ref), dst);
     const Tree expected = parse_in_arena("dst: *ref");
     _c4dbg_tree("expected", expected);
@@ -2195,7 +2269,7 @@ TEST_F(ParseToMapFlowTest, seq_flow__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_flow), dst);
     const Tree expected = parse_in_arena("dst: [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2214,7 +2288,7 @@ TEST_F(ParseToMapFlowTest, seq_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2233,7 +2307,7 @@ TEST_F(ParseToMapFlowTest, seq_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!seq [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2252,7 +2326,7 @@ TEST_F(ParseToMapFlowTest, seq_blck__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, seq_blck__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(seq_blck), dst);
     const Tree expected = parse_in_arena("dst: [seq, block, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2273,7 +2347,7 @@ TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_flow), dst);
     const Tree expected = parse_in_arena("{dst: {map: flow, yes: it is}}");
     _c4dbg_tree("expected", expected);
@@ -2302,7 +2376,7 @@ TEST_F(ParseToMapFlowTest, map_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2323,7 +2397,7 @@ TEST_F(ParseToMapFlowTest, map_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2344,7 +2418,7 @@ TEST_F(ParseToMapFlowTest, map_block_keyless__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_keyless__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_keyless), dst);
     const Tree expected = parse_in_arena("dst : { : block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2365,7 +2439,7 @@ TEST_F(ParseToMapFlowTest, map_block_plain__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_plain), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2386,7 +2460,7 @@ TEST_F(ParseToMapFlowTest, map_block_squo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_squo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2407,7 +2481,7 @@ TEST_F(ParseToMapFlowTest, map_block_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_dquo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2428,7 +2502,7 @@ TEST_F(ParseToMapFlowTest, map_block_literal__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_literal), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2449,7 +2523,7 @@ TEST_F(ParseToMapFlowTest, map_block_folded__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_folded), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2470,7 +2544,7 @@ TEST_F(ParseToMapFlowTest, map_block_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2491,7 +2565,7 @@ TEST_F(ParseToMapFlowTest, map_block_tag__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2512,7 +2586,7 @@ TEST_F(ParseToMapFlowTest, map_block_ref__to__map_flow__root)
 
 TEST_F(ParseToMapFlowTest, map_block_ref__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_flow["dst"];
     parse_in_arena(to_csubstr(map_blck_ref), dst);
     const Tree expected = parse_in_arena("dst: {*map : block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -2538,7 +2612,7 @@ TEST_F(ParseToMapBlockTest, val_plain__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_plain), dst);
     const Tree expected = parse_in_arena("dst: this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -2558,7 +2632,7 @@ TEST_F(ParseToMapBlockTest, val_plain_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_plain_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_plain_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -2578,7 +2652,7 @@ TEST_F(ParseToMapBlockTest, val_plain_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_plain_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_plain_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a plain val");
     _c4dbg_tree("expected", expected);
@@ -2598,7 +2672,7 @@ TEST_F(ParseToMapBlockTest, val_squo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_squo), dst);
     const Tree expected = parse_in_arena("dst: this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -2618,7 +2692,7 @@ TEST_F(ParseToMapBlockTest, val_squo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_squo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_squo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -2638,7 +2712,7 @@ TEST_F(ParseToMapBlockTest, val_squo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_squo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_squo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a squo val");
     _c4dbg_tree("expected", expected);
@@ -2658,7 +2732,7 @@ TEST_F(ParseToMapBlockTest, val_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_dquo), dst);
     const Tree expected = parse_in_arena("dst: this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2678,7 +2752,7 @@ TEST_F(ParseToMapBlockTest, val_dquo_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_dquo_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_dquo_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2698,7 +2772,7 @@ TEST_F(ParseToMapBlockTest, val_dquo_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_dquo_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_dquo_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a dquo val");
     _c4dbg_tree("expected", expected);
@@ -2718,7 +2792,7 @@ TEST_F(ParseToMapBlockTest, val_literal__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_literal), dst);
     const Tree expected = parse_in_arena("dst: this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2738,7 +2812,7 @@ TEST_F(ParseToMapBlockTest, val_literal_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_literal_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_literal_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2758,7 +2832,7 @@ TEST_F(ParseToMapBlockTest, val_literal_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_literal_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_literal_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a literal val");
     _c4dbg_tree("expected", expected);
@@ -2778,7 +2852,7 @@ TEST_F(ParseToMapBlockTest, val_folded__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_folded), dst);
     const Tree expected = parse_in_arena("dst: this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2798,7 +2872,7 @@ TEST_F(ParseToMapBlockTest, val_folded_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_folded_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_folded_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2818,7 +2892,7 @@ TEST_F(ParseToMapBlockTest, val_folded_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_folded_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_folded_tag), dst);
     const Tree expected = parse_in_arena("dst: !!str this is a folded val");
     _c4dbg_tree("expected", expected);
@@ -2838,7 +2912,7 @@ TEST_F(ParseToMapBlockTest, val_ref__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, val_ref_to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(val_ref), dst);
     const Tree expected = parse_in_arena("dst: *ref");
     _c4dbg_tree("expected", expected);
@@ -2857,7 +2931,7 @@ TEST_F(ParseToMapBlockTest, seq_flow__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_flow), dst);
     const Tree expected = parse_in_arena("dst: [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2876,7 +2950,7 @@ TEST_F(ParseToMapBlockTest, seq_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2895,7 +2969,7 @@ TEST_F(ParseToMapBlockTest, seq_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!seq [seq, flow, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2914,7 +2988,7 @@ TEST_F(ParseToMapBlockTest, seq_blck__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, seq_blck__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(seq_blck), dst);
     const Tree expected = parse_in_arena("dst: [seq, block, yes, it is]");
     _c4dbg_tree("expected", expected);
@@ -2935,7 +3009,7 @@ TEST_F(ParseToMapBlockTest, map_flow__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_flow__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_flow), dst);
     const Tree expected = parse_in_arena("dst:\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2964,7 +3038,7 @@ TEST_F(ParseToMapBlockTest, map_flow_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_flow_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_flow_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -2985,7 +3059,7 @@ TEST_F(ParseToMapBlockTest, map_flow_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_flow_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_flow_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map\n  map: flow\n  yes: it is\n");
     _c4dbg_tree("expected", expected);
@@ -3006,7 +3080,7 @@ TEST_F(ParseToMapBlockTest, map_block_keyless__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_keyless__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_keyless), dst);
     const Tree expected = parse_in_arena("dst : { : block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3027,7 +3101,7 @@ TEST_F(ParseToMapBlockTest, map_block_plain__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_plain__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_plain), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3048,7 +3122,7 @@ TEST_F(ParseToMapBlockTest, map_block_squo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_squo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_squo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3069,7 +3143,7 @@ TEST_F(ParseToMapBlockTest, map_block_dquo__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_dquo__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_dquo), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3090,7 +3164,7 @@ TEST_F(ParseToMapBlockTest, map_block_literal__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_literal__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_literal), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3111,7 +3185,7 @@ TEST_F(ParseToMapBlockTest, map_block_folded__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_folded__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_folded), dst);
     const Tree expected = parse_in_arena("dst: {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3132,7 +3206,7 @@ TEST_F(ParseToMapBlockTest, map_block_anchor__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_anchor__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_anchor), dst);
     const Tree expected = parse_in_arena("dst: &anchor {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3153,7 +3227,7 @@ TEST_F(ParseToMapBlockTest, map_block_tag__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_tag__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_tag), dst);
     const Tree expected = parse_in_arena("dst: !!map {map: block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3174,7 +3248,7 @@ TEST_F(ParseToMapBlockTest, map_block_ref__to__map_flow__root)
 
 TEST_F(ParseToMapBlockTest, map_block_ref__to__map_flow__new_child)
 {
-    NodeRef dst = dst_map_blck.rootref().append_child({KEY, "dst"});
+    NodeRef dst = dst_map_blck["dst"];
     parse_in_arena(to_csubstr(map_blck_ref), dst);
     const Tree expected = parse_in_arena("dst: {*map : block, yes: it is}");
     _c4dbg_tree("expected", expected);
@@ -3183,6 +3257,310 @@ TEST_F(ParseToMapBlockTest, map_block_ref__to__map_flow__new_child)
 }
 
 
+//-----------------------------------------------------------------------------
+
+struct TmpParser
+{
+    EventHandlerTree handler;
+    Parser parser;
+    TmpParser(bool with_handler=true) : handler(get_callbacks()), parser(&handler)
+    {
+        if(!with_handler)
+            // hack for the test: set the handler to null only after constructing
+            parser.m_evt_handler = nullptr;
+    }
+};
+TEST(ParseSetupError, on_null_tree_and_parser)
+{
+    csubstr file = "file";
+    substr   src;
+    csubstr csrc;
+    Tree dummy;
+    NodeRef node;
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_place(nullptr         ,        src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_place(nullptr         , file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_arena(nullptr         ,       csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_arena(nullptr         , file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_place(nullptr    ,        src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_place(nullptr    , file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_arena(nullptr    ,       csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_arena(nullptr    , file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_place(nullptr         ,        src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_place(nullptr         , file,  src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_arena(nullptr         ,       csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_in_arena(nullptr         , file, csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_place(nullptr    ,        src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_place(nullptr    , file,  src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_arena(nullptr    ,       csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ parse_json_in_arena(nullptr    , file, csrc, node); }));
+}
+TEST(ParseSetupError, on_null_tree)
+{
+    csubstr file = "file";
+    substr   src;
+    csubstr csrc;
+    Tree dummy;
+    NodeRef node;
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; tmp.handler.reset(nullptr, NONE); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_place(                         src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_place(                  file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_arena(                        csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_arena(                  file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,             src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,      file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,            csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,      file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_place(                    src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_place(             file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_arena(                   csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_arena(             file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser,        src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser, file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser,       csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser, file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_place(                         src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_place(                  file,  src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_arena(                        csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_in_arena(                  file, csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,             src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,      file,  src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,            csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,      file, csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_place(                    src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_place(             file,  src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_arena(                   csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ /*          */ parse_json_in_arena(             file, csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser,        src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser, file,  src, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser,       csrc, node); }));
+    RYML_EXPECT_ERROR(check_error_basic(&dummy, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser, file, csrc, node); }));
+}
+TEST(ParseSetupError, on_empty_tree)
+{
+    csubstr file = "file";
+    substr   src;
+    csubstr csrc;
+    Tree dummy;
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_in_place(                         src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_in_place(                  file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_in_arena(                        csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_in_arena(                  file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_in_place(&tmp.parser,             src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_in_place(&tmp.parser,      file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_in_arena(&tmp.parser,            csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_in_arena(&tmp.parser,      file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_json_in_place(                    src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_json_in_place(             file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_json_in_arena(                   csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); /*          */ parse_json_in_arena(             file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_json_in_place(&tmp.parser,        src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_json_in_place(&tmp.parser, file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_json_in_arena(&tmp.parser,       csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_success(&dummy, [&]{ Tree tree(0); TmpParser tmp; parse_json_in_arena(&tmp.parser, file, csrc, &tree); }));
+}
+TEST(ParseSetupError, on_invalid_node)
+{
+    csubstr file = "file";
+    substr   src;
+    csubstr csrc;
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; tmp.handler.reset(&tree, NONE); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                         src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                  file,  src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                        csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                  file, csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,             src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,      file,  src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,            csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,      file, csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(                    src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(             file,  src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(                   csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(             file, csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser,        src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser, file,  src, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser,       csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser, file, csrc, node); }, NONE)); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                         src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                  file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                        csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                  file, csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,             src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,      file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,            csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,      file, csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(                    src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(             file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(                   csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(             file, csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser,        src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser, file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser,       csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree(0); ASSERT_TRUE(tree.empty()); NodeRef node(&tree, NONE); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser, file, csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; tmp.handler.reset(&tree, tree.capacity()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                         src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                  file,  src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                        csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                  file, csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,             src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,      file,  src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,            csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,      file, csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(                    src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(             file,  src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(                   csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(             file, csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser,        src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser, file,  src, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser,       csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser, file, csrc, node); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                         src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_place(                  file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                        csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_in_arena(                  file, csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,             src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_place(&tmp.parser,      file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,            csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_in_arena(&tmp.parser,      file, csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(                    src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_place(             file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(                   csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ /*          */ parse_json_in_arena(             file, csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser,        src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_place(&tmp.parser, file,  src, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser,       csrc, &tree, node.id()); }, node.id())); }
+    { Tree tree; ASSERT_GT(tree.capacity(), 0); NodeRef node(&tree, tree.capacity()); RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ TmpParser tmp; parse_json_in_arena(&tmp.parser, file, csrc, &tree, node.id()); }, node.id())); }
+}
+TEST(ParseSetupError, on_null_parser)
+{
+    csubstr file = "file";
+    substr   src;
+    csubstr csrc;
+    Tree tree; NodeRef root = tree;
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_place(nullptr,                   src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_place(nullptr,            file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_arena(nullptr,                  csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_arena(nullptr,            file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_place(nullptr,              src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_place(nullptr,       file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_arena(nullptr,             csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_arena(nullptr,       file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_place(nullptr,                   src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_place(nullptr,            file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_arena(nullptr,                  csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_in_arena(nullptr,            file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_place(nullptr,              src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_place(nullptr,       file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_arena(nullptr,             csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ parse_json_in_arena(nullptr,       file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_in_place(nullptr,             src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_in_place(nullptr,      file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_in_arena(nullptr,            csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_in_arena(nullptr,      file, csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_json_in_place(nullptr,        src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_json_in_place(nullptr, file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_json_in_arena(nullptr,       csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ (void)parse_json_in_arena(nullptr, file, csrc); }));
+}
+TEST(ParseSetupError, on_null_handler)
+{
+    csubstr file = "file";
+    substr   src;
+    csubstr csrc;
+    Tree tree;
+    NodeRef root = tree;
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,                   src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,            file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,                  csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,            file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,              src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,       file,  src, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,             csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,       file, csrc, nullptr); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,                   src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,            file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,                  csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,            file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,              src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,       file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,             csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,       file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,                   src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,            file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,                  csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,            file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,              src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,       file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,             csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,       file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_place(&tmp.parser,             src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_place(&tmp.parser,      file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_arena(&tmp.parser,            csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_arena(&tmp.parser,      file, csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_place(&tmp.parser,        src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_place(&tmp.parser, file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_arena(&tmp.parser,       csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_arena(&tmp.parser, file, csrc); }));
+}
+TEST(ParseSetupError, on_bad_src)
+{
+    csubstr file = "file";
+    substr   src;
+    csubstr csrc;
+    src.len = 1;
+    csrc.len = 1;
+    src.str = nullptr;
+    csrc.str = nullptr;
+    Tree tree;
+    NodeRef root = tree;
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_place(                  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_place(           file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_arena(                 csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_arena(           file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_place(             src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_place(      file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_arena(            csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_arena(      file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_place(                  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_place(           file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_arena(                 csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_in_arena(           file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_place(             src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_place(      file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_arena(            csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  parse_json_in_arena(      file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_in_place(            src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_in_place(     file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_in_arena(           csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_in_arena(     file, csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_json_in_place(       src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_json_in_place(file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_json_in_arena(      csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{  (void)parse_json_in_arena(file, csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,                   src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,            file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,                  csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,            file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,              src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,       file,  src, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,             csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,       file, csrc, &tree); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,                   src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_place(&tmp.parser,            file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,                  csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_in_arena(&tmp.parser,            file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,              src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_place(&tmp.parser,       file,  src, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,             csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); parse_json_in_arena(&tmp.parser,       file, csrc, root); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_place(&tmp.parser,             src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_place(&tmp.parser,      file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_arena(&tmp.parser,            csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_in_arena(&tmp.parser,      file, csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_place(&tmp.parser,        src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_place(&tmp.parser, file,  src); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_arena(&tmp.parser,       csrc); }));
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{ TmpParser tmp(/*handler*/false); (void)parse_json_in_arena(&tmp.parser, file, csrc); }));
+}
 
 
 } // namespace yml

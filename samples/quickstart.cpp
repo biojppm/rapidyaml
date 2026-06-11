@@ -2,6 +2,8 @@
 
 /** @addtogroup doc_quickstart
  *
+ * Best seen online at https://rapidyaml.readthedocs.io/v0.15.2/doxygen/
+ *
  * This file does a quick tour of ryml. It has multiple self-contained
  * and well-commented samples that illustrate how to use ryml, and how
  * it works.
@@ -38,6 +40,7 @@
  *
  * Or very quickly, to build and run this sample on your PC, start by
  * creating this `CMakeLists.txt`:
+ *
  * ```cmake
  * cmake_minimum_required(VERSION 3.13)
  * project(ryml-quickstart LANGUAGES CXX)
@@ -55,7 +58,9 @@
  *     DEPENDS ryml-quickstart
  *     COMMENT "running: $<TARGET_FILE:ryml-quickstart>")
  * ```
+ *
  * Now run the following commands in the same folder:
+ *
  * ```bash
  * # configure the project
  * cmake -S . -B build
@@ -661,14 +666,14 @@ void sample_quick_overview()
     // desired then a NodeRef must be used instead:
     ryml::NodeRef wroot = tree.rootref(); // writeable root
 
-    // operator= assigns an existing string to the receiving node.
+    // .set_val() assigns an existing string to the receiving node.
     // The contents are NOT copied, and the string pointer will be in
     // effect until the tree goes out of scope! So BEWARE to only
     // assign from strings outliving the tree.
-    wroot["foo"] = "says you";
-    wroot["bar"][0] = "-2";
-    wroot["bar"][1] = "-3";
-    wroot["john"] = "ron";
+    wroot["foo"].set_val("says you");
+    wroot["bar"][0].set_val("-2");
+    wroot["bar"][1].set_val("-3");
+    wroot["john"].set_val("ron");
     // Now the tree is _pointing_ at the memory of the strings above.
     // In this case it is OK because those are static strings, located
     // in the executable's static section, and will outlive the tree.
@@ -719,7 +724,7 @@ void sample_quick_overview()
 
     // adding a keyval node to a map:
     CHECK(root.num_children() == 5);
-    wroot["newkeyval"] = "shiny and new"; // using these strings
+    wroot["newkeyval"].set_val("shiny and new"); // using these strings
     wroot.append_child() << ryml::key("newkeyval (serialized)") << "shiny and new (serialized)"; // serializes and assigns the serialization
     CHECK(root.num_children() == 7);
     CHECK(root["newkeyval"].key() == "newkeyval");
@@ -732,15 +737,15 @@ void sample_quick_overview()
     CHECK(   tree.in_arena(root["newkeyval (serialized)"].val())); // it's using a serialization of the string above
     // adding a val node to a seq:
     CHECK(root["bar"].num_children() == 2);
-    wroot["bar"][2] = "oh so nice";
+    wroot["bar"][2].set_val("oh so nice");
     wroot["bar"][3] << "oh so nice (serialized)";
     CHECK(root["bar"].num_children() == 4);
     CHECK(root["bar"][2].val() == "oh so nice");
     CHECK(root["bar"][3].val() == "oh so nice (serialized)");
     // adding a seq node:
     CHECK(root.num_children() == 7);
-    wroot["newseq"] |= ryml::SEQ;
-    wroot.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
+    wroot["newseq"].set_seq();
+    (wroot.append_child() << ryml::key("newseq (serialized)")).set_seq();
     CHECK(root.num_children() == 9);
     CHECK(root["newseq"].num_children() == 0);
     CHECK(root["newseq"].is_seq());
@@ -748,8 +753,8 @@ void sample_quick_overview()
     CHECK(root["newseq (serialized)"].is_seq());
     // adding a map node:
     CHECK(root.num_children() == 9);
-    wroot["newmap"] |= ryml::MAP;
-    wroot.append_child() << ryml::key("newmap (serialized)") |= ryml::MAP;
+    wroot["newmap"].set_map();
+    (wroot.append_child() << ryml::key("newmap (serialized)")).set_map();
     CHECK(root.num_children() == 11);
     CHECK(root["newmap"].num_children() == 0);
     CHECK(root["newmap"].is_map());
@@ -802,7 +807,7 @@ void sample_quick_overview()
     CHECK(constsomething.invalid()); // NOTE: because a ConstNodeRef cannot be
                                      // used to mutate a tree, it is only valid()
                                      // if it is pointing at an existing node.
-    something = "indeed";  // this will commit the seed to the tree, mutating at the proper place
+    something.set_val("indeed");  // this will commit the seed to the tree, mutating at the proper place
     CHECK(root.has_child("I am something"));
     CHECK(root["I am something"].val() == "indeed");
     CHECK(!something.invalid()); // it was already valid
@@ -932,7 +937,7 @@ void sample_quick_overview()
     //constnoderef = "21";  // compile error
     //constnoderef << "22"; // compile error
     // ... but a NodeRef can:
-    noderef = "21";         // ok, can assign because it's not const
+    noderef.set_val("21");         // ok, can assign because it's not const
     CHECK(tree["bar"][0].val() == "21");
     noderef << "22";        // ok, can serialize and assign because it's not const
     CHECK(tree["bar"][0].val() == "22");
@@ -2057,14 +2062,15 @@ void sample_parse_reuse_tree()
     CHECK(root[3]["champagne"].val() == "Dom Perignon");
     CHECK(root[3]["coffee"].val() == "Arabica");
 
-    // watchout: to add to an existing node within a map, the node's
-    // key must be separately set first:
-    ryml::NodeRef more = mroot[3].append_child({ryml::KEYMAP, "more"});
-    ryml::NodeRef beer = mroot[3].append_child({ryml::KEYSEQ, "beer"});
-    ryml::NodeRef always = mroot[3].append_child({ryml::KEY, "always"});
-    ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
-    ryml::parse_in_arena("- Rochefort 10\n- Busch\n- Leffe Rituel", beer);
-    ryml::parse_in_arena("lots\nof\nwater", always);
+    mroot[3]["more"].set_map();
+    mroot[3]["beer"].set_seq();
+    CHECK(mroot[3]["more"].readable());
+    CHECK(mroot[3]["more"].key() == "more");
+    CHECK(mroot[3]["more"].is_map());
+    CHECK(!mroot[3]["more"].is_val());
+    ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", mroot[3]["more"]);
+    ryml::parse_in_arena("- Rochefort 10\n- Busch\n- Leffe Rituel", mroot[3]["beer"]);
+    ryml::parse_in_arena("lots\nof\nwater", mroot[3]["always"]);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
           "- a"                              "\n"
           "- b"                              "\n"
@@ -2106,7 +2112,7 @@ void sample_parse_reuse_tree()
           "");
 
     // or nested:
-    ryml::parse_in_arena("[Kasteel Donker]", beer);
+    ryml::parse_in_arena("[Kasteel Donker]", mroot[3]["beer"]);
     CHECK(ryml::emitrs_yaml<std::string>(tree) ==
           "- a"                              "\n"
           "- b"                              "\n"
@@ -2313,14 +2319,14 @@ void sample_create_trees()
 
     ryml::Tree tree;
     ryml::NodeRef root = tree.rootref();
-    root |= ryml::MAP; // mark root as a map
+    root.set_map(); // mark root as a map
     doe = root["doe"];
     CHECK(!doe.invalid()); // it's now pointing at the tree
     CHECK(doe.is_seed()); // but the tree has nothing there, so this is only a seed
 
     // set the value of the node
     const char a_deer[] = "a deer, a female deer";
-    doe = a_deer;
+    doe.set_val(a_deer);
     // now the node really exists in the tree, and this ref is no
     // longer a seed:
     CHECK(!doe.is_seed());
@@ -2344,21 +2350,21 @@ void sample_create_trees()
     root["xmas"] << ryml::fmt::boolalpha(true);
     root["french-hens"] << 3;
     ryml::NodeRef calling_birds = root["calling-birds"];
-    calling_birds |= ryml::SEQ;
-    calling_birds.append_child() = "huey";
-    calling_birds.append_child() = "dewey";
-    calling_birds.append_child() = "louie";
-    calling_birds.append_child() = "fred";
+    calling_birds.set_seq();
+    calling_birds.append_child().set_val("huey");
+    calling_birds.append_child().set_val("dewey");
+    calling_birds.append_child().set_val("louie");
+    calling_birds.append_child().set_val("fred");
     ryml::NodeRef xmas5 = root["xmas-fifth-day"];
-    xmas5 |= ryml::MAP;
-    xmas5["calling-birds"] = "four";
+    xmas5.set_map();
+    xmas5["calling-birds"].set_val("four");
     xmas5["french-hens"] << 3;
     xmas5["golden-rings"] << 5;
-    xmas5["partridges"] |= ryml::MAP;
+    xmas5["partridges"].set_map();
     xmas5["partridges"]["count"] << 1;
-    xmas5["partridges"]["location"] = "a pear tree";
-    xmas5["turtle-doves"] = "two";
-    root["cars"] = "GTO";
+    xmas5["partridges"]["location"].set_val("a pear tree");
+    xmas5["turtle-doves"].set_val("two");
+    root["cars"].set_val("GTO");
 
     CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
           "doe: a deer, a female deer"       "\n"
@@ -2738,7 +2744,7 @@ void sample_empty_null_values()
     CHECK(tilde  .len != 0); CHECK(tilde  .str != nullptr); CHECK(tilde   != nullptr);
     tree.clear();
     tree.clear_arena();
-    tree.rootref() |= ryml::MAP;
+    tree.rootref().set_map();
     // serializes as an empty plain scalar:
     tree["empty_null"] << null; CHECK(tree.arena() == "");
     // serializes as an empty quoted scalar:
@@ -3247,7 +3253,7 @@ void sample_base64()
 {
     // let's start by creating a tree with base64 vals and keys
     ryml::Tree tree;
-    tree.rootref() |= ryml::MAP;
+    tree.rootref().set_map();
     struct text_and_base64 { ryml::csubstr text, base64; };
     text_and_base64 cases[] = {
         {{"Hello, World!"}, {"SGVsbG8sIFdvcmxkIQ=="}},
@@ -3579,7 +3585,7 @@ void sample_user_scalar_types()
     ryml::Tree t;
 
     auto r = t.rootref();
-    r |= ryml::MAP;
+    r.set_map();
 
     vec2<int> v2in{10, 11};
     vec2<int> v2out{1, 2};
@@ -3707,20 +3713,20 @@ struct my_type
 template<class T>
 void write(ryml::NodeRef *n, my_seq_type<T> const& seq)
 {
-    *n |= ryml::SEQ;
+    n->set_seq();
     for(auto const& v : seq.seq_member)
         n->append_child() << v;
 }
 template<class K, class V>
 void write(ryml::NodeRef *n, my_map_type<K, V> const& map)
 {
-    *n |= ryml::MAP;
+    n->set_map();
     for(auto const& v : map.map_member)
         n->append_child() << ryml::key(v.first) << v.second;
 }
 void write(ryml::NodeRef *n, my_type const& val)
 {
-    *n |= ryml::MAP;
+    n->set_map();
     // these are leaf nodes:
     n->append_child() << ryml::key("v2") << val.v2;
     n->append_child() << ryml::key("v3") << val.v3;
@@ -4005,7 +4011,7 @@ void sample_float_precision()
     {
         ryml::Tree serialized;
         ryml::NodeRef root = serialized.rootref();
-        root |= ryml::SEQ;
+        root.set_seq();
         for(const double v : reference)
             root.append_child() << ryml::fmt::real(v, num_digits_original, ryml::FTOA_FLOAT);
         check_precision(serialized); // OK - now within bounds!
@@ -4015,7 +4021,7 @@ void sample_float_precision()
     {
         ryml::Tree serialized;
         ryml::NodeRef root = serialized.rootref();
-        root |= ryml::SEQ;
+        root.set_seq();
         char tmp[64];
         for(const double v : reference)
         {
@@ -5271,15 +5277,15 @@ void sample_anchors_and_aliases_create()
     // part 1: anchor/ref
     {
         ryml::Tree t;
-        t.rootref() |= ryml::MAP|ryml::BLOCK;
-        t["kanchor"] = "2";
+        t.rootref().set_map(ryml::BLOCK);
+        t["kanchor"].set_val("2");
         t["kanchor"].set_key_anchor("kanchor");
-        t["vanchor"] = "3";
+        t["vanchor"].set_val("3");
         t["vanchor"].set_val_anchor("vanchor");
         // to set a reference, need to call .set_val_ref()/.set_key_ref()
         t["kref"].set_val_ref("kanchor");
         t["vref"].set_val_ref("vanchor");
-        t["nref"] = "*vanchor";  // NOTE: this is not set as a reference in the tree!
+        t["nref"].set_val("*vanchor");  // NOTE: this is not set as a reference in the tree!
         CHECK(ryml::emitrs_yaml<std::string>(t) == ""
               "&kanchor kanchor: 2"  "\n"
               "vanchor: &vanchor 3"  "\n"
@@ -5311,7 +5317,7 @@ void sample_anchors_and_aliases_create()
         t["copy"]["<<"].set_val_ref("orig");
         t["notcopy"]["test"].set_val_ref("orig");
         t["notcopy"]["<<"].set_val_ref("orig");
-        t["notref"]["<<"] = "*orig"; // not a reference! .set_val_ref() was not called
+        t["notref"]["<<"].set_val("*orig"); // not a reference! .set_val_ref() was not called
         CHECK(ryml::emitrs_yaml<std::string>(t) == ""
               "orig: &orig {foo: bar,baz: bat}"      "\n"
               "copy: {<<: *orig}"                    "\n"
@@ -5336,7 +5342,7 @@ void sample_anchors_and_aliases_create()
             "copy: {}"                       "\n"
             "");
         ryml::NodeRef seq = t["copy"]["<<"];
-        seq |= ryml::SEQ;
+        seq.set_seq();
         seq.append_child().set_val_ref("orig1");
         seq.append_child().set_val_ref("orig2");
         seq.append_child().set_val_ref("orig3");

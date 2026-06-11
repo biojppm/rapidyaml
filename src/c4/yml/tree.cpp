@@ -1,7 +1,15 @@
+#ifndef _C4_YML_TREE_HPP_
 #include "c4/yml/tree.hpp"
+#endif
+#ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
 #include "c4/yml/detail/dbgprint.hpp"
+#endif
+#ifndef _C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
+#endif
+#ifndef _C4_YML_REFERENCE_RESOLVERS_HPP_
 #include "c4/yml/reference_resolver.hpp"
+#endif
 
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
@@ -442,20 +450,18 @@ id_type Tree::_claim()
 
 //-----------------------------------------------------------------------------
 
-C4_SUPPRESS_WARNING_GCC_PUSH
-C4_SUPPRESS_WARNING_CLANG_PUSH
-C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
-#if defined(__GNUC__)
-#if (__GNUC__ >= 6)
-C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
-#endif
-#if (__GNUC__ > 9)
-C4_SUPPRESS_WARNING_GCC("-Wanalyzer-fd-leak")
-#endif
-#endif
-
 void Tree::_set_hierarchy(id_type ichild, id_type iparent, id_type iprev_sibling)
 {
+    C4_SUPPRESS_WARNING_PUSH
+    C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+    #if defined(__GNUC__)
+    #if (__GNUC__ >= 6)
+    C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+    #endif
+    #if (__GNUC__ > 9)
+    C4_SUPPRESS_WARNING_GCC("-Wanalyzer-fd-leak")
+    #endif
+    #endif
     _RYML_ASSERT_VISIT_(m_callbacks, ichild >= 0 && ichild < m_cap, this, ichild);
     _RYML_ASSERT_VISIT_(m_callbacks, iparent == NONE || (iparent >= 0 && iparent < m_cap), this, iparent);
     _RYML_ASSERT_VISIT_(m_callbacks, iprev_sibling == NONE || (iprev_sibling >= 0 && iprev_sibling < m_cap), this, iprev_sibling);
@@ -510,10 +516,9 @@ void Tree::_set_hierarchy(id_type ichild, id_type iparent, id_type iprev_sibling
         if(child->m_prev_sibling == parent->m_last_child)
             parent->m_last_child = id(child);
     }
+    C4_SUPPRESS_WARNING_POP
 }
 
-C4_SUPPRESS_WARNING_GCC_POP
-C4_SUPPRESS_WARNING_CLANG_POP
 
 
 //-----------------------------------------------------------------------------
@@ -814,6 +819,7 @@ void Tree::_swap_props(id_type n_, id_type m_)
     std::swap(n.m_val, m.m_val);
 }
 /** @endcond */
+
 
 //-----------------------------------------------------------------------------
 void Tree::move(id_type node, id_type after)
@@ -1149,9 +1155,8 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
                 remove_children(dst_node);
             _clear_type(dst_node);
             if(src->has_key(src_node))
-                to_seq(dst_node, src->key(src_node));
-            else
-                to_seq(dst_node);
+                set_key(dst_node, src->key(src_node));
+            set_seq(dst_node);
             _p(dst_node)->m_type = src->_p(src_node)->m_type;
         }
         for(id_type sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
@@ -1170,9 +1175,8 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
                 remove_children(dst_node);
             _clear_type(dst_node);
             if(src->has_key(src_node))
-                to_map(dst_node, src->key(src_node));
-            else
-                to_map(dst_node);
+                set_key(dst_node, src->key(src_node));
+            set_map(dst_node);
             _p(dst_node)->m_type = src->_p(src_node)->m_type;
         }
         for(id_type sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
@@ -1242,23 +1246,21 @@ id_type Tree::child_pos(id_type node, id_type ch) const
     return NONE;
 }
 
-#if defined(__clang__)
-#   pragma clang diagnostic push
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   if __GNUC__ >= 6
-#       pragma GCC diagnostic ignored "-Wnull-dereference"
-#   endif
-#   if __GNUC__ > 9
-#       pragma GCC diagnostic ignored "-Wanalyzer-null-dereference"
-#   endif
-#endif
-
 id_type Tree::find_child(id_type node, csubstr const& name) const
 {
+    C4_SUPPRESS_WARNING_PUSH
+    #if defined(__clang__)
+    #elif defined(__GNUC__)
+    #   if __GNUC__ >= 6
+            C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+    #   endif
+    #   if __GNUC__ > 9
+            C4_SUPPRESS_WARNING_GCC("-Wanalyzer-null-dereference")
+    #   endif
+    #endif
     _RYML_ASSERT_VISIT_(m_callbacks, node != NONE, this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, is_map(node), this, node);
-    if(get(node)->m_first_child == NONE)
+    if(_p(node)->m_first_child == NONE)
     {
         _RYML_ASSERT_VISIT_(m_callbacks, _p(node)->m_last_child == NONE, this, node);
         return NONE;
@@ -1275,13 +1277,9 @@ id_type Tree::find_child(id_type node, csubstr const& name) const
         }
     }
     return NONE;
+    C4_SUPPRESS_WARNING_POP
 }
 
-#if defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
 
 namespace {
 id_type depth_desc_(Tree const& C4_RESTRICT t, id_type id, id_type currdepth=0, id_type maxdepth=0)
@@ -1330,10 +1328,12 @@ bool Tree::is_ancestor(id_type node, id_type ancestor) const
 
 //-----------------------------------------------------------------------------
 
+/** @cond dev */ // LCOV_EXCL_START
 void Tree::to_val(id_type node, csubstr val, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || ! parent_is_map(node), this, node);
+    _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(node) && !is_map(node), this, node);
     _set_flags(node, VAL|more_flags);
     _p(node)->m_key.clear();
     _p(node)->m_val = val;
@@ -1343,6 +1343,7 @@ void Tree::to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flag
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || parent_is_map(node), this, node);
+    _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(node) && !is_map(node), this, node);
     _set_flags(node, KEYVAL|more_flags);
     _p(node)->m_key = key;
     _p(node)->m_val = val;
@@ -1399,6 +1400,7 @@ void Tree::to_stream(id_type node, type_bits more_flags)
     _p(node)->m_key.clear();
     _p(node)->m_val.clear();
 }
+/** @endcond */ // LCOV_EXCL_STOP
 
 
 //-----------------------------------------------------------------------------
@@ -1623,10 +1625,7 @@ Tree::lookup_result Tree::lookup_path(csubstr path, id_type start) const
 id_type Tree::lookup_path_or_modify(csubstr default_value, csubstr path, id_type start)
 {
     id_type target = _lookup_path_or_create(path, start);
-    if(parent_is_map(target))
-        to_keyval(target, key(target), default_value);
-    else
-        to_val(target, default_value);
+    set_val(target, default_value);
     return target;
 }
 
@@ -1750,10 +1749,7 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
         //_RYML_ASSERT_VISIT_(m_callbacks, is_container(r->closest) || r->closest == NONE);
         if( ! is_container(r->closest))
         {
-            if(has_key(r->closest))
-                to_map(r->closest, key(r->closest));
-            else
-                to_map(r->closest);
+            set_map(r->closest);
         }
         else
         {
@@ -1804,20 +1800,12 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
         token.value = token.value.offs(1, 1).trim(' ');
         id_type idx;
         if( ! from_chars(token.value, &idx))
+        {
              return NONE;
+        }
         if( ! is_container(r->closest))
         {
-            if(has_key(r->closest))
-            {
-                csubstr k = key(r->closest);
-                _clear_type(r->closest);
-                to_seq(r->closest, k);
-            }
-            else
-            {
-                _clear_type(r->closest);
-                to_seq(r->closest);
-            }
+            set_seq(r->closest);
         }
         _RYML_ASSERT_VISIT_(m_callbacks, is_container(r->closest), this, r->closest);
         node = child(r->closest, idx);
@@ -1830,9 +1818,14 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
                 if(i < idx)
                 {
                     if(is_map(r->closest))
-                        to_keyval(node, /*"~"*/{}, /*"~"*/{});
-                    else if(is_seq(r->closest))
-                        to_val(node, /*"~"*/{});
+                    {
+                        set_key(node, {});
+                        set_val(node, {});
+                    }
+                    else
+                    {
+                        set_val(node, {});
+                    }
                 }
             }
         }
@@ -1904,9 +1897,15 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#ifndef _C4_YML_EVENT_HANDLER_TREE_HPP_
 #include "c4/yml/event_handler_tree.hpp"
+#endif
+#ifndef _C4_YML_PARSE_ENGINE_DEF_HPP_
 #include "c4/yml/parse_engine.def.hpp"
+#endif
+#ifndef _C4_YML_PARSE_HPP_
 #include "c4/yml/parse.hpp"
+#endif
 
 namespace c4 {
 namespace yml {

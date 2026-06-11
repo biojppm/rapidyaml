@@ -12,15 +12,12 @@
 #include <gtest/gtest.h>
 #include <unordered_map>
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4389) // signed/unsigned mismatch
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#endif
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+C4_SUPPRESS_WARNING_MSVC(4389) // signed/unsigned mismatch
+C4_SUPPRESS_WARNING_CLANG("-Wdollar-in-identifier-extension")
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -1120,6 +1117,33 @@ void verify_error_(csubstr src, Function &&fn, ExpectedErrorType errtype=Expecte
 
 
 constexpr const ExpectedErrorType visit = ExpectedErrorType::err_visit;
+
+TEST(Tree, get)
+{
+    Tree t = parse_in_arena("[0, 1, 2, 3]");
+    Tree const& ct = t;
+    {
+        EXPECT_EQ(t.get(NONE), nullptr);
+        EXPECT_EQ(t.id(t.get(NONE)), NONE);
+        EXPECT_EQ(t.id(t.get(0)), 0);
+        EXPECT_EQ(t.id(t.get(1)), 1);
+        EXPECT_EQ(t.id(t.get(2)), 2);
+        EXPECT_EQ(t.id(t.get(3)), 3);
+        EXPECT_EQ(t.id(t.get(4)), 4);
+        verify_assertion(t, [](Tree & tree){ return tree.get(tree.capacity()); }, visit);
+    }
+    {
+        EXPECT_EQ(ct.get(NONE), nullptr);
+        EXPECT_EQ(ct.id(ct.get(NONE)), NONE);
+        EXPECT_EQ(ct.id(ct.get(0)), 0);
+        EXPECT_EQ(ct.id(ct.get(1)), 1);
+        EXPECT_EQ(ct.id(ct.get(2)), 2);
+        EXPECT_EQ(ct.id(ct.get(3)), 3);
+        EXPECT_EQ(ct.id(ct.get(4)), 4);
+        verify_assertion(t, [&](Tree &){ return ct.get(ct.capacity()); }, visit);
+    }
+}
+
 TEST(Tree, ref)
 {
     Tree t = parse_in_arena("[0, 1, 2, 3]");
@@ -1177,11 +1201,13 @@ TEST(Tree, operator_square_brackets_seq)
     Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
     Tree &m = t;
     Tree const& cm = t;
+    EXPECT_EQ(m[0].tree(), &t);
     EXPECT_EQ(m[0].val(), "0");
     EXPECT_EQ(m[1].val(), "1");
     EXPECT_EQ(m[2].val(), "2");
     EXPECT_EQ(m[3].val(), "3");
     EXPECT_EQ(m[4].val(), "4");
+    EXPECT_EQ(cm[0].tree(), &t);
     EXPECT_EQ(cm[0].val(), "0");
     EXPECT_EQ(cm[1].val(), "1");
     EXPECT_EQ(cm[2].val(), "2");
@@ -1190,8 +1216,8 @@ TEST(Tree, operator_square_brackets_seq)
     //
     verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; }, visit);
     verify_assertion(t, [&](Tree const&){ return cm[NONE]; }, visit);
-    verify_assertion(t, [&](Tree const&){ return cm[0][0]; }, visit);
-    verify_assertion(t, [&](Tree const&){ return cm["a"]; }, visit);
+    verify_assertion(t, [&](Tree const&){ return m[5][0]; }, visit);
+    verify_assertion(t, [&](Tree const&){ return m[5]["a"]; }, visit);
 }
 
 TEST(Tree, operator_square_brackets_map)
@@ -1211,7 +1237,7 @@ TEST(Tree, operator_square_brackets_map)
     EXPECT_EQ(cm["e"].val(), "4");
     //
     verify_assertion(t, [&](Tree const&){ return cm["f"]; }, visit);
-    verify_assertion(t, [&](Tree const&){ return cm["g"]["h"]; }, visit);
+    verify_assertion(t, [&](Tree const&){ return m["f"]["h"]; }, visit);
 }
 
 TEST(Tree, noderef_at_seq)
@@ -1256,7 +1282,7 @@ TEST(Tree, noderef_at_seq)
     EXPECT_EQ(to_be_removed.id(), 5);
     EXPECT_EQ(to_be_removed_orig.id(), 5);
     m.remove_child(to_be_removed);
-    EXPECT_EQ(to_be_removed.id(), 5); // it is stale now
+    EXPECT_EQ(to_be_removed.id(), NONE); // it is stale now
     EXPECT_EQ(to_be_removed_orig.id(), 5); // it is stale now
     EXPECT_EQ(m.num_children(), 4);
     EXPECT_TRUE(m.at(4).is_seed());
@@ -3655,9 +3681,13 @@ seq: &seq [*valref, bar]
     //
     EXPECT_TRUE(t.has_sibling(map_id, "map"));
     EXPECT_TRUE(t.has_sibling(map_id, "seq"));
+    EXPECT_TRUE(t.has_sibling(map_id, map.id()));
+    EXPECT_TRUE(t.has_sibling(map_id, seq.id()));
     EXPECT_FALSE(t.has_sibling(map_id, "..."));
     EXPECT_TRUE(t.has_sibling(seq_id, "map"));
     EXPECT_TRUE(t.has_sibling(seq_id, "seq"));
+    EXPECT_TRUE(t.has_sibling(seq_id, map.id()));
+    EXPECT_TRUE(t.has_sibling(seq_id, seq.id()));
     EXPECT_FALSE(t.has_sibling(seq_id, "..."));
     //
     EXPECT_EQ(t.find_sibling(map_id, "map"), t.find_child(doc_id, "map"));
@@ -3683,9 +3713,17 @@ seq: &seq [*valref, bar]
     //
     EXPECT_TRUE(map.has_sibling("map"));
     EXPECT_TRUE(map.has_sibling("seq"));
+    EXPECT_TRUE(map.has_sibling(map.id()));
+    EXPECT_TRUE(map.has_sibling(seq.id()));
+    EXPECT_TRUE(map.has_sibling(map));
+    EXPECT_TRUE(map.has_sibling(seq));
     EXPECT_FALSE(map.has_sibling("..."));
     EXPECT_TRUE(seq.has_sibling("map"));
     EXPECT_TRUE(seq.has_sibling("seq"));
+    EXPECT_TRUE(seq.has_sibling(map.id()));
+    EXPECT_TRUE(seq.has_sibling(seq.id()));
+    EXPECT_TRUE(seq.has_sibling(map));
+    EXPECT_TRUE(seq.has_sibling(seq));
     EXPECT_FALSE(seq.has_sibling("..."));
     //
     EXPECT_EQ(mmap.find_sibling("map").id(), t.find_sibling(map_id, "map"));
@@ -3697,9 +3735,17 @@ seq: &seq [*valref, bar]
     //
     EXPECT_TRUE(mmap.has_sibling("map"));
     EXPECT_TRUE(mmap.has_sibling("seq"));
+    EXPECT_TRUE(mmap.has_sibling(map.id()));
+    EXPECT_TRUE(mmap.has_sibling(seq.id()));
+    EXPECT_TRUE(mmap.has_sibling(map));
+    EXPECT_TRUE(mmap.has_sibling(seq));
     EXPECT_FALSE(mmap.has_sibling("..."));
     EXPECT_TRUE(mseq.has_sibling("map"));
     EXPECT_TRUE(mseq.has_sibling("seq"));
+    EXPECT_TRUE(mseq.has_sibling(map.id()));
+    EXPECT_TRUE(mseq.has_sibling(seq.id()));
+    EXPECT_TRUE(mseq.has_sibling(map));
+    EXPECT_TRUE(mseq.has_sibling(seq));
     EXPECT_FALSE(mseq.has_sibling("..."));
     //
     verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].find_sibling("foo"); }, visit);
@@ -4203,10 +4249,40 @@ TEST(Tree, lookup_path_or_modify)
         EXPECT_EQ(dst["a"]["b"]["d"][1].val(), "y");
         EXPECT_EQ(dst["a"]["b"]["d"][2].val(), "z");
     }
-
     {
         Tree t;
-        t.rootref() |= MAP;
+        t.rootref().set_map();
+        ExpectError::check_assert_visit(&t, [&]{
+            (void)t.lookup_path_or_modify("x", "newmap.newseq[notnumber].newmap.newseq[0].first");
+        });
+    }
+    {
+        Tree t;
+        t.rootref().set_map();
+        csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
+        id_type id = t.lookup_path_or_modify("x", bigpath);
+        EXPECT_EQ(t.lookup_path(bigpath).target, id);
+        EXPECT_EQ(t.val(id), "x");
+        bigpath = "newmap.newseq[0].newmap[4]";
+        id = t.lookup_path_or_modify("x", bigpath);
+        t.set_key(id, "haha");
+        EXPECT_EQ(t.lookup_path(bigpath).target, id);
+        EXPECT_EQ(t.val(id), "x");
+        EXPECT_EQ(emitrs_yaml<std::string>(t),
+                  "newmap:\n"
+                  "  newseq:\n"
+                  "    - newmap:\n"
+                  "        newseq:\n"
+                  "          - first: x\n"
+                  "        : \n"
+                  "        : \n"
+                  "        : \n"
+                  "        haha: x\n"
+                  "");
+    }
+    {
+        Tree t;
+        t.rootref().set_map();
         csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
         auto result = t.lookup_path(bigpath);
         EXPECT_EQ(result.target, (id_type)NONE);
@@ -4332,7 +4408,7 @@ TEST(set_root_as_stream, empty_tree)
 TEST(set_root_as_stream, already_with_stream)
 {
     Tree t;
-    t.to_stream(t.root_id());
+    t.set_stream(t.root_id());
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), true);
     EXPECT_EQ(r.num_children(), 0u);
@@ -4539,8 +4615,7 @@ TEST(set_root_as_stream, root_is_docval)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r.set_type(DOCVAL);
-    r.set_val("bar");
+    r.set_val("bar", DOC);
     r.set_val_tag("<!foo>");
     EXPECT_EQ(r.is_stream(), false);
     EXPECT_EQ(r.is_doc(), true);
@@ -5186,8 +5261,12 @@ TEST(Tree, unfiltered)
     EXPECT_FALSE(tree[4].is_val_unfiltered());
     EXPECT_EQ(tree[3].key(), "literal key");
     EXPECT_EQ(tree[3].val(), "literal val");
+    EXPECT_EQ(tree[3].keysc().scalar, "literal key");
+    EXPECT_EQ(tree[3].valsc().scalar, "literal val");
     EXPECT_EQ(tree[4].key(), "folded key");
     EXPECT_EQ(tree[4].val(), "folded val");
+    EXPECT_EQ(tree[4].keysc().scalar, "folded key");
+    EXPECT_EQ(tree[4].valsc().scalar, "folded val");
     EventHandlerTree evt_handler = {};
     Parser parser(&evt_handler, ParserOptions().scalar_filtering(false));
     const Tree tree2 = parse_in_arena(&parser, style_yaml);
@@ -5228,10 +5307,4 @@ Case const* get_case(csubstr /*name*/)
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_POP

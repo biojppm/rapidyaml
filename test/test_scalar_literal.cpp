@@ -844,13 +844,13 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1_0)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r |= SEQ|BLOCK;
+    r.set_seq(BLOCK);
     csubstr v0 = "\n";
     csubstr v1 = "\n";
     csubstr v2 = "last";
-    r.append_child() = v0;
-    r.append_child() = v1;
-    r.append_child() = v2;
+    r.append_child().set_val(v0);
+    r.append_child().set_val(v1);
+    r.append_child().set_val(v2);
     test_check_emit_check(t, [&](Tree const& out){
         EXPECT_EQ(out[0].val(), v0);
         EXPECT_EQ(out[1].val(), v1);
@@ -862,13 +862,13 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r |= SEQ|BLOCK;
+    r.set_seq(BLOCK);
     csubstr v0 = "\n\n";
     csubstr v1 = "\n\n";
     csubstr v2 = "last";
-    r.append_child() = v0;
-    r.append_child() = v1;
-    r.append_child() = v2;
+    r.append_child().set_val(v0);
+    r.append_child().set_val(v1);
+    r.append_child().set_val(v2);
     test_check_emit_check(t, [&](Tree const& out){
         EXPECT_EQ(out[0].val(), v0);
         EXPECT_EQ(out[1].val(), v1);

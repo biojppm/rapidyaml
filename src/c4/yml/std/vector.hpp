@@ -16,7 +16,7 @@ namespace yml {
 template<class V, class Alloc>
 void write(c4::yml::NodeRef *n, std::vector<V, Alloc> const& vec)
 {
-    *n |= c4::yml::SEQ;
+    n->set_seq();
     for(V const& v : vec)
         n->append_child() << v;
 }

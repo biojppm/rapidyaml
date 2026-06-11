@@ -230,7 +230,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 id_type node = tree.append_child(top.tree_node);
                 NodeType as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
                 _nfo_logf("seq[{}]: child={} val='{}' as_doc=", top.tree_node, node, curr.scalar.maybe_get(), as_doc.type_str());
-                tree.to_val(node, curr.filtered_scalar(&tree), as_doc);
+                tree.set_val(node, curr.filtered_scalar(&tree), as_doc);
                 curr.add_val_props(&tree, node);
             }
             else if(tree.is_map(top.tree_node))
@@ -248,7 +248,8 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                     id_type node = tree.append_child(top.tree_node);
                     NodeType as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
                     _nfo_logf("map[{}]: child={} key='{}' val='{}' as_doc={}", top.tree_node, node, key.scalar.maybe_get(), curr.scalar.maybe_get(), as_doc.type_str());
-                    tree.to_keyval(node, key.filtered_scalar(&tree), curr.filtered_scalar(&tree), as_doc);
+                    tree.set_key(node, key.filtered_scalar(&tree), as_doc);
+                    tree.set_val(node, curr.filtered_scalar(&tree), as_doc);
                     key.add_key_props(&tree, node);
                     curr.add_val_props(&tree, node);
                     _nfo_logf("clear key='{}'", key.scalar.maybe_get());
@@ -258,7 +259,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
             else
             {
                 _nfo_logf("setting tree_node={} to DOCVAL...", top.tree_node);
-                tree.to_val(top.tree_node, curr.filtered_scalar(&tree), tree.type(top.tree_node));
+                tree.set_val(top.tree_node, curr.filtered_scalar(&tree), tree.type(top.tree_node));
                 curr.add_val_props(&tree, top.tree_node);
             }
         }
@@ -272,7 +273,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 _nfo_logf("node[{}] is seq: set {} as val ref", top.tree_node, alias);
                 ASSERT_FALSE(key);
                 id_type node = tree.append_child(top.tree_node);
-                tree.to_val(node, alias);
+                tree.set_val(node, alias);
                 tree.set_val_ref(node, alias);
             }
             else if(tree.is_map(top.tree_node))
@@ -281,7 +282,8 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 {
                     _nfo_logf("node[{}] is map and key '{}' is pending: set {} as val ref", top.tree_node, key.scalar.maybe_get(), alias);
                     id_type node = tree.append_child(top.tree_node);
-                    tree.to_keyval(node, key.filtered_scalar(&tree), alias);
+                    tree.set_key(node, key.filtered_scalar(&tree));
+                    tree.set_val(node, alias);
                     key.add_key_props(&tree, node);
                     tree.set_val_ref(node, alias);
                     _nfo_logf("clear key='{}'", key);
@@ -349,7 +351,8 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 {
                     _nfo_logf("has key, set to keyseq: parent={} child={} key='{}'", parent, node, key);
                     ASSERT_EQ(tree.is_map(parent) || node == parent, true);
-                    tree.to_seq(node, key.filtered_scalar(&tree), more_flags);
+                    tree.set_key(node, key.filtered_scalar(&tree), more_flags);
+                    tree.set_seq(node, more_flags);
                     key.add_key_props(&tree, node);
                     _nfo_logf("clear key='{}'", key.scalar.maybe_get());
                     key = {};
@@ -360,12 +363,13 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                     {
                         _nfo_logf("has null key, set to keyseq: parent={} child={}", parent, node);
                         ASSERT_EQ(tree.is_map(parent) || node == parent, true);
-                        tree.to_seq(node, csubstr{}, more_flags);
+                        tree.set_key(node, csubstr{}, more_flags);
+                        tree.set_seq(node, more_flags);
                     }
                     else
                     {
                         _nfo_logf("no key, set to seq: parent={} child={}", parent, node);
-                        tree.to_seq(node, more_flags);
+                        tree.set_seq(node, more_flags);
                     }
                 }
             }
@@ -424,7 +428,8 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 {
                     _nfo_logf("has key, set to keymap: parent={} child={} key='{}'", parent, node, key);
                     ASSERT_EQ(tree.is_map(parent) || node == parent, true);
-                    tree.to_map(node, key.filtered_scalar(&tree), more_flags);
+                    tree.set_key(node, key.filtered_scalar(&tree), more_flags);
+                    tree.set_map(node, more_flags);
                     key.add_key_props(&tree, node);
                     _nfo_logf("clear key='{}'", key.scalar.maybe_get());
                     key = {};
@@ -435,12 +440,13 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                     {
                         _nfo_logf("has null key, set to keymap: parent={} child={}", parent, node);
                         ASSERT_EQ(tree.is_map(parent) || node == parent, true);
-                        tree.to_map(node, csubstr{}, more_flags);
+                        tree.set_key(node, csubstr{}, more_flags);
+                        tree.set_map(node, more_flags);
                     }
                     else
                     {
                         _nfo_logf("no key, set to map: parent={} child={}", parent, node);
-                        tree.to_map(node, more_flags);
+                        tree.set_map(node, more_flags);
                     }
                 }
             }
@@ -484,7 +490,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 {
                     _nfo_log("there is already a stream, append a DOC");
                     node = tree.append_child(node);
-                    tree.to_doc(node);
+                    tree.set_doc(node);
                     m_stack.push({node});
                 }
                 else if(is_sep)
@@ -495,7 +501,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                         tree._add_flags(node, STREAM);
                         node = tree.append_child(node);
                         _nfo_logf("create STREAM at {} and add DOC child={}", tree.root_id(), node);
-                        tree.to_doc(node);
+                        tree.set_doc(node);
                         m_stack.push({node});
                     }
                     else
@@ -504,7 +510,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                         tree.set_root_as_stream();
                         node = tree.append_child(tree.root_id());
                         _nfo_logf("added doc as STREAM child: {}", node);
-                        tree.to_doc(node);
+                        tree.set_doc(node);
                         m_stack.push({node});
                     }
                 }
@@ -525,7 +531,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 ASSERT_NE(parent, (id_type)NONE);
                 node = tree.append_child(parent);
                 _nfo_logf("child DOC={}", node);
-                tree.to_doc(node);
+                tree.set_doc(node);
                 m_stack.push({node});
             }
         }

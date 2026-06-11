@@ -777,8 +777,8 @@ TEST(empty_scalar, std_string)
     Tree tree = parse_in_arena("{ser: {}, eq: {}}");
     tree["ser"]["stdstr"] << stdss;
     tree["ser"]["nullss"] << nullss;
-    tree["eq"]["stdstr"] = stdss;
-    tree["eq"]["nullss"] = nullss;
+    tree["eq"]["stdstr"].set_val(stdss);
+    tree["eq"]["nullss"].set_val(nullss);
     EXPECT_EQ(emitrs_yaml<std::string>(tree),
               "{ser: {stdstr: '',nullss: },eq: {stdstr: '',nullss: }}");
 }
@@ -901,8 +901,8 @@ TEST(empty_scalar, build_zero_length_string)
 {
     Tree tr;
     NodeRef root = tr.rootref();
-    root |= MAP;
-    auto addseq = [&root](csubstr name) { NodeRef n = root[name]; n |= SEQ; return n; };
+    root.set_map();
+    auto addseq = [&root](csubstr name) { NodeRef n = root[name]; n.set_seq(); return n; };
 
     // try both with nonnull-zero-length and null-zero-length
     std::string stdstr;
@@ -921,45 +921,45 @@ TEST(empty_scalar, build_zero_length_string)
     // = and << must have exactly the same behavior where nullity is
     // regarded
 
+
     {
         NodeRef quoted = addseq("s-quoted");
-        {NodeRef r = quoted.append_child(); r = ""      ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted.append_child(); r << ""     ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted.append_child(); r = empty   ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted.append_child(); r << empty  ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted.append_child(); r = stdss   ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted.append_child(); r << stdss  ; r.set_type(r.type() | VAL_SQUO);}
+        quoted.append_child().set_val("", VAL_SQUO);
+        (quoted.append_child() << ""   ).set_val_style(VAL_SQUO);
+        quoted.append_child().set_val(empty, VAL_SQUO);
+        (quoted.append_child() << empty).set_val_style(VAL_SQUO);
+        quoted.append_child().set_val(stdss, VAL_SQUO);
+        (quoted.append_child() << stdss).set_val_style(VAL_SQUO);
     }
     {
         NodeRef quoted = addseq("d-quoted");
-        {NodeRef r = quoted.append_child(); r = ""      ; r.set_type(r.type() | VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r << ""     ; r.set_type(r.type() | VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r = empty   ; r.set_type(r.type() | VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r << empty  ; r.set_type(r.type() | VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r = stdss   ; r.set_type(r.type() | VAL_DQUO);}
-        {NodeRef r = quoted.append_child(); r << stdss  ; r.set_type(r.type() | VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r.set_val("", VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r << ""     ; r.set_val_style(VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r.set_val(empty, VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r << empty  ; r.set_val_style(VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r.set_val(stdss, VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r << stdss  ; r.set_val_style(VAL_DQUO);}
     }
     {
         NodeRef quoted_null = addseq("quoted_null");
-        {NodeRef r = quoted_null.append_child(); r = nullss  ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted_null.append_child(); r << nullss ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted_null.append_child(); r = nullptr ; r.set_type(r.type() | VAL_SQUO);}
-        {NodeRef r = quoted_null.append_child(); r << nullptr; r.set_type(r.type() | VAL_SQUO);}
+        {NodeRef r = quoted_null.append_child(); r.set_val(nullss, VAL_SQUO);}
+        {NodeRef r = quoted_null.append_child(); r << nullss ; r.set_val_style(VAL_SQUO);}
+        {NodeRef r = quoted_null.append_child(); r << nullptr; r.set_val_style(VAL_SQUO);}
     }
     {
         NodeRef non_quoted = addseq("nonquoted");
-        non_quoted.append_child() = "";
+        non_quoted.append_child().set_val("");
         non_quoted.append_child() << "";
-        non_quoted.append_child() = empty;
+        non_quoted.append_child().set_val(empty);
         non_quoted.append_child() << empty;
-        non_quoted.append_child() = stdss;
+        non_quoted.append_child().set_val(stdss);
         non_quoted.append_child() << stdss;
     }
     {
         NodeRef non_quoted_null = addseq("nonquoted_null");
-        non_quoted_null.append_child() = nullss;
+        non_quoted_null.append_child().set_val(nullss);
         non_quoted_null.append_child() << nullss;
-        non_quoted_null.append_child() = nullptr;
+        non_quoted_null.append_child().set_val(nullptr);
         non_quoted_null.append_child() << nullptr;
     }
 
