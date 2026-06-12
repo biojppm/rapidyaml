@@ -27,6 +27,14 @@ option(RYML_DBG "Enable (very verbose) debug prints." OFF)
 
 option(RYML_INSTALL "Enable install target" ON)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    option(RYML_FUZZ_DRIVERS "Build fuzz driver binaries (other than unit tests from RYML_FUZZ_TEST)." OFF)
+    if(RYML_FUZZ_DRIVERS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=fuzzer,address,undefined -g -O1")
+        set(RYML_FUZZ_ARGS DURATION=30)
+    endif()
+endif()
+
 
 #-------------------------------------------------------
 

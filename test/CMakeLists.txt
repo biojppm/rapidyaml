@@ -372,49 +372,141 @@ set(fuzzdefault ON)
 if(EMSCRIPTEN)
     set(fuzzdefault OFF)
 endif()
-option(RYML_TEST_FUZZ "Enable tests for known problematic fuzz cases." ${fuzzdefault})
 
-if(RYML_TEST_FUZZ)
+option(RYML_FUZZ_TEST "Add tests for known fuzz failure cases." ${fuzzdefault})
+if(RYML_FUZZ_TEST)
+    option(RYML_FUZZ_TEST_INDIVIDUAL "Run one unit test per fuzz case (uses many tests)." OFF)
+endif()
+
+
+if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
+    if(RYML_FUZZ_DRIVERS)
+        set(ryml_fuzz_umbrella_cmds)
+    endif()
+    function(ryml_add_fuzz_variant name fuzz_mk_target fuzzdir faildir)
+        function(ryml_add_fuzz_exe exename)
+            cmake_parse_arguments("" "" "" "SRC;LIBS" ${ARGN})
+            c4_add_executable(${exename}
+                SOURCES ${_SRC}
+                INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
+                LIBS ryml ${_LIBS}
+                FOLDER test/fuzz)
+            if(RYML_DBG)
+                target_compile_definitions(${exename} PUBLIC RYML_DBG)
+            endif()
+        endfunction()
+        #
+        # add unit test
+        #
+        ryml_add_fuzz_exe(ryml-test-fuzz-${name}
+            SRC test_fuzz/test_fuzz_main.cpp
+                test_fuzz/test_fuzz_${name}.cpp
+                test_fuzz/test_fuzz_common.hpp
+            LIBS ryml-_testmain c4fs
+        )
+        add_dependencies(ryml-test-build ryml-test-fuzz-${name})
+        ryml_get_target_exe(ryml-test-fuzz-${name} testexe)
+        if(RYML_FUZZ_TEST_INDIVIDUAL)
+            # run tests individually. this would tens of thousands of
+            # unit tests, so we only run the fail dir, which has ~1000
+            file(GLOB_RECURSE fuzz_cases RELATIVE "${fuzzdir}/${faildir}" "${fuzzdir}/${faildir}/*")
+            foreach(file ${fuzz_cases})
+                string(REPLACE "/" "_" fuzz_name "${file}")
+                add_test(NAME ryml-test-fuzz-${name}-${fuzz_name}
+                    COMMAND ${testexe} ${fuzzdir}/${faildir}/${file})
+                set_tests_properties(ryml-test-fuzz-${name}-${fuzz_name} PROPERTIES TIMEOUT 10)
+            endforeach()
+        else()
+            # pass the directory as argument to the test exe, which
+            # will then iterate over the files. this generates only a
+            # handful of unit tests, so we can run everything.
+            foreach(corpus_dir ${faildir} ${ARGN})
+                message(STATUS ryml-test-fuzz-${name}-${corpus_dir})
+                add_test(NAME ryml-test-fuzz-${name}-${corpus_dir}
+                    COMMAND ${testexe} ${fuzzdir}/${corpus_dir}
+                )
+                set_tests_properties(ryml-test-fuzz-${name}-${corpus_dir} PROPERTIES TIMEOUT 1000)
+            endforeach()
+        endif()
+        #
+        # add a fuzz driver?
+        #
+        if(RYML_FUZZ_DRIVERS)
+            if(NOT CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+                message(FATAL_ERROR "Fuzz binaries require Clang. id=${CMAKE_CXX_COMPILER_ID}")
+            endif()
+            # add the executable
+            ryml_add_fuzz_exe(ryml-fuzz-${name}
+                SRC test_fuzz/test_fuzz_${name}.cpp
+                    test_fuzz/test_fuzz_common.hpp
+            )
+            if(NOT TARGET ryml-fuzz-drivers-build)
+                add_custom_target(ryml-fuzz-drivers-build)
+            endif()
+            add_dependencies(ryml-fuzz-drivers-build ryml-fuzz-${name})
+            # copy the executable to fuzzdir/bin
+            add_custom_command(TARGET ryml-fuzz-${name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     $<TARGET_FILE:ryml-fuzz-${name}>
+                     ${fuzzdir}/bin/ryml-fuzz-${name}
+                COMMENT "${name}: placing at ${fuzzdir}/bin/ryml-fuzz-${name}"
+            )
+            # this is the fuzz command.
+            # it is better to run by hand (see the options in the
+            # makefile), but this command is enough to get going:
+            set(cmd
+                # use the makefile
+                ${CMAKE_MAKE_PROGRAM} -C ${fuzzdir}
+                ${fuzz_mk_target}
+                FUZZBIN=bin/ryml-fuzz-${name}
+                ${RYML_FUZZ_ARGS}
+            )
+            string(REPLACE ";" " " cmd_spc "${cmd}")
+            # add the fuzz run target
+            add_custom_target(ryml-fuzz-${name}-run
+                COMMAND ${CMAKE_COMMAND} -E echo ${cmd_spc}
+                COMMAND ${cmd}
+                COMMENT "${cmd_spc}"
+                DEPENDS ryml-fuzz-${name}
+            )
+            # append to the umbrella list
+            set(all ${ryml_fuzz_umbrella_cmds})
+            list(APPEND all
+                COMMAND ${CMAKE_COMMAND}
+                    --build ${CMAKE_BINARY_DIR}
+                    --target ryml-fuzz-${name}-run
+            )
+            set(ryml_fuzz_umbrella_cmds ${all} PARENT_SCOPE)
+        endif()
+    endfunction()
+
+    # get the fuzz repo
     c4_download_remote_proj(rapidyaml-data rapidyaml_data_dir
         GIT_REPOSITORY https://github.com/biojppm/rapidyaml-data
-        GIT_TAG master)
+        GIT_TAG 20260612)
     if(NOT EXISTS ${rapidyaml_data_dir}/fuzz/yaml.dict)
-        c4_err("cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
+        message(FATAL_ERROR "cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
+    endif()
+    # add all the fuzzes
+    if(RYML_FUZZ_TEST_INDIVIDUAL)
+        set(json_dirs json_fails)
+        set(yaml_dirs yaml_fails)
+    else()
+        set(json_dirs json_fails json_merged json_rapidyamldump)
+        set(yaml_dirs
+            yaml_fails yaml_merged yaml_rapidyamldump yaml_test_suite
+            ${json_dirs})
+    endif()
+    ryml_add_fuzz_variant(yaml_tree yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(yaml_ints yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(json_tree json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(json_ints json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    # umbrella runner
+    if(RYML_FUZZ_DRIVERS)
+        add_custom_target(ryml-fuzz-drivers-run
+            ${ryml_fuzz_umbrella_cmds}
+            DEPENDS ryml-fuzz-drivers-build
+        )
     endif()
 
-    set(corpus_suite_dir ${rapidyaml_data_dir}/fuzz/yaml_test_suite)
-    set(corpus_generated_dir ${rapidyaml_data_dir}/fuzz/yaml_generated)
-    set(corpus_artifacts_dir ${rapidyaml_data_dir}/fuzz/yaml_artifacts)
-    set(corpus_merged_dir ${rapidyaml_data_dir}/fuzz/yaml_merged)
-    set(yaml_dict ${rapidyaml_data_dir}/fuzz/yaml.dict)
-    file(GLOB_RECURSE fuzz_files RELATIVE "${corpus_artifacts_dir}" "${corpus_artifacts_dir}/*")
-    file(GLOB_RECURSE suite_files RELATIVE "${corpus_suite_dir}" "${corpus_suite_dir}/*")
-
-    # add individual tests for problematic fuzz files
-    function(ryml_add_fuzz_test name)
-        c4_add_executable(ryml-test-fuzz-${name}
-            SOURCES
-                test_fuzz/test_fuzz_common.hpp
-                test_fuzz/test_fuzz_${name}.cpp
-                test_fuzz/test_fuzz_main.cpp
-                ${ARGN}
-            INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
-            LIBS ryml ryml-_testmain c4fs
-            FOLDER test/fuzz)
-        if(RYML_DBG)
-            target_compile_definitions(ryml-test-fuzz-${name} PUBLIC RYML_DBG)
-        endif()
-        add_dependencies(ryml-test-build ryml-test-fuzz-${name})
-        ryml_get_target_exe(ryml-test-fuzz-${name} tgtexe)
-        function(ryml_add_fuzz_test_file name_ dir file)
-            string(REPLACE "/" "_" fuzz_name "${file}")
-            add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name} COMMAND ${tgtexe} ${dir}/${file})
-            set_tests_properties(ryml-test-fuzz-${name_}-${fuzz_name} PROPERTIES TIMEOUT 10)
-        endfunction()
-        foreach(fuzz_file ${fuzz_files})
-            ryml_add_fuzz_test_file(${name} ${corpus_artifacts_dir} ${fuzz_file})
-        endforeach()
-    endfunction()
-    ryml_add_fuzz_test(parse_emit)
-    ryml_add_fuzz_test(events_ints)
 endif()
