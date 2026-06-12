@@ -72,3 +72,10 @@
 - [PR#621](https://github.com/biojppm/rapidyaml/pull/621): Clean `NodeRef`:
   - Simplify internal implementation of `{Const}NodeRef::{iterator,children_view}`.
   - Stop using SFINAE on Node CRTP to distinguish const vs non const. No semantic changes. This should improve compilation speed of code with many node calls.
+- [PR#623](https://github.com/biojppm/rapidyaml/pull/623): Fuzzing fixes:
+  - Ensure parse error on multiline keys opening YAML:
+    ```yaml
+    multiline
+      key: value
+    ```
+

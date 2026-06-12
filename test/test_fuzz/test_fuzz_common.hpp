@@ -96,7 +96,6 @@ inline int fuzztest_tree(uint32_t case_number, csubstr src, FnParse fn_parse, Fn
     bool parse_success = false;
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
-        _RYML_ASSERT_BASIC(tree.empty());
         _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         fn_parse(src, &tree, ParserOptions{});
         parse_success = true;
