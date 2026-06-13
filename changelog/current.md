@@ -1,4 +1,4 @@
-- [PR#616](https://github.com/biojppm/rapidyaml/pull/616): Clean emit API **[BREAKING]**
+- [PR#616](https://github.com/biojppm/rapidyaml/pull/616): Clean emit API
   - `WriterFile` and `WriterOStream` no longer track the number of emitted bytes.
   - `error_on_excess` is now used in the emit-to-buffer overloads, and no longer in the main `Emitter::emit_as()` driver function.
 - [PR#617](https://github.com/biojppm/rapidyaml/pull/617): Clean emit API, part 2: tidy emit classes among new header files:
@@ -24,21 +24,10 @@
   - Improve handling of NaN and Inf in json emitting.
   - Expose scalar style helpers for json emitting:
     ```c++
-    /** JSON-sense query of plain number */
     bool scalar_is_plain_number_json(csubstr s);
-    /** JSON-sense query of plain number */
     bool scalar_is_special_json(csubstr s);
-    /** Query if a scalar is nan (nan, NaN, NAN)
-     * @warning length must be 3 (asserted)
-     */
     bool scalar_is_inf3(csubstr s);
-    /** Query if a scalar is inf (inf, Inf, INF)
-     * @warning length must be 3 (asserted)
-     */
     bool scalar_is_nan3(csubstr s);
-    /** Same as scalar_is_inf3() || scalar_is_nan3()
-     * @warning length must be 3 (asserted)
-     */
     bool scalar_is_inf_or_nan3(csubstr s);
     ```
   - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
@@ -72,10 +61,15 @@
 - [PR#621](https://github.com/biojppm/rapidyaml/pull/621): Clean `NodeRef`:
   - Simplify internal implementation of `{Const}NodeRef::{iterator,children_view}`.
   - Stop using SFINAE on Node CRTP to distinguish const vs non const. No semantic changes. This should improve compilation speed of code with many node calls.
-- [PR#623](https://github.com/biojppm/rapidyaml/pull/623): Fuzzing fixes:
+- [PR#623](https://github.com/biojppm/rapidyaml/pull/623): Fuzzing fixes. Close to 1 billion runs, and these were the only two problems:
   - Ensure parse error on multiline keys opening YAML:
     ```yaml
     multiline
       key: value
     ```
-
+  - Fix parse error on Byte Order Mark opening containers:
+    ```yaml
+    <BOM>- 
+      - a
+    -
+    ```

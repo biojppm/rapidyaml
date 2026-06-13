@@ -6211,6 +6211,7 @@ seqblck_start:
         const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
         _c4dbgpf("seqblck[RVAL]: first='{}' currcol={}", first, m_evt_handler->m_curr->pos.col - 1);
         const size_t startline = m_evt_handler->m_curr->pos.line;
+        _c4assert(m_evt_handler->m_curr->line_contents.current_col() >= m_bom_len);
         const size_t startindent = m_evt_handler->m_curr->line_contents.current_col() - m_bom_len;
         ScannedScalar sc;
         if(first == '\'')
@@ -8194,6 +8195,16 @@ void ParseEngine<EventHandler>::_handle_unk()
             {
                 _c4err("parse error"); // LCOV_EXCL_LINE
             }
+        }
+    }
+
+    if(m_bom_len && has_none(RUNK))
+    {
+        _c4dbgpf("runk: BOMlen={} BOMline={} now={} at_end={}", m_bom_len, m_bom_line, m_evt_handler->m_curr->pos.line, !m_evt_handler->m_curr->line_contents.rem.len);
+        if(m_evt_handler->m_curr->pos.line != m_bom_line || !m_evt_handler->m_curr->line_contents.rem.len)
+        {
+            _c4dbgp("runk: clear BOMlen");
+            m_bom_len = 0;
         }
     }
 }
