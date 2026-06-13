@@ -19,6 +19,7 @@ option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks
 if(RYML_DEFAULT_CALLBACKS)
     option(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS "Throw exceptions instead of calling abort in the default error handler provided by ryml" OFF)
 endif()
+option(RYML_WITH_LEGACY_OPERATORS "Do not mark legacy operators << = |= as deprecated" OFF)
 option(RYML_USE_ASSERT "Enable assertions regardless of build type. Default is only when NDEBUG is not defined (which is in release builds). This causes a slowdown of the code." OFF)
 option(RYML_SHORT_ERR_MSG "Use shorter error message from checks/asserts: do not show the check condition in the error message" OFF)
 option(RYML_BUILD_TOOLS "Build tools" OFF)
@@ -139,6 +140,10 @@ endif()
 
 if(RYML_STANDALONE AND (WIN32 AND BUILD_SHARED_LIBS))
     target_compile_definitions(ryml PUBLIC C4CORE_SHARED)
+endif()
+
+if(RYML_WITH_LEGACY_OPERATORS)
+    target_compile_definitions(ryml PUBLIC RYML_WITH_LEGACY_OPERATORS)
 endif()
 
 
