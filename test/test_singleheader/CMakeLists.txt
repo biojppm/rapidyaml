@@ -8,7 +8,7 @@ c4_project(VERSION 0.15.2
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 # amalgamate ryml to get the single header
-function(amalgamate_ryml basename header_dir header_file)
+function(amalgamate_ryml target_name basename header_dir header_file)
     set(rymldir "${CMAKE_CURRENT_LIST_DIR}/../..")
     set(singleheaderdir "${rymldir}/src_singleheader")
     set(singleheader "${singleheaderdir}/${basename}")
@@ -16,8 +16,11 @@ function(amalgamate_ryml basename header_dir header_file)
     file(GLOB_RECURSE srcfiles
         LIST_DIRECTORIES FALSE
         CONFIGURE_DEPENDS "${rymldir}/src")
-    add_custom_command(OUTPUT "${singleheader}"
+    # do not use custom command because there are parallel
+    # dependencies
+    add_custom_target(${target_name}
         COMMAND python "${amscript}" --events all -- "${singleheader}"
+        BYPRODUCTS "${singleheader}"
         DEPENDS ${srcfiles} "${amscript}" "${rymldir}/ext/c4core/cmake/amalgamate_utils.py")
     set(files "${${header_file}}")
     list(APPEND files "${singleheader}")
@@ -25,8 +28,8 @@ function(amalgamate_ryml basename header_dir header_file)
     set(${header_file} ${files} PARENT_SCOPE)
 endfunction()
 # workaround to: some tests use ryml_all, others ryml_ints
-amalgamate_ryml(ryml_ints.hpp hdr_dir hdr_file)
-amalgamate_ryml(ryml_all.hpp hdr_dir hdr_file)
+amalgamate_ryml(ryml_hdr_ints ryml_ints.hpp hdr_dir hdr_file_ints)
+amalgamate_ryml(ryml_hdr_all  ryml_all.hpp  hdr_dir hdr_file_all)
 
 c4_add_library(ryml
     INC_DIRS
@@ -34,7 +37,7 @@ c4_add_library(ryml
         $<INSTALL_INTERFACE:include>
     SOURCE_ROOT ${hdr_dir}
     SOURCES
-        ${hdr_file}
+        ${hdr_file_all}
         ${CMAKE_CURRENT_LIST_DIR}/libryml_singleheader.cpp)
 target_compile_definitions(ryml PUBLIC -DRYML_SINGLE_HEADER) # this is needed only for the tests, not ryml itself
 

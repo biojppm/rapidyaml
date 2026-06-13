@@ -179,4 +179,5 @@ jobs:
         cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j
     - name: run
       run: |
-        cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-run
+        cd $BDIR/test
+        ctest -C ${{matrix.bt}} --output-on-failure
