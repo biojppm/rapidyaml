@@ -80,7 +80,7 @@ jobs:
           arch: Win32
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -232,7 +232,7 @@ jobs:
           arch: Win32
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -344,7 +344,7 @@ jobs:
           arch: Win32
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -427,7 +427,7 @@ jobs:
           arch: Win32
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -560,7 +560,7 @@ jobs:
           cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0

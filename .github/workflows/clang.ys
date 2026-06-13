@@ -219,7 +219,7 @@ jobs:
 #     env:: load('share/env.yaml')
 #
 #     steps:
-#     - {name: checkout, uses: actions/checkout@v4,
+#     - {name: checkout, uses: actions/checkout@v6,
 #       with: {submodules: recursive}}
 #     # needed for running in the docker image.
 #     # see https://github.com/actions/checkout/issues/1169

@@ -50,7 +50,7 @@ jobs:
 
     steps:
     - name: checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with: {submodules: recursive}
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
@@ -84,6 +84,10 @@ jobs:
           ${{matrix.commonvars}}
     - name: build
       run: |
+        if [ "${{matrix.sdir}}" == "test/test_singleheader" ] ; then
+           cmake --build $BDIR --config ${{matrix.bt}} --target ryml_hdr_ints
+           cmake --build $BDIR --config ${{matrix.bt}} --target ryml_hdr_all
+        fi
         cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j
     - name: run
       run: |

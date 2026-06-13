@@ -58,7 +58,7 @@ jobs:
       OS: ${{matrix.os}}
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
