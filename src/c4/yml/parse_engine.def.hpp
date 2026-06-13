@@ -624,10 +624,12 @@ template<class EventHandler>
 bool ParseEngine<EventHandler>::_finished_file() const
 {
     bool ret = m_evt_handler->m_curr->pos.offset >= _buf().len;
+    #ifdef RYML_DBG
     if(ret)
     {
         _c4dbgp("finished file!!!");
     }
+    #endif
     return ret;
 }
 
@@ -1469,7 +1471,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
                     }
                     else
                     {
-                        _c4err("multiline scalars cannot be used as implicit keys");
+                        _c4err("multiline scalars cannot be used as keys");
                     }
                 }
                 else
@@ -6209,6 +6211,7 @@ seqblck_start:
         const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
         _c4dbgpf("seqblck[RVAL]: first='{}' currcol={}", first, m_evt_handler->m_curr->pos.col - 1);
         const size_t startline = m_evt_handler->m_curr->pos.line;
+        _c4assert(m_evt_handler->m_curr->line_contents.current_col() >= m_bom_len);
         const size_t startindent = m_evt_handler->m_curr->line_contents.current_col() - m_bom_len;
         ScannedScalar sc;
         if(first == '\'')
@@ -8119,6 +8122,8 @@ void ParseEngine<EventHandler>::_handle_unk()
             else
             {
                 _c4dbgp("runk: start new block map, set single-quoted scalar as key");
+                if(C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline))
+                    _c4err("multiline key");
                 if(!firsttoken)
                     startindent = _handle_unk_check_left_tokens(startindent, col);
                 beginmap(startindent);
@@ -8144,6 +8149,8 @@ void ParseEngine<EventHandler>::_handle_unk()
             else
             {
                 _c4dbgp("runk: start new block map, set double-quoted scalar as key");
+                if(C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline))
+                    _c4err("multiline key");
                 if(!firsttoken)
                     startindent = _handle_unk_check_left_tokens(startindent, col);
                 beginmap(startindent);
@@ -8171,6 +8178,11 @@ void ParseEngine<EventHandler>::_handle_unk()
                 else
                 {
                     _c4dbgp("runk: start new block map, set plain scalar as key");
+                    // there is already a check to multiline inside
+                    // _scan_scalar_plain_unk(), so we don't need to
+                    // throw an error here. but let's be safe by
+                    // asserting the assumption:
+                    _c4assert(m_evt_handler->m_curr->pos.line == startline);
                     if(!firsttoken)
                         startindent = _handle_unk_check_left_tokens(startindent, col);
                     beginmap(startindent);
@@ -8183,6 +8195,16 @@ void ParseEngine<EventHandler>::_handle_unk()
             {
                 _c4err("parse error"); // LCOV_EXCL_LINE
             }
+        }
+    }
+
+    if(m_bom_len && has_none(RUNK))
+    {
+        _c4dbgpf("runk: BOMlen={} BOMline={} now={} at_end={}", m_bom_len, m_bom_line, m_evt_handler->m_curr->pos.line, !m_evt_handler->m_curr->line_contents.rem.len);
+        if(m_evt_handler->m_curr->pos.line != m_bom_line || !m_evt_handler->m_curr->line_contents.rem.len)
+        {
+            _c4dbgp("runk: clear BOMlen");
+            m_bom_len = 0;
         }
     }
 }

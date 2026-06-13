@@ -20,8 +20,8 @@ struct dquoted_case
 
 
 // double quoted filtering can result in an output larger than the input.
-// so we ensure adequate test covering by using different sizes.
-// test also cases where the destination string is not large
+// so we ensure adequate test coverage by using different sizes.
+// we also test cases where the destination string is not large
 // enough to accomodate the filtered string.
 
 /** when filtering from src to dst, specifying the dst sz is enough to
@@ -734,7 +734,7 @@ TEST(double_quoted, test_suite_L24T)
 
 //-----------------------------------------------------------------------------
 
-void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
+static void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
 {
     SCOPED_TRACE(case_name);
     SCOPED_TRACE(yaml);
@@ -743,6 +743,34 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
         parse_in_arena(yaml, &tree);
     }, loc);
 }
+
+TEST(double_quoted, fuzz_crash_0)
+{
+    verify_error_is_reported("short case",
+                             "&1 !kt1 \"%':\n"
+                             "\n"
+                             " k\": c\n"
+                             "",
+                             Location(3, 6));
+    verify_error_is_reported("full case",
+                             "&1 !kt1 \"%':\n"
+                             "\n"
+                             "  '.':\n"
+                             "\n"
+                             "  ',':\n"
+                             "\n"
+                             "  '':\n"
+                             "\n"
+                             "  '':\n"
+                             "\n"
+                             "\n"
+                             "k\": c\n"
+                             "",
+                             Location(12, 5));
+}
+
+
+//-----------------------------------------------------------------------------
 
 TEST(double_quoted, error_on_unmatched_quotes)
 {
