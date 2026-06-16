@@ -421,7 +421,6 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
             # will then iterate over the files. this generates only a
             # handful of unit tests, so we can run everything.
             foreach(corpus_dir ${faildir} ${ARGN})
-                message(STATUS ryml-test-fuzz-${name}-${corpus_dir})
                 add_test(NAME ryml-test-fuzz-${name}-${corpus_dir}
                     COMMAND ${testexe} ${fuzzdir}/${corpus_dir}
                 )

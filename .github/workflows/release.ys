@@ -74,7 +74,7 @@ jobs:
         python --version
         python tools/amalgamate.py assets/$id.hpp
     - name: Save source artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with: {name: assets-src, path: assets/}
 
   #----------------------------------------------------------------------------
@@ -100,22 +100,22 @@ jobs:
            sfxg: unix64.deb,
            sfxp: ubuntu-24.04.deb,
            gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-24.04}
-        - {name: Ubuntu 22.04 deb,
-           sfxg: unix64.deb,
-           sfxp: ubuntu-22.04.deb,
-           gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-22.04}
-       #- {name: Ubuntu 18.04 deb,
-       #   sfxg: unix64.deb,
-       #   sfxp: ubuntu-18.04.deb,
-       #   gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-18.04}
-        - {name: Windows VS2022 zip,
-           sfxg: win64.zip,
-           sfxp: windows-vs2022.zip,
-           gen: ZIP, mime: zip, os: windows-2022, cxx: vs2022}
-        - {name: MacOSX sh,
-           sfxg: apple64.sh,
-           sfxp: macosx-xcode.sh,
-           gen: STGZ, mime: x-sh, os: macos-latest, cxx: xcode}
+        #- {name: Ubuntu 22.04 deb,
+        #   sfxg: unix64.deb,
+        #   sfxp: ubuntu-22.04.deb,
+        #   gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-22.04}
+        ##- {name: Ubuntu 18.04 deb,
+        ##   sfxg: unix64.deb,
+        ##   sfxp: ubuntu-18.04.deb,
+        ##   gen: DEB, mime: vnd.debian.binary-package, os: ubuntu-18.04}
+        # - {name: Windows VS2022 zip,
+        #    sfxg: win64.zip,
+        #    sfxp: windows-vs2022.zip,
+        #    gen: ZIP, mime: zip, os: windows-2022, cxx: vs2022}
+        # - {name: MacOSX sh,
+        #    sfxg: apple64.sh,
+        #    sfxp: macosx-xcode.sh,
+        #    gen: STGZ, mime: x-sh, os: macos-latest, cxx: xcode}
     steps:
     - :: checkout-action
     - :: version-get-vars
@@ -139,7 +139,7 @@ jobs:
         [ ! -f $asset_src ] && exit 1
         cp -fav $asset_src $asset_dst
     - name: Save artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with: {name: 'assets-${{matrix.config.sfxp}}', path: assets/}
 
   #----------------------------------------------------------------------------
@@ -149,7 +149,7 @@ jobs:
     needs: [src, cpp]
     steps:
       - name: Merge assets artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: assets
           pattern: assets-*
@@ -170,21 +170,18 @@ jobs:
         ls -lFhp .
         ls -lFhp assets*/ || echo 'none found'
     - name: Gather artifacts - ./assets
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with: {pattern: assets}
-    - name: Gather artifacts - ./dist
-      uses: actions/download-artifact@v4
-      with: {pattern: dist}
     - name: Verify existing artifacts
       run: |
+        mkdir -p assets
         ls -lFhp .
         ls -lFhp assets*/ || echo 'none found'
         ( \
-          cd assets ; \
-          for asset in assets-*/ ; do \
-            ls -lFhpA $asset/ ; \
-            mv -v $asset/* . ; \
-            rmdir $asset ; \
+          for a in assets-*/ ; do \
+            ls -lFhpA $a/ ; \
+            mv -v $a/* assets/. ; \
+            rmdir $a ; \
           done ;
         )
         ls -lFhp assets*/ || echo 'none found'

@@ -46,6 +46,7 @@
 #   pragma GCC diagnostic ignored "-Wshadow"
 #   pragma GCC diagnostic ignored "-Wunused-parameter"
 #   pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#   pragma GCC diagnostic ignored "-Wunused-const-variable"
 #   pragma GCC diagnostic ignored "-Wfloat-equal"
 #   pragma GCC diagnostic ignored "-Wpedantic"
 #   pragma GCC diagnostic ignored "-Wuseless-cast"

@@ -24,7 +24,7 @@
 #endif
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
 
 namespace c4 {
 namespace yml {
@@ -41,7 +41,7 @@ namespace ievt {
 using DataType = int32_t;
 
 /** enumeration of integer event bits. */
-typedef enum : DataType {
+typedef enum : DataType { // NOLINT
 
     // Structure flags
     KEY_ = (1 << 0),  ///< as key
@@ -441,7 +441,7 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
 
     using value_type = ievt::DataType;
     using state = EventHandlerIntsState; // our internal state must inherit from parser state
-    enum { requires_strings_on_buffers = true };
+    enum { requires_strings_on_buffers = true }; // NOLINT
 
     /** @} */
 
@@ -835,13 +835,13 @@ public:
     }
 
 
-    C4_ALWAYS_INLINE void mark_key_scalar_unfiltered()
+    C4_ALWAYS_INLINE void mark_key_scalar_unfiltered() // NOLINT
     {
         _c4dbgpf("{}/{}: mark_key_scalar_unfiltered", m_evt_pos, m_evt_size);
         if(m_evt_pos < m_evt_size)
             m_evt[m_evt_pos] |= ievt::UNFILT;
     }
-    C4_ALWAYS_INLINE void mark_val_scalar_unfiltered()
+    C4_ALWAYS_INLINE void mark_val_scalar_unfiltered() // NOLINT
     {
         _c4dbgpf("{}/{}: mark_val_scalar_unfiltered", m_evt_pos, m_evt_size);
         if(m_evt_pos < m_evt_size)
@@ -857,19 +857,19 @@ private:
     _c4dbgpf("{}/{}: scalar!", i, m_evt_size);                          \
     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, _is_sub_(scalar));         \
     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt[i] & ievt::WSTR);    \
-    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, i + 3 < m_evt_size);       \
-    if(C4_LIKELY(scalar.is_sub(m_src)))                                 \
+    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ((i) + 3) < m_evt_size);   \
+    if(C4_LIKELY((scalar).is_sub(m_src)))                               \
     {                                                                   \
-        m_evt[i + 1] = (ievt::DataType)(scalar.str - m_src.str);        \
+        m_evt[(i) + 1] = (ievt::DataType)((scalar).str - m_src.str);    \
     }                                                                   \
     else                                                                \
     {                                                                   \
         m_evt[i] |= ievt::AREN;                                         \
-        m_evt[i + 1] = (ievt::DataType)(scalar.str - m_arena.str);      \
-        _c4dbgpf("{}/{}: arena! ->{}", i, m_evt_size, m_evt[i+1]);      \
+        m_evt[(i) + 1] = (ievt::DataType)((scalar).str - m_arena.str);  \
+        _c4dbgpf("{}/{}: arena! ->{}", i, m_evt_size, m_evt[(i)+1]);    \
     }                                                                   \
-    m_evt[i + 2] = (ievt::DataType)scalar.len;                          \
-    m_evt[i + 3] = ievt::PSTR
+    m_evt[(i) + 2] = (ievt::DataType)(scalar).len;                      \
+    m_evt[(i) + 3] = ievt::PSTR
     /** @endcond */
 
 public:
@@ -1073,7 +1073,7 @@ public:
      * See the documentation for @ref doc_event_handlers, which has
      * important notes about this event.
      */
-    void actually_val_is_first_key_of_new_map_block()
+    C4_NO_INLINE void actually_val_is_first_key_of_new_map_block()
     {
         _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_block", m_evt_pos, m_evt_size, m_evt_prev);
         if(m_evt_pos < m_evt_size)
@@ -1296,7 +1296,7 @@ public:
 } // namespace c4
 
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 #endif /* _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_ */

@@ -43,7 +43,7 @@ struct EventHandlerTree : public EventHandlerStack<EventHandlerTree, EventHandle
      * @{ */
 
     using state = EventHandlerTreeState;
-    enum { requires_strings_on_buffers = false };
+    enum { requires_strings_on_buffers = false }; // NOLINT
 
     /** @} */
 

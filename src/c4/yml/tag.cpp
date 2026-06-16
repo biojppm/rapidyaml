@@ -314,7 +314,9 @@ size_t transform_tag(substr output, csubstr handle, csubstr prefix, csubstr tag,
         if(C4_LIKELY(is_valid_tag_char(c)))
         {
             if(c != '%')
+            {
                 continue;
+            }
             else if(read_hex_char(rest, pos, &c))
             {
                 appendstr(rest.range(rpos, pos));
@@ -563,7 +565,7 @@ TagCache::LookupResult TagCache::find(csubstr tag, id_type doc_id, id_type linea
         id_type count = sz;
         while(count)
         {
-            id_type halfsz = count / id_type(2);
+            id_type halfsz = count / id_type(2); // NOLINT(*avoid-c-style-cast)
             id_type mid = first + halfsz;
             _RYML_ASSERT_BASIC_(m_entries.m_callbacks, mid < sz);
             Entry const& C4_RESTRICT e = m_entries[mid];

@@ -79,7 +79,9 @@ Checks:
   - -modernize-type-traits # use c++17 style variable templates
   - -modernize-use-auto # use auto when initializing with a cast to avoid duplicating the type name
   - -modernize-use-default-member-init # use default member initializer for 'm_pos'
+  - -modernize-use-designated-initializers
   - -modernize-use-nodiscard # function 'valid' should be marked nodiscard
+  - -modernize-use-std-print
   - -modernize-use-trailing-return-type # don't care about this
   - -modernize-use-using # use 'using' instead of 'typedef'
   - -performance-enum-size # enum '_ppstate' uses a larger base type ('int', size: 4 bytes) than necessary for its value set, consider using 'std::uint8_t' (1 byte) as the base type to reduce its size
@@ -98,6 +100,7 @@ Checks:
   - -readability-redundant-access-specifiers # redundant access specifier has the same accessibility as the previous access specifier
   - -readability-redundant-member-init # initializer for member 'm_arena' is redundant
   - -readability-redundant-parentheses # redundant parentheses around expression
+  - -readability-redundant-typename
   - -readability-simplify-boolean-expr # boolean expression can be simplified by DeMorgan's theorem
   - -readability-suspicious-call-argument # 1st argument 'after' (passed to 'node') looks like it might be swapped with the 2nd, 'node' (passed to 'sib')
   - -readability-uppercase-literal-suffix # integer literal has suffix 'u', which is not uppercase

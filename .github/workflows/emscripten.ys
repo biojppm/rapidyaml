@@ -30,11 +30,11 @@ jobs:
          + {'CMAKE_FLAGS' '-DRYML_TEST_SUITE=OFF'}
     steps:
     - name: checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with: {submodules: recursive}
     - name: setup emscripten cache
       id: cache-system-libraries
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{env.EMSCRIPTEN_CACHE_FOLDER}}
         key: ${{matrix.emver}}-${{runner.os}}

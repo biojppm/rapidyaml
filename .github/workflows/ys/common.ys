@@ -73,7 +73,7 @@ install-python-action =::
 #----------------------------------------------------------
 checkout-action =::
 - name: checkout (action)
-  uses: actions/checkout@v4
+  uses: actions/checkout@v6
   # use fetch-depth to ensure all tags are fetched
   with: {submodules: recursive, fetch-depth: 0}
 
@@ -81,7 +81,7 @@ checkout-action =::
 #----------------------------------------------------------
 checkout-action-docker =::
 - name: checkout (action + docker)
-  uses: actions/checkout@v4
+  uses: actions/checkout@v6
   # use fetch-depth to ensure all tags are fetched
   with: {submodules: recursive, fetch-depth: 0}
 # needed for running in the docker image.
@@ -197,7 +197,7 @@ version-discover =::
     export SRC_VERSION=$SRC_VERSION
     EOF
 - name: Save vars.sh
-  uses: actions/upload-artifact@v4
+  uses: actions/upload-artifact@v7
   with: {name: vars.sh, path: ./vars.sh}
 - name: Show vars.sh
   run: cat vars.sh
@@ -210,7 +210,7 @@ version-discover =::
 
 version-get-vars =::
 - name: Download vars.sh
-  uses: actions/download-artifact@v4
+  uses: actions/download-artifact@v7
   with: {name: vars.sh, path: ./}
 - name: Show vars.sh
   run: cat vars.sh

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
@@ -61,7 +61,7 @@ jobs:
         export SRC_VERSION=$SRC_VERSION
         EOF
     - name: Save vars.sh
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vars.sh
         path: ./vars.sh
@@ -123,12 +123,12 @@ jobs:
       OS: ${{matrix.os}}
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 0
     - name: Download vars.sh
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: vars.sh
         path: ./
@@ -196,7 +196,7 @@ jobs:
           mv -vf build/$bl/bm/bm-results/* $dst/.
         done
     - name: upload benchmark result artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ryml-benchmark_results-${{strategy.job-index}}
         path: ryml-benchmark_results/
