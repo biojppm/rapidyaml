@@ -76,12 +76,18 @@ void write(c4::yml::Tree * tree, c4::yml::id_type node_id, T const& var);
 bool from_chars(c4::yml::csubstr str, T* var);
 // needed only if you're serializing T:
 size_t to_chars(c4::yml::substr buffer, T const& var);
+// optional:
+c4::yml::type_bits scalar_flags_val(T const& var); // set extra style flags on T vals
+c4::yml::type_bits scalar_flags_key(T const& var); // set extra style flags on T keys
 
 // or...
 
 // special case for writing string scalars: no need to convert to chars!
+// mark as string
 template<> struct c4::is_string<T> : std::true_type {};
+// instead of to_chars()
 c4::yml::csubstr to_csubstr(T const& var);
+// rest as above for scalars
 
 } // namespace
 @endcode
