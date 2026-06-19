@@ -266,14 +266,18 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 
 #define RYML_DEPRECATED(msg) C4_DEPRECATED(msg)
 
-/** @endcond */
-
-
 #ifdef RYML_WITH_LEGACY_OPERATORS
 #   define RYML_LEGACY_OPERATOR(txt)
 #else
-#   define RYML_LEGACY_OPERATOR(txt) RYML_DEPRECATED(txt ". to enable this legacy operator, define the symbol RYML_WITH_LEGACY_OPERATORS while compiling")
+#   define RYML_LEGACY_OPERATOR(txt) RYML_DEPRECATED(txt ". To enable this legacy operator, define the symbol RYML_WITH_LEGACY_OPERATORS while compiling")
 #endif
+
+/** @endcond */
+
+#define RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(type)                          \
+    static_assert(!std::is_fundamental<type>::value,                    \
+                  "did you forget to use '&'? "                         \
+                  "This overload is for wrapper types such as c4::fmt::base64()");
 
 
 //-----------------------------------------------------------------------------

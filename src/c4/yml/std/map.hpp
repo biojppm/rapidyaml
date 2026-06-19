@@ -13,29 +13,67 @@ namespace yml {
 // tree hierarchy (a MAP node in ryml parlance).
 // So it should be serialized via write()/read().
 
+/** serialize a map to a node: implementation for @ref Tree */
 template<class K, class V, class Less, class Alloc>
-void write(c4::yml::NodeRef *n, std::map<K, V, Less, Alloc> const& m)
+void write(c4::yml::Tree *tree, c4::yml::id_type id, std::map<K, V, Less, Alloc> const& m)
+{
+    tree->set_map(id);
+    for(auto const& C4_RESTRICT p : m)
+    {
+        id_type child = tree->append_child(id);
+        tree->set_key_serialized(child, p.first);
+        tree->set_serialized(child, p.second);
+    }
+}
+
+/** serialize a map to a node: implementation for @ref NodeRef */
+template<class K, class V, class Less, class Alloc>
+C4_ALWAYS_INLINE void write(c4::yml::NodeRef *n, std::map<K, V, Less, Alloc> const& m)
 {
     n->set_map();
     for(auto const& C4_RESTRICT p : m)
     {
-        auto ch = n->append_child();
-        ch << c4::yml::key(p.first);
-        ch << p.second;
+        NodeRef ch = n->append_child();
+        ch.set_key_serialized(p.first);
+        ch.set_serialized(p.second);
     }
 }
 
-/** read the node members, assigning into the existing map. If a key
- * is already present in the map, then its value will be
+
+/** deserialize a map from a node: implementation for @ref Tree .
+ * Read the node members, assigning into the existing map. If a key is
+ * already present in the map, then its value will be
+ * move-assigned. The map */
+template<class K, class V, class Less, class Alloc>
+bool read(c4::yml::Tree const* tree, c4::yml::id_type id, std::map<K, V, Less, Alloc> * m)
+{
+    if(C4_UNLIKELY(!tree->is_map(id)))
+        return false;
+    for(id_type child = tree->first_child(id); child != NONE; child = tree->next_sibling(child))
+    {
+        K k{};
+        if(C4_UNLIKELY(!tree->deserialize_key(child, &k) ||
+                       !tree->deserialize(child, &(*m)[std::move(k)])))
+            return false;
+    }
+    return true;
+}
+
+/** deserialize a map from a node: implementation for @ref ConstNodeRef . read
+ * the node members, assigning into the existing map. If a key is
+ * already present in the map, then its value will be
  * move-assigned. */
 template<class K, class V, class Less, class Alloc>
 bool read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
 {
-    for(auto const& C4_RESTRICT ch : n)
+    if(C4_UNLIKELY(!n.is_map()))
+        return false;
+    for(ConstNodeRef const& C4_RESTRICT ch : n)
     {
         K k{};
-        ch >> c4::yml::key(k);
-        ch >> (*m)[k];
+        if(C4_UNLIKELY(!ch.deserialize_key(&k) ||
+                       !ch.deserialize(&(*m)[std::move(k)])))
+            return false;
     }
     return true;
 }
