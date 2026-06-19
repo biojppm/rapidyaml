@@ -108,8 +108,8 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::DataType const*
             csubstr region = !in_arena ? parsed_yaml : arena;
             bool safe = (evts[evtpos + 1] >= 0)
                 && (evts[evtpos + 2] >= 0)
-                && (evts[evtpos + 1] <= (ievt::DataType)region.len) // NOLINT(use-integer-sign-comparison) // clang-tidy is wrong here
-		&& (evts[evtpos + 2] <= ((ievt::DataType)region.len - evts[evtpos + 1]));
+                && (evts[evtpos + 1] <= (ievt::DataType)region.len) // NOLINT
+                && (evts[evtpos + 2] <= ((ievt::DataType)region.len - evts[evtpos + 1]));
             const char *str = safe ? (region.str + evts[evtpos + 1]) : "ERR!!!";
             ievt::DataType len = safe ? evts[evtpos + 2] : 6;
             printf(": %d [%d]~~~%.*s~~~", evts[evtpos+1], evts[evtpos+2], len, str);
