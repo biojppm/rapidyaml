@@ -116,6 +116,10 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
+# some subjects have to be split over several files because gtest
+# causes some bloat and some compilers (VS) or platforms (mips) choke
+# on the large binary
+
 ryml_add_test(engine_1_doc_1 BIG)
 ryml_add_test(engine_1_doc_2 BIG)
 ryml_add_test(engine_2_seq_block_1 BIG)
@@ -151,7 +155,9 @@ ryml_add_test(tree_build)
 ryml_add_test(noderef)
 ryml_add_test(emit)
 ryml_add_test(style)
-ryml_add_test(serialize)
+ryml_add_test(serialize_1)
+ryml_add_test(serialize_2)
+ryml_add_test(serialize_3)
 ryml_add_test(basic)
 ryml_add_test(json)
 ryml_add_test(merge)
