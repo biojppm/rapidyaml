@@ -132,8 +132,8 @@ Changes since latest release: [current.md](https://github.com/biojppm/rapidyaml/
   - (10,11)
   - also scalars containing [] and {}
   @endcode
-  - [scalar_style_choose()](@ref c4::yml::scalar_style_choose()) was split into [scalar_style_choose_flow()](@ref c4::yml::scalar_style_choose_flow()) and [scalar_style_choose_block()](@ref c4::yml::scalar_style_choose_block())
-  - [scalar_style_query_plain()](@ref c4::yml::scalar_style_query_plain()) was split into [scalar_style_query_plain_flow()](@ref c4::yml::scalar_style_query_plain_flow()) and [scalar_style_query_plain_block()](@ref c4::yml::scalar_style_query_plain_block())
+  - `scalar_style_choose()` was split into [scalar_style_choose_flow()](@ref c4::yml::scalar_style_choose_flow()) and [scalar_style_choose_block()](@ref c4::yml::scalar_style_choose_block())
+  - `scalar_style_query_plain()` was split into [scalar_style_query_plain_flow()](@ref c4::yml::scalar_style_query_plain_flow()) and [scalar_style_query_plain_block()](@ref c4::yml::scalar_style_query_plain_block())
   - [NodeType::type_str_sub()](@ref c4::yml::NodeType::type_str()): remove zero-termination, use common approach of returning required size
   - Add [NodeType::type_str_sub()](@ref c4::yml::NodeType::type_str_sub())
 - [PR#605](https://github.com/biojppm/rapidyaml/pull/605): fix parse errors:
@@ -738,7 +738,7 @@ This handler is meant for use by other programming languages, and it supports co
 - Use malloc.h instead of alloca.h on MinGW ([PR#447](https://github.com/biojppm/rapidyaml/pull/447))
 - Fix [#442](https://github.com/biojppm/rapidyaml/issues/442) ([PR#443](https://github.com/biojppm/rapidyaml/pull/443)):
   - Ensure leading `+` is accepted when deserializing numbers.
-  - Ensure numbers are not quoted by fixing the heuristics in [scalar_style_query_plain()](@ref c4::yml::scalar_style_query_plain()) and [scalar_style_choose()](@ref c4::yml::scalar_style_choose()).
+  - Ensure numbers are not quoted by fixing the heuristics in `scalar_style_query_plain()` and `scalar_style_choose()`.
   - Add quickstart sample for overflow detection (only of integral types).
 - Parse engine: cleanup unused macros
 

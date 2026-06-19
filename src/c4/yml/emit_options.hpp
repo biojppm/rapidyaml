@@ -75,19 +75,19 @@ public:
 
     /** @name Nested nodes
      *
-     * Control emission of non-root (nested) nodes.
+     * Control emission of nested (non-root) nodes.
      *
      * @{ */
 
-    /** When emit starts on a node which is not the root node, emit
-     * the node key as well. This will make the resuling YAML a map
-     * with the node as its single element. Enabled by default. */
+    /** When emit starts on a nested (non-root) node, emit the node's
+     * key as well. This will maek the resulting YAML a map with the
+     * node as its single element. Enabled by default. */
     EmitOptions& emit_nonroot_key(bool enabled) noexcept { return set_flags_(enabled, EMIT_NONROOT_KEY); }
     C4_ALWAYS_INLINE bool emit_nonroot_key() const noexcept { return (m_flags & EMIT_NONROOT_KEY) != 0; }
 
-    /** When emit starts on a node which is not the root node, emit a
-     * leading dash. This will make the resulting YAML a seq with the
-     * node as its single element. Disabled by default. */
+    /** When emit starts on a nested (non-root) node, emit a leading
+     * dash. This will make the resulting YAML a seq with the node as
+     * its single element. Disabled by default. */
     EmitOptions& emit_nonroot_dash(bool enabled) noexcept { return set_flags_(enabled, EMIT_NONROOT_DASH); }
     C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_flags & EMIT_NONROOT_DASH) != 0; }
 

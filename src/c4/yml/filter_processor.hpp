@@ -13,13 +13,7 @@
 namespace c4 {
 namespace yml {
 
-/** @defgroup doc_filter_processors Scalar filter processors
- *
- * These are internal utilities used by @ref ParseEngine to parse the
- * scalars; normally there is no reason for a user to be manually
- * using these classes.
- *
- * @ingroup doc_parse */
+/** @addtogroup doc_scalar_filter */
 /** @{ */
 
 
@@ -27,8 +21,8 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** Abstracts the fact that a scalar filter result may not fit in the
- * intended memory. */
+/** Result for filtering a scalar which not fit in the intended
+ * memory. */
 struct FilterResult
 {
     C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
@@ -36,8 +30,8 @@ struct FilterResult
     C4_ALWAYS_INLINE csubstr get() const { _RYML_ASSERT_BASIC(valid()); return str; }
     csubstr str;
 };
-/** Abstracts the fact that a scalar filter result may not fit in the
- * intended memory. */
+/** Result for filtering a scalar which not fit in the intended
+ * memory. */
 struct FilterResultExtending
 {
     C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
@@ -303,7 +297,7 @@ struct FilterProcessorInplaceEndExtending
  * bytes. These escape sequences cause a call to translate_esc_extending()
  * which is the only entry point to this unfiltered situation.
  *
- * @see FilterProcessorInplaceMidExtending */
+ * @see FilterProcessorInplaceEndExtending */
 struct FilterProcessorInplaceMidExtending
 {
     substr src;  ///< the subject string
