@@ -21,10 +21,6 @@ namespace yml {
  * @{
  */
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 
 /** the integral type necessary to cover all the bits for NodeType_e */
 using type_bits = uint32_t;
@@ -359,101 +355,6 @@ public: // deprecated methods
     bool is_flow_ml() const noexcept { return (type & (FLOW_ML1)) != 0; }
     /** @endcond */ // LCOV_EXCL_STOP
 };
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-/** @name scalar style helpers
- * @{ */
-
-/** choose a YAML scalar style based on the scalar's contents, while
- * in flow mode. Plain scalars [have more constraints in flow mode
- * than in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_choose_block() is the block mode analogous
- * function. */
-RYML_EXPORT NodeType_e scalar_style_choose_flow(csubstr scalar) noexcept;
-/** choose a YAML scalar style based on the scalar's contents, while
- * in block mode. Plain scalars [have more constraints in flow mode
- * than in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_choose_block() is the flow mode analogous function. */
-RYML_EXPORT NodeType_e scalar_style_choose_block(csubstr scalar) noexcept;
-/** choose a YAML emitting style based on the scalar's
- * contents. Legacy compatibility function: assumes flow mode which is
- * more constraining, and delegates to either @ref
- * scalar_style_choose_flow() or @ref scalar_style_choose_block(). */
-inline NodeType_e scalar_style_choose(csubstr s, bool flow=true) noexcept
-{
-    return flow ? scalar_style_choose_flow(s) : scalar_style_choose_block(s);
-}
-
-
-/** choose a json scalar style based on the scalar's contents */
-RYML_EXPORT NodeType_e scalar_style_choose_json(csubstr scalar) noexcept;
-/** @cond dev */ // LCOV_EXCL_START
-RYML_DEPRECATED("use scalar_style_choose_json()")
-inline NodeType_e scalar_style_json_choose(csubstr scalar) noexcept
-{
-    return scalar_style_choose_json(scalar);
-}
-/** @endcond */ // LCOV_EXCL_STOP
-
-
-/** query whether a scalar can be encoded using single quotes.
- * It may not be possible, notably when there is leading
- * whitespace after a newline. */
-RYML_EXPORT bool scalar_style_query_squo(csubstr s) noexcept;
-
-/** query whether a scalar can be encoded using plain style while in
- * flow mode. Plain scalars [have more constraints in flow mode than
- * in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_query_plain_block() is the block mode analogous function.*/
-RYML_EXPORT bool scalar_style_query_plain_flow(csubstr s) noexcept;
-/** query whether a scalar can be encoded using plain style while in
- * block mode. Plain scalars [have more constraints in flow mode than
- * in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_query_plain_flow() is the flow mode analogous function.*/
-RYML_EXPORT bool scalar_style_query_plain_block(csubstr s) noexcept;
-/** query whether a scalar can be encoded using plain style. Legacy
- * compatibility function: assumes flow mode which is more
- * constraining, and delegates to either @ref
- * scalar_style_query_plain_flow() or @ref
- * scalar_style_query_plain_block(). */
-inline bool scalar_style_query_plain(csubstr s, bool flow=true) noexcept
-{
-    return flow ? scalar_style_query_plain_flow(s) : scalar_style_query_plain_block(s);
-}
-
-/** YAML-sense query of nullity. returns true if the scalar points
- * to `nullptr` or is otherwise equal to one of the strings
- * `"~"`,`"null"`,`"Null"`,`"NULL"` */
-RYML_EXPORT bool scalar_is_null(csubstr s) noexcept;
-
-
-/** JSON-sense query of plain number */
-RYML_EXPORT bool scalar_is_plain_number_json(csubstr s) noexcept;
-/** JSON-sense query of plain number */
-RYML_EXPORT bool scalar_is_special_json(csubstr s)  noexcept;
-
-/** Query if a scalar is nan (nan, NaN, NAN)
- * @warning length must be 3 (asserted)
- */
-RYML_EXPORT bool scalar_is_inf3(csubstr s) noexcept;
-/** Query if a scalar is inf (inf, Inf, INF)
- * @warning length must be 3 (asserted)
- */
-RYML_EXPORT bool scalar_is_nan3(csubstr s) noexcept;
-/** Same as scalar_is_inf3() || scalar_is_nan3()
- * @warning length must be 3 (asserted)
- */
-RYML_EXPORT bool scalar_is_inf_or_nan3(csubstr s) noexcept;
-
-/** @} */
 
 /** @} */
 
