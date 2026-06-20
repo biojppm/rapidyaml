@@ -102,6 +102,7 @@ void sample_serialize_basic();      ///< serialize/deserialize fundamental types
 void sample_user_scalar_types();    ///< serialize/deserialize scalar (leaf/scalar) types
 void sample_user_container_types(); ///< serialize/deserialize container (map or seq) types
 void sample_std_types();            ///< serialize/deserialize STL containers
+void sample_deserialize_error();    ///< shows error on deserializing nested nodes
 void sample_float_precision();      ///< control precision of serialized floats
 void sample_emit_to_container();    ///< emit to memory, eg a string or vector-like container
 void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
@@ -206,8 +207,9 @@ int main(int argc, const char* argv[])
     sample_serialize_basic();
     sample_user_scalar_types();
     sample_user_container_types();
-    sample_float_precision();
     sample_std_types();
+    sample_deserialize_error();
+    sample_float_precision();
     sample_emit_to_container();
     sample_emit_to_stream();
     sample_emit_to_file();
@@ -4089,126 +4091,137 @@ struct my_type
 };
 
 
-// IMPORTANT: read the doxygen documentation for containers/general types at:
+// IMPORTANT: read the doxygen documentation for deserialization of user types:
 // https://rapidyaml.readthedocs.io/v0.15.2/doxygen/group__doc__serialization__user__types.html
+
+
+// Let's first show examples of serialization (writing) functions:
+// writing is easier because it does not have to check the data.
 
 // here's an example of serializing a seq type
 template<class T>
-void write(ryml::NodeRef *n, my_seq_type<T> const& seq)
+void write(ryml::Tree *tree, ryml::id_type id, my_seq_type<T> const& seq)
 {
-    n->set_seq();
+    tree->set_seq(id);
     for(T const& v : seq.seq_member)
     {
-        // we created the node, so here we can call .set_serialized()
-        // (which asserts) instead of .save() (which always checks)
-        n->append_child().set_serialized(v);
+        // inside write(), prefer using .set_serialized() instead of .save()
+        tree->set_serialized(tree->append_child(id), v);
     }
 }
 // special optimization: if all you have are strings, AND you are sure
 // they outlive the tree, you can avoid the copy to the tree's
 // arena. But beware the lifetime issue!
-void write(ryml::NodeRef *n, my_seq_type<std::string> const& seq)
+void write(ryml::Tree *tree, ryml::id_type id, my_seq_type<std::string> const& seq)
 {
-    n->set_seq();
+    tree->set_seq(id);
     for(std::string const& v : seq.seq_member)
     {
         // now the tree is pointing at seq's strings. using .set_val()
         // does not serialize, and this avoids the copy to the tree's
         // arena
-        n->append_child().set_val(ryml::to_csubstr(v));
+        tree->set_val(tree->append_child(id), ryml::to_csubstr(v));
     }
 }
 
 // example of map serialization:
 template<class K, class V>
-void write(ryml::NodeRef *n, my_map_type<K, V> const& map)
+void write(ryml::Tree *tree, ryml::id_type id, my_map_type<K, V> const& map)
 {
-    n->set_map();
+    tree->set_map(id);
     for(auto const& v : map.map_member)
     {
-        ryml::NodeRef ch = n->append_child();
-        // the node was created here by us and we are certain it
-        // exists, so here we can call .set_serialized() (which
-        // asserts the preconditions) instead of .save() (which always
-        // checks)
-        ch.set_key_serialized(v.first);
-        ch.set_serialized(v.second);
+        // inside write(), prefer using .set_serialized() instead of .save()
+        ryml::id_type child_id = tree->append_child(id);
+        tree->set_key_serialized(child_id, v.first); // we're serializing the key!
+        tree->set_serialized(child_id, v.second);
     }
 }
 // another example of map serialization:
-void write(ryml::NodeRef *n, my_type const& val)
+void write(ryml::Tree *tree, ryml::id_type id, my_type const& val)
 {
-    n->set_map();
-    // the node was created here by us and we are certain it
-    // exists, so here we can call .set_serialized() (which
-    // asserts the preconditions) instead of .save() (which always
-    // checks).
+    tree->set_map(id);
+    // inside write(), prefer using .set_serialized() instead of .save()
     //
+    ryml::id_type ch;
     // these are leaf nodes:
-    (*n)["v2"].set_serialized(val.v2);
-    (*n)["v3"].set_serialized(val.v3);
-    (*n)["v4"].set_serialized(val.v4);
+    ch = tree->append_child(id); tree->set_key(ch, "v2"); tree->set_serialized(ch, val.v2);
+    ch = tree->append_child(id); tree->set_key(ch, "v3"); tree->set_serialized(ch, val.v3);
+    ch = tree->append_child(id); tree->set_key(ch, "v4"); tree->set_serialized(ch, val.v4);
     // these are container nodes (note how the call is equal):
-    (*n)["seq"].set_serialized(val.seq);
-    (*n)["map"].set_serialized(val.map);
+    ch = tree->append_child(id); tree->set_key(ch, "seq"); tree->set_serialized(ch, val.seq);
+    ch = tree->append_child(id); tree->set_key(ch, "map"); tree->set_serialized(ch, val.map);
     // Note above that we're NOT serializing the keys. That works and
     // is correct here because the keys themselves are fixed, and are
     // static strings located in the executable. But if the keys came
     // from the data, they too would have to be serialized with
-    // .set_key_serialized() (or .save_key()). To see how this is
+    // .set_key_serialized(). To see how this is
     // done, see for example the write() implementations in the header
     // c4/yml/std/map.hpp.
 }
 
+
+// Now let's implement the read() functions. Here we have more work to
+// do because we need to check the data coming from YAML.
+//
+// IMPORTANT: read the doxygen documentation for deserialization of user types:
+// https://rapidyaml.readthedocs.io/v0.15.2/doxygen/group__doc__serialization__user__types.html
+
+
 template<class T>
-bool read(ryml::ConstNodeRef const& n, my_seq_type<T> *seq)
+ryml::ReadResult read(ryml::Tree const* tree, ryml::id_type id, my_seq_type<T> *seq)
 {
-    // resize the seq to the number of children:
-    seq->seq_member.resize(static_cast<size_t>(n.num_children()));
-    // Note that n.num_children() is O(N). Depending on the data and
-    // size, it can pay off to not call .num_children() to resize the
-    // vector ahead of the loop and instead, use vec.push_back() in the
-    // loop.
-    size_t pos = 0;
-    for(ryml::ConstNodeRef const& ch : n.children())
+    if(!tree->is_seq(id)) return ryml::ReadResult(id); // node must be a seq
+    seq->seq_member.clear(); // we'll overwrite the vector
+    for(ryml::id_type child = tree->first_child(id);
+        child != ryml::NONE;
+        child = tree->next_sibling(child))
     {
-        // again, we're using .deserialize() instead of .load()
-        // because here we're certain the node is readable.
-        if(!ch.deserialize(&seq->seq_member[pos++]))
-            return false; // LCOV_EXCL_LINE
-        // if you prefer to trigger an error on conversion failure,
-        // then you should call .load() instead
+        // create a new entry
+        seq->seq_member.emplace_back();
+        // inside read() you SHOULD NOT use .load() because of its
+        // exceptional flow. Instead, you should use .deserialize() to
+        // play nice with .deserialize() callers calling this function.
+        // Read more at the doxygen page linked above.
+        ryml::ReadResult r = tree->deserialize(child, &seq->seq_member.back());
+        if(!r) return r; // return the inner-most result
     }
-    return true;
+    return ryml::ReadResult(); // all good
 }
+
 template<class K, class V>
-bool read(ryml::ConstNodeRef const& n, my_map_type<K, V> *map)
+ryml::ReadResult read(ryml::Tree const* tree, ryml::id_type id, my_map_type<K, V> *map)
 {
-    for(ryml::ConstNodeRef const& ch : n)
+    if(!tree->is_map(id)) return ryml::ReadResult(id); // node must be a map
+    for(ryml::id_type child = tree->first_child(id);
+        child != ryml::NONE;
+        child = tree->next_sibling(child))
     {
         K k{};
         // again, we're using .deserialize() instead of .load()
         // because here we're certain the node is readable.
-        if(!ch.deserialize_key(&k) || !ch.deserialize(&map->map_member[std::move(k)]))
-            return false; // LCOV_EXCL_LINE
-        // if you prefer to trigger an error on conversion failure,
-        // then you should call .load() instead
+        ryml::ReadResult r = tree->deserialize_key(child, &k);
+        if(r) r = tree->deserialize(child, &map->map_member[std::move(k)]);
+        if(!r) return r;
     }
-    return true;
+    return ryml::ReadResult(); // all good.
 }
-bool read(ryml::ConstNodeRef const& n, my_type *val)
+
+// we can also implement a node read(), but it will only be called if
+// you trigger deserialization from a node. That's ok here, because
+// that's we're doing.
+ryml::ReadResult read(ryml::ConstNodeRef const& n, my_type *val)
 {
-    // here we'll call .load(), but we could just as well use
-    // .deserialize() instead.
-    //
+    if(!n.is_map()) return ryml::ReadResult(n.id());
     // these are leaf nodes:
-    n["v2"].load(&val->v2); // triggers error on conversion failure
-    n["v3"].load(&val->v3);
-    n["v4"].load(&val->v4);
+    ryml::ReadResult r;
+    r = n["v2"].deserialize(&val->v2);
+    if(r) r = n["v3"].deserialize(&val->v3);
+    if(r) r = n["v4"].deserialize(&val->v4);
     // these are container nodes:
-    n["seq"].load(&val->seq);
-    n["map"].load(&val->map);
-    return true;
+    if(r) r = n["seq"].deserialize(&val->seq);
+    if(r) r = n["map"].deserialize(&val->map);
+    return r;
 }
 
 // IMPORTANT: read the doxygen documentation for containers/general types at:
@@ -4226,6 +4239,7 @@ bool read(ryml::ConstNodeRef const& n, my_type *val)
  *
  * @see doc_sample_container_types
  * @see sample_std_types
+ * @see sample_deserialize_error
  * */
 void sample_user_container_types()
 {
@@ -4299,6 +4313,61 @@ void sample_user_container_types()
         CHECK(!child.val().is_sub(tree.arena())); // not in the tree's arena
         CHECK(child.val().is_sub(sorig)); // ... but the original memory
     }
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** shows what happens on deserialization errors
+ *
+ * @warning read the doxygen documentation for containers/general types at:
+ *    https://rapidyaml.readthedocs.io/v0.15.2/doxygen/group__doc__serialization__user__types.html
+ *
+ * @see sample_user_container_types()
+ * @see sample_error_visit_location()
+ * @see sample_location_tracking()
+ */
+void sample_deserialize_error()
+{
+    // in this example we will be checking errors, so set up a
+    // temporary error handler to catch them:
+    ScopedErrorHandlerExample errh; // calls ryml::set_callbacks()
+    // let's parse this YAML containing an invalid value,
+    // with location tracking:
+    ryml::EventHandlerTree tree_handler;
+    ryml::Parser parser(&tree_handler, ryml::ParserOptions{}.locations(true));
+    const ryml::Tree tree = parse_in_arena(&parser,
+          "v2: (20,21)"         "\n"
+          "v3: (30,31,32)"      "\n"
+          "v4: (40,41,42,43)"   "\n"
+          "seq:"                "\n"
+          "  - 101"             "\n"
+          "  - 102"             "\n"
+          "  - 103"             "\n"
+          "  - 104"             "\n"
+          "  - 105"             "\n"
+          "  - 106"             "\n"
+          "  - 107"             "\n"
+          "map:"                "\n"
+          "  1001: 2001"        "\n"
+          "  1002: not an int"  "\n"  // valid YAML, will cause deserialization error
+          "  1003: 2003"        "\n"
+          "");
+    ryml::ConstNodeRef root = tree;
+    // and now let's deserialize to this variable
+    my_type var;
+    // .deserialize() reports the error but does not trigger an error
+    // call:
+    ryml::ReadResult result = root.deserialize(&var);
+    CHECK(!result);
+    CHECK(result.node == tree["map"]["1002"].id()); // this is where the error occurred
+    CHECK(tree.location(parser, result.node).line == 13);
+    CHECK(tree.location(parser, result.node).col == 2); // this node starts a column 2
+    CHECK(parser.val_location(tree.val(result.node).str).col == 8); // its value starts at column 8
+    // and .load() will trigger a visit error, reporting the node as
+    // well. see sample_error_visit_location() for examples on how to
+    // track the location of a visit error
+    errh.check_error_occurs([&]{ root.load(&var); });
 }
 
 
@@ -6402,10 +6471,10 @@ void sample_error_visit()
         // use that to see the messages we get.
         //
         // this message is the short message passed into the visit error
-        CHECK(errh.saved_msg_short == "could not deserialize value");
+        CHECK(errh.saved_msg_short == "could not deserialize node");
         // this message was created inside the handler, by calling
         // ryml::err_visit_format():
-        CHECK(ryml::csubstr::npos != ryml::to_csubstr(errh.saved_msg_full).find("ERROR: [visit] could not deserialize value"));
+        CHECK(ryml::csubstr::npos != ryml::to_csubstr(errh.saved_msg_full).find("ERROR: [visit] could not deserialize node"));
         // The location of the visit error is of the C++ source file where
         // the error was detected -- NOT of the YAML source file:
         CHECK(errh.saved_basic_loc.name != ymlfile);
@@ -6428,10 +6497,10 @@ void sample_error_visit()
             tree["float"].load(&intval); // cannot deserialize 123.456 to int
         }));
         // we got a basic error instead of a visit error:
-        CHECK(errh.saved_msg_short == "could not deserialize value");
+        CHECK(errh.saved_msg_short == "could not deserialize node");
         // notice that the full message now displays this as a basic
         // error:
-        CHECK(ryml::csubstr::npos != ryml::to_csubstr(errh.saved_msg_full).find("ERROR: [basic] could not deserialize value"));
+        CHECK(ryml::csubstr::npos != ryml::to_csubstr(errh.saved_msg_full).find("ERROR: [basic] could not deserialize node"));
         // the tree and id are not set, because this was called as a basic error
         CHECK(errh.saved_visit_tree == nullptr);
         CHECK(errh.saved_visit_id == ryml::NONE);
@@ -6526,10 +6595,10 @@ void sample_error_visit_location()
         // use that to see the messages we get.
         //
         // this message is the short message passed into the visit error
-        CHECK(errh.saved_msg_short == "could not deserialize value");
+        CHECK(errh.saved_msg_short == "could not deserialize node");
         // this message was created inside the handler, by calling
         // ryml::err_visit_format():
-        CHECK(ryml::csubstr::npos != ryml::to_csubstr(errh.saved_msg_full).find("ERROR: [visit] could not deserialize value"));
+        CHECK(ryml::csubstr::npos != ryml::to_csubstr(errh.saved_msg_full).find("ERROR: [visit] could not deserialize node"));
         // The location of the visit error is of the C++ source file where
         // the error was detected -- NOT of the YAML source file:
         CHECK(errh.saved_basic_loc.name != ymlfile);

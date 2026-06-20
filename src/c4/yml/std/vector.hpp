@@ -49,10 +49,10 @@ void write(NodeRef *n, std::vector<T, Alloc> const& vec)
 
 /** deserialize from a @ref Tree node, overwriting existing vector entries. */
 template<class T, class Alloc>
-bool read(Tree const *tree, id_type id, std::vector<T, Alloc> *vec)
+ReadResult read(Tree const *tree, id_type id, std::vector<T, Alloc> *vec)
 {
     if(C4_UNLIKELY(!tree->is_seq(id)))
-        return false;
+        return ReadResult(id);
     vec->clear();
     #if C4_CPP < 17 // prior to C++17, emplace_back() does not return a reference
     size_t pos = 0;
@@ -69,14 +69,14 @@ bool read(Tree const *tree, id_type id, std::vector<T, Alloc> *vec)
         // that the YAML is valid, so we need to do the checks in
         // child.deserialize()
         if(!tree->deserialize(child, &val))
-            return false;
+            return ReadResult(id);
     }
-    return true;
+    return ReadResult{};
 }
 
 /** deserialize from a @ref ConstNodeRef node, overwriting existing vector entries. */
 template<class T, class Alloc>
-bool read(ConstNodeRef const& node, std::vector<T, Alloc> *vec)
+ReadResult read(ConstNodeRef const& node, std::vector<T, Alloc> *vec)
 {
     // don't defer to the tree impl here (if that were the case, we
     // wouldn't even need to implement this function, as ryml ends up
@@ -86,7 +86,7 @@ bool read(ConstNodeRef const& node, std::vector<T, Alloc> *vec)
     // provide this as a hook for that. If that's not required, then
     // the tree implementation will get called anyway.
     if(C4_UNLIKELY(!node.is_seq()))
-        return false;
+        return ReadResult(node.id());
     vec->clear();
     #if C4_CPP < 17 // prior to C++17, emplace_back() does not return a reference
     size_t pos = 0;
@@ -103,9 +103,9 @@ bool read(ConstNodeRef const& node, std::vector<T, Alloc> *vec)
         // YAML is valid, so we need to do the checks in
         // child.deserialize()
         if(!child.deserialize(&val))
-            return false;
+            return ReadResult(child.id());
     }
-    return true;
+    return ReadResult();
 }
 
 
@@ -116,28 +116,28 @@ bool read(ConstNodeRef const& node, std::vector<T, Alloc> *vec)
 
 /** deserialize from a @ref Tree node, overwriting existing vector entries. */
 template<class Alloc>
-bool read(Tree const* tree, id_type id, std::vector<bool, Alloc> *vec)
+ReadResult read(Tree const* tree, id_type id, std::vector<bool, Alloc> *vec)
 {
     if(C4_UNLIKELY(!tree->is_seq(id)))
-        return false;
+        return ReadResult(id);
     vec->clear();
     bool tmp = {};
     for(id_type child = tree->first_child(id); child != NONE; child = tree->next_sibling(child))
     {
         if(!from_chars(tree->val(child), &tmp))
-            return false;
+            return ReadResult(child);
         vec->push_back(tmp); // leave this. gcc4.8 does not have std::vector<bool>::emplace_back()
     }
-    return true;
+    return ReadResult();
 }
 
 /** deserialize from a @ref ConstNodeRef node, overwriting existing vector entries. */
 template<class Alloc>
-bool read(ConstNodeRef const& n, std::vector<bool, Alloc> *vec)
+ReadResult read(ConstNodeRef const& n, std::vector<bool, Alloc> *vec)
 {
     // call the tree implementation, saving the node readability
-    // checks. we can do that here because bool is a final type, so it
-    // can't be overrided.
+    // checks. we can do that here because bool (the value type) is a
+    // final type, so it can't be overrided.
     return read(n.tree(), n.id(), vec);
 }
 

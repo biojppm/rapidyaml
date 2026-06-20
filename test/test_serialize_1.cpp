@@ -29,6 +29,7 @@ RYML_DEFINE_TEST_MAIN()
 
 using substr = c4::substr;
 using csubstr = c4::csubstr;
+using ReadResult = c4::yml::ReadResult;
 
 
 //-----------------------------------------------------------------------------
@@ -116,13 +117,13 @@ template<class T> void write_key(c4::yml::Tree *tree, c4::yml::id_type id, vec2<
 {
     tree->set_key(id, arena_helper_vec2(tree, v));
 }
-template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
-    return from_chars_helper_vec2(tree->val(id), v);
+    return ReadResult(from_chars_helper_vec2(tree->val(id), v), id);
 }
-template<class T> bool read_key(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
+template<class T> ReadResult read_key(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
-    return from_chars_helper_vec2(tree->key(id), v);
+    return ReadResult(from_chars_helper_vec2(tree->key(id), v), id);
 }
 } // namespace foo4
 
@@ -139,13 +140,15 @@ template<class T> void write_key(c4::yml::NodeRef *n, vec2<T> v)
 {
     n->set_key(arena_helper_vec2(n->tree(), v));
 }
-template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
-    return from_chars_helper_vec2<vec2<T>>(n.val(), v);
+    bool ok = from_chars_helper_vec2<vec2<T>>(n.val(), v);
+    return ReadResult(ok, n.id());
 }
-template<class T> bool read_key(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+template<class T> ReadResult read_key(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
-    return from_chars_helper_vec2<vec2<T>>(n.key(), v);
+    bool ok = from_chars_helper_vec2<vec2<T>>(n.key(), v);
+    return ReadResult(ok, n.id());
 }
 } // namespace foo5
 
@@ -160,13 +163,15 @@ template<class T> void write_key(c4::yml::NodeRef &n, vec2<T> v)
 {
     n.set_key(arena_helper_vec2(n.tree(), v));
 }
-template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
-    return from_chars_helper_vec2<vec2<T>>(n.val(), v);
+    bool ok = from_chars_helper_vec2<vec2<T>>(n.val(), v);
+    return ReadResult(ok, n.id());
 }
-template<class T> bool read_key(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+template<class T> ReadResult read_key(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
-    return from_chars_helper_vec2<vec2<T>>(n.key(), v);
+    bool ok = from_chars_helper_vec2<vec2<T>>(n.key(), v);
+    return ReadResult(ok, n.id());
 }
 } // namespace foo5_ref
 
@@ -181,13 +186,15 @@ template<class T> void write_key(c4::yml::NodeRef n, vec2<T> v)
 {
     n.set_key(arena_helper_vec2(n.tree(), v));
 }
-template<class T> bool read(c4::yml::ConstNodeRef n, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::ConstNodeRef n, vec2<T> *v)
 {
-    return from_chars_helper_vec2<vec2<T>>(n.val(), v);
+    bool ok = from_chars_helper_vec2<vec2<T>>(n.val(), v);
+    return ReadResult(ok, n.id());
 }
-template<class T> bool read_key(c4::yml::ConstNodeRef n, vec2<T> *v)
+template<class T> ReadResult read_key(c4::yml::ConstNodeRef n, vec2<T> *v)
 {
-    return from_chars_helper_vec2<vec2<T>>(n.key(), v);
+    bool ok = from_chars_helper_vec2<vec2<T>>(n.key(), v);
+    return ReadResult(ok, n.id());
 }
 } // namespace foo5
 
@@ -206,10 +213,12 @@ template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v
     write(tree, x, v.x); // serialize the value of x to the arena
     write(tree, y, v.y); // serialize the value of y to the arena
 }
-template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
-    return read(tree, tree->find_child(id, "x"), &v->x)
-        && read(tree, tree->find_child(id, "y"), &v->y);
+    ReadResult r = read(tree, tree->find_child(id, "x"), &v->x);
+    if(r)
+        r = read(tree, tree->find_child(id, "y"), &v->y);
+    return r;
 }
 } // namespace foo6_optimistic
 
@@ -226,16 +235,19 @@ template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v
     write(tree, x, v.x); // serialize the value of x to the arena
     write(tree, y, v.y); // serialize the value of y to the arena
 }
-template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
     using namespace c4::yml;
     if(!tree->is_map(id))
-        return false;
-    id_type x = tree->find_child(id, "x");
-    id_type y = tree->find_child(id, "y");
-    if(x == NONE || y == NONE)
-        return false;
-    return read(tree, x, &v->x) && read(tree, y, &v->y);
+        return ReadResult(id);
+    id_type idx = tree->find_child(id, "x");
+    id_type idy = tree->find_child(id, "y");
+    if(idx == NONE || idy == NONE)
+        return ReadResult(id);
+    ReadResult r = read(tree, idx, &v->x);
+    if(r)
+        r = read(tree, idy, &v->y);
+    return r;
 }
 } // namespace foo6
 
@@ -250,11 +262,11 @@ template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
     n["x"].save(v.x);
     n["y"].save(v.y);
 }
-template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
     n["x"].load(&v->x);
     n["y"].load(&v->y);
-    return true;
+    return ReadResult{};
 }
 } // namespace foo5
 
@@ -267,18 +279,20 @@ template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
     n["x"].save(v.x);
     n["y"].save(v.y);
 }
-template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
     using namespace c4::yml;
     if(!n.readable() || !n.is_map())
-        return false;
+        return ReadResult(n.id());
     ConstNodeRef x = n["x"];
     ConstNodeRef y = n["y"];
-    if(!x.readable() || !y.readable())
-        return false;
+    if(!x.readable())
+        return ReadResult(x.id());
+    if(!y.readable())
+        return ReadResult(y.id());
     x.load(&v->x); // throws on error. to keep running, use x.deserialize() which returns bool
     y.load(&v->y); // throws on error. to keep running, use y.deserialize() which returns bool
-    return true;
+    return ReadResult{};
 }
 } // namespace foo7_pessimistic
 
@@ -293,11 +307,14 @@ template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v
     write(tree, tree->append_child(id), v.x); // serialize the value of x to the arena
     write(tree, tree->append_child(id), v.y); // serialize the value of y to the arena
 }
-template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
     c4::yml::id_type x = tree->first_child(id);
     c4::yml::id_type y = tree->next_sibling(x); // of x!
-    return read(tree, x, &v->x) && read(tree, y, &v->y);
+    ReadResult r = read(tree, x, &v->x);
+    if(r)
+        r = read(tree, y, &v->y);
+    return r;
 }
 } // namespace foo8_optimistic
 
@@ -310,18 +327,21 @@ template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v
     write(tree, tree->append_child(id), v.x); // serialize the value of x to the arena
     write(tree, tree->append_child(id), v.y); // serialize the value of y to the arena
 }
-template<class T> bool read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
     using namespace c4::yml;
     if(!tree->is_seq(id))
-        return false;
+        return ReadResult(id);
     c4::yml::id_type x = tree->first_child(id);
     if(x == NONE)
-        return false;
+        return ReadResult(id);
     c4::yml::id_type y = tree->next_sibling(x); // of x!
     if(y == NONE)
-        return false;
-    return read(tree, x, &v->x) && read(tree, y, &v->y);
+        return ReadResult(id);
+    ReadResult r = read(tree, x, &v->x);
+    if(r)
+        r = read(tree, y, &v->y);
+    return r;
 }
 } // namespace foo8
 
@@ -336,16 +356,42 @@ template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
     n[0].save(v.x);
     n[1].save(v.y);
 }
-template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
     n[0].load(&v->x);
     n[1].load(&v->y);
-    return true;
+    return ReadResult{};
 }
 } // namespace foo5
 
 
 namespace foo9_pessimistic {
+template<class T> struct vec2 { T x, y; };
+template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
+{
+    n.set_seq();
+    n[0].save(v.x);
+    n[1].save(v.y);
+}
+template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
+{
+    using namespace c4::yml;
+    if(!n.readable() || !n.is_seq())
+        return ReadResult(n.id());
+    ConstNodeRef x = n[0];
+    ConstNodeRef y = n[1];
+    if(!x.readable() || !y.readable())
+        return ReadResult(n.id());
+    x.load(&v->x); // throws on error. to keep running, use x.deserialize() which returns bool
+    y.load(&v->y); // throws on error. to keep running, use y.deserialize() which returns bool
+    return ReadResult{};
+}
+} // namespace foo9_pessimistic
+
+
+// verify the new ReadResult approach still supports the legacy read()
+// functions which return bool
+namespace foo10_legacy {
 template<class T> struct vec2 { T x, y; };
 template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 {
@@ -366,7 +412,7 @@ template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
     y.load(&v->y); // throws on error. to keep running, use y.deserialize() which returns bool
     return true;
 }
-} // namespace foo9_pessimistic
+} // namespace foo10_pessimistic
 
 
 //-----------------------------------------------------------------------------
@@ -606,6 +652,17 @@ TEST(serialize, tree__foo9_optimistic)
 TEST(serialize, tree__foo9_pessimistic)
 {
     test_serialization_roundtrip_vec2<foo9_pessimistic::vec2>(""
+        "v2:\n"
+        "  - 10\n"
+        "  - 11\n"
+        "");
+}
+
+// verify the new ReadResult approach still supports the legacy read()
+// functions which return bool
+TEST(serialize, tree__foo10_pessimistic)
+{
+    test_serialization_roundtrip_vec2<foo10_legacy::vec2>(""
         "v2:\n"
         "  - 10\n"
         "  - 11\n"
