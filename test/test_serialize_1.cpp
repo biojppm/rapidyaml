@@ -612,6 +612,44 @@ TEST(serialize, tree__foo9_pessimistic)
         "");
 }
 
+TEST(serialize, auto_plain)
+{
+    Tree tree = parse_in_arena("{}");
+    NodeRef n = tree[0];
+    #define test_serialized_as_plain(T, val)                            \
+        {                                                               \
+            SCOPED_TRACE(#T " : " #val);                                \
+            T scalar = val;                                             \
+            tree._rem_flags(n.id(), VAL_PLAIN); n.save(scalar); EXPECT_TRUE(n.is_val_plain()); \
+            tree._rem_flags(n.id(), KEY_PLAIN); n.save_key(scalar); EXPECT_TRUE(n.is_key_plain()); \
+        }
+    #define test_serialized_as_not_plain(T, val)                        \
+        {                                                               \
+            static_assert(!std::is_arithmetic<T>::value, "arithmetic?"); \
+            SCOPED_TRACE(#T " : " #val);                                \
+            T scalar = val;                                             \
+            tree._rem_flags(n.id(), VAL_PLAIN); n.save(scalar); EXPECT_FALSE(n.is_val_plain()); \
+            tree._rem_flags(n.id(), KEY_PLAIN); n.save_key(scalar); EXPECT_FALSE(n.is_key_plain()); \
+        }
+    test_serialized_as_plain(int, 0);
+    test_serialized_as_plain(unsigned, 0);
+    test_serialized_as_plain(int8_t, 0);
+    test_serialized_as_plain(int16_t, 0);
+    test_serialized_as_plain(int32_t, 0);
+    test_serialized_as_plain(int64_t, 0);
+    test_serialized_as_plain(uint8_t, 0);
+    test_serialized_as_plain(uint16_t, 0);
+    test_serialized_as_plain(uint32_t, 0);
+    test_serialized_as_plain(uint64_t, 0);
+    test_serialized_as_plain(float, 0);
+    test_serialized_as_plain(double, 0);
+    test_serialized_as_not_plain(std::string, ""); // NOLINT
+    test_serialized_as_not_plain(const char*, "");
+    test_serialized_as_not_plain(csubstr, "");
+    char buf[10];
+    test_serialized_as_not_plain(substr, buf);
+}
+
 
 //-------------------------------------------
 // this is needed to use the test case library

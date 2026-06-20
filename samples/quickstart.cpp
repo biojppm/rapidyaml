@@ -459,7 +459,7 @@ void sample_quick_overview()
 
     // WARNING. A node ref holds a raw pointer to the tree. Care must
     // be taken to ensure the lifetimes match, so that a node will
-    // never access the tree after the goes out of scope.
+    // never access the tree after the tree goes out of scope.
 
 
     //------------------------------------------------------------------
@@ -605,7 +605,7 @@ void sample_quick_overview()
         CHECK(!val_node.has_key());           // ... so it has no key
         //CHECK(val_node.key() == BOOM!);     // ... so attempting to get a key is undefined behavior
 
-        CHECK(val_node.is_val());         // this node is a val
+        CHECK(val_node.is_val());                 // this node is a val
         //CHECK(val_node.first_child() == BOOM!); // ... so attempting to get a child is undefined behavior
 
         // assertions are also present in methods that /may/ read the val:
@@ -1023,6 +1023,7 @@ void sample_quick_overview()
     // For further details in location tracking,
     // refer to the sample function below.
 
+
     //------------------------------------------------------------------
     // Dealing with UTF8
     ryml::Tree langs = ryml::parse_in_arena(""
@@ -1328,10 +1329,10 @@ void sample_substr()
             CHECK(ryml::to_csubstr((const char*)result) == some);
         }
         // But NOTE: because this is a string view type, in general
-        // the C-string is NOT zero terminated.  So NEVER print it
+        // the C-string is NOT zero terminated.  So NEVER printf it
         // directly, or it will overflow past the end of the given
         // substr, with a potential unbounded access.  For example,
-        // this is bad:
+        // this is really bad:
         {
             char result[32] = {0};
             std::snprintf(result, sizeof(result), "%s", some.str); // ERROR! do not print the c-string directly
@@ -2581,6 +2582,7 @@ void sample_location_tracking()
 /** shows how to programatically create trees
  * @see doc_tree
  * @see doc_node_classes
+ * @see sample_create_tree_style()
  * */
 void sample_create_tree()
 {
@@ -2657,6 +2659,9 @@ void sample_create_tree()
           "  turtle-doves: two"              "\n"
           "cars: GTO"                        "\n"
           "");
+
+    // NOTE: it is good practice to set scalar styles when building
+    // the tree. See the sample_create_tree_style() below.
 }
 
 
@@ -2694,6 +2699,8 @@ void sample_create_tree_style()
     ryml::Tree tree;
     ryml::NodeRef root = tree;
     root.set_map(ryml::BLOCK);
+    // with .set_*() we should use explicit styles (because .set_*()
+    // only takes csubstr arguments)
     root["not plain"].set_val("  with whitespace  "); // no style set
     root["doe"].set_val("a deer, a female deer", ryml::VAL_PLAIN);
     root["ray"].set_val("a drop of golden sun", ryml::VAL_SQUO);
@@ -2704,22 +2711,27 @@ void sample_create_tree_style()
     root["map1"].set_map(ryml::FLOW_ML1); // flow, multiline, 1 value per line
     root["mapn"].set_map(ryml::FLOW_MLN); // flow, multiline, N values per line, wrapped
     // likewise for all of set_serialized(), set_key(),
-    // set_key_serialized(), save(), save_key(): all these
-    // accept the style as an extra argument.
+    // set_key_serialized(), save(), save_key(): all these accept the
+    // style as an extra argument. But when serializing there's a
+    // nice feature: ryml will automatically set the scalar style to
+    // VAL_PLAIN / KEY_PLAIN when its type verifies std::is_arithmetic<T>.
     for(int i : {0, 1, 2, 3})
     {
-        // let's reuse serialized values
-        ryml::csubstr si = tree.to_arena(i);
-        ryml::csubstr si10 = tree.to_arena(i + 10);
         ryml::NodeRef childseq = root["seq"].append_child();
         ryml::NodeRef childmap1 = root["map1"].append_child();
         ryml::NodeRef childmapn = root["mapn"].append_child();
-        // we know these are numbers, so force plain style
-        childseq.set_val(si, ryml::VAL_PLAIN);
-        childmap1.set_key(si, ryml::KEY_PLAIN);
-        childmapn.set_key(si, ryml::KEY_PLAIN);
-        childmap1.set_val(si10, ryml::VAL_PLAIN);
-        childmapn.set_val(si10, ryml::VAL_PLAIN);
+        // Note how we're NOT setting the style:
+        childseq.set_serialized(i);
+        childmap1.set_key_serialized(i + 1);
+        childmapn.set_key_serialized(i + 1);
+        childmap1.set_serialized((i + 1) * 10);
+        childmapn.set_serialized((i + 1) * 10);
+        // ... and yet ryml has set it to plain:
+        CHECK(childseq.is_val_plain());
+        CHECK(childmap1.is_key_plain());
+        CHECK(childmapn.is_key_plain());
+        CHECK(childmap1.is_val_plain());
+        CHECK(childmapn.is_val_plain());
     }
     // let's see the styles now:
     CHECK(ryml::emitrs_yaml<std::string>(tree) ==
@@ -2741,13 +2753,13 @@ void sample_create_tree_style()
           "  a needle pulling thread"         "\n"
           "seq: [0, 1, 2, 3]"                 "\n"
           "map1: {"                           "\n"
-          "    0: 10,"                        "\n"
-          "    1: 11,"                        "\n"
-          "    2: 12,"                        "\n"
-          "    3: 13"                         "\n"
+          "    1: 10,"                        "\n"
+          "    2: 20,"                        "\n"
+          "    3: 30,"                        "\n"
+          "    4: 40"                         "\n"
           "  }"                               "\n"
           "mapn: {"                           "\n"
-          "    0: 10,1: 11,2: 12,3: 13"       "\n"
+          "    1: 10,2: 20,3: 30,4: 40"       "\n"
           "  }"                               "\n"
           "");
     // Note that it would be an error to set a scalar style

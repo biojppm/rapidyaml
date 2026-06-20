@@ -1630,11 +1630,67 @@ csubstr serialize_to_arena_scalar(Tree * tree, T const& a)
  * @{
  */
 
+#if (C4_CPP >= 17) || defined(__DOXYGEN__)
+
+/** Return extra style flags to use when setting a scalar as val.
+ * Defaults to VAL_PLAIN for arithmetic types, or NOTYPE otherwise */
+template<class T>
+C4_ALWAYS_INLINE type_bits scalar_flags_val(T const&) noexcept
+{
+    if constexpr (std::is_arithmetic_v<T>)
+        return VAL_PLAIN;
+    else
+        return NOTYPE;
+}
+/** Return extra style flags to use when setting a scalar as key.
+ * Defaults to KEY_PLAIN for arithmetic types, or NOTYPE otherwise */
+template<class T>
+C4_ALWAYS_INLINE type_bits scalar_flags_key(T const&) noexcept
+{
+    if constexpr (std::is_arithmetic_v<T>)
+        return KEY_PLAIN;
+    else
+        return NOTYPE;
+}
+
+#else // pre-C++17 implementation: need to use SFINAE
+
+template<class T>
+C4_ALWAYS_INLINE auto scalar_flags_val(T const&) noexcept
+    -> typename std::enable_if<std::is_arithmetic<T>::value, type_bits>::type
+{
+    return VAL_PLAIN;
+}
+template<class T>
+C4_ALWAYS_INLINE auto scalar_flags_key(T const&) noexcept
+    -> typename std::enable_if<std::is_arithmetic<T>::value, type_bits>::type
+{
+    return KEY_PLAIN;
+}
+
+template<class T>
+C4_ALWAYS_INLINE auto scalar_flags_val(T const&) noexcept
+    -> typename std::enable_if< ! std::is_arithmetic<T>::value, type_bits>::type
+{
+    return NOTYPE;
+}
+template<class T>
+C4_ALWAYS_INLINE auto scalar_flags_key(T const&) noexcept
+    -> typename std::enable_if< ! std::is_arithmetic<T>::value, type_bits>::type
+{
+    return NOTYPE;
+}
+
+#endif // pre-C++17 implementation
+
+
+//-----------------------------------------------------------------------------
+
 /** Serialize a variable to the tree's arena, and set it as the node's val.  */
 template<class T>
 C4_ALWAYS_INLINE void write(Tree * tree, id_type id, T const& v)
 {
-    tree->set_val(id, serialize_to_arena(tree, v));
+    tree->set_val(id, serialize_to_arena(tree, v), scalar_flags_val(v));
 }
 
 /** Serialize a variable to the tree's arena, and set it as the node's key.
@@ -1644,7 +1700,7 @@ C4_ALWAYS_INLINE void write(Tree * tree, id_type id, T const& v)
 template<class T>
 C4_ALWAYS_INLINE void write_key(Tree * tree, id_type id, T const& v)
 {
-    tree->set_key(id, serialize_to_arena(tree, v));
+    tree->set_key(id, serialize_to_arena(tree, v), scalar_flags_key(v));
 }
 
 /** @} */

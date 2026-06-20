@@ -1,13 +1,13 @@
-- [PR#622](https://github.com/biojppm/rapidyaml/pull/622) API cleanup: remove preprocess utilities.
 - [PR#620](https://github.com/biojppm/rapidyaml/pull/620) API cleanup: `Tree` and `NodeRef`:
   - Deprecate `NodeInit`
   - `Tree` and `NodeRef`:
+    - deprecate `.to_val()` and friends -- add `.set_val()` and friends.
     - deprecate `operator=(csubstr)` and friends -- use `.set_val()` instead.
     - deprecate `operator|=(NodeType)` and `operator=(NodeType)` -- use appropriate overload `.set_*(T, NodeType)`.
     - Migration:
       ```c++
       NodeRef node = ...;
-      // before
+      // before (deprecated)
       node |= MAP|BLOCK;
       node["key"] = "val";
       node["key"] |= VAL_SQUO;
@@ -18,9 +18,10 @@
       node["key"].set_val("val", VAL_SQUO);
       node["seq"].set_seq(FLOW);
       node["seq2"].set_seq();
+      // see the doxygen documentation
       ```
-    - You can disable compiler deprecation warnings from use of these operators: by enabling the cmake variable (or defining the macro) `RYML_WITH_LEGACY_OPERATORS`.
-    - deprecate `.to_val()` and friends -- add `.set_val()` and friends.
+    - You can disable compiler deprecation warnings from use of these operators: by enabling the cmake variable (or defining the macro) `RYML_WITH_LEGACY
+    _OPERATORS`.
     - deprecate `NodeInit` and `NodeScalar` methods (use `.set_*()`)
     - deprecate single-arg `NodeRef::{duplicate,move}(ConstNodeRef)`
     - deprecate `NodeRef::visit()` and `NodeRef::visit_stacked()`
@@ -36,7 +37,7 @@
       ```c++
       NodeRef node = ...;
       T var1 = ..., var2 = ...;
-      // before
+      // before (deprecated)
       node << var1;
       node >> var2;
       node << key(var1);
@@ -48,9 +49,9 @@
       node.load_key(&var2);
       // or now - without exceptional flow
       node.set_serialized(var1);
-      if(!node.deserialize(&var2)) ...;
+      if( ! node.deserialize(&var2)) ...;
       node.set_key_serialized(var1);
-      if(!node.deserialize_key(&var2)) ...;
+      if( ! node.deserialize_key(&var2)) ...;
       // see the doxygen documentation
       ```
     - You can disable compiler deprecation warnings from use of these operators: by enabling the cmake variable (or defining the macro) `RYML_WITH_LEGACY_OPERATORS`.
@@ -76,6 +77,7 @@
     int val;
     tree["empty"].load(&val); // ERROR! as before.
     ```
+- [PR#625](https://github.com/biojppm/rapidyaml/pull/625): Set plain scalar style when serializing arithmetic scalars: improves emit speed of numeric-heavy data payloads.
 - [PR#616](https://github.com/biojppm/rapidyaml/pull/616) API cleanup: emit
   - `WriterFile` and `WriterOStream` no longer track the number of emitted bytes.
   - `error_on_excess` is now used in the emit-to-buffer overloads, and no longer in the main `Emitter::emit_as()` driver function.
@@ -110,9 +112,10 @@
     ```
   - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
   - `file_put_contents()`: add `FILE*` overloads
-- [PR#621](https://github.com/biojppm/rapidyaml/pull/621): Clean `NodeRef`:
+- [PR#621](https://github.com/biojppm/rapidyaml/pull/621) API cleanup: `NodeRef`:
   - Simplify internal implementation of `{Const}NodeRef::{iterator,children_view}`.
   - Stop using SFINAE on Node CRTP to distinguish const vs non const, by duplicating the functions in `NodeRef` vs `ConstNodeRef`. No semantic changes. This should improve compilation speed of code containing many node calls.
+- [PR#622](https://github.com/biojppm/rapidyaml/pull/622) API cleanup: remove preprocess utilities.
 - [PR#623](https://github.com/biojppm/rapidyaml/pull/623): Fuzzing fixes, and close to 1 billion fuzz runs without any errors. These were the only two problems found:
   - Ensure parse error on multiline keys opening YAML:
     ```yaml

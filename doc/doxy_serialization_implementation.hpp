@@ -68,7 +68,10 @@ ryml implements serialization in the following way:
  - ... the [tree write()/write_key() overloads](@ref doc_serialization_tree_write),
    which **again can be overrided for user types**. The default
    implementations of these functions now get into the nitty-gritty
-   of serialization by calling...
+   of serialization by choosing a style flag with
+   [scalar_flags_val()](@ref scalar_flags_val()) / [scalar_flags_key()](@ref scalar_flags_key())
+   (**these functions can also be overrided for user types**)
+   and then calling...
 
    - [serialize_to_arena()](@ref c4::yml::serialize_to_arena())
      which uses trait @ref c4::is_string<T> to dispatch to...
