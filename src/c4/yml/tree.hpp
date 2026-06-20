@@ -149,10 +149,10 @@ C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT, std::nullptr_t /
 template<class T> void write(Tree * tree, id_type id, T const& v);
 template<class T> void write_key(Tree *, id_type id, T const& v);
 
-template<class T> C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, T * v);
-template<class T> C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, T * v);
-template<class Wrapper> C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, Wrapper const& w);
-template<class Wrapper> C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, Wrapper const& w);
+template<class T> C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, T * v);
+template<class T> C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, T * v);
+template<class Wrapper> C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, Wrapper const& w);
+template<class Wrapper> C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, Wrapper const& w);
 /** @endcond */
 
 
@@ -847,14 +847,22 @@ public:
     /** @name deserialization - checked */
     /** @{ */
 
+    static C4_ALWAYS_INLINE ReadResult to_result_(bool, id_type node) noexcept { return ReadResult(node); }
+    static C4_ALWAYS_INLINE ReadResult to_result_(ReadResult notlegacy, id_type) noexcept { return notlegacy; }
+
     template<class T>
     C4_ALWAYS_INLINE void load(id_type node, T * v, bool check_readable=true) const
     {
         const bool can_read_val = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
         _RYML_ASSERT_VISIT_(m_callbacks, can_read_val, this, node);
         if(C4_LIKELY(!check_readable || can_read_val))
-            if(C4_LIKELY(read(this, node, v)))
+        {
+            const ReadResult result(read(this, node, v), node);
+            if(C4_LIKELY(result))
                 return;
+            else
+                node = result.node;
+        }
         err_visit_(node);
     }
     template<class Wrapper>
@@ -864,8 +872,13 @@ public:
         const bool can_read_val = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
         _RYML_ASSERT_VISIT_(m_callbacks, can_read_val, this, node);
         if(C4_LIKELY(!check_readable || can_read_val))
-            if(C4_LIKELY(read(this, node, w)))
+        {
+            const ReadResult result(read(this, node, w), node);
+            if(C4_LIKELY(result))
                 return;
+            else
+                node = result.node;
+        }
         err_visit_(node);
     }
 
@@ -875,8 +888,13 @@ public:
         const bool can_read_key = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & KEY));
         _RYML_ASSERT_VISIT_(m_callbacks, can_read_key, this, node);
         if(C4_LIKELY(!check_readable || can_read_key))
-            if(C4_LIKELY(read_key(this, node, k)))
+        {
+            const ReadResult result(read_key(this, node, k), node);
+            if(C4_LIKELY(result))
                 return;
+            else
+                node = result.node;
+        }
         err_visit_(node);
     }
     template<class Wrapper>
@@ -886,8 +904,13 @@ public:
         bool can_read_key = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & KEY));
         _RYML_ASSERT_VISIT_(m_callbacks, can_read_key, this, node);
         if(C4_LIKELY(!check_readable || can_read_key))
-            if(C4_LIKELY(read_key(this, node, w)))
+        {
+            const ReadResult result(read_key(this, node, w), node);
+            if(C4_LIKELY(result))
                 return;
+            else
+                node = result.node;
+        }
         err_visit_(node);
     }
 
@@ -899,35 +922,35 @@ public:
     /** @{ */
 
     template<class T>
-    C4_ALWAYS_INLINE bool deserialize(id_type node, T * v) const
+    C4_ALWAYS_INLINE ReadResult deserialize(id_type node, T * v) const
     {
         _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         _RYML_ASSERT_VISIT_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
-        return read(this, node, v);
+        return ReadResult(read(this, node, v), node);
     }
     template<class Wrapper>
-    C4_ALWAYS_INLINE bool deserialize(id_type node, Wrapper const& w) const
+    C4_ALWAYS_INLINE ReadResult deserialize(id_type node, Wrapper const& w) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         _RYML_ASSERT_VISIT_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
-        return read(this, node, w);
+        return ReadResult(read(this, node, w), node);
     }
 
     template<class T>
-    C4_ALWAYS_INLINE bool deserialize_key(id_type node, T * v) const
+    C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, T * v) const
     {
         _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node);
-        return read_key(this, node, v);
+        return ReadResult(read_key(this, node, v), node);
     }
     template<class Wrapper>
-    C4_ALWAYS_INLINE bool deserialize_key(id_type node, Wrapper const& w) const
+    C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, Wrapper const& w) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node);
-        return read_key(this, node, w);
+        return ReadResult(read_key(this, node, w), node);
     }
 
     /** @} */
@@ -1721,24 +1744,24 @@ C4_ALWAYS_INLINE void write_key(Tree * tree, id_type id, T const& v)
  * @see @ref scalar_deserialize()
  * @see the counterpart function @ref read_key() */
 template<class T>
-C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, T * v)
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, T * v)
 {
     // caller only checks that type is one of VAL|MAP|SEQ (because it
     // can't be more concrete than that). Here, we expect a VAL so now
     // we can check for that:
     NodeData const* C4_RESTRICT nd = tree->_p(id);
-    return (nd->m_type & VAL) ? scalar_deserialize(nd->m_val.scalar, v) : false;
+    return ReadResult((nd->m_type & VAL) && scalar_deserialize(nd->m_val.scalar, v), id);
 }
 /** overload to enable use of wrapper tag-types like eg @ref
  * c4::fmt::base64() */
 template<class Wrapper>
-C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, Wrapper const& w)
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, Wrapper const& w)
 {
     // caller only checks that type is one of VAL|MAP|SEQ (because it
     // can't be more concrete than that). Here, we expect a VAL so now
     // we can check for that:
     NodeData const* C4_RESTRICT nd = tree->_p(id);
-    return (nd->m_type & VAL) ? from_chars(nd->m_val.scalar, w) : false;
+    return ReadResult((nd->m_type & VAL) && from_chars(nd->m_val.scalar, w), id);
 }
 
 
@@ -1748,18 +1771,18 @@ C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, Wrapper co
  * @return false if the conversion failed
  * @see the counterpart function @ref read(Tree const*, id_type, T*) */
 template<class T>
-C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, T * v)
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, T * v)
 {
     // caller already checks availability of key
-    return scalar_deserialize(tree->_p(id)->m_key.scalar, v);
+    return ReadResult(scalar_deserialize(tree->_p(id)->m_key.scalar, v), id);
 }
 /** overload to enable use of wrapper tag-types like eg @ref
  * c4::fmt::base64() */
 template<class Wrapper>
-C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, Wrapper const& w)
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, Wrapper const& w)
 {
     // caller already checks availability of key
-    return from_chars(tree->_p(id)->m_key.scalar, w);
+    return ReadResult(from_chars(tree->_p(id)->m_key.scalar, w), id);
 }
 
 /** @} */

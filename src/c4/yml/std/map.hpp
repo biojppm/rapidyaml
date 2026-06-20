@@ -45,18 +45,21 @@ C4_ALWAYS_INLINE void write(c4::yml::NodeRef *n, std::map<K, V, Less, Alloc> con
  * already present in the map, then its value will be
  * move-assigned. The map */
 template<class K, class V, class Less, class Alloc>
-bool read(c4::yml::Tree const* tree, c4::yml::id_type id, std::map<K, V, Less, Alloc> * m)
+ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, std::map<K, V, Less, Alloc> * m)
 {
     if(C4_UNLIKELY(!tree->is_map(id)))
-        return false;
+        return ReadResult(id);
     for(id_type child = tree->first_child(id); child != NONE; child = tree->next_sibling(child))
     {
         K k{};
-        if(C4_UNLIKELY(!tree->deserialize_key(child, &k) ||
-                       !tree->deserialize(child, &(*m)[std::move(k)])))
-            return false;
+        ReadResult result = tree->deserialize_key(child, &k);
+        if(C4_UNLIKELY(!result))
+            return result;
+        result = tree->deserialize(child, &(*m)[std::move(k)]);
+        if(C4_UNLIKELY(!result))
+            return result;
     }
-    return true;
+    return ReadResult();
 }
 
 /** deserialize a map from a node: implementation for @ref ConstNodeRef . read
@@ -64,18 +67,21 @@ bool read(c4::yml::Tree const* tree, c4::yml::id_type id, std::map<K, V, Less, A
  * already present in the map, then its value will be
  * move-assigned. */
 template<class K, class V, class Less, class Alloc>
-bool read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
+ReadResult read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
 {
     if(C4_UNLIKELY(!n.is_map()))
-        return false;
+        return ReadResult(n.id());
     for(ConstNodeRef const& C4_RESTRICT ch : n)
     {
         K k{};
-        if(C4_UNLIKELY(!ch.deserialize_key(&k) ||
-                       !ch.deserialize(&(*m)[std::move(k)])))
-            return false;
+        ReadResult result = ch.deserialize_key(&k);
+        if(C4_UNLIKELY(!result))
+            return result;
+        result = ch.deserialize(&(*m)[std::move(k)]);
+        if(C4_UNLIKELY(!result))
+            return result;
     }
-    return true;
+    return ReadResult();
 }
 
 } // namespace yml

@@ -29,8 +29,8 @@ namespace yml {
 // forward decls
 class NodeRef;
 class ConstNodeRef;
-template<class T> bool read(ConstNodeRef const& C4_RESTRICT n, T *v);
-template<class T> bool read_key(ConstNodeRef const& C4_RESTRICT n, T *v);
+template<class T> ReadResult read(ConstNodeRef const& C4_RESTRICT n, T *v);
+template<class T> ReadResult read_key(ConstNodeRef const& C4_RESTRICT n, T *v);
 template<class T> void write(NodeRef *n, T const& v);
 template<class T> void write(NodeRef &n, T const& v);
 template<class T> void write_key(NodeRef *n, T const& v);
@@ -349,8 +349,9 @@ public:
             assert_val_(); // assert otherwise
         // we can call read() directly because we checked everything
         // (or the caller told us so)
-        if(C4_UNLIKELY(!read((ConstImpl const&)*this, v)))
-            err_visit_(tree_, id_, "could not deserialize value");
+        const ReadResult result(read((ConstImpl const&)*this, v), id_);
+        if(C4_UNLIKELY(!result))
+            err_visit_(tree_, result.node, "could not deserialize node");
     }
     /** (2) like (1), but for wrapper tag types such as @ref
      * c4::fmt::base64() */
@@ -364,8 +365,9 @@ public:
             assert_val_(); // assert otherwise
         // we can call read() directly because we checked everything
         // (or the caller told us so)
-        if(C4_UNLIKELY(!read((ConstImpl const&)*this, wrapper)))
-            err_visit_(tree_, id_, "could not deserialize value");
+        const ReadResult result(read((ConstImpl const&)*this, wrapper), id_);
+        if(C4_UNLIKELY(!result))
+            err_visit_(tree_, result.node, "could not deserialize node");
     }
 
     /** (1) deserialize the node's key (necessarily a scalar) to the
@@ -384,8 +386,9 @@ public:
             assert_key_(); // assert otherwise
         // we can call read_key() directly because we checked
         // everything (or the caller told us so)
-        if(C4_UNLIKELY(!read_key((ConstImpl const&)*this, k)))
-            err_visit_(tree_, id_, "could not deserialize key");
+        const ReadResult result(read_key((ConstImpl const&)*this, k), id_);
+        if(C4_UNLIKELY(!result))
+            err_visit_(tree_, result.node, "could not deserialize key");
     }
     /** (2) like (1), but for wrapper tag types such as @ref
      * c4::fmt::base64() */
@@ -399,8 +402,9 @@ public:
             assert_key_(); // assert otherwise
         // we can call read_key() directly because we checked
         // everything (or the caller told us so)
-        if(C4_UNLIKELY(!read_key((ConstImpl const&)*this, wrapper)))
-            err_visit_(tree_, id_, "could not deserialize key");
+        const ReadResult result(read_key((ConstImpl const&)*this, wrapper), id_);
+        if(C4_UNLIKELY(!result))
+            err_visit_(tree_, result.node, "could not deserialize key");
     }
 
     /** @} */
@@ -415,19 +419,19 @@ public:
      * function (see @ref doc_serialization_node_read).
      * @return true if the deserialization succeeded. */
     template<class T>
-    C4_NODISCARD bool deserialize(T *v) const
+    C4_NODISCARD ReadResult deserialize(T *v) const
     {
         assert_val_();
-        return read((ConstImpl const&)*this, v);
+        return ReadResult(read((ConstImpl const&)*this, v), id_);
     }
     /** (2) like (1), but for wrapper tag types such as @ref
      * c4::fmt::base64() */
     template<class Wrapper>
-    C4_NODISCARD bool deserialize(Wrapper const& wrapper) const
+    C4_NODISCARD ReadResult deserialize(Wrapper const& wrapper) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         assert_val_();
-        return read((ConstImpl const&)*this, wrapper);
+        return ReadResult(read((ConstImpl const&)*this, wrapper), id_);
     }
 
 
@@ -437,19 +441,19 @@ public:
      *
      * @return true if the deserialization succeeded. */
     template<class T>
-    C4_NODISCARD bool deserialize_key(T *v) const
+    C4_NODISCARD ReadResult deserialize_key(T *v) const
     {
         assert_key_();
-        return read_key((ConstImpl const&)*this, v);
+        return ReadResult(read_key((ConstImpl const&)*this, v), id_);
     }
     /** (2) like (1), but for wrapper tag types such as @ref
      * c4::fmt::base64() */
     template<class Wrapper>
-    C4_NODISCARD bool deserialize_key(Wrapper const& wrapper) const
+    C4_NODISCARD ReadResult deserialize_key(Wrapper const& wrapper) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         assert_key_();
-        return read_key((ConstImpl const&)*this, wrapper);
+        return ReadResult(read_key((ConstImpl const&)*this, wrapper), id_);
     }
 
     /** @} */
@@ -1959,31 +1963,31 @@ inline ConstNodeRef& ConstNodeRef::operator= (NodeRef && that) noexcept // NOLIN
 
 
 template<class T>
-C4_NODISCARD C4_ALWAYS_INLINE bool read(ConstNodeRef const& C4_RESTRICT n, T *v)
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(ConstNodeRef const& C4_RESTRICT n, T *v)
 {
-    return n.m_tree->deserialize(n.m_id, v); // defer to the tree implementation
+    // defer to the tree implementation
+    return n.m_tree->deserialize(n.m_id, v);
 }
 template<class T>
-C4_NODISCARD C4_ALWAYS_INLINE bool read_key(ConstNodeRef const& C4_RESTRICT n, T *v)
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(ConstNodeRef const& C4_RESTRICT n, T const& wrapper)
 {
-    return n.m_tree->deserialize_key(n.m_id, v); // defer to the tree implementation
+    // defer to the tree implementation
+    return n.m_tree->deserialize(n.m_id, wrapper);
 }
 
-template<class T>
-C4_NODISCARD C4_ALWAYS_INLINE bool read(ConstNodeRef const& C4_RESTRICT n, T const& wrapper)
-{
-    return n.m_tree->deserialize(n.m_id, wrapper); // defer to the tree implementation
-}
-template<class T>
-C4_NODISCARD C4_ALWAYS_INLINE bool read_key(ConstNodeRef const& C4_RESTRICT n, T const& wrapper)
-{
-    return n.m_tree->deserialize_key(n.m_id, wrapper); // defer to the tree implementation
-}
 
-/** @cond dev */ // LCOV_EXCL_START
-template<class T> RYML_DEPRECATED("use read_key(node, v)") bool readkey(ConstNodeRef const& C4_RESTRICT node, T *v) { return read_key(node.m_tree, node.m_id, v); } // LCOV_EXCL_LINE
-template<class T> RYML_DEPRECATED("use read_key(node, v)") bool readkey(NodeRef const& C4_RESTRICT node, T *v) { return read_key(node.tree(), node.id(), v); } // LCOV_EXCL_LINE
-/** @endcond */ // LCOV_EXCL_STOP
+template<class T>
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(ConstNodeRef const& C4_RESTRICT n, T *v)
+{
+    // defer to the tree implementation
+    return n.m_tree->deserialize_key(n.m_id, v);
+}
+template<class T>
+C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(ConstNodeRef const& C4_RESTRICT n, T const& wrapper)
+{
+    // defer to the tree implementation
+    return n.m_tree->deserialize_key(n.m_id, wrapper);
+}
 
 /** @} */
 
