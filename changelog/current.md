@@ -33,7 +33,7 @@
     - Deprecate `operator<<`, use `.load()` / `.load_key()` or `.deserialize()` / `.deserialize_key()`
     - Deprecate `operator>>`, use `.save()` / `.save_key()` or `.set_serialized()` / `.set_key_serialized()`
     - Deprecate `key()` tag function and `Key` tag type (needed only for the operators above)
-    - Migration:
+    - Migration of code triggering serialization:
       ```c++
       NodeRef node = ...;
       T var1 = ..., var2 = ...;
@@ -77,6 +77,13 @@
     int val;
     tree["empty"].load(&val); // ERROR! as before.
     ```
+- [PR#626](https://github.com/biojppm/rapidyaml/pull/626): ensure accurate reporting of nodes causing deeply nested serialization error. To profit from this, `read()` user functions should now return `ReadResult` instead of `bool`. This change is backwards-compatible with legacy `read()` functions returning `bool`, but the legacy version remains less precise. See the new `sample_deserialize_error()` and the [latest doxygen documentation](https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__serialization__user__types.html) . The user functions should change (but not mandatory):
+  ```c++
+  // before
+  bool read(ryml::ConstNodeRef n, T *var) { ... }
+  // now
+  ryml::ReadResult read(ryml::ConstNodeRef n, T *var) { ... }
+  ```
 - [PR#625](https://github.com/biojppm/rapidyaml/pull/625): Set plain scalar style when serializing arithmetic scalars: improves emit speed of numeric-heavy data payloads.
 - [PR#616](https://github.com/biojppm/rapidyaml/pull/616) API cleanup: emit
   - `WriterFile` and `WriterOStream` no longer track the number of emitted bytes.
