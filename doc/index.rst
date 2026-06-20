@@ -90,22 +90,23 @@ github
     // deserializing:
     int bar0 = 0, bar1 = 0;
     bar[0].load(&bar0); // also checks the node is readable, and conversion succeeded
-    bar[1].load(&bar1);
+    bar[1].load(&bar1); // see also .deserialize()
     CHECK(bar0 == 2);
     CHECK(bar1 == 3);
 
     // serializing:
-    bar[0].set_serialized(10); // creates a string in the tree's arena
-    bar[1].set_serialized(11);
+    bar[0].save(10); // creates a string in the tree's arena
+    bar[1].save(11); // see also .set_serialized()
     CHECK(bar[0].val() == "10");
     CHECK(bar[1].val() == "11");
 
     // add nodes
-    bar.append_child().set_serialized(12); // see also operator= (explanation below)
+    tree["new"].set_val("node");
+    bar.append_child().save(12);
     CHECK(bar[2].val() == "12");
 
     // emit tree
-    std::string expected = "{foo: 1,bar: [10,11,12],john: doe}";
+    std::string expected = "{foo: 1,bar: [10,11,12],john: doe,new: node}";
     // emit tree to std::string
     CHECK(ryml::emitrs_yaml<std::string>(tree) == expected);
     // emit tree to FILE*
