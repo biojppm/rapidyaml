@@ -903,11 +903,12 @@ protected:
         root.set_map(FLOW_SL);
         NodeRef keyval = root.append_child();
         NodeRef keyseq = root.append_child();
-        keyval << key("this") << "is";
-        keyseq << key("a");
+        keyval.save_key("this");
+        keyval.save("is");
+        keyseq.save_key("a");
         keyseq.set_seq();
-        keyseq.append_child() << "yaml";
-        keyseq.append_child() << "example";
+        keyseq.append_child().save("yaml");
+        keyseq.append_child().save("example");
     }
 
     void check_tree(Tree const& actual)
@@ -1225,11 +1226,12 @@ protected:
         root.set_map(FLOW_SL);
         NodeRef keyval = root.append_child();
         NodeRef keyseq = root.append_child();
-        keyval << key("this") << "is";
-        keyseq << key("a");
+        keyval.save_key("this");
+        keyval.save("is");
+        keyseq.save_key("a");
         keyseq.set_seq();
-        keyseq.append_child() << "json";
-        keyseq.append_child() << "example";
+        keyseq.append_child().save("json");
+        keyseq.append_child().save("example");
     }
 
     void check_tree(Tree const& actual)

@@ -1634,17 +1634,7 @@ TEST(emit, percent_is_quoted)
 
 TEST(emit, at_is_quoted__issue_309)
 {
-    Tree ti = parse_in_arena("{at: [], backtick: []}");
-    ti["at"][0] << "@test";
-    ti["at"][1].set_val("@test2");
-    ti["at"][2] << "@";
-    ti["at"][3].set_val("@");
-    ti["backtick"][0] << "`test";
-    ti["backtick"][1].set_val("`test2");
-    ti["backtick"][2] << "`";
-    ti["backtick"][3].set_val("`");
-    std::string yaml = emitrs_yaml<std::string>(ti);
-    test_check_emit_check(to_csubstr(yaml), [](Tree const &t){
+    auto check = [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_map());
         ASSERT_TRUE(t.rootref().has_child("at"));
         ASSERT_TRUE(t.rootref().has_child("backtick"));
@@ -1666,21 +1656,47 @@ TEST(emit, at_is_quoted__issue_309)
         EXPECT_TRUE(t["backtick"][1].is_val_quoted());
         EXPECT_TRUE(t["backtick"][2].is_val_quoted());
         EXPECT_TRUE(t["backtick"][3].is_val_quoted());
-    });
+    };
+    {
+        Tree ti = parse_in_arena("{at: [], backtick: []}");
+        ti["at"][0].save("@test");
+        ti["at"][1].set_val("@test2");
+        ti["at"][2].save("@");
+        ti["at"][3].set_val("@");
+        ti["backtick"][0].save("`test");
+        ti["backtick"][1].set_val("`test2");
+        ti["backtick"][2].save("`");
+        ti["backtick"][3].set_val("`");
+        std::string yaml = emitrs_yaml<std::string>(ti);
+        test_check_emit_check(to_csubstr(yaml), check);
+    }
+    {
+        Tree ti = parse_in_arena("{at: [], backtick: []}");
+        ti.set_serialized(ti["at"].append_child().id(),  "@test");
+        ti.set_val           (ti["at"].append_child().id(), "@test2");
+        ti.set_serialized(ti["at"].append_child().id(),  "@");
+        ti.set_val           (ti["at"].append_child().id(), "@");
+        ti.set_serialized(ti["backtick"].append_child().id(),  "`test");
+        ti.set_val           (ti["backtick"].append_child().id(), "`test2");
+        ti.set_serialized(ti["backtick"].append_child().id(),  "`");
+        ti.set_val           (ti["backtick"].append_child().id(), "`");
+        std::string yaml = emitrs_yaml<std::string>(ti);
+        test_check_emit_check(to_csubstr(yaml), check);
+    }
 }
 
 TEST(emit, at_is_quoted_only_in_the_beggining__issue_320)
 {
     Tree ti = parse_in_arena("{at: [], backtick: []}");
-    ti["at"].append_child() << "@test";
-    ti["at"].append_child() << "t@est";
-    ti["at"].append_child() << "test@";
+    ti["at"].append_child().save("@test");
+    ti["at"].append_child().save("t@est");
+    ti["at"].append_child().save("test@");
     ti["at"].append_child().set_val("@test2");
     ti["at"].append_child().set_val("t@est2");
     ti["at"].append_child().set_val("test2@");
-    ti["backtick"].append_child() << "`test";
-    ti["backtick"].append_child() << "t`est";
-    ti["backtick"].append_child() << "test`";
+    ti["backtick"].append_child().save("`test");
+    ti["backtick"].append_child().save("t`est");
+    ti["backtick"].append_child().save("test`");
     ti["backtick"].append_child().set_val("`test2");
     ti["backtick"].append_child().set_val("t`est2");
     ti["backtick"].append_child().set_val("test2`");

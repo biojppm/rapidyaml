@@ -950,6 +950,10 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = \
+                         ./doxy_common.hpp \
+                         ./doxy_serialization_using.hpp \
+                         ./doxy_serialization_user_types.hpp \
+                         ./doxy_serialization_implementation.hpp \
                          ./doxy_main.md \
                          ./doxy_changelog.md \
                          ../src \
@@ -959,8 +963,14 @@ INPUT                  = \
                          ../ext/c4core/src/c4/substr.hpp \
                          ../ext/c4core/src/c4/charconv.hpp \
                          ../ext/c4core/src/c4/format.hpp \
+                         ../ext/c4core/src/c4/format.cpp \
                          ../ext/c4core/src/c4/base64.hpp \
+                         ../ext/c4core/src/c4/base64.cpp \
+                         ../ext/c4core/src/c4/format_base64.hpp \
                          ../ext/c4core/src/c4/utf.hpp \
+                         ../ext/c4core/src/c4/utf.cpp \
+                         ../ext/c4core/src/c4/std/std.hpp \
+                         ../ext/c4core/src/c4/std/span.hpp \
                          ../ext/c4core/src/c4/std/string.hpp \
                          ../ext/c4core/src/c4/std/string_view.hpp \
                          ../ext/c4core/src/c4/std/vector.hpp \
@@ -1224,7 +1234,7 @@ STRIP_CODE_COMMENTS    = NO
 # entity all documented functions referencing it will be listed.
 # The default value is: NO.
 
-REFERENCED_BY_RELATION = NO
+REFERENCED_BY_RELATION = YES
 
 # If the REFERENCES_RELATION tag is set to YES then for each documented function
 # all documented entities called/used by that function will be listed.

@@ -1,8 +1,86 @@
-- [PR#616](https://github.com/biojppm/rapidyaml/pull/616): Clean emit API
+- [PR#622](https://github.com/biojppm/rapidyaml/pull/622) API cleanup: remove preprocess utilities.
+- [PR#620](https://github.com/biojppm/rapidyaml/pull/620) API cleanup: `Tree` and `NodeRef`:
+  - Deprecate `NodeInit`
+  - `Tree` and `NodeRef`:
+    - deprecate `operator=(csubstr)` and friends -- use `.set_val()` instead.
+    - deprecate `operator|=(NodeType)` and `operator=(NodeType)` -- use appropriate overload `.set_*(T, NodeType)`.
+    - Migration:
+      ```c++
+      NodeRef node = ...;
+      // before
+      node |= MAP|BLOCK;
+      node["key"] = "val";
+      node["key"] |= VAL_SQUO;
+      node["seq"] |= SEQ|FLOW;
+      node["seq2"] |= SEQ;
+      // now:
+      node.set_map(BLOCK);
+      node["key"].set_val("val", VAL_SQUO);
+      node["seq"].set_seq(FLOW);
+      node["seq2"].set_seq();
+      ```
+    - You can disable compiler deprecation warnings from use of these operators: by enabling the cmake variable (or defining the macro) `RYML_WITH_LEGACY_OPERATORS`.
+    - deprecate `.to_val()` and friends -- add `.set_val()` and friends.
+    - deprecate `NodeInit` and `NodeScalar` methods (use `.set_*()`)
+    - deprecate single-arg `NodeRef::{duplicate,move}(ConstNodeRef)`
+    - deprecate `NodeRef::visit()` and `NodeRef::visit_stacked()`
+    - add `Tree::arena_rem()`
+    - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with default value of 256
+  - `parse_*()`: internal simplification, no semantic changes
+- [PR#589](https://github.com/biojppm/rapidyaml/pull/589) API cleanup: serialization and tree building
+  - Refactor serialization code:
+    - Deprecate `operator<<`, use `.load()` / `.load_key()` or `.deserialize()` / `.deserialize_key()`
+    - Deprecate `operator>>`, use `.save()` / `.save_key()` or `.set_serialized()` / `.set_key_serialized()`
+    - Deprecate `key()` tag function and `Key` tag type (needed only for the operators above)
+    - Migration:
+      ```c++
+      NodeRef node = ...;
+      T var1 = ..., var2 = ...;
+      // before
+      node << var1;
+      node >> var2;
+      node << key(var1);
+      node >> key(var2);
+      // now - with checks and call to error
+      node.save(var1);
+      node.load(&var2);
+      node.save_key(var1);
+      node.load_key(&var2);
+      // or now - without exceptional flow
+      node.set_serialized(var1);
+      if(!node.deserialize(&var2)) ...;
+      node.set_key_serialized(var1);
+      if(!node.deserialize_key(&var2)) ...;
+      // see the doxygen documentation
+      ```
+    - You can disable compiler deprecation warnings from use of these operators: by enabling the cmake variable (or defining the macro) `RYML_WITH_LEGACY_OPERATORS`.
+    - Serialization with `Tree` API is now fully implemented, working exactly the same as `NodeRef`
+      - serialization:
+        - `NodeRef` serialized with `write(NodeRef *, T const&)` and `write_key()`
+        - `Tree` serialized with `write(Tree *, id_type, T const&)` and `write_key()`
+        - No changes in types using `to_chars()` serialization
+      - deserialization:
+        - `ConstNodeRef` deserialized with `read(ConstNodeRef const&, T *)` and `read_key()`
+        - `Tree` deserialized with `read(Tree const*, id_type, T *)` and `read_key()` (removed old `readkey()` approach.)
+        - No changes in types using `from_chars()` serialization
+      - Enables bypass of `NodeRef` serialization to use the tree API, which is more efficient/faster to compile.
+      - Organize serialization in layers, ensuring use of free functions to enable the user to override at all levels with ADL, for total control of type behavior (explained in the doxygen documentation).
+      - Added many more unit tests to ensure all scenarios are working.
+  - Move scalar specific code to new top-level headers `c4/yml/scalar_charconv.hpp` and `c4/yml/scalar_style.hpp`
+  - Relax deserialization of nodes with `VALNIL` or `KEYNIL`, such that non-fundamental types can now be null-initialized (eg initialize a string from a null scalar). Fundamental types such as ints or floats will still report an error.
+    ```c++
+    Tree tree = parse_in_arena("{empty: }");
+    std::string str;
+    tree["empty"].load(&str); // relaxed: no longer a deserialization error
+    assert(s.empty());
+    int val;
+    tree["empty"].load(&val); // ERROR! as before.
+    ```
+- [PR#616](https://github.com/biojppm/rapidyaml/pull/616) API cleanup: emit
   - `WriterFile` and `WriterOStream` no longer track the number of emitted bytes.
   - `error_on_excess` is now used in the emit-to-buffer overloads, and no longer in the main `Emitter::emit_as()` driver function.
-- [PR#617](https://github.com/biojppm/rapidyaml/pull/617): Clean emit API, part 2: tidy emit classes among new header files:
-    - Top-level emit headers:
+- [PR#617](https://github.com/biojppm/rapidyaml/pull/617) API cleanup: emit, part 2
+    - Tidy emit classes among new top-level header files:
       - `c4/yml/emit_container.hpp`: emit to resizeable contiguous char container (eg `std::string`, `std::vector<char>`)
       - `c4/yml/emit_buf.hpp`: emit to char buffer (`substr`)
       - `c4/yml/emit_file.hpp`: emit to C `FILE*`
@@ -20,48 +98,22 @@
       - Added `Tree::root_id_maybe()` which is safe to call on an empty tree.
       - Deprecate `Emitter::max_depth()`
       - Deprecate `Emitter::options()` setter
-- [PR#618](https://github.com/biojppm/rapidyaml/pull/618): Clean emit API, part 3:
-  - Improve handling of NaN and Inf in json emitting.
+- [PR#618](https://github.com/biojppm/rapidyaml/pull/618): API cleanup: emit, part 3
+  - Improve handling of `NaN` and `Inf` in json emitting.
   - Expose scalar style helpers for json emitting:
     ```c++
-    bool scalar_is_plain_number_json(csubstr s);
-    bool scalar_is_special_json(csubstr s);
-    bool scalar_is_inf3(csubstr s);
-    bool scalar_is_nan3(csubstr s);
-    bool scalar_is_inf_or_nan3(csubstr s);
+    bool scalar_is_plain_number_json();
+    bool scalar_is_special_json();
+    bool scalar_is_inf3();
+    bool scalar_is_nan3();
+    bool scalar_is_inf_or_nan3();
     ```
   - Writers: add `C4_ALWAYS_INLINE`. Results in ~10-20% emit improvements.
   - `file_put_contents()`: add `FILE*` overloads
-- [PR#622](https://github.com/biojppm/rapidyaml/pull/622): Remove preprocess utilities.
-- [PR#620](https://github.com/biojppm/rapidyaml/pull/620): Clean `Tree` and `NodeRef`:
-  - Deprecate `NodeInit`
-  - `Tree` and `NodeRef`:
-    - deprecate `.to_val()` and friends -- add `.set_val()` and friends.
-    - deprecate `operator=(csubstr)` and friends -- use `.set_val()` instead.
-    - deprecate `operator|=(NodeType)` and `operator=(NodeType)` -- use appropriate overload `.set_*(T, NodeType)`. For example:
-      ```c++
-      // before
-      node |= MAP|BLOCK;
-      node["key"] = "val";
-      node["key"] |= VAL_SQUO;
-      node["seq"] |= SEQ|FLOW;
-      node["seq2"] |= SEQ;
-      // now:
-      node.set_map(BLOCK);
-      node["key"].set_val("val", VAL_SQUO);
-      node["seq"].set_seq(FLOW);
-      node["seq2"].set_seq();
-      ```
-    - deprecate `NodeInit` and `NodeScalar` methods (use `.set_*()`)
-    - deprecate single-arg `NodeRef::{duplicate,move}(ConstNodeRef)`
-    - deprecate `NodeRef::visit()` and `NodeRef::visit_stacked()`
-    - add `Tree::arena_rem()`
-    - add `RYML_DEFAULT_TREE_ARENA_CAPACITY_START` with default value of 256
-  - `parse_*()`: internal simplification, no semantic changes
 - [PR#621](https://github.com/biojppm/rapidyaml/pull/621): Clean `NodeRef`:
   - Simplify internal implementation of `{Const}NodeRef::{iterator,children_view}`.
-  - Stop using SFINAE on Node CRTP to distinguish const vs non const. No semantic changes. This should improve compilation speed of code with many node calls.
-- [PR#623](https://github.com/biojppm/rapidyaml/pull/623): Fuzzing fixes. Close to 1 billion runs, and these were the only two problems:
+  - Stop using SFINAE on Node CRTP to distinguish const vs non const, by duplicating the functions in `NodeRef` vs `ConstNodeRef`. No semantic changes. This should improve compilation speed of code containing many node calls.
+- [PR#623](https://github.com/biojppm/rapidyaml/pull/623): Fuzzing fixes, and close to 1 billion fuzz runs without any errors. These were the only two problems found:
   - Ensure parse error on multiline keys opening YAML:
     ```yaml
     multiline

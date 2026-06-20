@@ -24,83 +24,136 @@
 #ifndef _C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
-#ifndef _C4_CHARCONV_HPP_
-#include <c4/charconv.hpp>
+#ifndef _C4_YML_SCALAR_CHARCONV_HPP_
+#include "c4/yml/scalar_charconv.hpp"
 #endif
 
-#include <cmath>
-#include <limits>
+#include <math.h>
+#include <limits.h>
 
 
-C4_SUPPRESS_WARNING_MSVC_PUSH
-C4_SUPPRESS_WARNING_MSVC(4251) // needs to have dll-interface to be used by clients of struct
-C4_SUPPRESS_WARNING_MSVC(4296) // expression is always 'boolean_value'
-C4_SUPPRESS_WARNING_MSVC(4127) // conditional expression is constant
-C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
-C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
-C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
-C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 #if defined(__GNUC__) && (__GNUC__ >= 6)
 C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
 #endif
+C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+C4_SUPPRESS_WARNING_CLANG("-Wtautological-compare")
+C4_SUPPRESS_WARNING_MSVC(4127) // conditional expression is constant
+C4_SUPPRESS_WARNING_MSVC(4296) // expression is always 'boolean_value'
+C4_SUPPRESS_WARNING_MSVC(4251) // needs to have dll-interface
 // NOLINTBEGIN(modernize-avoid-c-style-cast)
 
 
 namespace c4 {
 namespace yml {
 
-/** @cond dev */
-template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type;
-template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type;
-template<class T> inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_floating_point<T>::value, bool>::type;
-template<class T> bool read(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper);
 
-template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type;
-template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type;
-template<class T> inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v) -> typename std::enable_if<std::is_floating_point<T>::value, bool>::type;
-template<class T> bool readkey(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper);
+/** @cond dev */
+template<class T>
+using _is_string_nocvref = is_string<typename detail::_remove_cvref<T>::type>;
 /** @endcond */
 
 
-template<class T> size_t to_chars_float(substr buf, T val);
-template<class T> bool from_chars_float(csubstr buf, T *C4_RESTRICT val);
+/** @addtogroup doc_serialization_tree_write_arena
+ *
+ * @{
+ */
 
+
+/** Serialize a scalar to the tree's arena. This is an implementation
+ * helper for @ref serialize_to_arena(), serializing through
+ * @ref scalar_serialize(). */
+template<class T>
+csubstr serialize_to_arena_scalar(Tree * tree, T const& scalar);
+
+
+/** Serialize a string type (as specified by @ref c4::is_string) to a
+ * tree's arena, ensuring that there is an entry for the string in the
+ * arena even if the string is empty. This is an implementation helper
+ * for @ref serialize_to_arena(), serializing through @ref
+ * scalar_serialize() and then ensuring that the serialized string
+ * will be placed in the arena, even if the string is zero-length. */
+RYML_EXPORT csubstr serialize_to_arena_str(Tree * tree, csubstr scalar);
+
+
+
+#if (C4_CPP >= 17) || defined(__DOXYGEN__)
+/** Serialize a scalar to a tree's arena, dispatching to either @ref
+ * serialize_to_arena_scalar() or @ref serialize_to_arena_str() when
+ * the type is a string according to @ref c4::is_string. This is the
+ * entry point for customizing how a scalar is serialized to a tree's
+ * arena. It is never needed for the user to call this function, and
+ * generally there is no reason for overriding this function for user
+ * types, unless it has specific requirements for the tree's arena, as
+ * happens for example with string types. For user string types,
+ * defining @ref c4::is_string is enough. For example:
+ *
+ * @note When using a standard older than C++17, `if constexpr` is not
+ * available, and the implementation reverts to SFINAE to achieve the
+ * compile-time dispatch.
+ *
+ * @code{c++}
+ * namespace foo {
+ * class MyStringType {...}; // an example of a user-defined string type
+ * // define conversion to/from substrings
+ * c4::yml::csubstr to_csubstr(MyStringType const& s) { return ...; }
+ * c4::yml::substr to_substr(MyStringType & s) { return ...; }
+ * } // namespace foo
+ * // tell ryml to treat this type as a string
+ * template<> struct c4::is_string<foo::MyStringType> : std::true_type {};
+ * @endcode */
+template<class T>
+C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * tree, T const& scalar)
+{
+    if constexpr (_is_string_nocvref<T>::value)
+        return serialize_to_arena_str(tree, to_csubstr(scalar));
+    else
+        return serialize_to_arena_scalar<T>(tree, scalar);
+}
+
+#else // pre-C++17: need to use SFINAE
 
 template<class T>
-C4_ALWAYS_INLINE auto serialize_scalar(substr buf, T const& C4_RESTRICT a)
-    -> typename std::enable_if<std::is_floating_point<T>::value, size_t>::type
+C4_ALWAYS_INLINE auto serialize_to_arena(Tree * tree, T const& scalar)
+    -> typename std::enable_if<_is_string_nocvref<T>::value, csubstr>::type
 {
-    return to_chars_float(buf, a);
+    return serialize_to_arena_str(tree, to_csubstr(scalar));
 }
-template<class T>
-C4_ALWAYS_INLINE auto serialize_scalar(substr buf, T const& C4_RESTRICT a)
-    -> typename std::enable_if< ! std::is_floating_point<T>::value, size_t>::type
-{
-    return to_chars(buf, a);
-}
-
 
 template<class T>
-csubstr serialize_to_arena(Tree * C4_RESTRICT tree, T const& C4_RESTRICT a);
-
-RYML_EXPORT csubstr serialize_to_arena(Tree * C4_RESTRICT tree, csubstr a);
-
-// these overloads are needed to ensure that these types are not
-// dispatched to the general template overload
-C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT tree, substr a)
+C4_ALWAYS_INLINE auto serialize_to_arena(Tree * tree, T const& scalar)
+    -> typename std::enable_if< ! _is_string_nocvref<T>::value, csubstr>::type
 {
-    return serialize_to_arena(tree, csubstr(a));
+    return serialize_to_arena_scalar<T>(tree, scalar);
 }
-C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT tree, const char *a)
-{
-    return serialize_to_arena(tree, to_csubstr(a));
-}
-C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT, std::nullptr_t)
+
+#endif // pre-C++17: need to use SFINAE
+
+/** implementation for null values */
+C4_ALWAYS_INLINE csubstr serialize_to_arena(Tree * C4_RESTRICT, std::nullptr_t /*scalar*/) noexcept
 {
     return csubstr{};
 }
 
+/** @} */
+
+
+//-----------------------------------------------------------------------------
+// fwd decl: write/read, write_key/read_key
+
+/** @cond dev */
+
+template<class T> void write(Tree * tree, id_type id, T const& v);
+template<class T> void write_key(Tree *, id_type id, T const& v);
+
+template<class T> C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, T * v);
+template<class T> C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, T * v);
+template<class Wrapper> C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, Wrapper const& w);
+template<class Wrapper> C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, Wrapper const& w);
+/** @endcond */
 
 
 //-----------------------------------------------------------------------------
@@ -695,6 +748,190 @@ public:
 
     /** @} */
 
+private:
+
+    C4_NORETURN C4_NO_INLINE C4_COLD
+    void err_visit_(id_type node) const
+    {
+        _RYML_ERR_VISIT_(m_callbacks, this, node, "invalid node");
+    }
+
+public:
+
+    /** @name serialization - checked */
+    /** @{ */
+
+    template<class T>
+    C4_ALWAYS_INLINE void save(id_type node, T const& val)
+    {
+        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        {
+            write(this, node, val);
+            return;
+        }
+        err_visit_(node);
+    }
+    template<class T>
+    C4_ALWAYS_INLINE void save(id_type node, T const& val, NodeType more_flags)
+    {
+        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        {
+            write(this, node, val);
+            _p(node)->m_type |= more_flags;
+            return;
+        }
+        err_visit_(node);
+    }
+
+    template<class T>
+    C4_ALWAYS_INLINE void save_key(id_type node, T const& key)
+    {
+        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        {
+            write_key(this, node, key);
+            return;
+        }
+        err_visit_(node);
+    }
+    template<class T>
+    C4_ALWAYS_INLINE void save_key(id_type node, T const& key, NodeType more_flags)
+    {
+        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        {
+            write_key(this, node, key);
+            _p(node)->m_type |= more_flags;
+            return;
+        }
+        err_visit_(node);
+    }
+
+    /** @} */
+
+public:
+
+    /** @name serialization - asserted */
+    /** @{ */
+
+    template<class T>
+    C4_ALWAYS_INLINE void set_serialized(id_type node, T const& val) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        write(this, node, val);
+    }
+    template<class T>
+    C4_ALWAYS_INLINE void set_serialized(id_type node, T const& val, NodeType more_flags) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        write(this, node, val);
+        _p(node)->m_type |= more_flags;
+    }
+
+    template<class T>
+    C4_ALWAYS_INLINE void set_key_serialized(id_type node, T const& key) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        write_key(this, node, key);
+    }
+    template<class T>
+    C4_ALWAYS_INLINE void set_key_serialized(id_type node, T const& key, NodeType more_flags) RYML_NOEXCEPT
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        write_key(this, node, key);
+        _p(node)->m_type |= more_flags;
+    }
+
+    /** @} */
+
+public:
+
+    /** @name deserialization - checked */
+    /** @{ */
+
+    template<class T>
+    C4_ALWAYS_INLINE void load(id_type node, T * v, bool check_readable=true) const
+    {
+        const bool can_read_val = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
+        _RYML_ASSERT_VISIT_(m_callbacks, can_read_val, this, node);
+        if(C4_LIKELY(!check_readable || can_read_val))
+            if(C4_LIKELY(read(this, node, v)))
+                return;
+        err_visit_(node);
+    }
+    template<class Wrapper>
+    C4_ALWAYS_INLINE void load(id_type node, Wrapper const& w, bool check_readable=true) const
+    {
+        RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
+        const bool can_read_val = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
+        _RYML_ASSERT_VISIT_(m_callbacks, can_read_val, this, node);
+        if(C4_LIKELY(!check_readable || can_read_val))
+            if(C4_LIKELY(read(this, node, w)))
+                return;
+        err_visit_(node);
+    }
+
+    template<class T>
+    C4_ALWAYS_INLINE void load_key(id_type node, T * k, bool check_readable=true) const
+    {
+        const bool can_read_key = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & KEY));
+        _RYML_ASSERT_VISIT_(m_callbacks, can_read_key, this, node);
+        if(C4_LIKELY(!check_readable || can_read_key))
+            if(C4_LIKELY(read_key(this, node, k)))
+                return;
+        err_visit_(node);
+    }
+    template<class Wrapper>
+    C4_ALWAYS_INLINE void load_key(id_type node, Wrapper const& w, bool check_readable=true) const
+    {
+        RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
+        bool can_read_key = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & KEY));
+        _RYML_ASSERT_VISIT_(m_callbacks, can_read_key, this, node);
+        if(C4_LIKELY(!check_readable || can_read_key))
+            if(C4_LIKELY(read_key(this, node, w)))
+                return;
+        err_visit_(node);
+    }
+
+    /** @} */
+
+public:
+
+    /** @name deserialization - asserted preconditions */
+    /** @{ */
+
+    template<class T>
+    C4_ALWAYS_INLINE bool deserialize(id_type node, T * v) const
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
+        return read(this, node, v);
+    }
+    template<class Wrapper>
+    C4_ALWAYS_INLINE bool deserialize(id_type node, Wrapper const& w) const
+    {
+        RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
+        return read(this, node, w);
+    }
+
+    template<class T>
+    C4_ALWAYS_INLINE bool deserialize_key(id_type node, T * v) const
+    {
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node);
+        return read_key(this, node, v);
+    }
+    template<class Wrapper>
+    C4_ALWAYS_INLINE bool deserialize_key(id_type node, Wrapper const& w) const
+    {
+        RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
+        _RYML_ASSERT_VISIT_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node);
+        return read_key(this, node, w);
+    }
+
+    /** @} */
+
 public:
 
     /** @name tree modifiers */
@@ -949,7 +1186,7 @@ public:
      * you can overload c4::to_chars(substr, T const&)
      *
      * @note To customize how the type gets serialized to the arena,
-     * you can overload @ref serialize_scalar()
+     * you can overload @ref scalar_serialize()
      *
      * @note Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual
@@ -1358,235 +1595,116 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** @defgroup doc_serialization_helpers Serialization helpers
+
+/** @addtogroup doc_serialization_tree_write_arena
  *
  * @{
  */
 
+/** Forward to @ref scalar_serialize(), giving it the tree's arena and
+ * resizing the arena as needed to fit the result. */
 template<class T>
-bool read(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper)
+csubstr serialize_to_arena_scalar(Tree * tree, T const& a)
 {
-    return C4_LIKELY(!(tree->type(id) & VALNIL)) ? from_chars(tree->val(id), wrapper) : false;
-}
-template<class T>
-bool readkey(Tree const* C4_RESTRICT tree, id_type id, T const& wrapper)
-{
-    return C4_LIKELY(!(tree->type(id) & KEYNIL)) ? from_chars(tree->key(id), wrapper) : false;
-}
-
-
-
-// NON-ARITHMETIC -------------------------------------------------------------
-
-/** convert the val of a scalar node to a particular non-arithmetic
- * non-float type, by forwarding its val to @ref from_chars<T>(). The
- * full string is used.
- * @return false if the conversion failed, or if the key was empty and unquoted */
-template<class T>
-inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v)
-    -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type
-{
-    return C4_LIKELY(!(tree->type(id) & VALNIL)) ? from_chars(tree->val(id), v) : false;
-}
-
-/** convert the key of a node to a particular non-arithmetic
- * non-float type, by forwarding its key to @ref from_chars<T>(). The
- * full string is used.
- * @return false if the conversion failed, or if the key was empty and unquoted */
-template<class T>
-inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v)
-    -> typename std::enable_if<!std::is_arithmetic<T>::value, bool>::type
-{
-    return C4_LIKELY(!(tree->type(id) & KEYNIL)) ? from_chars(tree->key(id), v) : false;
-}
-
-
-// INTEGRAL, NOT FLOATING -------------------------------------------------------------
-
-/** convert the val of a scalar node to a particular arithmetic
- * integral non-float type, by forwarding its val to @ref
- * from_chars<T>(). The full string is used.
- *
- * @return false if the conversion failed */
-template<class T>
-inline auto read(Tree const* C4_RESTRICT tree, id_type id, T *v)
-    -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type
-{
-    using U = typename std::remove_cv<T>::type;
-    enum { ischar = std::is_same<char, U>::value || std::is_same<signed char, U>::value || std::is_same<unsigned char, U>::value }; // NOLINT
-    csubstr val = tree->val(id);
-    NodeType ty = tree->type(id);
-    if(C4_UNLIKELY((ty & VALNIL) || val.empty()))
-        return false;
-    // quote integral numbers if they have a leading 0
-    // https://github.com/biojppm/rapidyaml/issues/291
-    char first = val.str[0];
-    if(ty.is_val_quoted() && (first != '0' && !ischar))
-        return false;
-    else if(first == '+')
-        val = val.sub(1);
-    return from_chars(val, v);
-}
-
-/** convert the key of a node to a particular arithmetic
- * integral non-float type, by forwarding its val to @ref
- * from_chars<T>(). The full string is used.
- *
- * @return false if the conversion failed */
-template<class T>
-inline auto readkey(Tree const* C4_RESTRICT tree, id_type id, T *v)
-    -> typename std::enable_if<std::is_arithmetic<T>::value && !std::is_floating_point<T>::value, bool>::type
-{
-    using U = typename std::remove_cv<T>::type;
-    enum { ischar = std::is_same<char, U>::value || std::is_same<signed char, U>::value || std::is_same<unsigned char, U>::value }; // NOLINT
-    csubstr key = tree->key(id);
-    NodeType ty = tree->type(id);
-    if((ty & KEYNIL) || key.empty())
-        return false;
-    // quote integral numbers if they have a leading 0
-    // https://github.com/biojppm/rapidyaml/issues/291
-    char first = key.str[0];
-    if(ty.is_key_quoted() && (first != '0' && !ischar))
-        return false;
-    else if(first == '+')
-        key = key.sub(1);
-    return from_chars(key, v);
-}
-
-
-// FLOATING -------------------------------------------------------------
-
-/** encode a floating point value to a string. */
-template<class T>
-size_t to_chars_float(substr buf, T val)
-{
-    static_assert(std::is_floating_point<T>::value, "must be floating point");
-    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal")
-    if(C4_UNLIKELY(std::isnan(val)))
-        return to_chars(buf, csubstr(".nan"));
-    else if(C4_UNLIKELY(val == std::numeric_limits<T>::infinity()))
-        return to_chars(buf, csubstr(".inf"));
-    else if(C4_UNLIKELY(val == -std::numeric_limits<T>::infinity()))
-        return to_chars(buf, csubstr("-.inf"));
-    return to_chars(buf, val);
-    C4_SUPPRESS_WARNING_GCC_CLANG_POP
-}
-
-
-/** decode a floating point from string. Accepts special values: .nan,
- * .inf, -.inf */
-template<class T>
-bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
-{
-    static_assert(std::is_floating_point<T>::value, "must be floating point");
-    if(buf.begins_with('+'))
+    substr buf = tree->arena_rem(); // buffer: the free part of the tree's arenra.
+ again:
+    size_t num = scalar_serialize(buf, a); // try to write into it
+    if(C4_LIKELY(num <= buf.len)) // was it enough?
     {
-        buf = buf.sub(1);
-    }
-    if(C4_LIKELY(from_chars(buf, val)))
-    {
-        return true;
-    }
-    else if(C4_UNLIKELY(buf == ".nan" || buf == ".NaN" || buf == ".NAN"))
-    {
-        *val = std::numeric_limits<T>::quiet_NaN();
-        return true;
-    }
-    else if(C4_UNLIKELY(buf == ".inf" || buf == ".Inf" || buf == ".INF"))
-    {
-        *val = std::numeric_limits<T>::infinity();
-        return true;
-    }
-    else if(C4_UNLIKELY(buf == "-.inf" || buf == "-.Inf" || buf == "-.INF"))
-    {
-        *val = -std::numeric_limits<T>::infinity();
-        return true;
+        buf = buf.first(num); // fit the payload
     }
     else
     {
-        return false;
+        buf = tree->_grow_arena(num); // does not advance pos
+        goto again; // NOLINT
     }
+    tree->m_arena_pos += num;
+    return buf;
 }
 
-/** convert the val of a scalar node to a floating point type, by
- * forwarding its val to @ref from_chars_float<T>().
+/** @} */
+
+
+/** @addtogroup doc_serialization_tree_write
  *
- * @return false if the conversion failed
- *
- * @warning Unlike non-floating types, only the leading part of the
- * string that may constitute a number is processed. This happens
- * because the float parsing is delegated to fast_float, which is
- * implemented that way. Consequently, for example, all of `"34"`,
- * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
- * about the contents of the data, you can use
- * csubstr::first_real_span() to check before calling `>>`, for
- * example like this:
- *
- * ```cpp
- * csubstr val = node.val();
- * if(val.first_real_span() == val)
- *     node >> v;
- * else
- *     ERROR("not a real")
- * ```
+ * @{
  */
+
+/** Serialize a variable to the tree's arena, and set it as the node's val.  */
 template<class T>
-typename std::enable_if<std::is_floating_point<T>::value, bool>::type
-inline read(Tree const* C4_RESTRICT tree, id_type id, T *v)
+C4_ALWAYS_INLINE void write(Tree * tree, id_type id, T const& v)
 {
-    csubstr val = tree->val(id);
-    return C4_LIKELY(!val.empty()) ? from_chars_float(val, v) : false;
+    tree->set_val(id, serialize_to_arena(tree, v));
 }
 
-/** convert the key of a scalar node to a floating point type, by
- * forwarding its key to @ref from_chars_float<T>().
+/** Serialize a variable to the tree's arena, and set it as the node's key.
  *
- * @return false if the conversion failed
- *
- * @warning Unlike non-floating types, only the leading part of the
- * string that may constitute a number is processed. This happens
- * because the float parsing is delegated to fast_float, which is
- * implemented that way. Consequently, for example, all of `"34"`,
- * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
- * about the contents of the data, you can use
- * csubstr::first_real_span() to check before calling `>>`, for
- * example like this:
- *
- * ```cpp
- * csubstr key = node.key();
- * if(key.first_real_span() == key)
- *     node >> v;
- * else
- *     ERROR("not a real")
- * ```
- */
+ * @warning The key MUST be a scalar value. The tree cannot handle
+ * container keys. */
 template<class T>
-typename std::enable_if<std::is_floating_point<T>::value, bool>::type
-inline readkey(Tree const* C4_RESTRICT tree, id_type id, T *v)
+C4_ALWAYS_INLINE void write_key(Tree * tree, id_type id, T const& v)
 {
-    csubstr key = tree->key(id);
-    return C4_LIKELY(!key.empty()) ? from_chars_float(key, v) : false;
+    tree->set_key(id, serialize_to_arena(tree, v));
 }
+
+/** @} */
 
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
+/** @addtogroup doc_serialization_tree_read
+ * @{
+ */
+
+/** Deserialize a scalar node's val from a tree object, returning
+ * false if the conversion failed.
+ *
+ * @return false if the conversion failed
+ * @see @ref scalar_deserialize()
+ * @see the counterpart function @ref read_key() */
 template<class T>
-csubstr serialize_to_arena(Tree * C4_RESTRICT tree, T const& C4_RESTRICT a)
+C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, T * v)
 {
-    substr rem(tree->m_arena.sub(tree->m_arena_pos));
-    size_t num = serialize_scalar(rem, a);
-    if(num > rem.len)
-    {
-        rem = tree->_grow_arena(num);
-        num = serialize_scalar(rem, a);
-        _RYML_ASSERT_VISIT_(tree->m_callbacks, num <= rem.len, tree, NONE);
-    }
-    rem = tree->_request_span(num);
-    return rem;
+    // caller only checks that type is one of VAL|MAP|SEQ (because it
+    // can't be more concrete than that). Here, we expect a VAL so now
+    // we can check for that:
+    NodeData const* C4_RESTRICT nd = tree->_p(id);
+    return (nd->m_type & VAL) ? scalar_deserialize(nd->m_val.scalar, v) : false;
+}
+/** overload to enable use of wrapper tag-types like eg @ref
+ * c4::fmt::base64() */
+template<class Wrapper>
+C4_NODISCARD C4_ALWAYS_INLINE bool read(Tree const* tree, id_type id, Wrapper const& w)
+{
+    // caller only checks that type is one of VAL|MAP|SEQ (because it
+    // can't be more concrete than that). Here, we expect a VAL so now
+    // we can check for that:
+    NodeData const* C4_RESTRICT nd = tree->_p(id);
+    return (nd->m_type & VAL) ? from_chars(nd->m_val.scalar, w) : false;
 }
 
 
+/** Deserialize a node's key from a tree object, returning false if
+ * the conversion failed
+ *
+ * @return false if the conversion failed
+ * @see the counterpart function @ref read(Tree const*, id_type, T*) */
+template<class T>
+C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, T * v)
+{
+    // caller already checks availability of key
+    return scalar_deserialize(tree->_p(id)->m_key.scalar, v);
+}
+/** overload to enable use of wrapper tag-types like eg @ref
+ * c4::fmt::base64() */
+template<class Wrapper>
+C4_NODISCARD C4_ALWAYS_INLINE bool read_key(Tree const* tree, id_type id, Wrapper const& w)
+{
+    // caller already checks availability of key
+    return from_chars(tree->_p(id)->m_key.scalar, w);
+}
 
 /** @} */
 
@@ -1597,9 +1715,6 @@ csubstr serialize_to_arena(Tree * C4_RESTRICT tree, T const& C4_RESTRICT a)
 } // namespace c4
 
 // NOLINTEND(modernize-avoid-c-style-cast)
-
-C4_SUPPRESS_WARNING_MSVC_POP
-C4_SUPPRESS_WARNING_GCC_CLANG_POP
-
+C4_SUPPRESS_WARNING_POP
 
 #endif /* _C4_YML_TREE_HPP_ */

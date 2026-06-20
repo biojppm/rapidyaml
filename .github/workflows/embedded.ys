@@ -136,6 +136,32 @@ jobs:
 # command examples to test in docker
 #
 #
+#
+# docker exec -it 1d596bfdda43 bash -c '( set -xe ; \
+#   cd /proj/rapidyaml ; \
+#   arch=s390x ; \
+#   tc=s390x-linux-gnu ; \
+#   bt=Debug ; std=11 ; \
+#   apt-get install g{cc,++}-$tc qemu-user-static ; \
+#   bd=build/docker/$arch-$bt ; \
+#   export C4_EXTERN_DIR=`pwd`/build/extern ; \
+#   function cm() { \
+#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/$arch.cmake \
+#      -DCMAKE_BUILD_TYPE=$bt -DCMAKE_CXX_STANDARD=$std \
+#      -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
+#      cmake --build $bd -j --target "$@" ; \
+#   } ; \
+#   tgt=ryml-test-quickstart ; \
+#   exe=./$bd/test/$tgt ; \
+#   cm $tgt ; \
+#   qemu-s390x-static -L /usr/s390x-linux-gnu/ $exe \
+#   )'
+#
+#
+#
+# with flags:
+#
+#
 # apt-get install g{cc,++}-arm-linux-gnueabi
 # docker exec -it 7e711fd09471 bash -c '( set -xe ; \
 #   arch=armv4 ; flags=" -march=armv4" ; bt=Release ; std=11 ; \

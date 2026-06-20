@@ -54,23 +54,23 @@ TEST(serialize, type_as_str)
 
     vec2<int> v2in{10, 11};
     vec2<int> v2out;
-    r["v2"] << v2in;
-    r["v2"] >> v2out;
+    r["v2"].save(v2in);
+    r["v2"].load(&v2out);
     EXPECT_EQ(v2in.x, v2out.x);
     EXPECT_EQ(v2in.y, v2out.y);
 
     vec3<int> v3in{100, 101, 102};
     vec3<int> v3out;
-    r["v3"] << v3in;
-    r["v3"] >> v3out;
+    r["v3"].save(v3in);
+    r["v3"].load(&v3out);
     EXPECT_EQ(v3in.x, v3out.x);
     EXPECT_EQ(v3in.y, v3out.y);
     EXPECT_EQ(v3in.z, v3out.z);
 
     vec4<int> v4in{1000, 1001, 1002, 1003};
     vec4<int> v4out;
-    r["v4"] << v4in;
-    r["v4"] >> v4out;
+    r["v4"].save(v4in);
+    r["v4"].load(&v4out);
     EXPECT_EQ(v4in.x, v4out.x);
     EXPECT_EQ(v4in.y, v4out.y);
     EXPECT_EQ(v4in.z, v4out.z);
@@ -121,12 +121,12 @@ TEST(general, emitting)
     // will make the tree serialize the value into a char
     // arena inside the tree. This arena can be reserved at will.
     int ch3 = 33, ch4 = 44;
-    s.append_child() << ch3;
-    s.append_child() << ch4;
+    s.append_child().save(ch3);
+    s.append_child().save(ch4);
 
     {
         std::string tmp = "child5";
-        s.append_child() << tmp;
+        s.append_child().save(tmp);
         // now tmp can go safely out of scope, as it was
         // serialized to the tree's internal string arena
     }
@@ -136,7 +136,9 @@ TEST(general, emitting)
 
     // to serialize keys:
     int k = 66;
-    r.append_child() << key(k) << 7;
+    NodeRef ch = r.append_child();
+    ch.save_key(k);
+    ch.save(7);
     emitrs_json(tree, &cmpbuf);
     EXPECT_EQ(cmpbuf, R"({"foo": 1,"seq": ["bar0","bar1","bar2",33,44,"child5"],"66": 7})");
 }
@@ -146,17 +148,17 @@ TEST(general, map_to_root)
     std::string cmpbuf; const char *exp;
     std::map<std::string, int> m({{"bar", 2}, {"foo", 1}});
     Tree t;
-    t.rootref() << m;
+    t.rootref().save(m);
 
     emitrs_json(t, &cmpbuf);
-    exp = "{\"bar\": 2,\"foo\": 1}";
+    exp = "{\"bar\": 2,\"foo\": 1}";//NOLINT
     EXPECT_EQ(cmpbuf, exp);
 
-    t["foo"] << 10;
-    t["bar"] << 20;
+    t["foo"].save(10);
+    t["bar"].save(20);
 
     m.clear();
-    t.rootref() >> m;
+    t.rootref().load(&m);
 
     EXPECT_EQ(m["foo"], 10);
     EXPECT_EQ(m["bar"], 20);
@@ -166,7 +168,7 @@ TEST(general, json_stream_operator)
 {
     std::map<std::string, int> out, m({{"bar", 2}, {"foo", 1}, {"foobar_barfoo:barfoo_foobar", 1001}, {"asdfjkl;", 42}, {"00000000000000000000000000000000000000000000000000000000000000", 1}});
     Tree t;
-    t.rootref() << m;
+    t.rootref().save(m);
     std::string str;
     {
         std::stringstream ss;
@@ -179,7 +181,7 @@ TEST(general, json_stream_operator)
     EXPECT_EQ(res["foobar_barfoo:barfoo_foobar"].val(), "1001");
     EXPECT_EQ(res["asdfjkl;"].val(), "42");
     EXPECT_EQ(res["00000000000000000000000000000000000000000000000000000000000000"].val(), "1");
-    res.rootref() >> out;
+    res.rootref().load(&out);
     EXPECT_EQ(out["foo"], 1);
     EXPECT_EQ(out["bar"], 2);
     EXPECT_EQ(out["foobar_barfoo:barfoo_foobar"], 1001);

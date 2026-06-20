@@ -24,23 +24,15 @@ namespace c4 {
 namespace yml {
 
 
-csubstr serialize_to_arena(Tree * C4_RESTRICT tree, csubstr a)
+csubstr serialize_to_arena_str(Tree * tree, csubstr scalar)
 {
-    if(a.len > 0)
+    if(scalar.len > 0)
     {
-        substr rem(tree->m_arena.sub(tree->m_arena_pos));
-        size_t num = to_chars(rem, a);
-        if(num > rem.len)
-        {
-            rem = tree->_grow_arena(num);
-            num = to_chars(rem, a);
-            _RYML_ASSERT_VISIT_(tree->m_callbacks, num <= rem.len, tree, NONE);
-        }
-        return tree->_request_span(num);
+        return serialize_to_arena_scalar<csubstr>(tree, scalar);
     }
     else
     {
-        if(a.str == nullptr)
+        if(scalar.str == nullptr)
         {
             return csubstr{};
         }
@@ -97,7 +89,7 @@ NodeRef Tree::operator[] (csubstr key)
 }
 ConstNodeRef Tree::operator[] (csubstr key) const
 {
-    return rootref()[key];
+    return crootref()[key];
 }
 
 NodeRef Tree::operator[] (id_type i)
@@ -106,7 +98,7 @@ NodeRef Tree::operator[] (id_type i)
 }
 ConstNodeRef Tree::operator[] (id_type i) const
 {
-    return rootref()[i];
+    return crootref()[i];
 }
 
 NodeRef Tree::docref(id_type i)
@@ -115,11 +107,11 @@ NodeRef Tree::docref(id_type i)
 }
 ConstNodeRef Tree::docref(id_type i) const
 {
-    return cref(doc(i));
+    return ConstNodeRef(this, doc(i));
 }
 ConstNodeRef Tree::cdocref(id_type i) const
 {
-    return cref(doc(i));
+    return ConstNodeRef(this, doc(i));
 }
 
 
@@ -942,6 +934,8 @@ void Tree::remove_children(id_type node)
     C4_SUPPRESS_WARNING_GCC_POP
 }
 
+
+//-----------------------------------------------------------------------------
 bool Tree::change_type(id_type node, NodeType type)
 {
     _RYML_ASSERT_VISIT_(m_callbacks, type.is_val() || type.is_map() || type.is_seq(), this, node);
@@ -981,6 +975,7 @@ id_type Tree::duplicate(Tree const* src, id_type node, id_type parent, id_type a
 
     return copy;
 }
+
 
 //-----------------------------------------------------------------------------
 id_type Tree::duplicate_children(id_type node, id_type parent, id_type after)
@@ -1352,7 +1347,6 @@ void Tree::to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flag
 void Tree::to_map(id_type node, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
-    _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || ! parent_is_map(node), this, node); // parent must not have children with keys
     _set_flags(node, MAP|more_flags);
     _p(node)->m_key.clear();
     _p(node)->m_val.clear();
@@ -1523,7 +1517,7 @@ size_t _resolve_tags(Tree *t, id_type node, id_type doc_id, TagCache &cache, boo
 }
 size_t _resolve_tags(Tree *t, TagCache &cache, bool all)
 {
-   id_type r = t->root_id();
+    id_type r = t->root_id();
     size_t extra_size = 0;
     if(!t->is_stream(r))
         extra_size += _resolve_tags(t, r, r, cache, all);
@@ -1819,11 +1813,14 @@ id_type Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
                 {
                     if(is_map(r->closest))
                     {
+                        _clear_type(node);
                         set_key(node, {});
                         set_val(node, {});
                     }
                     else
                     {
+                        _RYML_ASSERT_VISIT_(m_callbacks, is_seq(r->closest), this, r->closest);
+                        _clear_type(node);
                         set_val(node, {});
                     }
                 }

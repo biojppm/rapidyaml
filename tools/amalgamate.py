@@ -16,7 +16,6 @@ import amalgamate as am_c4core
 
 class Event(Enum):
     tree = "tree"
-    testsuite = "testsuite"
     ints = "ints"
     ints_utils = "ints_utils"
     ints_to_testsuite = "ints_to_testsuite"
@@ -31,7 +30,6 @@ event_doc = {
     to create the tree, and additionally the Tree, Node, parser and
     emitter utilities; if this is not enabled, none of these
     components will be included in the amalgamated file""",
-    Event.testsuite: "enable the (extra) YAML test suite event handler",
     Event.ints: "enable the (extra) integer-based event handler",
     Event.ints_utils: "enable the (extra) integer-based event handler utils",
     Event.ints_to_testsuite: "enable the (extra) integer events conversion to testsuite events",
@@ -133,6 +131,7 @@ INSTRUCTIONS:
         "src/c4/yml/detail/stack.hpp",
         "src/c4/yml/file.hpp",
         "src/c4/yml/tag.hpp",
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/scalar_charconv.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/tree.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/node.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/writer_buf.hpp"),
@@ -142,6 +141,7 @@ INSTRUCTIONS:
         "src/c4/yml/detail/dbgprint.hpp",
         am.onlyif(has_evt(Event.tree), am.injcode("#define C4_YML_EMIT_DEF_HPP_")),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emit_options.hpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/scalar_style.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emitter.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emitter.def.hpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emit_buf.hpp"),
@@ -174,6 +174,7 @@ INSTRUCTIONS:
         am.onlyif(has_evt(Event.ints_to_testsuite), "src_extra/c4/yml/extra/ints_to_testsuite.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/reference_resolver.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/parse.cpp"),
+        am.onlyif(has_evt(Event.tree), "src/c4/yml/scalar_style.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emit_buf.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/emit_file.cpp"),
         am.onlyif(has_evt(Event.tree), "src/c4/yml/detail/checks.hpp"),

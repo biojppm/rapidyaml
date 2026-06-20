@@ -9,6 +9,9 @@
 #ifndef _C4_YML_TREE_HPP_
 #include "c4/yml/tree.hpp"
 #endif
+#ifndef _C4_YML_SCALAR_STYLE_HPP_
+#include "c4/yml/scalar_style.hpp"
+#endif
 #ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
 #include "c4/yml/detail/dbgprint.hpp"
 #endif
@@ -1512,17 +1515,17 @@ bool Emitter<Writer>::json_maybe_write_naninf_(csubstr s)
     csubstr rest = s.sub(1);
     if(s.len == 4 && first == '.')
     {
-        if(scalar_is_inf3(rest))
+        if(scalar_is_inf3(rest.str))
             goto write_inf_positive; // NOLINT
-        else if(scalar_is_nan3(rest))
+        else if(scalar_is_nan3(rest.str))
             goto write_nan; // NOLINT
     }
     else if(first == '-' || first == '+') // begins with sign: must be inf
     {
         // match [-+].inf
-        if((rest.len == 4 && rest.str[0] == '.' && scalar_is_inf3(rest.sub(1)))
+        if((rest.len == 4 && rest.str[0] == '.' && scalar_is_inf3(rest.str + 1))
            // match [-+]inf
-           || (rest.len == 3 && scalar_is_inf3(rest))
+           || (rest.len == 3 && scalar_is_inf3(rest.str))
            // match [-+]infinity
            || (rest.len == 8 && (0 == memcmp(rest.str, "infinity", 8))))
         {
@@ -1538,9 +1541,9 @@ bool Emitter<Writer>::json_maybe_write_naninf_(csubstr s)
     }
     else if(s.len == 3)
     {
-        if(scalar_is_inf3(s))
+        if(scalar_is_inf3(s.str))
             goto write_inf_positive; // NOLINT
-        else if(scalar_is_nan3(s))
+        else if(scalar_is_nan3(s.str))
             goto write_nan; // NOLINT
     }
     return false;

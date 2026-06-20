@@ -69,7 +69,7 @@ RYML_DEPRECATE_EMIT inline substr emit(ConstNodeRef const& r, substr buf, bool e
 }
 
 #ifdef RYML_TMP_EMIT_
-#define emit
+#define emit RYML_TMP_EMIT_
 #undef RYML_TMP_EMIT_
 #endif
 

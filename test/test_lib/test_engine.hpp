@@ -131,7 +131,7 @@ static const EngineEvtTestCase test_case_##name(                \
                                                                 \
 /* declare a function producing the sequence of events */       \
 template<class EvtHandlerClass>                                 \
-void events_##name(EvtHandlerClass &handler);
+static void events_##name(EvtHandlerClass &handler);
 
 
 
@@ -145,7 +145,7 @@ template void events_##name<EventHandlerTree>(EventHandlerTree&);       \
                                                                         \
 /* define the event producer template */                                \
 template<class EvtHandlerClass>                                         \
-void events_##name(EvtHandlerClass &ps)
+static void events_##name(EvtHandlerClass &ps)
 
 
 

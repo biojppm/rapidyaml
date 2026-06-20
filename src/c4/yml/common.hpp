@@ -56,16 +56,6 @@
 /// the detailed debug log messages when RYML_DBG is defined.
 #define RYML_LOGBUF_SIZE (256)
 #endif
-
-
-#ifndef RYML_LOGBUF_SIZE
-/// size for the buffer used to format individual values to string
-/// while preparing an error message. This is only used for formatting
-/// individual values in the message; final messages will be larger
-/// than this value (see @ref RYML_ERRMSG_SIZE). This size is also
-/// used for the detailed debug log messages when RYML_DBG is defined.
-#define RYML_LOGBUF_SIZE (256)
-#endif
 static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 
 
@@ -77,186 +67,6 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 /// overflow. If the printed value requires more than
 /// RYML_LOGBUF_SIZE_MAX, the value is silently skipped.
 #define RYML_LOGBUF_SIZE_MAX (1024)
-#endif
-
-
-//-----------------------------------------------------------------------------
-// Specify groups to have a predefined topic order in doxygen:
-
-/** @defgroup doc_quickstart Quickstart
- *
- * Example code for every feature.
- */
-
-/** @defgroup doc_parse Parse utilities
- * @see sample::sample_parse_in_place
- * @see sample::sample_parse_in_arena
- * @see sample::sample_parse_file
- * @see sample::sample_parse_reuse_tree
- * @see sample::sample_parse_reuse_parser
- * @see sample::sample_parse_reuse_tree_and_parser
- * @see sample::sample_location_tracking
- */
-
-/** @defgroup doc_emit Emit utilities
- *
- * Utilities to emit YAML and JSON, either to a memory buffer or to a
- * file or ostream-like class.
- *
- * @see sample::sample_emit_to_container
- * @see sample::sample_emit_to_stream
- * @see sample::sample_emit_to_file
- * @see sample::sample_emit_nested_node
- * @see sample::sample_emit_style
- */
-
-/** @defgroup doc_emit_to_buffer Emit to a memory buffer
- * @ingroup doc_emit
- */
-/** @defgroup doc_emit_to_buffer_from_root Emit full tree
- * @ingroup doc_emit_to_buffer
- */
-/** @defgroup doc_emit_to_buffer_from_node_id Emit from nested node id
- * @ingroup doc_emit_to_buffer
- */
-/** @defgroup doc_emit_to_buffer_from_noderef Emit from ConstNodeRef
- * @ingroup doc_emit_to_buffer
- */
-
-/** @defgroup doc_emit_to_container Emit to a contiguous memory container like std::string or std::vector<char>
- * @ingroup doc_emit
- */
-/** @defgroup doc_emit_to_container_from_root Emit full tree
- * @ingroup doc_emit_to_container
- */
-/** @defgroup doc_emit_to_container_from_node_id Emit from nested node id
- * @ingroup doc_emit_to_container
- */
-/** @defgroup doc_emit_to_container_from_noderef Emit from ConstNodeRef
- * @ingroup doc_emit_to_container
- */
-
-/** @defgroup doc_emit_to_file Emit to file
- * @ingroup doc_emit
- */
-/** @defgroup doc_emit_to_file_from_root Emit full tree
- * @ingroup doc_emit_to_file
- */
-/** @defgroup doc_emit_to_file_from_node_id Emit from nested node id
- * @ingroup doc_emit_to_file
- */
-/** @defgroup doc_emit_to_file_from_noderef Emit from ConstNodeRef
- * @ingroup doc_emit_to_file
- */
-
-/** @defgroup doc_emit_to_ostream Emit to an STL-like ostream
- * @ingroup doc_emit
- */
-
-/** @defgroup doc_writers Writer objects to use with an Emitter
- * @ingroup doc_emit
- */
-
-
-/** @defgroup doc_node_type Node types
- */
-
-/** @defgroup doc_tree Tree utilities
- * @see sample::sample_quick_overview
- * @see sample::sample_iterate_trees
- * @see sample::sample_create_trees
- * @see sample::sample_tree_arena
- *
- * @see sample::sample_static_trees
- * @see sample::sample_location_tracking
- *
- * @see sample::sample_docs
- * @see sample::sample_anchors_and_aliases
- * @see sample::sample_tags
- */
-
-/** @defgroup doc_node_classes Node classes
- *
- * High-level node classes.
- *
- * @see sample::sample_quick_overview
- * @see sample::sample_iterate_trees
- * @see sample::sample_create_trees
- * @see sample::sample_tree_arena
- */
-
-/** @defgroup doc_error_handling Error handling
- *
- * Utilities to report handle errors, and to build and report error
- * messages.
- *
- * @see sample::sample_error_handler
- */
-
-/** @defgroup doc_callbacks Callbacks for errors and allocation
- *
- * Functions called by ryml to allocate/free memory and to report
- * errors.
- *
- * @see sample::sample_error_handler
- * @see sample::sample_global_allocator
- * @see sample::sample_per_tree_allocator
- */
-
-/** @defgroup doc_serialization Serialization/deserialization
- *
- * Contains information on how to serialize and deserialize
- * fundamental types, user scalar types, user container types and
- * interop with std scalar/container types.
- *
- */
-
-/** @defgroup doc_ref_utils Anchor/Reference utilities
- *
- * @see sample::sample_anchors_and_aliases
- * */
-
-/** @defgroup doc_tag_utils Tag utilities
- * @see sample::sample_tags
- */
-
-/** @defgroup doc_file_utils File utils
- *
- * Functions for loading/saving a file from/to disk.
- */
-
-
-//-----------------------------------------------------------------------------
-
-// document macros for doxygen
-#ifdef __DOXYGEN__ // defined in Doxyfile::PREDEFINED
-
-/** define this macro with a boolean value to enable/disable
- * assertions to check preconditions and assumptions throughout the
- * codebase; this causes a slowdown of the code, and larger code
- * size. By default, this macro is defined unless NDEBUG is defined
- * (see C4_USE_ASSERT); as a result, by default this macro is truthy
- * only in debug builds. */
-#   define RYML_USE_ASSERT
-
-/** (Undefined by default) Define this macro to disable ryml's default
- * implementation of the callback functions. See @ref doc_callbacks.  */
-#   define RYML_NO_DEFAULT_CALLBACKS
-
-/** (Undefined by default) When this macro is defined (and
- * @ref RYML_NO_DEFAULT_CALLBACKS is not defined), the default error
- * handler will throw exceptions. See @ref doc_error_handling. */
-#   define RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS
-
-/** Conditionally expands to `noexcept` when @ref RYML_USE_ASSERT is 0 and
- * is empty otherwise. The user is unable to override this macro. */
-#   define RYML_NOEXCEPT
-
-/** (Undefined by default) Use shorter error message from
- * checks/asserts: do not show the check condition in the error
- * message. */
-#   defined RYML_SHORT_CHECK_MSG
-
 #endif
 
 
@@ -276,7 +86,18 @@ static_assert(RYML_LOGBUF_SIZE < RYML_ERRMSG_SIZE, "invalid size");
 
 #define RYML_DEPRECATED(msg) C4_DEPRECATED(msg)
 
+#ifdef RYML_WITH_LEGACY_OPERATORS
+#   define RYML_LEGACY_OPERATOR(txt)
+#else
+#   define RYML_LEGACY_OPERATOR(txt) RYML_DEPRECATED(txt ". To enable this legacy operator, define the symbol RYML_WITH_LEGACY_OPERATORS while compiling")
+#endif
+
 /** @endcond */
+
+#define RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(type)                          \
+    static_assert(!std::is_fundamental<type>::value,                    \
+                  "did you forget to use '&'? "                         \
+                  "This overload is for wrapper types such as c4::fmt::base64()");
 
 
 //-----------------------------------------------------------------------------
@@ -552,6 +373,43 @@ public:
 
 
 /** @} */
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+
+/** @addtogroup doc_tree
+ *
+ * @{
+ */
+
+/** A tag type to select the key when building the tree, or when
+ * (de)serializing with operator<< or operator>> */
+template<class K>
+struct RYML_LEGACY_OPERATOR("prefer .set_key() methods in the Tree and node")
+Key
+{
+    K &&k; // NOLINT
+};
+
+/** A tag function to select the key when building the tree, or when
+ * (de)serializing with operator<< or operator>> */
+template<class K>
+RYML_LEGACY_OPERATOR("prefer .set_key() methods in the Tree and node")
+C4_ALWAYS_INLINE Key<K> key(K && k)
+{
+    return Key<K>{std::forward<K>(k)};
+}
+
+/** @} */
+
+C4_SUPPRESS_WARNING_POP
 
 
 //-----------------------------------------------------------------------------
