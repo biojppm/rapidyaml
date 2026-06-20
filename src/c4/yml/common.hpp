@@ -155,6 +155,63 @@ typedef enum Encoding_ { // NOLINT
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** A lightweight truthy type, used to enable reporting the offending
+ * node when an error happens in nested reads while deserializing. It
+ * reports the innermost node causing the error, or true
+ * (empty-initialized) when there is no error.
+ */
+struct RYML_EXPORT ReadResult
+{
+    id_type node;
+    enum : id_type { VALID = NONE - 1 }; // NOLINT
+
+public:
+
+    /** convert to boolean to signify success/error */
+    operator bool() const noexcept { return node == VALID; }
+
+public:
+
+    /** construct as success */
+    C4_ALWAYS_INLINE ReadResult() noexcept : node(VALID) {}
+
+    /** construct as failure on the given node id */
+    C4_ALWAYS_INLINE explicit ReadResult(id_type node_) noexcept : node(node_) {}
+
+public:
+
+    // These adapter ctors are used by rapidyaml in the functions
+    // calling read(), and enable working both with legacy and
+    // up-to-date user implementations of read(). See for example
+    // Tree::deserialize().
+
+    /** adapter: will match legacy user code (`%read()`
+     * implementations returning bool) . On error, this will report
+     * node_ as the offending node.
+     *
+     * This is an adapter ctor used by rapidyaml in the functions
+     * calling `%read()`, and enables rapidyaml to work both with
+     * legacy and up-to-date user implementations of `%read()`. See
+     * for example @ref Tree::deserialize().
+     */
+    C4_ALWAYS_INLINE explicit ReadResult(bool ok, id_type node_) noexcept : node(ok ? VALID : node_) {}
+
+    /** adapter: up-will match to-date user code (`%read()` returns
+     * ReadResult). On error, it will report the original node
+     *
+     * This is an adapter ctor used by rapidyaml in the functions
+     * calling `%read()`, and enables rapidyaml to work both with
+     * legacy and up-to-date user implementations of `%read()`. See
+     * for example @ref Tree::deserialize().
+     */
+    C4_ALWAYS_INLINE explicit ReadResult(ReadResult ok, id_type) noexcept : node(ok.node) {}
+};
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // csubstr needs to have dll-interface to be used by clients of Location
 
 /** holds a source or yaml file position, for example when an error is
@@ -370,7 +427,6 @@ public:
                 m_error_visit == that.m_error_visit);
     }
 };
-
 
 /** @} */
 
