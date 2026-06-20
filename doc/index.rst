@@ -89,39 +89,39 @@ github
 
     // deserializing:
     int bar0 = 0, bar1 = 0;
-    bar[0] >> bar0;
-    bar[1] >> bar1;
+    bar[0].load(&bar0); // also checks the node is readable, and conversion succeeded
+    bar[1].load(&bar1);
     CHECK(bar0 == 2);
     CHECK(bar1 == 3);
 
     // serializing:
-    bar[0] << 10; // creates a string in the tree's arena
-    bar[1] << 11;
+    bar[0].set_serialized(10); // creates a string in the tree's arena
+    bar[1].set_serialized(11);
     CHECK(bar[0].val() == "10");
     CHECK(bar[1].val() == "11");
 
     // add nodes
-    bar.append_child() << 12; // see also operator= (explanation below)
+    bar.append_child().set_serialized(12); // see also operator= (explanation below)
     CHECK(bar[2].val() == "12");
 
     // emit tree
-    // to std::string
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
-    bar:
-      - 10
-      - 11
-      - 12
-    john: doe
-    )");
-    std::cout << tree; // emit to stdout
-    ryml::emit_yaml(tree, stdout); // emit to file
+    std::string expected = "{foo: 1,bar: [10,11,12],john: doe}";
+    // emit tree to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == expected);
+    // emit tree to FILE*
+    ryml::emit_yaml(tree, stdout); printf("\n");
+    // emit tree to ostream
+    std::cout << tree << "\n";
 
     // emit node
     ryml::ConstNodeRef foo = tree["foo"];
-    // to std::string
-    CHECK(ryml::emitrs_yaml<std::string>(foo) == "foo: 1\n");
-    std::cout << foo; // emit node to stdout
-    ryml::emit_yaml(foo, stdout); // emit node to file
+    expected = "foo: 1\n";
+    // emit node to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(foo) == expected);
+    // emit node to FILE*
+    ryml::emit_yaml(foo, stdout);
+    // emit node to ostream
+    std::cout << foo;
 
 
 .. note::

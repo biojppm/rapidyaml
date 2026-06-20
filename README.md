@@ -1,8 +1,8 @@
 # Rapid YAML
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
+[![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
 <!-- [![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml) -->
 [![Codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
-[![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
 [![Documentation Status](https://readthedocs.org/projects/rapidyaml/badge/?version=latest)](https://rapidyaml.readthedocs.io/latest/?badge=latest)
 
 <!-- [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/) -->
@@ -225,7 +225,7 @@ CI](https://github.com/biojppm/rapidyaml/actions/workflows/benchmarks.yml)
 to scroll through the results for yourself.
 
 Also, if you have a case where ryml behaves very nicely or not as
-nicely as claimed above, we would definitely like to see it! Please
+nicely as claimed above, we would definitely like to see it. Please
 open an issue, or submit a pull request adding the file to
 [bm/cases](bm/cases), or just send us the files.
 
@@ -236,200 +236,61 @@ open an issue, or submit a pull request adding the file to
 
 If you're wondering whether ryml's speed comes at a usage cost, you
 need not: with ryml, you can have your cake and eat it too. Being
-rapid is definitely NOT the same as being unpractical, so ryml was
-written with easy AND efficient usage in mind, and comes with a two
-level API for accessing and traversing the data tree.
-
-The following snippet is a very quick overview taken from quickstart
-sample ([see on
-doxygen](https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__quickstart.html)/[see
-on github](samples/quickstart.cpp)). After cloning ryml
-(don't forget the `--recursive` flag for git), you can very easily
-build and run this executable using any of the build samples, eg the
-[`add_subdirectory()` sample](samples/add_subdirectory/) (see [the relevant section](#quickstart-samples)).
+rapid is definitely not the same as being unpractical, and ryml was
+written with easy and efficient usage in mind:
 
 ```cpp
 // Parse YAML code in place, potentially mutating the buffer:
 char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
 ryml::Tree tree = ryml::parse_in_place(yml_buf);
 
-// ryml has a two-level API:
-//
-// The lower level index API is based on the indices of nodes,
-// where the node's id is the node's position in the tree's data
-// array. This API is very efficient, but somewhat difficult to use:
-size_t root_id = tree.root_id();
-size_t bar_id = tree.find_child(root_id, "bar"); // need to get the index right
-CHECK(tree.is_map(root_id)); // all of the index methods are in the tree
-CHECK(tree.is_seq(bar_id));  // ... and receive the subject index
+// read from the tree:
+ryml::NodeRef bar = tree["bar"];
+CHECK(bar[0].val() == "2");
+CHECK(bar[1].val() == "3");
+CHECK(bar[0].val().str == yml_buf + 15); // points at the source buffer
+CHECK(bar[1].val().str == yml_buf + 18);
 
-// The node API is a lightweight abstraction sitting on top of the
-// index API, but offering a much more convenient interaction:
-ryml::ConstNodeRef root = tree.rootref();  // a const node reference
-ryml::ConstNodeRef bar = tree["bar"];
-CHECK(root.is_map());
-CHECK(bar.is_seq());
+// deserializing:
+int bar0 = 0, bar1 = 0;
+bar[0].load(&bar0); // also checks the node is readable, and conversion succeeded
+bar[1].load(&bar1);
+CHECK(bar0 == 2);
+CHECK(bar1 == 3);
 
-// The resulting tree stores only string views to the YAML source buffer.
-CHECK(root["foo"] == "1");
-CHECK(root["foo"].key().str == yml_buf + 1);
-CHECK(bar[0] == "2");
-CHECK(root["john"] == "doe");
+// serializing:
+bar[0].set_serialized(10); // creates a string in the tree's arena
+bar[1].set_serialized(11);
+CHECK(bar[0].val() == "10");
+CHECK(bar[1].val() == "11");
 
-//------------------------------------------------------------------
-// To get actual values, you need to deserialize the nodes.
-// Deserializing: use operator>>
-{
-    int foo = 0, bar0 = 0, bar1 = 0;
-    std::string john_str;
-    std::string bar_str;
-    root["foo"] >> foo;
-    root["bar"][0] >> bar0;
-    root["bar"][1] >> bar1;
-    root["john"] >> john_str; // requires from_chars(std::string). see API doc.
-    root["bar"] >> ryml::key(bar_str); // to deserialize the key, use the tag function ryml::key()
-    CHECK(foo == 1);
-    CHECK(bar0 == 2);
-    CHECK(bar1 == 3);
-    CHECK(john_str == "doe");
-    CHECK(bar_str == "bar");
-}
+// add nodes
+bar.append_child().set_serialized(12); // see also operator= (explanation below)
+CHECK(bar[2].val() == "12");
 
-//------------------------------------------------------------------
-// To modify existing nodes, use operator= or operator<<.
+// emit tree
+std::string expected = "{foo: 1,bar: [10,11,12],john: doe}";
+// emit tree to std::string
+CHECK(ryml::emitrs_yaml<std::string>(tree) == expected);
+// emit tree to FILE*
+ryml::emit_yaml(tree, stdout); printf("\n");
+// emit tree to ostream
+std::cout << tree << "\n";
 
-// operator= assigns an existing string to the receiving node.
-// The contents are NOT copied, and this pointer will be in effect
-// until the tree goes out of scope! So BEWARE to only assign from
-// strings outliving the tree.
-wroot["foo"] = "says you";
-wroot["bar"][0] = "-2";
-wroot["bar"][1] = "-3";
-wroot["john"] = "ron";
-// Now the tree is _pointing_ at the memory of the strings above.
-// In this case it is OK because those are static strings and will
-// outlive the tree.
-CHECK(root["foo"].val() == "says you");
-CHECK(root["bar"][0].val() == "-2");
-CHECK(root["bar"][1].val() == "-3");
-CHECK(root["john"].val() == "ron");
-// But WATCHOUT: do not assign from temporary objects:
-// {
-//     std::string crash("will dangle");
-//     root["john"] = ryml::to_csubstr(crash);
-// }
-// CHECK(root["john"] == "dangling"); // CRASH! the string was deallocated
-
-// operator<< first serializes the input to the tree's arena, then
-// assigns the serialized string to the receiving node. This avoids
-// constraints with the lifetime, since the arena lives with the tree.
-CHECK(tree.arena().empty());
-wroot["foo"] << "says who";  // requires to_chars(). see serialization samples below.
-wroot["bar"][0] << 20;
-wroot["bar"][1] << 30;
-wroot["john"] << "deere";
-CHECK(root["foo"].val() == "says who");
-CHECK(root["bar"][0].val() == "20");
-CHECK(root["bar"][1].val() == "30");
-CHECK(root["john"].val() == "deere");
-CHECK(tree.arena() == "says who2030deere"); // the result of serializations to the tree arena
-
-
-//------------------------------------------------------------------
-// Adding new nodes:
-
-// adding a keyval node to a map:
-CHECK(root.num_children() == 5);
-wroot["newkeyval"] = "shiny and new"; // using these strings
-wroot.append_child() << ryml::key("newkeyval (serialized)") << "shiny and new (serialized)"; // serializes and assigns the serialization
-CHECK(root.num_children() == 7);
-CHECK(root["newkeyval"].key() == "newkeyval");
-CHECK(root["newkeyval"].val() == "shiny and new");
-CHECK(root["newkeyval (serialized)"].key() == "newkeyval (serialized)");
-CHECK(root["newkeyval (serialized)"].val() == "shiny and new (serialized)");
-
-
-//------------------------------------------------------------------
-// Emitting:
-
-ryml::csubstr expected_result = R"(foo: says who
-bar:
-- 20
-- 30
-- oh so nice
-- oh so nice (serialized)
-john: in_scope
-float: 2.4
-digits: 2.400000
-newkeyval: shiny and new
-newkeyval (serialized): shiny and new (serialized)
-newseq: []
-newseq (serialized): []
-newmap: {}
-newmap (serialized): {}
-I am something: indeed
-)";
-
-// emit to a FILE*
-ryml::emit_yaml(tree, stdout);
-// emit to a stream
-std::stringstream ss;
-ss << tree;
-std::string stream_result = ss.str();
-// emit to a buffer:
-std::string str_result = ryml::emitrs_yaml<std::string>(tree);
-// can emit to any given buffer:
-char buf[1024];
-ryml::csubstr buf_result = ryml::emit_yaml(tree, buf);
-// now check
-CHECK(buf_result == expected_result);
-CHECK(str_result == expected_result);
-CHECK(stream_result == expected_result);
-
-//------------------------------------------------------------------
-// UTF8
-ryml::Tree langs = ryml::parse_in_arena(R"(
-en: Planet (Gas)
-fr: Planète (Gazeuse)
-ru: Планета (Газ)
-ja: 惑星（ガス）
-zh: 行星（气体）
-# UTF8 decoding only happens in double-quoted strings,
-# as per the YAML standard
-decode this: "\u263A c\x61f\xE9"
-and this as well: "\u2705 \U0001D11E"
-not decoded: '\u263A \xE2\x98\xBA'
-neither this: '\u2705 \U0001D11E'
-)");
-// in-place UTF8 just works:
-CHECK(langs["en"].val() == "Planet (Gas)");
-CHECK(langs["fr"].val() == "Planète (Gazeuse)");
-CHECK(langs["ru"].val() == "Планета (Газ)");
-CHECK(langs["ja"].val() == "惑星（ガス）");
-CHECK(langs["zh"].val() == "行星（气体）");
-// and \x \u \U codepoints are decoded, but only when they appear
-// inside double-quoted strings, as dictated by the YAML
-// standard:
-CHECK(langs["decode this"].val() == "A");
-CHECK(langs["decode this"].val() == "☺ café");
-CHECK(langs["and this as well"].val() == "✅ 𝄞");
-CHECK(langs["not decoded"].val() == "\\u263A \\xE2\\x98\\xBA");
-CHECK(langs["neither this"].val() == "\\u2705 \\U0001D11E");
-
-
-//------------------------------------------------------------------
-// Getting the location of nodes in the source:
-//
-// Location tracking is opt-in:
-ryml::Parser parser(ryml::ParserOptions().locations(true));
-// Now the parser will start by building the accelerator structure:
-ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
-// ... and use it when querying
-ryml::Location loc = parser.location(tree2["bar"][1]);
-CHECK(parser.location_contents(loc).begins_with("30"));
-CHECK(loc.line == 3u);
-CHECK(loc.col == 4u);
+// emit node
+ryml::ConstNodeRef foo = tree["foo"];
+expected = "foo: 1\n";
+// emit node to std::string
+CHECK(ryml::emitrs_yaml<std::string>(foo) == expected);
+// emit node to FILE*
+ryml::emit_yaml(foo, stdout);
+// emit node to ostream
+std::cout << foo;
 ```
+
+See [the quickstart sample](https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__quickstart.html). After cloning ryml
+you can easily build and run this executable using any of the build samples, eg the
+[`add_subdirectory()` sample](samples/add_subdirectory/) (see [the relevant section](#quickstart-samples)).
 
 
 ------
