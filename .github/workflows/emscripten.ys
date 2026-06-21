@@ -31,7 +31,6 @@ jobs:
     steps:
     - name: checkout
       uses: actions/checkout@v6
-      with: {submodules: recursive}
     - name: setup emscripten cache
       id: cache-system-libraries
       uses: actions/cache@v5

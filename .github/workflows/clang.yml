@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/clang.ys
+# DO NOT EDIT - GENERATED FROM clang.ys
 
 name: clang
 defaults:
@@ -41,8 +41,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -114,8 +115,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -188,8 +190,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -262,8 +265,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -409,7 +413,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -632,7 +635,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -877,7 +879,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -1160,7 +1161,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -1305,8 +1305,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails

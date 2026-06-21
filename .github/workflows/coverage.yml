@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/coverage.ys
+# DO NOT EDIT - GENERATED FROM coverage.ys
 
 name: coverage
 defaults:
@@ -60,8 +60,9 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: install compiler
       run: |
         if [[ ${{matrix.namesfx}} == *"32"* ]] ; then
