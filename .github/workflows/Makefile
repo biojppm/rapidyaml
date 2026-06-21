@@ -41,7 +41,7 @@ force:
 
 %.yml: %.ys $(YS) $(INPUT_FILES)
 	@if [ -f "$@" ] ; then chmod a+w $@ ; fi
-	@echo "# DO NOT EDIT - GENERATED FROM .github/workflows/$<" > $@
+	@echo "# DO NOT EDIT - GENERATED FROM $<" > $@
 	@echo >> $@
 	$(YS) -Y $< >> $@
 	@chmod a-w $@
