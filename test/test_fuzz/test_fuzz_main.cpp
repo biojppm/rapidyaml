@@ -36,6 +36,7 @@ retry:
     {
         test_one_file(filename, buf);
     }
+    printf("success! tested %zu files\n", entries.names.size);
 }
 
 

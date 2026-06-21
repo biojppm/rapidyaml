@@ -123,7 +123,7 @@
   - Simplify internal implementation of `{Const}NodeRef::{iterator,children_view}`.
   - Stop using SFINAE on Node CRTP to distinguish const vs non const, by duplicating the functions in `NodeRef` vs `ConstNodeRef`. No semantic changes. This should improve compilation speed of code containing many node calls.
 - [PR#622](https://github.com/biojppm/rapidyaml/pull/622) API cleanup: remove preprocess utilities.
-- [PR#623](https://github.com/biojppm/rapidyaml/pull/623): Fuzzing fixes, and close to 1 billion fuzz runs without any errors. These were the only two problems found:
+- [PR#623](https://github.com/biojppm/rapidyaml/pull/623): YAML fuzzing fixes, and close to 1 billion fuzz runs without any errors. These were the only two problems found:
   - Ensure parse error on multiline keys opening YAML:
     ```yaml
     multiline
@@ -135,3 +135,4 @@
       - a
     -
     ```
+- [PR#628](https://github.com/biojppm/rapidyaml/pull/628): Add serialization fuzzing. Relax `c4::atof()` / `c4::atod()`, disable redundant assertions that prevent returning false on bad strings.
