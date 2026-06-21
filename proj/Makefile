@@ -25,3 +25,14 @@ workflows:
 	$(MAKE) -C ../.github/workflows
 workflows-check:
 	$(MAKE) -C ../.github/workflows test
+
+
+presets: ../CMakePresets.json
+presets-check: presets-force presets
+	$(GIT) diff --exit-code --color=auto ../CMakePresets.json
+presets-force:
+	touch ../CMakePresets.ys
+../CMakePresets.json: ../CMakePresets.ys $(YS)
+	@( chmod a+w $@ || echo >/dev/null )
+	$(YS) --json $< > $@
+	@chmod a-w $@
