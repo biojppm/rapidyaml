@@ -3,7 +3,7 @@ project(ryml
     DESCRIPTION "Test project for an installed ryml"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-include(../../ext/c4core/cmake/c4Project.cmake)
+include(../../proj/c4proj/c4Project.cmake)
 c4_project(VERSION 0.15.2
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
@@ -18,8 +18,10 @@ else()
     target_include_directories(ryml INTERFACE "${RYML_INCLUDE_DIR}")
 endif()
 
-enable_testing()
 set(RYML_INSTALL_TEST ON)
+
+enable_testing()
+include(../../ext/c4core.cmake)
 include(../../ext/testbm.cmake)
 function(ryml_maybe_dump_test_yaml target)
     # nothing to do

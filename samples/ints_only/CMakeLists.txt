@@ -7,7 +7,7 @@ project(quickstart-ints_only
 
 # these are the directories from where to read the source files
 set(RAPIDYAML_DIR ../..)
-set(C4CORE_DIR ${RAPIDYAML_DIR}/ext/c4core)
+set(C4CORE_DIR ${RAPIDYAML_DIR}/ext/c4core.src)
 
 
 # create a mini-library with only the integer parsing,
@@ -30,19 +30,34 @@ add_library(ryml-ints
     ${RAPIDYAML_DIR}/src_extra/c4/yml/extra/event_handler_ints.cpp
     #
     # files required from c4core
-    ${C4CORE_DIR}/src/c4/substr.hpp
-    ${C4CORE_DIR}/src/c4/error.hpp
-    ${C4CORE_DIR}/src/c4/error.cpp
-    ${C4CORE_DIR}/src/c4/language.hpp
-    ${C4CORE_DIR}/src/c4/language.cpp
-    ${C4CORE_DIR}/src/c4/utf.hpp
-    ${C4CORE_DIR}/src/c4/utf.cpp
+    ${C4CORE_DIR}/c4/charconv.hpp
+    ${C4CORE_DIR}/c4/compiler.hpp
+    ${C4CORE_DIR}/c4/config.hpp
+    ${C4CORE_DIR}/c4/cpu.hpp
+    ${C4CORE_DIR}/c4/error.hpp
+    ${C4CORE_DIR}/c4/error.cpp
+    ${C4CORE_DIR}/c4/export.hpp
+    ${C4CORE_DIR}/c4/ext/fast_float_all.h
+    ${C4CORE_DIR}/c4/ext/fast_float.hpp
+    ${C4CORE_DIR}/c4/language.hpp
+    ${C4CORE_DIR}/c4/memory_util.hpp
+    ${C4CORE_DIR}/c4/platform.hpp
+    ${C4CORE_DIR}/c4/preprocessor.hpp
+    ${C4CORE_DIR}/c4/std/span_fwd.hpp
+    ${C4CORE_DIR}/c4/std/std_fwd.hpp
+    ${C4CORE_DIR}/c4/std/string_fwd.hpp
+    ${C4CORE_DIR}/c4/std/string_view_fwd.hpp
+    ${C4CORE_DIR}/c4/std/vector_fwd.hpp
+    ${C4CORE_DIR}/c4/substr.hpp
+    ${C4CORE_DIR}/c4/substr_fwd.hpp
+    ${C4CORE_DIR}/c4/utf.hpp
+    ${C4CORE_DIR}/c4/utf.cpp
 )
 target_compile_features(ryml-ints PUBLIC cxx_std_11)
 target_include_directories(ryml-ints PUBLIC
     ${RAPIDYAML_DIR}/src
     ${RAPIDYAML_DIR}/src_extra
-    ${C4CORE_DIR}/src
+    ${C4CORE_DIR}
 )
 
 

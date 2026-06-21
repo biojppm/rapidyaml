@@ -14,6 +14,11 @@ function(ryml_setup_test_target_props target_name)
     if(RYML_DBG)
         target_compile_definitions(${target_name} PUBLIC RYML_DBG)
     endif()
+    if(DEFINED RYML_DEFAULT_CALLBACKS)
+        if(NOT RYML_DEFAULT_CALLBACKS)
+            target_compile_definitions(${target_name} PUBLIC RYML_NO_DEFAULT_CALLBACKS)
+        endif()
+    endif()
     if(RYML_SAVE_TEST_YAML)
         target_compile_definitions(${target_name} PUBLIC RYML_SAVE_TEST_YAML)
     endif()
@@ -35,6 +40,7 @@ function(ryml_add_test_no_lib test_name)
     c4_add_test(${test_name})
 endfunction()
 
+
 # quickstart tests
 ryml_add_test_no_lib(ryml-test-quickstart-ints SOURCES ../samples/quickstart-ints.cpp)
 ryml_add_test_exe_no_lib(ryml-test-quickstart  SOURCES ../samples/quickstart.cpp)
@@ -43,7 +49,8 @@ function(ryml_add_quickstart_test targetname testname)
     separate_arguments(_vg_opts UNIX_COMMAND "${RYML_VALGRIND_OPTIONS}")
     # c4_add_test() cannot be used with multiple tests from the same
     # exe, so we use explicit add_test()+valgrind. Also, use
-    # RESOURCE_LOCK to prevent the tests from running simultaneously
+    # RESOURCE_LOCK to prevent the tests from running simultaneously,
+    # because they write/read to the same file.
     add_test(NAME ${testname} COMMAND ${exe} ${ARGN})
     set(lockid quickstart-lock)
     set_tests_properties(${testname} PROPERTIES RESOURCE_LOCK ${lockid})
@@ -74,16 +81,12 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     LIBS ryml c4fs gtest
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testlib)
+ryml_add_c4core_dev_to_target(ryml-_testlib)
 c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
     SOURCES test_lib/test_main.cpp test_lib/test_main.hpp
     LIBS ryml
     FOLDER test
 )
-if(DEFINED RYML_DEFAULT_CALLBACKS)
-    if(NOT RYML_DEFAULT_CALLBACKS)
-        target_compile_definitions(ryml-_testmain PUBLIC RYML_NO_DEFAULT_CALLBACKS)
-    endif()
-endif()
 
 function(ryml_add_test test_name)
     cmake_parse_arguments("" "BIG" "" "LIBS" ${ARGN})
@@ -92,6 +95,7 @@ function(ryml_add_test test_name)
         SOURCES test_${test_name}.cpp
         LIBS ryml-_testlib ryml-_testmain
         FOLDER test)
+    ryml_add_c4core_dev_to_target(${t})
     if(RYML_SAVE_TEST_YAML)
         target_sources(${t} PRIVATE test_lib/test_save.cpp)
     endif()
@@ -110,6 +114,7 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testgroup)
+ryml_add_c4core_dev_to_target(ryml-_testgroup)
 function(ryml_add_test_case_group name)
     ryml_add_test(${name} ${ARGN})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
@@ -117,8 +122,8 @@ endfunction()
 
 
 # some subjects have to be split over several files because gtest
-# causes some bloat and some compilers (VS) or platforms (mips) choke
-# on the large binary
+# causes some amount of bloat and some compilers (VS) or platforms
+# (mips) choke on the large binary
 
 ryml_add_test(engine_1_doc_1 BIG)
 ryml_add_test(engine_1_doc_2 BIG)
@@ -417,6 +422,7 @@ if(RYML_TEST_SUITE)
         LIBS ryml-_testlib ryml-_testmain c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
+    ryml_add_c4core_dev_to_target(ryml-test-suite)
     add_dependencies(ryml-test-build ryml-test-suite)
 
     ryml_get_target_exe(ryml-test-suite tgt)
@@ -595,13 +601,12 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
     if(RYML_FUZZ_TEST_INDIVIDUAL)
         set(srlz_dirs srlz_fails)
         set(json_dirs json_fails)
-        set(yaml_dirs yaml_fails)
+        set(yaml_dirs yaml_fails ${json_dirs})
     else()
         set(srlz_dirs srlz_fails srlz_merged)
         set(json_dirs json_fails json_merged json_rapidyamldump)
-        set(yaml_dirs
-            yaml_fails yaml_merged yaml_rapidyamldump yaml_test_suite
-            ${json_dirs})
+        set(yaml_dirs yaml_fails yaml_merged yaml_rapidyamldump yaml_test_suite
+                      ${json_dirs})
     endif()
     ryml_add_fuzz_variant(srlz      srlz ${rapidyaml_data_dir}/fuzz ${srlz_dirs})
     ryml_add_fuzz_variant(yaml_tree yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
@@ -615,5 +620,4 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
             DEPENDS ryml-fuzz-drivers-build
         )
     endif()
-
 endif()
