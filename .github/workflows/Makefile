@@ -1,14 +1,10 @@
-SHELL := bash
-
-YS_VERSION := 0.1.88
-YS_PREFIX := $(shell cd ../.. ; pwd)/build/ys
-YS := $(YS_PREFIX)/bin/ys-$(YS_VERSION)
+include ../../proj/common.mk
+include ../../proj/ys.mk
 
 SOURCE_FILES := $(wildcard *.ys)
 INPUT_FILES := $(wildcard */*) $(SOURCE_FILES)
 TARGET_FILES := $(SOURCE_FILES:%.ys=%.yml)
 
-export PATH := $(YS_PREFIX)/bin:$(PATH)
 export YSPATH := $(shell pwd -P)/ys
 
 
@@ -51,13 +47,6 @@ force:
 	@chmod a-w $@
 	@wc -lm --total=never $< $@ || wc -lm $< $@
 
-
-# Auto install a specific version of ys
-install-ys: $(YS)
-$(YS):
-	mkdir -p $(YS_PREFIX)
-	curl -s https://yamlscript.org/install | \
-	  BIN=1 VERSION=$(YS_VERSION) PREFIX=$(YS_PREFIX) bash
 
 
 stats:
