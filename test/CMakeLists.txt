@@ -74,6 +74,7 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     LIBS ryml c4fs gtest
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testlib)
+ryml_add_c4core_dev_to_target(ryml-_testlib)
 c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
     SOURCES test_lib/test_main.cpp test_lib/test_main.hpp
     LIBS ryml
@@ -92,6 +93,7 @@ function(ryml_add_test test_name)
         SOURCES test_${test_name}.cpp
         LIBS ryml-_testlib ryml-_testmain
         FOLDER test)
+    ryml_add_c4core_dev_to_target(${t})
     if(RYML_SAVE_TEST_YAML)
         target_sources(${t} PRIVATE test_lib/test_save.cpp)
     endif()
@@ -110,6 +112,7 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testgroup)
+ryml_add_c4core_dev_to_target(ryml-_testgroup)
 function(ryml_add_test_case_group name)
     ryml_add_test(${name} ${ARGN})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
@@ -117,8 +120,8 @@ endfunction()
 
 
 # some subjects have to be split over several files because gtest
-# causes some bloat and some compilers (VS) or platforms (mips) choke
-# on the large binary
+# causes some amount of bloat and some compilers (VS) or platforms
+# (mips) choke on the large binary
 
 ryml_add_test(engine_1_doc_1 BIG)
 ryml_add_test(engine_1_doc_2 BIG)
@@ -319,6 +322,7 @@ if(RYML_TEST_SUITE)
         LIBS ryml-_testlib ryml-_testmain c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
+    ryml_add_c4core_dev_to_target(ryml-test-suite)
     add_dependencies(ryml-test-build ryml-test-suite)
 
     ryml_get_target_exe(ryml-test-suite tgt)
@@ -517,5 +521,4 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
             DEPENDS ryml-fuzz-drivers-build
         )
     endif()
-
 endif()

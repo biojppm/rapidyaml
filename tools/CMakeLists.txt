@@ -3,6 +3,7 @@ c4_add_executable(ryml-parse-emit
     SOURCES parse_emit.cpp
     LIBS ryml c4fs
     FOLDER tools)
+ryml_add_c4core_dev_to_target(ryml-parse-emit)
 ryml_maybe_dump_test_yaml(ryml-parse-emit)
 
 c4_add_executable(ryml-yaml-events
@@ -12,4 +13,5 @@ c4_add_executable(ryml-yaml-events
     INC_DIRS ../test
     LIBS ryml c4fs
     FOLDER tools)
+ryml_add_c4core_dev_to_target(ryml-yaml-events)
 ryml_maybe_dump_test_yaml(ryml-yaml-events)

@@ -20,6 +20,8 @@ endif()
 
 enable_testing()
 set(RYML_INSTALL_TEST ON)
+
+include(../../ext/c4core.cmake)
 include(../../ext/testbm.cmake)
 function(ryml_maybe_dump_test_yaml target)
     # nothing to do
