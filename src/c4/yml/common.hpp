@@ -4,12 +4,10 @@
 /** @file common.hpp Common utilities and infrastructure used by ryml. */
 
 #include <cstddef>
+#include <utility> // for std::forward
 
 #ifndef _C4_SUBSTR_HPP_
 #include <c4/substr.hpp>
-#endif
-#ifndef _C4_CHARCONV_HPP_
-#include <c4/charconv.hpp>
 #endif
 #ifndef _C4_YML_EXPORT_HPP_
 #include <c4/yml/export.hpp>

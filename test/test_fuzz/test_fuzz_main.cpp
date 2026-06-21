@@ -32,24 +32,34 @@ retry:
         goto retry; //NOLINT
     }
     entries.sort();
+    printf("%s: %zu files found. entering directory...\n", dirname, entries.names.required_size);
     for(const char *filename : entries)
-    {
         test_one_file(filename, buf);
-    }
-    printf("success! tested %zu files\n", entries.names.required_size);
+    printf("%s: tested %zu files\n", dirname, entries.names.required_size);
 }
 
 
 int main(int argc, const char *argv[])
 {
     if(argc < 2)
+    {
+        printf("error: missing target file/folder\n");
         return 1;
+    }
     if(!c4::fs::path_exists(argv[1]))
+    {
+        printf("%s: path not found\n", argv[1]);
         return 1;
+    }
     cvec buf(4096);
     if(c4::fs::is_dir(argv[1]))
+    {
         test_directory_files(argv[1], &buf);
+    }
     else
+    {
         test_one_file(argv[1], &buf);
+    }
+    printf("%s: success!\n", argv[1]);
     return 0;
 }

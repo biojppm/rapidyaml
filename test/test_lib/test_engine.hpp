@@ -390,8 +390,13 @@ struct TransformToSourceBufferOrArena
         }
         substr dst = handler->alloc_arena(s.len);
         _RYML_CHECK_BASIC(dst.str != nullptr && dst.len == s.len);
+        C4_SUPPRESS_WARNING_GCC_PUSH
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+        #endif
         if(s.len)
             memcpy(dst.str, s.str, s.len);
+        C4_SUPPRESS_WARNING_GCC_POP
         return dst;
     }
 };
