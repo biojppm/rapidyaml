@@ -15,6 +15,13 @@ c4_add_library(c4fs LIBRARY_TYPE STATIC
     FOLDER
         ext
 )
+ryml_add_c4core_dev_to_target(c4fs)
+if(WIN32 AND BUILD_SHARED_LIBS)
+    target_compile_definitions(c4fs PUBLIC C4FS_SHARED
+        $<BUILD_INTERFACE:C4FS_EXPORTS>
+    )
+endif()
+
 
 set(C4LOG_DIR ${CMAKE_CURRENT_BINARY_DIR}/subprojects/c4log)
 c4_download_remote_proj(c4log C4LOG_DIR
@@ -32,3 +39,9 @@ c4_add_library(c4log LIBRARY_TYPE STATIC
     FOLDER
         ext
 )
+ryml_add_c4core_dev_to_target(c4log)
+if(WIN32 AND BUILD_SHARED_LIBS)
+    target_compile_definitions(c4log PUBLIC C4LOG_SHARED
+        $<BUILD_INTERFACE:C4LOG_EXPORTS>
+    )
+endif()
