@@ -589,10 +589,276 @@ set:
 }
 
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+namespace {
+template<class T>
+struct val_and_str
+{
+    csubstr str;
+    T val;
+};
+template<class T>
+Tree make_tree(val_and_str<T> const* vals, size_t num_vals)
+{
+    Tree tree;
+    NodeRef r = tree;
+    r.set_map();
+    auto append = [&](csubstr number) {
+        NodeRef ch = r.append_child();
+        ch .set_key_serialized(number);
+        ch .set_serialized(number);
+    };
+    for(size_t i = 0; i < num_vals; ++i)
+    {
+        append(vals[i].str);
+    }
+    return tree;
+}
+template<class T, class Cmp>
+void check_vals(val_and_str<T> const* vals, size_t num_vals, Cmp const& cmp)
+{
+    Tree tree = make_tree(vals, num_vals);
+    NodeRef tmp = tree["tmp"];
+    for(size_t i = 0; i < num_vals; ++i)
+    {
+        auto const& vs = vals[i];
+        T val = {};
+        ConstNodeRef node = tree[vs.str];
+        ReadResult rr = node.deserialize(&val);
+        {
+            RYML_TRACE_FMT("i={}  vs.str={}  vs.val={}   val={}", i, vs.str, vs.val, val);
+            EXPECT_TRUE(rr);
+            EXPECT_TRUE(cmp(vs.val, val));
+        }
+        tmp.save(val);
+        val = {};
+        rr = tmp.deserialize(&val);
+        {
+            RYML_TRACE_FMT("i={}  vs.str={}  vs.val={}   val={}", i, vs.str, vs.val, val);
+            EXPECT_TRUE(rr);
+            EXPECT_TRUE(cmp(vs.val, val));
+        }
+    }
+}
+
+template<class T> bool cmpints(T lhs, T rhs) { return lhs == rhs; }
+template<class T> bool cmpfloat(T lhs, T rhs, T eps) { return std::abs(lhs - rhs) < eps; }
+
+#define int_cases_bin(lcase, ucase, _)\
+            _(lcase, ucase, "0", 0),\
+            _(lcase, ucase, "1", 1),\
+            _(lcase, ucase, "10", 2),\
+            _(lcase, ucase, "010", 2),\
+            _(lcase, ucase, "0010", 2),\
+            _(lcase, ucase, "11", 3),\
+            _(lcase, ucase, "011", 3),\
+            _(lcase, ucase, "0011", 3),\
+            _(lcase, ucase, "100", 4),\
+            _(lcase, ucase, "0100", 4),\
+            _(lcase, ucase, "00100", 4),\
+            _(lcase, ucase, "101", 5),\
+            _(lcase, ucase, "0101", 5),\
+            _(lcase, ucase, "00101", 5),
+#define int_cases_oct(lcase, ucase, _)\
+            _(lcase, ucase, "0", 0),\
+            _(lcase, ucase, "1", 1),\
+            _(lcase, ucase, "10", 8),\
+            _(lcase, ucase, "010", 8),\
+            _(lcase, ucase, "0010", 8),\
+            _(lcase, ucase, "11", 9),\
+            _(lcase, ucase, "011", 9),\
+            _(lcase, ucase, "0011", 9),\
+            _(lcase, ucase, "100", 64),\
+            _(lcase, ucase, "0100", 64),\
+            _(lcase, ucase, "00100", 64),\
+            _(lcase, ucase, "101", 65),\
+            _(lcase, ucase, "0101", 65),\
+            _(lcase, ucase, "00101", 65),
+#define int_cases_hex(lcase, ucase, _)\
+            _(lcase, ucase, "0", 0),\
+            _(lcase, ucase, "1", 1),\
+            _(lcase, ucase, "10", 16),\
+            _(lcase, ucase, "010", 16),\
+            _(lcase, ucase, "0010", 16),\
+            _(lcase, ucase, "11", 17),\
+            _(lcase, ucase, "011", 17),\
+            _(lcase, ucase, "0011", 17),\
+            _(lcase, ucase, "100", 256),\
+            _(lcase, ucase, "0100", 256),\
+            _(lcase, ucase, "00100", 256),\
+            _(lcase, ucase, "101", 257),\
+            _(lcase, ucase, "0101", 257),\
+            _(lcase, ucase, "00101", 257),
+
+#define signed_case(lcase, ucase, str, val)                     \
+    {csubstr("" lcase str), val}, {csubstr("" ucase str), val},\
+    {csubstr("+" lcase str), val}, {csubstr("+" ucase str), val},\
+    {csubstr("-" lcase str), -(val)}, {csubstr("-" ucase str), -(val)}
+#define unsigned_case(lcase, ucase, str, val)                     \
+    {csubstr("" lcase str), val}, {csubstr("" ucase str), val},   \
+    {csubstr("+" lcase str), val}, {csubstr("+" ucase str), val}
+
+template<class T>
+auto test_ints_bin() -> typename std::enable_if<std::is_signed<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_bin("0b", "0B", signed_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+template<class T>
+auto test_ints_bin() -> typename std::enable_if<std::is_unsigned<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_bin("0b", "0B", unsigned_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+
+template<class T>
+auto test_ints_oct() -> typename std::enable_if<std::is_signed<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_oct("0o", "0O", signed_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+template<class T>
+auto test_ints_oct() -> typename std::enable_if<std::is_unsigned<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_oct("0o", "0O", unsigned_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+
+template<class T>
+auto test_ints_hex() -> typename std::enable_if<std::is_signed<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_hex("0x", "0X", signed_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+template<class T>
+auto test_ints_hex() -> typename std::enable_if<std::is_unsigned<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_hex("0x", "0X", unsigned_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+
+
+template<class T>
+void test_hex_float(T epsilon)
+{
+    const val_and_str<T> vals[] = {
+        #define _(str, val)                                 \
+            {csubstr("0x" str), val}, {csubstr("0X" str), val},\
+            {csubstr("+0x" str), val}, {csubstr("+0X" str), val},\
+            {csubstr("-0x" str), -(val)}, {csubstr("-0X" str), -(val)}
+        _("0p+0", 0),
+        _("1p+0", 1),
+        _("2p+0", 2),
+        _("3p+0", 3),
+        #undef _
+    };
+    auto cmp = [epsilon](T lhs, T rhs){ return cmpfloat(lhs, rhs, epsilon); };
+    check_vals(vals, C4_COUNTOF(vals), cmp);
+}
+
+
+TEST(number, bin_ints)
+{
+    test_ints_bin<int8_t>();
+    test_ints_bin<int16_t>();
+    test_ints_bin<int32_t>();
+    test_ints_bin<int64_t>();
+    test_ints_bin<uint8_t>();
+    test_ints_bin<uint16_t>();
+    test_ints_bin<uint32_t>();
+    test_ints_bin<uint64_t>();
+}
+
+TEST(number, oct_ints)
+{
+    test_ints_oct<int8_t>();
+    test_ints_oct<int16_t>();
+    test_ints_oct<int32_t>();
+    test_ints_oct<int64_t>();
+    test_ints_oct<uint8_t>();
+    test_ints_oct<uint16_t>();
+    test_ints_oct<uint32_t>();
+    test_ints_oct<uint64_t>();
+}
+
+TEST(number, hex_ints)
+{
+    //test_ints_hex<int8_t>();
+    test_ints_hex<int16_t>();
+    test_ints_hex<int32_t>();
+    test_ints_hex<int64_t>();
+    //test_ints_hex<uint8_t>();
+    test_ints_hex<uint16_t>();
+    test_ints_hex<uint32_t>();
+    test_ints_hex<uint64_t>();
+}
+
+} // namespace
+
+TEST(number, hex_double)
+{
+    test_hex_float<double>(1.e-10);
+}
+
+TEST(number, hex_float)
+{
+    test_hex_float<float>(1.e-6f);
+}
+
+
+namespace {
+template<class T>
+void test_hex_float_error()
+{
+    csubstr vals[] = {
+        //"++0xap0", // FIXME
+        //"+-0xap0", // FIXME
+        "-+0xap0",
+        "--0xap0",
+        "+0xap++0",
+        "-0xap++0",
+        //"+0xap+-0", //FIXME
+        //"-0xap+-0", //FIXME
+        "+0xap-+0",
+        "-0xap-+0",
+        "+0xap--0",
+        "-0xap--0",
+        "+0xrp0",
+        "-0xrp0",
+        "+0x+ap0",
+        "-0x+ap0",
+        "+0x-ap0",
+        "-0x-ap0",
+    };
+    for(csubstr v : vals)
+    {
+        SCOPED_TRACE(v);
+        T var = {};
+        EXPECT_FALSE(scalar_deserialize(v, &var));
+    }
+}
+} // namespace
+
+TEST(number, hex_error_float)
+{
+    test_hex_float_error<float>();
+}
+
+TEST(number, hex_error_double)
+{
+    test_hex_float_error<double>();
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+namespace {
 template<class T>
 static void checkinf_(ConstNodeRef const& n)
 {
@@ -615,6 +881,7 @@ static void checknan_(ConstNodeRef const& n)
     EXPECT_TRUE(std::isnan(fa));
 }
 #define checknan(n) do { SCOPED_TRACE(#n); checknan_<float>(n);  checknan_<double>(n); } while(0)
+} // namespace
 
 
 TEST(number, github_312__proposed_8e888_cannot_be_converted)

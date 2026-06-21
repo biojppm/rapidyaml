@@ -414,7 +414,7 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
         add_dependencies(ryml-test-build ryml-test-fuzz-${name})
         ryml_get_target_exe(ryml-test-fuzz-${name} testexe)
         if(RYML_FUZZ_TEST_INDIVIDUAL)
-            # run tests individually. this would tens of thousands of
+            # run tests individually. this would create many thousands of
             # unit tests, so we only run the fail dir, which has ~1000
             file(GLOB_RECURSE fuzz_cases RELATIVE "${fuzzdir}/${faildir}" "${fuzzdir}/${faildir}/*")
             foreach(file ${fuzz_cases})
@@ -489,20 +489,23 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
     # get the fuzz repo
     c4_download_remote_proj(rapidyaml-data rapidyaml_data_dir
         GIT_REPOSITORY https://github.com/biojppm/rapidyaml-data
-        GIT_TAG 20260612)
+        GIT_TAG 20260621)
     if(NOT EXISTS ${rapidyaml_data_dir}/fuzz/yaml.dict)
         message(FATAL_ERROR "cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
     endif()
     # add all the fuzzes
     if(RYML_FUZZ_TEST_INDIVIDUAL)
+        set(srlz_dirs srlz_fails)
         set(json_dirs json_fails)
         set(yaml_dirs yaml_fails)
     else()
+        set(srlz_dirs srlz_fails srlz_merged)
         set(json_dirs json_fails json_merged json_rapidyamldump)
         set(yaml_dirs
             yaml_fails yaml_merged yaml_rapidyamldump yaml_test_suite
             ${json_dirs})
     endif()
+    ryml_add_fuzz_variant(srlz      srlz ${rapidyaml_data_dir}/fuzz ${srlz_dirs})
     ryml_add_fuzz_variant(yaml_tree yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
     ryml_add_fuzz_variant(yaml_ints yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
     ryml_add_fuzz_variant(json_tree json ${rapidyaml_data_dir}/fuzz ${json_dirs})
