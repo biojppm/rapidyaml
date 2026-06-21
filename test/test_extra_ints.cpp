@@ -15,6 +15,31 @@ namespace yml {
 namespace extra {
 
 
+TEST(flags, to_chars)
+{
+    using namespace ievt;
+    char buf1_[1]; substr buf1 = buf1_;
+    char buf_[200]; substr buf = buf_;
+#define _(flags, str)                                       \
+    {                                                       \
+        ievt::DataType flags_{flags};                       \
+        csubstr actual(str);                                \
+        EXPECT_EQ(ievt::to_str(buf1, flags_), actual.len);  \
+        size_t ret = ievt::to_str(buf, flags_);             \
+        ASSERT_LE(ret, buf.len);                            \
+        EXPECT_EQ(buf.first(ret), actual);                  \
+        buf.fill(0);                                        \
+        csubstr r = ievt::to_str_sub(buf, flags_);          \
+        ASSERT_LE(r.len, buf.len);                          \
+        EXPECT_EQ(r, actual);                               \
+    }
+    _(0, "NONE");
+    _(KEY_, "KEY_");
+    _(VAL_, "VAL_");
+    _(KEY_|VAL_, "KEY_|VAL_");
+}
+
+
 struct IntEventsCase
 {
     const char *file;

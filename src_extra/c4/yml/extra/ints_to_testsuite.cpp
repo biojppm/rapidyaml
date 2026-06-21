@@ -16,10 +16,6 @@
 #include "c4/yml/extra/ints_utils.hpp"
 #endif
 
-#ifndef _C4_BITMASK_HPP_
-#include "c4/bitmask.hpp"
-#endif
-
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wold-style-cast")
