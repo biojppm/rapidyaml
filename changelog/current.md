@@ -144,3 +144,4 @@
   - Change some errors to assertions; those errors are caught before calling.
   - `Tree` and `NodeRef`: deprecate `.type_str(). Use `.type().type_str()`
   - Tools: add ints parsing to ryml-emit-parse
+- [PR#634](https://github.com/biojppm/rapidyaml/pull/664): int events: add sample containing ints-only library
