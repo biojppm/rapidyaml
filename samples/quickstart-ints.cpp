@@ -125,7 +125,7 @@ int main(int, const char *[])
         // let's format the event flags to print them as string.
         // we need to zero-terminate them to be able to align using printf.
         memset(flags, 0, sizeof(flags)); // ensure flags are zero-terminated
-        size_t len = c4::yml::extra::ievt::to_chars(flags, events[pos]);
+        size_t len = c4::yml::extra::ievt::to_str(flags, events[pos]);
         if(len + 1 >= sizeof(flags)) { printf("error: could not format flags"); return 1; } // ensure flags are zero-terminated
         // print the event
         printf("pos=%d\tevent[%d]:\t%20s = 0x%08x", pos, evt, flags, events[pos]);

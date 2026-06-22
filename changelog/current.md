@@ -136,3 +136,6 @@
     -
     ```
 - [PR#628](https://github.com/biojppm/rapidyaml/pull/628): Add serialization fuzzing. Relax `c4::atof()` / `c4::atod()`, disable redundant assertions that prevent returning false on bad strings.
+- [PR#629](https://github.com/biojppm/rapidyaml/pull/629): int events:
+  - Rename `to_chars(substr,DataType)` to `to_str()` (the c4 existing overload will always win because it's an int)
+  - Do not use c4/bitmask.hpp
