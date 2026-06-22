@@ -7,6 +7,9 @@
 #include <c4/yml/emit.hpp>
 #include <c4/yml/file.hpp>
 #include <c4/yml/common.hpp>
+#include <c4/yml/extra/event_handler_ints.hpp>
+#include <c4/yml/parse_engine.hpp>
+#include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/error.def.hpp>
 #endif
 #include <c4/fs/fs.hpp>
@@ -74,6 +77,7 @@ Options:
                          otherwise, emit directly to stdout (default: %s)
   -t,--timed             time sections (print timings to stderr) (default: %s)
   -o,--output <filename> emit to the given filename (default: %s)
+  -i,--ints              use the ints parser, and print the int events (default: %s)
 
 )",
             c4::to_csubstr(exename).basename().str,
@@ -85,7 +89,8 @@ Options:
             defs.emit_as_json ? "emit as json" : "emit as yaml",
             defs.emit_to_string ? "emit to string" : "no",
             defs.timed_sections ? "show timings" : "no",
-            defs.output.empty() ? "no" : defs.output.str
+            defs.output.empty() ? "no" : defs.output.str,
+            defs.ints_parser ? "ints parser" : "tree parser"
         );
 }
 
@@ -133,6 +138,7 @@ bool parse_args(int argc, const char *argv[], Args &args)
         else if(is_arg0(arg, "-j", "--json"               )) args.emit_as_json = true;
         else if(is_arg0(arg, "-s", "--string"             )) args.emit_to_string = true;
         else if(is_arg0(arg, "-t", "--timed"              )) args.timed_sections = true;
+        else if(is_arg0(arg, "-i", "--ints"               )) args.ints_parser = true;
         else if(is_arg0(arg, "-h", "--help"               ))
         {
             print_usage(argv[0]); return false; // LCOV_EXCL_LINE --- lcov fail!
@@ -326,6 +332,61 @@ void process_file_tree(Args const& args, c4::substr contents)
 }
 
 
+void process_file_ints(Args const& args, c4::csubstr contents)
+{
+    TS(process_file_ints);
+    using evt_type = yml::extra::ievt::DataType;
+    using Handler = yml::extra::EventHandlerInts;
+    using Parser = yml::ParseEngine<Handler>;
+    Handler handler;
+    Parser parser(&handler);
+    std::vector<evt_type> events;
+    std::vector<char> src;
+    std::vector<char> arena;
+    if(args.reserve_size)
+    {
+        TSB(reserve, contents.len);
+        yml::id_type cap = args.reserve_size;
+        if(args.reserve_size == 1)
+        {
+            TSB(estimate_size, contents.len);
+            cap = (yml::id_type)yml::extra::estimate_events_ints_size(to_csubstr(contents));
+        }
+        events.reserve(cap);
+        arena.resize(contents.len);
+        if(args.timed_sections)
+            fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap); // NOLINT
+    }
+ again:
+    {
+        TS(reset);
+        {
+            TSB(copy_src, contents.len);
+            src.assign(contents.begin(), contents.end());
+        }
+        {
+            TS(handler);
+            handler.reset(to_substr(src), to_substr(arena), events.data(), (evt_type)events.size());
+        }
+    }
+    {
+        TSB(parse_yml, contents.len);
+        parser.parse_in_place_ev(args.filename, to_substr(src));
+    }
+    events.resize((size_t)handler.required_size_events());
+    if(!handler.fits_buffers())
+    {
+        arena.resize(handler.required_size_arena());
+        goto again; // NOLINT
+    }
+    if(!args.quiet || args.print_tree)
+    {
+        TS(print_events);
+        yml::extra::events_ints_print(to_csubstr(src), to_csubstr(arena), events.data(), (evt_type)events.size());
+    }
+}
+
+
 void process_file(Args const& args)
 {
     std::vector<char> contents;
@@ -333,6 +394,9 @@ void process_file(Args const& args)
         TS(read_file);
         read_file(args.filename, &contents);
     }
+    if(args.ints_parser)
+        process_file_ints(args, to_substr(contents));
+    else
         process_file_tree(args, to_substr(contents));
 }
 
