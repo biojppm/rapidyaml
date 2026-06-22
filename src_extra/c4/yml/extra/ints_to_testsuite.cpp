@@ -58,20 +58,10 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-li
                 append(" ");
                 append(tag);
             }
-            else if(tag.begins_with("!<"))
-            {
-                append(" ");
-                append(tag.sub(1));
-            }
-            else if(tag.begins_with('!'))
-            {
-                append(" <");
-                append(tag);
-                append(">");
-            }
             else
             {
-                append(" <!");
+                _RYML_ASSERT_BASIC(tag.begins_with('!'));
+                append(" <");
                 append(tag);
                 append(">");
             }

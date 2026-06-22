@@ -55,8 +55,7 @@ void ReferenceResolver::gather_anchors_and_refs__(id_type n)
                 for(id_type ich = m_tree->first_child(n); ich != NONE; ich = m_tree->next_sibling(ich))
                 {
                     _c4dbgpf("node[{}]: instance [{}]: val ref, inheriting multiple: {} '{}'", n, m_refs.size(), ich, m_tree->val_ref(ich));
-                    if(C4_UNLIKELY(m_tree->is_container(ich)))
-                        _RYML_ERR_VISIT_(m_tree->m_callbacks, m_tree, n, "child={}: refs for << cannot be containers.", ich);
+                    _RYML_ASSERT_VISIT_(m_tree->m_callbacks, !m_tree->is_container(ich), m_tree, ich);
                     m_refs.push({VALREF, ich, NONE, NONE, n, m_tree->next_sibling(n)});
                 }
                 return; // don't descend into the seq

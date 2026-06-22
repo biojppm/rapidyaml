@@ -1754,7 +1754,7 @@ public:
     /** @{ */
 
     RYML_LEGACY_OPERATOR(".use the appropriate .set_*() overload")
-    void operator= (NodeType_e t) { create(); m_tree->_set_flags(m_id, t); }
+    void operator= (NodeType_e t) { create(); m_tree->_p(m_id)->m_type = t; }
 
     RYML_LEGACY_OPERATOR(".use the appropriate .set_*() overload")
     void operator|= (NodeType_e t) { create(); m_tree->_add_flags(m_id, t); }

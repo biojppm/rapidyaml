@@ -520,10 +520,8 @@ public:
     void set_key_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
-        if(C4_UNLIKELY(_has_any_(KEYANCH)))
-            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "key cannot have both anchor and ref");
-        _RYML_ASSERT_PARSE_(m_tree->callbacks(), ref.begins_with('*'), m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, ref.begins_with('*'), m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, !_has_any_(KEYANCH), m_curr->pos);
         _enable_(KEY|KEYREF);
         m_curr->tr_data->m_key.anchor = ref.sub(1);
         m_curr->tr_data->m_key.scalar = ref;
@@ -531,10 +529,8 @@ public:
     void set_val_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_tree);
-        if(C4_UNLIKELY(_has_any_(VALANCH)))
-            _RYML_ERR_PARSE_(m_tree->callbacks(), m_curr->pos, "val cannot have both anchor and ref");
-        _RYML_ASSERT_PARSE_(m_tree->callbacks(), ref.begins_with('*'), m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, ref.begins_with('*'), m_curr->pos);
+        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, !_has_any_(VALANCH), m_curr->pos);
         _enable_(VAL|VALREF);
         m_curr->tr_data->m_val.anchor = ref.sub(1);
         m_curr->tr_data->m_val.scalar = ref;
@@ -647,7 +643,7 @@ public:
         }
         else
         {
-            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "cannot append to node");
+            _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "cannot append to node"); // LCOV_EXCL_LINE
         }
         if(type.is_doc())
         {

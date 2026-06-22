@@ -63,7 +63,7 @@ Container events_ints_to_testsuite(csubstr parsed_yaml,
     Container ret;
     events_ints_to_testsuite(parsed_yaml, arena, evts_ints, evts_ints_sz, &ret);
     return ret;
-}
+} // LCOV_EXCL_LINE
 
 /** @} */
 

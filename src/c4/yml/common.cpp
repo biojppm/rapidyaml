@@ -42,7 +42,7 @@ C4_NO_INLINE void endmsg()
     #ifdef _RYML_WITH_EXCEPTIONS
     throw ExceptionBasic(msg, errdata);
     #else
-    abort(); // LCOV_EXCL_LINE
+    abort();
     #endif
 }
 
@@ -53,7 +53,7 @@ C4_NO_INLINE void endmsg()
     #ifdef _RYML_WITH_EXCEPTIONS
     throw ExceptionParse(msg, errdata);
     #else
-    abort(); // LCOV_EXCL_LINE
+    abort();
     #endif
 }
 
@@ -64,7 +64,7 @@ C4_NO_INLINE void endmsg()
     #ifdef _RYML_WITH_EXCEPTIONS
     throw ExceptionVisit(msg, errdata);
     #else
-    abort(); // LCOV_EXCL_LINE
+    abort();
     #endif
 }
 

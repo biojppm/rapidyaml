@@ -248,7 +248,7 @@ public:
 
 public:
 
-    /** @name node type queries
+    /** @name convert to string
      * @{ */
 
     /** return a preset string based on the node type */
@@ -271,6 +271,8 @@ public:
         ret.str = ret.len < buf.len ? buf.str : nullptr;
         return ret;
     }
+
+    /** @} */
 
 public:
 

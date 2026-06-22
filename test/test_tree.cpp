@@ -4767,6 +4767,7 @@ TEST(Tree, add_tag_directives)
 
 void test_key_nostyle(ConstNodeRef n)
 {
+    EXPECT_FALSE(n.tree()->is_key_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_key_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_key_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_key_dquo(n.id()));
@@ -4777,6 +4778,7 @@ void test_key_nostyle(ConstNodeRef n)
     EXPECT_FALSE(n.tree()->type_has_any(n.id(), KEY_STYLE));
     EXPECT_FALSE(n.tree()->type_has_all(n.id(), KEY_STYLE));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), KEY_STYLE));
+    EXPECT_FALSE(n.is_key_styled());
     EXPECT_FALSE(n.is_key_plain());
     EXPECT_FALSE(n.is_key_squo());
     EXPECT_FALSE(n.is_key_dquo());
@@ -4790,6 +4792,8 @@ void test_key_nostyle(ConstNodeRef n)
 }
 void test_val_nostyle(ConstNodeRef n)
 {
+    EXPECT_FALSE(n.tree()->is_container_styled(n.id()));
+    EXPECT_FALSE(n.tree()->is_val_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_val_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_val_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_val_dquo(n.id()));
@@ -4800,6 +4804,7 @@ void test_val_nostyle(ConstNodeRef n)
     EXPECT_FALSE(n.tree()->type_has_any(n.id(), VAL_STYLE));
     EXPECT_FALSE(n.tree()->type_has_all(n.id(), VAL_STYLE));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), VAL_STYLE));
+    EXPECT_FALSE(n.is_val_styled());
     EXPECT_FALSE(n.is_val_plain());
     EXPECT_FALSE(n.is_val_squo());
     EXPECT_FALSE(n.is_val_dquo());
@@ -4814,6 +4819,7 @@ void test_val_nostyle(ConstNodeRef n)
 
 void test_key_plain(ConstNodeRef n)
 {
+    EXPECT_TRUE(n.tree()->is_key_styled(n.id()));
     EXPECT_TRUE(n.tree()->is_key_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_key_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_key_dquo(n.id()));
@@ -4825,6 +4831,7 @@ void test_key_plain(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), KEY_PLAIN));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), KEY_PLAIN));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), KEY_STYLE & ~KEY_PLAIN));
+    EXPECT_TRUE(n.is_key_styled());
     EXPECT_TRUE(n.is_key_plain());
     EXPECT_FALSE(n.is_key_squo());
     EXPECT_FALSE(n.is_key_dquo());
@@ -4839,6 +4846,7 @@ void test_key_plain(ConstNodeRef n)
 }
 void test_key_squo(ConstNodeRef n)
 {
+    EXPECT_TRUE(n.tree()->is_key_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_key_plain(n.id()));
     EXPECT_TRUE(n.tree()->is_key_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_key_dquo(n.id()));
@@ -4850,6 +4858,7 @@ void test_key_squo(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), KEY_SQUO));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), KEY_SQUO));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), KEY_STYLE & ~KEY_SQUO));
+    EXPECT_TRUE(n.is_key_styled());
     EXPECT_TRUE(n.is_key_squo());
     EXPECT_FALSE(n.is_key_dquo());
     EXPECT_FALSE(n.is_key_literal());
@@ -4863,6 +4872,8 @@ void test_key_squo(ConstNodeRef n)
 }
 void test_key_dquo(ConstNodeRef n)
 {
+    EXPECT_TRUE(n.tree()->is_key_styled(n.id()));
+    EXPECT_FALSE(n.tree()->is_key_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_key_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_key_squo(n.id()));
     EXPECT_TRUE(n.tree()->is_key_dquo(n.id()));
@@ -4874,6 +4885,7 @@ void test_key_dquo(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), KEY_DQUO));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), KEY_DQUO));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), KEY_STYLE & ~KEY_DQUO));
+    EXPECT_TRUE(n.is_key_styled());
     EXPECT_FALSE(n.is_key_plain());
     EXPECT_FALSE(n.is_key_squo());
     EXPECT_TRUE(n.is_key_dquo());
@@ -4888,6 +4900,7 @@ void test_key_dquo(ConstNodeRef n)
 }
 void test_key_literal(ConstNodeRef n)
 {
+    EXPECT_TRUE(n.tree()->is_key_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_key_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_key_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_key_dquo(n.id()));
@@ -4899,6 +4912,7 @@ void test_key_literal(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), KEY_LITERAL));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), KEY_LITERAL));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), KEY_STYLE & ~KEY_LITERAL));
+    EXPECT_TRUE(n.is_key_styled());
     EXPECT_FALSE(n.is_key_plain());
     EXPECT_FALSE(n.is_key_squo());
     EXPECT_TRUE(n.is_key_literal());
@@ -4912,6 +4926,7 @@ void test_key_literal(ConstNodeRef n)
 }
 void test_key_folded(ConstNodeRef n)
 {
+    EXPECT_TRUE(n.tree()->is_key_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_key_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_key_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_key_dquo(n.id()));
@@ -4923,6 +4938,7 @@ void test_key_folded(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), KEY_FOLDED));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), KEY_FOLDED));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), KEY_STYLE & ~KEY_FOLDED));
+    EXPECT_TRUE(n.is_key_styled());
     EXPECT_FALSE(n.is_key_plain());
     EXPECT_FALSE(n.is_key_squo());
     EXPECT_FALSE(n.is_key_dquo());
@@ -4937,6 +4953,8 @@ void test_key_folded(ConstNodeRef n)
 
 void test_val_plain(ConstNodeRef n)
 {
+    EXPECT_FALSE(n.tree()->is_container_styled(n.id()));
+    EXPECT_TRUE(n.tree()->is_val_styled(n.id()));
     EXPECT_TRUE(n.tree()->is_val_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_val_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_val_dquo(n.id()));
@@ -4948,6 +4966,8 @@ void test_val_plain(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), VAL_PLAIN));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), VAL_PLAIN));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), VAL_STYLE & ~VAL_PLAIN));
+    EXPECT_FALSE(n.is_container_styled());
+    EXPECT_TRUE(n.is_val_styled());
     EXPECT_TRUE(n.is_val_plain());
     EXPECT_FALSE(n.is_val_squo());
     EXPECT_FALSE(n.is_val_dquo());
@@ -4962,6 +4982,8 @@ void test_val_plain(ConstNodeRef n)
 }
 void test_val_squo(ConstNodeRef n)
 {
+    EXPECT_FALSE(n.tree()->is_container_styled(n.id()));
+    EXPECT_TRUE(n.tree()->is_val_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_val_plain(n.id()));
     EXPECT_TRUE(n.tree()->is_val_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_val_dquo(n.id()));
@@ -4973,6 +4995,7 @@ void test_val_squo(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), VAL_SQUO));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), VAL_SQUO));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), VAL_STYLE & ~VAL_SQUO));
+    EXPECT_FALSE(n.is_container_styled());
     EXPECT_TRUE(n.is_val_squo());
     EXPECT_FALSE(n.is_val_dquo());
     EXPECT_FALSE(n.is_val_literal());
@@ -4986,6 +5009,8 @@ void test_val_squo(ConstNodeRef n)
 }
 void test_val_dquo(ConstNodeRef n)
 {
+    EXPECT_FALSE(n.tree()->is_container_styled(n.id()));
+    EXPECT_TRUE(n.tree()->is_val_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_val_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_val_squo(n.id()));
     EXPECT_TRUE(n.tree()->is_val_dquo(n.id()));
@@ -4997,6 +5022,7 @@ void test_val_dquo(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), VAL_DQUO));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), VAL_DQUO));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), VAL_STYLE & ~VAL_DQUO));
+    EXPECT_FALSE(n.is_container_styled());
     EXPECT_FALSE(n.is_val_plain());
     EXPECT_FALSE(n.is_val_squo());
     EXPECT_TRUE(n.is_val_dquo());
@@ -5011,6 +5037,8 @@ void test_val_dquo(ConstNodeRef n)
 }
 void test_val_literal(ConstNodeRef n)
 {
+    EXPECT_FALSE(n.tree()->is_container_styled(n.id()));
+    EXPECT_TRUE(n.tree()->is_val_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_val_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_val_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_val_dquo(n.id()));
@@ -5022,6 +5050,7 @@ void test_val_literal(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), VAL_LITERAL));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), VAL_LITERAL));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), VAL_STYLE & ~VAL_LITERAL));
+    EXPECT_FALSE(n.is_container_styled());
     EXPECT_FALSE(n.is_val_plain());
     EXPECT_FALSE(n.is_val_squo());
     EXPECT_TRUE(n.is_val_literal());
@@ -5035,6 +5064,8 @@ void test_val_literal(ConstNodeRef n)
 }
 void test_val_folded(ConstNodeRef n)
 {
+    EXPECT_FALSE(n.tree()->is_container_styled(n.id()));
+    EXPECT_TRUE(n.tree()->is_val_styled(n.id()));
     EXPECT_FALSE(n.tree()->is_val_plain(n.id()));
     EXPECT_FALSE(n.tree()->is_val_squo(n.id()));
     EXPECT_FALSE(n.tree()->is_val_dquo(n.id()));
@@ -5046,6 +5077,7 @@ void test_val_folded(ConstNodeRef n)
     EXPECT_TRUE(n.tree()->type_has_any(n.id(), VAL_FOLDED));
     EXPECT_TRUE(n.tree()->type_has_all(n.id(), VAL_FOLDED));
     EXPECT_TRUE(n.tree()->type_has_none(n.id(), VAL_STYLE & ~VAL_FOLDED));
+    EXPECT_FALSE(n.is_container_styled());
     EXPECT_FALSE(n.is_val_plain());
     EXPECT_FALSE(n.is_val_squo());
     EXPECT_FALSE(n.is_val_dquo());
