@@ -142,3 +142,4 @@
 - [PR#633](https://github.com/biojppm/rapidyaml/pull/633): improve coverage to ~99.5%:
   - Add tests to cover missed lines
   - Change some errors to assertions; those errors are caught before calling.
+  - `Tree` and `NodeRef`: deprecate `.type_str(). Use `.type().type_str()`

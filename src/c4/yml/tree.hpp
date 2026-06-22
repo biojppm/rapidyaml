@@ -450,7 +450,6 @@ public:
     /** @{ */
 
     NodeType type(id_type node) const { return _p(node)->m_type; }
-    const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
 
     csubstr    const& key       (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); return _p(node)->m_key.scalar; }
     csubstr    const& key_tag   (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key_tag(node), this, node); return _p(node)->m_key.tag; }
@@ -1570,6 +1569,7 @@ public:
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+    RYML_DEPRECATED("use .type().type_str(buf)") const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
     RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
     RYML_DEPRECATED("use set_key()+set_val()") void to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags=0);
     RYML_DEPRECATED("use set_key()+set_map()") void to_map(id_type node, csubstr key, type_bits more_flags=0);
