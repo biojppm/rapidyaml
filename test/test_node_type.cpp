@@ -692,7 +692,7 @@ size_t to_chars(substr buf, showtype_ s)
 {
     size_t pos = s.ty.type_str(buf);
     buf = buf.sub(pos < buf.len ? pos : buf.len);
-    pos += format(buf, "({})", s.ty.type);
+    pos += format(buf, "({})", s.ty.m_bits);
     return pos;
 }
 
@@ -773,7 +773,7 @@ void test_plain_valid(scalar_style_spec const& p, bool flow, cspan<csubstr> case
 {
     if(p.style_flow != P || !p.scalar.len || p.scalar.first_not_of(" \n\t\r") == npos)
         return;
-    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.type));
+    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.m_bits));
     std::string buf;
     size_t i = 0;
     for(csubstr c : cases)
@@ -981,7 +981,7 @@ bool block = false;
 TEST_P(TestScalarStyle, query_plain_flow)
 {
     scalar_style_spec const& p = GetParam();
-    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.type));
+    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.m_bits));
     EXPECT_EQ(scalar_style_query_plain_flow(p.scalar), p.style_flow == P);
     EXPECT_EQ(scalar_style_query_plain_flow(p.scalar),
               scalar_style_query_plain(p.scalar, flow));
@@ -1018,7 +1018,7 @@ TEST_P(TestScalarStyle, query_plain_flow_invalid_at_end)
 TEST_P(TestScalarStyle, query_plain_block)
 {
     scalar_style_spec const& p = GetParam();
-    SHOWPARAM(p, "expected_block={}", showtype(p.style_block.type));
+    SHOWPARAM(p, "expected_block={}", showtype(p.style_block.m_bits));
     EXPECT_EQ(scalar_style_query_plain_block(p.scalar), p.style_block == P);
     EXPECT_EQ(scalar_style_query_plain_block(p.scalar),
               scalar_style_query_plain(p.scalar, block));
@@ -1056,7 +1056,7 @@ TEST_P(TestScalarStyle, choose_flow)
 {
     scalar_style_spec const& p = GetParam();
     NodeType actual = scalar_style_choose_flow(p.scalar);
-    NodeType expected = p.style_flow.type;
+    NodeType expected = p.style_flow.m_bits;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
     RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }
@@ -1065,7 +1065,7 @@ TEST_P(TestScalarStyle, choose_block)
 {
     scalar_style_spec const& p = GetParam();
     NodeType actual = scalar_style_choose_block(p.scalar);
-    NodeType expected = p.style_block.type;
+    NodeType expected = p.style_block.m_bits;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
     RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }
@@ -1074,7 +1074,7 @@ TEST_P(TestScalarStyle, choose_json)
 {
     scalar_style_spec const& p = GetParam();
     NodeType actual = scalar_style_json_choose(p.scalar);
-    NodeType expected = p.style_json.type;
+    NodeType expected = p.style_json.m_bits;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
     RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }

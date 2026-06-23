@@ -252,15 +252,15 @@ public:
 
     void _add_flags(type_bits more_flags=0)
     {
-        type = (type|more_flags);
+        type = (type.m_bits|more_flags);
         if( ! key.tag.empty())
-            type = (type|KEYTAG);
+            type = (type.m_bits|KEYTAG);
         if( ! val.tag.empty())
-            type = (type|VALTAG);
+            type = (type.m_bits|VALTAG);
         if( ! key.anchor.empty())
-            type = (type|KEYANCH);
+            type = (type.m_bits|KEYANCH);
         if( ! val.anchor.empty())
-            type = (type|VALANCH);
+            type = (type.m_bits|VALANCH);
     }
 
     bool _check() const
