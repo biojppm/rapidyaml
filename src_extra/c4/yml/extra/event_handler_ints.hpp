@@ -43,32 +43,21 @@ using DataType = int32_t;
 /** enumeration of integer event bits. */
 typedef enum : DataType { // NOLINT
 
-    // Structure flags
-    KEY_ = (1 << 0),  ///< as key
-    VAL_ = (1 << 1),  ///< as value
-    /// special flag to enable look-back in the event array. it
-    /// signifies that the previous event has a string, meaning that
-    /// the jump back to that event is 3 positions. without this flag it
-    /// would be impossible to jump to the previous event.
-    /// see also @ref WSTR
-    PSTR = (1 << 2),
-    /// IMPORTANT. Marks events whose string was placed in the
-    /// arena. This happens when the filtered string is larger than the
-    /// original string in the YAML code (eg from tags that resolve to
-    /// a larger string, or from "\L" or "\P" in double quotes, which
-    /// expand from two to three bytes). Because of this size
-    /// expansion, the filtered string cannot be placed in the original
-    /// source and needs to be placed in the arena.
-    AREN = (1 << 3),
+    //-------------------------------------------------------------------------
+    // YAML flags
 
-    // Event scopes
-    BEG_ = (1 <<  5),  ///< scope: begin
-    END_ = (1 <<  6),  ///< scope: end
-    SEQ_ = (1 <<  7),  ///< scope: seq
-    MAP_ = (1 <<  8),  ///< scope: map
-    DOC_ = (1 <<  9),  ///< scope: doc
-    EXPL = (1 << 10),  ///< `---` (with BDOC) or `...` (with EDOC)
-    STRM = (1 << 11),  ///< scope: stream
+    // YAML structure flags
+    KEY_ = (1 <<  0),  ///< as key
+    VAL_ = (1 <<  1),  ///< as value
+
+    // YAML event scopes
+    BEG_ = (1 <<  2),  ///< scope: begin
+    END_ = (1 <<  3),  ///< scope: end
+    SEQ_ = (1 <<  4),  ///< scope: seq
+    MAP_ = (1 <<  5),  ///< scope: map
+    DOC_ = (1 <<  6),  ///< scope: doc
+    EXPL = (1 <<  7),  ///< `---` (with BDOC) or `...` (with EDOC)
+    STRM = (1 <<  8),  ///< scope: stream
     BSEQ = BEG_|SEQ_,  ///< begin seq    (+SEQ in test suite events)
     ESEQ = END_|SEQ_,  ///< end seq      (-SEQ in test suite events)
     BMAP = BEG_|MAP_,  ///< begin map    (+MAP in test suite events)
@@ -78,13 +67,17 @@ typedef enum : DataType { // NOLINT
     BDOC = BEG_|DOC_,  ///< begin doc    (+DOC in test suite events)
     EDOC = END_|DOC_,  ///< end doc      (-DOC in test suite events)
 
-    // Single events
-    SCLR = (1 << 12),  ///< scalar (=VAL in test suite events)
-    ALIA = (1 << 13),  ///< *ref (reference)
-    ANCH = (1 << 14),  ///< &anchor
-    TAG_ = (1 << 15),  ///< !tag
+    // YAML string events
+    SCLR = (1 <<  9),  ///< scalar (=VAL in test suite events)
+    ALIA = (1 << 10),  ///< *ref (reference)
+    ANCH = (1 << 11),  ///< &anchor
+    TAG_ = (1 << 12),  ///< !tag
+    // directives
+    YAML = (1 << 13),  ///< yaml directive: `\%YAML <version>`
+    TAGH = (1 << 14),  ///< tag directive, handle: `\%TAG <handle> ........`
+    TAGP = (1 << 15),  ///< tag directive, prefix: `\%TAG ........ <prefix>`
 
-    // Style flags
+    // YAML style flags
     PLAI = (1 << 16),  ///< scalar: plain
     SQUO = (1 << 17),  ///< scalar: single-quoted (')
     DQUO = (1 << 18),  ///< scalar: double-quoted ("")
@@ -93,26 +86,45 @@ typedef enum : DataType { // NOLINT
     FLOW = (1 << 21),  ///< container: flow: [] for seqs or {} for maps
     BLCK = (1 << 22),  ///< container: block
 
-    // Directive flags
-    YAML = (1 << 23),  ///< yaml directive: `\%YAML <version>`
-    TAGH = (1 << 24),  ///< tag directive, handle: `\%TAG <handle> ........`
-    TAGP = (1 << 25),  ///< tag directive, prefix: `\%TAG ........ <prefix>`
-
-    /// special flag to mark a scalar as unfiltered (when the parser
+    /// Special flag to mark a scalar as unfiltered (when the parser
     /// is set not to filter).
-    UNFILT = (1 << 26),
+    UNFILT = (1 << 23),
 
-    // Utility flags/masks
+    //-------------------------------------------------------------------------
+    // NON-YAML FLAGS
+
+    /// WithSTRing: mask of all events that encode a string following
+    /// the event. For such events, the next two integers will provide
+    /// respectively the string's offset and length. See also @ref PSTR
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
+
+    /// Special flag to mark events whose string was placed in the
+    /// arena. This happens when the filtered string is larger than
+    /// the original string in the YAML code (eg from tags that
+    /// resolve to a larger string, or from "\L" or "\P" in double
+    /// quotes, which expand from two to three bytes). Because of this
+    /// size expansion, the filtered string cannot be placed in the
+    /// original source and needs to be placed in the arena.
+    AREN = (1 << 24),
+
+    /// Special flag to enable look-back in the event array. It
+    /// signifies that the previous event has a string, meaning that
+    /// the jump back to that event is 3 positions. without this flag it
+    /// would be impossible to jump to the previous event.
+    /// see also @ref WSTR
+    PSTR = (1 << 25),
+
+    /// unused: reserved for future use (to enable rope-like buffers)
+    JUMP = (1 << 26),
+    /// unused: reserved for future use (same purpose as @ref PSTR,
+    /// but for @ref JUMP)
+    PJUMP = (1 << 27),
+
     /// the last flag defined above
-    LAST = UNFILT,
+    LAST = PJUMP,
+
     /// a mask of all bits in this enumeration
     MASK = (LAST << 1) - 1,
-
-    /// WithSTRing: mask of all the events that encode a string
-    /// following the event. For such events, the next two integers
-    /// will provide respectively the string's offset and length. See
-    /// also @ref PSTR.
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
 
 } EventFlags;
 
