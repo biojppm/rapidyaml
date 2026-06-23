@@ -181,36 +181,26 @@ typedef enum : type_bits { // NOLINT
     CONTAINER_STYLE_BLOCK = BLOCK, ///< alias to @ref BLOCK
     CONTAINER_STYLE       = CONTAINER_STYLE_FLOW|CONTAINER_STYLE_BLOCK, ///< mask of @ref CONTAINER_STYLE_FLOW|@ref CONTAINER_STYLE_BLOCK : all container style flags
     STYLE          = SCALAR_STYLE | CONTAINER_STYLE, ///< mask of @ref SCALAR_STYLE | @ref CONTAINER_STYLE : all style flags
-    /** @cond dev */
     //
     // mixed masks
+    /** @cond dev */
     _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
     _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
     #undef __
-    #if C4_CPP >= 17                                  \
-        || (defined(__GNUC__) && __GNUC__ >= 6)       \
-        || (defined(_MSC_VER) && !defined(__clang__))
-    #define RYML_HAS_DEPRECATED_ENUMS__
+    #ifdef RYML_HAS_DEPRECATED_ENUMS__
     FLOW_ML RYML_DEPRECATED("use one of FLOW_ML{1,N,X}") = FLOW_ML1,
     #endif
     /** @endcond */
 } NodeType_e;
+
 /** @cond dev */
-#if !defined(RYML_HAS_DEPRECATED_ENUMS__)
+#ifndef RYML_HAS_DEPRECATED_ENUMS__
 // defined here because the current c++ standard / compiler cannot
 // handle deprecated enums
 RYML_DEPRECATED("use one of FLOW_ML{1,N,X}")
-constexpr const NodeType_e FLOW_ML = FLOW_ML1;
+constexpr const type_bits FLOW_ML = FLOW_ML1;
 #endif
 /** @endcond */
-
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator|  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) | ((type_bits)rhs)); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator&  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) & ((type_bits)rhs)); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator>> (NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) >> n); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator<< (NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) << n); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator~  (NodeType_e bits) noexcept { return (NodeType_e)(~(type_bits)bits); }
-C4_ALWAYS_INLINE NodeType_e& operator&= (NodeType_e &subject, NodeType_e bits) noexcept { subject = (NodeType_e)((type_bits)subject & (type_bits)bits); return subject; }
-C4_ALWAYS_INLINE NodeType_e& operator|= (NodeType_e &subject, NodeType_e bits) noexcept { subject = (NodeType_e)((type_bits)subject | (type_bits)bits); return subject; }
 
 
 //-----------------------------------------------------------------------------
@@ -222,29 +212,28 @@ struct RYML_EXPORT NodeType
 {
 public:
 
-    NodeType_e type;
+    type_bits type; // TODO rename to bits
 
 public:
 
     C4_ALWAYS_INLINE NodeType() noexcept : type(NOTYPE) {}
-    C4_ALWAYS_INLINE NodeType(NodeType_e t) noexcept : type(t) {}
-    C4_ALWAYS_INLINE NodeType(type_bits t) noexcept : type((NodeType_e)t) {}
+    C4_ALWAYS_INLINE NodeType(type_bits t) noexcept : type(t) {}
 
-    C4_ALWAYS_INLINE bool has_any(NodeType_e t) const noexcept { return (type & t) != 0u; }
-    C4_ALWAYS_INLINE bool has_all(NodeType_e t) const noexcept { return (type & t) == t; }
-    C4_ALWAYS_INLINE bool has_none(NodeType_e t) const noexcept { return (type & t) == 0; }
+    C4_ALWAYS_INLINE bool has_any(type_bits t) const noexcept { return (type & t) != 0u; }
+    C4_ALWAYS_INLINE bool has_all(type_bits t) const noexcept { return (type & t) == t; }
+    C4_ALWAYS_INLINE bool has_none(type_bits t) const noexcept { return (type & t) == 0; }
 
-    C4_ALWAYS_INLINE void set(NodeType_e t) noexcept { type = t; }
-    C4_ALWAYS_INLINE void add(NodeType_e t) noexcept { type = (type|t); }
-    C4_ALWAYS_INLINE void rem(NodeType_e t) noexcept { type = (type & ~t); }
-    C4_ALWAYS_INLINE void addrem(NodeType_e bits_to_add, NodeType_e bits_to_remove) noexcept { type |= bits_to_add; type &= ~bits_to_remove; }
+    C4_ALWAYS_INLINE void set(type_bits t) noexcept { type = t; }
+    C4_ALWAYS_INLINE void add(type_bits t) noexcept { type = (type|t); }
+    C4_ALWAYS_INLINE void rem(type_bits t) noexcept { type = (type & ~t); }
+    C4_ALWAYS_INLINE void addrem(type_bits bits_to_add, type_bits bits_to_remove) noexcept { type |= bits_to_add; type &= ~bits_to_remove; }
 
     C4_ALWAYS_INLINE void clear() noexcept { type = NOTYPE; }
 
 public:
 
-    C4_ALWAYS_INLINE operator NodeType_e      & C4_RESTRICT ()       noexcept { return type; }
-    C4_ALWAYS_INLINE operator NodeType_e const& C4_RESTRICT () const noexcept { return type; }
+    C4_ALWAYS_INLINE operator type_bits      & C4_RESTRICT ()       noexcept { return type; }
+    C4_ALWAYS_INLINE operator type_bits const& C4_RESTRICT () const noexcept { return type; }
 
 public:
 
@@ -254,17 +243,17 @@ public:
     /** return a preset string based on the node type */
     C4_ALWAYS_INLINE const char *type_str() const noexcept { return type_str(type); }
     /** return a preset string based on the node type */
-    static const char* type_str(NodeType_e t) noexcept;
+    static const char* type_str(type_bits t) noexcept;
 
     /** fill a string with the node type flags. */
     C4_ALWAYS_INLINE size_t type_str(substr buf) const noexcept { return type_str(buf, type); }
     /** fill a string with the node type flags. */
-    static size_t type_str(substr buf, NodeType_e t) noexcept;
+    static size_t type_str(substr buf, type_bits t) noexcept;
 
     /** fill a string with the node type flags. If the string is small, returns {null, len} */
     C4_ALWAYS_INLINE csubstr type_str_sub(substr buf) const noexcept { return type_str_sub(buf, type); }
     /** fill a string with the node type flags. If the string is small, returns {null, len}  */
-    static csubstr type_str_sub(substr buf, NodeType_e t) noexcept
+    static csubstr type_str_sub(substr buf, type_bits t) noexcept
     {
         csubstr ret;
         ret.len = type_str(buf, t);
@@ -338,9 +327,9 @@ public:
     C4_ALWAYS_INLINE NodeType key_style() const noexcept { return (type & (KEY_STYLE)); }
     C4_ALWAYS_INLINE NodeType val_style() const noexcept { return (type & (VAL_STYLE)); }
 
-    C4_ALWAYS_INLINE void set_container_style(NodeType_e style) noexcept { type = ((style & CONTAINER_STYLE) | (type & ~CONTAINER_STYLE)); }
-    C4_ALWAYS_INLINE void set_key_style(NodeType_e style) noexcept { type = ((style & KEY_STYLE) | (type & ~KEY_STYLE)); }
-    C4_ALWAYS_INLINE void set_val_style(NodeType_e style) noexcept { type = ((style & VAL_STYLE) | (type & ~VAL_STYLE)); }
+    C4_ALWAYS_INLINE void set_container_style(type_bits style) noexcept { type = ((style & CONTAINER_STYLE) | (type & ~CONTAINER_STYLE)); }
+    C4_ALWAYS_INLINE void set_key_style(type_bits style) noexcept { type = ((style & KEY_STYLE) | (type & ~KEY_STYLE)); }
+    C4_ALWAYS_INLINE void set_val_style(type_bits style) noexcept { type = ((style & VAL_STYLE) | (type & ~VAL_STYLE)); }
     C4_ALWAYS_INLINE void clear_style() noexcept { type &= ~STYLE; }
 
     /** @} */
@@ -352,9 +341,7 @@ public: // deprecated methods
     RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor() const noexcept { return has_val_anchor(); }
     RYML_DEPRECATED("use has_anchor()")        bool is_anchor() const noexcept { return has_anchor(); }
     RYML_DEPRECATED("use has_anchor() || is_ref()") bool is_anchor_or_ref() const noexcept { return has_anchor() || is_ref(); }
-
-    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()")
-    bool is_flow_ml() const noexcept { return (type & (FLOW_ML1)) != 0; }
+    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()") bool is_flow_ml() const noexcept { return (type & (FLOW_ML1)) != 0; }
     /** @endcond */ // LCOV_EXCL_STOP
 };
 

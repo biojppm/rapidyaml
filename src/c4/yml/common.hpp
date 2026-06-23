@@ -506,6 +506,12 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     }
 }
 
+#if C4_CPP >= 17                                  \
+    || (defined(__GNUC__) && __GNUC__ >= 6)       \
+    || (defined(_MSC_VER) && !defined(__clang__))
+#define RYML_HAS_DEPRECATED_ENUMS__
+#endif
+
 /// @endcond
 
 C4_SUPPRESS_WARNING_GCC_POP

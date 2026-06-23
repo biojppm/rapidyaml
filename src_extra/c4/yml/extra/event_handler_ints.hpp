@@ -129,6 +129,11 @@ typedef enum : evt_bits { // NOLINT
 
 } EventBits;
 
+/** @cond dev */
+using DataType RYML_DEPRECATED("use evt_bits") = evt_bits;
+using EventFlags RYML_DEPRECATED("use EventBits") = EventBits;
+/** @endcond */
+
 } // namespace ievt
 
 /** @} */
@@ -684,7 +689,7 @@ public:
         _send_flag_only_(ievt::EMAP);
     }
 
-    void end_map_flow(bool /*multiline*/, NodeType_e /*multiline_style*/=FLOW_ML1)
+    void end_map_flow(bool /*multiline*/, type_bits /*multiline_style*/=FLOW_ML1)
     {
         _pop();
         _send_flag_only_(ievt::EMAP);
@@ -737,7 +742,7 @@ public:
         _send_flag_only_(ievt::ESEQ);
     }
 
-    void end_seq_flow(bool /*multiline*/, NodeType_e /*multiline_style*/=FLOW_ML1)
+    void end_seq_flow(bool /*multiline*/, type_bits /*multiline_style*/=FLOW_ML1)
     {
         _pop();
         _send_flag_only_(ievt::ESEQ);

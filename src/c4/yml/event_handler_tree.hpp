@@ -279,7 +279,7 @@ public:
         _pop();
     }
 
-    void end_map_flow(bool multiline, NodeType_e multiline_style=FLOW_ML1)
+    void end_map_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _c4dbgpf("node[{}]: end_map. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
         _pop();
@@ -329,7 +329,7 @@ public:
         _pop();
     }
 
-    void end_seq_flow(bool multiline, NodeType_e multiline_style=FLOW_ML1)
+    void end_seq_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _c4dbgpf("node[{}]: end_seq. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
         _pop();

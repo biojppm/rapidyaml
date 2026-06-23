@@ -9,7 +9,7 @@
 namespace c4 {
 namespace yml {
 
-const char* NodeType::type_str(NodeType_e ty) noexcept
+const char* NodeType::type_str(type_bits ty) noexcept
 {
     switch(ty & _TYMASK)
     {
@@ -66,7 +66,7 @@ const char* NodeType::type_str(NodeType_e ty) noexcept
     }
 }
 
-size_t NodeType::type_str(substr buf, NodeType_e flags) noexcept
+size_t NodeType::type_str(substr buf, type_bits flags) noexcept
 {
     size_t pos = 0;
     bool gotone = false;

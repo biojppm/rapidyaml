@@ -32,7 +32,7 @@ private:
     } Flags_e;
 
     uint32_t m_flags = DEFAULTS;
-    NodeType_e m_flow_ml_style = FLOW_ML1;
+    type_bits m_flow_ml_style = FLOW_ML1;
 
     ParserOptions& set_flags_(bool enabled, Flags_e f)
     {

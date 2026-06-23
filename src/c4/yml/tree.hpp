@@ -229,17 +229,17 @@ public:
     /// initialize as an empty node
     NodeInit() : type(NOTYPE), key(), val() {}
     /// initialize as a typed node
-    NodeInit(NodeType_e t) : type(t), key(), val() {}
+    NodeInit(type_bits t) : type(t), key(), val() {}
     /// initialize as a sequence member
     NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
     /// initialize as a sequence member with explicit type
-    NodeInit(NodeScalar const& v, NodeType_e t) : type(t|VAL), key(), val(v) { _add_flags(); }
+    NodeInit(NodeScalar const& v, type_bits t) : type(t|VAL), key(), val(v) { _add_flags(); }
     /// initialize as a mapping member
     NodeInit(              NodeScalar const& k, NodeScalar const& v) : type(KEYVAL), key(k), val(v) { _add_flags(); }
     /// initialize as a mapping member with explicit type
-    NodeInit(NodeType_e t, NodeScalar const& k, NodeScalar const& v) : type(t), key(k), val(v) { _add_flags(); }
+    NodeInit(type_bits t, NodeScalar const& k, NodeScalar const& v) : type(t), key(k), val(v) { _add_flags(); }
     /// initialize as a mapping member with explicit type (eg for SEQ or MAP)
-    NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t), key(k), val( ) { _add_flags(KEY); }
+    NodeInit(type_bits t, NodeScalar const& k                     ) : type(t), key(k), val( ) { _add_flags(KEY); }
 
 public:
 
@@ -470,9 +470,9 @@ public:
     /** @name node type predicates */
     /** @{ */
 
-    C4_ALWAYS_INLINE bool type_has_any(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_any(bits); }
-    C4_ALWAYS_INLINE bool type_has_all(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_all(bits); }
-    C4_ALWAYS_INLINE bool type_has_none(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_none(bits); }
+    C4_ALWAYS_INLINE bool type_has_any(id_type node, type_bits bits) const { return _p(node)->m_type.has_any(bits); }
+    C4_ALWAYS_INLINE bool type_has_all(id_type node, type_bits bits) const { return _p(node)->m_type.has_all(bits); }
+    C4_ALWAYS_INLINE bool type_has_none(id_type node, type_bits bits) const { return _p(node)->m_type.has_none(bits); }
 
     C4_ALWAYS_INLINE bool is_stream(id_type node) const { return _p(node)->m_type.is_stream(); }
     C4_ALWAYS_INLINE bool is_doc(id_type node) const { return _p(node)->m_type.is_doc(); }
@@ -647,9 +647,9 @@ public:
     C4_ALWAYS_INLINE NodeType key_style(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); return _p(node)->m_type.key_style(); }
     C4_ALWAYS_INLINE NodeType val_style(id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node) || is_root(node), this, node); return _p(node)->m_type.val_style(); }
 
-    C4_ALWAYS_INLINE void set_container_style(id_type node, NodeType_e style) { _RYML_ASSERT_VISIT_(m_callbacks, is_container(node), this, node); _p(node)->m_type.set_container_style(style); }
-    C4_ALWAYS_INLINE void set_key_style(id_type node, NodeType_e style) { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); _p(node)->m_type.set_key_style(style); }
-    C4_ALWAYS_INLINE void set_val_style(id_type node, NodeType_e style) { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node), this, node); _p(node)->m_type.set_val_style(style); }
+    C4_ALWAYS_INLINE void set_container_style(id_type node, type_bits style) { _RYML_ASSERT_VISIT_(m_callbacks, is_container(node), this, node); _p(node)->m_type.set_container_style(style); }
+    C4_ALWAYS_INLINE void set_key_style(id_type node, type_bits style) { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); _p(node)->m_type.set_key_style(style); }
+    C4_ALWAYS_INLINE void set_val_style(id_type node, type_bits style) { _RYML_ASSERT_VISIT_(m_callbacks, has_val(node), this, node); _p(node)->m_type.set_val_style(style); }
 
     void clear_style(id_type node, bool recurse=false);
     void set_style_conditionally(id_type node,
@@ -1444,10 +1444,8 @@ public:
     }
     #endif
 
-    void _add_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    void _add_flags(id_type node, type_bits  f) { NodeData *d = _p(node); f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
-    void _rem_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    void _rem_flags(id_type node, type_bits  f) { NodeData *d = _p(node); f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
+    void _add_flags(id_type node, type_bits f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = fb; }
+    void _rem_flags(id_type node, type_bits f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = fb; }
 
     id_type _do_reorder(id_type *node, id_type count);
 
