@@ -66,71 +66,63 @@ const char* NodeType::type_str(type_bits ty) noexcept
     }
 }
 
+namespace {
+struct type_and_name { const char* str; type_bits bits; };
+constexpr const type_and_name type_names[] = {
+    {"STREAM", STREAM},
+    {"DOC", DOC},
+    // key properties
+    {"KEY", KEY},
+    {"KNIL", KEYNIL},
+    {"KTAG", KEYTAG},
+    {"KANCH", KEYANCH},
+    {"KREF", KEYREF},
+    {"KLITERAL", KEY_LITERAL},
+    {"KFOLDED", KEY_FOLDED},
+    {"KSQUO", KEY_SQUO},
+    {"KDQUO", KEY_DQUO},
+    {"KPLAIN", KEY_PLAIN},
+    {"KUNFILT", KEY_UNFILT},
+    // val properties
+    {"VAL", VAL},
+    {"VNIL", VALNIL},
+    {"VTAG", VALTAG},
+    {"VANCH", VALANCH},
+    {"VREF", VALREF},
+    {"VLITERAL", VAL_LITERAL},
+    {"VFOLDED", VAL_FOLDED},
+    {"VSQUO", VAL_SQUO},
+    {"VDQUO", VAL_DQUO},
+    {"VPLAIN", VAL_PLAIN},
+    {"VUNFILT", VAL_UNFILT},
+    // container properties
+    {"MAP", MAP},
+    {"SEQ", SEQ},
+    {"FLOWSL", FLOW_SL},
+    {"FLOWML1", FLOW_ML1},
+    {"FLOWMLN", FLOW_MLN},
+    {"FLOWSPC", FLOW_SPC},
+    {"BLCK", BLOCK},
+};
+} // namespace
 size_t NodeType::type_str(substr buf, type_bits flags) noexcept
 {
-    size_t pos = 0;
-    bool gotone = false;
-
-    #define _prflag(fl, txt)                                    \
-    do {                                                        \
-        if((flags & (fl)) == (fl))                              \
-        {                                                       \
-            if(gotone)                                          \
-            {                                                   \
-                if(pos + 1 < buf.len)                           \
-                    buf[pos] = '|';                             \
-                ++pos;                                          \
-            }                                                   \
-            csubstr fltxt = txt;                                \
-            if(pos + fltxt.len <= buf.len)                      \
-                memcpy(buf.str + pos, fltxt.str, fltxt.len);    \
-            pos += fltxt.len;                                   \
-            gotone = true;                                      \
-            flags = (flags & ~(fl)); /*remove the flag*/        \
-        }                                                       \
-    } while(0)
-
-    _prflag(STREAM, "STREAM");
-    _prflag(DOC, "DOC");
-    // key properties
-    _prflag(KEY, "KEY");
-    _prflag(KEYNIL, "KNIL");
-    _prflag(KEYTAG, "KTAG");
-    _prflag(KEYANCH, "KANCH");
-    _prflag(KEYREF, "KREF");
-    _prflag(KEY_LITERAL, "KLITERAL");
-    _prflag(KEY_FOLDED, "KFOLDED");
-    _prflag(KEY_SQUO, "KSQUO");
-    _prflag(KEY_DQUO, "KDQUO");
-    _prflag(KEY_PLAIN, "KPLAIN");
-    _prflag(KEY_UNFILT, "KUNFILT");
-    // val properties
-    _prflag(VAL, "VAL");
-    _prflag(VALNIL, "VNIL");
-    _prflag(VALTAG, "VTAG");
-    _prflag(VALANCH, "VANCH");
-    _prflag(VALREF, "VREF");
-    _prflag(VAL_UNFILT, "VUNFILT");
-    _prflag(VAL_LITERAL, "VLITERAL");
-    _prflag(VAL_FOLDED, "VFOLDED");
-    _prflag(VAL_SQUO, "VSQUO");
-    _prflag(VAL_DQUO, "VDQUO");
-    _prflag(VAL_PLAIN, "VPLAIN");
-    _prflag(VAL_UNFILT, "VUNFILT");
-    // container properties
-    _prflag(MAP, "MAP");
-    _prflag(SEQ, "SEQ");
-    _prflag(FLOW_SL, "FLOWSL");
-    _prflag(FLOW_ML1, "FLOWML1");
-    _prflag(FLOW_MLN, "FLOWMLN");
-    _prflag(FLOW_SPC, "FLOWSPC");
-    _prflag(BLOCK, "BLCK");
-    if(pos == 0)
-        _prflag(NOTYPE, "NOTYPE");
-
-    #undef _prflag
-
-    return pos;
+    detail::_SubstrWriter writer(buf);
+    for(type_and_name const tn : type_names)
+    {
+        if((flags & tn.bits) == tn.bits)
+        {
+            if(writer.pos)
+                writer.append('|');
+            writer.append(tn.str);
+            flags = flags & ~tn.bits; // remove the flag
+        }
+    }
+    if(!writer.pos)
+        writer.append("NOTYPE");
+    if(writer.pos < buf.len)
+        buf[writer.pos] = '\0';
+    return writer.pos;
 }
 
 } // namespace yml
