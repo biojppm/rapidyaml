@@ -24,7 +24,7 @@ namespace extra {
 namespace ievt {
 
 namespace {
-struct FlagSym { const char *str; EventFlags flags; };
+struct FlagSym { const char *str; EventBits flags; };
 const FlagSym flag_syms_[] = {
     {"KEY_", KEY_},
     {"VAL_", VAL_},

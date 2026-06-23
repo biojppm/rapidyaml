@@ -5,7 +5,7 @@
  * integer buffer with a very compact representation of the YAML tree
  * in a source buffer. This is not part of the main rapidyaml library.
  *
- * @see c4::yml::extra::ievt::EventFlags
+ * @see c4::yml::extra::ievt::EventBits
  * @see c4::yml::extra::EventHandlerInts
  * */
 
@@ -127,7 +127,7 @@ typedef enum : evt_bits { // NOLINT
     /// a mask of all bits in this enumeration
     MASK = (LAST << 1) - 1,
 
-} EventFlags;
+} EventBits;
 
 } // namespace ievt
 
@@ -195,7 +195,7 @@ struct EventHandlerIntsState : public c4::yml::ParserState
 
 /** A parser event handler that creates a compact representation of
  * the YAML tree in a contiguous buffer of integers. The integers are
- * @ref ievt::EventFlags containing masks (to represent events),
+ * @ref ievt::EventBits containing masks (to represent events),
  * interleaved with offset+length (to represent strings in the source
  * buffer).
  *
@@ -204,7 +204,7 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  * tree parser, because the resulting data structure is much simpler.
  *
  * The resulting integer buffer is a linear array of integers containing
- * events (as a mask of @ref ievt::EventFlags), which in some cases (see
+ * events (as a mask of @ref ievt::EventBits), which in some cases (see
  * @ref ievt::WSTR) are followed by an encoded string (encoded as an
  * offset and length to the parsed source buffer).
  *

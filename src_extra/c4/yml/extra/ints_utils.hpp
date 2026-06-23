@@ -18,9 +18,9 @@ namespace extra {
 
 
 namespace ievt {
-/** Convert bit mask of @ref ievt::EventFlags to text. */
+/** Convert bit mask of @ref ievt::EventBits to text. */
 RYML_EXPORT size_t to_str(substr buf, yml::extra::ievt::evt_bits flags) noexcept;
-/** Convert bit mask of @ref ievt::EventFlags to text. */
+/** Convert bit mask of @ref ievt::EventBits to text. */
 RYML_EXPORT csubstr to_str_sub(substr buf, yml::extra::ievt::evt_bits flags);
 } // namespace ievt
 
