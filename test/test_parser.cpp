@@ -3259,6 +3259,27 @@ TEST_F(ParseToMapBlockTest, map_block_ref__to__map_flow__new_child)
 }
 
 
+TEST(ParseToDoc, basic)
+{
+    Tree dsttree = parse_in_arena(R"(
+---
+[ab]
+---
+{a: b}
+)");
+    ASSERT_TRUE(dsttree.docref(0).is_doc());
+    parse_in_arena("[cd]", dsttree.docref(0));
+    parse_in_arena("{c: d}", dsttree.docref(1));
+    Tree expected = parse_in_arena(R"(
+---
+[ab, cd]
+---
+{a: b, c: d}
+)");
+    test_compare(dsttree, expected);
+}
+
+
 //-----------------------------------------------------------------------------
 
 struct TmpParser

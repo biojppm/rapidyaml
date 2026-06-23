@@ -170,7 +170,6 @@ public:
     // documentation to the right -->
 
     C4_ALWAYS_INLINE NodeType    type()     const RYML_NOEXCEPT { assert_readable__(); return tree_->type(id_); }     /**< Forward to @ref Tree::type(). Node must be readable. */
-    C4_ALWAYS_INLINE const char* type_str() const RYML_NOEXCEPT { assert_readable__(); return tree_->type_str(id_); } /**< Forward to @ref Tree::type_str(). Node must be readable. */
 
     C4_ALWAYS_INLINE csubstr key()        const RYML_NOEXCEPT { assert_readable__(); return tree_->key(id_); }        /**< Forward to @ref Tree::key(). Node must be readable. */
     C4_ALWAYS_INLINE csubstr key_tag()    const RYML_NOEXCEPT { assert_readable__(); return tree_->key_tag(id_); }    /**< Forward to @ref Tree::key_tag(). Node must be readable. */
@@ -595,6 +594,7 @@ public: // deprecated functions
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+    RYML_DEPRECATED("use .type().type_str(buf)") const char* type_str() const RYML_NOEXCEPT { assert_readable__(); return tree_->type_str(id_); } /**< Forward to @ref Tree::type_str(). Node must be readable. */
     RYML_DEPRECATED("use has_other_siblings()") bool has_siblings() const RYML_NOEXCEPT { assert_readable__(); return tree_->has_siblings(id_); }
     RYML_DEPRECATED("use has_key_anchor()")  bool is_key_anchor() const noexcept { assert_readable__(); return tree_->has_key_anchor(id_); }
     RYML_DEPRECATED("use has_val_anchor()")  bool is_val_hanchor() const noexcept { assert_readable__(); return tree_->has_val_anchor(id_); }
@@ -1754,7 +1754,7 @@ public:
     /** @{ */
 
     RYML_LEGACY_OPERATOR(".use the appropriate .set_*() overload")
-    void operator= (NodeType_e t) { create(); m_tree->_set_flags(m_id, t); }
+    void operator= (NodeType_e t) { create(); m_tree->_p(m_id)->m_type = t; }
 
     RYML_LEGACY_OPERATOR(".use the appropriate .set_*() overload")
     void operator|= (NodeType_e t) { create(); m_tree->_add_flags(m_id, t); }

@@ -1329,9 +1329,10 @@ void Tree::to_val(id_type node, csubstr val, type_bits more_flags)
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || ! parent_is_map(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(node) && !is_map(node), this, node);
-    _set_flags(node, VAL|more_flags);
-    _p(node)->m_key.clear();
-    _p(node)->m_val = val;
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = VAL|more_flags;
+    nd->m_key.clear();
+    nd->m_val = val;
 }
 
 void Tree::to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags)
@@ -1339,60 +1340,67 @@ void Tree::to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flag
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || parent_is_map(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, !is_seq(node) && !is_map(node), this, node);
-    _set_flags(node, KEYVAL|more_flags);
-    _p(node)->m_key = key;
-    _p(node)->m_val = val;
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = KEYVAL|more_flags;
+    nd->m_key = key;
+    nd->m_val = val;
 }
 
 void Tree::to_map(id_type node, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
-    _set_flags(node, MAP|more_flags);
-    _p(node)->m_key.clear();
-    _p(node)->m_val.clear();
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = MAP|more_flags;
+    nd->m_key.clear();
+    nd->m_val.clear();
 }
 
 void Tree::to_map(id_type node, csubstr key, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || parent_is_map(node), this, node);
-    _set_flags(node, KEY|MAP|more_flags);
-    _p(node)->m_key = key;
-    _p(node)->m_val.clear();
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = KEY|MAP|more_flags;
+    nd->m_key = key;
+    nd->m_val.clear();
 }
 
 void Tree::to_seq(id_type node, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || parent_is_seq(node), this, node);
-    _set_flags(node, SEQ|more_flags);
-    _p(node)->m_key.clear();
-    _p(node)->m_val.clear();
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = SEQ|more_flags;
+    nd->m_key.clear();
+    nd->m_val.clear();
 }
 
 void Tree::to_seq(id_type node, csubstr key, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
     _RYML_ASSERT_VISIT_(m_callbacks, parent(node) == NONE || parent_is_map(node), this, node);
-    _set_flags(node, KEY|SEQ|more_flags);
-    _p(node)->m_key = key;
-    _p(node)->m_val.clear();
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = KEY|SEQ|more_flags;
+    nd->m_key = key;
+    nd->m_val.clear();
 }
 
 void Tree::to_doc(id_type node, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
-    _set_flags(node, DOC|more_flags);
-    _p(node)->m_key.clear();
-    _p(node)->m_val.clear();
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = DOC|more_flags;
+    nd->m_key.clear();
+    nd->m_val.clear();
 }
 
 void Tree::to_stream(id_type node, type_bits more_flags)
 {
     _RYML_ASSERT_VISIT_(m_callbacks,  ! has_children(node), this, node);
-    _set_flags(node, STREAM|more_flags);
-    _p(node)->m_key.clear();
-    _p(node)->m_val.clear();
+    NodeData* C4_RESTRICT nd = _p(node);
+    nd->m_type = STREAM|more_flags;
+    nd->m_key.clear();
+    nd->m_val.clear();
 }
 /** @endcond */ // LCOV_EXCL_STOP
 
@@ -1847,14 +1855,14 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 {
     csubstr unres = r->unresolved();
     if(unres.empty())
-        return {};
+        return {}; // LCOV_EXCL_LINE
 
     // is it an indexation like [0], [1], etc?
     if(unres.begins_with('['))
     {
         size_t pos = unres.find(']');
         if(pos == csubstr::npos)
-            return {};
+            return {}; // LCOV_EXCL_LINE
         csubstr idx = unres.first(pos + 1);
         _advance(r, pos + 1);
         return {idx, KEY};

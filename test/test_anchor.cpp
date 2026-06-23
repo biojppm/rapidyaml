@@ -6,6 +6,34 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+
+TEST(anchors, ReferenceResolver)
+{
+    // verify the resolver receives each tree's callbacks
+    Tree tree1;
+    ReferenceResolver r;
+    r.resolve(&tree1);
+    EXPECT_EQ(r.m_refs.m_callbacks, tree1.callbacks());
+    RYML_EXPECT_ERROR(check_success([&]{
+        Tree tree2;
+        ASSERT_NE(tree2.callbacks(), tree1.callbacks());
+        r.resolve(&tree2);
+        EXPECT_EQ(r.m_refs.m_callbacks, tree2.callbacks());
+    }));
+}
+
+TEST(anchors, err_on_multiple_inheritance_map)
+{
+    Tree tree = parse_in_arena(R"(
+a: &a a
+b: &b b
+c:
+  <<: {map: wrong}
+)");
+    RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(); }));
+}
+
+
 TEST(anchors, circular)
 {
     Tree t = parse_in_arena(R"(&x

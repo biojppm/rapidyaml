@@ -111,7 +111,7 @@ jobs:
         export CTEST_PARALLEL_LEVEL=`nproc`
         cmake --build build/$BUILD_ID --verbose --target ryml-coverage
     - name: upload artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-${{env.BUILD_ID}}
         path: |

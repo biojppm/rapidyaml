@@ -6822,8 +6822,8 @@ struct PerTreeMemoryExample
         ++num_allocs;
         if(C4_UNLIKELY(alloc_size > memory_pool.size()))
         {
-            std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl;
-            std::abort();
+            std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl; // LCOV_EXCL_LINE
+            std::abort(); // LCOV_EXCL_LINE
         }
         return ptr;
     }
@@ -6957,7 +6957,7 @@ int report_checks()
 {
     std::cout << "Completed " << num_checks << " checks." << std::endl;
     if(num_failed_checks)
-        std::cout << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
+        std::cout << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl; // LCOV_EXCL_LINE
     else
         std::cout << "SUCCESS!" << std::endl;
     return num_failed_checks;

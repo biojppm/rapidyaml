@@ -450,7 +450,6 @@ public:
     /** @{ */
 
     NodeType type(id_type node) const { return _p(node)->m_type; }
-    const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
 
     csubstr    const& key       (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key(node), this, node); return _p(node)->m_key.scalar; }
     csubstr    const& key_tag   (id_type node) const { _RYML_ASSERT_VISIT_(m_callbacks, has_key_tag(node), this, node); return _p(node)->m_key.tag; }
@@ -1379,7 +1378,7 @@ private:
     {
         csubstr value;
         NodeType type;
-        _lookup_path_token() : value(), type() {}
+        _lookup_path_token() : value(), type() {} // LCOV_EXCL_LINE
         _lookup_path_token(csubstr v, NodeType t) : value(v), type(t) {}
         operator bool() const { return type != NOTYPE; }
         bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
@@ -1445,8 +1444,6 @@ public:
     }
     #endif
 
-    void _set_flags(id_type node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
-    void _set_flags(id_type node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
     void _add_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
     void _add_flags(id_type node, type_bits  f) { NodeData *d = _p(node); f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
     void _rem_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
@@ -1572,6 +1569,7 @@ public:
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+    RYML_DEPRECATED("use .type().type_str(buf)") const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
     RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
     RYML_DEPRECATED("use set_key()+set_val()") void to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags=0);
     RYML_DEPRECATED("use set_key()+set_map()") void to_map(id_type node, csubstr key, type_bits more_flags=0);
