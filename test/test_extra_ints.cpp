@@ -22,7 +22,7 @@ TEST(flags, to_chars)
     char buf_[200]; substr buf = buf_;
 #define _(flags, str)                                       \
     {                                                       \
-        ievt::DataType flags_{flags};                       \
+        ievt::evt_bits flags_{flags};                       \
         csubstr actual(str);                                \
         EXPECT_EQ(ievt::to_str(buf1, flags_), actual.len);  \
         size_t ret = ievt::to_str(buf, flags_);             \
@@ -48,13 +48,13 @@ struct IntEventsCase
     csubstr yaml;
     const std::vector<IntEventWithScalar> evt;
 
-    void testeq(csubstr parsed_source, csubstr arena, ievt::DataType const* actual, size_t actual_size) const
+    void testeq(csubstr parsed_source, csubstr arena, ievt::evt_bits const* actual, size_t actual_size) const
     {
         RYML_TRACE_FMT("defined in:\n{}:{}: (here)\n", file, line);
         #ifdef RYML_DBG
-        events_ints_print(parsed_source, arena, actual, (extra::ievt::DataType)actual_size);
+        events_ints_print(parsed_source, arena, actual, (extra::ievt::evt_bits)actual_size);
         #endif
-        test_events_ints_invariants(parsed_source, arena, actual, (ievt::DataType)actual_size);
+        test_events_ints_invariants(parsed_source, arena, actual, (ievt::evt_bits)actual_size);
         test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, arena);
     }
 };
@@ -610,7 +610,7 @@ struct IntEventsTestHelper
     extra::EventHandlerInts handler;
     ParseEngine<extra::EventHandlerInts> parser;
     std::string src_copy;
-    std::vector<DataType> actual;
+    std::vector<evt_bits> actual;
     std::string arena;
     IntEventsTestHelper(IntEventsCase const& ec_)
         : ec(ec_)

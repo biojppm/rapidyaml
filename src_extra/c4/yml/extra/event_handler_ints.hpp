@@ -35,13 +35,14 @@ namespace extra {
 
 namespace ievt {
 
-/** data type for integer events. This is set to a 32 bit signed
- * integer to allow compatibility with a wide range of processing
- * languages. */
-using DataType = int32_t;
+
+/** data type for integer events bits. This is set to an int32_t integer
+ * to allow compatibility with a wide range of processing languages. */
+using evt_bits = int32_t;
+
 
 /** enumeration of integer event bits. */
-typedef enum : DataType { // NOLINT
+typedef enum : evt_bits { // NOLINT
 
     //-------------------------------------------------------------------------
     // YAML flags
@@ -212,7 +213,7 @@ struct EventHandlerIntsState : public c4::yml::ParserState
  *
  * ```c++
  * using namespace c4::yml::extra::ievt;
- * const DataType arr[] = {       // result of parsing: [a, bb, ccc]
+ * const evt_bits arr[] = {       // result of parsing: [a, bb, ccc]
  *   BSTR,                        // begin stream
  *   BDOC,                        // begin doc
  *   VAL_|BSEQ|FLOW,              // begin seq as val, flow
@@ -295,7 +296,7 @@ i      :        12   |        13       14
  *
  * Here's another example with the result of parsing `a: bb`
  * ```c++
- * const DataType arr[] = {       // result of parsing: `a: bb`
+ * const evt_bits arr[] = {       // result of parsing: `a: bb`
  *   BSTR,                        // begin stream
  *   BDOC,                        // begin doc
  *   VAL_|BMAP|BLCK,              // begin map as val, block
@@ -451,7 +452,7 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
     /** @name types
      * @{ */
 
-    using value_type = ievt::DataType;
+    using value_type = ievt::evt_bits;
     using state = EventHandlerIntsState; // our internal state must inherit from parser state
     enum { requires_strings_on_buffers = true }; // NOLINT
 
@@ -460,7 +461,7 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
 public:
 
     /** @cond dev */
-    ievt::DataType * m_evt;
+    ievt::evt_bits * m_evt;
     int32_t m_evt_pos;
     int32_t m_evt_prev;
     int32_t m_evt_size;
@@ -491,7 +492,7 @@ public:
     {
     }
 
-    void reset(substr str, substr arena, ievt::DataType *dst, int32_t dst_size)
+    void reset(substr str, substr arena, ievt::evt_bits *dst, int32_t dst_size)
     {
         _stack_reset_root();
         m_curr->flags |= c4::yml::RUNK|c4::yml::RTOP;
@@ -872,15 +873,15 @@ private:
     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ((i) + 3) < m_evt_size);   \
     if(C4_LIKELY((scalar).is_sub(m_src)))                               \
     {                                                                   \
-        m_evt[(i) + 1] = (ievt::DataType)((scalar).str - m_src.str);    \
+        m_evt[(i) + 1] = (ievt::evt_bits)((scalar).str - m_src.str);    \
     }                                                                   \
     else                                                                \
     {                                                                   \
         m_evt[i] |= ievt::AREN;                                         \
-        m_evt[(i) + 1] = (ievt::DataType)((scalar).str - m_arena.str);  \
+        m_evt[(i) + 1] = (ievt::evt_bits)((scalar).str - m_arena.str);  \
         _c4dbgpf("{}/{}: arena! ->{}", i, m_evt_size, m_evt[(i)+1]);    \
     }                                                                   \
-    m_evt[(i) + 2] = (ievt::DataType)(scalar).len;                      \
+    m_evt[(i) + 2] = (ievt::evt_bits)(scalar).len;                      \
     m_evt[(i) + 3] = ievt::PSTR
     /** @endcond */
 
@@ -1018,7 +1019,7 @@ public:
                     }
                     int32_t num_move = m_evt_pos + 1 - pos;
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
-                    memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
+                    memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                 }
                 m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
                 // move PSTR to prev
@@ -1054,7 +1055,7 @@ public:
                 {
                     int32_t num_move = m_evt_pos + 1 - pos;
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
-                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
+                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                 }
                 _RYML_ASSERT_BASIC_(m_stack.m_callbacks, posp1 < m_evt_pos);
                 // start the map
@@ -1103,7 +1104,7 @@ public:
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
-                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::DataType));
+                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                     m_evt[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
                     m_evt[posp1] &= ~ievt::VAL_;
                     m_evt[posp1] |= ievt::KEY_;
@@ -1194,7 +1195,7 @@ public:
         return (!str.str || str.is_sub(m_src) || str.is_sub(m_arena));
     }
 
-    C4_ALWAYS_INLINE void _send_flag_only_(ievt::DataType flags)
+    C4_ALWAYS_INLINE void _send_flag_only_(ievt::evt_bits flags)
     {
         _c4dbgpf("{}/{}: flag only", m_evt_pos, m_evt_size);
         if(m_evt_pos < m_evt_size)
@@ -1206,7 +1207,7 @@ public:
             m_evt[m_evt_pos] = {};
     }
 
-    C4_ALWAYS_INLINE void _send_str_(csubstr scalar, ievt::DataType flags)
+    C4_ALWAYS_INLINE void _send_str_(csubstr scalar, ievt::evt_bits flags)
     {
         _c4dbgpf("{}/{}: send str", m_evt_pos, m_evt_size);
         if(m_evt_pos + 3 < m_evt_size)
@@ -1238,7 +1239,7 @@ public:
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
         while(pos >= 0)
         {
-            ievt::DataType e = m_evt[pos];
+            ievt::evt_bits e = m_evt[pos];
             if((e & ievt::BDOC) == ievt::BDOC)
                 return pos;
             pos -= (e & ievt::PSTR) ? 3 : 1;
@@ -1246,7 +1247,7 @@ public:
         return -1; // LCOV_EXCL_LINE
     }
 
-    int32_t _find_matching_open(ievt::DataType open, ievt::DataType close, int32_t pos) const
+    int32_t _find_matching_open(ievt::evt_bits open, ievt::evt_bits close, int32_t pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
@@ -1256,7 +1257,7 @@ public:
         uint32_t count = 0;
         while(pos >= 0)
         {
-            ievt::DataType e = m_evt[pos];
+            ievt::evt_bits e = m_evt[pos];
             _c4dbgpf("find_matching: pos={} count={} e={}", pos, count, m_evt[pos]);
             if((e & close) == close)
             {

@@ -19,14 +19,14 @@ namespace extra {
 
 namespace ievt {
 /** Convert bit mask of @ref ievt::EventFlags to text. */
-RYML_EXPORT size_t to_str(substr buf, yml::extra::ievt::DataType flags) noexcept;
+RYML_EXPORT size_t to_str(substr buf, yml::extra::ievt::evt_bits flags) noexcept;
 /** Convert bit mask of @ref ievt::EventFlags to text. */
-RYML_EXPORT csubstr to_str_sub(substr buf, yml::extra::ievt::DataType flags);
+RYML_EXPORT csubstr to_str_sub(substr buf, yml::extra::ievt::evt_bits flags);
 } // namespace ievt
 
 
 /** Print integer events to stdout */
-RYML_EXPORT void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::DataType const* evts_ints, ievt::DataType evts_ints_sz);
+RYML_EXPORT void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::evt_bits const* evts_ints, ievt::evt_bits evts_ints_sz);
 
 
 /** @} */

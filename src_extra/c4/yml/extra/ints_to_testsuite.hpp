@@ -28,8 +28,8 @@ namespace extra {
 C4_NODISCARD RYML_EXPORT
 size_t events_ints_to_testsuite(csubstr parsed_yaml,
                                 csubstr arena,
-                                ievt::DataType const* evts_ints,
-                                ievt::DataType evts_ints_sz,
+                                ievt::evt_bits const* evts_ints,
+                                ievt::evt_bits evts_ints_sz,
                                 substr evts_testsuite);
 
 
@@ -38,8 +38,8 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml,
 template<class Container>
 void events_ints_to_testsuite(csubstr parsed_yaml,
                               csubstr arena,
-                              ievt::DataType const* evts_ints,
-                              ievt::DataType evts_ints_sz,
+                              ievt::evt_bits const* evts_ints,
+                              ievt::evt_bits evts_ints_sz,
                               Container *evts_testsuite)
 {
     size_t len = events_ints_to_testsuite(parsed_yaml, arena, evts_ints, evts_ints_sz, to_substr(*evts_testsuite));
@@ -57,8 +57,8 @@ void events_ints_to_testsuite(csubstr parsed_yaml,
 template<class Container>
 Container events_ints_to_testsuite(csubstr parsed_yaml,
                                    csubstr arena,
-                                   ievt::DataType const* evts_ints,
-                                   ievt::DataType evts_ints_sz)
+                                   ievt::evt_bits const* evts_ints,
+                                   ievt::evt_bits evts_ints_sz)
 {
     Container ret;
     events_ints_to_testsuite(parsed_yaml, arena, evts_ints, evts_ints_sz, &ret);
