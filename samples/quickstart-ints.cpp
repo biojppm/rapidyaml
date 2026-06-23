@@ -27,7 +27,7 @@ int main(int, const char *[])
                   "re: a drop of golden sun\n"
                   "mi: a name I call myself\n"
                   "fa: a long long way to run\n";
-    // these are the event values we expect
+    // these are the events we expect from parsing the YAML
     const int expected_events[] = {
         BSTR,
         BDOC,

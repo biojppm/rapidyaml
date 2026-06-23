@@ -100,6 +100,10 @@ jobs:
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
       run: source .github/setenv.sh && c4_show_info
+    - name: add_subdirectory
+      run: cd samples/add_subdirectory && ./run.sh $BT ${{matrix.args}}
+    - name: ints_only
+      run: cd samples/ints_only && ./run.sh $BT ${{matrix.args}}
     - name: singleheader
       run: cd samples/singleheader && ./run.sh $BT ${{matrix.args}}
     - name: singleheader-ints
@@ -108,8 +112,6 @@ jobs:
       run: cd samples/singleheaderlib && ./run.sh $BT ${{matrix.args}}
     - name: singleheaderlib-ints
       run: cd samples/singleheaderlib-ints && ./run.sh $BT ${{matrix.args}}
-    - name: add_subdirectory
-      run: cd samples/add_subdirectory && ./run.sh $BT ${{matrix.args}}
     - name: find_package
       run: cd samples/find_package && ./run.sh $BT ${{matrix.args}}
     - name: custom_c4core
