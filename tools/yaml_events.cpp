@@ -122,7 +122,7 @@ EXAMPLES:
 
 //-----------------------------------------------------------------------------
 
-using IntEvents = std::vector<extra::ievt::DataType>;
+using IntEvents = std::vector<extra::ievt::evt_bits>;
 
 std::string load_file(csubstr filename);
 std::string emit_testsuite_events_from_tree(csubstr filename, substr filecontents);
@@ -265,7 +265,7 @@ std::string emit_testsuite_events_from_tree(csubstr filename, substr filecontent
 
 csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &parsed, std::string &arena, IntEvents &evts, bool fail_size)
 {
-    using I = extra::ievt::DataType;
+    using I = extra::ievt::evt_bits;
     using Handler = extra::EventHandlerInts;
     Handler handler(create_custom_callbacks());
     ParseEngine<Handler> parser(&handler, parse_opts);
@@ -314,7 +314,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
 
 std::string emit_testsuite_events_from_ints(csubstr filename, substr filecontents, IntEvents &evts, bool fail_size)
 {
-    using I = extra::ievt::DataType;
+    using I = extra::ievt::evt_bits;
     std::string buf;
     std::string arena;
     csubstr parsed;
@@ -333,7 +333,7 @@ std::string emit_testsuite_events_from_ints(csubstr filename, substr filecontent
 
 void emit_ints_events(csubstr filename, substr filecontents, IntEvents &evts, bool fail_size)
 {
-    using I = extra::ievt::DataType;
+    using I = extra::ievt::evt_bits;
     std::string buf;
     std::string arena;
     csubstr parsed;

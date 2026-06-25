@@ -231,9 +231,9 @@ public:
     // vertically aligned to highlight differences.
     // documentation to the right -->
 
-    C4_ALWAYS_INLINE bool type_has_any(NodeType_e bits)  const RYML_NOEXCEPT { assert_readable__(); return tree_->type_has_any(id_, bits); }  /**< Forward to @ref Tree::type_has_any(). Node must be readable. */
-    C4_ALWAYS_INLINE bool type_has_all(NodeType_e bits)  const RYML_NOEXCEPT { assert_readable__(); return tree_->type_has_all(id_, bits); }  /**< Forward to @ref Tree::type_has_all(). Node must be readable. */
-    C4_ALWAYS_INLINE bool type_has_none(NodeType_e bits) const RYML_NOEXCEPT { assert_readable__(); return tree_->type_has_none(id_, bits); } /**< Forward to @ref Tree::type_has_none(). Node must be readable. */
+    C4_ALWAYS_INLINE bool type_has_any(type_bits bits)  const RYML_NOEXCEPT { assert_readable__(); return tree_->type_has_any(id_, bits); }  /**< Forward to @ref Tree::type_has_any(). Node must be readable. */
+    C4_ALWAYS_INLINE bool type_has_all(type_bits bits)  const RYML_NOEXCEPT { assert_readable__(); return tree_->type_has_all(id_, bits); }  /**< Forward to @ref Tree::type_has_all(). Node must be readable. */
+    C4_ALWAYS_INLINE bool type_has_none(type_bits bits) const RYML_NOEXCEPT { assert_readable__(); return tree_->type_has_none(id_, bits); } /**< Forward to @ref Tree::type_has_none(). Node must be readable. */
 
     C4_ALWAYS_INLINE NodeType key_style()       const RYML_NOEXCEPT { assert_readable__(); return tree_->key_style(id_); } /**< Forward to @ref Tree::key_style(). Node must be readable. */
     C4_ALWAYS_INLINE NodeType val_style()       const RYML_NOEXCEPT { assert_readable__(); return tree_->val_style(id_); } /**< Forward to @ref Tree::val_style(). Node must be readable. */
@@ -1174,9 +1174,9 @@ public:
     void set_key_ref(csubstr key_ref) { create(); m_tree->set_key_ref(m_id, key_ref); }
     void set_val_ref(csubstr val_ref) { create(); m_tree->set_val_ref(m_id, val_ref); }
 
-    void set_container_style(NodeType_e style) { create(); m_tree->set_container_style(m_id, style); }
-    void set_key_style(NodeType_e style) { create(); m_tree->set_key_style(m_id, style); }
-    void set_val_style(NodeType_e style) { create(); m_tree->set_val_style(m_id, style); }
+    void set_container_style(type_bits style) { create(); m_tree->set_container_style(m_id, style); }
+    void set_key_style(type_bits style) { create(); m_tree->set_key_style(m_id, style); }
+    void set_val_style(type_bits style) { create(); m_tree->set_val_style(m_id, style); }
 
     /** @} */
 
@@ -1754,10 +1754,10 @@ public:
     /** @{ */
 
     RYML_LEGACY_OPERATOR(".use the appropriate .set_*() overload")
-    void operator= (NodeType_e t) { create(); m_tree->_p(m_id)->m_type = t; }
+    void operator= (type_bits t) { create(); m_tree->_p(m_id)->m_type = t; }
 
     RYML_LEGACY_OPERATOR(".use the appropriate .set_*() overload")
-    void operator|= (NodeType_e t) { create(); m_tree->_add_flags(m_id, t); }
+    void operator|= (type_bits t) { create(); m_tree->_add_flags(m_id, t); }
 
     RYML_LEGACY_OPERATOR("use .set_val()")
     NodeRef& operator= (csubstr v) { set_val(v); return *this; }

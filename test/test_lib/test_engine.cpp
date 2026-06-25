@@ -42,7 +42,7 @@ public:
 
     void prepare_yaml(extra::EventHandlerInts &handler,
                       EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
-                      extra::ievt::DataType ints_size=-1, size_t arena_size=npos)
+                      extra::ievt::evt_bits ints_size=-1, size_t arena_size=npos)
     {
         if(ints_size == -1)
             ints_size = extra::estimate_events_ints_size(to_csubstr(parsed_yaml));
@@ -73,7 +73,7 @@ public:
 
     void prepare_events(EventHandlerIntsTr &handler_tr,
                         EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
-                        extra::ievt::DataType ints_size=-1, size_t arena_size=npos)
+                        extra::ievt::evt_bits ints_size=-1, size_t arena_size=npos)
     {
         prepare_yaml(handler_tr.handler, test_case, parsed_yaml, ints_size, arena_size);
         handler_tr.transformer.src = to_csubstr(src);

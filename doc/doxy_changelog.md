@@ -651,7 +651,7 @@ This handler is meant for use by other programming languages, and it supports co
   - Deserializing an empty quoted string *will not* cause an error.
   - Deserializing an empty string *will* cause an error: the empty string is read in as an empty scalar.
   - Ensure keys are deserialized using all the rules applying to vals.
-  - Added [KEYNIL](@ref c4::yml::NodeType_e::KEYNIL) and [VALNIL](@ref c4::yml::NodeType_e::VALNIL) to [NodeType_e](@ref c4::yml::NodeType_e), used by the parser to mark the key or val as empty. This changed the values of the [NodeType_e](@ref c4::yml::NodeType_e) enumeration.
+  - Added [KEYNIL](@ref c4::yml::NodeTypeBits::KEYNIL) and [VALNIL](@ref c4::yml::NodeTypeBits::VALNIL) to [NodeType_e](@ref c4::yml::NodeTypeBits), used by the parser to mark the key or val as empty. This changed the values of the [NodeType_e](@ref c4::yml::NodeTypeBits) enumeration.
   - Added `.key_is_null()` and `.val_is_null()`:
     - [NodeType](@ref c4::yml::NodeType): [.key_is_null()](@ref c4::yml::NodeType::key_is_null()) and [.val_is_null()](@ref c4::yml::NodeType::val_is_null())
     - [Tree](@ref c4::yml::Tree): [.key_is_null()](@ref c4::yml::Tree::key_is_null()) and [.val_is_null()](@ref c4::yml::Tree::val_is_null())

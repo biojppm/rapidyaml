@@ -45,40 +45,34 @@ struct _SubstrWriter
 {
     substr buf;
     size_t pos;
-    _SubstrWriter(substr buf_, size_t pos_=0) : buf(buf_), pos(pos_) { C4_ASSERT(buf.str); }
-    void append(csubstr s)
+    _SubstrWriter(substr buf_, size_t pos_=0) noexcept : buf(buf_), pos(pos_) { C4_ASSERT(buf.str || !buf.len); }
+    void append(csubstr s) RYML_NOEXCEPT
     {
         C4_ASSERT(!s.overlaps(buf));
-        C4_ASSERT(s.str || !s.len);
         if(s.len && pos + s.len <= buf.len)
-        {
-            C4_ASSERT(s.str);
             memcpy(buf.str + pos, s.str, s.len);
-        }
         pos += s.len;
     }
-    void append(char c)
+    void append(char c) noexcept
     {
-        C4_ASSERT(buf.str);
         if(pos < buf.len)
             buf.str[pos] = c;
         ++pos;
     }
-    void append_n(char c, size_t numtimes)
+    void append_n(char c, size_t numtimes) noexcept
     {
-        C4_ASSERT(buf.str);
         if(numtimes && pos + numtimes < buf.len)
             memset(buf.str + pos, c, numtimes);
         pos += numtimes;
     }
-    size_t slack() const { return pos <= buf.len ? buf.len - pos : 0; }
-    size_t excess() const { return pos > buf.len ? pos - buf.len : 0; }
+    size_t slack() const noexcept { return pos <= buf.len ? buf.len - pos : 0; }
+    size_t excess() const noexcept { return pos > buf.len ? pos - buf.len : 0; }
     //! get the part written so far
-    csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
+    csubstr curr() const noexcept { return pos <= buf.len ? buf.first(pos) : buf; }
     //! get the part that is still free to write to (the remainder)
-    substr rem() const { return pos < buf.len ? buf.sub(pos) : buf.last(0); }
+    substr rem() const noexcept { return pos < buf.len ? buf.sub(pos) : buf.last(0); }
 
-    size_t advance(size_t more) { pos += more; return pos; }
+    size_t advance(size_t more) noexcept { pos += more; return pos; }
 };
 
 

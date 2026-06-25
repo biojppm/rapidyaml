@@ -312,7 +312,7 @@ struct TestSequenceLevel
 
     void parse_yaml_to_events_ints()
     {
-        using I = extra::ievt::DataType;
+        using I = extra::ievt::evt_bits;
         if(events_ints_were_generated)
             return;
         if(prev)

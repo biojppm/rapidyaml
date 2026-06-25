@@ -60,8 +60,8 @@
         {                                                               \
             char ltypebuf[256];                                         \
             char rtypebuf[256];                                         \
-            csubstr ltype = NodeType::type_str_sub(ltypebuf, (NodeType_e)lhs); \
-            csubstr rtype = NodeType::type_str_sub(rtypebuf, (NodeType_e)rhs); \
+            csubstr ltype = NodeType::type_str_sub(ltypebuf, (type_bits)lhs); \
+            csubstr rtype = NodeType::type_str_sub(rtypebuf, (type_bits)rhs); \
             EXPECT_##testop(lhs, rhs);                                  \
             std::cout << __FILE__  << ":" << __LINE__ << ": ...\n";     \
             if(ltype.str && rtype.str)                                  \
@@ -95,7 +95,7 @@ inline void PrintTo(NodeType ty, ::std::ostream* os)
 {
     *os << ty.type_str();
 }
-inline void PrintTo(NodeType_e ty, ::std::ostream* os)
+inline void PrintTo(NodeTypeBits ty, ::std::ostream* os)
 {
     *os << NodeType::type_str(ty);
 }

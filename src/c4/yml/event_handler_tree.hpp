@@ -279,7 +279,7 @@ public:
         _pop();
     }
 
-    void end_map_flow(bool multiline, NodeType_e multiline_style=FLOW_ML1)
+    void end_map_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _c4dbgpf("node[{}]: end_map. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
         _pop();
@@ -329,7 +329,7 @@ public:
         _pop();
     }
 
-    void end_seq_flow(bool multiline, NodeType_e multiline_style=FLOW_ML1)
+    void end_seq_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _c4dbgpf("node[{}]: end_seq. multiline={} startline={} endline={}", m_parent->node_id, multiline, m_parent->pos.line, m_curr->pos.line);
         _pop();
@@ -684,19 +684,19 @@ public:
 
     C4_ALWAYS_INLINE void _enable__(type_bits bits) noexcept
     {
-        m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
+        m_curr->tr_data->m_type.m_bits |= bits;
     }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _enable__() noexcept
     {
-        m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
+        m_curr->tr_data->m_type.m_bits |= bits;
     }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _disable__() noexcept
     {
-        m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type & (~bits));
+        m_curr->tr_data->m_type.m_bits &= ~bits;
     }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__() const noexcept
     {
-        return (m_curr->tr_data->m_type.type & bits) != 0;
+        return (m_curr->tr_data->m_type.m_bits & bits) != 0;
     }
 
 public:
@@ -733,11 +733,11 @@ public:
         r.m_type = d.m_type;
         static_assert((_VALMASK >> 1u) == _KEYMASK, "required for this function to work");
         static_assert((VAL_STYLE >> 1u) == KEY_STYLE, "required for this function to work");
-        r.m_type.type = ((d.m_type.type & (_VALMASK|VAL_STYLE)) >> 1u);
-        r.m_type.type = (r.m_type.type & ~(_VALMASK|VAL_STYLE));
-        r.m_type.type = (r.m_type.type | KEY);
-        if(d.m_type.type & VALNIL)
-            r.m_type.type = (r.m_type.type | KEYNIL);
+        r.m_type.m_bits = ((d.m_type.m_bits & (_VALMASK|VAL_STYLE)) >> 1u);
+        r.m_type.m_bits = (r.m_type.m_bits & ~(_VALMASK|VAL_STYLE));
+        r.m_type.m_bits = (r.m_type.m_bits | KEY);
+        if(d.m_type.m_bits & VALNIL)
+            r.m_type.m_bits = (r.m_type.m_bits | KEYNIL);
         return r;
     }
 

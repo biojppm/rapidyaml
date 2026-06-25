@@ -335,7 +335,7 @@ void process_file_tree(Args const& args, c4::substr contents)
 void process_file_ints(Args const& args, c4::csubstr contents)
 {
     TS(process_file_ints);
-    using evt_type = yml::extra::ievt::DataType;
+    using evt_type = yml::extra::ievt::evt_bits;
     using Handler = yml::extra::EventHandlerInts;
     using Parser = yml::ParseEngine<Handler>;
     Handler handler;

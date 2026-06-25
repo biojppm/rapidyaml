@@ -35,7 +35,7 @@ TEST(CaseNode, setting_up)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-NodeType_e TestCaseNode::_guess() const
+type_bits TestCaseNode::_guess() const
 {
     NodeType t;
     C4_ASSERT(!val.empty() != !children.empty() || (val.empty() && children.empty()));
@@ -53,7 +53,7 @@ NodeType_e TestCaseNode::_guess() const
     }
     else
     {
-        NodeType_e has_key = key.empty() ? NOTYPE : KEY;
+        type_bits has_key = key.empty() ? NOTYPE : KEY;
         auto const& ch = children.front();
         if(ch.key.empty())
         {

@@ -25,11 +25,11 @@ struct TaggedScalar
 
 struct AnchorRef
 {
-    NodeType_e type;
+    type_bits type;
     csubstr str;
     AnchorRef() : type(NOTYPE), str() {}
-    AnchorRef(NodeType_e t) : type(t), str() {}
-    AnchorRef(NodeType_e t, csubstr v) : type(t), str(v) {}
+    AnchorRef(type_bits t) : type(t), str() {}
+    AnchorRef(type_bits t, csubstr v) : type(t), str(v) {}
 };
 
 
@@ -72,7 +72,7 @@ public:
     // brace yourself: what you are about to see is ... crazy.
 
     TestCaseNode() : TestCaseNode(NOTYPE) {}
-    TestCaseNode(NodeType_e t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+    TestCaseNode(type_bits t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
 
     // val
     template<size_t N> explicit TestCaseNode(const char (&v)[N]   ) : type((VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
@@ -240,7 +240,7 @@ public:
         C4_SUPPRESS_WARNING_GCC_POP
     }
 
-    NodeType_e _guess() const;
+    type_bits _guess() const;
 
     bool is_root() const { return parent; }
     bool is_doc() const { return type & DOC; }

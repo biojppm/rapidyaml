@@ -112,7 +112,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints, std::vector<char> *arena)
 {
     SCOPED_TRACE("parse_ints");
-    using I = extra::ievt::DataType;
+    using I = extra::ievt::evt_bits;
     using Handler = extra::EventHandlerInts;
     int estimated_size = extra::estimate_events_ints_size(src);
     ints->resize((size_t)estimated_size);

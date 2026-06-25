@@ -1,3 +1,14 @@
+- [PR#636](https://github.com/biojppm/rapidyaml/pull/636) **Remove c4core submodule**, and copy c4core files to rapidyaml (and manage sync).
+  - `RYML_STANDALONE` still exists, defaults the same.
+  - Read PR description, and [ext/README.md](https://github.com/biojppm/rapidyaml/tree/master/ext/README.md).
+- [PR#635](https://github.com/biojppm/rapidyaml/pull/635) API cleanup: `NodeType` and `extra::ievt::EventFlags`:
+  - On `Tree` and `NodeRef`, overloads taking `NodeType_e` are now receiving `type_bits`.
+  - This saves operator calls on type queries.
+  - Remove bitwise operators, no longer needed.
+  - Rename `NodeType_e` to `NodeTypeBits` (deprecate `NodeType_e`)
+  - Low impact, no changes should be needed on user code, other than renaming unlikely uses of `NodeType_e`.
+  - Also, for int events:
+    - rename `extra::ievt::EventFlags` to `extra::ievt::EventBits`
 - [PR#620](https://github.com/biojppm/rapidyaml/pull/620) API cleanup: `Tree` and `NodeRef`:
   - Deprecate `NodeInit`
   - `Tree` and `NodeRef`:
@@ -20,8 +31,7 @@
       node["seq2"].set_seq();
       // see the doxygen documentation
       ```
-    - You can disable compiler deprecation warnings from use of these operators: by enabling the cmake variable (or defining the macro) `RYML_WITH_LEGACY
-    _OPERATORS`.
+    - You can disable compiler deprecation warnings from use of these operators: by enabling the cmake variable (or defining the macro) `RYML_WITH_LEGACY_OPERATORS`.
     - deprecate `NodeInit` and `NodeScalar` methods (use `.set_*()`)
     - deprecate single-arg `NodeRef::{duplicate,move}(ConstNodeRef)`
     - deprecate `NodeRef::visit()` and `NodeRef::visit_stacked()`

@@ -404,7 +404,7 @@ tpl: &anchor
 
 //-----------------------------------------------------------------------------
 
-Tree github566_make_map(NodeType_e root_style)
+Tree github566_make_map(NodeType root_style)
 {
     Tree tree;
     NodeRef root = tree.rootref();
@@ -417,7 +417,7 @@ Tree github566_make_map(NodeType_e root_style)
     return tree;
 }
 
-Tree github566_make_seq(NodeType_e root_style)
+Tree github566_make_seq(NodeType root_style)
 {
     Tree tree;
     NodeRef root = tree.rootref();
