@@ -74,16 +74,20 @@ install-python-action =::
 checkout-action =::
 - name: checkout (action)
   uses: actions/checkout@v6
-  # use fetch-depth to ensure all tags are fetched
-  with: {submodules: recursive, fetch-depth: 0}
+  with:
+    fetch-depth: 0 # use fetch-depth to ensure all tags are fetched
+    submodules: false
+    set-safe-directory: true
 
 
 #----------------------------------------------------------
 checkout-action-docker =::
 - name: checkout (action + docker)
   uses: actions/checkout@v6
-  # use fetch-depth to ensure all tags are fetched
-  with: {submodules: recursive, fetch-depth: 0}
+  with:
+    fetch-depth: 0 # use fetch-depth to ensure all tags are fetched
+    submodules: false
+    set-safe-directory: true
 # needed for running in the docker image.
 # see https://github.com/actions/checkout/issues/1169
 - run: git config --system --add safe.directory '*'
@@ -134,7 +138,6 @@ checkout-manual =::
     git remote add origin $repo
     git fetch origin $branch
     git reset --hard FETCH_HEAD
-    git submodule update --init --recursive
     # show the log
     git log --graph --date=relative --date-order --color=always \
             --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \

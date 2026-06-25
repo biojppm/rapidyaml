@@ -1,7 +1,6 @@
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/escape_scalar.hpp>
 #endif
-#include <gtest/gtest.h>
 
 #include "./test_lib/test_case.hpp"
 

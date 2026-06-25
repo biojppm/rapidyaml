@@ -1,4 +1,5 @@
 #include "./testsuite_parts.hpp"
+#include "c4/span.hpp"
 
 namespace c4 {
 namespace yml {

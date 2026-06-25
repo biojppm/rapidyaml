@@ -1301,13 +1301,10 @@ bool ParseEngine<EventHandler>::_scan_scalar_seq_json(ScannedScalar *C4_RESTRICT
 
 ended_scalar:
 
-    if(C4_LIKELY(i > 0))
-    {
-        _line_progressed(i);
-        sc->scalar = s.first(i);
-        sc->needs_filter = false;
-        _c4dbgpf("seq_json: scalar was {}", _prs(sc->scalar, /*escape*/true));
-    }
+    _line_progressed(i);
+    sc->scalar = s.first(i);
+    sc->needs_filter = false;
+    _c4dbgpf("seq_json: scalar was {}", _prs(sc->scalar, /*escape*/true));
 
     return true;
 }
@@ -2142,7 +2139,7 @@ void ParseEngine<EventHandler>::_check_valid_newline_in_quoted_scalar()
 
 //-----------------------------------------------------------------------------
 template<class EventHandler>
-typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_scan_scalar_squot()
+ScannedScalar ParseEngine<EventHandler>::_scan_scalar_squot()
 {
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
@@ -2208,7 +2205,7 @@ found_close:
 
 //-----------------------------------------------------------------------------
 template<class EventHandler>
-typename ParseEngine<EventHandler>::ScannedScalar ParseEngine<EventHandler>::_scan_scalar_dquot()
+ScannedScalar ParseEngine<EventHandler>::_scan_scalar_dquot()
 {
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
@@ -4193,9 +4190,10 @@ Location ParseEngine<EventHandler>::val_location(const char *val) const
             }
         }
     }
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr >= m_newline_offsets);
     _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr <= m_newline_offsets + m_newline_offsets_size);
-    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, *lineptr > offset);
+    _RYML_ASSERT_BASIC_(m_evt_handler->m_stack.m_callbacks, lineptr && (*lineptr > offset));
     Location loc;
     loc.name = m_evt_handler->m_curr->pos.name;
     loc.offset = offset;

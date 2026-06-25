@@ -44,7 +44,7 @@ using `emcmake`:
 
 .. code:: bash
 
-   git clone --recursive https://github.com/biojppm/rapidyaml
+   git clone https://github.com/biojppm/rapidyaml
    cd rapidyaml
    emcmake cmake -S . -B build/emscripten \
       -D RYML_DEV=ON \

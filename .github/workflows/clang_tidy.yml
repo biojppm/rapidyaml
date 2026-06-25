@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/clang_tidy.ys
+# DO NOT EDIT - GENERATED FROM clang_tidy.ys
 
 name: clang_tidy
 defaults:
@@ -46,8 +46,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - name: install
       run: c4core-install clang++-${{matrix.clang}}

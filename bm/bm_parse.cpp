@@ -314,7 +314,6 @@ void bm_rymlints_yaml_inplace(bm::State& st)
 void bm_rymlints_yaml_inplace_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    int sz = ryml::extra::estimate_events_ints_size(src);
     for(auto _ : st)
     {
         st.PauseTiming();
@@ -349,7 +348,6 @@ void bm_rymlints_yaml_inplace_nofilter(bm::State& st)
 void bm_rymlints_yaml_inplace_nofilter_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    int sz = ryml::extra::estimate_events_ints_size(src);
     for(auto _ : st)
     {
         st.PauseTiming();
@@ -388,14 +386,14 @@ void bm_rymlints_json_inplace(bm::State& st)
 void bm_rymlints_json_inplace_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    int sz = ryml::extra::estimate_events_ints_size(src);
+    size_t sz = (size_t)ryml::extra::estimate_events_ints_size(src);
     for(auto _ : st)
     {
         ONLY_FOR_JSON;
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
         IntObjects obj;
-        obj.data.resize(src);
+        obj.data.resize(sz, src.len);
         st.ResumeTiming();
         parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         bm::DoNotOptimize(obj);
@@ -425,14 +423,14 @@ void bm_rymlints_json_inplace_nofilter(bm::State& st)
 void bm_rymlints_json_inplace_nofilter_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    int sz = ryml::extra::estimate_events_ints_size(src);
+    size_t sz = (size_t)ryml::extra::estimate_events_ints_size(src);
     for(auto _ : st)
     {
         ONLY_FOR_JSON;
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
         IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
-        obj.data.resize(src);
+        obj.data.resize(sz, src.len);
         st.ResumeTiming();
         parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         bm::DoNotOptimize(obj);

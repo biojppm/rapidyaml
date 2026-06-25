@@ -6,6 +6,9 @@
 #ifndef _C4_YML_COMMON_HPP_
 #include <c4/yml/common.hpp>
 #endif
+#ifndef _C4_CHARCONV_HPP_
+#include <c4/charconv.hpp>
+#endif
 
 #include <cstdlib>
 

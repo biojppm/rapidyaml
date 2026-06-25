@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/gcc.ys
+# DO NOT EDIT - GENERATED FROM gcc.ys
 
 name: gcc
 defaults:
@@ -119,7 +119,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -267,7 +266,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -415,7 +413,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -563,7 +560,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -681,8 +677,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - name: install
       run: |
@@ -752,8 +749,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - name: install
       run: |
@@ -875,7 +873,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -1055,7 +1052,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -1235,7 +1231,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -1479,7 +1474,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -1770,8 +1764,9 @@ jobs:
     - name: checkout (action + docker)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -1825,27 +1820,27 @@ jobs:
         - std: 11
           bt: Debug
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 11
           bt: Release
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 14
           bt: Debug
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 14
           bt: Release
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 17
           bt: Debug
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/toolchains/Toolchain-Arm-ubuntu.cmake
         - std: 17
           bt: Release
           cxx: arm-linux-gnueabihf-gcc
-          toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake
+          toolchain: proj/toolchains/Toolchain-Arm-ubuntu.cmake
     env:
       TOOLCHAIN: ${{matrix.toolchain}}
       STD: ${{matrix.std}}
@@ -1897,7 +1892,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \

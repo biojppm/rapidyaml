@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/samples.ys
+# DO NOT EDIT - GENERATED FROM samples.ys
 
 name: samples
 defaults:
@@ -90,14 +90,19 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Install python 3.12
       uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - name: checkout c4core
+      run: |
+        cd ext
+        make c4core
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - name: add_subdirectory

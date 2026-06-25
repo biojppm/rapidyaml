@@ -4,6 +4,10 @@
 #else
 #include <ryml_all.hpp>
 #endif
+#ifdef RYML_NO_DEFAULT_CALLBACKS
+#include <stdlib.h>
+#include <stdio.h>
+#endif
 
 
 namespace c4 {

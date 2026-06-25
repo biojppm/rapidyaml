@@ -48,7 +48,6 @@
  * FetchContent_Declare(ryml
  *     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
  *     GIT_TAG v0.15.2
- *     GIT_SHALLOW FALSE  # ensure submodules are checked out
  * )
  * FetchContent_MakeAvailable(ryml)
  * add_executable(ryml-quickstart ${ryml_SOURCE_DIR}/samples/quickstart.cpp)
@@ -243,6 +242,10 @@ C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wcast-qual")
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+#if defined(__GNUC__) && (__GNUC__ >= 6)
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference") // false positives
+#endif
+
 
 //-----------------------------------------------------------------------------
 // first, some helpers used in this quickstart

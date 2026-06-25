@@ -1,0 +1,67 @@
+# manifest for c4core sync,
+# grouped by original dir <-> copy dir
+#
+# ALL DIR  PATHS MUST BE RELATIVE TO ROOT DIR
+# ALL FILE PATHS MUST BE RELATIVE TO ORIG/COPY DIR
+
+- origdir: ext/c4core/src
+  copydir: ext/c4core.src
+  files: ext/c4core.src.txt  # the list is in this file
+
+- origdir: ext/c4core/src
+  copydir: ext/c4core.dev
+  files: ext/c4core.dev.txt  # the list is in this file
+
+- origdir: ext/c4core/cmake
+  copydir: proj/c4proj
+  files:
+  - amalgamate_utils.py
+  - bm-xp/bm.js
+  - bm-xp/bm_plot.py
+  - bm-xp/bm_run.py
+  - bm-xp/bm_serve.py
+  - bm-xp/bm_util.py
+  - bm-xp/example_c4core.py
+  - bm-xp/example_mintm.py
+  - bm-xp/.gitignore
+  - bm-xp/README.md
+  - bm-xp/requirements.txt
+  - bm-xp/template/index.html
+  - c4CatSources.cmake
+  - c4Doxygen.cmake
+  - c4GetTargetPropertyRecursive.cmake
+  - c4Project.cmake
+  - c4StaticAnalysis.cmake
+  - compat/c4/gcc-4.8.hpp
+  - compat/gtest_gcc-4.8.patch
+  - ConfigurationTypes.cmake
+  - CreateSourceGroup.cmake
+  - GetFlags.cmake
+  - PatchUtils.cmake
+  - PrintVar.cmake
+  - PVS-Studio.cmake
+  - TargetArchitecture.cmake
+
+- origdir: ext/c4core/.github/toolchains
+  copydir: proj/toolchains
+  files:
+  - aarch64.cmake
+  - armv4.cmake
+  - armv5.cmake
+  - armv6.cmake
+  - armv7.cmake
+  - loongarch64.cmake
+  - mingw32.cmake
+  - mingw64.cmake
+  - mips64.cmake
+  - mips64el.cmake
+  - mips.cmake
+  - mipsel.cmake
+  - ppc64.cmake
+  - ppc64le.cmake
+  - ppc.cmake
+  - riscv64.cmake
+  - s390x.cmake
+  - sparc64.cmake
+  - sparc.cmake
+  - Toolchain-Arm-ubuntu.cmake
