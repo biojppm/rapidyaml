@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/benchmarks.ys
+# DO NOT EDIT - GENERATED FROM benchmarks.ys
 
 name: benchmarks
 defaults:
@@ -25,8 +25,9 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Variables (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
@@ -125,8 +126,9 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Download vars.sh
       uses: actions/download-artifact@v7
       with:
@@ -159,6 +161,8 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.12'
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install benchmark plotting dependencies
       run: |
         which python

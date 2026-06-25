@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/release.ys
+# DO NOT EDIT - GENERATED FROM release.ys
 
 name: release
 defaults:
@@ -31,8 +31,9 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Variables (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
@@ -99,8 +100,9 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Download vars.sh
       uses: actions/download-artifact@v7
       with:
@@ -143,6 +145,7 @@ jobs:
         mkdir -p assets
         git-archive-all --prefix $name assets/$name.tgz
         git-archive-all --prefix $name assets/$name.zip
+        make -C ext c4core-clone
         python --version
         python tools/amalgamate.py assets/$id.hpp
     - name: Save source artifacts
@@ -176,8 +179,9 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Download vars.sh
       uses: actions/download-artifact@v7
       with:
@@ -251,8 +255,9 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Download vars.sh
       uses: actions/download-artifact@v7
       with:

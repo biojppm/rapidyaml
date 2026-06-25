@@ -206,17 +206,6 @@ namespace yml {
  */
 
 
-/** @cond dev */
-struct FilterResult;
-struct FilterResultExtending;
-typedef enum BlockChomp_ { // NOLINT
-    CHOMP_CLIP,    //!< single newline at end (default)
-    CHOMP_STRIP,   //!< no newline at end     (-)
-    CHOMP_KEEP     //!< all newlines from end (+)
-} BlockChomp_e;
-/** @endcond */
-
-
 /** Quickly inspect the source to estimate the number of nodes the
  * resulting tree is likely to have. If a tree is empty before
  * parsing, considerable time will be spent growing it, so calling
@@ -231,6 +220,42 @@ typedef enum BlockChomp_ { // NOLINT
  * maps as flow seq members as in `[these: are, individual:
  * maps]`. */
 RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-redundant-declaration)
+
+
+
+/** @cond dev */
+struct FilterResult;
+struct FilterResultExtending;
+typedef enum BlockChomp_ { // NOLINT
+    CHOMP_CLIP,    //!< single newline at end (default)
+    CHOMP_STRIP,   //!< no newline at end     (-)
+    CHOMP_KEEP     //!< all newlines from end (+)
+} BlockChomp_e;
+struct ScannedBlock
+{
+    substr scalar;
+    size_t indentation;
+    BlockChomp_e chomp;
+};
+struct ScannedScalar
+{
+    substr scalar;
+    bool needs_filter;
+};
+/** store pending tag or anchor/ref annotations */
+struct Annotation
+{
+    struct Entry
+    {
+        csubstr str;
+        size_t indentation;
+        size_t line;
+        csubstr orig;
+    };
+    Entry annotations[2];
+    uint8_t num_entries;
+};
+/** @endcond */
 
 
 //-----------------------------------------------------------------------------
@@ -403,21 +428,6 @@ public:
     FilterResult filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp);
 
     /** @} */
-
-private:
-
-    struct ScannedScalar
-    {
-        substr scalar;
-        bool needs_filter;
-    };
-
-    struct ScannedBlock
-    {
-        substr scalar;
-        size_t indentation;
-        BlockChomp_e chomp;
-    };
 
 private:
 
@@ -635,20 +645,6 @@ private:
     #endif
 
 private:
-
-    /** store pending tag or anchor/ref annotations */
-    struct Annotation
-    {
-        struct Entry
-        {
-            csubstr str;
-            size_t indentation;
-            size_t line;
-            csubstr orig;
-        };
-        Entry annotations[2];
-        uint8_t num_entries;
-    };
 
     void _handle_colon();
     void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line);

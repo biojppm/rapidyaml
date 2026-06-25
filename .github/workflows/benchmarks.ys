@@ -33,6 +33,8 @@ jobs:
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - :: install-python-action
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install benchmark plotting dependencies
       run: |
         which python

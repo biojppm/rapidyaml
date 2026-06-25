@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/embedded.ys
+# DO NOT EDIT - GENERATED FROM embedded.ys
 
 name: embedded
 defaults:
@@ -38,8 +38,11 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install
       run: |
         sudo apt-get update
@@ -60,7 +63,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}} " \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}} " \
@@ -263,8 +266,11 @@ jobs:
     - name: checkout (action)
       uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install
       run: |
         sudo apt-get update
@@ -285,7 +291,7 @@ jobs:
         rm -rf build
         export C4_EXTERN_DIR=`pwd`/build/extern
         cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/${{matrix.arch}}.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=proj/toolchains/${{matrix.arch}}.cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
             -DCMAKE_CXX_FLAGS=" ${{matrix.flags}} " \
             -DCMAKE_C_FLAGS=" ${{matrix.flags}} " \

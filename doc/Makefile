@@ -19,6 +19,7 @@ DOXYGEN        ?= doxygen
 else
 DOXYGEN        ?= $(DOXY_DIR)/bin/doxygen
 endif
+WARN_AS_ERR   ?= 1
 
 .PHONY: help Makefile doxy doxy_test _doxy_warnfail _doxy_warnpass doxy_install
 
@@ -38,28 +39,35 @@ help:
 	if [ -d "$(BUILDDIR)/html/doxygen" ] ; then rm -rf "$(BUILDDIR)/html/doxygen" ; fi
 	cp -favr doxygen/html "$(BUILDDIR)/html/doxygen"
 
-doxy: doxy_install
-	@# ensure submodules are checked out
-	if [ ! -f $(shell pwd)/../ext/c4core/cmake/c4Project.cmake ] ; then echo "ERROR: submodules not present" ; exit 1 ; fi
-	if [ ! -f $(shell pwd)/../ext/c4core/src/c4/charconv.hpp ] ; then echo "ERROR: submodules not present" ; exit 1 ; fi
-	## use cmake to generate a compile database
-	#cmake -S .. -B "$(BUILDDIR)/proj" -DCMAKE_CXX_COMPILER=$(CLANG) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-	#ln -fs "$(BUILDDIR)/proj/compile_commands.json" .
-	## finally, run doxygen
+
+doxy: doxy_install c4core-clone
+	@## use cmake to generate a compile database
+	@#cmake -S .. -B "$(BUILDDIR)/proj" -DCMAKE_CXX_COMPILER=$(CLANG) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	@#ln -fs "$(BUILDDIR)/proj/compile_commands.json" .
+	@## finally, run doxygen
 	$(DOXYGEN) --version
 	$(DOXYGEN) $(DOXYGEN_OPTS) Doxyfile
-	@echo "doxy: `pwd`/doxygen/html/index.html"
+	@echo "doxygen:"
+	@echo "    `pwd`/doxygen/html/index.html"
+c4core-clone:
+	$(MAKE) -C ../ext c4core-clone
+
 
 doxy_test:
 	$(MAKE) --keep-going _doxy_warnfail doxy _doxy_warnpass
 _doxy_warnfail:
-	sed "s/WARN_AS_ERROR\(.*\)= .*/WARN_AS_ERROR\1= FAIL_ON_WARNINGS_PRINT/g" -i Doxyfile
+	if [ "$(WARN_AS_ERR)" -ne 0 ] ; then \
+	    sed "s/WARN_AS_ERROR\(.*\)= .*/WARN_AS_ERROR\1= FAIL_ON_WARNINGS_PRINT/g" -i Doxyfile ; \
+	fi
 _doxy_warnpass:
-	sed "s/WARN_AS_ERROR\(.*\)= .*/WARN_AS_ERROR\1= NO/g" -i Doxyfile
+	if [ "$(WARN_AS_ERR)" -ne 0 ] ; then \
+	    sed "s/WARN_AS_ERROR\(.*\)= .*/WARN_AS_ERROR\1= NO/g" -i Doxyfile ; \
+	fi
 
 clean:
 	rm -rf doxygen/
 	if [ ! -z "$(BUILDDIR)" ] ; then rm -rf "$(BUILDDIR)" ; fi
+
 
 ifeq ($(DOXY_FORCE_VER),0)
 doxy_install:

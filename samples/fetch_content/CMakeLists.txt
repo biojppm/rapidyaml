@@ -9,7 +9,6 @@ include(FetchContent)
 FetchContent_Declare(ryml
     GIT_REPOSITORY ${RYML_REPO_URL}
     GIT_TAG ${RYML_BRANCH_NAME}
-    GIT_SHALLOW FALSE  # ensure submodules are checked out
 )
 FetchContent_MakeAvailable(ryml)
 

@@ -3,6 +3,8 @@
 
 /** @file emit_file.hpp */
 
+#include <cstdio>
+
 #ifndef _C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif

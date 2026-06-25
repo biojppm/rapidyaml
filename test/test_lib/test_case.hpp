@@ -4,7 +4,6 @@
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
-#include "c4/span.hpp"
 #include "c4/std/vector.hpp"
 #include "c4/std/string.hpp"
 #include "c4/format.hpp"
@@ -13,6 +12,7 @@
 #include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
+#include "c4/span.hpp"
 
 #include <gtest/gtest.h>
 #include <functional>

@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/emscripten.ys
+# DO NOT EDIT - GENERATED FROM emscripten.ys
 
 name: emscripten
 defaults:
@@ -66,8 +66,6 @@ jobs:
     steps:
     - name: checkout
       uses: actions/checkout@v6
-      with:
-        submodules: recursive
     - name: setup emscripten cache
       id: cache-system-libraries
       uses: actions/cache@v5

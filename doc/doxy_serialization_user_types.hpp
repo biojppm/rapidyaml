@@ -460,9 +460,9 @@ Finally, you must return a boolean success status. rapidyaml will then
 react to this status in accordance with the call triggering the read.
 
 @note See examples of `%from_chars()` implementations:
-  - for `std::string`: @ref ext/c4core/src/c4/std/string.hpp
-  - for `std::vector<char>`: @ref ext/c4core/src/c4/std/vector.hpp
-  - for `std::span<char>`: @ref ext/c4core/src/c4/std/span.hpp
+  - for `std::string`: @ref ext/c4core.src/c4/std/string.hpp
+  - for `std::vector<char>`: @ref ext/c4core.src/c4/std/vector.hpp
+  - for `std::span<char>`: @ref ext/c4core.src/c4/std/span.hpp
   - see the several from_chars overloads in @ref doc_charconv
   - see the several from_chars overloads in @ref doc_format
 
@@ -534,10 +534,10 @@ size_t to_chars(c4::yml::substr buffer, T const& var)
 @endcode
 
 @note See examples of `%to_chars()` implementations:
-  - for `std::string`: @ref ext/c4core/src/c4/std/string.hpp
-  - for `std::string_view`: @ref ext/c4core/src/c4/std/string_view.hpp
-  - for `std::vector<char>`: @ref ext/c4core/src/c4/std/vector.hpp
-  - for `std::span<char>`: @ref ext/c4core/src/c4/std/span.hpp
+  - for `std::string`: @ref ext/c4core.src/c4/std/string.hpp
+  - for `std::string_view`: @ref ext/c4core.src/c4/std/string_view.hpp
+  - for `std::vector<char>`: @ref ext/c4core.src/c4/std/vector.hpp
+  - for `std::span<char>`: @ref ext/c4core.src/c4/std/span.hpp
   - see the several to_chars overloads in @ref doc_charconv
   - see the several to_chars overloads in @ref doc_format
 
