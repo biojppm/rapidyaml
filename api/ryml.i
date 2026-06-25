@@ -537,43 +537,45 @@ struct ExceptionVisit : public ExceptionBasic
 };
 
 typedef enum : c4::yml::type_bits {
-    NOTYPE  = 0,         ///< no node type or style is set
-    KEY     = (1u << 0),     ///< is member of a map
-    VAL     = (1u << 1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ
-    MAP     = (1u << 2),     ///< a map: a parent of KEYVAL/KEYSEQ/KEYMAP nodes
-    SEQ     = (1u << 3),     ///< a seq: a parent of VAL/SEQ/MAP nodes
-    DOC     = (1u << 4),     ///< a document
-    STREAM  = (1u << 5)|SEQ, ///< a stream: a seq of docs
-    KEYREF  = (1u << 6),     ///< a *reference: the key references an &anchor
-    VALREF  = (1u << 7),     ///< a *reference: the val references an &anchor
-    KEYANCH = (1u << 8),     ///< the key has an &anchor
-    VALANCH = (1u << 9),     ///< the val has an &anchor
-    KEYTAG  = (1u << 10),    ///< the key has a tag
-    VALTAG  = (1u << 11),    ///< the val has a tag
-    KEYNIL  = (1u << 12),    ///< the key is null (eg `{ : b}` results in a null key)
-    VALNIL  = (1u << 13),    ///< the val is null (eg `{a : }` results in a null val)
-    _TYMASK = (1u << 14)-1u, ///< all the bits up to here
+    NOTYPE  = 0,
+    KEY     = (1u << 0),
+    VAL     = (1u << 1),
+    MAP     = (1u << 2),
+    SEQ     = (1u << 3),
+    DOC     = (1u << 4),
+    STREAM  = (1u << 5)|SEQ,
+    KEYREF  = (1u << 6),
+    VALREF  = (1u << 7),
+    KEYANCH = (1u << 8),
+    VALANCH = (1u << 9),
+    KEYTAG  = (1u << 10),
+    VALTAG  = (1u << 11),
+    KEYNIL  = (1u << 12),
+    VALNIL  = (1u << 13),
+    _TYMASK = (1u << 14)-1u,
     //
     // unfiltered flags:
     //
-    KEY_UNFILT  = (1u << 14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
-    VAL_UNFILT  = (1u << 15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+    KEY_UNFILT  = (1u << 14),
+    VAL_UNFILT  = (1u << 15),
     //
     // style flags:
     //
-    FLOW_SL     = (1u << 16), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
-    FLOW_ML     = (1u << 17), ///< (NOT IMPLEMENTED, work in progress) mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
-    BLOCK       = (1u << 18), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
-    KEY_LITERAL = (1u << 19), ///< mark key scalar as multiline, block literal |
-    VAL_LITERAL = (1u << 20), ///< mark val scalar as multiline, block literal |
-    KEY_FOLDED  = (1u << 21), ///< mark key scalar as multiline, block folded >
-    VAL_FOLDED  = (1u << 22), ///< mark val scalar as multiline, block folded >
-    KEY_SQUO    = (1u << 23), ///< mark key scalar as single quoted '
-    VAL_SQUO    = (1u << 24), ///< mark val scalar as single quoted '
-    KEY_DQUO    = (1u << 25), ///< mark key scalar as double quoted "
-    VAL_DQUO    = (1u << 26), ///< mark val scalar as double quoted "
-    KEY_PLAIN   = (1u << 27), ///< mark key scalar as plain scalar (unquoted, even when multiline)
-    VAL_PLAIN   = (1u << 28), ///< mark val scalar as plain scalar (unquoted, even when multiline)
+    FLOW_SL     = (1u << 16),
+    FLOW_ML1    = (1u << 17),
+    FLOW_MLN    = (1u << 18),
+    FLOW_SPC    = (1u << 19),
+    BLOCK       = (1u << 20),
+    KEY_LITERAL = (1u << 21),
+    VAL_LITERAL = (1u << 22),
+    KEY_FOLDED  = (1u << 23),
+    VAL_FOLDED  = (1u << 24),
+    KEY_SQUO    = (1u << 25),
+    VAL_SQUO    = (1u << 26),
+    KEY_DQUO    = (1u << 27),
+    VAL_DQUO    = (1u << 28),
+    KEY_PLAIN   = (1u << 29),
+    VAL_PLAIN   = (1u << 30),
     //
     // type combination masks:
     //
@@ -606,14 +608,6 @@ typedef enum : c4::yml::type_bits {
     _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
 } NodeType_e;
 
-constexpr NodeType_e operator|  (NodeType_e lhs, NodeType_e rhs) noexcept;
-constexpr NodeType_e operator&  (NodeType_e lhs, NodeType_e rhs) noexcept;
-constexpr NodeType_e operator>> (NodeType_e bits, uint32_t n) noexcept;
-constexpr NodeType_e operator<< (NodeType_e bits, uint32_t n) noexcept;
-constexpr NodeType_e operator~  (NodeType_e bits) noexcept;
-NodeType_e& operator&= (NodeType_e &subject, NodeType_e bits) noexcept;
-NodeType_e& operator|= (NodeType_e &subject, NodeType_e bits) noexcept;
-
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -623,22 +617,21 @@ struct NodeType
 {
 public:
 
-    NodeType_e type;
+    type_bits m_bits;
 
 public:
 
     NodeType() noexcept;
-    NodeType(NodeType_e t) noexcept;
     NodeType(type_bits t) noexcept;
 
-    bool has_any(NodeType_e t) const noexcept;
-    bool has_all(NodeType_e t) const noexcept;
-    bool has_none(NodeType_e t) const noexcept;
+    bool has_any(type_bits t) const noexcept;
+    bool has_all(type_bits t) const noexcept;
+    bool has_none(type_bits t) const noexcept;
 
-    void set(NodeType_e t) noexcept;
-    void add(NodeType_e t) noexcept;
-    void rem(NodeType_e t) noexcept;
-    void addrem(NodeType_e bits_to_add, NodeType_e bits_to_remove) noexcept;
+    void set(type_bits t) noexcept;
+    void add(type_bits t) noexcept;
+    void rem(type_bits t) noexcept;
+    void addrem(type_bits bits_to_add, type_bits bits_to_remove) noexcept;
 
     void clear() noexcept;
 
@@ -650,17 +643,17 @@ public:
     /** return a preset string based on the node type */
     const char *type_str() const noexcept;
     /** return a preset string based on the node type */
-    static const char* type_str(NodeType_e t) noexcept;
+    static const char* type_str(type_bits t) noexcept;
 
     /** fill a string with the node type flags. */
     size_t type_str(c4::substr buf) const noexcept;
     /** fill a string with the node type flags. */
-    static size_t type_str(c4::substr buf, NodeType_e t) noexcept;
+    static size_t type_str(c4::substr buf, type_bits t) noexcept;
 
     /** fill a string with the node type flags. If the string is small, returns {null, len} */
     c4::csubstr type_str_sub(c4::substr buf) const noexcept;
     /** fill a string with the node type flags. If the string is small, returns {null, len}  */
-    static c4::csubstr type_str_sub(c4::substr buf, NodeType_e t) noexcept;
+    static c4::csubstr type_str_sub(c4::substr buf, type_bits t) noexcept;
 
 public:
 
@@ -701,8 +694,11 @@ public:
     bool is_container_styled() const noexcept;
     bool is_block() const noexcept;
     bool is_flow_sl() const noexcept;
-    bool is_flow_ml() const noexcept;
+    bool is_flow_ml1() const noexcept;
+    bool is_flow_mln() const noexcept;
+    bool is_flow_mlx() const noexcept;
     bool is_flow() const noexcept;
+    bool has_flow_space() const noexcept;
 
     bool is_key_styled() const noexcept;
     bool is_val_styled() const noexcept;
@@ -720,9 +716,13 @@ public:
     bool is_val_quoted() const noexcept;
     bool is_quoted() const noexcept;
 
-    void set_container_style(NodeType_e style) noexcept;
-    void set_key_style(NodeType_e style) noexcept;
-    void set_val_style(NodeType_e style) noexcept;
+    NodeType key_style() const noexcept;
+    NodeType val_style() const noexcept;
+
+    void set_container_style(type_bits style) noexcept;
+    void set_key_style(type_bits style) noexcept;
+    void set_val_style(type_bits style) noexcept;
+    void clear_style() noexcept;
 
     /** @} */
 };
@@ -771,8 +771,7 @@ public:
 
     // getters
 
-    NodeType_e  type(id_type node) const;
-    const char* type_str(id_type node) const;
+    NodeType    type(id_type node) const;
 
     c4::csubstr key       (id_type node) const;
     c4::csubstr key_tag   (id_type node) const;
@@ -790,9 +789,9 @@ public:
 
     // node predicates
 
-    bool type_has_any(id_type node, NodeType_e bits) const;
-    bool type_has_all(id_type node, NodeType_e bits) const;
-    bool type_has_none(id_type node, NodeType_e bits) const;
+    bool type_has_any(id_type node, type_bits bits) const;
+    bool type_has_all(id_type node, type_bits bits) const;
+    bool type_has_none(id_type node, type_bits bits) const;
 
     bool is_stream(id_type node) const;
     bool is_doc(id_type node) const;
@@ -864,7 +863,9 @@ public:
     bool is_container_styled(id_type node) const;
     bool is_block(id_type node) const;
     bool is_flow_sl(id_type node) const;
-    bool is_flow_ml(id_type node) const;
+    bool is_flow_ml1(id_type node) const;
+    bool is_flow_mln(id_type node) const;
+    bool is_flow_mlx(id_type node) const;
     bool is_flow(id_type node) const;
 
     bool is_key_styled(id_type node) const;
@@ -883,9 +884,9 @@ public:
     bool is_val_quoted(id_type node) const;
     bool is_quoted(id_type node) const;
 
-    void set_container_style(id_type node, NodeType_e style);
-    void set_key_style(id_type node, NodeType_e style);
-    void set_val_style(id_type node, NodeType_e style);
+    void set_container_style(id_type node, type_bits style);
+    void set_key_style(id_type node, type_bits style);
+    void set_val_style(id_type node, type_bits style);
 
     /** @} */
 
@@ -904,7 +905,15 @@ public:
     void rem_val_ref   (id_type node);
     void rem_anchor_ref(id_type node);
 
+    // see below for set
+    void set_map(id_type node, type_bits more_flags=0);
+    void set_seq(id_type node, type_bits more_flags=0);
+    void set_doc(id_type node);
+    void set_stream(id_type node);
+
     // these functions do not work correctly with the typemape for csubstr:
+    //void set_key(id_type node, c4::csubstr s, type_bits more_flags=0);
+    //void set_val(id_type node, c4::csubstr s, type_bits more_flags=0);
     //void to_keyval(id_type node, c4::csubstr key, c4::csubstr val, int more_flags=0);
     //void to_map(id_type node, c4::csubstr key, int more_flags=0);
     //void to_seq(id_type node, c4::csubstr key, int more_flags=0);
@@ -918,44 +927,53 @@ public:
     //
     // so we do the following:
     %extend {
-        void _to_val(id_type node, c4::csubstr s, int flags) { $self->to_val(node, s, flags); }
-        void _to_keyval(id_type node, c4::csubstr key, c4::csubstr val, int more_flags) { $self->to_keyval(node, key, val, more_flags); }
-        void _to_map0(id_type node, int more_flags) { $self->to_map(node, more_flags); }
-        void _to_seq0(id_type node, int more_flags) { $self->to_seq(node, more_flags); }
-        void _to_map1(id_type node, c4::csubstr key, int more_flags) { $self->to_map(node, key, more_flags); }
-        void _to_seq1(id_type node, c4::csubstr key, int more_flags) { $self->to_seq(node, key, more_flags); }
-        void __set_key(id_type node, c4::csubstr key, int more_flags) { $self->_set_key(node, key, more_flags); }
-        void __set_val(id_type node, c4::csubstr val, int more_flags) { $self->_set_val(node, val, more_flags); }
-        void _to_stream(id_type node, int more_flags) { $self->to_stream(node, more_flags); }
-        void _to_doc(id_type node, int more_flags) { $self->to_doc(node, more_flags); }
+        void __set_key(id_type node, c4::csubstr s, int flags) { $self->Tree::set_key(node, s, flags); }
+        void __set_val(id_type node, c4::csubstr s, int flags) { $self->Tree::set_val(node, s, flags); }
         %pythoncode %{
+            def set_key(self, node, key, more_flags=0):
+                self.__set_key(node, key, more_flags)
+            def set_val(self, node, key, more_flags=0):
+                self.__set_val(node, key, more_flags)
             # this is needed to ensure the csubstr typemap applies to the overloads
+            @deprecated(deprecated_in="0.16.0", details="Use .set_val()")
             def to_val(self, node, val, more_flags=0):
-                self._to_val(node, val, more_flags)
+                self.__set_val(node, val, more_flags)
+            @deprecated(deprecated_in="0.16.0", details="Use .set_key() + .set_val()")
             def to_keyval(self, node, key, val, more_flags=0):
-                self._to_keyval(node, key, val, more_flags)
+                self.__set_key(node, key, more_flags)
+                self.__set_val(node, val, more_flags)
+            @deprecated(deprecated_in="0.16.0", details="Use .set_map() + .set_key()")
             def to_map(self, node, key=None, more_flags=0):
                 if isinstance(key, int):
-                    self._to_map0(node, key | more_flags)
+                    self.set_map(node, key | more_flags)
                 elif key is None:
-                    self._to_map0(node, more_flags)
+                    self.set_map(node, more_flags)
                 else:
-                    self._to_map1(node, key, more_flags)
+                    self._set_key(node, key, more_flags)
+                    self.set_map(node, more_flags)
+            @deprecated(deprecated_in="0.16.0", details="Use .set_seq() + .set_key()")
             def to_seq(self, node, key=None, more_flags=0):
                 if isinstance(key, int):
-                    self._to_seq0(node, key | more_flags)
+                    self.set_seq(node, key | more_flags)
                 elif key is None:
-                    self._to_seq0(node, more_flags)
+                    self.set_seq(node, more_flags)
                 else:
-                    self._to_seq1(node, key, more_flags)
+                    self.__set_key(node, key, more_flags)
+                    self.set_seq(node, more_flags)
+            @deprecated(deprecated_in="0.16.0", details="Use .set_key()")
             def _set_key(self, node, key, more_flags=0):
                 self.__set_key(node, key, more_flags)
+            @deprecated(deprecated_in="0.16.0", details="Use .set_val()")
             def _set_val(self, node, val, more_flags=0):
                 self.__set_val(node, val, more_flags)
-            def to_stream(self, node, more_flags=0):
-                self._to_stream(node, more_flags)
+            @deprecated(deprecated_in="0.16.0", details="Use .set_doc()")
             def to_doc(self, node, more_flags=0):
-                self._to_doc(node, more_flags)
+                assert not more_flags, "flags no longer supported on .to_doc()"
+                self.set_doc(node)
+            @deprecated(deprecated_in="0.16.0", details="Use .set_stream()")
+            def to_stream(self, node, more_flags=0):
+                assert not more_flags, "flags no longer supported on .to_stream()"
+                self.set_stream(node)
         %}
     }
 
