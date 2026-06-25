@@ -8,6 +8,19 @@ MANIFEST = ext/c4core.yml
 SYNC_OPTS ?=
 SYNC_TOOL = $(PYTHON) sync.py --root $(RYML_DIR) --manifest $(MANIFEST) $(SYNC_OPTS)
 
+help:
+	@echo "targets:"
+	@echo
+	@echo "  c4core-import      - copy files from the c4core clone to this repo"
+	@echo "  c4core-export      - copy files from this repo to the c4core clone"
+	@echo
+	@echo "  c4core             - clones the c4core specified in c4core.mk"
+	@echo "  c4core-check       - check sync, list, clone"
+	@echo "  c4core-check-clone - check version of c4core clone"
+	@echo "  c4core-check-sync  - check sync of original and copied files"
+	@echo "  c4core-check-list  - check manifest list vs copied files"
+	@echo
+
 c4core-check: c4core-check-sync c4core-check-list c4core-clone-check
 
 c4core-check-sync: c4core-clone
@@ -29,8 +42,8 @@ c4core-clone: $(C4CORE_DIR_GIT) c4core-clone-check
 c4core-check-clone: c4core-clone-check
 c4core-clone-check: $(C4CORE_DIR_GIT)
 	@ \
-	currsha=$$(git -C $(C4CORE_DIR_GIT) rev-parse HEAD) ; \
-	currtag=$$(git -C $(C4CORE_DIR_GIT) tag --points-at HEAD || echo -n) ; \
+	currsha=$$($(GIT) -C $(C4CORE_DIR_GIT) rev-parse HEAD) ; \
+	currtag=$$($(GIT) -C $(C4CORE_DIR_GIT) tag --points-at HEAD || echo -n) ; \
 	echo "c4core sha: $$currsha" ; \
 	echo "c4core tag: $$currtag" ; \
 	if [ "$$currtag" != "$(C4CORE_TAG)" ] && [ "$$currsha" != "$(C4CORE_TAG)" ] ; then \
