@@ -53,7 +53,7 @@ type_bits TestCaseNode::_guess() const
     }
     else
     {
-        NodeType_e has_key = key.empty() ? NOTYPE : KEY;
+        type_bits has_key = key.empty() ? NOTYPE : KEY;
         auto const& ch = children.front();
         if(ch.key.empty())
         {

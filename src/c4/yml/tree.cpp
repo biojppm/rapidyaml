@@ -857,7 +857,7 @@ void Tree::set_root_as_stream()
     id_type root = root_id();
     if(is_stream(root))
         return;
-    _c4dbgpf("set_root_as_stream. rootty={}", type(root).type);
+    _c4dbgpf("set_root_as_stream. rootty={}", type(root).m_bits);
     bool empty_root = ((type(root) & (SEQ|MAP|VAL)) == 0);
     for(TagDirective &C4_RESTRICT td : m_tag_directives)
     {

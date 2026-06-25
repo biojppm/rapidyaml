@@ -28,26 +28,19 @@ namespace c4 {
 namespace yml {
 
 namespace detail {
-C4_SUPPRESS_WARNING_GCC_PUSH
-// g++-4.x has problems with the operand types and requires the
-// redundant casting
-#if defined(__GNUC__) && (__GNUC__ < 5) && (!defined(__clang__))
-C4_SUPPRESS_WARNING_GCC("-Wparentheses")
-#endif
 enum : type_bits { // NOLINT
     styles_block_key_ = KEY_LITERAL|KEY_FOLDED,
     styles_block_val_ = VAL_LITERAL|VAL_FOLDED,
-    styles_block_     = ((type_bits)styles_block_key_) | ((type_bits)styles_block_val_), // NOLINT
-    styles_flow_key_  = KEY_STYLE & (~((type_bits)styles_block_key_)), // NOLINT
-    styles_flow_val_  = VAL_STYLE & (~((type_bits)styles_block_val_)), // NOLINT
-    styles_flow_      = ((type_bits)styles_flow_key_) | ((type_bits)styles_flow_val_), // NOLINT
+    styles_block_     = (styles_block_key_ | styles_block_val_),
+    styles_flow_key_  = KEY_STYLE & ~styles_block_key_,
+    styles_flow_val_  = VAL_STYLE & ~styles_block_val_,
+    styles_flow_      = styles_flow_key_ | styles_flow_val_,
     styles_squo_      = KEY_SQUO|VAL_SQUO,
     styles_dquo_      = KEY_DQUO|VAL_DQUO,
     styles_plain_     = KEY_PLAIN|VAL_PLAIN,
     styles_literal_   = KEY_LITERAL|VAL_LITERAL,
     styles_folded_    = KEY_FOLDED|VAL_FOLDED,
 };
-C4_SUPPRESS_WARNING_GCC_POP
 } // namespace detail
 
 
@@ -200,19 +193,20 @@ void Emitter<Writer>::visit_stream_(id_type id)
     ++m_depth;
     for(id_type child = first_child; child != NONE; child = m_tree->next_sibling(child))
     {
+        NodeType ty = m_tree->type(child);
         m_ilevel = 0;
         write_pws_and_pend_(_PWS_NONE);
         top_open_entry_(child);
         visit_doc_(child);
         top_close_entry_(child);
-        if(m_tree->is_val(child))
+        if(ty.is_val())
         {
-            if(m_tree->type(child) & VALNIL)
+            if(ty.m_bits & VALNIL)
                 pend_newl_();
         }
         else if(m_tree->is_container(child))
         {
-            if(m_tree->is_flow(child))
+            if(ty.is_flow())
                 pend_newl_();
         }
         if(m_tree->next_sibling(child) != NONE)
@@ -230,8 +224,8 @@ template<class Writer>
 void Emitter<Writer>::visit_blck_container_(id_type id)
 {
     NodeType ty = m_tree->type(id);
-    if(!(ty & CONTAINER_STYLE))
-        ty |= (m_tree->empty(id) ? FLOW_SL : BLOCK);
+    if(!(ty.m_bits & CONTAINER_STYLE))
+        ty.m_bits |= (m_tree->empty(id) ? FLOW_SL : BLOCK);
     write_pws_and_pend_(_PWS_NONE);
     if(ty.is_flow_sl())
         visit_flow_sl_(id);
@@ -245,8 +239,8 @@ template<class Writer>
 void Emitter<Writer>::visit_flow_container_(id_type id)
 {
     NodeType ty = m_tree->type(id);
-    if(!(ty & CONTAINER_STYLE))
-        ty |= FLOW_SL;
+    if(!(ty.m_bits & CONTAINER_STYLE))
+        ty.m_bits |= FLOW_SL;
     write_pws_and_pend_(_PWS_NONE);
     if(ty.is_flow_mlx())
         visit_flow_ml_(id);
@@ -264,8 +258,8 @@ void Emitter<Writer>::visit_doc_val_(id_type id)
     // appear at 0-indentation
     NodeType ty = m_tree->type(id);
     const csubstr val = m_tree->val(id);
-    type_bits val_style = ty & VAL_STYLE;
-    const bool is_ambiguous = ((ty & VAL_PLAIN) || !val_style)
+    type_bits val_style = ty.m_bits & VAL_STYLE;
+    const bool is_ambiguous = ((ty.m_bits & VAL_PLAIN) || !val_style)
         && (val.begins_with("...") || val.begins_with("---"));
     if(is_ambiguous)
     {
@@ -357,7 +351,8 @@ void Emitter<Writer>::top_open_entry_(id_type node)
 template<class Writer>
 void Emitter<Writer>::top_close_entry_(id_type node)
 {
-    if(m_tree->is_val(node) && !(m_tree->type(node) & VALNIL))
+    NodeType ty = m_tree->type(node);
+    if(ty.is_val() && !(ty.m_bits & VALNIL))
     {
         pend_newl_();
     }
@@ -371,13 +366,13 @@ void Emitter<Writer>::flow_seq_open_entry_(id_type node)
 {
     NodeType ty = m_tree->type(node);
     write_pws_and_pend_(_PWS_NONE);
-    if(ty & VALANCH)
+    if(ty.m_bits & VALANCH)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_('&');
         write_(m_tree->val_anchor(node));
     }
-    if(ty & VALTAG)
+    if(ty.m_bits & VALTAG)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_tag_(m_tree->val_tag(node));
@@ -393,18 +388,18 @@ void Emitter<Writer>::flow_map_open_entry_(id_type node)
     NodeType ty = m_tree->type(node);
     write_pws_and_pend_(_PWS_NONE);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
-    if(ty & KEYANCH)
+    if(ty.m_bits & KEYANCH)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_("&");
         write_(m_tree->key_anchor(node));
     }
-    if(ty & KEYTAG)
+    if(ty.m_bits & KEYTAG)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_tag_(m_tree->key_tag(node));
     }
-    if(ty & KEYREF)
+    if(ty.m_bits & KEYREF)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_ref_(m_tree->key(node));
@@ -413,19 +408,19 @@ void Emitter<Writer>::flow_map_open_entry_(id_type node)
     {
         write_pws_and_pend_(_PWS_NONE);
         csubstr key = m_tree->key(node);
-        if(!(ty & (NodeType_e)detail::styles_flow_key_))
-            ty |= scalar_style_choose_flow(key) & (NodeType_e)detail::styles_flow_key_;
-        flow_write_scalar_(key, ty & (NodeType_e)detail::styles_flow_key_);
+        if(!(ty.m_bits & detail::styles_flow_key_))
+            ty.m_bits |= scalar_style_choose_flow(key) & detail::styles_flow_key_;
+        flow_write_scalar_(key, ty.m_bits & detail::styles_flow_key_);
     }
     write_pws_and_pend_(_PWS_SPACE);
     write_(':');
-    if(ty & VALANCH)
+    if(ty.m_bits & VALANCH)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_('&');
         write_(m_tree->val_anchor(node));
     }
-    if(ty & VALTAG)
+    if(ty.m_bits & VALTAG)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_tag_(m_tree->val_tag(node));
@@ -470,8 +465,8 @@ template<class Writer>
 void Emitter<Writer>::flow_pws::start(NodeType ty, size_t max_cols_) noexcept
 {
     max_cols = 0;
-    pend_after_comma = ty & FLOW_SPC ? _PWS_SPACE : _PWS_NONE;
-    if(ty & FLOW_MLN)
+    pend_after_comma = (ty.m_bits & FLOW_SPC) ? _PWS_SPACE : _PWS_NONE;
+    if(ty.m_bits & FLOW_MLN)
     {
         max_cols_ = max_cols_ >= 2 ? max_cols_ : 2;
         // subtract 1 for the comma, and maybe the space from pend_after_comma
@@ -480,7 +475,7 @@ void Emitter<Writer>::flow_pws::start(NodeType ty, size_t max_cols_) noexcept
         static_assert((size_t)_PWS_NONE == 0 && (size_t)_PWS_SPACE == 1, "invalid assumptions");
         active = true;
     }
-    else if(ty & FLOW_ML1)
+    else if(ty.m_bits & FLOW_ML1)
     {
         pend_after_comma = _PWS_NEWL;
     }
@@ -521,14 +516,14 @@ void Emitter<Writer>::blck_seq_open_entry_(id_type node)
     write_pws_and_pend_(_PWS_SPACE); // pend the space after the following dash
     write_('-');
     bool has_tag_or_anchor = false;
-    if(ty & VALANCH)
+    if(ty.m_bits & VALANCH)
     {
         has_tag_or_anchor = true;
         write_pws_and_pend_(_PWS_SPACE);
         write_('&');
         write_(m_tree->val_anchor(node));
     }
-    if(ty & VALTAG)
+    if(ty.m_bits & VALTAG)
     {
         has_tag_or_anchor = true;
         write_pws_and_pend_(_PWS_SPACE);
@@ -536,9 +531,9 @@ void Emitter<Writer>::blck_seq_open_entry_(id_type node)
     }
     if(has_tag_or_anchor && ty.is_container())
     {
-        if(!(ty & CONTAINER_STYLE))
+        if(!(ty.m_bits & CONTAINER_STYLE))
             ty |= BLOCK;
-        if((ty & BLOCK) && m_tree->has_children(node))
+        if((ty.m_bits & BLOCK) && m_tree->has_children(node))
             pend_newl_();
     }
 }
@@ -552,21 +547,21 @@ void Emitter<Writer>::blck_map_open_entry_(id_type node)
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_key(node), m_tree, node);
     NodeType ty = m_tree->type(node);
     csubstr key = m_tree->key(node);
-    if(!(ty & (KEY_STYLE|KEYREF)))
-        ty |= (scalar_style_choose_block(key) & KEY_STYLE);
+    if(!(ty.m_bits & (KEY_STYLE|KEYREF)))
+        ty.m_bits |= (scalar_style_choose_block(key).m_bits & KEY_STYLE);
     write_pws_and_pend_(_PWS_NONE);
-    if(ty & KEYANCH)
+    if(ty.m_bits & KEYANCH)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_('&');
         write_(m_tree->key_anchor(node));
     }
-    if(ty & KEYTAG)
+    if(ty.m_bits & KEYTAG)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_tag_(m_tree->key_tag(node));
     }
-    if(ty & KEYREF)
+    if(ty.m_bits & KEYREF)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_ref_(key);
@@ -574,34 +569,34 @@ void Emitter<Writer>::blck_map_open_entry_(id_type node)
     else
     {
         write_pws_and_pend_(_PWS_NONE);
-        type_bits use_qmrk = ty & (NodeType_e)detail::styles_block_key_;
+        const type_bits use_qmrk = ty.m_bits & detail::styles_block_key_;
         if(!use_qmrk)
         {
-            blck_write_scalar_(key, ty & KEY_STYLE);
+            blck_write_scalar_(key, ty.m_bits & KEY_STYLE);
         }
         else
         {
             write_("? ");
-            blck_write_scalar_(key, ty & KEY_STYLE);
+            blck_write_scalar_(key, ty.m_bits & KEY_STYLE);
             pend_newl_();
         }
     }
     write_pws_and_pend_(_PWS_SPACE); // pend the space after the colon
     write_(':');
-    if(ty & VALANCH)
+    if(ty.m_bits & VALANCH)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_('&');
         write_(m_tree->val_anchor(node));
     }
-    if(ty & VALTAG)
+    if(ty.m_bits & VALTAG)
     {
         write_pws_and_pend_(_PWS_SPACE);
         write_tag_(m_tree->val_tag(node));
     }
     if(ty.is_container() && m_tree->has_children(node))
     {
-        if(!(ty & CONTAINER_STYLE))
+        if(!(ty.m_bits & CONTAINER_STYLE))
             ty |= BLOCK;
         if(ty.is_block())
             pend_newl_();
@@ -638,9 +633,9 @@ void Emitter<Writer>::visit_blck_seq_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & VAL_STYLE))
-                    ty |= (scalar_style_choose_block(val) & VAL_STYLE);
-                blck_write_scalar_(val, ty & VAL_STYLE);
+                if(!(ty.m_bits & VAL_STYLE))
+                    ty.m_bits |= (scalar_style_choose_block(val).m_bits & VAL_STYLE);
+                blck_write_scalar_(val, ty.m_bits & VAL_STYLE);
             }
             else
             {
@@ -684,9 +679,9 @@ void Emitter<Writer>::visit_blck_map_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & VAL_STYLE))
-                    ty |= (scalar_style_choose_block(val) & VAL_STYLE);
-                blck_write_scalar_(val, ty & VAL_STYLE);
+                if(!(ty.m_bits & VAL_STYLE))
+                    ty |= (scalar_style_choose_block(val).m_bits & VAL_STYLE);
+                blck_write_scalar_(val, ty.m_bits & VAL_STYLE);
             }
             else
             {
@@ -724,22 +719,22 @@ void Emitter<Writer>::visit_flow_sl_seq_(id_type node)
         NodeType ty = m_tree->type(child);
         _RYML_ASSERT_VISIT_(m_tree->callbacks(), (ty & (VAL|SEQ|MAP)) || ty == NOTYPE, m_tree, node);
         flow_seq_open_entry_(child);
-        if(ty & VAL)
+        if(ty.m_bits & VAL)
         {
             write_pws_and_pend_(_PWS_NONE);
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)detail::styles_flow_val_))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
-                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
+                if(!(ty.m_bits & detail::styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
             }
             else
             {
                 write_ref_(val);
             }
         }
-        else if(ty & (SEQ|MAP))
+        else if(ty.m_bits & (SEQ|MAP))
         {
             ++m_depth;
             visit_flow_container_(child);
@@ -772,9 +767,9 @@ void Emitter<Writer>::visit_flow_ml_seq_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)detail::styles_flow_val_))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
-                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
+                if(!(ty.m_bits & detail::styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
             }
             else
             {
@@ -816,9 +811,9 @@ void Emitter<Writer>::visit_flow_sl_map_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)detail::styles_flow_val_))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
-                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
+                if(!(ty.m_bits & detail::styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
             }
             else
             {
@@ -859,9 +854,9 @@ void Emitter<Writer>::visit_flow_ml_map_(id_type node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty & (NodeType_e)detail::styles_flow_val_))
-                    ty |= (scalar_style_choose_flow(val) & (NodeType_e)detail::styles_flow_val_);
-                flow_write_scalar_(val, ty & (NodeType_e)detail::styles_flow_val_);
+                if(!(ty.m_bits & detail::styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
             }
             else
             {
@@ -918,7 +913,7 @@ void Emitter<Writer>::visit_flow_sl_(id_type node)
     if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     const NodeType ty = m_tree->type(node);
-    if(ty & SEQ)
+    if(ty.m_bits & SEQ)
     {
         visit_flow_sl_seq_(node);
     }
@@ -941,7 +936,7 @@ void Emitter<Writer>::visit_flow_ml_(id_type node)
     if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     const NodeType ty = m_tree->type(node);
-    if(ty & SEQ)
+    if(ty.m_bits & SEQ)
     {
         visit_flow_ml_seq_(node);
     }
@@ -1470,12 +1465,12 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
                 {
                     write_(',');
                     const size_t maxcols = m_opts.max_cols();
-                    if((ty & FLOW_MLN) && (m_col+1 < maxcols))
+                    if((ty.m_bits & FLOW_MLN) && (m_col+1 < maxcols))
                     {
-                        if((ty & FLOW_SPC) || m_opts.force_flow_spc())
+                        if((ty.m_bits & FLOW_SPC) || m_opts.force_flow_spc())
                             write_(' ');
                     }
-                    else if((ty & FLOW_ML1) || (m_col+1 >= maxcols))
+                    else if((ty.m_bits & FLOW_ML1) || (m_col+1 >= maxcols))
                     {
                         newl_();
                         indent_(m_ilevel);
@@ -1590,8 +1585,8 @@ void Emitter<Writer>::json_writev_(id_type id, NodeType ty)
     if(val.len)
     {
         // use double quoted style if the style is marked quoted
-        bool dquoted = ((ty & VALQUO)
-                        || (scalar_style_choose_json(val) & SCALAR_DQUO)); // choose the style
+        bool dquoted = ((ty.m_bits & VALQUO)
+                        || (scalar_style_choose_json(val).m_bits & SCALAR_DQUO)); // choose the style
         if(dquoted)
             json_write_scalar_dquo_(val);
         else if(json_maybe_write_naninf_(val))
@@ -1603,7 +1598,7 @@ void Emitter<Writer>::json_writev_(id_type id, NodeType ty)
     }
     else
     {
-        if(val.str || (ty & (VALQUO|VALTAG)))
+        if(val.str || (ty.m_bits & (VALQUO|VALTAG)))
             write_("\"\"");
         else
             write_("null");

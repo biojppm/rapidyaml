@@ -25,11 +25,11 @@ struct TaggedScalar
 
 struct AnchorRef
 {
-    NodeType_e type;
+    type_bits type;
     csubstr str;
     AnchorRef() : type(NOTYPE), str() {}
-    AnchorRef(NodeType_e t) : type(t), str() {}
-    AnchorRef(NodeType_e t, csubstr v) : type(t), str(v) {}
+    AnchorRef(type_bits t) : type(t), str() {}
+    AnchorRef(type_bits t, csubstr v) : type(t), str(v) {}
 };
 
 

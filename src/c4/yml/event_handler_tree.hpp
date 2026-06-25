@@ -684,15 +684,15 @@ public:
 
     C4_ALWAYS_INLINE void _enable__(type_bits bits) noexcept
     {
-        m_curr->tr_data->m_type.m_bits = static_cast<NodeType_e>(m_curr->tr_data->m_type.m_bits | bits);
+        m_curr->tr_data->m_type.m_bits |= bits;
     }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _enable__() noexcept
     {
-        m_curr->tr_data->m_type.m_bits = static_cast<NodeType_e>(m_curr->tr_data->m_type.m_bits | bits);
+        m_curr->tr_data->m_type.m_bits |= bits;
     }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _disable__() noexcept
     {
-        m_curr->tr_data->m_type.m_bits = static_cast<NodeType_e>(m_curr->tr_data->m_type.m_bits & (~bits));
+        m_curr->tr_data->m_type.m_bits &= ~bits;
     }
     template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__() const noexcept
     {

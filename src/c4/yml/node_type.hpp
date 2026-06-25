@@ -207,7 +207,8 @@ constexpr const type_bits FLOW_ML = FLOW_ML1;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** wraps a NodeType_e element with some syntactic sugar and predicates */
+/** wraps a @ref type_bits mask of @ref NodeType_e flags with some
+ * syntactic sugar and predicates */
 struct RYML_EXPORT NodeType
 {
 public:
