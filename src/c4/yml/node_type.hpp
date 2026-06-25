@@ -191,9 +191,10 @@ typedef enum : type_bits { // NOLINT
     FLOW_ML RYML_DEPRECATED("use one of FLOW_ML{1,N,X}") = FLOW_ML1,
     #endif
     /** @endcond */
-} NodeType_e;
+} NodeTypeBits;
 
 /** @cond dev */
+using NodeType_e RYML_DEPRECATED("use NodeTypeBits") = NodeTypeBits;
 #ifndef RYML_HAS_DEPRECATED_ENUMS__
 // defined here because the current c++ standard / compiler cannot
 // handle deprecated enums
@@ -207,8 +208,8 @@ constexpr const type_bits FLOW_ML = FLOW_ML1;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** wraps a @ref type_bits mask of @ref NodeType_e flags with some
- * syntactic sugar and predicates */
+/** Wraps a @ref type_bits mask of @ref NodeTypeBits flags with some
+ * syntactic sugar and predicates. */
 struct RYML_EXPORT NodeType
 {
 public:

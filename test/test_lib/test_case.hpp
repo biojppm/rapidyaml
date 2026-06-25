@@ -95,7 +95,7 @@ inline void PrintTo(NodeType ty, ::std::ostream* os)
 {
     *os << ty.type_str();
 }
-inline void PrintTo(NodeType_e ty, ::std::ostream* os)
+inline void PrintTo(NodeTypeBits ty, ::std::ostream* os)
 {
     *os << NodeType::type_str(ty);
 }
