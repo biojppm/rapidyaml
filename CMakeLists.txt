@@ -28,14 +28,6 @@ option(RYML_SYSTEM_C4CORE "Use system-installed c4core instead of the one provid
 
 option(RYML_INSTALL "Enable install target" ON)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    option(RYML_FUZZ_DRIVERS "Build fuzz driver binaries (other than unit tests from RYML_FUZZ_TEST)." OFF)
-    if(RYML_FUZZ_DRIVERS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=fuzzer,address,undefined -g -O1")
-        set(RYML_FUZZ_ARGS DURATION=30)
-    endif()
-endif()
-
 
 #-------------------------------------------------------
 
@@ -158,10 +150,10 @@ endif()
 
 #-------------------------------------------------------
 
-option(RYML_EXTRA_ALL "" OFF)
-option(RYML_EXTRA_INTS "" OFF)
-option(RYML_EXTRA_INTS_UTILS "" OFF)
-option(RYML_EXTRA_INTS_TESTSUITE "" OFF)
+option(RYML_EXTRA_INTS "Include extra int events handler in the rapidyaml library" OFF)
+option(RYML_EXTRA_INTS_UTILS "Include extra int event utils in the rapidyaml library" OFF)
+option(RYML_EXTRA_INTS_TESTSUITE "Include extra int event conversion to test suite events in the rapidyaml library" OFF)
+option(RYML_EXTRA_ALL "Include all extra code" OFF)
 if(RYML_EXTRA_ALL OR RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS OR RYML_BUILD_TOOLS)
     set(RYML_EXTRA_ALL            ON CACHE BOOL "" FORCE)
     set(RYML_EXTRA_INTS           ON CACHE BOOL "" FORCE)
@@ -236,7 +228,7 @@ add_custom_target(ryml-uninstall
 # developer targets
 
 
-option(RYML_SAVE_TEST_YAML "" OFF)
+option(RYML_SAVE_TEST_YAML "Save all the parsed yaml while testing" OFF)
 if(RYML_SAVE_TEST_YAML)
     target_compile_definitions(ryml PUBLIC RYML_SAVE_TEST_YAML)
     set(RYML_TEST_FUZZ OFF CACHE BOOL "" FORCE)
@@ -249,6 +241,14 @@ function(ryml_maybe_dump_test_yaml target)
         target_link_libraries(${target} PRIVATE c4fs gtest)
     endif()
 endfunction()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    option(RYML_FUZZ_DRIVERS "Build fuzz driver binaries (other than unit tests from RYML_TEST_FUZZ)." OFF)
+    if(RYML_FUZZ_DRIVERS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=fuzzer,address,undefined -g -O1")
+        set(RYML_FUZZ_ARGS DURATION=30)
+    endif()
+endif()
 
 if(RYML_BUILD_TOOLS)
     add_subdirectory(tools)
