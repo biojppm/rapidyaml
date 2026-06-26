@@ -24,6 +24,7 @@ option(RYML_SHORT_ERR_MSG "Use shorter error message from checks/asserts: do not
 option(RYML_BUILD_TOOLS "Build tools" OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 option(RYML_DBG "Enable (very verbose) debug prints." OFF)
+option(RYML_SYSTEM_C4CORE "Use system-installed c4core instead of the one provided with ryml" OFF)
 
 option(RYML_INSTALL "Enable install target" ON)
 
@@ -103,7 +104,10 @@ c4_add_library(ryml
         $<INSTALL_INTERFACE:include>
     )
 
-if(NOT RYML_STANDALONE)
+if(RYML_SYSTEM_C4CORE)
+    find_package(c4core REQUIRED)
+    target_link_libraries(ryml PUBLIC c4core::c4core)
+elseif(NOT RYML_STANDALONE)
     target_link_libraries(ryml PUBLIC c4core)
 else()
     include(ext/c4core.cmake)
@@ -203,7 +207,7 @@ endif()
 
 if(RYML_INSTALL)
     c4_install_target(ryml)
-    if(RYML_STANDALONE)
+    if(RYML_STANDALONE OR RYML_SYSTEM_C4CORE)
         c4_install_exports()
     else()
         c4_install_exports(DEPENDENCIES c4core)
