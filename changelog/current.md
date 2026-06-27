@@ -198,12 +198,14 @@ c4::yml::ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, T *var)
 }
 ```
 
-Note that this `read()` implementation will still work as intended when called from `.load()`.
+Note that this `read()` implementation will still enable a calling
+`.load()` to work as intended.
 
 
 ## Full changelog
 
-- [PR#637](https://github.com/biojppm/rapidyaml/pull/636) add cmake option `RYML_SYSTEM_C4CORE` to consume c4core from `find_package()`. Thanks @uilianries!
+- [PR#638](https://github.com/biojppm/rapidyaml/pull/638) improve quickstart-ints.
+- [PR#637](https://github.com/biojppm/rapidyaml/pull/637) add cmake option `RYML_SYSTEM_C4CORE` to consume c4core from `find_package()`. Thanks @uilianries!
 - [PR#636](https://github.com/biojppm/rapidyaml/pull/636) **Remove c4core submodule**, and copy c4core files to rapidyaml (and manage sync):
   - `ext/c4core.src/`: c4core code used in the rapidyaml library 
   - `ext/c4core.dev/`: c4core code used by tests/benchmarks
