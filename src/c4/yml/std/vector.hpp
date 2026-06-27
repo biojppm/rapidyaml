@@ -1,5 +1,5 @@
-#ifndef _C4_YML_STD_VECTOR_HPP_
-#define _C4_YML_STD_VECTOR_HPP_
+#ifndef C4_YML_STD_VECTOR_HPP_
+#define C4_YML_STD_VECTOR_HPP_
 
 #include "c4/yml/node.hpp"
 #include <c4/std/vector.hpp>
@@ -146,4 +146,4 @@ C4_SUPPRESS_WARNING_GCC_POP
 } // namespace yml
 } // namespace c4
 
-#endif // _C4_YML_STD_VECTOR_HPP_
+#endif // C4_YML_STD_VECTOR_HPP_

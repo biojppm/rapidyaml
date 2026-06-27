@@ -42,7 +42,7 @@ MemoryResourceMalloc* get_memory_resource_malloc()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-void detail::_MemoryResourceSingleChunk::release()
+void detail::MemoryResourceSingleChunk_::release()
 {
     if(m_mem && m_owner)
     {
@@ -54,7 +54,7 @@ void detail::_MemoryResourceSingleChunk::release()
     m_pos = 0;
 }
 
-void detail::_MemoryResourceSingleChunk::acquire(size_t sz)
+void detail::MemoryResourceSingleChunk_::acquire(size_t sz)
 {
     clear();
     m_owner = true;
@@ -63,7 +63,7 @@ void detail::_MemoryResourceSingleChunk::acquire(size_t sz)
     m_pos = 0;
 }
 
-void detail::_MemoryResourceSingleChunk::acquire(void *mem, size_t sz)
+void detail::MemoryResourceSingleChunk_::acquire(void *mem, size_t sz)
 {
     clear();
     m_owner = false;

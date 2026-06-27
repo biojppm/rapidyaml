@@ -1,5 +1,5 @@
-#ifndef _C4_CPU_HPP_
-#define _C4_CPU_HPP_
+#ifndef C4_CPU_HPP_
+#define C4_CPU_HPP_
 
 /** @file cpu.hpp Provides processor information macros
  * @ingroup basic_headers */
@@ -10,19 +10,19 @@
 // see also http://code.qt.io/cgit/qt/qtbase.git/tree/src/corelib/global/qprocessordetection.h
 
 #ifdef __ORDER_LITTLE_ENDIAN__
-#   define _C4EL __ORDER_LITTLE_ENDIAN__
+#   define C4EL_ __ORDER_LITTLE_ENDIAN__
 #else
-#   define _C4EL 1234
+#   define C4EL_ 1234
 #endif
 
 #ifdef __ORDER_BIG_ENDIAN__
-#   define _C4EB __ORDER_BIG_ENDIAN__
+#   define C4EB_ __ORDER_BIG_ENDIAN__
 #else
-#   define _C4EB 4321
+#   define C4EB_ 4321
 #endif
 
 // mixed byte order (eg, PowerPC or ia64)
-#define _C4EM 1111 // NOLINT
+#define C4EM_ 1111 // NOLINT
 
 
 // NOTE: to find defined macros in a platform,
@@ -31,12 +31,12 @@
 #if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
 #    define C4_CPU_X86_64
 #    define C4_WORDSIZE 8
-#    define C4_BYTE_ORDER _C4EL
+#    define C4_BYTE_ORDER C4EL_
 
 #elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
 #    define C4_CPU_X86
 #    define C4_WORDSIZE 4
-#    define C4_BYTE_ORDER _C4EL
+#    define C4_BYTE_ORDER C4EL_
 
 #elif defined(__arm__) || defined(_M_ARM) \
     || defined(__TARGET_ARCH_ARM) || defined(__aarch64__) || defined(_M_ARM64)
@@ -85,12 +85,12 @@
                             // but advises little-endianess:
                             // https://docs.microsoft.com/en-us/cpp/build/overview-of-arm-abi-conventions?view=msvc-170
                             // So if it is visual studio compiling, we'll assume little endian.
-#       define C4_BYTE_ORDER _C4EL
+#       define C4_BYTE_ORDER C4EL_
 #   elif defined(__ARMEB__) || defined(__BIG_ENDIAN__) || defined(__AARCH64EB__) \
        || (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))
-#       define C4_BYTE_ORDER _C4EB
+#       define C4_BYTE_ORDER C4EB_
 #   elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_PDP_ENDIAN__)
-#       define C4_BYTE_ORDER _C4EM
+#       define C4_BYTE_ORDER C4EM_
 #   else
 #       error "unknown endianness"
 #   endif
@@ -98,7 +98,7 @@
 #elif defined(__ia64) || defined(__ia64__) || defined(_M_IA64)
 #   define C4_CPU_IA64
 #   define C4_WORDSIZE 8
-#   define C4_BYTE_ORDER _C4EM
+#   define C4_BYTE_ORDER C4EM_
    // itanium is bi-endian - check byte order below
 
 #elif defined(__ppc__) || defined(__ppc) || defined(__powerpc__)       \
@@ -111,21 +111,21 @@
 #       define C4_CPU_PPC
 #       define C4_WORDSIZE 4
 #   endif
-#   define C4_BYTE_ORDER _C4EM
+#   define C4_BYTE_ORDER C4EM_
 
 #elif defined(__s390x__) || defined(__zarch__) || defined(__SYSC_ZARCH_)
 #   define C4_CPU_S390_X
 #   define C4_WORDSIZE 8
-#   define C4_BYTE_ORDER _C4EB
+#   define C4_BYTE_ORDER C4EB_
 
 #elif defined(__xtensa__) || defined(__XTENSA__)
 #   define C4_CPU_XTENSA
 #   define C4_WORDSIZE 4
 // not sure about this...
 #   if defined(__XTENSA_EL__) || defined(__xtensa_el__)
-#       define C4_BYTE_ORDER _C4EL
+#       define C4_BYTE_ORDER C4EL_
 #   else
-#       define C4_BYTE_ORDER _C4EB
+#       define C4_BYTE_ORDER C4EB_
 #   endif
 
 #elif defined(__riscv)
@@ -136,10 +136,10 @@
 #       define C4_CPU_RISCV32
 #       define C4_WORDSIZE 4
 #   endif
-#   define C4_BYTE_ORDER _C4EL
+#   define C4_BYTE_ORDER C4EL_
 
 #elif defined(__EMSCRIPTEN__)
-#   define C4_BYTE_ORDER _C4EL
+#   define C4_BYTE_ORDER C4EL_
 #   define C4_WORDSIZE 4
 
 #elif defined(__loongarch__)
@@ -150,7 +150,7 @@
 #       define C4_CPU_LOONGARCH
 #       define C4_WORDSIZE 4
 #   endif
-#   define C4_BYTE_ORDER _C4EL
+#   define C4_BYTE_ORDER C4EL_
 
 #elif defined(__mips__) || defined(_mips) || defined(mips)
 #   if defined(__mips)
@@ -171,9 +171,9 @@
 #       error "unknown mips architecture"
 #   endif
 #   if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#       define C4_BYTE_ORDER _C4EB
+#       define C4_BYTE_ORDER C4EB_
 #   elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#       define C4_BYTE_ORDER _C4EL
+#       define C4_BYTE_ORDER C4EL_
 #   else
 #       error "unknown mips endianness"
 #   endif
@@ -188,7 +188,7 @@
 #   else
 #       error "unknown sparc architecture"
 #   endif
-#   define C4_BYTE_ORDER _C4EB
+#   define C4_BYTE_ORDER C4EB_
 
 #elif defined(SWIG)
 #   error "please define CPU architecture macros when compiling with swig"
@@ -197,8 +197,8 @@
 #   error "unknown CPU architecture"
 #endif
 
-#define C4_LITTLE_ENDIAN (C4_BYTE_ORDER == _C4EL)
-#define C4_BIG_ENDIAN (C4_BYTE_ORDER == _C4EB)
-#define C4_MIXED_ENDIAN (C4_BYTE_ORDER == _C4EM)
+#define C4_LITTLE_ENDIAN (C4_BYTE_ORDER == C4EL_)
+#define C4_BIG_ENDIAN (C4_BYTE_ORDER == C4EB_)
+#define C4_MIXED_ENDIAN (C4_BYTE_ORDER == C4EM_)
 
-#endif /* _C4_CPU_HPP_ */
+#endif /* C4_CPU_HPP_ */

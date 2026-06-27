@@ -1,5 +1,5 @@
-#ifndef _C4_FORMAT_HPP_
-#define _C4_FORMAT_HPP_
+#ifndef C4_FORMAT_HPP_
+#define C4_FORMAT_HPP_
 
 /** @file format.hpp provides type-safe facilities for formatting arguments
  * to string buffers */
@@ -1355,4 +1355,4 @@ retry:
 #   pragma GCC diagnostic pop
 #endif
 
-#endif /* _C4_FORMAT_HPP_ */
+#endif /* C4_FORMAT_HPP_ */

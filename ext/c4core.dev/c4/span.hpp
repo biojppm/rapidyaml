@@ -1,5 +1,5 @@
-#ifndef _C4_SPAN_HPP_
-#define _C4_SPAN_HPP_
+#ifndef C4_SPAN_HPP_
+#define C4_SPAN_HPP_
 
 /** @file span.hpp Provides span classes. */
 
@@ -206,11 +206,11 @@ public:
 //-----------------------------------------------------------------------------
 // NOLINTBEGIN(*-redundant-inline*)
 
-template<class T, class Il, class Ir, class _Impll, class _Implr>
+template<class T, class Il, class Ir, class Impll_, class Implr_>
 inline constexpr bool operator==
 (
-    span_crtp<T, Il, _Impll> const& l,
-    span_crtp<T, Ir, _Implr> const& r
+    span_crtp<T, Il, Impll_> const& l,
+    span_crtp<T, Ir, Implr_> const& r
 )
 {
 #if C4_CPP >= 14
@@ -220,54 +220,54 @@ inline constexpr bool operator==
 #endif
 }
 
-template<class T, class Il, class Ir, class _Impll, class _Implr>
+template<class T, class Il, class Ir, class Impll_, class Implr_>
 inline constexpr bool operator!=
 (
-    span_crtp<T, Il, _Impll> const& l,
-    span_crtp<T, Ir, _Implr> const& r
+    span_crtp<T, Il, Impll_> const& l,
+    span_crtp<T, Ir, Implr_> const& r
 )
 {
     return ! (l == r);
 }
 
 //-----------------------------------------------------------------------------
-template<class T, class Il, class Ir, class _Impll, class _Implr>
+template<class T, class Il, class Ir, class Impll_, class Implr_>
 inline constexpr bool operator<
 (
-    span_crtp<T, Il, _Impll> const& l,
-    span_crtp<T, Ir, _Implr> const& r
+    span_crtp<T, Il, Impll_> const& l,
+    span_crtp<T, Ir, Implr_> const& r
 )
 {
     return std::lexicographical_compare(l.begin(), l.end(), r.begin(), r.end());
 }
 
-template<class T, class Il, class Ir, class _Impll, class _Implr>
+template<class T, class Il, class Ir, class Impll_, class Implr_>
 inline constexpr bool operator<=
 (
-    span_crtp<T, Il, _Impll> const& l,
-    span_crtp<T, Ir, _Implr> const& r
+    span_crtp<T, Il, Impll_> const& l,
+    span_crtp<T, Ir, Implr_> const& r
 )
 {
     return ! (l > r);
 }
 
 //-----------------------------------------------------------------------------
-template<class T, class Il, class Ir, class _Impll, class _Implr>
+template<class T, class Il, class Ir, class Impll_, class Implr_>
 inline constexpr bool operator>
 (
-    span_crtp<T, Il, _Impll> const& l,
-    span_crtp<T, Ir, _Implr> const& r
+    span_crtp<T, Il, Impll_> const& l,
+    span_crtp<T, Ir, Implr_> const& r
 )
 {
     return r < l;
 }
 
 //-----------------------------------------------------------------------------
-template<class T, class Il, class Ir, class _Impll, class _Implr>
+template<class T, class Il, class Ir, class Impll_, class Implr_>
 inline constexpr bool operator>=
 (
-    span_crtp<T, Il, _Impll> const& l,
-    span_crtp<T, Ir, _Implr> const& r
+    span_crtp<T, Il, Impll_> const& l,
+    span_crtp<T, Ir, Implr_> const& r
 )
 {
     return ! (l < r);
@@ -526,4 +526,4 @@ C4_SUPPRESS_WARNING_GCC_CLANG_POP
 } // namespace c4
 
 
-#endif /* _C4_SPAN_HPP_ */
+#endif /* C4_SPAN_HPP_ */

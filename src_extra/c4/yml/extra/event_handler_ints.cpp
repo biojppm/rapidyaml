@@ -10,7 +10,7 @@
 #include <c4/yml/parse_engine.def.hpp>
 #endif
 
-#ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
+#ifndef C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #include "c4/yml/extra/event_handler_ints.hpp"
 #endif
 

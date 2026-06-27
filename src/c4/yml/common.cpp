@@ -39,7 +39,7 @@ C4_NO_INLINE void endmsg()
 {
     err_basic_format(dump2stderr, msg, errdata);
     endmsg();
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionBasic(msg, errdata);
     #else
     abort();
@@ -50,7 +50,7 @@ C4_NO_INLINE void endmsg()
 {
     err_parse_format(dump2stderr, msg, errdata);
     endmsg();
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionParse(msg, errdata);
     #else
     abort();
@@ -61,7 +61,7 @@ C4_NO_INLINE void endmsg()
 {
     err_visit_format(dump2stderr, msg, errdata);
     endmsg();
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionVisit(msg, errdata);
     #else
     abort();
@@ -244,7 +244,7 @@ C4_NORETURN C4_NO_INLINE void err_visit(Callbacks const& callbacks, ErrorDataVis
 
 
 
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
 ExceptionBasic::ExceptionBasic(csubstr msg_, ErrorDataBasic const& errdata_) noexcept
     : errdata_basic(errdata_)
     , msg()
@@ -276,7 +276,7 @@ ExceptionVisit::ExceptionVisit(csubstr msg_, ErrorDataVisit const& errdata_) noe
     , errdata_visit(errdata_)
 {
 }
-#endif // _RYML_WITH_EXCEPTIONS
+#endif // RYML_WITH_EXCEPTIONS_
 
 
 namespace detail {

@@ -30,8 +30,8 @@ struct savehelper
     {
         char buf[1024];
         ssize_t ret = readlink("/proc/self/exe", buf, sizeof(buf)-1);
-        _RYML_CHECK_BASIC(ret > 0);
-        _RYML_CHECK_BASIC(ret < (int)sizeof(buf));
+        RYML_CHECK_BASIC_(ret > 0);
+        RYML_CHECK_BASIC_(ret < (int)sizeof(buf));
         csubstr exe = {buf, (size_t)ret};
         exe = exe.basename();
         static size_t count = 0;
@@ -53,13 +53,13 @@ struct savehelper
         {
             filename = suitename;
             size_t pos = filename.find('/');
-            _RYML_ASSERT_BASIC(pos != npos);
+            RYML_ASSERT_BASIC_(pos != npos);
             filename = filename.first(pos);
             suitename = suitename.sub(pos + 1);
             if(suitename.begins_with("YmlTestCase"))
             {
                 pos = testname.last_of('/');
-                _RYML_ASSERT_BASIC(pos != npos);
+                RYML_ASSERT_BASIC_(pos != npos);
                 suitename = testname.sub(pos+1);
             }
         }
@@ -108,9 +108,9 @@ static void save_impl(csubstr filename, csubstr extension, csubstr src)
     h.sources.emplace_back(src.begin(), src.end());
     // now form the savename
     substr buf = to_substr(h.fullname).sub(h.indexpos);
-    _RYML_ASSERT_BASIC(buf.len > 0);
+    RYML_ASSERT_BASIC_(buf.len > 0);
     size_t len = c4::cat(buf, c4::fmt::zpad(index, 3), extension, '\0');
-    _RYML_ASSERT_BASIC(len < buf.len);
+    RYML_ASSERT_BASIC_(len < buf.len);
     csubstr savename = to_substr(h.fullname).first(h.indexpos + len);
     // done! dump the file
     printf("saving %.*s\n", (int)savename.len, savename.str);

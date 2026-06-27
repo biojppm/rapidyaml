@@ -1,15 +1,15 @@
 #include "c4/yml/parse.hpp"
 
-#ifndef _C4_YML_NODE_HPP_
+#ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
 #endif
-#ifndef _C4_YML_PARSE_ENGINE_HPP_
+#ifndef C4_YML_PARSE_ENGINE_HPP_
 #include "c4/yml/parse_engine.hpp"
 #endif
-#ifndef _C4_YML_PARSE_ENGINE_DEF_HPP_
+#ifndef C4_YML_PARSE_ENGINE_DEF_HPP_
 #include "c4/yml/parse_engine.def.hpp"
 #endif
-#ifndef _C4_YML_EVENT_HANDLER_TREE_HPP_
+#ifndef C4_YML_EVENT_HANDLER_TREE_HPP_
 #include "c4/yml/event_handler_tree.hpp"
 #endif
 
@@ -29,7 +29,7 @@ namespace {
 void check_(Tree *tree)
 {
     if(C4_UNLIKELY(!tree))
-        _RYML_ERR_BASIC("null tree");
+        RYML_ERR_BASIC_("null tree");
     if(C4_UNLIKELY(tree->empty()))
         tree->reserve();
 }
@@ -37,37 +37,37 @@ void check_(NodeRef &node)
 {
     check_(node.tree());
     if(C4_UNLIKELY(node.id() == NONE))
-        _RYML_ERR_VISIT_(node.tree()->m_callbacks, node.tree(), node.id(), "invalid node");
+        RYML_ERR_VISIT_CB_(node.tree()->m_callbacks, node.tree(), node.id(), "invalid node");
     node.create();
 }
 void check_(Parser *parser)
 {
     if(C4_UNLIKELY(!parser))
-        _RYML_ERR_BASIC("null parser");
+        RYML_ERR_BASIC_("null parser");
     if(C4_UNLIKELY(!parser->m_evt_handler))
         // the parser callbacks are from the handler. do not use parser->callbacks()
-        _RYML_ERR_BASIC("null handler");
+        RYML_ERR_BASIC_("null handler");
 }
 void check_(Parser *parser, Tree *tree)
 {
     if(C4_UNLIKELY(!parser && !tree))
     {
-        _RYML_ERR_BASIC("null parser and tree");
+        RYML_ERR_BASIC_("null parser and tree");
     }
     else if(C4_UNLIKELY(!parser))
     {
-        _RYML_ERR_BASIC_(tree->callbacks(), "null parser");
+        RYML_ERR_BASIC_CB_(tree->callbacks(), "null parser");
     }
     else if(C4_UNLIKELY(!tree))
     {
         if(C4_UNLIKELY(!parser->m_evt_handler))
-            _RYML_ERR_BASIC("null tree and handler");
+            RYML_ERR_BASIC_("null tree and handler");
         else
-            _RYML_ERR_BASIC_(parser->callbacks(), "null tree");
+            RYML_ERR_BASIC_CB_(parser->callbacks(), "null tree");
     }
     if(C4_UNLIKELY(!parser->m_evt_handler))
     {
-        _RYML_ERR_BASIC("null handler");
+        RYML_ERR_BASIC_("null handler");
     }
     if(C4_UNLIKELY(tree->empty()))
     {
@@ -82,7 +82,7 @@ void check_(Parser *parser, NodeRef &node)
 void checksrc_(Tree *tree, csubstr src)
 {
     if(C4_UNLIKELY(src.len && !src.str))
-        _RYML_ERR_BASIC_(tree->callbacks(), "null source buffer");
+        RYML_ERR_BASIC_CB_(tree->callbacks(), "null source buffer");
 }
 substr cpsrc_(Tree *tree, csubstr src)
 {
@@ -135,13 +135,13 @@ struct TmpParser
 // assumes checks above were done prior to calling
 C4_ALWAYS_INLINE void reset_handler_(Parser *parser, Tree *tree, id_type node_id)
 {
-    _RYML_ASSERT_BASIC(parser); // LCOV_EXCL_LINE lcov weirdly fails here
-    _RYML_ASSERT_BASIC(parser->m_evt_handler);
-    _RYML_ASSERT_BASIC(tree);
+    RYML_ASSERT_BASIC_(parser); // LCOV_EXCL_LINE lcov weirdly fails here
+    RYML_ASSERT_BASIC_(parser->m_evt_handler);
+    RYML_ASSERT_BASIC_(tree);
     if(C4_UNLIKELY(node_id == NONE || node_id >= tree->capacity()))
-        _RYML_ERR_VISIT_(tree->m_callbacks, tree, node_id, "invalid node");
+        RYML_ERR_VISIT_CB_(tree->m_callbacks, tree, node_id, "invalid node");
     parser->m_evt_handler->reset(tree, node_id);
-    _RYML_ASSERT_BASIC(parser->m_evt_handler->m_tree == tree);
+    RYML_ASSERT_BASIC_(parser->m_evt_handler->m_tree == tree);
 }
 // assumes checks above were done prior to calling
 void parse_yaml_(Parser *parser, csubstr filename, substr yaml, Tree *tree, id_type node_id)

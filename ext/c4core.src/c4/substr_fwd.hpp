@@ -1,5 +1,5 @@
-#ifndef _C4_SUBSTR_FWD_HPP_
-#define _C4_SUBSTR_FWD_HPP_
+#ifndef C4_SUBSTR_FWD_HPP_
+#define C4_SUBSTR_FWD_HPP_
 
 namespace c4 {
 
@@ -13,4 +13,4 @@ template<class T> struct is_writeable_string;
 
 } // namespace c4
 
-#endif /* _C4_SUBSTR_FWD_HPP_ */
+#endif /* C4_SUBSTR_FWD_HPP_ */

@@ -289,7 +289,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
         STOPWATCH("retry");
         if(fail_size)
         {
-            _RYML_ERR_BASIC("buffers too small");
+            RYML_ERR_BASIC_("buffers too small");
         }
         {
             STOPWATCH("resize");
@@ -306,7 +306,7 @@ csubstr parse_events_ints(csubstr filename, substr filecontents, std::string &pa
             STOPWATCH("redo_parse");
             parser.parse_in_place_ev(filename, src);
         }
-        _RYML_CHECK_BASIC((size_t)handler.m_evt_pos == sz);
+        RYML_CHECK_BASIC_((size_t)handler.m_evt_pos == sz);
     }
     evts.resize(sz);
     return src;

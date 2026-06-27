@@ -1,7 +1,7 @@
-#ifndef _C4_YML_ESCAPE_SCALAR_HPP_
-#define _C4_YML_ESCAPE_SCALAR_HPP_
+#ifndef C4_YML_ESCAPE_SCALAR_HPP_
+#define C4_YML_ESCAPE_SCALAR_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
 
@@ -280,4 +280,4 @@ C4_SUPPRESS_WARNING_GCC_POP
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_ESCAPE_SCALAR_HPP_ */
+#endif /* C4_YML_ESCAPE_SCALAR_HPP_ */

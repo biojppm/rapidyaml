@@ -1,18 +1,18 @@
-#ifndef _C4_YML_EMIT_OSTREAM_HPP_
-#define _C4_YML_EMIT_OSTREAM_HPP_
+#ifndef C4_YML_EMIT_OSTREAM_HPP_
+#define C4_YML_EMIT_OSTREAM_HPP_
 
 /** @file emit_ostream.hpp emit to STL-like ostreams */
 
-#ifndef _C4_YML_NODE_HPP_
+#ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
 #endif
-#ifndef _C4_YML_EMITTER_HPP_
+#ifndef C4_YML_EMITTER_HPP_
 #include "c4/yml/emitter.hpp"
 #endif
-#ifndef _C4_YML_EMITTER_DEF_HPP_
+#ifndef C4_YML_EMITTER_DEF_HPP_
 #include "c4/yml/emitter.def.hpp"
 #endif
-#ifndef _C4_YML_WRITER_OSTREAM_HPP_
+#ifndef C4_YML_WRITER_OSTREAM_HPP_
 #include "c4/yml/writer_ostream.hpp"
 #endif
 
@@ -127,4 +127,4 @@ OStream& operator<< (OStream& stream, as_yaml const& yaml_spec)
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EMIT_OSTREAM_HPP_ */
+#endif /* C4_YML_EMIT_OSTREAM_HPP_ */

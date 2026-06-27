@@ -204,6 +204,7 @@ Note that this `read()` implementation will still enable a calling
 
 ## Full changelog
 
+- [PR#639](https://github.com/biojppm/rapidyaml/pull/639) fix names using leading/double underscore (renames only, no logic changes).
 - [PR#638](https://github.com/biojppm/rapidyaml/pull/638) improve quickstart-ints.
 - [PR#637](https://github.com/biojppm/rapidyaml/pull/637) add cmake option `RYML_SYSTEM_C4CORE` to consume c4core from `find_package()`. Thanks @uilianries!
 - [PR#636](https://github.com/biojppm/rapidyaml/pull/636) **Remove c4core submodule**, and copy c4core files to rapidyaml (and manage sync):

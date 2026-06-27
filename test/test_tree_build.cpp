@@ -6,6 +6,9 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
+#endif
 
 #ifndef RYML_DBG
 #define _RYML_WITH_DBG(...)
@@ -235,7 +238,7 @@ void run_case(cspan<BuilderBlock> blocks, BuilderWorkspace *ws)
         _c4dbgpf("block[{}/{}]: ({}) applying variant[{}/{}]: ...", iblock+1, blocks.size(), b.action.name, b.variant_index+1, variants.variants.size());
         auto doit = [&](id_type subject_id){
             RYML_TRACE_FMT("here:\n{}:{}: id={}: {}[{}]", __FILE__, variant.line, subject_id, b.variant_index+1, variants.variants.size(), variants.name, variant.name);
-            _RYML_WITH_DBG(_dbg_printf("{}:{}: id={}: block[{}/{}] variant[{}/{}] {}[{}]\n", __FILE__, variant.line, subject_id, iblock+1, blocks.size(), b.variant_index+1, variants.variants.size(), variants.name, variant.name));
+            _RYML_WITH_DBG(dbg_printf_("{}:{}: id={}: block[{}/{}] variant[{}/{}] {}[{}]\n", __FILE__, variant.line, subject_id, iblock+1, blocks.size(), b.variant_index+1, variants.variants.size(), variants.name, variant.name));
             //printf("%s:%d: id=%zu: block[%zu/%zu] variant[%zu/%zu] %s[%s]\n", __FILE__, variant.line, subject_id, iblock+1, blocks.size(), b.variant_index+1, variants.variants.size(), variants.name.str, variant.name); // NOLINT
             NodeRef n(&ws->tree, subject_id);
             variant.buildfn(n);

@@ -8,11 +8,11 @@
     #endif
 #endif
 
-#ifndef _C4_YML_ESCAPE_SCALAR_HPP_
+#ifndef C4_YML_ESCAPE_SCALAR_HPP_
 #include "c4/yml/escape_scalar.hpp"
 #endif
 
-#ifndef _C4_YML_EXTRA_INTS_UTILS_HPP_
+#ifndef C4_YML_EXTRA_INTS_UTILS_HPP_
 #include "c4/yml/extra/ints_utils.hpp"
 #endif
 
@@ -60,7 +60,7 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-li
             }
             else
             {
-                _RYML_ASSERT_BASIC(tag.begins_with('!'));
+                RYML_ASSERT_BASIC_(tag.begins_with('!'));
                 append(" <");
                 append(tag);
                 append(">");

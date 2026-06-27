@@ -440,7 +440,7 @@ void github566_cmp(type_bits mask, Tree const& orig, std::string const& expected
 TEST(anchors, github566_map_NOSTYLE)
 {
     const Tree orig = github566_make_map(NOTYPE);
-    github566_cmp(_TYMASK, orig, R"(&ref0
+    github566_cmp(TYMASK_, orig, R"(&ref0
 a: 1
 self: *ref0
 )");
@@ -472,7 +472,7 @@ TEST(anchors, github566_map_FLOW_SL)
 TEST(anchors, github566_seq_NOSTYLE)
 {
     const Tree orig = github566_make_seq(NOTYPE);
-    github566_cmp(_TYMASK, orig, R"(&ref0
+    github566_cmp(TYMASK_, orig, R"(&ref0
 - 1
 - *ref0
 )");

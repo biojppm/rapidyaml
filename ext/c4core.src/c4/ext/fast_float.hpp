@@ -1,5 +1,5 @@
-#ifndef _C4_EXT_FAST_FLOAT_HPP_
-#define _C4_EXT_FAST_FLOAT_HPP_
+#ifndef C4_EXT_FAST_FLOAT_HPP_
+#define C4_EXT_FAST_FLOAT_HPP_
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #   pragma warning(push)
@@ -13,6 +13,17 @@
 #   endif
 #   pragma clang diagnostic ignored "-Wshift-count-overflow"
 #   pragma clang diagnostic ignored "-Wold-style-cast"
+#   pragma clang diagnostic ignored "-Wpadded"
+#   pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
+#   if (defined(__clang_major__) && (__clang_major__ >= 21))
+#       pragma clang diagnostic ignored "-Wnrvo"
+#   endif
+#   if (defined(__clang_major__) && (__clang_major__ >= 13))
+#       pragma clang diagnostic ignored "-Wreserved-identifier"
+#   endif
+#   if (defined(__clang_major__) && (__clang_major__ >= 8))
+#       pragma clang diagnostic ignored "-Wextra-semi-stmt"
+#   endif
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wnarrowing"
@@ -39,4 +50,4 @@
 #   pragma GCC diagnostic pop
 #endif
 
-#endif // _C4_EXT_FAST_FLOAT_HPP_
+#endif // C4_EXT_FAST_FLOAT_HPP_

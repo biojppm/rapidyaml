@@ -1,7 +1,7 @@
-#ifndef _C4_YML_WRITER_BUF_HPP_
-#define _C4_YML_WRITER_BUF_HPP_
+#ifndef C4_YML_WRITER_BUF_HPP_
+#define C4_YML_WRITER_BUF_HPP_
 
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
 
@@ -43,7 +43,7 @@ public:
         }
         else
         {
-            _RYML_ERR_BASIC("not enough space in the given buffer");
+            RYML_ERR_BASIC_("not enough space in the given buffer");
         }
     }
 
@@ -53,7 +53,7 @@ public:
     C4_ALWAYS_INLINE void append(const char (&a)[N]) noexcept
     {
         static_assert(N > 1, "empty string");
-        _RYML_ASSERT_BASIC( ! m_buf.overlaps(a));
+        RYML_ASSERT_BASIC_( ! m_buf.overlaps(a));
         if(m_pos + N-1 <= m_buf.len)
             memcpy(m_buf.str + m_pos, a, N-1);
         m_pos += N-1;
@@ -61,7 +61,7 @@ public:
 
     C4_ALWAYS_INLINE void append(csubstr s) noexcept
     {
-        _RYML_ASSERT_BASIC( ! s.overlaps(m_buf));
+        RYML_ASSERT_BASIC_( ! s.overlaps(m_buf));
         if(s.len && m_pos + s.len <= m_buf.len)
             memcpy(m_buf.str + m_pos, s.str, s.len);
         m_pos += s.len;
@@ -87,4 +87,4 @@ C4_SUPPRESS_WARNING_MSVC_POP
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_WRITER_BUF_HPP_ */
+#endif /* C4_YML_WRITER_BUF_HPP_ */

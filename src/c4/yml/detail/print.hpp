@@ -1,7 +1,7 @@
 #ifndef C4_YML_DETAIL_PRINT_HPP_
 #define C4_YML_DETAIL_PRINT_HPP_
 
-#ifndef _C4_YML_NODE_HPP_
+#ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
 #endif
 
@@ -71,7 +71,7 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
     if(p.is_root(node)) printf(" [ROOT]");
     char typebuf[128];
     csubstr typestr = type.type_str_sub(typebuf);
-    _RYML_CHECK_BASIC(typestr.str);
+    RYML_CHECK_BASIC_(typestr.str);
     printf(" %.*s", (int)typestr.len, typestr.str);
     NodeType ty = p.type(node);
     if(ty.has_key())

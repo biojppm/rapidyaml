@@ -1,5 +1,5 @@
-#ifndef _C4_BITMASK_HPP_
-#define _C4_BITMASK_HPP_
+#ifndef C4_BITMASK_HPP_
+#define C4_BITMASK_HPP_
 
 /** @file bitmask.hpp bitmask utilities */
 
@@ -336,4 +336,4 @@ typename std::underlying_type<Enum>::type str2bm(const char *str)
 #   pragma GCC diagnostic pop
 #endif
 
-#endif // _C4_BITMASK_HPP_
+#endif // C4_BITMASK_HPP_

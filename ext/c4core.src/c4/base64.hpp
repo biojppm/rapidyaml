@@ -1,12 +1,12 @@
-#ifndef _C4_BASE64_HPP_
-#define _C4_BASE64_HPP_
+#ifndef C4_BASE64_HPP_
+#define C4_BASE64_HPP_
 
 /** @file base64.hpp encoding/decoding for base64.
  * @see https://en.wikipedia.org/wiki/Base64
  * @see https://www.base64encode.org/
  * */
 
-#ifndef _C4_EXPORT_HPP_
+#ifndef C4_EXPORT_HPP_
 #include "c4/export.hpp"
 #endif
 #include <stddef.h>
@@ -106,4 +106,4 @@ C4CORE_EXPORT bool base64_decode(char const* encoded, size_t encoded_sz,
 
 } // namespace c4
 
-#endif /* _C4_BASE64_HPP_ */
+#endif /* C4_BASE64_HPP_ */

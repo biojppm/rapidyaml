@@ -1,5 +1,5 @@
-#ifndef _C4_ENUM_HPP_
-#define _C4_ENUM_HPP_
+#ifndef C4_ENUM_HPP_
+#define C4_ENUM_HPP_
 
 #include "c4/error.hpp"
 
@@ -28,7 +28,7 @@ typedef enum { // NOLINT(cert-int09-c,readability-enum-initial-value)
     EOFFS_NONE = 0,  ///< no offset
     EOFFS_CLS = 1,   ///< get the enum offset for the class name. @see eoffs_cls()
     EOFFS_PFX = 2,   ///< get the enum offset for the enum prefix. @see eoffs_pfx()
-    _EOFFS_LAST      ///< reserved
+    EOFFS_LAST_      ///< reserved
 } EnumOffsetType;
 
 
@@ -230,7 +230,7 @@ bool EnumSymbols<Enum>::Sym::cmp(const char *s) const
     if(strcmp(name, s) == 0)
         return true;
 
-    for(int i = 1; i < _EOFFS_LAST; ++i)
+    for(int i = 1; i < EOFFS_LAST_; ++i)
     {
         auto o = eoffs<Enum>((EnumOffsetType)i);
         if(o > 0)
@@ -248,7 +248,7 @@ bool EnumSymbols<Enum>::Sym::cmp(const char *s, size_t len) const
         return true;
 
     size_t nlen = 0;
-    for(int i = 1; i <_EOFFS_LAST; ++i)
+    for(int i = 1; i <EOFFS_LAST_; ++i)
     {
         auto o = eoffs<Enum>((EnumOffsetType)i);
         if(o > 0)
@@ -280,4 +280,4 @@ C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace c4
 
-#endif // _C4_ENUM_HPP_
+#endif // C4_ENUM_HPP_

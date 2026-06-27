@@ -96,13 +96,13 @@ inline int fuzztest_tree(uint32_t case_number, csubstr src, FnParse fn_parse, Fn
     bool parse_success = false;
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
-        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         fn_parse(src, &tree, ParserOptions{});
         parse_success = true;
         _if_dbg(print_tree("parsed tree", tree));
-        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         std::string dst = fn_emit(tree, EmitOptions{});
-        _if_dbg(_dbg_printf("emitted[{}]: [{}]~~~\n{}\n~~~\n", case_number, dst.size(), to_csubstr(dst)); fflush(NULL));
+        _if_dbg(dbg_printf_("emitted[{}]: [{}]~~~\n{}\n~~~\n", case_number, dst.size(), to_csubstr(dst)); fflush(NULL));
         C4_DONT_OPTIMIZE(dst);
         C4_DONT_OPTIMIZE(parse_success);
     }
@@ -149,7 +149,7 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn)
                   evts.data(), static_cast<I>(evts.size()));
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
-        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         fn(parser, c4::to_substr(str));
         C4_DONT_OPTIMIZE(evts);
     }
@@ -232,7 +232,7 @@ inline int fuzztest_serialize(uint32_t case_number, csubstr src)
     C4_UNUSED(case_number);
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
-        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         fuzztest_serialize<uint8_t>(&workspace, src);
         fuzztest_serialize<uint16_t>(&workspace, src);
         fuzztest_serialize<uint32_t>(&workspace, src);

@@ -1,13 +1,13 @@
-#ifndef _C4_YML_PARSE_ENGINE_HPP_
-#define _C4_YML_PARSE_ENGINE_HPP_
+#ifndef C4_YML_PARSE_ENGINE_HPP_
+#define C4_YML_PARSE_ENGINE_HPP_
 
-#ifndef _C4_YML_PARSER_STATE_HPP_
+#ifndef C4_YML_PARSER_STATE_HPP_
 #include "c4/yml/parser_state.hpp"
 #endif
-#ifndef _C4_YML_PARSE_OPTIONS_HPP_
+#ifndef C4_YML_PARSE_OPTIONS_HPP_
 #include "c4/yml/parse_options.hpp"
 #endif
-#ifndef _C4_YML_FWD_HPP_
+#ifndef C4_YML_FWD_HPP_
 #include "c4/yml/fwd.hpp"
 #endif
 
@@ -329,7 +329,7 @@ public:
      * should) also be reserved. */
     void reserve_stack(id_type capacity)
     {
-        _RYML_ASSERT_BASIC(m_evt_handler);
+        RYML_ASSERT_BASIC_(m_evt_handler);
         m_evt_handler->m_stack.reserve(capacity);
     }
 
@@ -351,7 +351,7 @@ public:
     ParserOptions const& options() const { return m_options; }
 
     /** Get the current callbacks in the parser. */
-    Callbacks const& callbacks() const { _RYML_ASSERT_BASIC(m_evt_handler); return m_evt_handler->m_stack.m_callbacks; }
+    Callbacks const& callbacks() const { RYML_ASSERT_BASIC_(m_evt_handler); return m_evt_handler->m_stack.m_callbacks; }
 
     /** Get the name of the latest file parsed by this object. */
     csubstr filename() const { return m_evt_handler->m_curr ? m_evt_handler->m_curr->pos.name : csubstr{}; }
@@ -363,7 +363,7 @@ public:
      * If no encoding was specified, UTF8 is assumed as per the YAML standard. */
     Encoding_e encoding() const { return m_encoding != NOBOM ? m_encoding : UTF8; }
 
-    id_type stack_capacity() const { _RYML_ASSERT_BASIC(m_evt_handler); return m_evt_handler->m_stack.capacity(); }
+    id_type stack_capacity() const { RYML_ASSERT_BASIC_(m_evt_handler); return m_evt_handler->m_stack.capacity(); }
     size_t locations_capacity() const { return m_newline_offsets_capacity; }
 
     /** @} */
@@ -758,4 +758,4 @@ public:
 #   pragma warning(pop)
 #endif
 
-#endif /* _C4_YML_PARSE_ENGINE_HPP_ */
+#endif /* C4_YML_PARSE_ENGINE_HPP_ */

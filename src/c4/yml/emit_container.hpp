@@ -1,15 +1,15 @@
-#ifndef _C4_YML_EMIT_CONTAINER_HPP_
-#define _C4_YML_EMIT_CONTAINER_HPP_
+#ifndef C4_YML_EMIT_CONTAINER_HPP_
+#define C4_YML_EMIT_CONTAINER_HPP_
 
 /** @file emit.hpp Utilities to emit YAML and JSON to resizeable containers. */
 
-#ifndef _C4_YML_EMIT_BUF_HPP_
+#ifndef C4_YML_EMIT_BUF_HPP_
 #include "c4/yml/emit_buf.hpp"
 #endif
-#ifndef _C4_YML_EMIT_OPTIONS_HPP_
+#ifndef C4_YML_EMIT_OPTIONS_HPP_
 #include "c4/yml/emit_options.hpp"
 #endif
-#ifndef _C4_YML_NODE_HPP_
+#ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
 #endif
 
@@ -233,4 +233,4 @@ CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EMIT_CONTAINER_HPP_ */
+#endif /* C4_YML_EMIT_CONTAINER_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef _TEST_EVENTS_INTS_HPP_
-#define _TEST_EVENTS_INTS_HPP_
+#ifndef TEST_EVENTS_INTS_HPP_
+#define TEST_EVENTS_INTS_HPP_
 
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
@@ -50,4 +50,4 @@ void test_events_ints_invariants(
 } // namespace yml
 } // namespace c4
 
-#endif /* _TEST_EVENTS_INTS_HPP_ */
+#endif /* TEST_EVENTS_INTS_HPP_ */

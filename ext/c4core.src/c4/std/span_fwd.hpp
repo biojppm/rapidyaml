@@ -1,5 +1,5 @@
-#ifndef _C4_STD_SPAN_FWD_HPP_
-#define _C4_STD_SPAN_FWD_HPP_
+#ifndef C4_STD_SPAN_FWD_HPP_
+#define C4_STD_SPAN_FWD_HPP_
 
 /** @file span_fwd.hpp Provides forward declaration of std::span
  * to enable order-independent includes for use with ref @ref
@@ -84,4 +84,4 @@ bool from_chars(c4::csubstr buf, std::span<char> * s);
 
 #endif // SPAN_AVAILABLE
 
-#endif // _C4_STD_SPAN_FWD_HPP_
+#endif // C4_STD_SPAN_FWD_HPP_

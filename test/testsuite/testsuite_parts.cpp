@@ -155,7 +155,7 @@ constexpr const AllowedFailure container_key_cases[] = {
 
 AllowedFailure is_failure_expected_(csubstr casename, cspan<AllowedFailure> afs)
 {
-    _RYML_CHECK_BASIC(casename.not_empty());
+    RYML_CHECK_BASIC_(casename.not_empty());
     for(AllowedFailure const& af : afs)
         if(af.test_name == casename || casename.begins_with(af.test_name))
             return af;

@@ -1,7 +1,7 @@
-#ifndef _C4_YML_EXTRA_INTS_TO_TESTSUITE_HPP_
-#define _C4_YML_EXTRA_INTS_TO_TESTSUITE_HPP_
+#ifndef C4_YML_EXTRA_INTS_TO_TESTSUITE_HPP_
+#define C4_YML_EXTRA_INTS_TO_TESTSUITE_HPP_
 
-#ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
+#ifndef C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #include "c4/yml/extra/event_handler_ints.hpp"
 #endif
 
@@ -71,4 +71,4 @@ Container events_ints_to_testsuite(csubstr parsed_yaml,
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EXTRA_INTS_TO_TESTSUITE_UTILS_HPP_ */
+#endif /* C4_YML_EXTRA_INTS_TO_TESTSUITE_UTILS_HPP_ */

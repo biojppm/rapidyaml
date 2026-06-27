@@ -1,9 +1,9 @@
-#ifndef _C4_YML_SCALAR_STYLE_HPP_
-#define _C4_YML_SCALAR_STYLE_HPP_
+#ifndef C4_YML_SCALAR_STYLE_HPP_
+#define C4_YML_SCALAR_STYLE_HPP_
 
 /** @file scalar_style.hpp */
 
-#ifndef _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
 #endif
 
@@ -94,4 +94,4 @@ inline NodeType scalar_style_json_choose(csubstr scalar) noexcept
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_SCALAR_STYLE_HPP_ */
+#endif /* C4_YML_SCALAR_STYLE_HPP_ */

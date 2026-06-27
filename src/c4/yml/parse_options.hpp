@@ -1,15 +1,15 @@
-#ifndef _C4_YML_PARSE_OPTIONS_HPP_
-#define _C4_YML_PARSE_OPTIONS_HPP_
+#ifndef C4_YML_PARSE_OPTIONS_HPP_
+#define C4_YML_PARSE_OPTIONS_HPP_
 
 /** @file parse_options.hpp */
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include <c4/yml/common.hpp>
 #endif
-#ifndef _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
 #include <c4/yml/node_type.hpp>
 #endif
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include <c4/yml/error.hpp>
 #endif
 
@@ -72,7 +72,7 @@ public:
      * behavior). */
     ParserOptions& flow_ml_style(NodeType style) noexcept
     {
-        _RYML_ASSERT_BASIC(style & (FLOW_ML1|FLOW_MLN));
+        RYML_ASSERT_BASIC_(style & (FLOW_ML1|FLOW_MLN));
         m_flow_ml_style = style & (FLOW_ML1|FLOW_MLN);
         return *this;
     }
@@ -142,4 +142,4 @@ public:
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_PARSE_OPTIONS_HPP_ */
+#endif /* C4_YML_PARSE_OPTIONS_HPP_ */

@@ -237,17 +237,6 @@ int main(int argc, const char* argv[])
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
-C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
-C4_SUPPRESS_WARNING_GCC_CLANG("-Wcast-qual")
-C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
-C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
-#if defined(__GNUC__) && (__GNUC__ >= 6)
-C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference") // false positives
-#endif
-
-
-//-----------------------------------------------------------------------------
 // first, some helpers used in this quickstart
 
 /** @addtogroup doc_sample_helpers
@@ -335,6 +324,20 @@ struct ScopedErrorHandlerExample : public ErrorHandlerExample
 // needed to setup the callbacks when ryml does not provide them
 void ensure_callbacks();
 ryml::Callbacks default_callbacks();
+
+
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wcast-qual")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+#if defined(__GNUC__) && (__GNUC__ >= 6)
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference") // false positives
+#endif
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
+#endif
+
 
 /** @} */ // doc_sample_helpers
 
@@ -6289,7 +6292,7 @@ void sample_error_basic()
         ScopedErrorHandlerExample errh; // set the example callbacks (scoped)
         CHECK(errh.check_error_occurs(cause_basic_error));
     }
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
     bool gotit = false;
     try
     {
@@ -6397,7 +6400,7 @@ void sample_error_parse()
         CHECK(errh.saved_parse_loc.offset == ryml::csubstr::npos);
         ryml::set_callbacks(errh.original_callbacks);
     }
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
     bool gotit = false;
     try
     {
@@ -6510,7 +6513,7 @@ void sample_error_visit()
         CHECK(errh.saved_visit_id == ryml::NONE);
         ryml::set_callbacks(errh.original_callbacks);
     }
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
     // when using the default ryml callbacks (see
     // RYML_NO_DEFAULT_CALLBACKS), and
     // RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS is defined, the ryml
