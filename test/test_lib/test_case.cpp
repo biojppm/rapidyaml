@@ -910,15 +910,24 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_FALSE(n.has_other_siblings());
     }
+    NodeType ty = n.type();
     // vals cannot be containers
-    if( ! n.empty() && ! n.is_doc())
+    if( ! n.empty() && ! ty.is_doc())
     {
-        EXPECT_NE(n.has_val(), n.is_container());
+        EXPECT_NE(ty.has_val(), ty.is_container());
     }
     if(n.has_children())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_val());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_val());
+    }
+    if(ty.has_key())
+    {
+        EXPECT_TRUE(n.parent().readable());
+        if(n.parent().readable())
+        {
+            EXPECT_TRUE(n.parent().type().is_map());
+        }
     }
     if(n.has_key())
     {
@@ -933,7 +942,7 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(n.has_key() && s.has_key())
+        if(ty.has_key() && ty.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
@@ -948,10 +957,14 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_EQ(n.parent().num_children(), n.num_siblings());
         EXPECT_EQ(n.parent().num_children(), n.num_other_siblings()+id_type(1));
         // doc parent must be a seq and a stream
-        if(n.is_doc())
+        if(ty.is_doc())
         {
             EXPECT_TRUE(n.parent().is_seq());
             EXPECT_TRUE(n.parent().is_stream());
+        }
+        if(n.parent().type().is_map())
+        {
+            EXPECT_TRUE(ty.has_key());
         }
         if(n.parent().is_map())
         {
@@ -962,20 +975,20 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_TRUE(n.is_root());
     }
-    if(n.is_seq())
+    if(ty.is_seq())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_map());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_map());
         for(ConstNodeRef ch : n.children())
         {
             EXPECT_FALSE(ch.is_keyval());
             EXPECT_FALSE(ch.has_key());
         }
     }
-    if(n.is_map())
+    if(ty.is_map())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_seq());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_seq());
         for(ConstNodeRef ch : n.children())
         {
             if(ch.type() != NOTYPE)
@@ -997,43 +1010,43 @@ void test_invariants(ConstNodeRef const& n)
     if(n.has_key_anchor())
     {
         EXPECT_FALSE(n.key_anchor().empty());
-        EXPECT_FALSE(n.is_key_ref());
+        EXPECT_FALSE(ty.is_key_ref());
     }
-    if(n.has_val_anchor())
+    if(ty.has_val_anchor())
     {
         EXPECT_FALSE(n.val_anchor().empty());
-        EXPECT_FALSE(n.is_val_ref());
+        EXPECT_FALSE(ty.is_val_ref());
     }
-    if(n.is_key_ref())
+    if(ty.is_key_ref())
     {
         EXPECT_FALSE(n.key_ref().empty());
-        EXPECT_FALSE(n.has_key_anchor());
+        EXPECT_FALSE(ty.has_key_anchor());
     }
-    if(n.is_val_ref())
+    if(ty.is_val_ref())
     {
         EXPECT_FALSE(n.val_ref().empty());
-        EXPECT_FALSE(n.has_val_anchor());
+        EXPECT_FALSE(ty.has_val_anchor());
     }
-    if(n.has_key())
+    if(ty.has_key())
     {
-        if(n.is_key_quoted())
+        if(ty.is_key_quoted())
         {
-            EXPECT_FALSE(n.key_is_null());
+            EXPECT_FALSE(ty.key_is_null());
         }
         if(n.key_is_null())
         {
-            EXPECT_FALSE(n.is_key_quoted());
+            EXPECT_FALSE(ty.is_key_quoted());
         }
     }
-    if(n.has_val() && n.is_val_quoted())
+    if(ty.has_val() && ty.is_val_quoted())
     {
-        if(n.is_val_quoted())
+        if(ty.is_val_quoted())
         {
             EXPECT_FALSE(n.val_is_null());
         }
-        if(n.val_is_null())
+        if(ty.val_is_null())
         {
-            EXPECT_FALSE(n.is_val_quoted());
+            EXPECT_FALSE(ty.is_val_quoted());
         }
     }
     // ... add more tests here
