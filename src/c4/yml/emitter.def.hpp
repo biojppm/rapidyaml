@@ -204,7 +204,7 @@ void Emitter<Writer>::visit_stream_(id_type id)
             if(ty.m_bits & VALNIL)
                 pend_newl_();
         }
-        else if(m_tree->is_container(child))
+        else if(ty.is_container())
         {
             if(ty.is_flow())
                 pend_newl_();
@@ -544,8 +544,8 @@ void Emitter<Writer>::blck_seq_open_entry_(id_type node)
 template<class Writer>
 void Emitter<Writer>::blck_map_open_entry_(id_type node)
 {
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->has_key(node), m_tree, node);
     NodeType ty = m_tree->type(node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.has_key(), m_tree, node);
     csubstr key = m_tree->key(node);
     if(!(ty.m_bits & (KEY_STYLE|KEYREF)))
         ty.m_bits |= (scalar_style_choose_block(key).m_bits & KEY_STYLE);
@@ -884,12 +884,12 @@ void Emitter<Writer>::visit_flow_ml_map_(id_type node)
 template<class Writer>
 void Emitter<Writer>::visit_blck_(id_type node)
 {
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node), m_tree, node);
+    const NodeType ty = m_tree->type(node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
-    const NodeType ty = m_tree->type(node);
     if(ty.is_seq())
     {
         visit_blck_seq_(node);
@@ -907,12 +907,12 @@ void Emitter<Writer>::visit_blck_(id_type node)
 template<class Writer>
 void Emitter<Writer>::visit_flow_sl_(id_type node)
 {
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node), m_tree, node);
+    const NodeType ty = m_tree->type(node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
-    const NodeType ty = m_tree->type(node);
     if(ty.m_bits & SEQ)
     {
         visit_flow_sl_seq_(node);
@@ -930,12 +930,12 @@ void Emitter<Writer>::visit_flow_sl_(id_type node)
 template<class Writer>
 void Emitter<Writer>::visit_flow_ml_(id_type node)
 {
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !m_tree->is_stream(node), m_tree, node);
-    _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_container(node) || m_tree->is_doc(node), m_tree, node);
+    const NodeType ty = m_tree->type(node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
+    _RYML_ASSERT_VISIT_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
     _RYML_ASSERT_VISIT_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
         _RYML_ERR_VISIT_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
-    const NodeType ty = m_tree->type(node);
     if(ty.m_bits & SEQ)
     {
         visit_flow_ml_seq_(node);
