@@ -1,5 +1,5 @@
-#ifndef _C4_SUBSTR_HPP_
-#define _C4_SUBSTR_HPP_
+#ifndef C4_SUBSTR_HPP_
+#define C4_SUBSTR_HPP_
 
 /** @file substr.hpp read+write string views */
 
@@ -2331,16 +2331,16 @@ public:
             }
         size_t sz = 0;
         size_t b = pos;
-        _c4append(str, str + pos);
+        _c4append(str, str + pos)
         do {
             size_t e = find(pattern, b);
             if(e == npos)
             {
-                _c4append(str + b, str + len);
+                _c4append(str + b, str + len)
                 break;
             }
-            _c4append(str + b, str + e);
-            _c4append(repl.begin(), repl.end());
+            _c4append(str + b, str + e)
+            _c4append(repl.begin(), repl.end())
             b = e + pattern.size();
         } while(b < len && b != npos);
         return sz;
@@ -2495,4 +2495,4 @@ inline OStream& operator<< (OStream& os, basic_substring<C> s)
 
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
-#endif /* _C4_SUBSTR_HPP_ */
+#endif /* C4_SUBSTR_HPP_ */

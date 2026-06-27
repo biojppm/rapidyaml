@@ -1,7 +1,7 @@
-#ifndef _C4_YML_NODE_TYPE_HPP_
-#define _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
+#define C4_YML_NODE_TYPE_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
 
@@ -28,32 +28,32 @@ using type_bits = uint32_t;
 
 /** a bit mask for marking node types and styles */
 typedef enum : type_bits { // NOLINT
-    #define __(v) (type_bits(1) << v) // a convenience define, undefined below // NOLINT
+    #define b_(v) (type_bits(1) << v) // a convenience define, undefined below // NOLINT
     NOTYPE  = 0,         ///< no node type or style is set
-    KEY     = __(0),     ///< the scalar to the left of `:` in a map's member
-    VAL     = __(1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ
-    MAP     = __(2),     ///< a map: a parent of KEYVAL/KEYSEQ/KEYMAP nodes
-    SEQ     = __(3),     ///< a seq: a parent of VAL/SEQ/MAP nodes
-    DOC     = __(4),     ///< a document
-    STREAM  = __(5)|SEQ, ///< a stream: a seq of docs
-    KEYREF  = __(6),     ///< a *reference: the key references an &anchor
-    VALREF  = __(7),     ///< a *reference: the val references an &anchor
-    KEYANCH = __(8),     ///< the key has an &anchor
-    VALANCH = __(9),     ///< the val has an &anchor
-    KEYTAG  = __(10),    ///< the key has a tag
-    VALTAG  = __(11),    ///< the val has a tag
-    KEYNIL  = __(12),    ///< the key is null (eg `{ : b}` results in a null key)
-    VALNIL  = __(13),    ///< the val is null (eg `{a : }` results in a null val)
-    _TYMASK = __(14)-1,  ///< all the bits up to here
+    KEY     = b_(0),     ///< the scalar to the left of `:` in a map's member
+    VAL     = b_(1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ
+    MAP     = b_(2),     ///< a map: a parent of KEYVAL/KEYSEQ/KEYMAP nodes
+    SEQ     = b_(3),     ///< a seq: a parent of VAL/SEQ/MAP nodes
+    DOC     = b_(4),     ///< a document
+    STREAM  = b_(5)|SEQ, ///< a stream: a seq of docs
+    KEYREF  = b_(6),     ///< a *reference: the key references an &anchor
+    VALREF  = b_(7),     ///< a *reference: the val references an &anchor
+    KEYANCH = b_(8),     ///< the key has an &anchor
+    VALANCH = b_(9),     ///< the val has an &anchor
+    KEYTAG  = b_(10),    ///< the key has a tag
+    VALTAG  = b_(11),    ///< the val has a tag
+    KEYNIL  = b_(12),    ///< the key is null (eg `{ : b}` results in a null key)
+    VALNIL  = b_(13),    ///< the val is null (eg `{a : }` results in a null val)
+    TYMASK_ = b_(14)-1,  ///< all the bits up to here
     //
     // unfiltered flags:
     //
-    KEY_UNFILT  = __(14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
-    VAL_UNFILT  = __(15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
+    KEY_UNFILT  = b_(14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
+    VAL_UNFILT  = b_(15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
     //
     // style flags:
     //
-    FLOW_SL     = __(16), ///< mark container with single-line flow style
+    FLOW_SL     = b_(16), ///< mark container with single-line flow style
                           ///<  - seqs as
                           ///<    @code{yaml}
                           ///<    [val1,val2]
@@ -72,7 +72,7 @@ typedef enum : type_bits { // NOLINT
                           ///<    {key1: val1, key2: val2}
                           ///<    @endcode
                           ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
-    FLOW_ML1    = __(17), ///< mark container with multi-line flow style, 1 element per line
+    FLOW_ML1    = b_(17), ///< mark container with multi-line flow style, 1 element per line
                           ///<  - seqs as
                           ///<    @code{yaml}
                           ///<    [
@@ -87,7 +87,7 @@ typedef enum : type_bits { // NOLINT
                           ///<      key2: val2
                           ///<    }
                           ///<    @endcode
-    FLOW_MLN    = __(18), ///< mark container with multi-line flow style, n elements per line,
+    FLOW_MLN    = b_(18), ///< mark container with multi-line flow style, n elements per line,
                           ///< wrapped (as set by @ref EmitOptions::max_cols()):
                           ///<  - seqs as
                           ///<    @code{yaml}
@@ -129,11 +129,11 @@ typedef enum : type_bits { // NOLINT
                           ///<    }
                           ///<    @endcode
                           ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
-    FLOW_SPC    = __(19), ///< mark container with spaces after comma when in flow mode.
+    FLOW_SPC    = b_(19), ///< mark container with spaces after comma when in flow mode.
                           ///< Applies to both @ref FLOW_SL and @ref FLOW_MLN (but not
                           ///< to @ref FLOW_ML1), and can be overriden globally by
                           ///< @ref EmitOptions::force_flow_spc().
-    BLOCK       = __(20), ///< mark container with block style
+    BLOCK       = b_(20), ///< mark container with block style
                           ///<  - seqs as
                           ///<    @code{yaml}
                           ///<    - val1
@@ -144,16 +144,16 @@ typedef enum : type_bits { // NOLINT
                           ///<    key1: val1
                           ///<    key2: val2
                           ///<    @endcode
-    KEY_LITERAL = __(21), ///< mark key scalar as multiline, block literal |
-    VAL_LITERAL = __(22), ///< mark val scalar as multiline, block literal |
-    KEY_FOLDED  = __(23), ///< mark key scalar as multiline, block folded >
-    VAL_FOLDED  = __(24), ///< mark val scalar as multiline, block folded >
-    KEY_SQUO    = __(25), ///< mark key scalar as single quoted '
-    VAL_SQUO    = __(26), ///< mark val scalar as single quoted '
-    KEY_DQUO    = __(27), ///< mark key scalar as double quoted "
-    VAL_DQUO    = __(28), ///< mark val scalar as double quoted "
-    KEY_PLAIN   = __(29), ///< mark key scalar as plain scalar (unquoted, even when multiline)
-    VAL_PLAIN   = __(30), ///< mark val scalar as plain scalar (unquoted, even when multiline)
+    KEY_LITERAL = b_(21), ///< mark key scalar as multiline, block literal |
+    VAL_LITERAL = b_(22), ///< mark val scalar as multiline, block literal |
+    KEY_FOLDED  = b_(23), ///< mark key scalar as multiline, block folded >
+    VAL_FOLDED  = b_(24), ///< mark val scalar as multiline, block folded >
+    KEY_SQUO    = b_(25), ///< mark key scalar as single quoted '
+    VAL_SQUO    = b_(26), ///< mark val scalar as single quoted '
+    KEY_DQUO    = b_(27), ///< mark key scalar as double quoted "
+    VAL_DQUO    = b_(28), ///< mark val scalar as double quoted "
+    KEY_PLAIN   = b_(29), ///< mark key scalar as plain scalar (unquoted, even when multiline)
+    VAL_PLAIN   = b_(30), ///< mark val scalar as plain scalar (unquoted, even when multiline)
     //
     // type combination masks:
     //
@@ -184,10 +184,10 @@ typedef enum : type_bits { // NOLINT
     //
     // mixed masks
     /** @cond dev */
-    _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
-    _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
-    #undef __
-    #ifdef RYML_HAS_DEPRECATED_ENUMS__
+    KEYMASK_ = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
+    VALMASK_ = VAL | VALQUO | VALANCH | VALREF | VALTAG,
+    #undef b_
+    #ifdef RYML_HAS_DEPRECATED_ENUMS_
     FLOW_ML RYML_DEPRECATED("use one of FLOW_ML{1,N,X}") = FLOW_ML1,
     #endif
     /** @endcond */
@@ -195,7 +195,7 @@ typedef enum : type_bits { // NOLINT
 
 /** @cond dev */
 using NodeType_e RYML_DEPRECATED("use NodeTypeBits") = NodeTypeBits;
-#ifndef RYML_HAS_DEPRECATED_ENUMS__
+#ifndef RYML_HAS_DEPRECATED_ENUMS_
 // defined here because the current c++ standard / compiler cannot
 // handle deprecated enums
 RYML_DEPRECATED("use one of FLOW_ML{1,N,X}")
@@ -373,4 +373,4 @@ public: // deprecated methods
 C4_SUPPRESS_WARNING_MSVC_POP
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
-#endif /* _C4_YML_NODE_TYPE_HPP_ */
+#endif /* C4_YML_NODE_TYPE_HPP_ */

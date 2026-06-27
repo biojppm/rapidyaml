@@ -1,10 +1,10 @@
-#ifndef _C4_YML_SCALAR_STYLE_HPP_
+#ifndef C4_YML_SCALAR_STYLE_HPP_
 #include "c4/yml/scalar_style.hpp"
 #endif
-#ifndef _C4_YML_SCALAR_CHARCONV_HPP_
+#ifndef C4_YML_SCALAR_CHARCONV_HPP_
 #include "c4/yml/scalar_charconv.hpp"
 #endif
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
 
@@ -149,7 +149,7 @@ NodeType scalar_style_choose_block(csubstr scalar) noexcept
     {
         if(scalar_style_query_plain_block(scalar))
             return SCALAR_PLAIN;
-        _RYML_ASSERT_BASIC(scalar_style_query_squo(scalar)
+        RYML_ASSERT_BASIC_(scalar_style_query_squo(scalar)
                            && "if this assertion fires, please submit an issue!");
         return SCALAR_SQUO;
     }

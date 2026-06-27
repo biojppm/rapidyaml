@@ -14,6 +14,9 @@
 #include "./test_lib/callbacks_tester.hpp"
 
 RYML_DEFINE_TEST_MAIN()
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
+#endif
 
 namespace c4 {
 namespace yml {

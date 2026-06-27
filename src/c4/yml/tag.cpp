@@ -45,7 +45,7 @@ csubstr normalize_tag_long(csubstr tag, substr output)
     csubstr result = normalize_tag_long(tag);
     if(result.begins_with("!!"))
     {
-        _RYML_CHECK_BASIC(!output.overlaps(tag));
+        RYML_CHECK_BASIC_(!output.overlaps(tag));
         tag = tag.sub(2);
         const csubstr pfx = "<tag:yaml.org,2002:";
         const size_t len = pfx.len + tag.len + 1;
@@ -211,11 +211,11 @@ bool is_valid_tag_handle(csubstr handle)
 {
     if(handle.begins_with('!') && handle.ends_with('!'))
     {
-        _c4dbgpf("handle={}", _prs(handle, true));
+        _c4dbgpf("handle={}", prs_(handle, true));
         csubstr trimmed = handle.sub(1);
         if(trimmed.ends_with('!'))
             trimmed = trimmed.offs(0, 1);
-        _c4dbgpf("handle_trimmed={}", _prs(trimmed, true));
+        _c4dbgpf("handle_trimmed={}", prs_(trimmed, true));
         // https://yaml.org/spec/1.2.2/#rule-ns-word-char
         for(char c : trimmed)
         {
@@ -288,11 +288,11 @@ size_t transform_tag(substr output, csubstr handle, csubstr prefix, csubstr tag,
                      Callbacks const& callbacks, Location const& ymlloc,
                      bool with_brackets)
 {
-    _RYML_ASSERT_BASIC_(callbacks, tag.len >= handle.len);
-    _RYML_ASSERT_BASIC_(callbacks, !output.overlaps(tag));
-    _RYML_ASSERT_BASIC_(callbacks, prefix.len > 0);
+    RYML_ASSERT_BASIC_CB_(callbacks, tag.len >= handle.len);
+    RYML_ASSERT_BASIC_CB_(callbacks, !output.overlaps(tag));
+    RYML_ASSERT_BASIC_CB_(callbacks, prefix.len > 0);
     csubstr rest = tag.sub(handle.len);
-    _c4dbgpf("%TAG: rest={}", _prs(rest));
+    _c4dbgpf("%TAG: rest={}", prs_(rest));
     size_t rpos = 0, wpos = 0;
     auto appendstr = [&](csubstr s) {
         if(s.len && wpos + s.len <= output.len)
@@ -336,11 +336,11 @@ size_t transform_tag(substr output, csubstr handle, csubstr prefix, csubstr tag,
 err:
     if(ymlloc)
     {
-        _RYML_ERR_PARSE_(callbacks, ymlloc, errmsg);
+        RYML_ERR_PARSE_CB_(callbacks, ymlloc, errmsg);
     }
     else
     {
-        _RYML_ERR_BASIC_(callbacks, errmsg);
+        RYML_ERR_BASIC_CB_(callbacks, errmsg);
     }
 }
 
@@ -420,7 +420,7 @@ TagDirectiveRange TagDirectives::lookup_range(id_type doc_id) const noexcept
 
 TagDirective const* TagDirectives::lookup(csubstr tag, id_type doc_id) const noexcept
 {
-    _c4dbgpf("tagd: searching for {}, doc_id={}", _prs(tag), doc_id);
+    _c4dbgpf("tagd: searching for {}, doc_id={}", prs_(tag), doc_id);
     for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
     {
         TagDirective const& C4_RESTRICT td = m_directives[i];
@@ -450,7 +450,7 @@ TagDirective const* TagDirectives::lookup(csubstr tag, id_type doc_id) const noe
 
 csubstr TagDirectives::resolve(substr buf, size_t *bufsz, csubstr tag, id_type id, Location const& ymlloc, Callbacks const& callbacks, bool with_brackets) const
 {
-    _RYML_ASSERT_BASIC_(callbacks, !buf.overlaps(tag));
+    RYML_ASSERT_BASIC_CB_(callbacks, !buf.overlaps(tag));
     TagDirective const* C4_RESTRICT td = lookup(tag, id);
     *bufsz = 0;
     csubstr handle, prefix, ret;
@@ -526,11 +526,11 @@ csubstr TagDirectives::resolve(substr buf, size_t *bufsz, csubstr tag, id_type i
 err:
     if(ymlloc)
     {
-        _RYML_ERR_PARSE_(callbacks, ymlloc, errmsg);
+        RYML_ERR_PARSE_CB_(callbacks, ymlloc, errmsg);
     }
     else
     {
-        _RYML_ERR_BASIC_(callbacks, errmsg);
+        RYML_ERR_BASIC_CB_(callbacks, errmsg);
     }
 }
 
@@ -567,12 +567,12 @@ TagCache::LookupResult TagCache::find(csubstr tag, id_type doc_id, id_type linea
         {
             id_type halfsz = count / id_type(2); // NOLINT(*avoid-c-style-cast)
             id_type mid = first + halfsz;
-            _RYML_ASSERT_BASIC_(m_entries.m_callbacks, mid < sz);
+            RYML_ASSERT_BASIC_CB_(m_entries.m_callbacks, mid < sz);
             Entry const& C4_RESTRICT e = m_entries[mid];
             if(e.tag < tag || (e.tag == tag && e.doc_id < doc_id))
             {
                 first = mid + 1;
-                _RYML_ASSERT_BASIC_(m_entries.m_callbacks, count >= halfsz + 1);
+                RYML_ASSERT_BASIC_CB_(m_entries.m_callbacks, count >= halfsz + 1);
                 count -= halfsz + 1;
             }
             else
@@ -596,15 +596,15 @@ TagCache::LookupResult TagCache::find(csubstr tag, id_type doc_id, id_type linea
 void TagCache::add(csubstr tag, csubstr resolved, id_type doc_id, const_iterator pos) RYML_NOEXCEPT
 {
     const id_type sz = m_entries.size();
-    _RYML_ASSERT_BASIC_(m_entries.m_callbacks, pos <= sz);
-    _RYML_ASSERT_BASIC_(m_entries.m_callbacks, pos == sz || tag < m_entries[pos].tag || (tag == m_entries[pos].tag && doc_id < m_entries[pos].doc_id));
+    RYML_ASSERT_BASIC_CB_(m_entries.m_callbacks, pos <= sz);
+    RYML_ASSERT_BASIC_CB_(m_entries.m_callbacks, pos == sz || tag < m_entries[pos].tag || (tag == m_entries[pos].tag && doc_id < m_entries[pos].doc_id));
     m_entries.resize(sz + 1);
     if(pos < sz)
         memmove(m_entries.m_stack + pos + 1, m_entries.m_stack + pos, (sz - pos) * sizeof(Entry));
     m_entries.m_stack[pos].tag = tag;
     m_entries.m_stack[pos].resolved = resolved;
     m_entries.m_stack[pos].doc_id = doc_id;
-    _c4dbgpf("tagcache: add entry @pos={}:  docid={}  {} -> {}", pos, doc_id, tag, _maybe_null_str(resolved));
+    _c4dbgpf("tagcache: add entry @pos={}:  docid={}  {} -> {}", pos, doc_id, tag, maybe_null_str_(resolved));
 }
 
 } // namespace yml

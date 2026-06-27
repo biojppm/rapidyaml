@@ -1,5 +1,5 @@
-#ifndef _C4_YML_VERSION_HPP_
-#define _C4_YML_VERSION_HPP_
+#ifndef C4_YML_VERSION_HPP_
+#define C4_YML_VERSION_HPP_
 
 /** @file version.hpp */
 
@@ -22,4 +22,4 @@ RYML_EXPORT int version_patch();
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_VERSION_HPP_ */
+#endif /* C4_YML_VERSION_HPP_ */

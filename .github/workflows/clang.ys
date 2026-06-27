@@ -70,13 +70,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - {std: 23, cxx: 22, bits: 64, vg: ON , img: 24.04}
-        - {std: 23, cxx: 22, bits: 32, vg: ON , img: 24.04}
-        - {std: 20, cxx: 22, bits: 64, vg: ON , img: 24.04}
-        - {std: 17, cxx: 22, bits: 64, vg: ON , img: 24.04}
-        - {std: 14, cxx: 22, bits: 64, vg: ON , img: 24.04}
-        - {std: 11, cxx: 22, bits: 64, vg: ON , img: 24.04}
-        - {std: 11, cxx: 22, bits: 32, vg: ON , img: 24.04}
+        - {std: 23, cxx: 22, bits: 64, vg: ON , img: 24.04, flags: ' -Wreserved-identifier '}
+        - {std: 23, cxx: 22, bits: 32, vg: ON , img: 24.04, flags: ' -Wreserved-identifier '}
+        - {std: 20, cxx: 22, bits: 64, vg: ON , img: 24.04, flags: ' -Wreserved-identifier '}
+        - {std: 17, cxx: 22, bits: 64, vg: ON , img: 24.04, flags: ' -Wreserved-identifier '}
+        - {std: 14, cxx: 22, bits: 64, vg: ON , img: 24.04, flags: ' -Wreserved-identifier '}
+        - {std: 11, cxx: 22, bits: 64, vg: ON , img: 24.04, flags: ' -Wreserved-identifier '}
+        - {std: 11, cxx: 22, bits: 32, vg: ON , img: 24.04, flags: ' -Wreserved-identifier '}
     env:: load('share/env.yaml')
 
   extstrategy =::
@@ -119,9 +119,9 @@ jobs:
           c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}}
-      - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}} ${{matrix.flags}}')
+      - :: run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
+      - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
 
   vgextended2:
     :: setup-dependent-job('clang' 'vgextended2')
@@ -135,8 +135,8 @@ jobs:
           c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}}
-      - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
+      - :: run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
 
   # without valgrind
   extended1:
@@ -151,9 +151,9 @@ jobs:
           c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}}
-      - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Debug'                '-m${{matrix.bits}} ${{matrix.flags}}')
+      - :: run-clang-manual-with-flags('Release' '-Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
+      - :: run-clang-manual-with-flags('Release' '-O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
 
   extended2:
     :: setup-dependent-job('clang' 'extended2')
@@ -167,8 +167,8 @@ jobs:
           c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}} \
           || c4core-install clang++-${{matrix.cxx}}
-      - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}}')
-      - :: run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}}')
+      - :: run-clang-manual-with-flags('Release' '-O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
+      - :: run-clang-manual-with-flags('Release' '-O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}')
 
 
   #----------------------------------------------------------------------------

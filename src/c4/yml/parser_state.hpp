@@ -1,7 +1,7 @@
-#ifndef _C4_YML_PARSER_STATE_HPP_
-#define _C4_YML_PARSER_STATE_HPP_
+#ifndef C4_YML_PARSER_STATE_HPP_
+#define C4_YML_PARSER_STATE_HPP_
 
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
 
@@ -65,14 +65,14 @@ struct LineContents
 
     void reset_with_next_line(substr buf, size_t start) RYML_NOEXCEPT
     {
-        _RYML_ASSERT_BASIC(start <= buf.len);
+        RYML_ASSERT_BASIC_(start <= buf.len);
         size_t end = start;
         // get the current line stripped of newline chars
         while((end < buf.len) && (buf.str[end] != '\n'))
             ++end;
         if(end < buf.len)
         {
-            _RYML_ASSERT_BASIC(buf[end] == '\n');
+            RYML_ASSERT_BASIC_(buf[end] == '\n');
             full = buf.range(start, end + 1);
             rem = buf.range(start, end);
         }
@@ -84,21 +84,21 @@ struct LineContents
         size_t pos = rem.last_not_of('\r');
         rem.len = (pos != npos) ? pos + 1 : 0;
         num_cols = rem.len;
-        _RYML_ASSERT_BASIC(rem.find('\r') == npos);
+        RYML_ASSERT_BASIC_(rem.find('\r') == npos);
         // TODO move this to the parser state
         indentation = rem.first_not_of(' ');  // find the first column where the character is not a space
     }
 
     C4_ALWAYS_INLINE size_t current_col() const RYML_NOEXCEPT
     {
-        _RYML_ASSERT_BASIC(rem.str >= full.str);
+        RYML_ASSERT_BASIC_(rem.str >= full.str);
         return static_cast<size_t>(rem.str - full.str);
     }
 
     C4_ALWAYS_INLINE size_t current_col(csubstr s) const RYML_NOEXCEPT
     {
-        _RYML_ASSERT_BASIC(s.str >= full.str);
-        _RYML_ASSERT_BASIC(s.str <= rem.end());
+        RYML_ASSERT_BASIC_(s.str >= full.str);
+        RYML_ASSERT_BASIC_(s.str <= rem.end());
         return static_cast<size_t>(s.str - full.str);
     }
 };
@@ -160,53 +160,53 @@ public:
     }
     C4_ALWAYS_INLINE bool at_first_token() const noexcept
     {
-        _RYML_ASSERT_BASIC(line_contents.indentation != npos);
+        RYML_ASSERT_BASIC_(line_contents.indentation != npos);
         return pos.col == line_contents.indentation + 1;
     }
     C4_ALWAYS_INLINE bool indentation_eq() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation == indref;
     }
     C4_ALWAYS_INLINE bool indentation_eq_extra() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation == indref + 1u;
     }
     C4_ALWAYS_INLINE bool indentation_ge() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation >= indref;
     }
     C4_ALWAYS_INLINE bool indentation_ge_extra() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation >= indref + 1u;
     }
     C4_ALWAYS_INLINE bool indentation_gt() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation > indref;
     }
     C4_ALWAYS_INLINE bool indentation_gt_extra() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation > indref + 1u;
     }
     C4_ALWAYS_INLINE bool indentation_lt() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos && line_contents.indentation < indref;
     }
     C4_ALWAYS_INLINE bool indentation_lt_extra() const noexcept
     {
-        _RYML_ASSERT_BASIC(indref != npos);
+        RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation < indref + 1u;
     }
@@ -219,4 +219,4 @@ static_assert(std::is_standard_layout<ParserState>::value, "ParserState not stan
 
 // NOLINTEND(hicpp-signed-bitwise)
 
-#endif /* _C4_YML_PARSER_STATE_HPP_ */
+#endif /* C4_YML_PARSER_STATE_HPP_ */

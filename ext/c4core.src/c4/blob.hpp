@@ -1,13 +1,13 @@
-#ifndef _C4_BLOB_HPP_
-#define _C4_BLOB_HPP_
+#ifndef C4_BLOB_HPP_
+#define C4_BLOB_HPP_
 
-#ifndef _C4_ERROR_HPP_
+#ifndef C4_ERROR_HPP_
 #include "c4/error.hpp"
 #endif
-#ifndef _C4_TYPES_HPP_
+#ifndef C4_TYPES_HPP_
 #include "c4/types.hpp"
 #endif
-#ifndef _C4_MEMORY_UTIL_HPP_
+#ifndef C4_MEMORY_UTIL_HPP_
 #include "c4/memory_util.hpp"
 #endif
 
@@ -54,13 +54,13 @@ public:
     C4_ALWAYS_INLINE blob_(void       *ptr, size_t n) noexcept : buf(reinterpret_cast<T*>(ptr)), len(n) {} // NOLINT
     C4_ALWAYS_INLINE blob_(void const *ptr, size_t n) noexcept : buf(reinterpret_cast<T*>(ptr)), len(n) {} // NOLINT
 
-    #define _C4_REQUIRE_BLOBTYPE(ty) typename std::enable_if<((!detail::is_blob_type<ty>::value) && (detail::is_blob_value_type<ty>::value)), T>::type
-    template<class U, class=_C4_REQUIRE_BLOBTYPE(U)> C4_ALWAYS_INLINE blob_(U &var) noexcept : buf(reinterpret_cast<T*>(&var)), len(sizeof(U)) {} // NOLINT
-    template<class U, class=_C4_REQUIRE_BLOBTYPE(U)> C4_ALWAYS_INLINE blob_(U *ptr, size_t n) noexcept : buf(reinterpret_cast<T*>(ptr)), len(sizeof(U) * n) { C4_ASSERT(is_aligned(ptr)); } // NOLINT
-    template<class U, class=_C4_REQUIRE_BLOBTYPE(U)> C4_ALWAYS_INLINE blob_& operator= (U &var) noexcept { buf = reinterpret_cast<T*>(&var); len = sizeof(U); return *this; } // NOLINT
-    template<class U, size_t N, class=_C4_REQUIRE_BLOBTYPE(U)> C4_ALWAYS_INLINE blob_(U (&arr)[N]) noexcept : buf(reinterpret_cast<T*>(arr)), len(sizeof(U) * N) {} // NOLINT
-    template<class U, size_t N, class=_C4_REQUIRE_BLOBTYPE(U)> C4_ALWAYS_INLINE blob_& operator= (U (&arr)[N]) noexcept { buf = reinterpret_cast<T*>(arr); len = sizeof(U) * N; return *this; } // NOLINT
-    #undef _C4_REQUIRE_BLOBTYPE
+    #define C4_REQUIRE_BLOBTYPE_(ty) typename std::enable_if<((!detail::is_blob_type<ty>::value) && (detail::is_blob_value_type<ty>::value)), T>::type
+    template<class U, class=C4_REQUIRE_BLOBTYPE_(U)> C4_ALWAYS_INLINE blob_(U &var) noexcept : buf(reinterpret_cast<T*>(&var)), len(sizeof(U)) {} // NOLINT
+    template<class U, class=C4_REQUIRE_BLOBTYPE_(U)> C4_ALWAYS_INLINE blob_(U *ptr, size_t n) noexcept : buf(reinterpret_cast<T*>(ptr)), len(sizeof(U) * n) { C4_ASSERT(is_aligned(ptr)); } // NOLINT
+    template<class U, class=C4_REQUIRE_BLOBTYPE_(U)> C4_ALWAYS_INLINE blob_& operator= (U &var) noexcept { buf = reinterpret_cast<T*>(&var); len = sizeof(U); return *this; } // NOLINT
+    template<class U, size_t N, class=C4_REQUIRE_BLOBTYPE_(U)> C4_ALWAYS_INLINE blob_(U (&arr)[N]) noexcept : buf(reinterpret_cast<T*>(arr)), len(sizeof(U) * N) {} // NOLINT
+    template<class U, size_t N, class=C4_REQUIRE_BLOBTYPE_(U)> C4_ALWAYS_INLINE blob_& operator= (U (&arr)[N]) noexcept { buf = reinterpret_cast<T*>(arr); len = sizeof(U) * N; return *this; } // NOLINT
+    #undef C4_REQUIRE_BLOBTYPE_
 };
 
 // NOLINTEND(cppcoreguidelines-special-member-functions,hicpp-special-member-functions)
@@ -75,4 +75,4 @@ C4_MUST_BE_TRIVIAL_COPY(cblob);
 
 } // namespace c4
 
-#endif // _C4_BLOB_HPP_
+#endif // C4_BLOB_HPP_

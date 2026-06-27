@@ -1,5 +1,5 @@
-#ifndef _C4_TYPES_HPP_
-#define _C4_TYPES_HPP_
+#ifndef C4_TYPES_HPP_
+#define C4_TYPES_HPP_
 
 #include <stdint.h>
 #include <stddef.h>
@@ -162,7 +162,7 @@ struct Padded : public T
     using T::operator=;
     Padded(T const& val) : T(val) {}
     Padded(T && val) : T(std::forward<T>(val)) {} // NOLINT
-    char ___c4padspace___[BytesToPadAtEnd];
+    char Padded_pad_space_[BytesToPadAtEnd];
 };
 #pragma pack(pop)
 /** When the padding argument is 0, we cannot declare the char[] array. */
@@ -504,4 +504,4 @@ using index_sequence_for = make_index_sequence<sizeof...(_Tp)>;
 
 // NOLINTEND(bugprone-macro-parentheses)
 
-#endif /* _C4_TYPES_HPP_ */
+#endif /* C4_TYPES_HPP_ */

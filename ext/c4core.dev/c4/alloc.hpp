@@ -1,5 +1,5 @@
-#ifndef _C4_ALLOC_HPP_
-#define _C4_ALLOC_HPP_
+#ifndef C4_ALLOC_HPP_
+#define C4_ALLOC_HPP_
 
 /** @file alloc.hpp Provides c-style facilities to allocate raw
  *  memory. This API provides aligned allocation functions, forwarding

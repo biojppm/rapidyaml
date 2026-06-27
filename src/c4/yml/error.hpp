@@ -1,12 +1,12 @@
-#ifndef _C4_YML_ERROR_HPP_
-#define _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
+#define C4_YML_ERROR_HPP_
 
 /** @file error.hpp Error utilities used by ryml. */
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include <c4/yml/common.hpp>
 #endif
-#ifndef _C4_CHARCONV_HPP_
+#ifndef C4_CHARCONV_HPP_
 #include <c4/charconv.hpp>
 #endif
 
@@ -14,7 +14,7 @@
 
 /// @cond dev
 #if (defined(C4_EXCEPTIONS) && (!defined(RYML_NO_DEFAULT_CALLBACKS) && defined(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS))) || defined(__DOXYGEN__)
-#define _RYML_WITH_EXCEPTIONS
+#define RYML_WITH_EXCEPTIONS_
 #endif
 #if defined(RYML_DBG) && !defined(NDEBUG) && !defined(C4_NO_DEBUG_BREAK)
 #   define RYML_DEBUG_BREAK()                               \
@@ -29,7 +29,7 @@
 #endif
 /// @endcond
 
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
 #include <exception>
 #endif
 
@@ -41,11 +41,11 @@ namespace yml {
 /// @cond dev
 
 namespace detail {
-struct _SubstrWriter
+struct SubstrWriter_
 {
     substr buf;
     size_t pos;
-    _SubstrWriter(substr buf_, size_t pos_=0) noexcept : buf(buf_), pos(pos_) { C4_ASSERT(buf.str || !buf.len); }
+    SubstrWriter_(substr buf_, size_t pos_=0) noexcept : buf(buf_), pos(pos_) { C4_ASSERT(buf.str || !buf.len); }
     void append(csubstr s) RYML_NOEXCEPT
     {
         C4_ASSERT(!s.overlaps(buf));
@@ -157,7 +157,7 @@ C4_NO_INLINE void _dump(DumpFn &&dumpfn, substr argbuf, csubstr fmt, Arg const& 
 template<class ...Args>
 C4_NO_INLINE csubstr _mk_err_msg(substr buf, csubstr fmt, Args const& ...args)
 {
-    detail::_SubstrWriter writer(buf);
+    detail::SubstrWriter_ writer(buf);
     auto dumpfn = [&writer](csubstr s){ writer.append(s); };
     char writebuf[RYML_LOGBUF_SIZE];
     _dump(dumpfn, writebuf, fmt, args...);
@@ -462,7 +462,7 @@ C4_NORETURN C4_NO_INLINE void err_visit(ErrorDataVisit const& errdata, const cha
 
 //-----------------------------------------------------------------------------
 
-#if defined(_RYML_WITH_EXCEPTIONS) || defined(__DOXYGEN__)
+#if defined(RYML_WITH_EXCEPTIONS_) || defined(__DOXYGEN__)
 
 /** Exception thrown by the default basic error implementation. To
  * obtain the full error message, use @ref err_basic_format(), or the
@@ -567,7 +567,7 @@ CharContainer format_exc(ExceptionT const& exc)
     return str;
 }
 
-#endif // _RYML_WITH_EXCEPTIONS
+#endif // RYML_WITH_EXCEPTIONS_
 
 /** @} */
 
@@ -580,48 +580,48 @@ CharContainer format_exc(ExceptionT const& exc)
 
 
 #if RYML_USE_ASSERT
-#   define _RYML_ASSERT_BASIC(cond) _RYML_CHECK_BASIC(cond)
-#   define _RYML_ASSERT_BASIC_(cb, cond) _RYML_CHECK_BASIC_((cb), cond)
-#   define _RYML_ASSERT_BASIC_MSG(cond, ...) _RYML_CHECK_BASIC_MSG(cond, __VA_ARGS__)
-#   define _RYML_ASSERT_BASIC_MSG_(cb, cond, ...) _RYML_CHECK_BASIC_MSG_((cb), cond, __VA_ARGS__)
-#   define _RYML_ASSERT_PARSE(cond, ymlloc) _RYML_CHECK_PARSE(cond, (ymlloc))
-#   define _RYML_ASSERT_PARSE_(cb, cond, ymlloc) _RYML_CHECK_PARSE_((cb), cond, (ymlloc))
-#   define _RYML_ASSERT_PARSE_MSG(cond, ymlloc, ...) _RYML_CHECK_PARSE_MSG(cond, (ymlloc), __VA_ARGS__)
-#   define _RYML_ASSERT_PARSE_MSG_(cb, cond, ymlloc, ...) _RYML_CHECK_PARSE_MSG_((cb), cond, (ymlloc), __VA_ARGS__)
-#   define _RYML_ASSERT_VISIT(cond, tree, node) _RYML_CHECK_VISIT(cond, (tree), (node))
-#   define _RYML_ASSERT_VISIT_(cb, cond, tree, node) _RYML_CHECK_VISIT_((cb), cond, (tree), (node))
-#   define _RYML_ASSERT_VISIT_MSG(cond, tree, node, ...) _RYML_CHECK_VISIT_MSG(cond, (tree), (node), __VA_ARGS__)
-#   define _RYML_ASSERT_VISIT_MSG_(cb, cond, tree, node, ...) _RYML_CHECK_VISIT_MSG_((cb), cond, (tree), (node), __VA_ARGS__)
+#   define RYML_ASSERT_BASIC_(cond) RYML_CHECK_BASIC_(cond)
+#   define RYML_ASSERT_BASIC_CB_(cb, cond) RYML_CHECK_BASIC_CB_((cb), cond)
+#   define RYML_ASSERT_BASIC_MSG_(cond, ...) RYML_CHECK_BASIC_CB_MSG_(cond, __VA_ARGS__)
+#   define RYML_ASSERT_BASIC_MSG_CB_(cb, cond, ...) RYML_CHECK_BASIC_MSG_CB_((cb), cond, __VA_ARGS__)
+#   define RYML_ASSERT_PARSE_(cond, ymlloc) RYML_CHECK_PARSE_(cond, (ymlloc))
+#   define RYML_ASSERT_PARSE_CB_(cb, cond, ymlloc) RYML_CHECK_PARSE_CB_((cb), cond, (ymlloc))
+#   define RYML_ASSERT_PARSE_MSG_(cond, ymlloc, ...) RYML_CHECK_PARSE_CB_MSG_(cond, (ymlloc), __VA_ARGS__)
+#   define RYML_ASSERT_PARSE_MSG_CB_(cb, cond, ymlloc, ...) RYML_CHECK_PARSE_MSG_CB_((cb), cond, (ymlloc), __VA_ARGS__)
+#   define RYML_ASSERT_VISIT_(cond, tree, node) RYML_CHECK_VISIT_(cond, (tree), (node))
+#   define RYML_ASSERT_VISIT_CB_(cb, cond, tree, node) RYML_CHECK_VISIT_CB_((cb), cond, (tree), (node))
+#   define RYML_ASSERT_VISIT_MSG_(cond, tree, node, ...) RYML_CHECK_VISIT_CB_MSG_(cond, (tree), (node), __VA_ARGS__)
+#   define RYML_ASSERT_VISIT_MSG_CB_(cb, cond, tree, node, ...) RYML_CHECK_VISIT_MSG_CB_((cb), cond, (tree), (node), __VA_ARGS__)
 #else
-#   define _RYML_ASSERT_BASIC(cond)
-#   define _RYML_ASSERT_BASIC_(cb, cond)
-#   define _RYML_ASSERT_BASIC_MSG(cond, ...)
-#   define _RYML_ASSERT_BASIC_MSG_(cb, cond, ...)
-#   define _RYML_ASSERT_PARSE(cond, ymlloc)
-#   define _RYML_ASSERT_PARSE_(cb, cond, ymlloc)
-#   define _RYML_ASSERT_PARSE_MSG(cond, ymlloc, ...)
-#   define _RYML_ASSERT_PARSE_MSG_(cb, cond, ymlloc, ...)
-#   define _RYML_ASSERT_VISIT(cont, tree, node)
-#   define _RYML_ASSERT_VISIT_(cb, cont, tree, node)
-#   define _RYML_ASSERT_VISIT_MSG(cont, tree, node, ...)
-#   define _RYML_ASSERT_VISIT_MSG_(cb, cont, tree, node, ...)
+#   define RYML_ASSERT_BASIC_(cond)
+#   define RYML_ASSERT_BASIC_CB_(cb, cond)
+#   define RYML_ASSERT_BASIC_MSG_(cond, ...)
+#   define RYML_ASSERT_BASIC_MSG_CB_(cb, cond, ...)
+#   define RYML_ASSERT_PARSE_(cond, ymlloc)
+#   define RYML_ASSERT_PARSE_CB_(cb, cond, ymlloc)
+#   define RYML_ASSERT_PARSE_MSG_(cond, ymlloc, ...)
+#   define RYML_ASSERT_PARSE_MSG_CB_(cb, cond, ymlloc, ...)
+#   define RYML_ASSERT_VISIT_(cont, tree, node)
+#   define RYML_ASSERT_VISIT_CB_(cb, cont, tree, node)
+#   define RYML_ASSERT_VISIT_MSG_(cont, tree, node, ...)
+#   define RYML_ASSERT_VISIT_MSG_CB_(cb, cont, tree, node, ...)
 #endif
 
-#define _RYML_ERR_BASIC(...)                                            \
+#define RYML_ERR_BASIC_(...)                                            \
     do                                                                  \
     {                                                                   \
         RYML_DEBUG_BREAK();                                             \
         ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), __VA_ARGS__); \
         C4_UNREACHABLE_AFTER_ERR();                                     \
     } while(false)
-#define _RYML_ERR_PARSE(ymlloc, ...)                                    \
+#define RYML_ERR_PARSE_(ymlloc, ...)                                    \
     do                                                                  \
     {                                                                   \
         RYML_DEBUG_BREAK();                                             \
         ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), __VA_ARGS__); \
         C4_UNREACHABLE_AFTER_ERR();                                     \
     } while(false)
-#define _RYML_ERR_VISIT(tree, node, ...)                                \
+#define RYML_ERR_VISIT_(tree, node, ...)                                \
     do                                                                  \
     {                                                                   \
         RYML_DEBUG_BREAK();                                             \
@@ -630,21 +630,21 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 
 
-#define _RYML_ERR_BASIC_(cb, ...)                                       \
+#define RYML_ERR_BASIC_CB_(cb, ...)                                     \
     do                                                                  \
     {                                                                   \
         RYML_DEBUG_BREAK();                                             \
         ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), __VA_ARGS__); \
         C4_UNREACHABLE_AFTER_ERR();                                     \
     } while(false)
-#define _RYML_ERR_PARSE_(cb, ymlloc, ...)                               \
+#define RYML_ERR_PARSE_CB_(cb, ymlloc, ...)                             \
     do                                                                  \
     {                                                                   \
         RYML_DEBUG_BREAK();                                             \
         ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), __VA_ARGS__); \
         C4_UNREACHABLE_AFTER_ERR();                                     \
     } while(false)
-#define _RYML_ERR_VISIT_(cb, tree, node, ...)                           \
+#define RYML_ERR_VISIT_CB_(cb, tree, node, ...)                         \
     do                                                                  \
     {                                                                   \
         RYML_DEBUG_BREAK();                                             \
@@ -654,124 +654,124 @@ CharContainer format_exc(ExceptionT const& exc)
 
 
 #ifndef RYML_SHORT_CHECK_MSG
-#define _RYML_MAYBE_MSG(cond) ": " #cond
-#define _RYML_MAYBE_MSG_(cond) ": " #cond ": "
+#define RYML_MAYBE_MSG_(cond) ": " #cond
+#define RYML_MAYBE_MSG_CB_(cond) ": " #cond ": "
 #else
-#define _RYML_MAYBE_MSG(cond)
-#define _RYML_MAYBE_MSG_(cond) ": "
+#define RYML_MAYBE_MSG_(cond)
+#define RYML_MAYBE_MSG_CB_(cond) ": "
 #endif
 
-#define _RYML_CHECK_BASIC(cond)                                         \
+#define RYML_CHECK_BASIC_(cond)                                         \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG(cond)); \
+            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
-#define _RYML_CHECK_PARSE(cond, ymlloc)                                 \
+#define RYML_CHECK_PARSE_(cond, ymlloc)                                 \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG(cond)); \
+            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
-#define _RYML_CHECK_VISIT(cond, tree, node)                             \
+#define RYML_CHECK_VISIT_(cond, tree, node)                             \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG(cond)); \
-            C4_UNREACHABLE_AFTER_ERR();                                 \
-        }                                                               \
-    } while(false)
-
-
-#define _RYML_CHECK_BASIC_(cb, cond)                                    \
-    do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
-        {                                                               \
-            RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG(cond)); \
-            C4_UNREACHABLE_AFTER_ERR();                                 \
-        }                                                               \
-    } while(false)
-#define _RYML_CHECK_PARSE_(cb, cond, ymlloc)                            \
-    do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
-        {                                                               \
-            RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG(cond)); \
-            C4_UNREACHABLE_AFTER_ERR();                                 \
-        }                                                               \
-    } while(false)
-#define _RYML_CHECK_VISIT_(cb, cond, tree, node)                        \
-    do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
-        {                                                               \
-            RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG(cond)); \
+            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
 
 
-#define _RYML_CHECK_BASIC_MSG(cond, ...)                                \
+#define RYML_CHECK_BASIC_CB_(cb, cond)                                  \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
+            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
-#define _RYML_CHECK_PARSE_MSG(cond, ymlloc, ...)                        \
+#define RYML_CHECK_PARSE_CB_(cb, cond, ymlloc)                          \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
+            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
-#define _RYML_CHECK_VISIT_MSG(cond, tree, node, ...)                    \
+#define RYML_CHECK_VISIT_CB_(cb, cond, tree, node)                      \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
+            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_(cond)); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
 
 
-#define _RYML_CHECK_BASIC_MSG_(cb, cond, ...)                           \
+#define RYML_CHECK_BASIC_CB_MSG_(cond, ...)                             \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
+            ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
-#define _RYML_CHECK_PARSE_MSG_(cb, cond, ymlloc, ...)                   \
+#define RYML_CHECK_PARSE_CB_MSG_(cond, ymlloc, ...)                     \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
+            ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
-#define _RYML_CHECK_VISIT_MSG_(cb, cond, tree, node, ...)               \
+#define RYML_CHECK_VISIT_CB_MSG_(cond, tree, node, ...)                 \
     do {                                                                \
         if(C4_UNLIKELY(!(cond)))                                        \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
-            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" _RYML_MAYBE_MSG_(cond) __VA_ARGS__); \
+            ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
+            C4_UNREACHABLE_AFTER_ERR();                                 \
+        }                                                               \
+    } while(false)
+
+
+#define RYML_CHECK_BASIC_MSG_CB_(cb, cond, ...)                         \
+    do {                                                                \
+        if(C4_UNLIKELY(!(cond)))                                        \
+        {                                                               \
+            RYML_DEBUG_BREAK();                                         \
+            ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
+            C4_UNREACHABLE_AFTER_ERR();                                 \
+        }                                                               \
+    } while(false)
+#define RYML_CHECK_PARSE_MSG_CB_(cb, cond, ymlloc, ...)                 \
+    do {                                                                \
+        if(C4_UNLIKELY(!(cond)))                                        \
+        {                                                               \
+            RYML_DEBUG_BREAK();                                         \
+            ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
+            C4_UNREACHABLE_AFTER_ERR();                                 \
+        }                                                               \
+    } while(false)
+#define RYML_CHECK_VISIT_MSG_CB_(cb, cond, tree, node, ...)             \
+    do {                                                                \
+        if(C4_UNLIKELY(!(cond)))                                        \
+        {                                                               \
+            RYML_DEBUG_BREAK();                                         \
+            ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
             C4_UNREACHABLE_AFTER_ERR();                                 \
         }                                                               \
     } while(false)
@@ -781,4 +781,4 @@ CharContainer format_exc(ExceptionT const& exc)
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_ERROR_HPP_ */
+#endif /* C4_YML_ERROR_HPP_ */

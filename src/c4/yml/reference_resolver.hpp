@@ -1,5 +1,5 @@
-#ifndef _C4_YML_REFERENCE_RESOLVER_HPP_
-#define _C4_YML_REFERENCE_RESOLVER_HPP_
+#ifndef C4_YML_REFERENCE_RESOLVER_HPP_
+#define C4_YML_REFERENCE_RESOLVER_HPP_
 
 #include "c4/yml/tree.hpp"
 #include "c4/yml/detail/stack.hpp"
@@ -67,7 +67,7 @@ public:
     void reset_(Tree *t_);
     void resolve_();
     void gather_anchors_and_refs_();
-    void gather_anchors_and_refs__(id_type n);
+    void gather_anchors_and_refs_(id_type n);
     id_type count_anchors_and_refs_(id_type n);
 
     id_type lookup_(RefData const* C4_RESTRICT ra);
@@ -85,4 +85,4 @@ public:
 } // namespace c4
 
 
-#endif // _C4_YML_REFERENCE_RESOLVER_HPP_
+#endif // C4_YML_REFERENCE_RESOLVER_HPP_

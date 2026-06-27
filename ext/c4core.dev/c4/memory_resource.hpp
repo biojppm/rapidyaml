@@ -1,5 +1,5 @@
-#ifndef _C4_MEMORY_RESOURCE_HPP_
-#define _C4_MEMORY_RESOURCE_HPP_
+#ifndef C4_MEMORY_RESOURCE_HPP_
+#define C4_MEMORY_RESOURCE_HPP_
 
 /** @file memory_resource.hpp Provides facilities to allocate typeless
  *  memory, via the memory resource model consecrated with C++17. */
@@ -145,23 +145,23 @@ protected:
 
 /** Provides common facilities for memory resource consisting of a single memory block
  * @ingroup memory_resources */
-struct C4CORE_EXPORT _MemoryResourceSingleChunk : public DerivedMemoryResource
+struct C4CORE_EXPORT MemoryResourceSingleChunk_ : public DerivedMemoryResource
 {
 
-    C4_NO_COPY_OR_MOVE(_MemoryResourceSingleChunk);
+    C4_NO_COPY_OR_MOVE(MemoryResourceSingleChunk_);
 
     using impl_type = DerivedMemoryResource;
 
 public:
 
-    _MemoryResourceSingleChunk(MemoryResource *impl=nullptr) : DerivedMemoryResource(impl) { name = "linear_malloc"; }
+    MemoryResourceSingleChunk_(MemoryResource *impl=nullptr) : DerivedMemoryResource(impl) { name = "linear_malloc"; }
 
     /** initialize with owned memory, allocated from the given (or the global) memory resource */
-    _MemoryResourceSingleChunk(size_t sz, MemoryResource *impl=nullptr) : _MemoryResourceSingleChunk(impl) { acquire(sz); }
+    MemoryResourceSingleChunk_(size_t sz, MemoryResource *impl=nullptr) : MemoryResourceSingleChunk_(impl) { acquire(sz); }
     /** initialize with borrowed memory */
-    _MemoryResourceSingleChunk(void *mem, size_t sz) : _MemoryResourceSingleChunk() { acquire(mem, sz); }
+    MemoryResourceSingleChunk_(void *mem, size_t sz) : MemoryResourceSingleChunk_() { acquire(mem, sz); }
 
-    ~_MemoryResourceSingleChunk() override { release(); }
+    ~MemoryResourceSingleChunk_() override { release(); }
 
 public:
 
@@ -205,14 +205,14 @@ public:
  * malloc/free take place.
  *
  * @ingroup memory_resources */
-struct C4CORE_EXPORT MemoryResourceLinear : public detail::_MemoryResourceSingleChunk // NOLINT(*-member-functions)
+struct C4CORE_EXPORT MemoryResourceLinear : public detail::MemoryResourceSingleChunk_ // NOLINT(*-member-functions)
 {
 
     C4_NO_COPY_OR_MOVE(MemoryResourceLinear);
 
 public:
 
-    using detail::_MemoryResourceSingleChunk::_MemoryResourceSingleChunk;
+    using detail::MemoryResourceSingleChunk_::MemoryResourceSingleChunk_;
 
 protected:
 
@@ -426,4 +426,4 @@ struct C4CORE_EXPORT ScopedMemoryResourceCounts // NOLINT(*-member-functions)
 
 } // namespace c4
 
-#endif /* _C4_MEMORY_RESOURCE_HPP_ */
+#endif /* C4_MEMORY_RESOURCE_HPP_ */

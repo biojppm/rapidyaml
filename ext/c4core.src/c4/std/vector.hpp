@@ -1,5 +1,5 @@
-#ifndef _C4_STD_VECTOR_HPP_
-#define _C4_STD_VECTOR_HPP_
+#ifndef C4_STD_VECTOR_HPP_
+#define C4_STD_VECTOR_HPP_
 
 /** @file vector.hpp provides conversion and comparison facilities
  * from/between std::vector<char> to c4::substr and c4::csubstr.
@@ -90,4 +90,4 @@ inline bool from_chars(c4::csubstr buf, std::vector<char, Alloc> * s)
 
 } // namespace c4
 
-#endif // _C4_STD_VECTOR_HPP_
+#endif // C4_STD_VECTOR_HPP_

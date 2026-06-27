@@ -290,8 +290,8 @@ C4_IF_EXCEPTIONS_(
 {
     _c4dbgp("called basic error callback! from here:");
     #ifdef RYML_DBG
-    _dbg_printf("{}:{}: cpploc\n", errdata.location.name, errdata.location.line);
-    _dbg_printf("{}:{}: {}\n", errdata.location.name, errdata.location.line, msg);
+    dbg_printf_("{}:{}: cpploc\n", errdata.location.name, errdata.location.line);
+    dbg_printf_("{}:{}: {}\n", errdata.location.name, errdata.location.line, msg);
     #endif
     ((ExpectError*)this_)->m_error = ExpectedErrorType::err_basic; // assign in here to ensure the exception was thrown here
     C4_IF_EXCEPTIONS(
@@ -307,8 +307,8 @@ C4_IF_EXCEPTIONS_(
 {
     _c4dbgpf("called parse error callback! (withlocation={})", bool(errdata.ymlloc));
     #ifdef RYML_DBG
-    _dbg_printf("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
-    _dbg_printf("{}:{}: {}\n", errdata.ymlloc.name, errdata.ymlloc.line, msg);
+    dbg_printf_("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
+    dbg_printf_("{}:{}: {}\n", errdata.ymlloc.name, errdata.ymlloc.line, msg);
     #endif
     ((ExpectError*)this_)->m_error = ExpectedErrorType::err_parse; // assign in here to ensure the exception was thrown here
     C4_IF_EXCEPTIONS(
@@ -324,8 +324,8 @@ C4_IF_EXCEPTIONS_(
 {
     _c4dbgp("called visit error callback!");
     #ifdef RYML_DBG
-    _dbg_printf("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
-    _dbg_printf("{}:{}: {}\n", errdata.cpploc.name, errdata.cpploc.line, msg);
+    dbg_printf_("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
+    dbg_printf_("{}:{}: {}\n", errdata.cpploc.name, errdata.cpploc.line, msg);
     #endif
     ((ExpectError*)this_)->m_error = ExpectedErrorType::err_visit; // assign in here to ensure the exception was thrown here
     C4_IF_EXCEPTIONS(
@@ -467,7 +467,7 @@ void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorBasic const& e = s_jmp_err_basic);
         (void)e;
-        #if defined(_RYML_WITH_EXCEPTIONS)
+        #if defined(RYML_WITH_EXCEPTIONS_)
         _c4dbgpf("---------------------\n""got an expected exception: {}""---------------------\n", e.what());
         #endif
     }
@@ -502,7 +502,7 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorParse const& e = s_jmp_err_parse);
         (void)e;
-        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
+        #if defined(RYML_DBG) && defined(RYML_WITH_EXCEPTIONS_)
         std::cout << "---------------\n";
         std::cout << "got an expected parse error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
@@ -556,7 +556,7 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorVisit const& e = s_jmp_err_visit);
         (void)e;
-        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
+        #if defined(RYML_DBG) && defined(RYML_WITH_EXCEPTIONS_)
         std::cout << "---------------\n";
         std::cout << "got an expected visit error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
@@ -647,7 +647,7 @@ void print_path(ConstNodeRef const& n)
         else
         {
             int ret = snprintf(buf, sizeof(buf), "/%zu", p.has_parent() ? (size_t)p.parent().child_pos(p) : (size_t)0);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             len += static_cast<size_t>(ret);
         }
         p = p.parent();
@@ -661,18 +661,18 @@ void print_path(ConstNodeRef const& n)
         {
             size_t tl = p.key().len;
             int ret = snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             pos -= static_cast<size_t>(ret);
         }
         else if(p.has_parent())
         {
             pos = (size_t)p.parent().child_pos(p);
             int ret = snprintf(buf, 0, "/%zu", pos);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             size_t tl = static_cast<size_t>(ret);
-            _RYML_ASSERT_BASIC(pos >= tl);
+            RYML_ASSERT_BASIC_(pos >= tl);
             ret = snprintf(buf + static_cast<size_t>(pos - tl), tl, "/%zu", pos);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             pos -= static_cast<size_t>(ret);
         }
         p = p.parent();
@@ -1188,7 +1188,7 @@ CaseData* get_data(csubstr name)
     {
         cd = &m[name];
         Case const* c = get_case(name);
-        _RYML_CHECK_BASIC(c->src.find("\n\r") == csubstr::npos);
+        RYML_CHECK_BASIC_(c->src.find("\n\r") == csubstr::npos);
         {
             std::string tmp;
             replace_all("\r", "", c->src, &tmp);

@@ -1,9 +1,9 @@
-#ifndef _C4_YML_EMIT_BUF_HPP_
-#define _C4_YML_EMIT_BUF_HPP_
+#ifndef C4_YML_EMIT_BUF_HPP_
+#define C4_YML_EMIT_BUF_HPP_
 
 /** @file emit_buf.hpp Utilities to emit YAML and JSON to buffers or containers. */
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
 
@@ -134,4 +134,4 @@ RYML_EXPORT substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_ex
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EMIT_HPP_ */
+#endif /* C4_YML_EMIT_HPP_ */

@@ -17,6 +17,9 @@ namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
+#endif
 
 namespace detail {
 

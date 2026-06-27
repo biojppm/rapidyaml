@@ -1,5 +1,5 @@
-#ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
-#define _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
+#ifndef C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
+#define C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 
 /** @file event_handler_ints.hpp An event handler that creates an
  * integer buffer with a very compact representation of the YAML tree
@@ -10,16 +10,16 @@
  * */
 
 #ifndef RYML_SINGLE_HEADER
-#ifndef _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
 #include <c4/yml/node_type.hpp>
 #endif
-#ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
+#ifndef C4_YML_EVENT_HANDLER_STACK_HPP_
 #include "c4/yml/event_handler_stack.hpp"
 #endif
-#ifndef _C4_YML_TAG_HPP_
+#ifndef C4_YML_TAG_HPP_
 #include <c4/yml/tag.hpp>
 #endif
-#ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
+#ifndef C4_YML_DETAIL_DBGPRINT_HPP_
 #include <c4/yml/detail/dbgprint.hpp>
 #endif
 #endif
@@ -481,9 +481,9 @@ public:
     TagCache m_tag_cache;
 
     // undefined at the end
-    #define _enable_(bits) _enable__<bits>()
-    #define _disable_(bits) _disable__<bits>()
-    #define _has_any_(bits) _has_any__<bits>()
+    #define ryml_enable_(bits) enable_<bits>()
+    #define ryml_disable_(bits) disable_<bits>()
+    #define ryml_has_any_(bits) has_any_<bits>()
     /** @endcond */
 
 public:
@@ -559,8 +559,8 @@ public:
 
     void start_parse(const char* filename, substr src)
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, src.str == m_src.str);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, src.len == m_src.len);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, src.str == m_src.str);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, src.len == m_src.len);
         this->_stack_start_parse(filename, src);
     }
 
@@ -608,7 +608,7 @@ public:
         {
             _c4dbgp("push!");
             _push();
-            _enable_(DOC);
+            ryml_enable_(DOC);
         }
     }
     /** implicit doc end (without ...) */
@@ -631,7 +631,7 @@ public:
         _send_flag_only_(ievt::BDOC|ievt::EXPL);
         _c4dbgp("push!");
         _push();
-        _enable_(DOC);
+        ryml_enable_(DOC);
     }
     /** explicit doc end, with ... */
     void end_doc_expl()
@@ -658,7 +658,7 @@ public:
         _c4dbgpf("{}/{}: bmap key flow", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::FLOW);
         _mark_parent_with_children_();
-        _enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::FLOW_SL);
+        ryml_enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::FLOW_SL);
         _push();
     }
     void begin_map_key_block()
@@ -666,7 +666,7 @@ public:
         _c4dbgpf("{}/{}: bmap key block", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::BLCK);
         _mark_parent_with_children_();
-        _enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::BLOCK);
+        ryml_enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::BLOCK);
         _push();
     }
 
@@ -675,7 +675,7 @@ public:
         _c4dbgpf("{}/{}: bmap flow", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::VAL_|ievt::BMAP|ievt::FLOW);
         _mark_parent_with_children_();
-        _enable_(c4::yml::MAP|c4::yml::FLOW_SL);
+        ryml_enable_(c4::yml::MAP|c4::yml::FLOW_SL);
         _push();
     }
     void begin_map_val_block()
@@ -683,7 +683,7 @@ public:
         _c4dbgpf("{}/{}: bmap block", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::VAL_|ievt::BMAP|ievt::BLCK);
         _mark_parent_with_children_();
-        _enable_(c4::yml::MAP|c4::yml::BLOCK);
+        ryml_enable_(c4::yml::MAP|c4::yml::BLOCK);
         _push();
     }
 
@@ -711,7 +711,7 @@ public:
         _c4dbgpf("{}/{}: bseq key flow", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::FLOW);
         _mark_parent_with_children_();
-        _enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::FLOW_SL);
+        ryml_enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::FLOW_SL);
         _push();
     }
     void begin_seq_key_block()
@@ -719,7 +719,7 @@ public:
         _c4dbgpf("{}/{}: bseq key block", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::BLCK);
         _mark_parent_with_children_();
-        _enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::BLOCK);
+        ryml_enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::BLOCK);
         _push();
     }
 
@@ -728,7 +728,7 @@ public:
         _c4dbgpf("{}/{}: bseq flow", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::VAL_|ievt::BSEQ|ievt::FLOW);
         _mark_parent_with_children_();
-        _enable_(c4::yml::SEQ|c4::yml::FLOW_SL);
+        ryml_enable_(c4::yml::SEQ|c4::yml::FLOW_SL);
         _push();
     }
     void begin_seq_val_block()
@@ -736,7 +736,7 @@ public:
         _c4dbgpf("{}/{}: bseq block", m_evt_pos, m_evt_size);
         _send_flag_only_(ievt::VAL_|ievt::BSEQ|ievt::BLCK);
         _mark_parent_with_children_();
-        _enable_(c4::yml::SEQ|c4::yml::BLOCK);
+        ryml_enable_(c4::yml::SEQ|c4::yml::BLOCK);
         _push();
     }
 
@@ -761,7 +761,7 @@ public:
 
     void add_sibling()
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_parent);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_parent);
         m_curr->evt_type = {};
     }
 
@@ -777,13 +777,13 @@ public:
     {
         _c4dbgpf("{}/{}: set_key_scalar_plain_empty", m_evt_pos, m_evt_size);
         _send_str_(_get_latest_empty_scalar(), ievt::KEY_|ievt::SCLR|ievt::PLAI);
-        _enable_(c4::yml::KEY|c4::yml::KEY_PLAIN|c4::yml::KEYNIL);
+        ryml_enable_(c4::yml::KEY|c4::yml::KEY_PLAIN|c4::yml::KEYNIL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain_empty()
     {
         _c4dbgpf("{}/{}: set_val_scalar_plain_empty", m_evt_pos, m_evt_size);
         _send_str_(_get_latest_empty_scalar(), ievt::VAL_|ievt::SCLR|ievt::PLAI);
-        _enable_(c4::yml::VAL|c4::yml::VAL_PLAIN|c4::yml::VALNIL);
+        ryml_enable_(c4::yml::VAL|c4::yml::VAL_PLAIN|c4::yml::VALNIL);
     }
 
 
@@ -791,13 +791,13 @@ public:
     {
         _c4dbgpf("{}/{}: set_key_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::PLAI);
-        _enable_(c4::yml::KEY|c4::yml::KEY_PLAIN);
+        ryml_enable_(c4::yml::KEY|c4::yml::KEY_PLAIN);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar)
     {
         _c4dbgpf("{}/{}: set_val_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::PLAI);
-        _enable_(c4::yml::VAL|c4::yml::VAL_PLAIN);
+        ryml_enable_(c4::yml::VAL|c4::yml::VAL_PLAIN);
     }
 
 
@@ -805,13 +805,13 @@ public:
     {
         _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::DQUO);
-        _enable_(c4::yml::KEY|c4::yml::KEY_DQUO);
+        ryml_enable_(c4::yml::KEY|c4::yml::KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
         _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::DQUO);
-        _enable_(c4::yml::VAL|c4::yml::VAL_DQUO);
+        ryml_enable_(c4::yml::VAL|c4::yml::VAL_DQUO);
     }
 
 
@@ -819,13 +819,13 @@ public:
     {
         _c4dbgpf("{}/{}: set_key_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::SQUO);
-        _enable_(c4::yml::KEY|c4::yml::KEY_SQUO);
+        ryml_enable_(c4::yml::KEY|c4::yml::KEY_SQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar)
     {
         _c4dbgpf("{}/{}: set_val_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::SQUO);
-        _enable_(c4::yml::VAL|c4::yml::VAL_SQUO);
+        ryml_enable_(c4::yml::VAL|c4::yml::VAL_SQUO);
     }
 
 
@@ -833,13 +833,13 @@ public:
     {
         _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::LITL);
-        _enable_(c4::yml::KEY|c4::yml::KEY_LITERAL);
+        ryml_enable_(c4::yml::KEY|c4::yml::KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
         _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::LITL);
-        _enable_(c4::yml::VAL|c4::yml::VAL_LITERAL);
+        ryml_enable_(c4::yml::VAL|c4::yml::VAL_LITERAL);
     }
 
 
@@ -847,13 +847,13 @@ public:
     {
         _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::FOLD);
-        _enable_(c4::yml::KEY|c4::yml::KEY_FOLDED);
+        ryml_enable_(c4::yml::KEY|c4::yml::KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
         _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt_size, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::FOLD);
-        _enable_(c4::yml::VAL|c4::yml::VAL_FOLDED);
+        ryml_enable_(c4::yml::VAL|c4::yml::VAL_FOLDED);
     }
 
 
@@ -877,9 +877,9 @@ private:
     /** @cond dev*/
     #define _add_scalar_(i, scalar)                                     \
     _c4dbgpf("{}/{}: scalar!", i, m_evt_size);                          \
-    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, _is_sub_(scalar));         \
-    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt[i] & ievt::WSTR);    \
-    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ((i) + 3) < m_evt_size);   \
+    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, _is_sub_(scalar));         \
+    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt[i] & ievt::WSTR);    \
+    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, ((i) + 3) < m_evt_size);   \
     if(C4_LIKELY((scalar).is_sub(m_src)))                               \
     {                                                                   \
         m_evt[(i) + 1] = (ievt::evt_bits)((scalar).str - m_src.str);    \
@@ -902,8 +902,8 @@ public:
     void set_key_anchor(csubstr anchor)
     {
         _c4dbgpf("{}/{}: set_key_anchor: {}", m_evt_pos, m_evt_size, anchor);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, !_has_any_(KEYREF));
-        _enable_(c4::yml::KEYANCH);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, !ryml_has_any_(KEYREF));
+        ryml_enable_(c4::yml::KEYANCH);
         if(m_evt_pos + 3 < m_evt_size)
         {
             m_evt[m_evt_pos] |= ievt::KEY_|ievt::ANCH;
@@ -915,8 +915,8 @@ public:
     void set_val_anchor(csubstr anchor)
     {
         _c4dbgpf("{}/{}: set_val_anchor: {}", m_evt_pos, m_evt_size, anchor);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, !_has_any_(VALREF));
-        _enable_(c4::yml::VALANCH);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, !ryml_has_any_(VALREF));
+        ryml_enable_(c4::yml::VALANCH);
         if(m_evt_pos + 3 < m_evt_size)
         {
             m_evt[m_evt_pos] |= ievt::VAL_|ievt::ANCH;
@@ -929,17 +929,17 @@ public:
     void set_key_ref(csubstr ref)
     {
         _c4dbgpf("{}/{}: set_key_ref: {}", m_evt_pos, m_evt_size, ref);
-        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, ref.begins_with('*'), m_curr->pos);
-        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, !_has_any_(KEYANCH), m_curr->pos);
-        _enable_(c4::yml::KEY|c4::yml::KEYREF);
+        RYML_ASSERT_PARSE_CB_(m_stack.m_callbacks, ref.begins_with('*'), m_curr->pos);
+        RYML_ASSERT_PARSE_CB_(m_stack.m_callbacks, !ryml_has_any_(KEYANCH), m_curr->pos);
+        ryml_enable_(c4::yml::KEY|c4::yml::KEYREF);
         _send_str_(ref.sub(1), ievt::KEY_|ievt::ALIA); // skip the leading *
     }
     void set_val_ref(csubstr ref)
     {
         _c4dbgpf("{}/{}: set_val_ref: {}", m_evt_pos, m_evt_size, ref);
-        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, ref.begins_with('*'), m_curr->pos);
-        _RYML_ASSERT_PARSE_(m_stack.m_callbacks, !_has_any_(VALANCH), m_curr->pos);
-        _enable_(c4::yml::VAL|c4::yml::VALREF);
+        RYML_ASSERT_PARSE_CB_(m_stack.m_callbacks, ref.begins_with('*'), m_curr->pos);
+        RYML_ASSERT_PARSE_CB_(m_stack.m_callbacks, !ryml_has_any_(VALANCH), m_curr->pos);
+        ryml_enable_(c4::yml::VAL|c4::yml::VALREF);
         _send_str_(ref.sub(1), ievt::VAL_|ievt::ALIA); // skip the leading *
     }
 
@@ -953,15 +953,15 @@ public:
     void set_key_tag(csubstr tag)
     {
         _c4dbgpf("{}/{}: set key tag [{}]~~~{}~~~", m_evt_pos, m_evt_size, tag.len, tag.str ? tag : csubstr("(arena full)"));
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, _is_sub_(tag));
-        _enable_(c4::yml::KEYTAG);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, _is_sub_(tag));
+        ryml_enable_(c4::yml::KEYTAG);
         _send_str_(tag, ievt::KEY_|ievt::TAG_);
     }
     void set_val_tag(csubstr tag)
     {
         _c4dbgpf("{}/{}: set val tag [{}]~~~{}~~~", m_evt_pos, m_evt_size, tag.len, tag.str ? tag : csubstr("(arena full)"));
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, _is_sub_(tag));
-        _enable_(c4::yml::VALTAG);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, _is_sub_(tag));
+        ryml_enable_(c4::yml::VALTAG);
         _send_str_(tag, ievt::VAL_|ievt::TAG_);
     }
 
@@ -982,7 +982,7 @@ public:
     {
         _c4dbgpf("{}/{}: %TAG directive! handle={} prefix={} doc_id={}", m_evt_pos, m_evt_size, handle, prefix, m_curr_doc);
         if(C4_UNLIKELY(!m_tag_directives.add(handle, prefix, m_curr_doc)))
-            _RYML_ERR_PARSE_(m_stack.m_callbacks, m_curr->pos, "too many %TAG directives");
+            RYML_ERR_PARSE_CB_(m_stack.m_callbacks, m_curr->pos, "too many %TAG directives");
         _send_str_(handle, ievt::TAGH);
         _send_str_(prefix, ievt::TAGP);
     }
@@ -1002,8 +1002,8 @@ public:
     C4_NO_INLINE void actually_val_is_first_key_of_new_map_flow()
     {
         _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_flow", m_evt_pos, m_evt_size, m_evt_prev);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_pos > 2);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev > 0);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_pos > 2);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_prev > 0);
         // BEFORE
         // ... flag start len (free)
         //     |              |
@@ -1017,7 +1017,7 @@ public:
             if(m_evt[m_evt_prev] & ievt::WSTR)
             {
                 _c4dbgpf("{}/{}: WSTR", m_evt_pos, m_evt_size);
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev > 0);
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_prev > 0);
                 evt_size pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
                 if(m_evt_pos + 1 < m_evt_size)
                 {
@@ -1027,7 +1027,7 @@ public:
                         m_evt[i] &= ~ievt::VAL_;
                     }
                     evt_size num_move = m_evt_pos + 1 - pos;
-                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                 }
                 m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
@@ -1041,7 +1041,7 @@ public:
             else
             {
                 _c4dbgpf("{}/{}: container key", m_evt_pos, m_evt_size);
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
                 evt_size pos;
                 _c4dbgpf("{}/{}: find matching open for {}", m_evt_pos, m_evt_size, m_evt_prev);
                 if((m_evt[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
@@ -1050,23 +1050,23 @@ public:
                 }
                 else
                 {
-                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::ESEQ));
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::ESEQ));
                     pos = _find_matching_open(ievt::BSEQ, ievt::ESEQ, m_evt_prev);
                 }
                 _c4dbgpf("{}/{}: matching open for {}={}", m_evt_pos, m_evt_size, m_evt_prev, pos);
-                _RYML_CHECK_BASIC_(m_stack.m_callbacks, pos >= 0); // internal error
-                _RYML_CHECK_BASIC_(m_stack.m_callbacks, pos < m_evt_prev); // internal error
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::ESEQ) == (m_evt[m_evt_prev] & ievt::BSEQ));
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::EMAP) == (m_evt[m_evt_prev] & ievt::BMAP));
+                RYML_CHECK_BASIC_CB_(m_stack.m_callbacks, pos >= 0); // internal error
+                RYML_CHECK_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_prev); // internal error
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::ESEQ) == (m_evt[m_evt_prev] & ievt::BSEQ));
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::EMAP) == (m_evt[m_evt_prev] & ievt::BMAP));
                 // shift the array one position to the right, starting at pos
                 evt_size posp1 = pos + 1;
                 if(m_evt_pos + 1 < m_evt_size)
                 {
                     evt_size num_move = m_evt_pos + 1 - pos;
-                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                 }
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, posp1 < m_evt_pos);
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, posp1 < m_evt_pos);
                 // start the map
                 m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
                 // set next as key, not val
@@ -1083,7 +1083,7 @@ public:
         m_curr->evt_id = m_evt_pos - 2;
         ++m_evt_prev;
         ++m_evt_pos;
-        _enable_(c4::yml::MAP|c4::yml::FLOW_SL);
+        ryml_enable_(c4::yml::MAP|c4::yml::FLOW_SL);
         _push();
     }
 
@@ -1102,17 +1102,17 @@ public:
             evt_size pos = _find_last_bdoc(m_evt_pos);
             if(pos >= 0)
             {
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_pos);
-                _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC) == ievt::BDOC);
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size);
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_pos);
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC) == ievt::BDOC);
                 if(m_evt_pos < m_evt_size)
                 {
                     ++pos; // add 1 to write after BDOC
                     evt_size num_move = m_evt_pos - pos;
                     evt_size posp1 = pos + 1;
-                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
-                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
-                    _RYML_ASSERT_BASIC_(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
                     memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                     m_evt[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
                     m_evt[posp1] &= ~ievt::VAL_;
@@ -1174,28 +1174,28 @@ public:
         _stack_pop();
     }
 
-    template<c4::yml::type_bits bits> C4_ALWAYS_INLINE void _enable__() noexcept
+    template<c4::yml::type_bits bits> C4_ALWAYS_INLINE void enable_() noexcept
     {
         m_curr->evt_type |= bits;
     }
-    template<c4::yml::type_bits bits> C4_ALWAYS_INLINE void _disable__() noexcept
+    template<c4::yml::type_bits bits> C4_ALWAYS_INLINE void disable_() noexcept
     {
         m_curr->evt_type &= ~bits;
     }
-    template<c4::yml::type_bits bits> C4_ALWAYS_INLINE bool _has_any__() const noexcept
+    template<c4::yml::type_bits bits> C4_ALWAYS_INLINE bool has_any_() const noexcept
     {
         return (m_curr->evt_type & bits) != c4::yml::type_bits(0);
     }
 
     C4_ALWAYS_INLINE evt_size _next(evt_size pos) const noexcept
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size);
         return pos + ((m_evt[pos] & ievt::WSTR) ? 3 : 1);
     }
 
     C4_ALWAYS_INLINE evt_size _prev(evt_size pos) const noexcept
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size);
         return pos - ((m_evt[pos] & ievt::PSTR) ? 3 : 1);
     }
 
@@ -1245,7 +1245,7 @@ public:
 
     evt_size _find_last_bdoc(evt_size pos) const
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
         while(pos >= 0)
         {
             ievt::evt_bits e = m_evt[pos];
@@ -1259,9 +1259,9 @@ public:
     evt_size _find_matching_open(ievt::evt_bits open, ievt::evt_bits close, evt_size pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & close) == close);
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & open) == (close & ~ievt::END_));
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & close) == close);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & open) == (close & ~ievt::END_));
         pos = _prev(pos); // don't count the starting close token
         uint32_t count = 0;
         while(pos >= 0)
@@ -1289,7 +1289,7 @@ public:
 
     evt_size _extend_left_to_include_tag_and_or_anchor(evt_size pos) const
     {
-        _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size);
         evt_size prev = _prev(pos);
         while((prev > 0) && (m_evt[prev] & (ievt::TAG_|ievt::ANCH)))
         {
@@ -1302,9 +1302,9 @@ public:
 
     /** @} */
 
-#undef _enable_
-#undef _disable_
-#undef _has_any_
+#undef ryml_enable_
+#undef ryml_disable_
+#undef ryml_has_any_
 #undef _add_scalar_
 
 };
@@ -1319,4 +1319,4 @@ public:
 // NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
-#endif /* _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_ */
+#endif /* C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_ */
