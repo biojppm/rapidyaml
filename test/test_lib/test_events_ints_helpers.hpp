@@ -27,11 +27,11 @@ struct IntEventWithScalar
         , needs_filter(needs_filter_)
     {
     }
-    size_t required_size() const { return (flags & ievt::WSTR) ? 3u : 1u; }
+    size_t required_size() const { return (flags & ievt::WSTR) ? 3u : 1u; } // NOLINT
 };
 
 
-size_t num_ints(IntEventWithScalar const *evt, size_t evt_size);
+size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz);
 
 
 void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,

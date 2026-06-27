@@ -7,10 +7,10 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-size_t num_ints(IntEventWithScalar const *evt, size_t evt_size)
+size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz)
 {
     size_t sz = 0;
-    for(size_t i = 0; i < evt_size; ++i)
+    for(size_t i = 0; i < evt_sz; ++i)
         sz += evt[i].required_size();
     return sz;
 }

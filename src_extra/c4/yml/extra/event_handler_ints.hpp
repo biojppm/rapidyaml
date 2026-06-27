@@ -33,6 +33,10 @@ namespace extra {
 /** @addtogroup doc_event_handlers
  * @{ */
 
+/** data type for integer events size. This is set to an int32_t integer
+ * to allow compatibility with a wide range of processing languages. */
+using evt_size = int32_t;
+
 namespace ievt {
 
 
@@ -94,11 +98,6 @@ typedef enum : evt_bits { // NOLINT
     //-------------------------------------------------------------------------
     // NON-YAML FLAGS
 
-    /// WithSTRing: mask of all events that encode a string following
-    /// the event. For such events, the next two integers will provide
-    /// respectively the string's offset and length. See also @ref PSTR
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
-
     /// Special flag to mark events whose string was placed in the
     /// arena. This happens when the filtered string is larger than
     /// the original string in the YAML code (eg from tags that
@@ -107,6 +106,11 @@ typedef enum : evt_bits { // NOLINT
     /// size expansion, the filtered string cannot be placed in the
     /// original source and needs to be placed in the arena.
     AREN = (1 << 24),
+
+    /// WithSTRing: mask of all events that encode a string following
+    /// the event. For such events, the next two integers will provide
+    /// respectively the string's offset and length. See also @ref PSTR
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
 
     /// Special flag to enable look-back in the event array. It
     /// signifies that the previous event has a string, meaning that
@@ -164,7 +168,7 @@ namespace extra {
  * the YAML test suite and the internal cases. If you find a case
  * where that does not hold, it is a bug. Please report it at
  * https://github.com/biojppm/rapidyaml/issues! */
-RYML_EXPORT int32_t estimate_events_ints_size(csubstr src);
+RYML_EXPORT evt_size estimate_events_ints_size(csubstr src);
 
 /** @} */
 
@@ -467,9 +471,9 @@ public:
 
     /** @cond dev */
     ievt::evt_bits * m_evt;
-    int32_t m_evt_pos;
-    int32_t m_evt_prev;
-    int32_t m_evt_size;
+    evt_size m_evt_pos;
+    evt_size m_evt_prev;
+    evt_size m_evt_size;
     substr m_arena;
     size_t m_arena_pos;
     id_type m_curr_doc;
@@ -487,17 +491,17 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerInts(c4::yml::Callbacks const& cb)
+    EventHandlerInts(c4::yml::Callbacks const& cb) noexcept
         : EventHandlerStack(cb)
     {
         reset(substr{}, substr{}, nullptr, 0);
     }
-    EventHandlerInts()
+    EventHandlerInts() noexcept
         : EventHandlerInts(c4::yml::get_callbacks())
     {
     }
 
-    void reset(substr str, substr arena, ievt::evt_bits *dst, int32_t dst_size)
+    void reset(substr str, substr arena, ievt::evt_bits *dst, evt_size dst_size)
     {
         _stack_reset_root();
         m_curr->flags |= c4::yml::RUNK|c4::yml::RTOP;
@@ -517,7 +521,7 @@ public:
 
     /** get the size needed for the event buffer from the previous parse
      * @warning this is valid only until the next parse */
-    int required_size_events() const
+    evt_size required_size_events() const
     {
         return m_evt_pos;
     }
@@ -1014,15 +1018,15 @@ public:
             {
                 _c4dbgpf("{}/{}: WSTR", m_evt_pos, m_evt_size);
                 _RYML_ASSERT_BASIC_(m_stack.m_callbacks, m_evt_prev > 0);
-                int32_t pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
+                evt_size pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
                 if(m_evt_pos + 1 < m_evt_size)
                 {
-                    for(int32_t i = pos; i <= m_evt_prev; i = _next(i))
+                    for(evt_size i = pos; i <= m_evt_prev; i = _next(i))
                     {
                         m_evt[i] |= ievt::KEY_;
                         m_evt[i] &= ~ievt::VAL_;
                     }
-                    int32_t num_move = m_evt_pos + 1 - pos;
+                    evt_size num_move = m_evt_pos + 1 - pos;
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                 }
@@ -1038,7 +1042,7 @@ public:
             {
                 _c4dbgpf("{}/{}: container key", m_evt_pos, m_evt_size);
                 _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
-                int32_t pos;
+                evt_size pos;
                 _c4dbgpf("{}/{}: find matching open for {}", m_evt_pos, m_evt_size, m_evt_prev);
                 if((m_evt[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
                 {
@@ -1055,10 +1059,10 @@ public:
                 _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::ESEQ) == (m_evt[m_evt_prev] & ievt::BSEQ));
                 _RYML_ASSERT_BASIC_(m_stack.m_callbacks, (m_evt[pos] & ievt::EMAP) == (m_evt[m_evt_prev] & ievt::BMAP));
                 // shift the array one position to the right, starting at pos
-                int32_t posp1 = pos + 1;
+                evt_size posp1 = pos + 1;
                 if(m_evt_pos + 1 < m_evt_size)
                 {
-                    int32_t num_move = m_evt_pos + 1 - pos;
+                    evt_size num_move = m_evt_pos + 1 - pos;
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
                 }
@@ -1095,7 +1099,7 @@ public:
         if(m_evt_pos < m_evt_size)
         {
             // interpolate BMAP|VAL|BLCK after the last BDOC
-            int32_t pos = _find_last_bdoc(m_evt_pos);
+            evt_size pos = _find_last_bdoc(m_evt_pos);
             if(pos >= 0)
             {
                 _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
@@ -1104,8 +1108,8 @@ public:
                 if(m_evt_pos < m_evt_size)
                 {
                     ++pos; // add 1 to write after BDOC
-                    int32_t num_move = m_evt_pos - pos;
-                    int32_t posp1 = pos + 1;
+                    evt_size num_move = m_evt_pos - pos;
+                    evt_size posp1 = pos + 1;
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, num_move > 0);
                     _RYML_ASSERT_BASIC_(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
@@ -1183,13 +1187,13 @@ public:
         return (m_curr->evt_type & bits) != c4::yml::type_bits(0);
     }
 
-    C4_ALWAYS_INLINE int32_t _next(int32_t pos) const noexcept
+    C4_ALWAYS_INLINE evt_size _next(evt_size pos) const noexcept
     {
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
         return pos + ((m_evt[pos] & ievt::WSTR) ? 3 : 1);
     }
 
-    C4_ALWAYS_INLINE int32_t _prev(int32_t pos) const noexcept
+    C4_ALWAYS_INLINE evt_size _prev(evt_size pos) const noexcept
     {
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
         return pos - ((m_evt[pos] & ievt::PSTR) ? 3 : 1);
@@ -1239,7 +1243,7 @@ public:
         return m_src.first(0);
     }
 
-    int32_t _find_last_bdoc(int32_t pos) const
+    evt_size _find_last_bdoc(evt_size pos) const
     {
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
         while(pos >= 0)
@@ -1252,7 +1256,7 @@ public:
         return -1; // LCOV_EXCL_LINE
     }
 
-    int32_t _find_matching_open(ievt::evt_bits open, ievt::evt_bits close, int32_t pos) const
+    evt_size _find_matching_open(ievt::evt_bits open, ievt::evt_bits close, evt_size pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
@@ -1283,10 +1287,10 @@ public:
         return -1;  // LCOV_EXCL_LINE
     }
 
-    int32_t _extend_left_to_include_tag_and_or_anchor(int32_t pos) const
+    evt_size _extend_left_to_include_tag_and_or_anchor(evt_size pos) const
     {
         _RYML_ASSERT_BASIC_(m_stack.m_callbacks, pos < m_evt_size);
-        int32_t prev = _prev(pos);
+        evt_size prev = _prev(pos);
         while((prev > 0) && (m_evt[prev] & (ievt::TAG_|ievt::ANCH)))
         {
             _c4dbgpf("{}/{}: {} is anchor/tag. extend to {}", m_evt_pos, m_evt_size, prev, prev);
