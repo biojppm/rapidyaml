@@ -1,5 +1,5 @@
-#ifndef _C4_ERROR_HPP_
-#define _C4_ERROR_HPP_
+#ifndef C4_ERROR_HPP_
+#define C4_ERROR_HPP_
 
 /** @file error.hpp Facilities for error reporting and runtime assertions. */
 
@@ -38,11 +38,11 @@
 
 namespace c4 {
 namespace detail {
-struct fail_type__ {};
+struct fail_type_ {};
 } // detail
 } // c4
 #define C4_STATIC_ERROR(dummy_type, errmsg)                             \
-    static_assert(std::is_same<dummy_type, c4::detail::fail_type__>::value, errmsg)
+    static_assert(std::is_same<dummy_type, c4::detail::fail_type_>::value, errmsg)
 
 
 //-----------------------------------------------------------------------------
@@ -183,6 +183,10 @@ struct ScopedErrorSettings // NOLINT(cppcoreguidelines-special-member-functions,
 
 
 //-----------------------------------------------------------------------------
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
 
 /** source location */
 struct C4CORE_EXPORT srcloc
@@ -192,6 +196,10 @@ struct C4CORE_EXPORT srcloc
     int line;
     srcloc(const char *file_="", const char *func_="", int line_=0) noexcept : file(file_), func(func_), line(line_) {}
 };
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 
 #if defined(C4_ERROR_SHOWS_FILELINE) && defined(C4_ERROR_SHOWS_FUNC)
@@ -444,4 +452,4 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
 #   pragma clang diagnostic pop
 #endif
 
-#endif /* _C4_ERROR_HPP_ */
+#endif /* C4_ERROR_HPP_ */

@@ -4,7 +4,7 @@ include ./common.mk
 include ./ys.mk
 
 
-check: c4core-check workflows-check
+check: c4core-check workflows-check doxy
 
 
 c4core-check:

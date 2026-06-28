@@ -1,5 +1,5 @@
-#ifndef _C4_SZCONV_HPP_
-#define _C4_SZCONV_HPP_
+#ifndef C4_SZCONV_HPP_
+#define C4_SZCONV_HPP_
 
 /** @file szconv.hpp utilities to deal safely with narrowing conversions */
 
@@ -66,4 +66,4 @@ C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace c4
 
-#endif /* _C4_SZCONV_HPP_ */
+#endif /* C4_SZCONV_HPP_ */

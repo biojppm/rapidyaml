@@ -1,15 +1,15 @@
-#ifndef _C4_FORMAT_BASE64_HPP_
-#define _C4_FORMAT_BASE64_HPP_
+#ifndef C4_FORMAT_BASE64_HPP_
+#define C4_FORMAT_BASE64_HPP_
 
 /** @file format_base64.hpp Utilities for formatting data as base64 */
 
-#ifndef _C4_SUBSTR_HPP_
+#ifndef C4_SUBSTR_HPP_
 #include "c4/substr.hpp"
 #endif
-#ifndef _C4_BLOB_HPP_
+#ifndef C4_BLOB_HPP_
 #include "c4/blob.hpp"
 #endif
-#ifndef _C4_BASE64_HPP_
+#ifndef C4_BASE64_HPP_
 #include "c4/base64.hpp"
 #endif
 
@@ -294,4 +294,4 @@ bool from_chars(csubstr buf, fmt::base64_container_wrapper<T> const* b)
 
 } // namespace c4
 
-#endif /* _C4_FORMAT_BASE64_HPP_ */
+#endif /* C4_FORMAT_BASE64_HPP_ */

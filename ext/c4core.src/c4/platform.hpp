@@ -1,5 +1,5 @@
-#ifndef _C4_PLATFORM_HPP_
-#define _C4_PLATFORM_HPP_
+#ifndef C4_PLATFORM_HPP_
+#define C4_PLATFORM_HPP_
 
 /** @file platform.hpp Provides platform information macros
  * @ingroup basic_headers */
@@ -43,4 +43,4 @@
 #endif
 
 
-#endif /* _C4_PLATFORM_HPP_ */
+#endif /* C4_PLATFORM_HPP_ */

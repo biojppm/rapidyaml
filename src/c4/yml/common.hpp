@@ -1,15 +1,15 @@
-#ifndef _C4_YML_COMMON_HPP_
-#define _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
+#define C4_YML_COMMON_HPP_
 
 /** @file common.hpp Common utilities and infrastructure used by ryml. */
 
 #include <cstddef>
 #include <utility> // for std::forward
 
-#ifndef _C4_SUBSTR_HPP_
+#ifndef C4_SUBSTR_HPP_
 #include <c4/substr.hpp>
 #endif
-#ifndef _C4_YML_EXPORT_HPP_
+#ifndef C4_YML_EXPORT_HPP_
 #include <c4/yml/export.hpp>
 #endif
 
@@ -472,9 +472,9 @@ C4_SUPPRESS_WARNING_POP
 
 /// @cond dev
 
-#define _RYML_CB_ALLOC_HINT(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
-#define _RYML_CB_ALLOC(cb, T, num) _RYML_CB_ALLOC_HINT((cb), T, (num), nullptr)
-#define _RYML_CB_FREE(cb, buf, T, num)                              \
+#define RYML_CB_ALLOC_HINT_(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
+#define RYML_CB_ALLOC_(cb, T, num) RYML_CB_ALLOC_HINT_((cb), T, (num), nullptr)
+#define RYML_CB_FREE_(cb, buf, T, num)                              \
     do {                                                            \
         (cb).m_free((buf), (num) * sizeof(T), (cb).m_user_data);    \
         (buf) = nullptr;                                            \
@@ -487,7 +487,7 @@ struct _charconstant_t // is there a better way to do this?
                               std::integral_constant<int8_t, static_cast<int8_t>(unsignedval)>,
                               std::integral_constant<uint8_t, unsignedval>>::type
 {};
-#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
+#define RYML_CHCONST_(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
 } // namespace detail
 
 inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
@@ -509,7 +509,7 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 #if C4_CPP >= 17                                  \
     || (defined(__GNUC__) && __GNUC__ >= 6)       \
     || (defined(_MSC_VER) && !defined(__clang__))
-#define RYML_HAS_DEPRECATED_ENUMS__
+#define RYML_HAS_DEPRECATED_ENUMS_
 #endif
 
 /// @endcond
@@ -519,4 +519,4 @@ C4_SUPPRESS_WARNING_GCC_POP
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_COMMON_HPP_ */
+#endif /* C4_YML_COMMON_HPP_ */

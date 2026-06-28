@@ -232,7 +232,7 @@ USAGE: bm <case.yml>
             src.push_back('\0');
         }
         in_place = src;
-        _RYML_ASSERT_BASIC_MSG(strlen(in_place.data()) == in_place.size()-1,
+        RYML_ASSERT_BASIC_MSG_(strlen(in_place.data()) == in_place.size()-1,
                                "len=%zu sz=%zu",
                                strlen(in_place.data()), in_place.size());
     }
@@ -256,17 +256,17 @@ USAGE: bm <case.yml>
         }
         if(what & kReserveTree)
         {
-            _RYML_CHECK_BASIC(capacity > 0);
+            RYML_CHECK_BASIC_(capacity > 0);
             ryml_tree.reserve(capacity);
         }
         if(what & kReserveTree)
         {
-            _RYML_CHECK_BASIC(capacity > 0);
+            RYML_CHECK_BASIC_(capacity > 0);
             ryml_tree.reserve(capacity);
         }
         if(what & kResetInPlace)
         {
-            _RYML_ASSERT_BASIC(in_place.size() == src.size());
+            RYML_ASSERT_BASIC_(in_place.size() == src.size());
             memcpy(in_place.data(), src.data(), src.size());
         }
     }

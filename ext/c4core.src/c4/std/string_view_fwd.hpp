@@ -1,5 +1,5 @@
-#ifndef _C4_STD_STRING_VIEW_FWD_HPP_
-#define _C4_STD_STRING_VIEW_FWD_HPP_
+#ifndef C4_STD_STRING_VIEW_FWD_HPP_
+#define C4_STD_STRING_VIEW_FWD_HPP_
 
 /** @file string_view_fwd.hpp Provides forward declaration of std::string_view
  * to enable order-independent includes for use with ref @ref
@@ -58,4 +58,4 @@ size_t to_chars(c4::substr buf, std::string_view s);
 
 #endif // STRING_VIEW_AVAILABLE
 
-#endif // _C4_STD_STRING_VIEW_FWD_HPP_
+#endif // C4_STD_STRING_VIEW_FWD_HPP_

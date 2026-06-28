@@ -204,7 +204,7 @@ struct TestSequenceLevel
 
     void receive_src(TestSequenceLevel & prev_)
     {
-        _RYML_ASSERT_BASIC(&prev_ == prev);
+        RYML_ASSERT_BASIC_(&prev_ == prev);
         if(!prev_.tree_was_emitted)
         {
             _nfo_logf("level[{}] not emitted. emit!", prev_.level);
@@ -224,7 +224,7 @@ struct TestSequenceLevel
 
     void receive_src_json(TestSequenceLevel & prev_)
     {
-        _RYML_ASSERT_BASIC(&prev_ == prev);
+        RYML_ASSERT_BASIC_(&prev_ == prev);
         if(!prev_.tree_was_emitted_json)
         {
             _nfo_logf("level[{}] not emitted. emit!", prev_.level);
@@ -393,7 +393,7 @@ struct TestSequenceLevel
     void compare_trees(TestSequenceLevel & that)
     {
         SCOPED_TRACE("compare trees");
-        _RYML_ASSERT_BASIC(&that == prev);
+        RYML_ASSERT_BASIC_(&that == prev);
         if(!that.tree_was_parsed)
         {
             _nfo_logf("level[{}] not parsed. parse!", that.level);
@@ -414,7 +414,7 @@ struct TestSequenceLevel
     void compare_trees_json(TestSequenceLevel & that)
     {
         SCOPED_TRACE("compare trees");
-        _RYML_ASSERT_BASIC(&that == prev);
+        RYML_ASSERT_BASIC_(&that == prev);
         if(!that.tree_was_parsed_json)
         {
             _nfo_logf("level[{}] not parsed. parse!", that.level);
@@ -435,7 +435,7 @@ struct TestSequenceLevel
     void compare_emitted_yaml(TestSequenceLevel & that)
     {
         SCOPED_TRACE("compare emitted");
-        _RYML_ASSERT_BASIC(&that == prev);
+        RYML_ASSERT_BASIC_(&that == prev);
         if(!that.tree_was_emitted)
         {
             _nfo_logf("level[{}] not emitted. emit!", that.level);
@@ -463,7 +463,7 @@ struct TestSequenceLevel
     void compare_emitted_json(TestSequenceLevel & that)
     {
         SCOPED_TRACE("compare emitted");
-        _RYML_ASSERT_BASIC(&that == prev);
+        RYML_ASSERT_BASIC_(&that == prev);
         if(!that.tree_was_emitted_json)
         {
             _nfo_logf("level[{}] not emitted. emit!", that.level);
@@ -799,7 +799,7 @@ struct SuiteCase
         case_title = to_csubstr(case_title_);
 
         case_dir = to_csubstr(case_dir_);
-        _RYML_CHECK_BASIC(case_dir.find('\\') == yml::npos);
+        RYML_CHECK_BASIC_(case_dir.find('\\') == yml::npos);
         C4_CHECK_MSG(fs::dir_exists(case_dir.str), "dir not found: '%s'", case_dir);
 
         filename = catrs<std::string>(case_dir, '/', to_csubstr(input_file));
@@ -920,70 +920,70 @@ struct which : public ::testing::TestWithParam<size_t>                  \
 TEST_P(which, 0_parse_yaml_to_events_ints)                              \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.parse_yaml_to_events_ints(1 + GetParam());      \
 }                                                                       \
                                                                         \
 TEST_P(which, 0_parse_yaml_to_tree)                                     \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.parse_yaml_to_tree(1 + GetParam());             \
 }                                                                       \
 TEST_P(which, 0_parse_json_to_tree)                                     \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.parse_json_to_tree(1 + GetParam());             \
 }                                                                       \
                                                                         \
 TEST_P(which, 1_compare_emitted_events_to_ref_events)                   \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_emitted_events_str(1 + GetParam(), &g_suite_case->events); \
 }                                                                       \
                                                                         \
 TEST_P(which, 2_emit_tree_parsed_from_src)                              \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.emit_tree_parsed_from_src(1 + GetParam());      \
 }                                                                       \
 TEST_P(which, 2_emit_tree_parsed_from_src_json)                         \
 {                                                                       \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.emit_tree_parsed_from_src_json(1 + GetParam()); \
 }                                                                       \
                                                                         \
 TEST_P(which, 3_compare_level_trees)                                    \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_trees(1 + GetParam());            \
 }                                                                       \
 TEST_P(which, 3_compare_level_trees_json)                               \
 {                                                                       \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_trees_json(1 + GetParam());       \
 }                                                                       \
                                                                         \
 TEST_P(which, 4_compare_emitted_yaml)                                   \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_emitted(1 + GetParam());          \
 }                                                                       \
 TEST_P(which, 4_compare_emitted_yaml_json)                              \
 {                                                                       \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    _RYML_CHECK_BASIC(GetParam() < NLEVELS);                            \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_emitted_json(1 + GetParam());     \
 }                                                                       \
                                                                         \

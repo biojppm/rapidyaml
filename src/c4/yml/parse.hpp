@@ -1,10 +1,10 @@
-#ifndef _C4_YML_PARSE_HPP_
-#define _C4_YML_PARSE_HPP_
+#ifndef C4_YML_PARSE_HPP_
+#define C4_YML_PARSE_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
-#ifndef _C4_YML_PARSE_OPTIONS_HPP_
+#ifndef C4_YML_PARSE_OPTIONS_HPP_
 #include "c4/yml/parse_options.hpp"
 #endif
 
@@ -325,4 +325,4 @@ RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_json_in_arena(csubst
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_PARSE_HPP_ */
+#endif /* C4_YML_PARSE_HPP_ */

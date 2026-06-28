@@ -604,8 +604,8 @@ typedef enum : c4::yml::type_bits {
     STYLE          = SCALAR_STYLE | CONTAINER_STYLE,
     //
     // mixed masks
-    _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
-    _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
+    KEYMASK_ = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
+    VALMASK_ = VAL | VALQUO | VALANCH | VALREF | VALTAG,
 } NodeType_e;
 
 

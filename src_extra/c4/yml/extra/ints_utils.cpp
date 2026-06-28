@@ -8,7 +8,7 @@
     #endif
 #endif
 
-#ifndef _C4_YML_EXTRA_INTS_UTILS_HPP_
+#ifndef C4_YML_EXTRA_INTS_UTILS_HPP_
 #include "c4/yml/extra/ints_utils.hpp"
 #endif
 
@@ -59,7 +59,7 @@ const FlagSym flag_syms_[] = {
 
 size_t to_str(substr buf, ievt::evt_bits flags) noexcept
 {
-    detail::_SubstrWriter writer(buf);
+    detail::SubstrWriter_ writer(buf);
     for(const FlagSym sym : flag_syms_)
     {
         if(flags & sym.flags)
@@ -80,8 +80,8 @@ size_t to_str(substr buf, ievt::evt_bits flags) noexcept
 csubstr to_str_sub(substr buf, ievt::evt_bits flags)
 {
     size_t reqsize = ievt::to_str(buf, flags);
-    _RYML_CHECK_BASIC(reqsize > 0u);
-    _RYML_CHECK_BASIC(reqsize < buf.len);
+    RYML_CHECK_BASIC_(reqsize > 0u);
+    RYML_CHECK_BASIC_(reqsize < buf.len);
     return buf.first(reqsize);
 }
 

@@ -1,7 +1,7 @@
-#ifndef _C4_YML_EMIT_OPTIONS_HPP_
-#define _C4_YML_EMIT_OPTIONS_HPP_
+#ifndef C4_YML_EMIT_OPTIONS_HPP_
+#define C4_YML_EMIT_OPTIONS_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include <c4/yml/common.hpp>
 #endif
 
@@ -25,7 +25,7 @@ public:
         JSON_ERR_ON_STREAM = 1u << 4u,
         JSON_ERR_ON_TAG = 1u << 5u,
         JSON_ERR_ON_ANCHOR = 1u << 6u,
-        _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
+        JSON_ERR_MASK_ = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
         DEFAULT_FLAGS = EMIT_NONROOT_KEY|INDENT_FLOW_ML,
     } Flags_e;
     /** @endcond */
@@ -150,8 +150,8 @@ private:
 public: // deprecated methods
 
     /** @cond dev */
-    RYML_DEPRECATED("use .json_err_on_{tag,anchor}()") C4_ALWAYS_INLINE Flags_e json_error_flags() const noexcept { return static_cast<Flags_e>(m_flags & _JSON_ERR_MASK); }
-    RYML_DEPRECATED("use .json_err_on_{tag,anchor}()") EmitOptions& json_error_flags(Flags_e d) noexcept { m_flags = (d & _JSON_ERR_MASK); return *this; }
+    RYML_DEPRECATED("use .json_err_on_{tag,anchor}()") C4_ALWAYS_INLINE Flags_e json_error_flags() const noexcept { return static_cast<Flags_e>(m_flags & JSON_ERR_MASK_); }
+    RYML_DEPRECATED("use .json_err_on_{tag,anchor}()") EmitOptions& json_error_flags(Flags_e d) noexcept { m_flags = (d & JSON_ERR_MASK_); return *this; }
     /** @endcond */
 
 };
@@ -159,4 +159,4 @@ public: // deprecated methods
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EMIT_HPP_ */
+#endif /* C4_YML_EMIT_HPP_ */

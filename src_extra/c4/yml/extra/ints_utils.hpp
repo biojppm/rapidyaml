@@ -1,7 +1,7 @@
-#ifndef _C4_YML_EXTRA_INTS_UTILS_HPP_
-#define _C4_YML_EXTRA_INTS_UTILS_HPP_
+#ifndef C4_YML_EXTRA_INTS_UTILS_HPP_
+#define C4_YML_EXTRA_INTS_UTILS_HPP_
 
-#ifndef _C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
+#ifndef C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #include "c4/yml/extra/event_handler_ints.hpp"
 #endif
 
@@ -35,4 +35,4 @@ RYML_EXPORT void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::evt
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EXTRA_INTS_UTILS_HPP_ */
+#endif /* C4_YML_EXTRA_INTS_UTILS_HPP_ */

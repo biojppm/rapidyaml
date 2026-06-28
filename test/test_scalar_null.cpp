@@ -12,8 +12,8 @@ C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
 csubstr getafter(csubstr yaml, csubstr pattern)
 {
     size_t pos = yaml.find(pattern);
-    _RYML_ASSERT_BASIC(pos != npos);
-    _RYML_ASSERT_BASIC(yaml.sub(pos).begins_with(pattern));
+    RYML_ASSERT_BASIC_(pos != npos);
+    RYML_ASSERT_BASIC_(yaml.sub(pos).begins_with(pattern));
     return yaml.sub(pos + pattern.len);
 }
 

@@ -1,16 +1,16 @@
-#ifndef _C4_YML_EMIT_FILE_HPP_
+#ifndef C4_YML_EMIT_FILE_HPP_
 #include "c4/yml/emit_file.hpp"
 #endif
-#ifndef _C4_YML_WRITER_FILE_HPP_
+#ifndef C4_YML_WRITER_FILE_HPP_
 #include "c4/yml/writer_file.hpp"
 #endif
-#ifndef _C4_YML_TREE_HPP_
+#ifndef C4_YML_TREE_HPP_
 #include "c4/yml/tree.hpp"
 #endif
-#ifndef _C4_YML_NODE_HPP_
+#ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
 #endif
-#ifndef _C4_YML_EMITTER_DEF_HPP_
+#ifndef C4_YML_EMITTER_DEF_HPP_
 #include "c4/yml/emitter.def.hpp"
 #endif
 

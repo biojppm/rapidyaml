@@ -1,5 +1,5 @@
-#ifndef _C4_PUSH_HPP_
-#define _C4_PUSH_HPP_
+#ifndef C4_PUSH_HPP_
+#define C4_PUSH_HPP_
 
 
 /** @file c4_push.hpp enables macros and warning control directives
@@ -7,7 +7,7 @@
  * @see c4_pop.hpp */
 
 
-#ifndef _C4_CONFIG_HPP_
+#ifndef C4_CONFIG_HPP_
 #include "c4/config.hpp"
 #endif
 
@@ -34,4 +34,4 @@
 #   endif
 #endif
 
-#endif /* _C4_PUSH_HPP_ */
+#endif /* C4_PUSH_HPP_ */

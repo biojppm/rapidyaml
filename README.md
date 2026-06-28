@@ -8,21 +8,29 @@
 <!-- [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/) -->
 
 
-Or ryml, for short. ryml is a C++ library to parse and emit YAML,
+Or ryml, for short. ryml is a C++11 library to parse and emit YAML,
 and do it fast, on everything from x64 to bare-metal chips without
-operating system. (If you are looking to use your programs with a YAML tree
-as a configuration tree with override facilities, take a look at
-[c4conf](https://github.com/biojppm/c4conf)).
+operating system.
+
+The library is fully conformant to the YAML 1.2 spec, and passes
+100.00% of the cases in the YAML test suite. The code is robust and
+extremely tested and fuzzed. The parser is state-machine based and not
+recursive. No known vulnerabilities exist.
 
 ryml parses both read-only and in-situ source buffers; the resulting
 data nodes hold only views to sub-ranges of the source buffer. No
 string copies or duplications are done, and no virtual functions are
 used. The data tree is a flat index-based structure stored in a single
-array. Serialization happens only at your direct request, after
-parsing / before emitting. Internally, the data tree representation
-stores only string views and has no knowledge of types, but of course,
-every node can have a YAML type tag. ryml makes it easy and fast to
+array.
+
+With the tree, (de)serialization happens only at your direct request,
+after parsing / before emitting. Internally, the tree representation
+stores only string views and assumes nothing on user types, but of
+course. And it is not just parsing or emitting which is fast; the
+serialization is extremely fast, in many cases faster than the fastest
+c++ facilities like `std::to_chars()`. ryml makes it easy and fast to
 read and modify the data tree.
+
 
 ryml is available as a single header file, or it can be used as a
 simple library with cmake -- both separately (ie
@@ -39,8 +47,9 @@ allocation and eg, exception-throwing callbacks.
 ryml does not depend on the STL, ie, it does not use any std container
 as part of its data structures, but it can serialize and deserialize
 these containers into the data tree, with the use of optional
-headers. ryml ships with [c4core](https://github.com/biojppm/c4core), a
-small C++ utilities multiplatform library.
+headers. ryml ships with [c4core](https://github.com/biojppm/c4core),
+a small C++ utilities multiplatform library, but you can ignore the
+in-source version of c4core and use a custom or system-installed version.
 
 ryml is written in C++11, and compiles cleanly with:
 * Visual Studio 2015 and later
@@ -234,7 +243,7 @@ open an issue, or submit a pull request adding the file to
 
 ## Quick start
 
-If you're wondering whether ryml's speed comes at a usage cost, you
+If you're wondering whether ryml's speed comes at a convenience cost, you
 need not: with ryml, you can have your cake and eat it too. Being
 rapid is definitely not the same as being unpractical, and ryml was
 written with easy and efficient usage in mind:
@@ -596,42 +605,3 @@ Also, note that in [their own words](http://matrix.yaml.info/), the
 tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
 the extreme focus of the test suite, ryml passes all of its test cases.
-
-
-------
-
-## Alternative libraries
-
-Why this library? Because none of the existing libraries was quite
-what I wanted. When I started this project in 2018, I was aware of these two
-alternative C/C++ libraries:
-
-  * [libyaml](https://github.com/yaml/libyaml). This is a bare C
-    library. It does not create a representation of the data tree, so
-    I don't see it as practical. My initial idea was to wrap parsing
-    and emitting around libyaml's convenient event handling, but to my
-    surprise I found out it makes heavy use of allocations and string
-    duplications when parsing. I briefly pondered on sending PRs to
-    reduce these allocation needs, but not having a permanent tree to
-    store the parsed data was too much of a downside.
-  * [yaml-cpp](https://github.com/jbeder/yaml-cpp). This library may
-    be full of functionality, but is heavy on the use of
-    node-pointer-based structures like `std::map`, allocations, string
-    copies, polymorphism and slow C++ stream serializations. This is
-    generally a sure way of making your code slower, and strong
-    evidence of this can be seen in the benchmark results above.
-  * [libfyaml](https://github.com/pantoniou/libfyaml). This is a newer
-    C library, also fully conformant to the YAML standard; it also
-    offers the tree as a data structure. As a downside, it does not
-    work in Windows, and it is also multiple times slower parsing and
-    emitting.
-
-When performance and low latency are important, using contiguous
-structures for better cache behavior and to prevent the library from
-trampling caches, parsing in place and using non-owning strings is of
-central importance. Hence this Rapid YAML library which, with minimal
-compromise, bridges the gap from efficiency to usability. This library
-takes inspiration from
-[RapidJSON](https://github.com/Tencent/rapidjson) and
-[RapidXML](http://rapidxml.sourceforge.net/).
- 

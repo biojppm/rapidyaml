@@ -23,13 +23,13 @@
 #endif
 
 #if defined(RYML_WITH_TAB_TOKENS)
-#define _RYML_WITH_TAB_TOKENS(...) __VA_ARGS__
-#define _RYML_WITHOUT_TAB_TOKENS(...)
-#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) with
+#define RYML_WITH_TAB_TOKENS_(...) __VA_ARGS__
+#define RYML_WITHOUT_TAB_TOKENS_(...)
+#define RYML_WITH_OR_WITHOUT_TAB_TOKENS_(with, without) with
 #else
-#define _RYML_WITH_TAB_TOKENS(...)
-#define _RYML_WITHOUT_TAB_TOKENS(...) __VA_ARGS__
-#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) without
+#define RYML_WITH_TAB_TOKENS_(...)
+#define RYML_WITHOUT_TAB_TOKENS_(...) __VA_ARGS__
+#define RYML_WITH_OR_WITHOUT_TAB_TOKENS_(with, without) without
 #endif
 
 namespace c4 {

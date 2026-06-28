@@ -1,5 +1,5 @@
-#ifndef _C4_YML_DETAIL_DBGPRINT_HPP_
-#define _C4_YML_DETAIL_DBGPRINT_HPP_
+#ifndef C4_YML_DETAIL_DBGPRINT_HPP_
+#define C4_YML_DETAIL_DBGPRINT_HPP_
 
 
 //-----------------------------------------------------------------------------
@@ -16,21 +16,21 @@
 #   define _c4prscalar(msg, scalar, keep_newlines)
 #else
 #   define _c4dbgt(fmt, ...)   do {                                     \
-                                   if(_dbg_enabled()) {                 \
+                                   if(dbg_enabled_()) {                 \
                                        this->_dbg("{}:{}: "   fmt     , __FILE__, __LINE__, __VA_ARGS__); \
                                    }                                    \
                                } while(0)
-#   define _c4dbgpf(fmt, ...)  _dbg_printf("{}:{}: "   fmt "\n", __FILE__, __LINE__, __VA_ARGS__)
-#   define _c4dbgpf_(fmt, ...) _dbg_printf("{}:{}: "   fmt     , __FILE__, __LINE__, __VA_ARGS__)
-#   define _c4dbgp(msg)        _dbg_printf("{}:{}: "   msg "\n", __FILE__, __LINE__             )
-#   define _c4dbgp_(msg)       _dbg_printf("{}:{}: "   msg     , __FILE__, __LINE__             )
-#   define _c4dbgq(msg)        _dbg_printf(msg "\n")
-#   define _c4presc(...)       __c4presc(__VA_ARGS__)
+#   define _c4dbgpf(fmt, ...)  dbg_printf_("{}:{}: "   fmt "\n", __FILE__, __LINE__, __VA_ARGS__)
+#   define _c4dbgpf_(fmt, ...) dbg_printf_("{}:{}: "   fmt     , __FILE__, __LINE__, __VA_ARGS__)
+#   define _c4dbgp(msg)        dbg_printf_("{}:{}: "   msg "\n", __FILE__, __LINE__             )
+#   define _c4dbgp_(msg)       dbg_printf_("{}:{}: "   msg     , __FILE__, __LINE__             )
+#   define _c4dbgq(msg)        dbg_printf_(msg "\n")
+#   define _c4presc(...)       c4presc_(__VA_ARGS__)
 #   define _c4prscalar(msg, scalar, keep_newlines)                  \
     do {                                                            \
-        if(_dbg_enabled()) {                                        \
+        if(dbg_enabled_()) {                                        \
             _c4dbgpf_("{}: [{}]~~~", msg, scalar.len);              \
-            __c4presc((scalar), (keep_newlines));                   \
+            c4presc_((scalar), (keep_newlines));                    \
             _c4dbgq("~~~");                                         \
         }                                                           \
     } while(0)
@@ -50,14 +50,14 @@
 #include <alloca.h>
 #endif
 
-#ifndef _C4_YML_ESCAPE_SCALAR_HPP_
+#ifndef C4_YML_ESCAPE_SCALAR_HPP_
 #include "c4/yml/escape_scalar.hpp"
 #endif
 
-#ifndef _C4_DUMP_HPP_
+#ifndef C4_DUMP_HPP_
 #include "c4/dump.hpp"
 #endif
-#ifndef _C4_FORMAT_HPP_
+#ifndef C4_FORMAT_HPP_
 #include "c4/format.hpp"
 #endif
 
@@ -66,16 +66,16 @@ C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
 
 namespace c4 {
 namespace yml {
-inline bool& _dbg_enabled() { static bool enabled = true; return enabled; }
-inline C4_NO_INLINE void _dbg_set_enabled(bool yes) { _dbg_enabled() = yes; }
-inline C4_NO_INLINE void _dbg_dumper(csubstr s)
+inline bool& dbg_enabled_() { static bool enabled = true; return enabled; }
+inline C4_NO_INLINE void dbg_set_enabled_(bool yes) { dbg_enabled_() = yes; }
+inline C4_NO_INLINE void dbg_dumper_(csubstr s)
 {
-    _RYML_ASSERT_BASIC(s.str || !s.len);
+    RYML_ASSERT_BASIC_(s.str || !s.len);
     if(s.len)
         fwrite(s.str, 1, s.len, stdout);
 }
 template<class DumpFn, class ...Args>
-C4_NO_INLINE void _dbg_dump(DumpFn &&dumpfn, csubstr fmt, Args&& ...args)
+C4_NO_INLINE void dbg_dump_(DumpFn &&dumpfn, csubstr fmt, Args&& ...args)
 {
     DumpResults results;
     // try writing everything:
@@ -103,61 +103,61 @@ C4_NO_INLINE void _dbg_dump(DumpFn &&dumpfn, csubstr fmt, Args&& ...args)
     }
 }
 template<class ...Args>
-C4_NO_INLINE void _dbg_printf(csubstr fmt, Args const& ...args)
+C4_NO_INLINE void dbg_printf_(csubstr fmt, Args const& ...args)
 {
-    if(_dbg_enabled())
-        _dbg_dump(&_dbg_dumper, fmt, args...);
+    if(dbg_enabled_())
+        dbg_dump_(&dbg_dumper_, fmt, args...);
 }
-inline C4_NO_INLINE void __c4presc(csubstr s, bool keep_newlines=false)
+inline C4_NO_INLINE void c4presc_(csubstr s, bool keep_newlines=false)
 {
-    if(_dbg_enabled())
-        escape_scalar_fn(_dbg_dumper, s, keep_newlines);
+    if(dbg_enabled_())
+        escape_scalar_fn(dbg_dumper_, s, keep_newlines);
 }
-inline C4_NO_INLINE void __c4presc(const char *s, size_t len, bool keep_newlines=false)
+inline C4_NO_INLINE void c4presc_(const char *s, size_t len, bool keep_newlines=false)
 {
-    __c4presc(csubstr(s, len), keep_newlines);
+    c4presc_(csubstr(s, len), keep_newlines);
 }
 
-struct _maybe_null_str
+struct maybe_null_str_
 {
     csubstr s;
-    _maybe_null_str(csubstr s_) noexcept : s(s_) {}
+    maybe_null_str_(csubstr s_) noexcept : s(s_) {}
 };
 // LCOV_EXCL_START
-inline C4_NO_INLINE size_t to_chars(substr buf, _maybe_null_str const& v)
+inline C4_NO_INLINE size_t to_chars(substr buf, maybe_null_str_ const& v)
 {
     return c4::format(buf, v.s.str ? v.s : csubstr("(out of size)"));
 }
 // LCOV_EXCL_STOP
 template<class SinkPfn>
-C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr /*buf*/, _maybe_null_str const& v)
+C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr /*buf*/, maybe_null_str_ const& v)
 {
     std::forward<SinkPfn>(sinkfn)(v.s.str ? v.s : csubstr("(out of size)"));
     return 0; // no space needed in the buffer
 }
 
 /** print string as [{s.len}]~~~{s}~~~ */
-struct _prs
+struct prs_
 {
     csubstr subject;
     size_t maxsize;
     bool escape;
     bool keep_newlines; ///< keep newlines when escaping
-    _prs(csubstr s) noexcept
+    prs_(csubstr s) noexcept
         : subject(s)
         , maxsize(s.len)
         , escape(false)
         , keep_newlines(true)
     {
     }
-    explicit _prs(csubstr s, size_t maxsz, bool esc=false, bool newl=false) noexcept
+    explicit prs_(csubstr s, size_t maxsz, bool esc=false, bool newl=false) noexcept
         : subject(s)
         , maxsize(maxsz == npos ? s.len : maxsz)
         , escape(esc)
         , keep_newlines(newl)
     {
     }
-    explicit _prs(csubstr s, bool esc, bool newl=true) noexcept
+    explicit prs_(csubstr s, bool esc, bool newl=true) noexcept
         : subject(s)
         , maxsize(s.len)
         , escape(esc)
@@ -166,7 +166,7 @@ struct _prs
     }
 };
 // LCOV_EXCL_START
-inline C4_NO_INLINE size_t to_chars(substr buf, _prs const& v)
+inline C4_NO_INLINE size_t to_chars(substr buf, prs_ const& v)
 {
     csubstr s = v.subject;
     if(C4_LIKELY(s.str != nullptr))
@@ -186,7 +186,7 @@ inline C4_NO_INLINE size_t to_chars(substr buf, _prs const& v)
 }
 // LCOV_EXCL_STOP
 template<class SinkPfn>
-C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr buf, _prs const& v)
+C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr buf, prs_ const& v)
 {
     csubstr s = v.subject;
     size_t sz = to_chars(buf, s.len);
@@ -231,4 +231,4 @@ C4_SUPPRESS_WARNING_GCC_POP
 
 #endif // RYML_DBG
 
-#endif /* _C4_YML_DETAIL_DBGPRINT_HPP_ */
+#endif /* C4_YML_DETAIL_DBGPRINT_HPP_ */

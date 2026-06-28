@@ -1,5 +1,5 @@
-#ifndef _C4_ENUM_HPP_
-#define _C4_ENUM_HPP_
+#ifndef C4_ENUM_HPP_
+#define C4_ENUM_HPP_
 
 #include "c4/error.hpp"
 
@@ -280,4 +280,4 @@ C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace c4
 
-#endif // _C4_ENUM_HPP_
+#endif // C4_ENUM_HPP_

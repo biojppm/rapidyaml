@@ -1,15 +1,15 @@
-#ifndef _C4_YML_SCALAR_CHARCONV_HPP_
-#define _C4_YML_SCALAR_CHARCONV_HPP_
+#ifndef C4_YML_SCALAR_CHARCONV_HPP_
+#define C4_YML_SCALAR_CHARCONV_HPP_
 
 /** @file scalar_charconv.hpp */
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
-#ifndef _C4_CHARCONV_HPP_
+#ifndef C4_CHARCONV_HPP_
 #include <c4/charconv.hpp>
 #endif
 
@@ -126,8 +126,8 @@ template<class T>
 C4_NODISCARD C4_NO_INLINE bool from_chars_float_yaml_special(csubstr buf, T *C4_RESTRICT val) RYML_NOEXCEPT
 {
     static_assert(std::is_floating_point<T>::value, "must be floating point");
-    _RYML_ASSERT_BASIC(buf.len);
-    _RYML_ASSERT_BASIC(!buf.begins_with('+'));
+    RYML_ASSERT_BASIC_(buf.len);
+    RYML_ASSERT_BASIC_(!buf.begins_with('+'));
     switch(buf.str[0])
     {
     case '.':
@@ -341,4 +341,4 @@ C4_ALWAYS_INLINE auto scalar_serialize(substr buf, T const& C4_RESTRICT a)
 } // namespace c4
 
 
-#endif /* _C4_YML_SERIALIZE_HELPERS_HPP_ */
+#endif /* C4_YML_SCALAR_CHARCONV_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef _C4_VERSION_HPP_
-#define _C4_VERSION_HPP_
+#ifndef C4_VERSION_HPP_
+#define C4_VERSION_HPP_
 
 /** @file version.hpp */
 
@@ -19,4 +19,4 @@ C4CORE_EXPORT int version_patch();
 
 } // namespace c4
 
-#endif /* _C4_VERSION_HPP_ */
+#endif /* C4_VERSION_HPP_ */

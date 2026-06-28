@@ -1,12 +1,12 @@
-#ifndef _C4_YML_EMITTER_HPP_
-#define _C4_YML_EMITTER_HPP_
+#ifndef C4_YML_EMITTER_HPP_
+#define C4_YML_EMITTER_HPP_
 
 /** @file emitter.hpp */
 
-#ifndef _C4_YML_EMIT_OPTIONS_HPP_
+#ifndef C4_YML_EMIT_OPTIONS_HPP_
 #include "c4/yml/emit_options.hpp"
 #endif
-#ifndef _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
 #endif
 
@@ -70,31 +70,31 @@ public:
 private: // pending whitespace
 
     /// pending whitespace
-    typedef enum : uint32_t { _PWS_NONE = 0u, _PWS_SPACE = 1u, _PWS_NEWL = 2u } Pws_e; // NOLINT
+    typedef enum : uint32_t { PWS_NONE_ = 0u, PWS_SPACE_ = 1u, PWS_NEWL_ = 2u } Pws_e; // NOLINT
 
     /// set pending whitespace, ignoring pending
     C4_ALWAYS_INLINE void pend_none_() noexcept // LCOV_EXCL_LINE
     {
-        m_pws = _PWS_NONE;
+        m_pws = PWS_NONE_;
     }
     /// set pending whitespace, ignoring pending
     C4_ALWAYS_INLINE void pend_newl_() noexcept // LCOV_EXCL_LINE
     {
-        m_pws = _PWS_NEWL;
+        m_pws = PWS_NEWL_;
     }
     /// set pending whitespace, ignoring pending
     C4_ALWAYS_INLINE void pend_space_() noexcept // LCOV_EXCL_LINE
     {
-        m_pws = _PWS_SPACE;
+        m_pws = PWS_SPACE_;
     }
     /// write pending whitespace, and then set the next pending whitespace
-    C4_ALWAYS_INLINE void write_pws_and_pend_(Pws_e next=_PWS_NONE) noexcept // LCOV_EXCL_LINE
+    C4_ALWAYS_INLINE void write_pws_and_pend_(Pws_e next=PWS_NONE_) noexcept // LCOV_EXCL_LINE
     {
-        if(m_pws == _PWS_SPACE)
+        if(m_pws == PWS_SPACE_)
         {
             write_(' ');
         }
-        else if(m_pws == _PWS_NEWL)
+        else if(m_pws == PWS_NEWL_)
         {
             newl_();
             indent_(m_ilevel);
@@ -106,11 +106,11 @@ private: // pending whitespace
     struct flow_pws
     {
         size_t max_cols = 0; // leave this member first to avoid padding
-        Pws_e pend_after_comma = _PWS_NONE;
+        Pws_e pend_after_comma = PWS_NONE_;
         bool active = false;
         C4_ALWAYS_INLINE Pws_e next_pws(size_t col) const noexcept // LCOV_EXCL_LINE
         {
-            return (active && col >= max_cols) ? _PWS_NEWL : pend_after_comma;
+            return (active && col >= max_cols) ? PWS_NEWL_ : pend_after_comma;
         }
         void start(NodeType ty, size_t max_cols_) noexcept;
         void stop() noexcept { active = false; }
@@ -252,4 +252,4 @@ public: // deprecated methods
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EMITTTER_HPP_ */
+#endif /* C4_YML_EMITTTER_HPP_ */

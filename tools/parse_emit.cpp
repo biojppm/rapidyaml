@@ -111,7 +111,7 @@ bool is_arg1(c4::csubstr arg, c4::csubstr argshort, c4::csubstr arglong, int i, 
     if(is_arg0(arg, argshort, arglong))
     {
         if(i + 2 >= argc)
-            _RYML_ERR_BASIC("missing argument value: {}", arg); // LCOV_EXCL_LINE --- lcov fail!
+            RYML_ERR_BASIC_("missing argument value: {}", arg); // LCOV_EXCL_LINE --- lcov fail!
         return true;
     }
     return false;
@@ -120,7 +120,7 @@ template<class T>
 void read_arg(c4::csubstr arg, c4::csubstr arglong, T *var)
 {
     if(!c4::from_chars(arg, var))
-        _RYML_ERR_BASIC("{}: could not read '{}'", arglong, arg); // LCOV_EXCL_LINE --- lcov fail!
+        RYML_ERR_BASIC_("{}: could not read '{}'", arglong, arg); // LCOV_EXCL_LINE --- lcov fail!
 }
 bool parse_args(int argc, const char *argv[], Args &args)
 {
@@ -145,12 +145,12 @@ bool parse_args(int argc, const char *argv[], Args &args)
         }
         else if(i+1 < argc)
         {
-            print_usage(argv[0]); _RYML_ERR_BASIC("unknown argument: {}", arg); // LCOV_EXCL_LINE --- lcov fail!
+            print_usage(argv[0]); RYML_ERR_BASIC_("unknown argument: {}", arg); // LCOV_EXCL_LINE --- lcov fail!
         }
     }
     if(argc < 2)
     {
-        print_usage(argv[0]); _RYML_ERR_BASIC("missing filename (use - to read from stdin)"); // LCOV_EXCL_LINE --- lcov fail!
+        print_usage(argv[0]); RYML_ERR_BASIC_("missing filename (use - to read from stdin)"); // LCOV_EXCL_LINE --- lcov fail!
     }
     timing_enabled = args.timed_sections;
     args.filename = c4::to_csubstr(argv[argc - 1]);
@@ -167,7 +167,7 @@ void read_file(csubstr filename, std::vector<char> *buf)
     else
     {
         if(!fs::path_exists(filename.str))
-            _RYML_ERR_BASIC("file not found: {} (cwd={})", filename, fs::cwd<std::string>()); // LCOV_EXCL_LINE --- lcov fail!
+            RYML_ERR_BASIC_("file not found: {} (cwd={})", filename, fs::cwd<std::string>()); // LCOV_EXCL_LINE --- lcov fail!
         yml::file_get_contents(buf, filename.str);
     }
 }
@@ -215,8 +215,8 @@ yml::Callbacks create_custom_callbacks()
 }
 
 
-#define TS(name) timed_section C4_XCAT(__, C4_XCAT(name, __LINE__))(#name)
-#define TSB(name, numbytes) timed_section C4_XCAT(__, C4_XCAT(name, __LINE__))(#name, numbytes)
+#define TS(name) timed_section C4_XCAT(C4_XCAT(name, __LINE__), _)(#name)
+#define TSB(name, numbytes) timed_section C4_XCAT(C4_XCAT(name, __LINE__), _)(#name, numbytes)
 struct timed_section
 {
     using myclock = std::chrono::steady_clock;
@@ -318,7 +318,7 @@ void process_file_tree(Args const& args, c4::substr contents)
         {
             FILE *output = fopen(args.output.str, "wb"); // NOLINT
             if (!output)
-                _RYML_ERR_BASIC("could not open file: {}", args.output.str);
+                RYML_ERR_BASIC_("could not open file: {}", args.output.str);
             {
                 TSB(emit_to_file, contents.len);
                 if(!args.emit_as_json)

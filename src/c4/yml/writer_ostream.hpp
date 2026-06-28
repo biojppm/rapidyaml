@@ -1,9 +1,9 @@
-#ifndef _C4_YML_WRITER_OSTREAM_HPP_
-#define _C4_YML_WRITER_OSTREAM_HPP_
+#ifndef C4_YML_WRITER_OSTREAM_HPP_
+#define C4_YML_WRITER_OSTREAM_HPP_
 
 /** @file writer_ostream.hpp */
 
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
 
@@ -54,4 +54,4 @@ struct WriterOStream
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_WRITER_OSTREAM_HPP_ */
+#endif /* C4_YML_WRITER_OSTREAM_HPP_ */

@@ -1,10 +1,10 @@
-#ifndef _C4_STD_STRING_VIEW_HPP_
-#define _C4_STD_STRING_VIEW_HPP_
+#ifndef C4_STD_STRING_VIEW_HPP_
+#define C4_STD_STRING_VIEW_HPP_
 
 /** @file string_view.hpp */
 
 #ifndef C4CORE_SINGLE_HEADER
-#ifndef _C4_LANGUAGE_HPP_
+#ifndef C4_LANGUAGE_HPP_
 #include "c4/language.hpp"
 #endif
 #endif
@@ -12,7 +12,7 @@
 #if (C4_CPP >= 17 && defined(__cpp_lib_string_view)) || defined(__DOXYGEN__)
 
 #ifndef C4CORE_SINGLE_HEADER
-#ifndef _C4_SUBSTR_HPP_
+#ifndef C4_SUBSTR_HPP_
 #include "c4/substr.hpp"
 #endif
 #endif
@@ -69,4 +69,4 @@ inline size_t to_chars(c4::substr buf, std::string_view s)
 
 #endif // STRING_VIEW_AVAILABLE
 
-#endif // _C4_STD_STRING_VIEW_HPP_
+#endif // C4_STD_STRING_VIEW_HPP_

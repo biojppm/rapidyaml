@@ -1,5 +1,5 @@
-#ifndef _C4_COMPILER_HPP_
-#define _C4_COMPILER_HPP_
+#ifndef C4_COMPILER_HPP_
+#define C4_COMPILER_HPP_
 
 /** @file compiler.hpp Provides compiler information macros
  * @ingroup basic_headers */
@@ -122,4 +122,4 @@
 #   endif
 #endif // defined(C4_WIN) && defined(_MSC_VER)
 
-#endif /* _C4_COMPILER_HPP_ */
+#endif /* C4_COMPILER_HPP_ */

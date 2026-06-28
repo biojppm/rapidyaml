@@ -1,9 +1,9 @@
-#ifndef _C4_YML_WRITER_FILE_HPP_
-#define _C4_YML_WRITER_FILE_HPP_
+#ifndef C4_YML_WRITER_FILE_HPP_
+#define C4_YML_WRITER_FILE_HPP_
 
 /** @file writer_file.hpp */
 
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
 
@@ -56,4 +56,4 @@ struct RYML_EXPORT WriterFile
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_WRITER_FILE_HPP_ */
+#endif /* C4_YML_WRITER_FILE_HPP_ */
