@@ -1,5 +1,5 @@
-#ifndef _TEST_CASE_HPP_
-#define _TEST_CASE_HPP_
+#ifndef TEST_CASE_HPP_
+#define TEST_CASE_HPP_
 
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
@@ -24,6 +24,9 @@
 #   pragma clang diagnostic ignored "-Wold-style-cast"
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
 #endif
 
 
@@ -127,14 +130,14 @@ CaseData* get_data(csubstr name);
 
 void test_compare(ConstNodeRef const& actual, ConstNodeRef const& expected,
                   const char *actual_name="actual", const char *expected_name="expected",
-                  type_bits cmp_mask=_TYMASK);
+                  type_bits cmp_mask=TYMASK_);
 void test_compare(Tree const& actual, Tree const& expected,
                   const char *actual_name="actual", const char *expected_name="expected",
-                  type_bits cmp_mask=_TYMASK);
+                  type_bits cmp_mask=TYMASK_);
 void test_compare(Tree const& actual, id_type node_actual,
                   Tree const& expected, id_type node_expected,
                   id_type level=0, const char *actual_name="actual", const char *expected_name="expected",
-                  type_bits cmp_mask=_TYMASK);
+                  type_bits cmp_mask=TYMASK_);
 
 void test_arena_not_shared(Tree const& a, Tree const& b);
 
@@ -243,14 +246,14 @@ void test_check_emit_check(csubstr yaml, CheckFn &&check_fn)
 
 inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
 {
-    _RYML_CHECK_BASIC(!subject.overlaps(to_csubstr(*dst)));
+    RYML_CHECK_BASIC_(!subject.overlaps(to_csubstr(*dst)));
     size_t ret = subject.replace_all(to_substr(*dst), pattern, repl);
     if(ret != dst->size())
     {
         dst->resize(ret);
         ret = subject.replace_all(to_substr(*dst), pattern, repl);
     }
-    _RYML_CHECK_BASIC(ret == dst->size());
+    RYML_CHECK_BASIC_(ret == dst->size());
     return c4::to_substr(*dst);
 }
 
@@ -428,4 +431,4 @@ inline std::string namefor(bomspec const& param)
 #   pragma warning(pop)
 #endif
 
-#endif /* _TEST_CASE_HPP_ */
+#endif /* TEST_CASE_HPP_ */

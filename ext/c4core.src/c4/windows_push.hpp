@@ -1,5 +1,5 @@
-#ifndef _C4_WINDOWS_PUSH_HPP_
-#define _C4_WINDOWS_PUSH_HPP_
+#ifndef C4_WINDOWS_PUSH_HPP_
+#define C4_WINDOWS_PUSH_HPP_
 
 /** @file windows_push.hpp sets up macros to include windows header files
  * without pulling in all of <windows.h>
@@ -99,4 +99,4 @@
 
 #endif /* defined(_WIN64) || defined(_WIN32) */
 
-#endif /* _C4_WINDOWS_PUSH_HPP_ */
+#endif /* C4_WINDOWS_PUSH_HPP_ */

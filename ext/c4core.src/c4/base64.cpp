@@ -1,7 +1,7 @@
-#ifndef _C4_BASE64_HPP_
+#ifndef C4_BASE64_HPP_
 #include "c4/base64.hpp"
 #endif
-#ifndef _C4_ERROR_HPP_
+#ifndef C4_ERROR_HPP_
 #include "c4/error.hpp"
 #endif
 
@@ -49,42 +49,42 @@ const char base64_sextet_to_char_[64] = {
 
 using dectype = uint8_t;
 
-#define __ dectype(-1) // undefined below
+#define s_ dectype(-1) // undefined below
 
 // https://www.cs.cmu.edu/~pattis/15-1XX/common/handouts/ascii.html
 const dectype base64_char_to_sextet_[128] = {
-    /*  0 NUL*/ __, /*  1 SOH*/ __, /*  2 STX*/ __, /*  3 ETX*/ __,
-    /*  4 EOT*/ __, /*  5 ENQ*/ __, /*  6 ACK*/ __, /*  7 BEL*/ __,
-    /*  8 BS */ __, /*  9 TAB*/ __, /* 10 LF */ __, /* 11 VT */ __,
-    /* 12 FF */ __, /* 13 CR */ __, /* 14 SO */ __, /* 15 SI */ __,
-    /* 16 DLE*/ __, /* 17 DC1*/ __, /* 18 DC2*/ __, /* 19 DC3*/ __,
-    /* 20 DC4*/ __, /* 21 NAK*/ __, /* 22 SYN*/ __, /* 23 ETB*/ __,
-    /* 24 CAN*/ __, /* 25 EM */ __, /* 26 SUB*/ __, /* 27 ESC*/ __,
-    /* 28 FS */ __, /* 29 GS */ __, /* 30 RS */ __, /* 31 US */ __,
-    /* 32 SPC*/ __, /* 33 !  */ __, /* 34 "  */ __, /* 35 #  */ __,
-    /* 36 $  */ __, /* 37 %  */ __, /* 38 &  */ __, /* 39 '  */ __,
-    /* 40 (  */ __, /* 41 )  */ __, /* 42 *  */ __, /* 43 +  */ 62,
-    /* 44 ,  */ __, /* 45 -  */ __, /* 46 .  */ __, /* 47 /  */ 63,
+    /*  0 NUL*/ s_, /*  1 SOH*/ s_, /*  2 STX*/ s_, /*  3 ETX*/ s_,
+    /*  4 EOT*/ s_, /*  5 ENQ*/ s_, /*  6 ACK*/ s_, /*  7 BEL*/ s_,
+    /*  8 BS */ s_, /*  9 TAB*/ s_, /* 10 LF */ s_, /* 11 VT */ s_,
+    /* 12 FF */ s_, /* 13 CR */ s_, /* 14 SO */ s_, /* 15 SI */ s_,
+    /* 16 DLE*/ s_, /* 17 DC1*/ s_, /* 18 DC2*/ s_, /* 19 DC3*/ s_,
+    /* 20 DC4*/ s_, /* 21 NAK*/ s_, /* 22 SYN*/ s_, /* 23 ETB*/ s_,
+    /* 24 CAN*/ s_, /* 25 EM */ s_, /* 26 SUB*/ s_, /* 27 ESC*/ s_,
+    /* 28 FS */ s_, /* 29 GS */ s_, /* 30 RS */ s_, /* 31 US */ s_,
+    /* 32 SPC*/ s_, /* 33 !  */ s_, /* 34 "  */ s_, /* 35 #  */ s_,
+    /* 36 $  */ s_, /* 37 %  */ s_, /* 38 &  */ s_, /* 39 '  */ s_,
+    /* 40 (  */ s_, /* 41 )  */ s_, /* 42 *  */ s_, /* 43 +  */ 62,
+    /* 44 ,  */ s_, /* 45 -  */ s_, /* 46 .  */ s_, /* 47 /  */ 63,
     /* 48 0  */ 52, /* 49 1  */ 53, /* 50 2  */ 54, /* 51 3  */ 55,
     /* 52 4  */ 56, /* 53 5  */ 57, /* 54 6  */ 58, /* 55 7  */ 59,
-    /* 56 8  */ 60, /* 57 9  */ 61, /* 58 :  */ __, /* 59 ;  */ __,
-    /* 60 <  */ __, /* 61 =  */ __, /* 62 >  */ __, /* 63 ?  */ __,
-    /* 64 @  */ __, /* 65 A  */  0, /* 66 B  */  1, /* 67 C  */  2,
+    /* 56 8  */ 60, /* 57 9  */ 61, /* 58 :  */ s_, /* 59 ;  */ s_,
+    /* 60 <  */ s_, /* 61 =  */ s_, /* 62 >  */ s_, /* 63 ?  */ s_,
+    /* 64 @  */ s_, /* 65 A  */  0, /* 66 B  */  1, /* 67 C  */  2,
     /* 68 D  */  3, /* 69 E  */  4, /* 70 F  */  5, /* 71 G  */  6,
     /* 72 H  */  7, /* 73 I  */  8, /* 74 J  */  9, /* 75 K  */ 10,
     /* 76 L  */ 11, /* 77 M  */ 12, /* 78 N  */ 13, /* 79 O  */ 14,
     /* 80 P  */ 15, /* 81 Q  */ 16, /* 82 R  */ 17, /* 83 S  */ 18,
     /* 84 T  */ 19, /* 85 U  */ 20, /* 86 V  */ 21, /* 87 W  */ 22,
-    /* 88 X  */ 23, /* 89 Y  */ 24, /* 90 Z  */ 25, /* 91 [  */ __,
-    /* 92 \  */ __, /* 93 ]  */ __, /* 94 ^  */ __, /* 95 _  */ __,
-    /* 96 `  */ __, /* 97 a  */ 26, /* 98 b  */ 27, /* 99 c  */ 28,
+    /* 88 X  */ 23, /* 89 Y  */ 24, /* 90 Z  */ 25, /* 91 [  */ s_,
+    /* 92 \  */ s_, /* 93 ]  */ s_, /* 94 ^  */ s_, /* 95 _  */ s_,
+    /* 96 `  */ s_, /* 97 a  */ 26, /* 98 b  */ 27, /* 99 c  */ 28,
     /*100 d  */ 29, /*101 e  */ 30, /*102 f  */ 31, /*103 g  */ 32,
     /*104 h  */ 33, /*105 i  */ 34, /*106 j  */ 35, /*107 k  */ 36,
     /*108 l  */ 37, /*109 m  */ 38, /*110 n  */ 39, /*111 o  */ 40,
     /*112 p  */ 41, /*113 q  */ 42, /*114 r  */ 43, /*115 s  */ 44,
     /*116 t  */ 45, /*117 u  */ 46, /*118 v  */ 47, /*119 w  */ 48,
-    /*120 x  */ 49, /*121 y  */ 50, /*122 z  */ 51, /*123 {  */ __,
-    /*124 |  */ __, /*125 }  */ __, /*126 ~  */ __, /*127 DEL*/ __,
+    /*120 x  */ 49, /*121 y  */ 50, /*122 z  */ 51, /*123 {  */ s_,
+    /*124 |  */ s_, /*125 }  */ s_, /*126 ~  */ s_, /*127 DEL*/ s_,
 };
 } // namespace
 
@@ -101,7 +101,7 @@ C4CORE_EXPORT void base64_test_tables() // NOLINT(*use-internal-linkage*)
     for(size_t i = 0; i < C4_COUNTOF(base64_char_to_sextet_); ++i)
     {
         dectype c2s = base64_char_to_sextet_[i];
-        if(c2s == __)
+        if(c2s == s_)
             continue;
         char s2c = base64_sextet_to_char_[(unsigned)c2s];
         C4_CHECK((size_t)s2c == i);
@@ -118,26 +118,26 @@ namespace {
 C4_HOT C4_ALWAYS_INLINE bool is_valid_encoded_char_(char c) noexcept
 {
     if constexpr (std::is_unsigned_v<char>)
-        return ((c < 128) && (base64_char_to_sextet_[c] != __));
+        return ((c < 128) && (base64_char_to_sextet_[c] != s_));
     else
-        return ((c >= 0) && (base64_char_to_sextet_[c] != __));
+        return ((c >= 0) && (base64_char_to_sextet_[c] != s_));
 }
 #else // pre c++-17 implementation requires SFINAE
 template<class Char>
 C4_HOT C4_ALWAYS_INLINE auto is_valid_encoded_char_(Char c) noexcept
     -> typename std::enable_if<std::is_unsigned<Char>::value, bool>::type
 {
-    return ((c < 128) && (base64_char_to_sextet_[c] != __));
+    return ((c < 128) && (base64_char_to_sextet_[c] != s_));
 }
 template<class Char>
 C4_HOT C4_ALWAYS_INLINE auto is_valid_encoded_char_(Char c) noexcept
     -> typename std::enable_if< ! std::is_unsigned<Char>::value, bool>::type
 {
-    return ((c >= 0) && (base64_char_to_sextet_[c] != __));
+    return ((c >= 0) && (base64_char_to_sextet_[c] != s_));
 }
 #endif
 
-#undef __
+#undef s_
 
 
 C4_HOT C4_ALWAYS_INLINE bool is_valid_encoded_group4_(const char *C4_RESTRICT c) noexcept
@@ -177,17 +177,17 @@ C4_HOT C4_ALWAYS_INLINE bool is_valid_encoded_group16_(const char *C4_RESTRICT c
 #    if C4_BIG_ENDIAN || (C4_MIXED_ENDIAN                               \
                           && defined(__BYTE_ORDER__)                    \
                           && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))
-#       define _BSWAP_TO_BIG_ENDIAN64(x)
-#       define _BSWAP_TO_BIG_ENDIAN32(x)
+#       define BSWAP_TO_BIG_ENDIAN64_(x)
+#       define BSWAP_TO_BIG_ENDIAN32_(x)
 #    elif C4_LITTLE_ENDIAN || (C4_MIXED_ENDIAN                          \
                                && defined(__BYTE_ORDER__)               \
                                && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
 #       ifdef _MSC_VER
-#           define _BSWAP_TO_BIG_ENDIAN64(x) (x) = _byteswap_uint64(x)
-#           define _BSWAP_TO_BIG_ENDIAN32(x) (x) = _byteswap_ulong(x)
+#           define BSWAP_TO_BIG_ENDIAN64_(x) (x) = _byteswap_uint64(x)
+#           define BSWAP_TO_BIG_ENDIAN32_(x) (x) = _byteswap_ulong(x)
 #       else
-#           define _BSWAP_TO_BIG_ENDIAN64(x) (x) = __builtin_bswap64(x)
-#           define _BSWAP_TO_BIG_ENDIAN32(x) (x) = __builtin_bswap32(x)
+#           define BSWAP_TO_BIG_ENDIAN64_(x) (x) = __builtin_bswap64(x)
+#           define BSWAP_TO_BIG_ENDIAN32_(x) (x) = __builtin_bswap32(x)
 #       endif
 #    else
 #       error not implemented
@@ -203,7 +203,7 @@ C4_HOT C4_ALWAYS_INLINE void base64_encode_block64_(const uint8_t *C4_RESTRICT c
     #if defined(C4_PREFER_BSWAP)
     uint64_t val;                    // MSB    ->     LSB
     memcpy(&val, data, sizeof(val)); // |.|.|5|4|3|2|1|0|
-    _BSWAP_TO_BIG_ENDIAN64(val);     // |0|1|2|3|4|5|.|.|
+    BSWAP_TO_BIG_ENDIAN64_(val);     // |0|1|2|3|4|5|.|.|
     encoded[0] = base64_sextet_to_char_[(val >> 58) & mask64];
     encoded[1] = base64_sextet_to_char_[(val >> 52) & mask64];
     encoded[2] = base64_sextet_to_char_[(val >> 46) & mask64];
@@ -236,7 +236,7 @@ C4_HOT void base64_encode_block32_(const uint8_t *C4_RESTRICT const data, char *
     #if defined(C4_PREFER_BSWAP)
     uint32_t val = 0;
     memcpy(&val, data, sizeof(val)); // MSB: |.|2|1|0| :LSB
-    _BSWAP_TO_BIG_ENDIAN32(val);     // MSB: |0|1|2|.| :LSB
+    BSWAP_TO_BIG_ENDIAN32_(val);     // MSB: |0|1|2|.| :LSB
     encoded[0] = base64_sextet_to_char_[(val >> 26) & mask32];
     encoded[1] = base64_sextet_to_char_[(val >> 20) & mask32];
     encoded[2] = base64_sextet_to_char_[(val >> 14) & mask32];

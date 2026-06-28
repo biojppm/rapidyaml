@@ -1,19 +1,19 @@
-#ifndef _C4_YML_EMIT_HPP_
-#define _C4_YML_EMIT_HPP_
+#ifndef C4_YML_EMIT_HPP_
+#define C4_YML_EMIT_HPP_
 
 /** @file emit.hpp Umbrella header with all utilities to emit YAML and JSON. */
 
 
-#ifndef _C4_YML_EMIT_BUF_HPP_
+#ifndef C4_YML_EMIT_BUF_HPP_
 #include "c4/yml/emit_buf.hpp"
 #endif
-#ifndef _C4_YML_EMIT_CONTAINER_HPP_
+#ifndef C4_YML_EMIT_CONTAINER_HPP_
 #include "c4/yml/emit_container.hpp"
 #endif
-#ifndef _C4_YML_EMIT_FILE_HPP_
+#ifndef C4_YML_EMIT_FILE_HPP_
 #include "c4/yml/emit_file.hpp"
 #endif
-#ifndef _C4_YML_EMIT_OSTREAM_HPP_
+#ifndef C4_YML_EMIT_OSTREAM_HPP_
 #include "c4/yml/emit_ostream.hpp"
 #endif
 
@@ -113,4 +113,4 @@ RYML_DEPRECATE_EMITRS CharOwningContainer emitrs(ConstNodeRef const& n)
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EMIT_HPP_ */
+#endif /* C4_YML_EMIT_HPP_ */

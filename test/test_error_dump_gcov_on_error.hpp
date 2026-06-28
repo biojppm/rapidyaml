@@ -25,7 +25,7 @@ void dump_gcov_on_abort(int signal)
 }
 #endif
 
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
 #define RYML_DUMP_GCOV_ON_ERROR(...)            \
     do {                                        \
         try { __VA_ARGS__ }                     \

@@ -19,6 +19,9 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
 C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
 C4_SUPPRESS_WARNING_MSVC(4389) // signed/unsigned mismatch
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 

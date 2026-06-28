@@ -1,11 +1,11 @@
-#ifndef _C4_YML_EMIT_FILE_HPP_
-#define _C4_YML_EMIT_FILE_HPP_
+#ifndef C4_YML_EMIT_FILE_HPP_
+#define C4_YML_EMIT_FILE_HPP_
 
 /** @file emit_file.hpp */
 
 #include <cstdio>
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
 
@@ -105,4 +105,4 @@ RYML_EXPORT void emit_json(ConstNodeRef const& r, FILE *f=nullptr);
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_EMIT_FILE_HPP_ */
+#endif /* C4_YML_EMIT_FILE_HPP_ */

@@ -1,7 +1,7 @@
-#ifndef _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
 #endif
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
 
@@ -11,7 +11,7 @@ namespace yml {
 
 const char* NodeType::type_str(type_bits ty) noexcept
 {
-    switch(ty & _TYMASK)
+    switch(ty & TYMASK_)
     {
     case KEYVAL:
         return "KEYVAL";
@@ -107,7 +107,7 @@ constexpr const type_and_name type_names[] = {
 } // namespace
 size_t NodeType::type_str(substr buf, type_bits flags) noexcept
 {
-    detail::_SubstrWriter writer(buf);
+    detail::SubstrWriter_ writer(buf);
     for(type_and_name const tn : type_names)
     {
         if((flags & tn.bits) == tn.bits)

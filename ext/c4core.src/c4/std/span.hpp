@@ -1,5 +1,5 @@
-#ifndef _C4_STD_SPAN_HPP_
-#define _C4_STD_SPAN_HPP_
+#ifndef C4_STD_SPAN_HPP_
+#define C4_STD_SPAN_HPP_
 
 /** @file span.hpp */
 
@@ -121,4 +121,4 @@ inline bool from_chars(c4::csubstr buf, std::span<char> * s)
 
 #endif // SPAN_AVAILABLE
 
-#endif // _C4_STD_SPAN_HPP_
+#endif // C4_STD_SPAN_HPP_

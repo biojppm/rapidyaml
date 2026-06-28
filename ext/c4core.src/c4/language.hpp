@@ -1,5 +1,5 @@
-#ifndef _C4_LANGUAGE_HPP_
-#define _C4_LANGUAGE_HPP_
+#ifndef C4_LANGUAGE_HPP_
+#define C4_LANGUAGE_HPP_
 
 /** @file language.hpp Provides language standard information macros and
  * compiler agnostic utility macros: namespace facilities, function attributes,
@@ -183,12 +183,12 @@
 
 //------------------------------------------------------------
 
-#define _C4_BEGIN_NAMESPACE(ns) namespace ns {
-#define _C4_END_NAMESPACE(ns)   }
+#define C4_BEGIN_NAMESPACE(ns) namespace ns {
+#define C4_END_NAMESPACE(ns)   }
 
 // MSVC cant handle the C4_FOR_EACH macro... need to fix this
-//#define C4_BEGIN_NAMESPACE(...) C4_FOR_EACH_SEP(_C4_BEGIN_NAMESPACE, , __VA_ARGS__)
-//#define C4_END_NAMESPACE(...) C4_FOR_EACH_SEP(_C4_END_NAMESPACE, , __VA_ARGS__)
+//#define C4_BEGIN_NAMESPACE(...) C4_FOR_EACH_SEP(C4_BEGIN_NAMESPACE, , __VA_ARGS__)
+//#define C4_END_NAMESPACE(...) C4_FOR_EACH_SEP(C4_END_NAMESPACE, , __VA_ARGS__)
 #define C4_BEGIN_NAMESPACE(ns) namespace ns {
 #define C4_END_NAMESPACE(ns) }
 
@@ -363,4 +363,4 @@ C4CORE_EXPORT void use_char_pointer(char const volatile*);
 #   define C4_KEEP_EMPTY_LOOP { asm(""); }
 #endif
 
-#endif /* _C4_LANGUAGE_HPP_ */
+#endif /* C4_LANGUAGE_HPP_ */

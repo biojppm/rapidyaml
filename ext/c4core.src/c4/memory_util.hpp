@@ -1,5 +1,5 @@
-#ifndef _C4_MEMORY_UTIL_HPP_
-#define _C4_MEMORY_UTIL_HPP_
+#ifndef C4_MEMORY_UTIL_HPP_
+#define C4_MEMORY_UTIL_HPP_
 
 #include "c4/config.hpp"
 #include "c4/error.hpp"
@@ -12,15 +12,15 @@
 #include <string.h>
 
 #if (defined(__GNUC__) && __GNUC__ >= 10) || defined(__has_builtin)
-#define _C4_USE_LSB_INTRINSIC(which) __has_builtin(which)
-#define _C4_USE_MSB_INTRINSIC(which) __has_builtin(which)
+#define C4_USE_LSB_INTRINSIC_(which) __has_builtin(which)
+#define C4_USE_MSB_INTRINSIC_(which) __has_builtin(which)
 #elif defined(C4_MSVC)
-#define _C4_USE_LSB_INTRINSIC(which) true
-#define _C4_USE_MSB_INTRINSIC(which) true
+#define C4_USE_LSB_INTRINSIC_(which) true
+#define C4_USE_MSB_INTRINSIC_(which) true
 #else
 // let's try our luck
-#define _C4_USE_LSB_INTRINSIC(which) true
-#define _C4_USE_MSB_INTRINSIC(which) true
+#define C4_USE_LSB_INTRINSIC_(which) true
+#define C4_USE_MSB_INTRINSIC_(which) true
 #endif
 
 
@@ -97,7 +97,7 @@ auto lsb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_LSB_INTRINSIC(__builtin_ctz)
+    #if C4_USE_LSB_INTRINSIC_(__builtin_ctz)
         // upcast to use the intrinsic, it's cheaper.
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
@@ -123,7 +123,7 @@ auto lsb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_LSB_INTRINSIC(__builtin_ctz)
+    #if C4_USE_LSB_INTRINSIC_(__builtin_ctz)
         // upcast to use the intrinsic, it's cheaper.
         // Then remember that the upcast makes it to 31bits
         #ifdef C4_MSVC
@@ -150,7 +150,7 @@ auto lsb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_LSB_INTRINSIC(__builtin_ctz)
+    #if C4_USE_LSB_INTRINSIC_(__builtin_ctz)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
                 unsigned long bit = {};
@@ -175,7 +175,7 @@ auto lsb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_LSB_INTRINSIC(__builtin_ctzl)
+    #if C4_USE_LSB_INTRINSIC_(__builtin_ctzl)
         #if defined(C4_MSVC)
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
                 unsigned long bit = {};
@@ -200,7 +200,7 @@ auto lsb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_LSB_INTRINSIC(__builtin_ctzll)
+    #if C4_USE_LSB_INTRINSIC_(__builtin_ctzll)
         #if defined(C4_MSVC)
             #if !defined(C4_CPU_X86) && !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
                 unsigned long bit = {};
@@ -305,7 +305,7 @@ auto msb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_MSB_INTRINSIC(__builtin_clz)
+    #if C4_USE_MSB_INTRINSIC_(__builtin_clz)
         // upcast to use the intrinsic, it's cheaper.
         // Then remember that the upcast makes it to 31bits
         #ifdef C4_MSVC
@@ -332,7 +332,7 @@ auto msb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_MSB_INTRINSIC(__builtin_clz)
+    #if C4_USE_MSB_INTRINSIC_(__builtin_clz)
         // upcast to use the intrinsic, it's cheaper.
         // Then remember that the upcast makes it to 31bits
         #ifdef C4_MSVC
@@ -359,7 +359,7 @@ auto msb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_MSB_INTRINSIC(__builtin_clz)
+    #if C4_USE_MSB_INTRINSIC_(__builtin_clz)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
                 unsigned long bit = {};
@@ -384,7 +384,7 @@ auto msb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_MSB_INTRINSIC(__builtin_clzl)
+    #if C4_USE_MSB_INTRINSIC_(__builtin_clzl)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
                 unsigned long bit = {};
@@ -409,7 +409,7 @@ auto msb(I v) noexcept
 {
     C4_STATIC_ASSERT(std::is_unsigned<I>::value);
     C4_ASSERT(v != 0);
-    #if _C4_USE_MSB_INTRINSIC(__builtin_clzll)
+    #if C4_USE_MSB_INTRINSIC_(__builtin_clzll)
         #ifdef C4_MSVC
             #if !defined(C4_CPU_X86) && !defined(C4_CPU_ARM64) && !defined(C4_CPU_ARM)
                 unsigned long bit = {};
@@ -462,8 +462,8 @@ struct msb11
 
 
 
-#undef _C4_USE_LSB_INTRINSIC
-#undef _C4_USE_MSB_INTRINSIC
+#undef C4_USE_LSB_INTRINSIC_
+#undef C4_USE_MSB_INTRINSIC_
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -780,4 +780,4 @@ C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 // NOLINTEND(google-runtime-int)
 
-#endif /* _C4_MEMORY_UTIL_HPP_ */
+#endif /* C4_MEMORY_UTIL_HPP_ */

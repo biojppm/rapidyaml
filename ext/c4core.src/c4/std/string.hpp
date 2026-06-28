@@ -1,5 +1,5 @@
-#ifndef _C4_STD_STRING_HPP_
-#define _C4_STD_STRING_HPP_
+#ifndef C4_STD_STRING_HPP_
+#define C4_STD_STRING_HPP_
 
 /** @file string.hpp */
 
@@ -90,4 +90,4 @@ inline bool from_chars(c4::csubstr buf, std::string * s)
 
 } // namespace c4
 
-#endif // _C4_STD_STRING_HPP_
+#endif // C4_STD_STRING_HPP_

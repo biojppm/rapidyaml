@@ -1,5 +1,5 @@
-#ifndef _C4_RESTRICT_HPP_
-#define _C4_RESTRICT_HPP_
+#ifndef C4_RESTRICT_HPP_
+#define C4_RESTRICT_HPP_
 
 /** @file restrict.hpp macros defining shorthand symbols for restricted
  * pointers and references
@@ -48,4 +48,4 @@
 
 /** @} */
 
-#endif /* _C4_RESTRICT_HPP_ */
+#endif /* C4_RESTRICT_HPP_ */

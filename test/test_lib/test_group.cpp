@@ -19,7 +19,7 @@ namespace yml {
 void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 {
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
         printf("---------------\n%.*s\n---------------\n", (int)c->src.len, c->src.str);
     #endif
 
@@ -38,7 +38,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
 
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
     {
         print_test_tree("REF TREE", c->root);
         _c4dbg_tree("PARSED TREE", cd->parsed_tree);
@@ -132,7 +132,7 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
     SCOPED_TRACE("test_parse_ints");
 
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
         printf("---------------\n%.*s\n---------------\n", (int)c->src.len, c->src.str);
     #endif
 
@@ -154,7 +154,7 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
     _parse_events_ints(c->fileline, s, &cd->parsed_ints, &cd->arena_ints);
 
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
         printints();
     #endif
 

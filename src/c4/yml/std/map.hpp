@@ -1,5 +1,5 @@
-#ifndef _C4_YML_STD_MAP_HPP_
-#define _C4_YML_STD_MAP_HPP_
+#ifndef C4_YML_STD_MAP_HPP_
+#define C4_YML_STD_MAP_HPP_
 
 /** @file map.hpp write/read std::map to/from a YAML tree. */
 
@@ -87,4 +87,4 @@ ReadResult read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
 } // namespace yml
 } // namespace c4
 
-#endif // _C4_YML_STD_MAP_HPP_
+#endif // C4_YML_STD_MAP_HPP_

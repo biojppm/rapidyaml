@@ -1,5 +1,5 @@
-#ifndef _C4_CONFIG_HPP_
-#define _C4_CONFIG_HPP_
+#ifndef C4_CONFIG_HPP_
+#define C4_CONFIG_HPP_
 
 /** @defgroup basic_headers Basic headers
  * @brief Headers providing basic macros, platform+cpu+compiler information,
@@ -35,4 +35,4 @@
 #include "c4/compiler.hpp"
 #include "c4/language.hpp"
 
-#endif // _C4_CONFIG_HPP_
+#endif // C4_CONFIG_HPP_

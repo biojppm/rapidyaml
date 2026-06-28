@@ -1,10 +1,10 @@
-#ifndef _C4_YML_TAG_HPP_
-#define _C4_YML_TAG_HPP_
+#ifndef C4_YML_TAG_HPP_
+#define C4_YML_TAG_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include <c4/yml/common.hpp>
 #endif
-#ifndef _C4_YML_DETAIL_STACK_HPP_
+#ifndef C4_YML_DETAIL_STACK_HPP_
 #include <c4/yml/detail/stack.hpp>
 #endif
 
@@ -157,4 +157,4 @@ C4_SUPPRESS_WARNING_MSVC_POP
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_TAG_HPP_ */
+#endif /* C4_YML_TAG_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef _C4_STD_VECTOR_FWD_HPP_
-#define _C4_STD_VECTOR_FWD_HPP_
+#ifndef C4_STD_VECTOR_FWD_HPP_
+#define C4_STD_VECTOR_FWD_HPP_
 
 /** @file vector_fwd.hpp Provides forward declaration of std::vector
  * to enable order-independent includes for use with ref
@@ -75,4 +75,4 @@ template<class Alloc> bool from_chars(c4::csubstr buf, std::vector<char, Alloc> 
 
 // NOLINTEND(cert-dcl58-cpp)
 
-#endif // _C4_STD_VECTOR_FWD_HPP_
+#endif // C4_STD_VECTOR_FWD_HPP_
