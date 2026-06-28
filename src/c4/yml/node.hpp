@@ -156,6 +156,7 @@ struct RoNodeMethods // NOLINT
     #define mtree_ ((Impl const* C4_RESTRICT)this)->m_tree
     #define tree_ ((ConstImpl const* C4_RESTRICT)this)->m_tree
     #define id_ ((ConstImpl const* C4_RESTRICT)this)->m_id
+    #define this_ ((Impl const* C4_RESTRICT)this)
     #define this_assert_readable_() ((Impl const* C4_RESTRICT)this)->assert_readable_()
     C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wcast-align") // the leading members are aligned
     /** @endcond */
@@ -334,10 +335,12 @@ public:
 
     /** (1) deserialize the node's contents (val or container) to the
      * given variable, forwarding to the user-overrideable @ref read()
-     * function (see @ref doc_serialization_node_read). This function
-     * differs from @ref ConstNodeRef::deserialize() in that it calls
-     * the error callback if the deserialization failed, or
-     * (optionally) the node is not readable. */
+     * function, which can be for ConstNodeRef (see @ref
+     * doc_serialization_node_read) or for tree+id (see @ref
+     * doc_serialization_tree_read). This method differs from @ref
+     * ConstNodeRef::deserialize() in that here the error callback is
+     * called if the deserialization failed, or (optionally) the node
+     * is not readable. */
     template<class T>
     void load(T *v, bool check_readable=true) const
     {
@@ -347,6 +350,7 @@ public:
             assert_val_(); // assert otherwise
         // we can call read() directly because we checked everything
         // (or the caller told us so)
+        // use the adapter ctor to accomodate legacy read() implementations
         const ReadResult result(read((ConstImpl const&)*this, v), id_);
         if(C4_UNLIKELY(!result))
             err_visit_(tree_, result.node, "could not deserialize node");
@@ -363,18 +367,20 @@ public:
             assert_val_(); // assert otherwise
         // we can call read() directly because we checked everything
         // (or the caller told us so)
+        // use the adapter ctor to accomodate legacy read() implementations
         const ReadResult result(read((ConstImpl const&)*this, wrapper), id_);
         if(C4_UNLIKELY(!result))
             err_visit_(tree_, result.node, "could not deserialize node");
     }
 
     /** (1) deserialize the node's key (necessarily a scalar) to the
-     * given variable, forwarding to the user-overrideable @ref
-     * read_key() function (see @ref
-     * doc_serialization_node_read). This function differs from @ref
-     * ConstNodeRef::deserialize_key() in that it calls the error
-     * callback if the deserialization failed, or (optionally) the
-     * node is not readable. */
+     * given variable, forwarding to the user-overrideable @ref read_key()
+     * function, which can be for ConstNodeRef (see @ref
+     * doc_serialization_node_read) or for tree+id (see @ref
+     * doc_serialization_tree_read). This method differs from @ref
+     * ConstNodeRef::deserialize_key() in that here the error callback is
+     * called if the deserialization failed, or (optionally) the node
+     * is not readable. */
     template<class T>
     void load_key(T *k, bool check_readable=true) const
     {
@@ -384,6 +390,7 @@ public:
             assert_key_(); // assert otherwise
         // we can call read_key() directly because we checked
         // everything (or the caller told us so)
+        // use the adapter ctor to accomodate legacy read_key() implementations
         const ReadResult result(read_key((ConstImpl const&)*this, k), id_);
         if(C4_UNLIKELY(!result))
             err_visit_(tree_, result.node, "could not deserialize key");
@@ -400,6 +407,7 @@ public:
             assert_key_(); // assert otherwise
         // we can call read_key() directly because we checked
         // everything (or the caller told us so)
+        // use the adapter ctor to accomodate legacy read_key() implementations
         const ReadResult result(read_key((ConstImpl const&)*this, wrapper), id_);
         if(C4_UNLIKELY(!result))
             err_visit_(tree_, result.node, "could not deserialize key");
@@ -415,11 +423,12 @@ public:
     /** (1) deserialize the node's contents (val or container) to the
      * given variable, forwarding to the user-overrideable @ref read()
      * function (see @ref doc_serialization_node_read).
-     * @return true if the deserialization succeeded. */
+     * @return a @ref ReadResult with the deserialization status. */
     template<class T>
     C4_NODISCARD ReadResult deserialize(T *v) const
     {
         assert_val_();
+        // use the adapter ctor to accomodate legacy read() implementations
         return ReadResult(read((ConstImpl const&)*this, v), id_);
     }
     /** (2) like (1), but for wrapper tag types such as @ref
@@ -429,19 +438,20 @@ public:
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         assert_val_();
+        // use the adapter ctor to accomodate legacy read() implementations
         return ReadResult(read((ConstImpl const&)*this, wrapper), id_);
     }
 
-
-    /** deserialize the node's key (necessarily a scalar) to the given
-     * variable, forwarding to the user-overrideable @ref read_key()
-     * function (see @ref doc_serialization_node_read).
+    /** (1) deserialize the node's key (necessarily a scalar) to the
+     * given variable, forwarding to the user-overrideable @ref
+     * read_key() function (see @ref doc_serialization_node_read).
      *
-     * @return true if the deserialization succeeded. */
+     * @return a @ref ReadResult with the deserialization status. */
     template<class T>
     C4_NODISCARD ReadResult deserialize_key(T *v) const
     {
         assert_key_();
+        // use the adapter ctor to accomodate legacy read_key() implementations
         return ReadResult(read_key((ConstImpl const&)*this, v), id_);
     }
     /** (2) like (1), but for wrapper tag types such as @ref
@@ -451,6 +461,7 @@ public:
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         assert_key_();
+        // use the adapter ctor to accomodate legacy read_key() implementations
         return ReadResult(read_key((ConstImpl const&)*this, wrapper), id_);
     }
 
@@ -461,56 +472,88 @@ public:
     /** @name lookup and deserialize */
     /** @{ */
 
-    /** look for a child by name, if it exists, deserialize its
-     * contents to var. return true if the child existed. */
+    /** (1) find a child by name and deserialize its contents to the
+     * given variable (ie call .deserialize() on the child if it
+     * exists). Otherwise, the variable is kept unchanged.
+     *
+     * @return a @ref ReadResult set with this node's id if no child
+     * exists, or the ReadResult from the deserialization.
+     *
+     * @see see also @ref ConstNodeRef::find_child_r()
+     */
     template<class T>
-    bool get_if(csubstr name, T *var) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(csubstr child_key, T *v) const
     {
         this_assert_readable_();
-        ConstImpl ch = ((ConstImpl const*)this)->find_child(name);
-        if(ch.readable())
-        {
-            ch.load(var);
-            return true;
-        }
-        return false;
+        ConstImpl ch;
+        ReadResult r = this_->find_child_r(child_key, &ch);
+        if(r)
+            r = ch.deserialize(v);
+        return r;
     }
-    /** look for a child by pos, if it exists, deserialize its
-     * contents to var. return true if the child existed. */
+    /** (2) like (1), but assign from fallback if no such child exists. */
     template<class T>
-    bool get_if(id_type pos, T *var) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(csubstr child_key, T *v, T const& fallback) const
     {
         this_assert_readable_();
-        ConstImpl ch = ((ConstImpl const*)this)->child(pos);
-        if(ch.readable())
-        {
-            ch.load(var);
-            return true;
-        }
-        return false;
+        ConstImpl ch;
+        if(this_->find_child_r(child_key, &ch))
+            return ch.deserialize(v);
+        *v = fallback;
+        return ReadResult();
+    }
+    /** (3) like (1), but for wrapper tag types such as @ref c4::fmt::base64() */
+    template<class Wrapper>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(csubstr child_key, Wrapper const& v) const
+    {
+        this_assert_readable_();
+        ConstImpl ch;
+        ReadResult r = this_->find_child_r(child_key, &ch);
+        if(r)
+            r = ch.deserialize(v);
+        return r;
     }
 
-    /** look for a child by name, if it exists assign to var,
-     * otherwise default to fallback. return true if the child
-     * existed. */
+    /** (1) find a child by position and deserialize its contents to
+     * the given variable (ie call .deserialize() on the child if it
+     * exists). Otherwise, the variable is kept unchanged.
+     *
+     * @return a @ref ReadResult set with this node's id if no child
+     * exists, or the ReadResult from the deserialization.
+     *
+     * @see see also @ref ConstNodeRef::child_r() */
     template<class T>
-    bool get_if(csubstr name, T *var, T const& fallback) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type child_pos, T *v) const
     {
-        if(get_if(name, var))
-            return true;
-        *var = fallback;
-        return false;
+        this_assert_readable_();
+        ConstImpl ch;
+        ReadResult r = this_->child_r(child_pos, &ch);
+        if(r)
+            r = ch.deserialize(v);
+        return r;
     }
-    /** look for a child by pos, if it exists assign to var,
-     * otherwise default to fallback. return true if the child
-     * existed. */
+    /** (2) like (1), but assign from fallback if no such child exists */
     template<class T>
-    bool get_if(id_type pos, T *var, T const& fallback) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type child_pos, T *v, T const& fallback) const
     {
-        if(get_if(pos, var))
-            return true;
-        *var = fallback;
-        return false;
+        this_assert_readable_();
+        ConstImpl ch;
+        if(this_->child_r(child_pos, &ch))
+            return ch.deserialize(v);
+        *v = fallback;
+        return ReadResult();
+    }
+    /** (3) like (1), but for wrapper tag types such as @ref
+     * c4::fmt::base64() */
+    template<class Wrapper>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type child_pos, Wrapper const& wrapper) const
+    {
+        this_assert_readable_();
+        ConstImpl ch;
+        ReadResult r = this_->child_r(child_pos, &ch);
+        if(r)
+            r = ch.deserialize(wrapper);
+        return r;
     }
 
     /** @} */
@@ -599,6 +642,48 @@ public: // deprecated functions
     RYML_DEPRECATED("use has_val_anchor()")  bool is_val_hanchor() const noexcept { this_assert_readable_(); return tree_->has_val_anchor(id_); }
     RYML_DEPRECATED("use has_anchor()")      bool is_anchor()     const noexcept { this_assert_readable_(); return tree_->has_anchor(id_); }
     RYML_DEPRECATED("use has_anchor() || is_ref()") bool is_anchor_or_ref() const noexcept { this_assert_readable_(); return tree_->is_anchor_or_ref(id_); }
+    template<class T>
+    RYML_DEPRECATED("use .deserialize_child()") bool get_if(csubstr name, T *var) const
+    {
+        this_assert_readable_();
+        ConstImpl ch = ((ConstImpl const*)this)->find_child(name);
+        if(ch.readable())
+        {
+            ch.load(var);
+            return true;
+        }
+        return false;
+    }
+    template<class T>
+    RYML_DEPRECATED("use .deserialize_child()") bool get_if(id_type pos, T *var) const
+    {
+        this_assert_readable_();
+        ConstImpl ch = ((ConstImpl const*)this)->child(pos);
+        if(ch.readable())
+        {
+            ch.load(var);
+            return true;
+        }
+        return false;
+    }
+    template<class T>
+    RYML_DEPRECATED("use .deserialize_child()")
+    bool get_if(csubstr name, T *var, T const& fallback) const
+    {
+        if(get_if(name, var))
+            return true;
+        *var = fallback;
+        return false;
+    }
+    template<class T>
+    RYML_DEPRECATED("use .deserialize_child()")
+    bool get_if(id_type pos, T *var, T const& fallback) const
+    {
+        if(get_if(pos, var))
+            return true;
+        *var = fallback;
+        return false;
+    }
     template<class Visitor>
     RYML_DEPRECATED("") bool visit(Visitor fn, id_type indentation_level=0, bool skip_root=true) const RYML_NOEXCEPT
     {
@@ -630,6 +715,7 @@ public: // deprecated functions
     C4_SUPPRESS_WARNING_POP
 
     #undef this_assert_readable_
+    #undef this_
     #undef mtree_
     #undef tree_
     #undef id_
@@ -777,6 +863,12 @@ public:
     C4_ALWAYS_INLINE ConstNodeRef find_sibling(csubstr name) const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->find_sibling(m_id, name)}; }  /**< Forward to @ref Tree::find_sibling(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef ancestor_doc()             const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->ancestor_doc(m_id)}; }        /**< Forward to @ref Tree::ancestor_doc(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef doc(id_type i)             const RYML_NOEXCEPT { RYML_ASSERT_BASIC_(m_tree); return {m_tree, m_tree->doc(i)}; } /**< Forward to @ref Tree::doc(). Node must be readable. succeeds even when the node may have invalid or seed id */
+
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult child_r(id_type pos, ConstNodeRef *child)       const RYML_NOEXCEPT { assert_readable_(); child->m_tree = m_tree; ReadResult result = m_tree->     child_r(m_id,  pos, &child->m_id); return result; }; /**< Forward to @ref Tree::child_r(). Node must be readable. */
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult find_child_r(csubstr name, ConstNodeRef *child) const RYML_NOEXCEPT { assert_readable_(); child->m_tree = m_tree; ReadResult result = m_tree->find_child_r(m_id, name, &child->m_id); return result; }; /**< Forward to @ref Tree::find_child_r(). Node must be readable. */
+
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult sibling_r(id_type pos, ConstNodeRef *sibling)       const RYML_NOEXCEPT { assert_readable_(); sibling->m_tree = m_tree; ReadResult result = m_tree->     sibling_r(m_id,  pos, &sibling->m_id); return result; }; /**< Forward to @ref Tree::sibling_r(). Node must be readable. */
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult find_sibling_r(csubstr name, ConstNodeRef *sibling) const RYML_NOEXCEPT { assert_readable_(); sibling->m_tree = m_tree; ReadResult result = m_tree->find_sibling_r(m_id, name, &sibling->m_id); return result; }; /**< Forward to @ref Tree::find_sibling_r(). Node must be readable. */
 
     /** @} */
 
@@ -1339,8 +1431,14 @@ public:
     C4_ALWAYS_INLINE NodeRef      child(id_type pos)               RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->child(m_id, pos)}; }          /**< Forward to @ref Tree::child(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef child(id_type pos)         const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->child(m_id, pos)}; }          /**< Forward to @ref Tree::child(). Node must be readable. */
 
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult child_r(id_type pos,      NodeRef *child)       RYML_NOEXCEPT { assert_readable_(); child->m_tree = m_tree; ReadResult result = m_tree->child_r(m_id,  pos, &child->m_id); return result; }; /**< Forward to @ref Tree::child_r(). Node must be readable. */
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult child_r(id_type pos, ConstNodeRef *child) const RYML_NOEXCEPT { assert_readable_(); child->m_tree = m_tree; ReadResult result = m_tree->child_r(m_id,  pos, &child->m_id); return result; }; /**< Forward to @ref Tree::child_r(). Node must be readable. */
+
     C4_ALWAYS_INLINE NodeRef      find_child(csubstr name)         RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->find_child(m_id, name)}; }    /**< Forward to @ref Tree::find_child(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef find_child(csubstr name)   const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->find_child(m_id, name)}; }    /**< Forward to @ref Tree::find_child(). Node must be readable. */
+
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult find_child_r(csubstr name,      NodeRef *child)       RYML_NOEXCEPT { assert_readable_(); child->m_tree = m_tree; ReadResult result = m_tree->find_child_r(m_id, name, &child->m_id); return result; }; /**< Forward to @ref Tree::find_child_r(). Node must be readable. */
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult find_child_r(csubstr name, ConstNodeRef *child) const RYML_NOEXCEPT { assert_readable_(); child->m_tree = m_tree; ReadResult result = m_tree->find_child_r(m_id, name, &child->m_id); return result; }; /**< Forward to @ref Tree::find_child_r(). Node must be readable. */
 
     C4_ALWAYS_INLINE NodeRef      prev_sibling()                   RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->prev_sibling(m_id)}; }        /**< Forward to @ref Tree::prev_sibling(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef prev_sibling()             const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->prev_sibling(m_id)}; }        /**< Forward to @ref Tree::prev_sibling(). Node must be readable. */
@@ -1357,14 +1455,20 @@ public:
     C4_ALWAYS_INLINE NodeRef      sibling(id_type pos)             RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->sibling(m_id, pos)}; }        /**< Forward to @ref Tree::sibling(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef sibling(id_type pos)       const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->sibling(m_id, pos)}; }        /**< Forward to @ref Tree::sibling(). Node must be readable. */
 
+    C4_ALWAYS_INLINE ReadResult   sibling_r(id_type pos,      NodeRef *sibling)       RYML_NOEXCEPT { assert_readable_(); sibling->m_tree = m_tree; ReadResult result = m_tree->sibling_r(m_id,  pos, &sibling->m_id); return result; }; /**< Forward to @ref Tree::sibling_r(). Node must be readable. */
+    C4_ALWAYS_INLINE ReadResult   sibling_r(id_type pos, ConstNodeRef *sibling) const RYML_NOEXCEPT { assert_readable_(); sibling->m_tree = m_tree; ReadResult result = m_tree->sibling_r(m_id,  pos, &sibling->m_id); return result; }; /**< Forward to @ref Tree::sibling_r(). Node must be readable. */
+
     C4_ALWAYS_INLINE NodeRef      find_sibling(csubstr name)       RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->find_sibling(m_id, name)}; }  /**< Forward to @ref Tree::find_sibling(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef find_sibling(csubstr name) const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->find_sibling(m_id, name)}; }  /**< Forward to @ref Tree::find_sibling(). Node must be readable. */
+
+    C4_ALWAYS_INLINE ReadResult   find_sibling_r(csubstr name,      NodeRef *sibling)       RYML_NOEXCEPT { assert_readable_(); sibling->m_tree = m_tree; ReadResult result = m_tree->find_sibling_r(m_id, name, &sibling->m_id); return result; }; /**< Forward to @ref Tree::find_sibling_r(). Node must be readable. */
+    C4_ALWAYS_INLINE ReadResult   find_sibling_r(csubstr name, ConstNodeRef *sibling) const RYML_NOEXCEPT { assert_readable_(); sibling->m_tree = m_tree; ReadResult result = m_tree->find_sibling_r(m_id, name, &sibling->m_id); return result; }; /**< Forward to @ref Tree::find_sibling_r(). Node must be readable. */
 
     C4_ALWAYS_INLINE NodeRef      ancestor_doc()                   RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->ancestor_doc(m_id)}; }        /**< Forward to @ref Tree::ancestor_doc(). Node must be readable. */
     C4_ALWAYS_INLINE ConstNodeRef ancestor_doc()             const RYML_NOEXCEPT { assert_readable_(); return {m_tree, m_tree->ancestor_doc(m_id)}; }        /**< Forward to @ref Tree::ancestor_doc(). Node must be readable. */
 
-    C4_ALWAYS_INLINE NodeRef      doc(id_type i)                   RYML_NOEXCEPT { RYML_ASSERT_BASIC_(m_tree); return {m_tree, m_tree->doc(i)}; } /**< Forward to @ref Tree::doc(). Node must be readable. */
-    C4_ALWAYS_INLINE ConstNodeRef doc(id_type i)             const RYML_NOEXCEPT { RYML_ASSERT_BASIC_(m_tree); return {m_tree, m_tree->doc(i)}; } /**< Forward to @ref Tree::doc(). Node must be readable. succeeds even when the node may have invalid or seed id */
+    C4_ALWAYS_INLINE NodeRef      doc(id_type i)                   RYML_NOEXCEPT { RYML_ASSERT_BASIC_(m_tree); return {m_tree, m_tree->doc(i)}; }            /**< Forward to @ref Tree::doc(). Node must be readable. */
+    C4_ALWAYS_INLINE ConstNodeRef doc(id_type i)             const RYML_NOEXCEPT { RYML_ASSERT_BASIC_(m_tree); return {m_tree, m_tree->doc(i)}; }            /**< Forward to @ref Tree::doc(). Node must be readable. succeeds even when the node may have invalid or seed id */
 
     /** @} */
 
@@ -1748,7 +1852,13 @@ public:
 
 public:
 
-    /** @name legacy operators */
+    /** @name legacy operators
+     *
+     * these methods will be removed in future releases. If you
+     * disagree with a particular function being deprecated, let us
+     * know by opening a new issue at
+     * https://github.com/biojppm/rapidyaml/issues
+     */
     /** @{ */
 
     RYML_LEGACY_OPERATOR(".use the appropriate .set_*() overload")
@@ -1786,7 +1896,7 @@ public:
 
 public: // deprecated functions
 
-    // these functions will be removed in future releases. If you
+    // these methods will be removed in future releases. If you
     // disagree with a particular function being deprecated, let us
     // know by opening a new issue at
     // https://github.com/biojppm/rapidyaml/issues

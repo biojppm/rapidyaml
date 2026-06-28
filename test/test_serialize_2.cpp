@@ -660,6 +660,10 @@ TEST(serialize, base64)
 
 // inf and nan are tested in test_number.cpp
 
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
 TEST(serialize, get_if)
 {
     Tree t = parse_in_arena(
@@ -684,6 +688,8 @@ TEST(serialize, get_if)
     RYML_EXPECT_ERROR(check_error_visit(&t, [&]{ t["map"].get_if("badvalue", &val); }, t["map"]["badvalue"].id()));
     RYML_EXPECT_ERROR(check_error_visit(&t, [&]{ t["map"].get_if("badvalue", &val, 11); }, t["map"]["badvalue"].id()));
 }
+C4_SUPPRESS_WARNING_POP
+
 
 TEST(serialize, std_string)
 {

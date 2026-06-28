@@ -1221,18 +1221,6 @@ id_type Tree::num_children(id_type node) const
     return count;
 }
 
-id_type Tree::child(id_type node, id_type pos) const
-{
-    RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE, this, node);
-    id_type count = 0;
-    for(id_type i = first_child(node); i != NONE; i = next_sibling(i))
-    {
-        if(count++ == pos)
-            return i;
-    }
-    return NONE;
-}
-
 id_type Tree::child_pos(id_type node, id_type ch) const
 {
     RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE, this, node);
@@ -1242,6 +1230,18 @@ id_type Tree::child_pos(id_type node, id_type ch) const
         if(i == ch)
             return count;
         ++count;
+    }
+    return NONE;
+}
+
+id_type Tree::child(id_type node, id_type pos) const
+{
+    RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE, this, node);
+    id_type count = 0;
+    for(id_type i = first_child(node); i != NONE; i = next_sibling(i))
+    {
+        if(count++ == pos)
+            return i;
     }
     return NONE;
 }
@@ -1259,22 +1259,11 @@ id_type Tree::find_child(id_type node, csubstr const& name) const
     #   endif
     #endif
     RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE, this, node);
-    RYML_ASSERT_VISIT_CB_(m_callbacks, is_map(node), this, node);
-    if(_p(node)->m_first_child == NONE)
-    {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, _p(node)->m_last_child == NONE, this, node);
-        return NONE;
-    }
-    else
-    {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, _p(node)->m_last_child != NONE, this, node);
-    }
+    RYML_ASSERT_VISIT_CB_(m_callbacks, _p(node)->m_type.m_bits & MAP, this, node);
     for(id_type i = first_child(node); i != NONE; i = next_sibling(i))
     {
         if(_p(i)->m_key.scalar == name)
-        {
             return i;
-        }
     }
     return NONE;
     C4_SUPPRESS_WARNING_POP

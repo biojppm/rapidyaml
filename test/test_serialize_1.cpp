@@ -237,16 +237,9 @@ template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v
 }
 template<class T> ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
-    using namespace c4::yml;
-    if(!tree->is_map(id))
-        return ReadResult(id);
-    id_type idx = tree->find_child(id, "x");
-    id_type idy = tree->find_child(id, "y");
-    if(idx == NONE || idy == NONE)
-        return ReadResult(id);
-    ReadResult r = read(tree, idx, &v->x);
-    if(r)
-        r = read(tree, idy, &v->y);
+    c4::yml::ReadResult r(tree->is_map(id), id);
+    if(r) r = tree->deserialize_child(id, "x", &v->x);
+    if(r) r = tree->deserialize_child(id, "y", &v->y);
     return r;
 }
 } // namespace foo6
@@ -281,18 +274,10 @@ template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 }
 template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
-    using namespace c4::yml;
-    if(!n.readable() || !n.is_map())
-        return ReadResult(n.id());
-    ConstNodeRef x = n["x"];
-    ConstNodeRef y = n["y"];
-    if(!x.readable())
-        return ReadResult(x.id());
-    if(!y.readable())
-        return ReadResult(y.id());
-    x.load(&v->x); // throws on error. to keep running, use x.deserialize() which returns bool
-    y.load(&v->y); // throws on error. to keep running, use y.deserialize() which returns bool
-    return ReadResult{};
+    c4::yml::ReadResult r(n.is_map(), n.id());
+    if(r) r = n.deserialize_child("x", &v->x);
+    if(r) r = n.deserialize_child("y", &v->y);
+    return r;
 }
 } // namespace foo7_pessimistic
 
@@ -329,18 +314,9 @@ template<class T> void write(c4::yml::Tree *tree, c4::yml::id_type id, vec2<T> v
 }
 template<class T> ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, vec2<T> *v)
 {
-    using namespace c4::yml;
-    if(!tree->is_seq(id))
-        return ReadResult(id);
-    c4::yml::id_type x = tree->first_child(id);
-    if(x == NONE)
-        return ReadResult(id);
-    c4::yml::id_type y = tree->next_sibling(x); // of x!
-    if(y == NONE)
-        return ReadResult(id);
-    ReadResult r = read(tree, x, &v->x);
-    if(r)
-        r = read(tree, y, &v->y);
+    c4::yml::ReadResult r(tree->is_seq(id), id);
+    if(r) r = tree->deserialize_child(id, 0, &v->x);
+    if(r) r = tree->deserialize_child(id, 1, &v->y);
     return r;
 }
 } // namespace foo8
@@ -375,16 +351,10 @@ template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 }
 template<class T> ReadResult read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
-    using namespace c4::yml;
-    if(!n.readable() || !n.is_seq())
-        return ReadResult(n.id());
-    ConstNodeRef x = n[0];
-    ConstNodeRef y = n[1];
-    if(!x.readable() || !y.readable())
-        return ReadResult(n.id());
-    x.load(&v->x); // throws on error. to keep running, use x.deserialize() which returns bool
-    y.load(&v->y); // throws on error. to keep running, use y.deserialize() which returns bool
-    return ReadResult{};
+    c4::yml::ReadResult r(n.is_seq(), n.id());
+    if(r) r = n.deserialize_child(0, &v->x);
+    if(r) r = n.deserialize_child(1, &v->y);
+    return r;
 }
 } // namespace foo9_pessimistic
 
@@ -401,16 +371,10 @@ template<class T> void write(c4::yml::NodeRef &n, vec2<T> v)
 }
 template<class T> bool read(c4::yml::ConstNodeRef const& n, vec2<T> *v)
 {
-    using namespace c4::yml;
-    if(!n.readable() || !n.is_seq())
-        return false;
-    ConstNodeRef x = n[0];
-    ConstNodeRef y = n[1];
-    if(!x.readable() || !y.readable())
-        return false;
-    x.load(&v->x); // throws on error. to keep running, use x.deserialize() which returns bool
-    y.load(&v->y); // throws on error. to keep running, use y.deserialize() which returns bool
-    return true;
+    c4::yml::ReadResult r(n.is_seq(), n.id());
+    if(r) r = n.deserialize_child(0, &v->x);
+    if(r) r = n.deserialize_child(1, &v->y);
+    return r;
 }
 } // namespace foo10_pessimistic
 

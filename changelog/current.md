@@ -187,42 +187,96 @@ c4::yml::ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, T *var)
 <a>noloadinread</a>
 ### Optional: do not use `.load()` (former `>>`) inside `read()`
 
-The **last optional change** is that inside your `write()/read()` implementation **you should now use the new `.deserialize()` calls**. These methods will play nice when they are called from `.deserialize()` on upper-level objects. On the contrary, `.load()` (formerly `>>`) will interrupt execution immediately, and this will prevent those upper-level calls functions from successfully receiving the actual `ReadResult` and reporting it upwards.
+The **last optional change** is that inside your `write()/read()` implementation **you should now use the new `.deserialize()` calls**. On error, these methods will play nice when they are called from `.deserialize()` on upper-level objects. On the contrary, `.load()` (formerly `>>`) will interrupt execution immediately, and this will prevent those upper-level calls from successfully receiving the actual `ReadResult` and reporting it upwards.
 
-That is, if you want to be able to write code such as
+If you want to avoid exceptional flow and write code such as
 ```c++
-struct T { int foo, bar; };
-T var;
-if( ! node.deserialize(&var))
-    ...
+struct Inner { int foo, bar; };
+struct Outer { Inner inner1, inner2; }
+
+Outer outer;
+if( ! node.deserialize(&outer))
+    ... // we want to enter this branch without triggering an error
 ```
-... then your `read(tree,id,T)` implementation should not use `.load()`:
+... then your `read(tree,id,Inner*)` implementation should not use `.load()`:
 ```c++
-c4::yml::ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, T *var)
+c4::yml::ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, Inner *inner)
 {
-    c4::yml::id_type id_foo = ...;
-    c4::yml::id_type id_bar = ...;
-    //tree->load(id_foo, &var->bar); // wrong: calls error_visit on failure!
-    //tree->load(id_bar, &var->bar); // wrong: calls error_visit on failure!
-    // do this instead:
     c4::yml::ReadResult result;
-    result = tree->deserialize(id_foo, &var->foo); // ok, enables return on failure, reported upwards
-    if(result) // note the result will report the first detected error!
-      result = tree->deserialize(id_bar, &var->bar); // ok, enables return on failure, reported upwards
+    c4::yml::id_type id_foo, id_bar;
+    result = tree->find_child_r(id, "foo", &id_foo); // see next note
+    // ensure the result will report the first detected error
+    if(result) result = tree->find_child_r(id, "bar", &id_bar);
+    // now, instead of this...
+    //tree->load(id_foo, &inner->bar); // (formerly >>) calls error_visit on failure!
+    //tree->load(id_bar, &inner->bar); // (formerly >>) calls error_visit on failure!
+    // ... do this:
+    // (enables return on failure, reported upwards)
+    if(result) result = tree->deserialize(id_foo, &inner->foo);
+    if(result) result = tree->deserialize(id_bar, &inner->bar);
+    return result;
+}
+// Likewise for the outer type. Note how an Inner error will be
+// transparently returned:
+c4::yml::ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, Outer *outer)
+{
+    c4::yml::ReadResult result;
+    c4::yml::id_type id_inner1, id_inner2;
+    /*      */ result = tree->find_child_r(id, "inner1", &id_inner1); // see next note
+    if(result) result = tree->find_child_r(id, "inner2", &id_inner2);
+    if(result) result = tree->deserialize(id_inner1, &outer->inner1);
+    if(result) result = tree->deserialize(id_inner2, &outer->inner2);
     return result;
 }
 ```
 
-Note that this `read()` implementation will still enable a calling `.load()` to work as intended.
+In short, implementing `read()` with `.deserialize()` plays nice with both upper `.deserialize()` and `.load()` calls, whereas implementing `read()` with `.load()` will only work with upper `.load()` calls.
+
+
+### Recommended: use new methods `.deserialize_child()` in `read()`
+
+This release also adds a family of methods returning `ReadResult` to simplify `read()` implementations. Each of these returns a `ReadResult` object that is ready to return on error. Consider the following node-based `read()`, already using `.deserialize()`:
+```c++
+ryml::ReadResult read(ryml::ConstNodeRef const& n, my_type *val)
+{
+    ryml::ReadResult r(n.is_map(), n.id());
+    if(r) r = n["v2"].deserialize(&val->v2);
+    if(r) r = n["v3"].deserialize(&val->v3);
+    if(r) r = n["v4"].deserialize(&val->v4);
+    if(r) r = n["seq"].deserialize(&val->seq);
+    if(r) r = n["map"].deserialize(&val->map);
+    return r;
+}
+```
+Note that any of the `operator[]` calls (or more precisely the `.deserialize()` calls on its result) may trigger a visit error when no such node exists. To avoid exceptional flow in case of error, you should now use `.deserialize_child()`. The function below will gracefully return an appropriate error status when any of the child nodes does not exist:
+```c++
+ryml::ReadResult read(ryml::ConstNodeRef const& n, my_type *val)
+{
+    ryml::ReadResult r(n.is_map(), n.id());
+    if(r) r = n.deserialize_if(n, "v2", &val->v2);
+    if(r) r = n.deserialize_if(n, "v3", &val->v3);
+    if(r) r = n.deserialize_if(n, "v4", &val->v4);
+    if(r) r = n.deserialize_if(n, "seq", &val->seq);
+    if(r) r = n.deserialize_if(n, "map", &val->map);
+    return r;
+}
+```
+Here's the list of new `ReadResult`-returning methods that may be of use in similar scenarios:
+  - `Tree::deserialize_child()`, `ConstNodeRef::deserialize_child()`, `ConstNodeRef::deserialize_child()`
+  - `Tree::child_r()`, `ConstNodeRef::child_r()`, `ConstNodeRef::child_r()`
+  - `Tree::find_child_r()`, `ConstNodeRef::find_child_r()`, `ConstNodeRef::find_child_r()`
+  - likewise for sibling: added `sibling_r` and `find_sibling_r()`
+  - The `.get_if()` methods were deprecated in favour of `.deserialize_child()`.
 
 
 <a>v0.16changelogsection</a>
 ## Full changelog
 
-- [PR#639](https://github.com/biojppm/rapidyaml/pull/639) fix names using leading/double underscore (renames only, no logic changes).
-- [PR#638](https://github.com/biojppm/rapidyaml/pull/638) improve quickstart-ints.
-- [PR#637](https://github.com/biojppm/rapidyaml/pull/637) add cmake option `RYML_SYSTEM_C4CORE` to consume c4core from `find_package()`. Thanks @uilianries!
-- [PR#636](https://github.com/biojppm/rapidyaml/pull/636) **Remove c4core submodule**, and copy c4core files to rapidyaml (and manage sync):
+- [PR#640](https://github.com/biojppm/rapidyaml/pull/640): add `.deserialize_child()` methods to simplify read() implementations
+- [PR#639](https://github.com/biojppm/rapidyaml/pull/639): fix names using leading/double underscore (renames only, no logic changes).
+- [PR#638](https://github.com/biojppm/rapidyaml/pull/638): improve quickstart-ints.
+- [PR#637](https://github.com/biojppm/rapidyaml/pull/637): add cmake option `RYML_SYSTEM_C4CORE` to consume c4core from `find_package()`. Thanks @uilianries!
+- [PR#636](https://github.com/biojppm/rapidyaml/pull/636) **remove c4core submodule**, and copy c4core files to rapidyaml (and manage sync):
   - `ext/c4core.src/`: c4core code used in the rapidyaml library 
   - `ext/c4core.dev/`: c4core code used by tests/benchmarks
   - `proj/`: project files like cmake files and toolchains
