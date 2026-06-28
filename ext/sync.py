@@ -132,7 +132,8 @@ def copy(filename: str, srcdir: str, dstdir: str):
         print(f"{dstfile}: err, not a file")
     # https://stackoverflow.com/questions/36821178/how-to-shutil-copyfile-only-if-file-differ
     if ok and (not os.path.exists(dstfile) or not filecmp.cmp(srcfile, dstfile)):
-        dbg(f"{dstfile}   <--   {srcfile}")
+        print(f"{{{dstdir} <- {srcdir}}}/{filename}")
+        dbg(f"{dstfile}   <--   {srcfile}/")
         shutil.copy(srcfile, dstfile)
     return ok
 
