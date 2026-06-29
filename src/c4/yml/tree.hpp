@@ -576,8 +576,12 @@ public:
     id_type child_pos(id_type node, id_type ch) const;
     id_type first_child(id_type node) const { return _p(node)->m_first_child; }
     id_type last_child(id_type node) const { return _p(node)->m_last_child; }
-    id_type child(id_type node, id_type pos) const;
-    id_type find_child(id_type node, csubstr const& key) const;
+    id_type child(id_type node, id_type pos) const; ///< find child by position, or NONE if there are less than pos children posi
+    id_type find_child(id_type node, csubstr const& key) const; ///< find child by name, or NONE if no child is found with this key
+    /// like @ref Tree::child(), but return a @ref ReadResult with the status
+    C4_NODISCARD ReadResult child_r(id_type node, id_type pos, id_type *child_id) const { return ReadResult(node, *child_id = child(node, pos)); }
+    /// like @ref Tree::find_child(), but return a @ref ReadResult with the status
+    C4_NODISCARD ReadResult find_child_r(id_type node, csubstr const& key, id_type *child_id) const { return ReadResult(node, *child_id = find_child(node, key)); }
 
     /** O(#num_siblings) */
     /** counts with this */
@@ -589,6 +593,10 @@ public:
     id_type last_sibling(id_type node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
     id_type sibling(id_type node, id_type pos) const { return child(_p(node)->m_parent, pos); }
     id_type find_sibling(id_type node, csubstr const& key) const { return find_child(_p(node)->m_parent, key); }
+    /// like @ref Tree::sibling(), but return a @ref ReadResult with the status
+    C4_NODISCARD ReadResult sibling_r(id_type node, id_type pos, id_type *sibling_id) const { return child_r(_p(node)->m_parent, pos, sibling_id); }
+    /// like @ref Tree::find_sibling(), but return a @ref ReadResult if with the status
+    C4_NODISCARD ReadResult find_sibling_r(id_type node, csubstr const& key, id_type *sibling_id) const { return find_child_r(_p(node)->m_parent, key, sibling_id); }
 
     id_type depth_asc(id_type node) const; /**< O(log(num_tree_nodes)) get the ascending depth of the node: number of levels between root and node */
     id_type depth_desc(id_type node) const; /**< O(num_tree_nodes) get the descending depth of the node: number of levels between node and deepest child */
@@ -843,12 +851,22 @@ public:
 
 public:
 
-    /** @name deserialization - checked */
+    /** @name deserialization - checked
+     *
+     * These methods raise an error if the deserialization failed or
+     * optionally if the node is not readable.
+     */
     /** @{ */
 
     static C4_ALWAYS_INLINE ReadResult to_result_(bool, id_type node) noexcept { return ReadResult(node); }
     static C4_ALWAYS_INLINE ReadResult to_result_(ReadResult notlegacy, id_type) noexcept { return notlegacy; }
 
+    /** (1) deserialize the node's contents (val or container) to the
+     * given variable, forwarding to the user-overrideable @ref read()
+     * function (see @ref doc_serialization_tree_read). This function
+     * differs from @ref Tree::deserialize() in that here the error
+     * callback is called if the deserialization failed, or
+     * (optionally) the node is not readable. */
     template<class T>
     C4_ALWAYS_INLINE void load(id_type node, T * v, bool check_readable=true) const
     {
@@ -864,6 +882,8 @@ public:
         }
         err_visit_(node);
     }
+    /** (2) like (1), but for wrapper tag types such as @ref
+     * c4::fmt::base64() */
     template<class Wrapper>
     C4_ALWAYS_INLINE void load(id_type node, Wrapper const& w, bool check_readable=true) const
     {
@@ -881,6 +901,13 @@ public:
         err_visit_(node);
     }
 
+    /** (1) deserialize the node's key (necessarily a scalar) to the
+     * given variable, forwarding to the user-overrideable @ref
+     * read_key() function (see @ref
+     * doc_serialization_node_read). This function differs from @ref
+     * Tree::deserialize_key() in that here the error callback is
+     * called if the deserialization failed, or (optionally) the node
+     * is not readable. */
     template<class T>
     C4_ALWAYS_INLINE void load_key(id_type node, T * k, bool check_readable=true) const
     {
@@ -896,6 +923,8 @@ public:
         }
         err_visit_(node);
     }
+    /** (2) like (1), but for wrapper tag types such as @ref
+     * c4::fmt::base64() */
     template<class Wrapper>
     C4_ALWAYS_INLINE void load_key(id_type node, Wrapper const& w, bool check_readable=true) const
     {
@@ -920,36 +949,135 @@ public:
     /** @name deserialization - asserted preconditions */
     /** @{ */
 
+    /** (1) deserialize a node's contents to a variable */
     template<class T>
-    C4_ALWAYS_INLINE ReadResult deserialize(id_type node, T * v) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize(id_type node, T * v) const
     {
         RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         RYML_ASSERT_VISIT_CB_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
+        // use the adapter ctor to accomodate legacy read() implementations
         return ReadResult(read(this, node, v), node);
     }
+    /** (2) like (1), but for a wrapper type like those used in tag
+     * functions */
     template<class Wrapper>
-    C4_ALWAYS_INLINE ReadResult deserialize(id_type node, Wrapper const& w) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize(id_type node, Wrapper const& w) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         RYML_ASSERT_VISIT_CB_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
+        // use the adapter ctor to accomodate legacy read() implementations
         return ReadResult(read(this, node, w), node);
     }
 
+    /** (1) deserialize a node's key to a variable */
     template<class T>
-    C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, T * v) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, T * v) const
     {
         RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         RYML_ASSERT_VISIT_CB_(m_callbacks, has_key(node), this, node);
+        // use the adapter ctor to accomodate legacy read_key() implementations
         return ReadResult(read_key(this, node, v), node);
     }
+    /** (2) like (1), but for a wrapper type like those used in tag
+     * functions */
     template<class Wrapper>
-    C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, Wrapper const& w) const
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, Wrapper const& w) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
         RYML_ASSERT_VISIT_CB_(m_callbacks, has_key(node), this, node);
+        // use the adapter ctor to accomodate legacy read_key() implementations
         return ReadResult(read_key(this, node, w), node);
+    }
+
+    /** @} */
+
+public:
+
+    /** @name lookup and deserialize */
+    /** @{ */
+
+    /** (1) find a child by name and deserialize its contents to the
+     * given variable (ie call .deserialize() on the child if it
+     * exists). Otherwise, the variable is kept unchanged.
+     *
+     * @return a @ref ReadResult set with this node's id if no child
+     * exists, or the ReadResult from the deserialization.
+     *
+     * @see see also @ref Tree::find_child_r()
+     */
+    template<class T>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type node, csubstr child_key, T * v) const
+    {
+        id_type ch;
+        ReadResult r = find_child_r(node, child_key, &ch);
+        if(r)
+            r = deserialize(ch, v);
+        return r;
+    }
+    /** (2) like (1), but assign from fallback if no such child exists. */
+    template<class T>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type node, csubstr child_key, T * v, T const& fallback) const
+    {
+        id_type ch;
+        if(find_child_r(node, child_key, &ch))
+            return deserialize(ch, v);
+        *v = fallback;
+        return ReadResult();
+    }
+    /** (3) like (1), but for wrapper tag types such as @ref c4::fmt::base64() */
+    template<class Wrapper>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type node, csubstr child_key, Wrapper const& wrapper) const
+    {
+        id_type ch;
+        ReadResult r = find_child_r(node, child_key, &ch);
+        if(r)
+            r = deserialize(ch, wrapper);
+        return r;
+    }
+
+    /** (1) find a child by position and deserialize its contents to
+     * the given variable (ie call .deserialize() on the child if it
+     * exists). Otherwise, the variable is kept unchanged.
+     *
+     * @return a @ref ReadResult set with this node's id if no child
+     * exists, or the ReadResult from the deserialization.
+     *
+     * @see see also @ref Tree::child_r()
+     */
+    template<class T>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type node, id_type child_pos, T * v) const
+    {
+        RYML_ASSERT_VISIT_CB_(m_callbacks, is_container(node), this, node); // this assertion is needed because child_r() does not assert, contrary to find_child_r()
+        id_type ch;
+        ReadResult r = child_r(node, child_pos, &ch);
+        if(r)
+            r = deserialize(ch, v);
+        return r;
+    }
+    /** (2) like (1), but assign from fallback if no such child exists */
+    template<class T>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type node, id_type child_pos, T * v, T const& fallback) const
+    {
+        RYML_ASSERT_VISIT_CB_(m_callbacks, is_container(node), this, node); // this assertion is needed because child_r() does not assert, contrary to find_child_r()
+        id_type ch;
+        if(child_r(node, child_pos, &ch))
+            return deserialize(ch, v);
+        *v = fallback;
+        return ReadResult();
+    }
+    /** (3) like (1), but for wrapper tag types such as @ref
+     * c4::fmt::base64() */
+    template<class Wrapper>
+    C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_child(id_type node, id_type child_pos, Wrapper const& wrapper) const
+    {
+        RYML_ASSERT_VISIT_CB_(m_callbacks, is_container(node), this, node); // this assertion is needed because child_r() does not assert, contrary to find_child_r()
+        id_type ch;
+        ReadResult r = child_r(node, child_pos, &ch);
+        if(r)
+            r = deserialize(ch, wrapper);
+        return r;
     }
 
     /** @} */

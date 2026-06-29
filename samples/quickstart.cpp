@@ -4027,8 +4027,6 @@ void sample_user_scalar_types()
 // to each type. This enables the user to implement serialization for
 // custom types (and also enables rapidyaml to implement serialization
 // of fundamental types).
-//
-// user container types: serialized in ryml through write() + read()
 
 /** @addtogroup doc_sample_helpers
  * @{ */
@@ -4162,9 +4160,7 @@ void write(ryml::Tree *tree, ryml::id_type id, my_type const& val)
     // is correct here because the keys themselves are fixed, and are
     // static strings located in the executable. But if the keys came
     // from the data, they too would have to be serialized with
-    // .set_key_serialized(). To see how this is
-    // done, see for example the write() implementations in the header
-    // c4/yml/std/map.hpp.
+    // .set_key_serialized().
 }
 
 
@@ -4178,7 +4174,7 @@ void write(ryml::Tree *tree, ryml::id_type id, my_type const& val)
 template<class T>
 ryml::ReadResult read(ryml::Tree const* tree, ryml::id_type id, my_seq_type<T> *seq)
 {
-    if(!tree->is_seq(id)) return ryml::ReadResult(id); // node must be a seq
+    if(!tree->is_seq(id)) return ryml::ReadResult(id); // id must be a seq
     seq->seq_member.clear(); // we'll overwrite the vector
     for(ryml::id_type child = tree->first_child(id);
         child != ryml::NONE;
@@ -4199,40 +4195,67 @@ ryml::ReadResult read(ryml::Tree const* tree, ryml::id_type id, my_seq_type<T> *
 template<class K, class V>
 ryml::ReadResult read(ryml::Tree const* tree, ryml::id_type id, my_map_type<K, V> *map)
 {
-    if(!tree->is_map(id)) return ryml::ReadResult(id); // node must be a map
+    if(!tree->is_map(id)) return ryml::ReadResult(id); // id must be a seq
     for(ryml::id_type child = tree->first_child(id);
         child != ryml::NONE;
         child = tree->next_sibling(child))
     {
         K k{};
         // again, we're using .deserialize() instead of .load()
-        // because here we're certain the node is readable.
+        // because (1) we should gracefully return a ReadResult and
+        // anyway (2) we're certain the node is readable (because
+        // we're inside the loop).
         ryml::ReadResult r = tree->deserialize_key(child, &k);
         if(r) r = tree->deserialize(child, &map->map_member[std::move(k)]);
-        if(!r) return r;
+        if(!r) return r; // return the inner-most result
     }
     return ryml::ReadResult(); // all good.
 }
 
-// we can also implement a node read(), but it will only be called if
-// you trigger deserialization from a node. That's ok here, because
-// that's we're doing.
+
+//
+// Given that ryml provides both a tree and a node API, you can
+// implement a tree read() (as above), or a node read(). The latter
+// will only be called if you trigger deserialization from a
+// node. That's ok here, because that's what we're doing below.
+//
+// Regardless, it needs to gracefully handle bad YAML data, so we must
+// check every step. We use .deserialize_child() which will look for a
+// child by key, and deserialize that child, returning the deserialize
+// result. If no such child exists, it returns a read result reporting
+// the node (not the child).
+//
+// Note also how each step is defended in an if-condition on the
+// current result. This will ensure that the first failing step is
+// reported.
 ryml::ReadResult read(ryml::ConstNodeRef const& n, my_type *val)
 {
-    if(!n.is_map()) return ryml::ReadResult(n.id());
-    // these are leaf nodes:
-    ryml::ReadResult r;
-    r = n["v2"].deserialize(&val->v2);
-    if(r) r = n["v3"].deserialize(&val->v3);
-    if(r) r = n["v4"].deserialize(&val->v4);
-    // these are container nodes:
-    if(r) r = n["seq"].deserialize(&val->seq);
-    if(r) r = n["map"].deserialize(&val->map);
+    ryml::ReadResult r(n.is_map(), n.id()); // node must be a map
+    if(r) r = n.deserialize_child("v2", &val->v2);
+    if(r) r = n.deserialize_child("v3", &val->v3);
+    if(r) r = n.deserialize_child("v4", &val->v4);
+    if(r) r = n.deserialize_child("seq", &val->seq);
+    if(r) r = n.deserialize_child("map", &val->map);
+    // hint: you can also add a default argument for when no such child exists
     return r;
 }
-
-// IMPORTANT: read the doxygen documentation for containers/general types at:
-// https://rapidyaml.readthedocs.io/v0.15.2/doxygen/group__doc__serialization__user__types.html
+// But if you're going to ever deserialize from a tree+id, then, you
+// must implement a tree+id read(). Also, if you only implement the
+// tree+id read(), it will get picked both from tree calls or from
+// node calls when no node read() exists. That is the reason why you
+// should prefer to implement the tree version. As an example, see how
+// similar the tree version is:
+ryml::ReadResult read(ryml::Tree const* tree, ryml::id_type id, my_type *val)
+{
+    ryml::ReadResult r(tree->is_map(id), id); // node must be a map
+    if(r) r = tree->deserialize_child(id, "v2", &val->v2);
+    if(r) r = tree->deserialize_child(id, "v3", &val->v3);
+    if(r) r = tree->deserialize_child(id, "v4", &val->v4);
+    if(r) r = tree->deserialize_child(id, "seq", &val->seq);
+    if(r) r = tree->deserialize_child(id, "map", &val->map);
+    // hint: you can also add a default argument for when no such child exists
+    return r;
+}
 
 /** @} */ // doc_sample_container_types
 
@@ -4250,6 +4273,11 @@ ryml::ReadResult read(ryml::ConstNodeRef const& n, my_type *val)
  * */
 void sample_user_container_types()
 {
+    // let's do a YAML roundtrip:
+    ryml::Tree tree;
+    ryml::NodeRef root_node = tree;
+    ryml::id_type root_id = tree.root_id();
+
     // here we will be doing a serialization roundtrip with a
     // user-defined container type.
     //
@@ -4263,10 +4291,8 @@ void sample_user_container_types()
         {{{1001, 2001}, {1002, 2002}, {1003, 2003}}},
     };
 
-    // let's do a YAML roundtrip:
-    ryml::Tree tree;
     // serialize to the tree:
-    tree.rootref().save(orig);
+    root_node.save(orig);
     // check the YAML:
     CHECK(ryml::emitrs_yaml<std::string>(tree) == ""
           "v2: (20,21)"         "\n"
@@ -4285,11 +4311,20 @@ void sample_user_container_types()
           "  1002: 2002"        "\n"
           "  1003: 2003"        "\n"
           "");
-    // and now let's deserialize to this variable
-    my_type roundtrip;
-    tree.crootref().load(&roundtrip);
-    // finally, let's compare:
-    roundtrip.check_eq(orig);
+    // and now let's deserialize to this variable.
+    // first from a node:
+    {
+        my_type roundtrip;
+        root_node.load(&roundtrip); // picks the node read(), because we wrote one.
+                                    // if we didn't, it would then pick the tree read()
+        roundtrip.check_eq(orig); // finally, let's compare.
+    }
+    // let's also deserialize from the tree:
+    {
+        my_type roundtrip;
+        tree.load(root_id, &roundtrip); // will pick the tree read()
+        roundtrip.check_eq(orig); // finally, let's compare.
+    }
 
     // We created above a my_seq<std::string> specialization showing
     // that we can use write() without serializing the data to the
@@ -4313,12 +4348,13 @@ void sample_user_container_types()
           "");
     // show how the strings are NOT in the tree's arena
     size_t pos = 0;
+    CHECK(strseq.seq_member.size() == tree["not in arena"].num_children());
     for(ryml::ConstNodeRef child : tree["not in arena"].children())
     {
-        ryml::csubstr sorig = ryml::to_csubstr(strseq.seq_member[pos++]);
-        CHECK(child.val() == sorig); // same string
+        ryml::csubstr str_orig = ryml::to_csubstr(strseq.seq_member[pos++]);
+        CHECK(child.val() == str_orig); // same string
         CHECK(!child.val().is_sub(tree.arena())); // not in the tree's arena
-        CHECK(child.val().is_sub(sorig)); // ... but the original memory
+        CHECK(child.val().is_sub(str_orig)); // ... but the original memory
     }
 }
 

@@ -307,7 +307,7 @@ C4_NO_INLINE void check_success(Tree *tree, errfn const& fn) noexcept
         });                                     \
     }
 
-template<class NodeT>
+template<class NodeOutT, class NodeT>
 C4_NO_INLINE void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype) noexcept
 {
     _TEST_SUCCEED(tree, node.get())
@@ -387,12 +387,18 @@ C4_NO_INLINE void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errty
     _TEST_FAIL_(errtype, tree, node.last_child())
     _TEST_FAIL_(errtype, tree, node.child(0))
     _TEST_FAIL_(errtype, tree, node.find_child("key"))
+    NodeOutT n;
+    ReadResult res;
+    _TEST_FAIL_(errtype, tree, res = node.child_r(0, &n))
+    _TEST_FAIL_(errtype, tree, res = node.find_child_r("key", &n))
     _TEST_FAIL_(errtype, tree, node.prev_sibling())
     _TEST_FAIL_(errtype, tree, node.next_sibling())
     _TEST_FAIL_(errtype, tree, node.first_sibling())
     _TEST_FAIL_(errtype, tree, node.last_sibling())
     _TEST_FAIL_(errtype, tree, node.sibling(0))
     _TEST_FAIL_(errtype, tree, node.find_sibling("key"))
+    _TEST_FAIL_(errtype, tree, res = node.sibling_r(0, &n))
+    _TEST_FAIL_(errtype, tree, res = node.find_sibling_r("key", &n))
     _TEST_FAIL_(errtype, tree, node.num_children())
     _TEST_FAIL_(errtype, tree, node.num_siblings())
     _TEST_FAIL_(errtype, tree, node.num_other_siblings())
@@ -402,7 +408,7 @@ C4_NO_INLINE void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errty
     _TEST_FAIL_(errtype, tree, node[0])
     _TEST_FAIL_(errtype, tree, node.at("key"))
     _TEST_FAIL_(errtype, tree, node.at(0))
-    int val;
+    int val, fallback = 0;
     _TEST_ERR__(errtype, tree, node.load(&val))
     _TEST_ERR__(errtype, tree, node.load(fmt::base64(val)))
     _TEST_ERR__(errtype, tree, node.load_key(&val))
@@ -419,6 +425,12 @@ C4_NO_INLINE void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errty
     _TEST_FAIL_(errtype, tree, node.get_if("key", &val, 0));
     _TEST_FAIL_(errtype, tree, node.get_if(0, &val));
     _TEST_FAIL_(errtype, tree, node.get_if(1, &val, 0));
+    _TEST_FAILR(errtype, tree, node.deserialize_child("key", &val))
+    _TEST_FAILR(errtype, tree, node.deserialize_child("key", &val, fallback))
+    _TEST_FAILR(errtype, tree, node.deserialize_child("key", fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, node.deserialize_child(0, &val))
+    _TEST_FAILR(errtype, tree, node.deserialize_child(0, &val, fallback))
+    _TEST_FAILR(errtype, tree, node.deserialize_child(0, fmt::base64(val)))
     const NodeT const_node = node;
     _TEST_FAIL_(errtype, tree, node.begin());
     _TEST_FAIL_(errtype, tree, node.cbegin());
@@ -559,6 +571,12 @@ C4_NO_INLINE void test_fail_read_tree(Tree *tree, id_type id, ExpectedErrorType 
     _TEST_FAILR(errtype, tree, tree->deserialize(id, fmt::base64(val)))
     _TEST_FAILR(errtype, tree, tree->deserialize_key(id, &val))
     _TEST_FAILR(errtype, tree, tree->deserialize_key(id, fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, "key", &val))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, "key", &val, 0))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, "key", fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, 0, &val))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, 0, &val, 0))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, 0, fmt::base64(val)))
 }
 C4_NO_INLINE void test_fail_write_tree(Tree *tree, id_type id, ExpectedErrorType errtype)
 {
@@ -600,7 +618,7 @@ TEST(NodeRef, cannot_read_from_invalid)
     EXPECT_TRUE(none.invalid());
     EXPECT_FALSE(none.is_seed());
     EXPECT_FALSE(none.readable());
-    test_fail_read(nullptr, none, errbasic);
+    test_fail_read<NodeRef,NodeRef>(nullptr, none, errbasic);
     test_fail_read_subject(nullptr, none, none, errbasic);
     test_fail_write(nullptr, none, errbasic);
 }
@@ -623,11 +641,11 @@ TEST(ConstNodeRef, cannot_read_from_invalid)
     EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_FALSE(const_none.readable());
-    test_fail_read(nullptr, const_none, errbasic);
-    test_fail_read(nullptr, NodeRef{}, errbasic);
+    test_fail_read<ConstNodeRef, ConstNodeRef>(nullptr, const_none, errbasic);
+    test_fail_read<NodeRef, NodeRef>(nullptr, NodeRef{}, errbasic);
     const NodeRef nnone;
-    test_fail_read<NodeRef>(nullptr, nnone, errbasic);
-    test_fail_read<const NodeRef>(nullptr, nnone, errbasic);
+    test_fail_read<NodeRef, NodeRef>(nullptr, nnone, errbasic);
+    test_fail_read<ConstNodeRef, const NodeRef>(nullptr, nnone, errbasic);
     test_fail_read_subject(nullptr, const_none, const_none, errany);
     Tree tree = parse_in_arena("foo: bar");
     ConstNodeRef foo = tree["foo"];
@@ -653,7 +671,7 @@ TEST(NodeRef, cannot_read_from_seed)
     EXPECT_FALSE(none.invalid());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
-    test_fail_read(&tree, none, errvisit);
+    test_fail_read<NodeRef, NodeRef>(&tree, none, errvisit);
     test_fail_read_subject(&tree, none, none, errvisit);
 }
 
@@ -699,7 +717,7 @@ TEST(NodeRef, cannot_read_from_seed_subject)
     EXPECT_FALSE(none.invalid());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
-    test_fail_read(&tree, none, errvisit);
+    test_fail_read<NodeRef,NodeRef>(&tree, none, errvisit);
     test_fail_read_subject(&tree, none, none, errvisit);
 }
 
@@ -713,7 +731,7 @@ TEST(ConstNodeRef, cannot_read_from_seed_subject)
     EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_FALSE(const_none.readable());
-    test_fail_read(&tree, const_none, errvisit);
+    test_fail_read<ConstNodeRef,ConstNodeRef>(&tree, const_none, errvisit);
     ConstNodeRef foo = tree["foo"];
     test_fail_read_subject(&tree, foo, const_none, errvisit);
 }
@@ -1704,6 +1722,38 @@ TEST(NodeRef, overload_sets)
         EXPECT_EQ(is_const_ref(cn_imap.find_child("a")), true);
         EXPECT_EQ(is_const_ref(nc_imap.find_child("a")), true);
     }
+    // child_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_iseq.child_r(0, &r)); EXPECT_EQ(r.id(), n_iseq.child(0).id());
+        EXPECT_TRUE(n_iseq.child_r(0, &cr)); EXPECT_EQ(cr.id(), n_iseq.child(0).id());
+        EXPECT_TRUE(nc_iseq.child_r(0, &cr)); EXPECT_EQ(cr.id(), nc_iseq.child(0).id());
+        EXPECT_TRUE(cn_iseq.child_r(0, &cr)); EXPECT_EQ(cr.id(), cn_iseq.child(0).id());
+        EXPECT_TRUE(n_imap.child_r(0, &r)); EXPECT_EQ(r.id(), n_imap.child(0).id());
+        EXPECT_TRUE(n_imap.child_r(0, &cr)); EXPECT_EQ(cr.id(), n_imap.child(0).id());
+        EXPECT_TRUE(nc_imap.child_r(0, &cr)); EXPECT_EQ(cr.id(), nc_imap.child(0).id());
+        EXPECT_TRUE(cn_imap.child_r(0, &cr)); EXPECT_EQ(cr.id(), cn_imap.child(0).id());
+    }
+    // find_child()
+    {
+        EXPECT_EQ(n.find_child("iseq"), nc.find_child("iseq"));
+        EXPECT_EQ(n.find_child("iseq"), cn.find_child("iseq"));
+        EXPECT_EQ(n_imap.find_child("a"), nc_imap.find_child("a"));
+        EXPECT_EQ(n_imap.find_child("a"), cn_imap.find_child("a"));
+        EXPECT_EQ(is_const_ref(n_imap.find_child("a")), false);
+        EXPECT_EQ(is_const_ref(cn_imap.find_child("a")), true);
+        EXPECT_EQ(is_const_ref(nc_imap.find_child("a")), true);
+    }
+    // find_child_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_imap.find_child_r("a", &r)); EXPECT_EQ(r.id(), n_imap.find_child("a").id());
+        EXPECT_TRUE(n_imap.find_child_r("a", &cr)); EXPECT_EQ(cr.id(), n_imap.find_child("a").id());
+        EXPECT_TRUE(nc_imap.find_child_r("a", &cr)); EXPECT_EQ(cr.id(), nc_imap.find_child("a").id());
+        EXPECT_TRUE(cn_imap.find_child_r("a", &cr)); EXPECT_EQ(cr.id(), cn_imap.find_child("a").id());
+    }
     // prev_sibling()
     {
         EXPECT_EQ(n_iseq[1].prev_sibling(), nc_iseq[1].prev_sibling());
@@ -1744,6 +1794,19 @@ TEST(NodeRef, overload_sets)
         EXPECT_EQ(is_const_ref(cn_iseq.sibling(0)), true);
         EXPECT_EQ(is_const_ref(nc_iseq.sibling(0)), true);
     }
+    // sibling_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_iseq.sibling_r(0, &r)); EXPECT_EQ(r.id(), n_iseq.sibling(0).id());
+        EXPECT_TRUE(n_iseq.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), n_iseq.sibling(0).id());
+        EXPECT_TRUE(nc_iseq.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), nc_iseq.sibling(0).id());
+        EXPECT_TRUE(cn_iseq.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), cn_iseq.sibling(0).id());
+        EXPECT_TRUE(n_imap.sibling_r(0, &r)); EXPECT_EQ(r.id(), n_imap.sibling(0).id());
+        EXPECT_TRUE(n_imap.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), n_imap.sibling(0).id());
+        EXPECT_TRUE(nc_imap.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), nc_imap.sibling(0).id());
+        EXPECT_TRUE(cn_imap.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), cn_imap.sibling(0).id());
+    }
     // find_sibling()
     {
         EXPECT_EQ(n_iseq.find_sibling("imap"), nc_iseq.find_sibling("imap"));
@@ -1753,6 +1816,19 @@ TEST(NodeRef, overload_sets)
         EXPECT_EQ(is_const_ref(n_imap.find_sibling("a")), false);
         EXPECT_EQ(is_const_ref(cn_imap.find_sibling("a")), true);
         EXPECT_EQ(is_const_ref(nc_imap.find_sibling("a")), true);
+    }
+    // sibling_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_iseq.find_sibling_r("imap", &r)); EXPECT_EQ(r.id(), n_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(n_iseq.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), n_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(nc_iseq.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), nc_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(cn_iseq.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), cn_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(n_imap.find_sibling_r("imap", &r)); EXPECT_EQ(r.id(), n_imap.find_sibling("imap").id());
+        EXPECT_TRUE(n_imap.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), n_imap.find_sibling("imap").id());
+        EXPECT_TRUE(nc_imap.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), nc_imap.find_sibling("imap").id());
+        EXPECT_TRUE(cn_imap.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), cn_imap.find_sibling("imap").id());
     }
     // ancestor_doc()
     {

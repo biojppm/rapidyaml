@@ -3614,10 +3614,38 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(mseq.child(0).id(), t.child(seq_id, 0));
     EXPECT_EQ(mval.child(0).id(), t.child(val_id, 0));
     //
+    ReadResult res;
+    id_type node;
+    node = 0;    res = t.child_r(stream_id, 0, &node); EXPECT_TRUE(res);  EXPECT_EQ(node, doc_id);
+    node = 0;    res = t.child_r(doc_id, 0, &node);    EXPECT_TRUE(res);  EXPECT_EQ(node, map_id);
+    node = 0;    res = t.child_r(map_id, 0, &node);    EXPECT_TRUE(res);  EXPECT_EQ(node, keyval_id);
+    node = NONE; res = t.child_r(keyval_id, 0, &node); EXPECT_FALSE(res); EXPECT_EQ(node, (id_type)NONE); EXPECT_EQ(res.node, keyval_id);
+    node = 0;    res = t.child_r(seq_id, 0, &node);    EXPECT_TRUE(res);  EXPECT_EQ(node, val_id);
+    node = NONE; res = t.child_r(val_id, 0, &node);    EXPECT_FALSE(res); EXPECT_EQ(node, (id_type)NONE); EXPECT_EQ(res.node, val_id);
+    NodeRef n;
+    ConstNodeRef cn;
+    cn = {};   res = stream.child_r(0, &cn); EXPECT_TRUE(res);  EXPECT_EQ(cn.id(), t.child(stream_id, 0));
+    cn = {};   res = doc.child_r(0, &cn);    EXPECT_TRUE(res);  EXPECT_EQ(cn.id(), t.child(doc_id, 0));
+    cn = {};   res = map.child_r(0, &cn);    EXPECT_TRUE(res);  EXPECT_EQ(cn.id(), t.child(map_id, 0));
+    cn = {};   res = keyval.child_r(0, &cn); EXPECT_FALSE(res); EXPECT_EQ(cn.id(), NONE);
+    cn = {};   res = seq.child_r(0, &cn);    EXPECT_TRUE(res);  EXPECT_EQ(cn.id(), t.child(seq_id, 0));
+    cn = {};   res = val.child_r(0, &cn);    EXPECT_FALSE(res); EXPECT_EQ(cn.id(), NONE);
+    n = NodeRef{}; res = mstream.child_r(0, &n); EXPECT_TRUE(res);  EXPECT_EQ(n.id(), t.child(stream_id, 0));
+    n = NodeRef{}; res = mdoc.child_r(0, &n);    EXPECT_TRUE(res);  EXPECT_EQ(n.id(), t.child(doc_id, 0));
+    n = NodeRef{}; res = mmap.child_r(0, &n);    EXPECT_TRUE(res);  EXPECT_EQ(n.id(), t.child(map_id, 0));
+    n = NodeRef{}; res = mkeyval.child_r(0, &n); EXPECT_FALSE(res); EXPECT_EQ(n.id(), NONE);
+    n = NodeRef{}; res = mseq.child_r(0, &n);    EXPECT_TRUE(res);  EXPECT_EQ(n.id(), t.child(seq_id, 0));
+    n = NodeRef{}; res = mval.child_r(0, &n);    EXPECT_FALSE(res); EXPECT_EQ(n.id(), NONE);
+    //
     verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].child(0); }, visit);
     verify_assertion(t, [&](Tree const&){ return t.docref(2).child(0); }, visit);
     verify_assertion(t, [&](Tree const&){ return t.child(t.capacity(), 0); }, visit);
     verify_assertion(t, [&](Tree const&){ return t.child(NONE, 0); }, visit);
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].child_r(0, &n); }, visit);
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).child_r(0, &n); }, visit);
+    verify_assertion(t, [&](Tree const&){ return t.child_r(t.capacity(), 0, &node); }, visit);
+    verify_assertion(t, [&](Tree const&){ return t.child_r(NONE, 0, &node); }, visit);
 }
 
 TEST(Tree, find_child_by_name)
@@ -3651,10 +3679,35 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(mmap.find_child("foo").id(), t.find_child(map_id, "foo"));
     EXPECT_EQ(mmap.find_child("bar").id(), t.find_child(map_id, "bar"));
     //
+    ReadResult res;
+    id_type node;
+    node = NONE; res = t.find_child_r(doc_id, "map", &node); EXPECT_TRUE(res);  EXPECT_EQ(node, map_id);
+    node = NONE; res = t.find_child_r(doc_id, "seq", &node); EXPECT_TRUE(res);  EXPECT_EQ(node, seq_id);
+    node = 0;    res = t.find_child_r(doc_id, "...", &node); EXPECT_FALSE(res); EXPECT_EQ(node, (id_type)NONE); EXPECT_EQ(res.node, doc_id);
+    node = NONE; res = t.find_child_r(map_id, "foo", &node); EXPECT_TRUE(res);  EXPECT_EQ(node, keyval_id);
+    node = 0;    res = t.find_child_r(map_id, "bar", &node); EXPECT_FALSE(res); EXPECT_EQ(node, (id_type)NONE); EXPECT_EQ(res.node, map_id);
+    ConstNodeRef cn;
+    cn = {}; res = doc.find_child_r("map", &cn); EXPECT_TRUE(res);  EXPECT_EQ(cn.id(), t.find_child(doc_id, "map"));
+    cn = {}; res = doc.find_child_r("seq", &cn); EXPECT_TRUE(res);  EXPECT_EQ(cn.id(), t.find_child(doc_id, "seq"));
+    cn = {}; res = doc.find_child_r("...", &cn); EXPECT_FALSE(res); EXPECT_EQ(cn.id(), t.find_child(doc_id, "...")); EXPECT_EQ(res.node, doc_id);
+    cn = {}; res = map.find_child_r("foo", &cn); EXPECT_TRUE(res);  EXPECT_EQ(cn.id(), t.find_child(map_id, "foo"));
+    cn = {}; res = map.find_child_r("bar", &cn); EXPECT_FALSE(res); EXPECT_EQ(cn.id(), t.find_child(map_id, "bar")); EXPECT_EQ(res.node, map_id);
+    NodeRef n;
+    n = NodeRef{}; res = mdoc.find_child_r("map", &n); EXPECT_TRUE(res);  EXPECT_EQ(n.id(), t.find_child(doc_id, "map"));
+    n = NodeRef{}; res = mdoc.find_child_r("seq", &n); EXPECT_TRUE(res);  EXPECT_EQ(n.id(), t.find_child(doc_id, "seq"));
+    n = NodeRef{}; res = mdoc.find_child_r("...", &n); EXPECT_FALSE(res); EXPECT_EQ(n.id(), t.find_child(doc_id, "...")); EXPECT_EQ(res.node, doc_id);
+    n = NodeRef{}; res = mmap.find_child_r("foo", &n); EXPECT_TRUE(res);  EXPECT_EQ(n.id(), t.find_child(map_id, "foo"));
+    n = NodeRef{}; res = mmap.find_child_r("bar", &n); EXPECT_FALSE(res); EXPECT_EQ(n.id(), t.find_child(map_id, "bar")); EXPECT_EQ(res.node, map_id);
+    //
     verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].find_child("foo"); }, visit);
     verify_assertion(t, [&](Tree const&){ return t.docref(2).find_child("foo"); }, visit);
     verify_assertion(t, [&](Tree const&){ return t.find_child(t.capacity(), "foo"); }, visit);
     verify_assertion(t, [&](Tree const&){ return t.find_child(NONE, "foo"); }, visit);
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].find_child_r("foo", &n); }, visit);
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).find_child_r("foo", &n); }, visit);
+    verify_assertion(t, [&](Tree const&){ return t.find_child_r(t.capacity(), "foo", &node); }, visit);
+    verify_assertion(t, [&](Tree const&){ return t.find_child_r(NONE, "foo", &node); }, visit);
 }
 
 TEST(Tree, find_sibling_by_name)
