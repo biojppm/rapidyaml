@@ -18,45 +18,39 @@
 #           if (!defined(_MSVC_LANG))
 #               error _MSVC not defined
 #           endif
-#           if _MSVC_LANG >= 201705L
+#           if _MSVC_LANG >= 202302L
+#               define C4_CPP 23
+#           elif _MSVC_LANG >= 202002L
 #               define C4_CPP 20
-#               define C4_CPP20
 #           elif _MSVC_LANG == 201703L
 #               define C4_CPP 17
-#               define C4_CPP17
 #           elif _MSVC_LANG >= 201402L
 #               define C4_CPP 14
-#               define C4_CPP14
 #           elif _MSVC_LANG >= 201103L
 #               define C4_CPP 11
-#               define C4_CPP11
 #           else
 #               error C++ lesser than C++11 not supported
 #           endif
 #       else
 #           if _MSC_VER == 1900
 #               define C4_CPP 14  // VS2015 is c++14 https://devblogs.microsoft.com/cppblog/c111417-features-in-vs-2015-rtm/
-#               define C4_CPP14
 #           elif _MSC_VER == 1800 // VS2013
 #               define C4_CPP 11
-#               define C4_CPP11
 #           else
 #               error C++ lesser than C++11 not supported
 #           endif
 #       endif
-#   elif defined(__INTEL_COMPILER) // https://software.intel.com/en-us/node/524490
-#       ifdef __INTEL_CXX20_MODE__ // not sure about this
+#   elif defined(__INTEL_COMPILER) // not sure about this https://software.intel.com/en-us/node/524490
+#       ifdef __INTEL_CXX23_MODE__
+#           define C4_CPP 23
+#       elif defined __INTEL_CXX20_MODE__
 #           define C4_CPP 20
-#           define C4_CPP20
-#       elif defined __INTEL_CXX17_MODE__ // not sure about this
+#       elif defined __INTEL_CXX17_MODE__
 #           define C4_CPP 17
-#           define C4_CPP17
-#       elif defined __INTEL_CXX14_MODE__ // not sure about this
+#       elif defined __INTEL_CXX14_MODE__
 #           define C4_CPP 14
-#           define C4_CPP14
 #       elif defined __INTEL_CXX11_MODE__
 #           define C4_CPP 11
-#           define C4_CPP11
 #       else
 #           error C++ lesser than C++11 not supported
 #       endif
@@ -66,49 +60,37 @@
 #       endif
 #       if __cplusplus == 1
 #           error cannot handle __cplusplus==1
-#       elif __cplusplus >= 201709L
+#       elif __cplusplus >= 202302L
+#           define C4_CPP 23
+#       elif __cplusplus >= 202002L
 #           define C4_CPP 20
-#           define C4_CPP20
 #       elif __cplusplus >= 201703L
 #           define C4_CPP 17
-#           define C4_CPP17
 #       elif __cplusplus >= 201402L
 #           define C4_CPP 14
-#           define C4_CPP14
 #       elif __cplusplus >= 201103L
 #           define C4_CPP 11
-#           define C4_CPP11
 #       elif __cplusplus >= 199711L
 #           error C++ lesser than C++11 not supported
 #       endif
 #   endif
-#else
-#   ifdef C4_CPP == 20
-#       define C4_CPP20
-#   elif C4_CPP == 17
-#       define C4_CPP17
-#   elif C4_CPP == 14
-#       define C4_CPP14
-#   elif C4_CPP == 11
-#       define C4_CPP11
-#   elif C4_CPP == 98
-#       define C4_CPP98
-#       error C++ lesser than C++11 not supported
-#   else
-#       error C4_CPP must be one of 20, 17, 14, 11, 98
-#   endif
+#endif
+#if C4_CPP >= 23
+#   define C4_CPP23
+#endif
+#if C4_CPP >= 20
+#   define C4_CPP20
+#endif
+#if C4_CPP >= 17
+#   define C4_CPP17
+#endif
+#if C4_CPP >= 14
+#   define C4_CPP14
+#endif
+#if C4_CPP >= 11
+#   define C4_CPP11
 #endif
 
-#ifdef C4_CPP20
-#   define C4_CPP17
-#   define C4_CPP14
-#   define C4_CPP11
-#elif defined(C4_CPP17)
-#   define C4_CPP14
-#   define C4_CPP11
-#elif defined(C4_CPP14)
-#   define C4_CPP11
-#endif
 
 /** lifted from this answer: http://stackoverflow.com/a/20170989/5875572 */
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -195,6 +177,7 @@
 #define C4_BEGIN_HIDDEN_NAMESPACE namespace /*hidden*/ {
 #define C4_END_HIDDEN_NAMESPACE } /* namespace hidden */
 
+
 //------------------------------------------------------------
 
 #ifndef C4_API
@@ -224,8 +207,6 @@
 #   define C4_COLD        /** @todo */
 #   define C4_ASSUME(...) __assume(__VA_ARGS__)
 #   define C4_EXPECT(x, y) x /** @todo */
-#   define C4_LIKELY(x)   x
-#   define C4_UNLIKELY(x) x
 #   define C4_UNREACHABLE() _c4_msvc_unreachable()
 #   define C4_ATTR_FORMAT(...) /** */
 #   define C4_NORETURN [[noreturn]]
@@ -263,8 +244,6 @@
  * @see http://stackoverflow.com/questions/15028990/semantics-of-gcc-hot-attribute */
 #   define C4_COLD __attribute__((cold))
 #   define C4_EXPECT(x, y) __builtin_expect(x, y) ///< @see https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
-#   define C4_LIKELY(x)   __builtin_expect(x, 1)
-#   define C4_UNLIKELY(x) __builtin_expect(x, 0)
 #   define C4_UNREACHABLE() __builtin_unreachable()
 #   define C4_ATTR_FORMAT(...) //__attribute__((format (__VA_ARGS__))) ///< @see https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes
 #   define C4_NORETURN __attribute__((noreturn))
@@ -305,6 +284,30 @@
 #   ifndef C4_ASSUME
 #       define C4_ASSUME(...)
 #   endif
+#endif
+
+
+#ifdef __has_cpp_attribute
+#   if (__has_cpp_attribute(unlikely) >= 201803L) && (C4_CPP >= 20)
+#       define C4_UNLIKELY_IS_ATTR_
+#   endif
+#endif
+
+#ifdef C4_UNLIKELY_IS_ATTR_
+#   define C4_LIKELY(x)   (x) [[likely]]
+#   define C4_UNLIKELY(x) (x) [[unlikely]]
+#   define C4_LIKELY20   [[likely]]
+#   define C4_UNLIKELY20 [[unlikely]]
+#elif defined(__clang__) || defined(__GNUC__)
+#   define C4_LIKELY(x)   (__builtin_expect(x, 1))
+#   define C4_UNLIKELY(x) (__builtin_expect(x, 0))
+#   define C4_LIKELY20
+#   define C4_UNLIKELY20
+#elif defined(_MSC_VER)
+#   define C4_LIKELY(x)   (x)
+#   define C4_UNLIKELY(x) (x)
+#   define C4_LIKELY20
+#   define C4_UNLIKELY20
 #endif
 
 

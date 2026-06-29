@@ -51,7 +51,7 @@ void write(NodeRef *n, std::vector<T, Alloc> const& vec)
 template<class T, class Alloc>
 ReadResult read(Tree const *tree, id_type id, std::vector<T, Alloc> *vec)
 {
-    if(C4_UNLIKELY(!tree->is_seq(id)))
+    if C4_UNLIKELY(!tree->is_seq(id))
         return ReadResult(id);
     vec->clear();
     #if C4_CPP < 17 // prior to C++17, emplace_back() does not return a reference
@@ -85,7 +85,7 @@ ReadResult read(ConstNodeRef const& node, std::vector<T, Alloc> *vec)
     // is not available in the tree implementation, so we need to
     // provide this as a hook for that. If that's not required, then
     // the tree implementation will get called anyway.
-    if(C4_UNLIKELY(!node.is_seq()))
+    if C4_UNLIKELY(!node.is_seq())
         return ReadResult(node.id());
     vec->clear();
     #if C4_CPP < 17 // prior to C++17, emplace_back() does not return a reference
@@ -118,7 +118,7 @@ ReadResult read(ConstNodeRef const& node, std::vector<T, Alloc> *vec)
 template<class Alloc>
 ReadResult read(Tree const* tree, id_type id, std::vector<bool, Alloc> *vec)
 {
-    if(C4_UNLIKELY(!tree->is_seq(id)))
+    if C4_UNLIKELY(!tree->is_seq(id))
         return ReadResult(id);
     vec->clear();
     bool tmp = {};

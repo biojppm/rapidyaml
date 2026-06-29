@@ -120,7 +120,7 @@ public:
 
     C4_ALWAYS_INLINE C4_HOT void append(char c)
     {
-        if(C4_UNLIKELY(m_size == m_capacity))
+        if C4_UNLIKELY(m_size == m_capacity)
             reserve(m_size + 1);
         m_str[m_size++] = c;
     }
@@ -129,7 +129,7 @@ public:
         if(cs.len)
         {
             const id_type ilen = (id_type)cs.len;
-            if(C4_UNLIKELY(m_size + ilen > m_capacity))
+            if C4_UNLIKELY(m_size + ilen > m_capacity)
                 reserve(m_size + ilen);
             memcpy(m_str + m_size, cs.str, cs.len);
             m_size += ilen;
@@ -140,7 +140,7 @@ public:
         RYML_ASSERT_BASIC_(pos <= m_size);
         if(pos < m_size)
         {
-            if(C4_UNLIKELY(m_size == m_capacity))
+            if C4_UNLIKELY(m_size == m_capacity)
                 reserve(m_size + 1);
             char *C4_RESTRICT src = m_str + pos;
             memmove(src + 1, src, m_size - pos);
@@ -160,7 +160,7 @@ public:
             if(pos < m_size)
             {
                 const id_type ilen = (id_type)cs.len;
-                if(C4_UNLIKELY(m_size + ilen > m_capacity))
+                if C4_UNLIKELY(m_size + ilen > m_capacity)
                     reserve(m_size + ilen);
                 char *C4_RESTRICT src = m_str + pos;
                 memmove(src + cs.len, src, m_size - pos);

@@ -272,6 +272,7 @@ Here's the list of new `ReadResult`-returning methods that may be of use in simi
 <a>v0.16changelogsection</a>
 ## Full changelog
 
+- [PR#641](https://github.com/biojppm/rapidyaml/pull/641): change uses of `C4_LIKELY()` / `C4_UNLIKELY()` to turn into `[[likely]]` / `[[unlikely]]`. No logic changes.
 - [PR#640](https://github.com/biojppm/rapidyaml/pull/640): add `.deserialize_child()` methods to simplify read() implementations
 - [PR#639](https://github.com/biojppm/rapidyaml/pull/639): fix names using leading/double underscore (renames only, no logic changes).
 - [PR#638](https://github.com/biojppm/rapidyaml/pull/638): improve quickstart-ints.

@@ -877,10 +877,10 @@ private:
     /** @cond dev*/
     #define _add_scalar_(i, scalar)                                     \
     _c4dbgpf("{}/{}: scalar!", i, m_evt_size);                          \
-    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, _is_sub_(scalar));         \
-    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt[i] & ievt::WSTR);    \
-    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, ((i) + 3) < m_evt_size);   \
-    if(C4_LIKELY((scalar).is_sub(m_src)))                               \
+    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, _is_sub_(scalar));       \
+    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt[i] & ievt::WSTR);  \
+    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, ((i) + 3) < m_evt_size); \
+    if C4_LIKELY((scalar).is_sub(m_src))                                \
     {                                                                   \
         m_evt[(i) + 1] = (ievt::evt_bits)((scalar).str - m_src.str);    \
     }                                                                   \
@@ -981,7 +981,7 @@ public:
     void add_directive_tag(csubstr handle, csubstr prefix)
     {
         _c4dbgpf("{}/{}: %TAG directive! handle={} prefix={} doc_id={}", m_evt_pos, m_evt_size, handle, prefix, m_curr_doc);
-        if(C4_UNLIKELY(!m_tag_directives.add(handle, prefix, m_curr_doc)))
+        if C4_UNLIKELY(!m_tag_directives.add(handle, prefix, m_curr_doc))
             RYML_ERR_PARSE_CB_(m_stack.m_callbacks, m_curr->pos, "too many %TAG directives");
         _send_str_(handle, ievt::TAGH);
         _send_str_(prefix, ievt::TAGP);
@@ -1139,13 +1139,13 @@ public:
     }
     substr arena_rem() // NOLINT
     {
-        return C4_LIKELY(m_arena_pos <= m_arena.len) ? m_arena.sub(m_arena_pos) : m_arena.last(0);
+        return C4_EXPECT(m_arena_pos <= m_arena.len, 1) ? m_arena.sub(m_arena_pos) : m_arena.last(0);
     }
     /** this may fail, in which case an empty string is returned */
     substr alloc_arena(size_t len)
     {
         substr s = arena_rem();
-        if(C4_LIKELY(len <= s.len))
+        if C4_LIKELY(len <= s.len)
             s.len = len;
         else
             s.str = nullptr;

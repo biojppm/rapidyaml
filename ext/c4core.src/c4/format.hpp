@@ -321,7 +321,7 @@ C4_ALWAYS_INLINE auto to_chars(substr buf, fmt::integral_padded_<T> fmt)
 template<class T>
 C4_ALWAYS_INLINE bool from_chars(csubstr s, fmt::overflow_checked_<T> wrapper)
 {
-    if(C4_LIKELY(!overflows<T>(s)))
+    if C4_LIKELY(!overflows<T>(s))
         return atox(s, wrapper.val);
     return false;
 }
@@ -330,7 +330,7 @@ C4_ALWAYS_INLINE bool from_chars(csubstr s, fmt::overflow_checked_<T> wrapper)
 template<class T>
 C4_ALWAYS_INLINE bool from_chars(csubstr s, fmt::overflow_checked_<T> *wrapper)
 {
-    if(C4_LIKELY(!overflows<T>(s)))
+    if C4_LIKELY(!overflows<T>(s))
         return atox(s, wrapper->val);
     return false;
 }
@@ -690,11 +690,11 @@ template<class Arg, class... Args>
 size_t uncat(csubstr buf, Arg & C4_RESTRICT a, Args & C4_RESTRICT ...more)
 {
     size_t out = from_chars_first(buf, &a);
-    if(C4_UNLIKELY(out == csubstr::npos))
+    if C4_UNLIKELY(out == csubstr::npos)
         return csubstr::npos;
     buf  = buf.len >= out ? buf.sub(out) : substr{};
     size_t num = uncat(buf, more...);
-    if(C4_UNLIKELY(num == csubstr::npos))
+    if C4_UNLIKELY(num == csubstr::npos)
         return csubstr::npos;
     return out + num;
 }
@@ -818,16 +818,16 @@ inline size_t uncatsep(csubstr buf, csubstr /*sep*/, Arg &C4_RESTRICT a)
 template<class Arg, class... Args>
 size_t uncatsep(csubstr buf, csubstr sep, Arg & C4_RESTRICT a, Args & C4_RESTRICT ...more)
 {
-    if(C4_LIKELY(sep.len > 0))
+    if C4_LIKELY(sep.len > 0)
     {
         size_t pos = buf.find(sep);
-        if(C4_LIKELY(pos != csubstr::npos))
+        if C4_LIKELY(pos != csubstr::npos)
         {
-            if(C4_LIKELY(from_chars(buf.first(pos), &a)))
+            if C4_LIKELY(from_chars(buf.first(pos), &a))
             {
                 pos += sep.len;
                 size_t num = uncatsep(buf.sub(pos), sep, more...);
-                if(C4_LIKELY(num != csubstr::npos))
+                if C4_LIKELY(num != csubstr::npos)
                     return pos + num;
             }
         }
@@ -936,7 +936,7 @@ template<class Arg, class... Args>
 size_t format(substr buf, csubstr fmt, Arg const& C4_RESTRICT a, Args const& C4_RESTRICT ...more)
 {
     size_t pos = fmt.find("{}");
-    if(C4_UNLIKELY(pos == csubstr::npos))
+    if C4_UNLIKELY(pos == csubstr::npos)
         return to_chars(buf, fmt);
     size_t num = to_chars(buf, fmt.first(pos));
     size_t out = num;
@@ -987,18 +987,18 @@ template<class Arg, class... Args>
 size_t unformat(csubstr buf, csubstr fmt, Arg & C4_RESTRICT a, Args & C4_RESTRICT ...more)
 {
     const size_t pos = fmt.find("{}");
-    if(C4_UNLIKELY(pos == csubstr::npos))
+    if C4_UNLIKELY(pos == csubstr::npos)
         return unformat(buf, fmt);
     size_t num = pos;
     size_t out = num;
     buf  = buf.len >= num ? buf.sub(num) : substr{};
     num  = from_chars_first(buf, &a);
-    if(C4_UNLIKELY(num == csubstr::npos))
+    if C4_UNLIKELY(num == csubstr::npos)
         return csubstr::npos;
     out += num;
     buf  = buf.len >= num ? buf.sub(num) : substr{};
     num  = unformat(buf, fmt.sub(pos + 2), more...);
-    if(C4_UNLIKELY(num == csubstr::npos))
+    if C4_UNLIKELY(num == csubstr::npos)
         return csubstr::npos;
     out += num;
     return out;

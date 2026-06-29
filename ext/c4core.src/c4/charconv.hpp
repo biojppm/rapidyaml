@@ -405,7 +405,7 @@ template<> struct charconv_digits_<8u, false> // uint64_t
 } // namespace detail
 
 // Helper macros, undefined below
-#define c4append_(c) { if(C4_LIKELY(pos < buf.len)) { buf.str[pos++] = static_cast<char>(c); } else { ++pos; } }
+#define c4append_(c) { if C4_LIKELY(pos < buf.len) { buf.str[pos++] = static_cast<char>(c); } else { ++pos; } }
 
 /** @endcond */
 
@@ -716,7 +716,7 @@ C4_ALWAYS_INLINE size_t write_dec(substr buf, T v) noexcept
     C4_STATIC_ASSERT(std::is_integral<T>::value);
     C4_ASSERT(v >= 0);
     unsigned digits = digits_dec(v);
-    if(C4_LIKELY(buf.len >= digits))
+    if C4_LIKELY(buf.len >= digits)
         write_dec_unchecked(buf, v, digits);
     return digits;
 }
@@ -735,7 +735,7 @@ C4_ALWAYS_INLINE size_t write_hex(substr buf, T v) noexcept
     C4_STATIC_ASSERT(std::is_integral<T>::value);
     C4_ASSERT(v >= 0);
     unsigned digits = digits_hex(v);
-    if(C4_LIKELY(buf.len >= digits))
+    if C4_LIKELY(buf.len >= digits)
         write_hex_unchecked(buf, v, digits);
     return digits;
 }
@@ -754,7 +754,7 @@ C4_ALWAYS_INLINE size_t write_oct(substr buf, T v) noexcept
     C4_STATIC_ASSERT(std::is_integral<T>::value);
     C4_ASSERT(v >= 0);
     unsigned digits = digits_oct(v);
-    if(C4_LIKELY(buf.len >= digits))
+    if C4_LIKELY(buf.len >= digits)
         write_oct_unchecked(buf, v, digits);
     return digits;
 }
@@ -774,7 +774,7 @@ C4_ALWAYS_INLINE size_t write_bin(substr buf, T v) noexcept
     C4_ASSERT(v >= 0);
     unsigned digits = digits_bin(v);
     C4_ASSERT(digits > 0);
-    if(C4_LIKELY(buf.len >= digits))
+    if C4_LIKELY(buf.len >= digits)
         write_bin_unchecked(buf, v, digits);
     return digits;
 }
@@ -878,7 +878,7 @@ C4_ALWAYS_INLINE bool read_dec(csubstr s, I *C4_RESTRICT v) noexcept
     *v = 0;
     for(char c : s)
     {
-        if(C4_UNLIKELY(c < '0' || c > '9'))
+        if C4_UNLIKELY(c < '0' || c > '9')
             return false;
         *v = ((*v) * I(10)) + (I(c) - I('0'));
     }
@@ -971,7 +971,7 @@ C4_ALWAYS_INLINE bool read_oct(csubstr s, I *C4_RESTRICT v) noexcept
     *v = 0;
     for(char c : s)
     {
-        if(C4_UNLIKELY(c < '0' || c > '7'))
+        if C4_UNLIKELY(c < '0' || c > '7')
             return false;
         *v = ((*v) * I(8)) + (I(c) - I('0'));
     }
@@ -1011,7 +1011,7 @@ template<class I>
 C4_NO_INLINE size_t _itoadec2buf(substr buf) noexcept
 {
     using digits_type = detail::charconv_digits<I>;
-    if(C4_UNLIKELY(buf.len < digits_type::maxdigits_dec))
+    if C4_UNLIKELY(buf.len < digits_type::maxdigits_dec)
         return digits_type::maxdigits_dec;
     buf.str[0] = '-';
     return detail::_itoa2buf(buf, 1, digits_type::min_value_dec());
@@ -1021,31 +1021,31 @@ C4_NO_INLINE size_t _itoa2buf(substr buf, I radix) noexcept
 {
     using digits_type = detail::charconv_digits<I>;
     size_t pos = 0;
-    if(C4_LIKELY(buf.len > 0))
+    if C4_LIKELY(buf.len > 0)
         buf.str[pos++] = '-';
     switch(radix) // NOLINT(hicpp-multiway-paths-covered)
     {
     case I(10):
-        if(C4_UNLIKELY(buf.len < digits_type::maxdigits_dec))
+        if C4_UNLIKELY(buf.len < digits_type::maxdigits_dec)
             return digits_type::maxdigits_dec;
         pos =_itoa2buf(buf, pos, digits_type::min_value_dec());
         break;
     case I(16):
-        if(C4_UNLIKELY(buf.len < digits_type::maxdigits_hex))
+        if C4_UNLIKELY(buf.len < digits_type::maxdigits_hex)
             return digits_type::maxdigits_hex;
         buf.str[pos++] = '0';
         buf.str[pos++] = 'x';
         pos = _itoa2buf(buf, pos, digits_type::min_value_hex());
         break;
     case I( 2):
-        if(C4_UNLIKELY(buf.len < digits_type::maxdigits_bin))
+        if C4_UNLIKELY(buf.len < digits_type::maxdigits_bin)
             return digits_type::maxdigits_bin;
         buf.str[pos++] = '0';
         buf.str[pos++] = 'b';
         pos = _itoa2buf(buf, pos, digits_type::min_value_bin());
         break;
     case I( 8):
-        if(C4_UNLIKELY(buf.len < digits_type::maxdigits_oct))
+        if C4_UNLIKELY(buf.len < digits_type::maxdigits_oct)
             return digits_type::maxdigits_oct;
         buf.str[pos++] = '0';
         buf.str[pos++] = 'o';
@@ -1060,21 +1060,21 @@ C4_NO_INLINE size_t _itoa2buf(substr buf, I radix, size_t num_digits) noexcept
     using digits_type = detail::charconv_digits<I>;
     size_t pos = 0;
     size_t needed_digits = 0;
-    if(C4_LIKELY(buf.len > 0))
+    if C4_LIKELY(buf.len > 0)
         buf.str[pos++] = '-';
     switch(radix) // NOLINT(hicpp-multiway-paths-covered)
     {
     case I(10):
         // add 1 to account for -
         needed_digits = num_digits+1 > digits_type::maxdigits_dec ? num_digits+1 : digits_type::maxdigits_dec;
-        if(C4_UNLIKELY(buf.len < needed_digits))
+        if C4_UNLIKELY(buf.len < needed_digits)
             return needed_digits;
         pos = _itoa2bufwithdigits(buf, pos, num_digits, digits_type::min_value_dec());
         break;
     case I(16):
         // add 3 to account for -0x
         needed_digits = num_digits+3 > digits_type::maxdigits_hex ? num_digits+3 : digits_type::maxdigits_hex;
-        if(C4_UNLIKELY(buf.len < needed_digits))
+        if C4_UNLIKELY(buf.len < needed_digits)
             return needed_digits;
         buf.str[pos++] = '0';
         buf.str[pos++] = 'x';
@@ -1083,7 +1083,7 @@ C4_NO_INLINE size_t _itoa2buf(substr buf, I radix, size_t num_digits) noexcept
     case I(2):
         // add 3 to account for -0b
         needed_digits = num_digits+3 > digits_type::maxdigits_bin ? num_digits+3 : digits_type::maxdigits_bin;
-        if(C4_UNLIKELY(buf.len < needed_digits))
+        if C4_UNLIKELY(buf.len < needed_digits)
             return needed_digits;
         C4_ASSERT(buf.len >= digits_type::maxdigits_bin);
         buf.str[pos++] = '0';
@@ -1093,7 +1093,7 @@ C4_NO_INLINE size_t _itoa2buf(substr buf, I radix, size_t num_digits) noexcept
     case I(8):
         // add 3 to account for -0o
         needed_digits = num_digits+3 > digits_type::maxdigits_oct ? num_digits+3 : digits_type::maxdigits_oct;
-        if(C4_UNLIKELY(buf.len < needed_digits))
+        if C4_UNLIKELY(buf.len < needed_digits)
             return needed_digits;
         C4_ASSERT(buf.len >= digits_type::maxdigits_oct);
         buf.str[pos++] = '0';
@@ -1127,11 +1127,11 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v) noexcept
     }
     // when T is the min value (eg i8: -128), negating it
     // will overflow, so treat the min as a special case
-    if(C4_LIKELY(v != std::numeric_limits<T>::min()))
+    if C4_LIKELY(v != std::numeric_limits<T>::min())
     {
         v = (T)-v;
         unsigned digits = digits_dec(v);
-        if(C4_LIKELY(buf.len >= digits + 1u))
+        if C4_LIKELY(buf.len >= digits + 1u)
         {
             buf.str[0] = '-';
             write_dec_unchecked(buf.sub(1), v, digits);
@@ -1159,13 +1159,13 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix) noexcept
     #endif
     // when T is the min value (eg i8: -128), negating it
     // will overflow, so treat the min as a special case
-    if(C4_LIKELY(v != std::numeric_limits<T>::min()))
+    if C4_LIKELY(v != std::numeric_limits<T>::min())
     {
         unsigned pos = 0;
         if(v < 0)
         {
             v = (T)-v;
-            if(C4_LIKELY(buf.len > 0))
+            if C4_LIKELY(buf.len > 0)
                 buf.str[pos] = '-';
             ++pos;
         }
@@ -1174,12 +1174,12 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix) noexcept
         {
         case T(10):
             digits = digits_dec(v);
-            if(C4_LIKELY(buf.len >= pos + digits))
+            if C4_LIKELY(buf.len >= pos + digits)
                 write_dec_unchecked(buf.sub(pos), v, digits);
             break;
         case T(16):
             digits = digits_hex(v);
-            if(C4_LIKELY(buf.len >= pos + 2u + digits))
+            if C4_LIKELY(buf.len >= pos + 2u + digits)
             {
                 buf.str[pos + 0] = '0';
                 buf.str[pos + 1] = 'x';
@@ -1189,7 +1189,7 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix) noexcept
             break;
         case T(2):
             digits = digits_bin(v);
-            if(C4_LIKELY(buf.len >= pos + 2u + digits))
+            if C4_LIKELY(buf.len >= pos + 2u + digits)
             {
                 buf.str[pos + 0] = '0';
                 buf.str[pos + 1] = 'b';
@@ -1199,7 +1199,7 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix) noexcept
             break;
         case T(8):
             digits = digits_oct(v);
-            if(C4_LIKELY(buf.len >= pos + 2u + digits))
+            if C4_LIKELY(buf.len >= pos + 2u + digits)
             {
                 buf.str[pos + 0] = '0';
                 buf.str[pos + 1] = 'o';
@@ -1236,13 +1236,13 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix, size_t num_digits) noexce
     #endif
     // when T is the min value (eg i8: -128), negating it
     // will overflow, so treat the min as a special case
-    if(C4_LIKELY(v != std::numeric_limits<T>::min()))
+    if C4_LIKELY(v != std::numeric_limits<T>::min())
     {
         unsigned pos = 0;
         if(v < 0)
         {
             v = (T)-v;
-            if(C4_LIKELY(buf.len > 0))
+            if C4_LIKELY(buf.len > 0)
                 buf.str[pos] = '-';
             ++pos;
         }
@@ -1252,13 +1252,13 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix, size_t num_digits) noexce
         case T(10):
             total_digits = digits_dec(v);
             total_digits = pos + (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-            if(C4_LIKELY(buf.len >= total_digits))
+            if C4_LIKELY(buf.len >= total_digits)
                 write_dec(buf.sub(pos), v, num_digits);
             break;
         case T(16):
             total_digits = digits_hex(v);
             total_digits = pos + 2u + (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-            if(C4_LIKELY(buf.len >= total_digits))
+            if C4_LIKELY(buf.len >= total_digits)
             {
                 buf.str[pos + 0] = '0';
                 buf.str[pos + 1] = 'x';
@@ -1268,7 +1268,7 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix, size_t num_digits) noexce
         case T(2):
             total_digits = digits_bin(v);
             total_digits = pos + 2u + (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-            if(C4_LIKELY(buf.len >= total_digits))
+            if C4_LIKELY(buf.len >= total_digits)
             {
                 buf.str[pos + 0] = '0';
                 buf.str[pos + 1] = 'b';
@@ -1278,7 +1278,7 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix, size_t num_digits) noexce
         case T(8):
             total_digits = digits_oct(v);
             total_digits = pos + 2u + (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-            if(C4_LIKELY(buf.len >= total_digits))
+            if C4_LIKELY(buf.len >= total_digits)
             {
                 buf.str[pos + 0] = '0';
                 buf.str[pos + 1] = 'o';
@@ -1336,12 +1336,12 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix) noexcept
     {
     case T(10):
         digits = digits_dec(v);
-        if(C4_LIKELY(buf.len >= digits))
+        if C4_LIKELY(buf.len >= digits)
             write_dec_unchecked(buf, v, digits);
         break;
     case T(16):
         digits = digits_hex(v);
-        if(C4_LIKELY(buf.len >= digits+2u))
+        if C4_LIKELY(buf.len >= digits+2u)
         {
             buf.str[0] = '0';
             buf.str[1] = 'x';
@@ -1351,7 +1351,7 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix) noexcept
         break;
     case T(2):
         digits = digits_bin(v);
-        if(C4_LIKELY(buf.len >= digits+2u))
+        if C4_LIKELY(buf.len >= digits+2u)
         {
             buf.str[0] = '0';
             buf.str[1] = 'b';
@@ -1361,7 +1361,7 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix) noexcept
         break;
     case T(8):
         digits = digits_oct(v);
-        if(C4_LIKELY(buf.len >= digits+2u))
+        if C4_LIKELY(buf.len >= digits+2u)
         {
             buf.str[0] = '0';
             buf.str[1] = 'o';
@@ -1392,13 +1392,13 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix, size_t num_digits) noexce
     case T(10):
         total_digits = digits_dec(v);
         total_digits = (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-        if(C4_LIKELY(buf.len >= total_digits))
+        if C4_LIKELY(buf.len >= total_digits)
             write_dec(buf, v, num_digits);
         break;
     case T(16):
         total_digits = digits_hex(v);
         total_digits = 2u + (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-        if(C4_LIKELY(buf.len >= total_digits))
+        if C4_LIKELY(buf.len >= total_digits)
         {
             buf.str[0] = '0';
             buf.str[1] = 'x';
@@ -1408,7 +1408,7 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix, size_t num_digits) noexce
     case T(2):
         total_digits = digits_bin(v);
         total_digits = 2u + (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-        if(C4_LIKELY(buf.len >= total_digits))
+        if C4_LIKELY(buf.len >= total_digits)
         {
             buf.str[0] = '0';
             buf.str[1] = 'b';
@@ -1418,7 +1418,7 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix, size_t num_digits) noexce
     case T(8):
         total_digits = digits_oct(v);
         total_digits = 2u + (unsigned)(num_digits > total_digits ? num_digits : total_digits);
-        if(C4_LIKELY(buf.len >= total_digits))
+        if C4_LIKELY(buf.len >= total_digits)
         {
             buf.str[0] = '0';
             buf.str[1] = 'o';
@@ -1468,7 +1468,7 @@ C4_ALWAYS_INLINE bool atoi(csubstr str, T * C4_RESTRICT v) noexcept
     C4_STATIC_ASSERT(std::is_integral<T>::value);
     C4_STATIC_ASSERT(std::is_signed<T>::value);
 
-    if(C4_UNLIKELY(str.len == 0))
+    if C4_UNLIKELY(str.len == 0)
         return false;
     // no need for the assertion, but we leave it here to document
     // the expectation:
@@ -1478,7 +1478,7 @@ C4_ALWAYS_INLINE bool atoi(csubstr str, T * C4_RESTRICT v) noexcept
     size_t start = 0;
     if(str.str[0] == '-')
     {
-        if(C4_UNLIKELY(str.len == ++start))
+        if C4_UNLIKELY(str.len == ++start)
             return false;
         sign = -1;
     }
@@ -1505,7 +1505,7 @@ C4_ALWAYS_INLINE bool atoi(csubstr str, T * C4_RESTRICT v) noexcept
     {
         parsed_ok = read_dec(str.sub(start), v);
     }
-    if(C4_LIKELY(parsed_ok))
+    if C4_LIKELY(parsed_ok)
         *v *= sign;
     return parsed_ok;
 }
@@ -1559,7 +1559,7 @@ bool atou(csubstr str, T * C4_RESTRICT v) noexcept
 {
     C4_STATIC_ASSERT(std::is_integral<T>::value);
 
-    if(C4_UNLIKELY(str.len == 0 || str.front() == '-'))
+    if C4_UNLIKELY(str.len == 0 || str.front() == '-')
         return false;
 
     bool parsed_ok = true;
@@ -1656,7 +1656,7 @@ auto overflows(csubstr str) noexcept
 {
     C4_STATIC_ASSERT(std::is_integral<T>::value);
 
-    if(C4_UNLIKELY(str.len == 0))
+    if C4_UNLIKELY(str.len == 0)
     {
         return false;
     }
@@ -1699,7 +1699,7 @@ auto overflows(csubstr str) noexcept
             }
         }
     }
-    else if(C4_UNLIKELY(str.str[0] == '-'))
+    else if C4_UNLIKELY(str.str[0] == '-')
     {
         return true;
     }
@@ -1722,7 +1722,7 @@ auto overflows(csubstr str) noexcept
     -> typename std::enable_if<std::is_signed<T>::value, bool>::type
 {
     C4_STATIC_ASSERT(std::is_integral<T>::value);
-    if(C4_UNLIKELY(str.len == 0))
+    if C4_UNLIKELY(str.len == 0)
         return false;
     if(str.str[0] == '-')
     {
@@ -2031,14 +2031,14 @@ C4_ALWAYS_INLINE bool scan_rhex(csubstr s, T *C4_RESTRICT val) noexcept
     }
     return true;
 power:
-    if(C4_LIKELY(pos < s.len))
+    if C4_LIKELY(pos < s.len)
     {
         if(s.str[pos] == '+') // atoi() cannot handle a leading '+'
             ++pos;
-        if(C4_LIKELY(pos < s.len))
+        if C4_LIKELY(pos < s.len)
         {
             int16_t powval = {};
-            if(C4_LIKELY(atoi(s.sub(pos), &powval)))
+            if C4_LIKELY(atoi(s.sub(pos), &powval))
             {
                 *val *= ipow<T, int16_t, 16>(powval);
                 return true;
@@ -2499,7 +2499,7 @@ inline bool from_chars(csubstr buf, bool * C4_RESTRICT v) noexcept
     // fallback to c-style int bools
     int val = 0;
     bool ret = from_chars(buf, &val);
-    if(C4_LIKELY(ret))
+    if C4_LIKELY(ret)
     {
         *v = (val != 0);
     }
@@ -2638,7 +2638,7 @@ inline size_t from_chars_first(csubstr buf, substr * C4_RESTRICT v) noexcept
 {
     csubstr trimmed = buf.first_non_empty_span();
     C4_ASSERT(!trimmed.overlaps(*v));
-    if(C4_UNLIKELY(trimmed.len == 0))
+    if C4_UNLIKELY(trimmed.len == 0)
         return csubstr::npos;
     size_t len = trimmed.len > v->len ? v->len : trimmed.len;
     // calling memcpy with zero len is undefined behavior
@@ -2650,7 +2650,7 @@ inline size_t from_chars_first(csubstr buf, substr * C4_RESTRICT v) noexcept
         C4_ASSERT(v->str != nullptr);
         memcpy(v->str, trimmed.str, len);
     }
-    if(C4_UNLIKELY(trimmed.len > v->len))
+    if C4_UNLIKELY(trimmed.len > v->len)
         return csubstr::npos;
     return static_cast<size_t>(trimmed.end() - buf.begin());
 }

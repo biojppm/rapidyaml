@@ -117,7 +117,7 @@ size_t dump(substr buf, Arg const& a)
         // serialize to the buffer
         const size_t sz = to_chars(buf, a);
         // dump the buffer to the sink
-        if(C4_LIKELY(sz <= buf.len))
+        if C4_LIKELY(sz <= buf.len)
         {
             // NOTE: don't do this:
             //sinkfn(buf.first(sz));
@@ -171,7 +171,7 @@ size_t dump(SinkFn &&sinkfn, substr buf, Arg const& a)
         // serialize to the buffer
         const size_t sz = to_chars(buf, a);
         // dump the buffer to the sink
-        if(C4_LIKELY(sz <= buf.len))
+        if C4_LIKELY(sz <= buf.len)
         {
             // NOTE: don't do this:
             //std::forward<SinkFn>(sinkfn)(buf.first(sz));
@@ -218,7 +218,7 @@ inline auto dump(substr buf, Arg const& a)
     // serialize to the buffer
     const size_t sz = to_chars(buf, a);
     // dump the buffer to the sink
-    if(C4_LIKELY(sz <= buf.len))
+    if C4_LIKELY(sz <= buf.len)
     {
         // NOTE: don't do this:
         //sinkfn(buf.first(sz));
@@ -237,7 +237,7 @@ inline auto dump(SinkFn &&sinkfn, substr buf, Arg const& a)
     // serialize to the buffer
     const size_t sz = to_chars(buf, a);
     // dump the buffer to the sink
-    if(C4_LIKELY(sz <= buf.len))
+    if C4_LIKELY(sz <= buf.len)
     {
         // NOTE: don't do this:
         //std::forward<SinkFn>(sinkfn)(buf.first(sz));
@@ -322,7 +322,7 @@ template<class SinkFn, class Arg, class... Args>
 size_t cat_dump(SinkFn &&sinkfn, substr buf, Arg const& a, Args const& ...more)
 {
     const size_t size_for_a = dump(std::forward<SinkFn>(sinkfn), buf, a);
-    if(C4_UNLIKELY(size_for_a > buf.len))
+    if C4_UNLIKELY(size_for_a > buf.len)
         buf.len = 0; // ensure no more calls to the sink
     const size_t size_for_more = cat_dump(std::forward<SinkFn>(sinkfn), buf, more...);
     return size_for_more > size_for_a ? size_for_more : size_for_a;
@@ -348,7 +348,7 @@ template<SinkPfn sinkfn, class Arg, class... Args>
 size_t cat_dump(substr buf, Arg const& a, Args const& ...more)
 {
     const size_t size_for_a = dump<sinkfn>(buf, a);
-    if(C4_UNLIKELY(size_for_a > buf.len))
+    if C4_UNLIKELY(size_for_a > buf.len)
         buf.len = 0; // ensure no more calls to the sink
     const size_t size_for_more = cat_dump<sinkfn>(buf, more...);
     return size_for_more > size_for_a ? size_for_more : size_for_a;
@@ -379,7 +379,7 @@ C4_ALWAYS_INLINE DumpResults cat_dump_resume(size_t, SinkFn &&, DumpResults resu
 template<SinkPfn sinkfn, class Arg, class... Args>
 DumpResults cat_dump_resume(size_t currarg, DumpResults results, substr buf, Arg const& C4_RESTRICT a, Args const& ...more)
 {
-    if(C4_LIKELY(results.write_arg(currarg)))
+    if C4_LIKELY(results.write_arg(currarg))
     {
         size_t sz = dump<sinkfn>(buf, a);  // yield to the specialized function
         if(currarg == results.lastok + 1 && sz <= buf.len)
@@ -392,7 +392,7 @@ DumpResults cat_dump_resume(size_t currarg, DumpResults results, substr buf, Arg
 template<class SinkFn, class Arg, class... Args>
 DumpResults cat_dump_resume(size_t currarg, SinkFn &&sinkfn, DumpResults results, substr buf, Arg const& C4_RESTRICT a, Args const& ...more)
 {
-    if(C4_LIKELY(results.write_arg(currarg)))
+    if C4_LIKELY(results.write_arg(currarg))
     {
         size_t sz = dump(std::forward<SinkFn>(sinkfn), buf, a);  // yield to the specialized function
         if(currarg == results.lastok + 1 && sz <= buf.len)
@@ -462,12 +462,12 @@ template<class SinkFn, class Sep, class Arg, class... Args>
 size_t catsep_dump(SinkFn &&sinkfn, substr buf, Sep const& sep, Arg const& a, Args const& ...more)
 {
     size_t sz = dump(std::forward<SinkFn>(sinkfn), buf, a);
-    if(C4_UNLIKELY(sz > buf.len))
+    if C4_UNLIKELY(sz > buf.len)
         buf.len = 0; // ensure no more calls
     if C4_IF_CONSTEXPR (sizeof...(more) > 0)
     {
         size_t szsep = dump(std::forward<SinkFn>(sinkfn), buf, sep);
-        if(C4_UNLIKELY(szsep > buf.len))
+        if C4_UNLIKELY(szsep > buf.len)
             buf.len = 0; // ensure no more calls
         sz = sz > szsep ? sz : szsep;
     }
@@ -480,12 +480,12 @@ template<SinkPfn sinkfn, class Sep, class Arg, class... Args>
 size_t catsep_dump(substr buf, Sep const& sep, Arg const& a, Args const& ...more)
 {
     size_t sz = dump<sinkfn>(buf, a);
-    if(C4_UNLIKELY(sz > buf.len))
+    if C4_UNLIKELY(sz > buf.len)
         buf.len = 0; // ensure no more calls
     if C4_IF_CONSTEXPR (sizeof...(more) > 0)
     {
         size_t szsep = dump<sinkfn>(buf, sep);
-        if(C4_UNLIKELY(szsep > buf.len))
+        if C4_UNLIKELY(szsep > buf.len)
             buf.len = 0; // ensure no more calls
         sz = sz > szsep ? sz : szsep;
     }
@@ -503,11 +503,11 @@ namespace detail {
 template<SinkPfn sinkfn, class Arg>
 void catsep_dump_resume_(size_t currarg, DumpResults *C4_RESTRICT results, substr *buf, Arg const& a)
 {
-    if(C4_LIKELY(results->write_arg(currarg)))
+    if C4_LIKELY(results->write_arg(currarg))
     {
         size_t sz = dump<sinkfn>(*buf, a);
         results->bufsize = sz > results->bufsize ? sz : results->bufsize;
-        if(C4_LIKELY(sz <= buf->len))
+        if C4_LIKELY(sz <= buf->len)
             results->lastok = currarg;
         else
             buf->len = 0;
@@ -517,11 +517,11 @@ void catsep_dump_resume_(size_t currarg, DumpResults *C4_RESTRICT results, subst
 template<class SinkFn, class Arg>
 void catsep_dump_resume_(size_t currarg, SinkFn &&sinkfn, DumpResults *C4_RESTRICT results, substr *C4_RESTRICT buf, Arg const& C4_RESTRICT a)
 {
-    if(C4_LIKELY(results->write_arg(currarg)))
+    if C4_LIKELY(results->write_arg(currarg))
     {
         size_t sz = dump(std::forward<SinkFn>(sinkfn), *buf, a);
         results->bufsize = sz > results->bufsize ? sz : results->bufsize;
-        if(C4_LIKELY(sz <= buf->len))
+        if C4_LIKELY(sz <= buf->len)
             results->lastok = currarg;
         else
             buf->len = 0;
@@ -650,7 +650,7 @@ C4_NO_INLINE size_t format_dump(SinkFn &&sinkfn, substr buf, csubstr fmt, Arg co
     // we can dump without using buf
     // but we'll only dump if the buffer is ok
     size_t pos = fmt.find("{}"); // @todo use _find_fmt()
-    if(C4_UNLIKELY(pos == csubstr::npos))
+    if C4_UNLIKELY(pos == csubstr::npos)
     {
         std::forward<SinkFn>(sinkfn)(fmt);
         return 0u;
@@ -660,7 +660,7 @@ C4_NO_INLINE size_t format_dump(SinkFn &&sinkfn, substr buf, csubstr fmt, Arg co
     pos = dump(std::forward<SinkFn>(sinkfn), buf, a); // reuse pos to get needed_size
     // dump no more if the buffer was exhausted
     size_t size_for_more;
-    if(C4_LIKELY(pos <= buf.len))
+    if C4_LIKELY(pos <= buf.len)
         size_for_more = format_dump(std::forward<SinkFn>(sinkfn), buf, fmt, more...);
     else
         size_for_more = detail::_format_dump_compute_size(more...);
@@ -674,7 +674,7 @@ C4_NO_INLINE size_t format_dump(substr buf, csubstr fmt, Arg const& C4_RESTRICT 
     // we can dump without using buf
     // but we'll only dump if the buffer is ok
     size_t pos = fmt.find("{}"); // @todo use _find_fmt()
-    if(C4_UNLIKELY(pos == csubstr::npos))
+    if C4_UNLIKELY(pos == csubstr::npos)
     {
         sinkfn(fmt);
         return 0u;
@@ -684,7 +684,7 @@ C4_NO_INLINE size_t format_dump(substr buf, csubstr fmt, Arg const& C4_RESTRICT 
     pos = dump<sinkfn>(buf, a); // reuse pos to get needed_size
     // dump no more if the buffer was exhausted
     size_t size_for_more;
-    if(C4_LIKELY(pos <= buf.len))
+    if C4_LIKELY(pos <= buf.len)
         size_for_more = format_dump<sinkfn>(buf, fmt, more...);
     else
         size_for_more = detail::_format_dump_compute_size(more...);
@@ -702,7 +702,7 @@ namespace detail {
 template<SinkPfn sinkfn>
 DumpResults format_dump_resume(size_t currarg, DumpResults results, substr, csubstr fmt)
 {
-    if(C4_LIKELY(results.write_arg(currarg)))
+    if C4_LIKELY(results.write_arg(currarg))
     {
         // we can dump without using buf
         sinkfn(fmt);
@@ -715,7 +715,7 @@ DumpResults format_dump_resume(size_t currarg, DumpResults results, substr, csub
 template<class SinkFn>
 DumpResults format_dump_resume(size_t currarg, SinkFn &&sinkfn, DumpResults results, substr, csubstr fmt)
 {
-    if(C4_LIKELY(results.write_arg(currarg)))
+    if C4_LIKELY(results.write_arg(currarg))
     {
         // we can dump without using buf
         std::forward<SinkFn>(sinkfn)(fmt);
@@ -730,18 +730,18 @@ DumpResults format_dump_resume(size_t currarg, DumpResults results, substr buf, 
     // we need to process the format even if we're not
     // going to print the first arguments because we're resuming
     const size_t pos = fmt.find("{}"); // @todo use _find_fmt()
-    if(C4_LIKELY(pos != csubstr::npos))
+    if C4_LIKELY(pos != csubstr::npos)
     {
-        if(C4_LIKELY(results.write_arg(currarg)))
+        if C4_LIKELY(results.write_arg(currarg))
         {
             sinkfn(fmt.first(pos));
             results.lastok = currarg;
         }
-        if(C4_LIKELY(results.write_arg(currarg + 1u)))
+        if C4_LIKELY(results.write_arg(currarg + 1u))
         {
             const size_t len = dump<sinkfn>(buf, a);
             results.bufsize = len > results.bufsize ? len : results.bufsize;
-            if(C4_LIKELY(len <= buf.len))
+            if C4_LIKELY(len <= buf.len)
             {
                 results.lastok = currarg + 1u;
             }
@@ -755,7 +755,7 @@ DumpResults format_dump_resume(size_t currarg, DumpResults results, substr buf, 
     }
     else
     {
-        if(C4_LIKELY(results.write_arg(currarg)))
+        if C4_LIKELY(results.write_arg(currarg))
         {
             sinkfn(fmt);
             results.lastok = currarg;
@@ -775,18 +775,18 @@ DumpResults format_dump_resume(size_t currarg, SinkFn &&sinkfn, DumpResults resu
     // we need to process the format even if we're not
     // going to print the first arguments because we're resuming
     const size_t pos = fmt.find("{}"); // @todo use _find_fmt()
-    if(C4_LIKELY(pos != csubstr::npos))
+    if C4_LIKELY(pos != csubstr::npos)
     {
-        if(C4_LIKELY(results.write_arg(currarg)))
+        if C4_LIKELY(results.write_arg(currarg))
         {
             std::forward<SinkFn>(sinkfn)(fmt.first(pos));
             results.lastok = currarg;
         }
-        if(C4_LIKELY(results.write_arg(currarg + 1u)))
+        if C4_LIKELY(results.write_arg(currarg + 1u))
         {
             const size_t len = dump(std::forward<SinkFn>(sinkfn), buf, a);
             results.bufsize = len > results.bufsize ? len : results.bufsize;
-            if(C4_LIKELY(len <= buf.len))
+            if C4_LIKELY(len <= buf.len)
             {
                 results.lastok = currarg + 1u;
             }
@@ -800,7 +800,7 @@ DumpResults format_dump_resume(size_t currarg, SinkFn &&sinkfn, DumpResults resu
     }
     else
     {
-        if(C4_LIKELY(results.write_arg(currarg)))
+        if C4_LIKELY(results.write_arg(currarg))
         {
             std::forward<SinkFn>(sinkfn)(fmt);
             results.lastok = currarg;

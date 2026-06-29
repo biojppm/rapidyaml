@@ -276,7 +276,7 @@ bool read_hex_char(csubstr suffix, size_t pos, char *out)
         return false;
     suffix = suffix.range(pos + 1, pos + 3);
     uint8_t val = 0;
-    if(C4_UNLIKELY(!read_hex(suffix, &val) || val > 127))
+    if C4_UNLIKELY(!read_hex(suffix, &val) || val > 127)
         return false;
     *out = static_cast<char>(val);
     return true;
@@ -311,7 +311,7 @@ size_t transform_tag(substr output, csubstr handle, csubstr prefix, csubstr tag,
     for(size_t pos = 0; pos < rest.len; ++pos)
     {
         char c = rest.str[pos];
-        if(C4_LIKELY(is_valid_tag_char(c)))
+        if C4_LIKELY(is_valid_tag_char(c))
         {
             if(c != '%')
             {
@@ -467,7 +467,7 @@ csubstr TagDirectives::resolve(substr buf, size_t *bufsz, csubstr tag, id_type i
         if(tag.begins_with('<'))
         {
             _c4dbgp("tagd: already resolved");
-            if(C4_UNLIKELY(!tag.ends_with('>')))
+            if C4_UNLIKELY(!tag.ends_with('>'))
             {
                 errmsg = "malformed tag";
                 goto err; // NOLINT
@@ -477,7 +477,7 @@ csubstr TagDirectives::resolve(substr buf, size_t *bufsz, csubstr tag, id_type i
         else if(tag.begins_with("!<"))
         {
             _c4dbgp("tagd: already resolved");
-            if(C4_UNLIKELY(!tag.ends_with('>')))
+            if C4_UNLIKELY(!tag.ends_with('>'))
             {
                 errmsg = "malformed tag";
                 goto err; // NOLINT
@@ -497,7 +497,7 @@ csubstr TagDirectives::resolve(substr buf, size_t *bufsz, csubstr tag, id_type i
             handle = "!!";
             prefix = "tag:yaml.org,2002:";
         }
-        else if(C4_UNLIKELY(is_custom_tag(tag)))
+        else if C4_UNLIKELY(is_custom_tag(tag))
         {
             _c4dbgp("tagd: custom_tag");
             _c4dbgpf("tag '{}' at id={}: no matching directive was found", tag, id);

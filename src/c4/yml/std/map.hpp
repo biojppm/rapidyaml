@@ -47,16 +47,16 @@ C4_ALWAYS_INLINE void write(c4::yml::NodeRef *n, std::map<K, V, Less, Alloc> con
 template<class K, class V, class Less, class Alloc>
 ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, std::map<K, V, Less, Alloc> * m)
 {
-    if(C4_UNLIKELY(!tree->is_map(id)))
+    if C4_UNLIKELY(!tree->is_map(id))
         return ReadResult(id);
     for(id_type child = tree->first_child(id); child != NONE; child = tree->next_sibling(child))
     {
         K k{};
         ReadResult result = tree->deserialize_key(child, &k);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             return result;
         result = tree->deserialize(child, &(*m)[std::move(k)]);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             return result;
     }
     return ReadResult();
@@ -69,16 +69,16 @@ ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, std::map<K, V, L
 template<class K, class V, class Less, class Alloc>
 ReadResult read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
 {
-    if(C4_UNLIKELY(!n.is_map()))
+    if C4_UNLIKELY(!n.is_map())
         return ReadResult(n.id());
     for(ConstNodeRef const& C4_RESTRICT ch : n)
     {
         K k{};
         ReadResult result = ch.deserialize_key(&k);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             return result;
         result = ch.deserialize(&(*m)[std::move(k)]);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             return result;
     }
     return ReadResult();

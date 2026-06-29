@@ -6862,7 +6862,7 @@ struct PerTreeMemoryExample
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
         ++num_allocs;
-        if(C4_UNLIKELY(alloc_size > memory_pool.size()))
+        if C4_UNLIKELY(alloc_size > memory_pool.size())
         {
             std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl; // LCOV_EXCL_LINE
             std::abort(); // LCOV_EXCL_LINE

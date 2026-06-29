@@ -385,7 +385,7 @@ public:
     C4_ALWAYS_INLINE C4_PURE int compare(C const c) const noexcept
     {
         C4_XASSERT((str != nullptr) || len == 0);
-        if(C4_LIKELY(str != nullptr && len > 0))
+        if C4_LIKELY(str != nullptr && len > 0)
             return (*str != c) ? *str - c : (static_cast<int>(len) - 1);
         else
             return -1;
@@ -393,12 +393,13 @@ public:
 
     C4_PURE int compare(C const* C4_RESTRICT that, size_t sz) const noexcept
     {
+        C4_SUPPRESS_WARNING_GCC_PUSH
         #if defined(__GNUC__) && (__GNUC__ >= 6)
-        C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wnull-dereference")
+        C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
         #endif
         C4_XASSERT(that || sz  == 0);
         C4_XASSERT(str  || len == 0);
-        if(C4_LIKELY(str && that))
+        if C4_LIKELY(str && that)
         {
             {
                 const size_t min = len < sz ? len : sz;
@@ -419,9 +420,7 @@ public:
             return 0;
         }
         return len < sz ? -1 : 1;
-        #if defined(__GNUC__) && (__GNUC__ >= 6)
         C4_SUPPRESS_WARNING_GCC_POP
-        #endif
     }
 
     template<class CharPtr>
@@ -484,7 +483,7 @@ public:
     /** true if that is a substring of *this (ie, from the same buffer) */
     C4_ALWAYS_INLINE C4_PURE bool is_super(ro_substr const that) const noexcept
     {
-        if(C4_LIKELY(len > 0))
+        if C4_LIKELY(len > 0)
             return that.str >= str && that.str+that.len <= str+len;
         else
             return that.len == 0 && that.str == str && str != nullptr;
@@ -1809,7 +1808,7 @@ public:
      * is an empty string, the output string is the empty string. */
     bool next_split(C sep, size_t *C4_RESTRICT start_pos, basic_substring *C4_RESTRICT out) const
     {
-        if(C4_LIKELY(*start_pos < len))
+        if C4_LIKELY(*start_pos < len)
         {
             for(size_t i = *start_pos; i < len; i++)
             {
@@ -1925,7 +1924,7 @@ public:
      */
     basic_substring pop_right(C sep=C('/'), bool skip_empty=false) const
     {
-        if(C4_LIKELY(len > 1))
+        if C4_LIKELY(len > 1)
         {
             auto pos = last_of(sep);
             if(pos != npos)
@@ -1978,7 +1977,7 @@ public:
      * the reciprocal part. */
     basic_substring pop_left(C sep = C('/'), bool skip_empty=false) const
     {
-        if(C4_LIKELY(len > 1))
+        if C4_LIKELY(len > 1)
         {
             auto pos = first_of(sep);
             if(pos != npos)

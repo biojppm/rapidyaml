@@ -333,7 +333,7 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
  */
 #define C4_CHECK(cond)                              \
     do {                                            \
-        if(C4_UNLIKELY(!(cond)))                    \
+        if C4_UNLIKELY(!(cond))                     \
         {                                           \
             C4_ERROR("check failed: %s", #cond);    \
         }                                           \
@@ -345,7 +345,7 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
  * @ingroup error_checking */
 #define C4_CHECK_MSG(cond, fmt, ...)                                    \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             C4_ERROR("check failed: " #cond "\n" fmt, ## __VA_ARGS__);  \
         }                                                               \

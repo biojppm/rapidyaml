@@ -57,7 +57,7 @@ struct ScopedFILE
 inline void file_put_contents(void const* buf, size_t sz, FILE *file, const char* filename=nullptr)
 {
     size_t written = std::fwrite(buf, 1, sz, file); // NOLINT
-    if(C4_UNLIKELY(written != sz))
+    if C4_UNLIKELY(written != sz)
         RYML_ERR_BASIC_("{}: failed file write: expected={}B actual={}B", filename ? filename : "file", sz, written); // LCOV_EXCL_LINE
 }
 
@@ -107,7 +107,7 @@ inline void file_get_contents(const char *filename, FILE *fp, size_t filesz, voi
 {
     RYML_ASSERT_BASIC_(filesz <= bufsz);(void)bufsz;
     size_t read = std::fread(buf, 1, filesz, fp); // NOLINT(clang-analyzer-unix.Errno)
-    if(C4_UNLIKELY(read != filesz))
+    if C4_UNLIKELY(read != filesz)
         RYML_ERR_BASIC_("{}: failed file read: expected={}B actual={}B", filename, filesz, read); // LCOV_EXCL_LINE
 }
 
@@ -151,7 +151,7 @@ void file_get_contents(ContiguousContainer *v, const char *filename, const char 
     size_t vsz = static_cast<size_t>(v->size());
     size_t fsz = file_get_contents(filename, f.file, dat, vsz);
     size_t num_elms = fsz / sizeof(value_type);
-    if(C4_UNLIKELY(fsz != num_elms * sizeof(value_type)))
+    if C4_UNLIKELY(fsz != num_elms * sizeof(value_type))
         RYML_ERR_BASIC_("{}: file size ({}B) not a multiple of element size ({}B)", filename, fsz, sizeof(value_type));
     v->resize(static_cast<size_type>(num_elms));
     if(fsz > vsz * sizeof(value_type))

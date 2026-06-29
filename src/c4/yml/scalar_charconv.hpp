@@ -183,11 +183,11 @@ template<class T>
 C4_NODISCARD bool from_chars_float(csubstr scalar, T *C4_RESTRICT val) RYML_NOEXCEPT
 {
     static_assert(std::is_floating_point<T>::value, "must be floating point");
-    if(C4_LIKELY(scalar.len > 0))
+    if C4_LIKELY(scalar.len > 0)
     {
         if(scalar.str[0] == '+')
             scalar = scalar.sub(1);
-        if(C4_LIKELY(from_chars(scalar, val)))
+        if C4_LIKELY(from_chars(scalar, val))
             return true;
         else if(scalar.len == 4 || scalar.len == 5)
             return detail::from_chars_float_yaml_special(scalar, val);
@@ -203,11 +203,11 @@ size_t to_chars_float(substr buf, T val) RYML_NOEXCEPT
 {
     static_assert(std::is_floating_point<T>::value, "must be floating point");
     C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
-    if(C4_UNLIKELY(std::isnan(val)))
+    if C4_UNLIKELY(std::isnan(val))
         return to_chars(buf, csubstr(".nan"));
-    else if(C4_UNLIKELY(val == std::numeric_limits<T>::infinity()))
+    else if C4_UNLIKELY(val == std::numeric_limits<T>::infinity())
         return to_chars(buf, csubstr(".inf"));
-    else if(C4_UNLIKELY(val == -std::numeric_limits<T>::infinity()))
+    else if C4_UNLIKELY(val == -std::numeric_limits<T>::infinity())
         return to_chars(buf, csubstr("-.inf"));
     return to_chars(buf, val);
     C4_SUPPRESS_WARNING_GCC_CLANG_POP
@@ -226,7 +226,7 @@ size_t to_chars_float(substr buf, T val) RYML_NOEXCEPT
 template<class T>
 C4_NODISCARD C4_ALWAYS_INLINE bool from_chars_integral(csubstr scalar, T *val) RYML_NOEXCEPT
 {
-    if(C4_LIKELY(scalar.len > 0))
+    if C4_LIKELY(scalar.len > 0)
     {
         if(scalar.str[0] == '+')
             scalar = scalar.sub(1);
