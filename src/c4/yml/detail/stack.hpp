@@ -2,10 +2,10 @@
 #define C4_YML_DETAIL_STACK_HPP_
 
 #ifndef C4_YML_COMMON_HPP_
-#include "../common.hpp"
+#include "c4/yml/common.hpp"
 #endif
 #ifndef C4_YML_ERROR_HPP_
-#include "../error.hpp"
+#include "c4/yml/error.hpp"
 #endif
 
 #ifdef RYML_DBG

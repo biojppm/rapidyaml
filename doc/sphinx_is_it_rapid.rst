@@ -153,9 +153,9 @@ documentation of `charconv facilities
 example, here are some results for `ryml::xtoa<int64>` (`documentation
 <doxygen/group__doc__xtoa.html>`__):
 
-.. |xtoa64_linux| image:: doxygen/linux-x86_64-gxx12.1-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png
+.. |xtoa64_linux| image:: doxygen/html/linux-x86_64-gxx12.1-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png
    :target: doxygen/linux-x86_64-gxx12.1-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png
-.. |xtoa64_windows| image:: doxygen/windows-x86_64-vs2019-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png
+.. |xtoa64_windows| image:: doxygen/html/windows-x86_64-vs2019-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png
    :target: doxygen/windows-x86_64-vs2019-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png
 
 +----------------+--------------------+

@@ -2,7 +2,7 @@
 #define C4_YML_FILTER_PROCESSOR_HPP_
 
 #ifndef C4_YML_ERROR_HPP_
-#include "./error.hpp"
+#include "c4/yml/error.hpp"
 #endif
 
 #ifdef RYML_DBG

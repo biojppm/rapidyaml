@@ -18,7 +18,8 @@ c4core-export:
 doxy:
 	$(MAKE) -C ../doc doxy_test
 sphinx:
-	$(MAKE) -C ../doc doc
+	$(MAKE) -C ../doc html
+doc: doxy sphinx
 
 
 workflows:

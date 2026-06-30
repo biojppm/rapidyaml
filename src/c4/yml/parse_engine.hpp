@@ -746,8 +746,29 @@ public:
 
 };
 
-
 /** @} */
+
+/** @cond dev */
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
+C4_NO_INLINE inline size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
+{
+    if(indentation + 1 > s.len)
+        return npos;
+    for(size_t i = s.len-indentation-1; i != size_t(-1); --i) // NOLINT
+    {
+        if(s.str[i] == '\n')
+        {
+            csubstr rem = s.sub(i + 1);
+            size_t first = rem.first_not_of(' ');
+            first = (first != npos) ? first : rem.len;
+            if(first > indentation)
+                return i;
+        }
+    }
+    return npos;
+}
+C4_SUPPRESS_WARNING_GCC_POP
+/** @endcond */
 
 } // namespace yml
 } // namespace c4

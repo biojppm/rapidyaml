@@ -3,7 +3,7 @@ find_package(Python3 COMPONENTS Interpreter)
 # amalgamate ryml to get the single header
 function(amalgamate_ryml header_dir header_file)
     set(rymldir "${CMAKE_CURRENT_LIST_DIR}/../..")
-    set(singleheaderdir "${rymldir}/src_singleheader")
+    set(singleheaderdir "${rymldir}/tools/amalgamate/singlehdr")
     set(singleheader "${singleheaderdir}/ryml_ints.hpp")
     set(amscript "${rymldir}/tools/amalgamate.py")
     file(GLOB_RECURSE srcfiles

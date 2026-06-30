@@ -56,7 +56,6 @@ html_extra_path = ['./doxygen/html']
 # https://breathe.readthedocs.io/en/latest/
 
 # disabled as it was not working well with the groups
-"""
 extensions.append("breathe")
 this_dir = os.path.dirname(__file__)
 xml_dir = os.path.join(this_dir, "doxygen/xml")
@@ -65,7 +64,6 @@ breathe_projects = {
     "rapidyaml": xml_dir
 }
 breathe_default_project = "rapidyaml"
-"""
 
 
 # ----------------------------------------------------------------------------

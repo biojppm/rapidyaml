@@ -68,7 +68,6 @@ clean:
 	rm -rf doxygen/
 	if [ ! -z "$(BUILDDIR)" ] ; then rm -rf "$(BUILDDIR)" ; fi
 
-
 ifeq ($(DOXY_FORCE_VER),0)
 doxy_install:
 else
