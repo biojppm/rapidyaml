@@ -888,7 +888,7 @@ void Emitter<Writer>::visit_blck_(id_type node)
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
-    if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
+    if C4_UNLIKELY(m_depth > m_opts.max_depth())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     if(ty.is_seq())
     {
@@ -911,7 +911,7 @@ void Emitter<Writer>::visit_flow_sl_(id_type node)
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
-    if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
+    if C4_UNLIKELY(m_depth > m_opts.max_depth())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     if(ty.m_bits & SEQ)
     {
@@ -934,7 +934,7 @@ void Emitter<Writer>::visit_flow_ml_(id_type node)
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
-    if(C4_UNLIKELY(m_depth > m_opts.max_depth()))
+    if C4_UNLIKELY(m_depth > m_opts.max_depth())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
     if(ty.m_bits & SEQ)
     {
@@ -1308,7 +1308,7 @@ void Emitter<Writer>::write_scalar_dquo_(csubstr s, id_type ilevel)
 template<class Writer>
 void Emitter<Writer>::write_scalar_plain_(csubstr s, id_type ilevel)
 {
-    if(C4_UNLIKELY(ilevel == 0 && (s.begins_with("...") || s.begins_with("---"))))
+    if C4_UNLIKELY(ilevel == 0 && (s.begins_with("...") || s.begins_with("---")))
     {
         indent_(ilevel + 1); // indent the next line
         ++ilevel;
@@ -1361,7 +1361,7 @@ void Emitter<Writer>::json_emit_(id_type id)
 {
     NodeType ty = m_tree->type(id);
     // JSON does not have streams
-    if(C4_UNLIKELY(ty.is_stream() && m_opts.json_err_on_stream()))
+    if C4_UNLIKELY(ty.is_stream() && m_opts.json_err_on_stream())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "found stream node");
     static_assert(STREAM & SEQ, "STREAM must be a SEQ");
     ty = detail::json_type_(ty);
@@ -1379,7 +1379,7 @@ void Emitter<Writer>::json_emit_(id_type id)
 template<class Writer>
 void Emitter<Writer>::json_visit_sl_(id_type id, NodeType ty, id_type depth)
 {
-    if(C4_UNLIKELY(depth > m_opts.max_depth()))
+    if C4_UNLIKELY(depth > m_opts.max_depth())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
     if(ty.is_val())
     {
@@ -1426,7 +1426,7 @@ void Emitter<Writer>::json_visit_sl_(id_type id, NodeType ty, id_type depth)
 template<class Writer>
 void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
 {
-    if(C4_UNLIKELY(depth > m_opts.max_depth()))
+    if C4_UNLIKELY(depth > m_opts.max_depth())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
     if(ty.is_val())
     {
@@ -1556,9 +1556,9 @@ write_nan:
 template<class Writer>
 void Emitter<Writer>::json_writek_(id_type id, NodeType ty)
 {
-    if(C4_UNLIKELY(ty.has_key_tag() && m_opts.json_err_on_tag()))
+    if C4_UNLIKELY(ty.has_key_tag() && m_opts.json_err_on_tag())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have tags");
-    if(C4_UNLIKELY(ty.has_key_anchor() && m_opts.json_err_on_anchor()))
+    if C4_UNLIKELY(ty.has_key_anchor() && m_opts.json_err_on_anchor())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
     csubstr key = m_tree->key(id);
     if(key.len)
@@ -1577,9 +1577,9 @@ void Emitter<Writer>::json_writek_(id_type id, NodeType ty)
 template<class Writer>
 void Emitter<Writer>::json_writev_(id_type id, NodeType ty)
 {
-    if(C4_UNLIKELY(ty.has_val_tag() && m_opts.json_err_on_tag()))
+    if C4_UNLIKELY(ty.has_val_tag() && m_opts.json_err_on_tag())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have tags");
-    if(C4_UNLIKELY(ty.has_val_anchor() && m_opts.json_err_on_anchor()))
+    if C4_UNLIKELY(ty.has_val_anchor() && m_opts.json_err_on_anchor())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
     csubstr val = m_tree->val(id);
     if(val.len)

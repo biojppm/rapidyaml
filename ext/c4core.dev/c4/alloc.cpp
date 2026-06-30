@@ -39,7 +39,7 @@ void* aalloc_impl(size_t size, size_t alignment) // NOLINT(misc-use-internal-lin
     // alignment must be nonzero and a power of 2
     C4_CHECK(alignment > 0 && (alignment & (alignment - 1u)) == 0);
     // NOTE: alignment needs to be sized in multiples of sizeof(void*)
-    if(C4_UNLIKELY(alignment < sizeof(void*)))
+    if C4_UNLIKELY(alignment < sizeof(void*))
         alignment = sizeof(void*);
     static_assert((sizeof(void*) & (sizeof(void*)-1u)) == 0, "sizeof(void*) must be a power of 2");
     C4_CHECK(((alignment & (sizeof(void*) - 1u))) == 0u);
@@ -49,7 +49,7 @@ void* aalloc_impl(size_t size, size_t alignment) // NOLINT(misc-use-internal-lin
     C4_CHECK(mem != nullptr || size == 0);
 #elif defined(C4_POSIX) || defined(C4_IOS) || defined(C4_MACOS)
     int ret = ::posix_memalign(&mem, alignment, size);
-    if(C4_UNLIKELY(ret))
+    if C4_UNLIKELY(ret)
     {
         C4_ASSERT(ret != EINVAL); // this was already handled above
         if(ret == ENOMEM)

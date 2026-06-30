@@ -551,7 +551,7 @@ public:
     bool has_other_siblings(id_type node) const
     {
         NodeData const *n = _p(node);
-        if(C4_LIKELY(n->m_parent != NONE))
+        if C4_LIKELY(n->m_parent != NONE)
         {
             n = _p(n->m_parent);
             return n->m_first_child != n->m_last_child;
@@ -771,7 +771,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save(id_type node, T const& val)
     {
-        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        if C4_LIKELY(node != NONE && node < m_cap && node >= 0)
         {
             write(this, node, val);
             return;
@@ -781,7 +781,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save(id_type node, T const& val, NodeType more_flags)
     {
-        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        if C4_LIKELY(node != NONE && node < m_cap && node >= 0)
         {
             write(this, node, val);
             _p(node)->m_type |= more_flags;
@@ -793,7 +793,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save_key(id_type node, T const& key)
     {
-        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        if C4_LIKELY(node != NONE && node < m_cap && node >= 0)
         {
             write_key(this, node, key);
             return;
@@ -803,7 +803,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save_key(id_type node, T const& key, NodeType more_flags)
     {
-        if(C4_LIKELY(node != NONE && node < m_cap && node >= 0))
+        if C4_LIKELY(node != NONE && node < m_cap && node >= 0)
         {
             write_key(this, node, key);
             _p(node)->m_type |= more_flags;
@@ -872,10 +872,10 @@ public:
     {
         const bool can_read_val = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
         RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_val, this, node);
-        if(C4_LIKELY(!check_readable || can_read_val))
+        if C4_LIKELY(!check_readable || can_read_val)
         {
             const ReadResult result(read(this, node, v), node);
-            if(C4_LIKELY(result))
+            if C4_LIKELY(result)
                 return;
             else
                 node = result.node;
@@ -890,10 +890,10 @@ public:
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         const bool can_read_val = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
         RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_val, this, node);
-        if(C4_LIKELY(!check_readable || can_read_val))
+        if C4_LIKELY(!check_readable || can_read_val)
         {
             const ReadResult result(read(this, node, w), node);
-            if(C4_LIKELY(result))
+            if C4_LIKELY(result)
                 return;
             else
                 node = result.node;
@@ -913,10 +913,10 @@ public:
     {
         const bool can_read_key = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & KEY));
         RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_key, this, node);
-        if(C4_LIKELY(!check_readable || can_read_key))
+        if C4_LIKELY(!check_readable || can_read_key)
         {
             const ReadResult result(read_key(this, node, k), node);
-            if(C4_LIKELY(result))
+            if C4_LIKELY(result)
                 return;
             else
                 node = result.node;
@@ -931,10 +931,10 @@ public:
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
         bool can_read_key = (node != NONE && node < m_cap && node >= 0 && (_p(node)->m_type & KEY));
         RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_key, this, node);
-        if(C4_LIKELY(!check_readable || can_read_key))
+        if C4_LIKELY(!check_readable || can_read_key)
         {
             const ReadResult result(read_key(this, node, w), node);
-            if(C4_LIKELY(result))
+            if C4_LIKELY(result)
                 return;
             else
                 node = result.node;
@@ -1756,7 +1756,7 @@ csubstr serialize_to_arena_scalar(Tree * tree, T const& a)
     substr buf = tree->arena_rem(); // buffer: the free part of the tree's arenra.
  again:
     size_t num = scalar_serialize(buf, a); // try to write into it
-    if(C4_LIKELY(num <= buf.len)) // was it enough?
+    if C4_LIKELY(num <= buf.len) // was it enough?
     {
         buf = buf.first(num); // fit the payload
     }

@@ -352,7 +352,7 @@ public:
         // (or the caller told us so)
         // use the adapter ctor to accomodate legacy read() implementations
         const ReadResult result(read((ConstImpl const&)*this, v), id_);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             err_visit_(tree_, result.node, "could not deserialize node");
     }
     /** (2) like (1), but for wrapper tag types such as @ref
@@ -369,7 +369,7 @@ public:
         // (or the caller told us so)
         // use the adapter ctor to accomodate legacy read() implementations
         const ReadResult result(read((ConstImpl const&)*this, wrapper), id_);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             err_visit_(tree_, result.node, "could not deserialize node");
     }
 
@@ -392,7 +392,7 @@ public:
         // everything (or the caller told us so)
         // use the adapter ctor to accomodate legacy read_key() implementations
         const ReadResult result(read_key((ConstImpl const&)*this, k), id_);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             err_visit_(tree_, result.node, "could not deserialize key");
     }
     /** (2) like (1), but for wrapper tag types such as @ref
@@ -409,7 +409,7 @@ public:
         // everything (or the caller told us so)
         // use the adapter ctor to accomodate legacy read_key() implementations
         const ReadResult result(read_key((ConstImpl const&)*this, wrapper), id_);
-        if(C4_UNLIKELY(!result))
+        if C4_UNLIKELY(!result)
             err_visit_(tree_, result.node, "could not deserialize key");
     }
 
@@ -588,20 +588,20 @@ protected: // error helpers
 
     void check_val_() const
     {
-        if(C4_UNLIKELY(!tree_))
+        if C4_UNLIKELY(!tree_)
             err_basic_("node not readable");
-        else if(C4_UNLIKELY(!(((Impl const* C4_RESTRICT)this)->readable())))
+        else if C4_UNLIKELY(!(((Impl const* C4_RESTRICT)this)->readable()))
             err_visit_(tree_, id_, "node not readable");
-        else if(C4_UNLIKELY(!(tree_->type(id_) & (VAL|MAP|SEQ))))
+        else if C4_UNLIKELY(!(tree_->type(id_) & (VAL|MAP|SEQ)))
             err_visit_(tree_, id_, "node has no contents");
     }
     void check_key_() const
     {
-        if(C4_UNLIKELY(!tree_))
+        if C4_UNLIKELY(!tree_)
             err_basic_("node not readable");
-        else if(C4_UNLIKELY(!(((Impl const* C4_RESTRICT)this)->readable())))
+        else if C4_UNLIKELY(!(((Impl const* C4_RESTRICT)this)->readable()))
             err_visit_(tree_, id_, "node not readable");
-        else if(C4_UNLIKELY(!(tree_->type(id_) & KEY)))
+        else if C4_UNLIKELY(!(tree_->type(id_) & KEY))
             err_visit_(tree_, id_, "node has no key");
     }
 
@@ -807,9 +807,9 @@ private:
 
     void check_readable_() const
     {
-        if(C4_UNLIKELY(!m_tree))
+        if C4_UNLIKELY(!m_tree)
             RYML_ERR_BASIC_("invalid node");
-        if(C4_UNLIKELY(!m_tree || m_id == NONE || (m_id > m_tree->capacity())))
+        if C4_UNLIKELY(!m_tree || m_id == NONE || (m_id > m_tree->capacity()))
             RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, m_id, "invalid node");
     }
 
@@ -1152,16 +1152,16 @@ private:
 
     void check_readable_() const
     {
-        if(C4_UNLIKELY(!m_tree))
+        if C4_UNLIKELY(!m_tree)
             err_basic_("invalid node");
-        if(C4_UNLIKELY((m_id == NONE || (m_id > m_tree->capacity())) ||
+        if C4_UNLIKELY((m_id == NONE || (m_id > m_tree->capacity()) ||
                        (m_seed.str != nullptr || m_seed.len != (size_t)NONE)))
             err_visit_(m_tree, m_id, "invalid node");
     }
 
     void check_writeable_() const
     {
-        if(C4_UNLIKELY(!m_tree))
+        if C4_UNLIKELY(!m_tree)
             err_basic_("invalid node");
     }
 

@@ -1925,7 +1925,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
     if(ty.has_key())
     {
         csubstr k = key(node);
-        if(C4_LIKELY(k.str != nullptr))
+        if C4_LIKELY(k.str != nullptr)
         {
             RYML_ASSERT_BASIC_CB_(m_callbacks, k.is_sub(parser.source()));
             RYML_ASSERT_BASIC_CB_(m_callbacks, parser.source().is_super(k));
@@ -1937,7 +1937,7 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
     if(ty.has_val())
     {
         csubstr v = val(node);
-        if(C4_LIKELY(v.str != nullptr))
+        if C4_LIKELY(v.str != nullptr)
         {
             RYML_ASSERT_BASIC_CB_(m_callbacks, v.is_sub(parser.source()));
             RYML_ASSERT_BASIC_CB_(m_callbacks, parser.source().is_super(v));

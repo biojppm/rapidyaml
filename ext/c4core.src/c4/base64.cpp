@@ -165,8 +165,8 @@ C4_HOT C4_ALWAYS_INLINE bool is_valid_encoded_group16_(const char *C4_RESTRICT c
     C4_ASSERT(!(num & 15)); // must be multiple of 16
     size_t rem = num;
     for( ; rem >= 16; rem -= 16, c += 16)
-        if(C4_UNLIKELY(!is_valid_encoded_group8_(c)
-                    || !is_valid_encoded_group8_(c + 8)))
+        if C4_UNLIKELY(!is_valid_encoded_group8_(c)
+                    || !is_valid_encoded_group8_(c + 8))
             return false;
     return true;
 }
@@ -449,21 +449,21 @@ bool base64_decode(char const* encoded_, size_t encoded_sz,
 #if (C4_WORDSIZE >= 8)
     for( ; rem >= 15; rem -= 12)
     {
-        if(C4_UNLIKELY(!is_valid_encoded_group16_(encoded, 16)))
+        if C4_UNLIKELY(!is_valid_encoded_group16_(encoded, 16))
             return false;
         base64_decode_block64_(encoded, data); encoded += 8; data += 6;
         base64_decode_block64_(encoded, data); encoded += 8; data += 6;
     }
     for( ; rem >= 9; rem -= 6)
     {
-        if(C4_UNLIKELY(!is_valid_encoded_group8_(encoded)))
+        if C4_UNLIKELY(!is_valid_encoded_group8_(encoded))
             return false;
         base64_decode_block64_(encoded, data); encoded += 8; data += 6;
     }
 #else
     for( ; rem >= 9; rem -= 6)
     {
-        if(C4_UNLIKELY(!is_valid_encoded_group8_(encoded)))
+        if C4_UNLIKELY(!is_valid_encoded_group8_(encoded))
             return false;
         base64_decode_block32_(encoded, data); encoded += 4; data += 3;
         base64_decode_block32_(encoded, data); encoded += 4; data += 3;
@@ -471,7 +471,7 @@ bool base64_decode(char const* encoded_, size_t encoded_sz,
 #endif
     for( ; rem >= 3; rem -= 3)
     {
-        if(C4_UNLIKELY(!is_valid_encoded_group4_(encoded)))
+        if C4_UNLIKELY(!is_valid_encoded_group4_(encoded))
             return false;
         base64_decode_block32_(encoded, data); encoded += 4; data += 3;
     }

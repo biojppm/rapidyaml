@@ -80,7 +80,7 @@ struct SubstrWriter_
 // doesn't fit
 inline C4_NO_INLINE csubstr _maybe_add_ellipsis(substr buf, size_t len)
 {
-    if(C4_UNLIKELY(len > buf.len))
+    if C4_UNLIKELY(len > buf.len)
     {
         const size_t numdots = (buf.len > 3) ? 3 : buf.len;
         buf.last(numdots).fill('.');
@@ -663,7 +663,7 @@ CharContainer format_exc(ExceptionT const& exc)
 
 #define RYML_CHECK_BASIC_(cond)                                         \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_(cond)); \
@@ -672,7 +672,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_PARSE_(cond, ymlloc)                                 \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_(cond)); \
@@ -681,7 +681,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_VISIT_(cond, tree, node)                             \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_(cond)); \
@@ -692,7 +692,7 @@ CharContainer format_exc(ExceptionT const& exc)
 
 #define RYML_CHECK_BASIC_CB_(cb, cond)                                  \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_(cond)); \
@@ -701,7 +701,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_PARSE_CB_(cb, cond, ymlloc)                          \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_(cond)); \
@@ -710,7 +710,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_VISIT_CB_(cb, cond, tree, node)                      \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_(cond)); \
@@ -721,7 +721,7 @@ CharContainer format_exc(ExceptionT const& exc)
 
 #define RYML_CHECK_BASIC_CB_MSG_(cond, ...)                             \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_basic((::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
@@ -730,7 +730,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_PARSE_CB_MSG_(cond, ymlloc, ...)                     \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_parse((::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
@@ -739,7 +739,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_VISIT_CB_MSG_(cond, tree, node, ...)                 \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_visit((::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
@@ -750,7 +750,7 @@ CharContainer format_exc(ExceptionT const& exc)
 
 #define RYML_CHECK_BASIC_MSG_CB_(cb, cond, ...)                         \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_basic((cb), (::c4::yml::ErrorDataBasic{RYML_LOC_HERE()}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
@@ -759,7 +759,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_PARSE_MSG_CB_(cb, cond, ymlloc, ...)                 \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_parse((cb), (::c4::yml::ErrorDataParse{RYML_LOC_HERE(), ymlloc}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \
@@ -768,7 +768,7 @@ CharContainer format_exc(ExceptionT const& exc)
     } while(false)
 #define RYML_CHECK_VISIT_MSG_CB_(cb, cond, tree, node, ...)             \
     do {                                                                \
-        if(C4_UNLIKELY(!(cond)))                                        \
+        if C4_UNLIKELY(!(cond))                                         \
         {                                                               \
             RYML_DEBUG_BREAK();                                         \
             ::c4::yml::err_visit((cb), (::c4::yml::ErrorDataVisit{RYML_LOC_HERE(), tree, node}), "check failed" RYML_MAYBE_MSG_CB_(cond) __VA_ARGS__); \

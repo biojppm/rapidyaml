@@ -78,13 +78,13 @@ public:
 
     void reset(Tree *tree, id_type id)
     {
-        if(C4_UNLIKELY(!tree))
+        if C4_UNLIKELY(!tree)
             RYML_ERR_BASIC_CB_(m_stack.m_callbacks, "null tree");
-        if(C4_UNLIKELY(id >= tree->capacity()))
+        if C4_UNLIKELY(id >= tree->capacity())
             RYML_ERR_VISIT_CB_(tree->callbacks(), tree, id, "invalid node");
-        if(C4_UNLIKELY(!tree->is_root(id)))
-            if(C4_UNLIKELY(tree->is_map(tree->parent(id))))
-                if(C4_UNLIKELY(!tree->has_key(id)))
+        if C4_UNLIKELY(!tree->is_root(id))
+            if C4_UNLIKELY(tree->is_map(tree->parent(id)))
+                if C4_UNLIKELY(!tree->has_key(id))
                     RYML_ERR_BASIC_CB_(tree->callbacks(), "destination node belongs to a map and has no key");
         m_tree = tree;
         if(m_tree->is_root(id))
@@ -372,7 +372,7 @@ public:
      */
     void actually_val_is_first_key_of_new_map_flow()
     {
-        if(C4_UNLIKELY(m_tree->is_container(m_curr->node_id)))
+        if C4_UNLIKELY(m_tree->is_container(m_curr->node_id))
             RYML_ERR_PARSE_CB_(m_stack.m_callbacks, m_curr->pos, "ryml trees cannot handle containers as keys");
         RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_parent);
         RYML_ASSERT_VISIT_CB_(m_stack.m_callbacks, m_tree->is_seq(m_parent->node_id), m_tree, m_parent->node_id);
@@ -578,7 +578,7 @@ public:
     void add_directive_tag(csubstr handle, csubstr prefix)
     {
         _c4dbgpf("%TAG directive! handle={} prefix={} id={}", handle, prefix, m_curr_doc);
-        if(C4_UNLIKELY(!m_tree->m_tag_directives.add(handle, prefix, m_curr_doc)))
+        if C4_UNLIKELY(!m_tree->m_tag_directives.add(handle, prefix, m_curr_doc))
             RYML_ERR_PARSE_CB_(m_stack.m_callbacks, m_curr->pos, "too many %TAG directives");
     }
 

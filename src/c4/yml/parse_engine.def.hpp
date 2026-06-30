@@ -694,7 +694,7 @@ void ParseEngine<EventHandler>::_skip_comment()
     {
         RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, col > 0, m_evt_handler->m_curr->pos);
         const char prev = lc.full.str[col - 1u];
-        if(C4_UNLIKELY(prev != ' ' && prev != '\t'))
+        if C4_UNLIKELY(prev != ' ' && prev != '\t')
             _c4err("comment not preceded by whitespace");
     }
     _c4dbgpf("comment was '{}'", m_evt_handler->m_curr->line_contents.rem);
@@ -805,7 +805,7 @@ csubstr ParseEngine<EventHandler>::_scan_tag()
     {
         _c4dbgp("begins with '!'");
         _set_first(t, t.first_of(" ,]}\t"));
-        if(C4_UNLIKELY(t.first_of("[{") != npos))
+        if C4_UNLIKELY(t.first_of("[{") != npos)
             _c4err("invalid tag");
         _line_progressed(t.len);
         if(m_options.resolve_tags_all() || (m_options.resolve_tags() && is_custom_tag(t)))
@@ -815,7 +815,7 @@ csubstr ParseEngine<EventHandler>::_scan_tag()
     {
         _c4dbgp("begins with '!<'");
         size_t pos = t.find('>');
-        if(C4_UNLIKELY(pos == npos))
+        if C4_UNLIKELY(pos == npos)
             _c4err("invalid tag");
         _set_first_strict(t, pos+1);
         _line_progressed(t.len);
@@ -834,7 +834,7 @@ csubstr ParseEngine<EventHandler>::_scan_tag(csubstr *orig)
     {
         _c4dbgp("begins with '!'");
         _set_first(t, t.first_of(" ,\t"));
-        if(C4_UNLIKELY(t.first_of("[{") != npos))
+        if C4_UNLIKELY(t.first_of("[{") != npos)
             _c4err("invalid tag");
         _line_progressed(t.len);
         *orig = t;
@@ -845,7 +845,7 @@ csubstr ParseEngine<EventHandler>::_scan_tag(csubstr *orig)
     {
         _c4dbgp("begins with '!<'");
         size_t pos = t.find('>');
-        if(C4_UNLIKELY(pos == npos))
+        if C4_UNLIKELY(pos == npos)
             _c4err("invalid tag");
         _set_first_strict(t, pos+1);
         _line_progressed(t.len);
@@ -986,12 +986,12 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_handle_newline(csubstr s, siz
             next_line = next_line.first(next_line.first_of("\n\r"));
             _c4dbgpf("newl[PLAIN]: has indentation. next_line={}", prs_(next_line));
             RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, next_line_indentation <= next_line.len, m_evt_handler->m_curr->pos);
-            if(C4_LIKELY(next_line_indentation >= m_evt_handler->m_curr->indref))
+            if C4_LIKELY(next_line_indentation >= m_evt_handler->m_curr->indref)
             {
                 _c4dbgp("newl[PLAIN]: larger indentation");
                 next_line = next_line.sub(next_line_indentation);
             }
-            else if(C4_UNLIKELY(next_line.len && next_line.triml(' ').len))
+            else if C4_UNLIKELY(next_line.len && next_line.triml(' ').len)
             {
                 _c4dbgp("newl[PLAIN]: err, smaller indentation");
                 _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
@@ -1365,7 +1365,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_map_json(ScannedScalar *C4_RESTRICT
 
 ended_scalar:
 
-    if(C4_LIKELY(i > 0))
+    if C4_LIKELY(i > 0)
     {
         _line_progressed(i);
         sc->scalar = s.first(i);
@@ -1461,7 +1461,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
                     _c4dbgpf("followed by '{}'", i+1 == s.len ? csubstr("\\n") : _c4prc(s.str[i+1]));
                     _line_progressed(i);
                     // ': ' is accepted only on the first line
-                    if(C4_LIKELY(m_evt_handler->m_curr->pos.line == start_line))
+                    if C4_LIKELY(m_evt_handler->m_curr->pos.line == start_line)
                     {
                         _c4dbgp("start line. scalar ends here");
                         goto ended_scalar;
@@ -1624,7 +1624,7 @@ next_is_empty:
 template<class EventHandler>
 void ParseEngine<EventHandler>::_scan_line()
 {
-    if(C4_LIKELY(m_evt_handler->m_curr->pos.offset < _buf().len))
+    if C4_LIKELY(m_evt_handler->m_curr->pos.offset < _buf().len)
         m_evt_handler->m_curr->line_contents.reset_with_next_line(_buf(), m_evt_handler->m_curr->pos.offset);
     else
         m_evt_handler->m_curr->line_contents.reset_with_next_line(_buf().last(0), 0);
@@ -1721,9 +1721,9 @@ void ParseEngine<EventHandler>::_end_flow_container(size_t orig_indent, bool mul
     if(has_all(RMAP|RBLCK) && has_none(RKCL|RVAL|RNXT))
     {
         _c4dbgp("flow container: end as vanilla block map key!");
-        if(C4_UNLIKELY(multiline))
+        if C4_UNLIKELY(multiline)
             _c4err("multiline key is invalid");
-        if(C4_UNLIKELY(!_maybe_scan_following_colon()))
+        if C4_UNLIKELY(!_maybe_scan_following_colon())
             _c4err("could not find ':' colon after key");
         _maybe_skip_whitespace_tokens();
         addrem_flags(RVAL, RKEY|RKCL|RNXT);
@@ -1733,7 +1733,7 @@ void ParseEngine<EventHandler>::_end_flow_container(size_t orig_indent, bool mul
         _c4dbgp("end_flow_container: now not in flow!");
         if(has_any(RUNK|RSEQ|RKCL) && _maybe_scan_following_colon())
         {
-            if(C4_UNLIKELY(multiline))
+            if C4_UNLIKELY(multiline)
                 _c4err("multiline key is invalid");
             _flow_container_was_a_key(orig_indent);
         }
@@ -1955,7 +1955,7 @@ void ParseEngine<EventHandler>::_check_doc_end_tokens() const
 {
     csubstr rem = m_evt_handler->m_curr->line_contents.rem;
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, !rem.begins_with_any(". \t"), m_evt_handler->m_curr->pos);
-    if(C4_UNLIKELY(rem.len && !rem.begins_with('#')))
+    if C4_UNLIKELY(rem.len && !rem.begins_with('#'))
     {
         _c4err("parse error");
     }
@@ -1974,9 +1974,9 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_end_stream()
 {
     _c4dbgpf("end_stream, level={} node_id={}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->node_id);
-    if(C4_UNLIKELY(has_all(RSEQ|RFLOW)))
+    if C4_UNLIKELY(has_all(RSEQ|RFLOW))
         _c4err("missing terminating ]");
-    else if(C4_UNLIKELY(has_all(RMAP|RFLOW)))
+    else if C4_UNLIKELY(has_all(RMAP|RFLOW))
         _c4err("missing terminating }");
     if(m_evt_handler->m_stack.size() > 1)
         _handle_indentation_pop(m_evt_handler->m_stack.begin());
@@ -1998,7 +1998,7 @@ void ParseEngine<EventHandler>::_end_stream()
         }
     }
     m_evt_handler->end_stream();
-    if(C4_UNLIKELY(m_has_directives))
+    if C4_UNLIKELY(m_has_directives)
         _c4err("directives cannot be used without a document");
 }
 
@@ -2113,7 +2113,7 @@ void ParseEngine<EventHandler>::_handle_indentation_pop_from_block_map()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_check_valid_newline_in_quoted_scalar()
 {
-    if(C4_UNLIKELY(has_all(RMAP|RBLCK|RKEY)))
+    if C4_UNLIKELY(has_all(RMAP|RBLCK|RKEY))
     {
         _c4err("multiline quoted keys are invalid");
     }
@@ -2128,7 +2128,7 @@ void ParseEngine<EventHandler>::_check_valid_newline_in_quoted_scalar()
                                 m_evt_handler->m_curr->pos);
             csubstr trimmed = m_evt_handler->m_curr->line_contents.rem.sub(m_evt_handler->m_curr->line_contents.indentation);
             _c4dbgpf("trimmed.len={} line={}", trimmed.len, prs_(m_evt_handler->m_curr->line_contents.rem, true));
-            if(C4_UNLIKELY(!!trimmed.len))
+            if C4_UNLIKELY(!!trimmed.len)
             {
                 _c4err("bad indentation");
             }
@@ -2157,7 +2157,7 @@ ScannedScalar ParseEngine<EventHandler>::_scan_scalar_squot()
     {
         const csubstr line = m_evt_handler->m_curr->line_contents.rem;
         _c4dbgpf("scanning single quoted scalar @ line[{}]: {}", m_evt_handler->m_curr->pos.line, prs_(line));
-        if(C4_UNLIKELY(m_evt_handler->m_curr->at_line_beginning() && _is_doc_token(line)))
+        if C4_UNLIKELY(m_evt_handler->m_curr->at_line_beginning() && _is_doc_token(line))
             _c4err("token can not appear at line begin");
         for(size_t i = 0; i < line.len; ++i)
         {
@@ -2226,7 +2226,7 @@ ScannedScalar ParseEngine<EventHandler>::_scan_scalar_dquot()
         #endif
         csubstr rem = m_evt_handler->m_curr->line_contents.rem;
         _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", m_evt_handler->m_curr->pos.line, rem);
-        if(C4_UNLIKELY(m_evt_handler->m_curr->at_line_beginning() && _is_doc_token(rem)))
+        if C4_UNLIKELY(m_evt_handler->m_curr->at_line_beginning() && _is_doc_token(rem))
             _c4err("token can not appear at line begin");
         for(size_t i = 0; i < rem.len; ++i)
         {
@@ -2321,11 +2321,11 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         if( ! rest.empty())
         {
             _c4dbgpf("blck: parse indentation digits: {}", prs_(rest));
-            if(C4_UNLIKELY(rest.len > 1))
+            if C4_UNLIKELY(rest.len > 1)
                 _c4err("parse error: invalid indentation");
-            if(C4_UNLIKELY( ! c4::atou(rest, &indentation)))
+            if C4_UNLIKELY( ! c4::atou(rest, &indentation))
                 _c4err("parse error: could not read indentation as decimal"); // LCOV_EXCL_LINE
-            if(C4_UNLIKELY( ! indentation))
+            if C4_UNLIKELY( ! indentation)
                 _c4err("parse error: null indentation");
             _c4dbgpf("blck: indentation specified: {}. add {} from curr state -> {}", indentation, m_evt_handler->m_curr->indref, indentation+indref);
             indentation += m_evt_handler->m_curr->indref;
@@ -2334,7 +2334,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         {
             rest = t.triml(" \t");
             _c4dbgpf("blck: digits empty. t={} trimmed={} iscomm={} t.iscomm={}", prs_(t), prs_(rest), rest.begins_with('#'), t.begins_with('#'));
-            if(C4_UNLIKELY(rest.len && (rest.str[0] != '#' || t.str[0] == '#')))
+            if C4_UNLIKELY(rest.len && (rest.str[0] != '#' || t.str[0] == '#'))
                 _c4err("parse error: invalid token");
         }
     }
@@ -2402,7 +2402,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
             if(fns != npos) // non-empty line
             {
                 _c4dbgpf("blck: line not empty. indref={} indprov={} indentation={}", indref, provisional_indentation, lc.indentation);
-                if(C4_UNLIKELY(lc.full.begins_with('\t')))
+                if C4_UNLIKELY(lc.full.begins_with('\t'))
                     _c4err("parse error");
                 if(provisional_indentation == npos)
                 {
@@ -2833,16 +2833,16 @@ template<class FilterProcessor>
 void ParseEngine<EventHandler>::_filter_dquoted_backslash_decode(FilterProcessor &C4_RESTRICT proc, size_t sz)
 {
     const size_t szp1 = sz + 1u;
-    if(C4_UNLIKELY(proc.rpos + szp1 >= proc.src.len))
+    if C4_UNLIKELY(proc.rpos + szp1 >= proc.src.len)
         _c4err("codepoint requires {} hex digits. scalar pos={}", sz, proc.rpos);
     char readbuf[8];
     csubstr codepoint = proc.src.sub(proc.rpos + 2u, sz);
     _c4dbgfdq("utf8 ~~~{}~~~ rpos={} rem=~~~{}~~~", codepoint, proc.rpos, proc.src.sub(proc.rpos));
     uint32_t codepoint_val = {};
-    if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
+    if C4_UNLIKELY(!read_hex(codepoint, &codepoint_val))
         _c4err("failed to parse codepoint. scalar pos={}", proc.rpos);
     const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
-    if(C4_UNLIKELY(numbytes == 0))
+    if C4_UNLIKELY(numbytes == 0)
         _c4err("failed to decode code point={}", proc.rpos);
     RYML_ASSERT_PARSE_CB_(callbacks(), numbytes <= 4, m_evt_handler->m_curr->pos);
     proc.translate_esc_bulk(readbuf, numbytes, /*nread*/szp1);
@@ -3719,7 +3719,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_dquot(substr s)
 {
     _c4dbgpf("filtering dquo scalar: s={}", prs_(s));
     FilterResultExtending r = this->filter_scalar_dquoted_in_place(s, s.len);
-    if(C4_LIKELY(r.valid()))
+    if C4_LIKELY(r.valid())
     {
         _c4dbgpf("filtering dquo scalar: success! s={}", prs_(r.get()));
         return r.get();
@@ -3777,7 +3777,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t inden
     _c4dbgpf("filtering block literal scalar: s={}", prs_(s));
     FilterResult r = this->filter_scalar_block_literal_in_place(s, s.len, indentation, chomp);
     csubstr result;
-    if(C4_LIKELY(r.valid()))
+    if C4_LIKELY(r.valid())
     {
         result = r.get();
     }
@@ -3801,7 +3801,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_folded(substr s, size_t indent
     _c4dbgpf("filtering block folded scalar: s={}", prs_(s));
     FilterResult r = this->filter_scalar_block_folded_in_place(s, s.len, indentation, chomp);
     csubstr result;
-    if(C4_LIKELY(r.valid()))
+    if C4_LIKELY(r.valid())
     {
         result = r.get();
     }
@@ -4138,7 +4138,7 @@ csubstr ParseEngine<EventHandler>::location_contents(Location const& loc) const
 template<class EventHandler>
 Location ParseEngine<EventHandler>::val_location(const char *val) const
 {
-    if(C4_UNLIKELY(val == nullptr))
+    if C4_UNLIKELY(val == nullptr)
         return {m_evt_handler->m_curr->pos.name, 0, 0, 0};
     RYML_CHECK_BASIC_CB_(m_evt_handler->m_stack.m_callbacks, m_options.locations());
     // NOTE: if any of these checks fails, the parser needs to be
@@ -4269,7 +4269,7 @@ void ParseEngine<EventHandler>::_handle_flow_line_beginning()
 {
     _c4dbgpf("flow: indref={} indentation={}", m_evt_handler->m_curr->indref, m_evt_handler->m_curr->line_contents.indentation);
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->at_line_beginning(), m_evt_handler->m_curr->pos);
-    if(C4_UNLIKELY(m_evt_handler->m_curr->indentation_lt()))
+    if C4_UNLIKELY(m_evt_handler->m_curr->indentation_lt())
     {
         csubstr trimmed = m_evt_handler->m_curr->line_contents.rem.sub(m_evt_handler->m_curr->line_contents.indentation);
         _c4dbgpf("flow: after indentation={}", prs_(trimmed));
@@ -4329,7 +4329,7 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_colon()
 {
     size_t curr = m_evt_handler->m_curr->pos.line;
-    if(C4_UNLIKELY(m_prev_colon != npos && curr == m_prev_colon))
+    if C4_UNLIKELY(m_prev_colon != npos && curr == m_prev_colon)
     {
         _c4dbgpf("colon: prevline={} currline={}", m_prev_colon, curr);
         _c4err("two colons on same line");
@@ -4355,7 +4355,7 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 {
     _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, maybe_null_str_(str), indentation, line);
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
-    if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
+    if C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line)
     {
         _c4err("parse error");
     }
@@ -4371,7 +4371,7 @@ void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csu
 {
     _c4dbgpf("store annotation[{}]: '{}'->'{}' indentation={} line={}", dst->num_entries, orig, maybe_null_str_(str), indentation, line);
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
-    if(C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line))
+    if C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line)
     {
         _c4err("parse error");
     }
@@ -4397,7 +4397,7 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
     if(m_pending_tags.num_entries)
     {
         _c4dbgpf("handle_annotations_before_unexpected_flow_comma_rkey, #tags={}", m_pending_tags.num_entries);
-        if(C4_LIKELY(m_pending_tags.num_entries == 1))
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
         {
              m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
             _clear_annotations(&m_pending_tags);
@@ -4410,7 +4410,7 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("handle_annotations_before_unexpected_flow_comma, #anchors={}", m_pending_tags.num_entries);
-        if(C4_LIKELY(m_pending_anchors.num_entries == 1))
+        if C4_LIKELY(m_pending_anchors.num_entries == 1)
         {
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
             _clear_annotations(&m_pending_anchors);
@@ -4432,7 +4432,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
     if(m_pending_tags.num_entries)
     {
         _c4dbgpf("annotations_before_blck_key_scalar, #tags={}", m_pending_tags.num_entries);
-        if(C4_LIKELY(m_pending_tags.num_entries == 1))
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
         {
              m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
             _clear_annotations(&m_pending_tags);
@@ -4445,7 +4445,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("annotations_before_blck_key_scalar, #anchors={}", m_pending_anchors.num_entries);
-        if(C4_LIKELY(m_pending_anchors.num_entries == 1))
+        if C4_LIKELY(m_pending_anchors.num_entries == 1)
         {
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
             _clear_annotations(&m_pending_anchors);
@@ -4464,7 +4464,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
     if(m_pending_tags.num_entries)
     {
         _c4dbgpf("annotations_before_blck_val_scalar, #tags={}", m_pending_tags.num_entries);
-        if(C4_LIKELY(m_pending_tags.num_entries == 1))
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
         {
              m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
             _clear_annotations(&m_pending_tags);
@@ -4477,7 +4477,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("annotations_before_blck_val_scalar, #anchors={}", m_pending_anchors.num_entries);
-        if(C4_LIKELY(m_pending_anchors.num_entries == 1))
+        if C4_LIKELY(m_pending_anchors.num_entries == 1)
         {
             m_evt_handler->set_val_anchor(m_pending_anchors.annotations[0].str);
             _clear_annotations(&m_pending_anchors);
@@ -4631,7 +4631,7 @@ size_t ParseEngine<EventHandler>::_select_indentation_from_annotations(size_t va
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_keyref(csubstr alias)
 {
-    if(C4_LIKELY(!(m_pending_anchors.num_entries | m_pending_tags.num_entries)))
+    if C4_LIKELY(!(m_pending_anchors.num_entries | m_pending_tags.num_entries))
         m_evt_handler->set_key_ref(alias);
     else
         _c4err("aliases cannot have anchors or tags");
@@ -4640,7 +4640,7 @@ void ParseEngine<EventHandler>::_handle_keyref(csubstr alias)
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_valref(csubstr alias)
 {
-    if(C4_LIKELY(!(m_pending_anchors.num_entries | m_pending_tags.num_entries)))
+    if C4_LIKELY(!(m_pending_anchors.num_entries | m_pending_tags.num_entries))
         m_evt_handler->set_val_ref(alias);
     else
         _c4err("aliases cannot have anchors or tags");
@@ -4785,7 +4785,7 @@ void ParseEngine<EventHandler>::_handle_directive(csubstr directive)
     {
         csubstr handle;
         csubstr prefix;
-        if(C4_UNLIKELY(!_validate_directive_tag(&directive, &handle, &prefix)))
+        if C4_UNLIKELY(!_validate_directive_tag(&directive, &handle, &prefix))
         {
             err = "invalid %TAG directive";
             goto directive_error; // NOLINT
@@ -4795,12 +4795,12 @@ void ParseEngine<EventHandler>::_handle_directive(csubstr directive)
     else if(isdirective(directive, "%YAML"))
     {
         csubstr version;
-        if(C4_UNLIKELY(!_validate_directive_yaml(&directive, &version)))
+        if C4_UNLIKELY(!_validate_directive_yaml(&directive, &version))
         {
             err = "invalid %YAML directive";
             goto directive_error; // NOLINT
         }
-        if(C4_UNLIKELY(m_has_directives_yaml))
+        if C4_UNLIKELY(m_has_directives_yaml)
         {
             err = "multiple %YAML directives";
             goto directive_error; // NOLINT
@@ -4815,13 +4815,13 @@ void ParseEngine<EventHandler>::_handle_directive(csubstr directive)
     _line_progressed(pos);
     rem = rem.sub(pos);
     _c4dbgpf("handle_directive: rest={}", prs_(rem));
-    if(C4_UNLIKELY(rem.len && !rem.begins_with('#')))
+    if C4_UNLIKELY(rem.len && !rem.begins_with('#'))
     {
         err = "invalid tokens after directive";
         goto directive_error; // NOLINT
     }
 directive_error:
-    if(C4_UNLIKELY(err != nullptr))
+    if C4_UNLIKELY(err != nullptr)
         _c4err(err);
 }
 
@@ -5008,7 +5008,7 @@ seqjson_start:
     _c4dbgt("seqjson: go again", 0);
     if(_finished_line())
     {
-        if(C4_LIKELY(!_finished_file()))
+        if C4_LIKELY(!_finished_file())
         {
             _line_ended();
             _scan_line();
@@ -5183,7 +5183,7 @@ mapjson_start:
     _c4dbgt("mapjson: go again", 0);
     if(_finished_line())
     {
-        if(C4_LIKELY(!_finished_file()))
+        if C4_LIKELY(!_finished_file())
         {
             _line_ended();
             _scan_line();
@@ -5448,7 +5448,7 @@ seqimap_start:
     _c4dbgt("seqimap: go again", 0);
     if(_finished_line())
     {
-        if(C4_LIKELY(!_finished_file()))
+        if C4_LIKELY(!_finished_file())
         {
             _line_ended();
             _scan_line();
@@ -5672,7 +5672,7 @@ seqflow_start:
     _c4dbgt("seqflow: go again", 0);
     if(_finished_line())
     {
-        if(C4_LIKELY(!_finished_file()))
+        if C4_LIKELY(!_finished_file())
         {
             _line_ended();
             _scan_line();
@@ -6122,7 +6122,7 @@ mapflow_start:
     _c4dbgt("mapflow: go again", 0);
     if(_finished_line())
     {
-        if(C4_LIKELY(!_finished_file()))
+        if C4_LIKELY(!_finished_file())
         {
             _line_ended();
             _scan_line();
@@ -6446,7 +6446,7 @@ seqblck_start:
         // handle indentation
         //
         _c4dbgpf("seqblck[RNXT]: indref={} indentation={}", m_evt_handler->m_curr->indref, m_evt_handler->m_curr->line_contents.indentation);
-        if(C4_LIKELY(m_evt_handler->m_curr->at_line_beginning()))
+        if C4_LIKELY(m_evt_handler->m_curr->at_line_beginning())
         {
             _c4dbgp("seqblck[RNXT]: at line begin");
             if(m_evt_handler->m_curr->indentation_ge())
@@ -6511,7 +6511,7 @@ seqblck_start:
                || m_evt_handler->m_curr->line_contents.indentation > 0
                || !_is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem))
             {
-                if(C4_LIKELY(_is_blck_seq_token_maybe(m_evt_handler->m_curr->line_contents.rem)))
+                if C4_LIKELY(_is_blck_seq_token_maybe(m_evt_handler->m_curr->line_contents.rem))
                 {
                     _c4dbgp("seqblck[RNXT]: expect next val");
                     addrem_flags(RVAL, RNXT);
@@ -6538,7 +6538,7 @@ seqblck_start:
             // terminating the seq, ie, after `]`). All other cases
             // (ie colon after scalars) are caught elsewhere (ie, in
             // RVAL state).
-            if(C4_LIKELY(m_evt_handler->m_parent && (m_evt_handler->m_parent->flags & RMAP)))
+            if C4_LIKELY(m_evt_handler->m_parent && (m_evt_handler->m_parent->flags & RMAP))
             {
                 _c4dbgp("seqblck[RNXT]: actually this seq was '?' key of parent map");
                 m_evt_handler->end_seq_block();
@@ -6716,11 +6716,11 @@ mapblck_start:
         }
         // block scalars (| and >) can not be used as keys unless they
         // appear in an explicit QMRK scope (ie, after the ? token),
-        else if(C4_UNLIKELY(first == '|'))
+        else if C4_UNLIKELY(first == '|')
         {
             _c4err("block map: literal keys must be enclosed in '?'");
         }
-        else if(C4_UNLIKELY(first == '>'))
+        else if C4_UNLIKELY(first == '>')
         {
             _c4err("block map: folded keys must be enclosed in '?'");
         }
@@ -7050,7 +7050,7 @@ mapblck_start:
         }
         else if(first == '-' && _is_blck_seq_token_maybe(m_evt_handler->m_curr->line_contents.rem))
         {
-            if(C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token()))
+            if C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token())
                 _c4err("parse error");
             _c4dbgp("mapblck[RVAL]: start val seqblck");
             _handle_block_check_leading_tabs(startcol);
@@ -7127,7 +7127,7 @@ mapblck_start:
         }
         else if(first == '?')
         {
-            if(C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token()))
+            if C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token())
                 _c4err("parse error");
             _c4dbgp("mapblck[RVAL]: start val mapblck");
             addrem_flags(RNXT, RVAL);
@@ -7598,7 +7598,7 @@ bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
             if(!m_evt_handler->m_curr->line_contents.rem.len)
                 return true; // continue in mapblck
         }
-        else if(C4_UNLIKELY(m_evt_handler->m_curr->indentation_lt()))
+        else if C4_UNLIKELY(m_evt_handler->m_curr->indentation_lt())
         {
             _c4err("invalid indentation");
         }
@@ -7691,7 +7691,7 @@ bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
     else/* if(m_was_inside_qmrk) */
     {
         _c4dbgp("mapblck[RKCL]: missing :");
-        if(C4_UNLIKELY(!m_evt_handler->m_curr->indentation_eq()))
+        if C4_UNLIKELY(!m_evt_handler->m_curr->indentation_eq())
             _c4err("parse error"); // LCOV_EXCL_LINE
         m_evt_handler->set_val_scalar_plain_empty();
         m_evt_handler->add_sibling();
@@ -7880,7 +7880,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         else if(first == '%')
         {
             _c4dbgpf("directive: {}", m_evt_handler->m_curr->line_contents.rem);
-            if(C4_UNLIKELY(has_any(RDOC) || (!m_doc_empty && has_none(NDOC))))
+            if C4_UNLIKELY(has_any(RDOC) || (!m_doc_empty && has_none(NDOC)))
                 _c4err("need document footer before directives");
             _handle_directive(m_evt_handler->m_curr->line_contents.rem);
             return;
@@ -7913,7 +7913,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     {
         _c4dbgp("runk: flow seq?");
         _handle_unk_begin_doc();
-        if(C4_LIKELY( ! _annotations_require_key_container()))
+        if C4_LIKELY( ! _annotations_require_key_container())
         {
             _c4dbgp("runk: it's a seq, flow");
             _handle_annotations_before_blck_val_scalar();
@@ -7938,7 +7938,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     {
         _c4dbgp("runk: flow map?");
         _handle_unk_begin_doc();
-        if(C4_LIKELY( ! _annotations_require_key_container()))
+        if C4_LIKELY( ! _annotations_require_key_container())
         {
             _c4dbgp("runk: it's a map, flow");
             _handle_annotations_before_blck_val_scalar();
@@ -7962,7 +7962,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     else if(first == '-' && _is_blck_token(m_evt_handler->m_curr->line_contents.rem))
     {
         _c4dbgp("runk: it's a seq, block");
-        if(C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token()))
+        if C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token())
             startindent = _handle_unk_check_left_tokens(startindent, m_evt_handler->m_curr->pos.col, /*skip_annotations*/false);
         _handle_unk_begin_doc();
         _handle_annotations_before_blck_val_scalar();
@@ -7975,7 +7975,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     else if(first == '?' && _is_blck_token(m_evt_handler->m_curr->line_contents.rem))
     {
         _c4dbgp("runk: it's a map + this key is complex");
-        if(C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token()))
+        if C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token())
             startindent = _handle_unk_check_left_tokens(startindent, m_evt_handler->m_curr->pos.col, /*skip_annotations*/false);
         _handle_block_check_leading_tabs(startcol);
         _handle_unk_begin_doc();
@@ -8001,7 +8001,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         if(m_doc_empty || (m_pending_anchors.num_entries | m_pending_tags.num_entries))
         {
             _c4dbgp("runk: it's a map with an empty key");
-            if(C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token()))
+            if C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token())
                 startindent = _handle_unk_check_left_tokens(startindent, m_evt_handler->m_curr->pos.col);
             _handle_block_check_leading_tabs(startcol);
             const size_t startline = m_evt_handler->m_curr->pos.line; // save
@@ -8070,7 +8070,7 @@ void ParseEngine<EventHandler>::_handle_unk()
         const size_t startscalar = _handle_block_get_whitespace_mark();
         const size_t startline = m_evt_handler->m_curr->pos.line; // save
         auto beginmap = [&](size_t startindent_){
-            if(C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline))
+            if C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline)
                 _c4err("multiline scalars cannot be used as implicit keys");
             _handle_block_check_leading_tabs(startcol, startscalar);
             _handle_annotations_before_start_mapblck(startline);
@@ -8120,7 +8120,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             else
             {
                 _c4dbgp("runk: start new block map, set single-quoted scalar as key");
-                if(C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline))
+                if C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline)
                     _c4err("multiline key");
                 if(!firsttoken)
                     startindent = _handle_unk_check_left_tokens(startindent, col);
@@ -8147,7 +8147,7 @@ void ParseEngine<EventHandler>::_handle_unk()
             else
             {
                 _c4dbgp("runk: start new block map, set double-quoted scalar as key");
-                if(C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline))
+                if C4_UNLIKELY(m_evt_handler->m_curr->pos.line > startline)
                     _c4err("multiline key");
                 if(!firsttoken)
                     startindent = _handle_unk_check_left_tokens(startindent, col);
