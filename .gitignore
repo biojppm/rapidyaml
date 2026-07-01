@@ -51,6 +51,7 @@ wheelhouse/
 .ci/.vagrant
 
 # amalgamation files
+/tools/amalgamate/
 src/c4/c4core_all.hpp
 src_singleheader/
 

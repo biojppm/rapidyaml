@@ -8,28 +8,28 @@
 <!-- [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/) -->
 
 
-Or ryml, for short. ryml is a C++11 library to parse and emit YAML,
+Or ryml, for short. ryml is a C++ library to parse and emit YAML,
 and do it fast, on everything from x64 to bare-metal chips without
 operating system.
 
 The library is fully conformant to the YAML 1.2 spec, and passes
-100.00% of the cases in the YAML test suite. The code is robust and
-extremely tested and fuzzed. The parser is state-machine based and not
-recursive. No known vulnerabilities exist.
+100.00% of the cases in the YAML test suite. The parser is
+state-machine based and not recursive. No known vulnerabilities
+exist. The code is robust and extremely tested and fuzzed.
 
-ryml parses both read-only and in-situ source buffers; the resulting
-data nodes hold only views to sub-ranges of the source buffer. No
-string copies or duplications are done, and no virtual functions are
+ryml parses both read-only and in-place source buffers; the resulting
+tree holds only views to sub-ranges of the source buffer. No string
+copies or duplications are done, and no virtual functions are
 used. The data tree is a flat index-based structure stored in a single
 array.
 
 With the tree, (de)serialization happens only at your direct request,
 after parsing / before emitting. Internally, the tree representation
-stores only string views and assumes nothing on user types, but of
-course. And it is not just parsing or emitting which is fast; the
-serialization is extremely fast, in many cases faster than the fastest
-c++ facilities like `std::to_chars()`. ryml makes it easy and fast to
-read and modify the data tree.
+stores only string views and assumes nothing on user types. And it is
+not just parsing or emitting which is fast; the serialization is
+extremely fast, in many cases faster than the fastest C++ facilities
+like `std::to_chars()`. ryml makes it easy and fast to read and modify
+the data tree.
 
 
 ryml is available as a single header file, or it can be used as a
@@ -87,6 +87,11 @@ and [the roadmap](https://github.com/biojppm/rapidyaml/tree/master/ROADMAP.md).
 
 <!-- endpythonreadme -->
 
+------
+## License
+
+ryml is permissively licensed under the [MIT license](LICENSE.txt).
+
 
 ------
 
@@ -111,11 +116,6 @@ and [the roadmap](https://github.com/biojppm/rapidyaml/tree/master/ROADMAP.md).
   * [Test suite status](#test-suite-status)
 * [Known limitations](#known-limitations)
 * [Alternative libraries](#alternative-libraries)
-
-------
-## License
-
-ryml is permissively licensed under the [MIT license](LICENSE.txt).
 
 
 ------

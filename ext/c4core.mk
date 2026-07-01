@@ -3,4 +3,4 @@
 C4CORE_REPO := https://github.com/biojppm/c4core
 # must be either tag or a FULL commit hash; cannot
 # be a branch name or short commit hash!
-C4CORE_TAG := b66bebf7bf1ff4db02e1e65949d1687a6671844b
+C4CORE_TAG := d157667af39770f986c77be17c584a99e12aaf43

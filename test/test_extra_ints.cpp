@@ -2,10 +2,6 @@
 #include "test_lib/test_events_ints_helpers.hpp"
 #include <c4/yml/extra/event_handler_ints.hpp>
 
-#ifndef C4_YML_PARSE_ENGINE_DEF_HPP_
-#include <c4/yml/parse_engine.def.hpp>
-#endif
-
 RYML_DEFINE_TEST_MAIN()
 
 // NOLINTBEGIN(hicpp-signed-bitwise)

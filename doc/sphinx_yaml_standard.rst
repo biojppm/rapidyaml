@@ -70,11 +70,12 @@ As part of its CI testing, ryml uses and passes all the cases from the
 `YAML test suite <https://github.com/yaml/yaml-test-suite>`__. This is
 an extensive and merciless set of reference cases covering the full
 YAML spec. Each of these cases has several subparts:
- - ``in-yaml``: mildly, plainly or extremely difficult-to-parse YAML
- - ``in-json``: equivalent JSON (where possible/meaningful)
- - ``out-yaml``: equivalent standard YAML
- - ``emit-yaml``: equivalent standard YAML
- - ``events``: reference events according to the YAML standard
+
+ * ``in-yaml`` mildly, plainly or extremely difficult-to-parse YAML
+ * ``in-json`` equivalent JSON (where possible/meaningful)
+ * ``out-yaml`` equivalent standard YAML
+ * ``emit-yaml`` equivalent standard YAML
+ * ``events`` reference events according to the YAML standard
 
 .. note::
 

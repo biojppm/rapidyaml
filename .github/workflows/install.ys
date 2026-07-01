@@ -40,6 +40,11 @@ jobs:
           - {name: singleheader/macos,        sdir: test/test_singleheader, os: macos-15-intel, cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Debug}
           - {name: singleheader/win,          sdir: test/test_singleheader, os: windows-latest, cxx: vs2026,     gen: -G 'Visual Studio 18 2026' -A x64,         tgt: ALL_BUILD, bt: Debug}
 
+          - {name: singlesource/linux,        sdir: test/test_singlesource, os: ubuntu-24.04,   cxx: g++-16,     gen: -DCMAKE_CXX_COMPILER=g++-16,               tgt: all,       bt: Debug}
+          - {name: singlesource/linux/libcxx, sdir: test/test_singlesource, os: ubuntu-24.04,   cxx: clang++-18, gen: -DCMAKE_CXX_COMPILER=clang++-18,           tgt: all,       bt: Debug, commonvars: -DRYML_USE_LIBCXX=ON}
+          - {name: singlesource/macos,        sdir: test/test_singlesource, os: macos-15-intel, cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Debug}
+          - {name: singlesource/win,          sdir: test/test_singlesource, os: windows-latest, cxx: vs2026,     gen: -G 'Visual Studio 18 2026' -A x64,         tgt: ALL_BUILD, bt: Debug}
+
     env:
       CXX_: ${{matrix.cxx}}
       BT:   ${{matrix.bt}}

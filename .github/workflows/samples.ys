@@ -49,6 +49,8 @@ jobs:
       run: cd samples/ints_only && ./run.sh $BT ${{matrix.args}}
     - name: singleheader
       run: cd samples/singleheader && ./run.sh $BT ${{matrix.args}}
+    - name: singlesource
+      run: cd samples/singlesource && ./run.sh $BT ${{matrix.args}}
     - name: singleheader-ints
       run: cd samples/singleheader-ints && ./run.sh $BT ${{matrix.args}}
     - name: singleheaderlib

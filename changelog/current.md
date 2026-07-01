@@ -7,32 +7,43 @@ This release is focused on API cleaning and tidying, **in preparation of release
   - deprecates a good number of functions, mostly around serialization and tree/node building
   - **brings code coverage to 100%** (rounded from >99.5%)
 
-Significant effort went into maintaining backward compatibility. Nevertheless the cleanup introduced a number of breaking changes, and some other opt-in but recommended changes: see the migration guide in the next section.
+Significant effort went into maintaining backward compatibility. Nevertheless the cleanup introduced a number of deprecations, and some other opt-in but recommended changes: see the migration guide in the next section.
 
 The second major change is the removal of the c4core submodule, vendoring in the c4core source code. Now **cloning with git no longer requires `--recursive`**. Other than that, this change is mostly internal, and all existing workflows to consume rapidyaml and or c4core are kept unchanged (eg `RYML_STANDALONE`, or the newly added `RYML_SYSTEM_C4CORE` still work the same).
 
-Finally there are other fixes and improvements. For the details refer to the [full changelog](v0.16changelogsection), below the migration guide.
+Finally there are other fixes and improvements. For the details refer to this release's [full changelog](v0.16changelogsection), below the migration guide.
 
 
 ## Migration guide
 
 This is the list of migration changes, linking to the relevant section below:
 
+ - [Deprecated `.to_val()` method family for tree building](#toval)
  - Deprecated (but define `RYML_WITH_LEGACY_OPERATORS` to avoid the deprecation):
-    - tree building: [do not use operators `|=` or `=`](#notequal)
-    - serialization: [do not use operators `<<` or `>>`](#notshift)
- - Optional, **recommended**:
+    - tree building: [deprecate operators `|=` or `=`](#notequal)
+    - serialization: [deprecate operators `<<` or `>>`](#notshift)
+ - Optional but **recommended**:
    - [user-implemented `read()` should now return `ReadResult`](#readresult)
    - [user-implemented `read()`/`write()` should now receive `Tree` and id](#treeid)
    - [do not use `.load()` (former `>>`) inside `read()`](#noloadinread)
+   - [use `.deserialize_child()` inside `read()`](#deserializechild)
 
-Be sure to also read through the quickstart for the full overview on how the new features work. Hint to see what changed: run `git diff v0.15.2...v0.16.0 samples/quickstart.cpp` on an up-to-date repo clone (and if the tag v0.16.0 does not exist on the date you try this command, just omit that tag -- it was not yet released).
+Be sure to also read through the quickstart diff for the full overview on how the new features work. 
+
+> [!TIP]
+> Hint to see what changed in the quickstart: run `git diff v0.15.2...v0.16.0 samples/quickstart.cpp` on an up-to-date repo clone.
 
 
-<a>notequal</a>
+<a id="toval"></a>
+### Deprecate `.to_val()` family
+
+For tree building, methods `.to_*()` were deprecated in favour of the newly-added `.set_*()` methods. See next section.
+
+
+<a id="notequal"></a>
 ### Do not use operators |= or =
 
-For tree building methods `.to_*()` and `operator|=` and `operator=` were deprecated in favour of the newly-added `.set_*()` methods:
+For tree building, methods `operator|=` and `operator=` were deprecated in favour of the newly-added `.set_*()` methods:
 
 ```c++
 c4::yml::Tree tree = ...;
@@ -75,7 +86,7 @@ tree.set_map(id_map);
 If you prefer to keep on using the legacy operators `=`, `|=`, `<<`, `>>`, you can enable the cmake symbol (or define the macro) `RYML_WITH_LEGACY_OPERATORS`.
 
 
-<a>notshift</a>
+<a id="notshift"></a>
 ### Do not use operators << or >>
 
 For serialization, `operator<<` and `operator>>` were deprecated in favour of `.set_serialized()` and `.deserialize()` (which introduce return on error) or  `.save()` and `.load()` (which trigger error callback on error):
@@ -123,10 +134,10 @@ If you prefer to keep on using the legacy operators `=`, `|=`, `<<`, `>>`, you c
 The rest of the changes are optional, **but advised, and recommended**. If you don't do these changes, your code will go on working as before, but the new features and improved behavior will not be available.
 
 
-<a>readresult</a>
+<a id="readresult"></a>
 ### Optional: user-implemented `read()` should now return `ReadResult`
 
-The **first optional change** is that your `read()` functions should now return a `c4::yml::ReadResult`. This enables reporting the exact node on which a deserialization error happens, even if it is nested deep in the tree, which in turn helps tremendously pinpointing troubles in YAML source (especially with location tracking):
+Your `read()` functions should now return a `c4::yml::ReadResult`. This enables reporting the exact node on which a deserialization error happens, even if it is nested deep in the tree, which in turn helps tremendously pinpointing troubles in YAML source (especially with location tracking):
 ```c++
 // optional: your implementation of read() should be changed from...
 bool read(c4::yml::ConstNodeRef const& node, T *var)
@@ -144,10 +155,10 @@ c4::yml::ReadResult read(c4::yml::ConstNodeRef const& node, T *var)
 If you don't change, rapidyaml will still report the error, but it will be report the node of the outer-most function returning false, instead of the node at the inner-most function.
 
 
-<a>treeid</a>
+<a id="treeid"></a>
 ### Optional: user-implemented `read()`/`write()` should now receive `Tree` and id
 
-The **second optional change** is that the `read()` and `write()` implementations should now be rewritten for the `Tree`, instead of the `NodeRef`. This will enable using your `read()`/`write()` functions **with both the `Tree` and `NodeRef` methods**:
+Your `read()` and `write()` implementations should now be rewritten for the `Tree`, instead of the `NodeRef`. This will enable using your `read()`/`write()` functions **with both the `Tree` and `NodeRef` methods**:
 ```c++
 // optional: your implementation of write()/read() should be changed from...
 void write(c4::yml::NodeRef *node, T const& var)
@@ -184,10 +195,10 @@ c4::yml::ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, T *var)
 ```
 
 
-<a>noloadinread</a>
+<a id="noloadinread"></a>
 ### Optional: do not use `.load()` (former `>>`) inside `read()`
 
-The **last optional change** is that inside your `write()/read()` implementation **you should now use the new `.deserialize()` calls**. On error, these methods will play nice when they are called from `.deserialize()` on upper-level objects. On the contrary, `.load()` (formerly `>>`) will interrupt execution immediately, and this will prevent those upper-level calls from successfully receiving the actual `ReadResult` and reporting it upwards.
+Inside your `write()/read()` implementation **you should now use the new `.deserialize()` calls**. On error, these methods will play nice when they are called from `.deserialize()` on upper-level objects. On the contrary, `.load()` (formerly `>>`) will interrupt execution immediately, and this will prevent those upper-level calls from successfully receiving the actual `ReadResult` and reporting it upwards.
 
 If you want to avoid exceptional flow and write code such as
 ```c++
@@ -233,7 +244,10 @@ c4::yml::ReadResult read(c4::yml::Tree const* tree, c4::yml::id_type id, Outer *
 In short, implementing `read()` with `.deserialize()` plays nice with both upper `.deserialize()` and `.load()` calls, whereas implementing `read()` with `.load()` will only work with upper `.load()` calls.
 
 
+<a id="deserializechild"></a>
 ### Recommended: use new methods `.deserialize_child()` in `read()`
+
+Inside your `read()` implementation, **you should now use the new methods `.deserialize_child()`**.
 
 This release also adds a family of methods returning `ReadResult` to simplify `read()` implementations. Each of these returns a `ReadResult` object that is ready to return on error. Consider the following node-based `read()`, already using `.deserialize()`:
 ```c++
@@ -253,11 +267,13 @@ Note that any of the `operator[]` calls (or more precisely the `.deserialize()` 
 ryml::ReadResult read(ryml::ConstNodeRef const& n, my_type *val)
 {
     ryml::ReadResult r(n.is_map(), n.id());
-    if(r) r = n.deserialize_if(n, "v2", &val->v2);
-    if(r) r = n.deserialize_if(n, "v3", &val->v3);
-    if(r) r = n.deserialize_if(n, "v4", &val->v4);
-    if(r) r = n.deserialize_if(n, "seq", &val->seq);
-    if(r) r = n.deserialize_if(n, "map", &val->map);
+    if(r) r = n.deserialize_child(n, "v2", &val->v2); // there is also a fall-back overload
+                                                      // receiving a default value when
+                                                      // no such child exists
+    if(r) r = n.deserialize_child(n, "v3", &val->v3);
+    if(r) r = n.deserialize_child(n, "v4", &val->v4);
+    if(r) r = n.deserialize_child(n, "seq", &val->seq);
+    if(r) r = n.deserialize_child(n, "map", &val->map);
     return r;
 }
 ```
@@ -272,8 +288,9 @@ Here's the list of new `ReadResult`-returning methods that may be of use in simi
 <a>v0.16changelogsection</a>
 ## Full changelog
 
+- [PR#642](https://github.com/biojppm/rapidyaml/pull/642) amalgamate: add option to create single source+header.
 - [PR#641](https://github.com/biojppm/rapidyaml/pull/641): change uses of `C4_LIKELY()` / `C4_UNLIKELY()` to turn into `[[likely]]` / `[[unlikely]]`. No logic changes.
-- [PR#640](https://github.com/biojppm/rapidyaml/pull/640): add `.deserialize_child()` methods to simplify read() implementations
+- [PR#640](https://github.com/biojppm/rapidyaml/pull/640): add `.deserialize_child()` methods to simplify `read()` implementations
 - [PR#639](https://github.com/biojppm/rapidyaml/pull/639): fix names using leading/double underscore (renames only, no logic changes).
 - [PR#638](https://github.com/biojppm/rapidyaml/pull/638): improve quickstart-ints.
 - [PR#637](https://github.com/biojppm/rapidyaml/pull/637): add cmake option `RYML_SYSTEM_C4CORE` to consume c4core from `find_package()`. Thanks @uilianries!
