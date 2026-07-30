@@ -213,3 +213,67 @@ jobs:
       run: |
         cd $BDIR/test
         ctest -C ${{matrix.bt}} --output-on-failure
+  sysc4core:
+    name: sysc4core/${{matrix.name}}
+    continue-on-error: false
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - name: gcc
+          os: ubuntu-24.04
+          gen: -DCMAKE_CXX_COMPILER=g++
+          bt: Debug
+          rel: lib/cmake/c4core
+        - name: clang
+          os: ubuntu-24.04
+          gen: -DCMAKE_CXX_COMPILER=clang++
+          bt: Debug
+          rel: lib/cmake/c4core
+        - name: xcode
+          os: macos-15-intel
+          gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64
+          bt: Debug
+          rel: lib/cmake/c4core
+        - name: vs2026
+          os: windows-latest
+          gen: -G 'Visual Studio 18 2026' -A x64
+          bt: Debug
+          rel: cmake
+    steps:
+    - name: checkout
+      uses: actions/checkout@v6
+    - name: checkout c4core
+      run: make -C ext c4core
+    - name: config c4core
+      run: |
+        cmake -S ext/c4core -B ext/c4core/build \
+           -D CMAKE_INSTALL_PREFIX=`pwd`/ext/c4core/install \
+           ${{matrix.gen}}
+    - name: build c4core
+      run: |
+        cmake --build ext/c4core/build --target c4core --parallel
+    - name: install c4core
+      run: |
+        cmake --build ext/c4core/build --target install
+    - name: '--------------------------------------'
+      run: echo
+    - name: configure ryml
+      run: |
+        cmake -S . -B build \
+          -D c4core_DIR=`pwd`/ext/c4core/install/${{matrix.rel}} \
+          -D RYML_SYSTEM_C4CORE=ON \
+          -D RYML_BUILD_TESTS=ON \
+          ${{matrix.gen}} \
+          -D CMAKE_BUILD_TYPE=${{matrix.bt}}
+    - name: build ryml
+      run: |
+        cmake --build build --target ryml --parallel --config ${{matrix.bt}}
+    - name: build tests
+      run: |
+        cmake --build build --target ryml-test-build --parallel --config ${{matrix.bt}}
+    - name: run tests
+      run: |
+        export CTEST_PARALLEL_LEVEL=`nproc`
+        cmake --build build --target ryml-test-run --config ${{matrix.bt}}

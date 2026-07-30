@@ -114,7 +114,7 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     LIBS ryml c4fs gtest
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testlib)
-ryml_add_c4core_dev_to_target(ryml-_testlib)
+ryml_testbm_link_with_c4core(ryml-_testlib)
 c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
     SOURCES test_lib/test_main.cpp test_lib/test_main.hpp
     LIBS ryml
@@ -128,7 +128,7 @@ function(ryml_add_test test_name)
         SOURCES test_${test_name}.cpp
         LIBS ryml-_testlib ryml-_testmain
         FOLDER test)
-    ryml_add_c4core_dev_to_target(${t})
+    ryml_testbm_link_with_c4core(${t})
     if(RYML_SAVE_TEST_YAML)
         target_sources(${t} PRIVATE test_lib/test_save.cpp)
     endif()
@@ -147,7 +147,7 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testgroup)
-ryml_add_c4core_dev_to_target(ryml-_testgroup)
+ryml_testbm_link_with_c4core(ryml-_testgroup)
 function(ryml_add_test_case_group name)
     ryml_add_test(${name} ${ARGN})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
@@ -399,7 +399,7 @@ if(RYML_TEST_SUITE)
         LIBS ryml-_testlib ryml-_testmain c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
-    ryml_add_c4core_dev_to_target(ryml-test-suite)
+    ryml_testbm_link_with_c4core(ryml-test-suite)
     add_dependencies(ryml-test-build ryml-test-suite)
 
     ryml_get_target_exe(ryml-test-suite tgt)

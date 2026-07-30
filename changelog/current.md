@@ -1,0 +1,1 @@
+- [PR#653](https://github.com/biojppm/rapidyaml/pull/653) cmake: fix tests with RYML_SYSTEM_C4CORE (fixes [#651](https://github.com/biojppm/rapidyaml/issues/651))
