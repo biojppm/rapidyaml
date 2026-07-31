@@ -902,7 +902,7 @@ void sample_quick_overview()
     CHECK(!root.has_child("I am not nothing"));
     ryml::NodeRef nothing;
     CHECK(nothing.invalid());    // invalid because it points at nothing
-    nothing = wroot["I am nothing"];
+    nothing = wroot["I am nothing"];                                                                        // LCOV_EXCL_LINE workaround for lcov fail
     CHECK(!nothing.invalid());   // points at the tree, and a specific place in the tree
     CHECK(nothing.is_seed()); // ... but nothing is there yet.
     CHECK(!root.has_child("I am nothing")); // same as above
@@ -947,7 +947,7 @@ void sample_quick_overview()
     // met. If you are not sure about the structure of your data,
     // write your code defensively to signify your full intent:
     //
-    ryml::NodeRef wbar = wroot["bar"];
+    ryml::NodeRef wbar = wroot["bar"];                                                                        // LCOV_EXCL_LINE workaround for lcov fail
     if(wbar.readable() && wbar.is_seq()) // .is_seq() requires .readable()
     {
         CHECK(wbar[0].readable() && wbar[0].val() == "20");
@@ -2659,7 +2659,7 @@ void sample_create_tree()
     ryml::Tree tree;
     ryml::NodeRef root = tree.rootref();
     root.set_map(); // mark root as a map
-    doe = root["doe"];
+    doe = root["doe"];                                                                        // LCOV_EXCL_LINE workaround for lcov fail
     CHECK(!doe.invalid()); // it's now pointing at the tree
     CHECK(doe.is_seed()); // but the tree has nothing there, so this is only a seed
 
@@ -2688,13 +2688,13 @@ void sample_create_tree()
     root["pi"].set_serialized(ryml::fmt::real(3.141592654, 5));
     root["xmas"].set_serialized(ryml::fmt::boolalpha(true));
     root["french-hens"].set_serialized(3);
-    ryml::NodeRef calling_birds = root["calling-birds"];
+    ryml::NodeRef calling_birds = root["calling-birds"];                                                                        // LCOV_EXCL_LINE workaround for lcov fail
     calling_birds.set_seq();
     calling_birds.append_child().set_val("huey");
     calling_birds.append_child().set_val("dewey");
     calling_birds.append_child().set_val("louie");
     calling_birds.append_child().set_val("fred");
-    ryml::NodeRef xmas5 = root["xmas-fifth-day"];
+    ryml::NodeRef xmas5 = root["xmas-fifth-day"];                                                                        // LCOV_EXCL_LINE workaround for lcov fail
     xmas5.set_map();
     xmas5["calling-birds"].set_val("four");
     xmas5["french-hens"].set_serialized(3);
@@ -6390,7 +6390,7 @@ void sample_docs()
         // in which case, you can avoid the error by emitting the
         // documents one-by-one:
         const std::string expected_json[] = {
-            "{"            "\n"
+            "{"            "\n"                                                                             // LCOV_EXCL_LINE workaround for lcov fail
             "  \"a\": 0,"  "\n"
             "  \"b\": 1"   "\n"
             "}"            "\n"
@@ -6766,7 +6766,7 @@ void sample_error_visit_location()
     auto cause_visit_error = [&]{
         int intval = 0;
         tree["float"].load(&intval); // cannot deserialize 123.456 to int
-    };
+    };                                                                                  // LCOV_EXCL_LINE workaround for lcov fail
     // Like with the parse error, we will use our error handler to
     // catch that visit error, and save the error info:
     CHECK(evt_handler.callbacks() == errh.callbacks());
