@@ -1227,7 +1227,6 @@ void Emitter<Writer>::write_scalar_dquo_(csubstr s, id_type ilevel)
             pos = i+1;
             break;
         }
-#ifndef prefer_writing_newlines_as_double_newlines
         case '\n':
         {
             csubstr sub = s.range(pos, i);
@@ -1237,50 +1236,6 @@ void Emitter<Writer>::write_scalar_dquo_(csubstr s, id_type ilevel)
             (void)ilevel;
             break;
         }
-#else
-        case '\n':
-        {
-            // write everything up to (excluding) this newline
-            //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
-            _write(s.range(pos, i));
-            i = _write_escaped_newlines(s, i);
-            ++i;
-            pos = i;
-            // as for the next line...
-            if(i < s.len)
-            {
-                _indent(ilevel + 1); // indent the next line
-                // escape leading whitespace, and flush it
-                size_t first = s.first_not_of(" \t", i);
-                //_c4dbgpf("@i={} first={} rem=[{}]~~~{}~~~", i, first, s.sub(i).len, s.sub(i));
-                if(first > i)
-                {
-                    if(first == npos)
-                        first = s.len;
-                    _write('\\');
-                    _write(s.range(i, first));
-                    _write('\\');
-                    i = first-1;
-                    pos = first;
-                }
-            }
-            break;
-        }
-        // escape trailing whitespace before a newline
-        case ' ':
-        case '\t':
-        {
-            const size_t next = s.first_not_of(" \t\r", i);
-            if(next != npos && s.str[next] == '\n')
-            {
-                csubstr sub = s.range(pos, i);
-                _write(sub);  // write everything up to (excluding) this char
-                _write('\\'); // escape the whitespace
-                pos = i;
-            }
-            break;
-        }
-#endif
         case '\r':
         {
             csubstr sub = s.range(pos, i);
