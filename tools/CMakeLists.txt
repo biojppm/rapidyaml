@@ -6,5 +6,5 @@ c4_add_executable(ryml-parse-emit
     INC_DIRS ../test
     LIBS ryml c4fs
     FOLDER tools)
-ryml_add_c4core_dev_to_target(ryml-parse-emit)
+ryml_testbm_link_with_c4core(ryml-parse-emit)
 ryml_maybe_dump_test_yaml(ryml-parse-emit)

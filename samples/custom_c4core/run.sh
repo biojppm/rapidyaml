@@ -17,7 +17,7 @@ if [ "$c4core_tag" == "." ] || [ -z "$c4core_tag" ] ; then
     c4core_tag=$(cat ../../ext/c4core.mk \
                  | grep C4CORE_TAG \
                  | grep = \
-                 | sed 's/.*=\s*\([0-9a-fA-F]*\)/\1/g')
+                 | sed 's/.*=\s*\(.*\)/\1/g')
 fi
 
 # make sure to run from where this file is
