@@ -18,11 +18,6 @@ namespace yml {
 /** @cond dev */
 // fwd declarations
 class Tree;
-/** Specifies the type of content to emit */
-typedef enum { // NOLINT
-    EMIT_YAML = 0, ///< emit YAML
-    EMIT_JSON = 1, ///< emit JSON
-} EmitType_e;
 /** @endcond */
 
 
