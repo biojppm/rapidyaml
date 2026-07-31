@@ -2,7 +2,6 @@
 #include "c4/yml/extra/ints_to_testsuite.hpp"
 
 
-
 namespace c4 {
 namespace yml {
 
@@ -356,11 +355,11 @@ void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string 
 
 //-----------------------------------------------------------------------------
 
-void test_engine_roundtrip_from_events(EngineEvtTestCase const& test_case, EventProducerTree event_producer)
+void test_engine_roundtrip_tree_from_events(EngineEvtTestCase const& test_case, EventProducerTree event_producer)
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
         return;
-    SCOPED_TRACE("roundtrip_from_events");
+    SCOPED_TRACE("roundtrip_tree_from_events");
     Tree event_tree = {};
     EventHandlerTree handler(&event_tree, event_tree.root_id());
     event_producer(handler);
@@ -392,7 +391,59 @@ void test_engine_roundtrip_from_events(EngineEvtTestCase const& test_case, Event
     }
 }
 
-void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
+void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts event_producer)
+{
+    SCOPED_TRACE("roundtrip_ints_from_events");
+    (void)test_case;
+    (void)event_producer;
+}
+
+void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
+{
+    if(test_case.test_case_flags & HAS_CONTAINER_KEYS) // NOLINT
+        return;
+    SCOPED_TRACE("test_engine_roundtrip_from_yaml");
+    std::string copy = yaml;
+    const Tree parsed_tree = parse_in_place(test_case.fileline, to_substr(copy), test_case.opts);
+    #ifdef RYML_DBG
+    print_tree("parsed_tree", parsed_tree);
+    #endif
+    {
+        SCOPED_TRACE("invariants_after_parse");
+        test_invariants(parsed_tree);
+    }
+    const std::string parsed_tree_emitted = emitrs_yaml<std::string>(parsed_tree);
+    if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+    {
+        EXPECT_EQ(test_case.expected_emitted, parsed_tree_emitted);
+    }
+    std::string emitted0_copy = parsed_tree_emitted;
+    const Tree after_roundtrip = parse_in_place(test_case.fileline, to_substr(emitted0_copy), test_case.opts);
+    {
+        SCOPED_TRACE("invariants_after_roundtrip");
+        test_invariants(after_roundtrip);
+    }
+    {
+        SCOPED_TRACE("compare_trees");
+        test_compare(after_roundtrip, parsed_tree,
+                     "after_roundtrip", "parsed_tree");
+    }
+    const std::string after_roundtrip_emitted = emitrs_yaml<std::string>(after_roundtrip);
+    if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+    {
+        EXPECT_EQ(test_case.expected_emitted, after_roundtrip_emitted);
+    }
+    if(testing::Test::HasFailure())
+    {
+        printf("source: ~~~\n%.*s~~~\n", (int)yaml.size(), yaml.data());
+        print_tree("parsed_tree", parsed_tree);
+        printf("parsed_tree_emitted: ~~~\n%.*s~~~\n", (int)parsed_tree_emitted.size(), parsed_tree_emitted.data());
+        print_tree("after_roundtrip", after_roundtrip);
+        printf("after_roundtrip_emitted: ~~~\n%.*s~~~\n", (int)after_roundtrip_emitted.size(), after_roundtrip_emitted.data());
+    }
+}
+
+void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS) // NOLINT
         return;
@@ -510,7 +561,7 @@ void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case
     }
 }
 
-void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+void test_engine_roundtrip_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
     SCOPED_TRACE("test_engine_roundtrip_from_yaml_with_comments");
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
@@ -526,7 +577,29 @@ void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test
         RYML_TRACE_FMT("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comment_cases.size(), transformed_str.size(), to_csubstr(transformed_str));
         SCOPED_TRACE(transformed_str);
         SCOPED_TRACE("commented");
-        test_engine_roundtrip_from_yaml(test_case, transformed_str);
+        test_engine_roundtrip_tree_from_yaml(test_case, transformed_str);
+        if(testing::Test::HasFailure())
+            break;
+    }
+}
+
+void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+{
+    SCOPED_TRACE("test_engine_roundtrip_from_yaml_with_comments");
+    if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
+        return;
+    if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
+        return;
+    if(test_case.test_case_flags & NO_COMPARE_EMITTED)
+        return;
+    const auto injected_comment_cases = inject_comments_in_src(test_case.yaml);
+    for(size_t i = 0; i < injected_comment_cases.size(); ++i)
+    {
+        const std::string& transformed_str = injected_comment_cases[i];
+        RYML_TRACE_FMT("transformed[{}/{}]=~~~[{}]\n{}\n~~~", i, injected_comment_cases.size(), transformed_str.size(), to_csubstr(transformed_str));
+        SCOPED_TRACE(transformed_str);
+        SCOPED_TRACE("commented");
+        test_engine_roundtrip_ints_from_yaml(test_case, transformed_str);
         if(testing::Test::HasFailure())
             break;
     }

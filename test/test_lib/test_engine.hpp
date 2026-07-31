@@ -13,7 +13,6 @@
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/test_events_ints_helpers.hpp"
 #include "./test_lib/string.hpp"
-#include "c4/yml/extra/ints_to_testsuite.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 
 #if defined(__clang__) && (__clang_major__ >= 13)
@@ -200,17 +199,32 @@ TEST(name, tree_from_yaml)                                              \
                                                                         \
                                                                         \
                                                                         \
-TEST(name, roundtrip_from_events)                                       \
+TEST(name, roundtrip_tree_from_events)                                  \
 {                                                                       \
-    SCOPED_TRACE(#name ".roundtrip_from_events");                       \
-    test_engine_roundtrip_from_events(test_case_##name,                 \
-                                      &events_##name<EventHandlerTree>); \
+    SCOPED_TRACE(#name ".roundtrip_tree_from_events");                  \
+    test_engine_roundtrip_tree_from_events(                             \
+        test_case_##name,                                               \
+        &events_##name<EventHandlerTree>);                              \
 }                                                                       \
                                                                         \
-TEST(name, roundtrip_from_yaml)                                         \
+TEST(name, roundtrip_ints_from_events)                                  \
 {                                                                       \
-    SCOPED_TRACE(#name ".tree_from_yaml");                              \
-    test_engine_roundtrip_from_yaml(test_case_##name);                  \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_events");                  \
+    test_engine_roundtrip_ints_from_events(                             \
+        test_case_##name,                                               \
+        &events_##name<EventHandlerIntsTr>);                            \
+}                                                                       \
+                                                                        \
+TEST(name, roundtrip_tree_from_yaml)                                    \
+{                                                                       \
+    SCOPED_TRACE(#name ".roundtrip_tree_from_yaml");                    \
+    test_engine_roundtrip_tree_from_yaml(test_case_##name);             \
+}                                                                       \
+                                                                        \
+TEST(name, roundtrip_ints_from_yaml)                                    \
+{                                                                       \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml");                    \
+    test_engine_roundtrip_ints_from_yaml(test_case_##name);             \
 }                                                                       \
                                                                         \
                                                                         \
@@ -223,14 +237,20 @@ TEST(name, ints_from_yaml_with_comments)                                \
                                                                         \
 TEST(name, tree_from_yaml_with_comments)                                \
 {                                                                       \
-    SCOPED_TRACE(#name ".tree_from_yaml");                              \
+    SCOPED_TRACE(#name ".tree_from_yaml_with_comments");                \
     test_engine_tree_from_yaml_with_comments(test_case_##name);         \
 }                                                                       \
                                                                         \
-TEST(name, roundtrip_from_yaml_with_comments)                           \
+TEST(name, roundtrip_ints_from_yaml_with_comments)                      \
 {                                                                       \
-    SCOPED_TRACE(#name ".roundtrip_from_yaml");                         \
-    test_engine_roundtrip_from_yaml_with_comments(test_case_##name);    \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml_with_comments");      \
+    test_engine_roundtrip_ints_from_yaml_with_comments(test_case_##name); \
+}                                                                       \
+                                                                        \
+TEST(name, roundtrip_tree_from_yaml_with_comments)                      \
+{                                                                       \
+    SCOPED_TRACE(#name ".roundtrip_tree_from_yaml_with_comments");      \
+    test_engine_roundtrip_tree_from_yaml_with_comments(test_case_##name); \
 }                                                                       \
                                                                         \
                                                                         \
@@ -252,33 +272,40 @@ using EventProducerTree = void (*)(EventHandlerTree &);
 //-----------------------------------------------------------------------------
 
 
-void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts evts);
 void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case, EventProducerInts fn);
+void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype);
+
+void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts evts);
 void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
 inline void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_ints_from_yaml(test_case, test_case.yaml); }
 void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case);
-void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype);
+
+void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts evts);
+void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
+inline void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_roundtrip_ints_from_yaml(test_case, test_case.yaml); }
+void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case);
 
 
 //-----------------------------------------------------------------------------
 
-void test_engine_tree_from_events(EngineEvtTestCase const& test_case, EventProducerTree evts);
 void test_engine_error_tree_from_events(const EngineEvtTestCase& test_case, EventProducerTree evts);
+void test_expected_error_tree_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype);
+
+void test_engine_tree_from_events(EngineEvtTestCase const& test_case, EventProducerTree evts);
 void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
 inline void test_engine_tree_from_yaml(EngineEvtTestCase const& test_case) { test_engine_tree_from_yaml(test_case, test_case.yaml); }
 void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case);
-void test_expected_error_tree_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype);
+
+void test_engine_roundtrip_tree_from_events(EngineEvtTestCase const& test_case, EventProducerTree evts);
+void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
+inline void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case) { test_engine_roundtrip_tree_from_yaml(test_case, test_case.yaml); }
+void test_engine_roundtrip_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case);
 
 
 //-----------------------------------------------------------------------------
 
-void test_engine_roundtrip_from_events(EngineEvtTestCase const& test_case, EventProducerTree evts);
-void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-inline void test_engine_roundtrip_from_yaml(EngineEvtTestCase const& test_case) { test_engine_roundtrip_from_yaml(test_case, test_case.yaml); }
-void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test_case);
-
-
-//-----------------------------------------------------------------------------
+template<class Handler, class ArgTransformer>
+struct EventTransformer;
 
 #if !defined(RYML_DBG)
 #define ___(stmt) stmt
@@ -294,9 +321,6 @@ void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test
 
 void print_handler_info_(EventHandlerTree const& ps, csubstr stmt, const char *file, int line);
 void print_handler_info_(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line);
-
-template<class Handler, class ArgTransformer>
-struct EventTransformer;
 template<class Handler, class Transformer>
 void print_handler_info_(EventTransformer<Handler, Transformer> const& ps, csubstr stmt, const char *file, int line)
 {
