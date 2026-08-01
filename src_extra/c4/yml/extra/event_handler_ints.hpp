@@ -167,7 +167,7 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
     /** @name types
      * @{ */
 
-    using value_type = ievt::evt_bits;
+    using value_type = evt_bits;
     using state = EventHandlerIntsState; // our internal state must inherit from parser state
     enum { requires_strings_on_buffers = true }; // NOLINT
 
@@ -176,7 +176,7 @@ struct EventHandlerInts : public c4::yml::EventHandlerStack<EventHandlerInts, Ev
 public:
 
     /** @cond dev */
-    ievt::evt_bits * m_evt;
+    evt_bits * m_evt;
     evt_size m_evt_pos;
     evt_size m_evt_prev;
     evt_size m_evt_size;
@@ -207,7 +207,7 @@ public:
     {
     }
 
-    void reset(substr str, substr arena, ievt::evt_bits *dst, evt_size dst_size)
+    void reset(substr str, substr arena, evt_bits *dst, evt_size dst_size)
     {
         _stack_reset_root();
         m_curr->flags |= c4::yml::RUNK|c4::yml::RTOP;
@@ -593,15 +593,15 @@ private:
     RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, ((i) + 3) < m_evt_size); \
     if C4_LIKELY((scalar).is_sub(m_src))                                \
     {                                                                   \
-        m_evt[(i) + 1] = (ievt::evt_bits)((scalar).str - m_src.str);    \
+        m_evt[(i) + 1] = (evt_bits)((scalar).str - m_src.str);          \
     }                                                                   \
     else                                                                \
     {                                                                   \
         m_evt[i] |= ievt::AREN;                                         \
-        m_evt[(i) + 1] = (ievt::evt_bits)((scalar).str - m_arena.str);  \
+        m_evt[(i) + 1] = (evt_bits)((scalar).str - m_arena.str);        \
         _c4dbgpf("{}/{}: arena! ->{}", i, m_evt_size, m_evt[(i)+1]);    \
     }                                                                   \
-    m_evt[(i) + 2] = (ievt::evt_bits)(scalar).len;                      \
+    m_evt[(i) + 2] = (evt_bits)(scalar).len;                            \
     m_evt[(i) + 3] = ievt::PSTR
     /** @endcond */
 
@@ -739,7 +739,7 @@ public:
                     }
                     evt_size num_move = m_evt_pos + 1 - pos;
                     RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
-                    memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
+                    memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(evt_bits));
                 }
                 m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
                 // move PSTR to prev
@@ -775,7 +775,7 @@ public:
                 {
                     evt_size num_move = m_evt_pos + 1 - pos;
                     RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
-                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
+                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(evt_bits));
                 }
                 RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, posp1 < m_evt_pos);
                 // start the map
@@ -824,7 +824,7 @@ public:
                     RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
                     RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
                     RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
-                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
+                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(evt_bits));
                     m_evt[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
                     m_evt[posp1] &= ~ievt::VAL_;
                     m_evt[posp1] |= ievt::KEY_;
@@ -915,7 +915,7 @@ public:
         return (!str.str || str.is_sub(m_src) || str.is_sub(m_arena));
     }
 
-    C4_ALWAYS_INLINE void _send_flag_only_(ievt::evt_bits flags)
+    C4_ALWAYS_INLINE void _send_flag_only_(evt_bits flags)
     {
         _c4dbgpf("{}/{}: flag only", m_evt_pos, m_evt_size);
         if(m_evt_pos < m_evt_size)
@@ -927,7 +927,7 @@ public:
             m_evt[m_evt_pos] = {};
     }
 
-    C4_ALWAYS_INLINE void _send_str_(csubstr scalar, ievt::evt_bits flags)
+    C4_ALWAYS_INLINE void _send_str_(csubstr scalar, evt_bits flags)
     {
         _c4dbgpf("{}/{}: send str", m_evt_pos, m_evt_size);
         if(m_evt_pos + 3 < m_evt_size)
@@ -959,7 +959,7 @@ public:
         RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
         while(pos >= 0)
         {
-            ievt::evt_bits e = m_evt[pos];
+            evt_bits e = m_evt[pos];
             if((e & ievt::BDOC) == ievt::BDOC)
                 return pos;
             pos -= (e & ievt::PSTR) ? 3 : 1;
@@ -967,7 +967,7 @@ public:
         return -1; // LCOV_EXCL_LINE
     }
 
-    evt_size _find_matching_open(ievt::evt_bits open, ievt::evt_bits close, evt_size pos) const
+    evt_size _find_matching_open(evt_bits open, evt_bits close, evt_size pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
         RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size);
@@ -977,7 +977,7 @@ public:
         uint32_t count = 0;
         while(pos >= 0)
         {
-            ievt::evt_bits e = m_evt[pos];
+            evt_bits e = m_evt[pos];
             _c4dbgpf("find_matching: pos={} count={} e={}", pos, count, m_evt[pos]);
             if((e & close) == close)
             {

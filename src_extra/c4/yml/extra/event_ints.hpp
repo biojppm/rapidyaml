@@ -175,7 +175,7 @@ using evt_bits = int32_t;
 namespace ievt {
 
 /** enumeration of integer event bits. */
-typedef enum : evt_bits { // NOLINT
+typedef enum : extra::evt_bits { // NOLINT
 
     //-------------------------------------------------------------------------
     // YAML flags
@@ -269,8 +269,40 @@ typedef enum : evt_bits { // NOLINT
 
 } EventBits;
 
+
+C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits) noexcept
+{
+    return (bits & ievt::WSTR) ? 3 : 1;
+}
+C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits) noexcept
+{
+    return (bits & ievt::PSTR) ? 3 : 1;
+}
+
+
+C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits, evt_size pos) noexcept
+{
+    return pos + ((bits & ievt::WSTR) ? 3 : 1);
+}
+C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits, evt_size pos) noexcept
+{
+    return pos - ((bits & ievt::PSTR) ? 3 : 1);
+}
+
+
+C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
+{
+    return pos + ((arr[pos] & ievt::WSTR) ? 3 : 1);
+}
+C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
+{
+    return pos - ((arr[pos] & ievt::PSTR) ? 3 : 1);
+}
+
+
 /** @cond dev */
-using DataType RYML_DEPRECATED("use evt_bits") = evt_bits;
+using DataType RYML_DEPRECATED("use extra::evt_bits") = extra::evt_bits;
+using evt_bits RYML_DEPRECATED("use extra::evt_bits") = extra::evt_bits;
 using EventFlags RYML_DEPRECATED("use EventBits") = EventBits;
 /** @endcond */
 

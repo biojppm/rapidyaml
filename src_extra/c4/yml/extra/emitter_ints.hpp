@@ -220,6 +220,16 @@ private:
         m_col = 0;
     }
 
+    C4_ALWAYS_INLINE csubstr getstr_(evt_size id) noexcept
+    {
+        RYML_ASSERT_BASIC_(id + 2 < m_evts_size);
+        RYML_ASSERT_BASIC_(m_evts[id] & ievt::WSTR);
+        csubstr region = !(m_evts[id] & ievt::AREN) ? m_src : m_arena;
+        region.str = region.str + m_evts[id + 1];
+        region.len = static_cast<size_t>(m_evts[id + 2]);
+        return region;
+    }
+
 private:
 
     evt_bits const* m_evts;
