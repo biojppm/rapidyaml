@@ -255,11 +255,11 @@ typedef enum : extra::evt_bits { // NOLINT
     PJUMP = (1 << 27),
 
     // flow style flags
-    FSL_ = (1 << 28), ///< see @ref c4::yml::FLOW_SL
-    FML1 = (1 << 29), ///< see @ref c4::yml::FLOW_ML1
-    FMLN = (1 << 30), ///< see @ref c4::yml::FLOW_MLN
-    FMLX = FML1|FMLN, ///< see @ref c4::yml::FLOW_MLX
-    FSPC = (1 << 31), ///< see @ref c4::yml::FLOW_SPC
+    FSL_ = (1 << 28), ///< same as @ref c4::yml::FLOW_SL
+    FML1 = (1 << 29), ///< same as @ref c4::yml::FLOW_ML1
+    FMLN = (1 << 30), ///< same as @ref c4::yml::FLOW_MLN
+    FMLX = FML1|FMLN, ///< same as @ref c4::yml::FLOW_MLX
+    FSPC = (1 << 31), ///< same as @ref c4::yml::FLOW_SPC
 
     /// the last flag defined above
     LAST = FSPC,

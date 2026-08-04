@@ -399,9 +399,14 @@ public:
         _send_flag_only_(ievt::EMAP);
     }
 
-    void end_map_flow(bool /*multiline*/, type_bits /*multiline_style*/=FLOW_ML1)
+    void end_map_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _pop();
+        if(m_curr->evt_id < m_evt_size)
+        {
+            RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_curr->evt_id] & ievt::BMAP) == ievt::BMAP);
+            m_evt[m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
+        }
         _send_flag_only_(ievt::EMAP);
     }
 
@@ -455,10 +460,10 @@ public:
     void end_seq_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _pop();
-        if(multiline)
+        if(m_curr->evt_id < m_evt_size)
         {
-            ryml_disable_(FLOW_SL);
-            enable_(multiline_style);
+            RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_curr->evt_id] & ievt::BSEQ) == ievt::BSEQ);
+            m_evt[m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
         }
         _send_flag_only_(ievt::ESEQ);
     }
@@ -1009,6 +1014,15 @@ public:
             prev = _prev(prev);
         }
         return pos;
+    }
+
+    C4_ALWAYS_INLINE evt_bits translate_flowml_(type_bits multiline_style) noexcept
+    {
+        static_assert((uint32_t)(FLOW_ML1 << 12) == (uint32_t)ievt::FML1, "");
+        static_assert((uint32_t)(FLOW_MLN << 12) == (uint32_t)ievt::FMLN, "");
+        static_assert((uint32_t)(FLOW_MLX << 12) == (uint32_t)ievt::FMLX, "");
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, 0 == (multiline_style & ~FLOW_MLX));
+        return (evt_bits)(multiline_style << 12);
     }
 
     /** @} */

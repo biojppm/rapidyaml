@@ -112,7 +112,7 @@ private: // pending whitespace
 
 private:
 
-    void emit_yaml_(evt_size &id);
+    void emit_yaml_(evt_size id);
 
     void visit_stream_(evt_size &id);
     void visit_doc_(evt_size &id);
@@ -141,13 +141,13 @@ private:
 
     void flow_seq_open_entry_(evt_size &id);
     void flow_map_open_entry_(evt_size &id);
-    void flow_close_entry_sl_(evt_size &id, evt_size last_sibling, Pws_e pend_after);
-    void flow_close_entry_ml_(evt_size &id, evt_size last_sibling, Pws_e pend_after);
+    void flow_close_entry_sl_(evt_size id, Pws_e pend_after);
+    void flow_close_entry_ml_(evt_size id, Pws_e pend_after);
     void flow_write_scalar_(csubstr str, evt_bits type);
 
 private:
 
-    void json_emit_(evt_size &id);
+    void json_emit_(evt_size id);
     void write_scalar_literal_(csubstr s, evt_size level);
     void write_scalar_folded_(csubstr s, evt_size level);
     void write_scalar_squo_(csubstr s, evt_size level);
@@ -224,7 +224,7 @@ private:
     {
         RYML_ASSERT_BASIC_(id + 2 < m_evts_size);
         RYML_ASSERT_BASIC_(m_evts[id] & ievt::WSTR);
-        csubstr region = !(m_evts[id] & ievt::AREN) ? m_src : m_arena;
+        csubstr region = (m_evts[id] & ievt::AREN) ? m_arena : m_src;
         region.str = region.str + m_evts[id + 1];
         region.len = static_cast<size_t>(m_evts[id + 2]);
         return region;

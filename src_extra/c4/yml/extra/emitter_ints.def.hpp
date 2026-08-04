@@ -9,6 +9,9 @@
 #ifndef C4_YML_SCALAR_STYLE_HPP_
 #include "c4/yml/scalar_style.hpp"
 #endif
+#ifndef C4_YML_SCALAR_CHARCONV_HPP_
+#include "c4/yml/scalar_charconv.hpp"
+#endif
 #ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
@@ -22,7 +25,8 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-namespace detail {
+namespace {
+
 enum : type_bits { // NOLINT
     styles_block_key_ = KEY_LITERAL|KEY_FOLDED,
     styles_block_val_ = VAL_LITERAL|VAL_FOLDED,
@@ -36,7 +40,62 @@ enum : type_bits { // NOLINT
     styles_literal_   = KEY_LITERAL|VAL_LITERAL,
     styles_folded_    = KEY_FOLDED|VAL_FOLDED,
 };
-} // namespace detail
+enum : evt_bits { // NOLINT
+    styles_ievt_sclr = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
+    styles_ievt_cont = ievt::BLCK|ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
+};
+
+//see also NodeType implementation in scalar_style.cpp
+NodeType scalar_style_choose_json_ievt(csubstr scalar) noexcept
+{
+    // do not quote numbers or special scalars
+    return scalar_is_plain_number_json(scalar)
+        || scalar_is_special_json(scalar) ? ievt::PLAI : ievt::DQUO;
+}
+//see also NodeType implementation in scalar_style.cpp
+evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
+{
+    if(scalar.len)
+    {
+        if(scalar_style_query_plain_block(scalar))
+            return ievt::PLAI;
+        RYML_ASSERT_BASIC_(scalar_style_query_squo(scalar)
+                           && "if this assertion fires, please submit an issue!");
+        return ievt::SQUO;
+    }
+    (void)scalar_style_choose_json_ievt;
+    return scalar.str ? ievt::SQUO : ievt::PLAI;
+}
+evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
+{
+    if(scalar.len)
+    {
+        if(scalar_style_query_plain_flow(scalar))
+            return ievt::PLAI;
+        else if(scalar_style_query_squo(scalar))
+            return ievt::SQUO;
+        return ievt::DQUO;
+    }
+    return scalar.str ? ievt::SQUO : ievt::PLAI;
+}
+
+C4_HOT C4_ALWAYS_INLINE bool hasall(evt_bits mask, evt_bits bits) noexcept
+{
+    return (mask & bits) == bits;
+}
+C4_HOT C4_ALWAYS_INLINE bool hasany(evt_bits mask, evt_bits bits) noexcept
+{
+    return (mask & bits);
+}
+C4_HOT C4_ALWAYS_INLINE bool hasnone(evt_bits mask, evt_bits bits) noexcept
+{
+    return !(mask & bits);
+}
+C4_HOT C4_ALWAYS_INLINE bool seqormap(evt_bits mask) noexcept
+{
+    return (mask & ievt::BEG_) && (mask & (ievt::SEQ_|ievt::MAP_));
+}
+} // namespace anon
 
 
 template<class Writer>
@@ -86,14 +145,14 @@ void EmitterInts<Writer>::emit_as(EmitType_e type,
 // (which should be oblivious of such logic). This makes the recursive
 // descending code a lot simpler.
 template<class Writer>
-void EmitterInts<Writer>::emit_yaml_(evt_size &pos)
+void EmitterInts<Writer>::emit_yaml_(evt_size pos)
 {
     evt_bits ty = m_evts[pos];
 
     // emit leading tokens, such as keys or comments
-    const bool has_parent = !(ty & ievt::BSTR);
+    const bool has_parent = hasnone(ty, ievt::BSTR);
     const bool emit_key = has_parent && (ty & ievt::KEY_) && m_opts.emit_nonroot_key();
-    const bool emit_dash = has_parent && !(ty & ievt::KEY_) && !(ty & ievt::BDOC) && m_opts.emit_nonroot_dash();
+    const bool emit_dash = has_parent && !(ty & ievt::KEY_) && hasnone(ty, ievt::BDOC) && m_opts.emit_nonroot_dash();
     RYML_ASSERT_BASIC_(!(emit_key && emit_dash));
 
     // emit opening tokens (such as tags, anchors or comments)
@@ -113,26 +172,26 @@ void EmitterInts<Writer>::emit_yaml_(evt_size &pos)
     }
 
     // emit the payload
-    if(ty & ievt::BSTR)
+    if(hasall(ty, ievt::BSTR))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
         visit_stream_(pos);
     }
-    else if(ty & ievt::BDOC)
+    else if(hasall(ty, ievt::BDOC))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
         visit_doc_(pos);
     }
-    else if(ty & (ievt::BSEQ|ievt::BMAP))
+    else if(seqormap(ty))
     {
         visit_blck_container_(pos);
     }
-    else if(ty & ievt::VAL_)
+    else if(ty & ievt::SCLR)
     {
         visit_doc_val_(pos);
     }
 
-    // emit closing tokens (such as comments)
+    // emit closing tokens
     if(emit_key)
     {
         --m_ilevel;
@@ -170,19 +229,19 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
     m_ilevel = 0;
     ++m_depth;
     uint32_t doc_count = 0;
-    for( ; pos < m_evts_size; pos = ievt::nextpos(m_evts, pos))
+    while(pos < m_evts_size)
     {
         evt_bits evt = m_evts[pos];
-        if(evt & ievt::BDOC)
+        if(hasall(evt, ievt::BDOC))
         {
             bool expl = doc_count++ || (evt & ievt::EXPL);
             if(expl)
             {
-                write_pws_and_pend_(' ');
+                write_pws_and_pend_(PWS_SPACE_);
                 write_("---");
             }
             RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-            if(!(m_evts[pos + 1] & ievt::EDOC))
+            if(hasnone(m_evts[pos + 1], ievt::EDOC))
             {
                 visit_doc_(++pos);
             }
@@ -192,19 +251,12 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
                 pend_none_();
             }
         }
-        else if(evt & ievt::EDOC)
-        {
-            if(evt & ievt::EXPL)
-            {
-                write_("...");
-                pend_newl_();
-            }
-        }
         else if(evt & ievt::YAML)
         {
             write_("%YAML ");
             write_(getstr_(pos));
             write_('\n');
+            pos += 3;
         }
         else if(evt & ievt::TAGH)
         {
@@ -212,12 +264,18 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
             RYML_ASSERT_BASIC_(m_evts[pos + 1] & ievt::TAGP);
             write_("%TAG ");
             write_(getstr_(pos));
+            pos += 3;
         }
         else if(evt & ievt::TAGP)
         {
             write_(' ');
             write_(getstr_(pos));
             write_('\n');
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
         }
     }
     --m_depth;
@@ -285,8 +343,7 @@ template<class Writer>
 void EmitterInts<Writer>::visit_blck_container_(evt_size &pos)
 {
     evt_bits evt = m_evts[pos];
-    RYML_ASSERT_BASIC_(evt & ievt::BEG_);
-    RYML_ASSERT_BASIC_(evt & (ievt::BSEQ|ievt::BMAP));
+    RYML_ASSERT_BASIC_(seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
     if(!(evt & (ievt::FLOW|ievt::BLCK)))
         evt |= (m_evts[pos + 1] & ievt::END_) ? ievt::FSL_ : ievt::BLCK;
@@ -297,6 +354,7 @@ void EmitterInts<Writer>::visit_blck_container_(evt_size &pos)
         visit_flow_ml_(pos);
     else
         visit_blck_(pos);
+    RYML_ASSERT_BASIC_(!(evt & ievt::END_));
 #ifdef OLD
     NodeType ty = m_tree->type(id);
     if(!(ty.m_bits & CONTAINER_STYLE))
@@ -315,8 +373,7 @@ template<class Writer>
 void EmitterInts<Writer>::visit_flow_container_(evt_size &pos)
 {
     evt_bits evt = m_evts[pos];
-    RYML_ASSERT_BASIC_(evt & ievt::BEG_);
-    RYML_ASSERT_BASIC_(evt & (ievt::BSEQ|ievt::BMAP));
+    RYML_ASSERT_BASIC_(seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
     if(!(evt & (ievt::FLOW|ievt::BLCK)))
         evt |= ievt::FSL_;
@@ -325,6 +382,7 @@ void EmitterInts<Writer>::visit_flow_container_(evt_size &pos)
         visit_flow_ml_(pos);
     else
         visit_flow_sl_(pos);
+    RYML_ASSERT_BASIC_(!(evt & ievt::END_));
 #ifdef OLD
     NodeType ty = m_tree->type(id);
     if(!(ty.m_bits & CONTAINER_STYLE))
@@ -341,10 +399,40 @@ void EmitterInts<Writer>::visit_flow_container_(evt_size &pos)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_doc_val_(evt_size &id)
+void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
 {
     // some plain scalars such as '...' and '---' must not
     // appear at 0-indentation
+    evt_bits evt = m_evts[pos];
+    RYML_ASSERT_BASIC_(hasall(evt, ievt::VAL_|ievt::SCLR));
+    const csubstr val = getstr_(pos);
+    evt_bits valstyle = evt & styles_ievt_sclr;
+    const bool is_ambiguous = ((evt & ievt::PLAI) || !valstyle)
+        && (val.begins_with("...") || val.begins_with("---"));
+    if(is_ambiguous)
+    {
+        ++m_ilevel;
+        if(m_pws != PWS_NONE_)
+            pend_newl_();
+        else
+            indent_(m_ilevel);
+    }
+    write_pws_and_pend_(PWS_NONE_);
+    if(evt & ievt::ALIA)
+    {
+        write_ref_(val);
+    }
+    else
+    {
+        if(!valstyle)
+            valstyle = scalar_style_choose_block_ievt(val);
+        blck_write_scalar_(val, valstyle);
+    }
+    if(is_ambiguous)
+    {
+        --m_ilevel;
+    }
+#ifdef OLD
     NodeType ty = m_tree->type(id);
     const csubstr val = m_tree->val(id);
     type_bits val_style = ty.m_bits & VAL_STYLE;
@@ -373,6 +461,7 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &id)
     {
         --m_ilevel;
     }
+#endif
 }
 
 
@@ -381,35 +470,45 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &id)
 template<class Writer>
 void EmitterInts<Writer>::visit_doc_(evt_size &pos)
 {
-    for( ; pos < m_evts_size; pos = ievt::nextpos(m_evts, pos))
+    while(pos < m_evts_size)
     {
         evt_bits evt = m_evts[pos];
         if(evt & ievt::SCLR)
         {
             RYML_ASSERT_BASIC_(evt & ievt::VAL_);
             visit_doc_val_(pos);
+            pos += 3;
         }
         else if(evt & ievt::ANCH)
         {
             write_pws_and_pend_(PWS_SPACE_);
             write_('&');
             write_(getstr_(pos));
+            pos += 3;
         }
         else if(evt & ievt::TAG_)
         {
             write_pws_and_pend_(PWS_SPACE_);
             write_tag_(getstr_(pos));
+            pos += 3;
         }
-        else if(evt & ievt::EDOC)
+        else if(hasall(evt, ievt::EDOC))
         {
+            write_pws_and_pend_(PWS_NONE_);
+            if(evt & ievt::EXPL)
+            {
+                write_("...");
+                newl_();
+            }
+            ++pos;
             return;
         }
         else
         {
             // must be a container
-            RYML_ASSERT_BASIC_(evt & (ievt::BSEQ|ievt::BMAP));
+            RYML_ASSERT_BASIC_(seqormap(evt));
             // default to block
-            if(!(evt & (ievt::BLCK|ievt::FLOW)))
+            if(hasnone(evt, ievt::BLCK|ievt::FLOW))
                 evt |= ievt::BLCK;
             if(evt & ievt::BLCK)
             {
@@ -441,8 +540,10 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos)
 
 // to be called only at top level
 template<class Writer>
-void EmitterInts<Writer>::top_open_entry_(evt_size node)
+void EmitterInts<Writer>::top_open_entry_(evt_size &node)
 {
+    (void)node;
+#ifdef OLD
     NodeType ty = m_tree->type(node);
     if(ty.is_doc() && !m_tree->is_root(node))
     {
@@ -474,27 +575,33 @@ void EmitterInts<Writer>::top_open_entry_(evt_size node)
                 pend_newl_();
         }
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::top_close_entry_(evt_size node)
+void EmitterInts<Writer>::top_close_entry_(evt_size &node)
 {
+    (void)node;
+#ifdef OLD
     NodeType ty = m_tree->type(node);
     if(ty.is_val() && !(ty.m_bits & VALNIL))
     {
         pend_newl_();
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::flow_seq_open_entry_(evt_size node)
+void EmitterInts<Writer>::flow_seq_open_entry_(evt_size &node)
 {
+    (void)node;
+#ifdef OLD
     NodeType ty = m_tree->type(node);
     write_pws_and_pend_(PWS_NONE_);
     if(ty.m_bits & VALANCH)
@@ -508,14 +615,17 @@ void EmitterInts<Writer>::flow_seq_open_entry_(evt_size node)
         write_pws_and_pend_(PWS_SPACE_);
         write_tag_(m_tree->val_tag(node));
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::flow_map_open_entry_(evt_size node)
+void EmitterInts<Writer>::flow_map_open_entry_(evt_size &node)
 {
+    (void)node;
+#ifdef OLD
     NodeType ty = m_tree->type(node);
     write_pws_and_pend_(PWS_NONE_);
     RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.has_key(), m_tree, node);
@@ -539,9 +649,9 @@ void EmitterInts<Writer>::flow_map_open_entry_(evt_size node)
     {
         write_pws_and_pend_(PWS_NONE_);
         csubstr key = m_tree->key(node);
-        if(!(ty.m_bits & detail::styles_flow_key_))
-            ty.m_bits |= scalar_style_choose_flow(key) & detail::styles_flow_key_;
-        flow_write_scalar_(key, ty.m_bits & detail::styles_flow_key_);
+        if(!(ty.m_bits & styles_flow_key_))
+            ty.m_bits |= scalar_style_choose_flow(key) & styles_flow_key_;
+        flow_write_scalar_(key, ty.m_bits & styles_flow_key_);
     }
     write_pws_and_pend_(PWS_SPACE_);
     write_(':');
@@ -556,6 +666,7 @@ void EmitterInts<Writer>::flow_map_open_entry_(evt_size node)
         write_pws_and_pend_(PWS_SPACE_);
         write_tag_(m_tree->val_tag(node));
     }
+#endif
 }
 
 
@@ -564,13 +675,13 @@ void EmitterInts<Writer>::flow_map_open_entry_(evt_size node)
 template<class Writer>
 C4_NODISCARD bool EmitterInts<Writer>::maybe_start_flow_pws_ml_(evt_size node) noexcept
 {
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->type(node) & (FLOW_ML1|FLOW_MLN), m_tree, node);
+    RYML_ASSERT_BASIC_(m_evts[node] & ievt::FMLX);
     if(m_flow_pws.active)
         return false;
-    NodeType ty = m_tree->type(node);
+    evt_bits evt = m_evts[node];
     if(m_opts.force_flow_spc())
-        ty |= FLOW_SPC;
-    m_flow_pws.start(ty, m_opts.max_cols());
+        evt |= ievt::FSPC;
+    m_flow_pws.start(evt, m_opts.max_cols());
     return true;
 }
 
@@ -584,20 +695,20 @@ C4_NODISCARD typename EmitterInts<Writer>::flow_pws EmitterInts<Writer>::setup_f
     }
     else
     {
-        NodeType ty = m_tree->type(node);
+        evt_bits evt = m_evts[node];
         if(m_opts.force_flow_spc())
-            ty |= FLOW_SPC;
-        ret.start(ty, 0);
+            evt |= ievt::FSPC;
+        ret.start(evt, 0);
     }
     return ret;
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_pws::start(NodeType ty, size_t max_cols_) noexcept
+void EmitterInts<Writer>::flow_pws::start(evt_bits evt, size_t max_cols_) noexcept
 {
     max_cols = 0;
-    pend_after_comma = (ty.m_bits & FLOW_SPC) ? PWS_SPACE_ : PWS_NONE_;
-    if(ty.m_bits & FLOW_MLN)
+    pend_after_comma = (evt & ievt::FSPC) ? PWS_SPACE_ : PWS_NONE_;
+    if(evt & ievt::FMLN)
     {
         max_cols_ = max_cols_ >= 2 ? max_cols_ : 2;
         // subtract 1 for the comma, and maybe the space from pend_after_comma
@@ -606,16 +717,17 @@ void EmitterInts<Writer>::flow_pws::start(NodeType ty, size_t max_cols_) noexcep
         static_assert((size_t)PWS_NONE_ == 0 && (size_t)PWS_SPACE_ == 1, "invalid assumptions");
         active = true;
     }
-    else if(ty.m_bits & FLOW_ML1)
+    else if(evt & ievt::FML1)
     {
         pend_after_comma = PWS_NEWL_;
     }
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_sl_(evt_size node, evt_size last_sibling, Pws_e pend_after)
+void EmitterInts<Writer>::flow_close_entry_sl_(evt_size id, Pws_e pend_after)
 {
-    if(node != last_sibling)
+    RYML_ASSERT_BASIC_(id + 1 < m_evts_size);
+    if(!(m_evts[id + 1] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
         write_(',');
@@ -623,9 +735,10 @@ void EmitterInts<Writer>::flow_close_entry_sl_(evt_size node, evt_size last_sibl
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_ml_(evt_size node, evt_size last_sibling, Pws_e pend_after)
+void EmitterInts<Writer>::flow_close_entry_ml_(evt_size id, Pws_e pend_after)
 {
-    if(node != last_sibling)
+    RYML_ASSERT_BASIC_(id + 1 < m_evts_size);
+    if(!(m_evts[id + 1] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
         write_(',');
@@ -640,8 +753,10 @@ void EmitterInts<Writer>::flow_close_entry_ml_(evt_size node, evt_size last_sibl
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::blck_seq_open_entry_(evt_size &node)
+void EmitterInts<Writer>::blck_seq_open_entry_(evt_size &pos)
 {
+    (void)pos;
+#ifdef OLD
     NodeType ty = m_tree->type(node);
     write_pws_and_pend_(PWS_SPACE_); // pend the space after the following dash
     write_('-');
@@ -666,16 +781,19 @@ void EmitterInts<Writer>::blck_seq_open_entry_(evt_size &node)
         if((ty.m_bits & BLOCK) && m_tree->has_children(node))
             pend_newl_();
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::blck_map_open_entry_(evt_size &node)
+void EmitterInts<Writer>::blck_map_open_entry_(evt_size &pos)
 {
+    (void)pos;
+#ifdef OLD
     NodeType ty = m_tree->type(node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.has_key(), m_tree, node);
+    RYML_ASSERT_BASIC_(ty.has_key());
     csubstr key = m_tree->key(node);
     if(!(ty.m_bits & (KEY_STYLE|KEYREF)))
         ty.m_bits |= (scalar_style_choose_block(key).m_bits & KEY_STYLE);
@@ -699,7 +817,7 @@ void EmitterInts<Writer>::blck_map_open_entry_(evt_size &node)
     else
     {
         write_pws_and_pend_(PWS_NONE_);
-        const type_bits use_qmrk = ty.m_bits & detail::styles_block_key_;
+        const type_bits use_qmrk = ty.m_bits & styles_block_key_;
         if(!use_qmrk)
         {
             blck_write_scalar_(key, ty.m_bits & KEY_STYLE);
@@ -731,31 +849,114 @@ void EmitterInts<Writer>::blck_map_open_entry_(evt_size &node)
         if(ty.is_block())
             pend_newl_();
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::blck_close_entry_(evt_size &node)
+void EmitterInts<Writer>::blck_close_entry_(evt_size &pos)
 {
+    (void)pos;
+#ifdef OLD
     (void)node;
     pend_newl_();
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_blck_seq_(evt_size &node)
+void EmitterInts<Writer>::visit_blck_seq_(evt_size &pos)
 {
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
+    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BSEQ));
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    ++pos;
+    bool newval = true;
+    bool has_tag_or_anchor = false;
+    evt_bits evt = {};
+    while(pos < m_evts_size)
+    {
+        evt = m_evts[pos];
+        if(hasall(evt, ievt::ESEQ))
+        {
+            ++pos;
+            break;
+        }
+        if(newval)
+        {
+            write_pws_and_pend_(PWS_SPACE_); // pend the space after the following dash
+            write_('-');
+            newval = false;
+        }
+        if(evt & ievt::SCLR)
+        {
+            write_pws_and_pend_(PWS_NEWL_);
+            const csubstr val = getstr_(pos);
+            if(!(evt & styles_ievt_sclr))
+                evt |= scalar_style_choose_block_ievt(val);
+            blck_write_scalar_(val, evt);
+            pos += 3;
+            goto nextval; // NOLINT
+        }
+        else if(seqormap(evt))
+        {
+            if(has_tag_or_anchor)
+            {
+                if(hasnone(evt, styles_ievt_cont))
+                    evt |= ievt::BLCK;
+                bool empty = (m_evts[pos + 1] & ievt::END_);
+                if((evt & ievt::BLCK) && !empty)
+                    pend_newl_();
+            }
+            ++m_depth;
+            ++m_ilevel;
+            visit_blck_container_(pos);
+            --m_depth;
+            --m_ilevel;
+            goto nextval; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            write_pws_and_pend_(PWS_NEWL_);
+            write_ref_(getstr_(pos));
+            pos += 3;
+            goto nextval; // NOLINT
+        }
+        else if(evt & ievt::ANCH)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_('&');
+            write_(getstr_(pos));
+            pos += 3;
+        }
+        else if(evt & ievt::TAG_)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_tag_(getstr_(pos));
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
+        }
+        continue;
+    nextval:
+        newval = true;
+        has_tag_or_anchor = false;
+    }
+#ifdef OLD
+    RYML_ASSERT_BASIC_(m_tree->is_seq(node), m_tree, node);
     bool empty = true;
     for(evt_size child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         empty = false;
         NodeType ty = m_tree->type(child);
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_val() || ty.is_container() || ty == NOTYPE, m_tree, node);
+        RYML_ASSERT_BASIC_(ty.is_val() || ty.is_container() || ty == NOTYPE, m_tree, node);
         blck_seq_open_entry_(child);
         if(ty.is_val())
         {
@@ -787,21 +988,135 @@ void EmitterInts<Writer>::visit_blck_seq_(evt_size &node)
         write_pws_and_pend_(PWS_NONE_);
         write_("[]");
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
+
 template<class Writer>
-void EmitterInts<Writer>::visit_blck_map_(evt_size &node)
+void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
 {
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
+    auto keybits = [this](evt_size p) noexcept
+    {
+        RYML_ASSERT_BASIC_(m_evts[p] & ievt::KEY_);
+        evt_bits accum = {};
+        for( ; p < m_evts_size; p = ievt::nextpos(m_evts, p))
+        {
+            if(m_evts[p] & ievt::VAL_)
+                break;
+            accum |= m_evts[p];
+        }
+        return accum;
+    };
+    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BMAP));
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    bool statenew = true;
+    bool statekey = true;
+    bool has_tag_or_anchor = false;
+    bool qmark = false;
+    ++pos;
+    evt_bits evt = {};
+    while(pos < m_evts_size)
+    {
+        evt = m_evts[pos];
+        if(hasall(evt, ievt::EMAP))
+        {
+            ++pos;
+            break;
+        }
+        if(statenew)
+        {
+            if(statekey)
+            {
+                evt_bits bits = keybits(pos);
+                qmark = bits & (ievt::SEQ_|ievt::MAP_|ievt::LITL|ievt::FOLD);
+                if(!qmark)
+                {
+                    write_pws_and_pend_(PWS_NONE_);
+                }
+                else
+                {
+                    write_pws_and_pend_(PWS_SPACE_);
+                    write_('?');
+                }
+            }
+            else
+            {
+                if(qmark)
+                    pend_newl_();
+                write_pws_and_pend_(PWS_SPACE_);
+                write_(':');
+            }
+            statenew = false;
+        }
+        if(evt & ievt::SCLR)
+        {
+            write_pws_and_pend_(statekey ? PWS_NONE_ : PWS_NEWL_);
+            const csubstr val = getstr_(pos);
+            if(!(evt & styles_ievt_sclr))
+            {
+                evt |= scalar_style_choose_block_ievt(val);
+                RYML_ASSERT_BASIC_(!(evt & (ievt::LITL|ievt::FOLD))); // litl/fold scalars require qmark
+            }
+            blck_write_scalar_(val, evt);
+            pos += 3;
+            goto statenext; // NOLINT
+        }
+        else if(seqormap(evt))
+        {
+            (void)has_tag_or_anchor;
+            if(!(evt & styles_ievt_cont))
+                evt |= ievt::BLCK;
+            ++m_depth;
+            ++m_ilevel;
+            pend_newl_();
+            write_pws_and_pend_(PWS_NONE_);
+            visit_blck_container_(pos);
+            --m_depth;
+            --m_ilevel;
+            goto statenext; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            write_pws_and_pend_(statekey ? PWS_NONE_ : PWS_NEWL_);
+            write_ref_(getstr_(pos));
+            pos += 3;
+            goto statenext; // NOLINT
+        }
+        else if(evt & ievt::ANCH)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_('&');
+            write_(getstr_(pos));
+            pos += 3;
+        }
+        else if(evt & ievt::TAG_)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_tag_(getstr_(pos));
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
+        }
+        continue;
+    statenext:
+        statenew = true;
+        statekey = !statekey;
+    }
+#ifdef OLD
+    RYML_ASSERT_BASIC_(m_tree->is_map(node), m_tree, node);
     bool empty = true;
     for(evt_size child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         empty = false;
         NodeType ty = m_tree->type(child);
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_keyval() || ty.is_container() || ty == NOTYPE, m_tree, node);
+        RYML_ASSERT_BASIC_(ty.is_keyval() || ty.is_container() || ty == NOTYPE, m_tree, node);
         blck_map_open_entry_(child); // also writes the key
         if(ty.is_keyval())
         {
@@ -833,21 +1148,111 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &node)
         write_pws_and_pend_(PWS_NONE_);
         write_("{}");
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &node)
+void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
 {
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
+    RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BSEQ);
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    ++pos;
+    //const flow_pws pws = setup_flow_pws_sl_(pos);
+    bool first = true;
+    bool newval = true;
+    bool has_tag_or_anchor = false;
+    Pws_e after_comma = (m_evts[pos] & ievt::FML1) ?
+        PWS_NEWL_
+        :
+        (m_evts[pos] & ievt::FSPC) ?
+            PWS_SPACE_
+            :
+            PWS_NONE_;
+    write_('[');
+    while(pos < m_evts_size)
+    {
+        evt_bits evt = m_evts[pos];
+        if(hasall(evt, ievt::ESEQ))
+        {
+            ++pos;
+            break;
+        }
+        if(newval)
+        {
+            write_pws_and_pend_(after_comma); // pend the space after the following dash
+            if(!first)
+                write_(',');
+            newval = false;
+            first = false;
+        }
+        if(evt & ievt::SCLR)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            const csubstr val = getstr_(pos);
+            if(!(evt & styles_ievt_sclr))
+                evt |= scalar_style_choose_flow_ievt(val);
+            blck_write_scalar_(val, evt);
+            pos += 3;
+            goto nextval; // NOLINT
+        }
+        else if(seqormap(evt))
+        {
+            if(has_tag_or_anchor)
+            {
+                bool empty = (m_evts[pos + 1] & ievt::END_);
+                if((evt & ievt::BLCK) && !empty)
+                    pend_newl_();
+            }
+            ++m_depth;
+            ++m_ilevel;
+            visit_flow_container_(pos);
+            --m_depth;
+            --m_ilevel;
+            goto nextval; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            write_ref_(getstr_(pos));
+            pos += 3;
+            goto nextval; // NOLINT
+        }
+        else if(evt & ievt::ANCH)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_('&');
+            write_(getstr_(pos));
+            pos += 3;
+        }
+        else if(evt & ievt::TAG_)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_tag_(getstr_(pos));
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
+        }
+        continue;
+    nextval:
+        newval = true;
+        has_tag_or_anchor = false;
+    }
+    write_(']');
+#ifdef OLD
+    RYML_ASSERT_BASIC_(m_tree->is_seq(node), m_tree, node);
     const flow_pws pws = setup_flow_pws_sl_(node);
     write_('[');
     for(evt_size child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         NodeType ty = m_tree->type(child);
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), (ty & (VAL|SEQ|MAP)) || ty == NOTYPE, m_tree, node);
+        RYML_ASSERT_BASIC_((ty & (VAL|SEQ|MAP)) || ty == NOTYPE, m_tree, node);
         flow_seq_open_entry_(child);
         if(ty.m_bits & VAL)
         {
@@ -855,9 +1260,9 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty.m_bits & detail::styles_flow_val_))
-                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
-                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
+                if(!(ty.m_bits & styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & styles_flow_val_);
             }
             else
             {
@@ -873,15 +1278,113 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &node)
         flow_close_entry_sl_(child, last, pws.next_pws(m_col));
     }
     write_(']');
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &node)
+void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
 {
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_seq(node), m_tree, node);
+    RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BSEQ);
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    //const flow_pws pws = setup_flow_pws_sl_(pos);
+    bool first = true;
+    bool newval = true;
+    bool has_tag_or_anchor = false;
+    Pws_e after_comma = (m_evts[pos] & ievt::FML1) ?
+        PWS_NEWL_
+        :
+        (m_evts[pos] & ievt::FSPC) ?
+            PWS_SPACE_
+            :
+            PWS_NONE_;
+    write_('[');
+    pend_newl_();
+    if(m_opts.indent_flow_ml()) ++m_ilevel;
+    const bool stop_at_end = maybe_start_flow_pws_ml_(pos);
+    ++pos;
+    while(pos < m_evts_size)
+    {
+        evt_bits evt = m_evts[pos];
+        if(hasall(evt, ievt::ESEQ))
+        {
+            ++pos;
+            break;
+        }
+        if(newval)
+        {
+            write_pws_and_pend_(after_comma); // pend the space after the following dash
+            if(!first)
+                write_(',');
+            newval = false;
+            first = false;
+        }
+        if(evt & ievt::SCLR)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            const csubstr val = getstr_(pos);
+            if(!(evt & styles_ievt_sclr))
+                evt |= scalar_style_choose_flow_ievt(val);
+            blck_write_scalar_(val, evt);
+            pos += 3;
+            goto nextval; // NOLINT
+        }
+        else if(seqormap(evt))
+        {
+            if(has_tag_or_anchor)
+            {
+                bool empty = (m_evts[pos + 1] & ievt::END_);
+                if((evt & ievt::BLCK) && !empty)
+                    pend_newl_();
+            }
+            ++m_depth;
+            ++m_ilevel;
+            visit_flow_container_(pos);
+            --m_depth;
+            --m_ilevel;
+            goto nextval; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            write_ref_(getstr_(pos));
+            pos += 3;
+            goto nextval; // NOLINT
+        }
+        else if(evt & ievt::ANCH)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_('&');
+            write_(getstr_(pos));
+            pos += 3;
+        }
+        else if(evt & ievt::TAG_)
+        {
+            has_tag_or_anchor = true;
+            write_pws_and_pend_(PWS_SPACE_);
+            write_tag_(getstr_(pos));
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
+        }
+        continue;
+    nextval:
+        flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
+        newval = true;
+        has_tag_or_anchor = false;
+    }
+    if(stop_at_end)
+        m_flow_pws.stop();
+    if(m_opts.indent_flow_ml()) --m_ilevel;
+    write_pws_and_pend_(PWS_NONE_);
+    write_(']');
+#ifdef OLD
+    RYML_ASSERT_BASIC_(m_tree->is_seq(node));
     write_('[');
     pend_newl_();
     if(m_opts.indent_flow_ml()) ++m_ilevel;
@@ -889,7 +1392,7 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &node)
     for(evt_size child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         NodeType ty = m_tree->type(child);
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_val() || ty.is_container() || ty == NOTYPE, m_tree, node);
+        RYML_ASSERT_BASIC_(ty.is_val() || ty.is_container() || ty == NOTYPE, m_tree, node);
         flow_seq_open_entry_(child);
         if(ty.is_val())
         {
@@ -897,9 +1400,9 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty.m_bits & detail::styles_flow_val_))
-                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
-                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
+                if(!(ty.m_bits & styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & styles_flow_val_);
             }
             else
             {
@@ -919,6 +1422,7 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &node)
     if(m_opts.indent_flow_ml()) --m_ilevel;
     write_pws_and_pend_(PWS_NONE_);
     write_(']');
+#endif
 }
 
 
@@ -927,13 +1431,15 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &node)
 template<class Writer>
 void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &node)
 {
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
+    (void)node;
+#ifdef OLD
+    RYML_ASSERT_BASIC_(m_tree->is_map(node), m_tree, node);
     flow_pws pws = setup_flow_pws_sl_(node);
     write_('{');
     for(evt_size child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         NodeType ty = m_tree->type(child);
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.has_key() && (ty.has_val() || ty.is_container() || ty == NOTYPE), m_tree, node);
+        RYML_ASSERT_BASIC_(ty.has_key() && (ty.has_val() || ty.is_container() || ty == NOTYPE), m_tree, node);
         flow_map_open_entry_(child);
         if(ty.has_val())
         {
@@ -941,9 +1447,9 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty.m_bits & detail::styles_flow_val_))
-                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
-                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
+                if(!(ty.m_bits & styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & styles_flow_val_);
             }
             else
             {
@@ -960,6 +1466,7 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &node)
     }
     write_pws_and_pend_(PWS_NONE_);
     write_('}');
+#endif
 }
 
 
@@ -968,7 +1475,9 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &node)
 template<class Writer>
 void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &node)
 {
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_map(node), m_tree, node);
+    (void)node;
+#ifdef OLD
+    RYML_ASSERT_BASIC_(m_tree->is_map(node), m_tree, node);
     write_('{');
     pend_newl_();
     if(m_opts.indent_flow_ml()) ++m_ilevel;
@@ -976,7 +1485,7 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &node)
     for(evt_size child = m_tree->first_child(node), last = m_tree->last_child(node); child != NONE; child = m_tree->next_sibling(child))
     {
         NodeType ty = m_tree->type(child);
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.has_key() && (ty.has_val() || ty.is_container() || ty == NOTYPE), m_tree, node);
+        RYML_ASSERT_BASIC_(ty.has_key() && (ty.has_val() || ty.is_container() || ty == NOTYPE), m_tree, node);
         flow_map_open_entry_(child);
         if(ty.has_val())
         {
@@ -984,9 +1493,9 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &node)
             csubstr val = m_tree->val(child);
             if(!ty.is_val_ref())
             {
-                if(!(ty.m_bits & detail::styles_flow_val_))
-                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & detail::styles_flow_val_);
-                flow_write_scalar_(val, ty.m_bits & detail::styles_flow_val_);
+                if(!(ty.m_bits & styles_flow_val_))
+                    ty.m_bits |= (scalar_style_choose_flow(val).m_bits & styles_flow_val_);
+                flow_write_scalar_(val, ty.m_bits & styles_flow_val_);
             }
             else
             {
@@ -1006,6 +1515,7 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &node)
     if(m_opts.indent_flow_ml()) --m_ilevel;
     write_pws_and_pend_(PWS_NONE_);
     write_('}');
+#endif
 }
 
 
@@ -1014,110 +1524,158 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &node)
 template<class Writer>
 void EmitterInts<Writer>::visit_blck_(evt_size &node)
 {
+    evt_bits evt = m_evts[node];
+    RYML_ASSERT_BASIC_(!(evt & ievt::STRM));
+    RYML_ASSERT_BASIC_(seqormap(evt) || hasall(evt, ievt::BDOC));
+    if C4_UNLIKELY(m_depth > (evt_size)m_opts.max_depth())
+        RYML_ERR_BASIC_("max depth exceeded");
+    if(hasall(evt, ievt::BSEQ))
+    {
+        visit_blck_seq_(node);
+    }
+    else
+    {
+        RYML_ASSERT_BASIC_(hasall(evt, ievt::BMAP));
+        visit_blck_map_(node);
+    }
+#ifdef OLD
     const NodeType ty = m_tree->type(node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
+    RYML_ASSERT_BASIC_(!ty.is_stream(), m_tree, node);
+    RYML_ASSERT_BASIC_(ty.is_container() || ty.is_doc(), m_tree, node);
+    RYML_ASSERT_BASIC_(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if C4_UNLIKELY(m_depth > m_opts.max_depth())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
+        RYML_ERR_BASIC_(m_tree, node, "max depth exceeded");
     if(ty.is_seq())
     {
         visit_blck_seq_(node);
     }
     else
     {
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_map(), m_tree, node);
+        RYML_ASSERT_BASIC_(ty.is_map(), m_tree, node);
         visit_blck_map_(node);
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_flow_sl_(evt_size &node)
+void EmitterInts<Writer>::visit_flow_sl_(evt_size &pos)
 {
+    evt_bits evt = m_evts[pos];
+    RYML_ASSERT_BASIC_(!(evt & ievt::STRM));
+    RYML_ASSERT_BASIC_(seqormap(evt) || hasall(evt, ievt::BDOC));
+    if C4_UNLIKELY(m_depth > (evt_size)m_opts.max_depth())
+        RYML_ERR_BASIC_("max depth exceeded");
+    if(evt & ievt::SEQ_)
+    {
+        visit_flow_sl_seq_(pos);
+    }
+    else
+    {
+        RYML_ASSERT_BASIC_(evt & ievt::MAP_);
+        visit_flow_sl_map_(pos);
+    }
+#ifdef OLD
     const NodeType ty = m_tree->type(node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
+    RYML_ASSERT_BASIC_(!ty.is_stream(), m_tree, node);
+    RYML_ASSERT_BASIC_(ty.is_container() || ty.is_doc(), m_tree, node);
+    RYML_ASSERT_BASIC_(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if C4_UNLIKELY(m_depth > m_opts.max_depth())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
+        RYML_ERR_BASIC_(m_tree, node, "max depth exceeded");
     if(ty.m_bits & SEQ)
     {
         visit_flow_sl_seq_(node);
     }
     else
     {
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_map(), m_tree, node);
+        RYML_ASSERT_BASIC_(ty.is_map(), m_tree, node);
         visit_flow_sl_map_(node);
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_flow_ml_(evt_size &node)
+void EmitterInts<Writer>::visit_flow_ml_(evt_size &pos)
 {
+    evt_bits evt = m_evts[pos];
+    RYML_ASSERT_BASIC_(!(evt & ievt::STRM));
+    RYML_ASSERT_BASIC_(seqormap(evt) || hasall(evt, ievt::BDOC));
+    if C4_UNLIKELY(m_depth > (evt_size)m_opts.max_depth())
+        RYML_ERR_BASIC_("max depth exceeded");
+    if(evt & ievt::SEQ_)
+    {
+        visit_flow_ml_seq_(pos);
+    }
+    else
+    {
+        RYML_ASSERT_BASIC_(evt & ievt::MAP_);
+        visit_flow_ml_map_(pos);
+    }
+#ifdef OLD
     const NodeType ty = m_tree->type(node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), !ty.is_stream(), m_tree, node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_container() || ty.is_doc(), m_tree, node);
-    RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
+    RYML_ASSERT_BASIC_(!ty.is_stream(), m_tree, node);
+    RYML_ASSERT_BASIC_(ty.is_container() || ty.is_doc(), m_tree, node);
+    RYML_ASSERT_BASIC_(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)), m_tree, node);
     if C4_UNLIKELY(m_depth > m_opts.max_depth())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, node, "max depth exceeded");
+        RYML_ERR_BASIC_(m_tree, node, "max depth exceeded");
     if(ty.m_bits & SEQ)
     {
         visit_flow_ml_seq_(node);
     }
     else
     {
-        RYML_ASSERT_VISIT_CB_(m_tree->callbacks(), ty.is_map(), m_tree, node);
+        RYML_ASSERT_BASIC_(ty.is_map(), m_tree, node);
         visit_flow_ml_map_(node);
     }
+#endif
 }
 
 
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::flow_write_scalar_(csubstr str, type_bits ty)
+void EmitterInts<Writer>::flow_write_scalar_(csubstr str, evt_bits evt)
 {
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), !(ty & detail::styles_block_));
-    if((ty & detail::styles_plain_) || !(ty & SCALAR_STYLE))
+    RYML_ASSERT_BASIC_(!(evt & ievt::BLCK));
+    if((evt & ievt::PLAI) || !(evt & styles_ievt_sclr))
     {
         write_scalar_plain_(str, m_ilevel);
     }
-    else if(ty & detail::styles_squo_)
+    else if(evt & ievt::SQUO)
     {
         write_scalar_squo_(str, m_ilevel);
     }
-    else // if(ty & detail::styles_dquo_)
+    else // if(evt & ievt::DQUO)
     {
         write_scalar_dquo_(str, m_ilevel);
     }
 }
 
 template<class Writer>
-void EmitterInts<Writer>::blck_write_scalar_(csubstr str, type_bits ty)
+void EmitterInts<Writer>::blck_write_scalar_(csubstr str, evt_bits evt)
 {
-    if((ty & detail::styles_plain_) || !(ty & SCALAR_STYLE))
+    if((evt & ievt::PLAI) || !(evt & styles_ievt_sclr))
     {
         write_scalar_plain_(str, m_ilevel);
     }
-    else if(ty & detail::styles_squo_)
+    else if(evt & ievt::SQUO)
     {
         write_scalar_squo_(str, m_ilevel);
     }
-    else if(ty & detail::styles_dquo_)
+    else if(evt & ievt::DQUO)
     {
         write_scalar_dquo_(str, m_ilevel);
     }
-    else if(ty & detail::styles_literal_)
+    else if(evt & ievt::LITL)
     {
         write_scalar_literal_(str, m_ilevel);
     }
-    else // if(ty & detail::styles_folded_)
+    else // if(ty & ievt::FOLD)
     {
         write_scalar_folded_(str, m_ilevel);
     }
@@ -1126,8 +1684,8 @@ void EmitterInts<Writer>::blck_write_scalar_(csubstr str, type_bits ty)
 template<class Writer>
 size_t EmitterInts<Writer>::write_escaped_newlines_(csubstr s, size_t i)
 {
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.len > i);
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i] == '\n');
+    RYML_ASSERT_BASIC_(s.len > i);
+    RYML_ASSERT_BASIC_(s.str[i] == '\n');
     //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
     // add an extra newline for each sequence of consecutive
     // newline/whitespace
@@ -1137,9 +1695,9 @@ size_t EmitterInts<Writer>::write_escaped_newlines_(csubstr s, size_t i)
         newl_(); // write the newline again
         ++i; // increase the outer loop counter!
     } while(i < s.len && s.str[i] == '\n');
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), i > 0);
+    RYML_ASSERT_BASIC_(i > 0);
     --i;
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i] == '\n');
+    RYML_ASSERT_BASIC_(s.str[i] == '\n');
     return i;
 }
 
@@ -1157,10 +1715,10 @@ template<class Writer>
 size_t EmitterInts<Writer>::write_indented_block_(csubstr s, size_t i, evt_size ilevel)
 {
     //_c4dbgpf("indblock@i={} rem=[{}]~~~\n{}~~~", i, s.sub(i).len, s.sub(i));
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), i > 0);
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i-1] == '\n');
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), i < s.len);
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i] == ' ' || s.str[i] == '\t' || s.str[i] == '\n');
+    RYML_ASSERT_BASIC_(i > 0);
+    RYML_ASSERT_BASIC_(s.str[i-1] == '\n');
+    RYML_ASSERT_BASIC_(i < s.len);
+    RYML_ASSERT_BASIC_(s.str[i] == ' ' || s.str[i] == '\t' || s.str[i] == '\n');
 again:
     size_t pos = s.find("\n ", i);
     if(pos == npos)
@@ -1192,7 +1750,7 @@ again:
 template<class Writer>
 void EmitterInts<Writer>::write_scalar_literal_(csubstr s, evt_size ilevel)
 {
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.find("\r") == csubstr::npos);
+    RYML_ASSERT_BASIC_(s.find("\r") == csubstr::npos);
     csubstr trimmed = s.trimr('\n');
     const size_t numnewlines_at_end = s.len - trimmed.len;
     const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
@@ -1234,7 +1792,7 @@ void EmitterInts<Writer>::write_scalar_literal_(csubstr s, evt_size ilevel)
 template<class Writer>
 void EmitterInts<Writer>::write_scalar_folded_(csubstr s, evt_size ilevel)
 {
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.find("\r") == csubstr::npos);
+    RYML_ASSERT_BASIC_(s.find("\r") == csubstr::npos);
     csubstr trimmed = s.trimr('\n');
     const size_t numnewlines_at_end = s.len - trimmed.len;
     const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
@@ -1442,14 +2000,16 @@ inline type_bits json_type_(type_bits ty)
 
 
 template<class Writer>
-void EmitterInts<Writer>::json_emit_(evt_size &id)
+void EmitterInts<Writer>::json_emit_(evt_size pos)
 {
+    (void)pos;
+#ifdef OLD
     NodeType ty = m_tree->type(id);
     // JSON does not have streams
     if C4_UNLIKELY(ty.is_stream() && m_opts.json_err_on_stream())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "found stream node");
+        RYML_ERR_BASIC_(m_tree, id, "found stream node");
     static_assert(STREAM & SEQ, "STREAM must be a SEQ");
-    ty = detail::json_type_(ty);
+    ty = json_type_(ty);
     if(ty.is_flow_mlx())
     {
         json_visit_ml_(id, ty, 0);
@@ -1459,13 +2019,18 @@ void EmitterInts<Writer>::json_emit_(evt_size &id)
     {
         json_visit_sl_(id, ty, 0);
     }
+#endif
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_visit_sl_(evt_size &id, NodeType ty, evt_size depth)
+void EmitterInts<Writer>::json_visit_sl_(evt_size &pos, evt_bits ty, evt_size depth)
 {
     if C4_UNLIKELY(depth > m_opts.max_depth())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
+        RYML_ERR_BASIC_("max depth exceeded");
+    (void)pos;
+    (void)ty;
+    (void)depth;
+#ifdef OLD
     if(ty.is_val())
     {
         json_writev_(id, ty);
@@ -1478,7 +2043,7 @@ void EmitterInts<Writer>::json_visit_sl_(evt_size &id, NodeType ty, evt_size dep
     }
     else if(ty.is_container())
     {
-        ty = detail::json_type_(ty);
+        ty = json_type_(ty);
         if(ty.has_key())
         {
             json_writek_(id, ty);
@@ -1506,13 +2071,18 @@ void EmitterInts<Writer>::json_visit_sl_(evt_size &id, NodeType ty, evt_size dep
         else if(ty.is_map())
             write_('}');
     }  // container
+#endif
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_visit_ml_(evt_size &id, NodeType ty, evt_size depth)
+void EmitterInts<Writer>::json_visit_ml_(evt_size &pos, evt_bits ty, evt_size depth)
 {
     if C4_UNLIKELY(depth > m_opts.max_depth())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
+        RYML_ERR_BASIC_("max depth exceeded");
+    (void)pos;
+    (void)ty;
+    (void)depth;
+#ifdef OLD
     if(ty.is_val())
     {
         json_writev_(id, ty);
@@ -1525,7 +2095,7 @@ void EmitterInts<Writer>::json_visit_ml_(evt_size &id, NodeType ty, evt_size dep
     }
     else if(ty.is_container())
     {
-        ty = detail::json_type_(ty);
+        ty = json_type_(ty);
         if(ty.has_key())
         {
             json_writek_(id, ty);
@@ -1578,6 +2148,7 @@ void EmitterInts<Writer>::json_visit_ml_(evt_size &id, NodeType ty, evt_size dep
         else if(ty.is_map())
             write_('}');
     }
+#endif
 }
 
 template<class Writer>
@@ -1639,12 +2210,15 @@ write_nan:
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_writek_(evt_size &id, NodeType ty)
+void EmitterInts<Writer>::json_writek_(evt_size &id, evt_bits ty)
 {
-    if C4_UNLIKELY(ty.has_key_tag() && m_opts.json_err_on_tag())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have tags");
-    if C4_UNLIKELY(ty.has_key_anchor() && m_opts.json_err_on_anchor())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
+    if C4_UNLIKELY((ty & ievt::TAG_) && m_opts.json_err_on_tag())
+        RYML_ERR_BASIC_("JSON does not have tags");
+    if C4_UNLIKELY((ty & ievt::ANCH) && m_opts.json_err_on_anchor())
+        RYML_ERR_BASIC_("JSON does not have anchors");
+    (void)id;
+    (void)ty;
+#ifdef OLD
     csubstr key = m_tree->key(id);
     if(key.len)
     {
@@ -1657,15 +2231,23 @@ void EmitterInts<Writer>::json_writek_(evt_size &id, NodeType ty)
     {
         write_("\"\"");
     }
+#endif
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_writev_(evt_size &id, NodeType ty)
+void EmitterInts<Writer>::json_writev_(evt_size &id, evt_bits ty)
 {
+    if C4_UNLIKELY((ty & ievt::TAG_) && m_opts.json_err_on_tag())
+        RYML_ERR_BASIC_("JSON does not have tags");
+    if C4_UNLIKELY((ty & ievt::ANCH) && m_opts.json_err_on_anchor())
+        RYML_ERR_BASIC_("JSON does not have anchors");
+    (void)id;
+    (void)ty;
+#ifdef OLD
     if C4_UNLIKELY(ty.has_val_tag() && m_opts.json_err_on_tag())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have tags");
+        RYML_ERR_BASIC_("JSON does not have tags");
     if C4_UNLIKELY(ty.has_val_anchor() && m_opts.json_err_on_anchor())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
+        RYML_ERR_BASIC_("JSON does not have anchors");
     csubstr val = m_tree->val(id);
     if(val.len)
     {
@@ -1688,6 +2270,7 @@ void EmitterInts<Writer>::json_writev_(evt_size &id, NodeType ty)
         else
             write_("null");
     }
+#endif
 }
 
 
@@ -1768,7 +2351,7 @@ void EmitterInts<Writer>::json_write_number_(csubstr s)
                 write_('0');
             }
             else
-            {g
+            {
                 write_(s);
             }
         }

@@ -32,11 +32,11 @@ namespace extra {
 C4_NODISCARD RYML_EXPORT
 size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-linkage)
                                 csubstr arena,
-                                ievt::evt_bits const* evts_ints,
-                                ievt::evt_bits evts_ints_sz,
+                                evt_bits const* evts_ints,
+                                evt_bits evts_ints_sz,
                                 substr evts_test_suite)
 {
-    auto getstr = [&](ievt::evt_bits i){
+    auto getstr = [&](evt_bits i){
         bool in_arena = evts_ints[i] & ievt::AREN;
         csubstr region = !in_arena ? parsed_yaml : arena;
         return region.sub((size_t)evts_ints[i+1], (size_t)evts_ints[i+2]);
@@ -102,8 +102,8 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-li
         append(evt);
         append_esc(val);
     };
-    ievt::evt_bits evt = 0;
-    for(ievt::evt_bits i = 0; i < evts_ints_sz; i += (evt & ievt::WSTR) ? 3 : 1)
+    evt_bits evt = 0;
+    for(evt_bits i = 0; i < evts_ints_sz; i += (evt & ievt::WSTR) ? 3 : 1)
     {
         evt = evts_ints[i];
         if(evt & ievt::SCLR)

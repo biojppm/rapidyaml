@@ -16,10 +16,10 @@ namespace extra {
 // specifying events in tests
 struct IntEventWithScalar
 {
-    ievt::evt_bits flags, str_start, str_len;
+    evt_bits flags, str_start, str_len;
     csubstr scalar;
     bool needs_filter;
-    IntEventWithScalar(ievt::evt_bits t, ievt::evt_bits start=0, ievt::evt_bits len=0, csubstr sclr={}, bool needs_filter_=false)
+    IntEventWithScalar(evt_bits t, evt_bits start=0, evt_bits len=0, csubstr sclr={}, bool needs_filter_=false)
         : flags(t)
         , str_start(start)
         , str_len(len)
@@ -35,7 +35,7 @@ size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz);
 
 
 void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
-                      ievt::evt_bits const* actual, size_t actual_sz,
+                      evt_bits const* actual, size_t actual_sz,
                       csubstr yaml,
                       csubstr parsed_source,
                       csubstr arena);
@@ -43,8 +43,8 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
 void test_events_ints_invariants(
     csubstr parsed_yaml,
     csubstr arena,
-    ievt::evt_bits const* evts_ints,
-    ievt::evt_bits evts_ints_sz);
+    evt_bits const* evts_ints,
+    evt_bits evts_ints_sz);
 
 } // namespace extra
 } // namespace yml

@@ -1,5 +1,8 @@
 #include "./test_engine.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
+#include "c4/yml/writer_buf.hpp"
+#include "c4/yml/extra/emitter_ints.hpp"
+#include "c4/yml/extra/emitter_ints.def.hpp"
 
 
 namespace c4 {
@@ -41,7 +44,7 @@ public:
 
     void prepare_yaml(extra::EventHandlerInts &handler,
                       EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
-                      extra::ievt::evt_bits ints_size=-1, size_t arena_size=npos)
+                      extra::evt_bits ints_size=-1, size_t arena_size=npos)
     {
         if(ints_size == -1)
             ints_size = extra::estimate_events_ints_size(to_csubstr(parsed_yaml));
@@ -72,7 +75,7 @@ public:
 
     void prepare_events(EventHandlerIntsTr &handler_tr,
                         EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
-                        extra::ievt::evt_bits ints_size=-1, size_t arena_size=npos)
+                        extra::evt_bits ints_size=-1, size_t arena_size=npos)
     {
         prepare_yaml(handler_tr.handler, test_case, parsed_yaml, ints_size, arena_size);
         handler_tr.transformer.src = to_csubstr(src);
@@ -85,6 +88,34 @@ public:
             return true;
         }
         return false;
+    }
+
+public:
+
+    size_t emit_yaml(substr yaml, EmitOptions const& opts={})
+    {
+        extra::EmitterInts<WriterBuf> emitter(opts, yaml);
+        emitter.emit_as(EMIT_YAML, ints.data(), (extra::evt_size)ints.size(), to_csubstr(src), to_csubstr(arena));
+        return emitter.get_result(/*error_on_excess*/false).len;
+    }
+
+    template<class CharContainer>
+    void emit_yaml(CharContainer *cont, EmitOptions const& opts={})
+    {
+        size_t sz = cont->capacity();
+        cont->resize(sz);
+        size_t len = emit_yaml(to_substr(*cont), opts);
+        cont->resize(len);
+        if(len > sz)
+            emit_yaml(to_substr(*cont), opts);
+    }
+
+    template<class CharContainer>
+    CharContainer emit_yaml(EmitOptions const& opts={})
+    {
+        CharContainer c;
+        emit_yaml(&c, opts);
+        return c;
     }
 
 public:
@@ -180,12 +211,11 @@ void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, Expe
         buffers.print(/*all*/false);
 }
 
-void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+static void test_engine_ints_from_yaml(IntsBuffers& buffers, EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
 {
     SCOPED_TRACE("test_engine_ints_from_yaml");
     extra::EventHandlerInts handler{};
     ParseEngine<extra::EventHandlerInts> parser(&handler, test_case.opts);
-    IntsBuffers buffers;
     int size_estimated = extra::estimate_events_ints_size(to_csubstr(parsed_yaml));
     int reqsz_evts = 0;
     size_t reqsz_arena = 0;
@@ -220,6 +250,12 @@ void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string 
         ASSERT_TRUE(handler.fits_buffers());
         buffers.test(test_case);
     }
+}
+
+void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+{
+    IntsBuffers buffers;
+    test_engine_ints_from_yaml(buffers, test_case, parsed_yaml);
 }
 
 
@@ -402,7 +438,7 @@ void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, st
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS) // NOLINT
         return;
-    SCOPED_TRACE("test_engine_roundtrip_from_yaml");
+    SCOPED_TRACE("roundtrip_tree_from_yaml");
     std::string copy = yaml;
     const Tree parsed_tree = parse_in_place(test_case.fileline, to_substr(copy), test_case.opts);
     #ifdef RYML_DBG
@@ -445,46 +481,18 @@ void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, st
 
 void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
-    if(test_case.test_case_flags & HAS_CONTAINER_KEYS) // NOLINT
-        return;
-    SCOPED_TRACE("test_engine_roundtrip_from_yaml");
-    std::string copy = yaml;
-    const Tree parsed_tree = parse_in_place(test_case.fileline, to_substr(copy), test_case.opts);
-    #ifdef RYML_DBG
-    print_tree("parsed_tree", parsed_tree);
-    #endif
+    SCOPED_TRACE("roundtrip_ints_from_yaml");
+    IntsBuffers buffers1;
     {
-        SCOPED_TRACE("invariants_after_parse");
-        test_invariants(parsed_tree);
+        SCOPED_TRACE("roundtrip_parse1");
+        test_engine_ints_from_yaml(buffers1, test_case, yaml);
     }
-    const std::string parsed_tree_emitted = emitrs_yaml<std::string>(parsed_tree);
-    if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+    const std::string parsed_ints_emitted = buffers1.emit_yaml<std::string>();
+std::cout << parsed_ints_emitted << "\n";
     {
-        EXPECT_EQ(test_case.expected_emitted, parsed_tree_emitted);
-    }
-    std::string emitted0_copy = parsed_tree_emitted;
-    const Tree after_roundtrip = parse_in_place(test_case.fileline, to_substr(emitted0_copy), test_case.opts);
-    {
-        SCOPED_TRACE("invariants_after_roundtrip");
-        test_invariants(after_roundtrip);
-    }
-    {
-        SCOPED_TRACE("compare_trees");
-        test_compare(after_roundtrip, parsed_tree,
-                     "after_roundtrip", "parsed_tree");
-    }
-    const std::string after_roundtrip_emitted = emitrs_yaml<std::string>(after_roundtrip);
-    if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
-    {
-        EXPECT_EQ(test_case.expected_emitted, after_roundtrip_emitted);
-    }
-    if(testing::Test::HasFailure())
-    {
-        printf("source: ~~~\n%.*s~~~\n", (int)yaml.size(), yaml.data());
-        print_tree("parsed_tree", parsed_tree);
-        printf("parsed_tree_emitted: ~~~\n%.*s~~~\n", (int)parsed_tree_emitted.size(), parsed_tree_emitted.data());
-        print_tree("after_roundtrip", after_roundtrip);
-        printf("after_roundtrip_emitted: ~~~\n%.*s~~~\n", (int)after_roundtrip_emitted.size(), after_roundtrip_emitted.data());
+        IntsBuffers buffers2;
+        SCOPED_TRACE("roundtrip_parse2");
+        test_engine_ints_from_yaml(buffers2, test_case, parsed_ints_emitted);
     }
 }
 
@@ -586,8 +594,6 @@ void test_engine_roundtrip_tree_from_yaml_with_comments(EngineEvtTestCase const&
 void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
     SCOPED_TRACE("test_engine_roundtrip_from_yaml_with_comments");
-    if(test_case.test_case_flags & HAS_CONTAINER_KEYS)
-        return;
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
         return;
     if(test_case.test_case_flags & NO_COMPARE_EMITTED)
