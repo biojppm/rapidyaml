@@ -1292,7 +1292,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
     //const flow_pws pws = setup_flow_pws_sl_(pos);
     bool first = true;
     bool newval = true;
-    bool has_tag_or_anchor = false;
     Pws_e after_comma = (m_evts[pos] & ievt::FML1) ?
         PWS_NEWL_
         :
@@ -1315,9 +1314,15 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         }
         if(newval)
         {
-            write_pws_and_pend_(after_comma); // pend the space after the following dash
             if(!first)
+            {
                 write_(',');
+                m_pws = after_comma;
+            }
+            else
+            {
+                write_pws_and_pend_(PWS_NONE_);
+            }
             newval = false;
             first = false;
         }
@@ -1333,12 +1338,7 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         }
         else if(seqormap(evt))
         {
-            if(has_tag_or_anchor)
-            {
-                bool empty = (m_evts[pos + 1] & ievt::END_);
-                if((evt & ievt::BLCK) && !empty)
-                    pend_newl_();
-            }
+            write_pws_and_pend_(PWS_NONE_);
             ++m_depth;
             ++m_ilevel;
             visit_flow_container_(pos);
@@ -1355,7 +1355,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         }
         else if(evt & ievt::ANCH)
         {
-            has_tag_or_anchor = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_('&');
             write_(getstr_(pos));
@@ -1363,7 +1362,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         }
         else if(evt & ievt::TAG_)
         {
-            has_tag_or_anchor = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_tag_(getstr_(pos));
             pos += 3;
@@ -1376,7 +1374,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
     nextval:
         flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
         newval = true;
-        has_tag_or_anchor = false;
     }
     if(stop_at_end)
         m_flow_pws.stop();

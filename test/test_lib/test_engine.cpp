@@ -1,8 +1,6 @@
 #include "./test_engine.hpp"
+#include "./test_events_ints_helpers.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
-#include "c4/yml/writer_buf.hpp"
-#include "c4/yml/extra/emitter_ints.hpp"
-#include "c4/yml/extra/emitter_ints.def.hpp"
 
 
 namespace c4 {
@@ -32,59 +30,37 @@ void print_handler_info_(extra::EventHandlerInts const& ps, csubstr stmt, const 
 //-----------------------------------------------------------------------------
 
 namespace {
-struct IntsBuffers
-{
-    // prefer std::vector<char> to std::string because g++ 4.8
-    // sometimes fails the assignment operator
-    std::vector<char> src;
-    std::vector<char> arena;
-    std::vector<int>  ints;
 
+struct EngineTestIntBuffers
+{
+    extra::IntBuffers buf;
 public:
 
-    void prepare_yaml(extra::EventHandlerInts &handler,
-                      EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
+    void prepare_parse(extra::EventHandlerInts &handler,
+                      std::string const& parsed_yaml,
                       extra::evt_bits ints_size=-1, size_t arena_size=npos)
     {
-        if(ints_size == -1)
-            ints_size = extra::estimate_events_ints_size(to_csubstr(parsed_yaml));
-        if(arena_size == npos)
-            arena_size = test_case.expected_emitted.size();
-        _c4dbgpf("ints: setting buffer sizes: src={} emitted={} ints={} arena={}", parsed_yaml.size(), test_case.expected_emitted.size(), ints_size, arena_size);
-        ints.resize((size_t)ints_size);
-        arena.resize(arena_size);
-        src.assign(parsed_yaml.begin(), parsed_yaml.end());
-        handler.reset(to_substr(src), to_substr(arena), ints.data(), (int)ints.size());
+        buf.prepare_parse(handler, parsed_yaml, ints_size, arena_size);
     }
-    bool resize_post_yaml(extra::EventHandlerInts &handler, std::string const& parsed_yaml)
+    bool resize_post_parse(extra::EventHandlerInts &handler, std::string const& parsed_yaml)
     {
-        bool ret = false;
-        ints.resize((size_t)handler.required_size_events());
-        if(!handler.fits_buffers())
-        {
-            ints.resize((size_t)handler.required_size_events());
-            arena.resize(handler.required_size_arena());
-            src.assign(parsed_yaml.begin(), parsed_yaml.end());
-            handler.reset(to_substr(src), to_substr(arena), ints.data(), (int)ints.size());
-            ret = true;
-        }
-        return ret;
+        return buf.resize_post_parse(handler, parsed_yaml);
     }
 
 public:
 
     void prepare_events(EventHandlerIntsTr &handler_tr,
-                        EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
+                        std::string const& parsed_yaml,
                         extra::evt_bits ints_size=-1, size_t arena_size=npos)
     {
-        prepare_yaml(handler_tr.handler, test_case, parsed_yaml, ints_size, arena_size);
-        handler_tr.transformer.src = to_csubstr(src);
+        prepare_parse(handler_tr.handler, parsed_yaml, ints_size, arena_size);
+        handler_tr.transformer.src = to_csubstr(buf.src);
     }
     bool resize_post_events(EventHandlerIntsTr &events_tr, std::string const& parsed_yaml)
     {
-        if(resize_post_yaml(events_tr.handler, parsed_yaml))
+        if(resize_post_parse(events_tr.handler, parsed_yaml))
         {
-            events_tr.transformer.src = to_csubstr(src);
+            events_tr.transformer.src = to_csubstr(buf.src);
             return true;
         }
         return false;
@@ -92,39 +68,6 @@ public:
 
 public:
 
-    size_t emit_yaml(substr yaml, EmitOptions const& opts={})
-    {
-        extra::EmitterInts<WriterBuf> emitter(opts, yaml);
-        emitter.emit_as(EMIT_YAML, ints.data(), (extra::evt_size)ints.size(), to_csubstr(src), to_csubstr(arena));
-        return emitter.get_result(/*error_on_excess*/false).len;
-    }
-
-    template<class CharContainer>
-    void emit_yaml(CharContainer *cont, EmitOptions const& opts={})
-    {
-        size_t sz = cont->capacity();
-        cont->resize(sz);
-        size_t len = emit_yaml(to_substr(*cont), opts);
-        cont->resize(len);
-        if(len > sz)
-            emit_yaml(to_substr(*cont), opts);
-    }
-
-    template<class CharContainer>
-    CharContainer emit_yaml(EmitOptions const& opts={})
-    {
-        CharContainer c;
-        emit_yaml(&c, opts);
-        return c;
-    }
-
-public:
-
-    void print(bool print_all=true) const
-    {
-        size_t sz = print_all ? ints.size() : num_ints();
-        extra::events_ints_print(to_csubstr(src), to_csubstr(arena), ints.data(), (int)sz);
-    }
     void test(const EngineEvtTestCase& test_case) const
     {
         {
@@ -155,18 +98,7 @@ public:
             print();
         }
     }
-    size_t num_ints() const
-    {
-        size_t sz = ints.size();
-        for(size_t i = 0; i < sz; ++i)
-        {
-            if(ints[i] & extra::ievt::WSTR) // NOLINT
-                i += 2; // NOLINT
-            else if(!ints[i])
-                return i;
-        }
-        return sz;
-    }
+
 };
 } // namespace
 
@@ -174,7 +106,7 @@ public:
 void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case, EventProducerInts event_producer)
 {
     SCOPED_TRACE("error_ints_from_events");
-    IntsBuffers buffers;
+    EngineTestIntBuffers buffers;
     ExpectError::check_error_parse([&]{
         EventHandlerIntsTr events_tr;
         buffers.prepare_events(events_tr, test_case, test_case.yaml, -1, test_case.expected_emitted.size());
@@ -188,7 +120,7 @@ void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProdu
 {
     SCOPED_TRACE("ints_from_events");
     EventHandlerIntsTr events_tr;
-    IntsBuffers buffers;
+    EngineTestIntBuffers buffers;
     buffers.prepare_events(events_tr, test_case, test_case.yaml, -1, test_case.expected_emitted.size());
     event_producer(events_tr);
     if(buffers.resize_post_events(events_tr, test_case.yaml))
@@ -200,18 +132,18 @@ void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProdu
 void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
 {
     SCOPED_TRACE("error_ints_from_yaml");
-    IntsBuffers buffers;
+    EngineTestIntBuffers buffers;
     ExpectError::check_error(errtype, [&]{
         extra::EventHandlerInts handler{};
         ParseEngine<extra::EventHandlerInts> parser(&handler, test_case.opts);
-        buffers.prepare_yaml(handler, test_case, test_case.yaml);
+        buffers.prepare_parse(handler, test_case, test_case.yaml);
         parser.parse_in_place_ev(test_case.fileline, to_substr(buffers.src));
     }, test_case.expected_error_location);
     if(testing::Test::HasFailure())
         buffers.print(/*all*/false);
 }
 
-static void test_engine_ints_from_yaml(IntsBuffers& buffers, EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
 {
     SCOPED_TRACE("test_engine_ints_from_yaml");
     extra::EventHandlerInts handler{};
@@ -222,7 +154,7 @@ static void test_engine_ints_from_yaml(IntsBuffers& buffers, EngineEvtTestCase c
     {
         SCOPED_TRACE("empty buffers");
         // try first with empty buffers
-        buffers.prepare_yaml(handler, test_case, parsed_yaml, 0, 0);
+        buffers.prepare_parse(handler, test_case, parsed_yaml, 0, 0);
         parser.parse_in_place_ev(test_case.fileline, to_substr(buffers.src));
         EXPECT_GE(size_estimated, handler.required_size_events());
     }
@@ -230,7 +162,7 @@ static void test_engine_ints_from_yaml(IntsBuffers& buffers, EngineEvtTestCase c
     reqsz_arena = handler.required_size_arena();
     {
         SCOPED_TRACE("small buffers");
-        buffers.prepare_yaml(handler, test_case, parsed_yaml, reqsz_evts / 2, reqsz_arena / 2);
+        buffers.prepare_parse(handler, test_case, parsed_yaml, reqsz_evts / 2, reqsz_arena / 2);
         parser.parse_in_place_ev(test_case.fileline, to_substr(buffers.src));
         EXPECT_EQ(handler.required_size_events(), reqsz_evts);
         EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
@@ -240,11 +172,11 @@ static void test_engine_ints_from_yaml(IntsBuffers& buffers, EngineEvtTestCase c
         size_t size_reference = num_ints(test_case.expected_ints.data(), test_case.expected_ints.size());
         EXPECT_EQ(size_reference, handler.required_size_events());
     }
-    EXPECT_TRUE(buffers.resize_post_yaml(handler, parsed_yaml));
+    EXPECT_TRUE(buffers.resize_post_parse(handler, parsed_yaml));
     {
         SCOPED_TRACE("buffers ok");
         parser.parse_in_place_ev(test_case.fileline, to_substr(buffers.src));
-        EXPECT_FALSE(buffers.resize_post_yaml(handler, parsed_yaml));
+        EXPECT_FALSE(buffers.resize_post_parse(handler, parsed_yaml));
         EXPECT_EQ(handler.required_size_events(), reqsz_evts);
         EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
         ASSERT_TRUE(handler.fits_buffers());
@@ -254,7 +186,7 @@ static void test_engine_ints_from_yaml(IntsBuffers& buffers, EngineEvtTestCase c
 
 void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
 {
-    IntsBuffers buffers;
+    EngineTestIntBuffers buffers;
     test_engine_ints_from_yaml(buffers, test_case, parsed_yaml);
 }
 
@@ -482,7 +414,7 @@ void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, st
 void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
     SCOPED_TRACE("roundtrip_ints_from_yaml");
-    IntsBuffers buffers1;
+    EngineTestIntBuffers buffers1;
     {
         SCOPED_TRACE("roundtrip_parse1");
         test_engine_ints_from_yaml(buffers1, test_case, yaml);
@@ -490,7 +422,7 @@ void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, st
     const std::string parsed_ints_emitted = buffers1.emit_yaml<std::string>();
 std::cout << parsed_ints_emitted << "\n";
     {
-        IntsBuffers buffers2;
+        EngineTestIntBuffers buffers2;
         SCOPED_TRACE("roundtrip_parse2");
         test_engine_ints_from_yaml(buffers2, test_case, parsed_ints_emitted);
     }
@@ -611,166 +543,6 @@ void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const&
     }
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalScalar *tag)
-{
-    *anchor = OptionalScalar{};
-    *tag = OptionalScalar{};
-    if(tokens.begins_with('&'))
-    {
-        size_t pos = tokens.first_of(' ');
-        if(pos == (size_t)csubstr::npos)
-        {
-            *anchor = tokens.sub(1);
-            tokens = {};
-        }
-        else
-        {
-            *anchor = tokens.first(pos).sub(1);
-            tokens = tokens.right_of(pos);
-        }
-        _c4dbgpf("anchor: {}", anchor->get());
-    }
-    if(tokens.begins_with('<'))
-    {
-        size_t pos = tokens.find('>');
-        RYML_ASSERT_BASIC_(pos != (size_t)csubstr::npos);
-        *tag = tokens.first(pos + 1);
-        tokens = tokens.right_of(pos).triml(' ');
-        _c4dbgpf("tag: {}", tag->maybe_get());
-    }
-    return tokens;
-}
-
-void test_compare_events(csubstr ref_evts,
-                         csubstr emt_evts,
-                         bool ignore_doc_style,
-                         bool ignore_container_style,
-                         bool ignore_scalar_style,
-                         bool ignore_tag_normalization)
-{
-    RYML_TRACE_FMT("actual=~~~\n{}~~~", emt_evts);
-    RYML_TRACE_FMT("expected=~~~\n{}~~~", ref_evts);
-    auto test_anchor_tag = [&](csubstr &ref, csubstr &emt){
-        OptionalScalar reftag = {}, refanchor = {};
-        OptionalScalar emttag = {}, emtanchor = {};
-        ref = parse_anchor_and_tag(ref, &refanchor, &reftag).triml(' ');
-        emt = parse_anchor_and_tag(emt, &emtanchor, &emttag).triml(' ');
-        EXPECT_EQ(bool(refanchor), bool(emtanchor));
-        if(bool(refanchor) && bool(emtanchor))
-        {
-            EXPECT_EQ(refanchor.get(), emtanchor.get());
-        }
-        EXPECT_EQ(bool(reftag), bool(emttag));
-        if(reftag && emttag)
-        {
-            if(!ignore_tag_normalization)
-            {
-                EXPECT_EQ(reftag.get(), emttag.get());
-            }
-        }
-    };
-    auto test_doc = [&](csubstr ref, csubstr emt){
-        EXPECT_TRUE(ref.begins_with("+DOC") || ref.begins_with("-DOC"));
-        EXPECT_TRUE(emt.begins_with("+DOC") || emt.begins_with("-DOC"));
-        EXPECT_EQ(emt.begins_with("+DOC"), ref.begins_with("+DOC"));
-        EXPECT_EQ(emt.begins_with("-DOC"), ref.begins_with("-DOC"));
-        if(ignore_doc_style)
-        {
-            if(ref.begins_with("+DOC"))
-            {
-                ref = ref.stripr("---").trimr(' ');
-                emt = emt.stripr("---").trimr(' ');
-            }
-            else
-            {
-                ASSERT_TRUE(ref.begins_with("-DOC"));
-                ref = ref.stripr("...").trimr(' ');
-                emt = emt.stripr("...").trimr(' ');
-            }
-        }
-        EXPECT_EQ(ref, emt);
-    };
-    auto test_container = [&](csubstr ref, csubstr emt){
-        RYML_TRACE_FMT("expected={}", ref);
-        RYML_TRACE_FMT("actual={}", emt);
-        EXPECT_TRUE(ref.begins_with("+MAP") || ref.begins_with("+SEQ"));
-        EXPECT_TRUE(emt.begins_with("+MAP") || emt.begins_with("+SEQ"));
-        EXPECT_EQ(emt.begins_with("+MAP"), ref.begins_with("+MAP"));
-        EXPECT_EQ(emt.begins_with("+SEQ"), ref.begins_with("+SEQ"));
-        csubstr rest_ref = ref.sub(4).triml(' ');
-        csubstr rest_emt = emt.sub(4).triml(' ');
-        if(rest_ref.begins_with("{}"))
-        {
-            if(!ignore_container_style)
-            {
-                EXPECT_TRUE(rest_emt.begins_with("{}"));
-            }
-        }
-        else if(rest_ref.begins_with("[]"))
-        {
-            if(!ignore_container_style)
-            {
-                EXPECT_TRUE(rest_emt.begins_with("[]"));
-            }
-        }
-        test_anchor_tag(ref, emt);
-    };
-    auto test_val_with_scalar_wildcard = [&](csubstr ref, csubstr emt){
-        ASSERT_TRUE(ref.begins_with("=VAL "));
-        ASSERT_TRUE(emt.begins_with("=VAL "));
-        ref = ref.sub(5);
-        emt = emt.sub(5);
-        test_anchor_tag(ref, emt);
-        ASSERT_GE(ref.len, 0);
-        ASSERT_GE(emt.len, 0);
-        EXPECT_TRUE(ref[0] == ':' || ref[0] == '\'' || ref[0] == '"' || ref[0] == '|' || ref[0] == '>');
-        EXPECT_TRUE(emt[0] == ':' || emt[0] == '\'' || emt[0] == '"' || emt[0] == '|' || emt[0] == '>');
-        if(!ignore_scalar_style)
-        {
-            EXPECT_EQ(ref[0], emt[0]);
-        }
-        ref = ref.sub(1);
-        emt = emt.sub(1);
-        EXPECT_EQ(ref, emt);
-    };
-    EXPECT_EQ(bool(ref_evts.len), bool(emt_evts.len));
-    size_t posref = 0;
-    size_t posemt = 0;
-    while(posref < ref_evts.len && posemt < emt_evts.len)
-    {
-        const size_t endref = ref_evts.find('\n', posref);
-        const size_t endemt = emt_evts.find('\n', posemt);
-        ASSERT_FALSE((endref == npos || endemt == npos) && (endref != endemt));
-        csubstr ref = ref_evts.range(posref, endref);
-        csubstr emt = emt_evts.range(posemt, endemt);
-        if(ref != emt)
-        {
-            if(ref.begins_with("+DOC") || emt.begins_with("-DOC"))
-            {
-                test_doc(ref, emt);
-            }
-            else if(ref.begins_with("+MAP") || ref.begins_with("+SEQ"))
-            {
-                test_container(ref, emt);
-            }
-            else if(ref.begins_with("=VAL"))
-            {
-                test_val_with_scalar_wildcard(ref, emt);
-            }
-            else
-            {
-                ASSERT_EQ(ref, emt);
-            }
-        }
-        posref = endref + 1u;
-        posemt = endemt + 1u;
-    }
-}
 
 } // namespace yml
 } // namespace c4

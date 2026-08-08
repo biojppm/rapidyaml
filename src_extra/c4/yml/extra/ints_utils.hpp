@@ -26,7 +26,8 @@ RYML_EXPORT csubstr to_str_sub(substr buf, extra::evt_bits flags);
 
 
 /** Print integer events to stdout */
-RYML_EXPORT void events_ints_print(csubstr parsed_yaml, csubstr arena, extra::evt_bits const* evts_ints, extra::evt_bits evts_ints_sz);
+RYML_EXPORT void events_ints_print(csubstr parsed_yaml, csubstr arena,
+                                   extra::evt_bits const* evts_ints, extra::evt_size evts_ints_sz);
 
 
 /** @} */

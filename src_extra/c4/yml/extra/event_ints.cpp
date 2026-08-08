@@ -5,8 +5,9 @@
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
-RYML_EXPORT evt_size estimate_events_ints_size(csubstr src)
+RYML_EXPORT evt_size estimate_events_size(csubstr src)
 {
     evt_size count = 7; // BSTR + BDOC + =VAL + EDOC + ESTR
     for(size_t i = 0; i < src.len; ++i)
@@ -87,6 +88,7 @@ static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
 static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
 // NOLINTEND(hicpp-signed-bitwise)
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

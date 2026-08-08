@@ -776,6 +776,27 @@ CharContainer format_exc(ExceptionT const& exc)
         }                                                               \
     } while(false)
 
+
+namespace detail {
+template<class T>
+static C4_NO_INLINE void grow_buf(Callbacks const& cb, T** buf, size_t *len, size_t next_len)
+{
+    RYML_ASSERT_BASIC_CB_(cb, next_len > *len);
+    next_len = next_len > *len * 2 ? next_len : *len * 2;
+    T *ptr = cb.m_allocate(next_len, *buf, cb.m_user_data);
+    if C4_UNLIKELY(!ptr)
+        RYML_ERR_BASIC_CB_(cb, "out of memory"); // LCOV_EXCL_LINE
+    if(*len)
+    {
+        memcpy(ptr, *buf, *len * sizeof(T));
+        cb.m_free(*buf, *len, cb.m_user_data);
+    }
+    *buf = ptr;
+    *len = next_len;
+}
+} // detail
+
+
 /// @endcond
 
 } // namespace yml

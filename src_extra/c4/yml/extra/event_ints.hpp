@@ -7,6 +7,9 @@
 #ifndef C4_YML_COMMON_HPP_
 #include <c4/yml/common.hpp>
 #endif
+#ifndef C4_YML_ERROR_HPP_
+#include <c4/yml/error.hpp>
+#endif
 #endif
 #include <stdint.h>
 
@@ -16,17 +19,17 @@
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 /** @addtogroup doc_event_handlers_ints
  *
- * An event handler used by @ref ParseEngine to creates an integer
+ * An event handler used by @ref ParseEngine to create an integer
  * buffer with a very compact representation of the YAML tree in a
  * source buffer. This feature is an extra and is not part of the main
- * rapidyaml library.
- *
- * This is meant for use by other programming languages, and supports
- * container keys (unlike the ryml tree). It parses faster than the ryml
- * tree parser, because the resulting data structure is much simpler.
+ * rapidyaml library. It is meant for use by other programming
+ * languages, and supports container keys (unlike the ryml tree). It
+ * parses faster than the ryml tree parser, because the resulting data
+ * structure is much simpler.
  *
  * The resulting integer buffer is a linear array of integers
  * containing encoded YAML events (as a mask of @ref ievt::EventBits),
@@ -93,12 +96,13 @@ i      :        12   |        13       14
                      back 3 slots: ie 12->9)
 @endcode
  *
- * Note that the buffer contains both events and strings encoded as
- * integer pairs. That is, events that have an associated string are
- * immediately followed by two integers providing the offset and length
- * of that string in the source buffer. (In the example above, this
- * happens in the events for the strings `a`, `bb`, and `ccc` at
- * positions 3, 6 and 9, respectively).
+ * Note that the buffer contains both events (encoded as bit masks)
+ * and strings (encoded as integer pairs). That is, events that have
+ * an associated string are immediately followed by two integers
+ * providing the offset and length of that string in the source
+ * buffer. (In the example above, this happens in the events for the
+ * strings `a`, `bb`, and `ccc` at positions 3, 6 and 9,
+ * respectively).
  *
  * The flag @ref ievt::PSTR and the mask @ref ievt::WSTR are provided to
  * enable easier iteration over the array: you can use them to test for
@@ -172,10 +176,8 @@ using evt_size = int32_t;
  * to allow compatibility with a wide range of processing languages. */
 using evt_bits = int32_t;
 
-namespace ievt {
-
 /** enumeration of integer event bits. */
-typedef enum : extra::evt_bits { // NOLINT
+typedef enum : evt_bits { // NOLINT
 
     //-------------------------------------------------------------------------
     // YAML flags
@@ -300,33 +302,29 @@ C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos)
 }
 
 
-/** @cond dev */
-using DataType RYML_DEPRECATED("use extra::evt_bits") = extra::evt_bits;
-using evt_bits RYML_DEPRECATED("use extra::evt_bits") = extra::evt_bits;
-using EventFlags RYML_DEPRECATED("use EventBits") = EventBits;
-/** @endcond */
-
-} // namespace ievt
-
-/** @} */ // doc_event_handlers_ints
-
-} // namespace extra
-} // namespace yml
-} // namespace c4
-
-// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
+struct evtbuf
+{
+    evt_bits *C4_RESTRICT ptr;
+    evt_size              len;
+};
 
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
+struct Buffers
+{
+    evtbuf evts;
+    substr      src;
+    substr      arena;
+    csubstr getstr(evt_size pos) const RYML_NOEXCEPT
+    {
+        RYML_ASSERT_BASIC_(pos + 2 < evts.len);
+        evt_bits evt = evts.ptr[pos];
+        RYML_ASSERT_BASIC_(evt & ievt::WSTR);
+        csubstr region = (evt & ievt::AREN) ? arena : src;
+        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1] + evts.ptr[pos + 2]) <= region.len);
+        return {region.str + evts.ptr[pos + 1], static_cast<size_t>(evts.ptr[pos + 2])};
+    }
+};
 
-namespace c4 {
-namespace yml {
-namespace extra {
-
-/** @addtogroup doc_event_handlers_ints
- * @{ */
 
 /** Read YAML source and, without undergoing a full parse, estimate
  * the size of the integer buffer required for @ref
@@ -338,12 +336,31 @@ namespace extra {
  * the YAML test suite and the internal cases. If you find a case
  * where that does not hold, it is a bug. Please report it at
  * https://github.com/biojppm/rapidyaml/issues! */
-RYML_EXPORT evt_size estimate_events_ints_size(csubstr src);
+RYML_EXPORT evt_size estimate_events_size(csubstr src);
 
-/** @} */
+/** @} */ // doc_event_handlers_ints
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4
+
+
+/** @cond dev */
+namespace c4 {
+namespace yml {
+namespace extra {
+inline RYML_DEPRECATED("use ievt::estimate_events_size") ievt::evt_size estimate_events_ints_size(csubstr src)
+{
+    return ievt::estimate_events_size(src);
+}
+} // namespace extra
+} // namespace yml
+} // namespace c4
+/** @endcond */
+
+
+// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
+
 
 #endif /* C4_YML_EXTRA_EVENT_INTS_HPP_ */

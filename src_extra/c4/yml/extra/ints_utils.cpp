@@ -100,7 +100,7 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_bits evts_sz)
+void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_size evts_sz)
 {
     char buf[200];
     for(evt_bits evtpos = 0, evtnumber = 0;

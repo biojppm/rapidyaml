@@ -9,7 +9,7 @@ namespace c4 {
 namespace yml {
 
 // instantiate the template
-template class RYML_EXPORT ParseEngine<extra::EventHandlerInts>;
+template class RYML_EXPORT ParseEngine<extra::ievt::EventHandlerIntsNoResize>;
 
 } // namespace yml
 } // namespace c4
