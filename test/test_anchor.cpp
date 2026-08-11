@@ -45,6 +45,23 @@ TEST(anchors, circular)
     EXPECT_EQ(t[0].val_ref(), "x");
 }
 
+TEST(anchors, err_on_circular_reference)
+{
+    // Resolving a reference whose target is itself or an ancestor would materialize the
+    // target subtree (which contains the reference) into a location inside itself, recursing
+    // without bound. It must be rejected rather than overflowing the stack.
+    {
+        Tree tree = parse_in_arena(R"(&x
+- *x
+)");
+        RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(); }));
+    }
+    {
+        Tree tree = parse_in_arena("&x {a: *x}\n");
+        RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(); }));
+    }
+}
+
 TEST(anchors, node_scalar_set_ref_when_empty)
 {
     {
