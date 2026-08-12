@@ -236,11 +236,11 @@ public:
         if C4_IF_CONSTEXPR (resize_buffers)
         {
             if(m_evt.ptr)
-                base_type::m_stack.callbacks.m_free(m_evt.ptr, static_cast<size_t>(m_evt.cap) * sizeof(m_evt.ptr[0]), base_type::m_stack.callbacks.m_user_data);
+                base_type::m_stack.m_callbacks.m_free(m_evt.ptr, static_cast<size_t>(m_evt.cap) * sizeof(m_evt.ptr[0]), base_type::m_stack.m_callbacks.m_user_data);
             if(base_type::m_src.str)
-                base_type::m_stack.callbacks.m_free(base_type::m_src.str, base_type::src.len * sizeof(base_type::m_src.str[0]), base_type::m_stack.callbacks.m_user_data);
+                base_type::m_stack.m_callbacks.m_free(base_type::m_src.str, base_type::m_src.len * sizeof(base_type::m_src.str[0]), base_type::m_stack.m_callbacks.m_user_data);
             if(m_arena.str)
-                base_type::m_stack.callbacks.m_free(m_arena.str, m_arena.len * sizeof(m_arena.str[0]), base_type::m_stack.callbacks.m_user_data);
+                base_type::m_stack.m_callbacks.m_free(m_arena.str, m_arena.len * sizeof(m_arena.str[0]), base_type::m_stack.m_callbacks.m_user_data);
         }
     }
 

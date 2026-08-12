@@ -101,8 +101,8 @@ public:
 
 
 template<bool resize_buffers>
-void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case,
-                                        EventProducerInts<resize_buffers> event_producer)
+static void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case,
+                                               EventProducerInts<resize_buffers> event_producer)
 {
     SCOPED_TRACE("error_ints_from_events");
     EngineTestIntBuffers buffers;
@@ -114,36 +114,68 @@ void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case,
     if(testing::Test::HasFailure())
         buffers.buf.print();
 }
+void test_engine_error_ints_from_events_resize(const EngineEvtTestCase& test_case, EventProducerIntsResize fn)
+{
+    SCOPED_TRACE("error_ints_from_events_resize");
+    test_engine_error_ints_from_events<true>(test_case, fn);
+}
+void test_engine_error_ints_from_events_noresize(const EngineEvtTestCase& test_case, EventProducerIntsNoResize fn)
+{
+    SCOPED_TRACE("error_ints_from_events_noresize");
+    test_engine_error_ints_from_events<false>(test_case, fn);
+}
 
 template<bool resize_buffers>
-void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
-                                  EventProducerInts<resize_buffers> event_producer)
+static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
+                                         EventProducerInts<resize_buffers> event_producer)
 {
     SCOPED_TRACE("ints_from_events");
     EventHandlerIntsTr<resize_buffers> events_tr;
     EngineTestIntBuffers buffers;
-    buffers.prepare_events(events_tr, test_case.yaml, -1, test_case.expected_emitted.size());
+    buffers.prepare_events<resize_buffers>(events_tr, test_case.yaml, -1, test_case.expected_emitted.size());
     event_producer(events_tr);
     if(buffers.resize_post_events(events_tr, test_case.yaml))
         event_producer(events_tr);
     ASSERT_TRUE(events_tr.handler.fits_buffers());
     buffers.test(test_case);
 }
+void test_engine_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize evts)
+{
+    SCOPED_TRACE("ints_from_events_resize");
+    test_engine_ints_from_events<true>(test_case, evts);
+}
+void test_engine_ints_from_events_noresize(EngineEvtTestCase const& test_case, EventProducerIntsNoResize evts)
+{
+    SCOPED_TRACE("ints_from_events_noresize");
+    test_engine_ints_from_events<false>(test_case, evts);
+}
+
 
 template<bool resize_buffers>
-void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
+static void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
 {
     SCOPED_TRACE("error_ints_from_yaml");
     EngineTestIntBuffers buffers;
     ExpectError::check_error(errtype, [&]{
         extra::ievt::EventHandlerInts<resize_buffers> handler{};
         ParseEngine<extra::ievt::EventHandlerInts<resize_buffers>> parser(&handler, test_case.opts);
-        buffers.prepare_parse(handler, test_case, test_case.yaml);
+        buffers.prepare_parse<resize_buffers>(handler, test_case.yaml);
         parser.parse_in_place_ev(test_case.fileline, buffers.buf.src);
     }, test_case.expected_error_location);
     if(testing::Test::HasFailure())
         buffers.buf.print(/*all*/false);
 }
+void test_expected_error_ints_from_yaml_resize(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
+{
+    SCOPED_TRACE("error_ints_from_yaml_resize");
+    test_expected_error_ints_from_yaml<true>(test_case, errtype);
+}
+void test_expected_error_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
+{
+    SCOPED_TRACE("error_ints_from_yaml_noresize");
+    test_expected_error_ints_from_yaml<false>(test_case, errtype);
+}
+
 
 template<bool resize_buffers>
 static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
@@ -157,7 +189,7 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
     {
         SCOPED_TRACE("empty buffers");
         // try first with empty buffers
-        buffers.prepare_parse(handler, test_case, parsed_yaml, 0, 0);
+        buffers.prepare_parse(handler, parsed_yaml, 0, 0);
         parser.parse_in_place_ev(test_case.fileline, buffers.buf.src);
         EXPECT_GE(size_estimated, handler.required_size_events());
     }
@@ -165,7 +197,7 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
     reqsz_arena = handler.required_size_arena();
     {
         SCOPED_TRACE("small buffers");
-        buffers.prepare_parse(handler, test_case, parsed_yaml, reqsz_evts / 2, reqsz_arena / 2);
+        buffers.prepare_parse(handler, parsed_yaml, reqsz_evts / 2, reqsz_arena / 2);
         parser.parse_in_place_ev(test_case.fileline, buffers.buf.src);
         EXPECT_EQ(handler.required_size_events(), reqsz_evts);
         EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
@@ -188,10 +220,18 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
 }
 
 template<bool resize_buffers>
-void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+static void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
 {
     EngineTestIntBuffers buffers;
     test_engine_ints_from_yaml<resize_buffers>(buffers, test_case, parsed_yaml);
+}
+void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+{
+    test_engine_ints_from_yaml<true>(test_case, parsed_yaml);
+}
+void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+{
+    test_engine_ints_from_yaml<false>(test_case, parsed_yaml);
 }
 
 
@@ -364,12 +404,23 @@ void test_engine_roundtrip_tree_from_events(EngineEvtTestCase const& test_case, 
 }
 
 template<bool resize_buffers>
-void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts<resize_buffers> event_producer)
+static void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts<resize_buffers> event_producer)
 {
     SCOPED_TRACE("roundtrip_ints_from_events");
     (void)test_case;
     (void)event_producer;
 }
+void test_engine_roundtrip_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize evts)
+{
+    SCOPED_TRACE("roundtrip_ints_from_events_resize");
+    test_engine_roundtrip_ints_from_events<true>(test_case, evts);
+}
+void test_engine_roundtrip_ints_from_events_noresize(EngineEvtTestCase const& test_case, EventProducerIntsNoResize evts)
+{
+    SCOPED_TRACE("roundtrip_ints_from_events_noresize");
+    test_engine_roundtrip_ints_from_events<false>(test_case, evts);
+}
+
 
 void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
@@ -416,8 +467,9 @@ void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, st
     }
 }
 
+
 template<bool resize_buffers>
-void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
+static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
     SCOPED_TRACE("roundtrip_ints_from_yaml");
     EngineTestIntBuffers buffers1;
@@ -432,6 +484,16 @@ std::cout << parsed_ints_emitted << "\n";
         SCOPED_TRACE("roundtrip_parse2");
         test_engine_ints_from_yaml<resize_buffers>(buffers2, test_case, parsed_ints_emitted);
     }
+}
+void test_engine_roundtrip_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+{
+    SCOPED_TRACE("roundtrip_ints_from_yaml_resize");
+    test_engine_roundtrip_ints_from_yaml<true>(test_case, parsed_yaml);
+}
+void test_engine_roundtrip_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+{
+    SCOPED_TRACE("roundtrip_ints_from_yaml_noresize");
+    test_engine_roundtrip_ints_from_yaml<false>(test_case, parsed_yaml);
 }
 
 
@@ -469,8 +531,9 @@ std::vector<std::string> inject_comments_in_src(std::string const& src_)
 }
 } // anon
 
+
 template<bool resize_buffers>
-void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+static void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
     SCOPED_TRACE("test_engine_ints_from_yaml_with_comments");
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -487,6 +550,17 @@ void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case
             break;
     }
 }
+void test_engine_ints_from_yaml_with_comments_resize(EngineEvtTestCase const& test_case)
+{
+    SCOPED_TRACE("test_engine_ints_from_yaml_with_comments_resize");
+    test_engine_ints_from_yaml_with_comments<true>(test_case);
+}
+void test_engine_ints_from_yaml_with_comments_noresize(EngineEvtTestCase const& test_case)
+{
+    SCOPED_TRACE("test_engine_ints_from_yaml_with_comments_noresize");
+    test_engine_ints_from_yaml_with_comments<false>(test_case);
+}
+
 
 void test_engine_tree_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
@@ -531,7 +605,7 @@ void test_engine_roundtrip_tree_from_yaml_with_comments(EngineEvtTestCase const&
 }
 
 template<bool resize_buffers>
-void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
+static void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case)
 {
     SCOPED_TRACE("test_engine_roundtrip_from_yaml_with_comments");
     if(test_case.test_case_flags & HAS_MULTILINE_SCALAR)
@@ -549,6 +623,16 @@ void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const&
         if(testing::Test::HasFailure())
             break;
     }
+}
+void test_engine_roundtrip_ints_from_yaml_with_comments_resize(EngineEvtTestCase const& test_case)
+{
+    SCOPED_TRACE("test_engine_roundtrip_from_yaml_with_comments_resize");
+    test_engine_roundtrip_ints_from_yaml_with_comments<true>(test_case);
+}
+void test_engine_roundtrip_ints_from_yaml_with_comments_noresize(EngineEvtTestCase const& test_case)
+{
+    SCOPED_TRACE("test_engine_roundtrip_from_yaml_with_comments_noresize");
+    test_engine_roundtrip_ints_from_yaml_with_comments<false>(test_case);
 }
 
 

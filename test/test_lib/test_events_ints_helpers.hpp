@@ -71,7 +71,7 @@ public:
         if(arena_size == npos)
             arena_size = parsed_yaml.size();
         _c4dbgpf("ints: setting buffer sizes: src={} emitted={} ints={} arena={}", parsed_yaml.size(), test_case.expected_emitted.size(), ints_size, arena_size);
-        callbacks = handler.callbacks();
+        callbacks = handler.m_stack.m_callbacks;
         resize_(evts_cap, arena_size, parsed_yaml);
         handler.reset(*this);
     }
