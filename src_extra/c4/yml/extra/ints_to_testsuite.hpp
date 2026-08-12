@@ -11,6 +11,7 @@
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 
 /** @addtogroup doc_event_handlers_ints
@@ -67,6 +68,7 @@ Container events_ints_to_testsuite(csubstr parsed_yaml,
 
 /** @} */
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

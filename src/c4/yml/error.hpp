@@ -778,21 +778,36 @@ CharContainer format_exc(ExceptionT const& exc)
 
 
 namespace detail {
+// resize a buffer with length only
 template<class T>
-static C4_NO_INLINE void grow_buf(Callbacks const& cb, T** buf, size_t *len, size_t next_len)
+static C4_NO_INLINE T* grow_buf(T* buf, size_t len, size_t next_len, Callbacks const& cb)
 {
-    RYML_ASSERT_BASIC_CB_(cb, next_len > *len);
-    next_len = next_len > *len * 2 ? next_len : *len * 2;
-    T *ptr = cb.m_allocate(next_len, *buf, cb.m_user_data);
+    RYML_ASSERT_BASIC_CB_(cb, next_len > len);
+    void *ptr = cb.m_allocate(next_len, buf, cb.m_user_data);
     if C4_UNLIKELY(!ptr)
         RYML_ERR_BASIC_CB_(cb, "out of memory"); // LCOV_EXCL_LINE
-    if(*len)
+    if(len)
     {
-        memcpy(ptr, *buf, *len * sizeof(T));
-        cb.m_free(*buf, *len, cb.m_user_data);
+        memcpy(ptr, buf, len * sizeof(T));
+        cb.m_free(buf, len, cb.m_user_data);
     }
-    *buf = ptr;
-    *len = next_len;
+    return reinterpret_cast<T*>(ptr); // NOLINT
+}
+// resize a buffer with length+capacity
+template<class T>
+static C4_NO_INLINE T* grow_buf(T* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
+{
+    RYML_ASSERT_BASIC_CB_(cb, len <= cap);
+    RYML_ASSERT_BASIC_CB_(cb, next_cap > cap);
+    void *ptr = cb.m_allocate(next_cap, buf, cb.m_user_data);
+    if C4_UNLIKELY(!ptr)
+        RYML_ERR_BASIC_CB_(cb, "out of memory"); // LCOV_EXCL_LINE
+    if(len)
+    {
+        memcpy(ptr, buf, len * sizeof(T));
+        cb.m_free(buf, len, cb.m_user_data);
+    }
+    return reinterpret_cast<T*>(ptr); // NOLINT
 }
 } // detail
 

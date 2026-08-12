@@ -6,6 +6,7 @@
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz)
 {
@@ -467,6 +468,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
     }
 }
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

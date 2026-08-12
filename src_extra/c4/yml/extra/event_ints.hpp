@@ -304,24 +304,44 @@ C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos)
 
 struct evtbuf
 {
-    evt_bits *C4_RESTRICT ptr;
-    evt_size              len;
+    evt_bits *C4_RESTRICT ptr = {};
+    evt_size              len = {};
+    evt_size              cap = {};
 };
 
 
 struct Buffers
 {
-    evtbuf evts;
-    substr      src;
-    substr      arena;
+    substr    src   = {};
+    substr    arena = {};
+    evtbuf    evts  = {};
+    bool      owned = {};
+    Callbacks callbacks = {};
     csubstr getstr(evt_size pos) const RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(pos + 2 < evts.len);
-        evt_bits evt = evts.ptr[pos];
-        RYML_ASSERT_BASIC_(evt & ievt::WSTR);
-        csubstr region = (evt & ievt::AREN) ? arena : src;
+        RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
+        csubstr region = (evts.ptr[pos] & ievt::AREN) ? arena : src;
+        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1]) < region.len);
         RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1] + evts.ptr[pos + 2]) <= region.len);
         return {region.str + evts.ptr[pos + 1], static_cast<size_t>(evts.ptr[pos + 2])};
+    }
+    void destroy()
+    {
+        if(owned)
+        {
+            if(evts.ptr)
+                callbacks.m_free(evts.ptr, static_cast<size_t>(evts.cap) * sizeof(evts.ptr[0]), callbacks.m_user_data);
+            if(src.str)
+                callbacks.m_free(src.str, src.len * sizeof(src.str[0]), callbacks.m_user_data);
+            if(arena.str)
+                callbacks.m_free(arena.str, arena.len * sizeof(arena.str[0]), callbacks.m_user_data);
+        }
+        evts = {};
+        src = {};
+        arena = {};
+        callbacks = {};
+        owned = false;
     }
 };
 
@@ -329,35 +349,42 @@ struct Buffers
 /** Read YAML source and, without undergoing a full parse, estimate
  * the size of the integer buffer required for @ref
  * EventHandlerInts. This estimation is meant to exceed the actual
- * number of required events.
+ * number of required events, and is typically used with @ref
+ * EventHandlerIntsNoResize.
  *
  * @note This function must overpredict. It does so for every case in
- * the hundreds/thousands of extensive tests of rapidyaml -- both for
- * the YAML test suite and the internal cases. If you find a case
- * where that does not hold, it is a bug. Please report it at
- * https://github.com/biojppm/rapidyaml/issues! */
+ * the hundreds/thousands of extensive tests of rapidyaml. If you find
+ * a case where that does not hold, it is a bug: please report it at
+ * https://github.com/biojppm/rapidyaml/issues */
 RYML_EXPORT evt_size estimate_events_size(csubstr src);
+
 
 /** @} */ // doc_event_handlers_ints
 
 } // namespace ievt
-} // namespace extra
-} // namespace yml
-} // namespace c4
-
 
 /** @cond dev */
-namespace c4 {
-namespace yml {
-namespace extra {
-inline RYML_DEPRECATED("use ievt::estimate_events_size") ievt::evt_size estimate_events_ints_size(csubstr src)
+// LCOV_EXCL_START
+RYML_DEPRECATED("use ievt::estimate_events_size")
+inline ievt::evt_size estimate_events_ints_size(csubstr src)
 {
     return ievt::estimate_events_size(src);
 }
+// LCOV_EXCL_STOP
+/** @endcond */
+
 } // namespace extra
+
+/** @cond dev */
+namespace detail {
+extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size sz, Callbacks const& cb);
+substr resize(substr buf, size_t sz, Callbacks const& cb);
+} // namespace detail
+/** @endcond */
+
 } // namespace yml
 } // namespace c4
-/** @endcond */
+
 
 
 // NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)

@@ -24,6 +24,7 @@ C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 namespace {
 
@@ -2371,6 +2372,7 @@ void EmitterInts<Writer>::json_write_number_(csubstr s)
 
 /** @endcond */
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

@@ -36,7 +36,7 @@ struct EngineEvtTestCase
     std::string yaml;
     std::string expected_emitted;
     std::string expected_events;
-    std::vector<extra::IntEventWithScalar> expected_ints;
+    std::vector<extra::ievt::IntEventWithScalar> expected_ints;
     bool expected_ints_enabled;
 
 public:
@@ -49,13 +49,13 @@ public:
     EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _mkfileline(); }
     EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(p           ), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(), expected_ints_enabled(false) { _mkfileline(); }
 
-    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_,                                        std::string s               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(  ), expected_error_location(        ), yaml(s           ), expected_emitted(std::move(s)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
-    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_,                                        std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(  ), expected_error_location(        ), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
-    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(        ), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
-    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf,                    std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(        ), yaml(p           ), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
-    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_,                     Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(  ), expected_error_location(linecol_), yaml(p           ), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
-    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev, std::vector<extra::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
-    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev, std::vector<extra::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(           p), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
+    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_,                                        std::string s               , std::string ev, std::vector<extra::ievt::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(  ), expected_error_location(        ), yaml(s           ), expected_emitted(std::move(s)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
+    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_,                                        std::string p, std::string e, std::string ev, std::vector<extra::ievt::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(  ), expected_error_location(        ), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
+    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf,                    std::string p, std::string e, std::string ev, std::vector<extra::ievt::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(        ), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
+    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf,                    std::string p               , std::string ev, std::vector<extra::ievt::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(        ), yaml(p           ), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
+    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_,                     Location linecol_, std::string p               , std::string ev, std::vector<extra::ievt::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(  ), expected_error_location(linecol_), yaml(p           ), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
+    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p, std::string e, std::string ev, std::vector<extra::ievt::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(std::move(p)), expected_emitted(std::move(e)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
+    EngineEvtTestCase(const char *file_, int line_, ParserOptions opts_, TestCaseFlags_e tf, Location linecol_, std::string p               , std::string ev, std::vector<extra::ievt::IntEventWithScalar> ints) : file(file_), line(line_), opts(opts_), test_case_flags(tf), expected_error_location(linecol_), yaml(           p), expected_emitted(std::move(p)), expected_events(std::move(ev)), expected_ints(std::move(ints)), expected_ints_enabled(true) { _mkfileline(); }
 
 private:
     void _mkfileline() { c4::formatrs(&fileline, "{}:{}: (testyaml)", file, line); }
@@ -82,10 +82,16 @@ static const EngineEvtTestCase test_case_err_##name(                    \
     "");                                                                \
                                                                         \
                                                                         \
+TEST(name, err_ints_from_yaml_resize)                                   \
+{                                                                       \
+    SCOPED_TRACE(#name ".err_ints_from_yaml_resize");                   \
+    test_expected_error_ints_from_yaml<true>(test_case_err_##name,      \
+                                       ExpectedErrorType::err_parse);   \
+}                                                                       \
 TEST(name, err_ints_from_yaml)                                          \
 {                                                                       \
-    SCOPED_TRACE(#name ".err_ints_from_yaml");                          \
-    test_expected_error_ints_from_yaml(test_case_err_##name,            \
+    SCOPED_TRACE(#name ".err_ints_from_yaml_noresize");                 \
+    test_expected_error_ints_from_yaml<false>(test_case_err_##name,     \
                                        ExpectedErrorType::err_parse);   \
 }                                                                       \
                                                                         \
@@ -146,11 +152,17 @@ ENGINE_TEST_DECLARE_CASE(name, __VA_ARGS__)                             \
                                                                         \
                                                                         \
                                                                         \
-TEST(name, ints_from_events)                                            \
+TEST(name, ints_from_events_resize)                                     \
 {                                                                       \
-    SCOPED_TRACE(#name ".ints_from_events");                            \
+    SCOPED_TRACE(#name ".ints_from_events_resize");                     \
     test_engine_ints_from_events(test_case_##name,                      \
-                                 &events_##name<EventHandlerIntsTr>);   \
+                                 &events_##name<EventHandlerIntsTrResize); \
+}                                                                       \
+TEST(name, ints_from_events_noresize)                                   \
+{                                                                       \
+    SCOPED_TRACE(#name ".ints_from_events_noresize");                   \
+    test_engine_ints_from_events(test_case_##name,                      \
+                                 &events_##name<EventHandlerIntsTrNoResize); \
 }                                                                       \
                                                                         \
 TEST(name, tree_from_events)                                            \
@@ -162,10 +174,15 @@ TEST(name, tree_from_events)                                            \
                                                                         \
                                                                         \
                                                                         \
+TEST(name, ints_from_yaml_resize)                                       \
+{                                                                       \
+    SCOPED_TRACE(#name ".event_ints_from_yaml_resize");                 \
+    test_engine_ints_from_yaml<true>(test_case_##name);                 \
+}                                                                       \
 TEST(name, ints_from_yaml)                                              \
 {                                                                       \
-    SCOPED_TRACE(#name ".event_ints_from_yaml");                        \
-    test_engine_ints_from_yaml(test_case_##name);                       \
+    SCOPED_TRACE(#name ".event_ints_from_yaml_noresize");               \
+    test_engine_ints_from_yaml<false>(test_case_##name);                \
 }                                                                       \
                                                                         \
 TEST(name, tree_from_yaml)                                              \
@@ -176,6 +193,21 @@ TEST(name, tree_from_yaml)                                              \
                                                                         \
                                                                         \
                                                                         \
+TEST(name, roundtrip_ints_from_events_resize)                           \
+{                                                                       \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_events_resize");           \
+    test_engine_roundtrip_ints_from_events(                             \
+        test_case_##name,                                               \
+        &events_##name<EventHandlerIntsTrResize>);                      \
+}                                                                       \
+TEST(name, roundtrip_ints_from_events_noresize)                         \
+{                                                                       \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_events_noresize");         \
+    test_engine_roundtrip_ints_from_events(                             \
+        test_case_##name,                                               \
+        &events_##name<EventHandlerIntsTrNoResize>);                    \
+}                                                                       \
+                                                                        \
 TEST(name, roundtrip_tree_from_events)                                  \
 {                                                                       \
     SCOPED_TRACE(#name ".roundtrip_tree_from_events");                  \
@@ -184,12 +216,15 @@ TEST(name, roundtrip_tree_from_events)                                  \
         &events_##name<EventHandlerTree>);                              \
 }                                                                       \
                                                                         \
-TEST(name, roundtrip_ints_from_events)                                  \
+TEST(name, roundtrip_ints_from_yaml_resize)                             \
 {                                                                       \
-    SCOPED_TRACE(#name ".roundtrip_ints_from_events");                  \
-    test_engine_roundtrip_ints_from_events(                             \
-        test_case_##name,                                               \
-        &events_##name<EventHandlerIntsTr>);                            \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml_resize");             \
+    test_engine_roundtrip_ints_from_yaml<true>(test_case_##name);       \
+}                                                                       \
+TEST(name, roundtrip_ints_from_yaml_noresize)                           \
+{                                                                       \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml_noresize");           \
+    test_engine_roundtrip_ints_from_yaml<false>(test_case_##name);      \
 }                                                                       \
                                                                         \
 TEST(name, roundtrip_tree_from_yaml)                                    \
@@ -198,18 +233,17 @@ TEST(name, roundtrip_tree_from_yaml)                                    \
     test_engine_roundtrip_tree_from_yaml(test_case_##name);             \
 }                                                                       \
                                                                         \
-TEST(name, roundtrip_ints_from_yaml)                                    \
+                                                                        \
+                                                                        \
+TEST(name, ints_from_yaml_with_comments_resize)                         \
 {                                                                       \
-    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml");                    \
-    test_engine_roundtrip_ints_from_yaml(test_case_##name);             \
+    SCOPED_TRACE(#name ".ints_from_yaml_with_comments_resize");         \
+    test_engine_ints_from_yaml_with_comments<true>(test_case_##name);   \
 }                                                                       \
-                                                                        \
-                                                                        \
-                                                                        \
-TEST(name, ints_from_yaml_with_comments)                                \
+TEST(name, ints_from_yaml_with_comments_noresize)                       \
 {                                                                       \
-    SCOPED_TRACE(#name ".ints_from_yaml_with_comments");                \
-    test_engine_ints_from_yaml_with_comments(test_case_##name);         \
+    SCOPED_TRACE(#name ".ints_from_yaml_with_comments_noresize");       \
+    test_engine_ints_from_yaml_with_comments<false>(test_case_##name);  \
 }                                                                       \
                                                                         \
 TEST(name, tree_from_yaml_with_comments)                                \
@@ -218,10 +252,15 @@ TEST(name, tree_from_yaml_with_comments)                                \
     test_engine_tree_from_yaml_with_comments(test_case_##name);         \
 }                                                                       \
                                                                         \
-TEST(name, roundtrip_ints_from_yaml_with_comments)                      \
+TEST(name, roundtrip_ints_from_yaml_with_comments_resize)               \
 {                                                                       \
-    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml_with_comments");      \
-    test_engine_roundtrip_ints_from_yaml_with_comments(test_case_##name); \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml_with_comments_resize"); \
+    test_engine_roundtrip_ints_from_yaml_with_comments<true>(test_case_##name); \
+}                                                                       \
+TEST(name, roundtrip_ints_from_yaml_with_comments_noresize)             \
+{                                                                       \
+    SCOPED_TRACE(#name ".roundtrip_ints_from_yaml_with_comments_noresize"); \
+    test_engine_roundtrip_ints_from_yaml_with_comments<false>(test_case_##name); \
 }                                                                       \
                                                                         \
 TEST(name, roundtrip_tree_from_yaml_with_comments)                      \
@@ -239,9 +278,13 @@ ENGINE_TEST_DEFINE_CASE(name)                                           \
 
 template<class Handler, class ArgTransformer> struct EventTransformer;
 template<class Handler> struct TransformToSourceBufferOrArena;
-using EventHandlerIntsTr = EventTransformer<extra::EventHandlerInts, TransformToSourceBufferOrArena<extra::EventHandlerInts>>;
+template<bool resize_buffers>
+using EventHandlerIntsTr = EventTransformer<extra::ievt::EventHandlerInts<resize_buffers>, TransformToSourceBufferOrArena<extra::ievt::EventHandlerIntsNoResize>>;
+using EventHandlerIntsTrResize = EventHandlerIntsTr<true>;
+using EventHandlerIntsTrNoResize = EventHandlerIntsTr<false>;
 
-using EventProducerInts = void (*)(EventHandlerIntsTr &);
+template<bool resize_buffers>
+using EventProducerInts = void (*)(EventHandlerIntsTr<resize_buffers> &);
 using EventProducerTree = void (*)(EventHandlerTree &);
 
 
@@ -249,18 +292,18 @@ using EventProducerTree = void (*)(EventHandlerTree &);
 //-----------------------------------------------------------------------------
 
 
-void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case, EventProducerInts fn);
-void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype);
+template<bool resize_buffers> void test_engine_error_ints_from_events(const EngineEvtTestCase& test_case, EventProducerInts<resize_buffers> fn);
+template<bool resize_buffers> void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype);
 
-void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts evts);
-void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-inline void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_ints_from_yaml(test_case, test_case.yaml); }
-void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case);
+template<bool resize_buffers> void test_engine_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts<resize_buffers> evts);
+template<bool resize_buffers> void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
+template<bool resize_buffers> inline void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_ints_from_yaml<resize_buffers>(test_case, test_case.yaml); }
+template<bool resize_buffers> void test_engine_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case);
 
-void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts evts);
-void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-inline void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_roundtrip_ints_from_yaml(test_case, test_case.yaml); }
-void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case);
+template<bool resize_buffers> void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts<resize_buffers> evts);
+template<bool resize_buffers> void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
+template<bool resize_buffers> inline void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case) { test_engine_roundtrip_ints_from_yaml<resize_buffers>(test_case, test_case.yaml); }
+template<bool resize_buffers> void test_engine_roundtrip_ints_from_yaml_with_comments(EngineEvtTestCase const& test_case);
 
 
 //-----------------------------------------------------------------------------

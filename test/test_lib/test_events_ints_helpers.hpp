@@ -13,6 +13,7 @@
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 // provide a structured input for the event integers, grouping the
 // relevant data for the event in a single structure to simplify
@@ -56,55 +57,68 @@ C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 
-struct foo {
-
+struct TestBuffers : public ievt::Buffers
+{
 public:
 
-    void prepare_parse(extra::EventHandlerInts &handler,
+    template<bool resize_buffers>
+    void prepare_parse(ievt::EventHandlerInts<resize_buffers> &handler,
                        std::string const& parsed_yaml,
-                       extra::evt_size ints_size=-1, size_t arena_size=npos)
+                       evt_size evts_cap=-1, size_t arena_size=npos)
     {
-        if(ints_size == -1)
-            ints_size = extra::estimate_events_ints_size(to_csubstr(parsed_yaml));
+        if(evts_cap == -1)
+            evts_cap = ievt::estimate_events_size(to_csubstr(parsed_yaml));
         if(arena_size == npos)
             arena_size = parsed_yaml.size();
         _c4dbgpf("ints: setting buffer sizes: src={} emitted={} ints={} arena={}", parsed_yaml.size(), test_case.expected_emitted.size(), ints_size, arena_size);
-        ints.resize((size_t)ints_size);
-        arena.resize(arena_size);
-        src.assign(parsed_yaml.begin(), parsed_yaml.end());
-        handler.reset(to_substr(src), to_substr(arena), ints.data(), (int)ints.size());
+        callbacks = handler.callbacks();
+        resize_(evts_cap, arena_size, parsed_yaml);
+        handler.reset(*this);
     }
-    bool resize_post_parse(extra::EventHandlerInts &handler, std::string const& parsed_yaml)
+
+    template<bool resize_buffers>
+    bool resize_post_parse(ievt::EventHandlerInts<resize_buffers> &handler, std::string const& parsed_yaml)
     {
         bool ret = false;
-        ints.resize((size_t)handler.required_size_events());
-        if(!handler.fits_buffers())
+        if C4_IF_CONSTEXPR (!resize_buffers)
         {
-            ints.resize((size_t)handler.required_size_events());
-            arena.resize(handler.required_size_arena());
-            src.assign(parsed_yaml.begin(), parsed_yaml.end());
-            handler.reset(to_substr(src), to_substr(arena), ints.data(), (int)ints.size());
-            ret = true;
+            if(!handler.fits_buffers())
+            {
+                resize_(handler.required_size_events(), handler.required_size_arena(), parsed_yaml);
+                handler.reset(*this);
+                ret = true;
+            }
         }
         return ret;
+    }
+
+    void resize_(evt_size evts_cap, size_t arena_size, std::string const& parsed_yaml)
+    {
+        if(parsed_yaml.size() > src.len)
+            src = yml::detail::resize(src, parsed_yaml.size(), callbacks);
+        memcpy(src.str, parsed_yaml.data(), parsed_yaml.size());
+        if(arena_size > arena.len)
+            arena = yml::detail::resize(arena, arena_size, callbacks);
+        if(evts_cap > evts.len)
+            evts = yml::detail::resize(evts, evts_cap, callbacks);
     }
 
 public:
 
     void print(bool print_all=true) const
     {
-        size_t sz = print_all ? ints.size() : num_ints();
-        extra::events_ints_print(to_csubstr(src), to_csubstr(arena), ints.data(), (int)sz);
+        evt_size sz = print_all ? evts.len : num_ints();
+        ievt::events_ints_print(to_csubstr(src), to_csubstr(arena), evts.ptr, sz);
     }
 
-    size_t num_ints() const
+    evt_size num_ints() const
     {
-        size_t sz = ints.size();
-        for(size_t i = 0; i < sz; ++i)
+        evt_size sz = evts.len;
+        for(evt_size i = 0; i < sz; ++i)
         {
-            if(ints[i] & extra::ievt::WSTR) // NOLINT
+            if(evts.ptr[i] & extra::ievt::WSTR) // NOLINT
                 i += 2; // NOLINT
-            else if(!ints[i])
+            else if(!evts.ptr[i])
                 return i;
         }
         return sz;
@@ -115,24 +129,25 @@ public:
     void test_invariants() const
     {
         SCOPED_TRACE("test_invariants");
-        extra::test_events_ints_invariants(to_csubstr(src), to_csubstr(arena), ints.data(), (int)ints.size());
+        ievt::test_events_ints_invariants(src, arena, evts.ptr, evts.len);
     }
 
-    void test_expected_evts(csubstr yaml, extra::IntEventWithScalar *expected, evt_size sz) const
+    void test_expected_evts(csubstr yaml, ievt::IntEventWithScalar const* expected, evt_size sz) const
     {
         SCOPED_TRACE("compare_ints");
-        extra::test_events_ints(expected, (size_t)sz,
-                                ints.data(), ints.size(),
-                                yaml,
-                                to_csubstr(src),
-                                to_csubstr(arena));
+        ievt::test_events_ints(expected, (size_t)sz,
+                               evts.ptr, (size_t)evts.len,
+                               yaml,
+                               src,
+                               arena);
     }
 
     void test_expected_testsuite(csubstr expected_events) const
     {
-        std::string actual_events = extra::events_ints_to_testsuite<std::string>(
-            to_csubstr(src), to_csubstr(arena),
-            ints.data(), (int)ints.size());
+        SCOPED_TRACE("compare_testsuite");
+        std::string actual_events = ievt::events_ints_to_testsuite<std::string>(
+            src, arena,
+            evts.ptr, evts.len);
         _c4dbgpf("~~~\n{}~~~\n", actual_events);
         test_compare_events(expected_events,
                             to_csubstr(actual_events),
@@ -146,14 +161,14 @@ public:
 
     size_t emit_yaml(substr yaml, EmitOptions const& opts={}) const
     {
-        extra::EmitterInts<WriterBuf> emitter(opts, yaml);
-        emitter.emit_as(EMIT_YAML, ints.data(), (extra::evt_size)ints.size(), to_csubstr(src), to_csubstr(arena));
+        ievt::EmitterInts<WriterBuf> emitter(opts, yaml);
+        emitter.emit_as(EMIT_YAML, evts.ptr, (ievt::evt_size)evts.len, src, arena);
         return emitter.get_result(/*error_on_excess*/false).len;
     }
     size_t emit_json(substr json, EmitOptions const& opts={}) const
     {
-        extra::EmitterInts<WriterBuf> emitter(opts, json);
-        emitter.emit_as(EMIT_JSON, ints.data(), (extra::evt_size)ints.size(), to_csubstr(src), to_csubstr(arena));
+        ievt::EmitterInts<WriterBuf> emitter(opts, json);
+        emitter.emit_as(EMIT_JSON, evts.ptr, (ievt::evt_size)evts.len, src, arena);
         return emitter.get_result(/*error_on_excess*/false).len;
     }
 
@@ -197,6 +212,7 @@ public:
 
 C4_SUPPRESS_WARNING_POP
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

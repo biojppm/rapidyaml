@@ -14,6 +14,7 @@
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 /** A YAML/JSON emitter, templated on a writer class such as @ref WriterBuf,
  * @ref WriterFile, or @ref WriterOStream
@@ -245,6 +246,7 @@ private:
 
 };
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

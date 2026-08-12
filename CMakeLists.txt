@@ -171,7 +171,8 @@ if(RYML_EXTRA_ALL
         list(APPEND RYML_EXTRA_SRC
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_ints.cpp"
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_ints.hpp"
-            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_handler_ints.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_handler_ints_resize.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_handler_ints_no_resize.cpp"
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_handler_ints.hpp"
         )
     endif()

@@ -28,6 +28,7 @@ C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wold-style-cast")
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 C4_NODISCARD RYML_EXPORT
 size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-linkage)
@@ -184,6 +185,7 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-li
     return sz;
 }
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

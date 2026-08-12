@@ -57,7 +57,7 @@ const FlagSym flag_syms_[] = {
 };
 } // namespace
 
-size_t to_str(substr buf, extra::evt_bits flags) noexcept
+size_t to_str(substr buf, evt_bits flags) noexcept
 {
     detail::SubstrWriter_ writer(buf);
     for(const FlagSym sym : flag_syms_)
@@ -77,7 +77,7 @@ size_t to_str(substr buf, extra::evt_bits flags) noexcept
     return writer.pos;
 }
 
-csubstr to_str_sub(substr buf, extra::evt_bits flags)
+csubstr to_str_sub(substr buf, evt_bits flags)
 {
     size_t reqsize = ievt::to_str(buf, flags);
     RYML_CHECK_BASIC_(reqsize > 0u);
@@ -85,20 +85,6 @@ csubstr to_str_sub(substr buf, extra::evt_bits flags)
     return buf.first(reqsize);
 }
 
-
-} // namespace ievt
-} // namespace extra
-} // namespace yml
-} // namespace c4
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-namespace c4 {
-namespace yml {
-namespace extra {
 
 void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_size evts_sz)
 {
@@ -131,6 +117,7 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts,
     }
 }
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

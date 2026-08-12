@@ -204,7 +204,6 @@ public:
 
     /** @cond dev */
     evtbuf m_evt;
-    evt_size m_evt_pos;
     evt_size m_evt_prev;
     substr m_arena;
     size_t m_arena_pos;
@@ -232,6 +231,20 @@ public:
         : EventHandlerInts(c4::yml::get_callbacks())
     {
     }
+    ~EventHandlerInts() noexcept
+    {
+        if C4_IF_CONSTEXPR (resize_buffers)
+        {
+            if(m_evt.ptr)
+                base_type::m_stack.callbacks.m_free(m_evt.ptr, static_cast<size_t>(m_evt.cap) * sizeof(m_evt.ptr[0]), base_type::m_stack.callbacks.m_user_data);
+            if(base_type::m_src.str)
+                base_type::m_stack.callbacks.m_free(base_type::m_src.str, base_type::src.len * sizeof(base_type::m_src.str[0]), base_type::m_stack.callbacks.m_user_data);
+            if(m_arena.str)
+                base_type::m_stack.callbacks.m_free(m_arena.str, m_arena.len * sizeof(m_arena.str[0]), base_type::m_stack.callbacks.m_user_data);
+        }
+    }
+
+public:
 
     void reset(substr str, substr arena, evtbuf evt)
     {
@@ -243,48 +256,70 @@ public:
         m_arena_pos = 0;
         base_type::m_src = str;
         m_evt = evt;
-        m_evt_pos = 0;
+        m_evt.len = 0;
         m_evt_prev = 0;
         m_curr_doc = 0;
         m_tag_directives.clear();
         m_tag_cache.clear();
     }
-    void reset(substr str, substr arena, evt_bits *dst, evt_size dst_size)
+    void reset(substr str, substr arena, evt_bits *dst, evt_size dst_cap)
     {
-        reset(str, arena, {dst, dst_size});
+        reset(str, arena, {dst, 0, dst_cap});
     }
     void reset(ievt::Buffers const& buf)
     {
         reset(buf.src, buf.arena, buf.evts);
     }
 
-    void get_buffers(ievt::Buffers *buf) const noexcept
+public:
+
+    ievt::Buffers get_buffers() const noexcept
     {
-        get_buffers(&buf->src, &buf->arena, &buf->evts);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
+        return get_buffers(false);
     }
+
+    ievt::Buffers get_buffers(bool transfer_ownership) noexcept
+    {
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
+        ievt::Buffers buf;
+        get_buffers(&buf.src, &buf.arena, &buf.evts);
+        buf.callbacks = base_type::m_stack.m_callbacks;
+        buf.owned = false;
+        (void)transfer_ownership;
+        if C4_IF_CONSTEXPR (resize_buffers)
+        {
+            buf.owned = transfer_ownership;
+            if(transfer_ownership)
+            {
+                base_type::m_str = {};
+                m_arena = {};
+                m_evt = {};
+            }
+        }
+        return buf;
+    }
+
+    /** */
     void get_buffers(substr *str, substr *arena, evtbuf *buf) const noexcept
     {
-        *str = base_type::m_str;
         if C4_IF_CONSTEXPR (resize_buffers)
         {
             RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
-            RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_pos <= m_evt.len);
-            *arena = m_arena.first(m_arena_pos);
-            buf->ptr = m_evt.ptr;
-            buf->len = m_evt_pos;
+            RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len <= m_evt.cap);
         }
-        else
-        {
-            *arena = m_arena.first(m_arena_pos);
-            *buf = m_evt;
-        }
+        *str = base_type::m_str;
+        *arena = m_arena;
+        *buf = m_evt;
     }
+
+public:
 
     /** get the size needed for the event buffer from the previous parse
      * @warning this is valid only until the next parse */
     evt_size required_size_events() const
     {
-        return m_evt_pos;
+        return m_evt.len;
     }
 
     /** get the size needed for the arena from the previous parse
@@ -300,14 +335,21 @@ public:
      * @warning this is valid only until the next parse */
     bool fits_buffers() const
     {
-        return m_evt_pos <= m_evt.len && m_arena_pos <= m_arena.len;
+        return m_evt.len <= m_evt.cap && m_arena_pos <= m_arena.len;
     }
 
-    void reserve_arena(evt_size arena_size)
+    void reserve_arena(size_t size)
     {
         if C4_IF_CONSTEXPR (resize_buffers)
-            if((size_t)arena_size > m_arena.len)
-                _grow_arena((size_t)arena_size - m_arena.len);
+            if(size > m_arena.len)
+                _grow_arena(size - m_arena.len);
+    }
+
+    void reserve_evts(evt_size size)
+    {
+        if C4_IF_CONSTEXPR (resize_buffers)
+            if((size_t)size > m_arena.len)
+                _grow_evts(size);
     }
 
     C4_ALWAYS_INLINE TagDirectives &tag_directives() { return m_tag_directives; }
@@ -365,7 +407,7 @@ public:
     /** implicit doc start (without ---) */
     void begin_doc()
     {
-        _c4dbgpf("{}/{}: begin_doc", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: begin_doc", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::BDOC);
         if(base_type::_stack_should_push_on_begin_doc())
         {
@@ -377,7 +419,7 @@ public:
     /** implicit doc end (without ...) */
     void end_doc()
     {
-        _c4dbgpf("{}/{}: end_doc", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: end_doc", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::EDOC);
         if(base_type::_stack_should_pop_on_end_doc())
         {
@@ -390,7 +432,7 @@ public:
     /** explicit doc start, with --- */
     void begin_doc_expl()
     {
-        _c4dbgpf("{}/{}: begin_doc_expl", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: begin_doc_expl", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::BDOC|ievt::EXPL);
         _c4dbgp("push!");
         _push();
@@ -399,7 +441,7 @@ public:
     /** explicit doc end, with ... */
     void end_doc_expl()
     {
-        _c4dbgpf("{}/{}: end_doc_expl", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: end_doc_expl", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::EDOC|ievt::EXPL);
         if(base_type::_stack_should_pop_on_end_doc())
         {
@@ -418,7 +460,7 @@ public:
 
     void begin_map_key_flow()
     {
-        _c4dbgpf("{}/{}: bmap key flow", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bmap key flow", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::FLOW);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::FLOW_SL);
@@ -426,7 +468,7 @@ public:
     }
     void begin_map_key_block()
     {
-        _c4dbgpf("{}/{}: bmap key block", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bmap key block", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::BLCK);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::BLOCK);
@@ -435,7 +477,7 @@ public:
 
     void begin_map_val_flow()
     {
-        _c4dbgpf("{}/{}: bmap flow", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bmap flow", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::VAL_|ievt::BMAP|ievt::FLOW);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::MAP|c4::yml::FLOW_SL);
@@ -443,7 +485,7 @@ public:
     }
     void begin_map_val_block()
     {
-        _c4dbgpf("{}/{}: bmap block", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bmap block", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::VAL_|ievt::BMAP|ievt::BLCK);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::MAP|c4::yml::BLOCK);
@@ -459,10 +501,10 @@ public:
     void end_map_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _pop();
-        if(base_type::m_curr->evt_id < m_evt.len)
+        if(base_type::m_curr->evt_id < m_evt.cap)
         {
             RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BMAP) == ievt::BMAP);
-            m_evt[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
+            m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
         }
         _send_flag_only_(ievt::EMAP);
     }
@@ -476,7 +518,7 @@ public:
 
     void begin_seq_key_flow()
     {
-        _c4dbgpf("{}/{}: bseq key flow", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bseq key flow", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::FLOW);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::FLOW_SL);
@@ -484,7 +526,7 @@ public:
     }
     void begin_seq_key_block()
     {
-        _c4dbgpf("{}/{}: bseq key block", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bseq key block", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::BLCK);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::BLOCK);
@@ -493,7 +535,7 @@ public:
 
     void begin_seq_val_flow()
     {
-        _c4dbgpf("{}/{}: bseq flow", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bseq flow", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::VAL_|ievt::BSEQ|ievt::FLOW);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::SEQ|c4::yml::FLOW_SL);
@@ -501,7 +543,7 @@ public:
     }
     void begin_seq_val_block()
     {
-        _c4dbgpf("{}/{}: bseq block", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: bseq block", m_evt.len, m_evt.cap);
         _send_flag_only_(ievt::VAL_|ievt::BSEQ|ievt::BLCK);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::SEQ|c4::yml::BLOCK);
@@ -517,10 +559,10 @@ public:
     void end_seq_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _pop();
-        if(base_type::m_curr->evt_id < m_evt.len)
+        if(base_type::m_curr->evt_id < m_evt.cap)
         {
-            RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt[base_type::m_curr->evt_id] & ievt::BSEQ) == ievt::BSEQ);
-            m_evt[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
+            RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BSEQ) == ievt::BSEQ);
+            m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
         }
         _send_flag_only_(ievt::ESEQ);
     }
@@ -548,13 +590,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_plain_empty()
     {
-        _c4dbgpf("{}/{}: set_key_scalar_plain_empty", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: set_key_scalar_plain_empty", m_evt.len, m_evt.cap);
         _send_str_(_get_latest_empty_scalar(), ievt::KEY_|ievt::SCLR|ievt::PLAI);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_PLAIN|c4::yml::KEYNIL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain_empty()
     {
-        _c4dbgpf("{}/{}: set_val_scalar_plain_empty", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: set_val_scalar_plain_empty", m_evt.len, m_evt.cap);
         _send_str_(_get_latest_empty_scalar(), ievt::VAL_|ievt::SCLR|ievt::PLAI);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_PLAIN|c4::yml::VALNIL);
     }
@@ -562,13 +604,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_plain: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::PLAI);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_PLAIN);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_plain: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_plain: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::PLAI);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_PLAIN);
     }
@@ -576,13 +618,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::DQUO);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::DQUO);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_DQUO);
     }
@@ -590,13 +632,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_squo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::SQUO);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_SQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_squo: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_squo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::SQUO);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_SQUO);
     }
@@ -604,13 +646,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::LITL);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::LITL);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_LITERAL);
     }
@@ -618,13 +660,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::FOLD);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt_pos, m_evt.len, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::FOLD);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_FOLDED);
     }
@@ -632,32 +674,32 @@ public:
 
     C4_ALWAYS_INLINE void mark_key_scalar_unfiltered() // NOLINT
     {
-        _c4dbgpf("{}/{}: mark_key_scalar_unfiltered", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: mark_key_scalar_unfiltered", m_evt.len, m_evt.cap);
         if C4_IF_CONSTEXPR (resize_buffers)
         {
-            if(m_evt_pos >= m_evt.len)
+            if(m_evt.len >= m_evt.cap)
                 _grow_evts();
-            m_evt.ptr[m_evt_pos] |= ievt::UNFILT;
+            m_evt.ptr[m_evt.len] |= ievt::UNFILT;
         }
         else
         {
-            if(m_evt_pos < m_evt.len)
-                m_evt.ptr[m_evt_pos] |= ievt::UNFILT;
+            if(m_evt.len < m_evt.cap)
+                m_evt.ptr[m_evt.len] |= ievt::UNFILT;
         }
     }
     C4_ALWAYS_INLINE void mark_val_scalar_unfiltered() // NOLINT
     {
-        _c4dbgpf("{}/{}: mark_val_scalar_unfiltered", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: mark_val_scalar_unfiltered", m_evt.len, m_evt.cap);
         if C4_IF_CONSTEXPR (resize_buffers)
         {
-            if(m_evt_pos >= m_evt.len)
+            if(m_evt.len >= m_evt.cap)
                 _grow_evts();
-            m_evt.ptr[m_evt_pos] |= ievt::UNFILT;
+            m_evt.ptr[m_evt.len] |= ievt::UNFILT;
         }
         else
         {
-            if(m_evt_pos < m_evt.len)
-                m_evt.ptr[m_evt_pos] |= ievt::UNFILT;
+            if(m_evt.len < m_evt.cap)
+                m_evt.ptr[m_evt.len] |= ievt::UNFILT;
         }
     }
 
@@ -667,10 +709,10 @@ private:
 
     /** @cond dev*/
     #define _add_scalar_(i, scalar)                                     \
-    _c4dbgpf("{}/{}: scalar!", i, m_evt.len);                           \
+    _c4dbgpf("{}/{}: scalar!", i, m_evt.cap);                           \
     RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, _is_sub_(scalar)); \
     RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.ptr[i] & ievt::WSTR); \
-    RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, ((i) + 3) < m_evt.len); \
+    RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, ((i) + 3) < m_evt.cap); \
     if C4_LIKELY((scalar).is_sub(base_type::m_src))                     \
     {                                                                   \
         m_evt.ptr[(i) + 1] = (evt_bits)((scalar).str - base_type::m_src.str); \
@@ -679,7 +721,7 @@ private:
     {                                                                   \
         m_evt.ptr[i] |= ievt::AREN;                                     \
         m_evt.ptr[(i) + 1] = (evt_bits)((scalar).str - m_arena.str);    \
-        _c4dbgpf("{}/{}: arena! ->{}", i, m_evt.len, m_evt.ptr[(i)+1]); \
+        _c4dbgpf("{}/{}: arena! ->{}", i, m_evt.cap, m_evt.ptr[(i)+1]); \
     }                                                                   \
     m_evt.ptr[(i) + 2] = (evt_bits)(scalar).len;                        \
     m_evt.ptr[(i) + 3] = ievt::PSTR
@@ -692,34 +734,34 @@ public:
 
     void set_key_anchor(csubstr anchor)
     {
-        _c4dbgpf("{}/{}: set_key_anchor: {}", m_evt_pos, m_evt.len, anchor);
+        _c4dbgpf("{}/{}: set_key_anchor: {}", m_evt.len, m_evt.cap, anchor);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, !ryml_has_any_(KEYREF));
         ryml_enable_(c4::yml::KEYANCH);
-        if(m_evt_pos + 3 < m_evt.len)
+        if(m_evt.len + 3 < m_evt.cap)
         {
-            m_evt.ptr[m_evt_pos] |= ievt::KEY_|ievt::ANCH;
-            _add_scalar_(m_evt_pos, anchor);
+            m_evt.ptr[m_evt.len] |= ievt::KEY_|ievt::ANCH;
+            _add_scalar_(m_evt.len, anchor);
         }
-        m_evt_prev = m_evt_pos;
-        m_evt_pos += 3;
+        m_evt_prev = m_evt.len;
+        m_evt.len += 3;
     }
     void set_val_anchor(csubstr anchor)
     {
-        _c4dbgpf("{}/{}: set_val_anchor: {}", m_evt_pos, m_evt.len, anchor);
+        _c4dbgpf("{}/{}: set_val_anchor: {}", m_evt.len, m_evt.cap, anchor);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, !ryml_has_any_(VALREF));
         ryml_enable_(c4::yml::VALANCH);
-        if(m_evt_pos + 3 < m_evt.len)
+        if(m_evt.len + 3 < m_evt.cap)
         {
-            m_evt.ptr[m_evt_pos] |= ievt::VAL_|ievt::ANCH;
-            _add_scalar_(m_evt_pos, anchor);
+            m_evt.ptr[m_evt.len] |= ievt::VAL_|ievt::ANCH;
+            _add_scalar_(m_evt.len, anchor);
         }
-        m_evt_prev = m_evt_pos;
-        m_evt_pos += 3;
+        m_evt_prev = m_evt.len;
+        m_evt.len += 3;
     }
 
     void set_key_ref(csubstr ref)
     {
-        _c4dbgpf("{}/{}: set_key_ref: {}", m_evt_pos, m_evt.len, ref);
+        _c4dbgpf("{}/{}: set_key_ref: {}", m_evt.len, m_evt.cap, ref);
         RYML_ASSERT_PARSE_CB_(base_type::m_stack.m_callbacks, ref.begins_with('*'), base_type::m_curr->pos);
         RYML_ASSERT_PARSE_CB_(base_type::m_stack.m_callbacks, !ryml_has_any_(KEYANCH), base_type::m_curr->pos);
         ryml_enable_(c4::yml::KEY|c4::yml::KEYREF);
@@ -727,7 +769,7 @@ public:
     }
     void set_val_ref(csubstr ref)
     {
-        _c4dbgpf("{}/{}: set_val_ref: {}", m_evt_pos, m_evt.len, ref);
+        _c4dbgpf("{}/{}: set_val_ref: {}", m_evt.len, m_evt.cap, ref);
         RYML_ASSERT_PARSE_CB_(base_type::m_stack.m_callbacks, ref.begins_with('*'), base_type::m_curr->pos);
         RYML_ASSERT_PARSE_CB_(base_type::m_stack.m_callbacks, !ryml_has_any_(VALANCH), base_type::m_curr->pos);
         ryml_enable_(c4::yml::VAL|c4::yml::VALREF);
@@ -743,14 +785,14 @@ public:
 
     void set_key_tag(csubstr tag)
     {
-        _c4dbgpf("{}/{}: set key tag [{}]~~~{}~~~", m_evt_pos, m_evt.len, tag.len, tag.str ? tag : csubstr("(arena full)"));
+        _c4dbgpf("{}/{}: set key tag [{}]~~~{}~~~", m_evt.len, m_evt.cap, tag.len, tag.str ? tag : csubstr("(arena full)"));
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, _is_sub_(tag));
         ryml_enable_(c4::yml::KEYTAG);
         _send_str_(tag, ievt::KEY_|ievt::TAG_);
     }
     void set_val_tag(csubstr tag)
     {
-        _c4dbgpf("{}/{}: set val tag [{}]~~~{}~~~", m_evt_pos, m_evt.len, tag.len, tag.str ? tag : csubstr("(arena full)"));
+        _c4dbgpf("{}/{}: set val tag [{}]~~~{}~~~", m_evt.len, m_evt.cap, tag.len, tag.str ? tag : csubstr("(arena full)"));
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, _is_sub_(tag));
         ryml_enable_(c4::yml::VALTAG);
         _send_str_(tag, ievt::VAL_|ievt::TAG_);
@@ -765,13 +807,13 @@ public:
 
     void add_directive_yaml(csubstr yaml_version)
     {
-        _c4dbgpf("{}/{}: %YAML directive! version={}", m_evt_pos, m_evt.len, yaml_version);
+        _c4dbgpf("{}/{}: %YAML directive! version={}", m_evt.len, m_evt.cap, yaml_version);
         _send_str_(yaml_version, ievt::YAML);
     }
 
     void add_directive_tag(csubstr handle, csubstr prefix)
     {
-        _c4dbgpf("{}/{}: %TAG directive! handle={} prefix={} doc_id={}", m_evt_pos, m_evt.len, handle, prefix, m_curr_doc);
+        _c4dbgpf("{}/{}: %TAG directive! handle={} prefix={} doc_id={}", m_evt.len, m_evt.cap, handle, prefix, m_curr_doc);
         if C4_UNLIKELY(!m_tag_directives.add(handle, prefix, m_curr_doc))
             RYML_ERR_PARSE_CB_(base_type::m_stack.m_callbacks, base_type::m_curr->pos, "too many %TAG directives");
         _send_str_(handle, ievt::TAGH);
@@ -792,11 +834,11 @@ public:
      */
     C4_NO_INLINE void actually_val_is_first_key_of_new_map_flow()
     {
-        _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_flow", m_evt_pos, m_evt.len, m_evt_prev);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_pos > 2);
+        _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_flow", m_evt.len, m_evt.cap, m_evt_prev);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len > 2);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_prev > 0);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_pos < m_evt.len || !resize_buffers);
-        if(resize_buffers || m_evt_pos < m_evt.len)
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len < m_evt.cap || !resize_buffers);
+        if(resize_buffers || m_evt.len < m_evt.cap)
         {
             // BEFORE
             // ... flag offs len (free)
@@ -808,19 +850,19 @@ public:
             //          prev           curr
             if(m_evt.ptr[m_evt_prev] & ievt::WSTR)
             {
-                _c4dbgpf("{}/{}: WSTR", m_evt_pos, m_evt.len);
+                _c4dbgpf("{}/{}: WSTR", m_evt.len, m_evt.cap);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_prev > 0);
                 evt_size pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
                 if C4_IF_CONSTEXPR (resize_buffers)
                     _grow_evts();
-                if(resize_buffers || m_evt_pos + 1 < m_evt.len)
+                if(resize_buffers || m_evt.len + 1 < m_evt.cap)
                 {
                     for(evt_size i = pos; i <= m_evt_prev; i = _next(i))
                     {
                         m_evt.ptr[i] |= ievt::KEY_;
                         m_evt.ptr[i] &= ~ievt::VAL_;
                     }
-                    evt_size num_move = m_evt_pos + 1 - pos;
+                    evt_size num_move = m_evt.len + 1 - pos;
                     RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt.ptr + pos + 1, m_evt.ptr + pos, (size_t)num_move * sizeof(evt_bits));
                 }
@@ -834,10 +876,10 @@ public:
             }
             else
             {
-                _c4dbgpf("{}/{}: container key", m_evt_pos, m_evt.len);
+                _c4dbgpf("{}/{}: container key", m_evt.len, m_evt.cap);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
                 evt_size pos;
-                _c4dbgpf("{}/{}: find matching open for {}", m_evt_pos, m_evt.len, m_evt_prev);
+                _c4dbgpf("{}/{}: find matching open for {}", m_evt.len, m_evt.cap, m_evt_prev);
                 if((m_evt.ptr[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
                 {
                     pos = _find_matching_open(ievt::BMAP, ievt::EMAP, m_evt_prev);
@@ -847,7 +889,7 @@ public:
                     RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[m_evt_prev] & ievt::ESEQ));
                     pos = _find_matching_open(ievt::BSEQ, ievt::ESEQ, m_evt_prev);
                 }
-                _c4dbgpf("{}/{}: matching open for {}={}", m_evt_pos, m_evt.len, m_evt_prev, pos);
+                _c4dbgpf("{}/{}: matching open for {}={}", m_evt.len, m_evt.cap, m_evt_prev, pos);
                 RYML_CHECK_BASIC_CB_(base_type::m_stack.m_callbacks, pos >= 0); // internal error
                 RYML_CHECK_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt_prev); // internal error
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & ievt::ESEQ) == (m_evt.ptr[m_evt_prev] & ievt::BSEQ));
@@ -856,13 +898,13 @@ public:
                 evt_size posp1 = pos + 1;
                 if C4_IF_CONSTEXPR (resize_buffers)
                     _grow_evts();
-                if(resize_buffers || m_evt_pos + 1 < m_evt.len)
+                if(resize_buffers || m_evt.len + 1 < m_evt.cap)
                 {
-                    evt_size num_move = m_evt_pos + 1 - pos;
+                    evt_size num_move = m_evt.len + 1 - pos;
                     RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, num_move > 0);
                     memmove(m_evt.ptr + posp1, m_evt.ptr + pos, (size_t)num_move * sizeof(evt_bits));
                 }
-                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, posp1 < m_evt_pos);
+                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, posp1 < m_evt.len);
                 // start the map
                 m_evt.ptr[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
                 // set next as key, not val
@@ -876,9 +918,9 @@ public:
                 }
             }
         }
-        base_type::m_curr->evt_id = m_evt_pos - 2;
+        base_type::m_curr->evt_id = m_evt.len - 2;
         ++m_evt_prev;
-        ++m_evt_pos;
+        ++m_evt.len;
         ryml_enable_(c4::yml::MAP|c4::yml::FLOW_SL);
         _push();
     }
@@ -891,22 +933,22 @@ public:
      */
     C4_NO_INLINE void actually_val_is_first_key_of_new_map_block()
     {
-        _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_block", m_evt_pos, m_evt.len, m_evt_prev);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_pos < m_evt.len || !resize_buffers);
-        if(resize_buffers || m_evt_pos < m_evt.len)
+        _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_block", m_evt.len, m_evt.cap, m_evt_prev);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len < m_evt.cap || !resize_buffers);
+        if(resize_buffers || m_evt.len < m_evt.cap)
         {
             // interpolate BMAP|VAL|BLCK after the last BDOC
-            evt_size pos = _find_last_bdoc(m_evt_pos);
+            evt_size pos = _find_last_bdoc(m_evt.len);
             if(pos >= 0)
             {
+                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.len);
-                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt_pos);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & ievt::BDOC) == ievt::BDOC);
-                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_pos < m_evt.len);
+                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len < m_evt.cap);
                 ++pos; // add 1 to write after BDOC
-                evt_size num_move = m_evt_pos - pos;
+                evt_size num_move = m_evt.len - pos;
                 evt_size posp1 = pos + 1;
-                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, posp1 < m_evt.len);
+                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, posp1 < m_evt.cap);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, ((m_evt.ptr[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt.ptr[pos] & ievt::BMAP) == ievt::BMAP));
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, num_move > 0);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, 0 == (m_evt.ptr[posp1] & ievt::PSTR));
@@ -918,7 +960,7 @@ public:
         }
         ++base_type::m_curr->evt_id;
         ++m_evt_prev;
-        ++m_evt_pos;
+        ++m_evt.len;
         _push();
     }
 
@@ -998,13 +1040,13 @@ public:
 
     C4_ALWAYS_INLINE evt_size _next(evt_size pos) const noexcept
     {
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.len);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap);
         return pos + ((m_evt.ptr[pos] & ievt::WSTR) ? 3 : 1);
     }
 
     C4_ALWAYS_INLINE evt_size _prev(evt_size pos) const noexcept
     {
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.len);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap);
         return pos - ((m_evt.ptr[pos] & ievt::PSTR) ? 3 : 1);
     }
 
@@ -1013,10 +1055,15 @@ public:
         return (!str.str || str.is_sub(base_type::m_src) || str.is_sub(m_arena));
     }
 
+    C4_NO_INLINE void _grow_evts(evt_size next)
+    {
+        next = next > 256 ? next : 256;
+        m_evt = detail::resize(m_evt, next, base_type::m_stack.m_callbacks);
+    }
+
     C4_NO_INLINE void _grow_evts()
     {
-        size_t next = 2 * m_evt.len ? 2 * m_evt.len : 256;
-        detail::grow_buf(base_type::m_stack.m_callbacks, &m_evt.ptr, &m_evt.len, next);
+        _grow_evts(2 * m_evt.cap);
     }
 
     C4_NO_INLINE void _grow_arena(size_t more)
@@ -1024,51 +1071,51 @@ public:
         size_t next = m_arena.len + more;
         next = 2 * m_arena.len > next ? 2 * m_arena.len : next;
         next = next > 256 ? next : 256;
-        detail::grow_buf(base_type::m_stack.m_callbacks, &m_arena.str, &m_arena.len, next);
+        m_arena = detail::resize(m_arena, next, base_type::m_stack.m_callbacks);
     }
 
     C4_ALWAYS_INLINE void _send_flag_only_(evt_bits flags)
     {
-        _c4dbgpf("{}/{}: flag only", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: flag only", m_evt.len, m_evt.cap);
         if C4_IF_CONSTEXPR (resize_buffers)
         {
-            if C4_UNLIKELY(m_evt_pos >= m_evt.len)
+            if C4_UNLIKELY(m_evt.len >= m_evt.cap)
                 _grow_evts();
-            m_evt.ptr[m_evt_pos] |= flags;
+            m_evt.ptr[m_evt.len] |= flags;
         }
         else
         {
-            if(m_evt_pos < m_evt.len)
-                m_evt.ptr[m_evt_pos] |= flags;
+            if(m_evt.len < m_evt.cap)
+                m_evt.ptr[m_evt.len] |= flags;
         }
-        base_type::m_curr->evt_id = m_evt_pos;
-        m_evt_prev = m_evt_pos;
-        ++m_evt_pos;
-        if(m_evt_pos < m_evt.len)
-            m_evt.ptr[m_evt_pos] = {};
+        base_type::m_curr->evt_id = m_evt.len;
+        m_evt_prev = m_evt.len;
+        ++m_evt.len;
+        if(m_evt.len < m_evt.cap)
+            m_evt.ptr[m_evt.len] = {};
     }
 
     C4_ALWAYS_INLINE void _send_str_(csubstr scalar, evt_bits flags)
     {
-        _c4dbgpf("{}/{}: send str", m_evt_pos, m_evt.len);
+        _c4dbgpf("{}/{}: send str", m_evt.len, m_evt.cap);
         if C4_IF_CONSTEXPR (resize_buffers)
         {
-            if C4_UNLIKELY(m_evt_pos + 3 >= m_evt.len)
+            if C4_UNLIKELY(m_evt.len + 3 >= m_evt.cap)
                 _grow_evts();
-            m_evt.ptr[m_evt_pos] |= flags;
-            _add_scalar_(m_evt_pos, scalar);
+            m_evt.ptr[m_evt.len] |= flags;
+            _add_scalar_(m_evt.len, scalar);
         }
         else
         {
-            if(m_evt_pos + 3 < m_evt.len)
+            if(m_evt.len + 3 < m_evt.cap)
             {
-                m_evt.ptr[m_evt_pos] |= flags;
-                _add_scalar_(m_evt_pos, scalar);
+                m_evt.ptr[m_evt.len] |= flags;
+                _add_scalar_(m_evt.len, scalar);
             }
         }
-        base_type::m_curr->evt_id = m_evt_pos;
-        m_evt_prev = m_evt_pos;
-        m_evt_pos += 3;
+        base_type::m_curr->evt_id = m_evt.len;
+        m_evt_prev = m_evt.len;
+        m_evt.len += 3;
     }
 
     void _mark_parent_with_children_()
@@ -1087,7 +1134,7 @@ public:
 
     evt_size _find_last_bdoc(evt_size pos) const
     {
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.len); // it's safe to read from the array
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap); // it's safe to read from the array
         while(pos >= 0)
         {
             evt_bits e = m_evt.ptr[pos];
@@ -1101,7 +1148,7 @@ public:
     evt_size _find_matching_open(evt_bits open, evt_bits close, evt_size pos) const
     {
         _c4dbgpf("find_matching: start at {}", pos);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.len);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & close) == close);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & open) == (close & ~ievt::END_));
         pos = _prev(pos); // don't count the starting close token
@@ -1131,11 +1178,11 @@ public:
 
     evt_size _extend_left_to_include_tag_and_or_anchor(evt_size pos) const
     {
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.len);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap);
         evt_size prev = _prev(pos);
         while((prev > 0) && (m_evt.ptr[prev] & (ievt::TAG_|ievt::ANCH)))
         {
-            _c4dbgpf("{}/{}: {} is anchor/tag. extend to {}", m_evt_pos, m_evt.len, prev, prev);
+            _c4dbgpf("{}/{}: {} is anchor/tag. extend to {}", m_evt.len, m_evt.cap, prev, prev);
             pos = prev;
             prev = _prev(prev);
         }
