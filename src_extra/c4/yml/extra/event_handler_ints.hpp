@@ -264,7 +264,11 @@ public:
     }
     void reset(substr str, substr arena, evt_bits *dst, evt_size dst_cap)
     {
-        reset(str, arena, {dst, 0, dst_cap});
+        evtbuf evt;
+        evt.ptr = dst;
+        evt.len = 0;
+        evt.cap = dst_cap;
+        reset(str, arena, evt);
     }
     void reset(ievt::Buffers const& buf)
     {

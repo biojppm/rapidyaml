@@ -197,14 +197,14 @@ TEST(name, tree_from_yaml)                                              \
 TEST(name, roundtrip_ints_from_events_resize)                           \
 {                                                                       \
     SCOPED_TRACE(#name ".roundtrip_ints_from_events_resize");           \
-    test_engine_roundtrip_ints_from_events(                             \
+    test_engine_roundtrip_ints_from_events_resize(                      \
         test_case_##name,                                               \
         &events_##name<EventHandlerIntsTrResize>);                      \
 }                                                                       \
 TEST(name, roundtrip_ints_from_events_noresize)                         \
 {                                                                       \
     SCOPED_TRACE(#name ".roundtrip_ints_from_events_noresize");         \
-    test_engine_roundtrip_ints_from_events(                             \
+    test_engine_roundtrip_ints_from_events_noresize(                    \
         test_case_##name,                                               \
         &events_##name<EventHandlerIntsTrNoResize>);                    \
 }                                                                       \
