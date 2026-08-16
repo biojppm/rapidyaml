@@ -105,6 +105,8 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_case_node.cpp
        test_lib/test_case.hpp
        test_lib/test_case.cpp
+       test_lib/test_compare_events.hpp
+       test_lib/test_compare_events.cpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
        test_lib/test_events_ints_helpers.hpp

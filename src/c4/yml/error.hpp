@@ -797,8 +797,8 @@ static C4_NO_INLINE T* grow_buf(T* buf, size_t len, size_t next_len, Callbacks c
 template<class T>
 static C4_NO_INLINE T* grow_buf(T* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
 {
-    RYML_ASSERT_BASIC_CB_(cb, len <= cap);
     RYML_ASSERT_BASIC_CB_(cb, next_cap > cap);
+    RYML_ASSERT_BASIC_CB_(cb, len <= cap);
     void *ptr = cb.m_allocate(next_cap, buf, cb.m_user_data);
     if C4_UNLIKELY(!ptr)
         RYML_ERR_BASIC_CB_(cb, "out of memory"); // LCOV_EXCL_LINE

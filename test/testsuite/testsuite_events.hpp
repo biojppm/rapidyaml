@@ -37,15 +37,6 @@ CharContainer emit_events_from_tree(Tree const& C4_RESTRICT tree)
     return result;
 }
 
-//-----------------------------------------------------------------------------
-
-void test_compare_events(csubstr ref_evts,
-                         csubstr emt_evts,
-                         bool ignore_doc_style,
-                         bool ignore_container_style,
-                         bool ignore_scalar_style,
-                         bool ignore_tag_normalization);
-
 } // namespace yml
 } // namespace c4
 

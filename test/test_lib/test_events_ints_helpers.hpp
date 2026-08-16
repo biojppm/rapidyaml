@@ -7,7 +7,7 @@
 #include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <c4/yml/writer_buf.hpp>
-#include <testsuite/testsuite_events.hpp>
+#include <test_lib/test_compare_events.hpp>
 #include <gtest/gtest.h>
 
 namespace c4 {
@@ -95,12 +95,23 @@ public:
     void resize_(evt_size evts_cap, size_t arena_size, std::string const& parsed_yaml)
     {
         if(parsed_yaml.size() > src.len)
+        {
             src = yml::detail::resize(src, parsed_yaml.size(), callbacks);
+        }
+        ASSERT_GE(src.len, parsed_yaml.size());
         memcpy(src.str, parsed_yaml.data(), parsed_yaml.size());
         if(arena_size > arena.len)
+        {
             arena = yml::detail::resize(arena, arena_size, callbacks);
+        }
+        ASSERT_GE(arena.len, arena_size);
         if(evts_cap > evts.len)
+        {
+            evt_size prev_len = evts.len;
             evts = yml::detail::resize(evts, evts_cap, callbacks);
+            EXPECT_EQ(prev_len, evts.len);
+        }
+        ASSERT_GE(evts.cap, evts_cap);
     }
 
 public:

@@ -100,7 +100,7 @@ extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size cap, C
 {
     if(cap > buf.cap)
     {
-        buf.ptr = yml::detail::grow_buf(buf.ptr, (size_t)buf.len, (size_t)buf.cap, cb);
+        buf.ptr = yml::detail::grow_buf(buf.ptr, (size_t)buf.len, (size_t)buf.cap, (size_t)cap, cb);
         buf.cap = cap;
     }
     return buf;
@@ -108,7 +108,10 @@ extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size cap, C
 substr resize(substr buf, size_t sz, Callbacks const& cb)
 {
     if(sz > buf.len)
+    {
         buf.str = yml::detail::grow_buf(buf.str, buf.len, sz, cb);
+        buf.len = sz;
+    }
     return buf;
 }
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
