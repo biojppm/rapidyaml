@@ -190,6 +190,11 @@ void ReferenceResolver::resolve_()
         if( ! refdata.type.is_ref())
             continue;
         refdata.target = lookup_(&refdata);
+        // A reference whose target is itself or one of its ancestors describes a cyclic node.
+        // Resolving it materializes the target subtree (which contains this reference) into a
+        // location inside that same subtree, recursing without bound. Reject it instead.
+        if(refdata.target == refdata.node || m_tree->is_ancestor(refdata.node, refdata.target))
+            RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, refdata.node, "cyclic reference: the alias refers to an ancestor anchor");
     }
     _c4dbgp("matching anchors/refs: finished");
 
