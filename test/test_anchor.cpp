@@ -62,6 +62,35 @@ TEST(anchors, err_on_circular_reference)
     }
 }
 
+TEST(anchors, billion_laughs)
+{
+    const Tree orig = parse_in_arena(R"(
+l0: &l0 [x,x]     # 3
+l1: &l1 [*l0,*l0] # 7
+l2: &l2 [*l1,*l1] # 15
+)");
+    {
+        SCOPED_TRACE("small limit should cause an error");
+        Tree tree = orig;
+        ResolveOptions opts{};
+        id_type mult = 2;
+        EXPECT_NE(opts.max_size_multiplier(), mult);
+        opts.max_size_multiplier(mult);
+        EXPECT_EQ(opts.max_size_multiplier(), mult);
+        RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(opts); }));
+    }
+    {
+        SCOPED_TRACE("large limit should accept resolve");
+        Tree tree = orig;
+        ResolveOptions opts{};
+        id_type mult = 10000;
+        EXPECT_NE(opts.max_size_multiplier(), mult);
+        opts.max_size_multiplier(mult);
+        EXPECT_EQ(opts.max_size_multiplier(), mult);
+        RYML_EXPECT_ERROR(check_success(&tree, [&]{ tree.resolve(opts); }));
+    }
+}
+
 TEST(anchors, node_scalar_set_ref_when_empty)
 {
     {
@@ -788,7 +817,7 @@ c: &c [*b,*b]
     }
     {
         Tree t = parse_in_arena(yaml);
-        t.resolve(true);
+        t.resolve(ResolveOptions{}.clear_anchors(true));
         EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: ["lol","lol"]
 b: [["lol","lol"],["lol","lol"]]
 c: [[["lol","lol"],["lol","lol"]],[["lol","lol"],["lol","lol"]]]
@@ -796,7 +825,7 @@ c: [[["lol","lol"],["lol","lol"]],[["lol","lol"],["lol","lol"]]]
     }
     {
         Tree t = parse_in_arena(yaml);
-        t.resolve(false);
+        t.resolve(ResolveOptions{}.clear_anchors(false));
         EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: &a ["lol","lol"]
 b: &b [&a ["lol","lol"],&a ["lol","lol"]]
 c: &c [&b [&a ["lol","lol"],&a ["lol","lol"]],&b [&a ["lol","lol"],&a ["lol","lol"]]]
@@ -817,13 +846,13 @@ TEST(simple_anchor, resolve_nested)
     {
         Tree t = parse_in_arena(yaml);
         ExpectError::check_error_visit(&t, [&]{
-            t.resolve(true);
+            t.resolve(ResolveOptions{}.clear_anchors(true));
         });
     }
     {
         Tree t = parse_in_arena(yaml);
         ExpectError::check_error_visit(&t, [&]{
-            t.resolve(false);
+            t.resolve(ResolveOptions{}.clear_anchors(false));
         });
     }
 }
@@ -850,7 +879,7 @@ a5: &a5
     }
     {
         Tree t = parse_in_arena(yaml);
-        t.resolve(true);
+        t.resolve(ResolveOptions{}.clear_anchors(true));
         EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0:
   b0:
     c0: v0
@@ -888,7 +917,7 @@ a5:
     }
     {
         Tree t = parse_in_arena(yaml);
-        t.resolve(false);
+        t.resolve(ResolveOptions{}.clear_anchors(false));
         EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0: &a0
   b0: &b0
     c0: &c0 v0

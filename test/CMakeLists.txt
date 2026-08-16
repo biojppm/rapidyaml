@@ -570,7 +570,7 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
     # get the fuzz repo
     c4_download_remote_proj(rapidyaml-data rapidyaml_data_dir
         GIT_REPOSITORY https://github.com/biojppm/rapidyaml-data
-        GIT_TAG 20260708)
+        GIT_TAG 20260816)
     if(NOT EXISTS ${rapidyaml_data_dir}/fuzz/yaml.dict)
         message(FATAL_ERROR "cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
     endif()

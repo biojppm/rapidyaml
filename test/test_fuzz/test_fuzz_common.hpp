@@ -88,11 +88,12 @@ namespace c4 {
 namespace yml {
 
 template<class FnParse, class FnEmit>
-inline int fuzztest_tree(uint32_t case_number, csubstr src, FnParse fn_parse, FnEmit fn_emit)
+inline int fuzztest_tree(uint32_t case_number, csubstr src, FnParse fn_parse, FnEmit fn_emit, bool resolve)
 {
     C4_UNUSED(case_number);
-    set_callbacks(create_custom_callbacks());
-    Tree tree(create_custom_callbacks());
+    Callbacks cb = create_custom_callbacks();
+    set_callbacks(cb);
+    Tree tree(cb);
     bool parse_success = false;
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
@@ -100,6 +101,11 @@ inline int fuzztest_tree(uint32_t case_number, csubstr src, FnParse fn_parse, Fn
         fn_parse(src, &tree, ParserOptions{});
         parse_success = true;
         _if_dbg(print_tree("parsed tree", tree));
+        if(resolve)
+        {
+            tree.resolve(ResolveOptions{}.max_size_multiplier(2));
+            _if_dbg(print_tree("resolved tree", tree));
+        }
         _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         std::string dst = fn_emit(tree, EmitOptions{});
         _if_dbg(dbg_printf_("emitted[{}]: [{}]~~~\n{}\n~~~\n", case_number, dst.size(), to_csubstr(dst)); fflush(NULL));
@@ -121,15 +127,17 @@ inline int fuzztest_yaml_tree(uint32_t case_number, csubstr src)
 {
     FnTreeParse fn_parse = &parse_in_arena;
     FnTreeEmit fn_emit = &emitrs_yaml<std::string>;
-    return fuzztest_tree(case_number, src, fn_parse, fn_emit);
+    return fuzztest_tree(case_number, src, fn_parse, fn_emit, /*resolve*/true);
 }
 inline int fuzztest_json_tree(uint32_t case_number, csubstr src)
 {
     FnTreeParse fn_parse = &parse_json_in_arena;
     FnTreeEmit fn_emit = &emitrs_json<std::string>;
-    return fuzztest_tree(case_number, src, fn_parse, fn_emit);
+    return fuzztest_tree(case_number, src, fn_parse, fn_emit, /*resolve*/false);
 }
 
+
+//-----------------------------------------------------------------------------
 
 using HandlerInts = extra::EventHandlerInts;
 using ParserInts = ParseEngine<HandlerInts>;
@@ -224,7 +232,7 @@ inline int fuzztest_serialize(std::string *workspace, csubstr src, T val={})
     }
     return 0;
 }
-}
+} // namespace
 
 inline int fuzztest_serialize(uint32_t case_number, csubstr src)
 {

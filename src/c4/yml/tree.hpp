@@ -27,6 +27,9 @@
 #ifndef C4_YML_SCALAR_CHARCONV_HPP_
 #include "c4/yml/scalar_charconv.hpp"
 #endif
+#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
+#include "c4/yml/resolve_options.hpp"
+#endif
 
 #include <math.h>
 #include <limits.h>
@@ -342,6 +345,7 @@ public:
     /** Query for zero size. The tree can be empty only when constructed with explicitly zero-capacity. */
     bool empty() const { return m_size == 0; }
 
+    /** Get the number of existing nodes. */
     id_type size() const { return m_size; }
     id_type capacity() const { return m_cap; }
     id_type slack() const { RYML_ASSERT_BASIC_(m_cap >= m_size); return m_cap - m_size; }
@@ -1101,17 +1105,27 @@ public:
     /** @{ */
 
     /** Resolve references (aliases <- anchors), by forwarding to @ref
-     * ReferenceResolver::resolve(); refer to @ref
-     * ReferenceResolver::resolve() for further details. */
-    void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors=true);
+     * ReferenceResolver::resolve(). */
+    void resolve(ReferenceResolver *C4_RESTRICT rr, ResolveOptions const& opts={});
 
     /** Resolve references (aliases <- anchors), by forwarding to @ref
-     * ReferenceResolver::resolve(); refer to @ref
-     * ReferenceResolver::resolve() for further details. This overload
+     * ReferenceResolver::resolve(). This overload
      * uses a throwaway resolver object. */
-    void resolve(bool clear_anchors=true);
+    void resolve(ResolveOptions const& opts={});
 
     /** @} */
+    /** @cond dev */
+    RYML_DEPRECATED("use the overload receiving ResolveOptions")
+    void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors)
+    {
+        resolve(rr, ResolveOptions{}.clear_anchors(clear_anchors));
+    }
+    RYML_DEPRECATED("use the overload receiving ResolveOptions")
+    void resolve(bool clear_anchors)
+    {
+        resolve(ResolveOptions{}.clear_anchors(clear_anchors));
+    }
+    /** @endcond */
 
 public:
 
