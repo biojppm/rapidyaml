@@ -1,5 +1,5 @@
 #include "c4/yml/reference_resolver.hpp"
-#include "c4/yml/common.hpp"
+#include "c4/yml/tree.hpp"
 #include "c4/yml/detail/dbgprint.hpp"
 #ifdef RYML_DBG
 #include "c4/yml/detail/print.hpp"
@@ -166,14 +166,21 @@ id_type ReferenceResolver::lookup_(RefData const* C4_RESTRICT ra)
     C4_UNREACHABLE_AFTER_ERR();
 }
 
-void ReferenceResolver::reset_(Tree *t_)
+void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts)
 {
     if(t_->callbacks() != m_refs.m_callbacks)
-    {
         m_refs.m_callbacks = t_->callbacks();
-    }
-    m_tree = t_;
     m_refs.clear();
+    m_tree = t_;
+    m_opts = opts;
+}
+
+id_type ReferenceResolver::branch_size_(id_type node)
+{
+    id_type count = 1;
+    for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
+        count += branch_size_(ch);
+    return count;
 }
 
 void ReferenceResolver::resolve_()
@@ -190,13 +197,26 @@ void ReferenceResolver::resolve_()
         if( ! refdata.type.is_ref())
             continue;
         refdata.target = lookup_(&refdata);
-        // A reference whose target is itself or one of its ancestors describes a cyclic node.
-        // Resolving it materializes the target subtree (which contains this reference) into a
-        // location inside that same subtree, recursing without bound. Reject it instead.
-        if(refdata.target == refdata.node || m_tree->is_ancestor(refdata.node, refdata.target))
-            RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, refdata.node, "cyclic reference: the alias refers to an ancestor anchor");
+        // A reference whose target is itself or one of its ancestors
+        // describes a cyclic node. Resolving it creates the target
+        // subtree (which contains this reference) into a location
+        // inside that same subtree, recurring without bound. Reject
+        // it instead.
+        if C4_UNLIKELY(refdata.target == refdata.node || m_tree->is_ancestor(refdata.node, refdata.target))
+            RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, refdata.node,
+                               "cyclic reference: the alias refers to an ancestor anchor");
     }
     _c4dbgp("matching anchors/refs: finished");
+
+    const id_type size_limit = m_opts.max_size_multiplier() > 1 ? m_opts.max_size_multiplier() * m_tree->size() : 0u;
+    auto check_size_ = [&](id_type target){
+        const id_type next_size = m_tree->size() + branch_size_(target);
+        _c4dbgpf("tree_size={} target={} branch_size={} next_size={} limit={} mult={}",
+                 m_tree->size(), target, branch_size_(target), next_size, size_limit, m_opts.max_size_multiplier());
+        if C4_UNLIKELY(next_size > size_limit)
+            RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, target,
+                               "aliasing would exceed max size limit");
+    };
 
     // insert the resolved references
     _c4dbgp("modifying tree...");
@@ -220,6 +240,8 @@ void ReferenceResolver::resolve_()
                 :
                 prev_parent_ref_after;
             prev_parent_ref = refdata.parent_ref;
+            if(size_limit)
+                check_size_(refdata.target);
             prev_parent_ref_after = m_tree->duplicate_children_no_rep(refdata.target, p, after);
             m_tree->remove(refdata.node);
         }
@@ -233,6 +255,8 @@ void ReferenceResolver::resolve_()
                 const id_type p = m_tree->parent(refdata.node);
                 const id_type after = m_tree->prev_sibling(refdata.node);
                 _c4dbgpf("instance[{}:node{}] p={} after={}", i, refdata.node, p, after);
+                if(size_limit)
+                    check_size_(refdata.target);
                 m_tree->duplicate_children_no_rep(refdata.target, p, after);
                 m_tree->remove(refdata.node);
             }
@@ -255,7 +279,7 @@ void ReferenceResolver::resolve_()
                 else
                 {
                     _c4dbgpf("instance[{}:node{}] don't inherit container flags", i, refdata.node);
-                    RYML_CHECK_BASIC_CB_(m_tree->m_callbacks, m_tree->key_anchor(refdata.target) == m_tree->key_ref(refdata.node));
+                    RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, m_tree->key_anchor(refdata.target) == m_tree->key_ref(refdata.node), m_tree, refdata.target);
                     m_tree->_p(refdata.node)->m_key.scalar = m_tree->key(refdata.target);
                     // keys cannot be containers, so don't inherit container flags
                     const type_bits existing_style_flags = KEY_STYLE & m_tree->_p(refdata.target)->m_type.m_bits;
@@ -270,8 +294,8 @@ void ReferenceResolver::resolve_()
                 if(tty.has_key_anchor() && m_tree->key_anchor(refdata.target) == m_tree->val_ref(refdata.node))
                 {
                     _c4dbgpf("instance[{}:node{}] target.anchor==key.anchor=={}", i, refdata.node, m_tree->key_anchor(refdata.target));
-                    RYML_CHECK_BASIC_CB_(m_tree->m_callbacks, !tty.is_container());
-                    RYML_CHECK_BASIC_CB_(m_tree->m_callbacks, tty.has_val());
+                    RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, !tty.is_container(), m_tree, refdata.target);
+                    RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, tty.has_val(), m_tree, refdata.target);
                     // keys cannot be containers, so don't inherit container flags
                     const type_bits existing_style_flags = (KEY_STYLE) & m_tree->_p(refdata.target)->m_type.m_bits;
                     static_assert((KEY_STYLE << 1u) == (VAL_STYLE), "bad flags");
@@ -281,6 +305,8 @@ void ReferenceResolver::resolve_()
                 else
                 {
                     _c4dbgpf("instance[{}:node{}] duplicate contents", i, refdata.node);
+                    if(size_limit)
+                        check_size_(refdata.target);
                     m_tree->duplicate_contents(refdata.target, refdata.node);
                 }
             }
@@ -289,11 +315,11 @@ void ReferenceResolver::resolve_()
     }
 }
 
-void ReferenceResolver::resolve(Tree *t_, bool clear_anchors)
+void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts)
 {
     _c4dbgp("resolving references...");
 
-    reset_(t_);
+    reset_(tree, opts);
 
     _c4dbg_tree("unresolved tree", *m_tree);
 
@@ -304,7 +330,7 @@ void ReferenceResolver::resolve(Tree *t_, bool clear_anchors)
     _c4dbg_tree("resolved tree", *m_tree);
 
     // clear anchors and refs
-    if(clear_anchors)
+    if(opts.clear_anchors())
     {
         _c4dbgp("clearing anchors/refs");
         auto clear_ = [this]{

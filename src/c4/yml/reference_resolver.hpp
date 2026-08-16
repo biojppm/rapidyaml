@@ -1,8 +1,16 @@
 #ifndef C4_YML_REFERENCE_RESOLVER_HPP_
 #define C4_YML_REFERENCE_RESOLVER_HPP_
 
-#include "c4/yml/tree.hpp"
+
+#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
+#include "c4/yml/resolve_options.hpp"
+#endif
+#ifndef C4_YML_DETAIL_STACK_HPP_
 #include "c4/yml/detail/stack.hpp"
+#endif
+#ifndef C4_YML_NODE_TYPE_HPP_
+#include "c4/yml/node_type.hpp"
+#endif
 
 
 namespace c4 {
@@ -12,7 +20,11 @@ namespace yml {
  * @{
  */
 
-/** Reusable object to resolve references/aliases in a @ref Tree. */
+
+//-----------------------------------------------------------------------------
+
+/** Reusable object to resolve references/aliases in a @ref Tree. See
+ * @ref ResolveOptions . */
 struct ReferenceResolver
 {
     ReferenceResolver() = default;
@@ -22,8 +34,7 @@ struct ReferenceResolver
      *
      * @p tree the subject tree
      *
-     * @p clear_anchors whether to clear existing anchors after
-     * resolving
+     * @p opts options to control resolve behavior: see @ref ResolveOptions
      *
      * This method first does a full traversal of the tree to gather
      * all anchors and references in a separate collection, then it
@@ -37,10 +48,10 @@ struct ReferenceResolver
      * complexity (from the initial traversal). This potential cost is
      * one of the reasons for requiring an explicit call.
      *
-     * The @ref Tree has an `Tree::resolve()` overload set forwarding
-     * here. Previously this operation was done there, using a
-     * discarded object; using this separate class offers opportunity
-     * for reuse of the object.
+     * The @ref Tree has a @ref Tree::resolve() overload set
+     * forwarding here. Previously this operation was done there,
+     * using a discarded object; using this separate class offers
+     * opportunity for reuse of the object.
      *
      * @warning resolving references opens an attack vector when the
      * data is malicious or severely malformed, as the tree can expand
@@ -48,7 +59,15 @@ struct ReferenceResolver
      * Attack](https://en.wikipedia.org/wiki/Billion_laughs_attack).
      *
      */
-    RYML_EXPORT void resolve(Tree *tree, bool clear_anchors=true);
+    RYML_EXPORT void resolve(Tree *tree, ResolveOptions const& opts={});
+
+    /** @cond dev */
+    RYML_DEPRECATED("use the overload receiving ResolveOptions")
+    void resolve(Tree *tree, bool clear_anchors)
+    {
+        resolve(tree, ResolveOptions{}.clear_anchors(clear_anchors));
+    }
+    /** @endcond */
 
 public:
 
@@ -64,17 +83,18 @@ public:
         id_type parent_ref_sibling;
     };
 
-    void reset_(Tree *t_);
+    void reset_(Tree *t_, ResolveOptions const& opts);
     void resolve_();
     void gather_anchors_and_refs_();
     void gather_anchors_and_refs_(id_type n);
     id_type count_anchors_and_refs_(id_type n);
+    id_type branch_size_(id_type n);
 
     id_type lookup_(RefData const* C4_RESTRICT ra);
 
+    detail::stack<RefData> m_refs; // We're using this purely as an array
     Tree *C4_RESTRICT m_tree;
-    /** We're using this stack purely as an array. */
-    detail::stack<RefData> m_refs;
+    ResolveOptions m_opts;
 
     /** @endcond */
 };

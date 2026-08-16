@@ -1195,19 +1195,19 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
 
 //-----------------------------------------------------------------------------
 
-void Tree::resolve(bool clear_anchors)
+void Tree::resolve(ResolveOptions const& opts)
 {
     if(m_size == 0)
         return;
     ReferenceResolver rr;
-    resolve(&rr, clear_anchors);
+    resolve(&rr, opts);
 }
 
-void Tree::resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors)
+void Tree::resolve(ReferenceResolver *C4_RESTRICT rr, ResolveOptions const& opts)
 {
     if(m_size == 0)
         return;
-    rr->resolve(this, clear_anchors);
+    rr->resolve(this, opts);
 }
 
 

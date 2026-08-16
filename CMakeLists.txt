@@ -72,6 +72,7 @@ c4_add_library(ryml
         c4/yml/parse_options.hpp
         c4/yml/reference_resolver.hpp
         c4/yml/reference_resolver.cpp
+        c4/yml/resolve_options.hpp
         c4/yml/scalar_charconv.hpp
         c4/yml/scalar_style.hpp
         c4/yml/scalar_style.cpp
