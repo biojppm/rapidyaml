@@ -96,6 +96,20 @@ C4_HOT C4_ALWAYS_INLINE bool seqormap(evt_bits mask) noexcept
 {
     return (mask & ievt::BEG_) && (mask & (ievt::SEQ_|ievt::MAP_));
 }
+
+evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) noexcept
+{
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::KEY_);
+    evt_bits accum = {};
+    for( ; pos < evts_size; pos = ievt::nextpos(evts, pos))
+    {
+        if(evts[pos] & ievt::VAL_)
+            break;
+        accum |= evts[pos];
+    }
+    return accum;
+}
+
 } // namespace anon
 
 
@@ -905,7 +919,7 @@ void EmitterInts<Writer>::visit_blck_seq_(evt_size &pos)
                 if(hasnone(evt, styles_ievt_cont))
                     evt |= ievt::BLCK;
                 bool empty = (m_evts[pos + 1] & ievt::END_);
-                if((evt & ievt::BLCK) && !empty)
+                if(!empty && (evt & ievt::BLCK))
                     pend_newl_();
             }
             ++m_depth;
@@ -913,6 +927,7 @@ void EmitterInts<Writer>::visit_blck_seq_(evt_size &pos)
             visit_blck_container_(pos);
             --m_depth;
             --m_ilevel;
+            pend_newl_();
             goto nextval; // NOLINT
         }
         else if(evt & ievt::ALIA)
@@ -995,20 +1010,8 @@ void EmitterInts<Writer>::visit_blck_seq_(evt_size &pos)
 template<class Writer>
 void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
 {
-    auto keybits = [this](evt_size p) noexcept
-    {
-        RYML_ASSERT_BASIC_(m_evts[p] & ievt::KEY_);
-        evt_bits accum = {};
-        for( ; p < m_evts_size; p = ievt::nextpos(m_evts, p))
-        {
-            if(m_evts[p] & ievt::VAL_)
-                break;
-            accum |= m_evts[p];
-        }
-        return accum;
-    };
-    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BMAP));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BMAP));
     bool statenew = true;
     bool statekey = true;
     bool has_tag_or_anchor = false;
@@ -1027,7 +1030,7 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
         {
             if(statekey)
             {
-                evt_bits bits = keybits(pos);
+                evt_bits bits = get_all_bits_key(m_evts, m_evts_size, pos);
                 qmark = bits & (ievt::SEQ_|ievt::MAP_|ievt::LITL|ievt::FOLD);
                 if(!qmark)
                 {
@@ -1154,20 +1157,10 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
 template<class Writer>
 void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
 {
-    RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BSEQ);
+    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BSEQ));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
     ++pos;
-    //const flow_pws pws = setup_flow_pws_sl_(pos);
-    bool first = true;
-    bool newval = true;
-    bool has_tag_or_anchor = false;
-    Pws_e after_comma = (m_evts[pos] & ievt::FML1) ?
-        PWS_NEWL_
-        :
-        (m_evts[pos] & ievt::FSPC) ?
-            PWS_SPACE_
-            :
-            PWS_NONE_;
+    const flow_pws pws = setup_flow_pws_sl_(pos);
     write_('[');
     while(pos < m_evts_size)
     {
@@ -1177,37 +1170,21 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
             ++pos;
             break;
         }
-        if(newval)
-        {
-            write_pws_and_pend_(after_comma); // pend the space after the following dash
-            if(!first)
-                write_(',');
-            newval = false;
-            first = false;
-        }
         if(evt & ievt::SCLR)
         {
             write_pws_and_pend_(PWS_NONE_);
             const csubstr val = getstr_(pos);
             if(!(evt & styles_ievt_sclr))
                 evt |= scalar_style_choose_flow_ievt(val);
-            blck_write_scalar_(val, evt);
+            flow_write_scalar_(val, evt);
             pos += 3;
             goto nextval; // NOLINT
         }
         else if(seqormap(evt))
         {
-            if(has_tag_or_anchor)
-            {
-                bool empty = (m_evts[pos + 1] & ievt::END_);
-                if((evt & ievt::BLCK) && !empty)
-                    pend_newl_();
-            }
             ++m_depth;
-            ++m_ilevel;
             visit_flow_container_(pos);
             --m_depth;
-            --m_ilevel;
             goto nextval; // NOLINT
         }
         else if(evt & ievt::ALIA)
@@ -1219,7 +1196,6 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
         }
         else if(evt & ievt::ANCH)
         {
-            has_tag_or_anchor = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_('&');
             write_(getstr_(pos));
@@ -1227,7 +1203,6 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
         }
         else if(evt & ievt::TAG_)
         {
-            has_tag_or_anchor = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_tag_(getstr_(pos));
             pos += 3;
@@ -1238,8 +1213,7 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
         }
         continue;
     nextval:
-        newval = true;
-        has_tag_or_anchor = false;
+        flow_close_entry_sl_(pos, pws.next_pws(m_col));
     }
     write_(']');
 #ifdef OLD
@@ -1284,14 +1258,12 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
 template<class Writer>
 void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
 {
-    RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BSEQ);
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    //const flow_pws pws = setup_flow_pws_sl_(pos);
-    bool first = true;
-    bool newval = true;
+    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BSEQ));
     write_('[');
-    pend_newl_();
+    newl_();
     if(m_opts.indent_flow_ml()) ++m_ilevel;
+    indent_(m_ilevel);
     const bool stop_at_end = maybe_start_flow_pws_ml_(pos);
     ++pos;
     while(pos < m_evts_size)
@@ -1301,13 +1273,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         {
             ++pos;
             break;
-        }
-        if(newval)
-        {
-            if(first)
-                write_pws_and_pend_(PWS_NONE_);
-            newval = false;
-            first = false;
         }
         if(evt & ievt::SCLR)
         {
@@ -1357,7 +1322,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
     nextval:
         // pos is already at the next event
         flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
-        newval = true;
     }
     if(stop_at_end)
         m_flow_pws.stop();
@@ -1410,9 +1374,84 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &node)
+void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
 {
-    (void)node;
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BMAP));
+    const flow_pws pws = setup_flow_pws_sl_(pos);
+    bool statenew = true;
+    bool statekey = true;
+    ++pos;
+    write_('{');
+    while(pos < m_evts_size)
+    {
+        evt_bits evt = m_evts[pos];
+        if(hasall(evt, ievt::EMAP))
+        {
+            ++pos;
+            break;
+        }
+        if(statenew)
+        {
+            if(!statekey)
+            {
+                write_pws_and_pend_(PWS_SPACE_);
+                write_(':');
+            }
+            statenew = false;
+        }
+        if(evt & ievt::SCLR)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            const csubstr val = getstr_(pos);
+            if(!(evt & styles_ievt_sclr))
+                evt |= scalar_style_choose_flow_ievt(val);
+            flow_write_scalar_(val, evt);
+            pos += 3;
+            goto statenext; // NOLINT
+        }
+        else if(seqormap(evt))
+        {
+            ++m_depth;
+            pend_newl_();
+            write_pws_and_pend_(PWS_NONE_);
+            visit_blck_container_(pos);
+            --m_depth;
+            goto statenext; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            write_ref_(getstr_(pos));
+            pos += 3;
+            goto statenext; // NOLINT
+        }
+        else if(evt & ievt::ANCH)
+        {
+            write_pws_and_pend_(PWS_SPACE_);
+            write_('&');
+            write_(getstr_(pos));
+            pos += 3;
+        }
+        else if(evt & ievt::TAG_)
+        {
+            write_pws_and_pend_(PWS_SPACE_);
+            write_tag_(getstr_(pos));
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
+        }
+        continue;
+    statenext:
+        if(!statekey)
+            // pos is already at the next event
+            flow_close_entry_sl_(pos, pws.next_pws(m_col));
+        statenew = true;
+        statekey = !statekey;
+    }
+    write_('}');
 #ifdef OLD
     RYML_ASSERT_BASIC_(m_tree->is_map(node), m_tree, node);
     flow_pws pws = setup_flow_pws_sl_(node);
@@ -1454,9 +1493,91 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &node)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &node)
+void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
 {
-    (void)node;
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BMAP));
+    write_('{');
+    newl_();
+    if(m_opts.indent_flow_ml()) ++m_ilevel;
+    indent_(m_ilevel);
+    const bool stop_at_end = maybe_start_flow_pws_ml_(pos);
+    bool statenew = true;
+    bool statekey = true;
+    ++pos;
+    while(pos < m_evts_size)
+    {
+        evt_bits evt = m_evts[pos];
+        if(hasall(evt, ievt::EMAP))
+        {
+            ++pos;
+            break;
+        }
+        if(statenew)
+        {
+            if(!statekey)
+            {
+                write_pws_and_pend_(PWS_SPACE_);
+                write_(':');
+            }
+            statenew = false;
+        }
+        if(evt & ievt::SCLR)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            const csubstr val = getstr_(pos);
+            if(!(evt & styles_ievt_sclr))
+                evt |= scalar_style_choose_flow_ievt(val);
+            flow_write_scalar_(val, evt);
+            pos += 3;
+            goto statenext; // NOLINT
+        }
+        else if(seqormap(evt))
+        {
+            ++m_depth;
+            pend_newl_();
+            write_pws_and_pend_(PWS_NONE_);
+            visit_blck_container_(pos);
+            --m_depth;
+            goto statenext; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            write_ref_(getstr_(pos));
+            pos += 3;
+            goto statenext; // NOLINT
+        }
+        else if(evt & ievt::ANCH)
+        {
+            write_pws_and_pend_(PWS_SPACE_);
+            write_('&');
+            write_(getstr_(pos));
+            pos += 3;
+        }
+        else if(evt & ievt::TAG_)
+        {
+            write_pws_and_pend_(PWS_SPACE_);
+            write_tag_(getstr_(pos));
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
+        }
+        continue;
+    statenext:
+        if(!statekey)
+            // pos is already at the next event
+            flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
+        statenew = true;
+        statekey = !statekey;
+    }
+    if(stop_at_end)
+        m_flow_pws.stop();
+    if(m_opts.indent_flow_ml()) --m_ilevel;
+    write_pws_and_pend_(PWS_NONE_);
+    write_('}');
 #ifdef OLD
     RYML_ASSERT_BASIC_(m_tree->is_map(node), m_tree, node);
     write_('{');

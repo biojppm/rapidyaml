@@ -4361,19 +4361,6 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
     if(!(m_pending_tags.num_entries | m_pending_anchors.num_entries))
         return false;
     _c4dbgpf("handle_annotations_before_unexpected_flow_comma_rkey, node={}", m_evt_handler->m_curr->node_id);
-    if(m_pending_tags.num_entries)
-    {
-        _c4dbgpf("handle_annotations_before_unexpected_flow_comma_rkey, #tags={}", m_pending_tags.num_entries);
-        if C4_LIKELY(m_pending_tags.num_entries == 1)
-        {
-             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-        }
-        else
-        {
-            _c4err("too many tags");
-        }
-    }
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("handle_annotations_before_unexpected_flow_comma, #anchors={}", m_pending_tags.num_entries);
@@ -4387,6 +4374,19 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
             _c4err("too many anchors");
         }
     }
+    if(m_pending_tags.num_entries)
+    {
+        _c4dbgpf("handle_annotations_before_unexpected_flow_comma_rkey, #tags={}", m_pending_tags.num_entries);
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
+        {
+             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+        }
+        else
+        {
+            _c4err("too many tags");
+        }
+    }
     m_evt_handler->set_key_scalar_plain_empty();
     m_evt_handler->set_val_scalar_plain_empty();
     return true;
@@ -4396,19 +4396,6 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
 {
     _c4dbgpf("annotations_before_blck_key_scalar, node={}", m_evt_handler->m_curr->node_id);
-    if(m_pending_tags.num_entries)
-    {
-        _c4dbgpf("annotations_before_blck_key_scalar, #tags={}", m_pending_tags.num_entries);
-        if C4_LIKELY(m_pending_tags.num_entries == 1)
-        {
-             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-        }
-        else
-        {
-            _c4err("too many tags"); // LCOV_EXCL_LINE
-        }
-    }
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("annotations_before_blck_key_scalar, #anchors={}", m_pending_anchors.num_entries);
@@ -4420,6 +4407,19 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
         else
         {
             _c4err("too many anchors"); // LCOV_EXCL_LINE
+        }
+    }
+    if(m_pending_tags.num_entries)
+    {
+        _c4dbgpf("annotations_before_blck_key_scalar, #tags={}", m_pending_tags.num_entries);
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
+        {
+             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+        }
+        else
+        {
+            _c4err("too many tags"); // LCOV_EXCL_LINE
         }
     }
 }
