@@ -354,7 +354,8 @@ struct EventTransformer;
 
 
 void print_handler_info_(EventHandlerTree const& ps, csubstr stmt, const char *file, int line);
-void print_handler_info_(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line);
+template<bool resize_buffers>
+void print_handler_info_(extra::ievt::EventHandlerInts<resize_buffers> const& ps, csubstr stmt, const char *file, int line);
 template<class Handler, class Transformer>
 void print_handler_info_(EventTransformer<Handler, Transformer> const& ps, csubstr stmt, const char *file, int line)
 {

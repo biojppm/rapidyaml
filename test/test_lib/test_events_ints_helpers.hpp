@@ -44,6 +44,8 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
                       csubstr parsed_source,
                       csubstr arena);
 
+void test_events_ints_compare(ievt::Buffers const& expected, ievt::Buffers const& actual);
+
 void test_events_ints_invariants(
     csubstr parsed_yaml,
     csubstr arena,
@@ -70,7 +72,7 @@ public:
             evts_cap = ievt::estimate_events_size(to_csubstr(parsed_yaml));
         if(arena_size == npos)
             arena_size = parsed_yaml.size();
-        _c4dbgpf("ints: setting buffer sizes: src={} emitted={} ints={} arena={}", parsed_yaml.size(), test_case.expected_emitted.size(), ints_size, arena_size);
+        _c4dbgpf("ints: setting buffer sizes: src={} ints={} arena={}", parsed_yaml.size(), evts_cap, arena_size);
         callbacks = handler.m_stack.m_callbacks;
         resize_(evts_cap, arena_size, parsed_yaml);
         handler.reset(*this);
@@ -80,7 +82,11 @@ public:
     bool resize_post_parse(ievt::EventHandlerInts<resize_buffers> &handler, std::string const& parsed_yaml)
     {
         bool ret = false;
-        if C4_IF_CONSTEXPR (!resize_buffers)
+        if C4_IF_CONSTEXPR (resize_buffers)
+        {
+            EXPECT_TRUE(handler.fits_buffers());
+        }
+        else
         {
             if(!handler.fits_buffers())
             {
@@ -116,9 +122,9 @@ public:
 
 public:
 
-    void print(bool print_all=true) const
+    void print(bool print_all=false) const
     {
-        evt_size sz = print_all ? evts.len : num_ints();
+        evt_size sz = print_all ? evts.cap : num_ints();
         ievt::events_ints_print(to_csubstr(src), to_csubstr(arena), evts.ptr, sz);
     }
 
@@ -186,21 +192,21 @@ public:
     template<class CharContainer>
     void emit_yaml(CharContainer *cont, EmitOptions const& opts={}) const
     {
-        size_t sz = cont->capacity();
-        cont->resize(sz);
-        size_t len = this->emit_yaml(to_substr(*cont), opts);
+        const size_t cap = cont->capacity();
+        cont->resize(cap);
+        const size_t len = this->emit_yaml(to_substr(*cont), opts);
         cont->resize(len);
-        if(len > sz)
+        if(len > cap)
             this->emit_yaml(to_substr(*cont), opts);
     }
     template<class CharContainer>
     void emit_json(CharContainer *cont, EmitOptions const& opts={}) const
     {
-        size_t sz = cont->capacity();
-        cont->resize(sz);
-        size_t len = this->emit_json(to_substr(*cont), opts);
+        const size_t cap = cont->capacity();
+        cont->resize(cap);
+        const size_t len = this->emit_json(to_substr(*cont), opts);
         cont->resize(len);
-        if(len > sz)
+        if(len > cap)
             this->emit_json(to_substr(*cont), opts);
     }
 

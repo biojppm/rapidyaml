@@ -293,12 +293,12 @@ public:
         (void)transfer_ownership;
         if C4_IF_CONSTEXPR (resize_buffers)
         {
-            buf.owned = transfer_ownership;
             if(transfer_ownership)
             {
-                base_type::m_str = {};
+                base_type::m_src = {};
                 m_arena = {};
                 m_evt = {};
+                buf.owned = true;
             }
         }
         return buf;
@@ -312,7 +312,7 @@ public:
             RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
             RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len <= m_evt.cap);
         }
-        *str = base_type::m_str;
+        *str = base_type::m_src;
         *arena = m_arena;
         *buf = m_evt;
     }
@@ -608,13 +608,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_plain: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_plain: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-base_type::m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::PLAI);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_PLAIN);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_plain: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_plain: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-base_type::m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::PLAI);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_PLAIN);
     }
@@ -622,13 +622,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_dquo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-base_type::m_src.str):base_type::m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::DQUO);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_dquo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-base_type::m_src.str):base_type::m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::DQUO);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_DQUO);
     }
@@ -636,13 +636,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_squo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_key_scalar_squo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-base_type::m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::SQUO);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_SQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_squo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-m_src.str, scalar.len, scalar);
+        _c4dbgpf("{}/{}: set_val_scalar_squo: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str-base_type::m_src.str, scalar.len, scalar);
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::SQUO);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_SQUO);
     }
@@ -650,13 +650,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_literal: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-base_type::m_src.str):base_type::m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::LITL);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_literal: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-base_type::m_src.str):base_type::m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::LITL);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_LITERAL);
     }
@@ -664,13 +664,13 @@ public:
 
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_key_scalar_folded: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-base_type::m_src.str):base_type::m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::KEY_|ievt::SCLR|ievt::FOLD);
         ryml_enable_(c4::yml::KEY|c4::yml::KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
-        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-m_src.str):m_src.len, scalar.len, scalar.str?scalar:csubstr{});
+        _c4dbgpf("{}/{}: set_val_scalar_folded: @{} [{}]~~~{}~~~", m_evt.len, m_evt.cap, scalar.str?size_t(scalar.str-base_type::m_src.str):base_type::m_src.len, scalar.len, scalar.str?scalar:csubstr{});
         _send_str_(scalar, ievt::VAL_|ievt::SCLR|ievt::FOLD);
         ryml_enable_(c4::yml::VAL|c4::yml::VAL_FOLDED);
     }

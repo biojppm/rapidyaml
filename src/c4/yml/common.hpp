@@ -484,6 +484,28 @@ C4_SUPPRESS_WARNING_POP
         (buf) = nullptr;                                            \
     } while(false)
 
+
+namespace detail {
+// resize a buffer with length only
+RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t next_len, Callbacks const& cb);
+// resize a buffer with length+capacity
+RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb);
+
+template<class T>
+C4_NODISCARD T* grow_buf(T* buf, size_t len, size_t next_len, Callbacks const& cb)
+{
+    size_t s = sizeof(T);
+    return reinterpret_cast<T*>(grow_buf_raw(buf, s * len, s * next_len, cb)); // NOLINT
+}
+template<class T>
+C4_NODISCARD T* grow_buf(T* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
+{
+    size_t s = sizeof(T);
+    return reinterpret_cast<T*>(grow_buf_raw(buf, s * len, s * cap, s * next_cap, cb)); // NOLINT
+}
+} // detail
+
+
 namespace detail {
 template<int8_t signedval, uint8_t unsignedval>
 struct _charconstant_t // is there a better way to do this?
@@ -515,6 +537,7 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
     || (defined(_MSC_VER) && !defined(__clang__))
 #define RYML_HAS_DEPRECATED_ENUMS_
 #endif
+
 
 /// @endcond
 

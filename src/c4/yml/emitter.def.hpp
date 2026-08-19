@@ -81,7 +81,7 @@ void Emitter<Writer>::emit_as(EmitType_e type, Tree const* tree, id_type id)
 // This function kickstarts the tree descent by handling all the
 // initial and final logic at the top-level scope, thus avoiding
 // top-level kickstart branches in the recursive descending code
-// (which should be oblivious of such logic). This makes the recursive
+// (which should be oblivious to such logic). This makes the recursive
 // descending code a lot simpler.
 template<class Writer>
 void Emitter<Writer>::emit_yaml_(id_type id)

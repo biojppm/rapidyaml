@@ -377,8 +377,8 @@ inline ievt::evt_size estimate_events_ints_size(csubstr src)
 
 /** @cond dev */
 namespace detail {
-extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size sz, Callbacks const& cb);
-substr resize(substr buf, size_t sz, Callbacks const& cb);
+C4_NODISCARD extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size sz, Callbacks const& cb);
+C4_NODISCARD substr resize(substr buf, size_t sz, Callbacks const& cb);
 } // namespace detail
 /** @endcond */
 

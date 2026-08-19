@@ -148,12 +148,12 @@ void EmitterInts<Writer>::emit_as(EmitType_e type,
 template<class Writer>
 void EmitterInts<Writer>::emit_yaml_(evt_size pos)
 {
-    evt_bits ty = m_evts[pos];
+    const evt_bits evt = m_evts[pos];
 
     // emit leading tokens, such as keys or comments
-    const bool has_parent = hasnone(ty, ievt::BSTR);
-    const bool emit_key = has_parent && (ty & ievt::KEY_) && m_opts.emit_nonroot_key();
-    const bool emit_dash = has_parent && !(ty & ievt::KEY_) && hasnone(ty, ievt::BDOC) && m_opts.emit_nonroot_dash();
+    const bool has_parent = hasnone(evt, ievt::BSTR);
+    const bool emit_key = has_parent && (evt & ievt::KEY_) && m_opts.emit_nonroot_key();
+    const bool emit_dash = has_parent && !(evt & ievt::KEY_) && hasnone(evt, ievt::BDOC) && m_opts.emit_nonroot_dash();
     RYML_ASSERT_BASIC_(!(emit_key && emit_dash));
 
     // emit opening tokens (such as tags, anchors or comments)
@@ -173,21 +173,21 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     }
 
     // emit the payload
-    if(hasall(ty, ievt::BSTR))
+    if(hasall(evt, ievt::BSTR))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
         visit_stream_(pos);
     }
-    else if(hasall(ty, ievt::BDOC))
+    else if(hasall(evt, ievt::BDOC))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
         visit_doc_(pos);
     }
-    else if(seqormap(ty))
+    else if(seqormap(evt))
     {
         visit_blck_container_(pos);
     }
-    else if(ty & ievt::SCLR)
+    else if(evt & ievt::SCLR)
     {
         visit_doc_val_(pos);
     }
@@ -208,14 +208,10 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
         top_close_entry_(pos);
     }
 
-    if(ty & ievt::FMLX)
-    {
-        newl_();
-    }
-    else if(!has_parent
+    if(!has_parent
        || emit_dash || emit_key
-       || !(ty & ievt::VAL_)
-       || !(ty & ievt::PLAI))
+       || !(evt & ievt::VAL_)
+       || !(evt & ievt::PLAI))
     {
         write_pws_and_pend_(PWS_NONE_);
     }
@@ -518,6 +514,8 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos)
             else if(evt & ievt::FLOW)
             {
                 visit_flow_container_(pos);
+                if(evt & ievt::FMLX)
+                    newl_();
             }
         }
     }
@@ -714,8 +712,6 @@ void EmitterInts<Writer>::flow_pws::start(evt_bits evt, size_t max_cols_) noexce
         max_cols_ = max_cols_ >= 2 ? max_cols_ : 2;
         // subtract 1 for the comma, and maybe the space from pend_after_comma
         max_cols = max_cols_ - 1 - pend_after_comma;
-        // line above only works if:
-        static_assert((size_t)PWS_NONE_ == 0 && (size_t)PWS_SPACE_ == 1, "invalid assumptions");
         active = true;
     }
     else if(evt & ievt::FML1)
@@ -725,10 +721,10 @@ void EmitterInts<Writer>::flow_pws::start(evt_bits evt, size_t max_cols_) noexce
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_sl_(evt_size id, Pws_e pend_after)
+void EmitterInts<Writer>::flow_close_entry_sl_(evt_size pos, Pws_e pend_after)
 {
-    RYML_ASSERT_BASIC_(id + 1 < m_evts_size);
-    if(!(m_evts[id + 1] & ievt::END_))
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    if(!(m_evts[pos] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
         write_(',');
@@ -736,10 +732,10 @@ void EmitterInts<Writer>::flow_close_entry_sl_(evt_size id, Pws_e pend_after)
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_ml_(evt_size id, Pws_e pend_after)
+void EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
 {
-    RYML_ASSERT_BASIC_(id + 1 < m_evts_size);
-    if(!(m_evts[id + 1] & ievt::END_))
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    if(!(m_evts[pos] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
         write_(',');
@@ -1293,13 +1289,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
     //const flow_pws pws = setup_flow_pws_sl_(pos);
     bool first = true;
     bool newval = true;
-    Pws_e after_comma = (m_evts[pos] & ievt::FML1) ?
-        PWS_NEWL_
-        :
-        (m_evts[pos] & ievt::FSPC) ?
-            PWS_SPACE_
-            :
-            PWS_NONE_;
     write_('[');
     pend_newl_();
     if(m_opts.indent_flow_ml()) ++m_ilevel;
@@ -1315,15 +1304,8 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         }
         if(newval)
         {
-            if(!first)
-            {
-                write_(',');
-                m_pws = after_comma;
-            }
-            else
-            {
+            if(first)
                 write_pws_and_pend_(PWS_NONE_);
-            }
             newval = false;
             first = false;
         }
@@ -1333,7 +1315,7 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
             const csubstr val = getstr_(pos);
             if(!(evt & styles_ievt_sclr))
                 evt |= scalar_style_choose_flow_ievt(val);
-            blck_write_scalar_(val, evt);
+            flow_write_scalar_(val, evt);
             pos += 3;
             goto nextval; // NOLINT
         }
@@ -1373,6 +1355,7 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         }
         continue;
     nextval:
+        // pos is already at the next event
         flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
         newval = true;
     }

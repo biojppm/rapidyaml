@@ -102,6 +102,7 @@ extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size cap, C
     {
         buf.ptr = yml::detail::grow_buf(buf.ptr, (size_t)buf.len, (size_t)buf.cap, (size_t)cap, cb);
         buf.cap = cap;
+        memset(buf.ptr + buf.len, 0, sizeof(buf.ptr[0]) * (size_t)(buf.cap - buf.len));
     }
     return buf;
 }
