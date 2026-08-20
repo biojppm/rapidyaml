@@ -62,7 +62,7 @@ size_t to_str(substr buf, evt_bits flags) noexcept
     detail::SubstrWriter_ writer(buf);
     for(const FlagSym sym : flag_syms_)
     {
-        if(flags & sym.flags)
+        if((flags & sym.flags) == sym.flags)
         {
             if(writer.pos)
                 writer.append('|');
@@ -92,12 +92,12 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts,
     for(evt_bits evtpos = 0, evtnumber = 0;
         evtpos < evts_sz;
         ++evtnumber,
-            evtpos += ((evts[evtpos] & ievt::WSTR) ? 3 : 1))
+            evtpos = ievt::nextpos(evts, evtpos))
     {
         evt_bits evt = evts[evtpos];
         csubstr flags = ievt::to_str_sub(buf, evt);
         printf("[%d][%d] %.*s(0x%x)", evtnumber, evtpos, (int)flags.len, flags.str, evt);
-        if (evt & ievt::WSTR)
+        if(evt & ievt::WSTR)
         {
             bool in_arena = evt & ievt::AREN;
             csubstr region = !in_arena ? parsed_yaml : arena;

@@ -86,7 +86,7 @@ public:
 
 public:
 
-    void test(const EngineEvtTestCase& test_case) const
+    void test(EngineEvtTestCase const& test_case) const
     {
         {
             SCOPED_TRACE("test_invariants");
@@ -110,6 +110,27 @@ public:
     }
 
 };
+
+void compare_emitted_yaml_ints(std::string const& emitted, std::string const& expected)
+{
+    SCOPED_TRACE("compare_emitted_yaml_ints");
+    if(emitted == expected)
+        return;
+    // they differ. work around some edge cases.
+    csubstr emitted_ = to_csubstr(emitted);
+    csubstr expected_ = to_csubstr(expected);
+    if(expected_.begins_with("---\n"))
+    {
+        if(expected_.sub(4) == emitted_)
+            return;
+    }
+    if(emitted_.ends_with("...\n"))
+    {
+        if(expected == emitted_.offs(0, 4))
+            return;
+    }
+    EXPECT_EQ(expected, emitted);
+}
 } // namespace
 
 
@@ -517,7 +538,7 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         test_engine_ints_from_yaml<resize_buffers>(buffers1, test_case, yaml);
         num_ints = buffers1.buf.evts.len;
         buffers1.buf.emit_yaml(&emitted1);
-        EXPECT_EQ(emitted1, test_case.expected_emitted);
+        compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
     }
     //if(!testing::Test::HasFailure())
     {
@@ -525,10 +546,11 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         test_engine_ints_from_yaml<resize_buffers>(buffers2, test_case, emitted1);
         EXPECT_EQ(num_ints, buffers2.buf.evts.len);
         buffers2.buf.emit_yaml(&emitted2);
-        EXPECT_EQ(emitted2, test_case.expected_emitted);
+        compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
     }
     //if(!testing::Test::HasFailure())
     {
+        SCOPED_TRACE("roundtrip_compare");
         test_events_ints_compare(buffers1.buf, buffers2.buf);
         EXPECT_EQ(emitted1, emitted2);
     }

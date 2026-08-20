@@ -116,7 +116,7 @@ private:
     void emit_yaml_(evt_size id);
 
     void visit_stream_(evt_size &id);
-    void visit_doc_(evt_size &id);
+    void visit_doc_(evt_size &id, bool expl);
     void visit_doc_val_(evt_size &id);
     void visit_blck_container_(evt_size &id);
     void visit_flow_container_(evt_size &id);

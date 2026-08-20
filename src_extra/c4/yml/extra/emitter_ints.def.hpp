@@ -195,7 +195,7 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     else if(hasall(evt, ievt::BDOC))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
-        visit_doc_(pos);
+        visit_doc_(pos, evt & ievt::EXPL);
     }
     else if(seqormap(evt))
     {
@@ -254,7 +254,7 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
             RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
             if(hasnone(m_evts[pos + 1], ievt::EDOC))
             {
-                visit_doc_(++pos);
+                visit_doc_(++pos, expl);
             }
             else if(expl)
             {
@@ -266,7 +266,7 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
         {
             write_("%YAML ");
             write_(getstr_(pos));
-            write_('\n');
+            newl_();
             pos += 3;
         }
         else if(evt & ievt::TAGH)
@@ -281,7 +281,7 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
         {
             write_(' ');
             write_(getstr_(pos));
-            write_('\n');
+            newl_();
             pos += 3;
         }
         else
@@ -351,65 +351,6 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_blck_container_(evt_size &pos)
-{
-    evt_bits evt = m_evts[pos];
-    RYML_ASSERT_BASIC_(seqormap(evt));
-    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if(!(evt & (ievt::FLOW|ievt::BLCK)))
-        evt |= (m_evts[pos + 1] & ievt::END_) ? ievt::FSL_ : ievt::BLCK;
-    write_pws_and_pend_(PWS_NONE_);
-    if(evt & ievt::FSL_)
-        visit_flow_sl_(pos);
-    else if(evt & ievt::FMLX)
-        visit_flow_ml_(pos);
-    else
-        visit_blck_(pos);
-    RYML_ASSERT_BASIC_(!(evt & ievt::END_));
-#ifdef OLD
-    NodeType ty = m_tree->type(id);
-    if(!(ty.m_bits & CONTAINER_STYLE))
-        ty.m_bits |= (m_tree->empty(id) ? FLOW_SL : BLOCK);
-    write_pws_and_pend_(PWS_NONE_);
-    if(ty.is_flow_sl())
-        visit_flow_sl_(id);
-    else if(ty.is_flow_mlx())
-        visit_flow_ml_(id);
-    else
-        visit_blck_(id);
-#endif
-}
-
-template<class Writer>
-void EmitterInts<Writer>::visit_flow_container_(evt_size &pos)
-{
-    evt_bits evt = m_evts[pos];
-    RYML_ASSERT_BASIC_(seqormap(evt));
-    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if(!(evt & (ievt::FLOW|ievt::BLCK)))
-        evt |= ievt::FSL_;
-    write_pws_and_pend_(PWS_NONE_);
-    if(evt & ievt::FMLX)
-        visit_flow_ml_(pos);
-    else
-        visit_flow_sl_(pos);
-    RYML_ASSERT_BASIC_(!(evt & ievt::END_));
-#ifdef OLD
-    NodeType ty = m_tree->type(id);
-    if(!(ty.m_bits & CONTAINER_STYLE))
-        ty.m_bits |= FLOW_SL;
-    write_pws_and_pend_(PWS_NONE_);
-    if(ty.is_flow_mlx())
-        visit_flow_ml_(id);
-    else // if(ty.is_flow_sl())
-        visit_flow_sl_(id);
-#endif
-}
-
-
-//-----------------------------------------------------------------------------
-
-template<class Writer>
 void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
 {
     // some plain scalars such as '...' and '---' must not
@@ -420,6 +361,8 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
     evt_bits valstyle = evt & styles_ievt_sclr;
     const bool is_ambiguous = ((evt & ievt::PLAI) || !valstyle)
         && (val.begins_with("...") || val.begins_with("---"));
+    if(!valstyle)
+        valstyle = scalar_style_choose_block_ievt(val);
     if(is_ambiguous)
     {
         ++m_ilevel;
@@ -428,6 +371,8 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
         else
             indent_(m_ilevel);
     }
+    else if(val.empty() && (valstyle & ievt::PLAI))
+        pend_none_();
     write_pws_and_pend_(PWS_NONE_);
     if(evt & ievt::ALIA)
     {
@@ -435,9 +380,8 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
     }
     else
     {
-        if(!valstyle)
-            valstyle = scalar_style_choose_block_ievt(val);
         blck_write_scalar_(val, valstyle);
+        newl_();
     }
     if(is_ambiguous)
     {
@@ -479,7 +423,7 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_doc_(evt_size &pos)
+void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
 {
     while(pos < m_evts_size)
     {
@@ -523,6 +467,8 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos)
                 evt |= ievt::BLCK;
             if(evt & ievt::BLCK)
             {
+                if(expl)
+                    pend_newl_();
                 visit_blck_container_(pos);
             }
             else if(evt & ievt::FLOW)
@@ -588,6 +534,65 @@ void EmitterInts<Writer>::top_open_entry_(evt_size &node)
                 pend_newl_();
         }
     }
+#endif
+}
+
+
+//-----------------------------------------------------------------------------
+
+template<class Writer>
+void EmitterInts<Writer>::visit_blck_container_(evt_size &pos)
+{
+    evt_bits evt = m_evts[pos];
+    RYML_ASSERT_BASIC_(seqormap(evt));
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    if(!(evt & (ievt::FLOW|ievt::BLCK)))
+        evt |= (m_evts[pos + 1] & ievt::END_) ? ievt::FSL_ : ievt::BLCK;
+    write_pws_and_pend_(PWS_NONE_);
+    if(evt & ievt::FSL_)
+        visit_flow_sl_(pos);
+    else if(evt & ievt::FMLX)
+        visit_flow_ml_(pos);
+    else
+        visit_blck_(pos);
+    RYML_ASSERT_BASIC_(!(evt & ievt::END_));
+#ifdef OLD
+    NodeType ty = m_tree->type(id);
+    if(!(ty.m_bits & CONTAINER_STYLE))
+        ty.m_bits |= (m_tree->empty(id) ? FLOW_SL : BLOCK);
+    write_pws_and_pend_(PWS_NONE_);
+    if(ty.is_flow_sl())
+        visit_flow_sl_(id);
+    else if(ty.is_flow_mlx())
+        visit_flow_ml_(id);
+    else
+        visit_blck_(id);
+#endif
+}
+
+template<class Writer>
+void EmitterInts<Writer>::visit_flow_container_(evt_size &pos)
+{
+    evt_bits evt = m_evts[pos];
+    RYML_ASSERT_BASIC_(seqormap(evt));
+    RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+    if(!(evt & (ievt::FLOW|ievt::BLCK)))
+        evt |= ievt::FSL_;
+    write_pws_and_pend_(PWS_NONE_);
+    if(evt & ievt::FMLX)
+        visit_flow_ml_(pos);
+    else
+        visit_flow_sl_(pos);
+    RYML_ASSERT_BASIC_(!(evt & ievt::END_));
+#ifdef OLD
+    NodeType ty = m_tree->type(id);
+    if(!(ty.m_bits & CONTAINER_STYLE))
+        ty.m_bits |= FLOW_SL;
+    write_pws_and_pend_(PWS_NONE_);
+    if(ty.is_flow_mlx())
+        visit_flow_ml_(id);
+    else // if(ty.is_flow_sl())
+        visit_flow_sl_(id);
 #endif
 }
 
@@ -1071,16 +1076,19 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
                 evt |= ievt::BLCK;
             ++m_depth;
             ++m_ilevel;
-            pend_newl_();
+            if(evt & ievt::BLCK)
+                pend_newl_();
             write_pws_and_pend_(PWS_NONE_);
             visit_blck_container_(pos);
+            if(evt & ievt::FLOW)
+                newl_();
             --m_depth;
             --m_ilevel;
             goto statenext; // NOLINT
         }
         else if(evt & ievt::ALIA)
         {
-            write_pws_and_pend_(statekey ? PWS_NONE_ : PWS_NEWL_);
+            write_pws_and_pend_(statekey ? PWS_SPACE_ : PWS_NEWL_);
             write_ref_(getstr_(pos));
             pos += 3;
             goto statenext; // NOLINT
@@ -1421,7 +1429,7 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
         }
         else if(evt & ievt::ALIA)
         {
-            write_pws_and_pend_(PWS_NONE_);
+            write_pws_and_pend_(statekey ? PWS_SPACE_ : PWS_NONE_);
             write_ref_(getstr_(pos));
             pos += 3;
             goto statenext; // NOLINT
@@ -1543,7 +1551,7 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
         }
         else if(evt & ievt::ALIA)
         {
-            write_pws_and_pend_(PWS_NONE_);
+            write_pws_and_pend_(statekey ? PWS_SPACE_ : PWS_NONE_);
             write_ref_(getstr_(pos));
             pos += 3;
             goto statenext; // NOLINT
