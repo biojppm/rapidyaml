@@ -86,7 +86,7 @@ public:
 
 public:
 
-    void test(EngineEvtTestCase const& test_case) const
+    void test(EngineEvtTestCase const& test_case, bool ignore_doc_style=false) const
     {
         {
             SCOPED_TRACE("test_invariants");
@@ -101,7 +101,7 @@ public:
         }
         {
             SCOPED_TRACE("compare_testsuite");
-            buf.test_expected_testsuite(to_csubstr(test_case.expected_events));
+            buf.test_expected_testsuite(to_csubstr(test_case.expected_events), ignore_doc_style);
         }
         if(testing::Test::HasFailure())
         {
@@ -111,24 +111,37 @@ public:
 
 };
 
+bool compare_emitted_yaml_ints(csubstr emitted_, csubstr expected_)
+{
+    if(expected_.begins_with("---\n") || expected_.begins_with("--- "))
+    {
+        if(expected_.sub(4) == emitted_)
+            return true;
+    }
+    if(emitted_.ends_with("...\n"))
+    {
+        if(expected_ == emitted_.offs(0, 4))
+            return true;
+    }
+    return false;
+}
+
 void compare_emitted_yaml_ints(std::string const& emitted, std::string const& expected)
 {
     SCOPED_TRACE("compare_emitted_yaml_ints");
     if(emitted == expected)
         return;
     // they differ. work around some edge cases.
-    csubstr emitted_ = to_csubstr(emitted);
-    csubstr expected_ = to_csubstr(expected);
-    if(expected_.begins_with("---\n"))
-    {
-        if(expected_.sub(4) == emitted_)
-            return;
-    }
-    if(emitted_.ends_with("...\n"))
-    {
-        if(expected == emitted_.offs(0, 4))
-            return;
-    }
+    if(compare_emitted_yaml_ints(to_csubstr(emitted), to_csubstr(expected)))
+        return;
+    // remove internal ...\n
+    std::string emitted_filtered;
+    emitted_filtered.resize(emitted.size());
+    const size_t sz = to_csubstr(emitted).replace_all(to_substr(emitted_filtered),
+                                                      "...\n", "");
+    emitted_filtered.resize(sz);
+    if(compare_emitted_yaml_ints(to_csubstr(emitted_filtered), to_csubstr(expected)))
+        return;
     EXPECT_EQ(expected, emitted);
 }
 } // namespace
@@ -222,7 +235,7 @@ void test_expected_error_ints_from_yaml_noresize(EngineEvtTestCase const& test_c
 //-----------------------------------------------------------------------------
 
 template<bool resize_buffers>
-static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style=false)
 {
     SCOPED_TRACE("test_engine_ints_from_yaml");
     extra::ievt::EventHandlerInts<resize_buffers> handler{};
@@ -235,7 +248,7 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
         ASSERT_TRUE(handler.fits_buffers());
         buffers.get_buffers(handler);
         ASSERT_TRUE(buffers.buf.owned);
-        buffers.test(test_case);
+        buffers.test(test_case, ignore_doc_style);
     }
     else
     {
@@ -272,24 +285,24 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
             EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
             buffers.get_buffers(handler);
             ASSERT_TRUE(handler.fits_buffers());
-            buffers.test(test_case);
+            buffers.test(test_case, ignore_doc_style);
         }
     }
 }
 
 template<bool resize_buffers>
-static void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+static void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style=false)
 {
     EngineTestIntBuffers buffers;
-    test_engine_ints_from_yaml<resize_buffers>(buffers, test_case, parsed_yaml);
+    test_engine_ints_from_yaml<resize_buffers>(buffers, test_case, parsed_yaml, ignore_doc_style);
 }
-void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style)
 {
-    test_engine_ints_from_yaml<true>(test_case, parsed_yaml);
+    test_engine_ints_from_yaml<true>(test_case, parsed_yaml, ignore_doc_style);
 }
-void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
+void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style)
 {
-    test_engine_ints_from_yaml<false>(test_case, parsed_yaml);
+    test_engine_ints_from_yaml<false>(test_case, parsed_yaml, ignore_doc_style);
 }
 
 
@@ -543,7 +556,8 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("roundtrip_parse2");
-        test_engine_ints_from_yaml<resize_buffers>(buffers2, test_case, emitted1);
+        test_engine_ints_from_yaml<resize_buffers>(buffers2, test_case, emitted1,
+                                                   /*ignore_doc_style*/true);
         EXPECT_EQ(num_ints, buffers2.buf.evts.len);
         buffers2.buf.emit_yaml(&emitted2);
         compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);

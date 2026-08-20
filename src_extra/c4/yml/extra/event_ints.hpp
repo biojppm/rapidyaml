@@ -322,7 +322,7 @@ struct Buffers
         RYML_ASSERT_BASIC_(pos + 2 < evts.len);
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
         csubstr region = (evts.ptr[pos] & ievt::AREN) ? arena : src;
-        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1]) < region.len);
+        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1]) <= region.len);
         RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1] + evts.ptr[pos + 2]) <= region.len);
         return {region.str + evts.ptr[pos + 1], static_cast<size_t>(evts.ptr[pos + 2])};
     }

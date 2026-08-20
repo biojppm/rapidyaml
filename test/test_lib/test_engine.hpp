@@ -172,7 +172,7 @@ TEST(name, ints_from_yaml_resize)                                       \
     SCOPED_TRACE(#name ".event_ints_from_yaml_resize");                 \
     test_engine_ints_from_yaml_resize(test_case_##name);                \
 }                                                                       \
-TEST(name, ints_from_yaml)                                              \
+TEST(name, ints_from_yaml_noresize)                                     \
 {                                                                       \
     SCOPED_TRACE(#name ".event_ints_from_yaml_noresize");               \
     test_engine_ints_from_yaml_noresize(test_case_##name);              \
@@ -208,6 +208,8 @@ TEST(name, roundtrip_tree_from_events)                                  \
         test_case_##name,                                               \
         &events_##name<EventHandlerTree>);                              \
 }                                                                       \
+                                                                        \
+                                                                        \
                                                                         \
 TEST(name, roundtrip_ints_from_yaml_resize)                             \
 {                                                                       \
@@ -296,8 +298,8 @@ void test_expected_error_ints_from_yaml_noresize(EngineEvtTestCase const& test_c
 
 void test_engine_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize evts);
 void test_engine_ints_from_events_noresize(EngineEvtTestCase const& test_case, EventProducerIntsNoResize evts);
-void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
-void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml);
+void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style=false);
+void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style=false);
 inline void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case) { test_engine_ints_from_yaml_resize(test_case, test_case.yaml); }
 inline void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case) { test_engine_ints_from_yaml_noresize(test_case, test_case.yaml); }
 void test_engine_ints_from_yaml_with_comments_resize(EngineEvtTestCase const& test_case);

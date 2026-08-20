@@ -28,19 +28,6 @@ namespace ievt {
 
 namespace {
 
-enum : type_bits { // NOLINT
-    styles_block_key_ = KEY_LITERAL|KEY_FOLDED,
-    styles_block_val_ = VAL_LITERAL|VAL_FOLDED,
-    styles_block_     = (styles_block_key_ | styles_block_val_),
-    styles_flow_key_  = KEY_STYLE & ~styles_block_key_,
-    styles_flow_val_  = VAL_STYLE & ~styles_block_val_,
-    styles_flow_      = styles_flow_key_ | styles_flow_val_,
-    styles_squo_      = KEY_SQUO|VAL_SQUO,
-    styles_dquo_      = KEY_DQUO|VAL_DQUO,
-    styles_plain_     = KEY_PLAIN|VAL_PLAIN,
-    styles_literal_   = KEY_LITERAL|VAL_LITERAL,
-    styles_folded_    = KEY_FOLDED|VAL_FOLDED,
-};
 enum : evt_bits { // NOLINT
     styles_ievt_sclr = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
     styles_ievt_cont = ievt::BLCK|ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
@@ -110,6 +97,18 @@ evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, 
     return accum;
 }
 
+bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) noexcept
+{
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::EDOC);
+    while(++pos < evts_size)
+    {
+        if(hasall(evts[pos], ievt::ESTR))
+            return false;
+        else if(hasall(evts[pos], ievt::BDOC))
+            return (evts[pos] & ievt::EXPL);
+    }
+    return false;
+}
 } // namespace anon
 
 
@@ -426,6 +425,7 @@ template<class Writer>
 void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
 {
     bool anchor_or_tag = false;
+    bool was_flow_container = false;
     while(pos < m_evts_size)
     {
         evt_bits evt = m_evts[pos];
@@ -452,6 +452,12 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
         }
         else if(hasall(evt, ievt::EDOC))
         {
+            if(was_flow_container)
+            {
+                // is there a better way?
+                if(expl || (evt & ievt::EXPL) || has_next_doc_and_is_expl_(m_evts, m_evts_size, pos))
+                    newl_();
+            }
             write_pws_and_pend_(PWS_NONE_);
             if(evt & ievt::EXPL)
             {
@@ -476,6 +482,7 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
             }
             else if(evt & ievt::FLOW)
             {
+                was_flow_container = true;
                 visit_flow_container_(pos);
                 if(evt & ievt::FMLX)
                     newl_();

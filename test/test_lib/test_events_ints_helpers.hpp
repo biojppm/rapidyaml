@@ -159,7 +159,7 @@ public:
                                arena);
     }
 
-    void test_expected_testsuite(csubstr expected_events) const
+    void test_expected_testsuite(csubstr expected_events, bool ignore_doc_style=false) const
     {
         SCOPED_TRACE("compare_testsuite");
         std::string actual_events = ievt::events_ints_to_testsuite<std::string>(
@@ -168,7 +168,7 @@ public:
         _c4dbgpf("~~~\n{}~~~\n", actual_events);
         test_compare_events(expected_events,
                             to_csubstr(actual_events),
-                            /*ignore_doc_style*/false,
+                            ignore_doc_style,
                             /*ignore_container_style*/false,
                             /*ignore_scalar_style*/false,
                             /*ignore_tag_normalization*/true);
