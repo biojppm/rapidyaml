@@ -505,10 +505,20 @@ public:
     void end_map_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _pop();
-        if(base_type::m_curr->evt_id < m_evt.cap)
+        _c4dbgpf("{}/{}: emap flow multiline={} start={}", m_evt.len, m_evt.cap, multiline, base_type::m_curr->evt_id);
+        if C4_IF_CONSTEXPR(resize_buffers)
         {
+            RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, base_type::m_curr->evt_id < m_evt.cap);
             RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BMAP) == ievt::BMAP);
             m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
+        }
+        else
+        {
+            if(base_type::m_curr->evt_id < m_evt.cap)
+            {
+                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BMAP) == ievt::BMAP);
+                m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
+            }
         }
         _send_flag_only_(ievt::EMAP);
     }
@@ -563,10 +573,20 @@ public:
     void end_seq_flow(bool multiline, type_bits multiline_style=FLOW_ML1)
     {
         _pop();
-        if(base_type::m_curr->evt_id < m_evt.cap)
+        _c4dbgpf("{}/{}: eseq flow multiline={} start={}", m_evt.len, m_evt.cap, multiline, base_type::m_curr->evt_id);
+        if C4_IF_CONSTEXPR(resize_buffers)
         {
+            RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, base_type::m_curr->evt_id < m_evt.cap);
             RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BSEQ) == ievt::BSEQ);
             m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
+        }
+        else
+        {
+            if(base_type::m_curr->evt_id < m_evt.cap)
+            {
+                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BSEQ) == ievt::BSEQ);
+                m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
+            }
         }
         _send_flag_only_(ievt::ESEQ);
     }

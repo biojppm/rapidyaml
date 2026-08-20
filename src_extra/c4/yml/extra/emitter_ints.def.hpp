@@ -1425,7 +1425,6 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
         else if(seqormap(evt))
         {
             ++m_depth;
-            pend_newl_();
             write_pws_and_pend_(PWS_NONE_);
             visit_blck_container_(pos);
             --m_depth;
@@ -1510,9 +1509,8 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
     RYML_ASSERT_BASIC_(hasall(m_evts[pos], ievt::BMAP));
     write_('{');
-    newl_();
+    pend_newl_();
     if(m_opts.indent_flow_ml()) ++m_ilevel;
-    indent_(m_ilevel);
     const bool stop_at_end = maybe_start_flow_pws_ml_(pos);
     bool statenew = true;
     bool statekey = true;

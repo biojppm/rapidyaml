@@ -686,6 +686,8 @@ ENGINE_TEST(SimpleMapContainerKeyFlow,
             HAS_CONTAINER_KEYS,
             "{{this: is, a: keymap}: [and,now,a,seq,val]}"
             ,
+            "{{this: is,a: keymap}: [and,now,a,seq,val]}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -766,6 +768,8 @@ ENGINE_TEST(MapKeyFlow,
 ENGINE_TEST(SeqKeyFlow,
             HAS_CONTAINER_KEYS, Location(1,1,2),
             "{[foo, bar]: baz}"
+            ,
+            "{[foo,bar]: baz}"
             ,
             "+STR\n"
             "+DOC\n"

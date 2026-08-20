@@ -54,6 +54,12 @@ const FlagSym flag_syms_[] = {
     {"YAML", YAML},
     {"TAGH", TAGH},
     {"TAGP", TAGP},
+    {"JUMP", JUMP},
+    {"PJUMP", PJUMP},
+    {"FSL_", FSL_},
+    {"FML1", FML1},
+    {"FMLN", FMLN},
+    {"FSPC", FSPC},
 };
 } // namespace
 

@@ -530,7 +530,7 @@ template<bool resize_buffers>
 static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
     SCOPED_TRACE("roundtrip_ints_from_yaml");
-    EngineTestIntBuffers buffers1, buffers2;
+    EngineTestIntBuffers buffers1 = {}, buffers2 = {};
     std::string emitted1, emitted2;
     extra::ievt::evt_size num_ints = 0;
     {
@@ -540,7 +540,7 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         buffers1.buf.emit_yaml(&emitted1);
         compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
     }
-    //if(!testing::Test::HasFailure())
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("roundtrip_parse2");
         test_engine_ints_from_yaml<resize_buffers>(buffers2, test_case, emitted1);
@@ -548,7 +548,7 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         buffers2.buf.emit_yaml(&emitted2);
         compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
     }
-    //if(!testing::Test::HasFailure())
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("roundtrip_compare");
         test_events_ints_compare(buffers1.buf, buffers2.buf);
