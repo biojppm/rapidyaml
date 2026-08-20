@@ -425,6 +425,7 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
 template<class Writer>
 void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
 {
+    bool anchor_or_tag = false;
     while(pos < m_evts_size)
     {
         evt_bits evt = m_evts[pos];
@@ -436,6 +437,7 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
         }
         else if(evt & ievt::ANCH)
         {
+            anchor_or_tag = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_('&');
             write_(getstr_(pos));
@@ -443,6 +445,7 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
         }
         else if(evt & ievt::TAG_)
         {
+            anchor_or_tag = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_tag_(getstr_(pos));
             pos += 3;
@@ -467,7 +470,7 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
                 evt |= ievt::BLCK;
             if(evt & ievt::BLCK)
             {
-                if(expl)
+                if(expl || anchor_or_tag)
                     pend_newl_();
                 visit_blck_container_(pos);
             }
@@ -477,6 +480,7 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
                 if(evt & ievt::FMLX)
                     newl_();
             }
+            anchor_or_tag = false;
         }
     }
 #ifdef OLD
@@ -1049,8 +1053,6 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
             }
             else
             {
-                if(qmark)
-                    pend_newl_();
                 write_pws_and_pend_(PWS_SPACE_);
                 write_(':');
             }
@@ -1067,6 +1069,8 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
             }
             blck_write_scalar_(val, evt);
             pos += 3;
+            if(evt & (ievt::LITL|ievt::FOLD))
+                newl_();
             goto statenext; // NOLINT
         }
         else if(seqormap(evt))
