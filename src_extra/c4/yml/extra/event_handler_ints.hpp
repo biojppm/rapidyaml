@@ -1213,7 +1213,7 @@ public:
         return pos;
     }
 
-    C4_ALWAYS_INLINE evt_bits translate_flowml_(type_bits multiline_style) noexcept
+    C4_ALWAYS_INLINE evt_bits translate_flowml_(type_bits multiline_style) const noexcept
     {
         static_assert((uint32_t)(FLOW_ML1 << 12) == (uint32_t)ievt::FML1, "");
         static_assert((uint32_t)(FLOW_MLN << 12) == (uint32_t)ievt::FMLN, "");

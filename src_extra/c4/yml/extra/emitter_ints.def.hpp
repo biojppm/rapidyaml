@@ -271,7 +271,7 @@ void EmitterInts<Writer>::visit_stream_(evt_size &pos)
         else if(evt & ievt::TAGH)
         {
             RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-            RYML_ASSERT_BASIC_(m_evts[pos + 1] & ievt::TAGP);
+            RYML_ASSERT_BASIC_(m_evts[pos + 3] & ievt::TAGP);
             write_("%TAG ");
             write_(getstr_(pos));
             pos += 3;
@@ -1558,7 +1558,6 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
         else if(seqormap(evt))
         {
             ++m_depth;
-            pend_newl_();
             write_pws_and_pend_(PWS_NONE_);
             visit_blck_container_(pos);
             --m_depth;

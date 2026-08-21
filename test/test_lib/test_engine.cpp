@@ -111,6 +111,41 @@ public:
 
 };
 
+std::string filter_emitted_yaml_ints(csubstr em)
+{
+    std::string filtered;
+    filtered.reserve(em.len);
+    size_t line_start = 0;
+    size_t line_end = em.find('\n');
+    while(true)
+    {
+        if(line_end != csubstr::npos)
+            ++line_end;
+        csubstr line = em.range(line_start, line_end);
+        // skip YAML directives
+        if(line.begins_with("%YAML "))
+        {
+            goto skip; // NOLINT
+        }
+        // skip expl end docs if they're not followed by directives
+        else if(line == "...\n")
+        {
+            csubstr next_line = em.sub(line_end);
+            if(!next_line.begins_with("%TAG"))
+            {
+                goto skip; // NOLINT
+            }
+        }
+        filtered.append(line.str, line.len);
+    skip:
+        if(line_end == csubstr::npos || line_end >= em.len)
+            break;
+        line_start = line_end;
+        line_end = em.find('\n', line_start);
+    }
+    return filtered;
+}
+
 bool compare_emitted_yaml_ints(csubstr emitted_, csubstr expected_)
 {
     if(expected_.begins_with("---\n") || expected_.begins_with("--- "))
@@ -135,13 +170,12 @@ void compare_emitted_yaml_ints(std::string const& emitted, std::string const& ex
     if(compare_emitted_yaml_ints(to_csubstr(emitted), to_csubstr(expected)))
         return;
     // remove internal ...\n
-    std::string emitted_filtered;
-    emitted_filtered.resize(emitted.size());
-    const size_t sz = to_csubstr(emitted).replace_all(to_substr(emitted_filtered),
-                                                      "...\n", "");
-    emitted_filtered.resize(sz);
-    if(compare_emitted_yaml_ints(to_csubstr(emitted_filtered), to_csubstr(expected)))
+    std::string filtered = filter_emitted_yaml_ints(to_csubstr(emitted));
+    if(filtered == expected)
         return;
+    if(compare_emitted_yaml_ints(to_csubstr(filtered), to_csubstr(expected)))
+        return;
+    RYML_TRACE_FMT("filtered=~~~\n{}~~~\n", filtered);
     EXPECT_EQ(expected, emitted);
 }
 } // namespace
@@ -493,6 +527,8 @@ void test_engine_roundtrip_ints_from_events_noresize(EngineEvtTestCase const& te
 }
 
 
+//-----------------------------------------------------------------------------
+
 void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
     if(test_case.test_case_flags & HAS_CONTAINER_KEYS) // NOLINT
@@ -551,6 +587,10 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         test_engine_ints_from_yaml<resize_buffers>(buffers1, test_case, yaml);
         num_ints = buffers1.buf.evts.len;
         buffers1.buf.emit_yaml(&emitted1);
+        #ifdef RYML_DBG
+        buffers1.buf.print();
+        printf("emitted: ~~~\n%s~~~\n", emitted1.c_str());
+        #endif
         compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
     }
     if(!testing::Test::HasFailure())
