@@ -862,6 +862,7 @@ public:
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len > 2);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_prev > 0);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len < m_evt.cap || !resize_buffers);
+        evt_size pos = m_evt_prev;
         if(resize_buffers || m_evt.len < m_evt.cap)
         {
             // BEFORE
@@ -876,7 +877,7 @@ public:
             {
                 _c4dbgpf("{}/{}: WSTR", m_evt.len, m_evt.cap);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_prev > 0);
-                evt_size pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
+                pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
                 if C4_IF_CONSTEXPR (resize_buffers)
                     _grow_evts();
                 if(resize_buffers || m_evt.len + 1 < m_evt.cap)
@@ -900,10 +901,8 @@ public:
             }
             else
             {
-                _c4dbgpf("{}/{}: container key", m_evt.len, m_evt.cap);
+                _c4dbgpf("{}/{}: container key. prev={}", m_evt.len, m_evt.cap, m_evt_prev);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
-                evt_size pos;
-                _c4dbgpf("{}/{}: find matching open for {}", m_evt.len, m_evt.cap, m_evt_prev);
                 if((m_evt.ptr[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
                 {
                     pos = _find_matching_open(ievt::BMAP, ievt::EMAP, m_evt_prev);
@@ -947,6 +946,7 @@ public:
         ++m_evt.len;
         ryml_enable_(c4::yml::MAP|c4::yml::FLOW_SL);
         _push();
+        base_type::m_parent->evt_id = pos;
     }
 
     /** like its flow counterpart, but this function can only be

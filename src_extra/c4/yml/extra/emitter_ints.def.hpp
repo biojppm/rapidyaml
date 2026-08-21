@@ -450,6 +450,12 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(evt & ievt::ALIA)
+        {
+            write_pws_and_pend_(PWS_NEWL_);
+            write_ref_(getstr_(pos));
+            pos += 3;
+        }
         else if(hasall(evt, ievt::EDOC))
         {
             if(was_flow_container)
