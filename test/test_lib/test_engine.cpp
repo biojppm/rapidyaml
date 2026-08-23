@@ -591,7 +591,8 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         buffers1.buf.print();
         printf("emitted: ~~~\n%s~~~\n", emitted1.c_str());
         #endif
-        compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
+        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+            compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
     }
     if(!testing::Test::HasFailure())
     {
@@ -600,7 +601,8 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
                                                    /*ignore_doc_style*/true);
         EXPECT_EQ(num_ints, buffers2.buf.evts.len);
         buffers2.buf.emit_yaml(&emitted2);
-        compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
+        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+            compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
     }
     if(!testing::Test::HasFailure())
     {
