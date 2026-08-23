@@ -251,6 +251,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
+            _test_str_in_buffer(evtpos);
         }
         if(evt & ievt::TAGH)
         {
@@ -272,6 +273,8 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
+            EXPECT_EQ(next & ievt::TAGP, ievt::TAGP) << (ok = false);
+            _test_str_in_buffer(evtpos);
         }
         if(evt & ievt::TAGP)
         {
@@ -293,6 +296,8 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
+            EXPECT_EQ(prev & ievt::TAGH, ievt::TAGH) << (ok = false);
+            _test_str_in_buffer(evtpos);
         }
         if((evt & ievt::BSTR) == ievt::BSTR)
         {

@@ -416,19 +416,36 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
 //-----------------------------------------------------------------------------
 
 template<class Writer>
-void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
+void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool begin_expl)
 {
     bool anchor_or_tag = false;
     bool was_flow_container = false;
     while(pos < m_evts_size)
     {
         evt_bits evt = m_evts[pos];
-        if(evt & ievt::SCLR)
+        if(detail::seqormap(evt))
+        {
+            if(evt & ievt::FLOW)
+            {
+                was_flow_container = true;
+                visit_flow_container_(pos);
+                if(evt & ievt::FMLX)
+                    pend_newl_();
+            }
+            else
+            {
+                if(begin_expl || anchor_or_tag)
+                    pend_newl_();
+                visit_blck_container_(pos);
+            }
+            anchor_or_tag = false;
+        }
+        else if(evt & ievt::SCLR)
         {
             RYML_ASSERT_BASIC_(evt & ievt::VAL_);
             csubstr val = getstr_(pos);
             visit_doc_val_(pos);
-            if(expl || val.len)
+            if(begin_expl || val.len)
                 pend_newl_();
             pos += 3;
         }
@@ -458,7 +475,7 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
             if(was_flow_container)
             {
                 // is there a better way?
-                if(expl || (evt & ievt::EXPL) || detail::has_next_doc_and_is_expl_(m_evts, m_evts_size, pos))
+                if(begin_expl || (evt & ievt::EXPL) || detail::has_next_doc_and_is_expl_(m_evts, m_evts_size, pos))
                     pend_newl_();
             }
             if(evt & ievt::EXPL)
@@ -468,29 +485,6 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool expl)
             }
             ++pos;
             return;
-        }
-        else
-        {
-            // must be a container
-            RYML_ASSERT_BASIC_(detail::seqormap(evt));
-            // default to block
-            if(detail::hasnone(evt, ievt::BLCK|ievt::FLOW))
-                evt |= ievt::BLCK;
-            if(evt & ievt::BLCK)
-            {
-                if(expl || anchor_or_tag)
-                    pend_newl_();
-                visit_blck_container_(pos);
-            }
-            else
-            {
-                RYML_ASSERT_BASIC_(evt & ievt::FLOW);
-                was_flow_container = true;
-                visit_flow_container_(pos);
-                if(evt & ievt::FMLX)
-                    pend_newl_();
-            }
-            anchor_or_tag = false;
         }
     }
 #ifdef OLD
@@ -1095,7 +1089,7 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
             write_pws_and_pend_(PWS_NONE_);
             visit_blck_container_(pos);
             if(evt & ievt::FLOW)
-                newl_();
+                pend_newl_();
             --m_depth;
             --m_ilevel;
             goto statenext; // NOLINT
