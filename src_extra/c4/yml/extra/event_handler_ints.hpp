@@ -352,7 +352,7 @@ public:
     void reserve_evts(evt_size size)
     {
         if C4_IF_CONSTEXPR (resize_buffers)
-            if((size_t)size > m_arena.len)
+            if((size_t)size > m_evt.cap)
                 _grow_evts(size);
     }
 
@@ -879,7 +879,10 @@ public:
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_prev > 0);
                 pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
                 if C4_IF_CONSTEXPR (resize_buffers)
-                    _grow_evts();
+                {
+                    if(m_evt.len >= m_evt.cap)
+                        _grow_evts();
+                }
                 if(resize_buffers || m_evt.len + 1 < m_evt.cap)
                 {
                     for(evt_size i = pos; i <= m_evt_prev; i = _next(i))
@@ -920,7 +923,10 @@ public:
                 // shift the array one position to the right, starting at pos
                 evt_size posp1 = pos + 1;
                 if C4_IF_CONSTEXPR (resize_buffers)
-                    _grow_evts();
+                {
+                    if(m_evt.len >= m_evt.cap)
+                        _grow_evts();
+                }
                 if(resize_buffers || m_evt.len + 1 < m_evt.cap)
                 {
                     evt_size num_move = m_evt.len + 1 - pos;
@@ -1082,7 +1088,15 @@ public:
     C4_NO_INLINE void _grow_evts(evt_size next)
     {
         next = next > 256 ? next : 256;
-        m_evt = detail::resize(m_evt, next, base_type::m_stack.m_callbacks);
+        _c4dbgpf("{}/{}: resize evts {}->{}", m_evt.len, m_evt.cap, m_evt.cap, next);
+        // the actual len is len+1 (eg because of PSTR already being
+        // set on it). so temporarily bump the length to prevent that
+        // value from being zeroed.
+        evtbuf cp = m_evt;
+        if(cp.len) ++cp.len;
+        m_evt = detail::resize(cp, next, base_type::m_stack.m_callbacks);
+        // restore to the current len
+        if(m_evt.len) --m_evt.len;
     }
 
     C4_NO_INLINE void _grow_evts()
@@ -1095,6 +1109,7 @@ public:
         size_t next = m_arena.len + more;
         next = 2 * m_arena.len > next ? 2 * m_arena.len : next;
         next = next > 256 ? next : 256;
+        _c4dbgpf("{}/{}: resize arena {}->{}", m_evt.len, m_evt.cap, m_arena.len, next);
         m_arena = detail::resize(m_arena, next, base_type::m_stack.m_callbacks);
     }
 

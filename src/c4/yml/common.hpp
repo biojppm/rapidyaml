@@ -488,15 +488,15 @@ C4_SUPPRESS_WARNING_POP
 namespace detail {
 // resize a buffer with length only
 RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t next_len, Callbacks const& cb);
-// resize a buffer with length+capacity
-RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb);
-
 template<class T>
 C4_NODISCARD T* grow_buf(T* buf, size_t len, size_t next_len, Callbacks const& cb)
 {
     size_t s = sizeof(T);
     return reinterpret_cast<T*>(grow_buf_raw(buf, s * len, s * next_len, cb)); // NOLINT
 }
+
+// resize a buffer with length+capacity
+RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb);
 template<class T>
 C4_NODISCARD T* grow_buf(T* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
 {
