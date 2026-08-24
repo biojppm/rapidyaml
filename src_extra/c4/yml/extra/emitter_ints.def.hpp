@@ -1304,10 +1304,8 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         {
             write_pws_and_pend_(PWS_NONE_);
             ++m_depth;
-            ++m_ilevel;
             visit_flow_container_(pos);
             --m_depth;
-            --m_ilevel;
             goto nextval; // NOLINT
         }
         else if(evt & ievt::ALIA)

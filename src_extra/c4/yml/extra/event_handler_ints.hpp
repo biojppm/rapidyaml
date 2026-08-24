@@ -514,7 +514,7 @@ public:
         }
         else
         {
-            if(base_type::m_curr->evt_id < m_evt.cap)
+            if(m_evt.len < m_evt.cap)
             {
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BMAP) == ievt::BMAP);
                 m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
@@ -582,7 +582,7 @@ public:
         }
         else
         {
-            if(base_type::m_curr->evt_id < m_evt.cap)
+            if(m_evt.len < m_evt.cap)
             {
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[base_type::m_curr->evt_id] & ievt::BSEQ) == ievt::BSEQ);
                 m_evt.ptr[base_type::m_curr->evt_id] |= multiline ? translate_flowml_(multiline_style) : ievt::FSL_;
