@@ -240,7 +240,7 @@ ENGINE_TEST(QmrkFlowSeq1,
             HAS_CONTAINER_KEYS,
             "{ ? [a, b]: c , }"
             ,
-            "{? [a, b] : c}"
+            "{[a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -271,7 +271,7 @@ ENGINE_TEST(QmrkFlowSeq1Double,
             HAS_CONTAINER_KEYS,
             "{ ? [a, b]: c ,  ? [a, b]: c }"
             ,
-            "{? [a, b] : c,? [a, b]: c}"
+            "{[a,b]: c,[a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -313,7 +313,7 @@ ENGINE_TEST(QmrkFlowSeq1Anchor,
             HAS_CONTAINER_KEYS,
             "{ ? &anchor [a, b]: c , }"
             ,
-            "{? &anchor [a, b] : c}"
+            "{&anchor [a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -345,7 +345,7 @@ ENGINE_TEST(QmrkFlowSeq1Tag,
             HAS_CONTAINER_KEYS,
             "{ ? !tag [a, b]: c , }"
             ,
-            "{? !tag [a, b] : c}"
+            "{!tag [a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -377,7 +377,7 @@ ENGINE_TEST(QmrkFlow1Map,
             HAS_CONTAINER_KEYS,
             "{ ? {a: b}: c , }"
             ,
-            "{? {a: b} : c}"
+            "{{a: b}: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -408,7 +408,7 @@ ENGINE_TEST(QmrkFlow1MapAnchor,
             HAS_CONTAINER_KEYS,
             "{ ? &anchor {a: b}: c , }"
             ,
-            "{? &anchor {a: b} : c}"
+            "{&anchor {a: b}: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -440,7 +440,7 @@ ENGINE_TEST(QmrkFlow1MapTag,
             HAS_CONTAINER_KEYS,
             "{ ? !tag {a: b}: c , }"
             ,
-            "{? !tag {a: b} : c}"
+            "{!tag {a: b}: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -473,6 +473,10 @@ ENGINE_TEST(QmrkFlow1MapTag,
 
 ENGINE_TEST(QmrkNestedSamelineTag0_00, HAS_CONTAINER_KEYS,
             "? ? &a !t"   "\n"
+            ": a"         "\n"
+            ,
+            "?\n"
+            "  &a !t : "  "\n"
             ": a"         "\n"
             ,
             "+STR"        "\n"
@@ -508,6 +512,10 @@ ENGINE_TEST(QmrkNestedSamelineTag0_01, HAS_CONTAINER_KEYS,
             "  ? &a !t"   "\n"
             ": a"         "\n"
             ,
+            "? &a !t\n"
+            "  &a !t : "  "\n"
+            ": a"         "\n"
+            ,
             "+STR"        "\n"
             "+DOC"        "\n"
             "+MAP"        "\n"
@@ -540,6 +548,10 @@ ENGINE_TEST(QmrkNestedSamelineTag0_01, HAS_CONTAINER_KEYS,
 
 ENGINE_TEST(QmrkNestedSamelineTag0_02, HAS_CONTAINER_KEYS,
             "? &a !t ? &a !t"   "\n"
+            ": a"         "\n"
+            ,
+            "? &a !t\n"
+            "  &a !t : "  "\n"
             ": a"         "\n"
             ,
             "+STR"        "\n"
@@ -615,9 +627,12 @@ ENGINE_TEST(QmrkNestedSamelineTag0_03,
 
 ENGINE_TEST(MapKeyBlock4Plain1_0,
             HAS_CONTAINER_KEYS,
-            "\n"
             "? &mapanchor\n"
             "  foo : bar\n"
+            ": baz\n"
+            ,
+            "? &mapanchor\n"
+            "  foo: bar\n"
             ": baz\n"
             ,
             "+STR\n"
@@ -652,6 +667,10 @@ ENGINE_TEST(MapKeyBlock4Plain1_0_tag,
             "  foo : bar\n"
             ": baz\n"
             ,
+            "? !maptag\n"
+            "  foo: bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -682,6 +701,10 @@ ENGINE_TEST(MapKeyBlock4Plain1_1,
             "\n"
             "? \n"
             "  &keyanchor foo : bar\n"
+            ": baz\n"
+            ,
+            "?\n"
+            "  &keyanchor foo: bar\n"
             ": baz\n"
             ,
             "+STR\n"
@@ -715,6 +738,10 @@ ENGINE_TEST(MapKeyBlock4Plain1_2,
             "? &keyanchor foo : bar\n"
             ": baz\n"
             ,
+            "?\n"
+            "  &keyanchor foo: bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -745,6 +772,10 @@ ENGINE_TEST(MapKeyBlock4Plain1_2,
 ENGINE_TEST(MapKeyBlock4Ref1_0,
             HAS_CONTAINER_KEYS,
             "\n"
+            "? &mapanchor\n"
+            "  *ref : bar\n"
+            ": baz\n"
+            ,
             "? &mapanchor\n"
             "  *ref : bar\n"
             ": baz\n"
@@ -815,7 +846,6 @@ ENGINE_TEST(MapKeyBlock5AllPlain,
 
 ENGINE_TEST(MapKeyBlock5AllSquo,
             HAS_CONTAINER_KEYS,
-            "\n"
             "? &mapanchor !maptag\n"
             "  &keyanchor !keytag 'foo': bar\n"
             ": baz\n"
@@ -851,7 +881,6 @@ ENGINE_TEST(MapKeyBlock5AllSquo,
 
 ENGINE_TEST(MapKeyBlock5AllDquo,
             HAS_CONTAINER_KEYS,
-            "\n"
             "? &mapanchor !maptag\n"
             "  &keyanchor !keytag \"foo\": bar\n"
             ": baz\n"
@@ -974,6 +1003,10 @@ ENGINE_TEST(MapKeyBlock6_0_flowseq,
             "&ma !mt\n"
             "&ka0 !kt0 []: b\n"
             ,
+            "&ma !mt\n"
+            "? &ka0 !kt0 []\n"
+            ": b\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP &ma <!mt>\n"
@@ -1003,6 +1036,10 @@ ENGINE_TEST(MapKeyBlock6_0_flowmap,
             HAS_CONTAINER_KEYS,
             "&ma !mt\n"
             "&ka1 !kt1 {}: c\n"
+            ,
+            "&ma !mt\n"
+            "? &ka1 !kt1 {}\n"
+            ": c\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1143,7 +1180,8 @@ ENGINE_TEST(MapKeyBlock6_1_flowseq,
             "&ka !kt []: b\n"
             ,
             "&ma !mt : \n"
-            "&ka !kt []: b\n"
+            "? &ka !kt []\n"
+            ": b\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1181,7 +1219,8 @@ ENGINE_TEST(MapKeyBlock6_1_flowmap,
             "&ka !kt {}: b\n"
             ,
             "&ma !mt : \n"
-            "&ka !kt {}: b\n"
+            "? &ka !kt {}\n"
+            ": b\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1337,7 +1376,8 @@ ENGINE_TEST(MapKeyBlock6_2_flowseq,
             "&ka !kt []: b\n"
             ,
             "&ma !mt : &va !vt \n"
-            "&ka !kt []: b\n"
+            "? &ka !kt []\n"
+            ": b\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1378,7 +1418,8 @@ ENGINE_TEST(MapKeyBlock6_2_flowmap,
             "&ka !kt {}: b\n"
             ,
             "&ma !mt : &va !vt \n"
-            "&ka !kt {}: b\n"
+            "? &ka !kt {}\n"
+            ": b\n"
             ,
             "+STR\n"
             "+DOC\n"
