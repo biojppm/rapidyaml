@@ -16,6 +16,9 @@
 #include <c4/yml/extra/ints_utils.hpp> // estimate size, print
 #include <c4/std/vector.hpp>
 #include <c4/yml/file.hpp>
+#include <c4/yml/writer_buf.hpp>
+#include <c4/yml/extra/emitter_ints.hpp>
+#include <c4/yml/extra/emitter_ints.def.hpp>
 #endif
 
 #include <vector>
@@ -92,35 +95,29 @@ public:  // methods
 
     IntsParserFixedBuffers() noexcept : handler(), parser(&handler) {}
 
-    bool parse_in_place(const char *filename, c4::substr yaml, Result *result)
+    bool parse_in_place(const char *filename, c4::csubstr yaml, Result *result)
     {
-        handler.reset(yaml, c4::to_substr(result->arena),
+        result->reset_yaml(yaml);  // copy to enable retries
+        handler.reset(c4::to_substr(result->yaml),
+                      c4::to_substr(result->arena),
                       result->events.data(),
                       static_cast<ievt::evt_size>(result->events.size()));
-        parser.parse_in_place_ev(filename, yaml); // we're parsing in place on the original YAML
-        // the YAML was successfully parsed, but it may happen that it
-        // requires more events than may fit in the buffers. so we
-        // need to check that it actually fits (this is mandatory):
-        if(handler.fits_buffers())
-            result->resize_buffers(handler); // trim the events buffer to the required size
-        return handler.fits_buffers();
+        parser.parse_in_place_ev(filename, c4::to_substr(result->yaml));
+        // parse was successful, but it may happen that it requires
+        // more events than may fit in the buffers. so we need to
+        // check that it actually fits (this is mandatory):
+        bool success = handler.fits_buffers();
+        result->resize_buffers(handler); // trim (or expand) the events buffer to the required size
+        return success;
     }
 
     bool parse_or_resize_and_then_parse(const char *filename, c4::csubstr yaml, Result *result)
     {
-        // the buffer is not mutable. we'll need to parse a copy
-        result->reset_yaml(yaml);
         // attempt the parse
-        if(this->parse_in_place(filename, c4::to_substr(result->yaml), result))
+        if(this->parse_in_place(filename, yaml, result))
             return true;
-        // events or arena buffers were too small. need to resize and parse again.
-        result->resize_buffers(handler);
-        // copy the source again! we need to do this because the
-        // buffer was parsed in place, and may have been modified
-        // during the parse.
-        result->reset_yaml(yaml);
         // parse again!
-        return this->parse_in_place(filename, c4::to_substr(result->yaml), result);
+        return this->parse_in_place(filename, yaml, result);
     }
 };
 
@@ -146,7 +143,9 @@ void print_usage(c4::csubstr basename)
 options:
 
    -f,--fixed-size                   use fixed size output buffers, and retry parsing
-                                     if their size was small. default=%s
+                                     if their size was small. otherwise, use dynamic size
+                                     buffers, growing as required during the parse.
+                                     default=%s
    -e <size>,--events-size <size>    [fixed size] set size of events buffer. -1 means
                                      estimate size. default=%d
    -a <size>,--arena-size <size>     [fixed size] set size of arena buffer. -1 means
@@ -294,6 +293,47 @@ int compare_to_expected(c4::csubstr src,
 
 //-----------------------------------------------------------------------------
 
+
+size_t emit_yaml(c4::substr yaml,
+                 c4::csubstr src,
+                 c4::csubstr arena,
+                 ievt::evtbuf evts,
+                 c4::yml::EmitOptions const& opts={})
+{
+    ievt::EmitterInts<c4::yml::WriterBuf> emitter(opts, yaml);
+    emitter.emit_as(c4::yml::EMIT_YAML, evts.ptr, evts.len, src, arena);
+    return emitter.get_result(/*error_on_excess*/false).len;
+}
+
+template<class CharContainer>
+void emit_yaml(CharContainer *cont,
+               c4::csubstr src,
+               c4::csubstr arena,
+               ievt::evtbuf evts,
+               c4::yml::EmitOptions const& opts={})
+{
+    const size_t cap = cont->capacity();
+    cont->resize(cap);
+    const size_t len = emit_yaml(c4::to_substr(*cont), src, arena, evts, opts);
+    cont->resize(len);
+    if(len > cap)
+        emit_yaml(c4::to_substr(*cont), src, arena, evts, opts);
+}
+
+template<class CharContainer>
+CharContainer emit_yaml(c4::csubstr src,
+                        c4::csubstr arena,
+                        ievt::evtbuf evts,
+                        c4::yml::EmitOptions const& opts={})
+{
+    CharContainer c;
+    emit_yaml(&c, src, arena, evts, opts);
+    return c;
+}
+
+
+//-----------------------------------------------------------------------------
+
 int main(int argc, const char *argv[])
 {
     Args args = {};
@@ -393,6 +433,11 @@ int main(int argc, const char *argv[])
                                        demo_expected, static_cast<ievt::evt_size>(C4_COUNTOF(demo_expected)),
                                        args.quiet);
         }
+        if( ! args.quiet)
+        {
+            std::string emitted = emit_yaml<std::string>(result.src, result.arena, result.evts);
+            printf("%s", emitted.c_str());
+        }
     }
     else
     {
@@ -439,6 +484,18 @@ int main(int argc, const char *argv[])
                                        result.events.data(), static_cast<ievt::evt_size>(result.events.size()),
                                        demo_expected, static_cast<ievt::evt_size>(C4_COUNTOF(demo_expected)),
                                        args.quiet);
+        }
+
+        if( ! args.quiet)
+        {
+            ievt::evtbuf evts;
+            evts.ptr = result.events.data();
+            evts.len = static_cast<ievt::evt_size>(result.events.size());
+            evts.cap = static_cast<ievt::evt_size>(result.events.capacity());
+            std::string emitted = emit_yaml<std::string>(c4::to_csubstr(result.yaml),
+                                                         c4::to_csubstr(result.arena),
+                                                         evts);
+            printf("%s", emitted.c_str());
         }
     }
 }

@@ -179,13 +179,13 @@ public:
     size_t emit_yaml(substr yaml, EmitOptions const& opts={}) const
     {
         ievt::EmitterInts<WriterBuf> emitter(opts, yaml);
-        emitter.emit_as(EMIT_YAML, evts.ptr, (ievt::evt_size)evts.len, src, arena);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, src, arena);
         return emitter.get_result(/*error_on_excess*/false).len;
     }
     size_t emit_json(substr json, EmitOptions const& opts={}) const
     {
         ievt::EmitterInts<WriterBuf> emitter(opts, json);
-        emitter.emit_as(EMIT_JSON, evts.ptr, (ievt::evt_size)evts.len, src, arena);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, src, arena);
         return emitter.get_result(/*error_on_excess*/false).len;
     }
 

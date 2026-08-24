@@ -299,7 +299,7 @@ RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t next_l
 // resize a buffer with length+capacity
 RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
 {
-    RYML_ASSERT_BASIC_CB_(cb, next_cap > cap);
+    RYML_ASSERT_BASIC_CB_(cb, next_cap > cap);(void)cap;
     RYML_ASSERT_BASIC_CB_(cb, len <= cap);
     void *ptr = cb.m_allocate(next_cap, buf, cb.m_user_data);
     if C4_UNLIKELY(!ptr)

@@ -332,8 +332,8 @@ struct Buffers
         {
             if(evts.ptr)
                 callbacks.m_free(evts.ptr, static_cast<size_t>(evts.cap) * sizeof(evts.ptr[0]), callbacks.m_user_data);
-            if(src.str)
-                callbacks.m_free(src.str, src.len * sizeof(src.str[0]), callbacks.m_user_data);
+            //if(src.str)
+            //    callbacks.m_free(src.str, src.len * sizeof(src.str[0]), callbacks.m_user_data);
             if(arena.str)
                 callbacks.m_free(arena.str, arena.len * sizeof(arena.str[0]), callbacks.m_user_data);
         }
