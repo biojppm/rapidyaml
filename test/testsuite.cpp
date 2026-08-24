@@ -157,9 +157,9 @@ struct TestSequenceLevel
     std::string         emitted_from_tree_parsed_from_src;
     std::string         emitted_from_tree_parsed_from_src_json;
 
-    extra::EventHandlerInts evt_handler_ints;
-    ParseEngine<extra::EventHandlerInts> parser_ints;
-    std::vector<extra::EventHandlerInts::value_type> buffer_ints;
+    extra::ievt::EventHandlerInts<false> evt_handler_ints;
+    ParseEngine<extra::ievt::EventHandlerInts<false>> parser_ints;
+    std::vector<extra::ievt::evt_bits> buffer_ints;
     std::string evts_test_suite_from_ints;
 
     bool immutable = false;
@@ -319,7 +319,7 @@ struct TestSequenceLevel
             receive_src(*prev);
         _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts_ints);
         buffer_ints.resize(32);
-        int size_estimated = extra::estimate_events_ints_size(to_csubstr(src_evts_ints));
+        int size_estimated = extra::ievt::estimate_events_size(to_csubstr(src_evts_ints));
         evt_handler_ints.m_stack.m_callbacks = get_callbacks();
         evt_handler_ints.reset(to_substr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
         parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
@@ -347,9 +347,9 @@ struct TestSequenceLevel
         #ifdef RYML_DBG
         extra::events_ints_print(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         #endif
-        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
+        extra::ievt::test_events_ints_invariants(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         EXPECT_GT(evt_handler_ints.required_size_events(), 0);
-        extra::events_ints_to_testsuite(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
+        extra::ievt::events_ints_to_testsuite(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
         events_ints_were_generated = true;
     }
 

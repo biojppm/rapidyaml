@@ -587,11 +587,13 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
         set(yaml_dirs yaml_fails yaml_merged yaml_rapidyamldump yaml_test_suite
                       ${json_dirs})
     endif()
-    ryml_add_fuzz_variant(srlz      srlz ${rapidyaml_data_dir}/fuzz ${srlz_dirs})
-    ryml_add_fuzz_variant(yaml_tree yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
-    ryml_add_fuzz_variant(yaml_ints yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
-    ryml_add_fuzz_variant(json_tree json ${rapidyaml_data_dir}/fuzz ${json_dirs})
-    ryml_add_fuzz_variant(json_ints json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(srlz               srlz ${rapidyaml_data_dir}/fuzz ${srlz_dirs})
+    ryml_add_fuzz_variant(yaml_tree          yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(yaml_ints_resize   yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(yaml_ints_noresize yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(json_tree          json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(json_ints_resize   json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(json_ints_noresize json ${rapidyaml_data_dir}/fuzz ${json_dirs})
     # umbrella runner
     if(RYML_FUZZ_DRIVERS)
         add_custom_target(ryml-fuzz-drivers-run

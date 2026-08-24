@@ -237,8 +237,8 @@ public:
         {
             if(m_evt.ptr)
                 base_type::m_stack.m_callbacks.m_free(m_evt.ptr, static_cast<size_t>(m_evt.cap) * sizeof(m_evt.ptr[0]), base_type::m_stack.m_callbacks.m_user_data);
-            if(base_type::m_src.str)
-                base_type::m_stack.m_callbacks.m_free(base_type::m_src.str, base_type::m_src.len * sizeof(base_type::m_src.str[0]), base_type::m_stack.m_callbacks.m_user_data);
+            //if(base_type::m_src.str)
+            //    base_type::m_stack.m_callbacks.m_free(base_type::m_src.str, base_type::m_src.len * sizeof(base_type::m_src.str[0]), base_type::m_stack.m_callbacks.m_user_data);
             if(m_arena.str)
                 base_type::m_stack.m_callbacks.m_free(m_arena.str, m_arena.len * sizeof(m_arena.str[0]), base_type::m_stack.m_callbacks.m_user_data);
         }
@@ -246,7 +246,7 @@ public:
 
 public:
 
-    void reset(substr str, substr arena, evtbuf evt)
+    void reset(substr str, substr arena={}, evtbuf evt={})
     {
         base_type::_stack_reset_root();
         base_type::m_curr->flags |= c4::yml::RUNK|c4::yml::RTOP;
@@ -280,7 +280,10 @@ public:
     ievt::Buffers get_buffers() const noexcept
     {
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
-        return get_buffers(false);
+        ievt::Buffers buf = {};
+        buf.owned = false;
+        get_buffers(&buf.src, &buf.arena, &buf.evts);
+        return buf;
     }
 
     ievt::Buffers get_buffers(bool transfer_ownership) noexcept
@@ -352,7 +355,7 @@ public:
     void reserve_evts(evt_size size)
     {
         if C4_IF_CONSTEXPR (resize_buffers)
-            if((size_t)size > m_evt.cap)
+            if(size > m_evt.cap)
                 _grow_evts(size);
     }
 
