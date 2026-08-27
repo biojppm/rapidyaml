@@ -22,9 +22,10 @@
 #endif
 
 // NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
-C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_MSVC(4127) // conditional expression is constant
 
 
 namespace c4 {
@@ -1258,6 +1259,6 @@ public:
 
 
 // NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
-C4_SUPPRESS_WARNING_GCC_CLANG_POP
+C4_SUPPRESS_WARNING_POP
 
 #endif /* C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_ */
