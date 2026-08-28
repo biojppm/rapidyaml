@@ -1098,7 +1098,7 @@ public:
         // value from being zeroed.
         evtbuf cp = m_evt;
         if(cp.len) ++cp.len;
-        m_evt = detail::resize(cp, next, base_type::m_stack.m_callbacks);
+        m_evt = c4::yml::detail::resize(cp, next, base_type::m_stack.m_callbacks);
         // restore to the current len
         if(m_evt.len) --m_evt.len;
     }
@@ -1114,7 +1114,7 @@ public:
         next = 2 * m_arena.len > next ? 2 * m_arena.len : next;
         next = next > 256 ? next : 256;
         _c4dbgpf("{}/{}: resize arena {}->{}", m_evt.len, m_evt.cap, m_arena.len, next);
-        m_arena = detail::resize(m_arena, next, base_type::m_stack.m_callbacks);
+        m_arena = c4::yml::detail::resize(m_arena, next, base_type::m_stack.m_callbacks);
     }
 
     C4_ALWAYS_INLINE void _send_flag_only_(evt_bits flags)

@@ -5,25 +5,104 @@
 #include <c4/format.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
+#include <c4/yml/extra/event_ints.hpp>
+#include <c4/yml/extra/emitter_ints.hpp>
+#include <c4/yml/extra/emitter_ints.def.hpp>
+#include <c4/yml/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/ints_utils.hpp>
+#include <c4/yml/parse_engine.hpp>
+#include <c4/yml/parse_engine.def.hpp>
+#include <c4/yml/writer_buf.hpp>
 #endif
 
 #include "./test_lib/test_case.hpp"
+#include "./test_lib/test_events_ints_helpers.hpp"
 
 #include <gtest/gtest.h>
 
 RYML_DEFINE_TEST_MAIN()
 
+// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
+
 namespace c4 {
 namespace yml {
+namespace xievt = extra::ievt;
 
-std::string emit2str(Tree const& t, EmitOptions const& opts={})
-{
-    return emitrs_yaml<std::string>(t, opts);
-}
+using IntBufs = xievt::Buffers;
+using IntBufsCR = xievt::Buffers const&;
+using xievt::evt_size;
+using xievt::evt_bits;
+constexpr const xievt::evt_bits all_styles_container = xievt::BLCK|xievt::FLOW|xievt::FSL_|xievt::FML1|xievt::FMLN|xievt::FSPC; // NOLINT
+constexpr const xievt::evt_bits all_styles_scalar = xievt::PLAI|xievt::SQUO|xievt::DQUO|xievt::LITL|xievt::FOLD; // NOLINT
+constexpr const xievt::evt_bits all_styles_ievt = all_styles_container|all_styles_scalar;
+constexpr const xievt::evt_bits all_styles_ievtkv = all_styles_ievt|xievt::SCLR|xievt::KEY_|xievt::VAL_;
+
 EmitOptions maxcols(id_type max)
 {
     return EmitOptions{}.max_cols(max);
 }
+
+size_t emit2buf(substr s, IntBufs const& buf, EmitOptions const& opts={})
+{
+    xievt::EmitterInts<WriterBuf> e(opts, s);
+    e.emit_as(EMIT_YAML, buf.evts.ptr, buf.evts.len, buf.src, buf.arena);
+    return e.m_pos;
+}
+std::string emit2str(IntBufs const& buf, EmitOptions const& opts={})
+{
+    std::string s;
+    s.resize((3 * buf.src.len) / 2);
+again:
+    size_t len = emit2buf(to_substr(s), buf, opts);
+    bool ok = len <= s.size();
+    s.resize(len);
+    if(!ok)
+        goto again; // NOLINT
+    return s;
+}
+std::string emit2str(Tree const& t, EmitOptions const& opts={})
+{
+    return emitrs_yaml<std::string>(t, opts);
+}
+
+
+//-----------------------------------------------------------------------------
+void print_ints(IntBufsCR ints)
+{
+    xievt::events_ints_print(ints.src, ints.arena, ints.evts.ptr, ints.evts.len);
+}
+
+struct TreeAndInts
+{
+    Tree    tree;
+    IntBufs ints;
+    std::string src_ints;
+    void print_ints() const { c4::yml::print_ints(ints); }
+};
+void parse_ints(substr src, IntBufs *ints, ParserOptions const& opts={})
+{
+    xievt::EventHandlerInts<true> handler;
+    ParseEngine<xievt::EventHandlerInts<true>> parser(&handler, opts);
+    handler.reset(src);
+    parser.parse_in_place_ev("(testyaml)", src);
+    *ints = handler.get_buffers(true);
+}
+TreeAndInts parse_tree_and_ints(csubstr src, ParserOptions const& opts={})
+{
+    TreeAndInts ret;
+    ret.tree = parse_in_arena(src, opts);
+    ret.src_ints.assign(src.str, src.len);
+    parse_ints(to_substr(ret.src_ints), &ret.ints, opts);
+    return ret;
+}
+void test_emit(TreeAndInts const& ti, std::string const& expected, EmitOptions const& opts={})
+{
+    EXPECT_EQ(emit2str(ti.tree, opts), expected);
+    EXPECT_EQ(emit2str(ti.ints, opts), expected);
+}
+
+
+//-----------------------------------------------------------------------------
 
 inline void test_container_nostyle(ConstNodeRef n)
 {
@@ -46,6 +125,10 @@ inline void test_container_block(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_flow_mln());
     EXPECT_FALSE(n.type().is_flow_mlx());
 }
+inline void test_container_block(IntBufsCR buf, evt_size pos)
+{
+    EXPECT_EQ(buf.evts.ptr[pos] & (all_styles_ievt|xievt::BEG_), xievt::BLCK|xievt::BEG_);
+}
 
 inline void test_container_flow_sl(ConstNodeRef n)
 {
@@ -56,6 +139,10 @@ inline void test_container_flow_sl(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_flow_ml1());
     EXPECT_FALSE(n.type().is_flow_mln());
     EXPECT_FALSE(n.type().is_flow_mlx());
+}
+inline void test_container_flow_sl(IntBufsCR buf, evt_size pos)
+{
+    EXPECT_EQ(buf.evts.ptr[pos] & (all_styles_ievt|xievt::BEG_), xievt::FLOW|xievt::FSL_);
 }
 
 inline void test_container_flow_ml(ConstNodeRef n)
@@ -68,6 +155,24 @@ inline void test_container_flow_ml(ConstNodeRef n)
                 n.type().is_flow_mln());
     EXPECT_TRUE(n.type().is_flow_mlx());
 }
+inline void test_container_flow_ml(IntBufsCR buf, evt_size pos)
+{
+    const evt_bits bits = buf.evts.ptr[pos] & (all_styles_ievt|xievt::BEG_);
+    EXPECT_TRUE((bits == (xievt::FLOW|xievt::FML1))
+                ||
+                (bits == (xievt::FLOW|xievt::FMLN)));
+}
+
+#define test_int_bits(buf, pos, mask, expected)                 \
+    do {                                                        \
+        RYML_TRACE_FMT("pos={} len={}", pos, buf.evts.len);     \
+        ASSERT_LE(pos, buf.evts.len);                           \
+        if((buf.evts.ptr[pos] & (mask)) != (expected))          \
+        {                                                       \
+            EXPECT_EQ(buf.evts.ptr[pos] & (mask), expected);    \
+            print_ints(buf);                                    \
+        }                                                       \
+    } while(0)
 
 inline void test_key_plain(ConstNodeRef n)
 {
@@ -78,6 +183,10 @@ inline void test_key_plain(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_key_literal());
     EXPECT_FALSE(n.type().is_key_folded());
 }
+inline void test_key_plain(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::KEY_|xievt::SCLR|xievt::PLAI);
+}
 inline void test_val_plain(ConstNodeRef n)
 {
     EXPECT_TRUE(n.type().is_val_styled());
@@ -86,6 +195,10 @@ inline void test_val_plain(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_val_dquo());
     EXPECT_FALSE(n.type().is_val_literal());
     EXPECT_FALSE(n.type().is_val_folded());
+}
+inline void test_val_plain(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::VAL_|xievt::SCLR|xievt::PLAI);
 }
 
 inline void test_key_squo(ConstNodeRef n)
@@ -97,6 +210,10 @@ inline void test_key_squo(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_key_literal());
     EXPECT_FALSE(n.type().is_key_folded());
 }
+inline void test_key_squo(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::KEY_|xievt::SCLR|xievt::SQUO);
+}
 inline void test_val_squo(ConstNodeRef n)
 {
     EXPECT_TRUE(n.type().is_val_styled());
@@ -105,6 +222,10 @@ inline void test_val_squo(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_val_dquo());
     EXPECT_FALSE(n.type().is_val_literal());
     EXPECT_FALSE(n.type().is_val_folded());
+}
+inline void test_val_squo(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::VAL_|xievt::SCLR|xievt::SQUO);
 }
 
 inline void test_key_dquo(ConstNodeRef n)
@@ -116,6 +237,10 @@ inline void test_key_dquo(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_key_literal());
     EXPECT_FALSE(n.type().is_key_folded());
 }
+inline void test_key_dquo(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::KEY_|xievt::SCLR|xievt::DQUO);
+}
 inline void test_val_dquo(ConstNodeRef n)
 {
     EXPECT_TRUE(n.type().is_val_styled());
@@ -124,6 +249,10 @@ inline void test_val_dquo(ConstNodeRef n)
     EXPECT_TRUE(n.type().is_val_dquo());
     EXPECT_FALSE(n.type().is_val_literal());
     EXPECT_FALSE(n.type().is_val_folded());
+}
+inline void test_val_dquo(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::VAL_|xievt::SCLR|xievt::DQUO);
 }
 
 inline void test_key_literal(ConstNodeRef n)
@@ -135,6 +264,10 @@ inline void test_key_literal(ConstNodeRef n)
     EXPECT_TRUE(n.type().is_key_literal());
     EXPECT_FALSE(n.type().is_key_folded());
 }
+inline void test_key_literal(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::KEY_|xievt::SCLR|xievt::LITL);
+}
 inline void test_val_literal(ConstNodeRef n)
 {
     EXPECT_TRUE(n.type().is_val_styled());
@@ -144,6 +277,11 @@ inline void test_val_literal(ConstNodeRef n)
     EXPECT_TRUE(n.type().is_val_literal());
     EXPECT_FALSE(n.type().is_val_folded());
 }
+inline void test_val_literal(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::VAL_|xievt::SCLR|xievt::LITL);
+}
+
 
 inline void test_key_folded(ConstNodeRef n)
 {
@@ -154,6 +292,10 @@ inline void test_key_folded(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_key_literal());
     EXPECT_TRUE(n.type().is_key_folded());
 }
+inline void test_key_folded(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::KEY_|xievt::SCLR|xievt::FOLD);
+}
 inline void test_val_folded(ConstNodeRef n)
 {
     EXPECT_TRUE(n.type().is_val_styled());
@@ -162,6 +304,10 @@ inline void test_val_folded(ConstNodeRef n)
     EXPECT_FALSE(n.type().is_val_dquo());
     EXPECT_FALSE(n.type().is_val_literal());
     EXPECT_TRUE(n.type().is_val_folded());
+}
+inline void test_val_folded(IntBufsCR buf, evt_size pos)
+{
+    test_int_bits(buf, pos, all_styles_ievtkv, xievt::VAL_|xievt::SCLR|xievt::FOLD);
 }
 
 inline void test_key_nostyle(ConstNodeRef n)
@@ -268,52 +414,124 @@ this is the key: >-
   'empty' lines
 )";
 
-void check_same_emit(Tree const& expected)
+void check_same_emit(Tree const& expected, std::string const* expected_yaml=nullptr)
 {
-    #ifndef RYML_DBG
-        #define _showtrees(num)
-    #else
-        #define _showtrees(num)                                     \
-        {                                                           \
-            std::cout << "--------\nEMITTED" #num "\n--------\n";   \
-            std::cout << ws ## num;                                 \
-            std::cout << "--------\nACTUAL" #num "\n--------\n";    \
-            print_tree(actual ## num);                              \
-            std::cout << "--------\nEXPECTED" #num "\n--------\n";  \
-            print_tree(expected);                                   \
-        }
-    #endif
-
     std::string ws1, ws2, ws3, ws4;
+    Tree actual1, actual2, actual3, actual4;
+    bool did2 = false, did3 = false, did4 = false;
     emitrs_yaml(expected, &ws1);
+    if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws1); }
     {
         SCOPED_TRACE("actual1");
-        Tree actual1 = parse_in_arena(to_csubstr(ws1));
-        _showtrees(1);
+        parse_in_arena(to_csubstr(ws1), &actual1);
         test_compare(actual1, expected);
         emitrs_yaml(actual1, &ws2);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws2); }
     }
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("actual2");
-        Tree actual2 = parse_in_arena(to_csubstr(ws2));
-        _showtrees(2);
+        parse_in_arena(to_csubstr(ws2), &actual2);
         test_compare(actual2, expected);
         emitrs_yaml(actual2, &ws3);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws3); }
+        did2 = true;
     }
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("actual3");
-        Tree actual3 = parse_in_arena(to_csubstr(ws3));
-        _showtrees(3);
+        parse_in_arena(to_csubstr(ws3), &actual3);
         test_compare(actual3, expected);
         emitrs_yaml(actual3, &ws4);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws4); }
+        did3 = true;
     }
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("actual4");
-        Tree actual4 = parse_in_arena(to_csubstr(ws4));
-        _showtrees(4);
+        parse_in_arena(to_csubstr(ws4), &actual4);
         test_compare(actual4, expected);
+        did4 = true;
+    }
+    if(testing::Test::HasFailure())
+    {
+        auto showtrees_ = [&expected](size_t num, std::string const& ws, Tree const& actual)
+        {
+            std::cout << "--------\nEMITTED" << num << "\n--------\n";
+            std::cout << ws;
+            std::cout << "--------\nACTUAL" << num << "\n--------\n";
+            print_tree(actual);
+            std::cout << "--------\nEXPECTED" << num << "\n--------\n";
+            print_tree(expected);
+        };
+        showtrees_(1, ws1, actual1);
+        if(did2) showtrees_(2, ws2, actual2);
+        if(did3) showtrees_(3, ws3, actual3);
+        if(did4) showtrees_(4, ws4, actual4);
     }
 }
+void check_same_emit(IntBufsCR& expected, std::string const* expected_yaml=nullptr)
+{
+    std::string ws1, ws2, ws3, ws4;
+    IntBufs actual1, actual2, actual3, actual4;
+    bool did2 = false, did3 = false, did4 = false;
+    ws1 = emit2str(expected);
+    if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws1); }
+    {
+        SCOPED_TRACE("actual1");
+        parse_ints(to_substr(ws1), &actual1);
+        xievt::test_events_ints_compare(expected, actual1);
+        ws2 = emit2str(actual1);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws2); }
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("actual2");
+        parse_ints(to_substr(ws2), &actual2);
+        xievt::test_events_ints_compare(expected, actual2);
+        ws3 = emit2str(actual2);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws3); }
+        did2 = true;
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("actual3");
+        parse_ints(to_substr(ws3), &actual3);
+        xievt::test_events_ints_compare(expected, actual3);
+        ws4 = emit2str(actual3);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws4); }
+        did3 = true;
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("actual4");
+        parse_ints(to_substr(ws4), &actual4);
+        xievt::test_events_ints_compare(expected, actual4);
+        did4 = true;
+    }
+    if(testing::Test::HasFailure())
+    {
+        auto showtrees_ = [&expected](size_t num, std::string const& ws, IntBufsCR actual)
+        {
+            std::cout << "--------\nEMITTED" << num << "\n--------\n";
+            std::cout << ws;
+            std::cout << "--------\nACTUAL" << num << "\n--------\n";
+            print_ints(actual);
+            std::cout << "--------\nEXPECTED" << num << "\n--------\n";
+            print_ints(expected);
+        };
+        showtrees_(1, ws1, actual1);
+        if(did2) showtrees_(2, ws2, actual2);
+        if(did3) showtrees_(3, ws3, actual3);
+        if(did4) showtrees_(4, ws4, actual4);
+    }
+}
+void check_same_emit(TreeAndInts const& ti, std::string const* expected_yaml=nullptr)
+{
+    check_same_emit(ti.tree, expected_yaml);
+    check_same_emit(ti.ints, expected_yaml);
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -389,50 +607,72 @@ TEST(style, noflags)
 
 TEST(style, scalar_retains_style_after_parse__plain)
 {
-    const Tree t = parse_in_arena("foo");
-    test_val_plain(t.rootref());
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string("foo\n"));
+    csubstr yaml = "foo";
+    RYML_TRACE_FMT("yaml={}", yaml);
+    TreeAndInts ti = parse_tree_and_ints(yaml);
+    test_val_plain(ti.tree.rootref());
+    test_val_plain(ti.ints, 2);
+    test_emit(ti, "foo\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__squo)
 {
-    const Tree t = parse_in_arena("'foo'");
-    test_val_squo(t.rootref());
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string("'foo'\n"));
+    csubstr yaml = "'foo'";
+    RYML_TRACE_FMT("yaml={}", yaml);
+    TreeAndInts ti = parse_tree_and_ints(yaml);
+    test_val_squo(ti.tree.rootref());
+    test_val_squo(ti.ints, 2);
+    test_emit(ti, "'foo'\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__dquo)
 {
-    const Tree t = parse_in_arena("\"foo\"");
-    test_val_dquo(t.rootref());
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string("\"foo\"\n"));
+    csubstr yaml = "\"foo\"";
+    RYML_TRACE_FMT("yaml={}", yaml);
+    TreeAndInts ti = parse_tree_and_ints(yaml);
+    test_val_dquo(ti.tree.rootref());
+    test_val_dquo(ti.ints, 2);
+    test_emit(ti, "\"foo\"\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__literal)
 {
-    const Tree t = parse_in_arena("|\n foo");
-    test_val_literal(t.rootref());
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string("|\n  foo\n"));
+    csubstr yaml = "|\n foo";
+    RYML_TRACE_FMT("yaml={}", yaml);
+    TreeAndInts ti = parse_tree_and_ints(yaml);
+    test_val_literal(ti.tree.rootref());
+    test_val_literal(ti.ints, 2);
+    test_emit(ti, "|\n  foo\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__folded)
 {
-    const Tree t = parse_in_arena(">\n foo");
-    test_val_folded(t.rootref());
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(">\n  foo\n"));
+    csubstr yaml = ">\n foo";
+    RYML_TRACE_FMT("yaml={}", yaml);
+    TreeAndInts ti = parse_tree_and_ints(yaml);
+    test_val_folded(ti.tree.rootref());
+    test_val_folded(ti.ints, 2);
+    test_emit(ti, ">\n  foo\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__mixed)
 {
     std::string yaml = "- foo\n- 'baz'\n- \"bat\"\n- |\n  baq\n- >\n  bax\n";
-    const Tree t = parse_in_arena(to_csubstr(yaml));
-    test_container_block(t.rootref());
-    test_val_plain(t[0]);
-    test_val_squo(t[1]);
-    test_val_dquo(t[2]);
-    test_val_literal(t[3]);
-    test_val_folded(t[4]);
-    EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+    RYML_TRACE_FMT("yaml=~~~\n{}~~~", yaml);
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    test_container_block(ti.tree.rootref());
+    test_container_block(ti.ints, 2);
+    test_val_plain(ti.tree[0]);
+    test_val_plain(ti.ints, 3);
+    test_val_squo(ti.tree[1]);
+    test_val_squo(ti.ints, 6);
+    test_val_dquo(ti.tree[2]);
+    test_val_dquo(ti.ints, 9);
+    test_val_literal(ti.tree[3]);
+    test_val_literal(ti.ints, 12);
+    test_val_folded(ti.tree[4]);
+    test_val_folded(ti.ints, 15);
+    test_emit(ti, yaml);
 }
 
 
@@ -442,17 +682,21 @@ TEST(style, scalar_retains_style_after_parse__mixed)
 
 TEST(scalar, base)
 {
-    const Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    EXPECT_EQ(tree[0].key(), csubstr("this is the key"));
-    EXPECT_EQ(tree[0].val(), csubstr("this is the multiline \"val\" with\n'empty' lines"));
-    EXPECT_EQ(emit2str(tree), R"(this is the key: >-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    EXPECT_EQ(ti.tree[0].key(), csubstr("this is the key"));
+    EXPECT_EQ(ti.ints.getstr(3), csubstr("this is the key"));
+    EXPECT_EQ(ti.tree[0].val(), csubstr("this is the multiline \"val\" with\n'empty' lines"));
+    EXPECT_EQ(ti.ints.getstr(6), csubstr("this is the multiline \"val\" with\n'empty' lines"));
+    std::string expected_yaml = R"(this is the key: >-
   this is the multiline "val" with
 
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 
@@ -460,53 +704,70 @@ TEST(scalar, base)
 
 TEST(scalar, block_literal__key)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_key_style(KEY_LITERAL);
-    test_key_literal(tree[0]);
-    test_val_folded(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"(? |-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_key_style(KEY_LITERAL);
+    (ti.ints.evts.ptr[3] &= ~all_styles_scalar) |= xievt::LITL;
+    test_key_literal(ti.tree[0]);
+    test_key_literal(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    const std::string expected_yaml = R"(? |-
   this is the key
 : >-
   this is the multiline "val" with
 
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 TEST(scalar, block_literal__val)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_val_style(VAL_LITERAL);
-    test_key_plain(tree[0]);
-    test_val_literal(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_val_style(VAL_LITERAL);
+    (ti.ints.evts.ptr[6] &= ~all_styles_scalar) |= xievt::LITL;
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_literal(ti.tree[0]);
+    test_val_literal(ti.ints, 6);
+    const std::string expected_yaml = R"(this is the key: |-
   this is the multiline "val" with
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 TEST(scalar, block_literal__key_val)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_key_style(KEY_LITERAL);
-    tree[0].set_val_style(VAL_LITERAL);
-    test_key_literal(tree[0]);
-    test_val_literal(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"(? |-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_key_style(KEY_LITERAL);
+    ti.tree[0].set_val_style(VAL_LITERAL);
+    (ti.ints.evts.ptr[3] &= ~all_styles_scalar) |= xievt::LITL;
+    (ti.ints.evts.ptr[6] &= ~all_styles_scalar) |= xievt::LITL;
+    test_key_literal(ti.tree[0]);
+    test_key_literal(ti.ints, 3);
+    test_key_literal(ti.ints, 3);
+    test_val_literal(ti.tree[0]);
+    test_val_literal(ti.ints, 6);
+    const std::string expected_yaml = R"(? |-
   this is the key
 : |-
   this is the multiline "val" with
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 
@@ -514,55 +775,71 @@ TEST(scalar, block_literal__key_val)
 
 TEST(scalar, block_folded__key)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_key_style(KEY_FOLDED);
-    test_key_folded(tree[0]);
-    test_val_folded(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"(? >-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_key_style(KEY_FOLDED);
+    (ti.ints.evts.ptr[3] &= ~all_styles_scalar) |= xievt::FOLD;
+    test_key_folded(ti.tree[0]);
+    test_key_folded(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    const std::string expected_yaml = R"(? >-
   this is the key
 : >-
   this is the multiline "val" with
 
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 TEST(scalar, block_folded__val)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_val_style(VAL_FOLDED);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: >-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_val_style(VAL_FOLDED);
+    (ti.ints.evts.ptr[6] &= ~all_styles_scalar) |= xievt::FOLD;
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    const std::string expected_yaml = R"(this is the key: >-
   this is the multiline "val" with
 
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 TEST(scalar, block_folded__key_val)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_key_style(KEY_FOLDED);
-    tree[0].set_val_style(VAL_FOLDED);
-    test_key_folded(tree[0]);
-    test_val_folded(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"(? >-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_key_style(KEY_FOLDED);
+    ti.tree[0].set_val_style(VAL_FOLDED);
+    (ti.ints.evts.ptr[3] &= ~all_styles_scalar) |= xievt::FOLD;
+    (ti.ints.evts.ptr[6] &= ~all_styles_scalar) |= xievt::FOLD;
+    test_key_folded(ti.tree[0]);
+    test_key_folded(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    const std::string expected_yaml = R"(? >-
   this is the key
 : >-
   this is the multiline "val" with
 
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 
@@ -570,49 +847,65 @@ TEST(scalar, block_folded__key_val)
 
 TEST(scalar, squo__key)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_key_style(KEY_SQUO);
-    test_key_squo(tree[0]);
-    test_val_folded(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"('this is the key': >-
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_key_style(KEY_SQUO);
+    (ti.ints.evts.ptr[3] &= ~all_styles_scalar) |= xievt::SQUO;
+    test_key_squo(ti.tree[0]);
+    test_key_squo(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    const std::string expected_yaml = R"('this is the key': >-
   this is the multiline "val" with
 
   'empty' lines
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 TEST(scalar, squo__val)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_val_style(VAL_SQUO);
-    test_key_plain(tree[0]);
-    test_val_squo(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: 'this is the multiline "val" with
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_val_style(VAL_SQUO);
+    (ti.ints.evts.ptr[6] &= ~all_styles_scalar) |= xievt::SQUO;
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_squo(ti.tree[0]);
+    test_val_squo(ti.ints, 6);
+    const std::string expected_yaml = R"(this is the key: 'this is the multiline "val" with
 
   ''empty'' lines'
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 TEST(scalar, squo__key_val)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    test_key_plain(tree[0]);
-    test_val_folded(tree[0]);
-    tree[0].set_key_style(KEY_SQUO);
-    tree[0].set_val_style(VAL_SQUO);
-    test_key_squo(tree[0]);
-    test_val_squo(tree[0]);
-    EXPECT_EQ(emit2str(tree), R"('this is the key': 'this is the multiline "val" with
+    TreeAndInts ti = parse_tree_and_ints(scalar_yaml);
+    test_key_plain(ti.tree[0]);
+    test_key_plain(ti.ints, 3);
+    test_val_folded(ti.tree[0]);
+    test_val_folded(ti.ints, 6);
+    ti.tree[0].set_key_style(KEY_SQUO);
+    ti.tree[0].set_val_style(VAL_SQUO);
+    (ti.ints.evts.ptr[3] &= ~all_styles_scalar) |= xievt::SQUO;
+    (ti.ints.evts.ptr[6] &= ~all_styles_scalar) |= xievt::SQUO;
+    test_key_squo(ti.tree[0]);
+    test_key_squo(ti.ints, 3);
+    test_val_squo(ti.tree[0]);
+    test_val_squo(ti.ints, 6);
+    const std::string expected_yaml = R"('this is the key': 'this is the multiline "val" with
 
   ''empty'' lines'
-)");
-    check_same_emit(tree);
+)";
+    check_same_emit(ti, &expected_yaml);
 }
 
 
@@ -1924,3 +2217,5 @@ Case const* get_case(csubstr /*name*/)
 
 } // namespace yml
 } // namespace c4
+
+// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)

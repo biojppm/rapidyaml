@@ -11,6 +11,7 @@
 #include <c4/yml/detail/dbgprint.hpp>
 #include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/detail/print.hpp>
+#include <c4/yml/extra/event_ints.hpp>
 #endif
 #include "c4/span.hpp"
 
@@ -20,29 +21,19 @@
 
 // no pragma push for these warnings! they will be suppressed in the
 // files including this header (most test files)
-#ifdef __clang__
-#   pragma clang diagnostic ignored "-Wold-style-cast"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic ignored "-Wold-style-cast"
-#endif
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 #if defined(__clang__) && (__clang_major__ >= 13)
 C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
 #endif
 
 
-#ifdef __clang__
-#   pragma clang diagnostic push
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
-#elif defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
-#   pragma warning(disable: 4702/*unreachable code*/)
-#   if C4_MSVC_VERSION != C4_MSVC_VERSION_2017
-#       pragma warning(disable: 4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
-#   endif
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wtype-limits")
+C4_SUPPRESS_WARNING_MSVC(4296/*expression is always 'boolean_value'*/)
+C4_SUPPRESS_WARNING_MSVC(4389/*'==': signed/unsigned mismatch*/)
+C4_SUPPRESS_WARNING_MSVC(4702/*unreachable code*/)
+#if defined(_MSC_VER) && (C4_MSVC_VERSION != C4_MSVC_VERSION_2017)
+C4_SUPPRESS_WARNING_MSVC(4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
 #endif
 
 #ifdef RYML_DBG
@@ -216,7 +207,7 @@ void test_check_emit_check_with_parser(Tree const& t, CheckFn &&check_fn)
 {
     Parser::handler_type evt_handler = {};
     Parser parser(&evt_handler, ParserOptions());
-    test_check_emit_check_with_parser(t, parser, check_fn);
+    test_check_emit_check_with_parser(t, parser, std::forward<CheckFn>(check_fn));
 }
 template<class CheckFn>
 void test_check_emit_check(Tree const& t, CheckFn &&check_fn)
@@ -424,12 +415,6 @@ inline std::string namefor(bomspec const& param)
 } // namespace yml
 } // namespace c4
 
-#ifdef __clang__
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
+C4_SUPPRESS_WARNING_POP
 
 #endif /* TEST_CASE_HPP_ */

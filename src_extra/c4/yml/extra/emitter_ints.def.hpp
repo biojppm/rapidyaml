@@ -1074,7 +1074,7 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
             blck_write_scalar_(val, evt);
             pos += 3;
             if(evt & (ievt::LITL|ievt::FOLD))
-                newl_();
+                pend_newl_();
             goto statenext; // NOLINT
         }
         else if(detail::seqormap(evt))
