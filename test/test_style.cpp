@@ -414,7 +414,7 @@ this is the key: >-
   'empty' lines
 )";
 
-void check_same_emit(Tree const& expected, std::string const* expected_yaml=nullptr)
+void check_same_emit4(Tree const& expected, std::string const* expected_yaml=nullptr)
 {
     std::string ws1, ws2, ws3, ws4;
     Tree actual1, actual2, actual3, actual4;
@@ -470,7 +470,7 @@ void check_same_emit(Tree const& expected, std::string const* expected_yaml=null
         if(did4) showtrees_(4, ws4, actual4);
     }
 }
-void check_same_emit(IntBufsCR& expected, std::string const* expected_yaml=nullptr)
+void check_same_emit4(IntBufsCR& expected, std::string const* expected_yaml=nullptr)
 {
     std::string ws1, ws2, ws3, ws4;
     IntBufs actual1, actual2, actual3, actual4;
@@ -526,10 +526,45 @@ void check_same_emit(IntBufsCR& expected, std::string const* expected_yaml=nullp
         if(did4) showtrees_(4, ws4, actual4);
     }
 }
-void check_same_emit(TreeAndInts const& ti, std::string const* expected_yaml=nullptr)
+void check_same_emit4(TreeAndInts const& ti, std::string const* expected_yaml)
 {
-    check_same_emit(ti.tree, expected_yaml);
-    check_same_emit(ti.ints, expected_yaml);
+    check_same_emit4(ti.tree, expected_yaml);
+    check_same_emit4(ti.ints, expected_yaml);
+}
+void check_same_emit4(TreeAndInts const& ti, std::string const& expected_yaml={})
+{
+    check_same_emit4(ti.tree, &expected_yaml);
+    check_same_emit4(ti.ints, &expected_yaml);
+}
+
+void check_same_emit1(Tree const& tree, std::string const& expected, EmitOptions const& opts={})
+{
+    SCOPED_TRACE("check_same_emit1");
+    std::string actual;
+    emitrs_yaml(tree, opts, &actual);
+    EXPECT_EQ(expected, actual);
+    if(testing::Test::HasFailure())
+        print_tree(tree);
+}
+void check_same_emit1(IntBufsCR& ints, std::string const& expected, EmitOptions const& opts={})
+{
+    SCOPED_TRACE("check_same_emit1");
+    std::string actual = emit2str(ints, opts);
+    EXPECT_EQ(expected, actual);
+    if(testing::Test::HasFailure())
+        print_ints(ints);
+}
+void check_same_emit1(TreeAndInts const& ti, std::string const& expected, EmitOptions const& opts={})
+{
+    SCOPED_TRACE("check_same_emit1");
+    check_same_emit1(ti.tree, expected, opts);
+    check_same_emit1(ti.ints, expected, opts);
+}
+void check_same_emit1(TreeAndInts const& ti, EmitOptions const& opts, std::string const& expected)
+{
+    SCOPED_TRACE("check_same_emit1");
+    check_same_emit1(ti.tree, expected, opts);
+    check_same_emit1(ti.ints, expected, opts);
 }
 
 
@@ -691,12 +726,11 @@ TEST(scalar, base)
     EXPECT_EQ(ti.ints.getstr(3), csubstr("this is the key"));
     EXPECT_EQ(ti.tree[0].val(), csubstr("this is the multiline \"val\" with\n'empty' lines"));
     EXPECT_EQ(ti.ints.getstr(6), csubstr("this is the multiline \"val\" with\n'empty' lines"));
-    std::string expected_yaml = R"(this is the key: >-
+    check_same_emit4(ti, R"(this is the key: >-
   this is the multiline "val" with
 
   'empty' lines
-)";
-    check_same_emit(ti, &expected_yaml);
+)");
 }
 
 
@@ -715,14 +749,13 @@ TEST(scalar, block_literal__key)
     test_key_literal(ti.ints, 3);
     test_val_folded(ti.tree[0]);
     test_val_folded(ti.ints, 6);
-    const std::string expected_yaml = R"(? |-
+    check_same_emit4(ti, R"(? |-
   this is the key
 : >-
   this is the multiline "val" with
 
   'empty' lines
-)";
-    check_same_emit(ti, &expected_yaml);
+)");
 }
 
 TEST(scalar, block_literal__val)
@@ -738,11 +771,10 @@ TEST(scalar, block_literal__val)
     test_key_plain(ti.ints, 3);
     test_val_literal(ti.tree[0]);
     test_val_literal(ti.ints, 6);
-    const std::string expected_yaml = R"(this is the key: |-
+    check_same_emit4(ti, R"(this is the key: |-
   this is the multiline "val" with
   'empty' lines
-)";
-    check_same_emit(ti, &expected_yaml);
+)");
 }
 
 TEST(scalar, block_literal__key_val)
@@ -761,13 +793,12 @@ TEST(scalar, block_literal__key_val)
     test_key_literal(ti.ints, 3);
     test_val_literal(ti.tree[0]);
     test_val_literal(ti.ints, 6);
-    const std::string expected_yaml = R"(? |-
+    check_same_emit4(ti, R"(? |-
   this is the key
 : |-
   this is the multiline "val" with
   'empty' lines
-)";
-    check_same_emit(ti, &expected_yaml);
+)");
 }
 
 
@@ -793,7 +824,7 @@ TEST(scalar, block_folded__key)
 
   'empty' lines
 )";
-    check_same_emit(ti, &expected_yaml);
+    check_same_emit4(ti, &expected_yaml);
 }
 
 TEST(scalar, block_folded__val)
@@ -814,7 +845,7 @@ TEST(scalar, block_folded__val)
 
   'empty' lines
 )";
-    check_same_emit(ti, &expected_yaml);
+    check_same_emit4(ti, &expected_yaml);
 }
 
 TEST(scalar, block_folded__key_val)
@@ -839,7 +870,7 @@ TEST(scalar, block_folded__key_val)
 
   'empty' lines
 )";
-    check_same_emit(ti, &expected_yaml);
+    check_same_emit4(ti, &expected_yaml);
 }
 
 
@@ -863,7 +894,7 @@ TEST(scalar, squo__key)
 
   'empty' lines
 )";
-    check_same_emit(ti, &expected_yaml);
+    check_same_emit4(ti, &expected_yaml);
 }
 
 TEST(scalar, squo__val)
@@ -883,7 +914,7 @@ TEST(scalar, squo__val)
 
   ''empty'' lines'
 )";
-    check_same_emit(ti, &expected_yaml);
+    check_same_emit4(ti, &expected_yaml);
 }
 
 TEST(scalar, squo__key_val)
@@ -905,7 +936,7 @@ TEST(scalar, squo__key_val)
 
   ''empty'' lines'
 )";
-    check_same_emit(ti, &expected_yaml);
+    check_same_emit4(ti, &expected_yaml);
 }
 
 
@@ -915,7 +946,7 @@ TEST(scalar, squo__key_val)
 
 TEST(stream, block)
 {
-    Tree tree = parse_in_arena(R"(
+    TreeAndInts ti = parse_tree_and_ints(R"(
 ---
 scalar
 %YAML 1.2
@@ -924,13 +955,14 @@ foo
 ---
 bar
 )");
-    EXPECT_TRUE(tree.rootref().is_stream());
-    EXPECT_TRUE(tree.docref(0).is_doc());
-    EXPECT_TRUE(tree.docref(0).is_val());
-    EXPECT_EQ(emit2str(tree), "--- scalar %YAML 1.2\n--- foo\n--- bar\n");
-    NodeRef r = tree;
+    EXPECT_TRUE(ti.tree.rootref().is_stream());
+    EXPECT_TRUE(ti.tree.docref(0).is_doc());
+    EXPECT_TRUE(ti.tree.docref(0).is_val());
+    std::string expected = "--- scalar %YAML 1.2\n--- foo\n--- bar\n";
+    check_same_emit4(ti, &expected);
+    NodeRef r = ti.tree;
     r.set_container_style(FLOW_SL);
-    EXPECT_EQ(emit2str(tree), "--- scalar %YAML 1.2\n--- foo\n--- bar\n");
+    check_same_emit4(ti, &expected);
 }
 
 
@@ -940,10 +972,12 @@ bar
 
 TEST(seq, block)
 {
-    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    NodeRef r = tree;
+    TreeAndInts ti = parse_tree_and_ints("[1, 2, 3, 4, 5, 6]");
+    check_same_emit4(ti, "[1,2,3,4,5,6]");
+    NodeRef r = ti.tree;
     r.set_container_style(BLOCK);
-    EXPECT_EQ(emit2str(tree), R"(- 1
+    (ti.ints.evts.ptr[2] &= ~all_styles_container) |= xievt::BLCK;
+    check_same_emit4(ti, R"(- 1
 - 2
 - 3
 - 4
@@ -954,20 +988,29 @@ TEST(seq, block)
 
 TEST(seq, flow_sl)
 {
-    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    NodeRef r = tree;
-    r.set_container_style(FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"([1,2,3,4,5,6])");
-    r.set_container_style(FLOW_SL|FLOW_SPC);
-    EXPECT_EQ(emit2str(tree), R"([1, 2, 3, 4, 5, 6])");
+    TreeAndInts ti = parse_tree_and_ints("[1, 2, 3, 4, 5, 6]");
+    NodeRef r = ti.tree;
+    {
+        SCOPED_TRACE("flow_sl");
+        r.set_container_style(FLOW_SL);
+        (ti.ints.evts.ptr[2] &= ~all_styles_container) |= xievt::FSL_;
+        check_same_emit1(ti, R"([1,2,3,4,5,6])");
+    }
+    {
+        SCOPED_TRACE("flow_sl|flow_spc");
+        r.set_container_style(FLOW_SL|FLOW_SPC);
+        (ti.ints.evts.ptr[2] &= ~all_styles_container) |= xievt::FSL_|xievt::FSPC;
+        check_same_emit1(ti, R"([1, 2, 3, 4, 5, 6])");
+    }
 }
 
-static void test_seq_flow_ml1(NodeType extra={}) // NOLINT
+static void test_seq_flow_ml1(NodeType extra={}, evt_bits extra_bits={}) // NOLINT
 {
-    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    NodeRef r = tree;
+    TreeAndInts ti = parse_tree_and_ints("[1, 2, 3, 4, 5, 6]");
+    NodeRef r = ti.tree;
     r.set_container_style(FLOW_ML1|extra);
-    EXPECT_EQ(emit2str(tree),
+    (ti.ints.evts.ptr[2] &= ~all_styles_container) |= xievt::FLOW|xievt::FML1|extra_bits;
+    check_same_emit1(ti,
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -976,7 +1019,7 @@ static void test_seq_flow_ml1(NodeType extra={}) // NOLINT
               "  5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(0)),
+    check_same_emit1(ti, maxcols(0),
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -985,7 +1028,7 @@ static void test_seq_flow_ml1(NodeType extra={}) // NOLINT
               "  5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(1)),
+    check_same_emit1(ti, maxcols(1),
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -994,7 +1037,7 @@ static void test_seq_flow_ml1(NodeType extra={}) // NOLINT
               "  5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(10)),
+    check_same_emit1(ti, maxcols(10),
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -1003,7 +1046,7 @@ static void test_seq_flow_ml1(NodeType extra={}) // NOLINT
               "  5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(100)),
+    check_same_emit1(ti, maxcols(100),
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -1024,14 +1067,15 @@ TEST(seq, flow_ml1_spc)
 
 TEST(seq, flow_mln)
 {
-    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    NodeRef r = tree;
+    TreeAndInts ti = parse_tree_and_ints("[1, 2, 3, 4, 5, 6]");
+    NodeRef r = ti.tree;
     r.set_container_style(FLOW_MLN);
-    EXPECT_EQ(emit2str(tree),
+    (ti.ints.evts.ptr[2] &= ~all_styles_container) |= xievt::FLOW|xievt::FMLN;
+    check_same_emit1(ti,
               "[\n"
               "  1,2,3,4,5,6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(3)),
+    check_same_emit1(ti, maxcols(3),
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -1040,7 +1084,7 @@ TEST(seq, flow_mln)
               "  5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(4)),
+    check_same_emit1(ti, maxcols(4),
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -1049,49 +1093,49 @@ TEST(seq, flow_mln)
               "  5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(5)),
+    check_same_emit1(ti, maxcols(5),
               "[\n"
               "  1,2,\n"
               "  3,4,\n"
               "  5,6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(6)),
+    check_same_emit1(ti, maxcols(6),
               "[\n"
               "  1,2,\n"
               "  3,4,\n"
               "  5,6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(7)),
+    check_same_emit1(ti, maxcols(7),
               "[\n"
               "  1,2,3,\n"
               "  4,5,6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(8)),
+    check_same_emit1(ti, maxcols(8),
               "[\n"
               "  1,2,3,\n"
               "  4,5,6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(9)),
+    check_same_emit1(ti, maxcols(9),
               "[\n"
               "  1,2,3,4,\n"
               "  5,6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(10)),
+    check_same_emit1(ti, maxcols(10),
               "[\n"
               "  1,2,3,4,\n"
               "  5,6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(11)),
+    check_same_emit1(ti, maxcols(11),
               "[\n"
               "  1,2,3,4,5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(12)),
+    check_same_emit1(ti, maxcols(12),
               "[\n"
               "  1,2,3,4,5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(13)),
+    check_same_emit1(ti, maxcols(13),
               "[\n"
               "  1,2,3,4,5,6\n"
               "]\n");
@@ -1099,14 +1143,15 @@ TEST(seq, flow_mln)
 
 TEST(seq, flow_mln_spc)
 {
-    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    NodeRef r = tree;
+    TreeAndInts ti = parse_tree_and_ints("[1, 2, 3, 4, 5, 6]");
+    NodeRef r = ti.tree;
     r.set_container_style(FLOW_MLN|FLOW_SPC);
-    EXPECT_EQ(emit2str(tree),
+    (ti.ints.evts.ptr[2] &= ~all_styles_container) |= xievt::FLOW|xievt::FMLN|xievt::FSPC;
+    check_same_emit1(ti,
               "[\n"
               "  1, 2, 3, 4, 5, 6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(4)),
+    check_same_emit1(ti, maxcols(4),
               "[\n"
               "  1,\n"
               "  2,\n"
@@ -1115,183 +1160,227 @@ TEST(seq, flow_mln_spc)
               "  5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(6)),
+    check_same_emit1(ti, maxcols(6),
               "[\n"
               "  1, 2,\n"
               "  3, 4,\n"
               "  5, 6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(8)),
+    check_same_emit1(ti, maxcols(8),
               "[\n"
               "  1, 2,\n"
               "  3, 4,\n"
               "  5, 6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(9)),
+    check_same_emit1(ti, maxcols(9),
               "[\n"
               "  1, 2, 3,\n"
               "  4, 5, 6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(12)),
+    check_same_emit1(ti, maxcols(12),
               "[\n"
               "  1, 2, 3, 4,\n"
               "  5, 6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(15)),
+    check_same_emit1(ti, maxcols(15),
               "[\n"
               "  1, 2, 3, 4, 5,\n"
               "  6\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(18)),
+    check_same_emit1(ti, maxcols(18),
               "[\n"
               "  1, 2, 3, 4, 5, 6\n"
               "]\n");
 }
 
+void set_style(TreeAndInts *ti,
+               NodeRef which_node, NodeType node_style,
+               evt_size which_evt, evt_bits evt_style)
+{
+    which_node.set_container_style(node_style);
+    (ti->ints.evts.ptr[which_evt] &= ~all_styles_container) |= evt_style;
+}
+
 TEST(seq, flow_ml_nested_1_ml1)
 {
-    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
-    NodeRef r = tree;
-    EXPECT_EQ(emit2str(tree), "[[1,2,3,4,5,6],10,20,25,[100,200,300,400],30,40,50,[7,8,9,10,11,12]]");
-    r.set_container_style(FLOW_SL|FLOW_SPC);
-    EXPECT_EQ(emit2str(tree), "[[1,2,3,4,5,6], 10, 20, 25, [100,200,300,400], 30, 40, 50, [7,8,9,10,11,12]]");
-    r.set_container_style(FLOW_SL);
-    r[0].set_container_style(FLOW_SL|FLOW_SPC);
-    r[4].set_container_style(FLOW_SL|FLOW_SPC);
-    r[8].set_container_style(FLOW_SL|FLOW_SPC);
-    EXPECT_EQ(emit2str(tree), "[[1, 2, 3, 4, 5, 6],10,20,25,[100, 200, 300, 400],30,40,50,[7, 8, 9, 10, 11, 12]]");
-    r[0].set_container_style(FLOW_SL);
-    r[4].set_container_style(FLOW_SL);
-    r[8].set_container_style(FLOW_SL);
-    r.set_container_style(FLOW_ML1);
-    EXPECT_EQ(emit2str(tree),
-              "[\n"
-              "  [1,2,3,4,5,6],\n"
-              "  10,\n"
-              "  20,\n"
-              "  25,\n"
-              "  [100,200,300,400],\n"
-              "  30,\n"
-              "  40,\n"
-              "  50,\n"
-              "  [7,8,9,10,11,12]\n"
-              "]\n");
-    r.set_container_style(FLOW_ML1|FLOW_SPC);
-    EXPECT_EQ(emit2str(tree),
-              "[\n"
-              "  [1,2,3,4,5,6],\n"
-              "  10,\n"
-              "  20,\n"
-              "  25,\n"
-              "  [100,200,300,400],\n"
-              "  30,\n"
-              "  40,\n"
-              "  50,\n"
-              "  [7,8,9,10,11,12]\n"
-              "]\n");
+    TreeAndInts ti = parse_tree_and_ints("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    NodeRef r = ti.tree;
+    {
+        SCOPED_TRACE("base");
+        check_same_emit1(ti, "[[1,2,3,4,5,6],10,20,25,[100,200,300,400],30,40,50,[7,8,9,10,11,12]]");
+    }
+    {
+        SCOPED_TRACE("1");
+        set_style(&ti, r, FLOW_SL|FLOW_SPC, 2, xievt::FLOW|xievt::FSL_|xievt::FSPC);
+        check_same_emit1(ti, "[[1,2,3,4,5,6], 10, 20, 25, [100,200,300,400], 30, 40, 50, [7,8,9,10,11,12]]");
+    }
+    {
+        SCOPED_TRACE("2");
+        set_style(&ti, r, FLOW_SL, 2, xievt::FLOW|xievt::FSL_);
+        set_style(&ti, r[0], FLOW_SL|FLOW_SPC, 3, xievt::FLOW|xievt::FSL_|xievt::FSPC);
+        set_style(&ti, r[4], FLOW_SL|FLOW_SPC, 32, xievt::FLOW|xievt::FSL_|xievt::FSPC);
+        set_style(&ti, r[8], FLOW_SL|FLOW_SPC, 55, xievt::FLOW|xievt::FSL_|xievt::FSPC);
+        check_same_emit1(ti, "[[1, 2, 3, 4, 5, 6],10,20,25,[100, 200, 300, 400],30,40,50,[7, 8, 9, 10, 11, 12]]");
+    }
+    {
+        SCOPED_TRACE("3");
+        set_style(&ti, r, FLOW_ML1, 2, xievt::FLOW|xievt::FML1);
+        set_style(&ti, r[0], FLOW_SL, 3, xievt::FLOW|xievt::FSL_);
+        set_style(&ti, r[4], FLOW_SL, 32, xievt::FLOW|xievt::FSL_);
+        set_style(&ti, r[8], FLOW_SL, 55, xievt::FLOW|xievt::FSL_);
+        check_same_emit1(ti,
+                         "[\n"
+                         "  [1,2,3,4,5,6],\n"
+                         "  10,\n"
+                         "  20,\n"
+                         "  25,\n"
+                         "  [100,200,300,400],\n"
+                         "  30,\n"
+                         "  40,\n"
+                         "  50,\n"
+                         "  [7,8,9,10,11,12]\n"
+                         "]\n");
+    }
+    {
+        SCOPED_TRACE("4");
+        set_style(&ti, r, FLOW_ML1|FLOW_SPC, 2, xievt::FLOW|xievt::FML1|xievt::FSPC);
+        check_same_emit1(ti,
+                         "[\n"
+                         "  [1,2,3,4,5,6],\n"
+                         "  10,\n"
+                         "  20,\n"
+                         "  25,\n"
+                         "  [100,200,300,400],\n"
+                         "  30,\n"
+                         "  40,\n"
+                         "  50,\n"
+                         "  [7,8,9,10,11,12]\n"
+                         "]\n");
+    }
 }
 
 TEST(seq, flow_ml_nested_2_mln)
 {
-    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
-    NodeRef r = tree;
-    r.set_container_style(FLOW_MLN);
-    EXPECT_EQ(emit2str(tree, maxcols(0)),
-              "[\n"
-              "  [1,\n"
-              "  2,\n"
-              "  3,\n"
-              "  4,\n"
-              "  5,\n"
-              "  6],\n"
-              "  10,\n"
-              "  20,\n"
-              "  25,\n"
-              "  [100,\n"
-              "  200,\n"
-              "  300,\n"
-              "  400],\n"
-              "  30,\n"
-              "  40,\n"
-              "  50,\n"
-              "  [7,\n"
-              "  8,\n"
-              "  9,\n"
-              "  10,\n"
-              "  11,\n"
-              "  12]\n"
-              "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(1)),
-              "[\n"
-              "  [1,\n"
-              "  2,\n"
-              "  3,\n"
-              "  4,\n"
-              "  5,\n"
-              "  6],\n"
-              "  10,\n"
-              "  20,\n"
-              "  25,\n"
-              "  [100,\n"
-              "  200,\n"
-              "  300,\n"
-              "  400],\n"
-              "  30,\n"
-              "  40,\n"
-              "  50,\n"
-              "  [7,\n"
-              "  8,\n"
-              "  9,\n"
-              "  10,\n"
-              "  11,\n"
-              "  12]\n"
-              "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(10)),
-              "[\n"
-              "  [1,2,3,4,\n"
-              "  5,6],10,\n"
-              "  20,25,[100,\n"
-              "  200,300,\n"
-              "  400],30,\n"
-              "  40,50,[7,\n"
-              "  8,9,10,11,\n"
-              "  12]\n"
-              "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(16)),
-              "[\n"
-              "  [1,2,3,4,5,6],\n"
-              "  10,20,25,[100,\n"
-              "  200,300,400],30,\n"
-              "  40,50,[7,8,9,10,\n"
-              "  11,12]\n"
-              "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(20)),
-              "[\n"
-              "  [1,2,3,4,5,6],10,20,\n"
-              "  25,[100,200,300,400],\n"
-              "  30,40,50,[7,8,9,10,\n"
-              "  11,12]\n"
-              "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(24)),
-              "[\n"
-              "  [1,2,3,4,5,6],10,20,25,\n"
-              "  [100,200,300,400],30,40,\n"
-              "  50,[7,8,9,10,11,12]\n"
-              "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(30)),
-              "[\n"
-              "  [1,2,3,4,5,6],10,20,25,[100,\n"
-              "  200,300,400],30,40,50,[7,8,9,\n"
-              "  10,11,12]\n"
-              "]\n");
+    TreeAndInts ti = parse_tree_and_ints("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    set_style(&ti, ti.tree, FLOW_MLN, 2, xievt::FLOW|xievt::FMLN);
+    {
+        SCOPED_TRACE("0");
+        check_same_emit1(ti, maxcols(0),
+                  "[\n"
+                  "  [1,\n"
+                  "  2,\n"
+                  "  3,\n"
+                  "  4,\n"
+                  "  5,\n"
+                  "  6],\n"
+                  "  10,\n"
+                  "  20,\n"
+                  "  25,\n"
+                  "  [100,\n"
+                  "  200,\n"
+                  "  300,\n"
+                  "  400],\n"
+                  "  30,\n"
+                  "  40,\n"
+                  "  50,\n"
+                  "  [7,\n"
+                  "  8,\n"
+                  "  9,\n"
+                  "  10,\n"
+                  "  11,\n"
+                  "  12]\n"
+                  "]\n");
+    }
+    {
+        SCOPED_TRACE("1");
+        check_same_emit1(ti, maxcols(1),
+                  "[\n"
+                  "  [1,\n"
+                  "  2,\n"
+                  "  3,\n"
+                  "  4,\n"
+                  "  5,\n"
+                  "  6],\n"
+                  "  10,\n"
+                  "  20,\n"
+                  "  25,\n"
+                  "  [100,\n"
+                  "  200,\n"
+                  "  300,\n"
+                  "  400],\n"
+                  "  30,\n"
+                  "  40,\n"
+                  "  50,\n"
+                  "  [7,\n"
+                  "  8,\n"
+                  "  9,\n"
+                  "  10,\n"
+                  "  11,\n"
+                  "  12]\n"
+                  "]\n");
+    }
+    {
+        SCOPED_TRACE("10");
+        check_same_emit1(ti, maxcols(10),
+                         "[\n"
+                         "  [1,2,3,4,\n"
+                         "  5,6],10,\n"
+                         "  20,25,[100,\n"
+                         "  200,300,\n"
+                         "  400],30,\n"
+                         "  40,50,[7,\n"
+                         "  8,9,10,11,\n"
+                         "  12]\n"
+                         "]\n");
+    }
+    {
+        SCOPED_TRACE("16");
+        check_same_emit1(ti, maxcols(16),
+                         "[\n"
+                         "  [1,2,3,4,5,6],\n"
+                         "  10,20,25,[100,\n"
+                         "  200,300,400],30,\n"
+                         "  40,50,[7,8,9,10,\n"
+                         "  11,12]\n"
+                         "]\n");
+    }
+    {
+        SCOPED_TRACE("20");
+        check_same_emit1(ti, maxcols(20),
+                         "[\n"
+                         "  [1,2,3,4,5,6],10,20,\n"
+                         "  25,[100,200,300,400],\n"
+                         "  30,40,50,[7,8,9,10,\n"
+                         "  11,12]\n"
+                         "]\n");
+    }
+    {
+        SCOPED_TRACE("24");
+        check_same_emit1(ti, maxcols(24),
+                         "[\n"
+                         "  [1,2,3,4,5,6],10,20,25,\n"
+                         "  [100,200,300,400],30,40,\n"
+                         "  50,[7,8,9,10,11,12]\n"
+                         "]\n");
+    }
+    {
+        SCOPED_TRACE("30");
+        check_same_emit1(ti, maxcols(30),
+                         "[\n"
+                         "  [1,2,3,4,5,6],10,20,25,[100,\n"
+                         "  200,300,400],30,40,50,[7,8,9,\n"
+                         "  10,11,12]\n"
+                         "]\n");
+    }
 }
 
 TEST(seq, flow_ml_nested_2_mln_spc)
 {
-    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
-    NodeRef r = tree;
-    r.set_container_style(FLOW_MLN|FLOW_SPC);
-    EXPECT_EQ(emit2str(tree, maxcols(0)),
+    TreeAndInts ti = parse_tree_and_ints("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    set_style(&ti, ti.tree, FLOW_MLN|FLOW_SPC, 2, xievt::FLOW|xievt::FMLN|xievt::FSPC);
+    {
+        SCOPED_TRACE("0");
+        check_same_emit1(ti, maxcols(0),
               "[\n"
               "  [1,\n"
               "  2,\n"
@@ -1316,32 +1405,38 @@ TEST(seq, flow_ml_nested_2_mln_spc)
               "  11,\n"
               "  12]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(1)),
-              "[\n"
-              "  [1,\n"
-              "  2,\n"
-              "  3,\n"
-              "  4,\n"
-              "  5,\n"
-              "  6],\n"
-              "  10,\n"
-              "  20,\n"
-              "  25,\n"
-              "  [100,\n"
-              "  200,\n"
-              "  300,\n"
-              "  400],\n"
-              "  30,\n"
-              "  40,\n"
-              "  50,\n"
-              "  [7,\n"
-              "  8,\n"
-              "  9,\n"
-              "  10,\n"
-              "  11,\n"
-              "  12]\n"
-              "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(10)),
+    }
+    {
+        SCOPED_TRACE("1");
+        check_same_emit1(ti, maxcols(1),
+                         "[\n"
+                         "  [1,\n"
+                         "  2,\n"
+                         "  3,\n"
+                         "  4,\n"
+                         "  5,\n"
+                         "  6],\n"
+                         "  10,\n"
+                         "  20,\n"
+                         "  25,\n"
+                         "  [100,\n"
+                         "  200,\n"
+                         "  300,\n"
+                         "  400],\n"
+                         "  30,\n"
+                         "  40,\n"
+                         "  50,\n"
+                         "  [7,\n"
+                         "  8,\n"
+                         "  9,\n"
+                         "  10,\n"
+                         "  11,\n"
+                         "  12]\n"
+                         "]\n");
+    }
+    {
+        SCOPED_TRACE("10");
+        check_same_emit1(ti, maxcols(10),
               "[\n"
               "  [1, 2, 3,\n"
               "  4, 5, 6],\n"
@@ -1354,7 +1449,10 @@ TEST(seq, flow_ml_nested_2_mln_spc)
               "  10, 11,\n"
               "  12]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(16)),
+    }
+    {
+        SCOPED_TRACE("16");
+        check_same_emit1(ti, maxcols(16),
               "[\n"
               "  [1, 2, 3, 4, 5,\n"
               "  6], 10, 20, 25,\n"
@@ -1363,7 +1461,10 @@ TEST(seq, flow_ml_nested_2_mln_spc)
               "  50, [7, 8, 9,\n"
               "  10, 11, 12]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(20)),
+    }
+    {
+        SCOPED_TRACE("20");
+        check_same_emit1(ti, maxcols(20),
               "[\n"
               "  [1, 2, 3, 4, 5, 6],\n"
               "  10, 20, 25, [100,\n"
@@ -1371,30 +1472,38 @@ TEST(seq, flow_ml_nested_2_mln_spc)
               "  40, 50, [7, 8, 9,\n"
               "  10, 11, 12]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(24)),
+    }
+    {
+        SCOPED_TRACE("24");
+        check_same_emit1(ti, maxcols(24),
               "[\n"
               "  [1, 2, 3, 4, 5, 6], 10,\n"
               "  20, 25, [100, 200, 300,\n"
               "  400], 30, 40, 50, [7,\n"
               "  8, 9, 10, 11, 12]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(30)),
+    }
+    {
+        SCOPED_TRACE("30");
+        check_same_emit1(ti, maxcols(30),
               "[\n"
               "  [1, 2, 3, 4, 5, 6], 10, 20,\n"
               "  25, [100, 200, 300, 400], 30,\n"
               "  40, 50, [7, 8, 9, 10, 11, 12]\n"
               "]\n");
+    }
 }
 
 TEST(seq, flow_ml_nested_2_mln_spc_nested)
 {
-    Tree tree = parse_in_arena("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
-    NodeRef r = tree;
-    r.set_container_style(FLOW_MLN|FLOW_SPC);
-    r[0].set_container_style(FLOW_MLN|FLOW_SPC);
-    r[4].set_container_style(FLOW_MLN|FLOW_SPC);
-    r[8].set_container_style(FLOW_MLN|FLOW_SPC);
-    EXPECT_EQ(emit2str(tree, maxcols(0)),
+    TreeAndInts ti = parse_tree_and_ints("[[1, 2, 3, 4, 5, 6], 10, 20, 25, [100, 200, 300, 400], 30, 40, 50, [7, 8, 9, 10, 11, 12]]");
+    set_style(&ti, ti.tree, FLOW_MLN|FLOW_SPC, 2, xievt::FLOW|xievt::FMLN|xievt::FSPC);
+    set_style(&ti, ti.tree[0], FLOW_MLN|FLOW_SPC, 3, xievt::FLOW|xievt::FMLN|xievt::FSPC);
+    set_style(&ti, ti.tree[4], FLOW_MLN|FLOW_SPC, 32, xievt::FLOW|xievt::FMLN|xievt::FSPC);
+    set_style(&ti, ti.tree[8], FLOW_MLN|FLOW_SPC, 55, xievt::FLOW|xievt::FMLN|xievt::FSPC);
+    {
+        SCOPED_TRACE("0");
+        check_same_emit1(ti, maxcols(0),
               "[\n"
               "  [\n"
               "    1,\n"
@@ -1425,7 +1534,10 @@ TEST(seq, flow_ml_nested_2_mln_spc_nested)
               "    12\n"
               "  ]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(1)),
+    }
+    {
+        SCOPED_TRACE("1");
+        check_same_emit1(ti, maxcols(1),
               "[\n"
               "  [\n"
               "    1,\n"
@@ -1456,7 +1568,10 @@ TEST(seq, flow_ml_nested_2_mln_spc_nested)
               "    12\n"
               "  ]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(10)),
+    }
+    {
+        SCOPED_TRACE("10");
+        check_same_emit1(ti, maxcols(10),
               "[\n"
               "  [\n"
               "    1, 2,\n"
@@ -1473,7 +1588,10 @@ TEST(seq, flow_ml_nested_2_mln_spc_nested)
               "    11, 12\n"
               "  ]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(16)),
+    }
+    {
+        SCOPED_TRACE("16");
+        check_same_emit1(ti, maxcols(16),
               "[\n"
               "  [\n"
               "    1, 2, 3, 4,\n"
@@ -1488,7 +1606,10 @@ TEST(seq, flow_ml_nested_2_mln_spc_nested)
               "    11, 12\n"
               "  ]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(20)),
+    }
+    {
+        SCOPED_TRACE("20");
+        check_same_emit1(ti, maxcols(20),
               "[\n"
               "  [\n"
               "    1, 2, 3, 4, 5, 6\n"
@@ -1499,7 +1620,10 @@ TEST(seq, flow_ml_nested_2_mln_spc_nested)
               "    12\n"
               "  ]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(24)),
+    }
+    {
+        SCOPED_TRACE("24");
+        check_same_emit1(ti, maxcols(24),
               "[\n"
               "  [\n"
               "    1, 2, 3, 4, 5, 6\n"
@@ -1509,7 +1633,10 @@ TEST(seq, flow_ml_nested_2_mln_spc_nested)
               "    7, 8, 9, 10, 11, 12\n"
               "  ]\n"
               "]\n");
-    EXPECT_EQ(emit2str(tree, maxcols(30)),
+    }
+    {
+        SCOPED_TRACE("30");
+        check_same_emit1(ti, maxcols(30),
               "[\n"
               "  [\n"
               "    1, 2, 3, 4, 5, 6\n"
@@ -1519,6 +1646,7 @@ TEST(seq, flow_ml_nested_2_mln_spc_nested)
               "    7, 8, 9, 10, 11, 12\n"
               "  ]\n"
               "]\n");
+    }
 }
 
 

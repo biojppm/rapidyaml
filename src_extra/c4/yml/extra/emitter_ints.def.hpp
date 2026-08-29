@@ -1175,8 +1175,8 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
 {
     RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BSEQ));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    ++pos;
     const flow_pws pws = setup_flow_pws_sl_(pos);
+    ++pos;
     write_('[');
     while(pos < m_evts_size)
     {
