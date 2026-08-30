@@ -600,8 +600,8 @@ void EmitterInts<Writer>::visit_flow_container_(evt_size &pos)
     evt_bits evt = m_evts[pos];
     RYML_ASSERT_BASIC_(detail::seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if(!(evt & (ievt::FLOW|ievt::BLCK)))
-        evt |= ievt::FSL_;
+    if(!(evt & ievt::FLOW))
+        evt |= ievt::FLOW|ievt::FSL_;
     write_pws_and_pend_(PWS_NONE_);
     if(evt & ievt::FMLX)
         visit_flow_ml_(pos);
@@ -1428,7 +1428,7 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
         {
             ++m_depth;
             write_pws_and_pend_(PWS_NONE_);
-            visit_blck_container_(pos);
+            visit_flow_container_(pos);
             --m_depth;
             goto statenext; // NOLINT
         }
