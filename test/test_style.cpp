@@ -1014,6 +1014,22 @@ TEST(seq, block)
 )");
 }
 
+TEST(seq, block_picks_default_style)
+{
+    TreeAndInts ti = parse_tree_and_ints("['ab', [2,3]]");
+    check_same_emit1(ti, "['ab',[2,3]]");
+    set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
+    check_same_emit1(ti, R"(- 'ab'
+- [2,3]
+)");
+    rem_style(&ti, ti.tree[0], SCALAR_STYLE, 3, all_styles_scalar);
+    rem_style(&ti, ti.tree[1], CONTAINER_STYLE, 6, all_styles_container);
+    check_same_emit1(ti, R"(- ab
+- - 2
+  - 3
+)");
+}
+
 TEST(seq, flow_sl)
 {
     TreeAndInts ti = parse_tree_and_ints("[1, 2, 3, 4, 5, 6]");
@@ -1031,6 +1047,25 @@ TEST(seq, flow_sl)
         check_same_emit1(ti, R"([1, 2, 3, 4, 5, 6])");
     }
 }
+
+TEST(seq, flow_sl_picks_default_style)
+{
+    TreeAndInts ti = parse_tree_and_ints("['ab', [2,3]]");
+    check_same_emit1(ti, "['ab',[2,3]]");
+    rem_style(&ti, ti.tree[0], SCALAR_STYLE, 3, all_styles_scalar);
+    rem_style(&ti, ti.tree[1], CONTAINER_STYLE, 6, all_styles_container);
+    check_same_emit1(ti, R"([ab,[2,3]])");
+}
+
+TEST(seq, flow_ml_picks_default_style)
+{
+    TreeAndInts ti = parse_tree_and_ints("[\n  'ab',\n  [2,3]\n]\n");
+    check_same_emit1(ti, "[\n  'ab',\n  [2,3]\n]\n");
+    rem_style(&ti, ti.tree[0], SCALAR_STYLE, 3, all_styles_scalar);
+    rem_style(&ti, ti.tree[1], CONTAINER_STYLE, 6, all_styles_container);
+    check_same_emit1(ti, "[\n  ab,\n  [2,3]\n]\n");
+}
+
 
 static void test_seq_flow_ml1(NodeType extra={}, evt_bits extra_bits={}) // NOLINT
 {
@@ -1805,7 +1840,7 @@ TEST(keyseq, flow_ml1)
     }
     {
         SCOPED_TRACE("3");
-        set_style(&ti, ti.tree["foo"], FLOW_ML1, 6, xievt::FML1);
+        set_style(&ti, ti.tree["foo"], FLOW_ML1, 6, xievt::FLOW|xievt::FML1);
         check_same_emit1(ti,
               "{\n"
               "  foo: [\n"
@@ -1820,7 +1855,7 @@ TEST(keyseq, flow_ml1)
     }
     {
         SCOPED_TRACE("4");
-        set_style(&ti, ti.tree["foo"], FLOW_MLN, 6, xievt::FMLN);
+        set_style(&ti, ti.tree["foo"], FLOW_MLN, 6, xievt::FLOW|xievt::FMLN);
         check_same_emit1(ti,
               "{\n"
               "  foo: [\n"
@@ -1846,7 +1881,7 @@ TEST(keyseq, flow_mln)
     {
         SCOPED_TRACE("1");
         set_style(&ti, ti.tree, FLOW_ML1, 2, xievt::FLOW|xievt::FML1);
-        set_style(&ti, ti.tree["foo"], FLOW_MLN|FLOW_SPC, 6, xievt::FMLN|xievt::FSPC);
+        set_style(&ti, ti.tree["foo"], FLOW_MLN|FLOW_SPC, 6, xievt::FLOW|xievt::FMLN|xievt::FSPC);
         check_same_emit1(ti,
               "{\n"
               "  foo: [\n"
@@ -1856,7 +1891,7 @@ TEST(keyseq, flow_mln)
     }
     {
         SCOPED_TRACE("2");
-        set_style(&ti, ti.tree["foo"], FLOW_MLN, 6, xievt::FMLN);
+        set_style(&ti, ti.tree["foo"], FLOW_MLN, 6, xievt::FLOW|xievt::FMLN);
         check_same_emit1(ti,
               "{\n"
               "  foo: [\n"
@@ -1962,7 +1997,7 @@ TEST(keyseq, flow_mln_spc)
 {
     TreeAndInts ti = parse_tree_and_ints("foo: [1, 2, 3, 4, 5, 6]");
     set_style(&ti, ti.tree, FLOW_ML1, 2, xievt::FLOW|xievt::FML1);
-    set_style(&ti, ti.tree["foo"], FLOW_MLN|FLOW_SPC, 6, xievt::FMLN|xievt::FSPC);
+    set_style(&ti, ti.tree["foo"], FLOW_MLN|FLOW_SPC, 6, xievt::FLOW|xievt::FMLN|xievt::FSPC);
     check_same_emit1(ti,
               "{\n"
               "  foo: [\n"
@@ -2233,6 +2268,51 @@ TEST(map, block)
 5: 10
 6: 10
 )");
+}
+
+TEST(map, block_picks_default_style)
+{
+    TreeAndInts ti = parse_tree_and_ints("'ab': [2,3]\n");
+    {
+        SCOPED_TRACE("1");
+        check_same_emit1(ti, "'ab': [2,3]\n");
+    }
+    {
+        SCOPED_TRACE("2");
+        rem_style(&ti, ti.tree[0], SCALAR_STYLE, 3, all_styles_scalar);
+        rem_style(&ti, ti.tree[0], CONTAINER_STYLE, 6, all_styles_container);
+        check_same_emit1(ti, "ab:\n  - 2\n  - 3\n");
+    }
+}
+
+TEST(map, flow_sl_picks_default_style)
+{
+    TreeAndInts ti = parse_tree_and_ints("{'ab': [2,3]}");
+    {
+        SCOPED_TRACE("1");
+        check_same_emit1(ti, "{'ab': [2,3]}");
+    }
+    {
+        SCOPED_TRACE("2");
+        rem_style(&ti, ti.tree[0], SCALAR_STYLE, 3, all_styles_scalar);
+        rem_style(&ti, ti.tree[0], CONTAINER_STYLE, 6, all_styles_container);
+        check_same_emit1(ti, "{ab: [2,3]}");
+    }
+}
+
+TEST(map, flow_ml_picks_default_style)
+{
+    TreeAndInts ti = parse_tree_and_ints("{\n  'ab': [\n    2,\n    3]\n}");
+    {
+        SCOPED_TRACE("1");
+        check_same_emit1(ti, "{\n  'ab': [\n    2,\n    3\n  ]\n}\n");
+    }
+    {
+        SCOPED_TRACE("2");
+        rem_style(&ti, ti.tree[0], SCALAR_STYLE, 3, all_styles_scalar);
+        rem_style(&ti, ti.tree[0], CONTAINER_STYLE, 6, all_styles_container);
+        check_same_emit1(ti, "{\n  ab: [2,3]\n}\n");
+    }
 }
 
 TEST(map, flow_sl)

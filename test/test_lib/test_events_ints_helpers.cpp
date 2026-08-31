@@ -157,9 +157,8 @@ void test_events_ints_invariants(csubstr parsed_yaml,
         evt_bits prev = {};
         evt_bits nextpos = evtpos + ((evt & ievt::WSTR) ? 3 : 1);
         evt_bits next = {};
-        SCOPED_TRACE(evtpos); // position in the array
-        SCOPED_TRACE(evtnumber); // event number
         SCOPED_TRACE(ievt::to_str_sub(bufpos, evt));
+        RYML_TRACE_FMT("evt #={} pos={}", evtnumber, evtpos);
         if(evtpos)
             prev = (evt & ievt::PSTR) ? evts[evtpos - 3] : evts[evtpos - 1];
         if(nextpos < evts_sz)
@@ -382,7 +381,6 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_) << (ok = false);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
             EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), ievt::FLOW|ievt::BLCK) << (ok = false);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
@@ -459,8 +457,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
-            evt_bits estyle = evt & style_scalar << (ok = false);
-            EXPECT_NE(estyle, 0) << (ok = false);
+            evt_bits estyle = evt & style_scalar;
             EXPECT_EQ((estyle & (estyle << 1)), 0) << (ok = false);
             _test_str_in_buffer(evtpos);
         }

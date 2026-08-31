@@ -102,10 +102,10 @@ inline bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size
     RYML_ASSERT_BASIC_(evts[pos] & ievt::EDOC);
     while(++pos < evts_size)
     {
-        if(hasall(evts[pos], ievt::ESTR))
-            return false;
-        else if(hasall(evts[pos], ievt::BDOC))
+        if(hasall(evts[pos], ievt::BDOC))
             return (evts[pos] & ievt::EXPL);
+        else if(hasall(evts[pos], ievt::ESTR))
+            break;
     }
     return false;
 }
@@ -1027,7 +1027,6 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
     RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BMAP));
     bool statenew = true;
     bool statekey = true;
-    bool has_tag_or_anchor = false;
     bool qmark = false;
     ++pos;
     evt_bits evt = {};
@@ -1079,7 +1078,6 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
         }
         else if(detail::seqormap(evt))
         {
-            (void)has_tag_or_anchor;
             if(!(evt & detail::styles_ievt_cont))
                 evt |= ievt::BLCK;
             ++m_depth;
@@ -1103,7 +1101,6 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
         }
         else if(evt & ievt::ANCH)
         {
-            has_tag_or_anchor = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_('&');
             write_(getstr_(pos));
@@ -1111,7 +1108,6 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
         }
         else if(evt & ievt::TAG_)
         {
-            has_tag_or_anchor = true;
             write_pws_and_pend_(PWS_SPACE_);
             write_tag_(getstr_(pos));
             pos += 3;

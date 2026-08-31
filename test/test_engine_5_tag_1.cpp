@@ -896,14 +896,14 @@ ENGINE_TEST(TagPlacementMapValBlock,
     ___(ps.set_key_scalar_plain("e"));
     ___(ps.set_val_tag("!tag"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("f"));
     ___(ps.set_val_tag("!tag"));
     ___(ps.begin_seq_val_block());
     ___(ps.set_val_tag("!tag"));
     ___(ps.set_val_scalar_plain("g"));
-    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_block());
     ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
