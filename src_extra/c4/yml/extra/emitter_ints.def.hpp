@@ -1548,7 +1548,7 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
         {
             ++m_depth;
             write_pws_and_pend_(PWS_NONE_);
-            visit_blck_container_(pos);
+            visit_flow_container_(pos);
             --m_depth;
             goto statenext; // NOLINT
         }
