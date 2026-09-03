@@ -29,7 +29,8 @@ namespace ievt {
 namespace detail {
 
 enum : evt_bits { // NOLINT
-    styles_ievt_sclr = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
+    styles_ievt_quot = ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
+    styles_ievt_sclr = ievt::PLAI|styles_ievt_quot,
     styles_ievt_cont = ievt::BLCK|ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
 };
 
@@ -2088,7 +2089,8 @@ void EmitterInts<Writer>::write_scalar_plain_(csubstr s, evt_size ilevel)
 //-----------------------------------------------------------------------------
 
 namespace detail {
-inline type_bits json_type_(type_bits ty)
+/*
+inline evt_bits json_type_(evt_bits ty)
 {
     enum : type_bits { // NOLINT
         ml_bits = (BLOCK|(STREAM & ~SEQ)), // remove SEQ from STREAM to test
@@ -2105,13 +2107,84 @@ inline type_bits json_type_(type_bits ty)
     }
     return ty;
 }
+*/
 } // namespace detail
 
 
 template<class Writer>
 void EmitterInts<Writer>::json_emit_(evt_size pos)
 {
-    (void)pos;
+    evt_size numdocs = 1;
+    if(detail::hasall(m_evts[pos], ievt::BSTR))
+    {
+        // count numdocs
+        for(evt_size p = pos; p < m_evts_size; p += ievt::nextpos(m_evts[p]))
+        {
+            if(detail::hasall(m_evts[p], ievt::BDOC))
+                ++numdocs;
+            else if(detail::hasall(m_evts[p], ievt::ESTR))
+                break;
+        }
+        if(numdocs > 1)
+        {
+            if C4_UNLIKELY(m_opts.json_err_on_stream())
+                RYML_ERR_BASIC_("multiple docs");
+            write_('[');
+            ++m_depth;
+            ++m_ilevel;
+        }
+        ++pos;
+        while(pos < m_evts_size)
+        {
+            if(detail::hasall(m_evts[pos], ievt::BDOC))
+            {
+                indent_(m_ilevel);
+                json_visit_ml_(pos, m_depth);
+                if(numdocs > 1)
+                {
+                    if(detail::hasall(m_evts[pos], ievt::BDOC))
+                        write_(',');
+                    newl_();
+                }
+            }
+            else if(detail::hasall(m_evts[pos], ievt::ESTR))
+            {
+                break;
+            }
+            else
+            {
+                pos += ievt::nextpos(m_evts[pos]);
+            }
+        }
+        if(numdocs > 1)
+        {
+            --m_ilevel;
+            --m_depth;
+            write_(']');
+        }
+    }
+    else
+    {
+        // look for the first of BSEQ|BMAP|SCLR|ALIA
+        while(pos < m_evts_size)
+        {
+            if(m_evts[pos] & (ievt::SCLR|ievt::ALIA))
+            {
+                json_writev_(pos, m_evts[pos], /*has_anchor_or_tag*/false);
+                break;
+            }
+            else if(detail::hasall(m_evts[pos], ievt::BSEQ) ||
+                    detail::hasall(m_evts[pos], ievt::BMAP))
+            {
+                json_visit_ml_(pos, m_depth);
+                break;
+            }
+            else
+            {
+                pos = ievt::nextpos(m_evts[pos]);
+            }
+        }
+    }
 #ifdef OLD
     NodeType ty = m_tree->type(id);
     // JSON does not have streams
@@ -2132,65 +2205,102 @@ void EmitterInts<Writer>::json_emit_(evt_size pos)
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_visit_sl_(evt_size &pos, evt_bits ty, evt_size depth)
+void EmitterInts<Writer>::json_visit_sl_(evt_size &pos, evt_size depth)
 {
-    if C4_UNLIKELY(depth > m_opts.max_depth())
+    if C4_UNLIKELY(depth > (evt_size)m_opts.max_depth())
         RYML_ERR_BASIC_("max depth exceeded");
-    (void)pos;
-    (void)ty;
-    (void)depth;
-#ifdef OLD
-    if(ty.is_val())
+    RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BEG_);
+    const evt_bits term = (m_evts[pos] & ~ievt::BEG_) | ievt::END_;
+    const bool with_spc = (m_evts[pos] & ievt::FSPC) || m_opts.force_flow_spc();
+    bool has_anchor_or_tag = false;
+    ++pos;
+    while(pos < m_evts_size)
     {
-        json_writev_(id, ty);
-    }
-    else if(ty.is_keyval())
-    {
-        json_writek_(id, ty);
-        write_(": ");
-        json_writev_(id, ty);
-    }
-    else if(ty.is_container())
-    {
-        ty = json_type_(ty);
-        if(ty.has_key())
+        evt_bits evt = m_evts[pos];
+        if(evt & ievt::SCLR)
         {
-            json_writek_(id, ty);
-            write_(": ");
-        }
-        if(ty.is_seq())
-            write_('[');
-        else if(ty.is_map())
-            write_('{');
-
-        for(evt_size child = m_tree->first_child(id); child != NONE; child = m_tree->next_sibling(child))
-        {
-            if(child != m_tree->first_child(id))
+            if(evt & ievt::KEY_)
             {
-                if((ty & FLOW_SPC) || m_opts.force_flow_spc())
-                    write_(", ");
-                else
-                    write_(',');
+                json_writek_(pos);
+                write_(": ");
             }
-            json_visit_sl_(child, m_tree->type(child), depth+1);
+            else
+            {
+                RYML_ASSERT_BASIC_(evt & ievt::VAL_);
+                json_writev_(pos, evt, has_anchor_or_tag);
+                goto next_entry; // NOLINT
+            }
+            pos += 3;
         }
-
-        if(ty.is_seq())
+        else if(detail::hasall(evt, ievt::BSEQ))
+        {
+            write_('[');
+            ++m_depth;
+            json_visit_sl_(pos, m_depth);
+            --m_depth;
             write_(']');
-        else if(ty.is_map())
+            goto next_entry; // NOLINT
+        }
+        else if(detail::hasall(evt, ievt::BMAP))
+        {
+            write_('{');
+            ++m_depth;
+            json_visit_sl_(pos, m_depth);
+            --m_depth;
             write_('}');
-    }  // container
-#endif
+            goto next_entry; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            if C4_UNLIKELY(m_opts.json_err_on_anchor())
+                RYML_ERR_BASIC_("JSON does not have anchors");
+            write_("\"*");
+            write_(getstr_(pos));
+            write_('"');
+            pos += 3;
+            goto next_entry; // NOLINT
+        }
+        else if(evt & ievt::ANCH)
+        {
+            if C4_UNLIKELY(m_opts.json_err_on_anchor())
+                RYML_ERR_BASIC_("JSON does not have anchors");
+            has_anchor_or_tag = true;
+            pos += 3;
+        }
+        else if(evt & ievt::TAG_)
+        {
+            if C4_UNLIKELY(m_opts.json_err_on_tag())
+                RYML_ERR_BASIC_("JSON does not have tags");
+            has_anchor_or_tag = true;
+            pos += 3;
+        }
+        else
+        {
+            ++pos;
+        }
+        continue;
+    next_entry:
+        RYML_ASSERT_BASIC_(pos < m_evts_size);
+        if(!detail::hasall(m_evts[pos], term))
+        {
+            if(with_spc)
+                write_(", ");
+            else
+                write_(',');
+            has_anchor_or_tag = false;
+        }
+        else
+        {
+            ++pos;
+            break;
+        }
+    }
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_visit_ml_(evt_size &pos, evt_bits ty, evt_size depth)
+void EmitterInts<Writer>::json_visit_ml_(evt_size &pos, evt_size depth)
 {
-    if C4_UNLIKELY(depth > m_opts.max_depth())
-        RYML_ERR_BASIC_("max depth exceeded");
-    (void)pos;
-    (void)ty;
-    (void)depth;
+    json_visit_sl_(pos, depth); // FIXME
 #ifdef OLD
     if(ty.is_val())
     {
@@ -2319,16 +2429,9 @@ write_nan:
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_writek_(evt_size &id, evt_bits ty)
+void EmitterInts<Writer>::json_writek_(evt_size id)
 {
-    if C4_UNLIKELY((ty & ievt::TAG_) && m_opts.json_err_on_tag())
-        RYML_ERR_BASIC_("JSON does not have tags");
-    if C4_UNLIKELY((ty & ievt::ANCH) && m_opts.json_err_on_anchor())
-        RYML_ERR_BASIC_("JSON does not have anchors");
-    (void)id;
-    (void)ty;
-#ifdef OLD
-    csubstr key = m_tree->key(id);
+    csubstr key = getstr_(id);
     if(key.len)
     {
         if(json_maybe_write_naninf_(key))
@@ -2340,18 +2443,33 @@ void EmitterInts<Writer>::json_writek_(evt_size &id, evt_bits ty)
     {
         write_("\"\"");
     }
-#endif
 }
 
 template<class Writer>
-void EmitterInts<Writer>::json_writev_(evt_size &id, evt_bits ty)
+void EmitterInts<Writer>::json_writev_(evt_size id, evt_bits ty, bool has_anchor_or_tag)
 {
-    if C4_UNLIKELY((ty & ievt::TAG_) && m_opts.json_err_on_tag())
-        RYML_ERR_BASIC_("JSON does not have tags");
-    if C4_UNLIKELY((ty & ievt::ANCH) && m_opts.json_err_on_anchor())
-        RYML_ERR_BASIC_("JSON does not have anchors");
-    (void)id;
-    (void)ty;
+    csubstr val = getstr_(id);
+    if(val.len)
+    {
+        // use double quoted style if the style is marked quoted
+        bool dquoted = ((ty & detail::styles_ievt_quot)
+                        || (detail::scalar_style_choose_json_ievt(val) & ievt::DQUO)); // choose the style
+        if(dquoted)
+            json_write_scalar_dquo_(val);
+        else if(json_maybe_write_naninf_(val))
+            ;
+        else if(val.is_number())
+            json_write_number_(val);
+        else
+            write_(val);
+    }
+    else
+    {
+        if(val.str || (ty & detail::styles_ievt_quot) || has_anchor_or_tag)
+            write_("\"\"");
+        else
+            write_("null");
+    }
 #ifdef OLD
     if C4_UNLIKELY(ty.has_val_tag() && m_opts.json_err_on_tag())
         RYML_ERR_BASIC_("JSON does not have tags");

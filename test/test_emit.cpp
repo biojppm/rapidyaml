@@ -206,6 +206,9 @@ TEST(as_json, basic)
     }
 }
 
+
+//-----------------------------------------------------------------------------
+
 TEST(emit_nested, basic)
 {
     const Tree tree = parse_in_arena(R"(- a

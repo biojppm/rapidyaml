@@ -7,6 +7,8 @@
 #include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <c4/yml/writer_buf.hpp>
+#include <c4/yml/writer_file.hpp>
+#include <c4/yml/writer_ostream.hpp>
 #include <test_lib/test_compare_events.hpp>
 #include <gtest/gtest.h>
 
@@ -175,6 +177,30 @@ public:
     }
 
 public:
+
+    void emit_yaml(FILE* file, EmitOptions const& opts={}) const
+    {
+        ievt::EmitterInts<WriterFile> emitter(opts, file);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, src, arena);
+    }
+    void emit_json(FILE* file, EmitOptions const& opts={}) const
+    {
+        ievt::EmitterInts<WriterFile> emitter(opts, file);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, src, arena);
+    }
+
+    template<class Stream>
+    void emit_yaml_stream(Stream &stream, EmitOptions const& opts={}) const
+    {
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, stream);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, src, arena);
+    }
+    template<class Stream>
+    void emit_json_stream(Stream &stream, EmitOptions const& opts={}) const
+    {
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, stream);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, src, arena);
+    }
 
     size_t emit_yaml(substr yaml, EmitOptions const& opts={}) const
     {

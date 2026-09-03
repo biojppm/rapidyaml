@@ -12,9 +12,9 @@
 #include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/parse_engine.hpp>
 #include <c4/yml/parse_engine.def.hpp>
-#include <c4/yml/writer_buf.hpp>
 #endif
 
+#include "./test_lib/tree_and_ints.hpp"
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/test_events_ints_helpers.hpp"
 
@@ -28,8 +28,6 @@ namespace c4 {
 namespace yml {
 namespace xievt = extra::ievt;
 
-using IntBufs = xievt::Buffers;
-using IntBufsCR = xievt::Buffers const&;
 using xievt::evt_size;
 using xievt::evt_bits;
 constexpr const xievt::evt_bits all_styles_container = xievt::BLCK|xievt::FLOW|xievt::FSL_|xievt::FML1|xievt::FMLN|xievt::FSPC; // NOLINT
@@ -67,39 +65,6 @@ std::string emit2str(Tree const& t, EmitOptions const& opts={})
 
 
 //-----------------------------------------------------------------------------
-void print_ints(IntBufsCR ints)
-{
-    xievt::events_ints_print(ints.src, ints.arena, ints.evts.ptr, ints.evts.len);
-}
-
-struct TreeAndInts
-{
-    Tree    tree;
-    IntBufs ints;
-    std::string src_ints;
-    void print_ints() const { c4::yml::print_ints(ints); }
-};
-void parse_ints(substr src, IntBufs *ints, ParserOptions const& opts={})
-{
-    xievt::EventHandlerInts<true> handler;
-    ParseEngine<xievt::EventHandlerInts<true>> parser(&handler, opts);
-    handler.reset(src);
-    parser.parse_in_place_ev("(testyaml)", src);
-    *ints = handler.get_buffers(true);
-}
-TreeAndInts parse_tree_and_ints(csubstr src, ParserOptions const& opts={})
-{
-    TreeAndInts ret;
-    ret.tree = parse_in_arena(src, opts);
-    ret.src_ints.assign(src.str, src.len);
-    parse_ints(to_substr(ret.src_ints), &ret.ints, opts);
-    return ret;
-}
-void test_emit(TreeAndInts const& ti, std::string const& expected, EmitOptions const& opts={})
-{
-    EXPECT_EQ(emit2str(ti.tree, opts), expected);
-    EXPECT_EQ(emit2str(ti.ints, opts), expected);
-}
 
 
 void set_style(TreeAndInts *ti,
@@ -196,7 +161,7 @@ inline void test_container_flow_ml(IntBufsCR buf, evt_size pos)
         if((buf.evts.ptr[pos] & (mask)) != (expected))          \
         {                                                       \
             EXPECT_EQ(buf.evts.ptr[pos] & (mask), expected);    \
-            print_ints(buf);                                    \
+            buf.print();                                        \
         }                                                       \
     } while(0)
 
@@ -542,9 +507,9 @@ void check_same_emit4(IntBufsCR& expected, std::string const* expected_yaml=null
             std::cout << "--------\nEMITTED" << num << "\n--------\n";
             std::cout << ws;
             std::cout << "--------\nACTUAL" << num << "\n--------\n";
-            print_ints(actual);
+            actual.print();
             std::cout << "--------\nEXPECTED" << num << "\n--------\n";
-            print_ints(expected);
+            expected.print();
         };
         showtrees_(1, ws1, actual1);
         if(did2) showtrees_(2, ws2, actual2);
@@ -580,7 +545,7 @@ void check_same_emit1(IntBufsCR& ints, std::string const& expected, EmitOptions 
     xievt::test_events_ints_invariants(ints.src, ints.arena, ints.evts.ptr, ints.evts.len);
     EXPECT_EQ(expected, actual);
     if(testing::Test::HasFailure())
-        print_ints(ints);
+        ints.print();
 }
 void check_same_emit1(TreeAndInts const& ti, std::string const& expected, EmitOptions const& opts={})
 {

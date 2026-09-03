@@ -160,11 +160,11 @@ private:
 
 private:
 
-    void json_visit_ml_(evt_size &id, evt_bits ty, evt_size depth);
-    void json_visit_sl_(evt_size &id, evt_bits ty, evt_size depth);
+    void json_visit_ml_(evt_size &pos, evt_size depth);
+    void json_visit_sl_(evt_size &pos, evt_size depth);
     bool json_maybe_write_naninf_(csubstr s);
-    void json_writek_(evt_size &id, evt_bits ty);
-    void json_writev_(evt_size &id, evt_bits ty);
+    void json_writek_(evt_size pos);
+    void json_writev_(evt_size pos, evt_bits ty, bool has_anchor_or_tag);
     void json_write_scalar_dquo_(csubstr s);
     void json_write_number_(csubstr s);
 
