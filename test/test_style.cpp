@@ -640,7 +640,7 @@ TEST(style, scalar_retains_style_after_parse__plain)
     TreeAndInts ti = parse_tree_and_ints(yaml);
     test_val_plain(ti.tree.rootref());
     test_val_plain(ti.ints, 2);
-    test_emit(ti, "foo\n");
+    test_emit_yaml(ti, "foo\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__squo)
@@ -650,7 +650,7 @@ TEST(style, scalar_retains_style_after_parse__squo)
     TreeAndInts ti = parse_tree_and_ints(yaml);
     test_val_squo(ti.tree.rootref());
     test_val_squo(ti.ints, 2);
-    test_emit(ti, "'foo'\n");
+    test_emit_yaml(ti, "'foo'\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__dquo)
@@ -660,7 +660,7 @@ TEST(style, scalar_retains_style_after_parse__dquo)
     TreeAndInts ti = parse_tree_and_ints(yaml);
     test_val_dquo(ti.tree.rootref());
     test_val_dquo(ti.ints, 2);
-    test_emit(ti, "\"foo\"\n");
+    test_emit_yaml(ti, "\"foo\"\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__literal)
@@ -670,7 +670,7 @@ TEST(style, scalar_retains_style_after_parse__literal)
     TreeAndInts ti = parse_tree_and_ints(yaml);
     test_val_literal(ti.tree.rootref());
     test_val_literal(ti.ints, 2);
-    test_emit(ti, "|\n  foo\n");
+    test_emit_yaml(ti, "|\n  foo\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__folded)
@@ -680,7 +680,7 @@ TEST(style, scalar_retains_style_after_parse__folded)
     TreeAndInts ti = parse_tree_and_ints(yaml);
     test_val_folded(ti.tree.rootref());
     test_val_folded(ti.ints, 2);
-    test_emit(ti, ">\n  foo\n");
+    test_emit_yaml(ti, ">\n  foo\n");
 }
 
 TEST(style, scalar_retains_style_after_parse__mixed)
@@ -700,7 +700,7 @@ TEST(style, scalar_retains_style_after_parse__mixed)
     test_val_literal(ti.ints, 12);
     test_val_folded(ti.tree[4]);
     test_val_folded(ti.ints, 15);
-    test_emit(ti, yaml);
+    test_emit_yaml(ti, yaml);
 }
 
 

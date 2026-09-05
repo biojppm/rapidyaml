@@ -178,76 +178,78 @@ public:
 
 public:
 
-    void emit_yaml(FILE* file, EmitOptions const& opts={}) const
+    void emit_yaml(FILE* file, EmitOptions const& opts={}, evt_size pos=0) const
     {
+        ASSERT_TRUE(pos <= evts.len);
         ievt::EmitterInts<WriterFile> emitter(opts, file);
-        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, src, arena);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
     }
-    void emit_json(FILE* file, EmitOptions const& opts={}) const
+    void emit_json(FILE* file, EmitOptions const& opts={}, evt_size pos=0) const
     {
+        ASSERT_TRUE(pos <= evts.len);
         ievt::EmitterInts<WriterFile> emitter(opts, file);
-        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, src, arena);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
     }
 
     template<class Stream>
-    void emit_yaml_stream(Stream &stream, EmitOptions const& opts={}) const
+    void emit_yaml_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
     {
         ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, stream);
-        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, src, arena);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
     }
     template<class Stream>
-    void emit_json_stream(Stream &stream, EmitOptions const& opts={}) const
+    void emit_json_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
     {
         ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, stream);
-        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, src, arena);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
     }
 
-    size_t emit_yaml(substr yaml, EmitOptions const& opts={}) const
+    size_t emit_yaml(substr yaml, EmitOptions const& opts={}, evt_size pos=0) const
     {
         ievt::EmitterInts<WriterBuf> emitter(opts, yaml);
-        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, src, arena);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
         return emitter.get_result(/*error_on_excess*/false).len;
     }
-    size_t emit_json(substr json, EmitOptions const& opts={}) const
+    size_t emit_json(substr json, EmitOptions const& opts={}, evt_size pos=0) const
     {
         ievt::EmitterInts<WriterBuf> emitter(opts, json);
-        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, src, arena);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
         return emitter.get_result(/*error_on_excess*/false).len;
     }
 
     template<class CharContainer>
-    void emit_yaml(CharContainer *cont, EmitOptions const& opts={}) const
+    void emit_yaml(CharContainer *cont, EmitOptions const& opts={}, evt_size pos=0) const
     {
         const size_t cap = cont->capacity();
         cont->resize(cap);
-        const size_t len = this->emit_yaml(to_substr(*cont), opts);
+        const size_t len = this->emit_yaml(to_substr(*cont), opts, pos);
         cont->resize(len);
         if(len > cap)
-            this->emit_yaml(to_substr(*cont), opts);
+            this->emit_yaml(to_substr(*cont), opts, pos);
     }
     template<class CharContainer>
-    void emit_json(CharContainer *cont, EmitOptions const& opts={}) const
+    void emit_json(CharContainer *cont, EmitOptions const& opts={}, evt_size pos=0) const
     {
         const size_t cap = cont->capacity();
         cont->resize(cap);
-        const size_t len = this->emit_json(to_substr(*cont), opts);
+        const size_t len = this->emit_json(to_substr(*cont), opts, pos);
         cont->resize(len);
         if(len > cap)
-            this->emit_json(to_substr(*cont), opts);
+            this->emit_json(to_substr(*cont), opts, pos);
     }
 
     template<class CharContainer>
-    CharContainer emit_yaml(EmitOptions const& opts={}) const
+    CharContainer emit_yaml(EmitOptions const& opts={}, evt_size pos=0) const
     {
         CharContainer c;
-        this->emit_yaml(&c, opts);
+        this->emit_yaml(&c, opts, pos);
         return c;
     }
     template<class CharContainer>
-    CharContainer emit_json(EmitOptions const& opts={}) const
+    CharContainer emit_json(EmitOptions const& opts={}, evt_size pos=0) const
     {
         CharContainer c;
-        this->emit_json(&c, opts);
+        this->emit_json(&c, opts, pos);
         return c;
     }
 

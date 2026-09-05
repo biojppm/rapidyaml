@@ -52,6 +52,15 @@ public:
                  evt_bits const* evts,
                  evt_size evts_size,
                  csubstr src,
+                 csubstr arena)
+    {
+        emit_as(type, evts, evts_size, 0, src, arena);
+    }
+    void emit_as(EmitType_e type,
+                 evt_bits const* evts,
+                 evt_size evts_size,
+                 evt_size pos,
+                 csubstr src,
                  csubstr arena);
 
 public:

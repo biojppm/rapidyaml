@@ -10,6 +10,7 @@
 #include <c4/fs/fs.hpp>
 
 #include "./test_lib/test_case.hpp"
+#include "./test_lib/tree_and_ints.hpp"
 
 #include <gtest/gtest.h>
 
@@ -209,9 +210,25 @@ TEST(as_json, basic)
 
 //-----------------------------------------------------------------------------
 
+#define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
+#define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
+
+static const EmitOptions without_dash = {};
+static const EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
+static const EmitOptions with_key = {};
+static const EmitOptions without_key = EmitOptions{}.emit_nonroot_key(false);
+
+TEST(emit_nested, preconditions)
+{
+    ASSERT_FALSE(without_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_key.emit_nonroot_key());
+    ASSERT_FALSE(without_key.emit_nonroot_key());
+}
+
 TEST(emit_nested, basic)
 {
-    const Tree tree = parse_in_arena(R"(- a
+    const TreeAndInts ti = parse_tree_and_ints(R"(- a
 - b
 - x0: 1
   x1: 2
@@ -232,40 +249,133 @@ TEST(emit_nested, basic)
 - members
 - here
 )");
-    EmitOptions without_dash = {};
-    EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
-    EmitOptions with_key = {};
-    EmitOptions without_key = EmitOptions{}.emit_nonroot_key(false);
-    ASSERT_FALSE(without_dash.emit_nonroot_dash());
-    ASSERT_TRUE(with_dash.emit_nonroot_dash());
-    ASSERT_TRUE(with_key.emit_nonroot_key());
-    ASSERT_FALSE(without_key.emit_nonroot_key());
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], without_dash), "Rochefort 10");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][0], with_dash), "- Rochefort 10\n");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], without_dash), R"(- and so
+    test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, without_dash, "Rochefort 10");
+    test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, with_dash, "- Rochefort 10\n");
+    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash, R"(- and so
 - many other
 - wonderful beers
 )");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"][3], with_dash), R"(- - and so
+    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash, R"(- - and so
   - many other
   - wonderful beers
 )");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], with_key), R"(beer:
+    {
+        std::string key = "beer";
+        std::string val = R"(- Rochefort 10
+- Busch
+- Leffe Rituel
+- - and so
+  - many other
+  - wonderful beers
+)";
+        std::string keyval = R"(beer:
   - Rochefort 10
   - Busch
   - Leffe Rituel
   - - and so
     - many other
     - wonderful beers
-)");
-    EXPECT_EQ(emitrs_yaml<std::string>(tree[3]["beer"], without_key), R"(- Rochefort 10
-- Busch
-- Leffe Rituel
-- - and so
-  - many other
-  - wonderful beers
-)");
+)";
+        test_emit_yaml_(ti.tree[3]["beer"], with_key, keyval);
+        test_emit_yaml_(ti.ints, 53,        with_key, keyval);
+        test_emit_yaml_(ti.ints, 56,        with_key, val);
+        test_emit_yaml_(ti.tree[3]["beer"], without_key, val);
+        test_emit_yaml_(ti.ints, 53,        without_key, key);
+        test_emit_yaml_(ti.ints, 56,        without_key, val);
+    }
 }
+
+TEST(emit_nested, scalar_key)
+{
+    std::string yaml = ""
+        "key: {c: d}\n"
+        "e: [f]\n"
+        "g: h\n"
+        "bmap:\n"
+        "  a: b\n"
+        "bseq:\n"
+        "  - a\n"
+        "  - b\n"
+        "";
+    const TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    test_emit_yaml_(ti.tree, ti.ints, 0, with_key,    yaml);//BSTR
+    test_emit_yaml_(ti.tree, ti.ints, 0, without_key, yaml);//BSTR
+    test_emit_yaml_(ti.tree, ti.ints, 1, with_key,    yaml);//BDOC
+    test_emit_yaml_(ti.tree, ti.ints, 1, without_key, yaml);//BDOC
+    test_emit_yaml_(ti.tree, ti.ints, 2, with_key,    yaml);//BMAP
+    test_emit_yaml_(ti.tree, ti.ints, 2, without_key, yaml);//BMAP
+    //
+    test_emit_yaml_(ti.tree["key"], with_key,    "key: {c: d}\n");
+    test_emit_yaml_(ti.ints, 3,     with_key,    "key: {c: d}\n");
+    test_emit_yaml_(ti.ints, 6,     with_key,    "{c: d}");
+    test_emit_yaml_(ti.tree["key"], without_key, "{c: d}");
+    test_emit_yaml_(ti.ints, 3,     without_key, "key");
+    test_emit_yaml_(ti.ints, 6,     without_key, "{c: d}");
+    //
+    test_emit_yaml_(ti.tree["key"]["c"], with_key   , "c: d\n");
+    test_emit_yaml_(ti.ints, 7,          with_key   , "c: d\n");
+    test_emit_yaml_(ti.ints, 10,         with_key   , "d");
+    test_emit_yaml_(ti.tree["key"]["c"], without_key, "d");
+    test_emit_yaml_(ti.ints, 7,          without_key, "c");
+    test_emit_yaml_(ti.ints, 10,         without_key, "d");
+    //
+    test_emit_yaml_(ti.tree["e"], with_key   , "e: [f]\n");
+    test_emit_yaml_(ti.ints, 14,  with_key   , "e: [f]\n");
+    test_emit_yaml_(ti.ints, 17,  with_key   , "[f]");
+    test_emit_yaml_(ti.tree["e"], without_key, "[f]");
+    test_emit_yaml_(ti.ints, 14,  without_key, "e");
+    test_emit_yaml_(ti.ints, 17,  without_key, "[f]");
+    //
+    test_emit_yaml_(ti.tree["g"], with_key   , "g: h\n");
+    test_emit_yaml_(ti.ints, 22,  with_key   , "g: h\n");
+    test_emit_yaml_(ti.ints, 25,  with_key   , "h");
+    test_emit_yaml_(ti.tree["g"], without_key, "h");
+    test_emit_yaml_(ti.ints, 22,  without_key, "g");
+    test_emit_yaml_(ti.ints, 25,  without_key, "h");
+    //
+    test_emit_yaml_(ti.tree["bmap"], with_key   , "bmap:\n  a: b\n");
+    test_emit_yaml_(ti.ints, 28,     with_key   , "bmap:\n  a: b\n");
+    test_emit_yaml_(ti.ints, 31,     with_key   , "a: b\n");
+    test_emit_yaml_(ti.tree["bmap"], without_key, "a: b\n");
+    test_emit_yaml_(ti.ints, 28,     without_key, "bmap");
+    test_emit_yaml_(ti.ints, 31,     without_key, "a: b\n");
+    //
+    test_emit_yaml_(ti.tree["bseq"], with_key   , "bseq:\n  - a\n  - b\n");
+    test_emit_yaml_(ti.ints, 39,     with_key   , "bseq:\n  - a\n  - b\n");
+    test_emit_yaml_(ti.ints, 42,     with_key   , "- a\n- b\n");
+    test_emit_yaml_(ti.tree["bseq"], without_key, "- a\n- b\n");
+    test_emit_yaml_(ti.ints, 39,     without_key, "bseq");
+    test_emit_yaml_(ti.ints, 42,     without_key, "- a\n- b\n");
+}
+
+TEST(emit_nested, container_key)
+{
+    char src[] = "[a, b]: {c: d}";
+    IntBufs ints;
+    parse_ints(src, &ints);
+    ints.print();
+    test_emit_yaml_(ints, 0, with_key,    "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_(ints, 0, without_key, "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_(ints, 1, with_key,    "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_(ints, 1, without_key, "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_(ints, 2, with_key,    "? [a,b]\n: {c: d}\n");//BMAP
+    test_emit_yaml_(ints, 2, without_key, "? [a,b]\n: {c: d}\n");//BMAP
+    //FIXME test_emit_yaml_(ints, 3, with_key,    "? [a,b]\n: {c: d}\n");//KEY|BSEQ
+    test_emit_yaml_(ints, 3, without_key, "[a,b]");//KEY|BSEQ
+    test_emit_yaml_(ints, 4, with_key,    "a");
+    test_emit_yaml_(ints, 4, without_key, "a");
+    test_emit_yaml_(ints, 7, with_key,    "b");
+    test_emit_yaml_(ints, 7, without_key, "b");
+    test_emit_yaml_(ints, 11, with_key,    "{c: d}");
+    test_emit_yaml_(ints, 11, without_key, "{c: d}");
+    test_emit_yaml_(ints, 12, with_key,    "c: d\n");
+    test_emit_yaml_(ints, 12, without_key, "c");
+    test_emit_yaml_(ints, 15, with_key,    "d");
+    test_emit_yaml_(ints, 15, without_key, "d");
+}
+
+
+//-----------------------------------------------------------------------------
 
 TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
 {
