@@ -42,7 +42,7 @@ struct IntEventsCase
     const int line;
     ParserOptions opts;
     csubstr yaml;
-    const std::vector<IntEventWithScalar> evt;
+    const std::vector<ievt::IntEventWithScalar> evt;
 
     void testeq(csubstr parsed_source, csubstr arena, ievt::evt_bits const* actual, size_t actual_size) const
     {
@@ -50,7 +50,7 @@ struct IntEventsCase
         #ifdef RYML_DBG
         events_ints_print(parsed_source, arena, actual, (extra::ievt::evt_bits)actual_size);
         #endif
-        test_events_ints_invariants(parsed_source, arena, actual, (ievt::evt_bits)actual_size);
+        extra::ievt::test_events_ints_invariants(parsed_source, arena, actual, (ievt::evt_bits)actual_size);
         test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, arena);
     }
 };
@@ -147,7 +147,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BSEQ|FLOW),
+           e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 1, "a"),
            e(VAL_|SCLR|PLAI|PSTR, 4, 1, "b"),
            e(VAL_|SCLR|PLAI|PSTR, 7, 1, "c"),
@@ -160,8 +160,8 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BSEQ|FLOW),
-           e(VAL_|BMAP|FLOW),
+           e(VAL_|BSEQ|FLOW|FSL_),
+           e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 1, 1, "a"),
            e(VAL_|SCLR|PLAI|PSTR, 4, 1, "b"),
            e(EMAP|PSTR),
@@ -195,11 +195,11 @@ const IntEventsCase test_cases[] = {
            e(KEY_|SCLR|PLAI, 19, 3, "foo"),
            e(VAL_|TAG_|PSTR, 24, 1, "!"),
            e(VAL_|BSEQ|BLCK|PSTR),
-           e(VAL_|BMAP|FLOW),
+           e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 29, 1, "x"),
            e(VAL_|SCLR|PLAI|PSTR, 32, 1, "y"),
            e(EMAP|PSTR),
-           e(VAL_|BSEQ|FLOW),
+           e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 38, 1, "x"),
            e(VAL_|SCLR|PLAI|PSTR, 41, 1, "y"),
            e(ESEQ|PSTR),
@@ -208,15 +208,15 @@ const IntEventsCase test_cases[] = {
            e(VAL_|SCLR|DQUO|PSTR, 61, 3, "foo"),
            e(VAL_|SCLR|LITL|PSTR, 70, 4, "foo\n", needs_filter),
            e(VAL_|SCLR|FOLD|PSTR, 80, 4, "foo\n", needs_filter),
-           e(VAL_|BSEQ|FLOW|PSTR),
+           e(VAL_|BSEQ|FLOW|FSL_|PSTR),
            e(VAL_|SCLR|PLAI, 89, 1, "1"),
            e(VAL_|SCLR|PLAI|PSTR, 92, 1, "2"),
            e(VAL_|SCLR|PLAI|PSTR, 95, 4, "true"),
            e(VAL_|SCLR|PLAI|PSTR, 101, 5, "false"),
            e(VAL_|SCLR|PLAI|PSTR, 108, 4, "null"),
            e(ESEQ|PSTR),
-           e(VAL_|TAG_, 126, 6, "!tag-1"),
-           e(VAL_|ANCH|PSTR, 117, 8, "anchor-1"),
+           e(VAL_|ANCH, 117, 8, "anchor-1"),
+           e(VAL_|TAG_|PSTR, 126, 6, "!tag-1"),
            e(VAL_|SCLR|PLAI|PSTR, 133, 6, "foobar"),
            e(ESEQ|PSTR),
            e(EMAP),
@@ -270,7 +270,7 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BSEQ|BLCK),
            e(VAL_|TAG_, 2, 5, "!!seq"),
-           e(VAL_|BSEQ|FLOW|PSTR),
+           e(VAL_|BSEQ|FLOW|FSL_|PSTR),
            e(ESEQ),
            e(ESEQ),
            e(EDOC),
@@ -394,11 +394,11 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|BMAP|BLCK),
-           e(KEY_|BMAP|FLOW),
+           e(KEY_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 1, 3, "key"),
            e(VAL_|SCLR|PLAI|PSTR, 6, 3, "map"),
            e(EMAP|PSTR),
-           e(VAL_|BSEQ|FLOW),
+           e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 13, 3, "seq"),
            e(VAL_|SCLR|PLAI|PSTR, 18, 3, "val"),
            e(ESEQ|PSTR),
@@ -413,11 +413,11 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|BMAP|BLCK),
-           e(KEY_|BSEQ|FLOW),
+           e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 3, "key"),
            e(VAL_|SCLR|PLAI|PSTR, 6, 3, "seq"),
            e(ESEQ|PSTR),
-           e(VAL_|BMAP|FLOW),
+           e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 13, 3, "map"),
            e(VAL_|SCLR|PLAI|PSTR, 18, 3, "val"),
            e(EMAP|PSTR),
@@ -432,7 +432,7 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|BMAP|BLCK),
-           e(KEY_|BSEQ|FLOW),
+           e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 1, "b"),
            e(VAL_|SCLR|PLAI|PSTR, 3, 1, "c"),
            e(ESEQ|PSTR),
@@ -448,8 +448,8 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|BMAP|BLCK),
-           e(KEY_|BSEQ|FLOW),
-           e(VAL_|BSEQ|FLOW),
+           e(KEY_|BSEQ|FLOW|FSL_),
+           e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 2, 1, "b"),
            e(VAL_|SCLR|PLAI|PSTR, 4, 1, "c"),
            e(ESEQ|PSTR),
@@ -466,12 +466,12 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|BMAP|BLCK),
-           e(KEY_|BSEQ|FLOW),
+           e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 2, 1, "a"),
-           e(VAL_|BSEQ|FLOW|PSTR),
-           e(VAL_|BMAP|FLOW),
-           e(KEY_|BSEQ|FLOW),
-           e(VAL_|BSEQ|FLOW),
+           e(VAL_|BSEQ|FLOW|FSL_|PSTR),
+           e(VAL_|BMAP|FLOW|FSL_),
+           e(KEY_|BSEQ|FLOW|FSL_),
+           e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 9, 1, "b"),
            e(VAL_|SCLR|PLAI|PSTR, 11, 1, "c"),
            e(ESEQ|PSTR),
@@ -493,7 +493,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BSEQ|FLOW),
+           e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|DQUO|AREN, 0, 18, dqesc_L6),
            e(VAL_|SCLR|DQUO|AREN|PSTR, 18, 18, dqesc_P6),
            e(ESEQ|PSTR),
@@ -597,14 +597,16 @@ const IntEventsCase test_cases[] = {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+constexpr bool dynamic_size = true;
+constexpr bool fixed_size = false;
 
 struct IntEventsTestHelper
 {
     IntEventsCase const& ec;
     size_t required_size_expected;
     size_t required_size_actual;
-    extra::EventHandlerInts handler;
-    ParseEngine<extra::EventHandlerInts> parser;
+    extra::ievt::EventHandlerInts<fixed_size> handler;
+    ParseEngine<extra::ievt::EventHandlerInts<fixed_size>> parser;
     std::string src_copy;
     std::vector<evt_bits> actual;
     std::string arena;
@@ -646,7 +648,7 @@ struct IntEventsTest : public testing::TestWithParam<IntEventsCase>
     }
 };
 
-TEST_P(IntEventsTest, size_large_enough)
+TEST_P(IntEventsTest, fixed_size_large_enough)
 {
     IntEventsTestHelper h(GetParam());
     h.run_with_size(2u * h.required_size_expected, 2u * h.ec.yaml.len);
@@ -656,7 +658,7 @@ TEST_P(IntEventsTest, size_large_enough)
     h.ec.testeq(to_csubstr(h.src_copy), to_csubstr(h.arena), h.actual.data(), h.required_size_actual);
 }
 
-TEST_P(IntEventsTest, size_too_small)
+TEST_P(IntEventsTest, fixed_size_too_small)
 {
     IntEventsTestHelper h(GetParam());
     size_t small = h.required_size_expected / 2u;
@@ -673,7 +675,7 @@ TEST_P(IntEventsTest, size_too_small)
     h.ec.testeq(to_csubstr(h.src_copy), to_csubstr(h.arena), h.actual.data(), h.required_size_actual);
 }
 
-TEST_P(IntEventsTest, size_null)
+TEST_P(IntEventsTest, fixed_size_null)
 {
     IntEventsTestHelper h(GetParam());
     h.run_with_size(0, 0);
@@ -681,6 +683,30 @@ TEST_P(IntEventsTest, size_null)
     h.run_with_size(h.required_size_actual, h.handler.required_size_arena());
     ASSERT_TRUE(h.handler.fits_buffers());
     h.ec.testeq(to_csubstr(h.src_copy), to_csubstr(h.arena), h.actual.data(), h.required_size_actual);
+}
+
+
+void test_dynamic_size(IntEventsCase const& ec, bool transfer_ownership)
+{
+    extra::ievt::EventHandlerInts<dynamic_size> handler;
+    ParseEngine<extra::ievt::EventHandlerInts<dynamic_size>> parser(&handler, ec.opts);
+    std::vector<char> src(ec.yaml.begin(), ec.yaml.end());
+    handler.reset(to_substr(src));
+    parser.parse_in_place_ev("(testyaml)", to_substr(src));
+    extra::ievt::Buffers buf = handler.get_buffers(transfer_ownership);
+    ec.testeq(to_csubstr(src), buf.arena, buf.evts.ptr, (size_t)buf.evts.len);
+    if(transfer_ownership)
+        buf.destroy();
+}
+
+TEST_P(IntEventsTest, dynamic_size_notransfer)
+{
+    test_dynamic_size(GetParam(), false);
+}
+
+TEST_P(IntEventsTest, dynamic_size_transfer)
+{
+    test_dynamic_size(GetParam(), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(IntEvents, IntEventsTest, testing::ValuesIn(test_cases), &IntEventsTest::name2str);

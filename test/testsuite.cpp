@@ -13,6 +13,8 @@
 #include "testsuite/testsuite_parts.hpp"
 #include "testsuite/testsuite_events.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
+#include "c4/yml/extra/emitter_ints.hpp"
+#include "c4/yml/extra/emitter_ints.def.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
 #include <c4/fs/fs.hpp>
 #include <c4/log/log.hpp>
@@ -122,6 +124,9 @@ struct TestSuiteCaseEvents
 
     void compare_events(csubstr emitted_events, bool ignore_container_style, bool ignore_scalar_style)
     {
+        SCOPED_TRACE("compare events");
+        EXPECT_FALSE(reference_events.empty());
+        EXPECT_FALSE(emitted_events.empty());
         test_compare_events(to_csubstr(reference_events),
                             emitted_events,
                             /*ignore_doc_style*/true,
@@ -144,9 +149,14 @@ struct TestSequenceLevel
     std::string         src_orig;
     std::string         src_tree;
     std::string         src_tree_json;
-    std::string         src_evts;
-    std::string         src_evts_ints;
-    std::string         arena_evts_ints;
+    std::string         src_ints_resize;
+    std::string         src_ints_resize_json;
+    std::string         src_ints_noresize;
+    std::string         src_ints_noresize_json;
+    std::string         src_ints_noresize_orig;
+    std::string         src_ints_noresize_orig_json;
+    std::string         arena_ints_noresize;
+    std::string         arena_ints_noresize_json;
     ParserOptions       parser_options;
     EventHandlerTree    evt_handler_tree;
     EventHandlerTree    evt_handler_tree_json;
@@ -156,20 +166,44 @@ struct TestSequenceLevel
     Tree                tree_parsed_from_src_json;
     std::string         emitted_from_tree_parsed_from_src;
     std::string         emitted_from_tree_parsed_from_src_json;
+    std::string         evts_test_suite_from_tree;
+    std::string         evts_test_suite_from_tree_json;
 
-    extra::EventHandlerInts evt_handler_ints;
-    ParseEngine<extra::EventHandlerInts> parser_ints;
-    std::vector<extra::EventHandlerInts::value_type> buffer_ints;
-    std::string evts_test_suite_from_ints;
+    std::string         emitted_from_ints_resize_parsed_from_src;
+    std::string         emitted_from_ints_resize_parsed_from_src_json;
+    std::string         emitted_from_ints_noresize_parsed_from_src;
+    std::string         emitted_from_ints_noresize_parsed_from_src_json;
 
-    bool immutable = false;
+    using EventHandlerIntsNoResize = extra::ievt::EventHandlerInts<false>;
+    using EventHandlerIntsResize = extra::ievt::EventHandlerInts<true>;
+
+    EventHandlerIntsNoResize evt_handler_ints_noresize;
+    EventHandlerIntsNoResize evt_handler_ints_noresize_json;
+    EventHandlerIntsResize evt_handler_ints_resize;
+    EventHandlerIntsResize evt_handler_ints_resize_json;
+    ParseEngine<EventHandlerIntsNoResize> parser_ints_noresize;
+    ParseEngine<EventHandlerIntsNoResize> parser_ints_noresize_json;
+    ParseEngine<EventHandlerIntsResize> parser_ints_resize;
+    ParseEngine<EventHandlerIntsResize> parser_ints_resize_json;
+    std::vector<extra::ievt::evt_bits> buffer_ints_noresize;
+    std::vector<extra::ievt::evt_bits> buffer_ints_noresize_json;
+    extra::ievt::Buffers ints_resize;
+    extra::ievt::Buffers ints_resize_json;
+    std::string evts_test_suite_from_ints_noresize;
+    std::string evts_test_suite_from_ints_noresize_json;
+    std::string evts_test_suite_from_ints_resize;
+    std::string evts_test_suite_from_ints_resize_json;
+
+    bool in_arena = false;
     bool reuse = false;
     bool tree_was_parsed = false;
     bool tree_was_parsed_json = false;
     bool tree_was_emitted = false;
     bool tree_was_emitted_json = false;
-    bool events_were_generated = false;
-    bool events_ints_were_generated = false;
+    bool ints_were_parsed = false;
+    bool ints_were_parsed_json = false;
+    bool ints_were_emitted = false;
+    bool ints_were_emitted_json = false;
 
     TestSequenceLevel()
         : parser_options(ParserOptions{}.resolve_tags(true).resolve_tags_all(true))
@@ -177,59 +211,75 @@ struct TestSequenceLevel
         , evt_handler_tree_json()
         , parser_tree(&evt_handler_tree, parser_options)
         , parser_tree_json(&evt_handler_tree_json, parser_options)
-        , evt_handler_ints()
-        , parser_ints(&evt_handler_ints, parser_options)
-        , buffer_ints()
+        , evt_handler_ints_noresize()
+        , evt_handler_ints_noresize_json()
+        , evt_handler_ints_resize()
+        , evt_handler_ints_resize_json()
+        , parser_ints_noresize(&evt_handler_ints_noresize, parser_options)
+        , parser_ints_noresize_json(&evt_handler_ints_noresize_json, parser_options)
+        , parser_ints_resize(&evt_handler_ints_resize, parser_options)
+        , parser_ints_resize_json(&evt_handler_ints_resize_json, parser_options)
+        , buffer_ints_noresize()
+        , buffer_ints_noresize_json()
+        , ints_resize()
+        , ints_resize_json()
+        , evts_test_suite_from_ints_noresize()
+        , evts_test_suite_from_ints_noresize_json()
+        , evts_test_suite_from_ints_resize()
+        , evts_test_suite_from_ints_resize_json()
     {
     }
 
-    void init(size_t level_, TestSequenceLevel *prev_, csubstr filename_, csubstr src_, bool immutable_, bool reuse_)
+    void init(size_t level_, TestSequenceLevel *prev_, csubstr filename_, csubstr src_, bool in_arena_, bool reuse_)
     {
         level = level_;
         prev = prev_;
         filename = filename_;
         src_tree.assign(src_.begin(), src_.end());
         src_orig = src_tree;
-        src_evts = src_tree;
-        src_evts_ints = src_tree;
-        immutable = immutable_;
+        src_ints_resize = src_tree;
+        src_ints_noresize = src_tree;
+        src_ints_noresize_orig = src_tree;
+        in_arena = in_arena_;
         reuse = reuse_;
         tree_was_parsed = false;
         tree_was_parsed_json = false;
         tree_was_emitted = false;
         tree_was_emitted_json = false;
-        events_were_generated = false;
-        events_ints_were_generated = false;
+        ints_were_parsed = false;
+        ints_were_emitted = false;
+        ints_were_emitted_json = false;
     }
 
-    void receive_src(TestSequenceLevel & prev_)
+    // workaround for miscompilation in string assignment op
+    static void cpstr(std::string &dst, std::string const& src) noexcept
+    {
+        dst.resize(src.size());
+        if(src.size())
+            memcpy(&dst[0], &src[0], src.size()); // NOLINT
+    };
+
+    void receive_src_tree(TestSequenceLevel const& prev_)
     {
         RYML_ASSERT_BASIC_(&prev_ == prev);
-        if(!prev_.tree_was_emitted)
-        {
-            _nfo_logf("level[{}] not emitted. emit!", prev_.level);
-            prev_.emit_parsed_tree();
-        }
+        ASSERT_TRUE(prev_.tree_was_parsed);
+        ASSERT_TRUE(prev_.tree_was_emitted);
         if(src_tree != prev_.emitted_from_tree_parsed_from_src)
         {
             tree_was_parsed = false;
             tree_was_emitted = false;
-            events_were_generated = false;
-            events_ints_were_generated = false;
-            src_tree = prev_.emitted_from_tree_parsed_from_src;
-            src_evts = src_tree;
-            src_evts_ints = src_tree;
+            cpstr(src_tree, prev_.emitted_from_tree_parsed_from_src);
+            cpstr(src_orig, prev_.emitted_from_tree_parsed_from_src);
         }
+        // check problem with string assignment op
+        ASSERT_EQ(src_tree, prev_.emitted_from_tree_parsed_from_src);
+        ASSERT_EQ(src_orig, prev_.emitted_from_tree_parsed_from_src);
     }
 
-    void receive_src_json(TestSequenceLevel & prev_)
+    void receive_src_tree_json(TestSequenceLevel const& prev_)
     {
         RYML_ASSERT_BASIC_(&prev_ == prev);
-        if(!prev_.tree_was_emitted_json)
-        {
-            _nfo_logf("level[{}] not emitted. emit!", prev_.level);
-            prev_.emit_parsed_tree_json();
-        }
+        ASSERT_TRUE(prev_.tree_was_emitted_json);
         if(src_tree_json != prev_.emitted_from_tree_parsed_from_src_json)
         {
             tree_was_parsed_json = false;
@@ -238,26 +288,69 @@ struct TestSequenceLevel
         }
     }
 
+    void receive_src_ints(TestSequenceLevel const& prev_)
+    {
+        RYML_ASSERT_BASIC_(&prev_ == prev);
+        ASSERT_TRUE(prev_.ints_were_parsed);
+        ASSERT_TRUE(prev_.ints_were_emitted);
+        if(src_ints_noresize != prev_.emitted_from_ints_noresize_parsed_from_src
+           ||
+           src_ints_resize != prev_.emitted_from_ints_resize_parsed_from_src)
+        {
+            ints_were_parsed = false;
+            ints_were_emitted = false;
+            cpstr(src_ints_resize, prev_.emitted_from_ints_resize_parsed_from_src);
+            cpstr(src_ints_noresize, prev_.emitted_from_ints_noresize_parsed_from_src);
+        }
+        cpstr(src_ints_noresize_orig, prev_.emitted_from_ints_noresize_parsed_from_src);
+        // check problem with string assignment op
+        ASSERT_EQ(src_ints_resize, prev_.emitted_from_ints_resize_parsed_from_src);
+        ASSERT_EQ(src_ints_noresize, prev_.emitted_from_ints_noresize_parsed_from_src);
+        ASSERT_EQ(src_ints_noresize_orig, prev_.emitted_from_ints_noresize_parsed_from_src);
+    }
+
+    void receive_src_ints_json(TestSequenceLevel const& prev_)
+    {
+        RYML_ASSERT_BASIC_(&prev_ == prev);
+        ASSERT_TRUE(prev_.ints_were_parsed_json);
+        ASSERT_TRUE(prev_.ints_were_emitted_json);
+        if(src_ints_noresize_json != prev_.emitted_from_ints_noresize_parsed_from_src_json
+           ||
+           src_ints_resize_json != prev_.emitted_from_ints_resize_parsed_from_src_json)
+        {
+            ints_were_parsed_json = false;
+            ints_were_emitted_json = false;
+            cpstr(src_ints_resize_json, prev_.emitted_from_ints_resize_parsed_from_src_json);
+            cpstr(src_ints_noresize_json, prev_.emitted_from_ints_noresize_parsed_from_src_json);
+        }
+        cpstr(src_ints_noresize_orig_json, prev_.emitted_from_ints_noresize_parsed_from_src_json);
+        // check problem with string assignment op
+        ASSERT_EQ(src_ints_resize_json, prev_.emitted_from_ints_resize_parsed_from_src_json);
+        ASSERT_EQ(src_ints_noresize_json, prev_.emitted_from_ints_noresize_parsed_from_src_json);
+        ASSERT_EQ(src_ints_noresize_orig_json, prev_.emitted_from_ints_noresize_parsed_from_src_json);
+    }
+
     void parse_yaml_to_tree()
     {
         if(tree_was_parsed)
             return;
         if(prev)
-            receive_src(*prev);
+            receive_src_tree(*prev);
         _nfo_logf("level[{}]: parsing source:\n{}", level, src_tree);
         if(reuse)
         {
             tree_parsed_from_src.clear();
+            tree_parsed_from_src.clear_arena();
             evt_handler_tree.m_stack.m_callbacks = get_callbacks();
             tree_parsed_from_src.m_callbacks = get_callbacks();
-            if(immutable)
+            if(in_arena)
                 parse_in_arena(&parser_tree, filename, c4::to_csubstr(src_tree), &tree_parsed_from_src);
             else
                 parse_in_place(&parser_tree, filename, c4::to_substr(src_tree), &tree_parsed_from_src);
         }
         else
         {
-            if(immutable)
+            if(in_arena)
                 tree_parsed_from_src = parse_in_arena(filename, c4::to_csubstr(src_tree), parser_options);
             else
                 tree_parsed_from_src = parse_in_place(filename, c4::to_substr(src_tree), parser_options);
@@ -271,6 +364,7 @@ struct TestSequenceLevel
         }
         tree_parsed_from_src.normalize_tags_long();
         tree_was_parsed = true;
+        emit_events_from_tree(&evts_test_suite_from_tree, tree_parsed_from_src);
     }
 
     void parse_json_to_tree()
@@ -278,79 +372,155 @@ struct TestSequenceLevel
         if(tree_was_parsed_json)
             return;
         if(prev)
-            receive_src_json(*prev);
+            receive_src_tree_json(*prev);
         _nfo_logf("level[{}]: parsing source:\n{}", level, src_tree);
         if(reuse)
         {
             tree_parsed_from_src_json.clear();
             evt_handler_tree_json.m_stack.m_callbacks = get_callbacks();
             tree_parsed_from_src_json.m_callbacks = get_callbacks();
-            if(immutable)
-            {
+            if(in_arena)
                 parse_json_in_arena(&parser_tree_json, filename, c4::to_csubstr(src_tree_json), &tree_parsed_from_src_json);
-            }
             else
-            {
                 parse_json_in_place(&parser_tree_json, filename, c4::to_substr(src_tree_json), &tree_parsed_from_src_json);
-            }
         }
         else
         {
-            if(immutable)
-            {
+            if(in_arena)
                 tree_parsed_from_src_json = parse_json_in_arena(filename, c4::to_csubstr(src_tree_json), parser_options);
-            }
             else
-            {
                 tree_parsed_from_src_json = parse_json_in_place(filename, c4::to_substr(src_tree_json), parser_options);
-            }
         }
         _nfo_print_tree("PARSED", tree_parsed_from_src_json);
         ASSERT_FALSE(tree_parsed_from_src_json.empty());
         tree_was_parsed_json = true;
+        emit_events_from_tree(&evts_test_suite_from_tree_json, tree_parsed_from_src_json);
     }
 
-    void parse_yaml_to_events_ints()
+    void parse_yaml_to_ints()
     {
-        using I = extra::ievt::evt_bits;
-        if(events_ints_were_generated)
+        if(ints_were_parsed)
             return;
+        using I = extra::ievt::evt_bits;
         if(prev)
-            receive_src(*prev);
-        _nfo_logf("level[{}]: parsing source to ints:\n{}", level, src_evts_ints);
-        buffer_ints.resize(32);
-        int size_estimated = extra::estimate_events_ints_size(to_csubstr(src_evts_ints));
-        evt_handler_ints.m_stack.m_callbacks = get_callbacks();
-        evt_handler_ints.reset(to_substr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
-        parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
-        EXPECT_GE(size_estimated, evt_handler_ints.required_size_events());
-        size_t sz = (size_t)evt_handler_ints.required_size_events();
-        size_t sza = evt_handler_ints.required_size_arena();
-        if (!evt_handler_ints.fits_buffers())
+            receive_src_ints(*prev);
+        ints_were_emitted = false;
         {
-            buffer_ints.resize(sz);
-            arena_evts_ints.resize(sza);
-            src_evts_ints = src_tree;
-            evt_handler_ints.reset(to_substr(src_evts_ints), to_substr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size());
-            parser_ints.parse_in_place_ev(filename, to_substr(src_evts_ints));
-            size_t sz2 = (size_t)evt_handler_ints.required_size_events();
-            size_t sza2 = evt_handler_ints.required_size_arena();
-            ASSERT_EQ(sz2, sz);
-            ASSERT_EQ(sza2, sza);
-            sz = sz2;
-            ASSERT_EQ((size_t)evt_handler_ints.required_size_events(), buffer_ints.size());
-            ASSERT_EQ(evt_handler_ints.required_size_arena(), arena_evts_ints.size());
-            ASSERT_TRUE(evt_handler_ints.fits_buffers());
+            SCOPED_TRACE("resize");
+            _nfo_logf("level[{}]: parsing source to ints [resize]:\n{}", level, src_ints_resize);
+            evt_handler_ints_resize.m_stack.m_callbacks = get_callbacks();
+            evt_handler_ints_resize.reset(to_substr(src_ints_resize), ints_resize.arena, ints_resize.evts.ptr, ints_resize.evts.len);
+            parser_ints_resize.parse_in_place_ev(filename, to_substr(src_ints_resize));
+            ints_resize = evt_handler_ints_resize.get_buffers();
+            #ifdef RYML_DBG
+            extra::ievt::events_ints_print(to_csubstr(src_ints_resize), ints_resize.arena, ints_resize.evts.ptr, ints_resize.evts.len);
+            #endif
+            extra::ievt::test_events_ints_invariants(to_csubstr(src_ints_resize), ints_resize.arena, ints_resize.evts.ptr, ints_resize.evts.len);
+            EXPECT_GT(evt_handler_ints_resize.required_size_events(), 0);
+            extra::ievt::events_ints_to_testsuite(to_csubstr(src_ints_resize), ints_resize.arena, ints_resize.evts.ptr, ints_resize.evts.len,
+                                                  &evts_test_suite_from_ints_resize);
         }
-        ASSERT_LE(sz, buffer_ints.size());
-        buffer_ints.resize(sz);
-        #ifdef RYML_DBG
-        extra::events_ints_print(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
-        #endif
-        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
-        EXPECT_GT(evt_handler_ints.required_size_events(), 0);
-        extra::events_ints_to_testsuite(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
-        events_ints_were_generated = true;
+        {
+            _nfo_logf("level[{}]: parsing source to ints [noresize]:\n{}", level, src_ints_noresize);
+            SCOPED_TRACE("noresize");
+            buffer_ints_noresize.resize(32);
+            int size_estimated = extra::ievt::estimate_events_size(to_csubstr(src_ints_noresize));
+            evt_handler_ints_noresize.m_stack.m_callbacks = get_callbacks();
+            evt_handler_ints_noresize.reset(to_substr(src_ints_noresize), to_substr(arena_ints_noresize), buffer_ints_noresize.data(), (I)buffer_ints_noresize.size());
+            parser_ints_noresize.parse_in_place_ev(filename, to_substr(src_ints_noresize));
+            EXPECT_GE(size_estimated, evt_handler_ints_noresize.required_size_events());
+            size_t szi = (size_t)evt_handler_ints_noresize.required_size_events();
+            size_t sza = evt_handler_ints_noresize.required_size_arena();
+            if (!evt_handler_ints_noresize.fits_buffers())
+            {
+                buffer_ints_noresize.resize(szi);
+                arena_ints_noresize.resize(sza);
+                src_ints_noresize = src_ints_noresize_orig;
+                evt_handler_ints_noresize.reset(to_substr(src_ints_noresize), to_substr(arena_ints_noresize), buffer_ints_noresize.data(), (I)buffer_ints_noresize.size());
+                parser_ints_noresize.parse_in_place_ev(filename, to_substr(src_ints_noresize));
+                size_t szi2 = (size_t)evt_handler_ints_noresize.required_size_events();
+                size_t sza2 = evt_handler_ints_noresize.required_size_arena();
+                ASSERT_EQ(szi2, szi);
+                ASSERT_EQ(sza2, sza);
+                szi = szi2;
+                ASSERT_EQ((size_t)evt_handler_ints_noresize.required_size_events(), buffer_ints_noresize.size());
+                ASSERT_EQ(evt_handler_ints_noresize.required_size_arena(), arena_ints_noresize.size());
+                ASSERT_TRUE(evt_handler_ints_noresize.fits_buffers());
+            }
+            ASSERT_LE(szi, buffer_ints_noresize.size());
+            buffer_ints_noresize.resize(szi);
+            #ifdef RYML_DBG
+            extra::ievt::events_ints_print(to_csubstr(src_ints_noresize), to_csubstr(arena_ints_noresize), buffer_ints_noresize.data(), (I)sz);
+            #endif
+            extra::ievt::test_events_ints_invariants(to_csubstr(src_ints_noresize), to_csubstr(arena_ints_noresize), buffer_ints_noresize.data(), (I)szi);
+            EXPECT_GT(evt_handler_ints_noresize.required_size_events(), 0);
+            extra::ievt::events_ints_to_testsuite(to_csubstr(src_ints_noresize), to_csubstr(arena_ints_noresize), buffer_ints_noresize.data(), (I)buffer_ints_noresize.size(),
+                                                  &evts_test_suite_from_ints_noresize);
+        }
+        ints_were_parsed = true;
+    }
+
+    void parse_json_to_ints()
+    {
+        if(ints_were_parsed_json)
+            return;
+        using I = extra::ievt::evt_bits;
+        if(prev)
+            receive_src_ints_json(*prev);
+        ints_were_emitted_json = false;
+        {
+            SCOPED_TRACE("resize");
+            _nfo_logf("level[{}]: parsing source to ints [resize]:\n{}", level, src_ints_resize);
+            evt_handler_ints_resize_json.m_stack.m_callbacks = get_callbacks();
+            evt_handler_ints_resize_json.reset(to_substr(src_ints_resize_json), ints_resize_json.arena, ints_resize_json.evts.ptr, ints_resize_json.evts.len);
+            parser_ints_resize_json.parse_json_in_place_ev(filename, to_substr(src_ints_resize_json));
+            ints_resize_json = evt_handler_ints_resize_json.get_buffers();
+            #ifdef RYML_DBG
+            extra::ievt::events_ints_print(to_csubstr(src_ints_resize_json), ints_resize_json.arena, ints_resize_json.evts.ptr, ints_resize_json.evts.len);
+            #endif
+            extra::ievt::test_events_ints_invariants(to_csubstr(src_ints_resize_json), ints_resize_json.arena, ints_resize_json.evts.ptr, ints_resize_json.evts.len);
+            EXPECT_GT(evt_handler_ints_resize_json.required_size_events(), 0);
+            extra::ievt::events_ints_to_testsuite(to_csubstr(src_ints_resize_json), ints_resize_json.arena, ints_resize_json.evts.ptr, ints_resize_json.evts.len,
+                                                  &evts_test_suite_from_ints_resize_json);
+        }
+        {
+            _nfo_logf("level[{}]: parsing source to ints [noresize]:\n{}", level, src_ints_noresize);
+            SCOPED_TRACE("noresize");
+            buffer_ints_noresize_json.resize(32);
+            int size_estimated = extra::ievt::estimate_events_size(to_csubstr(src_ints_noresize_json));
+            evt_handler_ints_noresize_json.m_stack.m_callbacks = get_callbacks();
+            evt_handler_ints_noresize_json.reset(to_substr(src_ints_noresize_json), to_substr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)buffer_ints_noresize_json.size());
+            parser_ints_noresize_json.parse_json_in_place_ev(filename, to_substr(src_ints_noresize_json));
+            EXPECT_GE(size_estimated, evt_handler_ints_noresize_json.required_size_events());
+            size_t szi = (size_t)evt_handler_ints_noresize_json.required_size_events();
+            size_t sza = evt_handler_ints_noresize_json.required_size_arena();
+            if (!evt_handler_ints_noresize_json.fits_buffers())
+            {
+                buffer_ints_noresize_json.resize(szi);
+                arena_ints_noresize_json.resize(sza);
+                src_ints_noresize_json = src_ints_noresize_orig_json;
+                evt_handler_ints_noresize_json.reset(to_substr(src_ints_noresize_json), to_substr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)buffer_ints_noresize_json.size());
+                parser_ints_noresize_json.parse_json_in_place_ev(filename, to_substr(src_ints_noresize_json));
+                size_t szi2 = (size_t)evt_handler_ints_noresize_json.required_size_events();
+                size_t sza2 = evt_handler_ints_noresize_json.required_size_arena();
+                ASSERT_EQ(szi2, szi);
+                ASSERT_EQ(sza2, sza);
+                szi = szi2;
+                ASSERT_EQ((size_t)evt_handler_ints_noresize_json.required_size_events(), buffer_ints_noresize_json.size());
+                ASSERT_EQ(evt_handler_ints_noresize_json.required_size_arena(), arena_ints_noresize_json.size());
+                ASSERT_TRUE(evt_handler_ints_noresize_json.fits_buffers());
+            }
+            ASSERT_LE(szi, buffer_ints_noresize_json.size());
+            buffer_ints_noresize_json.resize(szi);
+            #ifdef RYML_DBG
+            extra::ievt::events_ints_print(to_csubstr(src_ints_noresize_json), to_csubstr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)sz);
+            #endif
+            extra::ievt::test_events_ints_invariants(to_csubstr(src_ints_noresize_json), to_csubstr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)szi);
+            EXPECT_GT(evt_handler_ints_noresize_json.required_size_events(), 0);
+            extra::ievt::events_ints_to_testsuite(to_csubstr(src_ints_noresize_json), to_csubstr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)buffer_ints_noresize_json.size(),
+                                                  &evts_test_suite_from_ints_noresize_json);
+        }
+        ints_were_parsed_json = true;
     }
 
     void emit_parsed_tree()
@@ -362,18 +532,12 @@ struct TestSequenceLevel
             _nfo_logf("level[{}] not parsed. parse!", level);
             parse_yaml_to_tree();
         }
-        if(!tree_was_parsed_json)
-        {
-            _nfo_logf("level[{}] json not parsed. parse!", level);
-            parse_json_to_tree();
-        }
         emitrs_yaml(tree_parsed_from_src, &emitted_from_tree_parsed_from_src);
-        emitrs_json(tree_parsed_from_src_json, &emitted_from_tree_parsed_from_src_json);
         csubstr ss = to_csubstr(emitted_from_tree_parsed_from_src);
         if(ss.ends_with("\n...\n"))
             emitted_from_tree_parsed_from_src.resize(emitted_from_tree_parsed_from_src.size() - 4);
         tree_was_emitted = true;
-        _nfo_logf("EMITTED:\n{}", emitted_from_tree_parsed_from_src);
+        _nfo_logf("EMITTED[tree]:\n{}", emitted_from_tree_parsed_from_src);
     }
 
     void emit_parsed_tree_json()
@@ -387,23 +551,87 @@ struct TestSequenceLevel
         }
         emitrs_json(tree_parsed_from_src_json, &emitted_from_tree_parsed_from_src_json);
         tree_was_emitted_json = true;
-        _nfo_logf("EMITTED:\n{}", emitted_from_tree_parsed_from_src_json);
+        _nfo_logf("EMITTED[treejson]:\n{}", emitted_from_tree_parsed_from_src_json);
     }
 
-    void compare_trees(TestSequenceLevel & that)
+    void emit_ints()
     {
-        SCOPED_TRACE("compare trees");
-        RYML_ASSERT_BASIC_(&that == prev);
-        if(!that.tree_was_parsed)
-        {
-            _nfo_logf("level[{}] not parsed. parse!", that.level);
-            that.parse_yaml_to_tree();
-        }
-        if(!this->tree_was_parsed)
+        if(ints_were_emitted)
+            return;
+        if(!ints_were_parsed)
         {
             _nfo_logf("level[{}] not parsed. parse!", level);
-            this->parse_yaml_to_tree();
+            parse_yaml_to_ints();
         }
+        emit_ints2str(&emitted_from_ints_resize_parsed_from_src,
+                      ints_resize.evts.ptr, ints_resize.evts.len,
+                      to_csubstr(src_ints_resize),
+                      ints_resize.arena,
+                      EMIT_YAML);
+        emit_ints2str(&emitted_from_ints_noresize_parsed_from_src,
+                      buffer_ints_noresize.data(), (extra::ievt::evt_size)buffer_ints_noresize.size(),
+                      to_csubstr(src_ints_noresize),
+                      to_csubstr(arena_ints_noresize),
+                      EMIT_YAML);
+        ints_were_emitted = true;
+        _nfo_logf("EMITTED[resize]:\n{}", emitted_from_ints_resize_parsed_from_src);
+        _nfo_logf("EMITTED[noresize]:\n{}", emitted_from_ints_noresize_parsed_from_src);
+    }
+
+    void emit_ints_json()
+    {
+        if(ints_were_emitted_json)
+            return;
+        if(!ints_were_parsed_json)
+        {
+            _nfo_logf("level[{}] not parsed. parse!", level);
+            parse_json_to_ints();
+        }
+        emit_ints2str(&emitted_from_ints_resize_parsed_from_src_json,
+                      ints_resize_json.evts.ptr, ints_resize_json.evts.len,
+                      to_csubstr(src_ints_resize_json),
+                      ints_resize_json.arena,
+                      EMIT_JSON);
+        emit_ints2str(&emitted_from_ints_noresize_parsed_from_src_json,
+                      buffer_ints_noresize_json.data(), (extra::ievt::evt_size)buffer_ints_noresize_json.size(),
+                      to_csubstr(src_ints_noresize_json),
+                      to_csubstr(arena_ints_noresize_json),
+                      EMIT_JSON);
+        ints_were_emitted_json = true;
+        _nfo_logf("EMITTED[resize]:\n{}", emitted_from_ints_resize_parsed_from_src_json);
+        _nfo_logf("EMITTED[noresize]:\n{}", emitted_from_ints_noresize_parsed_from_src_json);
+    }
+
+    static void emit_ints2str(std::string *s,
+                              extra::ievt::evt_bits const* evts, extra::ievt::evt_size evts_size,
+                              csubstr src, csubstr arena,
+                              EmitType_e ety)
+    {
+        ASSERT_FALSE(src.overlaps(to_substr(*s)));
+        ASSERT_FALSE(arena.overlaps(to_substr(*s)));
+        auto doit = [&](std::string *ss) -> size_t {
+            extra::ievt::EmitterInts<WriterBuf> em(EmitOptions{}, to_substr(*ss));
+            em.emit_as(ety, evts, evts_size, src, arena);
+            return em.m_pos;
+        };
+        size_t needed = doit(s);
+        bool ok = needed <= s->size();
+        s->resize(needed);
+        if(!ok)
+        {
+            size_t needed2 = doit(s);
+            ASSERT_EQ(needed2, needed);
+        }
+    }
+
+    void compare_trees(TestSequenceLevel const& that)
+    {
+        SCOPED_TRACE("compare_trees");
+        RYML_ASSERT_BASIC_(&that == prev);
+        ASSERT_TRUE(that.tree_was_parsed);
+        ASSERT_TRUE(that.tree_was_emitted);
+        ASSERT_TRUE(this->tree_was_parsed);
+        ASSERT_TRUE(this->tree_was_emitted);
         _nfo_print_tree("PREV_", that.tree_parsed_from_src);
         _nfo_print_tree("CURR", tree_parsed_from_src);
         EXPECT_FALSE(that.tree_parsed_from_src_json.empty());
@@ -411,20 +639,14 @@ struct TestSequenceLevel
         test_compare(that.tree_parsed_from_src, tree_parsed_from_src);
     }
 
-    void compare_trees_json(TestSequenceLevel & that)
+    void compare_trees_json(TestSequenceLevel const& that)
     {
-        SCOPED_TRACE("compare trees");
+        SCOPED_TRACE("compare_trees_json");
         RYML_ASSERT_BASIC_(&that == prev);
-        if(!that.tree_was_parsed_json)
-        {
-            _nfo_logf("level[{}] not parsed. parse!", that.level);
-            that.parse_json_to_tree();
-        }
-        if(!this->tree_was_parsed_json)
-        {
-            _nfo_logf("level[{}] not parsed. parse!", level);
-            this->parse_json_to_tree();
-        }
+        ASSERT_TRUE(that.tree_was_parsed_json);
+        ASSERT_TRUE(that.tree_was_emitted_json);
+        ASSERT_TRUE(this->tree_was_parsed_json);
+        ASSERT_TRUE(this->tree_was_emitted_json);
         _nfo_print_tree("PREV_", that.tree_parsed_from_src_json);
         _nfo_print_tree("CURR", tree_parsed_from_src_json);
         EXPECT_FALSE(that.tree_parsed_from_src_json.empty());
@@ -432,25 +654,19 @@ struct TestSequenceLevel
         test_compare(that.tree_parsed_from_src_json, tree_parsed_from_src_json);
     }
 
-    void compare_emitted_yaml(TestSequenceLevel & that)
+    void compare_emitted_yaml(TestSequenceLevel const& that)
     {
-        SCOPED_TRACE("compare emitted");
+        SCOPED_TRACE("compare_emitted_yaml");
         RYML_ASSERT_BASIC_(&that == prev);
-        if(!that.tree_was_emitted)
-        {
-            _nfo_logf("level[{}] not emitted. emit!", that.level);
-            that.emit_parsed_tree();
-        }
-        if(!this->tree_was_emitted)
-        {
-            _nfo_logf("level[{}] not emitted. emit!", level);
-            this->emit_parsed_tree();
-        }
+        ASSERT_TRUE(that.tree_was_parsed);
+        ASSERT_TRUE(that.tree_was_emitted);
+        ASSERT_TRUE(this->tree_was_parsed);
+        ASSERT_TRUE(this->tree_was_emitted);
         _nfo_logf("level[{}]: EMITTED:\n{}", that.level, that.emitted_from_tree_parsed_from_src);
         _nfo_logf("level[{}]: EMITTED:\n{}", level, emitted_from_tree_parsed_from_src);
+        // workaround for lack of idempotency in tag normalization.
         if(this->emitted_from_tree_parsed_from_src != that.emitted_from_tree_parsed_from_src)
         {
-            // workaround for lack of idempotency in tag normalization.
             Tree from_prev = parse_in_arena(to_csubstr(that.emitted_from_tree_parsed_from_src), parser_options);
             Tree from_this = parse_in_arena(to_csubstr(emitted_from_tree_parsed_from_src), parser_options);
             TagCache tag_cache;
@@ -460,20 +676,14 @@ struct TestSequenceLevel
         }
     }
 
-    void compare_emitted_json(TestSequenceLevel & that)
+    void compare_emitted_json(TestSequenceLevel const& that)
     {
         SCOPED_TRACE("compare emitted");
         RYML_ASSERT_BASIC_(&that == prev);
-        if(!that.tree_was_emitted_json)
-        {
-            _nfo_logf("level[{}] not emitted. emit!", that.level);
-            that.emit_parsed_tree_json();
-        }
-        if(!this->tree_was_emitted_json)
-        {
-            _nfo_logf("level[{}] not emitted. emit!", level);
-            this->emit_parsed_tree_json();
-        }
+        ASSERT_TRUE(that.tree_was_parsed_json);
+        ASSERT_TRUE(that.tree_was_emitted_json);
+        ASSERT_TRUE(this->tree_was_parsed_json);
+        ASSERT_TRUE(this->tree_was_emitted_json);
         _nfo_logf("level[{}]: EMITTED:\n{}", that.level, that.emitted_from_tree_parsed_from_src_json);
         _nfo_logf("level[{}]: EMITTED:\n{}", level, emitted_from_tree_parsed_from_src_json);
         if(this->emitted_from_tree_parsed_from_src_json != that.emitted_from_tree_parsed_from_src_json)
@@ -494,6 +704,15 @@ struct TestSequenceLevel
         constexpr const char sep[] = "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
         c4::log("{}:\n{}{}{}", context, sep, v, sep);
         #endif
+    }
+
+    void print_src_and_tree() const
+    {
+        printf("src_orig:\n~~~\n%s~~~\n", src_orig.c_str());
+        if(tree_was_parsed)
+            print_tree(tree_parsed_from_src);
+        if(tree_was_emitted)
+            printf("emitted:\n~~~\n%s~~~\n", emitted_from_tree_parsed_from_src.c_str());
     }
 };
 
@@ -537,6 +756,8 @@ struct TestSequenceData
         {
             if(!has_container_keys && !expect_error)
             {
+                if(i)
+                    levels[i-1].emit_parsed_tree();
                 levels[i].parse_yaml_to_tree();
             }
             else
@@ -548,7 +769,6 @@ struct TestSequenceData
             }
         }
     }
-
     void parse_json_to_tree(size_t num)
     {
         SKIP_IF(allowed_failure);
@@ -556,6 +776,8 @@ struct TestSequenceData
         {
             if(!has_container_keys && !expect_error)
             {
+                if(i)
+                    levels[i-1].emit_parsed_tree_json();
                 levels[i].parse_json_to_tree();
             }
             else
@@ -568,7 +790,7 @@ struct TestSequenceData
         }
     }
 
-    void parse_yaml_to_events_ints(size_t num)
+    void parse_yaml_to_ints(size_t num)
     {
         SKIP_IF(allowed_failure);
         //SKIP_IF(has_container_keys); // DO IT!
@@ -576,17 +798,63 @@ struct TestSequenceData
         {
             if(!expect_error)
             {
-                levels[i].parse_yaml_to_events_ints();
-                if(has_container_keys)
-                    break;
+                if(i)
+                    levels[i-1].emit_ints();
+                levels[i].parse_yaml_to_ints();
             }
             else
             {
                 ExpectError::check_error_parse([&]{
-                    levels[i].parse_yaml_to_events_ints();
+                    levels[i].parse_yaml_to_ints();
                 });
                 break; // because we expect error,we cannot go on to the next
             }
+        }
+    }
+
+    void parse_json_to_ints(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        //SKIP_IF(has_container_keys); // DO IT!
+        for(size_t i = 0; i < num; ++i)
+        {
+            if(!expect_error)
+            {
+                if(i)
+                    levels[i-1].emit_ints_json();
+                levels[i].parse_json_to_ints();
+            }
+            else
+            {
+                ExpectError::check_error_parse([&]{
+                    levels[i].parse_json_to_ints();
+                });
+                break; // because we expect error,we cannot go on to the next
+            }
+        }
+    }
+
+    void emit_ints_parsed_from_src(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        for(size_t i = 0; i < num; ++i)
+        {
+            if(!levels[i].ints_were_parsed)
+                levels[i].parse_yaml_to_ints();
+            if(!levels[i].ints_were_emitted)
+                levels[i].emit_ints();
+        }
+    }
+
+    void emit_ints_parsed_from_src_json(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        for(size_t i = 0; i < num; ++i)
+        {
+            if(!levels[i].ints_were_parsed_json)
+                levels[i].parse_json_to_ints();
+            if(!levels[i].ints_were_emitted_json)
+                levels[i].emit_ints_json();
         }
     }
 
@@ -598,9 +866,8 @@ struct TestSequenceData
         {
             if(!levels[i].tree_was_parsed)
                 levels[i].parse_yaml_to_tree();
-            levels[i].emit_parsed_tree();
-            if(i + 1 < num)
-                levels[i+1].receive_src(levels[i]);
+            if(!levels[i].tree_was_emitted)
+                levels[i].emit_parsed_tree();
         }
     }
 
@@ -610,11 +877,9 @@ struct TestSequenceData
         SKIP_IF(has_container_keys);
         for(size_t i = 0; i < num; ++i)
         {
-            if(!levels[i].tree_was_parsed)
+            if(!levels[i].tree_was_parsed_json)
                 levels[i].parse_json_to_tree();
             levels[i].emit_parsed_tree_json();
-            if(i + 1 < num)
-                levels[i+1].receive_src_json(levels[i]);
         }
     }
 
@@ -622,8 +887,22 @@ struct TestSequenceData
     {
         SKIP_IF(allowed_failure);
         SKIP_IF(has_container_keys);
+        emit_tree_parsed_from_src(num);
         for(size_t i = 1; i < num; ++i)
+        {
+            RYML_TRACE_FMT("compare_level_trees: {} vs {}", i, i-1);
             levels[i].compare_trees(levels[i-1]);
+            if(testing::Test::HasFailure())
+            {
+                for(size_t j = 0; j <= i; ++j)
+                {
+                    printf("level[%zu]:\n", j);
+                    levels[j].print_src_and_tree();
+                    printf("(endlevel[%zu])\n", j);
+                }
+                break;
+            }
+        }
     }
     void compare_level_trees_json(size_t num)
     {
@@ -693,33 +972,67 @@ struct TestSequenceData
         parse_yaml_to_tree(1);
         events->compare_event_tree_to_src_tree(src(), levels[0].tree_parsed_from_src);
     }
-    void compare_emitted_events_str(size_t num, TestSuiteCaseEvents *events)
+
+    void compare_emitted_events_tree_str(size_t num, TestSuiteCaseEvents *events)
     {
         SKIP_IF(allowed_failure);
         SKIP_IF(has_container_keys);
+        SCOPED_TRACE("compare_emitted_events_tree_str");
         events->parse_events(src());
         parse_yaml_to_tree(num);
         for(size_t i = 0; i < num; ++i)
         {
-            levels[i].parse_yaml_to_events_ints();
-            events->compare_events(to_csubstr(levels[i].evts_test_suite_from_ints),
+            RYML_TRACE_FMT("level={}", i);
+            ASSERT_TRUE(levels[i].tree_was_parsed);
+            events->compare_events(to_csubstr(levels[i].evts_test_suite_from_tree),
                                    /*ignore_container_style*/false,
                                    /*ignore_scalar_style*/(num>0));
         }
     }
-    void compare_events_ints_str(size_t num, TestSuiteCaseEvents *events)
+    void compare_emitted_events_ints_str(size_t num, TestSuiteCaseEvents *events)
     {
-        ASSERT_EQ(num, 1); // FIXME
         SKIP_IF(allowed_failure);
-        parse_yaml_to_events_ints(1);
-        events->compare_events(to_csubstr(levels[0].evts_test_suite_from_ints),
-                               /*ignore_container_style*/false,
-                               /*ignore_scalar_style*/false);
+        SCOPED_TRACE("compare_emitted_events_ints_str");
+        ASSERT_FALSE(events->reference_events.empty());
+        parse_yaml_to_ints(num);
+        for(size_t i = 0; i < num; ++i)
+        {
+            RYML_TRACE_FMT("level={}", i);
+            ASSERT_TRUE(levels[i].ints_were_parsed);
+            {
+                SCOPED_TRACE("resize");
+                events->compare_events(to_csubstr(levels[i].evts_test_suite_from_ints_resize),
+                                       /*ignore_container_style*/false,
+                                       /*ignore_scalar_style*/(num>0));
+                if(testing::Test::HasFailure())
+                {
+                    extra::ievt::events_ints_print(to_csubstr(levels[i].src_ints_resize),
+                                                   levels[i].ints_resize.arena,
+                                                   levels[i].ints_resize.evts.ptr,
+                                                   levels[i].ints_resize.evts.len);
+                    break;
+                }
+            }
+            {
+                SCOPED_TRACE("noresize");
+                events->compare_events(to_csubstr(levels[i].evts_test_suite_from_ints_noresize),
+                                       /*ignore_container_style*/false,
+                                       /*ignore_scalar_style*/(num>0));
+                if(testing::Test::HasFailure())
+                {
+                    extra::ievt::events_ints_print(to_csubstr(levels[i].src_ints_noresize),
+                                                   to_csubstr(levels[i].arena_ints_noresize),
+                                                   levels[i].buffer_ints_noresize.data(),
+                                                   (int)levels[i].buffer_ints_noresize.size());
+                    break;
+                }
+            }
+        }
     }
 
     bool m_expected_error_to_tree_checked = false;
+    bool m_expected_error_to_ints_checked = false;
     bool m_expected_error_to_events_checked = false;
-    bool m_expected_error_to_events_ints_checked = false;
     void check_expected_error()
     {
         SKIP_IF(allowed_failure);
@@ -736,13 +1049,13 @@ struct TestSequenceData
     {
         SKIP_IF(allowed_failure);
         //SKIP_IF(has_container_keys); // DO IT!
-        if(m_expected_error_to_events_ints_checked)
+        if(m_expected_error_to_ints_checked)
             return;
         SCOPED_TRACE("check_expected_error_events");
         ExpectError::check_error_parse([this]{
-            levels[0].parse_yaml_to_events_ints();
+            levels[0].parse_yaml_to_ints();
         });
-        m_expected_error_to_events_ints_checked = true;
+        m_expected_error_to_ints_checked = true;
     }
 
 };
@@ -885,19 +1198,6 @@ TEST(which##_errors, check_expected_error_src_to_events_ints)           \
                                                                         \
 /*-----------------------------------------------*/                     \
                                                                         \
-TEST(which##_events_ints_from_src, parse_yaml_to_events_ints)           \
-{                                                                       \
-    g_suite_case->which.parse_yaml_to_events_ints(1);                   \
-}                                                                       \
-                                                                        \
-TEST(which##_events_ints_from_src, compare_events_ints_to_ref_events)   \
-{                                                                       \
-    g_suite_case->which.compare_events_ints_str(1, &g_suite_case->events); \
-}                                                                       \
-                                                                        \
-                                                                        \
-/*-----------------------------------------------*/                     \
-                                                                        \
 TEST(which##_events_from_tree, compare_actual_tree_to_events_tree)      \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
@@ -917,13 +1217,18 @@ struct which : public ::testing::TestWithParam<size_t>                  \
 {                                                                       \
 };                                                                      \
                                                                         \
-TEST_P(which, 0_parse_yaml_to_events_ints)                              \
+TEST_P(which, 0_parse_yaml_to_ints)                                     \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
     RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
-    g_suite_case->which.parse_yaml_to_events_ints(1 + GetParam());      \
+    g_suite_case->which.parse_yaml_to_ints(1 + GetParam());             \
 }                                                                       \
-                                                                        \
+TEST_P(which, 0_parse_json_to_ints)                                     \
+{                                                                       \
+    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
+    g_suite_case->which.parse_json_to_ints(1 + GetParam());             \
+}                                                                       \
 TEST_P(which, 0_parse_yaml_to_tree)                                     \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
@@ -938,13 +1243,34 @@ TEST_P(which, 0_parse_json_to_tree)                                     \
     g_suite_case->which.parse_json_to_tree(1 + GetParam());             \
 }                                                                       \
                                                                         \
-TEST_P(which, 1_compare_emitted_events_to_ref_events)                   \
+                                                                        \
+TEST_P(which, 1_compare_emitted_events_tree_to_ref_events)              \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
+    SKIP_IF(g_suite_case->test_case_is_json);                           \
     RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
-    g_suite_case->which.compare_emitted_events_str(1 + GetParam(), &g_suite_case->events); \
+    g_suite_case->which.compare_emitted_events_tree_str(1 + GetParam(), &g_suite_case->events); \
+}                                                                       \
+TEST_P(which, 1_compare_emitted_events_ints_to_ref_events)              \
+{                                                                       \
+    SKIP_IF(g_suite_case->test_case_is_json);                           \
+    /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
+    g_suite_case->which.compare_emitted_events_ints_str(1 + GetParam(), &g_suite_case->events); \
 }                                                                       \
                                                                         \
+                                                                        \
+TEST_P(which, 2_emit_ints_parsed_from_src)                              \
+{                                                                       \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
+    g_suite_case->which.emit_ints_parsed_from_src(1 + GetParam());      \
+}                                                                       \
+TEST_P(which, 2_emit_ints_parsed_from_src_json)                         \
+{                                                                       \
+    RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
+    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
+    g_suite_case->which.emit_ints_parsed_from_src_json(1 + GetParam()); \
+}                                                                       \
 TEST_P(which, 2_emit_tree_parsed_from_src)                              \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
@@ -953,8 +1279,8 @@ TEST_P(which, 2_emit_tree_parsed_from_src)                              \
 }                                                                       \
 TEST_P(which, 2_emit_tree_parsed_from_src_json)                         \
 {                                                                       \
-    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
+    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.emit_tree_parsed_from_src_json(1 + GetParam()); \
 }                                                                       \
@@ -979,7 +1305,7 @@ TEST_P(which, 4_compare_emitted_yaml)                                   \
     RYML_CHECK_BASIC_(GetParam() < NLEVELS);                            \
     g_suite_case->which.compare_level_emitted(1 + GetParam());          \
 }                                                                       \
-TEST_P(which, 4_compare_emitted_yaml_json)                              \
+TEST_P(which, 4_compare_emitted_json)                                   \
 {                                                                       \
     SKIP_IF( ! g_suite_case->test_case_is_json);                        \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \

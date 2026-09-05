@@ -113,8 +113,8 @@ static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints,
 {
     SCOPED_TRACE("parse_ints");
     using I = extra::ievt::evt_bits;
-    using Handler = extra::EventHandlerInts;
-    int estimated_size = extra::estimate_events_ints_size(src);
+    using Handler = extra::ievt::EventHandlerInts<false>;
+    int estimated_size = extra::ievt::estimate_events_size(src);
     ints->resize((size_t)estimated_size);
     arena->resize(src.len);
     Handler handler;
@@ -138,7 +138,7 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
 
     substr s = to_substr(cd->parse_buf_ints);
     auto printints = [&]{
-        std::cout << extra::events_ints_to_testsuite<std::string>(s, to_csubstr(cd->arena_ints), cd->parsed_ints.data(), (int)cd->parsed_ints.size()) << "\n";
+        std::cout << extra::ievt::events_ints_to_testsuite<std::string>(s, to_csubstr(cd->arena_ints), cd->parsed_ints.data(), (int)cd->parsed_ints.size()) << "\n";
     };
 
     if(c->flags & EXPECT_PARSE_ERROR)
@@ -160,7 +160,7 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
 
     {
         SCOPED_TRACE("checking invariants");
-        extra::test_events_ints_invariants(s, to_csubstr(cd->arena_ints), cd->parsed_ints.data(), (int)cd->parsed_ints.size());
+        extra::ievt::test_events_ints_invariants(s, to_csubstr(cd->arena_ints), cd->parsed_ints.data(), (int)cd->parsed_ints.size());
     }
 }
 

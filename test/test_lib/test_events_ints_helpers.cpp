@@ -6,6 +6,7 @@
 namespace c4 {
 namespace yml {
 namespace extra {
+namespace ievt {
 
 size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz)
 {
@@ -15,9 +16,49 @@ size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz)
     return sz;
 }
 
+void test_events_ints_compare(ievt::Buffers const& expected, ievt::Buffers const& actual)
+{
+    bool samelen = actual.evts.len == expected.evts.len;
+    int  samemem = memcmp(actual.evts.ptr, expected.evts.ptr, (size_t)actual.evts.len * sizeof(actual.evts.ptr[0]));
+    if(samelen && samemem)
+        return;
+    EXPECT_EQ(actual.evts.len, expected.evts.len);
+    EXPECT_EQ(0, samemem);
+    const evt_size minsz = actual.evts.len < expected.evts.len ? actual.evts.len : expected.evts.len;
+    char abuf[200];(void)abuf;
+    char ebuf[200];(void)ebuf;
+    for(evt_size i = 0, count = 0; i < minsz; ++i, ++count)
+    {
+        const evt_bits ai = actual.evts.ptr[i];
+        const evt_bits ei = expected.evts.ptr[i];
+        if(ai != ei)
+        {
+            csubstr as = ievt::to_str_sub(abuf, ai);
+            csubstr es = ievt::to_str_sub(ebuf, ei);
+            EXPECT_EQ(ai, ei) << "\n"
+                << " evtid=" << count << "\n"
+                << " evtpos=" << i << "\n"
+                << " actual=" << (testing::Message() << as) << "\n"
+                << " expected=" << (testing::Message() << es) << "\n"
+                ;
+            break;
+        }
+        if(ai & ievt::WSTR)
+        {
+            const csubstr as = actual.getstr(i);
+            const csubstr es = expected.getstr(i);
+            if(as != es)
+            {
+                EXPECT_EQ(as, es);
+                break;
+            }
+            i += 2;
+        }
+    }
+}
 
 void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
-                      ievt::evt_bits const* actual, size_t actual_sz,
+                      evt_bits const* actual, size_t actual_sz,
                       csubstr yaml,
                       csubstr parsed_source,
                       csubstr arena)
@@ -35,14 +76,14 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
         EXPECT_LT(ia, actual_sz);
         if (ia >= actual_sz)
             break;
-#define _test_eq(lhs, rhs, fmt, ...)                            \
-    do                                                          \
-    {                                                           \
-        _c4dbgpf("status={} cmp={} ie={} ia={}: {}={} == {}={} " fmt, \
-            status, (lhs == rhs), ie, ia, #lhs, lhs, rhs, #rhs, __VA_ARGS__); \
-        status &= int(lhs == rhs);                              \
-        EXPECT_EQ(lhs, rhs);                                    \
-    } while(0)
+        #define _test_eq(lhs, rhs, fmt, ...)                        \
+        do                                                          \
+        {                                                           \
+            _c4dbgpf("status={} cmp={} ie={} ia={}: {}={} == {}={} " fmt, \
+                status, (lhs == rhs), ie, ia, #lhs, lhs, rhs, #rhs, __VA_ARGS__); \
+            status &= int(lhs == rhs);                              \
+            EXPECT_EQ(lhs, rhs);                                    \
+        } while(0)
         csubstr sactual = ievt::to_str_sub(actualbuf, actual[ia]);
         csubstr sexpect = ievt::to_str_sub(expectedbuf, expected[ie].flags);
         _test_eq(actual[ia], expected[ie].flags, "", 0);
@@ -100,373 +141,387 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
 
 void test_events_ints_invariants(csubstr parsed_yaml,
                                  csubstr arena,
-                                 ievt::evt_bits const* evts,
-                                 ievt::evt_bits evts_sz)
+                                 evt_bits const* evts,
+                                 evt_bits evts_sz)
 {
     char bufpos[200];
     char bufprev[200];
     EXPECT_GT(evts_sz, 0);
-    for(ievt::evt_bits evtpos = 0, evtnumber = 0;
+    for(evt_bits evtpos = 0, evtnumber = 0;
         evtpos < evts_sz;
         ++evtnumber,
             evtpos += ((evts[evtpos] & ievt::WSTR) ? 3 : 1))
     {
-        ievt::evt_bits evt = evts[evtpos];
-        ievt::evt_bits prev = {};
-        ievt::evt_bits nextpos = evtpos + ((evt & ievt::WSTR) ? 3 : 1);
-        ievt::evt_bits next = {};
-        SCOPED_TRACE(evtpos); // position in the array
-        SCOPED_TRACE(evtnumber); // event number
+        bool ok = true;
+        evt_bits evt = evts[evtpos];
+        evt_bits prev = {};
+        evt_bits nextpos = evtpos + ((evt & ievt::WSTR) ? 3 : 1);
+        evt_bits next = {};
         SCOPED_TRACE(ievt::to_str_sub(bufpos, evt));
+        RYML_TRACE_FMT("evt #={} pos={}", evtnumber, evtpos);
         if(evtpos)
             prev = (evt & ievt::PSTR) ? evts[evtpos - 3] : evts[evtpos - 1];
         if(nextpos < evts_sz)
             next = evts[nextpos];
-        #define _test_str_in_buffer(i)                              \
-            do {                                                    \
-                EXPECT_LE(i + 3, evts_sz);                          \
-                if (i + 3 <= evts_sz)                               \
-                {                                                   \
-                    bool in_arena = evts[i] & ievt::AREN;           \
-                    csubstr buf = !in_arena ? parsed_yaml : arena;  \
-                    EXPECT_GE(evts[i + 1], 0);                      \
-                    EXPECT_GE(evts[i + 2], 0);                      \
-                    if (evts[i + 1] >= 0 && evts[i + 2] >= 0)       \
-                    {                                               \
-                        size_t offset = (size_t)evts[i + 1];        \
-                        size_t len = (size_t)evts[i + 2];           \
-                        EXPECT_LE(offset, buf.len);                 \
-                        EXPECT_LE(len, buf.len);                    \
-                        EXPECT_LE(offset + len, buf.len);           \
-                    }                                               \
-                }                                                   \
-            } while(0)
+        #define _test_str_in_buffer(i)                                  \
+        do {                                                            \
+            EXPECT_LE((i) + 3, evts_sz) << (ok = false);                \
+            if((i) + 3 <= evts_sz)                                      \
+            {                                                           \
+                bool in_arena = evts[i] & ievt::AREN;                   \
+                csubstr buf = !in_arena ? parsed_yaml : arena;          \
+                EXPECT_GE(evts[(i) + 1], 0) << (ok = false);            \
+                EXPECT_GE(evts[(i) + 2], 0) << (ok = false);            \
+                if(evts[(i) + 1] >= 0 && evts[(i) + 2] >= 0)            \
+                {                                                       \
+                    size_t offset = (size_t)evts[(i) + 1];              \
+                    size_t len = (size_t)evts[(i) + 2];                 \
+                    EXPECT_LE(offset, buf.len) << (ok = false);         \
+                    EXPECT_LE(len, buf.len) << (ok = false);            \
+                    EXPECT_LE(offset + len, buf.len) << (ok = false);   \
+                }                                                       \
+            }                                                           \
+        } while(0)
         // check general rules
         if(evt & ievt::PSTR)
         {
-            EXPECT_GT(evtnumber, 0);
-            EXPECT_GE(evtpos, 3);
+            EXPECT_GT(evtnumber, 0) << (ok = false);
+            EXPECT_GE(evtpos, 3) << (ok = false);
             SCOPED_TRACE(ievt::to_str_sub(bufprev, prev));
-            EXPECT_NE(prev & ievt::WSTR, 0);
+            EXPECT_NE(prev & ievt::WSTR, 0) << (ok = false);
         }
-        constexpr const ievt::evt_bits style = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD;
-        constexpr const ievt::evt_bits scope = ievt::MAP_|ievt::SEQ_|ievt::DOC_|ievt::STRM;
-        constexpr const ievt::evt_bits directives = ievt::YAML|ievt::TAGH|ievt::TAGP;
+        constexpr const evt_bits style_scalar = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD;
+        constexpr const evt_bits scope = ievt::MAP_|ievt::SEQ_|ievt::DOC_|ievt::STRM;
+        constexpr const evt_bits directives = ievt::YAML|ievt::TAGH|ievt::TAGP;
         if(evt & (ievt::BEG_|ievt::END_))
         {
-            EXPECT_NE(evt & scope, 0);
-            EXPECT_EQ(evt & style, 0);
-            EXPECT_EQ(evt & directives, 0);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
+            EXPECT_NE(evt & scope, 0) << (ok = false);
+            EXPECT_EQ(evt & style_scalar, 0) << (ok = false);
+            EXPECT_EQ(evt & directives, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
         }
         if(evt & (ievt::EXPL))
         {
-            EXPECT_EQ(evt & ievt::DOC_, ievt::DOC_);
-            EXPECT_EQ(evt & style, 0);
+            EXPECT_EQ(evt & ievt::DOC_, ievt::DOC_) << (ok = false);
+            EXPECT_EQ(evt & style_scalar, 0) << (ok = false);
         }
         if(evt & (ievt::AREN))
         {
-            EXPECT_NE(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & directives, 0);
+            EXPECT_NE(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & directives, 0) << (ok = false);
         }
         if(evt & (ievt::KEY_|ievt::VAL_))
         {
-            EXPECT_EQ(evt & (ievt::DOC_|ievt::STRM), 0);
-            EXPECT_EQ(evt & directives, 0);
+            EXPECT_EQ(evt & (ievt::DOC_|ievt::STRM), 0) << (ok = false);
+            EXPECT_EQ(evt & directives, 0) << (ok = false);
         }
-        if(evt & (ievt::FLOW))
+        if(evt & (ievt::FLOW|ievt::BLCK))
         {
-            EXPECT_EQ(evt & ievt::BEG_, ievt::BEG_);
-            EXPECT_EQ(evt & ievt::END_, 0);
-            EXPECT_NE(evt & (ievt::MAP_|ievt::SEQ_), 0);
+            EXPECT_EQ(evt & ievt::BEG_, ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & ievt::END_, 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::MAP_|ievt::SEQ_), 0) << (ok = false);
+        }
+        if(evt & (ievt::FSL_|ievt::FML1|ievt::FMLN|ievt::FMLX|ievt::FSPC))
+        {
+            EXPECT_EQ(evt & ievt::BLCK, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::FLOW, ievt::FLOW) << (ok = false);
+            EXPECT_EQ(evt & ievt::BEG_, ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & ievt::END_, 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::MAP_|ievt::SEQ_), 0) << (ok = false);
         }
         // now check each flag
         if(evt & ievt::YAML)
         {
-            EXPECT_EQ(evt & ievt::TAGH, 0);
-            EXPECT_EQ(evt & ievt::TAGP, 0);
-            EXPECT_EQ(evt & ievt::BSTR, 0);
-            EXPECT_EQ(evt & ievt::ESTR, 0);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, ievt::YAML);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(evt & ievt::TAGH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAGP, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::BSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ESTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, ievt::YAML) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
+            _test_str_in_buffer(evtpos);
         }
         if(evt & ievt::TAGH)
         {
-            EXPECT_EQ(evt & ievt::YAML, 0);
-            EXPECT_EQ(evt & ievt::TAGP, 0);
-            EXPECT_EQ(evt & ievt::BSTR, 0);
-            EXPECT_EQ(evt & ievt::ESTR, 0);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, ievt::TAGH);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(evt & ievt::YAML, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAGP, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::BSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ESTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, ievt::TAGH) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
+            EXPECT_EQ(next & ievt::TAGP, ievt::TAGP) << (ok = false);
+            _test_str_in_buffer(evtpos);
         }
         if(evt & ievt::TAGP)
         {
-            EXPECT_EQ(evt & ievt::YAML, 0);
-            EXPECT_EQ(evt & ievt::TAGH, 0);
-            EXPECT_EQ(evt & ievt::BSTR, 0);
-            EXPECT_EQ(evt & ievt::ESTR, 0);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, ievt::TAGP);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(evt & ievt::YAML, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAGH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::BSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ESTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, ievt::TAGP) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
+            EXPECT_EQ(prev & ievt::TAGH, ievt::TAGH) << (ok = false);
+            _test_str_in_buffer(evtpos);
         }
         if((evt & ievt::BSTR) == ievt::BSTR)
         {
-            EXPECT_EQ(evt & ievt::ESTR, ievt::STRM);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::ESTR, ievt::STRM) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::ESTR) == ievt::ESTR)
         {
-            EXPECT_EQ(evt & ievt::BSTR, ievt::STRM);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::BSTR, ievt::STRM) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::BDOC) == ievt::BDOC)
         {
-            EXPECT_EQ(evt & ievt::EDOC, ievt::DOC_);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::EDOC, ievt::DOC_) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::EDOC) == ievt::EDOC)
         {
-            EXPECT_EQ(evt & ievt::BDOC, ievt::DOC_);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::BDOC, ievt::DOC_) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::BSEQ) == ievt::BSEQ)
         {
-            EXPECT_EQ(evt & ievt::ESEQ, ievt::SEQ_);
-            EXPECT_EQ(evt & ievt::EMAP, 0);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), ievt::FLOW|ievt::BLCK);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::ESEQ, ievt::SEQ_) << (ok = false);
+            EXPECT_EQ(evt & ievt::EMAP, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_) << (ok = false);
+            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), ievt::FLOW|ievt::BLCK) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::ESEQ) == ievt::ESEQ)
         {
-            EXPECT_EQ(evt & ievt::BSEQ, ievt::SEQ_);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::BSEQ, ievt::SEQ_) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::BMAP) == ievt::BMAP)
         {
-            EXPECT_EQ(evt & ievt::EMAP, ievt::MAP_);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), ievt::FLOW|ievt::BLCK);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::EMAP, ievt::MAP_) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_) << (ok = false);
+            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), ievt::FLOW|ievt::BLCK) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::EMAP) == ievt::EMAP)
         {
-            EXPECT_EQ(evt & ievt::BSEQ, 0);
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_EQ(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_EQ(evt & ievt::KEY_, 0);
-            EXPECT_EQ(evt & ievt::VAL_, 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, 0);
+            EXPECT_EQ(evt & ievt::BSEQ, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::KEY_, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::VAL_, 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if (evt & ievt::SCLR)
         {
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_NE(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
-            ievt::evt_bits estyle = evt & style;
-            EXPECT_NE(estyle, 0);
-            EXPECT_EQ((estyle & (estyle << 1)), 0);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_NE(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
+            evt_bits estyle = evt & style_scalar;
+            EXPECT_EQ((estyle & (estyle << 1)), 0) << (ok = false);
             _test_str_in_buffer(evtpos);
         }
         if (evt & ievt::ALIA)
         {
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_NE(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_NE(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
             _test_str_in_buffer(evtpos);
         }
         if (evt & ievt::ANCH)
         {
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_NE(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::TAG_, 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_NE(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::TAG_, 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
             _test_str_in_buffer(evtpos);
         }
         if (evt & ievt::TAG_)
         {
-            EXPECT_EQ(evt & ievt::EXPL, 0);
-            EXPECT_NE(evt & ievt::WSTR, 0);
-            EXPECT_EQ(evt & ievt::SCLR, 0);
-            EXPECT_EQ(evt & ievt::ALIA, 0);
-            EXPECT_EQ(evt & ievt::ANCH, 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
-            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
-            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0);
-            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0);
-            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0);
-            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
-            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
+            EXPECT_NE(evt & ievt::WSTR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
+            EXPECT_EQ(evt & ievt::ANCH, 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
+            EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
+            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
             _test_str_in_buffer(evtpos);
         }
+        if(!ok)
+            break;
         #undef _test_str_in_buffer
     }
 }
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

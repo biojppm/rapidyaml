@@ -1,32 +1,27 @@
-#ifndef C4_YML_EMITTER_HPP_
-#define C4_YML_EMITTER_HPP_
+#ifndef C4_YML_EMITTER_INTS_HPP_
+#define C4_YML_EMITTER_INTS_HPP_
 
-/** @file emitter.hpp */
+/** @file emitter_ints.hpp */
 
 #ifndef C4_YML_EMIT_OPTIONS_HPP_
 #include "c4/yml/emit_options.hpp"
 #endif
-#ifndef C4_YML_NODE_TYPE_HPP_
-#include "c4/yml/node_type.hpp"
+#ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
+#include "c4/yml/extra/event_ints.hpp"
 #endif
 
 
 namespace c4 {
 namespace yml {
-
-
-/** @cond dev */
-// fwd declarations
-class Tree;
-/** @endcond */
-
+namespace extra {
+namespace ievt {
 
 /** A YAML/JSON emitter, templated on a writer class such as @ref WriterBuf,
  * @ref WriterFile, or @ref WriterOStream
  * @ingroup doc_emit
  */
 template<class Writer>
-class Emitter : public Writer
+class EmitterInts : public Writer
 {
 public:
 
@@ -36,9 +31,12 @@ public:
      * @param args arguments to be forwarded to the constructor of the writer.
      */
     template<class ...WriterArgs>
-    Emitter(EmitOptions const& opts, WriterArgs &&...args) noexcept
+    EmitterInts(EmitOptions const& opts, WriterArgs &&...args) noexcept
         : Writer(std::forward<WriterArgs>(args)...)
-        , m_tree()
+        , m_evts()
+        , m_evts_size()
+        , m_src()
+        , m_arena()
         , m_opts(opts)
         , m_col()
         , m_depth()
@@ -49,13 +47,21 @@ public:
 
 public:
 
-    /** emit!
-     *
-     * @param type specify what to emit (YAML or JSON)
-     * @param tree the tree to emit
-     * @param id the id of the node to emit
-     */
-    void emit_as(EmitType_e type, Tree const* tree, id_type id=NONE);
+    /** emit! */
+    void emit_as(EmitType_e type,
+                 evt_bits const* evts,
+                 evt_size evts_size,
+                 csubstr src,
+                 csubstr arena)
+    {
+        emit_as(type, evts, evts_size, 0, src, arena);
+    }
+    void emit_as(EmitType_e type,
+                 evt_bits const* evts,
+                 evt_size evts_size,
+                 evt_size pos,
+                 csubstr src,
+                 csubstr arena);
 
 public:
 
@@ -107,67 +113,67 @@ private: // pending whitespace
         {
             return (active && col >= max_cols) ? PWS_NEWL_ : pend_after_comma;
         }
-        void start(NodeType ty, size_t max_cols_) noexcept;
+        void start(evt_bits ty, size_t max_cols_) noexcept;
         void stop() noexcept { active = false; }
     };
 
-    C4_NODISCARD bool maybe_start_flow_pws_ml_(id_type node) noexcept;
-    C4_NODISCARD flow_pws setup_flow_pws_sl_(id_type node) noexcept;
+    C4_NODISCARD bool maybe_start_flow_pws_ml_(evt_size node) noexcept;
+    C4_NODISCARD flow_pws setup_flow_pws_sl_(evt_size node) noexcept;
 
 private:
 
-    void emit_yaml_(id_type id);
+    void emit_yaml_(evt_size id);
 
-    void visit_stream_(id_type id);
-    void visit_doc_(id_type id);
-    void visit_doc_val_(id_type id);
-    void visit_blck_container_(id_type id);
-    void visit_flow_container_(id_type id);
+    void visit_stream_(evt_size &id);
+    void visit_doc_(evt_size &id, bool expl);
+    void visit_doc_val_(evt_size &id);
+    void visit_blck_container_(evt_size &id);
+    void visit_flow_container_(evt_size &id);
 
-    void visit_flow_sl_(id_type id);
-    void visit_flow_sl_seq_(id_type id);
-    void visit_flow_sl_map_(id_type id);
+    void visit_flow_sl_(evt_size &id);
+    void visit_flow_sl_seq_(evt_size &id);
+    void visit_flow_sl_map_(evt_size &id);
 
-    void visit_flow_ml_(id_type id);
-    void visit_flow_ml_seq_(id_type id);
-    void visit_flow_ml_map_(id_type id);
+    void visit_flow_ml_(evt_size &id);
+    void visit_flow_ml_seq_(evt_size &id);
+    void visit_flow_ml_map_(evt_size &id);
 
-    void visit_blck_(id_type id);
-    void visit_blck_seq_(id_type id);
-    void visit_blck_map_(id_type id);
+    void visit_blck_(evt_size &id);
+    void visit_blck_seq_(evt_size &id);
+    void visit_blck_map_(evt_size &id);
 
-    void top_open_entry_(id_type id);
-    void top_close_entry_(id_type id);
-    void blck_seq_open_entry_(id_type id);
-    void blck_map_open_entry_(id_type id);
-    void blck_close_entry_(id_type id);
-    void blck_write_scalar_(csubstr str, type_bits type);
+    void top_open_entry_(evt_size &id);
+    void top_close_entry_(evt_size &id);
+    void blck_seq_open_entry_(evt_size &id);
+    void blck_map_open_entry_(evt_size &id);
+    void blck_close_entry_(evt_size &id);
+    void blck_write_scalar_(csubstr str, evt_bits type);
 
-    void flow_seq_open_entry_(id_type id);
-    void flow_map_open_entry_(id_type id);
-    void flow_close_entry_sl_(id_type id, id_type last_sibling, Pws_e pend_after);
-    void flow_close_entry_ml_(id_type id, id_type last_sibling, Pws_e pend_after);
-    void flow_write_scalar_(csubstr str, type_bits type);
+    void flow_seq_open_entry_(evt_size &id);
+    void flow_map_open_entry_(evt_size &id);
+    void flow_close_entry_sl_(evt_size id, Pws_e pend_after);
+    void flow_close_entry_ml_(evt_size id, Pws_e pend_after);
+    void flow_write_scalar_(csubstr str, evt_bits type);
 
 private:
 
-    void json_emit_(id_type id);
-    void write_scalar_literal_(csubstr s, id_type level);
-    void write_scalar_folded_(csubstr s, id_type level);
-    void write_scalar_squo_(csubstr s, id_type level);
-    void write_scalar_dquo_(csubstr s, id_type level);
-    void write_scalar_plain_(csubstr s, id_type level);
+    void json_emit_(evt_size id);
+    void write_scalar_literal_(csubstr s, evt_size level);
+    void write_scalar_folded_(csubstr s, evt_size level);
+    void write_scalar_squo_(csubstr s, evt_size level);
+    void write_scalar_dquo_(csubstr s, evt_size level);
+    void write_scalar_plain_(csubstr s, evt_size level);
 
     size_t write_escaped_newlines_(csubstr s, size_t i);
-    size_t write_indented_block_(csubstr s, size_t i, id_type level);
+    size_t write_indented_block_(csubstr s, size_t i, evt_size level);
 
 private:
 
-    void json_visit_ml_(id_type id, NodeType ty, id_type depth);
-    void json_visit_sl_(id_type id, NodeType ty, id_type depth);
+    void json_visit_ml_(evt_size &pos, evt_size depth);
+    void json_visit_sl_(evt_size &pos, evt_size depth);
     bool json_maybe_write_naninf_(csubstr s);
-    void json_writek_(id_type id, NodeType ty);
-    void json_writev_(id_type id, NodeType ty);
+    void json_writek_(evt_size pos);
+    void json_writev_(evt_size pos, evt_bits ty, bool has_anchor_or_tag);
     void json_write_scalar_dquo_(csubstr s);
     void json_write_number_(csubstr s);
 
@@ -208,13 +214,13 @@ private:
         ++m_col;
     }
 
-    C4_ALWAYS_INLINE void indent_(id_type level) // LCOV_EXCL_LINE
+    C4_ALWAYS_INLINE void indent_(evt_size level) // LCOV_EXCL_LINE
     {
-        C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+        C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wsign-conversion")
         size_t num = static_cast<size_t>(2u * level);
         this->Writer::append(' ', num);
         m_col += num;
-        C4_SUPPRESS_WARNING_GCC_POP
+        C4_SUPPRESS_WARNING_GCC_CLANG_POP
     }
 
     /// write a newline and reset the column
@@ -224,27 +230,34 @@ private:
         m_col = 0;
     }
 
+    C4_ALWAYS_INLINE csubstr getstr_(evt_size id) noexcept
+    {
+        RYML_ASSERT_BASIC_(id + 2 < m_evts_size);
+        RYML_ASSERT_BASIC_(m_evts[id] & ievt::WSTR);
+        csubstr region = (m_evts[id] & ievt::AREN) ? m_arena : m_src;
+        region.str = region.str + m_evts[id + 1];
+        region.len = static_cast<size_t>(m_evts[id + 2]);
+        return region;
+    }
+
 private:
 
-    Tree const* C4_RESTRICT m_tree;
+    evt_bits const* m_evts;
+    evt_size    m_evts_size;
+    csubstr     m_src;
+    csubstr     m_arena;
     EmitOptions m_opts;
     size_t      m_col;
-    id_type     m_depth;
-    id_type     m_ilevel;
+    evt_size    m_depth;
+    evt_size    m_ilevel;
     Pws_e       m_pws;
     flow_pws    m_flow_pws;
 
-public: // deprecated methods
-
-    /** @cond dev */ // LCOV_EXCL_START
-    RYML_DEPRECATED("create a new emitter") void options(EmitOptions) noexcept { ; }
-    RYML_DEPRECATED("use .options()") void max_depth(id_type max_depth) noexcept { m_opts.max_depth(max_depth); }
-    RYML_DEPRECATED("use .options()") id_type max_depth() const noexcept { return m_opts.max_depth(); }
-    /** @endcond */ // LCOV_EXCL_STOP
-
 };
 
+} // namespace ievt
+} // namespace extra
 } // namespace yml
 } // namespace c4
 
-#endif /* C4_YML_EMITTTER_HPP_ */
+#endif /* C4_YML_EMITTER_INTS_HPP_ */

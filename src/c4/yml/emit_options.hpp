@@ -8,6 +8,14 @@
 namespace c4 {
 namespace yml {
 
+
+/** Specifies the type of content to emit */
+typedef enum { // NOLINT
+    EMIT_YAML = 0, ///< emit YAML
+    EMIT_JSON = 1, ///< emit JSON
+} EmitType_e;
+
+
 /** A lightweight object containing options to be used when emitting.
  * @ingroup doc_emit
  */

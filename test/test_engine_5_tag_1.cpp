@@ -567,7 +567,7 @@ ENGINE_TEST(TagPlacementMapFlow0, HAS_CONTAINER_KEYS,
             "  !tag3 : ,\n"
             "  !tag4 's': ,\n"
             "  !tag5 \"d\": ,\n"
-            "  !tag6 : ,\n"
+            "  !tag6 : \n"
             "}\n"
             ""
             ,
@@ -896,14 +896,14 @@ ENGINE_TEST(TagPlacementMapValBlock,
     ___(ps.set_key_scalar_plain("e"));
     ___(ps.set_val_tag("!tag"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_flow(singleline));
+    ___(ps.end_map_block());
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("f"));
     ___(ps.set_val_tag("!tag"));
     ___(ps.begin_seq_val_block());
     ___(ps.set_val_tag("!tag"));
     ___(ps.set_val_scalar_plain("g"));
-    ___(ps.end_seq_flow(singleline));
+    ___(ps.end_seq_block());
     ___(ps.end_map_block());
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -918,6 +918,16 @@ ENGINE_TEST(TagPlacementMapKeyFlow,
             "!tag []: x\n,"
             "!tag {}: x\n,"
             "!tag :\n,"
+            "}\n"
+            ""
+            ,
+            ""
+            "!mtag {\n"
+            "  !tag : x,\n"
+            "  !tag a: x,\n"
+            "  !tag []: x,\n"
+            "  !tag {}: x,\n"
+            "  !tag : \n"
             "}\n"
             ""
             ,
@@ -980,6 +990,17 @@ ENGINE_TEST(TagPlacementMapKeyBlock,
             "!tag []: x\n"
             "!tag {}: x\n"
             "!tag :\n"
+            ""
+            ,
+            ""
+            "!mtag\n"
+            "!tag : x\n"
+            "!tag a: x\n"
+            "? !tag []\n"
+            ": x\n"
+            "? !tag {}\n"
+            ": x\n"
+            "!tag : \n"
             ""
             ,
             ""
@@ -1173,18 +1194,39 @@ ENGINE_TEST(TagPlacementMapComplex,
             " !a : !b\n"
             ": !tag1\n"
             " !a : !b\n"
-
+             ""
             "? !tag2\n"
             " !a 1: !b 2\n"
             ": !tag3\n"
             " !a : !b\n"
-
+            ""
             "? !tag4\n"
             " - !a 1\n"
             " - !b 2\n"
             ": !tag5\n"
             " !a : !b\n"
             "? !tag6\n"
+            ""
+            ,
+            ""
+            "!mtag\n"
+            "? !tag0\n"
+            "  !a : !b \n"
+            ": !tag1\n"
+            "  !a : !b \n"
+            ""
+            "? !tag2\n"
+            "  !a 1: !b 2\n"
+            ": !tag3\n"
+            "  !a : !b \n"
+            ""
+            "? !tag4\n"
+            "  - !a 1\n"
+            "  - !b 2\n"
+            ": !tag5\n"
+            "  !a : !b \n"
+            ""
+            "!tag6 : \n"
             ""
             ,
             ""

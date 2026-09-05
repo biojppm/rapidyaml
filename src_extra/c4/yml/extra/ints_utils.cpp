@@ -54,15 +54,21 @@ const FlagSym flag_syms_[] = {
     {"YAML", YAML},
     {"TAGH", TAGH},
     {"TAGP", TAGP},
+    {"JUMP", JUMP},
+    {"PJUMP", PJUMP},
+    {"FSL_", FSL_},
+    {"FML1", FML1},
+    {"FMLN", FMLN},
+    {"FSPC", FSPC},
 };
 } // namespace
 
-size_t to_str(substr buf, ievt::evt_bits flags) noexcept
+size_t to_str(substr buf, evt_bits flags) noexcept
 {
     detail::SubstrWriter_ writer(buf);
     for(const FlagSym sym : flag_syms_)
     {
-        if(flags & sym.flags)
+        if((flags & sym.flags) == sym.flags)
         {
             if(writer.pos)
                 writer.append('|');
@@ -77,7 +83,7 @@ size_t to_str(substr buf, ievt::evt_bits flags) noexcept
     return writer.pos;
 }
 
-csubstr to_str_sub(substr buf, ievt::evt_bits flags)
+csubstr to_str_sub(substr buf, evt_bits flags)
 {
     size_t reqsize = ievt::to_str(buf, flags);
     RYML_CHECK_BASIC_(reqsize > 0u);
@@ -86,41 +92,27 @@ csubstr to_str_sub(substr buf, ievt::evt_bits flags)
 }
 
 
-} // namespace ievt
-} // namespace extra
-} // namespace yml
-} // namespace c4
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-namespace c4 {
-namespace yml {
-namespace extra {
-
-void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::evt_bits const* evts, ievt::evt_bits evts_sz)
+void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_size evts_sz)
 {
     char buf[200];
-    for(ievt::evt_bits evtpos = 0, evtnumber = 0;
+    for(evt_bits evtpos = 0, evtnumber = 0;
         evtpos < evts_sz;
         ++evtnumber,
-            evtpos += ((evts[evtpos] & ievt::WSTR) ? 3 : 1))
+            evtpos = ievt::nextpos(evts, evtpos))
     {
-        ievt::evt_bits evt = evts[evtpos];
+        evt_bits evt = evts[evtpos];
         csubstr flags = ievt::to_str_sub(buf, evt);
         printf("[%d][%d] %.*s(0x%x)", evtnumber, evtpos, (int)flags.len, flags.str, evt);
-        if (evt & ievt::WSTR)
+        if(evt & ievt::WSTR)
         {
             bool in_arena = evt & ievt::AREN;
             csubstr region = !in_arena ? parsed_yaml : arena;
             bool safe = (evts[evtpos + 1] >= 0)
                 && (evts[evtpos + 2] >= 0)
-                && (evts[evtpos + 1] <= (ievt::evt_bits)region.len) // NOLINT
-                && (evts[evtpos + 2] <= ((ievt::evt_bits)region.len - evts[evtpos + 1]));
+                && (evts[evtpos + 1] <= (evt_bits)region.len) // NOLINT
+                && (evts[evtpos + 2] <= ((evt_bits)region.len - evts[evtpos + 1]));
             const char *str = safe ? (region.str + evts[evtpos + 1]) : "ERR!!!";
-            ievt::evt_bits len = safe ? evts[evtpos + 2] : 6;
+            evt_bits len = safe ? evts[evtpos + 2] : 6;
             printf(": %d [%d]~~~%.*s~~~", evts[evtpos+1], evts[evtpos+2], len, str);
             if(in_arena)
                 printf(" (arenasz=%zu)", arena.len);
@@ -131,6 +123,7 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::evt_bits const*
     }
 }
 
+} // namespace ievt
 } // namespace extra
 } // namespace yml
 } // namespace c4

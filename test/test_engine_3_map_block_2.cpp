@@ -15,6 +15,9 @@ ENGINE_TEST(ContainerKey1Block0_0,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -65,6 +68,9 @@ ENGINE_TEST(ContainerKey1Block0_1,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -114,6 +120,9 @@ ENGINE_TEST(ContainerKey1Block0_1,
 ENGINE_TEST(ContainerKey1Block1_0,
             HAS_CONTAINER_KEYS,
             "[this,is,a,seq,key]: [and,now,a,seq,val]"
+            ,
+            "? [this,is,a,seq,key]\n"
+            ": [and,now,a,seq,val]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -170,6 +179,9 @@ ENGINE_TEST(ContainerKey1Block1_1,
             HAS_CONTAINER_KEYS,
             "[this,is,a,seq,key]: [and,now,a,seq,val]"
             ,
+            "? [this,is,a,seq,key]\n"
+            ": [and,now,a,seq,val]\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -225,6 +237,9 @@ ENGINE_TEST(ContainerKey1Block2_0,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -274,6 +289,9 @@ ENGINE_TEST(ContainerKey1Block2_0,
 ENGINE_TEST(ContainerKey1Block2_1,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
+            ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -327,6 +345,13 @@ ENGINE_TEST(ContainerKey1Block3_0,
             "{a: map}: [a,seq]\n"
             "---\n"
             "[A,SEQ]: {A: MAP}\n"
+            ,
+            "---\n"
+            "? {a: map}\n"
+            ": [a,seq]\n"
+            "---\n"
+            "? [A,SEQ]\n"
+            ": {A: MAP}\n"
             ,
             "+STR\n"
             "+DOC ---\n"
@@ -391,6 +416,13 @@ ENGINE_TEST(ContainerKey1Block3_1,
             "{a: map}: [a,seq]\n"
             "---\n"
             "[A,SEQ]: {A: MAP}\n"
+            ,
+            "---\n"
+            "? {a: map}\n"
+            ": [a,seq]\n"
+            "---\n"
+            "? [A,SEQ]\n"
+            ": {A: MAP}\n"
             ,
             "+STR\n"
             "+DOC ---\n"
@@ -461,6 +493,12 @@ ENGINE_TEST(ContainerKey2Block_1,
             "foo: bar\n"
             "!maptag &mapanchor {this: is, a: keymap}: [and,now,a,seq,val]\n"
             "!seqtag &seqanchor [now, reversed]: {of: course}\n"
+            ,
+            "foo: bar\n"
+            "? &mapanchor !maptag {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
+            "? &seqanchor !seqtag [now,reversed]\n"
+            ": {of: course}\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -541,6 +579,11 @@ ENGINE_TEST(ContainerKey2Block_1,
 ENGINE_TEST(ContainerKey3Block4_C2SP_0, HAS_CONTAINER_KEYS,
             "[21]: 42\n"
             "[23]: 42\n"
+            ,
+            "? [21]\n"
+            ": 42\n"
+            "? [23]\n"
+            ": 42\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -699,6 +742,11 @@ ENGINE_TEST(ContainerKey3Block5_C2SP_0, HAS_CONTAINER_KEYS,
             "{a: b}: 42\n"
             "{c: d}: 42\n"
             ,
+            "? {a: b}\n"
+            ": 42\n"
+            "? {c: d}\n"
+            ": 42\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -803,6 +851,10 @@ ENGINE_TEST(MapKeyBlock,
             "? foo: bar\n"
             ": baz"
             ,
+            "?\n"
+            "  foo: bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -832,6 +884,9 @@ ENGINE_TEST(MapKeyBlockFlow,
             HAS_CONTAINER_KEYS, Location(2,1,3),
             "? {foo: bar}\n"
             ": baz"
+            ,
+            "? {foo: bar}\n"
+            ": baz\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -865,6 +920,11 @@ ENGINE_TEST(SeqKeyBlock,
             " - bar\n"
             ": baz\n"
             ,
+            "?\n"
+            "  - foo\n"
+            "  - bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -894,6 +954,9 @@ ENGINE_TEST(SeqKeyBlock,
 ENGINE_TEST(SeqKeyBlockFlow,
             HAS_CONTAINER_KEYS, Location(2,1,3),
             "? [foo, bar]\n"
+            ": baz\n"
+            ,
+            "? [foo,bar]\n"
             ": baz\n"
             ,
             "+STR\n"
@@ -930,6 +993,13 @@ ENGINE_TEST(SeqKeyBlock2_0,
             ":\n"
             "- baz\n"
             "- bat\n"
+            ,
+            "?\n"
+            "  - foo\n"
+            "  - bar\n"
+            ":\n"
+            "  - baz\n"
+            "  - bat\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -983,6 +1053,13 @@ ENGINE_TEST(SeqKeyBlock3,
             " - baz\n"
             " - bat\n"
             ,
+            "?\n"
+            "  - foo\n"
+            "  - bar\n"
+            ":\n"
+            "  - baz\n"
+            "  - bat\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1022,6 +1099,10 @@ ENGINE_TEST(MapKeyBlock4Squo0,
             "? 'foo' : bar\n"
             ": baz\n"
             ,
+            "?\n"
+            "  'foo': bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1052,6 +1133,11 @@ ENGINE_TEST(MapKeyBlock4Squo1,
             "&blockanchor\n"
             "? &mapkey\n"
             "  &scalarkey 'foo' : bar\n"
+            ": baz\n"
+            ,
+            "&blockanchor\n"
+            "? &mapkey\n"
+            "  &scalarkey 'foo': bar\n"
             ": baz\n"
             ,
             "+STR\n"
@@ -1088,6 +1174,10 @@ ENGINE_TEST(MapKeyBlock4Dquo0,
             "? \"foo\" : bar\n"
             ": baz\n"
             ,
+            "?\n"
+            "  \"foo\": bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1118,6 +1208,11 @@ ENGINE_TEST(MapKeyBlock4Dquo1,
             "&blockanchor\n"
             "? &mapkey\n"
             "  &scalarkey \"foo\" : bar\n"
+            ": baz\n"
+            ,
+            "&blockanchor\n"
+            "? &mapkey\n"
+            "  &scalarkey \"foo\": bar\n"
             ": baz\n"
             ,
             "+STR\n"

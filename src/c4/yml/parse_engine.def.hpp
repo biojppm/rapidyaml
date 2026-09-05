@@ -4361,19 +4361,6 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
     if(!(m_pending_tags.num_entries | m_pending_anchors.num_entries))
         return false;
     _c4dbgpf("handle_annotations_before_unexpected_flow_comma_rkey, node={}", m_evt_handler->m_curr->node_id);
-    if(m_pending_tags.num_entries)
-    {
-        _c4dbgpf("handle_annotations_before_unexpected_flow_comma_rkey, #tags={}", m_pending_tags.num_entries);
-        if C4_LIKELY(m_pending_tags.num_entries == 1)
-        {
-             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-        }
-        else
-        {
-            _c4err("too many tags");
-        }
-    }
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("handle_annotations_before_unexpected_flow_comma, #anchors={}", m_pending_tags.num_entries);
@@ -4387,6 +4374,19 @@ bool ParseEngine<EventHandler>::_handle_annotations_before_unexpected_flow_token
             _c4err("too many anchors");
         }
     }
+    if(m_pending_tags.num_entries)
+    {
+        _c4dbgpf("handle_annotations_before_unexpected_flow_comma_rkey, #tags={}", m_pending_tags.num_entries);
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
+        {
+             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+        }
+        else
+        {
+            _c4err("too many tags");
+        }
+    }
     m_evt_handler->set_key_scalar_plain_empty();
     m_evt_handler->set_val_scalar_plain_empty();
     return true;
@@ -4396,19 +4396,6 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
 {
     _c4dbgpf("annotations_before_blck_key_scalar, node={}", m_evt_handler->m_curr->node_id);
-    if(m_pending_tags.num_entries)
-    {
-        _c4dbgpf("annotations_before_blck_key_scalar, #tags={}", m_pending_tags.num_entries);
-        if C4_LIKELY(m_pending_tags.num_entries == 1)
-        {
-             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-        }
-        else
-        {
-            _c4err("too many tags"); // LCOV_EXCL_LINE
-        }
-    }
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("annotations_before_blck_key_scalar, #anchors={}", m_pending_anchors.num_entries);
@@ -4422,25 +4409,25 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
             _c4err("too many anchors"); // LCOV_EXCL_LINE
         }
     }
+    if(m_pending_tags.num_entries)
+    {
+        _c4dbgpf("annotations_before_blck_key_scalar, #tags={}", m_pending_tags.num_entries);
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
+        {
+             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+        }
+        else
+        {
+            _c4err("too many tags"); // LCOV_EXCL_LINE
+        }
+    }
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
 {
     _c4dbgpf("annotations_before_blck_val_scalar, node={}", m_evt_handler->m_curr->node_id);
-    if(m_pending_tags.num_entries)
-    {
-        _c4dbgpf("annotations_before_blck_val_scalar, #tags={}", m_pending_tags.num_entries);
-        if C4_LIKELY(m_pending_tags.num_entries == 1)
-        {
-             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-        }
-        else
-        {
-            _c4err("too many tags");
-        }
-    }
     if(m_pending_anchors.num_entries)
     {
         _c4dbgpf("annotations_before_blck_val_scalar, #anchors={}", m_pending_anchors.num_entries);
@@ -4454,28 +4441,25 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
             _c4err("too many anchors");
         }
     }
+    if(m_pending_tags.num_entries)
+    {
+        _c4dbgpf("annotations_before_blck_val_scalar, #tags={}", m_pending_tags.num_entries);
+        if C4_LIKELY(m_pending_tags.num_entries == 1)
+        {
+             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+        }
+        else
+        {
+            _c4err("too many tags");
+        }
+    }
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t current_line)
 {
     _c4dbgpf("annotations_before_start_mapblck, current_line={}", current_line);
-    if(m_pending_tags.num_entries == 2)
-    {
-        _c4dbgp("2 tags, setting entry 0");
-        m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
-    }
-    else if(m_pending_tags.num_entries == 1)
-    {
-        _c4dbgpf("1 tag. line={}, curr={}", m_pending_tags.annotations[0].line, current_line);
-        if(m_pending_tags.annotations[0].line < current_line)
-        {
-            _c4dbgp("...tag is for the map. setting it.");
-             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-        }
-    }
-    //
     if(m_pending_anchors.num_entries == 2)
     {
         _c4dbgp("2 anchors, setting entry 0");
@@ -4491,28 +4475,28 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t 
             _clear_annotations(&m_pending_anchors);
         }
     }
+    //
+    if(m_pending_tags.num_entries == 2)
+    {
+        _c4dbgp("2 tags, setting entry 0");
+        m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
+    }
+    else if(m_pending_tags.num_entries == 1)
+    {
+        _c4dbgpf("1 tag. line={}, curr={}", m_pending_tags.annotations[0].line, current_line);
+        if(m_pending_tags.annotations[0].line < current_line)
+        {
+            _c4dbgp("...tag is for the map. setting it.");
+             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+        }
+    }
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck_as_key()
 {
     _c4dbgp("annotations_before_start_mapblck_as_key");
-    switch(m_pending_tags.num_entries)
-    {
-    case 1u:
-        _c4dbgpf("annotations_after_start_mapblck_as_key: 1 tag={} line={} currline=", prs_(m_pending_tags.annotations[0].str), m_pending_tags.annotations[0].line, m_evt_handler->m_curr->pos.line);
-        if(m_pending_tags.annotations[0].line != m_evt_handler->m_curr->pos.line)
-        {
-            _c4dbgp("annotations_after_start_mapblck_as_key: is map tag");
-            m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-        }
-        break;
-    case 2u:
-        _c4dbgpf("annotations_after_start_mapblck_as_key: 2 tags: {} -> {}", prs_(m_pending_tags.annotations[0].str), prs_(m_pending_tags.annotations[1].str));
-         m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
-        break;
-    }
     switch(m_pending_anchors.num_entries)
     {
     case 1u:
@@ -4529,6 +4513,22 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck_as_key(
         m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
         break;
     }
+    switch(m_pending_tags.num_entries)
+    {
+    case 1u:
+        _c4dbgpf("annotations_after_start_mapblck_as_key: 1 tag={} line={} currline=", prs_(m_pending_tags.annotations[0].str), m_pending_tags.annotations[0].line, m_evt_handler->m_curr->pos.line);
+        if(m_pending_tags.annotations[0].line != m_evt_handler->m_curr->pos.line)
+        {
+            _c4dbgp("annotations_after_start_mapblck_as_key: is map tag");
+            m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+        }
+        break;
+    case 2u:
+        _c4dbgpf("annotations_after_start_mapblck_as_key: 2 tags: {} -> {}", prs_(m_pending_tags.annotations[0].str), prs_(m_pending_tags.annotations[1].str));
+         m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+        break;
+    }
 }
 
 template<class EventHandler>
@@ -4540,19 +4540,6 @@ void ParseEngine<EventHandler>::_handle_annotations_and_indentation_after_start_
     if(m_pending_anchors.num_entries || m_pending_tags.num_entries)
     {
         key_indentation = _select_indentation_from_annotations(key_indentation, key_line);
-        switch(m_pending_tags.num_entries)
-        {
-        case 1u:
-            _c4dbgpf("annotations_after_start_mapblck: 1 tag: {}", prs_(m_pending_tags.annotations[0].str));
-             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
-            _clear_annotations(&m_pending_tags);
-            break;
-        case 2u:
-            _c4dbgpf("annotations_after_start_mapblck: 2 tags: {} -> {}", prs_(m_pending_tags.annotations[0].str), prs_(m_pending_tags.annotations[1].str));
-             m_evt_handler->set_key_tag(m_pending_tags.annotations[1].str);
-            _clear_annotations(&m_pending_tags);
-            break;
-        }
         switch(m_pending_anchors.num_entries)
         {
         case 1u:
@@ -4564,6 +4551,19 @@ void ParseEngine<EventHandler>::_handle_annotations_and_indentation_after_start_
             _c4dbgpf("annotations_after_start_mapblck: 2 anchors: {} -> {}", m_pending_anchors.annotations[0].str, m_pending_anchors.annotations[1].str);
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[1].str);
             _clear_annotations(&m_pending_anchors);
+            break;
+        }
+        switch(m_pending_tags.num_entries)
+        {
+        case 1u:
+            _c4dbgpf("annotations_after_start_mapblck: 1 tag: {}", prs_(m_pending_tags.annotations[0].str));
+             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
+            _clear_annotations(&m_pending_tags);
+            break;
+        case 2u:
+            _c4dbgpf("annotations_after_start_mapblck: 2 tags: {} -> {}", prs_(m_pending_tags.annotations[0].str), prs_(m_pending_tags.annotations[1].str));
+             m_evt_handler->set_key_tag(m_pending_tags.annotations[1].str);
+            _clear_annotations(&m_pending_tags);
             break;
         }
     }

@@ -862,7 +862,7 @@ ENGINE_TEST(SeqIMap5QmrkSeq,
             HAS_CONTAINER_KEYS,
             "[? &anchor [a, seq]: ]"
             ,
-            "[{&anchor [a, seq]: }]"
+            "[{&anchor [a,seq]: }]"
             ,
             "+STR\n"
             "+DOC\n"
