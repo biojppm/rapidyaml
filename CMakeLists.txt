@@ -200,7 +200,7 @@ endif()
 
 if(RYML_INSTALL)
     c4_install_target(ryml)
-    if(RYML_STANDALONE OR RYML_SYSTEM_C4CORE)
+    if(RYML_STANDALONE AND NOT RYML_SYSTEM_C4CORE)
         c4_install_exports()
     else()
         c4_install_exports(DEPENDENCIES c4core)
