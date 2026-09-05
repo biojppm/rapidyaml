@@ -63,13 +63,12 @@ endif()
 if(RYML_BUILD_API_PYTHON)
     c4_log("enabling python3 API")
     set(Python3_FIND_VIRTUALENV "FIRST")
-    if(APPLE)
-        find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-    else()
-        # use Development.Module to ensure this works with cibuildwheel:
-        # https://github.com/pypa/cibuildwheel/issues/639
-        find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
-    endif()
+    # use Development.Module to ensure this works with cibuildwheel:
+    # https://github.com/pypa/cibuildwheel/issues/639
+    # Development.Embed (implied by Development) is not needed to build an
+    # extension module, and requires a shared libpython that is not always
+    # installed alongside the interpreter.
+    find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
     c4_log("found python:
     ver=${Python3_VERSION}
     exe=${Python3_EXECUTABLE}
@@ -93,7 +92,7 @@ if(RYML_BUILD_API_PYTHON)
     #c4_set_folder_remote_project_targets("api" ${t})
     add_dependencies(ryml-api-build ${t})
     target_include_directories(${t} PUBLIC ${ryml_incs})
-    swig_link_libraries(${t} ${Python3_LIBRARIES})
+    target_link_libraries(${t} PRIVATE Python3::Module)
     set_target_properties(${t} PROPERTIES
         OUTPUT_NAME "ryml"
         SWIG_GENERATED_INCLUDE_DIRECTORIES ${Python3_INCLUDE_DIRS}
