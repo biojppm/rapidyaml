@@ -2382,6 +2382,8 @@ void EmitterInts<Writer>::emit_json_(evt_size pos)
             if(evt & (ievt::SCLR|ievt::ALIA))
             {
                 json_writev_(pos, evt, /*has_anchor_or_tag*/false);
+                if(ek.emit_key)
+                    pend_newl_();
                 break;
             }
             else if(detail::hasall(evt, ievt::BSEQ))

@@ -1328,6 +1328,8 @@ void Emitter<Writer>::json_emit_(id_type id)
     else
     {
         json_visit_sl_(id, ty, 0);
+        if(ty.is_keyval())
+            newl_();
     }
 }
 
