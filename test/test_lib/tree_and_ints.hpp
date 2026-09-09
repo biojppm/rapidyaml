@@ -59,6 +59,24 @@ inline void test_emit_yaml(IntBufsCR ints, extra::ievt::evt_size pos, std::strin
             ints.print();
     }
 }
+inline void test_emit_yaml_same_ints(ConstNodeRef n, std::string const& expected, EmitOptions const& opts={})
+{
+    if(!testing::Test::HasFailure())
+    {
+        RYML_TRACE_FMT("tree: id={}", n.id());
+        std::string emitted_tree = emitrs_yaml<std::string>(n, opts);
+        EXPECT_EQ(emitted_tree, expected);
+        if(testing::Test::HasFailure())
+        {
+            print_tree(*n.tree());
+            return;
+        }
+        IntBufs ints;
+        parse_ints(to_substr(emitted_tree), &ints);
+        test_emit_yaml(ints, 0, expected, opts);
+    }
+}
+
 inline void test_emit_yaml(ConstNodeRef n, EmitOptions const& opts, std::string const& expected)
 {
     test_emit_yaml(n, expected, opts);
@@ -104,6 +122,23 @@ inline void test_emit_json(IntBufsCR ints, extra::ievt::evt_size pos, std::strin
         EXPECT_EQ(ints.emit_json<std::string>(opts, pos), expected);
         if(testing::Test::HasFailure())
             ints.print();
+    }
+}
+inline void test_emit_json_same_ints(ConstNodeRef n, std::string const& expected, EmitOptions const& opts={})
+{
+    if(!testing::Test::HasFailure())
+    {
+        RYML_TRACE_FMT("tree: id={}", n.id());
+        std::string emitted_tree = emitrs_json<std::string>(n, opts);
+        EXPECT_EQ(emitted_tree, expected);
+        if(testing::Test::HasFailure())
+        {
+            print_tree(*n.tree());
+            return;
+        }
+        IntBufs ints;
+        parse_ints(to_substr(emitted_tree), &ints);
+        test_emit_json(ints, 0, expected, opts);
     }
 }
 inline void test_emit_json(ConstNodeRef n, EmitOptions const& opts, std::string const& expected)

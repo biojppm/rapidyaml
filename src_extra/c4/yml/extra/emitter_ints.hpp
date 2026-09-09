@@ -157,7 +157,7 @@ private:
 
 private:
 
-    void json_emit_(evt_size id);
+    void emit_json_(evt_size id);
     void write_scalar_literal_(csubstr s, evt_size level);
     void write_scalar_folded_(csubstr s, evt_size level);
     void write_scalar_squo_(csubstr s, evt_size level);
@@ -169,11 +169,12 @@ private:
 
 private:
 
+    void json_visit_container_(evt_size &pos);
     void json_visit_ml_(evt_size &pos, evt_size depth);
     void json_visit_sl_(evt_size &pos, evt_size depth);
     bool json_maybe_write_naninf_(csubstr s);
-    void json_writek_(evt_size pos);
-    void json_writev_(evt_size pos, evt_bits ty, bool has_anchor_or_tag);
+    void json_writek_(evt_size &pos);
+    void json_writev_(evt_size &pos, evt_bits ty, bool has_anchor_or_tag);
     void json_write_scalar_dquo_(csubstr s);
     void json_write_number_(csubstr s);
 

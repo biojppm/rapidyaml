@@ -194,13 +194,13 @@ public:
     template<class Stream>
     void emit_yaml_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
     {
-        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, stream);
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, &stream);
         emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
     }
     template<class Stream>
     void emit_json_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
     {
-        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, stream);
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, &stream);
         emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
     }
 
