@@ -1169,263 +1169,10 @@ TmpContainerStyle mkflowml1spc(TreeAndInts &ti, NodeRef n, evt_size pos) { retur
 TmpContainerStyle mkflowmlnspc(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, FLOW_MLN|FLOW_SPC, pos, xievt::FLOW|xievt::FMLN|xievt::FSPC}; };
 #define TMPSTY(sty, ...) TmpContainerStyle C4_XCAT(tmpsty_, __LINE__) = mk##sty(__VA_ARGS__)
 
-TEST(emit, existing_seq_node_flow)
+static void test_emit_seq_node(TreeAndInts & ti, std::string const& yaml)
 {
-    TreeAndInts ti = parse_tree_and_ints("[foo, bar, [nested, seq], {nested: map}]");
+    RYML_TRACE_FMT("yaml:\n~~~{}\n~~~\n", yaml);
     Tree & t = ti.tree;
-    {
-        SCOPED_TRACE("full");
-        {
-            SCOPED_TRACE("all");
-            test_emits_(ti,
-                        "[foo,bar,[nested,seq],{nested: map}]",
-                        "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
-        }
-        {
-            SCOPED_TRACE("spc");
-            TMPSTY(flowslspc, ti, t, 2);
-            test_emits_(ti,
-                        "[foo, bar, [nested,seq], {nested: map}]",
-                        "[\"foo\", \"bar\", [\"nested\",\"seq\"], {\"nested\": \"map\"}]");
-        }
-        {
-            SCOPED_TRACE("blk");
-            TMPSTY(blk, ti, t, 2);
-            test_emits_(ti,
-                        "- foo\n- bar\n- [nested,seq]\n- {nested: map}\n",
-                        "[\n  \"foo\",\n  \"bar\",\n  [\"nested\",\"seq\"],\n  {\"nested\": \"map\"}\n]\n");
-        }
-        {
-            SCOPED_TRACE("rootref-ml1-all");
-            TMPSTY(flowml1, ti, t, 2);
-            TMPSTY(flowml1, ti, t[2], 9);
-            TMPSTY(flowml1, ti, t[3], 17);
-            test_emits_(ti,
-                        "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n",
-                        "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
-        }
-        {
-            SCOPED_TRACE("rootref-mln-all");
-            TMPSTY(flowmln, ti, t, 2);
-            TMPSTY(flowmln, ti, t[2], 9);
-            TMPSTY(flowmln, ti, t[3], 17);
-            test_emits_(ti,
-                        "[\n  foo,bar,[\n    nested,seq\n  ],{\n    nested: map\n  }\n]\n",
-                        "[\n  \"foo\",\"bar\",[\n    \"nested\",\"seq\"\n  ],{\n    \"nested\": \"map\"\n  }\n]\n");
-        }
-    }
-    {
-        SCOPED_TRACE("t[0]");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
-        }
-        {
-            SCOPED_TRACE("sl");
-            TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
-        }
-        {
-            SCOPED_TRACE("ml1");
-            TMPSTY(flowml1, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
-        }
-        {
-            SCOPED_TRACE("mln");
-            TMPSTY(flowmln, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
-        }
-    }
-    {
-        SCOPED_TRACE("t[1]");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
-        }
-        {
-            SCOPED_TRACE("sl");
-            TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
-        }
-        {
-            SCOPED_TRACE("ml1");
-            TMPSTY(flowml1, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
-        }
-        {
-            SCOPED_TRACE("mln");
-            TMPSTY(flowmln, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
-        }
-    }
-    {
-        SCOPED_TRACE("t[2]");
-        {
-            SCOPED_TRACE("FLOW_SL");
-            TMPSTY(flowsl, ti, t[2], 9);
-            test_emits_(ti, t[2], 9,
-                        "[nested,seq]",
-                        "[\"nested\",\"seq\"]");
-        }
-        {
-            SCOPED_TRACE("FLOW_ML1");
-            TMPSTY(flowml1, ti, t[2], 9);
-            test_emits_(ti, t[2], 9,
-                        "[\n  nested,\n  seq\n]\n",
-                        "[\n  \"nested\",\n  \"seq\"\n]\n");
-        }
-        {
-            SCOPED_TRACE("BLOCK");
-            TMPSTY(blk, ti, t[2], 9);
-            test_emits_(ti, t[2], 9,
-                        "- nested\n- seq\n",
-                        "[\n  \"nested\",\n  \"seq\"\n]\n");
-        }
-    }
-    {
-        SCOPED_TRACE("t[3]");
-        {
-            SCOPED_TRACE("FLOW_SL");
-            TMPSTY(flowsl, ti, t[3], 17);
-            test_emits_(ti, t[3], 17,
-                        "{nested: map}",
-                        "{\"nested\": \"map\"}");
-        }
-        {
-            SCOPED_TRACE("FLOW_ML1");
-            TMPSTY(flowml1, ti, t[3], 17);
-            test_emits_(ti, t[3], 17,
-                        "{\n  nested: map\n}\n",
-                        "{\n  \"nested\": \"map\"\n}\n");
-        }
-        {
-            SCOPED_TRACE("BLOCK");
-            TMPSTY(blk, ti, t[3], 17);
-            test_emits_(ti, t[3], 17,
-                        "nested: map\n",
-                        "{\n  \"nested\": \"map\"\n}\n");
-        }
-    }
-}
-
-TEST(emit, existing_seq_node_block)
-{
-    TreeAndInts ti = parse_tree_and_ints("- foo\n- bar\n- - nested\n  - seq\n- nested: map\n");
-    Tree & t = ti.tree;
-    {
-        SCOPED_TRACE("full-top");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t, 0,
-                        "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n",
-                        "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
-        }
-        {
-            SCOPED_TRACE("block-flow-ml");
-            {
-                TMPSTY(blk, ti, t, 2);
-                TMPSTY(flowml1, ti, t[2], 9);
-                TMPSTY(flowml1, ti, t[3], 17);
-                {
-                    SCOPED_TRACE("indent");
-                    test_emits_(ti, t, 0,
-                                "- foo\n- bar\n- [\n    nested,\n    seq\n  ]\n- {\n    nested: map\n  }\n",
-                                "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
-                }
-                {
-                    SCOPED_TRACE("no indent");
-                    test_emits_(ti, t, 0,
-                                "- foo\n- bar\n- [\n  nested,\n  seq\n  ]\n- {\n  nested: map\n  }\n",
-                                "[\n\"foo\",\n\"bar\",\n[\n\"nested\",\n\"seq\"\n],\n{\n\"nested\": \"map\"\n}\n]\n",
-                                noindent);
-                }
-            }
-        }
-        {
-            SCOPED_TRACE("flow_sl");
-            TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t, 0,
-                        "[foo,bar,[nested,seq],{nested: map}]",
-                        "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
-        }
-        {
-            SCOPED_TRACE("flow_ml");
-            TMPSTY(flowml1, ti, t, 2);
-            {
-                SCOPED_TRACE("indent");
-                test_emits_(ti, t, 0,
-                            "[\n  foo,\n  bar,\n  [nested,seq],\n  {nested: map}\n]\n",
-                            "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
-            }
-            {
-                SCOPED_TRACE("no indent");
-                test_emits_(ti, t, 2,
-                            "[\nfoo,\nbar,\n[nested,seq],\n{nested: map}\n]\n",
-                            "[\n\"foo\",\n\"bar\",\n[\n\"nested\",\n\"seq\"\n],\n{\n\"nested\": \"map\"\n}\n]\n",
-                            noindent);
-            }
-        }
-        {
-            SCOPED_TRACE("flow_ml1");
-            TMPSTY(flowml1, ti, t, 2);
-            {
-                SCOPED_TRACE("indent");
-                test_emits_(ti, t, 0,
-                            "[\n  foo,\n  bar,\n  [nested,seq],\n  {nested: map}\n]\n",
-                            "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
-            }
-            {
-                SCOPED_TRACE("no indent");
-                test_emits_(ti, t, 0,
-                            "[\nfoo,\nbar,\n[nested,seq],\n{nested: map}\n]\n",
-                            "[\n\"foo\",\n\"bar\",\n[\n\"nested\",\n\"seq\"\n],\n{\n\"nested\": \"map\"\n}\n]\n",
-                            noindent);
-            }
-        }
-    }
-    {
-        SCOPED_TRACE("full-all");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            TMPSTY(blk, ti, t[2], 9);
-            TMPSTY(blk, ti, t[3], 17);
-            test_emits_(ti, t, 0,
-                        "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n",
-                        "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
-        }
-        {
-            SCOPED_TRACE("flow_ml");
-            TMPSTY(flowml1, ti, t, 2);
-            TMPSTY(flowml1, ti, t[2], 9);
-            TMPSTY(flowml1, ti, t[3], 17);
-            {
-                SCOPED_TRACE("indent");
-                test_emits_(ti, t, 0,
-                            "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n",
-                            "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
-            }
-            {
-                SCOPED_TRACE("no indent ml");
-                test_emits_(ti, t, 0,
-                            "[\nfoo,\nbar,\n[\nnested,\nseq\n],\n{\nnested: map\n}\n]\n",
-                            "[\n\"foo\",\n\"bar\",\n[\n\"nested\",\n\"seq\"\n],\n{\n\"nested\": \"map\"\n}\n]\n",
-                            noindent);
-            }
-        }
-        {
-            SCOPED_TRACE("flow_sl");
-            TMPSTY(flowsl, ti, t, 2);
-            TMPSTY(flowsl, ti, t[2], 9);
-            TMPSTY(flowsl, ti, t[3], 17);
-            test_emits_(ti, t, 0,
-                        "[foo,bar,[nested,seq],{nested: map}]",
-                        "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
-        }
-    }
     {
         SCOPED_TRACE("t[0]");
         {
@@ -1526,63 +1273,89 @@ TEST(emit, existing_seq_node_block)
                         "{\n  nested: map\n}\n",
                         "{\n  \"nested\": \"map\"\n}\n");
         }
+        {
+            SCOPED_TRACE("flow_mln");
+            TMPSTY(flowmln, ti, t[3], 17);
+            test_emits_(ti, t[3], 17,
+                        "{\n  nested: map\n}\n",
+                        "{\n  \"nested\": \"map\"\n}\n");
+        }
     }
-}
-
-TEST(emit, existing_map_node_flow)
-{
-    TreeAndInts ti = parse_tree_and_ints("{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}");
-    Tree & t = ti.tree;
     {
-        SCOPED_TRACE("full-top");
+        SCOPED_TRACE("root");
         {
             SCOPED_TRACE("block");
             TMPSTY(blk, ti, t, 2);
+            TMPSTY(blk, ti, t[2], 9);
+            TMPSTY(blk, ti, t[3], 17);
             test_emits_(ti, t, 0,
-                        "0: foo\n1: bar\n2: [nested,seq]\n3: {nested: map}\n",
-                        "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\"nested\",\"seq\"],\n  \"3\": {\"nested\": \"map\"}\n}\n");
+                        "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n",
+                        "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
         }
         {
             SCOPED_TRACE("flow_sl");
             TMPSTY(flowsl, ti, t, 2);
+            TMPSTY(flowsl, ti, t[2], 9);
+            TMPSTY(flowsl, ti, t[3], 17);
             test_emits_(ti, t, 0,
-                        "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}",
-                        "{\"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}}");
+                        "[foo,bar,[nested,seq],{nested: map}]",
+                        "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
         }
         {
             SCOPED_TRACE("flow_ml1");
+            TMPSTY(flowml1, ti, t, 2);
+            TMPSTY(flowml1, ti, t[2], 9);
+            TMPSTY(flowml1, ti, t[3], 17);
             {
-                TMPSTY(flowml1, ti, t, 2);
-                {
-                    SCOPED_TRACE("indent");
-                    test_emits_(ti, t, 0,
-                                "{\n  0: foo,\n  1: bar,\n  2: [nested,seq],\n  3: {nested: map}\n}\n",
-                                "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\"nested\",\"seq\"],\n  \"3\": {\"nested\": \"map\"}\n}\n");
-                }
-                {
-                    SCOPED_TRACE("no indent");
-                    test_emits_(ti, t, 0,
-                                "{\n0: foo,\n1: bar,\n2: [nested,seq],\n3: {nested: map}\n}\n",
-                                "{\n\"0\": \"foo\",\n\"1\": \"bar\",\n\"2\": [\"nested\",\"seq\"],\n\"3\": {\"nested\": \"map\"}\n}\n",
-                                noindent);
-                }
+                SCOPED_TRACE("indent");
+                test_emits_(ti, t, 0,
+                            "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n",
+                            "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
+            }
+            {
+                SCOPED_TRACE("no indent");
+                test_emits_(ti, t, 2,
+                            "[\nfoo,\nbar,\n[\nnested,\nseq\n],\n{\nnested: map\n}\n]\n",
+                            "[\n\"foo\",\n\"bar\",\n[\n\"nested\",\n\"seq\"\n],\n{\n\"nested\": \"map\"\n}\n]\n",
+                            noindent);
             }
         }
         {
             SCOPED_TRACE("flow_mln");
+            TMPSTY(flowmln, ti, t, 2);
+            TMPSTY(flowmln, ti, t[2], 9);
+            TMPSTY(flowmln, ti, t[3], 17);
             {
-                TMPSTY(flowmln, ti, t, 2);
+                SCOPED_TRACE("indent");
+                test_emits_(ti, t, 0,
+                            "[\n  foo,bar,[\n    nested,seq\n  ],{\n    nested: map\n  }\n]\n",
+                            "[\n  \"foo\",\"bar\",[\n    \"nested\",\"seq\"\n  ],{\n    \"nested\": \"map\"\n  }\n]\n");
+            }
+            {
+                SCOPED_TRACE("no indent");
+                test_emits_(ti, t, 0,
+                            "[\nfoo,bar,[\nnested,seq\n],{\nnested: map\n}\n]\n",
+                            "[\n\"foo\",\"bar\",[\n\"nested\",\"seq\"\n],{\n\"nested\": \"map\"\n}\n]\n",
+                            noindent);
+            }
+        }
+        {
+            SCOPED_TRACE("block-flow-ml");
+            {
+                TMPSTY(blk, ti, t, 2);
+                TMPSTY(flowml1, ti, t[2], 9);
+                TMPSTY(flowml1, ti, t[3], 17);
                 {
                     SCOPED_TRACE("indent");
                     test_emits_(ti, t, 0,
-                                "{\n  0: foo,1: bar,2: [nested,seq],3: {nested: map}\n}\n",
-                                "{\n  \"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}\n}\n");
+                                "- foo\n- bar\n- [\n    nested,\n    seq\n  ]\n- {\n    nested: map\n  }\n",
+                                "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
                 }
                 {
                     SCOPED_TRACE("no indent");
                     test_emits_(ti, t, 0,
-                                "{\n0: foo,1: bar,2: [nested,seq],3: {nested: map}\n}\n",
-                                "{\n\"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}\n}\n",
+                                "- foo\n- bar\n- [\n  nested,\n  seq\n  ]\n- {\n  nested: map\n  }\n",
+                                "[\n\"foo\",\n\"bar\",\n[\n\"nested\",\n\"seq\"\n],\n{\n\"nested\": \"map\"\n}\n]\n",
                                 noindent);
                 }
             }
@@ -1590,6 +1363,89 @@ TEST(emit, existing_map_node_flow)
     }
     {
         SCOPED_TRACE("full-all");
+        {
+            SCOPED_TRACE("flow_ml");
+            TMPSTY(flowml1, ti, t, 2);
+            TMPSTY(flowml1, ti, t[2], 9);
+            TMPSTY(flowml1, ti, t[3], 17);
+            {
+                SCOPED_TRACE("indent");
+                test_emits_(ti, t, 0,
+                            "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n",
+                            "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
+            }
+            {
+                SCOPED_TRACE("no indent ml");
+                test_emits_(ti, t, 0,
+                            "[\nfoo,\nbar,\n[\nnested,\nseq\n],\n{\nnested: map\n}\n]\n",
+                            "[\n\"foo\",\n\"bar\",\n[\n\"nested\",\n\"seq\"\n],\n{\n\"nested\": \"map\"\n}\n]\n",
+                            noindent);
+            }
+        }
+        {
+            SCOPED_TRACE("flow_sl");
+            TMPSTY(flowsl, ti, t, 2);
+            TMPSTY(flowsl, ti, t[2], 9);
+            TMPSTY(flowsl, ti, t[3], 17);
+            test_emits_(ti, t, 0,
+                        "[foo,bar,[nested,seq],{nested: map}]",
+                        "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
+        }
+    }
+}
+
+TEST(emit, existing_seq_node_flow_sl)
+{
+    const std::string yaml = "[foo,bar,[nested,seq],{nested: map}]";
+    SCOPED_TRACE(yaml);
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    {
+        SCOPED_TRACE("orig");
+        test_emits_(ti, ti.tree, 0,
+                    "[foo,bar,[nested,seq],{nested: map}]",
+                    "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
+    }
+    test_emit_seq_node(ti, yaml);
+}
+
+TEST(emit, existing_seq_node_flow_ml)
+{
+    const std::string yaml = "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n";
+    SCOPED_TRACE(yaml);
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    {
+        SCOPED_TRACE("orig");
+        test_emits_(ti, ti.tree, 0,
+                    "[\n  foo,\n  bar,\n  [\n    nested,\n    seq\n  ],\n  {\n    nested: map\n  }\n]\n",
+                    "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
+    }
+    test_emit_seq_node(ti, yaml);
+}
+
+TEST(emit, existing_seq_node_block)
+{
+    const std::string yaml = "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n";
+    SCOPED_TRACE(yaml);
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    {
+        SCOPED_TRACE("orig");
+        test_emits_(ti, ti.tree, 0,
+                    "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n",
+                    "[\n  \"foo\",\n  \"bar\",\n  [\n    \"nested\",\n    \"seq\"\n  ],\n  {\n    \"nested\": \"map\"\n  }\n]\n");
+    }
+    test_emit_seq_node(ti, yaml);
+}
+
+
+//-----------------------------------------------------------------------------
+
+
+static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
+{
+    SCOPED_TRACE(yaml);
+    Tree & t = ti.tree;
+    {
+        SCOPED_TRACE("root");
         {
             SCOPED_TRACE("block");
             TMPSTY(blk, ti, t, 2);
@@ -1606,7 +1462,7 @@ TEST(emit, existing_map_node_flow)
             TMPSTY(flowsl, ti, t[3], 29);
             test_emits_(ti, t, 0,
                         "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}",
-                        "{\"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}}");
+                        R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})");
         }
         {
             SCOPED_TRACE("flow_ml1");
@@ -1627,172 +1483,48 @@ TEST(emit, existing_map_node_flow)
                             noindent);
             }
         }
-    }
-    {
-        SCOPED_TRACE("t[0]");
         {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t[0], 3,
-                        "0: foo\n",
-                        "\"0\": \"foo\"\n");
-        }
-        {
-            SCOPED_TRACE("flow_ml");
+            SCOPED_TRACE("flow_ml1-flowsl");
             TMPSTY(flowml1, ti, t, 2);
-            test_emits_(ti, t[0], 3,
-                        "0: foo\n",
-                        "\"0\": \"foo\"\n");
-        }
-        {
-            SCOPED_TRACE("flow_sl");
-            TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t[0], 3,
-                        "0: foo\n",
-                        "\"0\": \"foo\"\n");
-        }
-    }
-    {
-        SCOPED_TRACE("t[1]");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t[1], 9,
-                        "1: bar\n",
-                        "\"1\": \"bar\"\n");
-        }
-        {
-            SCOPED_TRACE("flow_ml");
-            TMPSTY(flowml1, ti, t, 2);
-            test_emits_(ti, t[1], 9,
-                        "1: bar\n",
-                        "\"1\": \"bar\"\n");
-        }
-        {
-            SCOPED_TRACE("flow_sl");
-            TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t[1], 9,
-                        "1: bar\n",
-                        "\"1\": \"bar\"\n");
-        }
-    }
-    {
-        SCOPED_TRACE("t[2]");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t[2], 18);
-            test_emits_(ti, t[2], 15,
-                        "2:\n  - nested\n  - seq\n",
-                        "\"2\": [\n  \"nested\",\n  \"seq\"\n]\n");
-        }
-        {
-            SCOPED_TRACE("flow_ml1");
-            TMPSTY(flowml1, ti, t[2], 18);
-            test_emits_(ti, t[2], 15,
-                        "2: [\n    nested,\n    seq\n  ]\n", // FIXME should be indented one level, not two
-                        "\"2\": [\n  \"nested\",\n  \"seq\"\n]\n");
-        }
-        {
-            SCOPED_TRACE("flow_sl");
             TMPSTY(flowsl, ti, t[2], 18);
-            test_emits_(ti, t[2], 15,
-                        "2: [nested,seq]\n",
-                        "\"2\": [\"nested\",\"seq\"]"); // FIXME should have trailing newline
-        }
-    }
-    {
-        SCOPED_TRACE("t[3]");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t[3], 29);
-            test_emits_(ti, t[3], 26,
-                        "3:\n  nested: map\n",
-                        "\"3\": {\n  \"nested\": \"map\"\n}\n");
-        }
-        {
-            SCOPED_TRACE("flow_ml");
-            TMPSTY(flowml1, ti, t[3], 29);
-            test_emits_(ti, t[3], 26,
-                        "3: {\n    nested: map\n  }\n", // FIXME should be indented one level, not two
-                        "\"3\": {\n  \"nested\": \"map\"\n}\n");
-        }
-        {
-            SCOPED_TRACE("flow_sl");
             TMPSTY(flowsl, ti, t[3], 29);
-            test_emits_(ti, t[3], 26,
-                        "3: {nested: map}\n",
-                        "\"3\": {\"nested\": \"map\"}"); // FIXME should have trailing newline
-        }
-    }
-}
-
-TEST(emit, existing_map_node_block)
-{
-    TreeAndInts ti = parse_tree_and_ints("0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n");
-    Tree & t = ti.tree;
-    {
-        SCOPED_TRACE("full-top");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t, 0,
-                        "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n",
-                        "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n");
-        }
-        {
-            SCOPED_TRACE("block-flow-ml");
-            TMPSTY(blk, ti, t, 2);
-            TMPSTY(flowml1, ti, t[2], 18);
-            TMPSTY(flowml1, ti, t[3], 29);
-            {
-                SCOPED_TRACE("indent");
-                test_emits_(ti, t, 0,
-                            "0: foo\n1: bar\n2: [\n    nested,\n    seq\n  ]\n3: {\n    nested: map\n  }\n",
-                            "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n");
-            }
-            {
-                SCOPED_TRACE("no indent");
-                test_emits_(ti, t, 0,
-                            "0: foo\n1: bar\n2: [\n  nested,\n  seq\n  ]\n3: {\n  nested: map\n  }\n",
-                            "{\n\"0\": \"foo\",\n\"1\": \"bar\",\n\"2\": [\n\"nested\",\n\"seq\"\n],\n\"3\": {\n\"nested\": \"map\"\n}\n}\n",
-                            noindent);
-            }
-        }
-        {
-            SCOPED_TRACE("flow_ml");
-            TMPSTY(flowml1, ti, t, 2);
             {
                 SCOPED_TRACE("indent");
                 test_emits_(ti, t, 0,
                             "{\n  0: foo,\n  1: bar,\n  2: [nested,seq],\n  3: {nested: map}\n}\n",
-                            "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n");
+                            "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\"nested\",\"seq\"],\n  \"3\": {\"nested\": \"map\"}\n}\n");
             }
             {
                 SCOPED_TRACE("no indent");
                 test_emits_(ti, t, 0,
                             "{\n0: foo,\n1: bar,\n2: [nested,seq],\n3: {nested: map}\n}\n",
-                            "{\n\"0\": \"foo\",\n\"1\": \"bar\",\n\"2\": [\n\"nested\",\n\"seq\"\n],\n\"3\": {\n\"nested\": \"map\"\n}\n}\n",
+                            "{\n\"0\": \"foo\",\n\"1\": \"bar\",\n\"2\": [\"nested\",\"seq\"],\n\"3\": {\"nested\": \"map\"}\n}\n",
                             noindent);
             }
         }
         {
-            SCOPED_TRACE("flow_sl");
-            TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t, 0,
-                        "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}",
-                        R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})");
+            SCOPED_TRACE("flow_mln-flowsl");
+            TMPSTY(flowmln, ti, t, 2);
+            TMPSTY(flowsl, ti, t[2], 18);
+            TMPSTY(flowsl, ti, t[3], 29);
+            {
+                SCOPED_TRACE("indent");
+                test_emits_(ti, t, 0,
+                            "{\n  0: foo,1: bar,2: [nested,seq],3: {nested: map}\n}\n",
+                            "{\n  \"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}\n}\n");
+            }
+            {
+                SCOPED_TRACE("no indent");
+                test_emits_(ti, t, 0,
+                            "{\n0: foo,1: bar,2: [nested,seq],3: {nested: map}\n}\n",
+                            "{\n\"0\": \"foo\",\"1\": \"bar\",\"2\": [\"nested\",\"seq\"],\"3\": {\"nested\": \"map\"}\n}\n",
+                            noindent);
+            }
         }
     }
     {
         SCOPED_TRACE("full-all");
         {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, t, 2);
-            TMPSTY(blk, ti, t[2], 18);
-            TMPSTY(blk, ti, t[3], 29);
-            test_emits_(ti, t, 0,
-                        "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n",
-                        "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n");
         }
         {
             SCOPED_TRACE("flow_ml");
@@ -1920,6 +1652,61 @@ TEST(emit, existing_map_node_block)
         }
     }
 }
+
+
+TEST(emit, existing_map_node_flow_sl)
+{
+    std::string yaml = "{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}";
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    Tree & t = ti.tree;
+    {
+        SCOPED_TRACE("orig");
+        test_emits_(ti, t, 0,
+                    "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}",
+                    R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})");
+    }
+    {
+        SCOPED_TRACE("here");
+        test_emit_map_node(ti, yaml);
+    }
+}
+
+TEST(emit, existing_map_node_flow_ml)
+{
+    std::string yaml = "{\n 0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}\n}\n";
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    Tree & t = ti.tree;
+    {
+        SCOPED_TRACE("orig");
+        test_emits_(ti, t, 0,
+                    "{\n  0: foo,\n  1: bar,\n  2: [nested,seq],\n  3: {nested: map}\n}\n",
+                    "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\"nested\",\"seq\"],\n  \"3\": {\"nested\": \"map\"}\n}\n");
+    }
+    {
+        SCOPED_TRACE("here");
+        test_emit_map_node(ti, yaml);
+    }
+}
+
+TEST(emit, existing_map_node_block)
+{
+    std::string yaml = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    Tree & t = ti.tree;
+    {
+        SCOPED_TRACE("orig");
+        test_emits_(ti, t, 0,
+                    "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n",
+                    "{\n  \"0\": \"foo\",\n  \"1\": \"bar\",\n  \"2\": [\n    \"nested\",\n    \"seq\"\n  ],\n  \"3\": {\n    \"nested\": \"map\"\n  }\n}\n");
+    }
+    {
+        SCOPED_TRACE("here");
+        test_emit_map_node(ti, yaml);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
 
 TEST(emit, percent_is_quoted)
 {

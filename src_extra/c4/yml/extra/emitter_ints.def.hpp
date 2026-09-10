@@ -213,17 +213,6 @@ inline evt_size find_next_val_(evt_bits const* C4_RESTRICT evts, evt_size sz, ev
     RYML_ASSERT_BASIC_(pos > 0);
     return pos;
 }
-// The startup logic is made complicated from it having to accept
-// initial non-root nodes, and having to deal with tricky tokens like
-// doc separators, anchors, tags, optional keys or dashes, and
-// comments.
-//
-// This function kickstarts the tree descent by handling all the
-// initial and final logic at the top-level scope, thus avoiding
-// top-level kickstart branches in the recursive descending code
-// (which should be oblivious of such logic). This makes the recursive
-// descending code a lot simpler.
-inline bool showwtf(int newval=-1) { static bool val = false; if(newval >= 0) val = (newval != 0); return val; }
 struct EmitKickoff
 {
     detail::MaybeParent parent;
@@ -236,29 +225,20 @@ inline C4_NO_INLINE EmitKickoff kickoff(evt_bits const* m_evts, evt_size evts_si
     ek.parent = detail::find_parent_(m_evts, pos_);
     RYML_ASSERT_BASIC_(!ek.parent || detail::seqormap(m_evts[ek.parent.pos]));
     ek.emit_key = m_opts.emit_nonroot_key() && ek.parent && detail::hasall(m_evts[ek.parent.pos], ievt::BMAP) && (m_evts[pos_] & ievt::KEY_);
-if(showwtf()) printf("  parent=%d  emitkey=%d\n", ek.parent.pos, ek.emit_key);
-if(showwtf()) printf("  emitnonrootkey=%d hasparent=%d parentismap=%d evtiskey=%d\n",
-                     m_opts.emit_nonroot_key(),
-                     bool(ek.parent),
-                     ek.parent ? detail::hasall(m_evts[ek.parent.pos], ievt::BMAP) : 0,
-                     ek.parent ? (m_evts[pos_] & ievt::KEY_) : 0);
     ek.emit_dash = m_opts.emit_nonroot_dash() && ek.parent && detail::hasall(m_evts[ek.parent.pos], ievt::BSEQ);
     RYML_ASSERT_BASIC_(!(ek.emit_key && ek.emit_dash));
     if(ek.emit_key)
     {
         if(m_evts[pos_] & KEY_)
         {
-if(showwtf()) printf("  aqui 0.1\n");
             ek.keypos = pos_;
             pos_ = detail::find_next_val_(m_evts, evts_size, pos_);
         }
         else if(m_evts[pos_] & VAL_)
         {
-if(showwtf()) printf("  aqui 0.2\n");
             ek.keypos = detail::find_prev_key_(m_evts, pos_);
         }
     }
-if(showwtf()) printf("  aqui 1\n");
 
     if C4_UNLIKELY(!(detail::hasall(m_evts[pos_], ievt::BSTR) ||
                      detail::isentry(m_evts[pos_]) ||
@@ -319,10 +299,20 @@ void EmitterInts<Writer>::emit_as(EmitType_e type,
 
 //-----------------------------------------------------------------------------
 
+// The startup logic is made complicated from it having to accept
+// initial non-root nodes, and having to deal with tricky tokens like
+// doc separators, anchors, tags, optional keys or dashes, and
+// comments.
+//
+// This function kickstarts the tree descent by handling all the
+// initial and final logic at the top-level scope, thus avoiding
+// top-level kickstart branches in the recursive descending code
+// (which should be oblivious of such logic). This makes the recursive
+// descending code a lot simpler.
+
 template<class Writer>
 void EmitterInts<Writer>::emit_yaml_(evt_size pos)
 {
-if(detail::showwtf()) printf("enter pos=%d\n", pos);
     const detail::EmitKickoff ek = detail::kickoff(m_evts, m_evts_size, pos, m_opts);
     evt_bits evt = m_evts[pos];
 
@@ -333,10 +323,8 @@ if(detail::showwtf()) printf("enter pos=%d\n", pos);
     }
     else if(ek.emit_key)
     {
-if(detail::showwtf()) printf("  aqui 0\n");
         if(m_evts[ek.keypos] & (ievt::SCLR|ievt::ALIA))
         {
-if(detail::showwtf()) printf("  aqui 1.1\n");
             csubstr key = getstr_(ek.keypos);
             evt_bits keystyle = (m_evts[ek.keypos] & detail::styles_ievt_sclr);
             if(!keystyle)
@@ -349,7 +337,6 @@ if(detail::showwtf()) printf("  aqui 1.1\n");
         }
         else
         {
-if(detail::showwtf()) printf("  aqui 1.2\n");
             RYML_ASSERT_BASIC_(detail::seqormap(m_evts[ek.keypos]));
             write_('?');
             ++m_ilevel;
@@ -410,7 +397,6 @@ if(detail::showwtf()) printf("  aqui 1.2\n");
     {
         write_pws_and_pend_(PWS_NONE_);
     }
-if(detail::showwtf()) printf("exit pos=%d\n", pos);
 }
 
 
