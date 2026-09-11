@@ -329,8 +329,17 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
             evt_bits keystyle = (m_evts[ek.keypos] & detail::styles_ievt_sclr);
             if(!keystyle)
                 keystyle = detail::scalar_style_choose_block_ievt(key);
-            blck_write_scalar_(key, keystyle);
-            pend_none_();
+            if(keystyle & (ievt::FOLD|ievt::LITL))
+            {
+                write_("? ");
+                blck_write_scalar_(key, keystyle);
+                pend_newl_();
+            }
+            else
+            {
+                blck_write_scalar_(key, keystyle);
+                pend_none_();
+            }
             write_pws_and_pend_(PWS_SPACE_);
             write_(':');
             ++m_ilevel;
@@ -338,17 +347,29 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
         else
         {
             RYML_ASSERT_BASIC_(detail::seqormap(m_evts[ek.keypos]));
+            evt_bits keystyle = (m_evts[ek.keypos] & detail::styles_ievt_cont);
+            if(!keystyle)
+                keystyle = ievt::BLCK;
             write_('?');
             ++m_ilevel;
-            newl_();
-            evt_size kpos = ek.keypos;
-            visit_blck_container_(kpos);
+            if(keystyle & ievt::BLCK)
+            {
+                newl_();
+                indent_(m_ilevel);
+            }
+            else
+            {
+                write_(' ');
+            }
+            pos = ek.keypos;
+            visit_blck_container_(pos);
             --m_ilevel;
             pend_newl_();
             write_pws_and_pend_(PWS_SPACE_);
             write_(':');
             ++m_ilevel;
         }
+        evt = m_evts[pos]; // IMPORTANT! pos may have changed
         if(detail::seqormap(evt) && (evt & ievt::BLCK))
         {
             pend_newl_();
@@ -1368,6 +1389,8 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
         else if(detail::seqormap(evt))
         {
             ++m_depth;
+            if(evt & ievt::KEY_)
+                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto nextval; // NOLINT
@@ -1473,6 +1496,8 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         {
             write_pws_and_pend_(PWS_NONE_);
             ++m_depth;
+            if(evt & ievt::KEY_)
+                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto nextval; // NOLINT
@@ -1597,6 +1622,8 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
         {
             ++m_depth;
             write_pws_and_pend_(PWS_NONE_);
+            if(evt & ievt::KEY_)
+                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto statenext; // NOLINT
@@ -1717,6 +1744,8 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
         {
             ++m_depth;
             write_pws_and_pend_(PWS_NONE_);
+            if(evt & ievt::KEY_)
+                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto statenext; // NOLINT

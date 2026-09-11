@@ -624,24 +624,31 @@ failure:
 }
 
 using extra::ievt::evt_size;
-void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
+void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={}, bool with_json=true)
 {
     retonfail();
     RYML_TRACE_FMT("pos={}", pos);
     EXPECT_EQ(ints.emit_yaml<std::string>(opts, pos), expected_yaml);
     bailonfail();
-    EXPECT_EQ(ints.emit_json<std::string>(opts, pos), expected_json);
-    bailonfail();
     EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_yaml(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_yaml);
-    EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_json(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_json);
     EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_yaml(f, opts, pos); }), expected_yaml);
-    EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_json(f, opts, pos); }), expected_json);
     EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_yaml_stream(oss, opts, pos); }), expected_yaml);
-    EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_json_stream(oss, opts, pos); }), expected_json);
-    bailonfail();
+    if(with_json)
+    {
+        EXPECT_EQ(ints.emit_json<std::string>(opts, pos), expected_json);
+        bailonfail();
+        EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_json(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_json);
+        EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_json(f, opts, pos); }), expected_json);
+        EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_json_stream(oss, opts, pos); }), expected_json);
+        bailonfail();
+    }
     return;
 failure:
     ints.print();
+}
+void test_emits_ints_nojson(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, EmitOptions const& opts={})
+{
+    test_emits_ints(ints, pos, expected_yaml, "", opts, false);
 }
 
 void test_emits_ints(evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
@@ -719,6 +726,8 @@ void test_emits(TreeAndInts const& ti, ConstNodeRef node, std::string const& exp
 }
 
 #define test_emits_(...) { SCOPED_TRACE("test_emits"); test_emits(__VA_ARGS__); }
+#define test_emits_ints_(...) { SCOPED_TRACE("test_emits_ints"); test_emits_ints(__VA_ARGS__); }
+#define test_emits_ints_nojson_(...) { SCOPED_TRACE("test_emits_ints_nojson"); test_emits_ints_nojson(__VA_ARGS__); }
 
 
 //-----------------------------------------------------------------------------
@@ -1120,7 +1129,7 @@ level1:
 using extra::ievt::evt_bits;
 namespace xievt = extra::ievt;
 
-struct TmpContainerStyle
+struct TmpStyle
 {
     Tree *tree;
     id_type id;
@@ -1128,46 +1137,90 @@ struct TmpContainerStyle
     IntBufs *ints;
     evt_size evt_pos;
     evt_bits evt_prev;
+    bool with_key;
+    evt_size evt_pos_key;
+    evt_bits evt_prev_key;
     extra::ievt::evt_bits prev_ints;
-    TmpContainerStyle(NodeRef n, NodeType tmp) : TmpContainerStyle(n.tree(), nullptr, n.id(), tmp, {}, {}) {}
-    TmpContainerStyle(Tree &t_, id_type id_, NodeType tmp) : TmpContainerStyle(&t_, nullptr, id_, tmp, {}, {}) {}
-    TmpContainerStyle(TreeAndInts &ti, NodeRef const& n, NodeType tmp, evt_size evt_pos_, evt_bits evt) : TmpContainerStyle(&ti.tree, &ti.ints, n.id(), tmp, evt_pos_, evt) {}
-    TmpContainerStyle(TreeAndInts &ti, NodeType tmp, evt_bits evt) : TmpContainerStyle(&ti.tree, &ti.ints, ti.tree.root_id(), tmp, 0, evt) {}
-    TmpContainerStyle(Tree *tree_, IntBufs *ints_, id_type id_, NodeType tmp, evt_size evt_pos_, evt_bits evt)
+    TmpStyle(TreeAndInts &ti, NodeRef const& n, NodeType tmp, evt_size evt_pos_, evt_bits evt,
+             bool with_key_=false, evt_size evt_pos_key_={})
+        : TmpStyle(&ti.tree, &ti.ints, n.id(), tmp, evt_pos_, evt, with_key_, evt_pos_key_) {}
+    TmpStyle(Tree *tree_, IntBufs *ints_, id_type id_, NodeType tmp, evt_size evt_pos_, evt_bits evt,
+             bool with_key_=false, evt_size evt_pos_key_={})
         : tree(tree_)
         , id(id_)
-        , prev(tree_->type(id))
+        , prev()
         , ints(ints_)
         , evt_pos(evt_pos_)
         , evt_prev()
+        , with_key(with_key_)
+        , evt_pos_key(evt_pos_key_)
+        , evt_prev_key()
     {
-        (tree->_p(id)->m_type &= ~CONTAINER_STYLE) |= tmp;
+        if(tree)
+        {
+            prev = tree_->type(id);
+            (tree->_p(id)->m_type &= ~(CONTAINER_STYLE|SCALAR_STYLE)) |= tmp;
+        }
         if(ints)
         {
-            RYML_ASSERT_BASIC_(evt_pos < ints_->evts.len);
+            RYML_ASSERT_BASIC_(evt_pos < ints->evts.len);
             evt_prev = ints->evts.ptr[evt_pos];
-            RYML_ASSERT_BASIC_(evt_prev & (xievt::detail::styles_ievt_cont|xievt::BSEQ|xievt::BMAP)); // NOLINT
-            (ints->evts.ptr[evt_pos] &= ~xievt::detail::styles_ievt_cont) |= evt; // NOLINT
+            (ints->evts.ptr[evt_pos] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
+            if(with_key)
+            {
+                evt_prev_key = ints->evts.ptr[evt_pos_key];
+                (ints->evts.ptr[evt_pos_key] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
+            }
         }
     }
-    ~TmpContainerStyle()
+    ~TmpStyle()
     {
-        tree->_p(id)->m_type = prev;
+        if(tree)
+            tree->_p(id)->m_type = prev;
         if(ints)
         {
             ints->evts.ptr[evt_pos] = evt_prev;
+            if(with_key)
+                ints->evts.ptr[evt_pos_key] = evt_prev_key;
         }
     }
+
+    // legacy:
+    TmpStyle(NodeRef n, NodeType tmp) : TmpStyle(n.tree(), nullptr, n.id(), tmp, {}, {}) {}
+    TmpStyle(Tree &t_, id_type id_, NodeType tmp) : TmpStyle(&t_, nullptr, id_, tmp, {}, {}) {}
+    TmpStyle(TreeAndInts &ti, evt_size evt_pos_, evt_bits evt) : TmpStyle(nullptr, &ti.ints, {}, {}, evt_pos_, evt) {}
+    TmpStyle(TreeAndInts &ti, NodeType tmp, evt_bits evt) : TmpStyle(&ti.tree, &ti.ints, ti.tree.root_id(), tmp, 0, evt) {}
 };
 
-TmpContainerStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, xievt::BLCK}; };
-TmpContainerStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|xievt::FSL_}; };
-TmpContainerStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|xievt::FML1}; };
-TmpContainerStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|xievt::FMLN}; };
-TmpContainerStyle mkflowslspc(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, FLOW_SL|FLOW_SPC,  pos, xievt::FLOW|xievt::FSL_|xievt::FSPC}; };
-TmpContainerStyle mkflowml1spc(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, FLOW_ML1|FLOW_SPC, pos, xievt::FLOW|xievt::FML1|xievt::FSPC}; };
-TmpContainerStyle mkflowmlnspc(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, FLOW_MLN|FLOW_SPC, pos, xievt::FLOW|xievt::FMLN|xievt::FSPC}; };
-#define TMPSTY(sty, ...) TmpContainerStyle C4_XCAT(tmpsty_, __LINE__) = mk##sty(__VA_ARGS__)
+TmpStyle mknosty(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, NodeType{},  pos, evt_bits{}}; };
+
+TmpStyle mkplai(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_PLAIN,  pos, xievt::PLAI}; }
+TmpStyle mksquo(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_SQUO,  pos, xievt::SQUO}; }
+TmpStyle mkdquo(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_DQUO,  pos, xievt::DQUO}; }
+TmpStyle mkfold(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_FOLDED,  pos, xievt::FOLD}; }
+TmpStyle mklitl(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_LITERAL,  pos, xievt::LITL}; }
+
+TmpStyle mkplaikv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_PLAIN|VAL_PLAIN,  vpos, xievt::PLAI, true,  kpos}; }
+TmpStyle mksquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_SQUO|VAL_SQUO,  vpos, xievt::SQUO, true,  kpos}; }
+TmpStyle mkdquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_DQUO|VAL_DQUO,  vpos, xievt::DQUO, true,  kpos}; }
+TmpStyle mkfoldkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_FOLDED|VAL_FOLDED,  vpos, xievt::FOLD, true,  kpos}; }
+TmpStyle mklitlkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_LITERAL|VAL_LITERAL,  vpos, xievt::LITL, true,  kpos}; }
+
+TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, xievt::BLCK}; };
+TmpStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|xievt::FSL_|spc}; };
+TmpStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|xievt::FML1|spc}; };
+TmpStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|xievt::FMLN|spc}; };
+
+TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::BLCK}; };
+TmpStyle mkflowsl(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FSL_|spc}; };
+TmpStyle mkflowml1(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FML1|spc}; };
+TmpStyle mkflowmln(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FMLN|spc}; };
+// use the extra arg to disambiguate overloads above ^
+TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::BLCK, true, kpos}; };
+TmpStyle mkflowsl(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FSL_|spc, true, kpos}; };
+TmpStyle mkflowml1(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FML1|spc, true, kpos}; };
+TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FMLN|spc, true, kpos}; };
+#define TMPSTY(sty, ...) TmpStyle C4_XCAT(tmpsty_, __LINE__) = mk##sty(__VA_ARGS__)
 
 static void test_emit_seq_node(TreeAndInts & ti, std::string const& yaml)
 {
@@ -1175,48 +1228,120 @@ static void test_emit_seq_node(TreeAndInts & ti, std::string const& yaml)
     Tree & t = ti.tree;
     {
         SCOPED_TRACE("t[0]");
+        auto testfoo = [&]{
+            {
+                SCOPED_TRACE("orig");
+                test_emits_(ti, t[0], 3, "foo", "\"foo\"");
+            }
+            {
+                SCOPED_TRACE("plain");
+                TMPSTY(plai, ti, t[0], 3);
+                test_emits_(ti, t[0], 3, "foo", "\"foo\"");
+            }
+            {
+                SCOPED_TRACE("squo");
+                TMPSTY(squo, ti, t[0], 3);
+                test_emits_(ti, t[0], 3, "'foo'", "\"foo\"");
+            }
+            {
+                SCOPED_TRACE("dquo");
+                TMPSTY(dquo, ti, t[0], 3);
+                test_emits_(ti, t[0], 3, "\"foo\"", "\"foo\"");
+            }
+            {
+                SCOPED_TRACE("fold");
+                TMPSTY(fold, ti, t[0], 3);
+                test_emits_(ti, t[0], 3, ">-\n  foo", "\"foo\"");
+            }
+            {
+                SCOPED_TRACE("litl");
+                TMPSTY(litl, ti, t[0], 3);
+                test_emits_(ti, t[0], 3, "|-\n  foo", "\"foo\"");
+            }
+            {
+                SCOPED_TRACE("nosty");
+                TMPSTY(nosty, ti, t[0], 3);
+                test_emits_(ti, t[0], 3, "foo", "\"foo\"");
+            }
+        };
         {
             SCOPED_TRACE("block");
             TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
+            testfoo();
         }
         {
             SCOPED_TRACE("flow_sl");
             TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
+            testfoo();
         }
         {
             SCOPED_TRACE("flow_ml1");
             TMPSTY(flowml1, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
+            testfoo();
         }
         {
             SCOPED_TRACE("flow_mln");
             TMPSTY(flowmln, ti, t, 2);
-            test_emits_(ti, t[0], 3, "foo", "\"foo\"");
+            testfoo();
         }
     }
     {
-        SCOPED_TRACE("t[1]");
+        SCOPED_TRACE("t[1]=bar");
+        auto testbar = [&]{
+            {
+                SCOPED_TRACE("orig");
+                test_emits_(ti, t[1], 6, "bar", "\"bar\"");
+            }
+            {
+                SCOPED_TRACE("plain");
+                TMPSTY(plai, ti, t[1], 6);
+                test_emits_(ti, t[1], 6, "bar", "\"bar\"");
+            }
+            {
+                SCOPED_TRACE("squo");
+                TMPSTY(squo, ti, t[1], 6);
+                test_emits_(ti, t[1], 6, "'bar'", "\"bar\"");
+            }
+            {
+                SCOPED_TRACE("dquo");
+                TMPSTY(dquo, ti, t[1], 6);
+                test_emits_(ti, t[1], 6, "\"bar\"", "\"bar\"");
+            }
+            {
+                SCOPED_TRACE("fold");
+                TMPSTY(fold, ti, t[1], 6);
+                test_emits_(ti, t[1], 6, ">-\n  bar", "\"bar\"");
+            }
+            {
+                SCOPED_TRACE("litl");
+                TMPSTY(litl, ti, t[1], 6);
+                test_emits_(ti, t[1], 6, "|-\n  bar", "\"bar\"");
+            }
+            {
+                SCOPED_TRACE("nosty");
+                TMPSTY(nosty, ti, t[1], 6);
+                test_emits_(ti, t[1], 6, "bar", "\"bar\"");
+            }
+        };
         {
             SCOPED_TRACE("block");
             TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
+            testbar();
         }
         {
             SCOPED_TRACE("flow_sl");
             TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
+            testbar();
         }
         {
             SCOPED_TRACE("flow_ml1");
             TMPSTY(flowml1, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
+            testbar();
         }
         {
             SCOPED_TRACE("flow_mln");
             TMPSTY(flowmln, ti, t, 2);
-            test_emits_(ti, t[1], 6, "bar", "\"bar\"");
+            testbar();
         }
     }
     {
@@ -1557,26 +1682,98 @@ static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
     }
     {
         SCOPED_TRACE("t[0]");
+        auto testfoo = [&]{
+            {
+                SCOPED_TRACE("orig");
+                {
+                    SCOPED_TRACE("key");
+                    test_emits_(ti, t[0], 3, "0: foo\n", "\"0\": \"foo\"\n");
+                }
+                {
+                    SCOPED_TRACE("nokey");
+                    test_emits_(ti, t[0], 6, "foo", "\"foo\"", without_key);
+                }
+            }
+            {
+                SCOPED_TRACE("plai");
+                TMPSTY(plaikv, ti, t[0], 3, 6);
+                {
+                    SCOPED_TRACE("key");
+                    test_emits_(ti, t[0], 3, "0: foo\n", "\"0\": \"foo\"\n");
+                }
+                {
+                    SCOPED_TRACE("nokey");
+                    test_emits_(ti, t[0], 6, "foo", "\"foo\"", without_key);
+                }
+            }
+            {
+                SCOPED_TRACE("squo");
+                TMPSTY(squokv, ti, t[0], 3, 6);
+                {
+                    SCOPED_TRACE("key");
+                    test_emits_(ti, t[0], 3, "'0': 'foo'\n", "\"0\": \"foo\"\n");
+                }
+                {
+                    SCOPED_TRACE("nokey");
+                    test_emits_(ti, t[0], 6, "'foo'", "\"foo\"", without_key);
+                }
+            }
+            {
+                SCOPED_TRACE("dquo");
+                TMPSTY(dquokv, ti, t[0], 3, 6);
+                {
+                    SCOPED_TRACE("key");
+                    test_emits_(ti, t[0], 3, "\"0\": \"foo\"\n", "\"0\": \"foo\"\n");
+                }
+                {
+                    SCOPED_TRACE("nokey");
+                    test_emits_(ti, t[0], 6, "\"foo\"", "\"foo\"", without_key);
+                }
+            }
+            {
+                SCOPED_TRACE("litl");
+                TMPSTY(litlkv, ti, t[0], 3, 6);
+                {
+                    SCOPED_TRACE("key");
+                    test_emits_(ti, t[0], 3, "? |-\n  0\n: |-\n    foo\n", "\"0\": \"foo\"\n");
+                }
+                {
+                    SCOPED_TRACE("nokey");
+                    test_emits_(ti, t[0], 6, "|-\n  foo", "\"foo\"", without_key);
+                }
+            }
+            {
+                SCOPED_TRACE("fold");
+                TMPSTY(foldkv, ti, t[0], 3, 6);
+                {
+                    SCOPED_TRACE("key");
+                    test_emits_(ti, t[0], 3, "? >-\n  0\n: >-\n    foo\n", "\"0\": \"foo\"\n");
+                }
+                {
+                    SCOPED_TRACE("nokey");
+                    test_emits_(ti, t[0], 6, ">-\n  foo", "\"foo\"", without_key);
+                }
+            }
+        };
         {
             SCOPED_TRACE("block");
             TMPSTY(blk, ti, t, 2);
-            test_emits_(ti, t[0], 3,
-                        "0: foo\n",
-                        "\"0\": \"foo\"\n");
+            testfoo();
         }
         {
-            SCOPED_TRACE("flow_ml");
+            SCOPED_TRACE("flow_ml1");
             TMPSTY(flowml1, ti, t, 2);
-            test_emits_(ti, t[0], 3,
-                        "0: foo\n",
-                        "\"0\": \"foo\"\n");
+            testfoo();
+        }
+        {
+            SCOPED_TRACE("flow_mln");
+            TMPSTY(flowmln, ti, t, 2);
+            testfoo();
         }
         {
             SCOPED_TRACE("flow_sl");
             TMPSTY(flowsl, ti, t, 2);
-            test_emits_(ti, t[0], 3,
-                        "0: foo\n",
-                        "\"0\": \"foo\"\n");
+            testfoo();
         }
     }
     {
@@ -1656,7 +1853,7 @@ static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
 
 TEST(emit, existing_map_node_flow_sl)
 {
-    std::string yaml = "{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}";
+    const std::string yaml = "{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}";
     TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
     Tree & t = ti.tree;
     {
@@ -1673,7 +1870,7 @@ TEST(emit, existing_map_node_flow_sl)
 
 TEST(emit, existing_map_node_flow_ml)
 {
-    std::string yaml = "{\n 0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}\n}\n";
+    const std::string yaml = "{\n 0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}\n}\n";
     TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
     Tree & t = ti.tree;
     {
@@ -1690,7 +1887,7 @@ TEST(emit, existing_map_node_flow_ml)
 
 TEST(emit, existing_map_node_block)
 {
-    std::string yaml = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
+    const std::string yaml = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
     TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
     Tree & t = ti.tree;
     {
@@ -1702,6 +1899,425 @@ TEST(emit, existing_map_node_block)
     {
         SCOPED_TRACE("here");
         test_emit_map_node(ti, yaml);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(emit, container_key_seq_flow)
+{
+    SCOPED_TRACE("container_key_map_flow");
+    IntBufs ints;
+    std::string yaml = "[key, is, a, seq]: [val, is, a, seq]";
+    parse_ints(to_substr(yaml), &ints);
+    test_emits_ints_nojson_(ints, 0, "? [key,is,a,seq]\n: [val,is,a,seq]\n");
+    using strref = std::string const&;
+    {
+        SCOPED_TRACE("root-blk");
+        TMPSTY(blk, ints, 2);
+        auto dotest = [&](strref keyval, strref key, strref val){
+            test_emits_ints_nojson_(ints, 0, keyval);
+            test_emits_ints_nojson_(ints, 1, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval, without_key);
+            test_emits_ints_nojson_(ints, 3, keyval);
+            test_emits_ints_nojson_(ints, 3, key, without_key);
+            test_emits_ints_nojson_(ints, 17, val);
+            test_emits_ints_nojson_(ints, 17, val, without_key);
+        };
+        {
+            SCOPED_TRACE("kv-blk");
+            TMPSTY(blk, ints, ints, 3, 17);
+            dotest("?\n  - key\n  - is\n  - a\n  - seq\n:\n  - val\n  - is\n  - a\n  - seq\n",
+                   "- key\n- is\n- a\n- seq\n",
+                   "- val\n- is\n- a\n- seq\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+    auto dotest = [&](strref full, strref keyval, strref key, strref val){
+        test_emits_ints_nojson_(ints, 0, full);
+        test_emits_ints_nojson_(ints, 1, full);
+        test_emits_ints_nojson_(ints, 2, full);
+        test_emits_ints_nojson_(ints, 2, full, without_key);
+        test_emits_ints_nojson_(ints, 3, keyval);
+        test_emits_ints_nojson_(ints, 3, key, without_key);
+        test_emits_ints_nojson_(ints, 17, val);
+        test_emits_ints_nojson_(ints, 17, val, without_key);
+    };
+    {
+        SCOPED_TRACE("root-flowsl");
+        TMPSTY(flowsl, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{? [\n  key,\n  is,\n  a,\n  seq\n]: [\n  val,\n  is,\n  a,\n  seq\n]}",
+                   "? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{? [\n  key,is,a,seq\n]: [\n  val,is,a,seq\n]}",
+                   "? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? [\n  key, is, a, seq\n]: [\n  val, is, a, seq\n]}",
+                   "? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{? [key,is,a,seq]: [val,is,a,seq]}",
+                   "? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? [key, is, a, seq]: [val, is, a, seq]}",
+                   "? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowml1");
+        TMPSTY(flowml1, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,\n    is,\n    a,\n    seq\n  ]: [\n    val,\n    is,\n    a,\n    seq\n  ]\n}\n",
+                   "? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,is,a,seq\n  ]: [\n    val,is,a,seq\n  ]\n}\n",
+                   "? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? [\n    key, is, a, seq\n  ]: [\n    val, is, a, seq\n  ]\n}\n",
+                   "? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? [key,is,a,seq]: [val,is,a,seq]\n}\n",
+                   "? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? [key, is, a, seq]: [val, is, a, seq]\n}\n",
+                   "? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowmln");
+        TMPSTY(flowmln, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,is,a,seq\n  ]: [\n    val,is,a,seq\n  ]\n}\n",
+                   "? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,is,a,seq\n  ]: [\n    val,is,a,seq\n  ]\n}\n",
+                   "? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? [\n    key, is, a, seq\n  ]: [\n    val, is, a, seq\n  ]\n}\n",
+                   "? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? [key,is,a,seq]: [val,is,a,seq]\n}\n",
+                   "? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? [key, is, a, seq]: [val, is, a, seq]\n}\n",
+                   "? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+}
+
+TEST(emit, container_key_map_flow)
+{
+    SCOPED_TRACE("container_key_map_flow");
+    IntBufs ints;
+    std::string yaml = "{key: is, a: map}: {val: is, a: map}";
+    parse_ints(to_substr(yaml), &ints);
+    test_emits_ints_nojson_(ints, 0, "? {key: is,a: map}\n: {val: is,a: map}\n");
+    using strref = std::string const&;
+    {
+        SCOPED_TRACE("root-blk");
+        TMPSTY(blk, ints, 2);
+        auto dotest = [&](strref keyval, strref key, strref val){
+            test_emits_ints_nojson_(ints, 0, keyval);
+            test_emits_ints_nojson_(ints, 1, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval, without_key);
+            test_emits_ints_nojson_(ints, 3, keyval);
+            test_emits_ints_nojson_(ints, 3, key, without_key);
+            test_emits_ints_nojson_(ints, 17, val);
+            test_emits_ints_nojson_(ints, 17, val, without_key);
+        };
+        {
+            SCOPED_TRACE("kv-blk");
+            TMPSTY(blk, ints, ints, 3, 17);
+            dotest("?\n  key: is\n  a: map\n:\n  val: is\n  a: map\n",
+                   "key: is\na: map\n",
+                   "val: is\na: map\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
+    }
+    auto dotest = [&](strref full, strref keyval, strref key, strref val){
+        test_emits_ints_nojson_(ints, 0, full);
+        test_emits_ints_nojson_(ints, 1, full);
+        test_emits_ints_nojson_(ints, 2, full);
+        test_emits_ints_nojson_(ints, 2, full, without_key);
+        test_emits_ints_nojson_(ints, 3, keyval);
+        test_emits_ints_nojson_(ints, 3, key, without_key);
+        test_emits_ints_nojson_(ints, 17, val);
+        test_emits_ints_nojson_(ints, 17, val, without_key);
+    };
+    {
+        SCOPED_TRACE("root-flowsl");
+        TMPSTY(flowsl, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{? {\n  key: is,\n  a: map\n}: {\n  val: is,\n  a: map\n}}",
+                   "? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{? {\n  key: is,a: map\n}: {\n  val: is,a: map\n}}",
+                   "? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? {\n  key: is, a: map\n}: {\n  val: is, a: map\n}}",
+                   "? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{? {key: is,a: map}: {val: is,a: map}}",
+                   "? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? {key: is, a: map}: {val: is, a: map}}",
+                   "? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowml1");
+        TMPSTY(flowml1, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,\n    a: map\n  }: {\n    val: is,\n    a: map\n  }\n}\n",
+                   "? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {\n    key: is, a: map\n  }: {\n    val: is, a: map\n  }\n}\n",
+                   "? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? {key: is,a: map}: {val: is,a: map}\n}\n",
+                   "? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {key: is, a: map}: {val: is, a: map}\n}\n",
+                   "? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowmln");
+        TMPSTY(flowmln, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? {key: is,a: map}: {val: is,a: map}\n}\n",
+                   "? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {key: is,a: map}: {val: is,a: map}\n}\n",
+                   "? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
     }
 }
 

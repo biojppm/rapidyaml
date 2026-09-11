@@ -152,8 +152,7 @@ void Emitter<Writer>::emit_yaml_(id_type id)
     }
     else if(m_tree->is_root(id)
        || emit_dash || emit_key
-       || !ty.is_val()
-       || !ty.is_val_plain())
+       || !ty.is_val())
     {
         write_pws_and_pend_(PWS_NONE_);
     }
@@ -1319,6 +1318,8 @@ void Emitter<Writer>::json_emit_(id_type id)
     if C4_UNLIKELY(ty.is_stream() && m_opts.json_err_on_stream())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "found stream node");
     static_assert(STREAM & SEQ, "STREAM must be a SEQ");
+    if(!m_tree->is_root(id) && !m_opts.emit_nonroot_key())
+        ty &= ~(KEY|KEY_STYLE);
     ty = detail::json_type_(ty);
     if(ty.is_flow_mlx())
     {
