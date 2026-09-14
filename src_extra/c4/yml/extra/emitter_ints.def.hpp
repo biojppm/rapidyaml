@@ -106,6 +106,16 @@ inline evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts
     return accum;
 }
 
+inline bool key_requires_qmark_block(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
+{
+    return get_all_bits_key(evts, evts_size, pos) & (ievt::SEQ_|ievt::MAP_|ievt::LITL|ievt::FOLD);
+}
+
+inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
+{
+    return get_all_bits_key(evts, evts_size, pos) & (ievt::SEQ_|ievt::MAP_);
+}
+
 inline bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
     RYML_ASSERT_BASIC_(evts[pos] & ievt::EDOC);
@@ -1221,7 +1231,6 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
     RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BMAP));
     bool statenew = true;
     bool statekey = true;
-    bool qmark = false;
     ++pos;
     evt_bits evt = {};
     while(pos < m_evts_size)
@@ -1236,9 +1245,7 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
         {
             if(statekey)
             {
-                evt_bits bits = detail::get_all_bits_key(m_evts, m_evts_size, pos);
-                qmark = bits & (ievt::SEQ_|ievt::MAP_|ievt::LITL|ievt::FOLD);
-                if(!qmark)
+                if(!detail::key_requires_qmark_block(m_evts, m_evts_size, pos))
                 {
                     write_pws_and_pend_(PWS_NONE_);
                 }
@@ -1601,7 +1608,12 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
         }
         if(statenew)
         {
-            if(!statekey)
+            if(statekey)
+            {
+                if(detail::key_requires_qmark_flow(m_evts, m_evts_size, pos))
+                    write_("? ");
+            }
+            else
             {
                 write_pws_and_pend_(PWS_SPACE_);
                 write_(':');
@@ -1622,8 +1634,6 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
         {
             ++m_depth;
             write_pws_and_pend_(PWS_NONE_);
-            if(evt & ievt::KEY_)
-                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto statenext; // NOLINT
@@ -1723,7 +1733,15 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
         }
         if(statenew)
         {
-            if(!statekey)
+            if(statekey)
+            {
+                if(detail::key_requires_qmark_flow(m_evts, m_evts_size, pos))
+                {
+                    write_pws_and_pend_(PWS_NONE_);
+                    write_("? ");
+                }
+            }
+            else
             {
                 write_pws_and_pend_(PWS_SPACE_);
                 write_(':');
@@ -1744,8 +1762,6 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
         {
             ++m_depth;
             write_pws_and_pend_(PWS_NONE_);
-            if(evt & ievt::KEY_)
-                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto statenext; // NOLINT

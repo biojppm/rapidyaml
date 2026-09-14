@@ -240,7 +240,7 @@ ENGINE_TEST(QmrkFlowSeq1,
             HAS_CONTAINER_KEYS,
             "{ ? [a, b]: c , }"
             ,
-            "{[a,b]: c}"
+            "{? [a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -271,7 +271,7 @@ ENGINE_TEST(QmrkFlowSeq1Double,
             HAS_CONTAINER_KEYS,
             "{ ? [a, b]: c ,  ? [a, b]: c }"
             ,
-            "{[a,b]: c,[a,b]: c}"
+            "{? [a,b]: c,? [a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -313,7 +313,7 @@ ENGINE_TEST(QmrkFlowSeq1Anchor,
             HAS_CONTAINER_KEYS,
             "{ ? &anchor [a, b]: c , }"
             ,
-            "{&anchor [a,b]: c}"
+            "{? &anchor [a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -345,7 +345,7 @@ ENGINE_TEST(QmrkFlowSeq1Tag,
             HAS_CONTAINER_KEYS,
             "{ ? !tag [a, b]: c , }"
             ,
-            "{!tag [a,b]: c}"
+            "{? !tag [a,b]: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -377,7 +377,7 @@ ENGINE_TEST(QmrkFlow1Map,
             HAS_CONTAINER_KEYS,
             "{ ? {a: b}: c , }"
             ,
-            "{{a: b}: c}"
+            "{? {a: b}: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -408,7 +408,7 @@ ENGINE_TEST(QmrkFlow1MapAnchor,
             HAS_CONTAINER_KEYS,
             "{ ? &anchor {a: b}: c , }"
             ,
-            "{&anchor {a: b}: c}"
+            "{? &anchor {a: b}: c}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -440,7 +440,7 @@ ENGINE_TEST(QmrkFlow1MapTag,
             HAS_CONTAINER_KEYS,
             "{ ? !tag {a: b}: c , }"
             ,
-            "{!tag {a: b}: c}"
+            "{? !tag {a: b}: c}"
             ,
             "+STR\n"
             "+DOC\n"
