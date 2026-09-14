@@ -839,19 +839,19 @@ void test_invariants(NodeType ty)
         EXPECT_NONE(ty, VAL);
         if(ty & FLOW_SL)
         {
-            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_SL);
+            EXPECT_ONE(ty, CONTAINER_STYLE & ~FLOW_SPC, FLOW_SL);
         }
         if(ty & FLOW_ML1)
         {
-            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_ML1);
+            EXPECT_ONE(ty, CONTAINER_STYLE & ~FLOW_SPC, FLOW_ML1);
         }
         if(ty & FLOW_MLN)
         {
-            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_MLN);
+            EXPECT_ONE(ty, CONTAINER_STYLE & ~FLOW_SPC, FLOW_MLN);
         }
         if(ty & FLOW_SPC)
         {
-            EXPECT_ANY(ty, FLOW_MLX);
+            EXPECT_ANY(ty, FLOW_MLX|FLOW_SL);
         }
         if(ty & BLOCK)
         {

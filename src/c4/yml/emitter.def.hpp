@@ -81,7 +81,7 @@ void Emitter<Writer>::emit_as(EmitType_e type, Tree const* tree, id_type id)
 // This function kickstarts the tree descent by handling all the
 // initial and final logic at the top-level scope, thus avoiding
 // top-level kickstart branches in the recursive descending code
-// (which should be oblivious of such logic). This makes the recursive
+// (which should be oblivious to such logic). This makes the recursive
 // descending code a lot simpler.
 template<class Writer>
 void Emitter<Writer>::emit_yaml_(id_type id)
@@ -152,8 +152,7 @@ void Emitter<Writer>::emit_yaml_(id_type id)
     }
     else if(m_tree->is_root(id)
        || emit_dash || emit_key
-       || !ty.is_val()
-       || !ty.is_val_plain())
+       || !ty.is_val())
     {
         write_pws_and_pend_(PWS_NONE_);
     }
@@ -1227,7 +1226,6 @@ void Emitter<Writer>::write_scalar_dquo_(csubstr s, id_type ilevel)
             pos = i+1;
             break;
         }
-#ifndef prefer_writing_newlines_as_double_newlines
         case '\n':
         {
             csubstr sub = s.range(pos, i);
@@ -1237,50 +1235,6 @@ void Emitter<Writer>::write_scalar_dquo_(csubstr s, id_type ilevel)
             (void)ilevel;
             break;
         }
-#else
-        case '\n':
-        {
-            // write everything up to (excluding) this newline
-            //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
-            _write(s.range(pos, i));
-            i = _write_escaped_newlines(s, i);
-            ++i;
-            pos = i;
-            // as for the next line...
-            if(i < s.len)
-            {
-                _indent(ilevel + 1); // indent the next line
-                // escape leading whitespace, and flush it
-                size_t first = s.first_not_of(" \t", i);
-                //_c4dbgpf("@i={} first={} rem=[{}]~~~{}~~~", i, first, s.sub(i).len, s.sub(i));
-                if(first > i)
-                {
-                    if(first == npos)
-                        first = s.len;
-                    _write('\\');
-                    _write(s.range(i, first));
-                    _write('\\');
-                    i = first-1;
-                    pos = first;
-                }
-            }
-            break;
-        }
-        // escape trailing whitespace before a newline
-        case ' ':
-        case '\t':
-        {
-            const size_t next = s.first_not_of(" \t\r", i);
-            if(next != npos && s.str[next] == '\n')
-            {
-                csubstr sub = s.range(pos, i);
-                _write(sub);  // write everything up to (excluding) this char
-                _write('\\'); // escape the whitespace
-                pos = i;
-            }
-            break;
-        }
-#endif
         case '\r':
         {
             csubstr sub = s.range(pos, i);
@@ -1364,6 +1318,8 @@ void Emitter<Writer>::json_emit_(id_type id)
     if C4_UNLIKELY(ty.is_stream() && m_opts.json_err_on_stream())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "found stream node");
     static_assert(STREAM & SEQ, "STREAM must be a SEQ");
+    if(!m_tree->is_root(id) && !m_opts.emit_nonroot_key())
+        ty &= ~(KEY|KEY_STYLE);
     ty = detail::json_type_(ty);
     if(ty.is_flow_mlx())
     {
@@ -1373,6 +1329,8 @@ void Emitter<Writer>::json_emit_(id_type id)
     else
     {
         json_visit_sl_(id, ty, 0);
+        if(ty.is_keyval())
+            newl_();
     }
 }
 

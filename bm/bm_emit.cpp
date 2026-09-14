@@ -200,6 +200,9 @@ void bm_yamlcpp(bm::State& st)
     s_bm_case->report(st);
 }
 
+
+//-----------------------------------------------------------------------------
+
 void bm_ryml_yaml_ostream(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
