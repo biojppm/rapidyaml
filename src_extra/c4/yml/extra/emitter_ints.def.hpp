@@ -152,14 +152,14 @@ inline MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) 
         {
             if(evt & (ievt::SEQ_|ievt::MAP_))
             {
-                if(!count)
+                if(count)
                 {
-                    p.pos = pos;
-                    break;
+                    --count;
                 }
                 else
                 {
-                    --count;
+                    p.pos = pos;
+                    break;
                 }
             }
         }
@@ -172,25 +172,49 @@ inline evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size p
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::ESEQ) ||
                        detail::hasall(evts[pos], ievt::EMAP));
-    const evt_bits close = evts[pos];
-    const evt_bits open = (evts[pos] & ~ievt::END_) | ievt::BEG_;
-    pos = ievt::prevpos(evts[pos]); // don't count the starting close token
+    evt_bits evt = evts[pos];
+    const evt_bits close = (evt & mask_open_close);
+    const evt_bits open = (close & ~ievt::END_) | ievt::BEG_;
+    pos += ievt::prevpos(evt); // don't count the starting close token
     uint32_t count = 0;
     while(pos >= 0)
     {
-        const evt_bits e = evts[pos];
-        if((e & close) == close)
+        evt = evts[pos];
+        if((evt & close) == close)
         {
             ++count;
         }
-        else if((e & open) == open)
+        else if((evt & open) == open)
         {
-            if(!count)
+            if(!(count--))
                 return pos;
-            else
-                --count;
         }
-        pos = ievt::prevpos(e);
+        pos -= ievt::prevpos(evt);
+    }
+    RYML_ERR_BASIC_("evt error");
+}
+inline evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::BSEQ) ||
+                       detail::hasall(evts[pos], ievt::BMAP));
+    evt_bits evt = evts[pos];
+    const evt_bits open = evt & mask_open_close;
+    const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
+    pos += ievt::nextpos(evt); // don't count the starting close token
+    uint32_t count = 0;
+    while(pos < sz)
+    {
+        evt = evts[pos];
+        if((evt & open) == open)
+        {
+            ++count;
+        }
+        else if((evt & close) == close)
+        {
+            if(!(count--))
+                return pos;
+        }
+        pos += ievt::nextpos(evt);
     }
     RYML_ERR_BASIC_("evt error");
 }
@@ -200,25 +224,38 @@ inline evt_size find_prev_key_(evt_bits const* C4_RESTRICT evts, evt_size pos) R
     while(pos > 0)
     {
         const evt_bits evt = evts[pos];
-        if(evt & ievt::KEY_)
+        if(detail::hasall(evt, ievt::ESEQ) ||
+           detail::hasall(evt, ievt::EMAP))
         {
-            if(evt & (ievt::SCLR|ievt::ALIA))
-                return pos;
-            else if(detail::hasall(evt, ievt::ESEQ) ||
-                    detail::hasall(evt, ievt::EMAP))
-                return find_matching_open_(evts, pos);
+            pos = find_matching_open_(evts, pos);
         }
-        pos -= ievt::prevpos(evt);
+        else if(evt & ievt::KEY_)
+        {
+            if(detail::isentry(evt))
+                return pos;
+        }
+        else
+        {
+            pos -= ievt::prevpos(evt);
+        }
     }
     RYML_ERR_BASIC_("evt error");
 }
-inline evt_size find_next_val_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
+inline evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT
 {
+    evt_bits evt = evts[pos];
+    if(detail::seqormap(evt & ~ievt::STRM))
+    {
+        if(evt & key_or_val)
+            return pos;
+        pos = find_matching_close_(evts, sz, pos);
+    }
     while(pos < sz)
     {
-        if((evts[pos] & ievt::VAL_) && detail::isentry(evts[pos]))
+        evt = evts[pos];
+        if((evt & key_or_val) && detail::isentry(evt))
             return pos;
-        pos += ievt::nextpos(evts[pos]);
+        pos += ievt::nextpos(evt);
     }
     RYML_ASSERT_BASIC_(pos > 0);
     return pos;
@@ -226,37 +263,49 @@ inline evt_size find_next_val_(evt_bits const* C4_RESTRICT evts, evt_size sz, ev
 struct EmitKickoff
 {
     detail::MaybeParent parent;
-    evt_size keypos;
+    evt_size keypos, valpos;
     bool emit_dash, emit_key;
 };
-inline C4_NO_INLINE EmitKickoff kickoff(evt_bits const* m_evts, evt_size evts_size, evt_size &pos_, EmitOptions const& m_opts)
+inline C4_NO_INLINE EmitKickoff kickoff(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
 {
+    if C4_UNLIKELY(pos >= sz)
+        RYML_ERR_BASIC_("emit element is not one of (map, seq, scalar, ref, doc)");
     EmitKickoff ek;
-    ek.parent = detail::find_parent_(m_evts, pos_);
-    RYML_ASSERT_BASIC_(!ek.parent || detail::seqormap(m_evts[ek.parent.pos]));
-    ek.emit_key = m_opts.emit_nonroot_key() && ek.parent && detail::hasall(m_evts[ek.parent.pos], ievt::BMAP) && (m_evts[pos_] & ievt::KEY_);
-    ek.emit_dash = m_opts.emit_nonroot_dash() && ek.parent && detail::hasall(m_evts[ek.parent.pos], ievt::BSEQ);
+    ek.parent = detail::find_parent_(evts, pos);
+    RYML_ASSERT_BASIC_(!ek.parent || detail::seqormap(evts[ek.parent.pos]));
+    ek.emit_key = m_opts.emit_nonroot_key() && ek.parent && detail::hasall(evts[ek.parent.pos], ievt::BMAP) && (evts[pos] & ievt::KEY_);
+    ek.emit_dash = m_opts.emit_nonroot_dash() && ek.parent && detail::hasall(evts[ek.parent.pos], ievt::BSEQ);
     RYML_ASSERT_BASIC_(!(ek.emit_key && ek.emit_dash));
+    const evt_bits evt = evts[pos];
     if(ek.emit_key)
     {
-        if(m_evts[pos_] & KEY_)
+        if(evt & KEY_)
         {
-            ek.keypos = pos_;
-            pos_ = detail::find_next_val_(m_evts, evts_size, pos_);
+            ek.keypos = detail::find_next_entry_(evts, sz, pos, ievt::KEY_);
         }
-        else if(m_evts[pos_] & VAL_)
+        else
         {
-            ek.keypos = detail::find_prev_key_(m_evts, pos_);
+            RYML_ASSERT_BASIC_(evt & VAL_);
+            ek.keypos = detail::find_prev_key_(evts, pos);
         }
+        ek.valpos = detail::find_next_entry_(evts, sz, ek.keypos, ievt::VAL_);
+        RYML_ASSERT_BASIC_(ek.keypos < sz);
+        RYML_ASSERT_BASIC_(ek.keypos < ek.valpos);
     }
-
-    if C4_UNLIKELY(!(detail::hasall(m_evts[pos_], ievt::BSTR) ||
-                     detail::isentry(m_evts[pos_]) ||
-                     detail::hasall(m_evts[pos_], ievt::BDOC)))
-        RYML_ERR_BASIC_("emit element is not one of (map, seq, scalar, ref, doc)");
-
+    else
+    {
+        ek.valpos = pos;
+        if(!(detail::isentry(evt) ||
+             detail::hasall(evt, ievt::BSTR) ||
+             detail::hasall(evt, ievt::BDOC)))
+           ek.valpos = detail::find_next_entry_(evts, sz, pos,
+                                                m_opts.emit_nonroot_key() ?
+                                                ievt::VAL_ : ievt::KEY_|ievt::VAL_);
+    }
+    RYML_ASSERT_BASIC_(ek.valpos < sz);
     return ek;
 }
+
 inline bool parent_is_multiline_container(EmitKickoff const& ek, evt_bits const* m_evts)
 {
     bool ret = false;
@@ -324,8 +373,33 @@ template<class Writer>
 void EmitterInts<Writer>::emit_yaml_(evt_size pos)
 {
     const detail::EmitKickoff ek = detail::kickoff(m_evts, m_evts_size, pos, m_opts);
-    evt_bits evt = m_evts[pos];
 
+    auto write_tag_or_anchor = [this](evt_size pos_, evt_size dst) -> evt_size {
+        while(pos_ < dst)
+        {
+            evt_bits evt_ = m_evts[pos_];
+            if(evt_ & ievt::ANCH)
+            {
+                write_pws_and_pend_(PWS_SPACE_);
+                write_('&');
+                write_(getstr_(pos_));
+                pos_ += 3;
+            }
+            else if(evt_ & ievt::TAG_)
+            {
+                write_pws_and_pend_(PWS_SPACE_);
+                write_tag_(getstr_(pos_));
+                pos_ += 3;
+            }
+            else
+            {
+                pos_ += ievt::nextpos(evt_); // NOLINT
+            }
+        }
+        return pos_;
+    };
+
+    evt_bits evt = m_evts[ek.valpos];
     if(ek.emit_dash)
     {
         ++m_ilevel;
@@ -341,14 +415,17 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
                 keystyle = detail::scalar_style_choose_block_ievt(key);
             if(keystyle & (ievt::FOLD|ievt::LITL))
             {
-                write_("? ");
+                write_('?');
+                pend_space_();
+                pos = write_tag_or_anchor(pos, ek.keypos);
+                write_pws_and_pend_(PWS_NEWL_);
                 blck_write_scalar_(key, keystyle);
-                pend_newl_();
             }
             else
             {
+                pos = write_tag_or_anchor(pos, ek.keypos);
+                write_pws_and_pend_(PWS_NONE_);
                 blck_write_scalar_(key, keystyle);
-                pend_none_();
             }
             write_pws_and_pend_(PWS_SPACE_);
             write_(':');
@@ -361,17 +438,11 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
             if(!keystyle)
                 keystyle = ievt::BLCK;
             write_('?');
+            pend_space_();
+            pos = write_tag_or_anchor(pos, ek.keypos);
             ++m_ilevel;
             if(keystyle & ievt::BLCK)
-            {
-                newl_();
-                indent_(m_ilevel);
-            }
-            else
-            {
-                write_(' ');
-            }
-            pos = ek.keypos;
+                pend_newl_();
             visit_blck_container_(pos);
             --m_ilevel;
             pend_newl_();
@@ -379,7 +450,6 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
             write_(':');
             ++m_ilevel;
         }
-        evt = m_evts[pos]; // IMPORTANT! pos may have changed
         if(detail::seqormap(evt) && (evt & ievt::BLCK))
         {
             pend_newl_();
@@ -401,6 +471,7 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     }
     else if(detail::seqormap(evt))
     {
+        pos = write_tag_or_anchor(pos, ek.valpos);
         visit_blck_container_(pos);
         if(evt & ievt::FMLX)
         {
@@ -410,6 +481,7 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     }
     else if(evt & (ievt::SCLR|ievt::ALIA))
     {
+        pos = write_tag_or_anchor(pos, ek.valpos);
         visit_doc_val_(pos);
     }
 
@@ -554,7 +626,8 @@ void EmitterInts<Writer>::visit_doc_val_(evt_size &pos)
     // some plain scalars such as '...' and '---' must not
     // appear at 0-indentation
     evt_bits evt = m_evts[pos];
-    RYML_ASSERT_BASIC_(detail::hasall(evt, ievt::VAL_|ievt::SCLR) || detail::hasall(evt, ievt::KEY_|ievt::SCLR));
+    RYML_ASSERT_BASIC_(evt & ievt::SCLR);
+    RYML_ASSERT_BASIC_(evt & (ievt::VAL_|ievt::KEY_));
     RYML_ASSERT_BASIC_(detail::hasnone(evt, ievt::ALIA));
     const csubstr val = getstr_(pos);
     evt_bits valstyle = evt & detail::styles_ievt_sclr;
@@ -688,7 +761,7 @@ void EmitterInts<Writer>::visit_doc_(evt_size &pos, bool begin_expl)
         }
         else
         {
-            pos += ievt::nextpos(evt);
+            pos += ievt::nextpos(evt); // NOLINT
         }
     }
 #ifdef OLD
@@ -1171,7 +1244,7 @@ void EmitterInts<Writer>::visit_blck_seq_(evt_size &pos)
         }
         else
         {
-            ++pos;
+            pos += ievt::nextpos(evt); // NOLINT
         }
         continue;
     nextval:
@@ -1315,7 +1388,7 @@ void EmitterInts<Writer>::visit_blck_map_(evt_size &pos)
         }
         else
         {
-            ++pos;
+            pos += ievt::nextpos(evt); // NOLINT
         }
         continue;
     statenext:
@@ -1396,8 +1469,6 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
         else if(detail::seqormap(evt))
         {
             ++m_depth;
-            if(evt & ievt::KEY_)
-                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto nextval; // NOLINT
@@ -1424,7 +1495,7 @@ void EmitterInts<Writer>::visit_flow_sl_seq_(evt_size &pos)
         }
         else
         {
-            ++pos;
+            pos += ievt::nextpos(evt); // NOLINT
         }
         continue;
     nextval:
@@ -1503,8 +1574,6 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         {
             write_pws_and_pend_(PWS_NONE_);
             ++m_depth;
-            if(evt & ievt::KEY_)
-                write_("? ");
             visit_flow_container_(pos);
             --m_depth;
             goto nextval; // NOLINT
@@ -1531,7 +1600,7 @@ void EmitterInts<Writer>::visit_flow_ml_seq_(evt_size &pos)
         }
         else
         {
-            ++pos;
+            pos += ievt::nextpos(evt); // NOLINT
         }
         continue;
     nextval:
@@ -1660,7 +1729,7 @@ void EmitterInts<Writer>::visit_flow_sl_map_(evt_size &pos)
         }
         else
         {
-            ++pos;
+            pos += ievt::nextpos(evt); // NOLINT
         }
         continue;
     statenext:
@@ -1788,7 +1857,7 @@ void EmitterInts<Writer>::visit_flow_ml_map_(evt_size &pos)
         }
         else
         {
-            ++pos;
+            pos += ievt::nextpos(evt); // NOLINT
         }
         continue;
     statenext:
@@ -2398,8 +2467,8 @@ void EmitterInts<Writer>::emit_json_(evt_size pos)
         {
             if(m_evts[ek.keypos] & (ievt::SCLR|ievt::ALIA))
             {
-                evt_size kpos = ek.keypos;
-                json_writek_(kpos);
+                pos = ek.keypos;
+                json_writek_(pos);
             }
             else
             {
@@ -2409,7 +2478,7 @@ void EmitterInts<Writer>::emit_json_(evt_size pos)
         }
         while(pos < m_evts_size)
         {
-            evt_bits evt = m_evts[pos];
+            const evt_bits evt = m_evts[pos];
             if(evt & (ievt::SCLR|ievt::ALIA))
             {
                 json_writev_(pos, evt, /*has_anchor_or_tag*/false);

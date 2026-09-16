@@ -57,7 +57,7 @@ public:
     void get_buffers(extra::ievt::EventHandlerInts<resize_buffers> &handler)
     {
         bool transfer_ownership = resize_buffers;
-        buf.Buffers::operator=(handler.get_buffers(transfer_ownership));
+        handler.get_buffers(&buf, transfer_ownership);
     }
 
 public:

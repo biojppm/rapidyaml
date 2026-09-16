@@ -693,7 +693,8 @@ void test_dynamic_size(IntEventsCase const& ec, bool transfer_ownership)
     std::vector<char> src(ec.yaml.begin(), ec.yaml.end());
     handler.reset(to_substr(src));
     parser.parse_in_place_ev("(testyaml)", to_substr(src));
-    extra::ievt::Buffers buf = handler.get_buffers(transfer_ownership);
+    extra::ievt::Buffers buf;
+    handler.get_buffers(&buf, transfer_ownership);
     ec.testeq(to_csubstr(src), buf.arena, buf.evts.ptr, (size_t)buf.evts.len);
     if(transfer_ownership)
         buf.destroy();

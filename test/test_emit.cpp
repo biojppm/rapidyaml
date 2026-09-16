@@ -627,7 +627,7 @@ using extra::ievt::evt_size;
 void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={}, bool with_json=true)
 {
     retonfail();
-    RYML_TRACE_FMT("pos={}", pos);
+    RYML_TRACE_FMT("startpos={}", pos);
     EXPECT_EQ(ints.emit_yaml<std::string>(opts, pos), expected_yaml);
     bailonfail();
     EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_yaml(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_yaml);
@@ -1127,6 +1127,7 @@ level1:
 //-----------------------------------------------------------------------------
 
 using extra::ievt::evt_bits;
+using strref = std::string const&;
 namespace xievt = extra::ievt;
 
 struct TmpStyle
@@ -1912,7 +1913,6 @@ TEST(emit, container_key_seq_flow)
     std::string yaml = "[key, is, a, seq]: [val, is, a, seq]";
     parse_ints(to_substr(yaml), &ints);
     test_emits_ints_nojson_(ints, 0, "? [key,is,a,seq]\n: [val,is,a,seq]\n");
-    using strref = std::string const&;
     {
         SCOPED_TRACE("root-blk");
         TMPSTY(blk, ints, 2);
@@ -2122,7 +2122,6 @@ TEST(emit, container_key_map_flow)
     std::string yaml = "{key: is, a: map}: {val: is, a: map}";
     parse_ints(to_substr(yaml), &ints);
     test_emits_ints_nojson_(ints, 0, "? {key: is,a: map}\n: {val: is,a: map}\n");
-    using strref = std::string const&;
     {
         SCOPED_TRACE("root-blk");
         TMPSTY(blk, ints, 2);
@@ -2320,6 +2319,182 @@ TEST(emit, container_key_map_flow)
                    "{key: is, a: map}",
                    "{val: is, a: map}");
         }
+    }
+}
+
+
+TEST(emit, container_key_tag_anchor)
+{
+    SCOPED_TRACE("container_key_tag_anchor");
+    IntBufs ints;
+    std::string yaml = R"({
+  !kt []: !vt 0,
+  &ka []: &va 1,
+  &ka !kt []: &va !vt 2,
+  !kt &ka []: !vt &va 3,
+  !kt {}: !vt 4,
+  &ka {}: &va 5,
+  &ka !kt {}: &va !vt 6,
+  !kt &ka {}: !vt &va 7,
+  !kt a: !vt 8,
+  &ka b: &va 9,
+  &ka !kt c: &va !vt 10,
+  !kt &ka d: !vt &va 11,
+})";
+    parse_ints(to_substr(yaml), &ints);
+    {
+        SCOPED_TRACE("orig");
+        std::string expected = R"({
+  ? !kt []: !vt 0,
+  ? &ka []: &va 1,
+  ? &ka !kt []: &va !vt 2,
+  ? &ka !kt []: &va !vt 3,
+  ? !kt {}: !vt 4,
+  ? &ka {}: &va 5,
+  ? &ka !kt {}: &va !vt 6,
+  ? &ka !kt {}: &va !vt 7,
+  !kt a: !vt 8,
+  &ka b: &va 9,
+  &ka !kt c: &va !vt 10,
+  &ka !kt d: &va !vt 11
+}
+)";
+        test_emits_ints_nojson_(ints, 0, expected);
+        test_emits_ints_nojson_(ints, 1, expected);
+        test_emits_ints_nojson_(ints, 2, expected);
+        test_emits_ints_nojson_(ints, 3, "? !kt []\n: !vt 0\n");
+        test_emits_ints_nojson_(ints, 3, "!kt []", without_key);
+        test_emits_ints_nojson_(ints, 6, "? []\n: !vt 0\n");
+        test_emits_ints_nojson_(ints, 6, "[]", without_key);
+        test_emits_ints_nojson_(ints, 8, "!vt 0");
+        test_emits_ints_nojson_(ints, 8, "!vt 0", without_key);
+        test_emits_ints_nojson_(ints, 11, "0");
+        test_emits_ints_nojson_(ints, 11, "0", without_key);
+        //
+        test_emits_ints_nojson_(ints, 14, "? &ka []\n: &va 1\n");
+        test_emits_ints_nojson_(ints, 14, "&ka []", without_key);
+        test_emits_ints_nojson_(ints, 17, "? []\n: &va 1\n");
+        test_emits_ints_nojson_(ints, 17, "[]", without_key);
+        test_emits_ints_nojson_(ints, 19, "&va 1");
+        test_emits_ints_nojson_(ints, 19, "&va 1", without_key);
+        test_emits_ints_nojson_(ints, 22, "1");
+        test_emits_ints_nojson_(ints, 22, "1", without_key);
+        //
+        test_emits_ints_nojson_(ints, 25, "? &ka !kt []\n: &va !vt 2\n");
+        test_emits_ints_nojson_(ints, 25, "&ka !kt []", without_key);
+        test_emits_ints_nojson_(ints, 28, "? !kt []\n: &va !vt 2\n");
+        test_emits_ints_nojson_(ints, 28, "!kt []", without_key);
+        test_emits_ints_nojson_(ints, 31, "? []\n: &va !vt 2\n");
+        test_emits_ints_nojson_(ints, 31, "[]", without_key);
+        test_emits_ints_nojson_(ints, 33, "&va !vt 2");
+        test_emits_ints_nojson_(ints, 33, "&va !vt 2", without_key);
+        test_emits_ints_nojson_(ints, 36, "!vt 2");
+        test_emits_ints_nojson_(ints, 36, "!vt 2", without_key);
+        test_emits_ints_nojson_(ints, 39, "2");
+        test_emits_ints_nojson_(ints, 39, "2", without_key);
+        //
+        test_emits_ints_nojson_(ints, 42, "? &ka !kt []\n: &va !vt 3\n");
+        test_emits_ints_nojson_(ints, 42, "&ka !kt []", without_key);
+        test_emits_ints_nojson_(ints, 45, "? !kt []\n: &va !vt 3\n");
+        test_emits_ints_nojson_(ints, 45, "!kt []", without_key);
+        test_emits_ints_nojson_(ints, 48, "? []\n: &va !vt 3\n");
+        test_emits_ints_nojson_(ints, 48, "[]", without_key);
+        test_emits_ints_nojson_(ints, 50, "&va !vt 3");
+        test_emits_ints_nojson_(ints, 50, "&va !vt 3", without_key);
+        test_emits_ints_nojson_(ints, 53, "!vt 3");
+        test_emits_ints_nojson_(ints, 53, "!vt 3", without_key);
+        test_emits_ints_nojson_(ints, 56, "3");
+        test_emits_ints_nojson_(ints, 56, "3", without_key);
+        //
+        //
+        test_emits_ints_nojson_(ints, 56+3, "? !kt {}\n: !vt 4\n");
+        test_emits_ints_nojson_(ints, 56+3, "!kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+6, "? {}\n: !vt 4\n");
+        test_emits_ints_nojson_(ints, 56+6, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+8, "!vt 4");
+        test_emits_ints_nojson_(ints, 56+8, "!vt 4", without_key);
+        test_emits_ints_nojson_(ints, 56+11, "4");
+        test_emits_ints_nojson_(ints, 56+11, "4", without_key);
+        //
+        test_emits_ints_nojson_(ints, 56+14, "? &ka {}\n: &va 5\n");
+        test_emits_ints_nojson_(ints, 56+14, "&ka {}", without_key);
+        test_emits_ints_nojson_(ints, 56+17, "? {}\n: &va 5\n");
+        test_emits_ints_nojson_(ints, 56+17, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+19, "&va 5");
+        test_emits_ints_nojson_(ints, 56+19, "&va 5", without_key);
+        test_emits_ints_nojson_(ints, 56+22, "5");
+        test_emits_ints_nojson_(ints, 56+22, "5", without_key);
+        //
+        test_emits_ints_nojson_(ints, 56+25, "? &ka !kt {}\n: &va !vt 6\n");
+        test_emits_ints_nojson_(ints, 56+25, "&ka !kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+28, "? !kt {}\n: &va !vt 6\n");
+        test_emits_ints_nojson_(ints, 56+28, "!kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+31, "? {}\n: &va !vt 6\n");
+        test_emits_ints_nojson_(ints, 56+31, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+33, "&va !vt 6");
+        test_emits_ints_nojson_(ints, 56+33, "&va !vt 6", without_key);
+        test_emits_ints_nojson_(ints, 56+36, "!vt 6");
+        test_emits_ints_nojson_(ints, 56+36, "!vt 6", without_key);
+        test_emits_ints_nojson_(ints, 56+39, "6");
+        test_emits_ints_nojson_(ints, 56+39, "6", without_key);
+        //
+        test_emits_ints_nojson_(ints, 56+42, "? &ka !kt {}\n: &va !vt 7\n");
+        test_emits_ints_nojson_(ints, 56+42, "&ka !kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+45, "? !kt {}\n: &va !vt 7\n");
+        test_emits_ints_nojson_(ints, 56+45, "!kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+48, "? {}\n: &va !vt 7\n");
+        test_emits_ints_nojson_(ints, 56+48, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+50, "&va !vt 7");
+        test_emits_ints_nojson_(ints, 56+50, "&va !vt 7", without_key);
+        test_emits_ints_nojson_(ints, 56+53, "!vt 7");
+        test_emits_ints_nojson_(ints, 56+53, "!vt 7", without_key);
+        test_emits_ints_nojson_(ints, 56+56, "7");
+        test_emits_ints_nojson_(ints, 56+56, "7", without_key);
+        //
+        //
+        test_emits_ints_nojson_(ints, 112+3, "!kt a: !vt 8\n");
+        test_emits_ints_nojson_(ints, 112+3, "!kt a", without_key);
+        test_emits_ints_nojson_(ints, 112+6, "a: !vt 8\n");
+        test_emits_ints_nojson_(ints, 112+6, "a", without_key);
+        test_emits_ints_nojson_(ints, 112+9, "!vt 8");
+        test_emits_ints_nojson_(ints, 112+9, "!vt 8", without_key);
+        test_emits_ints_nojson_(ints, 112+12, "8");
+        test_emits_ints_nojson_(ints, 112+12, "8", without_key);
+        //
+        test_emits_ints_nojson_(ints, 112+15, "&ka b: &va 9\n");
+        test_emits_ints_nojson_(ints, 112+15, "&ka b", without_key);
+        test_emits_ints_nojson_(ints, 112+18, "b: &va 9\n");
+        test_emits_ints_nojson_(ints, 112+18, "b", without_key);
+        test_emits_ints_nojson_(ints, 112+21, "&va 9");
+        test_emits_ints_nojson_(ints, 112+21, "&va 9", without_key);
+        test_emits_ints_nojson_(ints, 112+24, "9");
+        test_emits_ints_nojson_(ints, 112+24, "9", without_key);
+        //
+        test_emits_ints_nojson_(ints, 112+27, "&ka !kt c: &va !vt 10\n");
+        test_emits_ints_nojson_(ints, 112+27, "&ka !kt c", without_key);
+        test_emits_ints_nojson_(ints, 112+30, "!kt c: &va !vt 10\n");
+        test_emits_ints_nojson_(ints, 112+30, "!kt c", without_key);
+        test_emits_ints_nojson_(ints, 112+33, "c: &va !vt 10\n");
+        test_emits_ints_nojson_(ints, 112+33, "c", without_key);
+        test_emits_ints_nojson_(ints, 112+36, "&va !vt 10");
+        test_emits_ints_nojson_(ints, 112+36, "&va !vt 10", without_key);
+        test_emits_ints_nojson_(ints, 112+39, "!vt 10");
+        test_emits_ints_nojson_(ints, 112+39, "!vt 10", without_key);
+        test_emits_ints_nojson_(ints, 112+42, "10");
+        test_emits_ints_nojson_(ints, 112+42, "10", without_key);
+        //
+        test_emits_ints_nojson_(ints, 112+45, "&ka !kt d: &va !vt 11\n");
+        test_emits_ints_nojson_(ints, 112+45, "&ka !kt d", without_key);
+        test_emits_ints_nojson_(ints, 112+48, "!kt d: &va !vt 11\n");
+        test_emits_ints_nojson_(ints, 112+48, "!kt d", without_key);
+        test_emits_ints_nojson_(ints, 112+51, "d: &va !vt 11\n");
+        test_emits_ints_nojson_(ints, 112+51, "d", without_key);
+        test_emits_ints_nojson_(ints, 112+54, "&va !vt 11");
+        test_emits_ints_nojson_(ints, 112+54, "&va !vt 11", without_key);
+        test_emits_ints_nojson_(ints, 112+57, "!vt 11");
+        test_emits_ints_nojson_(ints, 112+57, "!vt 11", without_key);
+        test_emits_ints_nojson_(ints, 112+60, "11");
+        test_emits_ints_nojson_(ints, 112+60, "11", without_key);
     }
 }
 

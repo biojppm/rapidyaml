@@ -49,11 +49,11 @@ public:
 
     IntsParserDynamicBuffers() noexcept : handler(), parser(&handler) {}
 
-    Result parse_in_place(const char *filename, c4::substr yaml, bool transfer_ownership=false)
+    void parse_in_place(const char *filename, c4::substr yaml, Result *result, bool transfer_ownership=false)
     {
         handler.reset(yaml);
         parser.parse_in_place_ev(filename, yaml); // we're parsing in place on the original YAML
-        return handler.get_buffers(transfer_ownership);
+        handler.get_buffers(result, transfer_ownership);
     }
 };
 
@@ -413,7 +413,8 @@ int main(int argc, const char *argv[])
     if(!args.fixed_size)
     {
         IntsParserDynamicBuffers parser;
-        IntsParserDynamicBuffers::Result result = parser.parse_in_place(filename, yaml);
+        IntsParserDynamicBuffers::Result result;
+        parser.parse_in_place(filename, yaml, &result);
         if( ! is_demo)
         {
             if( ! args.quiet)

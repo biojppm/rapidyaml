@@ -287,14 +287,12 @@ public:
         return buf;
     }
 
-    ievt::Buffers get_buffers(bool transfer_ownership) noexcept
+    void get_buffers(ievt::Buffers *buf, bool transfer_ownership) noexcept
     {
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
-        ievt::Buffers buf;
-        get_buffers(&buf.src, &buf.arena, &buf.evts);
-        buf.callbacks = base_type::m_stack.m_callbacks;
-        buf.owned = false;
-        (void)transfer_ownership;
+        get_buffers(&buf->src, &buf->arena, &buf->evts);
+        buf->callbacks = base_type::m_stack.m_callbacks;
+        buf->owned = transfer_ownership;
         if C4_IF_CONSTEXPR (resize_buffers)
         {
             if(transfer_ownership)
@@ -302,13 +300,10 @@ public:
                 base_type::m_src = {};
                 m_arena = {};
                 m_evt = {};
-                buf.owned = true;
             }
         }
-        return buf;
     }
 
-    /** */
     void get_buffers(substr *str, substr *arena, evtbuf *buf) const noexcept
     {
         if C4_IF_CONSTEXPR (resize_buffers)

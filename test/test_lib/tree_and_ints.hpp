@@ -28,7 +28,7 @@ inline void parse_ints(substr src, extra::ievt::Buffers *ints, ParserOptions con
     ParseEngine<Handler> parser(&handler, opts);
     handler.reset(src);
     parser.parse_in_place_ev("(testyaml)", src);
-    *ints = handler.get_buffers(true);
+    handler.get_buffers(ints, true);
 }
 inline TreeAndInts parse_tree_and_ints(csubstr src, ParserOptions const& opts={})
 {

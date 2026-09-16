@@ -343,6 +343,11 @@ struct Buffers
         callbacks = {};
         owned = false;
     }
+    ~Buffers() noexcept
+    {
+        if(owned)
+            destroy();
+    }
 };
 
 
