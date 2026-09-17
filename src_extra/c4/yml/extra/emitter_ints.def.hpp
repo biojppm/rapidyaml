@@ -54,7 +54,6 @@ inline evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
                            && "if this assertion fires, please submit an issue!");
         return ievt::SQUO;
     }
-    (void)scalar_style_choose_json_ievt;
     return scalar.str ? ievt::SQUO : ievt::PLAI;
 }
 inline evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
@@ -79,45 +78,6 @@ inline bool key_requires_qmark_block(evt_bits const* C4_RESTRICT evts, evt_size 
 inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
     return get_all_bits_key(evts, evts_size, pos) & (detail::mask_seqmap);
-}
-
-struct EmitKickoff
-{
-    detail::MaybeParent parent;
-    evt_size keypos, valpos;
-    bool emit_dash, emit_key;
-};
-inline C4_NO_INLINE EmitKickoff kickoff(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
-{
-    if C4_UNLIKELY(pos >= sz)
-        RYML_ERR_BASIC_("emit element is not one of (map, seq, scalar, ref, doc)");
-    EmitKickoff ek;
-    ek.parent = detail::find_parent_(evts, pos);
-    RYML_ASSERT_BASIC_(!ek.parent || detail::seqormap(evts[ek.parent.pos]));
-    ek.emit_key = m_opts.emit_nonroot_key() && ek.parent && detail::hasall(evts[ek.parent.pos], ievt::BMAP) && (evts[pos] & ievt::KEY_);
-    ek.emit_dash = m_opts.emit_nonroot_dash() && ek.parent && detail::hasall(evts[ek.parent.pos], ievt::BSEQ);
-    RYML_ASSERT_BASIC_(!(ek.emit_key && ek.emit_dash));
-    const evt_bits evt = evts[pos];
-    if(ek.emit_key)
-    {
-        RYML_ASSERT_BASIC_(evt & KEY_);
-        ek.keypos = detail::find_next_entry_(evts, sz, pos, ievt::KEY_);
-        ek.valpos = detail::find_next_entry_(evts, sz, ek.keypos, ievt::VAL_);
-        RYML_ASSERT_BASIC_(ek.keypos < sz);
-        RYML_ASSERT_BASIC_(ek.keypos < ek.valpos);
-    }
-    else
-    {
-        ek.valpos = pos;
-        if(!(detail::isentry(evt) ||
-             detail::hasall(evt, ievt::BSTR) ||
-             detail::hasall(evt, ievt::BDOC)))
-           ek.valpos = detail::find_next_entry_(evts, sz, pos,
-                                                m_opts.emit_nonroot_key() ?
-                                                ievt::VAL_ : ievt::KEY_|ievt::VAL_);
-    }
-    RYML_ASSERT_BASIC_(ek.valpos < sz);
-    return ek;
 }
 } // namespace detail
 
@@ -174,7 +134,7 @@ void EmitterInts<Writer>::emit_as(EmitType_e type,
 template<class Writer>
 void EmitterInts<Writer>::emit_yaml_(evt_size pos)
 {
-    const detail::EmitKickoff ek = detail::kickoff(m_evts, m_evts_size, pos, m_opts);
+    const detail::EmitKickoff ek = detail::kickoff_emit(m_evts, m_evts_size, pos, m_opts);
 
     evt_bits evt = m_evts[ek.valpos];
     if(ek.emit_dash)
@@ -1260,13 +1220,9 @@ template<class Writer>
 void EmitterInts<Writer>::emit_json_(evt_size pos)
 {
     if(detail::hasall(m_evts[pos], ievt::BSTR))
-    {
         pos = json_visit_stream_(pos);
-    }
     else
-    {
         pos = json_visit_nested_(pos);
-    }
     write_pws_and_pend_(PWS_NONE_);
 }
 
@@ -1335,7 +1291,7 @@ template<class Writer>
 evt_size EmitterInts<Writer>::json_visit_nested_(evt_size pos)
 {
     // look for the first of BSEQ|BMAP|SCLR|ALIA
-    const detail::EmitKickoff ek = detail::kickoff(m_evts, m_evts_size, pos, m_opts);
+    const detail::EmitKickoff ek = detail::kickoff_emit(m_evts, m_evts_size, pos, m_opts);
     if(ek.emit_key)
     {
         if C4_LIKELY(m_evts[ek.keypos] & (ievt::SCLR|ievt::ALIA))

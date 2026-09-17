@@ -1,6 +1,9 @@
 #ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
 #include "c4/yml/extra/event_ints.hpp"
 #endif
+#ifndef C4_YML_EMIT_OPTIONS_HPP_
+#include "c4/yml/emit_options.hpp"
+#endif
 
 namespace c4 {
 namespace yml {
@@ -246,6 +249,40 @@ MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcep
         pos -= ievt::prevstep(evt);
     }
     return p;
+}
+
+
+EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
+{
+    if C4_UNLIKELY(pos >= sz)
+        RYML_ERR_BASIC_("emit element is not one of (map, seq, scalar, ref, doc)");
+    EmitKickoff ek;
+    ek.parent = detail::find_parent_(evts, pos);
+    RYML_ASSERT_BASIC_(!ek.parent || detail::seqormap(evts[ek.parent.pos]));
+    ek.emit_key = m_opts.emit_nonroot_key() && ek.parent && detail::hasall(evts[ek.parent.pos], ievt::BMAP) && (evts[pos] & ievt::KEY_);
+    ek.emit_dash = m_opts.emit_nonroot_dash() && ek.parent && detail::hasall(evts[ek.parent.pos], ievt::BSEQ);
+    RYML_ASSERT_BASIC_(!(ek.emit_key && ek.emit_dash));
+    const evt_bits evt = evts[pos];
+    if(ek.emit_key)
+    {
+        RYML_ASSERT_BASIC_(evt & KEY_);
+        ek.keypos = detail::find_next_entry_(evts, sz, pos, ievt::KEY_);
+        ek.valpos = detail::find_next_entry_(evts, sz, ek.keypos, ievt::VAL_);
+        RYML_ASSERT_BASIC_(ek.keypos < sz);
+        RYML_ASSERT_BASIC_(ek.keypos < ek.valpos);
+    }
+    else
+    {
+        ek.valpos = pos;
+        if(!(detail::isentry(evt) ||
+             detail::hasall(evt, ievt::BSTR) ||
+             detail::hasall(evt, ievt::BDOC)))
+           ek.valpos = detail::find_next_entry_(evts, sz, pos,
+                                                m_opts.emit_nonroot_key() ?
+                                                ievt::VAL_ : ievt::KEY_|ievt::VAL_);
+    }
+    RYML_ASSERT_BASIC_(ek.valpos < sz);
+    return ek;
 }
 
 } // namespace detail
