@@ -126,6 +126,7 @@ private:
 
     void emit_yaml_(evt_size pos);
 
+
     C4_NODISCARD evt_size visit_stream_(evt_size pos);
     C4_NODISCARD evt_size visit_doc_(evt_size pos, bool expl);
     C4_NODISCARD evt_size visit_doc_val_(evt_size pos);
@@ -143,6 +144,9 @@ private:
     C4_NODISCARD evt_size visit_blck_(evt_size pos);
     C4_NODISCARD evt_size visit_blck_seq_(evt_size pos);
     C4_NODISCARD evt_size visit_blck_map_(evt_size pos);
+
+    C4_NODISCARD evt_size kickoff_key(evt_size pos, evt_size keypos);
+    C4_NODISCARD evt_size write_tag_or_anchor(evt_size pos, evt_size dst);
 
     void blck_write_scalar_(csubstr str, evt_bits type);
 

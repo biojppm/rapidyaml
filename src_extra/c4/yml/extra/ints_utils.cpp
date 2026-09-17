@@ -65,7 +65,7 @@ const FlagSym flag_syms_[] = {
 
 size_t to_str(substr buf, evt_bits flags) noexcept
 {
-    detail::SubstrWriter_ writer(buf);
+    yml::detail::SubstrWriter_ writer(buf);
     for(const FlagSym sym : flag_syms_)
     {
         if((flags & sym.flags) == sym.flags)

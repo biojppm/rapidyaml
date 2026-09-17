@@ -86,8 +86,168 @@ static_assert((ievt::MASK & ievt::FMLN) == ievt::FMLN, "overflow?");
 static_assert((ievt::MASK & ievt::FMLX) == ievt::FMLX, "overflow?");
 static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
 static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
-// NOLINTEND(hicpp-signed-bitwise)
 
+
+namespace detail {
+
+bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
+{
+    RYML_ASSERT_BASIC_(pos < evts_size);
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::EDOC);
+    while(pos < evts_size)
+    {
+        evt_bits evt = evts[pos];
+        if(detail::hasall(evt, ievt::BDOC))
+            return (evt & ievt::EXPL);
+        else if(detail::hasall(evt, ievt::ESTR))
+            break;
+        pos += ievt::nextpos(evt);
+    }
+    return false;
+}
+
+
+evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
+{
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::KEY_);
+    evt_bits accum = {};
+    for( ; pos < evts_size; pos = ievt::nextpos(evts, pos))
+    {
+        if(evts[pos] & ievt::VAL_)
+            break;
+        accum |= evts[pos];
+    }
+    return accum;
+}
+
+
+evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::ESEQ) ||
+                       detail::hasall(evts[pos], ievt::EMAP));
+    evt_bits evt = evts[pos];
+    const evt_bits close = (evt & mask_open_close);
+    const evt_bits open = (close & ~ievt::END_) | ievt::BEG_;
+    pos += ievt::prevpos(evt); // don't count the starting close token
+    uint32_t count = 0;
+    while(pos >= 0)
+    {
+        evt = evts[pos];
+        if((evt & close) == close)
+        {
+            ++count;
+        }
+        else if((evt & open) == open)
+        {
+            if(!(count--))
+                return pos;
+        }
+        pos -= ievt::prevpos(evt);
+    }
+    RYML_ERR_BASIC_("evt error");
+}
+
+
+evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::BSEQ) ||
+                       detail::hasall(evts[pos], ievt::BMAP));
+    evt_bits evt = evts[pos];
+    const evt_bits open = evt & mask_open_close;
+    const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
+    pos += ievt::nextpos(evt); // don't count the starting close token
+    uint32_t count = 0;
+    while(pos < sz)
+    {
+        evt = evts[pos];
+        if((evt & open) == open)
+        {
+            ++count;
+        }
+        else if((evt & close) == close)
+        {
+            if(!(count--))
+                return pos;
+        }
+        pos += ievt::nextpos(evt);
+    }
+    RYML_ERR_BASIC_("evt error");
+}
+
+
+evt_size find_prev_key_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
+{
+    while(pos > 0)
+    {
+        const evt_bits evt = evts[pos];
+        if(detail::hasall(evt, ievt::ESEQ) ||
+           detail::hasall(evt, ievt::EMAP))
+        {
+            pos = find_matching_open_(evts, pos);
+        }
+        else if(evt & ievt::KEY_)
+        {
+            if(detail::isentry(evt))
+                return pos;
+        }
+        else
+        {
+            pos -= ievt::prevpos(evt);
+        }
+    }
+    RYML_ERR_BASIC_("evt error");
+}
+
+evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT
+{
+    evt_bits evt = evts[pos];
+    if(detail::seqormap(evt & ~ievt::STRM))
+    {
+        if(evt & key_or_val)
+            return pos;
+        pos = find_matching_close_(evts, sz, pos);
+    }
+    while(pos < sz)
+    {
+        evt = evts[pos];
+        if((evt & key_or_val) && detail::isentry(evt))
+            return pos;
+        pos += ievt::nextpos(evt);
+    }
+    RYML_ASSERT_BASIC_(pos > 0);
+    return pos;
+}
+
+MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept
+{
+    MaybeParent p{0};
+    C4_STATIC_ASSERT(std::is_signed<evt_size>::value);
+    pos -= ievt::prevpos(evts[pos]);
+    uint32_t count = 0;
+    while(pos > 0)
+    {
+        const evt_bits evt = evts[pos];
+        if(evt & ievt::END_)
+        {
+            ++count;
+        }
+        else if(evt & ievt::BEG_)
+        {
+            if(evt & (detail::mask_seqmap))
+            {
+                if(!(count--))
+                {
+                    p.pos = pos;
+                    break;
+                }
+            }
+        }
+        pos -= ievt::prevpos(evt);
+    }
+    return p;
+}
+
+} // namespace detail
 } // namespace ievt
 } // namespace extra
 
@@ -117,6 +277,8 @@ substr resize(substr buf, size_t sz, Callbacks const& cb)
 }
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 } // namespace detail
+
+// NOLINTEND(hicpp-signed-bitwise)
 
 } // namespace yml
 } // namespace c4

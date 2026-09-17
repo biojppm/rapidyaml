@@ -272,35 +272,39 @@ typedef enum : evt_bits { // NOLINT
 } EventBits;
 
 
-C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits) noexcept
 {
     return (bits & ievt::WSTR) ? 3 : 1;
 }
-C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits) noexcept
 {
     return (bits & ievt::PSTR) ? 3 : 1;
 }
 
 
-C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits, evt_size pos) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits, evt_size pos) noexcept
 {
     return pos + ((bits & ievt::WSTR) ? 3 : 1);
 }
-C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits, evt_size pos) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits, evt_size pos) noexcept
 {
     return pos - ((bits & ievt::PSTR) ? 3 : 1);
 }
 
 
-C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
     return pos + ((arr[pos] & ievt::WSTR) ? 3 : 1);
 }
-C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
     return pos - ((arr[pos] & ievt::PSTR) ? 3 : 1);
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 struct evtbuf
 {
@@ -366,6 +370,53 @@ RYML_EXPORT evt_size estimate_events_size(csubstr src);
 
 /** @} */ // doc_event_handlers_ints
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** @cond dev */
+namespace detail {
+
+enum : evt_bits { // NOLINT
+    mask_open_close = ievt::BEG_|ievt::END_|ievt::SEQ_|ievt::MAP_|ievt::DOC_|ievt::STRM,
+    mask_seqmap = ievt::SEQ_|ievt::MAP_,
+};
+
+C4_HOT C4_ALWAYS_INLINE bool hasall(evt_bits evt, evt_bits bits) noexcept
+{
+    return (evt & bits) == bits;
+}
+C4_HOT C4_ALWAYS_INLINE bool hasnone(evt_bits evt, evt_bits bits) noexcept
+{
+    return (evt & bits) == 0;
+}
+C4_HOT C4_ALWAYS_INLINE bool seqormap(evt_bits evt) noexcept
+{
+    return (evt & ievt::BEG_) && (evt & detail::mask_seqmap);
+}
+inline bool isentry(evt_bits mask) noexcept
+{
+    return (mask & (ievt::SCLR|ievt::ALIA)) ||
+        ((mask & ievt::BEG_) && (mask & detail::mask_seqmap));
+}
+
+struct RYML_EXPORT MaybeParent
+{
+    operator bool() const noexcept { return pos != 0; }
+    evt_size pos;
+};
+RYML_EXPORT MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept;
+RYML_EXPORT bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_size find_prev_key_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT;
+
+
+} // namespace detail
+/** @endcond */
 } // namespace ievt
 
 /** @cond dev */
