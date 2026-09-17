@@ -272,11 +272,11 @@ typedef enum : evt_bits { // NOLINT
 } EventBits;
 
 
-C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size nextstep(evt_bits bits) noexcept
 {
     return (bits & ievt::WSTR) ? 3 : 1;
 }
-C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits) noexcept
+C4_HOT C4_ALWAYS_INLINE evt_size prevstep(evt_bits bits) noexcept
 {
     return (bits & ievt::PSTR) ? 3 : 1;
 }
@@ -381,6 +381,7 @@ namespace detail {
 enum : evt_bits { // NOLINT
     mask_open_close = ievt::BEG_|ievt::END_|ievt::SEQ_|ievt::MAP_|ievt::DOC_|ievt::STRM,
     mask_seqmap = ievt::SEQ_|ievt::MAP_,
+    mask_begend = ievt::BEG_|ievt::END_,
 };
 
 C4_HOT C4_ALWAYS_INLINE bool hasall(evt_bits evt, evt_bits bits) noexcept

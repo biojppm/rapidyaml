@@ -77,7 +77,6 @@ static_assert((ievt::MASK & ievt::TAGP) == ievt::TAGP, "overflow?");
 static_assert((ievt::MASK & ievt::AREN) == ievt::AREN, "overflow?");
 static_assert((ievt::MASK & ievt::PSTR) == ievt::PSTR, "overflow?");
 static_assert((ievt::MASK & ievt::WSTR) == ievt::WSTR, "overflow?");
-static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
 static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
 static_assert((ievt::MASK & ievt::PJUMP) == ievt::PJUMP, "overflow?");
 static_assert((ievt::MASK & ievt::FSL_) == ievt::FSL_, "overflow?");
@@ -101,7 +100,7 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
             return (evt & ievt::EXPL);
         else if(detail::hasall(evt, ievt::ESTR))
             break;
-        pos += ievt::nextpos(evt);
+        pos += ievt::nextstep(evt);
     }
     return false;
 }
@@ -123,12 +122,12 @@ evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, 
 
 evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
 {
-    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::ESEQ) ||
-                       detail::hasall(evts[pos], ievt::EMAP));
     evt_bits evt = evts[pos];
-    const evt_bits close = (evt & mask_open_close);
+    RYML_ASSERT_BASIC_((evt & ievt::END_) && (evt & mask_seqmap));
+    RYML_ASSERT_BASIC_((evt & mask_begend) != mask_begend);
+    const evt_bits close = evt & mask_open_close;
     const evt_bits open = (close & ~ievt::END_) | ievt::BEG_;
-    pos += ievt::prevpos(evt); // don't count the starting close token
+    pos -= ievt::prevstep(evt); // don't count the starting close token
     uint32_t count = 0;
     while(pos >= 0)
     {
@@ -142,7 +141,7 @@ evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYM
             if(!(count--))
                 return pos;
         }
-        pos -= ievt::prevpos(evt);
+        pos -= ievt::prevstep(evt);
     }
     RYML_ERR_BASIC_("evt error");
 }
@@ -150,12 +149,12 @@ evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYM
 
 evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
 {
-    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::BSEQ) ||
-                       detail::hasall(evts[pos], ievt::BMAP));
     evt_bits evt = evts[pos];
+    RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & mask_seqmap));
+    RYML_ASSERT_BASIC_((evt & mask_begend) != mask_begend);
     const evt_bits open = evt & mask_open_close;
     const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
-    pos += ievt::nextpos(evt); // don't count the starting close token
+    pos += ievt::nextstep(evt); // don't count the starting close token
     uint32_t count = 0;
     while(pos < sz)
     {
@@ -169,7 +168,7 @@ evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt
             if(!(count--))
                 return pos;
         }
-        pos += ievt::nextpos(evt);
+        pos += ievt::nextstep(evt);
     }
     RYML_ERR_BASIC_("evt error");
 }
@@ -192,11 +191,12 @@ evt_size find_prev_key_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOE
         }
         else
         {
-            pos -= ievt::prevpos(evt);
+            pos -= ievt::prevstep(evt);
         }
     }
     RYML_ERR_BASIC_("evt error");
 }
+
 
 evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT
 {
@@ -212,17 +212,18 @@ evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_siz
         evt = evts[pos];
         if((evt & key_or_val) && detail::isentry(evt))
             return pos;
-        pos += ievt::nextpos(evt);
+        pos += ievt::nextstep(evt);
     }
     RYML_ASSERT_BASIC_(pos > 0);
     return pos;
 }
 
+
 MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept
 {
     MaybeParent p{0};
     C4_STATIC_ASSERT(std::is_signed<evt_size>::value);
-    pos -= ievt::prevpos(evts[pos]);
+    pos -= ievt::prevstep(evts[pos]);
     uint32_t count = 0;
     while(pos > 0)
     {
@@ -242,7 +243,7 @@ MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcep
                 }
             }
         }
-        pos -= ievt::prevpos(evt);
+        pos -= ievt::prevstep(evt);
     }
     return p;
 }

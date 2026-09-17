@@ -242,15 +242,15 @@ evt_size EmitterInts<Writer>::write_tag_or_anchor(evt_size pos, evt_size dst)
     RYML_ASSERT_BASIC_(dst < m_evts_size);
     while(pos < dst)
     {
-        evt_bits evt_ = m_evts[pos];
-        if(evt_ & ievt::ANCH)
+        const evt_bits evt = m_evts[pos];
+        if(evt & ievt::ANCH)
         {
             write_pws_and_pend_(PWS_SPACE_);
             write_('&');
             write_(getstr_(pos));
             pos += 3;
         }
-        else if(evt_ & ievt::TAG_)
+        else if(evt & ievt::TAG_)
         {
             write_pws_and_pend_(PWS_SPACE_);
             write_tag_(getstr_(pos));
@@ -258,7 +258,7 @@ evt_size EmitterInts<Writer>::write_tag_or_anchor(evt_size pos, evt_size dst)
         }
         else
         {
-            pos += ievt::nextpos(evt_); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
     }
     return pos;
@@ -368,7 +368,7 @@ evt_size EmitterInts<Writer>::visit_stream_(evt_size pos)
         }
         else
         {
-            ++pos;
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
     }
     --m_depth;
@@ -490,7 +490,7 @@ evt_size EmitterInts<Writer>::visit_doc_(evt_size pos, bool begin_expl)
         }
         else
         {
-            pos += ievt::nextpos(evt); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
     }
     return pos;
@@ -682,7 +682,7 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
         }
         else
         {
-            pos += ievt::nextpos(evt); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     nextval:
@@ -787,7 +787,7 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
         }
         else
         {
-            pos += ievt::nextpos(evt); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     statenext:
@@ -933,7 +933,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_seq_(evt_size pos)
         }
         else
         {
-            pos += ievt::nextpos(evt); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     nextval:
@@ -1005,7 +1005,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_seq_(evt_size pos)
         }
         else
         {
-            pos += ievt::nextpos(evt); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     nextval:
@@ -1095,7 +1095,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
         }
         else
         {
-            pos += ievt::nextpos(evt); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     statenext:
@@ -1189,7 +1189,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
         }
         else
         {
-            pos += ievt::nextpos(evt); // NOLINT
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     statenext:
@@ -1276,7 +1276,7 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
     evt_size numdocs = 0;
     bool has_expl = false;
     // count numdocs
-    for(evt_size p = pos; p < m_evts_size; p += ievt::nextpos(m_evts[p]))
+    for(evt_size p = pos; p < m_evts_size; p += ievt::nextstep(m_evts[p]))
     {
         if(detail::hasall(m_evts[p], ievt::BDOC))
         {
@@ -1318,7 +1318,7 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
         }
         else
         {
-            pos += ievt::nextpos(m_evts[pos]);
+            pos += ievt::nextstep(m_evts[pos]); // LCOV_EXCL_LINE
         }
     }
     if(mldocs)
@@ -1378,7 +1378,7 @@ evt_size EmitterInts<Writer>::json_visit_nested_(evt_size pos)
         }
         else
         {
-            pos = ievt::nextpos(evt);
+            pos = ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
     }
     return pos;
@@ -1464,23 +1464,18 @@ evt_size EmitterInts<Writer>::json_visit_sl_(evt_size pos, evt_size depth)
             pos += 3;
             goto next_entry; // NOLINT
         }
-        else if(evt & ievt::ANCH)
+        else if(evt & (ievt::ANCH|ievt::TAG_))
         {
-            if C4_UNLIKELY(m_opts.json_err_on_anchor())
+            if C4_UNLIKELY((evt & ievt::ANCH) && m_opts.json_err_on_anchor())
                 RYML_ERR_BASIC_("JSON does not have anchors");
-            has_anchor_or_tag = true;
-            pos += 3;
-        }
-        else if(evt & ievt::TAG_)
-        {
-            if C4_UNLIKELY(m_opts.json_err_on_tag())
+            if C4_UNLIKELY((evt & ievt::TAG_) && m_opts.json_err_on_tag())
                 RYML_ERR_BASIC_("JSON does not have tags");
             has_anchor_or_tag = true;
             pos += 3;
         }
         else
         {
-            pos += ievt::nextpos(evt);
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     next_entry:
@@ -1553,23 +1548,18 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos, evt_size depth)
             pos += 3;
             goto next_entry; // NOLINT
         }
-        else if(evt & ievt::ANCH)
+        else if(evt & (ievt::ANCH|ievt::TAG_))
         {
-            if C4_UNLIKELY(m_opts.json_err_on_anchor())
+            if C4_UNLIKELY((evt & ievt::ANCH) && m_opts.json_err_on_anchor())
                 RYML_ERR_BASIC_("JSON does not have anchors");
-            has_anchor_or_tag = true;
-            pos += 3;
-        }
-        else if(evt & ievt::TAG_)
-        {
-            if C4_UNLIKELY(m_opts.json_err_on_tag())
+            if C4_UNLIKELY((evt & ievt::TAG_) && m_opts.json_err_on_tag())
                 RYML_ERR_BASIC_("JSON does not have tags");
             has_anchor_or_tag = true;
             pos += 3;
         }
         else
         {
-            pos += ievt::nextpos(evt);
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     next_entry:

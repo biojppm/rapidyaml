@@ -905,18 +905,8 @@ public:
             {
                 _c4dbgpf("{}/{}: container key. prev={}", m_evt.len, m_evt.cap, m_evt_prev);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
-                if((m_evt.ptr[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
-                {
-                    pos = _find_matching_open(ievt::BMAP, ievt::EMAP, m_evt_prev);
-                }
-                else
-                {
-                    RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[m_evt_prev] & ievt::ESEQ));
-                    pos = _find_matching_open(ievt::BSEQ, ievt::ESEQ, m_evt_prev);
-                }
+                pos = detail::find_matching_open_(m_evt.ptr, m_evt_prev);
                 _c4dbgpf("{}/{}: matching open for {}={}", m_evt.len, m_evt.cap, m_evt_prev, pos);
-                RYML_CHECK_BASIC_CB_(base_type::m_stack.m_callbacks, pos >= 0); // internal error
-                RYML_CHECK_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt_prev); // internal error
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & ievt::ESEQ) == (m_evt.ptr[m_evt_prev] & ievt::BSEQ));
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & ievt::EMAP) == (m_evt.ptr[m_evt_prev] & ievt::BMAP));
                 // shift the array one position to the right, starting at pos
@@ -1181,37 +1171,6 @@ public:
             pos -= (e & ievt::PSTR) ? 3 : 1;
         }
         return -1; // LCOV_EXCL_LINE
-    }
-
-    evt_size _find_matching_open(evt_bits open, evt_bits close, evt_size pos) const
-    {
-        _c4dbgpf("find_matching: start at {}", pos);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & close) == close);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, (m_evt.ptr[pos] & open) == (close & ~ievt::END_));
-        pos = _prev(pos); // don't count the starting close token
-        uint32_t count = 0;
-        while(pos >= 0)
-        {
-            evt_bits e = m_evt.ptr[pos];
-            _c4dbgpf("find_matching: pos={} count={} e={}", pos, count, m_evt.ptr[pos]);
-            if((e & close) == close)
-            {
-                _c4dbgpf(".............: pos={} close! count={} e={}", pos, count, m_evt.ptr[pos]);
-                ++count;
-            }
-            else if((e & open) == open)
-            {
-                _c4dbgpf(".............: pos={} open! count={} e={}", pos, count, m_evt.ptr[pos]);
-                if(!count)
-                    return pos;
-                else
-                    --count;
-            }
-            pos = _prev(pos);
-        }
-        _c4dbgpf("find_matching: not found!", 0); // LCOV_EXCL_LINE
-        return -1;  // LCOV_EXCL_LINE
     }
 
     evt_size _extend_left_to_include_tag_and_or_anchor(evt_size pos) const
