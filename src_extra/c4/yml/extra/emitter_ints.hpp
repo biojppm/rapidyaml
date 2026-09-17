@@ -9,6 +9,9 @@
 #ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
 #include "c4/yml/extra/event_ints.hpp"
 #endif
+#ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
+#include "c4/yml/extra/event_ints.hpp"
+#endif
 
 
 namespace c4 {
@@ -47,7 +50,6 @@ public:
 
 public:
 
-    /** emit! */
     void emit_as(EmitType_e type,
                  evt_bits const* evts,
                  evt_size evts_size,
@@ -122,61 +124,43 @@ private: // pending whitespace
 
 private:
 
-    void emit_yaml_(evt_size id);
+    void emit_yaml_(evt_size pos);
 
-    void visit_stream_(evt_size &id);
-    void visit_doc_(evt_size &id, bool expl);
-    void visit_doc_val_(evt_size &id);
-    void visit_blck_container_(evt_size &id);
-    void visit_flow_container_(evt_size &id);
+    C4_NODISCARD evt_size visit_stream_(evt_size pos);
+    C4_NODISCARD evt_size visit_doc_(evt_size pos, bool expl);
+    C4_NODISCARD evt_size visit_doc_val_(evt_size pos);
+    C4_NODISCARD evt_size visit_blck_container_(evt_size pos);
+    C4_NODISCARD evt_size visit_flow_container_(evt_size pos);
 
-    void visit_flow_sl_(evt_size &id);
-    void visit_flow_sl_seq_(evt_size &id);
-    void visit_flow_sl_map_(evt_size &id);
+    C4_NODISCARD evt_size visit_flow_sl_(evt_size pos);
+    C4_NODISCARD evt_size visit_flow_sl_seq_(evt_size pos);
+    C4_NODISCARD evt_size visit_flow_sl_map_(evt_size pos);
 
-    void visit_flow_ml_(evt_size &id);
-    void visit_flow_ml_seq_(evt_size &id);
-    void visit_flow_ml_map_(evt_size &id);
+    C4_NODISCARD evt_size visit_flow_ml_(evt_size pos);
+    C4_NODISCARD evt_size visit_flow_ml_seq_(evt_size pos);
+    C4_NODISCARD evt_size visit_flow_ml_map_(evt_size pos);
 
-    void visit_blck_(evt_size &id);
-    void visit_blck_seq_(evt_size &id);
-    void visit_blck_map_(evt_size &id);
+    C4_NODISCARD evt_size visit_blck_(evt_size pos);
+    C4_NODISCARD evt_size visit_blck_seq_(evt_size pos);
+    C4_NODISCARD evt_size visit_blck_map_(evt_size pos);
 
-    void top_open_entry_(evt_size &id);
-    void top_close_entry_(evt_size &id);
-    void blck_seq_open_entry_(evt_size &id);
-    void blck_map_open_entry_(evt_size &id);
-    void blck_close_entry_(evt_size &id);
     void blck_write_scalar_(csubstr str, evt_bits type);
 
-    void flow_seq_open_entry_(evt_size &id);
-    void flow_map_open_entry_(evt_size &id);
-    void flow_close_entry_sl_(evt_size id, Pws_e pend_after);
-    void flow_close_entry_ml_(evt_size id, Pws_e pend_after);
+    void flow_close_entry_sl_(evt_size pos, Pws_e pend_after);
+    void flow_close_entry_ml_(evt_size pos, Pws_e pend_after);
     void flow_write_scalar_(csubstr str, evt_bits type);
 
 private:
 
-    void emit_json_(evt_size id);
-    void write_scalar_literal_(csubstr s, evt_size level);
-    void write_scalar_folded_(csubstr s, evt_size level);
-    void write_scalar_squo_(csubstr s, evt_size level);
-    void write_scalar_dquo_(csubstr s, evt_size level);
-    void write_scalar_plain_(csubstr s, evt_size level);
+    void emit_json_(evt_size pos);
 
-    size_t write_escaped_newlines_(csubstr s, size_t i);
-    size_t write_indented_block_(csubstr s, size_t i, evt_size level);
-
-private:
-
-    void json_visit_container_(evt_size &pos);
-    void json_visit_ml_(evt_size &pos, evt_size depth);
-    void json_visit_sl_(evt_size &pos, evt_size depth);
-    bool json_maybe_write_naninf_(csubstr s);
-    void json_writek_(evt_size &pos);
-    void json_writev_(evt_size &pos, evt_bits ty, bool has_anchor_or_tag);
-    void json_write_scalar_dquo_(csubstr s);
-    void json_write_number_(csubstr s);
+    C4_NODISCARD evt_size json_visit_stream_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_nested_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_container_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_ml_(evt_size pos, evt_size depth);
+    C4_NODISCARD evt_size json_visit_sl_(evt_size pos, evt_size depth);
+    C4_NODISCARD evt_size json_writek_(evt_size pos);
+    C4_NODISCARD evt_size json_writev_(evt_size pos, evt_bits ty, bool has_anchor_or_tag);
 
 private:
 
@@ -196,7 +180,19 @@ private:
         }
     }
 
-private:
+    C4_ALWAYS_INLINE csubstr getstr_(evt_size id) noexcept
+    {
+        RYML_ASSERT_BASIC_(id + 2 < m_evts_size);
+        RYML_ASSERT_BASIC_(m_evts[id] & ievt::WSTR);
+        csubstr region = (m_evts[id] & ievt::AREN) ? m_arena : m_src;
+        region.str = region.str + m_evts[id + 1];
+        region.len = static_cast<size_t>(m_evts[id + 2]);
+        return region;
+    }
+
+public:
+
+    using indent_type = evt_size;
 
     template<size_t N>
     C4_ALWAYS_INLINE void write_(const char (&a)[N]) // LCOV_EXCL_LINE
@@ -215,7 +211,7 @@ private:
         ++m_col;
     }
 
-    C4_ALWAYS_INLINE void indent_(evt_size level) // LCOV_EXCL_LINE
+    C4_ALWAYS_INLINE void indent_(indent_type level) // LCOV_EXCL_LINE
     {
         C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wsign-conversion")
         size_t num = static_cast<size_t>(2u * level);
@@ -229,16 +225,6 @@ private:
     {
         this->Writer::append('\n');
         m_col = 0;
-    }
-
-    C4_ALWAYS_INLINE csubstr getstr_(evt_size id) noexcept
-    {
-        RYML_ASSERT_BASIC_(id + 2 < m_evts_size);
-        RYML_ASSERT_BASIC_(m_evts[id] & ievt::WSTR);
-        csubstr region = (m_evts[id] & ievt::AREN) ? m_arena : m_src;
-        region.str = region.str + m_evts[id + 1];
-        region.len = static_cast<size_t>(m_evts[id + 2]);
-        return region;
     }
 
 private:
