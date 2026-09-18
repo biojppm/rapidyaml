@@ -36,16 +36,16 @@ enum : evt_bits { // NOLINT
     styles_ievt_cont = ievt::BLCK|ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
 };
 
-//see also NodeType implementation in scalar_style.cpp
 inline NodeType scalar_style_choose_json_ievt(csubstr scalar) noexcept
 {
+    //see also NodeType implementation in scalar_style.cpp
     // do not quote numbers or special scalars
     return scalar_is_plain_number_json(scalar)
         || scalar_is_special_json(scalar) ? ievt::PLAI : ievt::DQUO;
 }
-//see also NodeType implementation in scalar_style.cpp
 inline evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
 {
+    //see also NodeType implementation in scalar_style.cpp
     if(scalar.len)
     {
         if(scalar_style_query_plain_block(scalar))
@@ -58,6 +58,7 @@ inline evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
 }
 inline evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
 {
+    //see also NodeType implementation in scalar_style.cpp
     if(scalar.len)
     {
         if(scalar_style_query_plain_flow(scalar))
@@ -1429,6 +1430,11 @@ evt_size EmitterInts<Writer>::json_visit_sl_(evt_size pos, evt_size depth)
             has_anchor_or_tag = true;
             pos += 3;
         }
+        else if(detail::hasall(evt, term))
+        {
+            ++pos;
+            break;
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
@@ -1512,6 +1518,11 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos, evt_size depth)
                 RYML_ERR_BASIC_("JSON does not have tags");
             has_anchor_or_tag = true;
             pos += 3;
+        }
+        else if(detail::hasall(evt, close))
+        {
+            ++pos;
+            break;
         }
         else
         {

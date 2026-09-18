@@ -151,6 +151,12 @@ public:
         ievt::test_events_ints_invariants(src, arena, evts.ptr, evts.len);
     }
 
+    void test_compare(ievt::Buffers const& that) const
+    {
+        SCOPED_TRACE("test_compare");
+        ievt::test_events_ints_compare(that, *this);
+    }
+
     void test_expected_evts(csubstr yaml, ievt::IntEventWithScalar const* expected, evt_size sz) const
     {
         SCOPED_TRACE("compare_ints");

@@ -71,9 +71,12 @@ inline void test_emit_yaml_same_ints(ConstNodeRef n, std::string const& expected
             print_tree(*n.tree());
             return;
         }
-        IntBufs ints;
-        parse_ints(to_substr(emitted_tree), &ints);
-        test_emit_yaml(ints, 0, expected, opts);
+        {
+            SCOPED_TRACE("here");
+            IntBufs ints;
+            parse_ints(to_substr(emitted_tree), &ints);
+            test_emit_yaml(ints, 0, expected, opts);
+        }
     }
 }
 
@@ -136,9 +139,12 @@ inline void test_emit_json_same_ints(ConstNodeRef n, std::string const& expected
             print_tree(*n.tree());
             return;
         }
-        IntBufs ints;
-        parse_ints(to_substr(emitted_tree), &ints);
-        test_emit_json(ints, 0, expected, opts);
+        {
+            SCOPED_TRACE("here");
+            IntBufs ints;
+            parse_ints(to_substr(emitted_tree), &ints);
+            test_emit_json(ints, 0, expected, opts);
+        }
     }
 }
 inline void test_emit_json(ConstNodeRef n, EmitOptions const& opts, std::string const& expected)
