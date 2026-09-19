@@ -101,7 +101,10 @@ ENGINE_TEST(BlockEmptyVals,
             "c:\n"
             "d:\n"
             ,
-            "a: \nb: \nc: \nd: \n"
+            "a: \n"
+            "b: \n"
+            "c: \n"
+            "d: \n"
             ,
             "+STR\n"
             "+DOC\n"

@@ -139,54 +139,90 @@ inline int fuzztest_json_tree(uint32_t case_number, csubstr src)
 
 //-----------------------------------------------------------------------------
 
-using HandlerInts = extra::EventHandlerInts;
-using ParserInts = ParseEngine<HandlerInts>;
-template<class FnParse>
+template<bool resize_buffers> using HandlerInts = extra::ievt::EventHandlerInts<resize_buffers>;
+template<bool resize_buffers> using ParserInts = ParseEngine<HandlerInts<resize_buffers>>;
+template<bool resize_buffers, class FnParse>
 inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn)
 {
     C4_UNUSED(case_number);
     set_callbacks(create_custom_callbacks());
-    using I = HandlerInts::value_type;
-    HandlerInts handler{};
-    ParserInts parser(&handler);
+    using I = typename HandlerInts<resize_buffers>::value_type;
+    HandlerInts<resize_buffers> handler{};
+    ParserInts<resize_buffers> parser(&handler);
     std::string str(src.begin(), src.end());
-    std::vector<char> arena(str.size());
-    std::vector<I> evts;
-    evts.reserve(256);
-    handler.reset(to_substr(str), to_substr(arena),
-                  evts.data(), static_cast<I>(evts.size()));
-    C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
+    if C4_IF_CONSTEXPR (resize_buffers)
     {
-        _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
-        fn(parser, c4::to_substr(str));
-        C4_DONT_OPTIMIZE(evts);
+        C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
+        {
+            _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+            fn(parser, c4::to_substr(str));
+            C4_DONT_OPTIMIZE(handler);
+        }
+        C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+        {
+            // if an exception leaks from here, it is likely because of a greedy noexcept
+            _if_dbg(fprintf(stdout, "err\n"); fflush(NULL));
+            return 1;
+        }
     }
-    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    else
     {
-        // if an exception leaks from here, it is likely because of a greedy noexcept
-        _if_dbg(fprintf(stdout, "err\n"); fflush(NULL));
-        return 1;
+        std::vector<char> arena(str.size());
+        std::vector<I> evts;
+        evts.reserve(256);
+        handler.reset(to_substr(str), to_substr(arena),
+                      evts.data(), static_cast<I>(evts.size()));
+        C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
+        {
+            _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+            fn(parser, c4::to_substr(str));
+            C4_DONT_OPTIMIZE(evts);
+        }
+        C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+        {
+            // if an exception leaks from here, it is likely because of a greedy noexcept
+            _if_dbg(fprintf(stdout, "err\n"); fflush(NULL));
+            return 1;
+        }
     }
     return 0;
 }
 
+template<bool resize_buffers>
 inline int fuzztest_yaml_ints(uint32_t case_number, csubstr src)
 {
-    return fuzztest_ints(
+    return fuzztest_ints<resize_buffers>(
         case_number,
         src,
-        [](ParserInts &parser, c4::substr str){
+        [](ParserInts<resize_buffers> &parser, c4::substr str){
             parser.parse_in_place_ev("input.yaml", c4::to_substr(str));
         });
 }
+template<bool resize_buffers>
 inline int fuzztest_json_ints(uint32_t case_number, csubstr src)
 {
-    return fuzztest_ints(
+    return fuzztest_ints<resize_buffers>(
         case_number,
         src,
-        [](ParserInts &parser, c4::substr str){
+        [](ParserInts<resize_buffers> &parser, c4::substr str){
             parser.parse_json_in_place_ev("input.json", c4::to_substr(str));
         });
+}
+inline int fuzztest_yaml_ints_resize(uint32_t case_number, csubstr src)
+{
+    return fuzztest_yaml_ints<true>(case_number, src);
+}
+inline int fuzztest_yaml_ints_noresize(uint32_t case_number, csubstr src)
+{
+    return fuzztest_yaml_ints<false>(case_number, src);
+}
+inline int fuzztest_json_ints_resize(uint32_t case_number, csubstr src)
+{
+    return fuzztest_json_ints<true>(case_number, src);
+}
+inline int fuzztest_json_ints_noresize(uint32_t case_number, csubstr src)
+{
+    return fuzztest_json_ints<false>(case_number, src);
 }
 
 

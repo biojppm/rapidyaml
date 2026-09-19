@@ -19,6 +19,12 @@ ENGINE_TEST(Qmrk0,
             "a simple key: a value\n"
             "? an explicit key: another value\n"
             ,
+            ""
+            "a simple key: a value\n"
+            "?\n"
+            "  an explicit key: another value\n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -86,6 +92,12 @@ ENGINE_TEST(Qmrk1_1,
             "? an explicit key: another value\n"
             "a simple key: a value\n"
             ,
+            ""
+            "?\n"
+            "  an explicit key: another value\n"
+            ": \n"
+            "a simple key: a value\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -123,6 +135,18 @@ ENGINE_TEST(Qmrk1_2,
             "  a simple key: a value\n"
             "? an explicit key deindented: its value\n"
             "? more: siblings\n"
+            ,
+            "map:\n"
+            "  ?\n"
+            "    an explicit key: another value\n"
+            "  : \n"
+            "  a simple key: a value\n"
+            "?\n"
+            "  an explicit key deindented: its value\n"
+            ": \n"
+            "?\n"
+            "  more: siblings\n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -399,6 +423,12 @@ ENGINE_TEST(Qmrk5,
             "?\n"
             "?\n"
             ,
+            "?\n"
+            "  a: b\n"
+            ": \n"
+            ": \n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -441,6 +471,14 @@ ENGINE_TEST(Qmrk6,
             "- ? an explicit key: another value\n"
             "  a simple key: a value\n"
             "- ? another explicit key: its value\n"
+            ,
+            "- ?\n"
+            "    an explicit key: another value\n"
+            "  : \n"
+            "  a simple key: a value\n"
+            "- ?\n"
+            "    another explicit key: its value\n"
+            "  : \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -497,6 +535,16 @@ ENGINE_TEST(Qmrk7,
             "- ? : x\n"
             "- ? : \n"
             "- ? :\n"
+            ,
+            "- ?\n"
+            "    : x\n"
+            "  : \n"
+            "- ?\n"
+            "    : \n"
+            "  : \n"
+            "- ?\n"
+            "    : \n"
+            "  : \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -713,6 +761,10 @@ ENGINE_TEST(Qmrk11,
             "?"        "\n"
             "  :"      "\n"
             ,
+            "?"        "\n"
+            "  : "     "\n"
+            ": "       "\n"
+            ,
             "+STR"        "\n"
             "+DOC"        "\n"
             "+MAP"        "\n"
@@ -742,7 +794,11 @@ ENGINE_TEST(Qmrk11,
 ENGINE_TEST(Qmrk12,
             HAS_CONTAINER_KEYS, Location(3,2,2),
             "?"        "\n"
-            " :"      "\n"
+            " :"       "\n"
+            ,
+            "?"        "\n"
+            "  : "     "\n"
+            ": "       "\n"
             ,
             "+STR"        "\n"
             "+DOC"        "\n"
@@ -830,6 +886,11 @@ ENGINE_TEST(QmrkWithTags,
             "a1: b1\n"
             "? !at\n"
             " !bt : b2\n"
+            ": c3\n"
+            ,
+            "a1: b1\n"
+            "? !at\n"
+            "  !bt : b2\n"
             ": c3\n"
             ,
             "+STR\n"
@@ -1060,6 +1121,13 @@ ENGINE_TEST(QmrkSameLineUnkSeq, HAS_CONTAINER_KEYS,
             ": - a\n"
             "  - b\n"
             ,
+            "?\n"
+            "  - a\n"
+            "  - b\n"
+            ":\n"
+            "  - a\n"
+            "  - b\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1125,6 +1193,11 @@ ENGINE_TEST(QmrkSameLineUnkMap, HAS_CONTAINER_KEYS,
             "? a: b\n"
             ": c: d\n"
             ,
+            "?\n"
+            "  a: b\n"
+            ":\n"
+            "  c: d\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1184,6 +1257,14 @@ ENGINE_TEST(QmrkSameLineMapSeq, HAS_CONTAINER_KEYS,
             "? - a\n"
             "  - b\n"
             ": - a\n"
+            "  - b\n"
+            ,
+            "k: v\n"
+            "?\n"
+            "  - a\n"
+            "  - b\n"
+            ":\n"
+            "  - a\n"
             "  - b\n"
             ,
             "+STR\n"
@@ -1261,6 +1342,12 @@ ENGINE_TEST(QmrkSameLineMapMap, HAS_CONTAINER_KEYS,
             "? a: b\n"
             ": c: d\n"
             ,
+            "k: v\n"
+            "?\n"
+            "  a: b\n"
+            ":\n"
+            "  c: d\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1328,6 +1415,13 @@ ENGINE_TEST(QmrkSameLineSeqSeq, HAS_CONTAINER_KEYS,
             "- ? - a\n"
             "    - b\n"
             "  : - a\n"
+            "    - b\n"
+            ,
+            "- ?\n"
+            "    - a\n"
+            "    - b\n"
+            "  :\n"
+            "    - a\n"
             "    - b\n"
             ,
             "+STR\n"
@@ -1399,6 +1493,11 @@ ENGINE_TEST(QmrkSameLineSeqMap, HAS_CONTAINER_KEYS,
             "- ? a: b\n"
             "  : c: d\n"
             ,
+            "- ?\n"
+            "    a: b\n"
+            "  :\n"
+            "    c: d\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+SEQ\n"
@@ -1460,6 +1559,12 @@ ENGINE_TEST_ERRLOC_(QmrkSameLineSeqMapErr3, HAS_CONTAINER_KEYS,
 ENGINE_TEST(QmrkSameLineNested0Seq, HAS_CONTAINER_KEYS,
             "? ? - a\n"
             ,
+            "?\n"
+            "  ?\n"
+            "    - a\n"
+            "  : \n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1493,6 +1598,12 @@ ENGINE_TEST(QmrkSameLineNested0Seq_1, HAS_CONTAINER_KEYS,
             "?\n"
             "  ? - a\n"
             ,
+            "?\n"
+            "  ?\n"
+            "    - a\n"
+            "  : \n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1524,6 +1635,12 @@ ENGINE_TEST(QmrkSameLineNested0Seq_1, HAS_CONTAINER_KEYS,
 
 ENGINE_TEST(QmrkSameLineNested0Map, HAS_CONTAINER_KEYS,
             "? ? a: b\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    a: b\n"
+            "  : \n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1559,6 +1676,12 @@ ENGINE_TEST(QmrkSameLineNested0Map, HAS_CONTAINER_KEYS,
 ENGINE_TEST(QmrkSameLineNested0Map_1, HAS_CONTAINER_KEYS,
             "?\n"
             "  ? a: b\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    a: b\n"
+            "  : \n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1598,6 +1721,18 @@ ENGINE_TEST(QmrkSameLineNested1SeqRkcl0, HAS_CONTAINER_KEYS,
             "? ? - a\n"
             "  ? - b\n"
             "? - c\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    - a\n"
+            "  : \n"
+            "  ?\n"
+            "    - b\n"
+            "  : \n"
+            ": \n"
+            "?\n"
+            "  - c\n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"

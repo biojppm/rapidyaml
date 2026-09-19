@@ -18,11 +18,6 @@ namespace yml {
 /** @cond dev */
 // fwd declarations
 class Tree;
-/** Specifies the type of content to emit */
-typedef enum { // NOLINT
-    EMIT_YAML = 0, ///< emit YAML
-    EMIT_JSON = 1, ///< emit JSON
-} EmitType_e;
 /** @endcond */
 
 
@@ -157,24 +152,14 @@ private:
 private:
 
     void json_emit_(id_type id);
-    void write_scalar_literal_(csubstr s, id_type level);
-    void write_scalar_folded_(csubstr s, id_type level);
-    void write_scalar_squo_(csubstr s, id_type level);
-    void write_scalar_dquo_(csubstr s, id_type level);
-    void write_scalar_plain_(csubstr s, id_type level);
-
-    size_t write_escaped_newlines_(csubstr s, size_t i);
-    size_t write_indented_block_(csubstr s, size_t i, id_type level);
 
 private:
 
     void json_visit_ml_(id_type id, NodeType ty, id_type depth);
     void json_visit_sl_(id_type id, NodeType ty, id_type depth);
-    bool json_maybe_write_naninf_(csubstr s);
+
     void json_writek_(id_type id, NodeType ty);
     void json_writev_(id_type id, NodeType ty);
-    void json_write_scalar_dquo_(csubstr s);
-    void json_write_number_(csubstr s);
 
 private:
 
@@ -194,7 +179,9 @@ private:
         }
     }
 
-private:
+public:
+
+    using indent_type = id_type;
 
     template<size_t N>
     C4_ALWAYS_INLINE void write_(const char (&a)[N]) // LCOV_EXCL_LINE

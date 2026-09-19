@@ -18,6 +18,10 @@
 #ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
+#ifndef C4_YML_DETAIL_EMIT_SCALAR_HPP_
+#include "c4/yml/detail/emit_scalar.hpp"
+#endif
+
 
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
@@ -81,7 +85,7 @@ void Emitter<Writer>::emit_as(EmitType_e type, Tree const* tree, id_type id)
 // This function kickstarts the tree descent by handling all the
 // initial and final logic at the top-level scope, thus avoiding
 // top-level kickstart branches in the recursive descending code
-// (which should be oblivious of such logic). This makes the recursive
+// (which should be oblivious to such logic). This makes the recursive
 // descending code a lot simpler.
 template<class Writer>
 void Emitter<Writer>::emit_yaml_(id_type id)
@@ -152,8 +156,7 @@ void Emitter<Writer>::emit_yaml_(id_type id)
     }
     else if(m_tree->is_root(id)
        || emit_dash || emit_key
-       || !ty.is_val()
-       || !ty.is_val_plain())
+       || !ty.is_val())
     {
         write_pws_and_pend_(PWS_NONE_);
     }
@@ -956,15 +959,15 @@ void Emitter<Writer>::flow_write_scalar_(csubstr str, type_bits ty)
     RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), !(ty & detail::styles_block_));
     if((ty & detail::styles_plain_) || !(ty & SCALAR_STYLE))
     {
-        write_scalar_plain_(str, m_ilevel);
+        detail::emit_scalar_plain_(this, str, m_ilevel);
     }
     else if(ty & detail::styles_squo_)
     {
-        write_scalar_squo_(str, m_ilevel);
+        detail::emit_scalar_squo_(this, str, m_ilevel);
     }
     else // if(ty & detail::styles_dquo_)
     {
-        write_scalar_dquo_(str, m_ilevel);
+        detail::emit_scalar_dquo_(this, str);
     }
 }
 
@@ -973,363 +976,24 @@ void Emitter<Writer>::blck_write_scalar_(csubstr str, type_bits ty)
 {
     if((ty & detail::styles_plain_) || !(ty & SCALAR_STYLE))
     {
-        write_scalar_plain_(str, m_ilevel);
+        detail::emit_scalar_plain_(this, str, m_ilevel);
     }
     else if(ty & detail::styles_squo_)
     {
-        write_scalar_squo_(str, m_ilevel);
+        detail::emit_scalar_squo_(this, str, m_ilevel);
     }
     else if(ty & detail::styles_dquo_)
     {
-        write_scalar_dquo_(str, m_ilevel);
+        detail::emit_scalar_dquo_(this, str);
     }
     else if(ty & detail::styles_literal_)
     {
-        write_scalar_literal_(str, m_ilevel);
+        detail::emit_scalar_literal_(this, str, m_ilevel);
     }
     else // if(ty & detail::styles_folded_)
     {
-        write_scalar_folded_(str, m_ilevel);
+        detail::emit_scalar_folded_(this, str, m_ilevel);
     }
-}
-
-template<class Writer>
-size_t Emitter<Writer>::write_escaped_newlines_(csubstr s, size_t i)
-{
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.len > i);
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i] == '\n');
-    //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
-    // add an extra newline for each sequence of consecutive
-    // newline/whitespace
-    newl_();
-    do
-    {
-        newl_(); // write the newline again
-        ++i; // increase the outer loop counter!
-    } while(i < s.len && s.str[i] == '\n');
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), i > 0);
-    --i;
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i] == '\n');
-    return i;
-}
-
-
-inline bool _is_indented_block(csubstr s, size_t prev, size_t i) noexcept
-{
-    if(prev == 0 && s.begins_with_any(" \t"))
-        return true;
-    const size_t pos = s.first_not_of('\n', i);
-    return (pos != npos) && (s.str[pos] == ' ' || s.str[pos] == '\t');
-}
-
-
-template<class Writer>
-size_t Emitter<Writer>::write_indented_block_(csubstr s, size_t i, id_type ilevel)
-{
-    //_c4dbgpf("indblock@i={} rem=[{}]~~~\n{}~~~", i, s.sub(i).len, s.sub(i));
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), i > 0);
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i-1] == '\n');
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), i < s.len);
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.str[i] == ' ' || s.str[i] == '\t' || s.str[i] == '\n');
-again:
-    size_t pos = s.find("\n ", i);
-    if(pos == npos)
-        pos = s.find("\n\t", i);
-    if(pos != npos)
-    {
-        ++pos;
-        //_c4dbgpf("indblock line@i={} rem=[{}]~~~\n{}~~~", i, s.range(i, pos).len, s.range(i, pos));
-        indent_(ilevel + 1);
-        write_(s.range(i, pos));
-        i = pos;
-        goto again; // NOLINT
-    }
-    // consume the newlines after the indented block
-    // to prevent them from being escaped
-    pos = s.find('\n', i);
-    if(pos != npos)
-    {
-        const size_t pos2 = s.first_not_of('\n', pos);
-        pos = (pos2 != npos) ? pos2 : pos;
-        //_c4dbgpf("indblock line@i={} rem=[{}]~~~\n{}~~~", i, s.range(i, pos).len, s.range(i, pos));
-        indent_(ilevel + 1);
-        write_(s.range(i, pos));
-        i = pos;
-    }
-    return i;
-}
-
-template<class Writer>
-void Emitter<Writer>::write_scalar_literal_(csubstr s, id_type ilevel)
-{
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.find("\r") == csubstr::npos);
-    csubstr trimmed = s.trimr('\n');
-    const size_t numnewlines_at_end = s.len - trimmed.len;
-    const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
-    const bool explicit_indentation = s.triml("\n\r").begins_with_any(" \t");
-    //
-    write_('|');
-    if(explicit_indentation)
-        write_('2');
-    //
-    if(numnewlines_at_end > 1 || is_newline_only)
-        write_('+');
-    else if(numnewlines_at_end == 0)
-        write_('-');
-    //
-    if(trimmed.len)
-    {
-        newl_();
-        size_t pos = 0; // tracks the last character that was already written
-        for(size_t i = 0; i < trimmed.len; ++i)
-        {
-            if(trimmed[i] != '\n')
-                continue;
-            // write everything up to this point
-            csubstr since_pos = trimmed.range(pos, i+1); // include the newline
-            indent_(ilevel + 1);
-            write_(since_pos);
-            pos = i+1; // already written
-        }
-        if(pos < trimmed.len)
-        {
-            indent_(ilevel + 1);
-            write_(trimmed.sub(pos));
-        }
-    }
-    for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
-        newl_();
-}
-
-template<class Writer>
-void Emitter<Writer>::write_scalar_folded_(csubstr s, id_type ilevel)
-{
-    RYML_ASSERT_BASIC_CB_(m_tree->callbacks(), s.find("\r") == csubstr::npos);
-    csubstr trimmed = s.trimr('\n');
-    const size_t numnewlines_at_end = s.len - trimmed.len;
-    const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
-    const bool explicit_indentation = s.triml("\n\r").begins_with_any(" \t");
-    //
-    write_('>');
-    if(explicit_indentation)
-        write_('2');
-    //
-    if(numnewlines_at_end == 0)
-        write_('-');
-    else if(numnewlines_at_end > 1 || is_newline_only)
-        write_('+');
-    //
-    if(trimmed.len)
-    {
-        newl_();
-        size_t pos = 0; // tracks the last character that was already written
-        for(size_t i = 0; i < trimmed.len; ++i)
-        {
-            if(trimmed[i] != '\n')
-                continue;
-            // escape newline sequences
-            if( ! _is_indented_block(s, pos, i))
-            {
-                if(pos < i)
-                {
-                    indent_(ilevel + 1);
-                    write_(s.range(pos, i));
-                    i = write_escaped_newlines_(s, i);
-                    pos = i + 1;
-                }
-                else
-                {
-                    if(i+1 < s.len)
-                    {
-                        if(s.str[i+1] == '\n')
-                        {
-                            ++i;
-                            i = write_escaped_newlines_(s, i);
-                            pos = i+1;
-                        }
-                        else
-                        {
-                            newl_();
-                            pos = i+1;
-                        }
-                    }
-                }
-            }
-            else // do not escape newlines in indented blocks
-            {
-                ++i;
-                indent_(ilevel + 1);
-                write_(s.range(pos, i));
-                if(pos > 0 || !s.begins_with_any(" \t"))
-                    i = write_indented_block_(s, i, ilevel);
-                pos = i;
-            }
-        }
-        if(pos < trimmed.len)
-        {
-            indent_(ilevel + 1);
-            write_(trimmed.sub(pos));
-        }
-    }
-    for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
-        newl_();
-}
-
-template<class Writer>
-void Emitter<Writer>::write_scalar_squo_(csubstr s, id_type ilevel)
-{
-    size_t pos = 0; // tracks the last character that was already written
-    write_('\'');
-    for(size_t i = 0; i < s.len; ++i)
-    {
-        if(s[i] == '\n')
-        {
-            write_(s.range(pos, i));  // write everything up to (excluding) this char
-            //_c4dbgpf("newline at {}. writing ~~~{}~~~", i, s.range(pos, i));
-            i = write_escaped_newlines_(s, i);
-            //_c4dbgpf("newline --> {}", i);
-            if(i < s.len)
-                indent_(ilevel + 1);
-            pos = i+1;
-        }
-        else if(s[i] == '\'')
-        {
-            csubstr sub = s.range(pos, i+1);
-            //_c4dbgpf("squote at {}. writing ~~~{}~~~", i, sub);
-            write_(sub); // write everything up to (including) this squote
-            write_('\''); // write the squote again
-            pos = i+1;
-        }
-    }
-    // write remaining characters at the end of the string
-    if(pos < s.len)
-        write_(s.sub(pos));
-    write_('\'');
-}
-
-template<class Writer>
-void Emitter<Writer>::write_scalar_dquo_(csubstr s, id_type ilevel)
-{
-    size_t pos = 0; // tracks the last character that was already written
-    write_('"');
-    for(size_t i = 0; i < s.len; ++i)
-    {
-        const char curr = s.str[i];
-        switch(curr) // NOLINT
-        {
-        case '"':
-        case '\\':
-        {
-            csubstr sub = s.range(pos, i);
-            write_(sub);  // write everything up to (excluding) this char
-            write_('\\'); // write the escape
-            write_(curr); // write the char
-            pos = i+1;
-            break;
-        }
-#ifndef prefer_writing_newlines_as_double_newlines
-        case '\n':
-        {
-            csubstr sub = s.range(pos, i);
-            write_(sub);   // write everything up to (excluding) this char
-            write_("\\n"); // write the escape
-            pos = i+1;
-            (void)ilevel;
-            break;
-        }
-#else
-        case '\n':
-        {
-            // write everything up to (excluding) this newline
-            //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
-            _write(s.range(pos, i));
-            i = _write_escaped_newlines(s, i);
-            ++i;
-            pos = i;
-            // as for the next line...
-            if(i < s.len)
-            {
-                _indent(ilevel + 1); // indent the next line
-                // escape leading whitespace, and flush it
-                size_t first = s.first_not_of(" \t", i);
-                //_c4dbgpf("@i={} first={} rem=[{}]~~~{}~~~", i, first, s.sub(i).len, s.sub(i));
-                if(first > i)
-                {
-                    if(first == npos)
-                        first = s.len;
-                    _write('\\');
-                    _write(s.range(i, first));
-                    _write('\\');
-                    i = first-1;
-                    pos = first;
-                }
-            }
-            break;
-        }
-        // escape trailing whitespace before a newline
-        case ' ':
-        case '\t':
-        {
-            const size_t next = s.first_not_of(" \t\r", i);
-            if(next != npos && s.str[next] == '\n')
-            {
-                csubstr sub = s.range(pos, i);
-                _write(sub);  // write everything up to (excluding) this char
-                _write('\\'); // escape the whitespace
-                pos = i;
-            }
-            break;
-        }
-#endif
-        case '\r':
-        {
-            csubstr sub = s.range(pos, i);
-            write_(sub);  // write everything up to (excluding) this char
-            write_("\\r"); // write the escaped char
-            pos = i+1;
-            break;
-        }
-        case '\b':
-        {
-            csubstr sub = s.range(pos, i);
-            write_(sub);  // write everything up to (excluding) this char
-            write_("\\b"); // write the escaped char
-            pos = i+1;
-            break;
-        }
-        }
-    }
-    // write remaining characters at the end of the string
-    if(pos < s.len)
-        write_(s.sub(pos));
-    write_('"');
-}
-
-template<class Writer>
-void Emitter<Writer>::write_scalar_plain_(csubstr s, id_type ilevel)
-{
-    if C4_UNLIKELY(ilevel == 0 && (s.begins_with("...") || s.begins_with("---")))
-    {
-        indent_(ilevel + 1); // indent the next line
-        ++ilevel;
-    }
-    size_t pos = 0; // tracks the last character that was already written
-    for(size_t i = 0; i < s.len; ++i)
-    {
-        const char curr = s.str[i];
-        if(curr == '\n')
-        {
-            csubstr sub = s.range(pos, i);
-            write_(sub);  // write everything up to (including) this newline
-            i = write_escaped_newlines_(s, i);
-            pos = i+1;
-            if(pos < s.len)
-                indent_(ilevel + 1); // indent the next line
-        }
-    }
-    // write remaining characters at the end of the string
-    if(pos < s.len)
-        write_(s.sub(pos));
 }
 
 
@@ -1364,6 +1028,8 @@ void Emitter<Writer>::json_emit_(id_type id)
     if C4_UNLIKELY(ty.is_stream() && m_opts.json_err_on_stream())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "found stream node");
     static_assert(STREAM & SEQ, "STREAM must be a SEQ");
+    if(!m_tree->is_root(id) && !m_opts.emit_nonroot_key())
+        ty &= ~(KEY|KEY_STYLE);
     ty = detail::json_type_(ty);
     if(ty.is_flow_mlx())
     {
@@ -1373,6 +1039,8 @@ void Emitter<Writer>::json_emit_(id_type id)
     else
     {
         json_visit_sl_(id, ty, 0);
+        if(ty.has_key())
+            newl_();
     }
 }
 
@@ -1487,6 +1155,11 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
             newl_();
             indent_(m_ilevel);
         }
+        else if(ty.m_bits & FLOW_ML1)
+        {
+            newl_();
+            indent_(m_ilevel);
+        }
 
         if(ty.is_seq())
             write_(']');
@@ -1495,63 +1168,6 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
     }
 }
 
-template<class Writer>
-bool Emitter<Writer>::json_maybe_write_naninf_(csubstr s)
-{
-    switch(s.len)
-    {
-    case 3: case 4: case 5: // inf, nan, .nan, -.inf
-    case 8: case 9: // infinity, -infinity
-        break;
-    default:
-        return false;
-    }
-    const char first = s.str[0];
-    csubstr rest = s.sub(1);
-    if(s.len == 4 && first == '.')
-    {
-        if(scalar_is_inf3(rest.str))
-            goto write_inf_positive; // NOLINT
-        else if(scalar_is_nan3(rest.str))
-            goto write_nan; // NOLINT
-    }
-    else if(first == '-' || first == '+') // begins with sign: must be inf
-    {
-        // match [-+].inf
-        if((rest.len == 4 && rest.str[0] == '.' && scalar_is_inf3(rest.str + 1))
-           // match [-+]inf
-           || (rest.len == 3 && scalar_is_inf3(rest.str))
-           // match [-+]infinity
-           || (rest.len == 8 && (0 == memcmp(rest.str, "infinity", 8))))
-        {
-            if(first == '-')
-                goto write_inf_negative; // NOLINT
-            else
-                goto write_inf_positive; // NOLINT
-        }
-    }
-    else if(s.len == 8 && (0 == memcmp(s.str, "infinity", 8)))
-    {
-        goto write_inf_positive; // NOLINT
-    }
-    else if(s.len == 3)
-    {
-        if(scalar_is_inf3(s.str))
-            goto write_inf_positive; // NOLINT
-        else if(scalar_is_nan3(s.str))
-            goto write_nan; // NOLINT
-    }
-    return false;
-write_inf_positive:
-    write_("\".inf\"");
-    return true;
-write_inf_negative:
-    write_("\"-.inf\"");
-    return true;
-write_nan:
-    write_("\".nan\"");
-    return true;
-}
 
 template<class Writer>
 void Emitter<Writer>::json_writek_(id_type id, NodeType ty)
@@ -1563,10 +1179,10 @@ void Emitter<Writer>::json_writek_(id_type id, NodeType ty)
     csubstr key = m_tree->key(id);
     if(key.len)
     {
-        if(json_maybe_write_naninf_(key))
+        if(detail::emit_json_maybe_write_naninf_(this, key))
             ;
         else
-            json_write_scalar_dquo_(key);
+            detail::emit_json_write_scalar_dquo_(this, key);
     }
     else
     {
@@ -1588,11 +1204,11 @@ void Emitter<Writer>::json_writev_(id_type id, NodeType ty)
         bool dquoted = ((ty.m_bits & VALQUO)
                         || (scalar_style_choose_json(val).m_bits & SCALAR_DQUO)); // choose the style
         if(dquoted)
-            json_write_scalar_dquo_(val);
-        else if(json_maybe_write_naninf_(val))
+            detail::emit_json_write_scalar_dquo_(this, val);
+        else if(detail::emit_json_maybe_write_naninf_(this, val))
             ;
         else if(val.is_number())
-            json_write_number_(val);
+            detail::emit_json_write_number_(this, val);
         else
             write_(val);
     }
@@ -1605,104 +1221,6 @@ void Emitter<Writer>::json_writev_(id_type id, NodeType ty)
     }
 }
 
-
-template<class Writer>
-void Emitter<Writer>::json_write_scalar_dquo_(csubstr s)
-{
-    size_t pos = 0;
-    write_('"');
-    for(size_t i = 0; i < s.len; ++i)
-    {
-        switch(s.str[i])
-        {
-        case '"':
-            write_(s.range(pos, i));
-            write_("\\\"");
-            pos = i + 1;
-            break;
-        case '\n':
-            write_(s.range(pos, i));
-            write_("\\n");
-            pos = i + 1;
-            break;
-        case '\t':
-            write_(s.range(pos, i));
-            write_("\\t");
-            pos = i + 1;
-            break;
-        case '\\':
-            write_(s.range(pos, i));
-            write_("\\\\");
-            pos = i + 1;
-            break;
-        case '\r':
-            write_(s.range(pos, i));
-            write_("\\r");
-            pos = i + 1;
-            break;
-        case '\b':
-            write_(s.range(pos, i));
-            write_("\\b");
-            pos = i + 1;
-            break;
-        case '\f':
-            write_(s.range(pos, i));
-            write_("\\f");
-            pos = i + 1;
-            break;
-        }
-    }
-    if(pos < s.len)
-    {
-        csubstr sub = s.sub(pos);
-        write_(sub);
-    }
-    write_('"');
-}
-
-template<class Writer>
-void Emitter<Writer>::json_write_number_(csubstr s)
-{
-    if(s.is_integer())
-    {
-        write_(s);
-    }
-    else
-    {
-        if(s.begins_with('-') && s.len > 1)
-        {
-            csubstr rest = s.sub(1);
-            if(rest.begins_with('.'))
-            {
-                write_("-0");
-                write_(rest);
-            }
-            else if(rest.ends_with('.'))
-            {
-                write_(s);
-                write_('0');
-            }
-            else
-            {
-                write_(s);
-            }
-        }
-        else if(s.begins_with('.'))
-        {
-            write_('0');
-            write_(s);
-        }
-        else if(s.ends_with('.'))
-        {
-            write_(s);
-            write_('0');
-        }
-        else
-        {
-            write_(s);
-        }
-    }
-}
 
 /** @endcond */
 

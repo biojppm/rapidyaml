@@ -361,15 +361,13 @@ void process_file_tree(Args const& args, ParserOptions opts, substr contents)
 }
 
 
-void process_file_ints(Args const& args, ParserOptions opts, csubstr contents)
+void process_file_ints(Args const& args, ParserOptions opts, substr contents)
 {
     TS(process_file_ints);
-    using evt_type = extra::ievt::evt_bits;
-    extra::EventHandlerInts handler;
-    ParseEngine<extra::EventHandlerInts> parser(&handler, opts);
-    std::vector<evt_type> events;
-    std::vector<char> src;
-    std::vector<char> arena;
+    using handler_type = extra::ievt::EventHandlerInts<true>;
+    handler_type handler;
+    ParseEngine<handler_type> parser(&handler, opts);
+    handler.reset(contents);
     if(args.reserve_size)
     {
         TSB(reserve, contents.len);
@@ -377,46 +375,26 @@ void process_file_ints(Args const& args, ParserOptions opts, csubstr contents)
         if(args.reserve_size == 1)
         {
             TSB(estimate_size, contents.len);
-            cap = (id_type)extra::estimate_events_ints_size(to_csubstr(contents));
+            cap = (id_type)extra::ievt::estimate_events_size(to_csubstr(contents));
         }
-        events.reserve(cap);
-        arena.resize(contents.len);
+        handler.reserve_evts((extra::ievt::evt_size)cap);
+        handler.reserve_arena(contents.len);
         if(args.timed_sections)
             fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap); // NOLINT
     }
- again:
-    {
-        TS(reset);
-        {
-            TSB(copy_src, contents.len);
-            src.assign(contents.begin(), contents.end());
-        }
-        {
-            TS(handler);
-            handler.reset(to_substr(src), to_substr(arena), events.data(), (evt_type)events.size());
-        }
-    }
-    {
-        TSB(parse_yml, contents.len);
-        parser.parse_in_place_ev(args.filename, to_substr(src));
-    }
-    events.resize((size_t)handler.required_size_events());
-    if(!handler.fits_buffers())
-    {
-        arena.resize(handler.required_size_arena());
-        goto again; // NOLINT
-    }
+    parser.parse_in_place_ev(args.filename, contents);
+    extra::ievt::Buffers buf = handler.get_buffers();
     if(!args.quiet && !args.testsuite)
     {
         TSB(print_events, contents.len);
-        extra::events_ints_print(to_csubstr(src), to_csubstr(arena), events.data(), (evt_type)events.size());
+        extra::ievt::events_ints_print(buf.src, buf.arena, buf.evts.ptr, buf.evts.len);
     }
     if(args.testsuite)
     {
         std::vector<char> tsevts;
         {
             TSB(tsevts, contents.len);
-            extra::events_ints_to_testsuite(to_csubstr(src), to_substr(arena), events.data(), (evt_type)events.size(), &tsevts);
+            extra::ievt::events_ints_to_testsuite(buf.src, buf.arena, buf.evts.ptr, buf.evts.len, &tsevts);
         }
         if(!args.quiet)
         {

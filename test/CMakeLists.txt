@@ -82,20 +82,20 @@ function(ryml_add_quickstart_test targetname suffix)
 endfunction()
 ryml_add_quickstart_test(ryml-test-quickstart noargs LOCK)
 ryml_add_quickstart_test(ryml-test-quickstart quiet ARGS --quiet LOCK)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-help ARGS --help)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-quiet ARGS --quiet)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-zero ARGS -e 0 -a 0)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-stdin STDIN ARGS -)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-stdin2 STDIN ARGS stdin)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-noretry ARGS -n)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-noretry-fail WILL_FAIL ARGS -n -e 0)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-file ARGS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-too-many WILL_FAIL ARGS a b c)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-missing_events WILL_FAIL ARGS -e)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-missing_arena WILL_FAIL ARGS -a)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-bad_events WILL_FAIL ARGS -e bad)
-ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-bad_arena WILL_FAIL ARGS -a bad)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  noargs)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  help ARGS --help)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  quiet ARGS --quiet)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  zero ARGS -e 0 -a 0)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  stdin STDIN ARGS -)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  stdin2 STDIN ARGS stdin)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  noretry ARGS -n)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  noretry-fail WILL_FAIL ARGS -n -e 0)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  file ARGS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  too-many WILL_FAIL ARGS a b c)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  missing_events WILL_FAIL ARGS -e)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  missing_arena WILL_FAIL ARGS -a)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  bad_events WILL_FAIL ARGS -e bad)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  bad_arena WILL_FAIL ARGS -a bad)
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
@@ -105,6 +105,8 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_case_node.cpp
        test_lib/test_case.hpp
        test_lib/test_case.cpp
+       test_lib/test_compare_events.hpp
+       test_lib/test_compare_events.cpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
        test_lib/test_events_ints_helpers.hpp
@@ -585,11 +587,13 @@ if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
         set(yaml_dirs yaml_fails yaml_merged yaml_rapidyamldump yaml_test_suite
                       ${json_dirs})
     endif()
-    ryml_add_fuzz_variant(srlz      srlz ${rapidyaml_data_dir}/fuzz ${srlz_dirs})
-    ryml_add_fuzz_variant(yaml_tree yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
-    ryml_add_fuzz_variant(yaml_ints yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
-    ryml_add_fuzz_variant(json_tree json ${rapidyaml_data_dir}/fuzz ${json_dirs})
-    ryml_add_fuzz_variant(json_ints json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(srlz               srlz ${rapidyaml_data_dir}/fuzz ${srlz_dirs})
+    ryml_add_fuzz_variant(yaml_tree          yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(yaml_ints_resize   yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(yaml_ints_noresize yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(json_tree          json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(json_ints_resize   json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(json_ints_noresize json ${rapidyaml_data_dir}/fuzz ${json_dirs})
     # umbrella runner
     if(RYML_FUZZ_DRIVERS)
         add_custom_target(ryml-fuzz-drivers-run
