@@ -394,7 +394,7 @@ TEST(emit_json, issue313_quoted_numbers__2)
         const Tree actual = parse_json_in_arena(file, actual_src);     \
         const Tree expected = parse_json_in_arena(file, expected_src); \
         test_compare(actual, expected);                           \
-        std::string emitted = emitrs_yaml<std::string>(expected); \
+        std::string emitted = emitrs_json<std::string>(expected); \
         {                                                         \
             SCOPED_TRACE("actual");                               \
             test_emit_json_same_ints(actual, emitted);            \
@@ -406,16 +406,24 @@ TEST(emit_json, issue313_quoted_numbers__2)
     }
 
 
-TEST(json, compact_map)
+TEST(json, empty)
 {
     _test("", "");
     _test("{}", "{}");
+    _test("[]", "[]");
+    _test("{\n}", "{\n}"); // test ML
+    _test("[\n]", "[\n]"); // test ML
+    _test("{\n\n\n}", "{\n\n\n}"); // test ML
+    _test("[\n\n\n]", "[\n\n\n]"); // test ML
+}
+
+TEST(json, compact_map)
+{
     _test(R"({"a":{"a":"b"}})", R"({"a": {"a": "b"}})");
 }
 
 TEST(json, compact_seq)
 {
-    _test("[]", "[]");
     _test(R"(["a",["a","b"]])", R"(["a", ["a","b"]])");
 }
 
@@ -749,8 +757,8 @@ TEST(emit_json, empty_val)
     test_emit_json_same_ints_(t, "{\n  \"a\": null,\n  \"b\": \"\",\n  \"c\": \"\",\n  \"d\": \"e\"\n}\n");
 }
 
-//-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
 
 struct SpecialScalarError
 {

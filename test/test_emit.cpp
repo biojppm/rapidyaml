@@ -483,6 +483,7 @@ void test_emits(Tree const* t, id_type id, std::string const& expected_yaml, std
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(*t, id, buf); }), expected_yaml);
         bailonfail();
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(*t, id, buf); }), expected_json);
+        bailonfail();
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(node, buf); }), expected_yaml);
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(node, buf); }), expected_json);
         EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(*t, id, f); }), expected_yaml);
@@ -508,6 +509,7 @@ void test_emits(Tree const* t, id_type id, std::string const& expected_yaml, std
             EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(*t, buf); }), expected_yaml);
             bailonfail();
             EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(*t, buf); }), expected_json);
+            bailonfail();
             EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_YAML, t); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
             EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(EmitOptions{}, buf); em.emit_as(EMIT_JSON, t); return em.get_result(/*error_on_excess*/true); }), expected_json);
             EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(*t, f); }), expected_yaml);
@@ -533,6 +535,7 @@ void test_emits(Tree const* t, id_type id, std::string const& expected_yaml, std
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(*t, id, opts, buf); }), expected_yaml);
     bailonfail();
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(*t, id, opts, buf); }), expected_json);
+    bailonfail();
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(node, opts, buf); }), expected_yaml);
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(node, opts, buf); }), expected_json);
     EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(opts, buf); em.emit_as(EMIT_YAML, t, id); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
@@ -563,6 +566,7 @@ void test_emits(Tree const* t, id_type id, std::string const& expected_yaml, std
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(*t, opts, buf); }), expected_yaml);
         bailonfail();
         EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(*t, opts, buf); }), expected_json);
+        bailonfail();
         EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(opts, buf); em.emit_as(EMIT_YAML, t); return em.get_result(/*error_on_excess*/true); }), expected_yaml);
         EXPECT_EQ(emit2buf([&](substr buf){ EmitterBuf em(opts, buf); em.emit_as(EMIT_JSON, t); return em.get_result(/*error_on_excess*/true); }), expected_json);
         EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(*t, opts, f); }), expected_yaml);
@@ -761,6 +765,30 @@ TEST(emit, no_node)
     std::string expected = "[foo,bar]";
     std::string expected_json = R"(["foo","bar"])";
     test_emits_(t, NONE, expected, expected_json);
+}
+
+TEST(emit, empty_map)
+{
+    const TreeAndInts ti = parse_tree_and_ints("{}");
+    test_emits_(ti, "{}", "{}");
+}
+
+TEST(emit, empty_seq)
+{
+    const TreeAndInts ti = parse_tree_and_ints("[]");
+    test_emits_(ti, "[]", "[]");
+}
+
+TEST(emit, empty_map_ml)
+{
+    const TreeAndInts ti = parse_tree_and_ints("{\n\n}");
+    test_emits_(ti, "{\n}\n", "{\n}\n");
+}
+
+TEST(emit, empty_seq_ml)
+{
+    const TreeAndInts ti = parse_tree_and_ints("[\n\n]");
+    test_emits_(ti, "[\n]\n", "[\n]\n");
 }
 
 TEST(emit, empty_key_squo)
@@ -1822,7 +1850,7 @@ static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
             TMPSTY(flowsl, ti, t[2], 18);
             test_emits_(ti, t[2], 15,
                         "2: [nested,seq]\n",
-                        "\"2\": [\"nested\",\"seq\"]"); // FIXME should have trailing newline
+                        "\"2\": [\"nested\",\"seq\"]\n");
         }
     }
     {
@@ -1846,7 +1874,7 @@ static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
             TMPSTY(flowsl, ti, t[3], 29);
             test_emits_(ti, t[3], 26,
                         "3: {nested: map}\n",
-                        "\"3\": {\"nested\": \"map\"}"); // FIXME should have trailing newline
+                        "\"3\": {\"nested\": \"map\"}\n");
         }
     }
 }

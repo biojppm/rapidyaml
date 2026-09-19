@@ -1039,7 +1039,7 @@ void Emitter<Writer>::json_emit_(id_type id)
     else
     {
         json_visit_sl_(id, ty, 0);
-        if(ty.is_keyval())
+        if(ty.has_key())
             newl_();
     }
 }
@@ -1152,6 +1152,11 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
             }
             if(m_opts.indent_flow_ml()) --m_ilevel;
             --depth;
+            newl_();
+            indent_(m_ilevel);
+        }
+        else if(ty.m_bits & FLOW_ML1)
+        {
             newl_();
             indent_(m_ilevel);
         }
