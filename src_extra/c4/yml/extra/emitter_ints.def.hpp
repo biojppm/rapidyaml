@@ -345,31 +345,38 @@ evt_size EmitterInts<Writer>::visit_doc_val_(evt_size pos)
     // some plain scalars such as '...' and '---' must not
     // appear at 0-indentation
     evt_bits evt = m_evts[pos];
-    RYML_ASSERT_BASIC_(evt & ievt::SCLR);
+    RYML_ASSERT_BASIC_(evt & (ievt::SCLR|ievt::ALIA));
     RYML_ASSERT_BASIC_(evt & (ievt::VAL_|ievt::KEY_));
-    RYML_ASSERT_BASIC_(detail::hasnone(evt, ievt::ALIA));
     const csubstr val = getstr_(pos);
-    evt_bits valstyle = evt & detail::styles_ievt_sclr;
-    const bool is_ambiguous = ((evt & ievt::PLAI) || !valstyle)
-        && (val.begins_with("...") || val.begins_with("---"));
-    if(!valstyle)
-        valstyle = detail::scalar_style_choose_block_ievt(val);
-    if(is_ambiguous)
+    if(!(evt & ievt::ALIA))
     {
-        ++m_ilevel;
-        if(m_pws != PWS_NONE_)
-            pend_newl_();
-        else
-            indent_(m_ilevel);
+        evt_bits valstyle = evt & detail::styles_ievt_sclr;
+        const bool is_ambiguous = ((evt & ievt::PLAI) || !valstyle)
+            && (val.begins_with("...") || val.begins_with("---"));
+        if(!valstyle)
+            valstyle = detail::scalar_style_choose_block_ievt(val);
+        if(is_ambiguous)
+        {
+            ++m_ilevel;
+            if(m_pws != PWS_NONE_)
+                pend_newl_();
+            else
+                indent_(m_ilevel);
+        }
+        else if(val.empty() && (valstyle & ievt::PLAI))
+        {
+            pend_none_();
+        }
+        write_pws_and_pend_(PWS_NONE_);
+        blck_write_scalar_(val, valstyle);
+        if(is_ambiguous)
+            --m_ilevel;
     }
-    else if(val.empty() && (valstyle & ievt::PLAI))
+    else
     {
-        pend_none_();
+        write_('*');
+        write_(val);
     }
-    write_pws_and_pend_(PWS_NONE_);
-    blck_write_scalar_(val, valstyle);
-    if(is_ambiguous)
-        --m_ilevel;
     return pos;
 }
 
@@ -1323,14 +1330,7 @@ evt_size EmitterInts<Writer>::json_visit_nested_(evt_size pos)
     while(pos < m_evts_size)
     {
         const evt_bits evt = m_evts[pos];
-        if(evt & (ievt::SCLR|ievt::ALIA))
-        {
-            pos = json_writev_(pos, evt, /*has_anchor_or_tag*/false);
-            if(ek.emit_key)
-                pend_newl_();
-            break;
-        }
-        else if(detail::hasall(evt, ievt::BSEQ))
+        if(detail::hasall(evt, ievt::BSEQ))
         {
             write_('[');
             pos = json_visit_container_(pos);
@@ -1345,6 +1345,24 @@ evt_size EmitterInts<Writer>::json_visit_nested_(evt_size pos)
             pos = json_visit_container_(pos);
             write_('}');
             if(evt & ievt::FMLX)
+                pend_newl_();
+            break;
+        }
+        else if(evt & ievt::SCLR)
+        {
+            pos = json_writev_(pos, evt, /*has_anchor_or_tag*/false);
+            if(ek.emit_key)
+                pend_newl_();
+            break;
+        }
+        else if(evt & ievt::ALIA)
+        {
+            if C4_UNLIKELY(m_opts.json_err_on_anchor())
+                RYML_ERR_BASIC_("JSON does not have anchors");
+            write_("\"*");
+            write_(getstr_(pos));
+            write_('"');
+            if(ek.emit_key)
                 pend_newl_();
             break;
         }

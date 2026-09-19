@@ -2351,6 +2351,104 @@ TEST(emit, container_key_map_flow)
 }
 
 
+TEST(emit, anchor_ref)
+{
+    SCOPED_TRACE("anchor_ref");
+    TreeAndInts ti = parse_tree_and_ints("[&a a,*a]");
+    auto dotest = [&](std::string const& expected, std::string const& expected_json){
+        test_emits_(ti, ti.tree, 0, expected, expected_json);
+        test_emits_(ti, ti.tree, 1, expected, expected_json);
+        test_emits_(ti, ti.tree, 2, expected, expected_json);
+        test_emits_(ti, ti.tree[0], 3, "&a a", "\"a\"");
+        test_emits_ints_(ti.ints, 6, "a", "\"a\"");
+        test_emits_(ti, ti.tree[1], 9, "*a", "\"*a\"");
+    };
+    {
+        TMPSTY(flowml1, ti, ti.tree, 2);
+        dotest("[\n  &a a,\n  *a\n]\n", "[\n  \"a\",\n  \"*a\"\n]\n");
+    }
+    {
+        TMPSTY(flowsl, ti, ti.tree, 2);
+        dotest("[&a a,*a]", "[\"a\",\"*a\"]");
+    }
+}
+
+
+TEST(emit, tag_anchor)
+{
+    SCOPED_TRACE("tag_anchor_ml");
+    TreeAndInts ti = parse_tree_and_ints(R"({
+  !kt a: !vt 8,
+  &ka b: &va 9,
+  &ka !kt c: &va !vt 10,
+  !kt &ka d: !vt &va 11,
+})");
+    auto dotest = [&](std::string const& expected, std::string const& expected_json){
+        test_emits_(ti, ti.tree, 0, expected, expected_json);
+        test_emits_(ti, ti.tree, 1, expected, expected_json);
+        test_emits_(ti, ti.tree, 2, expected, expected_json);
+        //
+        test_emits_(ti, ti.tree[0], 3, "!kt a: !vt 8\n", "\"a\": 8\n");
+        test_emits_(ti.tree[0], "!vt 8", "8", without_key);
+        test_emits_ints_(ti.ints, 3, "!kt a", "\"a\"", without_key);
+        test_emits_ints_(ti.ints, 6, "a: !vt 8\n", "\"a\": 8\n");
+        test_emits_ints_(ti.ints, 6, "a", "\"a\"", without_key);
+        test_emits_ints_(ti.ints, 9, "!vt 8", "8");
+        test_emits_ints_(ti.ints, 9, "!vt 8", "8", without_key);
+        test_emits_ints_(ti.ints, 12, "8", "8");
+        test_emits_ints_(ti.ints, 12, "8", "8", without_key);
+        //
+        test_emits_(ti, ti.tree[1], 15, "&ka b: &va 9\n", "\"b\": 9\n");
+        test_emits_(ti.tree[1], "&va 9", "9", without_key);
+        test_emits_ints_(ti.ints, 15, "&ka b", "\"b\"", without_key);
+        test_emits_ints_(ti.ints, 18, "b: &va 9\n", "\"b\": 9\n");
+        test_emits_ints_(ti.ints, 18, "b", "\"b\"", without_key);
+        test_emits_ints_(ti.ints, 21, "&va 9", "9");
+        test_emits_ints_(ti.ints, 21, "&va 9", "9", without_key);
+        test_emits_ints_(ti.ints, 24, "9", "9");
+        test_emits_ints_(ti.ints, 24, "9", "9", without_key);
+        //
+        test_emits_(ti, ti.tree[2], 27, "&ka !kt c: &va !vt 10\n", "\"c\": 10\n");
+        test_emits_(ti.tree[2], "&va !vt 10", "10", without_key);
+        test_emits_ints_(ti.ints, 27, "&ka !kt c", "\"c\"", without_key);
+        test_emits_ints_(ti.ints, 30, "!kt c: &va !vt 10\n", "\"c\": 10\n");
+        test_emits_ints_(ti.ints, 30, "!kt c", "\"c\"", without_key);
+        test_emits_ints_(ti.ints, 33, "c: &va !vt 10\n", "\"c\": 10\n");
+        test_emits_ints_(ti.ints, 33, "c", "\"c\"", without_key);
+        test_emits_ints_(ti.ints, 36, "&va !vt 10", "10");
+        test_emits_ints_(ti.ints, 36, "&va !vt 10", "10", without_key);
+        test_emits_ints_(ti.ints, 39, "!vt 10", "10");
+        test_emits_ints_(ti.ints, 39, "!vt 10", "10", without_key);
+        test_emits_ints_(ti.ints, 42, "10", "10");
+        test_emits_ints_(ti.ints, 42, "10", "10", without_key);
+        //
+        test_emits_(ti, ti.tree[3], 45, "&ka !kt d: &va !vt 11\n", "\"d\": 11\n");
+        test_emits_(ti.tree[3], "&va !vt 11", "11", without_key);
+        test_emits_ints_(ti.ints, 45, "&ka !kt d", "\"d\"", without_key);
+        test_emits_ints_(ti.ints, 48, "!kt d: &va !vt 11\n", "\"d\": 11\n");
+        test_emits_ints_(ti.ints, 48, "!kt d", "\"d\"", without_key);
+        test_emits_ints_(ti.ints, 51, "d: &va !vt 11\n", "\"d\": 11\n");
+        test_emits_ints_(ti.ints, 51, "d", "\"d\"", without_key);
+        test_emits_ints_(ti.ints, 54, "&va !vt 11", "11");
+        test_emits_ints_(ti.ints, 54, "&va !vt 11", "11", without_key);
+        test_emits_ints_(ti.ints, 57, "!vt 11", "11");
+        test_emits_ints_(ti.ints, 57, "!vt 11", "11", without_key);
+        test_emits_ints_(ti.ints, 60, "11", "11");
+        test_emits_ints_(ti.ints, 60, "11", "11", without_key);
+    };
+    {
+        TMPSTY(flowml1, ti, ti.tree, 2);
+        dotest("{\n  !kt a: !vt 8,\n  &ka b: &va 9,\n  &ka !kt c: &va !vt 10,\n  &ka !kt d: &va !vt 11\n}\n",
+               "{\n  \"a\": 8,\n  \"b\": 9,\n  \"c\": 10,\n  \"d\": 11\n}\n");
+    }
+    {
+        TMPSTY(flowsl, ti, ti.tree, 2);
+        dotest(R"({!kt a: !vt 8,&ka b: &va 9,&ka !kt c: &va !vt 10,&ka !kt d: &va !vt 11})",
+               R"({"a": 8,"b": 9,"c": 10,"d": 11})");
+    }
+}
+
+
 TEST(emit, container_key_tag_anchor)
 {
     SCOPED_TRACE("container_key_tag_anchor");
