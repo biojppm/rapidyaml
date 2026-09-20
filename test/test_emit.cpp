@@ -213,7 +213,11 @@ TEST(as_json, basic)
 //-----------------------------------------------------------------------------
 
 #define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
+#define test_emit_yaml_tree_(...) { SCOPED_TRACE("here"); test_emit_yaml_tree(__VA_ARGS__); }
+#define test_emit_yaml_ints_(...) { SCOPED_TRACE("here"); test_emit_yaml_ints(__VA_ARGS__); }
 #define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
+#define test_emit_json_tree_(...) { SCOPED_TRACE("here"); test_emit_json_tree(__VA_ARGS__); }
+#define test_emit_json_ints_(...) { SCOPED_TRACE("here"); test_emit_json_ints(__VA_ARGS__); }
 
 static const EmitOptions without_dash = {};
 static const EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
@@ -281,12 +285,12 @@ TEST(emit_nested, basic)
     - many other
     - wonderful beers
 )";
-        test_emit_yaml_(ti.tree[3]["beer"], with_key, keyval);
-        test_emit_yaml_(ti.ints, 53,        with_key, keyval);
-        test_emit_yaml_(ti.ints, 56,        with_key, val);
-        test_emit_yaml_(ti.tree[3]["beer"], without_key, val);
-        test_emit_yaml_(ti.ints, 53,        without_key, key);
-        test_emit_yaml_(ti.ints, 56,        without_key, val);
+        test_emit_yaml_tree_(ti.tree[3]["beer"], with_key, keyval);
+        test_emit_yaml_ints_(ti.ints, 53,        with_key, keyval);
+        test_emit_yaml_ints_(ti.ints, 56,        with_key, val);
+        test_emit_yaml_tree_(ti.tree[3]["beer"], without_key, val);
+        test_emit_yaml_ints_(ti.ints, 53,        without_key, key);
+        test_emit_yaml_ints_(ti.ints, 56,        without_key, val);
     }
 }
 
@@ -310,47 +314,47 @@ TEST(emit_nested, scalar_key)
     test_emit_yaml_(ti.tree, ti.ints, 2, with_key,    yaml);//BMAP
     test_emit_yaml_(ti.tree, ti.ints, 2, without_key, yaml);//BMAP
     //
-    test_emit_yaml_(ti.tree["key"], with_key,    "key: {c: d}\n");
-    test_emit_yaml_(ti.ints, 3,     with_key,    "key: {c: d}\n");
-    test_emit_yaml_(ti.ints, 6,     with_key,    "{c: d}");
-    test_emit_yaml_(ti.tree["key"], without_key, "{c: d}");
-    test_emit_yaml_(ti.ints, 3,     without_key, "key");
-    test_emit_yaml_(ti.ints, 6,     without_key, "{c: d}");
+    test_emit_yaml_tree_(ti.tree["key"], with_key,    "key: {c: d}\n");
+    test_emit_yaml_ints_(ti.ints, 3,     with_key,    "key: {c: d}\n");
+    test_emit_yaml_ints_(ti.ints, 6,     with_key,    "{c: d}");
+    test_emit_yaml_tree_(ti.tree["key"], without_key, "{c: d}");
+    test_emit_yaml_ints_(ti.ints, 3,     without_key, "key");
+    test_emit_yaml_ints_(ti.ints, 6,     without_key, "{c: d}");
     //
-    test_emit_yaml_(ti.tree["key"]["c"], with_key   , "c: d\n");
-    test_emit_yaml_(ti.ints, 7,          with_key   , "c: d\n");
-    test_emit_yaml_(ti.ints, 10,         with_key   , "d");
-    test_emit_yaml_(ti.tree["key"]["c"], without_key, "d");
-    test_emit_yaml_(ti.ints, 7,          without_key, "c");
-    test_emit_yaml_(ti.ints, 10,         without_key, "d");
+    test_emit_yaml_tree_(ti.tree["key"]["c"], with_key   , "c: d\n");
+    test_emit_yaml_ints_(ti.ints, 7,          with_key   , "c: d\n");
+    test_emit_yaml_ints_(ti.ints, 10,         with_key   , "d");
+    test_emit_yaml_tree_(ti.tree["key"]["c"], without_key, "d");
+    test_emit_yaml_ints_(ti.ints, 7,          without_key, "c");
+    test_emit_yaml_ints_(ti.ints, 10,         without_key, "d");
     //
-    test_emit_yaml_(ti.tree["e"], with_key   , "e: [f]\n");
-    test_emit_yaml_(ti.ints, 14,  with_key   , "e: [f]\n");
-    test_emit_yaml_(ti.ints, 17,  with_key   , "[f]");
-    test_emit_yaml_(ti.tree["e"], without_key, "[f]");
-    test_emit_yaml_(ti.ints, 14,  without_key, "e");
-    test_emit_yaml_(ti.ints, 17,  without_key, "[f]");
+    test_emit_yaml_tree_(ti.tree["e"], with_key   , "e: [f]\n");
+    test_emit_yaml_ints_(ti.ints, 14,  with_key   , "e: [f]\n");
+    test_emit_yaml_ints_(ti.ints, 17,  with_key   , "[f]");
+    test_emit_yaml_tree_(ti.tree["e"], without_key, "[f]");
+    test_emit_yaml_ints_(ti.ints, 14,  without_key, "e");
+    test_emit_yaml_ints_(ti.ints, 17,  without_key, "[f]");
     //
-    test_emit_yaml_(ti.tree["g"], with_key   , "g: h\n");
-    test_emit_yaml_(ti.ints, 22,  with_key   , "g: h\n");
-    test_emit_yaml_(ti.ints, 25,  with_key   , "h");
-    test_emit_yaml_(ti.tree["g"], without_key, "h");
-    test_emit_yaml_(ti.ints, 22,  without_key, "g");
-    test_emit_yaml_(ti.ints, 25,  without_key, "h");
+    test_emit_yaml_tree_(ti.tree["g"], with_key   , "g: h\n");
+    test_emit_yaml_ints_(ti.ints, 22,  with_key   , "g: h\n");
+    test_emit_yaml_ints_(ti.ints, 25,  with_key   , "h");
+    test_emit_yaml_tree_(ti.tree["g"], without_key, "h");
+    test_emit_yaml_ints_(ti.ints, 22,  without_key, "g");
+    test_emit_yaml_ints_(ti.ints, 25,  without_key, "h");
     //
-    test_emit_yaml_(ti.tree["bmap"], with_key   , "bmap:\n  a: b\n");
-    test_emit_yaml_(ti.ints, 28,     with_key   , "bmap:\n  a: b\n");
-    test_emit_yaml_(ti.ints, 31,     with_key   , "a: b\n");
-    test_emit_yaml_(ti.tree["bmap"], without_key, "a: b\n");
-    test_emit_yaml_(ti.ints, 28,     without_key, "bmap");
-    test_emit_yaml_(ti.ints, 31,     without_key, "a: b\n");
+    test_emit_yaml_tree_(ti.tree["bmap"], with_key   , "bmap:\n  a: b\n");
+    test_emit_yaml_ints_(ti.ints, 28,     with_key   , "bmap:\n  a: b\n");
+    test_emit_yaml_ints_(ti.ints, 31,     with_key   , "a: b\n");
+    test_emit_yaml_tree_(ti.tree["bmap"], without_key, "a: b\n");
+    test_emit_yaml_ints_(ti.ints, 28,     without_key, "bmap");
+    test_emit_yaml_ints_(ti.ints, 31,     without_key, "a: b\n");
     //
-    test_emit_yaml_(ti.tree["bseq"], with_key   , "bseq:\n  - a\n  - b\n");
-    test_emit_yaml_(ti.ints, 39,     with_key   , "bseq:\n  - a\n  - b\n");
-    test_emit_yaml_(ti.ints, 42,     with_key   , "- a\n- b\n");
-    test_emit_yaml_(ti.tree["bseq"], without_key, "- a\n- b\n");
-    test_emit_yaml_(ti.ints, 39,     without_key, "bseq");
-    test_emit_yaml_(ti.ints, 42,     without_key, "- a\n- b\n");
+    test_emit_yaml_tree_(ti.tree["bseq"], with_key   , "bseq:\n  - a\n  - b\n");
+    test_emit_yaml_ints_(ti.ints, 39,     with_key   , "bseq:\n  - a\n  - b\n");
+    test_emit_yaml_ints_(ti.ints, 42,     with_key   , "- a\n- b\n");
+    test_emit_yaml_tree_(ti.tree["bseq"], without_key, "- a\n- b\n");
+    test_emit_yaml_ints_(ti.ints, 39,     without_key, "bseq");
+    test_emit_yaml_ints_(ti.ints, 42,     without_key, "- a\n- b\n");
 }
 
 TEST(emit_nested, container_key)
@@ -358,24 +362,24 @@ TEST(emit_nested, container_key)
     char src[] = "[a, b]: {c: d}";
     IntBufs ints;
     parse_ints(src, &ints);
-    test_emit_yaml_(ints, 0, with_key,    "? [a,b]\n: {c: d}\n");//BSTR
-    test_emit_yaml_(ints, 0, without_key, "? [a,b]\n: {c: d}\n");//BSTR
-    test_emit_yaml_(ints, 1, with_key,    "? [a,b]\n: {c: d}\n");//BDOC
-    test_emit_yaml_(ints, 1, without_key, "? [a,b]\n: {c: d}\n");//BDOC
-    test_emit_yaml_(ints, 2, with_key,    "? [a,b]\n: {c: d}\n");//BMAP
-    test_emit_yaml_(ints, 2, without_key, "? [a,b]\n: {c: d}\n");//BMAP
+    test_emit_yaml_ints_(ints, 0, with_key,    "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_ints_(ints, 0, without_key, "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_ints_(ints, 1, with_key,    "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_ints_(ints, 1, without_key, "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_ints_(ints, 2, with_key,    "? [a,b]\n: {c: d}\n");//BMAP
+    test_emit_yaml_ints_(ints, 2, without_key, "? [a,b]\n: {c: d}\n");//BMAP
     //FIXME test_emit_yaml_(ints, 3, with_key,    "? [a,b]\n: {c: d}\n");//KEY|BSEQ
-    test_emit_yaml_(ints, 3, without_key, "[a,b]");//KEY|BSEQ
-    test_emit_yaml_(ints, 4, with_key,    "a");
-    test_emit_yaml_(ints, 4, without_key, "a");
-    test_emit_yaml_(ints, 7, with_key,    "b");
-    test_emit_yaml_(ints, 7, without_key, "b");
-    test_emit_yaml_(ints, 11, with_key,    "{c: d}");
-    test_emit_yaml_(ints, 11, without_key, "{c: d}");
-    test_emit_yaml_(ints, 12, with_key,    "c: d\n");
-    test_emit_yaml_(ints, 12, without_key, "c");
-    test_emit_yaml_(ints, 15, with_key,    "d");
-    test_emit_yaml_(ints, 15, without_key, "d");
+    test_emit_yaml_ints_(ints, 3, without_key, "[a,b]");//KEY|BSEQ
+    test_emit_yaml_ints_(ints, 4, with_key,    "a");
+    test_emit_yaml_ints_(ints, 4, without_key, "a");
+    test_emit_yaml_ints_(ints, 7, with_key,    "b");
+    test_emit_yaml_ints_(ints, 7, without_key, "b");
+    test_emit_yaml_ints_(ints, 11, with_key,    "{c: d}");
+    test_emit_yaml_ints_(ints, 11, without_key, "{c: d}");
+    test_emit_yaml_ints_(ints, 12, with_key,    "c: d\n");
+    test_emit_yaml_ints_(ints, 12, without_key, "c");
+    test_emit_yaml_ints_(ints, 15, with_key,    "d");
+    test_emit_yaml_ints_(ints, 15, without_key, "d");
 }
 
 
@@ -643,6 +647,7 @@ void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_y
     EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_yaml(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_yaml);
     EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_yaml(f, opts, pos); }), expected_yaml);
     EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_yaml_stream(oss, opts, pos); }), expected_yaml);
+    bailonfail();
     if(with_json)
     {
         EXPECT_EQ(ints.emit_json<std::string>(opts, pos), expected_json);
@@ -650,7 +655,6 @@ void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_y
         EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_json(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_json);
         EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_json(f, opts, pos); }), expected_json);
         EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_json_stream(oss, opts, pos); }), expected_json);
-        bailonfail();
     }
     return;
 failure:
