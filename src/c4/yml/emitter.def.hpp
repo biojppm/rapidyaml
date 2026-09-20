@@ -1051,10 +1051,14 @@ void Emitter<Writer>::json_visit_sl_(id_type id, NodeType ty, id_type depth)
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
     if(ty.is_val())
     {
+        if C4_UNLIKELY(ty.is_val_ref() && m_opts.json_err_on_anchor())
+            goto referror; // NOLINT
         json_writev_(id, ty);
     }
     else if(ty.is_keyval())
     {
+        if C4_UNLIKELY((ty.is_key_ref() || ty.is_val_ref()) && m_opts.json_err_on_anchor())
+            goto referror; // NOLINT
         json_writek_(id, ty);
         write_(": ");
         json_writev_(id, ty);
@@ -1064,6 +1068,8 @@ void Emitter<Writer>::json_visit_sl_(id_type id, NodeType ty, id_type depth)
         ty = detail::json_type_(ty);
         if(ty.has_key())
         {
+            if C4_UNLIKELY(ty.is_key_ref() && m_opts.json_err_on_anchor())
+                goto referror; // NOLINT
             json_writek_(id, ty);
             write_(": ");
         }
@@ -1089,6 +1095,9 @@ void Emitter<Writer>::json_visit_sl_(id_type id, NodeType ty, id_type depth)
         else if(ty.is_map())
             write_('}');
     }  // container
+    return;
+referror:
+    RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
 }
 
 template<class Writer>
@@ -1098,10 +1107,14 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
     if(ty.is_val())
     {
+        if C4_UNLIKELY(ty.is_val_ref() && m_opts.json_err_on_anchor())
+            goto referror; // NOLINT
         json_writev_(id, ty);
     }
     else if(ty.is_keyval())
     {
+        if C4_UNLIKELY((ty.is_key_ref() || ty.is_val_ref()) && m_opts.json_err_on_anchor())
+            goto referror; // NOLINT
         json_writek_(id, ty);
         write_(": ");
         json_writev_(id, ty);
@@ -1111,6 +1124,8 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
         ty = detail::json_type_(ty);
         if(ty.has_key())
         {
+            if C4_UNLIKELY(ty.is_key_ref() && m_opts.json_err_on_anchor())
+                goto referror; // NOLINT
             json_writek_(id, ty);
             write_(": ");
         }
@@ -1166,6 +1181,9 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
         else if(ty.is_map())
             write_('}');
     }
+    return;
+referror:
+    RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
 }
 
 

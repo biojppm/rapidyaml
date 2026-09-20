@@ -39,6 +39,7 @@ inline TreeAndInts parse_tree_and_ints(csubstr src, ParserOptions const& opts={}
     return ret;
 }
 
+
 inline void test_emit_yaml_tree(ConstNodeRef n, std::string const& expected, EmitOptions const& opts={})
 {
     if(!testing::Test::HasFailure())
@@ -49,6 +50,12 @@ inline void test_emit_yaml_tree(ConstNodeRef n, std::string const& expected, Emi
             print_tree(*n.tree());
     }
 }
+inline void test_emit_yaml_tree(ConstNodeRef n, EmitOptions const& opts, std::string const& expected)
+{
+    test_emit_yaml_tree(n, expected, opts);
+}
+
+
 inline void test_emit_yaml_ints(IntBufsCR ints, extra::ievt::evt_size pos, std::string const& expected, EmitOptions const& opts={})
 {
     if(!testing::Test::HasFailure())
@@ -59,6 +66,12 @@ inline void test_emit_yaml_ints(IntBufsCR ints, extra::ievt::evt_size pos, std::
             ints.print();
     }
 }
+inline void test_emit_yaml_ints(IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
+{
+    test_emit_yaml_ints(ints, pos, expected, opts);
+}
+
+
 inline void test_emit_yaml_same_ints(ConstNodeRef n, std::string const& expected, EmitOptions const& opts={})
 {
     if(!testing::Test::HasFailure())
@@ -80,14 +93,6 @@ inline void test_emit_yaml_same_ints(ConstNodeRef n, std::string const& expected
     }
 }
 
-inline void test_emit_yaml_tree(ConstNodeRef n, EmitOptions const& opts, std::string const& expected)
-{
-    test_emit_yaml_tree(n, expected, opts);
-}
-inline void test_emit_yaml_ints(IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
-{
-    test_emit_yaml_ints(ints, pos, expected, opts);
-}
 inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, std::string const& expected, EmitOptions const& opts={})
 {
     test_emit_yaml_tree(n, expected, opts);
@@ -171,6 +176,84 @@ inline void test_emit_json(TreeAndInts const& ti, std::string const& expected, E
 inline void test_emit_json(TreeAndInts const& ti, EmitOptions const& opts, std::string const& expected)
 {
     test_emit_json(ti.tree.rootref(), ti.ints, 0, opts, expected);
+}
+
+
+
+inline void test_emit_error_yaml_tree(NodeRef n, EmitOptions const& opts={})
+{
+    RYML_TRACE_FMT("tree: id={}", n.id());
+    RYML_EXPECT_ERROR(check_error_visit(n.tree(), [&]{
+        emitrs_yaml<std::string>(n, opts);
+        // if we reach this, it's a failure
+        GTEST_FAIL();
+        print_tree(*n.tree());
+    }));
+}
+inline void test_emit_error_yaml_ints(IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts={})
+{
+    RYML_TRACE_FMT("ints: pos={}", pos);
+    RYML_EXPECT_ERROR(check_error_basic([&]{
+        ints.emit_yaml<std::string>(opts, pos);
+        // if we reach this, it's a failure
+        GTEST_FAIL();
+        ints.print();
+    }));
+}
+inline void test_emit_error_yaml_ints(IntBufsCR ints, EmitOptions const& opts={})
+{
+    test_emit_error_yaml_ints(ints, 0, opts);
+}
+
+inline void test_emit_error_yaml(NodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts={})
+{
+    test_emit_error_yaml_tree(n, opts);
+    test_emit_error_yaml_ints(ints, pos, opts);
+}
+inline void test_emit_error_yaml(NodeRef n, IntBufsCR ints, EmitOptions const& opts={})
+{
+    test_emit_error_yaml(n, ints, 0, opts);
+}
+inline void test_emit_error_yaml(TreeAndInts & ti, EmitOptions const& opts={})
+{
+    test_emit_error_yaml(ti.tree.rootref(), ti.ints, 0, opts);
+}
+
+inline void test_emit_error_json_tree(NodeRef n, EmitOptions const& opts={})
+{
+    RYML_TRACE_FMT("tree: id={}", n.id());
+    RYML_EXPECT_ERROR(check_error_visit(n.tree(), [&]{
+        emitrs_json<std::string>(n, opts);
+        // if we reach this, it's a failure
+        print_tree(*n.tree());
+    }));
+}
+inline void test_emit_error_json_ints(IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts={})
+{
+    RYML_TRACE_FMT("ints: pos={}", pos);
+    RYML_EXPECT_ERROR(check_error_basic([&]{
+        ints.emit_json<std::string>(opts, pos);
+        // if we reach this, it's a failure
+        ints.print();
+    }));
+}
+inline void test_emit_error_json_ints(IntBufsCR ints, EmitOptions const& opts={})
+{
+    test_emit_error_json_ints(ints, 0, opts);
+}
+
+inline void test_emit_error_json(NodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts={})
+{
+    test_emit_error_json_tree(n, opts);
+    test_emit_error_json_ints(ints, pos, opts);
+}
+inline void test_emit_error_json(NodeRef n, IntBufsCR ints, EmitOptions const& opts={})
+{
+    test_emit_error_json(n, ints, 0, opts);
+}
+inline void test_emit_error_json(TreeAndInts & ti, EmitOptions const& opts={})
+{
+    test_emit_error_json(ti.tree.rootref(), ti.ints, 0, opts);
 }
 
 

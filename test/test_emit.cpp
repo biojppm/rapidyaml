@@ -636,10 +636,39 @@ void test_emits_tree(ConstNodeRef node, std::string const& expected_yaml, std::s
 }
 
 
-
 using extra::ievt::evt_size;
+using extra::ievt::evt_bits;
+
+uint32_t getdepth(evt_bits const* evts, evt_size pos)
+{
+    using namespace extra;
+    uint32_t count = 0;
+    uint32_t maxcount = 0;
+    while(evts[pos] != ievt::ESTR)
+    {
+        evt_bits evt = evts[pos];
+        if(evt & (ievt::SEQ_|ievt::MAP_))
+        {
+            if(evt & ievt::BEG_)
+            {
+                if(++count > maxcount)
+                    maxcount = count;
+            }
+            else if(evt & ievt::END_)
+            {
+                if(count)
+                    --count;
+                else
+                    break;
+            }
+        }
+        pos = ievt::nextpos(evts, pos);
+    }
+    return maxcount;
+}
 void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={}, bool with_json=true)
 {
+    uint32_t depth = 0;
     retonfail();
     RYML_TRACE_FMT("startpos={}", pos);
     EXPECT_EQ(ints.emit_yaml<std::string>(opts, pos), expected_yaml);
@@ -648,6 +677,18 @@ void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_y
     EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_yaml(f, opts, pos); }), expected_yaml);
     EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_yaml_stream(oss, opts, pos); }), expected_yaml);
     bailonfail();
+    depth = getdepth(ints.evts.ptr, pos);
+    if(depth > 1)
+    {
+        EmitOptions optsd = opts;
+        optsd = optsd.max_depth(0);
+        RYML_TRACE_FMT("depth={}", depth);
+        RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emit_yaml<std::string>(optsd, pos); }));
+        bailonfail();
+        RYML_EXPECT_ERROR(check_error_basic([&]{ emit2buf([&](substr buf){ size_t sz = ints.emit_yaml(buf, optsd, pos); buf.str = nullptr; buf.len = sz ; return buf; }); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ emit2file([&](FILE *f){ return ints.emit_yaml(f, optsd, pos); }); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ emit2stream([&](std::ostringstream &oss){ ints.emit_yaml_stream(oss, optsd, pos); }); }));
+    }
     if(with_json)
     {
         EXPECT_EQ(ints.emit_json<std::string>(opts, pos), expected_json);
@@ -655,6 +696,17 @@ void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_y
         EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_json(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_json);
         EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_json(f, opts, pos); }), expected_json);
         EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_json_stream(oss, opts, pos); }), expected_json);
+        if(depth > 1)
+        {
+            EmitOptions optsd = opts;
+            optsd = optsd.max_depth(0);
+            RYML_TRACE_FMT("depth={}", depth);
+            RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emit_json<std::string>(optsd, pos); }));
+            bailonfail();
+            RYML_EXPECT_ERROR(check_error_basic([&]{ emit2buf([&](substr buf){ size_t sz = ints.emit_json(buf, optsd, pos); buf.str = nullptr; buf.len = sz ; return buf; }); }));
+            RYML_EXPECT_ERROR(check_error_basic([&]{ emit2file([&](FILE *f){ return ints.emit_json(f, optsd, pos); }); }));
+            RYML_EXPECT_ERROR(check_error_basic([&]{ emit2stream([&](std::ostringstream &oss){ ints.emit_json_stream(oss, optsd, pos); }); }));
+        }
     }
     return;
 failure:
@@ -2162,6 +2214,10 @@ TEST(emit, container_key_map_flow)
     parse_ints(to_substr(yaml), &ints);
     test_emits_ints_nojson_(ints, 0, "? {key: is,a: map}\n: {val: is,a: map}\n");
     {
+        SCOPED_TRACE("error on key container");
+        test_emit_error_json_ints(ints, 3);
+    }
+    {
         SCOPED_TRACE("root-blk");
         TMPSTY(blk, ints, 2);
         auto dotest = [&](strref keyval, strref key, strref val){
@@ -2391,6 +2447,11 @@ doc2
     test_emits_tree_(ti.tree.docref(2), "--- doc2", "\"doc2\""); // FIXME newline
     test_emits_ints_(ti.ints, 11, "--- doc2\n", "\"doc2\"");
     test_emits_ints_(ti.ints, 12, "doc2", "\"doc2\"");
+    {
+        SCOPED_TRACE("error on stream");
+        const EmitOptions opts = EmitOptions{}.json_err_on_stream(true);
+        test_emit_error_json_ints(ti.ints, 0, opts);
+    }
 }
 
 TEST(emit, stream_docval_2)
@@ -2524,6 +2585,46 @@ TEST(emit, anchor_ref)
 }
 
 
+TEST(emit, anchor_ref_err_json)
+{
+    SCOPED_TRACE("anchor_ref_err_json");
+    const EmitOptions opts = EmitOptions{}.json_err_on_anchor(true);
+    {
+        SCOPED_TRACE("seq");
+        TreeAndInts ti = parse_tree_and_ints("[*a, *b]");
+        {
+            SCOPED_TRACE("flowsl");
+            TMPSTY(flowsl, ti, ti.tree, 2);
+            test_emit_error_json(ti, opts);
+        }
+        {
+            SCOPED_TRACE("flowml1");
+            TMPSTY(flowml1, ti, ti.tree, 2);
+            test_emit_error_json(ti, opts);
+        }
+        {
+            SCOPED_TRACE("nested a");
+            test_emit_error_json(ti.tree[0], ti.ints, 2, opts);
+        }
+        {
+            SCOPED_TRACE("nested b");
+            test_emit_error_json(ti.tree[1], ti.ints, 5, opts);
+        }
+    }
+    {
+        TreeAndInts ti = parse_tree_and_ints("*a");
+        {
+            SCOPED_TRACE("docval");
+            test_emit_error_json(ti, opts);
+        }
+        {
+            SCOPED_TRACE("nested");
+            test_emit_error_json(ti.tree.rootref(), ti.ints, 2, opts);
+        }
+    }
+}
+
+
 TEST(emit, tag_anchor)
 {
     SCOPED_TRACE("tag_anchor_ml");
@@ -2595,6 +2696,34 @@ TEST(emit, tag_anchor)
         TMPSTY(flowsl, ti, ti.tree, 2);
         dotest(R"({!kt a: !vt 8,&ka b: &va 9,&ka !kt c: &va !vt 10,&ka !kt d: &va !vt 11})",
                R"({"a": 8,"b": 9,"c": 10,"d": 11})");
+    }
+    {
+        SCOPED_TRACE("json err on tag");
+        const EmitOptions opts = EmitOptions{}.json_err_on_tag(true);
+        {
+            SCOPED_TRACE("flowsl");
+            TMPSTY(flowsl, ti, ti.tree, 2);
+            test_emit_error_json(ti, opts);
+        }
+        {
+            SCOPED_TRACE("flowml1");
+            TMPSTY(flowml1, ti, ti.tree, 2);
+            test_emit_error_json(ti, opts);
+        }
+    }
+    {
+        SCOPED_TRACE("json err on anchor");
+        const EmitOptions opts = EmitOptions{}.json_err_on_anchor(true);
+        {
+            SCOPED_TRACE("flowsl");
+            TMPSTY(flowsl, ti, ti.tree, 2);
+            test_emit_error_json(ti, opts);
+        }
+        {
+            SCOPED_TRACE("flowml1");
+            TMPSTY(flowml1, ti, ti.tree, 2);
+            test_emit_error_json(ti, opts);
+        }
     }
 }
 
