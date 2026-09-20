@@ -161,7 +161,13 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     else if(detail::hasall(evt, ievt::BDOC))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
-        pos = visit_doc_(pos, evt & ievt::EXPL);
+        bool expl = evt & ievt::EXPL;
+        if(expl)
+        {
+            write_("---");
+            pend_space_();
+        }
+        pos = visit_doc_(pos, expl);
     }
     else if(detail::seqormap(evt))
     {
@@ -302,11 +308,6 @@ evt_size EmitterInts<Writer>::visit_stream_(evt_size pos)
             if(detail::hasnone(m_evts[pos + 1], ievt::EDOC))
             {
                 pos = visit_doc_(pos, expl);
-            }
-            else if(expl)
-            {
-                newl_();
-                pend_none_();
             }
         }
         else if(evt & ievt::YAML)
@@ -1258,9 +1259,10 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
     {
         if C4_UNLIKELY(m_opts.json_err_on_stream())
             RYML_ERR_BASIC_("multiple docs");
-        write_('[');
         ++m_depth;
         if(m_opts.indent_flow_ml()) ++m_ilevel;
+        write_('[');
+        newl_();
     }
     ++pos; // advance past BSTR
     while(pos < m_evts_size)
