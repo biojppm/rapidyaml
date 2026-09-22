@@ -40,8 +40,8 @@ ENGINE_TEST(ContainerKey1Block0_0,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
-    ___(ps.begin_map_val_flow());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
     ___(ps.add_sibling());
@@ -147,7 +147,7 @@ ENGINE_TEST(ContainerKey1Block1_0,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_val_block());
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("this"));
     ___(ps.add_sibling());
@@ -205,7 +205,7 @@ ENGINE_TEST(ContainerKey1Block1_1,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("this"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("is"));

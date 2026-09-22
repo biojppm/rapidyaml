@@ -494,7 +494,7 @@ ENGINE_TEST(QmrkNestedSamelineTag0_00, HAS_CONTAINER_KEYS,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.set_key_anchor("a"));
     ___(ps.set_key_tag("!t"));
@@ -531,7 +531,7 @@ ENGINE_TEST(QmrkNestedSamelineTag0_01, HAS_CONTAINER_KEYS,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_val_block());
     ___(ps.set_key_anchor("a"));
     ___(ps.set_key_tag("!t"));
     ___(ps.begin_map_key_block());
@@ -569,7 +569,7 @@ ENGINE_TEST(QmrkNestedSamelineTag0_02, HAS_CONTAINER_KEYS,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_val_block());
     ___(ps.set_key_anchor("a"));
     ___(ps.set_key_tag("!t"));
     ___(ps.begin_map_key_block());

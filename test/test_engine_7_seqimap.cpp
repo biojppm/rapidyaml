@@ -881,7 +881,7 @@ ENGINE_TEST(SeqIMap5QmrkSeq,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_flow());
-    ___(ps.set_key_tag("!tag"));
+    ___(ps.set_val_tag("!tag"));
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_seq_key_flow());
@@ -918,7 +918,7 @@ ENGINE_TEST(SeqIMap5QmrkMap,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_flow());
-    ___(ps.set_key_tag("!tag"));
+    ___(ps.set_val_tag("!tag"));
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_map_key_flow());

@@ -1443,7 +1443,7 @@ ENGINE_TEST(QmrkSameLineSeqSeq, HAS_CONTAINER_KEYS,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.begin_map_val_block());
     ___(ps.begin_seq_key_block());
     ___(ps.set_val_scalar_plain("a"));

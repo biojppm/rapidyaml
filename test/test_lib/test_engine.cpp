@@ -247,10 +247,8 @@ static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
         buffers.get_buffers(events_tr.handler);
         EXPECT_FALSE(buffers.buf.owned);
         buffers.test(test_case);
-        buffers.buf.owned = true; //
+        buffers.buf.owned = true;
     }
-    if(testing::Test::HasFailure())
-        buffers.buf.print();
 }
 void test_engine_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize event_producer)
 {

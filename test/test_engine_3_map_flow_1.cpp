@@ -710,8 +710,8 @@ ENGINE_TEST(SimpleMapContainerKeyFlow,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_flow());
     ___(ps.begin_map_val_flow());
+    ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
     ___(ps.add_sibling());
