@@ -387,22 +387,24 @@ TEST(emit_json, issue313_quoted_numbers__2)
 }
 
 
-#define _test(actual_src, expected_src)                           \
-    {                                                             \
-        SCOPED_TRACE(__LINE__);                                   \
-        csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);          \
-        const Tree actual = parse_json_in_arena(file, actual_src);     \
-        const Tree expected = parse_json_in_arena(file, expected_src); \
-        test_compare(actual, expected);                           \
-        std::string emitted = emitrs_json<std::string>(expected); \
-        {                                                         \
-            SCOPED_TRACE("actual");                               \
-            test_emit_json_same_ints(actual, emitted);            \
-        }                                                         \
-        {                                                         \
-            SCOPED_TRACE("expected");                             \
-            test_emit_json_same_ints(expected, emitted);          \
-        }                                                         \
+#define _test(actual_src, expected_src)                                 \
+    {                                                                   \
+        csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);                \
+        const Tree actual = parse_json_in_arena(file, actual_src);      \
+        const Tree expected = parse_json_in_arena(file, expected_src);  \
+        {                                                               \
+            SCOPED_TRACE(__LINE__);                                     \
+            test_compare(actual, expected);                             \
+        }                                                               \
+        std::string emitted = emitrs_json<std::string>(expected);       \
+        {                                                               \
+            SCOPED_TRACE("actual");                                     \
+            test_emit_json_same_ints(actual, emitted);                  \
+        }                                                               \
+        {                                                               \
+            SCOPED_TRACE("expected");                                   \
+            test_emit_json_same_ints(expected, emitted);                \
+        }                                                               \
     }
 
 

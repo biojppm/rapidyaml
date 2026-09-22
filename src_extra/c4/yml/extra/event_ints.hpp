@@ -307,7 +307,7 @@ C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_si
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-struct evtbuf
+struct RYML_EXPORT evtbuf
 {
     evt_bits *C4_RESTRICT ptr = {};
     evt_size              len = {};
@@ -315,7 +315,8 @@ struct evtbuf
 };
 
 
-struct Buffers
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
+struct RYML_EXPORT Buffers
 {
     substr    src   = {};
     substr    arena = {};
@@ -353,6 +354,7 @@ struct Buffers
         destroy();
     }
 };
+C4_SUPPRESS_WARNING_POP
 
 
 /** Read YAML source and, without undergoing a full parse, estimate
@@ -446,8 +448,8 @@ inline ievt::evt_size estimate_events_ints_size(csubstr src)
 
 /** @cond dev */
 namespace detail {
-C4_NODISCARD extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size sz, Callbacks const& cb);
-C4_NODISCARD substr resize(substr buf, size_t sz, Callbacks const& cb);
+RYML_EXPORT C4_NODISCARD extra::ievt::evtbuf resize(extra::ievt::evtbuf buf, extra::ievt::evt_size sz, Callbacks const& cb);
+RYML_EXPORT C4_NODISCARD substr resize(substr buf, size_t sz, Callbacks const& cb);
 } // namespace detail
 /** @endcond */
 

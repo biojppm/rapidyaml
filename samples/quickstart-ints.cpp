@@ -19,6 +19,7 @@
 #include <c4/yml/writer_buf.hpp>
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
+#include <c4/yml/std/string.hpp>
 #endif
 
 #include <vector>
@@ -410,6 +411,7 @@ int main(int argc, const char *argv[])
         yaml = c4::to_substr(yaml_file);
     }
 
+    int stat = 0;
     if(!args.fixed_size)
     {
         IntsParserDynamicBuffers parser;
@@ -423,12 +425,11 @@ int main(int argc, const char *argv[])
                                         result.arena,
                                         result.evts.ptr, result.evts.len);
             }
-            return 0;
         }
         else
         {
             // it's the demo data:
-            return compare_to_expected(c4::to_csubstr(result.src),
+            stat = compare_to_expected(c4::to_csubstr(result.src),
                                        c4::to_csubstr(result.arena),
                                        result.evts.ptr, result.evts.len,
                                        demo_expected, static_cast<ievt::evt_size>(C4_COUNTOF(demo_expected)),
@@ -475,12 +476,11 @@ int main(int argc, const char *argv[])
                                         result.events.data(),
                                         static_cast<ievt::evt_size>(result.events.size()));
             }
-            return 0;
         }
         else
         {
             // it's the demo data:
-            return compare_to_expected(c4::to_csubstr(result.yaml),
+            stat = compare_to_expected(c4::to_csubstr(result.yaml),
                                        c4::to_csubstr(result.arena),
                                        result.events.data(), static_cast<ievt::evt_size>(result.events.size()),
                                        demo_expected, static_cast<ievt::evt_size>(C4_COUNTOF(demo_expected)),
@@ -499,6 +499,7 @@ int main(int argc, const char *argv[])
             printf("%s", emitted.c_str());
         }
     }
+    return stat;
 }
 
 // NOLINTEND(hicpp-signed-bitwise)
