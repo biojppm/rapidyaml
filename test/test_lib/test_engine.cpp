@@ -222,9 +222,10 @@ static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
     EventHandlerIntsTr<resize_buffers> events_tr;
     EngineTestIntBuffers buffers;
     std::vector<char> yaml(test_case.yaml.begin(), test_case.yaml.end());
-    if(resize_buffers)
+    if C4_IF_CONSTEXPR (resize_buffers)
     {
         SCOPED_TRACE("resize");
+        buffers.prepare_events<resize_buffers>(events_tr, to_substr(yaml), -1, test_case.expected_emitted.size());
         event_producer(events_tr);
         ASSERT_TRUE(events_tr.handler.fits_buffers());
         buffers.get_buffers(events_tr.handler);
@@ -246,6 +247,7 @@ static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
         buffers.get_buffers(events_tr.handler);
         EXPECT_FALSE(buffers.buf.owned);
         buffers.test(test_case);
+        buffers.buf.owned = true; //
     }
     if(testing::Test::HasFailure())
         buffers.buf.print();
@@ -278,6 +280,7 @@ static void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_cas
     }, test_case.expected_error_location));
     if(testing::Test::HasFailure())
         buffers.buf.print();
+    if(!resize_buffers) buffers.buf.owned = true;
 }
 void test_expected_error_ints_from_yaml_resize(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
 {
@@ -328,6 +331,8 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, substr par
         {
             SCOPED_TRACE("empty buffers");
             buffers.prepare_parse(handler, to_substr(parsed_yaml), 0, 0);
+            ASSERT_EQ(buffers.buf.evts.len, 0);
+            ASSERT_EQ(buffers.buf.arena.len, 0);
             parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
             EXPECT_GE(size_estimated, handler.required_size_events());
         }
@@ -346,15 +351,19 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, substr par
             size_t size_reference = num_ints(test_case.expected_ints.data(), test_case.expected_ints.size());
             EXPECT_EQ(size_reference, handler.required_size_events());
         }
+        buffers.buf.owned = true;
+        buffers.buf.destroy();
         reset_parsed_yaml();
         EXPECT_TRUE(buffers.resize_post_parse(handler, to_substr(parsed_yaml)));
         {
             SCOPED_TRACE("buffers ok");
             parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
             EXPECT_FALSE(buffers.resize_post_parse(handler, to_substr(parsed_yaml)));
+            buffers.buf.owned = true;
             EXPECT_EQ(handler.required_size_events(), reqsz_evts);
             EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
             buffers.get_buffers(handler);
+            buffers.buf.owned = true;
             ASSERT_TRUE(handler.fits_buffers());
             buffers.test(test_case, ignore_doc_style);
         }
