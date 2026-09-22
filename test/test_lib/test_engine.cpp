@@ -222,13 +222,31 @@ static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
     EventHandlerIntsTr<resize_buffers> events_tr;
     EngineTestIntBuffers buffers;
     std::vector<char> yaml(test_case.yaml.begin(), test_case.yaml.end());
-    buffers.prepare_events<resize_buffers>(events_tr, to_substr(yaml), -1, test_case.expected_emitted.size());
-    event_producer(events_tr);
-    if(buffers.resize_post_events(events_tr, to_substr(yaml)))
+    if(resize_buffers)
+    {
+        SCOPED_TRACE("resize");
         event_producer(events_tr);
-    ASSERT_TRUE(events_tr.handler.fits_buffers());
-    buffers.get_buffers(events_tr.handler);
-    buffers.test(test_case);
+        ASSERT_TRUE(events_tr.handler.fits_buffers());
+        buffers.get_buffers(events_tr.handler);
+        EXPECT_TRUE(buffers.buf.owned);
+        buffers.test(test_case);
+    }
+    else
+    {
+        SCOPED_TRACE("noresize");
+        buffers.prepare_events<resize_buffers>(events_tr, to_substr(yaml), -1, test_case.expected_emitted.size());
+        EXPECT_FALSE(buffers.buf.owned);
+        event_producer(events_tr);
+        if(buffers.resize_post_events(events_tr, to_substr(yaml)))
+        {
+            ASSERT_TRUE(events_tr.handler.fits_buffers());
+            EXPECT_FALSE(buffers.buf.owned);
+            event_producer(events_tr);
+        }
+        buffers.get_buffers(events_tr.handler);
+        EXPECT_FALSE(buffers.buf.owned);
+        buffers.test(test_case);
+    }
     if(testing::Test::HasFailure())
         buffers.buf.print();
 }
