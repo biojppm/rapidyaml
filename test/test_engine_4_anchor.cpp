@@ -1224,7 +1224,7 @@ ENGINE_TEST(DocDoubleAnchorKeyMap,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_map_key_flow());
-    ___(ps.set_val_scalar_plain("key"));
+    ___(ps.set_key_scalar_plain("key"));
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.end_map_flow(false));
     ___(ps.set_val_scalar_plain("foo"));
@@ -1260,7 +1260,7 @@ ENGINE_TEST(DoubleAnchorKeyMap,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_map_key_flow());
-    ___(ps.set_val_scalar_plain("key"));
+    ___(ps.set_key_scalar_plain("key"));
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.end_map_flow(false));
     ___(ps.set_val_scalar_plain("foo"));

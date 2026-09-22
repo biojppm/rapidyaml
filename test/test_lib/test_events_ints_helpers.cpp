@@ -138,6 +138,36 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
 #undef _test_eq
 }
 
+enum : evt_bits { // NOLINT
+    style_scalar = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
+    scope = ievt::MAP_|ievt::SEQ_|ievt::DOC_|ievt::STRM,
+    directives = ievt::YAML|ievt::TAGH|ievt::TAGP,
+    wstr = directives|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA,
+};
+
+evt_size next_sibling(evt_bits const* evts, evt_size sz, evt_size pos)
+{
+    if(evts[pos] & ievt::BEG_)
+    {
+        evt_size close = detail::find_matching_close_(evts, sz, pos);
+        return ievt::nextpos(evts, close);
+    }
+    return ievt::nextpos(evts, pos);
+}
+template<class Fn>
+static void iter_children(evt_bits const* evts, evt_size sz, evt_size pos, Fn const& fn)
+{
+    const evt_size close = detail::find_matching_close_(evts, sz, pos);
+    ++pos;
+    while(pos != close)
+    {
+        RYML_TRACE_FMT("child={}", pos);
+        fn(pos, evts[pos]);
+        if(testing::Test::HasFailure())
+            break;
+        pos = next_sibling(evts, sz, pos);
+    }
+}
 
 void test_events_ints_invariants(csubstr parsed_yaml,
                                  csubstr arena,
@@ -176,12 +206,6 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             ASSERT_TRUE(!path.empty());
             path.pop_back();
         }
-        enum : evt_bits {
-            style_scalar = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
-            scope = ievt::MAP_|ievt::SEQ_|ievt::DOC_|ievt::STRM,
-            directives = ievt::YAML|ievt::TAGH|ievt::TAGP,
-            wstr = directives|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA,
-        };
         // check general rules
         if(evt & ievt::WSTR)
         {
@@ -343,6 +367,10 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
+            iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
+                EXPECT_NE(child_evt & (ievt::DOC_|ievt::YAML|ievt::TAGH|ievt::TAGP), 0) << (ok = false);
+                EXPECT_EQ(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::TAG_|ievt::ANCH|ievt::ALIA), 0) << (ok = false);
+            });
         }
         if((evt & ievt::ESTR) == ievt::ESTR)
         {
@@ -380,6 +408,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
+            iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
+                EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA), 0) << (ok = false);
+            });
         }
         if((evt & ievt::EDOC) == ievt::EDOC)
         {
@@ -417,6 +448,10 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
+            iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
+                EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA), 0) << (ok = false);
+                EXPECT_EQ(child_evt & ievt::KEY_, 0) << (ok = false);
+            });
         }
         if((evt & ievt::ESEQ) == ievt::ESEQ)
         {
@@ -454,6 +489,22 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
+            bool key_state = true;
+            iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
+                EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA), 0) << (ok = false);
+                if(key_state)
+                {
+                    EXPECT_EQ(child_evt & ievt::KEY_, ievt::KEY_) << (ok = false);
+                    EXPECT_EQ(child_evt & ievt::VAL_, 0) << (ok = false);
+                }
+                else
+                {
+                    EXPECT_EQ(child_evt & ievt::KEY_, 0) << (ok = false);
+                    EXPECT_EQ(child_evt & ievt::VAL_, ievt::VAL_) << (ok = false);
+                }
+                if(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::ALIA))
+                    key_state = !key_state;
+            });
         }
         if((evt & ievt::EMAP) == ievt::EMAP)
         {

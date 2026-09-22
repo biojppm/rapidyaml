@@ -192,13 +192,13 @@ ENGINE_TEST(Qmrk1_2,
         ___(ps.add_sibling());
         ___(ps.begin_map_key_block());
             ___(ps.set_key_scalar_plain("an explicit key deindented"));
-            ___(ps.set_key_scalar_plain("its value"));
+            ___(ps.set_val_scalar_plain("its value"));
         ___(ps.end_map_block());
         ___(ps.set_val_scalar_plain_empty());
         ___(ps.add_sibling());
         ___(ps.begin_map_key_block());
             ___(ps.set_key_scalar_plain("more"));
-            ___(ps.set_key_scalar_plain("siblings"));
+            ___(ps.set_val_scalar_plain("siblings"));
         ___(ps.end_map_block());
         ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_block());

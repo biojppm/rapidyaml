@@ -303,7 +303,8 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, substr par
     substr parsed_yaml;
     auto reset_parsed_yaml = [&]{
         ASSERT_GE(parsed_yaml_buf.len, yaml_src.size());
-        memcpy(parsed_yaml_buf.str, yaml_src.data(), yaml_src.size());
+        if(yaml_src.size())
+            memcpy(parsed_yaml_buf.str, yaml_src.data(), yaml_src.size());
         parsed_yaml = parsed_yaml_buf.first(yaml_src.size());
     };
     extra::ievt::EventHandlerInts<resize_buffers> handler{};

@@ -401,7 +401,7 @@ ENGINE_TEST(ContainerKey1Block3_0,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("SEQ"));
     ___(ps.end_seq_flow(singleline));
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
     ___(ps.end_map_flow(singleline));
@@ -472,7 +472,7 @@ ENGINE_TEST(ContainerKey1Block3_1,
     ___(ps.set_val_scalar_plain("SEQ"));
     ___(ps.end_seq_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
     ___(ps.end_map_flow(singleline));
@@ -1024,7 +1024,7 @@ ENGINE_TEST(SeqKeyBlock2_0,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_seq_block());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));
@@ -1083,7 +1083,7 @@ ENGINE_TEST(SeqKeyBlock3,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_seq_block());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));
