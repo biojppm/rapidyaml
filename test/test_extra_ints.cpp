@@ -16,7 +16,7 @@ TEST(flags, to_chars)
     using namespace ievt;
     char buf1_[1]; substr buf1 = buf1_;
     char buf_[200]; substr buf = buf_;
-#define _(flags, str)                                       \
+    #define _(flags, str)                                   \
     {                                                       \
         ievt::evt_bits flags_{flags};                       \
         csubstr actual(str);                                \
@@ -33,7 +33,92 @@ TEST(flags, to_chars)
     _(KEY_, "KEY_");
     _(VAL_, "VAL_");
     _(KEY_|VAL_, "KEY_|VAL_");
+    #undef _
 }
+
+TEST(ints, find_matching_open_close_next_entry)
+{
+    #define CHECK_MATCHING_OPEN_CLOSE(open, close) \
+        do {                                                            \
+            ASSERT_GE(open, 0);                                         \
+            ASSERT_LT(open, ints.evts.len);                             \
+            EXPECT_EQ(open, ievt::detail::find_matching_open_(ints.evts.ptr, close)); \
+            ASSERT_GE(close, 0);                                        \
+            ASSERT_LT(close, ints.evts.len);                            \
+            EXPECT_EQ(close, ievt::detail::find_matching_close_(ints.evts.ptr, ints.evts.len, open)); \
+        } while(0)
+    ievt::TestBuffers ints;
+    std::string src = "[{a: b}: [c, d]]: {{e: f}: [g: h]}";
+    parse_ints(to_substr(src), &ints);
+    CHECK_MATCHING_OPEN_CLOSE(0, 45);
+    CHECK_MATCHING_OPEN_CLOSE(1, 44);
+    CHECK_MATCHING_OPEN_CLOSE(2, 43);
+    CHECK_MATCHING_OPEN_CLOSE(3, 22);
+    CHECK_MATCHING_OPEN_CLOSE(4, 21);
+    CHECK_MATCHING_OPEN_CLOSE(5, 12);
+    CHECK_MATCHING_OPEN_CLOSE(13, 20);
+    CHECK_MATCHING_OPEN_CLOSE(23, 42);
+    CHECK_MATCHING_OPEN_CLOSE(24, 31);
+    CHECK_MATCHING_OPEN_CLOSE(32, 41);
+    CHECK_MATCHING_OPEN_CLOSE(33, 40);
+    if(testing::Test::HasFailure())
+        ints.print();
+    #undef CHECK_MATCHING_OPEN_CLOSE
+}
+
+TEST(ints, grow_evts)
+{
+    using Handler = ievt::EventHandlerInts<true>;
+    auto test_grow_evts = [&](ievt::evt_size cap, csubstr yaml, csubstr expected){
+        RYML_TRACE_FMT("cap={}", cap);
+        if(!expected.len && yaml.len)
+            expected = yaml;
+        std::string src(yaml.str, yaml.len);
+        Handler handler;
+        ParseEngine<Handler> parser(&handler);
+        handler.reset(to_substr(src));
+        ASSERT_EQ(handler.m_evt.cap, 0);
+        handler._grow_evts_exact(cap);
+        ASSERT_EQ(handler.m_evt.cap, cap);
+        parser.parse_in_place_ev("(testyaml)", to_substr(src));
+        ievt::evt_size finalcap = handler.m_evt.cap;
+        ASSERT_LE(handler.m_evt.len, handler.m_evt.cap);
+        bool ok = true;
+        if(handler.m_evt.len <= cap)
+        {
+            ok = false;
+            EXPECT_GT(handler.m_evt.cap, cap);
+        }
+        ievt::TestBuffers ints;
+        handler.get_buffers(&ints, true);
+        ASSERT_EQ(ints.evts.cap, finalcap);
+        std::string actual = ints.emit_yaml<std::string>();
+        if(expected != actual)
+        {
+            RYML_TRACE_FMT("yaml=~~~{}~~~", yaml);
+            EXPECT_EQ(expected, actual);
+            ok = false;
+        }
+        if(!ok)
+            ints.print();
+    };
+    #define test_grow_evts_(...) { SCOPED_TRACE("call"); test_grow_evts(__VA_ARGS__); }
+    test_grow_evts_(1, "a\n", {});
+    test_grow_evts_(1, "[a]", {});
+    test_grow_evts_(2, "[a]", {});
+    test_grow_evts_(3, "[a,b]", {});
+    test_grow_evts_(3, "[a: b]", "[{a: b}]");
+    test_grow_evts_(6, "[a: b]", "[{a: b}]");
+    test_grow_evts_(7, "[a: b]", "[{a: b}]");
+    test_grow_evts_(3, "[[a,b]: {c: d}]", "[{? [a,b]: {c: d}}]");
+    test_grow_evts_(6, "[[a,b]: {c: d}]", "[{? [a,b]: {c: d}}]");
+    test_grow_evts_(11, "[[a,b]: {c: d}]", "[{? [a,b]: {c: d}}]");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 
 struct IntEventsCase
@@ -696,8 +781,6 @@ void test_dynamic_size(IntEventsCase const& ec, bool transfer_ownership)
     extra::ievt::Buffers buf;
     handler.get_buffers(&buf, transfer_ownership);
     ec.testeq(to_csubstr(src), buf.arena, buf.evts.ptr, (size_t)buf.evts.len);
-    if(transfer_ownership)
-        buf.destroy();
 }
 
 TEST_P(IntEventsTest, dynamic_size_notransfer)

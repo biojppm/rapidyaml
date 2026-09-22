@@ -6,9 +6,6 @@
 #ifndef C4_YML_EXTRA_EMITTER_INTS_HPP_
 #include "c4/yml/extra/emitter_ints.hpp"
 #endif
-#ifndef C4_YML_SCALAR_STYLE_HPP_
-#include "c4/yml/scalar_style.hpp"
-#endif
 #ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
@@ -29,53 +26,19 @@ namespace ievt {
 /** @cond dev */
 
 namespace detail {
-
 enum : evt_bits { // NOLINT
     styles_ievt_quot = ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
     styles_ievt_sclr = ievt::PLAI|styles_ievt_quot,
     styles_ievt_cont = ievt::BLCK|ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
 };
-
-inline NodeType scalar_style_choose_json_ievt(csubstr scalar) noexcept
+inline bool query_blck_cont_(evt_bits evt) noexcept
 {
-    //see also NodeType implementation in scalar_style.cpp
-    // do not quote numbers or special scalars
-    return scalar_is_plain_number_json(scalar)
-        || scalar_is_special_json(scalar) ? ievt::PLAI : ievt::DQUO;
+    return (evt & ievt::BLCK) || (!(evt & detail::styles_ievt_cont));
 }
-inline evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
-{
-    //see also NodeType implementation in scalar_style.cpp
-    if(scalar.len)
-    {
-        if(scalar_style_query_plain_block(scalar))
-            return ievt::PLAI;
-        RYML_ASSERT_BASIC_(scalar_style_query_squo(scalar)
-                           && "if this assertion fires, please submit an issue!");
-        return ievt::SQUO;
-    }
-    return scalar.str ? ievt::SQUO : ievt::PLAI;
-}
-inline evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
-{
-    //see also NodeType implementation in scalar_style.cpp
-    if(scalar.len)
-    {
-        if(scalar_style_query_plain_flow(scalar))
-            return ievt::PLAI;
-        else if(scalar_style_query_squo(scalar))
-            return ievt::SQUO;
-        return ievt::DQUO;
-    }
-    return scalar.str ? ievt::SQUO : ievt::PLAI;
-}
-
-
 inline bool key_requires_qmark_block(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
     return get_all_bits_key(evts, evts_size, pos) & (detail::mask_seqmap|ievt::LITL|ievt::FOLD); // NOLINT
 }
-
 inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
     return get_all_bits_key(evts, evts_size, pos) & (detail::mask_seqmap);
@@ -93,7 +56,7 @@ void EmitterInts<Writer>::emit_as(EmitType_e type,
                                   csubstr src,
                                   csubstr arena)
 {
-    RYML_ASSERT_BASIC_(!!evts || !evts_size);
+    RYML_ASSERT_BASIC_(evts || !evts_size);
     RYML_ASSERT_BASIC_(pos <= evts_size);
     if(!evts || !evts_size)
         return;
@@ -146,7 +109,7 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     else if(ek.emit_key)
     {
         pos = kickoff_key(pos, ek.keypos);
-        if(detail::seqormap(evt) && (evt & ievt::BLCK))
+        if(detail::seqormap(evt) && detail::query_blck_cont_(evt))
             pend_newl_();
     }
 
@@ -171,7 +134,12 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     }
     else if(detail::seqormap(evt))
     {
-        pos = write_tag_or_anchor(pos, ek.valpos);
+        {
+            evt_size nextpos = write_tag_or_anchor(pos, ek.valpos);
+            if(nextpos > pos && detail::seqormap(evt) && detail::query_blck_cont_(evt))
+                pend_newl_();
+            pos = nextpos;
+        }
         pos = visit_blck_container_(pos);
         if(evt & ievt::FMLX)
         {
@@ -235,10 +203,11 @@ template<class Writer>
 evt_size EmitterInts<Writer>::kickoff_key(evt_size pos, evt_size keypos)
 {
     RYML_ASSERT_BASIC_(pos < m_evts_size);
-    if(m_evts[keypos] & (ievt::SCLR|ievt::ALIA))
+    evt_bits evt = m_evts[keypos];
+    if(evt & (ievt::SCLR|ievt::ALIA))
     {
         csubstr key = getstr_(keypos);
-        evt_bits keystyle = (m_evts[keypos] & detail::styles_ievt_sclr);
+        evt_bits keystyle = (evt & detail::styles_ievt_sclr);
         if(!keystyle)
             keystyle = detail::scalar_style_choose_block_ievt(key);
         if(keystyle & (ievt::FOLD|ievt::LITL))
@@ -772,7 +741,7 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
 template<class Writer>
 C4_NODISCARD bool EmitterInts<Writer>::maybe_start_flow_pws_ml_(evt_size node) noexcept
 {
-    RYML_ASSERT_BASIC_(m_evts[node] & ievt::FMLX);
+    RYML_ASSERT_BASIC_((m_evts[node] & ievt::FMLX) || m_opts.force_flow_spc());
     if(m_flow_pws.active)
         return false;
     evt_bits evt = m_evts[node];

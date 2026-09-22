@@ -23,7 +23,8 @@ RYML_EXPORT csubstr to_str_sub(substr buf, evt_bits flags);
 
 /** Print integer events to stdout */
 RYML_EXPORT void events_ints_print(csubstr parsed_yaml, csubstr arena,
-                                   evt_bits const* evts_ints, evt_size evts_ints_sz);
+                                   evt_bits const* evts_ints, evt_size evts_ints_sz,
+                                   bool indent=true);
 
 /** @} */
 

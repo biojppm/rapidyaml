@@ -92,9 +92,10 @@ csubstr to_str_sub(substr buf, evt_bits flags)
 }
 
 
-void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_size evts_sz)
+void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_size evts_sz, bool indent)
 {
     char buf[200];
+    evt_size level = 0;
     for(evt_bits evtpos = 0, evtnumber = 0;
         evtpos < evts_sz;
         ++evtnumber,
@@ -102,7 +103,17 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts,
     {
         evt_bits evt = evts[evtpos];
         csubstr flags = ievt::to_str_sub(buf, evt);
-        printf("[%d][%d] %.*s(0x%x)", evtnumber, evtpos, (int)flags.len, flags.str, evt);
+        printf("[%d][%d] ", evtnumber, evtpos);
+        if(indent)
+        {
+            if(evt & ievt::END_)
+                --level;
+            for(evt_size i = 0; i < level; ++i)
+                printf("  ");
+            if(evt & ievt::BEG_)
+                ++level;
+        }
+        printf("%.*s(0x%x)", (int)flags.len, flags.str, evt);
         if(evt & ievt::WSTR)
         {
             bool in_arena = evt & ievt::AREN;
@@ -115,7 +126,7 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts,
             evt_bits len = safe ? evts[evtpos + 2] : 6;
             printf(": %d [%d]~~~%.*s~~~", evts[evtpos+1], evts[evtpos+2], len, str);
             if(in_arena)
-                printf(" (arenasz=%zu)", arena.len);
+                printf(" (arenasz=%zu)", arena.len); // LCOV_EXCL_LINE
             else
                 printf(" (srcsz=%zu)", parsed_yaml.len);
         }

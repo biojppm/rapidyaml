@@ -21,24 +21,47 @@ namespace yml {
 
 // NOLINTBEGIN(*-signed-bitwise)
 
+struct tmpfile
+{
+    std::string filename;
+    FILE *f;
+    tmpfile() : filename(fs::tmpnam<std::string>("_c4fs_tmpname_XXXXXXXX.test_emit.tmp")), f(nullptr) {}
+    ~tmpfile()
+    {
+        if(f)
+            (void)fclose(f); //NOLINT
+        if(!filename.empty() && fs::file_exists(filename.c_str()))
+            fs::rmfile(filename.c_str());
+    }
+    template<class Emit>
+    std::string execget(Emit &&fn)
+    {
+        static uint32_t count = 0;
+        ++count;
+        C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen unsafe
+        C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
+        f = fopen(filename.c_str(), "wb"); // NOLINT
+        C4_CHECK_MSG(f != nullptr, "count=%u\nbase=%s\ndir=%s", count, filename.c_str(), fs::cwd<std::string>().c_str());
+        std::forward<Emit>(fn)(f);
+        (void)fflush(f); //NOLINT
+        (void)fclose(f); //NOLINT
+        f = nullptr;
+        C4_SUPPRESS_WARNING_CLANG_POP
+        C4_SUPPRESS_WARNING_MSVC_POP
+        std::string result = fs::file_get_contents<std::string>(filename.c_str());
+        return result;
+    }
+
+};
+
 template<class Emit>
 std::string emit2file(Emit &&fn)
 {
     SCOPED_TRACE("emit2file");
-    C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen unsafe
-    C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wdeprecated-declarations") // fopen is deprecated
-    std::string filename = fs::tmpnam<std::string>();
-    FILE *f = fopen(filename.c_str(), "wb");
-    C4_CHECK(f != nullptr);
-    fn(f);
-    fflush(f);
-    fclose(f);
-    std::string result = fs::file_get_contents<std::string>(filename.c_str());
-    fs::rmfile(filename.c_str());
+    tmpfile tmpf{};
+    std::string result = tmpf.execget(std::forward<Emit>(fn));
     _c4dbgpf("emit result: [{}]~~~{}~~~", result.size(), to_csubstr(result));
     return result;
-    C4_SUPPRESS_WARNING_CLANG_POP
-    C4_SUPPRESS_WARNING_MSVC_POP
 }
 
 template<class Emit>
@@ -46,7 +69,7 @@ std::string emit2stream(Emit &&fn)
 {
     SCOPED_TRACE("emit2stream");
     std::ostringstream ss;
-    fn(ss);
+    std::forward<Emit>(fn)(ss);
     std::string result = ss.str();
     _c4dbgpf("emit result: [{}]~~~{}~~~", result.size(), to_csubstr(result));
     return result;
@@ -58,12 +81,10 @@ std::string emit2buf(Emit &&fn)
     SCOPED_TRACE("emit2buf");
     std::string buf;
     buf.resize(2048);
-    substr out = fn(to_substr(buf));
+    substr out = std::forward<Emit>(fn)(to_substr(buf));
     buf.resize(out.len);
     if(out.len > buf.size())
-    {
         out = fn(to_substr(buf));
-    }
     _c4dbgpf("emit result: [{}]~~~{}~~~", buf.size(), to_csubstr(buf));
     return buf;
 }
@@ -73,7 +94,7 @@ std::string emitrs_append(csubstr first_part, Emit &&fn)
 {
     SCOPED_TRACE("emitrs_append");
     std::string buf(first_part.begin(), first_part.end());
-    fn(&buf);
+    std::forward<Emit>(fn)(&buf);
     _c4dbgpf("emit result: [{}]~~~{}~~~", buf.size(), to_csubstr(buf));
     return buf;
 }
@@ -210,240 +231,11 @@ TEST(as_json, basic)
 }
 
 
-//-----------------------------------------------------------------------------
-
-#define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
-#define test_emit_yaml_tree_(...) { SCOPED_TRACE("here"); test_emit_yaml_tree(__VA_ARGS__); }
-#define test_emit_yaml_ints_(...) { SCOPED_TRACE("here"); test_emit_yaml_ints(__VA_ARGS__); }
-#define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
-#define test_emit_json_tree_(...) { SCOPED_TRACE("here"); test_emit_json_tree(__VA_ARGS__); }
-#define test_emit_json_ints_(...) { SCOPED_TRACE("here"); test_emit_json_ints(__VA_ARGS__); }
-
-static const EmitOptions without_dash = {};
-static const EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
-static const EmitOptions with_key = {};
-static const EmitOptions without_key = EmitOptions{}.emit_nonroot_key(false);
-static const EmitOptions noindent = EmitOptions{}.indent_flow_ml(false);
-
-TEST(emit_nested, preconditions)
-{
-    ASSERT_FALSE(without_dash.emit_nonroot_dash());
-    ASSERT_TRUE(with_dash.emit_nonroot_dash());
-    ASSERT_TRUE(with_key.emit_nonroot_key());
-    ASSERT_FALSE(without_key.emit_nonroot_key());
-    ASSERT_FALSE(noindent.indent_flow_ml());
-    ASSERT_TRUE(noindent.emit_nonroot_key());
-}
-
-TEST(emit_nested, basic)
-{
-    const TreeAndInts ti = parse_tree_and_ints(R"(- a
-- b
-- x0: 1
-  x1: 2
-- champagne: Dom Perignon
-  coffee: Arabica
-  more:
-    vinho verde: Soalheiro
-    vinho tinto: Redoma 2017
-  beer:
-    - Rochefort 10
-    - Busch
-    - Leffe Rituel
-    - - and so
-      - many other
-      - wonderful beers
-- more
-- seq
-- members
-- here
-)");
-    test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, without_dash, "Rochefort 10");
-    test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, with_dash, "- Rochefort 10\n");
-    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash, R"(- and so
-- many other
-- wonderful beers
-)");
-    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash, R"(- - and so
-  - many other
-  - wonderful beers
-)");
-    {
-        std::string key = "beer";
-        std::string val = R"(- Rochefort 10
-- Busch
-- Leffe Rituel
-- - and so
-  - many other
-  - wonderful beers
-)";
-        std::string keyval = R"(beer:
-  - Rochefort 10
-  - Busch
-  - Leffe Rituel
-  - - and so
-    - many other
-    - wonderful beers
-)";
-        test_emit_yaml_tree_(ti.tree[3]["beer"], with_key, keyval);
-        test_emit_yaml_ints_(ti.ints, 53,        with_key, keyval);
-        test_emit_yaml_ints_(ti.ints, 56,        with_key, val);
-        test_emit_yaml_tree_(ti.tree[3]["beer"], without_key, val);
-        test_emit_yaml_ints_(ti.ints, 53,        without_key, key);
-        test_emit_yaml_ints_(ti.ints, 56,        without_key, val);
-    }
-}
-
-TEST(emit_nested, scalar_key)
-{
-    std::string yaml = ""
-        "key: {c: d}\n"
-        "e: [f]\n"
-        "g: h\n"
-        "bmap:\n"
-        "  a: b\n"
-        "bseq:\n"
-        "  - a\n"
-        "  - b\n"
-        "";
-    const TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
-    test_emit_yaml_(ti.tree, ti.ints, 0, with_key,    yaml);//BSTR
-    test_emit_yaml_(ti.tree, ti.ints, 0, without_key, yaml);//BSTR
-    test_emit_yaml_(ti.tree, ti.ints, 1, with_key,    yaml);//BDOC
-    test_emit_yaml_(ti.tree, ti.ints, 1, without_key, yaml);//BDOC
-    test_emit_yaml_(ti.tree, ti.ints, 2, with_key,    yaml);//BMAP
-    test_emit_yaml_(ti.tree, ti.ints, 2, without_key, yaml);//BMAP
-    //
-    test_emit_yaml_tree_(ti.tree["key"], with_key,    "key: {c: d}\n");
-    test_emit_yaml_ints_(ti.ints, 3,     with_key,    "key: {c: d}\n");
-    test_emit_yaml_ints_(ti.ints, 6,     with_key,    "{c: d}");
-    test_emit_yaml_tree_(ti.tree["key"], without_key, "{c: d}");
-    test_emit_yaml_ints_(ti.ints, 3,     without_key, "key");
-    test_emit_yaml_ints_(ti.ints, 6,     without_key, "{c: d}");
-    //
-    test_emit_yaml_tree_(ti.tree["key"]["c"], with_key   , "c: d\n");
-    test_emit_yaml_ints_(ti.ints, 7,          with_key   , "c: d\n");
-    test_emit_yaml_ints_(ti.ints, 10,         with_key   , "d");
-    test_emit_yaml_tree_(ti.tree["key"]["c"], without_key, "d");
-    test_emit_yaml_ints_(ti.ints, 7,          without_key, "c");
-    test_emit_yaml_ints_(ti.ints, 10,         without_key, "d");
-    //
-    test_emit_yaml_tree_(ti.tree["e"], with_key   , "e: [f]\n");
-    test_emit_yaml_ints_(ti.ints, 14,  with_key   , "e: [f]\n");
-    test_emit_yaml_ints_(ti.ints, 17,  with_key   , "[f]");
-    test_emit_yaml_tree_(ti.tree["e"], without_key, "[f]");
-    test_emit_yaml_ints_(ti.ints, 14,  without_key, "e");
-    test_emit_yaml_ints_(ti.ints, 17,  without_key, "[f]");
-    //
-    test_emit_yaml_tree_(ti.tree["g"], with_key   , "g: h\n");
-    test_emit_yaml_ints_(ti.ints, 22,  with_key   , "g: h\n");
-    test_emit_yaml_ints_(ti.ints, 25,  with_key   , "h");
-    test_emit_yaml_tree_(ti.tree["g"], without_key, "h");
-    test_emit_yaml_ints_(ti.ints, 22,  without_key, "g");
-    test_emit_yaml_ints_(ti.ints, 25,  without_key, "h");
-    //
-    test_emit_yaml_tree_(ti.tree["bmap"], with_key   , "bmap:\n  a: b\n");
-    test_emit_yaml_ints_(ti.ints, 28,     with_key   , "bmap:\n  a: b\n");
-    test_emit_yaml_ints_(ti.ints, 31,     with_key   , "a: b\n");
-    test_emit_yaml_tree_(ti.tree["bmap"], without_key, "a: b\n");
-    test_emit_yaml_ints_(ti.ints, 28,     without_key, "bmap");
-    test_emit_yaml_ints_(ti.ints, 31,     without_key, "a: b\n");
-    //
-    test_emit_yaml_tree_(ti.tree["bseq"], with_key   , "bseq:\n  - a\n  - b\n");
-    test_emit_yaml_ints_(ti.ints, 39,     with_key   , "bseq:\n  - a\n  - b\n");
-    test_emit_yaml_ints_(ti.ints, 42,     with_key   , "- a\n- b\n");
-    test_emit_yaml_tree_(ti.tree["bseq"], without_key, "- a\n- b\n");
-    test_emit_yaml_ints_(ti.ints, 39,     without_key, "bseq");
-    test_emit_yaml_ints_(ti.ints, 42,     without_key, "- a\n- b\n");
-}
-
-TEST(emit_nested, container_key)
-{
-    char src[] = "[a, b]: {c: d}";
-    IntBufs ints;
-    parse_ints(src, &ints);
-    test_emit_yaml_ints_(ints, 0, with_key,    "? [a,b]\n: {c: d}\n");//BSTR
-    test_emit_yaml_ints_(ints, 0, without_key, "? [a,b]\n: {c: d}\n");//BSTR
-    test_emit_yaml_ints_(ints, 1, with_key,    "? [a,b]\n: {c: d}\n");//BDOC
-    test_emit_yaml_ints_(ints, 1, without_key, "? [a,b]\n: {c: d}\n");//BDOC
-    test_emit_yaml_ints_(ints, 2, with_key,    "? [a,b]\n: {c: d}\n");//BMAP
-    test_emit_yaml_ints_(ints, 2, without_key, "? [a,b]\n: {c: d}\n");//BMAP
-    //FIXME test_emit_yaml_(ints, 3, with_key,    "? [a,b]\n: {c: d}\n");//KEY|BSEQ
-    test_emit_yaml_ints_(ints, 3, without_key, "[a,b]");//KEY|BSEQ
-    test_emit_yaml_ints_(ints, 4, with_key,    "a");
-    test_emit_yaml_ints_(ints, 4, without_key, "a");
-    test_emit_yaml_ints_(ints, 7, with_key,    "b");
-    test_emit_yaml_ints_(ints, 7, without_key, "b");
-    test_emit_yaml_ints_(ints, 11, with_key,    "{c: d}");
-    test_emit_yaml_ints_(ints, 11, without_key, "{c: d}");
-    test_emit_yaml_ints_(ints, 12, with_key,    "c: d\n");
-    test_emit_yaml_ints_(ints, 12, without_key, "c");
-    test_emit_yaml_ints_(ints, 15, with_key,    "d");
-    test_emit_yaml_ints_(ints, 15, without_key, "d");
-}
-
-
-//-----------------------------------------------------------------------------
-
-TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
-{
-    EXPECT_EQ(scalar_style_query_plain_flow(": odd"), false);
-    EXPECT_EQ(scalar_style_query_plain_flow(":\todd"), false);
-    EXPECT_EQ(scalar_style_choose_flow(": odd"), SCALAR_SQUO);
-    EXPECT_EQ(scalar_style_choose_flow(":\todd"), SCALAR_SQUO);
-    EXPECT_EQ(scalar_style_query_plain_block(": odd"), false);
-    EXPECT_EQ(scalar_style_query_plain_block(":\todd"), false);
-    EXPECT_EQ(scalar_style_choose_block(": odd"), SCALAR_SQUO);
-    EXPECT_EQ(scalar_style_choose_block(":\todd"), SCALAR_SQUO);
-    {
-        SCOPED_TRACE("1");
-        Tree t;
-        NodeRef r = t.rootref();
-        r.set_seq(BLOCK);
-        r[0].set_val(": odd", VAL_PLAIN);
-        r[1].set_val(":\todd", VAL_PLAIN);
-        test_emit_yaml_same_ints(r, "- : odd\n- :\todd\n");
-    }
-    {
-        Tree t;
-        NodeRef r = t.rootref();
-        r.set_seq(BLOCK);
-        r[0].set_val(": odd");
-        r[1].set_val(":\todd");
-        EXPECT_FALSE(r[0].is_val_plain());
-        EXPECT_FALSE(r[1].is_val_plain());
-        test_emit_yaml_same_ints(r, "- ': odd'\n- ':\todd'\n");
-    }
-}
-
-TEST(emit_block_map, ambiguous_plain_emitted_as_squo)
-{
-    {
-        Tree t;
-        NodeRef r = t.rootref();
-        r.set_map(BLOCK);
-        r[0].set_key(": odd");
-        r[0].set_val(": odd");
-        r[1].set_key(":\todd");
-        r[1].set_val(":\todd");
-        test_emit_yaml_same_ints(r, "': odd': ': odd'\n':\todd': ':\todd'\n");
-    }
-    {
-        Tree t;
-        NodeRef r = t.rootref();
-        r.set_map(BLOCK);
-        r[0].set_key(": odd", KEY_PLAIN);
-        r[0].set_val(": odd", VAL_PLAIN);
-        r[1].set_key(":\todd", KEY_PLAIN);
-        r[1].set_val(":\todd", VAL_PLAIN);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), ": odd: : odd\n:\todd: :\todd\n");
-    }
-}
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
 
 #define retonfail() do { if(testing::Test::HasFailure()) return; } while(0)
 #define bailonfail() do { if(testing::Test::HasFailure()) goto failure; /* NOLINT */ } while(0)
@@ -795,6 +587,501 @@ void test_emits(TreeAndInts const& ti, ConstNodeRef node, std::string const& exp
 #define test_emits_tree_(...) { SCOPED_TRACE("test_emits"); test_emits_tree(__VA_ARGS__); }
 #define test_emits_ints_(...) { SCOPED_TRACE("test_emits_ints"); test_emits_ints(__VA_ARGS__); }
 #define test_emits_ints_nojson_(...) { SCOPED_TRACE("test_emits_ints_nojson"); test_emits_ints_nojson(__VA_ARGS__); }
+
+
+using extra::ievt::evt_bits;
+using strref = std::string const&;
+namespace xievt = extra::ievt;
+
+struct TmpStyle
+{
+    Tree *tree;
+    id_type id;
+    NodeType prev;
+    IntBufs *ints;
+    evt_size evt_pos;
+    evt_bits evt_prev;
+    bool with_key;
+    evt_size evt_pos_key;
+    evt_bits evt_prev_key;
+    extra::ievt::evt_bits prev_ints;
+    TmpStyle(TreeAndInts &ti, NodeRef const& n, NodeType tmp, evt_size evt_pos_, evt_bits evt,
+             bool with_key_=false, evt_size evt_pos_key_={})
+        : TmpStyle(&ti.tree, &ti.ints, n.id(), tmp, evt_pos_, evt, with_key_, evt_pos_key_) {}
+    TmpStyle(Tree *tree_, IntBufs *ints_, id_type id_, NodeType tmp, evt_size evt_pos_, evt_bits evt,
+             bool with_key_=false, evt_size evt_pos_key_={})
+        : tree(tree_)
+        , id(id_)
+        , prev()
+        , ints(ints_)
+        , evt_pos(evt_pos_)
+        , evt_prev()
+        , with_key(with_key_)
+        , evt_pos_key(evt_pos_key_)
+        , evt_prev_key()
+    {
+        if(tree)
+        {
+            prev = tree_->type(id);
+            (tree->_p(id)->m_type &= ~(CONTAINER_STYLE|SCALAR_STYLE)) |= tmp;
+        }
+        if(ints)
+        {
+            RYML_ASSERT_BASIC_(evt_pos < ints->evts.len);
+            evt_prev = ints->evts.ptr[evt_pos];
+            (ints->evts.ptr[evt_pos] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
+            if(with_key)
+            {
+                evt_prev_key = ints->evts.ptr[evt_pos_key];
+                (ints->evts.ptr[evt_pos_key] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
+            }
+        }
+    }
+    ~TmpStyle()
+    {
+        if(tree)
+            tree->_p(id)->m_type = prev;
+        if(ints)
+        {
+            ints->evts.ptr[evt_pos] = evt_prev;
+            if(with_key)
+                ints->evts.ptr[evt_pos_key] = evt_prev_key;
+        }
+    }
+
+    // legacy:
+    TmpStyle(NodeRef n, NodeType tmp) : TmpStyle(n.tree(), nullptr, n.id(), tmp, {}, {}) {}
+    TmpStyle(Tree &t_, id_type id_, NodeType tmp) : TmpStyle(&t_, nullptr, id_, tmp, {}, {}) {}
+    TmpStyle(TreeAndInts &ti, evt_size evt_pos_, evt_bits evt) : TmpStyle(nullptr, &ti.ints, {}, {}, evt_pos_, evt) {}
+    TmpStyle(TreeAndInts &ti, NodeType tmp, evt_bits evt) : TmpStyle(&ti.tree, &ti.ints, ti.tree.root_id(), tmp, 0, evt) {}
+};
+
+TmpStyle mknosty(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, NodeType{},  pos, evt_bits{}}; };
+TmpStyle mkplai(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_PLAIN,  pos, xievt::PLAI}; }
+TmpStyle mksquo(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_SQUO,  pos, xievt::SQUO}; }
+TmpStyle mkdquo(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_DQUO,  pos, xievt::DQUO}; }
+TmpStyle mkfold(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_FOLDED,  pos, xievt::FOLD}; }
+TmpStyle mklitl(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_LITERAL,  pos, xievt::LITL}; }
+
+TmpStyle mknostykv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, NOTYPE,  vpos, evt_bits{}, true,  kpos}; }
+TmpStyle mkplaikv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_PLAIN|VAL_PLAIN,  vpos, xievt::PLAI, true,  kpos}; }
+TmpStyle mksquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_SQUO|VAL_SQUO,  vpos, xievt::SQUO, true,  kpos}; }
+TmpStyle mkdquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_DQUO|VAL_DQUO,  vpos, xievt::DQUO, true,  kpos}; }
+TmpStyle mkfoldkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_FOLDED|VAL_FOLDED,  vpos, xievt::FOLD, true,  kpos}; }
+TmpStyle mklitlkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_LITERAL|VAL_LITERAL,  vpos, xievt::LITL, true,  kpos}; }
+
+TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, xievt::BLCK}; };
+TmpStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|xievt::FSL_|spc}; };
+TmpStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|xievt::FML1|spc}; };
+TmpStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|xievt::FMLN|spc}; };
+
+TmpStyle mknosty(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, evt_bits{}}; };
+TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::BLCK}; };
+TmpStyle mkflowsl(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FSL_|spc}; };
+TmpStyle mkflowml1(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FML1|spc}; };
+TmpStyle mkflowmln(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FMLN|spc}; };
+// use the extra arg to disambiguate overloads above ^
+TmpStyle mknosty(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, evt_bits{}, true, kpos}; };
+TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::BLCK, true, kpos}; };
+TmpStyle mkflowsl(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FSL_|spc, true, kpos}; };
+TmpStyle mkflowml1(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FML1|spc, true, kpos}; };
+TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FMLN|spc, true, kpos}; };
+#define TMPSTY(sty, ...) TmpStyle C4_XCAT(tmpsty_, __LINE__) = mk##sty(__VA_ARGS__)
+
+
+//-----------------------------------------------------------------------------
+
+#define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
+#define test_emit_yaml_tree_(...) { SCOPED_TRACE("here"); test_emit_yaml_tree(__VA_ARGS__); }
+#define test_emit_yaml_ints_(...) { SCOPED_TRACE("here"); test_emit_yaml_ints(__VA_ARGS__); }
+#define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
+#define test_emit_json_tree_(...) { SCOPED_TRACE("here"); test_emit_json_tree(__VA_ARGS__); }
+#define test_emit_json_ints_(...) { SCOPED_TRACE("here"); test_emit_json_ints(__VA_ARGS__); }
+
+static const EmitOptions without_dash = {};
+static const EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
+static const EmitOptions with_key = {};
+static const EmitOptions without_key = EmitOptions{}.emit_nonroot_key(false);
+static const EmitOptions noindent = EmitOptions{}.indent_flow_ml(false);
+static const EmitOptions with_flow_spc = EmitOptions{}.force_flow_spc(true);
+
+TEST(emit_nested, preconditions)
+{
+    ASSERT_FALSE(without_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_dash.emit_nonroot_dash());
+    ASSERT_TRUE(with_key.emit_nonroot_key());
+    ASSERT_FALSE(without_key.emit_nonroot_key());
+    ASSERT_FALSE(noindent.indent_flow_ml());
+    ASSERT_TRUE(noindent.emit_nonroot_key());
+    ASSERT_TRUE(with_flow_spc.force_flow_spc());
+}
+
+TEST(emit_nested, basic)
+{
+    TreeAndInts ti = parse_tree_and_ints(R"(- a
+- b
+- x0: 1
+  x1: 2
+- champagne: Dom Perignon
+  coffee: Arabica
+  more:
+    vinho verde: Soalheiro
+    vinho tinto: Redoma 2017
+  beer:
+    - Rochefort 10
+    - Busch
+    - Leffe Rituel
+    - - and so
+      - many other
+      - wonderful beers
+- more
+- seq
+- members
+- here
+)");
+    test_emit_yaml_(ti.tree[2], ti.ints, 9, without_dash, "x0: 1\nx1: 2\n");
+    test_emit_yaml_(ti.tree[2], ti.ints, 9, with_dash, "- x0: 1\n  x1: 2\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[2], 9);
+        test_emit_yaml_(ti.tree[2], ti.ints, 9, without_dash, "x0: 1\nx1: 2\n");
+        test_emit_yaml_(ti.tree[2], ti.ints, 9, with_dash, "- x0: 1\n  x1: 2\n");
+    }
+    {
+        SCOPED_TRACE("flowsl");
+        TMPSTY(flowsl, ti, ti.tree[2], 9);
+        test_emit_yaml_(ti.tree[2], ti.ints, 9, without_dash, "{x0: 1,x1: 2}");
+        test_emit_yaml_(ti.tree[2], ti.ints, 9, with_dash, "- {x0: 1,x1: 2}\n");
+    }
+    test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, without_dash, "Rochefort 10");
+    test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, with_dash, "- Rochefort 10\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[3]["beer"], 57);
+        test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, without_dash, "Rochefort 10");
+        test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, with_dash, "- Rochefort 10\n");
+    }
+    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash, R"(- and so
+- many other
+- wonderful beers
+)");
+    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash, R"(- - and so
+  - many other
+  - wonderful beers
+)");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[3]["beer"], 66);
+        test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash, R"(- and so
+- many other
+- wonderful beers
+)");
+        test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash, R"(- - and so
+  - many other
+  - wonderful beers
+)");
+    }
+    {
+        std::string key = "beer";
+        std::string val = R"(- Rochefort 10
+- Busch
+- Leffe Rituel
+- - and so
+  - many other
+  - wonderful beers
+)";
+        std::string keyval = R"(beer:
+  - Rochefort 10
+  - Busch
+  - Leffe Rituel
+  - - and so
+    - many other
+    - wonderful beers
+)";
+        test_emit_yaml_tree_(ti.tree[3]["beer"], with_key, keyval);
+        test_emit_yaml_ints_(ti.ints, 53,        with_key, keyval);
+        test_emit_yaml_ints_(ti.ints, 56,        with_key, val);
+        test_emit_yaml_tree_(ti.tree[3]["beer"], without_key, val);
+        test_emit_yaml_ints_(ti.ints, 53,        without_key, key);
+        test_emit_yaml_ints_(ti.ints, 56,        without_key, val);
+        {
+            SCOPED_TRACE("nosty");
+            TMPSTY(nostykv, ti, ti.tree[3]["beer"], 53, 56);
+            test_emit_yaml_tree_(ti.tree[3]["beer"], with_key, keyval);
+            test_emit_yaml_ints_(ti.ints, 53,        with_key, keyval);
+            test_emit_yaml_ints_(ti.ints, 56,        with_key, val);
+            test_emit_yaml_tree_(ti.tree[3]["beer"], without_key, val);
+            test_emit_yaml_ints_(ti.ints, 53,        without_key, key);
+            test_emit_yaml_ints_(ti.ints, 56,        without_key, val);
+        }
+    }
+}
+
+TEST(emit_nested, scalar_key)
+{
+    std::string yaml = ""
+        "key: {c: d}\n"
+        "e: [f]\n"
+        "g: h\n"
+        "bmap:\n"
+        "  a: b\n"
+        "bseq:\n"
+        "  - a\n"
+        "  - b\n"
+        "";
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    test_emit_yaml_(ti.tree, ti.ints, 0, with_key,    yaml);//BSTR
+    test_emit_yaml_(ti.tree, ti.ints, 0, without_key, yaml);//BSTR
+    test_emit_yaml_(ti.tree, ti.ints, 1, with_key,    yaml);//BDOC
+    test_emit_yaml_(ti.tree, ti.ints, 1, without_key, yaml);//BDOC
+    test_emit_yaml_(ti.tree, ti.ints, 2, with_key,    yaml);//BMAP
+    test_emit_yaml_(ti.tree, ti.ints, 2, without_key, yaml);//BMAP
+    //
+    test_emit_yaml_tree_(ti.tree["key"], with_key,    "key: {c: d}\n");
+    test_emit_yaml_ints_(ti.ints, 3,     with_key,    "key: {c: d}\n");
+    test_emit_yaml_ints_(ti.ints, 6,     with_key,    "{c: d}");
+    test_emit_yaml_tree_(ti.tree["key"], without_key, "{c: d}");
+    test_emit_yaml_ints_(ti.ints, 3,     without_key, "key");
+    test_emit_yaml_ints_(ti.ints, 6,     without_key, "{c: d}");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nostykv, ti, ti.tree["key"], 3, 6);
+        test_emit_yaml_tree_(ti.tree["key"], with_key,    "key:\n  c: d\n");
+        test_emit_yaml_ints_(ti.ints, 3,     with_key,    "key:\n  c: d\n");
+        test_emit_yaml_ints_(ti.ints, 6,     with_key,    "c: d\n");
+        test_emit_yaml_tree_(ti.tree["key"], without_key, "c: d\n");
+        test_emit_yaml_ints_(ti.ints, 3,     without_key, "key");
+        test_emit_yaml_ints_(ti.ints, 6,     without_key, "c: d\n");
+    }
+    //
+    test_emit_yaml_tree_(ti.tree["key"]["c"], with_key   , "c: d\n");
+    test_emit_yaml_ints_(ti.ints, 7,          with_key   , "c: d\n");
+    test_emit_yaml_ints_(ti.ints, 10,         with_key   , "d");
+    test_emit_yaml_tree_(ti.tree["key"]["c"], without_key, "d");
+    test_emit_yaml_ints_(ti.ints, 7,          without_key, "c");
+    test_emit_yaml_ints_(ti.ints, 10,         without_key, "d");
+    //
+    test_emit_yaml_tree_(ti.tree["e"], with_key   , "e: [f]\n");
+    test_emit_yaml_ints_(ti.ints, 14,  with_key   , "e: [f]\n");
+    test_emit_yaml_ints_(ti.ints, 17,  with_key   , "[f]");
+    test_emit_yaml_tree_(ti.tree["e"], without_key, "[f]");
+    test_emit_yaml_ints_(ti.ints, 14,  without_key, "e");
+    test_emit_yaml_ints_(ti.ints, 17,  without_key, "[f]");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nostykv, ti, ti.tree["e"], 14, 17);
+        test_emit_yaml_tree_(ti.tree["e"], with_key   , "e:\n  - f\n");
+        test_emit_yaml_ints_(ti.ints, 14,  with_key   , "e:\n  - f\n");
+        test_emit_yaml_ints_(ti.ints, 17,  with_key   , "- f\n");
+        test_emit_yaml_tree_(ti.tree["e"], without_key, "- f\n");
+        test_emit_yaml_ints_(ti.ints, 14,  without_key, "e");
+        test_emit_yaml_ints_(ti.ints, 17,  without_key, "- f\n");
+    }
+    //
+    test_emit_yaml_tree_(ti.tree["g"], with_key   , "g: h\n");
+    test_emit_yaml_ints_(ti.ints, 22,  with_key   , "g: h\n");
+    test_emit_yaml_ints_(ti.ints, 25,  with_key   , "h");
+    test_emit_yaml_tree_(ti.tree["g"], without_key, "h");
+    test_emit_yaml_ints_(ti.ints, 22,  without_key, "g");
+    test_emit_yaml_ints_(ti.ints, 25,  without_key, "h");
+    //
+    test_emit_yaml_tree_(ti.tree["bmap"], with_key   , "bmap:\n  a: b\n");
+    test_emit_yaml_ints_(ti.ints, 28,     with_key   , "bmap:\n  a: b\n");
+    test_emit_yaml_ints_(ti.ints, 31,     with_key   , "a: b\n");
+    test_emit_yaml_tree_(ti.tree["bmap"], without_key, "a: b\n");
+    test_emit_yaml_ints_(ti.ints, 28,     without_key, "bmap");
+    test_emit_yaml_ints_(ti.ints, 31,     without_key, "a: b\n");
+    //
+    test_emit_yaml_tree_(ti.tree["bseq"], with_key   , "bseq:\n  - a\n  - b\n");
+    test_emit_yaml_ints_(ti.ints, 39,     with_key   , "bseq:\n  - a\n  - b\n");
+    test_emit_yaml_ints_(ti.ints, 42,     with_key   , "- a\n- b\n");
+    test_emit_yaml_tree_(ti.tree["bseq"], without_key, "- a\n- b\n");
+    test_emit_yaml_ints_(ti.ints, 39,     without_key, "bseq");
+    test_emit_yaml_ints_(ti.ints, 42,     without_key, "- a\n- b\n");
+}
+
+TEST(emit_nested, container_key_1)
+{
+    char src[] = "[a, b]: {c: d}";
+    IntBufs ints;
+    parse_ints(src, &ints);
+    test_emit_yaml_ints_(ints, 0, with_key,    "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_ints_(ints, 0, without_key, "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_ints_(ints, 1, with_key,    "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_ints_(ints, 1, without_key, "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_ints_(ints, 2, with_key,    "? [a,b]\n: {c: d}\n");//BMAP
+    test_emit_yaml_ints_(ints, 2, without_key, "? [a,b]\n: {c: d}\n");//BMAP
+    test_emit_yaml_ints_(ints, 3, with_key,    "? [a,b]\n: {c: d}\n");//KEY|BSEQ
+    test_emit_yaml_ints_(ints, 3, without_key, "[a,b]");//KEY|BSEQ
+    test_emit_yaml_ints_(ints, 4, with_key,    "a");
+    test_emit_yaml_ints_(ints, 4, without_key, "a");
+    test_emit_yaml_ints_(ints, 7, with_key,    "b");
+    test_emit_yaml_ints_(ints, 7, without_key, "b");
+    test_emit_yaml_ints_(ints, 11, with_key,    "{c: d}");
+    test_emit_yaml_ints_(ints, 11, without_key, "{c: d}");
+    test_emit_yaml_ints_(ints, 12, with_key,    "c: d\n");
+    test_emit_yaml_ints_(ints, 12, without_key, "c");
+    test_emit_yaml_ints_(ints, 15, with_key,    "d");
+    test_emit_yaml_ints_(ints, 15, without_key, "d");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ints, 2);
+        TMPSTY(nosty, ints, 3);
+        TMPSTY(nosty, ints, 11);
+        test_emit_yaml_ints_(ints, 0, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BSTR
+        test_emit_yaml_ints_(ints, 0, without_key, "?\n  - a\n  - b\n:\n  c: d\n");//BSTR
+        test_emit_yaml_ints_(ints, 1, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BDOC
+        test_emit_yaml_ints_(ints, 1, without_key, "?\n  - a\n  - b\n:\n  c: d\n");//BDOC
+        test_emit_yaml_ints_(ints, 2, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BMAP
+        test_emit_yaml_ints_(ints, 2, without_key, "?\n  - a\n  - b\n:\n  c: d\n");//BMAP
+        test_emit_yaml_ints_(ints, 3, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BMAP
+        test_emit_yaml_ints_(ints, 3, without_key, "- a\n- b\n");//KEY|BSEQ
+        test_emit_yaml_ints_(ints, 4, with_key,    "a");
+        test_emit_yaml_ints_(ints, 4, without_key, "a");
+        test_emit_yaml_ints_(ints, 7, with_key,    "b");
+        test_emit_yaml_ints_(ints, 7, without_key, "b");
+        test_emit_yaml_ints_(ints, 11, with_key,    "c: d\n");
+        test_emit_yaml_ints_(ints, 11, without_key, "c: d\n");
+        test_emit_yaml_ints_(ints, 12, with_key,    "c: d\n");
+        test_emit_yaml_ints_(ints, 12, without_key, "c");
+        test_emit_yaml_ints_(ints, 15, with_key,    "d");
+        test_emit_yaml_ints_(ints, 15, without_key, "d");
+    }
+}
+
+TEST(emit_nested, container_key_2)
+{
+    char src[] = "{a: b}: [c, d]";
+    IntBufs ints;
+    parse_ints(src, &ints);
+    test_emit_yaml_ints_(ints, 0, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 0, without_key, "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 1, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 1, without_key, "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 2, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 2, without_key, "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 3, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 3, without_key, "{a: b}");
+    test_emit_yaml_ints_(ints, 4, with_key,    "a: b\n");
+    test_emit_yaml_ints_(ints, 4, without_key, "a");
+    test_emit_yaml_ints_(ints, 7, with_key,    "b");
+    test_emit_yaml_ints_(ints, 7, without_key, "b");
+    test_emit_yaml_ints_(ints, 11, with_key,    "[c,d]");
+    test_emit_yaml_ints_(ints, 11, without_key, "[c,d]");
+    test_emit_yaml_ints_(ints, 12, with_key,    "c");
+    test_emit_yaml_ints_(ints, 12, without_key, "c");
+    test_emit_yaml_ints_(ints, 15, with_key,    "d");
+    test_emit_yaml_ints_(ints, 15, without_key, "d");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ints, 2);
+        TMPSTY(nosty, ints, 3);
+        TMPSTY(nosty, ints, 11);
+        test_emit_yaml_ints_(ints, 0, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 0, without_key, "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 1, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 1, without_key, "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 2, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 2, without_key, "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 3, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 3, without_key, "a: b\n");
+        test_emit_yaml_ints_(ints, 4, with_key,    "a: b\n");
+        test_emit_yaml_ints_(ints, 4, without_key, "a");
+        test_emit_yaml_ints_(ints, 7, with_key,    "b");
+        test_emit_yaml_ints_(ints, 7, without_key, "b");
+        test_emit_yaml_ints_(ints, 11, with_key,    "- c\n- d\n");
+        test_emit_yaml_ints_(ints, 11, without_key, "- c\n- d\n");
+        test_emit_yaml_ints_(ints, 12, with_key,    "c");
+        test_emit_yaml_ints_(ints, 12, without_key, "c");
+        test_emit_yaml_ints_(ints, 15, with_key,    "d");
+        test_emit_yaml_ints_(ints, 15, without_key, "d");
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(emit, null_ints)
+{
+    IntBufs ints = {};
+    ASSERT_EQ(ints.evts.len, 0);
+    ASSERT_EQ(ints.evts.ptr, nullptr);
+    ASSERT_EQ(ints.src.len, 0);
+    ASSERT_EQ(ints.src.str, nullptr);
+    ASSERT_EQ(ints.arena.len, 0);
+    ASSERT_EQ(ints.arena.str, nullptr);
+    std::string ret;
+    RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emit_yaml<std::string>(); }));
+    EXPECT_TRUE(ret.empty());
+    RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emit_json<std::string>(); }));
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
+{
+    EXPECT_EQ(scalar_style_query_plain_flow(": odd"), false);
+    EXPECT_EQ(scalar_style_query_plain_flow(":\todd"), false);
+    EXPECT_EQ(scalar_style_choose_flow(": odd"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_choose_flow(":\todd"), SCALAR_SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(": odd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(":\todd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt("\n \t"), xievt::DQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(csubstr{}), xievt::PLAI);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(csubstr("foo").first(0)), xievt::SQUO);
+    EXPECT_EQ(scalar_style_query_plain_block(": odd"), false);
+    EXPECT_EQ(scalar_style_query_plain_block(":\todd"), false);
+    EXPECT_EQ(scalar_style_choose_block(": odd"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_choose_block(":\todd"), SCALAR_SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(": odd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(":\todd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(csubstr{}), xievt::PLAI);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(csubstr("foo").first(0)), xievt::SQUO);
+    {
+        SCOPED_TRACE("1");
+        Tree t;
+        NodeRef r = t.rootref();
+        r.set_seq(BLOCK);
+        r[0].set_val(": odd", VAL_PLAIN);
+        r[1].set_val(":\todd", VAL_PLAIN);
+        test_emit_yaml_same_ints(r, "- : odd\n- :\todd\n");
+    }
+    {
+        Tree t;
+        NodeRef r = t.rootref();
+        r.set_seq(BLOCK);
+        r[0].set_val(": odd");
+        r[1].set_val(":\todd");
+        EXPECT_FALSE(r[0].is_val_plain());
+        EXPECT_FALSE(r[1].is_val_plain());
+        test_emit_yaml_same_ints(r, "- ': odd'\n- ':\todd'\n");
+    }
+}
+
+TEST(emit_block_map, ambiguous_plain_emitted_as_squo)
+{
+    {
+        Tree t;
+        NodeRef r = t.rootref();
+        r.set_map(BLOCK);
+        r[0].set_key(": odd");
+        r[0].set_val(": odd");
+        r[1].set_key(":\todd");
+        r[1].set_val(":\todd");
+        test_emit_yaml_same_ints(r, "': odd': ': odd'\n':\todd': ':\todd'\n");
+    }
+    {
+        Tree t;
+        NodeRef r = t.rootref();
+        r.set_map(BLOCK);
+        r[0].set_key(": odd", KEY_PLAIN);
+        r[0].set_val(": odd", VAL_PLAIN);
+        r[1].set_key(":\todd", KEY_PLAIN);
+        r[1].set_val(":\todd", VAL_PLAIN);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), ": odd: : odd\n:\todd: :\todd\n");
+    }
+}
 
 
 //-----------------------------------------------------------------------------
@@ -1217,103 +1504,6 @@ level1:
 
 //-----------------------------------------------------------------------------
 
-using extra::ievt::evt_bits;
-using strref = std::string const&;
-namespace xievt = extra::ievt;
-
-struct TmpStyle
-{
-    Tree *tree;
-    id_type id;
-    NodeType prev;
-    IntBufs *ints;
-    evt_size evt_pos;
-    evt_bits evt_prev;
-    bool with_key;
-    evt_size evt_pos_key;
-    evt_bits evt_prev_key;
-    extra::ievt::evt_bits prev_ints;
-    TmpStyle(TreeAndInts &ti, NodeRef const& n, NodeType tmp, evt_size evt_pos_, evt_bits evt,
-             bool with_key_=false, evt_size evt_pos_key_={})
-        : TmpStyle(&ti.tree, &ti.ints, n.id(), tmp, evt_pos_, evt, with_key_, evt_pos_key_) {}
-    TmpStyle(Tree *tree_, IntBufs *ints_, id_type id_, NodeType tmp, evt_size evt_pos_, evt_bits evt,
-             bool with_key_=false, evt_size evt_pos_key_={})
-        : tree(tree_)
-        , id(id_)
-        , prev()
-        , ints(ints_)
-        , evt_pos(evt_pos_)
-        , evt_prev()
-        , with_key(with_key_)
-        , evt_pos_key(evt_pos_key_)
-        , evt_prev_key()
-    {
-        if(tree)
-        {
-            prev = tree_->type(id);
-            (tree->_p(id)->m_type &= ~(CONTAINER_STYLE|SCALAR_STYLE)) |= tmp;
-        }
-        if(ints)
-        {
-            RYML_ASSERT_BASIC_(evt_pos < ints->evts.len);
-            evt_prev = ints->evts.ptr[evt_pos];
-            (ints->evts.ptr[evt_pos] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
-            if(with_key)
-            {
-                evt_prev_key = ints->evts.ptr[evt_pos_key];
-                (ints->evts.ptr[evt_pos_key] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
-            }
-        }
-    }
-    ~TmpStyle()
-    {
-        if(tree)
-            tree->_p(id)->m_type = prev;
-        if(ints)
-        {
-            ints->evts.ptr[evt_pos] = evt_prev;
-            if(with_key)
-                ints->evts.ptr[evt_pos_key] = evt_prev_key;
-        }
-    }
-
-    // legacy:
-    TmpStyle(NodeRef n, NodeType tmp) : TmpStyle(n.tree(), nullptr, n.id(), tmp, {}, {}) {}
-    TmpStyle(Tree &t_, id_type id_, NodeType tmp) : TmpStyle(&t_, nullptr, id_, tmp, {}, {}) {}
-    TmpStyle(TreeAndInts &ti, evt_size evt_pos_, evt_bits evt) : TmpStyle(nullptr, &ti.ints, {}, {}, evt_pos_, evt) {}
-    TmpStyle(TreeAndInts &ti, NodeType tmp, evt_bits evt) : TmpStyle(&ti.tree, &ti.ints, ti.tree.root_id(), tmp, 0, evt) {}
-};
-
-TmpStyle mknosty(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, NodeType{},  pos, evt_bits{}}; };
-
-TmpStyle mkplai(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_PLAIN,  pos, xievt::PLAI}; }
-TmpStyle mksquo(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_SQUO,  pos, xievt::SQUO}; }
-TmpStyle mkdquo(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_DQUO,  pos, xievt::DQUO}; }
-TmpStyle mkfold(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_FOLDED,  pos, xievt::FOLD}; }
-TmpStyle mklitl(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, VAL_LITERAL,  pos, xievt::LITL}; }
-
-TmpStyle mkplaikv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_PLAIN|VAL_PLAIN,  vpos, xievt::PLAI, true,  kpos}; }
-TmpStyle mksquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_SQUO|VAL_SQUO,  vpos, xievt::SQUO, true,  kpos}; }
-TmpStyle mkdquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_DQUO|VAL_DQUO,  vpos, xievt::DQUO, true,  kpos}; }
-TmpStyle mkfoldkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_FOLDED|VAL_FOLDED,  vpos, xievt::FOLD, true,  kpos}; }
-TmpStyle mklitlkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_LITERAL|VAL_LITERAL,  vpos, xievt::LITL, true,  kpos}; }
-
-TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, xievt::BLCK}; };
-TmpStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|xievt::FSL_|spc}; };
-TmpStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|xievt::FML1|spc}; };
-TmpStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|xievt::FMLN|spc}; };
-
-TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::BLCK}; };
-TmpStyle mkflowsl(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FSL_|spc}; };
-TmpStyle mkflowml1(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FML1|spc}; };
-TmpStyle mkflowmln(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FMLN|spc}; };
-// use the extra arg to disambiguate overloads above ^
-TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::BLCK, true, kpos}; };
-TmpStyle mkflowsl(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FSL_|spc, true, kpos}; };
-TmpStyle mkflowml1(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FML1|spc, true, kpos}; };
-TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FMLN|spc, true, kpos}; };
-#define TMPSTY(sty, ...) TmpStyle C4_XCAT(tmpsty_, __LINE__) = mk##sty(__VA_ARGS__)
-
 static void test_emit_seq_node(TreeAndInts & ti, std::string const& yaml)
 {
     RYML_TRACE_FMT("yaml:\n~~~{}\n~~~\n", yaml);
@@ -1517,6 +1707,10 @@ static void test_emit_seq_node(TreeAndInts & ti, std::string const& yaml)
             test_emits_(ti, t, 0,
                         "[foo,bar,[nested,seq],{nested: map}]",
                         "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
+            test_emits_(ti, t, 0,
+                        "[foo, bar, [nested, seq], {nested: map}]",
+                        "[\"foo\", \"bar\", [\"nested\", \"seq\"], {\"nested\": \"map\"}]",
+                        with_flow_spc);
         }
         {
             SCOPED_TRACE("flow_ml1");
@@ -1554,6 +1748,13 @@ static void test_emit_seq_node(TreeAndInts & ti, std::string const& yaml)
                             "[\nfoo,bar,[\nnested,seq\n],{\nnested: map\n}\n]\n",
                             "[\n\"foo\",\"bar\",[\n\"nested\",\"seq\"\n],{\n\"nested\": \"map\"\n}\n]\n",
                             noindent);
+            }
+            {
+                SCOPED_TRACE("spc");
+                test_emits_(ti, t, 0,
+                            "[\n  foo, bar, [\n    nested, seq\n  ], {\n    nested: map\n  }\n]\n",
+                            "[\n  \"foo\", \"bar\", [\n    \"nested\", \"seq\"\n  ], {\n    \"nested\": \"map\"\n  }\n]\n",
+                            with_flow_spc);
             }
         }
         {
@@ -1607,6 +1808,10 @@ static void test_emit_seq_node(TreeAndInts & ti, std::string const& yaml)
             test_emits_(ti, t, 0,
                         "[foo,bar,[nested,seq],{nested: map}]",
                         "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
+            test_emits_(ti, t, 0,
+                        "[foo, bar, [nested, seq], {nested: map}]",
+                        "[\"foo\", \"bar\", [\"nested\", \"seq\"], {\"nested\": \"map\"}]",
+                        with_flow_spc);
         }
     }
 }
@@ -1621,6 +1826,10 @@ TEST(emit, existing_seq_node_flow_sl)
         test_emits_(ti, ti.tree, 0,
                     "[foo,bar,[nested,seq],{nested: map}]",
                     "[\"foo\",\"bar\",[\"nested\",\"seq\"],{\"nested\": \"map\"}]");
+        test_emits_(ti, ti.tree, 0,
+                    "[foo, bar, [nested, seq], {nested: map}]",
+                    "[\"foo\", \"bar\", [\"nested\", \"seq\"], {\"nested\": \"map\"}]",
+                    with_flow_spc);
     }
     test_emit_seq_node(ti, yaml);
 }
@@ -1680,6 +1889,10 @@ static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
             test_emits_(ti, t, 0,
                         "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}",
                         R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})");
+            test_emits_(ti, t, 0,
+                        "{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}",
+                        R"({"0": "foo", "1": "bar", "2": ["nested", "seq"], "3": {"nested": "map"}})",
+                        with_flow_spc);
         }
         {
             SCOPED_TRACE("flow_ml1");
@@ -1770,6 +1983,10 @@ static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
             test_emits_(ti, t, 0,
                         "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}",
                         R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})");
+            test_emits_(ti, t, 0,
+                        "{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}",
+                        R"({"0": "foo", "1": "bar", "2": ["nested", "seq"], "3": {"nested": "map"}})",
+                        with_flow_spc);
         }
     }
     {
@@ -1914,6 +2131,10 @@ static void test_emit_map_node(TreeAndInts & ti, std::string const& yaml)
             test_emits_(ti, t[2], 15,
                         "2: [nested,seq]\n",
                         "\"2\": [\"nested\",\"seq\"]\n");
+            test_emits_(ti, t[2], 15,
+                        "2: [nested, seq]\n",
+                        "\"2\": [\"nested\", \"seq\"]\n",
+                        with_flow_spc);
         }
     }
     {
@@ -2505,6 +2726,19 @@ TEST(emit, stream_seq)
         test_emits_ints_(ti.ints, 22, "[e,f]", "[\"e\",\"f\"]");
     }
     {
+        SCOPED_TRACE("flow spc");
+        test_emits_(ti, exp, expjson);
+        test_emits_tree_(ti.tree.docref(0), "--- [a,b]", "[\"a\",\"b\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 1, "--- [a,b]\n", "[\"a\",\"b\"]");
+        test_emits_ints_(ti.ints, 2, "[a,b]", "[\"a\",\"b\"]");
+        test_emits_tree_(ti.tree.docref(1), "--- [c,d]", "[\"c\",\"d\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 11, "--- [c,d]\n", "[\"c\",\"d\"]");
+        test_emits_ints_(ti.ints, 12, "[c,d]", "[\"c\",\"d\"]");
+        test_emits_tree_(ti.tree.docref(2), "--- [e,f]", "[\"e\",\"f\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 21, "--- [e,f]\n", "[\"e\",\"f\"]");
+        test_emits_ints_(ti.ints, 22, "[e,f]", "[\"e\",\"f\"]");
+    }
+    {
         SCOPED_TRACE("block");
         TMPSTY(blk, ti, ti.tree.docref(0), 2);
         TMPSTY(blk, ti, ti.tree.docref(1), 12);
@@ -2775,6 +3009,14 @@ TEST(emit, container_key_tag_anchor)
         test_emits_ints_nojson_(ints, 8, "!vt 0", without_key);
         test_emits_ints_nojson_(ints, 11, "0");
         test_emits_ints_nojson_(ints, 11, "0", without_key);
+        {
+            SCOPED_TRACE("nosty");
+            TMPSTY(nosty, ints, 6);
+            test_emits_ints_nojson_(ints, 3, "? !kt\n  []\n: !vt 0\n");
+            test_emits_ints_nojson_(ints, 3, "!kt\n[]", without_key);
+            test_emits_ints_nojson_(ints, 6, "?\n  []\n: !vt 0\n");
+            test_emits_ints_nojson_(ints, 6, "[]", without_key);
+        }
         //
         test_emits_ints_nojson_(ints, 14, "? &ka []\n: &va 1\n");
         test_emits_ints_nojson_(ints, 14, "&ka []", without_key);
@@ -2784,6 +3026,14 @@ TEST(emit, container_key_tag_anchor)
         test_emits_ints_nojson_(ints, 19, "&va 1", without_key);
         test_emits_ints_nojson_(ints, 22, "1");
         test_emits_ints_nojson_(ints, 22, "1", without_key);
+        {
+            SCOPED_TRACE("nosty");
+            TMPSTY(nosty, ints, 17);
+            test_emits_ints_nojson_(ints, 14, "? &ka\n  []\n: &va 1\n");
+            test_emits_ints_nojson_(ints, 14, "&ka\n[]", without_key);
+            test_emits_ints_nojson_(ints, 17, "?\n  []\n: &va 1\n");
+            test_emits_ints_nojson_(ints, 17, "[]", without_key);
+        }
         //
         test_emits_ints_nojson_(ints, 25, "? &ka !kt []\n: &va !vt 2\n");
         test_emits_ints_nojson_(ints, 25, "&ka !kt []", without_key);
@@ -2900,6 +3150,151 @@ TEST(emit, container_key_tag_anchor)
         test_emits_ints_nojson_(ints, 112+57, "!vt 11", without_key);
         test_emits_ints_nojson_(ints, 112+60, "11");
         test_emits_ints_nojson_(ints, 112+60, "11", without_key);
+    }
+}
+
+TEST(emit, blck_seq_nosty)
+{
+    SCOPED_TRACE("blck_seq_nosty");
+    std::string yaml = R"(- !str scalar
+- &str scalar
+- !map {a: b}
+- &map {c: d}
+- !seq [e,f]
+- &seq [g,h]
+)";
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    test_emit_yaml_tree_(ti.tree, yaml);
+    test_emit_yaml_ints_(ti.ints, 0, yaml);
+    test_emit_yaml_ints_(ti.ints, 1, yaml);
+    test_emit_yaml_ints_(ti.ints, 2, yaml);
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[0], 6);
+        TMPSTY(nosty, ti, ti.tree[1], 12);
+        TMPSTY(nosty, ti, ti.tree[2], 18);
+        TMPSTY(nosty, ti, ti.tree[3], 29);
+        TMPSTY(nosty, ti, ti.tree[4], 40);
+        TMPSTY(nosty, ti, ti.tree[5], 51);
+        std::string expected = R"(- !str scalar
+- &str scalar
+- !map
+  a: b
+- &map
+  c: d
+- !seq
+  - e
+  - f
+- &seq
+  - g
+  - h
+)";
+        test_emit_yaml_tree_(ti.tree, expected);
+        test_emit_yaml_ints_(ti.ints, 0, expected);
+        test_emit_yaml_ints_(ti.ints, 1, expected);
+        test_emit_yaml_ints_(ti.ints, 2, expected);
+    }
+
+    test_emit_yaml_tree_(ti.tree[0], without_dash, "!str scalar");
+    test_emit_yaml_tree_(ti.tree[0], with_dash, "- !str scalar\n");
+    test_emit_yaml_ints_(ti.ints, 3, without_dash, "!str scalar");
+    test_emit_yaml_ints_(ti.ints, 3, with_dash, "- !str scalar\n");
+    test_emit_yaml_ints_(ti.ints, 6, without_dash, "scalar");
+    test_emit_yaml_ints_(ti.ints, 6, with_dash, "- scalar\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[0], 6);
+        test_emit_yaml_tree_(ti.tree[0], without_dash, "!str scalar");
+        test_emit_yaml_tree_(ti.tree[0], with_dash, "- !str scalar\n");
+        test_emit_yaml_ints_(ti.ints, 3, without_dash, "!str scalar");
+        test_emit_yaml_ints_(ti.ints, 3, with_dash, "- !str scalar\n");
+        test_emit_yaml_ints_(ti.ints, 6, without_dash, "scalar");
+        test_emit_yaml_ints_(ti.ints, 6, with_dash, "- scalar\n");
+    }
+
+    test_emit_yaml_tree_(ti.tree[1], without_dash, "&str scalar");
+    test_emit_yaml_tree_(ti.tree[1], with_dash, "- &str scalar\n");
+    test_emit_yaml_ints_(ti.ints, 9, without_dash, "&str scalar");
+    test_emit_yaml_ints_(ti.ints, 9, with_dash, "- &str scalar\n");
+    test_emit_yaml_ints_(ti.ints, 12, without_dash, "scalar");
+    test_emit_yaml_ints_(ti.ints, 12, with_dash, "- scalar\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[1], 12);
+        test_emit_yaml_tree_(ti.tree[1], without_dash, "&str scalar");
+        test_emit_yaml_tree_(ti.tree[1], with_dash, "- &str scalar\n");
+        test_emit_yaml_ints_(ti.ints, 9, without_dash, "&str scalar");
+        test_emit_yaml_ints_(ti.ints, 9, with_dash, "- &str scalar\n");
+        test_emit_yaml_ints_(ti.ints, 12, without_dash, "scalar");
+        test_emit_yaml_ints_(ti.ints, 12, with_dash, "- scalar\n");
+    }
+
+    test_emit_yaml_tree_(ti.tree[2], without_dash, "!map {a: b}");
+    test_emit_yaml_tree_(ti.tree[2], with_dash, "- !map {a: b}\n");
+    test_emit_yaml_ints_(ti.ints, 15, without_dash, "!map {a: b}");
+    test_emit_yaml_ints_(ti.ints, 15, with_dash, "- !map {a: b}\n");
+    test_emit_yaml_ints_(ti.ints, 18, without_dash, "{a: b}");
+    test_emit_yaml_ints_(ti.ints, 18, with_dash, "- {a: b}\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[2], 18);
+        test_emit_yaml_tree_(ti.tree[2], without_dash, "!map\na: b\n");
+        test_emit_yaml_tree_(ti.tree[2], with_dash, "- !map\n  a: b\n");
+        test_emit_yaml_ints_(ti.ints, 15, without_dash, "!map\na: b\n");
+        test_emit_yaml_ints_(ti.ints, 15, with_dash, "- !map\n  a: b\n");
+        test_emit_yaml_ints_(ti.ints, 18, without_dash, "a: b\n");
+        test_emit_yaml_ints_(ti.ints, 18, with_dash, "- a: b\n");
+    }
+
+    test_emit_yaml_tree_(ti.tree[3], without_dash, "&map {c: d}");
+    test_emit_yaml_tree_(ti.tree[3], with_dash, "- &map {c: d}\n");
+    test_emit_yaml_ints_(ti.ints, 26, without_dash, "&map {c: d}");
+    test_emit_yaml_ints_(ti.ints, 26, with_dash, "- &map {c: d}\n");
+    test_emit_yaml_ints_(ti.ints, 29, without_dash, "{c: d}");
+    test_emit_yaml_ints_(ti.ints, 29, with_dash, "- {c: d}\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[3], 29);
+        test_emit_yaml_tree_(ti.tree[3], without_dash, "&map\nc: d\n");
+        test_emit_yaml_tree_(ti.tree[3], with_dash, "- &map\n  c: d\n");
+        test_emit_yaml_ints_(ti.ints, 26, without_dash, "&map\nc: d\n");
+        test_emit_yaml_ints_(ti.ints, 26, with_dash, "- &map\n  c: d\n");
+        test_emit_yaml_ints_(ti.ints, 29, without_dash, "c: d\n");
+        test_emit_yaml_ints_(ti.ints, 29, with_dash, "- c: d\n");
+    }
+
+    test_emit_yaml_tree_(ti.tree[4], without_dash, "!seq [e,f]");
+    test_emit_yaml_tree_(ti.tree[4], with_dash, "- !seq [e,f]\n");
+    test_emit_yaml_ints_(ti.ints, 37, without_dash, "!seq [e,f]");
+    test_emit_yaml_ints_(ti.ints, 37, with_dash, "- !seq [e,f]\n");
+    test_emit_yaml_ints_(ti.ints, 40, without_dash, "[e,f]");
+    test_emit_yaml_ints_(ti.ints, 40, with_dash, "- [e,f]\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[4], 40);
+        test_emit_yaml_tree_(ti.tree[4], without_dash, "!seq\n- e\n- f\n");
+        test_emit_yaml_tree_(ti.tree[4], with_dash, "- !seq\n  - e\n  - f\n");
+        test_emit_yaml_ints_(ti.ints, 37, without_dash, "!seq\n- e\n- f\n");
+        test_emit_yaml_ints_(ti.ints, 37, with_dash, "- !seq\n  - e\n  - f\n");
+        test_emit_yaml_ints_(ti.ints, 40, without_dash, "- e\n- f\n");
+        test_emit_yaml_ints_(ti.ints, 40, with_dash, "- - e\n  - f\n");
+    }
+
+    test_emit_yaml_tree_(ti.tree[5], without_dash, "&seq [g,h]");
+    test_emit_yaml_tree_(ti.tree[5], with_dash, "- &seq [g,h]\n");
+    test_emit_yaml_ints_(ti.ints, 48, without_dash, "&seq [g,h]");
+    test_emit_yaml_ints_(ti.ints, 48, with_dash, "- &seq [g,h]\n");
+    test_emit_yaml_ints_(ti.ints, 51, without_dash, "[g,h]");
+    test_emit_yaml_ints_(ti.ints, 51, with_dash, "- [g,h]\n");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ti, ti.tree[5], 51);
+        test_emit_yaml_tree_(ti.tree[5], without_dash, "&seq\n- g\n- h\n");
+        test_emit_yaml_tree_(ti.tree[5], with_dash, "- &seq\n  - g\n  - h\n");
+        test_emit_yaml_ints_(ti.ints, 48, without_dash, "&seq\n- g\n- h\n");
+        test_emit_yaml_ints_(ti.ints, 48, with_dash, "- &seq\n  - g\n  - h\n");
+        test_emit_yaml_ints_(ti.ints, 51, without_dash, "- g\n- h\n");
+        test_emit_yaml_ints_(ti.ints, 51, with_dash, "- - g\n  - h\n");
     }
 }
 

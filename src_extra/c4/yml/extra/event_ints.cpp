@@ -4,6 +4,13 @@
 #ifndef C4_YML_EMIT_OPTIONS_HPP_
 #include "c4/yml/emit_options.hpp"
 #endif
+#ifndef C4_YML_SCALAR_CHARCONV_HPP_
+#include "c4/yml/scalar_charconv.hpp"
+#endif
+#ifndef C4_YML_SCALAR_STYLE_HPP_
+#include "c4/yml/scalar_style.hpp"
+#endif
+
 
 namespace c4 {
 namespace yml {
@@ -126,7 +133,7 @@ evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, 
 evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
 {
     evt_bits evt = evts[pos];
-    RYML_ASSERT_BASIC_((evt & ievt::END_) && (evt & mask_seqmap));
+    RYML_ASSERT_BASIC_((evt & ievt::END_) && (evt & (mask_open_close & ~ievt::END_)));
     RYML_ASSERT_BASIC_((evt & mask_begend) != mask_begend);
     const evt_bits close = evt & mask_open_close;
     const evt_bits open = (close & ~ievt::END_) | ievt::BEG_;
@@ -146,14 +153,14 @@ evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYM
         }
         pos -= ievt::prevstep(evt);
     }
-    RYML_ERR_BASIC_("evt error");
+    RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
 }
 
 
 evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
 {
     evt_bits evt = evts[pos];
-    RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & mask_seqmap));
+    RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & (mask_open_close & ~ievt::BEG_)));
     RYML_ASSERT_BASIC_((evt & mask_begend) != mask_begend);
     const evt_bits open = evt & mask_open_close;
     const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
@@ -173,31 +180,7 @@ evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt
         }
         pos += ievt::nextstep(evt);
     }
-    RYML_ERR_BASIC_("evt error");
-}
-
-
-evt_size find_prev_key_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
-{
-    while(pos > 0)
-    {
-        const evt_bits evt = evts[pos];
-        if(detail::hasall(evt, ievt::ESEQ) ||
-           detail::hasall(evt, ievt::EMAP))
-        {
-            pos = find_matching_open_(evts, pos);
-        }
-        else if(evt & ievt::KEY_)
-        {
-            if(detail::isentry(evt))
-                return pos;
-        }
-        else
-        {
-            pos -= ievt::prevstep(evt);
-        }
-    }
-    RYML_ERR_BASIC_("evt error");
+    RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
 }
 
 
@@ -217,8 +200,7 @@ evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_siz
             return pos;
         pos += ievt::nextstep(evt);
     }
-    RYML_ASSERT_BASIC_(pos > 0);
-    return pos;
+    RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
 }
 
 
@@ -254,9 +236,7 @@ MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcep
 
 EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
 {
-    if C4_UNLIKELY(pos >= sz)
-        RYML_ERR_BASIC_("emit element is not one of (map, seq, scalar, ref, doc)");
-    EmitKickoff ek;
+    EmitKickoff ek = {};
     ek.parent = detail::find_parent_(evts, pos);
     RYML_ASSERT_BASIC_(!ek.parent || detail::seqormap(evts[ek.parent.pos]));
     ek.emit_key = m_opts.emit_nonroot_key() && ek.parent && detail::hasall(evts[ek.parent.pos], ievt::BMAP) && (evts[pos] & ievt::KEY_);
@@ -283,6 +263,40 @@ EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOp
     }
     RYML_ASSERT_BASIC_(ek.valpos < sz);
     return ek;
+}
+
+evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept
+{
+    //see also NodeType implementation in scalar_style.cpp
+    // do not quote numbers or special scalars
+    return scalar_is_plain_number_json(scalar)
+        || scalar_is_special_json(scalar) ? ievt::PLAI : ievt::DQUO;
+}
+evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
+{
+    //see also NodeType implementation in scalar_style.cpp
+    if(scalar.len)
+    {
+        if(scalar_style_query_plain_block(scalar))
+            return ievt::PLAI;
+        RYML_ASSERT_BASIC_(scalar_style_query_squo(scalar)
+                           && "if this assertion fires, please submit an issue!");
+        return ievt::SQUO;
+    }
+    return scalar.str ? ievt::SQUO : ievt::PLAI;
+}
+evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
+{
+    //see also NodeType implementation in scalar_style.cpp
+    if(scalar.len)
+    {
+        if(scalar_style_query_plain_flow(scalar))
+            return ievt::PLAI;
+        else if(scalar_style_query_squo(scalar))
+            return ievt::SQUO;
+        return ievt::DQUO;
+    }
+    return scalar.str ? ievt::SQUO : ievt::PLAI;
 }
 
 } // namespace detail

@@ -9,6 +9,7 @@
 #include <c4/yml/writer_buf.hpp>
 #include <c4/yml/writer_file.hpp>
 #include <c4/yml/writer_ostream.hpp>
+#include <c4/yml/parse_engine.hpp>
 #include <test_lib/test_compare_events.hpp>
 #include <gtest/gtest.h>
 
@@ -61,13 +62,23 @@ C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 
+inline void parse_ints(substr src, extra::ievt::Buffers *ints, ParserOptions const& opts={})
+{
+    using Handler = extra::ievt::EventHandlerInts<true>;
+    Handler handler;
+    ParseEngine<Handler> parser(&handler, opts);
+    handler.reset(src);
+    parser.parse_in_place_ev("(testyaml)", src);
+    handler.get_buffers(ints, true);
+}
+
 struct TestBuffers : public ievt::Buffers
 {
 public:
 
     template<bool resize_buffers>
     void prepare_parse(ievt::EventHandlerInts<resize_buffers> &handler,
-                       std::string const& parsed_yaml,
+                       substr parsed_yaml,
                        evt_size evts_cap=-1, size_t arena_size=npos)
     {
         if(evts_cap == -1)
@@ -81,7 +92,7 @@ public:
     }
 
     template<bool resize_buffers>
-    bool resize_post_parse(ievt::EventHandlerInts<resize_buffers> &handler, std::string const& parsed_yaml)
+    bool resize_post_parse(ievt::EventHandlerInts<resize_buffers> &handler, substr parsed_yaml)
     {
         bool ret = false;
         if C4_IF_CONSTEXPR (resize_buffers)
@@ -100,18 +111,11 @@ public:
         return ret;
     }
 
-    void resize_(evt_size evts_cap, size_t arena_size, std::string const& parsed_yaml)
+    void resize_(evt_size evts_cap, size_t arena_size, substr parsed_yaml)
     {
-        if(parsed_yaml.size() > src.len)
-        {
-            src = yml::detail::resize(src, parsed_yaml.size(), callbacks);
-        }
-        ASSERT_GE(src.len, parsed_yaml.size());
-        memcpy(src.str, parsed_yaml.data(), parsed_yaml.size());
+        src = parsed_yaml;
         if(arena_size > arena.len)
-        {
             arena = yml::detail::resize(arena, arena_size, callbacks);
-        }
         ASSERT_GE(arena.len, arena_size);
         if(evts_cap > evts.len)
         {

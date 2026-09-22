@@ -9,9 +9,6 @@
 #ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
 #include "c4/yml/extra/event_ints.hpp"
 #endif
-#ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
-#include "c4/yml/extra/event_ints.hpp"
-#endif
 
 
 namespace c4 {

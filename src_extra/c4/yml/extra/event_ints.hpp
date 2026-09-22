@@ -246,8 +246,8 @@ typedef enum : evt_bits { // NOLINT
 
     /// Special flag to enable look-back in the event array. It
     /// signifies that the previous event has a string, meaning that
-    /// the jump back to that event is 3 positions. without this flag it
-    /// would be impossible to jump to the previous event.
+    /// the jump back to that event is 3 positions. Without this flag
+    /// it would be impossible to jump to the previous event.
     /// see also @ref WSTR
     PSTR = (1 << 25),
 
@@ -350,8 +350,7 @@ struct Buffers
     }
     ~Buffers() noexcept
     {
-        if(owned)
-            destroy();
+        destroy();
     }
 };
 
@@ -414,8 +413,10 @@ RYML_EXPORT bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt
 RYML_EXPORT evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_size find_prev_key_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT;
+RYML_EXPORT evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
+RYML_EXPORT evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
+RYML_EXPORT evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;
 
 
 struct EmitKickoff

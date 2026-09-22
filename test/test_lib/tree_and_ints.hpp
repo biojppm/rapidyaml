@@ -21,15 +21,6 @@ struct TreeAndInts
     std::string src_ints;
 };
 
-inline void parse_ints(substr src, extra::ievt::Buffers *ints, ParserOptions const& opts={})
-{
-    using Handler = extra::ievt::EventHandlerInts<true>;
-    Handler handler;
-    ParseEngine<Handler> parser(&handler, opts);
-    handler.reset(src);
-    parser.parse_in_place_ev("(testyaml)", src);
-    handler.get_buffers(ints, true);
-}
 inline TreeAndInts parse_tree_and_ints(csubstr src, ParserOptions const& opts={})
 {
     TreeAndInts ret;

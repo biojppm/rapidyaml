@@ -41,14 +41,14 @@ public:
 
     template<bool resize_buffers>
     void prepare_parse(extra::ievt::EventHandlerInts<resize_buffers> &handler,
-                       std::string const& parsed_yaml,
+                       substr parsed_yaml,
                        extra::ievt::evt_bits ints_size=-1, size_t arena_size=npos)
     {
         buf.prepare_parse(handler, parsed_yaml, ints_size, arena_size);
     }
 
     template<bool resize_buffers>
-    bool resize_post_parse(extra::ievt::EventHandlerInts<resize_buffers> &handler, std::string const& parsed_yaml)
+    bool resize_post_parse(extra::ievt::EventHandlerInts<resize_buffers> &handler, substr parsed_yaml)
     {
         return buf.resize_post_parse(handler, parsed_yaml);
     }
@@ -64,7 +64,7 @@ public:
 
     template<bool resize_buffers>
     void prepare_events(EventHandlerIntsTr<resize_buffers> &handler_tr,
-                        std::string const& parsed_yaml,
+                        substr parsed_yaml,
                         extra::ievt::evt_bits ints_size=-1,
                         size_t arena_size=npos)
     {
@@ -74,7 +74,7 @@ public:
 
     template<bool resize_buffers>
     bool resize_post_events(EventHandlerIntsTr<resize_buffers> &events_tr,
-                            std::string const& parsed_yaml)
+                            substr parsed_yaml)
     {
         if(resize_post_parse(events_tr.handler, parsed_yaml))
         {
@@ -108,8 +108,10 @@ public:
             buf.print();
         }
     }
-
 };
+
+
+//-----------------------------------------------------------------------------
 
 std::string filter_emitted_yaml_ints(csubstr em)
 {
@@ -189,9 +191,10 @@ static void test_engine_error_ints_from_events(const EngineEvtTestCase& test_cas
 {
     SCOPED_TRACE("error_ints_from_events");
     EngineTestIntBuffers buffers;
+    std::vector<char> yaml(test_case.yaml.begin(), test_case.yaml.end());
     ExpectError::check_error_parse([&]{
         EventHandlerIntsTr<resize_buffers> events_tr;
-        buffers.prepare_events(events_tr, test_case.yaml, -1, test_case.expected_emitted.size());
+        buffers.prepare_events(events_tr, to_substr(yaml), -1, test_case.expected_emitted.size());
         event_producer(events_tr);
     });
     if(testing::Test::HasFailure())
@@ -218,23 +221,26 @@ static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
     SCOPED_TRACE("ints_from_events");
     EventHandlerIntsTr<resize_buffers> events_tr;
     EngineTestIntBuffers buffers;
-    buffers.prepare_events<resize_buffers>(events_tr, test_case.yaml, -1, test_case.expected_emitted.size());
+    std::vector<char> yaml(test_case.yaml.begin(), test_case.yaml.end());
+    buffers.prepare_events<resize_buffers>(events_tr, to_substr(yaml), -1, test_case.expected_emitted.size());
     event_producer(events_tr);
-    if(buffers.resize_post_events(events_tr, test_case.yaml))
+    if(buffers.resize_post_events(events_tr, to_substr(yaml)))
         event_producer(events_tr);
     ASSERT_TRUE(events_tr.handler.fits_buffers());
     buffers.get_buffers(events_tr.handler);
     buffers.test(test_case);
+    if(testing::Test::HasFailure())
+        buffers.buf.print();
 }
-void test_engine_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize evts)
+void test_engine_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize event_producer)
 {
     SCOPED_TRACE("ints_from_events_resize");
-    test_engine_ints_from_events<true>(test_case, evts);
+    test_engine_ints_from_events<true>(test_case, event_producer);
 }
-void test_engine_ints_from_events_noresize(EngineEvtTestCase const& test_case, EventProducerIntsNoResize evts)
+void test_engine_ints_from_events_noresize(EngineEvtTestCase const& test_case, EventProducerIntsNoResize event_producer)
 {
     SCOPED_TRACE("ints_from_events_noresize");
-    test_engine_ints_from_events<false>(test_case, evts);
+    test_engine_ints_from_events<false>(test_case, event_producer);
 }
 
 
@@ -245,14 +251,15 @@ static void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_cas
 {
     SCOPED_TRACE("error_ints_from_yaml");
     EngineTestIntBuffers buffers;
-    ExpectError::check_error(errtype, [&]{
+    std::vector<char> yaml(test_case.yaml.begin(), test_case.yaml.end());
+    RYML_EXPECT_ERROR(check_error(errtype, [&]{
         extra::ievt::EventHandlerInts<resize_buffers> handler{};
         ParseEngine<extra::ievt::EventHandlerInts<resize_buffers>> parser(&handler, test_case.opts);
-        buffers.prepare_parse<resize_buffers>(handler, test_case.yaml);
+        buffers.prepare_parse<resize_buffers>(handler, to_substr(yaml));
         parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
-    }, test_case.expected_error_location);
+    }, test_case.expected_error_location));
     if(testing::Test::HasFailure())
-        buffers.buf.print(/*all*/false);
+        buffers.buf.print();
 }
 void test_expected_error_ints_from_yaml_resize(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
 {
@@ -269,15 +276,25 @@ void test_expected_error_ints_from_yaml_noresize(EngineEvtTestCase const& test_c
 //-----------------------------------------------------------------------------
 
 template<bool resize_buffers>
-static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style=false)
+static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, substr parsed_yaml_buf,
+                                       EngineEvtTestCase const& test_case, std::string const& yaml_src,
+                                       bool ignore_doc_style=false)
 {
     SCOPED_TRACE("test_engine_ints_from_yaml");
+    substr parsed_yaml;
+    auto reset_parsed_yaml = [&]{
+        ASSERT_GE(parsed_yaml_buf.len, yaml_src.size());
+        memcpy(parsed_yaml_buf.str, yaml_src.data(), yaml_src.size());
+        parsed_yaml = parsed_yaml_buf.first(yaml_src.size());
+    };
     extra::ievt::EventHandlerInts<resize_buffers> handler{};
     ParseEngine<extra::ievt::EventHandlerInts<resize_buffers>> parser(&handler, test_case.opts);
     if C4_IF_CONSTEXPR (resize_buffers)
     {
+        reset_parsed_yaml();
         buffers.prepare_parse(handler, parsed_yaml, 0, 0);
-        ASSERT_EQ(buffers.buf.src, to_csubstr(parsed_yaml));
+        ASSERT_EQ(buffers.buf.src.str, parsed_yaml.str);
+        ASSERT_EQ(buffers.buf.src.len, parsed_yaml.len);
         parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
         ASSERT_TRUE(handler.fits_buffers());
         buffers.get_buffers(handler);
@@ -286,18 +303,19 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
     }
     else
     {
-        int size_estimated = extra::ievt::estimate_events_size(to_csubstr(parsed_yaml));
+        int size_estimated = extra::ievt::estimate_events_size(to_csubstr(yaml_src));
         int reqsz_evts = 0;
         size_t reqsz_arena = 0;
+        reset_parsed_yaml();
         {
             SCOPED_TRACE("empty buffers");
-            // try first with empty buffers
-            buffers.prepare_parse(handler, parsed_yaml, 0, 0);
+            buffers.prepare_parse(handler, to_substr(parsed_yaml), 0, 0);
             parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
             EXPECT_GE(size_estimated, handler.required_size_events());
         }
         reqsz_evts = handler.required_size_events();
         reqsz_arena = handler.required_size_arena();
+        reset_parsed_yaml();
         {
             SCOPED_TRACE("small buffers");
             buffers.prepare_parse(handler, parsed_yaml, reqsz_evts / 2, reqsz_arena / 2);
@@ -310,11 +328,12 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
             size_t size_reference = num_ints(test_case.expected_ints.data(), test_case.expected_ints.size());
             EXPECT_EQ(size_reference, handler.required_size_events());
         }
-        EXPECT_TRUE(buffers.resize_post_parse(handler, parsed_yaml));
+        reset_parsed_yaml();
+        EXPECT_TRUE(buffers.resize_post_parse(handler, to_substr(parsed_yaml)));
         {
             SCOPED_TRACE("buffers ok");
             parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
-            EXPECT_FALSE(buffers.resize_post_parse(handler, parsed_yaml));
+            EXPECT_FALSE(buffers.resize_post_parse(handler, to_substr(parsed_yaml)));
             EXPECT_EQ(handler.required_size_events(), reqsz_evts);
             EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
             buffers.get_buffers(handler);
@@ -325,10 +344,11 @@ static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, EngineEvtT
 }
 
 template<bool resize_buffers>
-static void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style=false)
+static void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml_src, bool ignore_doc_style=false)
 {
     EngineTestIntBuffers buffers;
-    test_engine_ints_from_yaml<resize_buffers>(buffers, test_case, parsed_yaml, ignore_doc_style);
+    std::vector<char> parsed_yaml{yaml_src.begin(), yaml_src.end()};
+    test_engine_ints_from_yaml<resize_buffers>(buffers, to_substr(parsed_yaml), test_case, yaml_src, ignore_doc_style);
 }
 void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style)
 {
@@ -582,9 +602,10 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
     EngineTestIntBuffers buffers1 = {}, buffers2 = {};
     std::string emitted1, emitted2;
     extra::ievt::evt_size num_ints = 0;
+    std::vector<char> parsed_yaml1{yaml.begin(), yaml.end()};
     {
         SCOPED_TRACE("roundtrip_parse1");
-        test_engine_ints_from_yaml<resize_buffers>(buffers1, test_case, yaml);
+        test_engine_ints_from_yaml<resize_buffers>(buffers1, to_substr(parsed_yaml1), test_case, yaml);
         num_ints = buffers1.buf.evts.len;
         buffers1.buf.emit_yaml(&emitted1);
         #ifdef RYML_DBG
@@ -594,10 +615,11 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
             compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
     }
+    std::vector<char> parsed_yaml2{emitted1.begin(), emitted1.end()};
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("roundtrip_parse2");
-        test_engine_ints_from_yaml<resize_buffers>(buffers2, test_case, emitted1,
+        test_engine_ints_from_yaml<resize_buffers>(buffers2, to_substr(parsed_yaml2), test_case, emitted1,
                                                    /*ignore_doc_style*/true);
         EXPECT_EQ(num_ints, buffers2.buf.evts.len);
         buffers2.buf.emit_yaml(&emitted2);

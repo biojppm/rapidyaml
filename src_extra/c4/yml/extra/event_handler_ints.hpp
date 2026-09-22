@@ -698,25 +698,18 @@ public:
     C4_ALWAYS_INLINE void mark_key_scalar_unfiltered() // NOLINT
     {
         _c4dbgpf("{}/{}: mark_key_scalar_unfiltered", m_evt.len, m_evt.cap);
-        if C4_IF_CONSTEXPR (resize_buffers)
-        {
-            if(m_evt.len >= m_evt.cap)
-                _grow_evts();
-            m_evt.ptr[m_evt.len] |= ievt::UNFILT;
-        }
-        else
-        {
-            if(m_evt.len < m_evt.cap)
-                m_evt.ptr[m_evt.len] |= ievt::UNFILT;
-        }
+        _mark_scalar_unfiltered();
     }
     C4_ALWAYS_INLINE void mark_val_scalar_unfiltered() // NOLINT
     {
         _c4dbgpf("{}/{}: mark_val_scalar_unfiltered", m_evt.len, m_evt.cap);
+        _mark_scalar_unfiltered();
+    }
+    void _mark_scalar_unfiltered()
+    {
         if C4_IF_CONSTEXPR (resize_buffers)
         {
-            if(m_evt.len >= m_evt.cap)
-                _grow_evts();
+            RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len < m_evt.cap);
             m_evt.ptr[m_evt.len] |= ievt::UNFILT;
         }
         else
@@ -860,7 +853,7 @@ public:
         _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_flow", m_evt.len, m_evt.cap, m_evt_prev);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len > 2);
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt_prev > 0);
-        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len < m_evt.cap || !resize_buffers);
+        RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len <= m_evt.cap || !resize_buffers);
         evt_size pos = m_evt_prev;
         if(resize_buffers || m_evt.len < m_evt.cap)
         {
@@ -879,7 +872,7 @@ public:
                 pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
                 if C4_IF_CONSTEXPR (resize_buffers)
                 {
-                    if(m_evt.len >= m_evt.cap)
+                    if(m_evt.len + 1 >= m_evt.cap)
                         _grow_evts();
                 }
                 if(resize_buffers || m_evt.len + 1 < m_evt.cap)
@@ -913,7 +906,7 @@ public:
                 evt_size posp1 = pos + 1;
                 if C4_IF_CONSTEXPR (resize_buffers)
                 {
-                    if(m_evt.len >= m_evt.cap)
+                    if(m_evt.len + 1 >= m_evt.cap)
                         _grow_evts();
                 }
                 if(resize_buffers || m_evt.len + 1 < m_evt.cap)
@@ -1076,16 +1069,22 @@ public:
 
     C4_NO_INLINE void _grow_evts(evt_size next)
     {
-        next = next > 256 ? next : 256;
+        _grow_evts_exact(next > 256 ? next : 256);
+    }
+    C4_NO_INLINE void _grow_evts_exact(evt_size next)
+    {
         _c4dbgpf("{}/{}: resize evts {}->{}", m_evt.len, m_evt.cap, m_evt.cap, next);
-        // the actual len is len+1 (eg because of PSTR already being
-        // set on it). so temporarily bump the length to prevent that
-        // value from being zeroed.
+        // the actual current len is len+1 (eg because of PSTR already
+        // being set on it). so temporarily bump the length to prevent
+        // that value from being zeroed.
         evtbuf cp = m_evt;
-        if(cp.len) ++cp.len;
+        bool tweak = (cp.len && cp.len < cp.cap);
+        if(tweak)
+            ++cp.len;
         m_evt = c4::yml::detail::resize(cp, next, base_type::m_stack.m_callbacks);
         // restore to the current len
-        if(m_evt.len) --m_evt.len;
+        if(tweak)
+            --m_evt.len;
     }
 
     C4_NO_INLINE void _grow_evts()

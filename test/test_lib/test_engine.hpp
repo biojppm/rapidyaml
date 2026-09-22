@@ -80,7 +80,7 @@ TEST(name, err_ints_from_yaml_resize)                                   \
     test_expected_error_ints_from_yaml_resize(test_case_err_##name,     \
                                        ExpectedErrorType::err_parse);   \
 }                                                                       \
-TEST(name, err_ints_from_yaml)                                          \
+TEST(name, err_ints_from_yaml_noresize)                                 \
 {                                                                       \
     SCOPED_TRACE(#name ".err_ints_from_yaml_noresize");                 \
     test_expected_error_ints_from_yaml_noresize(test_case_err_##name,   \
