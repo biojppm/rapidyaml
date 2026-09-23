@@ -1,5 +1,5 @@
-#ifndef C4_YML_EMITTER_INTS_HPP_
-#define C4_YML_EMITTER_INTS_HPP_
+#ifndef C4_YML_EXTRA_EMITTER_INTS_HPP_
+#define C4_YML_EXTRA_EMITTER_INTS_HPP_
 
 /** @file emitter_ints.hpp */
 
@@ -248,4 +248,4 @@ private:
 } // namespace yml
 } // namespace c4
 
-#endif /* C4_YML_EMITTER_INTS_HPP_ */
+#endif /* C4_YML_EXTRA_EMITTER_INTS_HPP_ */
