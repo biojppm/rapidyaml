@@ -216,12 +216,13 @@ void test_engine_error_ints_from_events_noresize(const EngineEvtTestCase& test_c
 
 template<bool resize_buffers>
 static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
-                                         EventProducerInts<resize_buffers> event_producer)
+                                         EventProducerInts<resize_buffers> event_producer,
+                                         EngineTestIntBuffers &buffers,
+                                         std::vector<char> &yaml)
 {
     SCOPED_TRACE("ints_from_events");
     EventHandlerIntsTr<resize_buffers> events_tr;
-    EngineTestIntBuffers buffers;
-    std::vector<char> yaml(test_case.yaml.begin(), test_case.yaml.end());
+    yaml = {test_case.yaml.begin(), test_case.yaml.end()};
     if C4_IF_CONSTEXPR (resize_buffers)
     {
         SCOPED_TRACE("resize");
@@ -249,6 +250,15 @@ static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
         buffers.test(test_case);
         buffers.buf.owned = true;
     }
+}
+template<bool resize_buffers>
+static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
+                                         EventProducerInts<resize_buffers> event_producer)
+{
+    SCOPED_TRACE("ints_from_events");
+    EngineTestIntBuffers buffers;
+    std::vector<char> yaml;
+    test_engine_ints_from_events(test_case, event_producer, buffers, yaml);
 }
 void test_engine_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize event_producer)
 {
@@ -558,8 +568,42 @@ template<bool resize_buffers>
 static void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts<resize_buffers> event_producer)
 {
     SCOPED_TRACE("roundtrip_ints_from_events");
-    (void)test_case;
-    (void)event_producer;
+    EngineTestIntBuffers buffers1, buffers2;
+    std::vector<char> parsed_yaml1;
+    std::string emitted1, emitted2;
+    {
+        SCOPED_TRACE("ints_from_events");
+        test_engine_ints_from_events(test_case, event_producer, buffers1, parsed_yaml1);
+        buffers1.buf.emit_yaml(&emitted1);
+        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+            compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
+    }
+    std::vector<char> parsed_yaml2{emitted1.begin(), emitted1.end()};
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("roundtrip_parse2");
+        test_engine_ints_from_yaml<resize_buffers>(buffers2, to_substr(parsed_yaml2), test_case, emitted1,
+                                                   /*ignore_doc_style*/true);
+        buffers2.buf.emit_yaml(&emitted2);
+        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+            compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("roundtrip_compare");
+        test_events_ints_compare(buffers1.buf, buffers2.buf);
+        EXPECT_EQ(emitted1, emitted2);
+    }
+    if(testing::Test::HasFailure())
+    {
+        printf("source: ~~~\n%.*s~~~\n", (int)test_case.yaml.size(), test_case.yaml.data());
+        printf("parsed1:\n");
+        buffers1.buf.print();
+        printf("parsed1_emitted: ~~~\n%.*s~~~\n", (int)emitted1.size(), emitted1.data());
+        printf("parsed2 (after roundtrip):\n");
+        buffers2.buf.print();
+        printf("parsed2_emitted: ~~~\n%.*s~~~\n", (int)emitted2.size(), emitted2.data());
+    }
 }
 void test_engine_roundtrip_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize evts)
 {
@@ -634,10 +678,6 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         test_engine_ints_from_yaml<resize_buffers>(buffers1, to_substr(parsed_yaml1), test_case, yaml);
         num_ints = buffers1.buf.evts.len;
         buffers1.buf.emit_yaml(&emitted1);
-        #ifdef RYML_DBG
-        buffers1.buf.print();
-        printf("emitted: ~~~\n%s~~~\n", emitted1.c_str());
-        #endif
         if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
             compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
     }

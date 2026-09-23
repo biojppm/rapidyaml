@@ -536,8 +536,8 @@ ENGINE_TEST(ContainerKey2Block_1,
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.add_sibling());
-    ___(ps.set_key_tag("!maptag"));
     ___(ps.set_key_anchor("mapanchor"));
+    ___(ps.set_key_tag("!maptag"));
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
@@ -557,8 +557,8 @@ ENGINE_TEST(ContainerKey2Block_1,
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.end_seq_flow(singleline));
     ___(ps.add_sibling());
-    ___(ps.set_key_tag("!seqtag"));
     ___(ps.set_key_anchor("seqanchor"));
+    ___(ps.set_key_tag("!seqtag"));
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("now"));
     ___(ps.add_sibling());

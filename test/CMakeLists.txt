@@ -162,6 +162,7 @@ endfunction()
 
 ryml_add_test(engine_1_doc_1 BIG)
 ryml_add_test(engine_1_doc_2 BIG)
+ryml_add_test(engine_1_doc_3 BIG)
 ryml_add_test(engine_2_seq_block_1 BIG)
 ryml_add_test(engine_2_seq_block_2 BIG)
 ryml_add_test(engine_2_seq_flow_1 BIG)
