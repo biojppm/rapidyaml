@@ -450,7 +450,7 @@ struct TestSequenceLevel
             ASSERT_LE(szi, buffer_ints_noresize.size());
             buffer_ints_noresize.resize(szi);
             #ifdef RYML_DBG
-            extra::ievt::events_ints_print(to_csubstr(src_ints_noresize), to_csubstr(arena_ints_noresize), buffer_ints_noresize.data(), (I)sz);
+            extra::ievt::events_ints_print(to_csubstr(src_ints_noresize), to_csubstr(arena_ints_noresize), buffer_ints_noresize.data(), (I)szi);
             #endif
             extra::ievt::test_events_ints_invariants(to_csubstr(src_ints_noresize), to_csubstr(arena_ints_noresize), buffer_ints_noresize.data(), (I)szi);
             EXPECT_GT(evt_handler_ints_noresize.required_size_events(), 0);
@@ -513,7 +513,7 @@ struct TestSequenceLevel
             ASSERT_LE(szi, buffer_ints_noresize_json.size());
             buffer_ints_noresize_json.resize(szi);
             #ifdef RYML_DBG
-            extra::ievt::events_ints_print(to_csubstr(src_ints_noresize_json), to_csubstr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)sz);
+            extra::ievt::events_ints_print(to_csubstr(src_ints_noresize_json), to_csubstr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)szi);
             #endif
             extra::ievt::test_events_ints_invariants(to_csubstr(src_ints_noresize_json), to_csubstr(arena_ints_noresize_json), buffer_ints_noresize_json.data(), (I)szi);
             EXPECT_GT(evt_handler_ints_noresize_json.required_size_events(), 0);

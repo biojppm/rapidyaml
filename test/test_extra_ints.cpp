@@ -132,9 +132,6 @@ struct IntEventsCase
     void testeq(csubstr parsed_source, csubstr arena, ievt::evt_bits const* actual, size_t actual_size) const
     {
         RYML_TRACE_FMT("defined in:\n{}:{}: (here)\n", file, line);
-        #ifdef RYML_DBG
-        events_ints_print(parsed_source, arena, actual, (extra::ievt::evt_bits)actual_size);
-        #endif
         extra::ievt::test_events_ints_invariants(parsed_source, arena, actual, (ievt::evt_bits)actual_size);
         test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, arena);
     }
