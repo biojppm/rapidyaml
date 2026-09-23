@@ -338,8 +338,6 @@ struct RYML_EXPORT Buffers
         {
             if(evts.ptr)
                 callbacks.m_free(evts.ptr, static_cast<size_t>(evts.cap) * sizeof(evts.ptr[0]), callbacks.m_user_data);
-            //if(src.str)
-            //    callbacks.m_free(src.str, src.len * sizeof(src.str[0]), callbacks.m_user_data);
             if(arena.str)
                 callbacks.m_free(arena.str, arena.len * sizeof(arena.str[0]), callbacks.m_user_data);
         }
@@ -354,7 +352,7 @@ struct RYML_EXPORT Buffers
         destroy();
     }
 };
-C4_SUPPRESS_WARNING_POP
+C4_SUPPRESS_WARNING_MSVC_POP
 
 
 /** Read YAML source and, without undergoing a full parse, estimate
