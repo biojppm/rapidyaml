@@ -14,8 +14,10 @@
 #endif
 
 
-C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_MSVC(5054) // '|': deprecated between enumerations of different types
 #if defined(__GNUC__) && (__GNUC__ > 8)
 C4_SUPPRESS_WARNING_GCC("-Wdeprecated-enum-enum-conversion")
 #endif
@@ -1629,6 +1631,6 @@ evt_size EmitterInts<Writer>::json_writev_(evt_size pos, evt_bits ty, bool has_a
 } // namespace c4
 
 // NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
-C4_SUPPRESS_WARNING_GCC_CLANG_POP
+C4_SUPPRESS_WARNING_POP
 
 #endif /* C4_YML_EXTRA_EMITTER_INTS_DEF_HPP_ */
