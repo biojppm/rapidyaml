@@ -87,6 +87,9 @@ public:
             arena_size = parsed_yaml.size();
         _c4dbgpf("ints: setting buffer sizes: src={} ints={} arena={}", parsed_yaml.size(), evts_cap, arena_size);
         callbacks = handler.m_stack.m_callbacks;
+        ASSERT_NE(callbacks.m_allocate, nullptr);
+        ASSERT_NE(callbacks.m_free, nullptr);
+        ASSERT_NE(callbacks.m_error_basic, nullptr);
         resize_(evts_cap, arena_size, parsed_yaml);
         handler.reset(*this);
     }
@@ -113,6 +116,10 @@ public:
 
     void resize_(evt_size evts_cap, size_t arena_size, substr parsed_yaml)
     {
+if(!callbacks.m_allocate) std::abort();
+        ASSERT_NE(callbacks.m_allocate, nullptr);
+        ASSERT_NE(callbacks.m_free, nullptr);
+        ASSERT_NE(callbacks.m_error_basic, nullptr);
         src = parsed_yaml;
         if(arena_size > arena.len)
             arena = yml::detail::resize(arena, arena_size, callbacks);

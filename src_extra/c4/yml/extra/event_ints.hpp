@@ -344,7 +344,6 @@ struct RYML_EXPORT Buffers
         evts = {};
         src = {};
         arena = {};
-        callbacks = {};
         owned = false;
     }
     ~Buffers() noexcept

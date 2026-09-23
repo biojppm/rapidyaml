@@ -761,25 +761,25 @@ TEST(emit_nested, basic)
         test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, without_dash, "Rochefort 10");
         test_emit_yaml_(ti.tree[3]["beer"][0], ti.ints, 57, with_dash, "- Rochefort 10\n");
     }
-    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash, R"(- and so
-- many other
-- wonderful beers
-)");
-    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash, R"(- - and so
-  - many other
-  - wonderful beers
-)");
+    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash,
+                    "- and so\n"
+                    "- many other\n"
+                    "- wonderful beers\n");
+    test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash,
+                    "- - and so\n"
+                    "  - many other\n"
+                    "  - wonderful beers\n");
     {
         SCOPED_TRACE("nosty");
         TMPSTY(nosty, ti, ti.tree[3]["beer"], 66);
-        test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash, R"(- and so
-- many other
-- wonderful beers
-)");
-        test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash, R"(- - and so
-  - many other
-  - wonderful beers
-)");
+        test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, without_dash,
+                        "- and so\n"
+                        "- many other\n"
+                        "- wonderful beers\n");
+        test_emit_yaml_(ti.tree[3]["beer"][3], ti.ints, 66, with_dash,
+                        "- - and so\n"
+                        "  - many other\n"
+                        "  - wonderful beers\n");
     }
     {
         std::string key = "beer";
@@ -1045,7 +1045,7 @@ TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
         r.set_seq(BLOCK);
         r[0].set_val(": odd", VAL_PLAIN);
         r[1].set_val(":\todd", VAL_PLAIN);
-        test_emit_yaml_same_ints(r, "- : odd\n- :\todd\n");
+        test_emit_yaml_tree(r, "- : odd\n- :\todd\n");
     }
     {
         Tree t;
@@ -1055,7 +1055,7 @@ TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
         r[1].set_val(":\todd");
         EXPECT_FALSE(r[0].is_val_plain());
         EXPECT_FALSE(r[1].is_val_plain());
-        test_emit_yaml_same_ints(r, "- ': odd'\n- ':\todd'\n");
+        test_emit_yaml_tree(r, "- ': odd'\n- ':\todd'\n");
     }
 }
 

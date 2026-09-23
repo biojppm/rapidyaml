@@ -16,9 +16,11 @@
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
-C4_SUPPRESS_WARNING_CLANG("-Wdeprecated-anon-enum-enum-conversion")
 #if defined(__GNUC__) && (__GNUC__ > 8)
 C4_SUPPRESS_WARNING_GCC("-Wdeprecated-enum-enum-conversion")
+#endif
+#if defined(__clang__) && (__clang_major__ >= 10)
+C4_SUPPRESS_WARNING_CLANG("-Wdeprecated-anon-enum-enum-conversion")
 #endif
 // NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
 
