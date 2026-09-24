@@ -854,11 +854,11 @@ ENGINE_TEST(AnchorMapMapSuckerPunch,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.set_val_tag("!mymap"));
     ___(ps.set_val_anchor("mymap"));
+    ___(ps.set_val_tag("!mymap"));
     ___(ps.begin_map_val_block());
-      ___(ps.set_key_tag("!footag"));
       ___(ps.set_key_anchor("fooanch"));
+      ___(ps.set_key_tag("!footag"));
       ___(ps.set_key_scalar_plain("foo"));
       ___(ps.set_val_anchor("seq"));
       ___(ps.begin_map_val_block());
@@ -873,48 +873,48 @@ ENGINE_TEST(AnchorMapMapSuckerPunch,
         ___(ps.set_val_scalar_plain("val2"));
       ___(ps.end_map_block());
       ___(ps.add_sibling());
-      ___(ps.set_key_tag("!bartag"));
       ___(ps.set_key_anchor("baranch"));
+      ___(ps.set_key_tag("!bartag"));
       ___(ps.set_key_scalar_plain("bar"));
-      ___(ps.set_val_tag("!a"));
       ___(ps.set_val_anchor("map2"));
+      ___(ps.set_val_tag("!a"));
       ___(ps.begin_map_val_block());
-        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_anchor("key10"));
+        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_scalar_plain("key10"));
-        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_anchor("val10"));
+        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_scalar_plain("val10"));
         ___(ps.add_sibling());
-        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_anchor("key20"));
+        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_scalar_plain("key20"));
-        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_anchor("val20"));
+        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_scalar_plain("val20"));
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("key10"));
         ___(ps.set_val_scalar_plain("20"));
       ___(ps.end_map_block());
       ___(ps.add_sibling());
-      ___(ps.set_key_tag("!baztag"));
       ___(ps.set_key_anchor("bazanch"));
+      ___(ps.set_key_tag("!baztag"));
       ___(ps.set_key_scalar_plain("baz"));
-      ___(ps.set_val_tag("!a"));
       ___(ps.set_val_anchor("map2"));
+      ___(ps.set_val_tag("!a"));
       ___(ps.begin_map_val_block());
-        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_anchor("key10"));
+        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_scalar_plain("key10"));
-        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_anchor("val10"));
+        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_scalar_plain("val10"));
         ___(ps.add_sibling());
-        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_anchor("key20"));
+        ___(ps.set_key_tag("!b"));
         ___(ps.set_key_scalar_plain("key20"));
-        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_anchor("val20"));
+        ___(ps.set_val_tag("!c"));
         ___(ps.set_val_scalar_plain("val20"));
         ___(ps.add_sibling());
         ___(ps.set_key_scalar_plain("key10"));
@@ -1129,6 +1129,10 @@ ENGINE_TEST(DocDoubleAnchorSeqMap,
             "--- &docanchor\n"
             "&anchor [seq, yeah]: foo\n"
             ,
+            "--- &docanchor\n"
+            "? &anchor [seq,yeah]\n"
+            ": foo\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP &docanchor\n"
@@ -1157,9 +1161,14 @@ ENGINE_TEST(DocDoubleAnchorSeqMap,
 }
 
 ENGINE_TEST(DoubleAnchorSeqMap,
-            HAS_CONTAINER_KEYS,
+            HAS_CONTAINER_KEYS
+            ,
             "&docanchor\n"
             "&anchor [seq, yeah]: foo\n"
+            ,
+            "&docanchor\n"
+            "? &anchor [seq,yeah]\n"
+            ": foo\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1193,6 +1202,10 @@ ENGINE_TEST(DocDoubleAnchorKeyMap,
             "--- &docanchor\n"
             "&anchor {key: val}: foo\n"
             ,
+            "--- &docanchor\n"
+            "? &anchor {key: val}\n"
+            ": foo\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP &docanchor\n"
@@ -1211,7 +1224,7 @@ ENGINE_TEST(DocDoubleAnchorKeyMap,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_map_key_flow());
-    ___(ps.set_val_scalar_plain("key"));
+    ___(ps.set_key_scalar_plain("key"));
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.end_map_flow(false));
     ___(ps.set_val_scalar_plain("foo"));
@@ -1224,6 +1237,10 @@ ENGINE_TEST(DoubleAnchorKeyMap,
             HAS_CONTAINER_KEYS,
             "&docanchor\n"
             "&anchor {key: val}: foo\n"
+            ,
+            "&docanchor\n"
+            "? &anchor {key: val}\n"
+            ": foo\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1243,7 +1260,7 @@ ENGINE_TEST(DoubleAnchorKeyMap,
     ___(ps.begin_map_val_block());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_map_key_flow());
-    ___(ps.set_val_scalar_plain("key"));
+    ___(ps.set_key_scalar_plain("key"));
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.end_map_flow(false));
     ___(ps.set_val_scalar_plain("foo"));

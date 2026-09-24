@@ -15,6 +15,9 @@ ENGINE_TEST(ContainerKey1Block0_0,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
             ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -37,8 +40,8 @@ ENGINE_TEST(ContainerKey1Block0_0,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
-    ___(ps.begin_map_val_flow());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
     ___(ps.add_sibling());
@@ -64,6 +67,9 @@ ENGINE_TEST(ContainerKey1Block0_0,
 ENGINE_TEST(ContainerKey1Block0_1,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
+            ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -115,6 +121,9 @@ ENGINE_TEST(ContainerKey1Block1_0,
             HAS_CONTAINER_KEYS,
             "[this,is,a,seq,key]: [and,now,a,seq,val]"
             ,
+            "? [this,is,a,seq,key]\n"
+            ": [and,now,a,seq,val]\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -138,7 +147,7 @@ ENGINE_TEST(ContainerKey1Block1_0,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_val_block());
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("this"));
     ___(ps.add_sibling());
@@ -170,6 +179,9 @@ ENGINE_TEST(ContainerKey1Block1_1,
             HAS_CONTAINER_KEYS,
             "[this,is,a,seq,key]: [and,now,a,seq,val]"
             ,
+            "? [this,is,a,seq,key]\n"
+            ": [and,now,a,seq,val]\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -193,7 +205,7 @@ ENGINE_TEST(ContainerKey1Block1_1,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("this"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("is"));
@@ -224,6 +236,9 @@ ENGINE_TEST(ContainerKey1Block1_1,
 ENGINE_TEST(ContainerKey1Block2_0,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
+            ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -274,6 +289,9 @@ ENGINE_TEST(ContainerKey1Block2_0,
 ENGINE_TEST(ContainerKey1Block2_1,
             HAS_CONTAINER_KEYS,
             "{this: is, a: keymap}: [and,now,a,seq,val]"
+            ,
+            "? {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -328,6 +346,13 @@ ENGINE_TEST(ContainerKey1Block3_0,
             "---\n"
             "[A,SEQ]: {A: MAP}\n"
             ,
+            "---\n"
+            "? {a: map}\n"
+            ": [a,seq]\n"
+            "---\n"
+            "? [A,SEQ]\n"
+            ": {A: MAP}\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP\n"
@@ -376,7 +401,7 @@ ENGINE_TEST(ContainerKey1Block3_0,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("SEQ"));
     ___(ps.end_seq_flow(singleline));
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
     ___(ps.end_map_flow(singleline));
@@ -391,6 +416,13 @@ ENGINE_TEST(ContainerKey1Block3_1,
             "{a: map}: [a,seq]\n"
             "---\n"
             "[A,SEQ]: {A: MAP}\n"
+            ,
+            "---\n"
+            "? {a: map}\n"
+            ": [a,seq]\n"
+            "---\n"
+            "? [A,SEQ]\n"
+            ": {A: MAP}\n"
             ,
             "+STR\n"
             "+DOC ---\n"
@@ -440,7 +472,7 @@ ENGINE_TEST(ContainerKey1Block3_1,
     ___(ps.set_val_scalar_plain("SEQ"));
     ___(ps.end_seq_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
     ___(ps.end_map_flow(singleline));
@@ -461,6 +493,12 @@ ENGINE_TEST(ContainerKey2Block_1,
             "foo: bar\n"
             "!maptag &mapanchor {this: is, a: keymap}: [and,now,a,seq,val]\n"
             "!seqtag &seqanchor [now, reversed]: {of: course}\n"
+            ,
+            "foo: bar\n"
+            "? &mapanchor !maptag {this: is,a: keymap}\n"
+            ": [and,now,a,seq,val]\n"
+            "? &seqanchor !seqtag [now,reversed]\n"
+            ": {of: course}\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -498,8 +536,8 @@ ENGINE_TEST(ContainerKey2Block_1,
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.add_sibling());
-    ___(ps.set_key_tag("!maptag"));
     ___(ps.set_key_anchor("mapanchor"));
+    ___(ps.set_key_tag("!maptag"));
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
@@ -519,8 +557,8 @@ ENGINE_TEST(ContainerKey2Block_1,
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.end_seq_flow(singleline));
     ___(ps.add_sibling());
-    ___(ps.set_key_tag("!seqtag"));
     ___(ps.set_key_anchor("seqanchor"));
+    ___(ps.set_key_tag("!seqtag"));
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("now"));
     ___(ps.add_sibling());
@@ -541,6 +579,11 @@ ENGINE_TEST(ContainerKey2Block_1,
 ENGINE_TEST(ContainerKey3Block4_C2SP_0, HAS_CONTAINER_KEYS,
             "[21]: 42\n"
             "[23]: 42\n"
+            ,
+            "? [21]\n"
+            ": 42\n"
+            "? [23]\n"
+            ": 42\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -699,6 +742,11 @@ ENGINE_TEST(ContainerKey3Block5_C2SP_0, HAS_CONTAINER_KEYS,
             "{a: b}: 42\n"
             "{c: d}: 42\n"
             ,
+            "? {a: b}\n"
+            ": 42\n"
+            "? {c: d}\n"
+            ": 42\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -803,6 +851,10 @@ ENGINE_TEST(MapKeyBlock,
             "? foo: bar\n"
             ": baz"
             ,
+            "?\n"
+            "  foo: bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -832,6 +884,9 @@ ENGINE_TEST(MapKeyBlockFlow,
             HAS_CONTAINER_KEYS, Location(2,1,3),
             "? {foo: bar}\n"
             ": baz"
+            ,
+            "? {foo: bar}\n"
+            ": baz\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -865,6 +920,11 @@ ENGINE_TEST(SeqKeyBlock,
             " - bar\n"
             ": baz\n"
             ,
+            "?\n"
+            "  - foo\n"
+            "  - bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -894,6 +954,9 @@ ENGINE_TEST(SeqKeyBlock,
 ENGINE_TEST(SeqKeyBlockFlow,
             HAS_CONTAINER_KEYS, Location(2,1,3),
             "? [foo, bar]\n"
+            ": baz\n"
+            ,
+            "? [foo,bar]\n"
             ": baz\n"
             ,
             "+STR\n"
@@ -931,6 +994,13 @@ ENGINE_TEST(SeqKeyBlock2_0,
             "- baz\n"
             "- bat\n"
             ,
+            "?\n"
+            "  - foo\n"
+            "  - bar\n"
+            ":\n"
+            "  - baz\n"
+            "  - bat\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -954,7 +1024,7 @@ ENGINE_TEST(SeqKeyBlock2_0,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_seq_block());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));
@@ -983,6 +1053,13 @@ ENGINE_TEST(SeqKeyBlock3,
             " - baz\n"
             " - bat\n"
             ,
+            "?\n"
+            "  - foo\n"
+            "  - bar\n"
+            ":\n"
+            "  - baz\n"
+            "  - bat\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1006,7 +1083,7 @@ ENGINE_TEST(SeqKeyBlock3,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_seq_block());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));
@@ -1020,6 +1097,10 @@ ENGINE_TEST(MapKeyBlock4Squo0,
             HAS_CONTAINER_KEYS,
             "\n"
             "? 'foo' : bar\n"
+            ": baz\n"
+            ,
+            "?\n"
+            "  'foo': bar\n"
             ": baz\n"
             ,
             "+STR\n"
@@ -1052,6 +1133,11 @@ ENGINE_TEST(MapKeyBlock4Squo1,
             "&blockanchor\n"
             "? &mapkey\n"
             "  &scalarkey 'foo' : bar\n"
+            ": baz\n"
+            ,
+            "&blockanchor\n"
+            "? &mapkey\n"
+            "  &scalarkey 'foo': bar\n"
             ": baz\n"
             ,
             "+STR\n"
@@ -1088,6 +1174,10 @@ ENGINE_TEST(MapKeyBlock4Dquo0,
             "? \"foo\" : bar\n"
             ": baz\n"
             ,
+            "?\n"
+            "  \"foo\": bar\n"
+            ": baz\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1118,6 +1208,11 @@ ENGINE_TEST(MapKeyBlock4Dquo1,
             "&blockanchor\n"
             "? &mapkey\n"
             "  &scalarkey \"foo\" : bar\n"
+            ": baz\n"
+            ,
+            "&blockanchor\n"
+            "? &mapkey\n"
+            "  &scalarkey \"foo\": bar\n"
             ": baz\n"
             ,
             "+STR\n"

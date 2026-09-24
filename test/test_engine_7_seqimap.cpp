@@ -466,7 +466,7 @@ ENGINE_TEST(SeqIMap4,
             ,
             "[val0,val1,[rat,rot]: [foo: bar],wtf]"
             ,
-            "[val0,val1,{[rat,rot]: [{foo: bar}]},wtf]"
+            "[val0,val1,{? [rat,rot]: [{foo: bar}]},wtf]"
             ,
             "+STR\n"
             "+DOC\n"
@@ -521,7 +521,7 @@ ENGINE_TEST(SeqIMap4_actually,
             HAS_CONTAINER_KEYS, Location(20,1,21),
             "[val0,val1,[rat,rot]: [foo: bar],wtf]"
             ,
-            "[val0,val1,{[rat,rot]: [{foo: bar}]},wtf]"
+            "[val0,val1,{? [rat,rot]: [{foo: bar}]},wtf]"
             ,
             "+STR\n"
             "+DOC\n"
@@ -862,7 +862,7 @@ ENGINE_TEST(SeqIMap5QmrkSeq,
             HAS_CONTAINER_KEYS,
             "[? &anchor [a, seq]: ]"
             ,
-            "[{&anchor [a, seq]: }]"
+            "[{? &anchor [a,seq]: }]"
             ,
             "+STR\n"
             "+DOC\n"
@@ -881,7 +881,6 @@ ENGINE_TEST(SeqIMap5QmrkSeq,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_flow());
-    ___(ps.set_key_tag("!tag"));
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_seq_key_flow());
@@ -899,7 +898,7 @@ ENGINE_TEST(SeqIMap5QmrkMap,
             HAS_CONTAINER_KEYS,
             "[? &anchor {a: map}: ]"
             ,
-            "[{&anchor {a: map}: }]"
+            "[{? &anchor {a: map}: }]"
             ,
             "+STR\n"
             "+DOC\n"
@@ -918,7 +917,6 @@ ENGINE_TEST(SeqIMap5QmrkMap,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_seq_val_flow());
-    ___(ps.set_key_tag("!tag"));
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_anchor("anchor"));
     ___(ps.begin_map_key_flow());

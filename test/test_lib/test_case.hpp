@@ -11,6 +11,7 @@
 #include <c4/yml/detail/dbgprint.hpp>
 #include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/detail/print.hpp>
+#include <c4/yml/extra/event_ints.hpp>
 #endif
 #include "c4/span.hpp"
 
@@ -20,29 +21,19 @@
 
 // no pragma push for these warnings! they will be suppressed in the
 // files including this header (most test files)
-#ifdef __clang__
-#   pragma clang diagnostic ignored "-Wold-style-cast"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic ignored "-Wold-style-cast"
-#endif
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 #if defined(__clang__) && (__clang_major__ >= 13)
 C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
 #endif
 
 
-#ifdef __clang__
-#   pragma clang diagnostic push
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
-#elif defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
-#   pragma warning(disable: 4702/*unreachable code*/)
-#   if C4_MSVC_VERSION != C4_MSVC_VERSION_2017
-#       pragma warning(disable: 4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
-#   endif
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wtype-limits")
+C4_SUPPRESS_WARNING_MSVC(4296/*expression is always 'boolean_value'*/)
+C4_SUPPRESS_WARNING_MSVC(4389/*'==': signed/unsigned mismatch*/)
+C4_SUPPRESS_WARNING_MSVC(4702/*unreachable code*/)
+#if defined(_MSC_VER) && (C4_MSVC_VERSION != C4_MSVC_VERSION_2017)
+C4_SUPPRESS_WARNING_MSVC(4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
 #endif
 
 #ifdef RYML_DBG
@@ -158,31 +149,45 @@ void print_path(ConstNodeRef const& p);
 template<class CheckFn>
 void test_check_emit_check_with_parser(Tree const& t, Parser &parser, CheckFn &&check_fn)
 {
-    #ifdef RYML_DBG
-    print_tree(t);
-    #endif
     {
         SCOPED_TRACE("original yaml");
         test_invariants(t);
         std::forward<CheckFn>(check_fn)(t, parser);
+        if(testing::Test::HasFailure())
+        {
+            print_tree(t);
+        }
     }
-    auto emit_and_parse = [&](Tree const& tp, const char* identifier){
+    auto emit_and_parse = [&](Tree const& tp, Tree *out, const char* identifier){
         SCOPED_TRACE(identifier);
         std::string emitted = emitrs_yaml<std::string>(tp);
-        #ifdef RYML_DBG
-        printf("~~~%s~~~[%zu]\n%.*s", identifier, emitted.size(), (int)emitted.size(), emitted.data());
-        #endif
-        Tree cp = parse_in_arena(&parser, to_csubstr(emitted));
-        #ifdef RYML_DBG
-        print_tree(cp);
-        #endif
-        test_invariants(cp);
-        std::forward<CheckFn>(check_fn)(cp, parser);
-        return cp;
+        parse_in_arena(&parser, to_csubstr(emitted), out);
+        test_invariants(*out);
+        std::forward<CheckFn>(check_fn)(*out, parser);
+        if(testing::Test::HasFailure())
+        {
+            printf("~~~%s~~~[%zu]\n%.*s", identifier, emitted.size(), (int)emitted.size(), emitted.data());
+            print_tree(*out);
+        }
     };
-    Tree cp = emit_and_parse(t, "emitted 1");
-    cp = emit_and_parse(cp, "emitted 2");
-    cp = emit_and_parse(cp, "emitted 3");
+    if(!testing::Test::HasFailure())
+    {
+        Tree cp1;
+        SCOPED_TRACE("level 1");
+        emit_and_parse(t, &cp1, "level 1");
+        if(!testing::Test::HasFailure())
+        {
+            Tree cp2;
+            SCOPED_TRACE("level 2");
+            emit_and_parse(cp1, &cp2, "level 2");
+            if(!testing::Test::HasFailure())
+            {
+                Tree cp3;
+                SCOPED_TRACE("level 3");
+                emit_and_parse(cp2, &cp3, "level 3");
+            }
+        }
+    }
 }
 template<class CheckFn>
 void test_check_emit_check(Tree const& t, Parser &parser, CheckFn &&check_fn)
@@ -216,7 +221,7 @@ void test_check_emit_check_with_parser(Tree const& t, CheckFn &&check_fn)
 {
     Parser::handler_type evt_handler = {};
     Parser parser(&evt_handler, ParserOptions());
-    test_check_emit_check_with_parser(t, parser, check_fn);
+    test_check_emit_check_with_parser(t, parser, std::forward<CheckFn>(check_fn));
 }
 template<class CheckFn>
 void test_check_emit_check(Tree const& t, CheckFn &&check_fn)
@@ -424,12 +429,6 @@ inline std::string namefor(bomspec const& param)
 } // namespace yml
 } // namespace c4
 
-#ifdef __clang__
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
+C4_SUPPRESS_WARNING_POP
 
 #endif /* TEST_CASE_HPP_ */
