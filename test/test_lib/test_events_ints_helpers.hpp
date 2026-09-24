@@ -1,15 +1,20 @@
 #ifndef TEST_EVENTS_INTS_HPP_
 #define TEST_EVENTS_INTS_HPP_
 
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
+#include <c4/yml/writer_buf.hpp>
+#include <c4/yml/writer_file.hpp>
+#include <c4/yml/writer_ostream.hpp>
+#include <c4/yml/parse_engine.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
-#include <c4/yml/writer_buf.hpp>
-#include <c4/yml/writer_file.hpp>
-#include <c4/yml/writer_ostream.hpp>
-#include <c4/yml/parse_engine.hpp>
+#endif
+
 #include <test_lib/test_compare_events.hpp>
 #include <gtest/gtest.h>
 

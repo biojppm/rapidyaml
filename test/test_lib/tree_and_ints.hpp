@@ -1,10 +1,15 @@
 #ifndef TEST_TREE_AND_INTS_HPP_
 #define TEST_TREE_AND_INTS_HPP_
 
+#include <test_lib/test_events_ints_helpers.hpp>
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
 #include <c4/yml/parse.hpp>
 #include <c4/yml/parse_engine.hpp>
 #include <c4/yml/emit.hpp>
-#include <test_lib/test_events_ints_helpers.hpp>
+#endif
+
 #include <test_lib/test_case.hpp>
 #include <gtest/gtest.h>
 
