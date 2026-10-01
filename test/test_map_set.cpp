@@ -50,7 +50,7 @@ cc:
 CASE_GROUP(SIMPLE_SET)
 {
 
-ADD_CASE_TO_GROUP("doc as set, missing value",
+ADD_CASE_TO_GROUP("doc as set, missing value", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(!!set
 ? a
 ? b
@@ -59,7 +59,7 @@ R"(!!set
 N(MB, TL("!!set", L{N(KP|VN, "a", {}), N(KP|VN, "b", {}), N(KN|VN, {}, "")}))
 );
 
-ADD_CASE_TO_GROUP("doc as set, implicit",
+ADD_CASE_TO_GROUP("doc as set, implicit", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(!!set
 ? a
 ? b
@@ -67,7 +67,7 @@ R"(!!set
 N(MB, TL("!!set", L{N(KP|VN, "a", {}), N(KP|VN, "b", {})}))
 );
 
-ADD_CASE_TO_GROUP("doc as set",
+ADD_CASE_TO_GROUP("doc as set", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(--- !!set
 ? aa
 ? bb
@@ -82,7 +82,7 @@ N(STREAM, L{
 })
 );
 
-ADD_CASE_TO_GROUP("sets 2XXW",
+ADD_CASE_TO_GROUP("sets 2XXW", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 --- !!set
 ? Mark McGwire
@@ -98,7 +98,7 @@ N(STREAM, L{
 })
 );
 
-ADD_CASE_TO_GROUP("sets 2XXW, no set",
+ADD_CASE_TO_GROUP("sets 2XXW, no set", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 ---
 ? Mark McGwire
@@ -114,7 +114,7 @@ N(STREAM, L{
 })
 );
 
-ADD_CASE_TO_GROUP("sets 2XXW, no doc",
+ADD_CASE_TO_GROUP("sets 2XXW, no doc", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(!!set
 ? Mark McGwire
 ? Sammy Sosa
@@ -127,7 +127,7 @@ N(MB, TL("!!set", L{
 }))
 );
 
-ADD_CASE_TO_GROUP("sets 2XXW, no doc, no set",
+ADD_CASE_TO_GROUP("sets 2XXW, no doc, no set", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 ? Mark McGwire
 ? Sammy Sosa

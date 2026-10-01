@@ -289,7 +289,8 @@ public:
         return c;
     }
 
-    void recreate(yml::NodeRef *n) const;
+    void recreate(Tree *tree, id_type node) const;
+    void recreate(yml::NodeRef n) const { recreate(n.tree(), n.id()); }
 
 };
 

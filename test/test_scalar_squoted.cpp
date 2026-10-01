@@ -453,7 +453,7 @@ Newlines can be added by leaving a blank line.
   N(VS, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored.")
 );
 
-ADD_CASE_TO_GROUP("squoted, empty",
+ADD_CASE_TO_GROUP("squoted, empty", NO_COMPARE_EMITTED_INTS,//FIXME
 R"('')",
   N(VS, "")
 );

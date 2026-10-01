@@ -981,6 +981,27 @@ TEST(Tree, issue564_relocate_arena_0)
     });
 }
 
+TEST(Tree, clear_empty)
+{
+    Tree t(0, 0);
+    EXPECT_EQ(t.capacity(), 0);
+    EXPECT_EQ(t.slack(), 0);
+    EXPECT_EQ(t.size(), 0);
+    EXPECT_EQ(t.arena_capacity(), 0);
+    EXPECT_EQ(t.arena_slack(), 0);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+
+    t.clear();
+    EXPECT_EQ(t.capacity(), 0);
+    EXPECT_EQ(t.slack(), 0);
+    EXPECT_EQ(t.size(), 0);
+    EXPECT_EQ(t.arena_capacity(), 0);
+    EXPECT_EQ(t.arena_slack(), 0);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+}
+
 TEST(Tree, clear)
 {
     Tree t(16, 64);
@@ -1002,7 +1023,7 @@ TEST(Tree, clear)
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
 
-    auto buf = t.m_buf;
+    NodeData *buf = t.m_buf;
     t.reserve(16);
     t.reserve_arena(64);
     EXPECT_EQ(t.m_buf, buf);
