@@ -3,6 +3,8 @@
 
 /** @file scalar_charconv.hpp */
 
+#include <cmath>
+
 #ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif

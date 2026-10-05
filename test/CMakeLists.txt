@@ -1,5 +1,13 @@
 c4_setup_testing(GTEST)
 
+# Check that the scalar conversion header does not rely on fast_float's includes.
+c4_add_library(ryml-test-scalar-charconv-no-fast-float LIBRARY_TYPE OBJECT
+    SOURCES test_scalar_charconv_no_fast_float.cpp
+    LIBS ryml
+    FOLDER test)
+target_compile_definitions(ryml-test-scalar-charconv-no-fast-float PRIVATE C4CORE_NO_FAST_FLOAT)
+add_dependencies(ryml-test-build ryml-test-scalar-charconv-no-fast-float)
+
 function(ryml_get_target_exe target_name target_file)
     if(CMAKE_CROSSCOMPILING)
         set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
