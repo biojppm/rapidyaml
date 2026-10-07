@@ -280,6 +280,38 @@ ExceptionVisit::ExceptionVisit(csubstr msg_, ErrorDataVisit const& errdata_) noe
 
 
 namespace detail {
+
+// resize a buffer with length only
+RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t next_len, Callbacks const& cb)
+{
+    RYML_ASSERT_BASIC_CB_(cb, next_len > len);
+    void *ptr = cb.m_allocate(next_len, buf, cb.m_user_data);
+    if C4_UNLIKELY(!ptr)
+        RYML_ERR_BASIC_CB_(cb, "out of memory"); // LCOV_EXCL_LINE
+    if(len)
+    {
+        memcpy(ptr, buf, len);
+        cb.m_free(buf, len, cb.m_user_data);
+    }
+    return ptr;
+}
+
+// resize a buffer with length+capacity
+RYML_EXPORT C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
+{
+    RYML_ASSERT_BASIC_CB_(cb, next_cap > cap);(void)cap;
+    RYML_ASSERT_BASIC_CB_(cb, len <= cap);
+    void *ptr = cb.m_allocate(next_cap, buf, cb.m_user_data);
+    if C4_UNLIKELY(!ptr)
+        RYML_ERR_BASIC_CB_(cb, "out of memory"); // LCOV_EXCL_LINE
+    if(len)
+    {
+        memcpy(ptr, buf, len);
+        cb.m_free(buf, len, cb.m_user_data);
+    }
+    return ptr;
+}
+
 RYML_EXPORT csubstr _get_text_region(csubstr text, size_t pos, size_t num_lines_before, size_t num_lines_after)
 {
     if(pos > text.len)
