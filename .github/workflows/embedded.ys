@@ -87,38 +87,38 @@ matrix-items =::
   #                                                                        0: nowhere; always use nproc
   #                                                                        1=release
   #                                                                        2=release+debug
-  - {arch: armv7      , std: 23, bt: Release, tc: arm-linux-gnueabihf    , heavybuild: 1, flags: -march=armv7+fp}
   - {arch: armv7      , std: 11, bt: Debug  , tc: arm-linux-gnueabihf    , heavybuild: 0, flags: -march=armv7+fp}
-  - {arch: armv6      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv6+fp}
+  - {arch: armv7      , std: 23, bt: Release, tc: arm-linux-gnueabihf    , heavybuild: 1, flags: -march=armv7+fp}
   - {arch: armv6      , std: 11, bt: Debug  , tc: arm-linux-gnueabi      , heavybuild: 0, flags: -march=armv6+fp}
-  - {arch: armv5      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv5te+fp}
+  - {arch: armv6      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv6+fp}
   - {arch: armv5      , std: 11, bt: Debug  , tc: arm-linux-gnueabi      , heavybuild: 0, flags: -march=armv5te+fp}
-  - {arch: armv4      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv4}
+  - {arch: armv5      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv5te+fp}
   - {arch: armv4      , std: 11, bt: Debug  , tc: arm-linux-gnueabi      , heavybuild: 0, flags: -march=armv4}
-  - {arch: aarch64    , std: 23, bt: Release, tc: aarch64-linux-gnu      , heavybuild: 2} # this is armv8
+  - {arch: armv4      , std: 23, bt: Release, tc: arm-linux-gnueabi      , heavybuild: 1, flags: -march=armv4}
   - {arch: aarch64    , std: 11, bt: Debug  , tc: aarch64-linux-gnu      , heavybuild: 1} # this is armv8
-  - {arch: loongarch64, std: 23, bt: Release, tc: loongarch64-linux-gnu  , heavybuild: 1, version: -14}
+  - {arch: aarch64    , std: 23, bt: Release, tc: aarch64-linux-gnu      , heavybuild: 2} # this is armv8
   - {arch: loongarch64, std: 11, bt: Debug  , tc: loongarch64-linux-gnu  , heavybuild: 0, version: -14}
-  - {arch: mips       , std: 23, bt: Release, tc: mips-linux-gnu         , heavybuild: 1}
+  - {arch: loongarch64, std: 23, bt: Release, tc: loongarch64-linux-gnu  , heavybuild: 1, version: -14}
   - {arch: mips       , std: 11, bt: Debug  , tc: mips-linux-gnu         , heavybuild: 0}
-  - {arch: mipsel     , std: 23, bt: Release, tc: mipsel-linux-gnu       , heavybuild: 1}
+  - {arch: mips       , std: 23, bt: Release, tc: mips-linux-gnu         , heavybuild: 1}
   - {arch: mipsel     , std: 11, bt: Debug  , tc: mipsel-linux-gnu       , heavybuild: 0}
-  - {arch: mips64     , std: 23, bt: Release, tc: mips64-linux-gnuabi64  , heavybuild: 2}
+  - {arch: mipsel     , std: 23, bt: Release, tc: mipsel-linux-gnu       , heavybuild: 1}
   - {arch: mips64     , std: 11, bt: Debug  , tc: mips64-linux-gnuabi64  , heavybuild: 2}
-  - {arch: mips64el   , std: 23, bt: Release, tc: mips64el-linux-gnuabi64, heavybuild: 2}
+  - {arch: mips64     , std: 23, bt: Release, tc: mips64-linux-gnuabi64  , heavybuild: 2}
   - {arch: mips64el   , std: 11, bt: Debug  , tc: mips64el-linux-gnuabi64, heavybuild: 2}
-  - {arch: riscv64    , std: 23, bt: Release, tc: riscv64-linux-gnu      , heavybuild: 1}
+  - {arch: mips64el   , std: 23, bt: Release, tc: mips64el-linux-gnuabi64, heavybuild: 2}
   - {arch: riscv64    , std: 11, bt: Debug  , tc: riscv64-linux-gnu      , heavybuild: 0}
-  - {arch: s390x      , std: 23, bt: Release, tc: s390x-linux-gnu        , heavybuild: 1}
+  - {arch: riscv64    , std: 23, bt: Release, tc: riscv64-linux-gnu      , heavybuild: 1}
   - {arch: s390x      , std: 11, bt: Debug  , tc: s390x-linux-gnu        , heavybuild: 0}
-  - {arch: ppc        , std: 23, bt: Release, tc: powerpc-linux-gnu      , heavybuild: 1}
+  - {arch: s390x      , std: 23, bt: Release, tc: s390x-linux-gnu        , heavybuild: 1}
   - {arch: ppc        , std: 11, bt: Debug  , tc: powerpc-linux-gnu      , heavybuild: 0}
-  - {arch: ppc64      , std: 23, bt: Release, tc: powerpc64-linux-gnu    , heavybuild: 1}
+  - {arch: ppc        , std: 23, bt: Release, tc: powerpc-linux-gnu      , heavybuild: 1}
   - {arch: ppc64      , std: 11, bt: Debug  , tc: powerpc64-linux-gnu    , heavybuild: 0}
-  - {arch: ppc64le    , std: 23, bt: Release, tc: powerpc64le-linux-gnu  , heavybuild: 1}
+  - {arch: ppc64      , std: 23, bt: Release, tc: powerpc64-linux-gnu    , heavybuild: 1}
   - {arch: ppc64le    , std: 11, bt: Debug  , tc: powerpc64le-linux-gnu  , heavybuild: 0}
-  - {arch: sparc64    , std: 23, bt: Release, tc: sparc64-linux-gnu      , heavybuild: 1}
+  - {arch: ppc64le    , std: 23, bt: Release, tc: powerpc64le-linux-gnu  , heavybuild: 1}
   - {arch: sparc64    , std: 11, bt: Debug  , tc: sparc64-linux-gnu      , heavybuild: 0}
+  - {arch: sparc64    , std: 23, bt: Release, tc: sparc64-linux-gnu      , heavybuild: 1}
   # TODO xtensa!
 
 
@@ -149,7 +149,7 @@ jobs:
 #   bd=build/docker/$arch-$bt ; \
 #   export C4_EXTERN_DIR=`pwd`/build/extern ; \
 #   function cm() { \
-#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/$arch.cmake \
+#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=proj/toolchains/$arch.cmake \
 #      -DCMAKE_BUILD_TYPE=$bt -DCMAKE_CXX_STANDARD=$std \
 #      -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
 #      cmake --build $bd -j --target "$@" ; \
@@ -160,18 +160,19 @@ jobs:
 #   qemu-s390x-static -L /usr/s390x-linux-gnu/ $exe \
 #   )'
 #
-#
+
 #
 # with flags:
 #
 #
 # apt-get install g{cc,++}-arm-linux-gnueabi
-# docker exec -it 7e711fd09471 bash -c '( set -xe ; \
+# cont=7e711fd09471
+# docker exec -it $cont bash -c '( set -xe ; \
 #   arch=armv4 ; flags=" -march=armv4" ; bt=Release ; std=11 ; \
 #   bd=build/docker/$arch-$bt ; \
 #   export C4_EXTERN_DIR=`pwd`/build/extern ; \
 #   function cm() { \
-#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/$arch.cmake \
+#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=proj/toolchains/$arch.cmake \
 #      -DCMAKE_BUILD_TYPE=$bt -DC4_CXX_STANDARD=$std -D CXX_STANDARD=$std \
 #      -DCMAKE_CXX_FLAGS=" $flags" -DCMAKE_C_FLAGS=" $flags" \
 #      -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
@@ -183,17 +184,63 @@ jobs:
 #   qemu-arm-static -L /usr/arm-linux-gnueabi $exe --gtest_filter="*in_arena_noparser_4*" \
 #   )'
 #
-#
+
 #
 # ( set -xe ; \
-#   arch=aaarch64 ; flags="" ; bt=Release ; std=11 ; \
+#   arch=aarch64 ; flags="" ; bt=Release ; std=11 ; \
 #   bd=build/docker/$arch-$bt ; \
 #   export C4_EXTERN_DIR=`pwd`/build/extern ; \
 #   function cm() { \
-#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=ext/c4core/.github/toolchains/$arch.cmake \
+#      cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=proj/toolchains/$arch.cmake \
 #      -DCMAKE_BUILD_TYPE=$bt -DC4_CXX_STANDARD=$std -D CXX_STANDARD=$std \
 #      -DCMAKE_CXX_FLAGS="$flags" -DCMAKE_C_FLAGS="$flags" \
 #      -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
 #      cmake --build $bd -j --target "$@" ; \
 #   } ; \
 #   cm ryml-test-run )
+#
+
+#( cont=8099a04f7edf ; \
+#  docker exec -it $cont bash -c '( \
+#    set -xe ; \
+#    arch=mips ; flags="" ; bt=Release ; std=23 ; \
+#    apt-get install -y g{cc,++}-mips-linux-gnu qemu-user-static ; \
+#    bd=build/docker-$arch-$bt ; \
+#    cd /home/jpmag/proj/rapidyaml ; \
+#    export C4_EXTERN_DIR=`pwd`/build/extern ; \
+#    function cm() { \
+#       cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=proj/toolchains/$arch.cmake \
+#       -DCMAKE_BUILD_TYPE=$bt -DC4_CXX_STANDARD=$std -D CXX_STANDARD=$std \
+#       -DCMAKE_CXX_FLAGS=" $flags" -DCMAKE_C_FLAGS=" $flags" \
+#       -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
+#       cmake --build $bd -j --target "$@" ; \
+#    } ; \
+#    tgt=ryml-test-emit ; \
+#    exe=./$bd/test/$tgt ; \
+#    cm $tgt ; \
+#    qemu-$arch-static -L /usr/$arch-linux-gnu $exe --gtest_filter="*" \
+#    )'
+#  )
+
+#( cont=8099a04f7edf ; \
+#  docker exec -it $cont bash -c '( \
+#    set -xe ; \
+#    arch=loongarch64 ; flags="" ; bt=Release ; std=23 ; \
+#    apt-get install -y g{cc,++}-14-$arch-linux-gnu qemu-user-static ; \
+#    bd=build/docker-$arch-$bt ; \
+#    cd /home/jpmag/proj/rapidyaml ; \
+#    export C4_EXTERN_DIR=`pwd`/build/extern ; \
+#    function cm() { \
+#       cmake -B $bd -D CMAKE_TOOLCHAIN_FILE=proj/toolchains/$arch.cmake \
+#       -DCMAKE_BUILD_TYPE=$bt -DC4_CXX_STANDARD=$std -D CXX_STANDARD=$std \
+#       -DCMAKE_CXX_FLAGS=" $flags" -DCMAKE_C_FLAGS=" $flags" \
+#       -DRYML_BUILD_TESTS=ON -D RYML_VALGRIND=OFF ; \
+#       cmake --build $bd -j --target "$@" ; \
+#    } ; \
+#    tgt=ryml-test-suite ; \
+#    exe=./$bd/test/$tgt ; \
+#    cm $tgt ; \
+#    qemu-$arch-static -L /usr/$arch-linux-gnu $exe 2AUY-in_yaml \
+#       $C4_EXTERN_DIR/yaml-test-suite/2AUY in.yaml --gtest_filter=*events* \
+#    )'
+#  )

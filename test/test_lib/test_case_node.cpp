@@ -117,10 +117,7 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
         else
         {
             printf("error: node should have child with key [%zu]~~~%.*s~~~: ", expectedch.key.len, (int)expectedch.key.len, expectedch.key.str);
-            fflush(stdout);
-            print_path(n);
-            fflush(stdout);
-            printf("\n");
+            (void)fflush(stdout);
             print_node(n);
             GTEST_FAIL();
         }
@@ -243,10 +240,10 @@ void TestCaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) c
     C4_SUPPRESS_WARNING_GCC_POP
 }
 
-void TestCaseNode::recreate(yml::NodeRef *n) const
+void TestCaseNode::recreate(Tree *tree, id_type node) const
 {
-    C4_ASSERT( ! n->has_children());
-    NodeData *nd = n->get();
+    C4_ASSERT( ! tree->has_children(node));
+    NodeData *nd = tree->get(node);
     nd->m_type = type|key_anchor.type|val_anchor.type;
     nd->m_key.scalar = key;
     nd->m_key.tag = (key_tag);
@@ -254,14 +251,8 @@ void TestCaseNode::recreate(yml::NodeRef *n) const
     nd->m_val.scalar = val;
     nd->m_val.tag = (val_tag);
     nd->m_val.anchor = val_anchor.str;
-    Tree &tree = *n->tree();
-    id_type nid = n->id(); // don't use node from now on
     for(TestCaseNode const& ch : children)
-    {
-        id_type id = tree.append_child(nid);
-        NodeRef chn(n->tree(), id);
-        ch.recreate(&chn);
-    }
+        ch.recreate(tree, tree->append_child(node));
 }
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH

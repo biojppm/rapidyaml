@@ -825,6 +825,8 @@ ENGINE_TEST(TagTestSuiteUGM3,
 ENGINE_TEST(TagTestSuiteUKK6_02_0,
             "!"
             ,
+            "!\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "=VAL <!> :\n"
