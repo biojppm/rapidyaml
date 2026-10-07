@@ -38,6 +38,7 @@ jobs:
           tgt: all
           bt: Debug
           vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON
+          heavybuild: 'yes'
         - name: find_package/linux/libcxx
           sdir: test/test_install
           os: ubuntu-24.04
@@ -71,6 +72,7 @@ jobs:
           tgt: all
           bt: Debug
           vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF
+          heavybuild: 'yes'
         - name: find_library/linux/libcxx
           sdir: test/test_install
           os: ubuntu-24.04
@@ -204,14 +206,24 @@ jobs:
           ${{matrix.commonvars}}
     - name: build
       run: |
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        if [ -n "${{matrix.heavybuild}}" ] ; then
+            if (( $numprocs > 1 )) ; then
+                numprocs=$(($numprocs / 2))
+            fi
+        fi
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         if [ "${{matrix.sdir}}" == "test/test_singleheader" ] ; then
            cmake --build $BDIR --config ${{matrix.bt}} --target ryml_hdr_ints
            cmake --build $BDIR --config ${{matrix.bt}} --target ryml_hdr_all
         fi
-        cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j
+        cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j $numprocs
     - name: run
       run: |
+        source .github/setenv.sh
         cd $BDIR/test
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         ctest -C ${{matrix.bt}} --output-on-failure
   sysc4core:
     name: sysc4core/${{matrix.name}}
@@ -226,6 +238,7 @@ jobs:
           gen: -DCMAKE_CXX_COMPILER=g++
           bt: Debug
           rel: lib/cmake/c4core
+          heavybuild: 'yes'
         - name: clang
           os: ubuntu-24.04
           gen: -DCMAKE_CXX_COMPILER=clang++
@@ -272,8 +285,17 @@ jobs:
         cmake --build build --target ryml --parallel --config ${{matrix.bt}}
     - name: build tests
       run: |
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        if [ -n "${{matrix.heavybuild}}" ] ; then
+            if (( $numprocs > 1 )) ; then
+                numprocs=$(($numprocs / 2))
+            fi
+        fi
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build --target ryml-test-build --parallel --config ${{matrix.bt}}
     - name: run tests
       run: |
-        export CTEST_PARALLEL_LEVEL=`nproc`
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build --target ryml-test-run --config ${{matrix.bt}}
