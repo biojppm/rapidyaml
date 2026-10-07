@@ -143,6 +143,7 @@ bool scalar_style_query_plain_block(csubstr scalar) noexcept
 }
 
 
+// see also ievt implementation in emitter_ints
 NodeType scalar_style_choose_block(csubstr scalar) noexcept
 {
     if(scalar.len)
@@ -157,6 +158,7 @@ NodeType scalar_style_choose_block(csubstr scalar) noexcept
 }
 
 
+// see also ievt implementation in emitter_ints
 NodeType scalar_style_choose_json(csubstr scalar) noexcept
 {
     // do not quote numbers or special scalars
