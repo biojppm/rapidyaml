@@ -6793,6 +6793,9 @@ mapblck_start:
                 _c4dbgp("mapblck[RKEY]: end doc");
                 _end_doc_suddenly();
                 _line_progressed(3);
+                #if defined(__GNUC__) && (__GNUC__ == 13) && (C4_WORDSIZE == 4) && (C4_CPP >= 20)
+                C4_DONT_OPTIMIZE(m_evt_handler->m_curr->line_contents.rem);
+                #endif
                 _maybe_skip_whitespace_tokens();
                 _check_doc_end_tokens();
                 goto mapblck_finish;
