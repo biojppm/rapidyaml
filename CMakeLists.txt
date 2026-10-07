@@ -38,6 +38,7 @@ c4_add_library(ryml
         ryml.natvis
         c4/yml/detail/checks.hpp
         c4/yml/detail/dbgprint.hpp
+        c4/yml/detail/emit_scalar.hpp
         c4/yml/detail/print.hpp
         c4/yml/detail/stack.hpp
         c4/yml/common.hpp
