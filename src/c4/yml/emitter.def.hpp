@@ -156,8 +156,7 @@ void Emitter<Writer>::emit_yaml_(id_type id)
     }
     else if(m_tree->is_root(id)
        || emit_dash || emit_key
-       || !ty.is_val()
-       || !ty.is_val_plain())
+       || !ty.is_val())
     {
         write_pws_and_pend_(PWS_NONE_);
     }
@@ -356,7 +355,7 @@ template<class Writer>
 void Emitter<Writer>::top_close_entry_(id_type node)
 {
     NodeType ty = m_tree->type(node);
-    if(ty.is_val() && !(ty.m_bits & VALNIL))
+    if(ty.is_val() && (!(ty.m_bits & VALNIL) || (ty.m_bits & (VALTAG|VALANCH))))
     {
         pend_newl_();
     }
@@ -1040,6 +1039,8 @@ void Emitter<Writer>::json_emit_(id_type id)
     else
     {
         json_visit_sl_(id, ty, 0);
+        if(ty.has_key())
+            newl_();
     }
 }
 
@@ -1048,24 +1049,21 @@ void Emitter<Writer>::json_visit_sl_(id_type id, NodeType ty, id_type depth)
 {
     if C4_UNLIKELY(depth > m_opts.max_depth())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
-    if(ty.is_val())
-    {
-        json_writev_(id, ty);
-    }
-    else if(ty.is_keyval())
+    if C4_UNLIKELY(m_opts.json_err_on_anchor() && (ty.m_bits & (VALREF|KEYREF)))
+        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
+    if(ty.m_bits & KEY)
     {
         json_writek_(id, ty);
         write_(": ");
+    }
+    // no else!
+    if(ty.m_bits & VAL)
+    {
         json_writev_(id, ty);
     }
     else if(ty.is_container())
     {
         ty = detail::json_type_(ty);
-        if(ty.has_key())
-        {
-            json_writek_(id, ty);
-            write_(": ");
-        }
         if(ty.is_seq())
             write_('[');
         else if(ty.is_map())
@@ -1095,24 +1093,21 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
 {
     if C4_UNLIKELY(depth > m_opts.max_depth())
         RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "max depth exceeded");
-    if(ty.is_val())
-    {
-        json_writev_(id, ty);
-    }
-    else if(ty.is_keyval())
+    if C4_UNLIKELY(m_opts.json_err_on_anchor() && (ty.m_bits & (VALREF|KEYREF)))
+        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
+    if(ty.m_bits & KEY)
     {
         json_writek_(id, ty);
         write_(": ");
+    }
+    // no else!
+    if(ty.m_bits & VAL)
+    {
         json_writev_(id, ty);
     }
     else if(ty.is_container())
     {
         ty = detail::json_type_(ty);
-        if(ty.has_key())
-        {
-            json_writek_(id, ty);
-            write_(": ");
-        }
         if(ty.is_seq())
             write_('[');
         else if(ty.is_map())
@@ -1154,6 +1149,11 @@ void Emitter<Writer>::json_visit_ml_(id_type id, NodeType ty, id_type depth)
             newl_();
             indent_(m_ilevel);
         }
+        else if(ty.m_bits & FLOW_ML1)
+        {
+            newl_();
+            indent_(m_ilevel);
+        }
 
         if(ty.is_seq())
             write_(']');
@@ -1187,10 +1187,10 @@ void Emitter<Writer>::json_writek_(id_type id, NodeType ty)
 template<class Writer>
 void Emitter<Writer>::json_writev_(id_type id, NodeType ty)
 {
-    if C4_UNLIKELY(ty.has_val_tag() && m_opts.json_err_on_tag())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have tags");
-    if C4_UNLIKELY(ty.has_val_anchor() && m_opts.json_err_on_anchor())
-        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "JSON does not have anchors");
+    if C4_UNLIKELY((m_opts.json_err_on_tag() && ty.has_val_tag())
+                   ||
+                   (m_opts.json_err_on_anchor() && ty.has_val_anchor()))
+        RYML_ERR_VISIT_CB_(m_tree->callbacks(), m_tree, id, "feature not supported in JSON");
     csubstr val = m_tree->val(id);
     if(val.len)
     {

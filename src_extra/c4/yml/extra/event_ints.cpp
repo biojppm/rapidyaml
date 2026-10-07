@@ -267,27 +267,27 @@ EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOp
 
 evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept
 {
-    //see also NodeType implementation in scalar_style.cpp
+    // see also NodeType implementation in scalar_style.cpp
     // do not quote numbers or special scalars
     return scalar_is_plain_number_json(scalar)
         || scalar_is_special_json(scalar) ? ievt::PLAI : ievt::DQUO;
 }
 evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
 {
-    //see also NodeType implementation in scalar_style.cpp
+    // see also NodeType implementation in scalar_style.cpp
     if(scalar.len)
     {
         if(scalar_style_query_plain_block(scalar))
             return ievt::PLAI;
-        RYML_ASSERT_BASIC_(scalar_style_query_squo(scalar)
-                           && "if this assertion fires, please submit an issue!");
-        return ievt::SQUO;
+        else if(scalar_style_query_squo(scalar))
+            return ievt::SQUO;
+        return ievt::DQUO;
     }
     return scalar.str ? ievt::SQUO : ievt::PLAI;
 }
 evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
 {
-    //see also NodeType implementation in scalar_style.cpp
+    // see also NodeType implementation in scalar_style.cpp
     if(scalar.len)
     {
         if(scalar_style_query_plain_flow(scalar))
