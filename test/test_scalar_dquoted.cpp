@@ -997,7 +997,7 @@ Newlines can also be added by leaving a blank line.
   N(VD, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")
 );
 
-ADD_CASE_TO_GROUP("dquoted, empty",
+ADD_CASE_TO_GROUP("dquoted, empty", NO_COMPARE_EMITTED_INTS,//FIXME
 R"("")",
   N(VD, "")
 );

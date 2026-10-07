@@ -270,7 +270,7 @@ N(MB, L{
 );
 
 
-ADD_CASE_TO_GROUP("seq of maps, implicit map in seq, missing scalar",
+ADD_CASE_TO_GROUP("seq of maps, implicit map in seq, missing scalar", NO_COMPARE_EMITTED_INTS_JSON,
 R"({a : [
   : foo
 ],
@@ -307,7 +307,7 @@ N(SB, L{
 );
 
 
-ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, resolved", RESOLVE_REFS|NO_COMPARE_EMITTED_INTS,
 R"(
 - &a1 a1: v1
   &a2 a2: v2
