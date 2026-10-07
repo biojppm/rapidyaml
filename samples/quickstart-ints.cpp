@@ -17,6 +17,8 @@
 #include <c4/std/vector.hpp>
 #include <c4/yml/file.hpp>
 #include <c4/yml/writer_buf.hpp>
+#include <c4/yml/extra/emitter_ints.hpp>
+#include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/std/string.hpp>
 #endif
 
@@ -290,6 +292,48 @@ int compare_to_expected(c4::csubstr src,
 
 
 //-----------------------------------------------------------------------------
+
+
+size_t emit_yaml(c4::substr yaml,
+                 c4::csubstr src,
+                 c4::csubstr arena,
+                 ievt::evtbuf evts,
+                 c4::yml::EmitOptions const& opts={})
+{
+    ievt::EmitterInts<c4::yml::WriterBuf> emitter(opts, yaml);
+    emitter.emit_as(c4::yml::EMIT_YAML, evts.ptr, evts.len, src, arena);
+    return emitter.get_result(/*error_on_excess*/false).len;
+}
+
+template<class CharContainer>
+void emit_yaml(CharContainer *cont,
+               c4::csubstr src,
+               c4::csubstr arena,
+               ievt::evtbuf evts,
+               c4::yml::EmitOptions const& opts={})
+{
+    const size_t cap = cont->capacity();
+    cont->resize(cap);
+    const size_t len = emit_yaml(c4::to_substr(*cont), src, arena, evts, opts);
+    cont->resize(len);
+    if(len > cap)
+        emit_yaml(c4::to_substr(*cont), src, arena, evts, opts);
+}
+
+template<class CharContainer>
+CharContainer emit_yaml(c4::csubstr src,
+                        c4::csubstr arena,
+                        ievt::evtbuf evts,
+                        c4::yml::EmitOptions const& opts={})
+{
+    CharContainer c;
+    emit_yaml(&c, src, arena, evts, opts);
+    return c;
+} // LCOV_EXCL_LINE
+
+
+
+//-----------------------------------------------------------------------------
 // methods to provide default callbacks (needed when
 // RYML_NO_DEFAULT_CALLBACKS is defined)
 
@@ -467,6 +511,11 @@ int main(int argc, const char *argv[])
                                        demo_expected, static_cast<ievt::evt_size>(C4_COUNTOF(demo_expected)),
                                        args.quiet);
         }
+        if( ! args.quiet)
+        {
+            std::string emitted = emit_yaml<std::string>(result.src, result.arena, result.evts);
+            printf("%s", emitted.c_str());
+        }
     }
     else
     {
@@ -512,6 +561,18 @@ int main(int argc, const char *argv[])
                                        result.events.data(), static_cast<ievt::evt_size>(result.events.size()),
                                        demo_expected, static_cast<ievt::evt_size>(C4_COUNTOF(demo_expected)),
                                        args.quiet);
+        }
+
+        if( ! args.quiet)
+        {
+            ievt::evtbuf evts;
+            evts.ptr = result.events.data();
+            evts.len = static_cast<ievt::evt_size>(result.events.size());
+            evts.cap = static_cast<ievt::evt_size>(result.events.capacity());
+            std::string emitted = emit_yaml<std::string>(c4::to_csubstr(result.yaml),
+                                                         c4::to_csubstr(result.arena),
+                                                         evts);
+            printf("%s", emitted.c_str());
         }
     }
     return stat;
