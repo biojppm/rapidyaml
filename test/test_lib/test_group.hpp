@@ -6,20 +6,14 @@
 #include "c4/span.hpp"
 #include <algorithm>
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4068/*unknown pragma*/)
-#   pragma warning(disable: 4702/*unreachable code*/)
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#   if __GNUC__ > 5
-#       pragma GCC diagnostic ignored "-Wunused-const-variable"
-#   endif
-//#   pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_MSVC(4068/*unknown pragma*/)
+C4_SUPPRESS_WARNING_MSVC(4702/*unreachable code*/)
+C4_SUPPRESS_WARNING_CLANG("-Wgnu-zero-variadic-macro-arguments")
+C4_SUPPRESS_WARNING_GCC("-Wunknown-pragmas")
+#if defined(__GNUC__) && (__GNUC__ > 5)
+C4_SUPPRESS_WARNING_GCC("-Wunused-const-variable")
+//C4_SUPPRESS_WARNING_GCC("-Wpragma-system-header-outside-header")
 #endif
 
 #if defined(RYML_WITH_TAB_TOKENS)
@@ -70,66 +64,18 @@ struct YmlTestCase : public ::testing::TestWithParam<csubstr>
         std::cout << "-------------------------------------------\n";
     }
 
-    void _test_parse_using_ryml(CaseDataLineEndings *cd);
-    void _test_parse_using_ints(CaseDataLineEndings *cd);
+    void _test_parse_yaml_to_tree(CaseDataLineEndings *cd);
+    void _test_parse_yaml_to_ints_noresize(CaseDataLineEndings *cd);
+    void _test_parse_yaml_to_ints_resize(CaseDataLineEndings *cd);
 
-    void _test_emit_yml_stdout(CaseDataLineEndings *cd);
-    void _test_emit_json_stdout(CaseDataLineEndings *cd);
+    void _test_roundtrip_yaml_tree(CaseDataLineEndings *cd);
+    void _test_roundtrip_yaml_ints_resize(CaseDataLineEndings *cd);
+    void _test_roundtrip_yaml_ints_noresize(CaseDataLineEndings *cd);
 
-    void _test_emit_yml_cout(CaseDataLineEndings *cd);
-    void _test_emit_json_cout(CaseDataLineEndings *cd);
+    void _test_roundtrip_json_tree(CaseDataLineEndings *cd);
+    void _test_roundtrip_json_ints_resize(CaseDataLineEndings *cd);
+    void _test_roundtrip_json_ints_noresize(CaseDataLineEndings *cd);
 
-    void _test_emit_yml_stringstream(CaseDataLineEndings *cd);
-    void _test_emit_json_stringstream(CaseDataLineEndings *cd);
-
-    void _test_emit_yml_ofstream(CaseDataLineEndings *cd);
-    void _test_emit_json_ofstream(CaseDataLineEndings *cd);
-
-    void _test_emit_yml_string(CaseDataLineEndings *cd);
-    void _test_emit_json_string(CaseDataLineEndings *cd);
-
-    void _test_emitrs(CaseDataLineEndings *cd);
-    void _test_emitrs_json(CaseDataLineEndings *cd);
-
-    void _test_emitrs_cfile(CaseDataLineEndings *cd);
-    void _test_emitrs_json_cfile(CaseDataLineEndings *cd);
-
-    void _test_complete_round_trip(CaseDataLineEndings *cd);
-    void _test_complete_round_trip_json(CaseDataLineEndings *cd);
-
-    void _test_recreate_from_ref(CaseDataLineEndings *cd);
-
-    void _ensure_parse(CaseDataLineEndings *cd)
-    {
-        if(cd->parsed_tree.empty())
-            parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
-    }
-    void _ensure_emit(CaseDataLineEndings *cd)
-    {
-        _ensure_parse(cd);
-        if(cd->emit_buf.empty())
-        {
-            cd->emitted_yml = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
-            ASSERT_EQ(cd->emitted_yml.size(), cd->emit_buf.size());
-            if(cd->emitted_yml.size())
-            {
-                ASSERT_EQ(cd->emitted_yml.data(), cd->emit_buf.data());
-            }
-        }
-    }
-    void _ensure_emit_json(CaseDataLineEndings *cd)
-    {
-        _ensure_parse(cd);
-        if(cd->emitjson_buf.empty())
-        {
-            cd->emitted_json = emitrs_json(cd->parsed_tree, &cd->emitjson_buf);
-            ASSERT_EQ(cd->emitted_json.size(), cd->emitjson_buf.size());
-            if(cd->emitted_json.size())
-            {
-                ASSERT_EQ(cd->emitted_json.data(), cd->emitjson_buf.data());
-            }
-        }
-    }
 };
 
 
@@ -199,6 +145,7 @@ struct CaseAdderGcc4_8
         group_cases->emplace_back(csubstr(file), line, std::forward<Args>(parameters)...);
     }
 };
+
 
 /* all arguments are to the constructor of Case */
 #define ADD_CASE_TO_GROUP CaseAdderGcc4_8{group_cases__, csubstr(__FILE__), __LINE__+1}
@@ -273,13 +220,6 @@ void add_cases_##group_name(std::vector<Case> *group_cases__)
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#   pragma warning(disable: 4702/*unreachable code*/)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_PUSH
 
 #endif // C4_RYML_TEST_GROUP_HPP_

@@ -321,8 +321,6 @@ struct RYML_EXPORT Buffers
     substr    src   = {};
     substr    arena = {};
     evtbuf    evts  = {};
-    bool      owned = {};
-    Callbacks callbacks = {};
     csubstr getstr(evt_size pos) const RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(pos + 2 < evts.len);
@@ -331,24 +329,6 @@ struct RYML_EXPORT Buffers
         RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1]) <= region.len);
         RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1] + evts.ptr[pos + 2]) <= region.len);
         return {region.str + evts.ptr[pos + 1], static_cast<size_t>(evts.ptr[pos + 2])};
-    }
-    void destroy()
-    {
-        if(owned)
-        {
-            if(evts.ptr)
-                callbacks.m_free(evts.ptr, static_cast<size_t>(evts.cap) * sizeof(evts.ptr[0]), callbacks.m_user_data);
-            if(arena.str)
-                callbacks.m_free(arena.str, arena.len * sizeof(arena.str[0]), callbacks.m_user_data);
-        }
-        evts = {};
-        src = {};
-        arena = {};
-        owned = false;
-    }
-    ~Buffers() noexcept
-    {
-        destroy();
     }
 };
 C4_SUPPRESS_WARNING_MSVC_POP

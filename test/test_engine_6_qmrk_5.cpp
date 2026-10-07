@@ -1,0 +1,967 @@
+#include "./test_lib/test_engine.hpp"
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702)
+
+// WARNING: don't use raw string literals -- g++4.8 cannot accept them
+// as macro arguments
+
+RYML_DEFINE_TEST_MAIN()
+
+namespace c4 {
+namespace yml {
+
+
+//static constexpr const bool multiline = true;
+static constexpr const bool singleline = false;
+
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_2,
+            HAS_CONTAINER_KEYS,
+            "? [a,]: x"
+            ,
+            "?\n"
+            "  ? [a]\n"
+            "  : x\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_2_colon,
+            HAS_CONTAINER_KEYS,
+            "?\n"
+            "  ? [a]\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_2_colon_y,
+            HAS_CONTAINER_KEYS,
+            "? [a,]: x"  "\n"
+            ": y"
+            ,
+            "?\n"
+            "  ? [a]\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :y\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("y"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_2,
+            HAS_CONTAINER_KEYS,
+            "? {a: b, }: x"
+            ,
+            "?\n"
+            "  ? {a: b}\n"
+            "  : x\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_2_colon,
+            HAS_CONTAINER_KEYS,
+            "? {a: b, }: x"   "\n"
+            ":"
+            ,
+            "?\n"
+            "  ? {a: b}\n"
+            "  : x"   "\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_2_colon_y,
+            HAS_CONTAINER_KEYS,
+            "? {a: b, }: x"   "\n"
+            ": y"
+            ,
+            "?\n"
+            "  ? {a: b}\n"
+            "  : x"   "\n"
+            ": y\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :y\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("y"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_3,
+            HAS_CONTAINER_KEYS,
+            "? [a, b]: x"
+            ,
+            "?\n"
+            "  ? [a,b]\n"
+            "  : x\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_3_colon,
+            HAS_CONTAINER_KEYS,
+            "? [a, b]: x"  "\n"
+            ":"
+            ,
+            "?\n"
+            "  ? [a,b]\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_3_colon_y,
+            HAS_CONTAINER_KEYS,
+            "? [a, b]: x"  "\n"
+            ": y"
+            ,
+            "?\n"
+            "  ? [a,b]\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :y\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.set_val_scalar_plain("a"));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("y"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_3,
+            HAS_CONTAINER_KEYS,
+            "? {a: b, c: d}: x"
+            ,
+            "?\n"
+            "  ? {a: b,c: d}\n"
+            "  : x\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "=VAL :c\n"
+            "=VAL :d\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("c"));
+    ___(ps.set_val_scalar_plain("d"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_3_colon,
+            HAS_CONTAINER_KEYS,
+            "? {a: b, c: d}: x"  "\n"
+            ":"
+            ,
+            "?\n"
+            "  ? {a: b,c: d}\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "=VAL :c\n"
+            "=VAL :d\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("c"));
+    ___(ps.set_val_scalar_plain("d"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_3_colon_y,
+            HAS_CONTAINER_KEYS,
+            "? {a: b, c: d}: x"  "\n"
+            ": y"
+            ,
+            "?\n"
+            "  ? {a: b,c: d}\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "=VAL :c\n"
+            "=VAL :d\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :y\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("c"));
+    ___(ps.set_val_scalar_plain("d"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("y"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1,
+            HAS_CONTAINER_KEYS,
+            "? [a: b]: x"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1_colon,
+            HAS_CONTAINER_KEYS,
+            "? [a: b]: x"  "\n"
+            ":"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1_colon_y,
+            HAS_CONTAINER_KEYS,
+            "? [a: b]: x"  "\n"
+            ": y"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :y\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("y"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2,
+            HAS_CONTAINER_KEYS,
+            "? [a: ]: x"
+            ,
+            "?\n"
+            "  ? [{a: }]\n"
+            "  : x\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2_colon,
+            HAS_CONTAINER_KEYS,
+            "? [a: ]: x"  "\n"
+            ":"
+            ,
+            "?\n"
+            "  ? [{a: }]\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2_colon_y,
+            HAS_CONTAINER_KEYS,
+            "? [a: ]: x"  "\n"
+            ": y"
+            ,
+            "?\n"
+            "  ? [{a: }]\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :y\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("y"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3,
+            HAS_CONTAINER_KEYS,
+            "? [a: b, ]: x"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3_colon,
+            HAS_CONTAINER_KEYS,
+            "? [a: b, ]: x"  "\n"
+            ":"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3_colon_y,
+            HAS_CONTAINER_KEYS,
+            "? [a: b, ]: x"  "\n"
+            ": y"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :a\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :y\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map_flow(singleline));
+    ___(ps.end_seq_flow(singleline));
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map_block());
+    ___(ps.set_val_scalar_plain("y"));
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
+
+} // namespace yml
+} // namespace c4
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+// this is needed to use the test case library
+
+#ifndef RYML_SINGLE_HEADER
+#include "c4/substr.hpp"
+#endif
+
+namespace c4 {
+namespace yml {
+struct Case;
+Case const* get_case(csubstr /*name*/)
+{
+    return nullptr;
+}
+} // namespace yml
+} // namespace c4
+
+C4_SUPPRESS_WARNING_MSVC_POP

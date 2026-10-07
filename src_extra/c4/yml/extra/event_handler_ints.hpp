@@ -238,8 +238,6 @@ public:
         {
             if(m_evt.ptr)
                 base_type::m_stack.m_callbacks.m_free(m_evt.ptr, static_cast<size_t>(m_evt.cap) * sizeof(m_evt.ptr[0]), base_type::m_stack.m_callbacks.m_user_data);
-            //if(base_type::m_src.str)
-            //    base_type::m_stack.m_callbacks.m_free(base_type::m_src.str, base_type::m_src.len * sizeof(base_type::m_src.str[0]), base_type::m_stack.m_callbacks.m_user_data);
             if(m_arena.str)
                 base_type::m_stack.m_callbacks.m_free(m_arena.str, m_arena.len * sizeof(m_arena.str[0]), base_type::m_stack.m_callbacks.m_user_data);
         }
@@ -282,7 +280,6 @@ public:
     {
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
         ievt::Buffers buf = {};
-        buf.owned = false;
         get_buffers(&buf.src, &buf.arena, &buf.evts);
         return buf;
     }
@@ -291,8 +288,6 @@ public:
     {
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_arena_pos <= m_arena.len);
         get_buffers(&buf->src, &buf->arena, &buf->evts);
-        buf->callbacks = base_type::m_stack.m_callbacks;
-        buf->owned = transfer_ownership;
         if C4_IF_CONSTEXPR (resize_buffers)
         {
             if(transfer_ownership)
