@@ -29,10 +29,10 @@ jobs:
       matrix:
         include:
         - arch: armv7
-          std: 23
-          bt: Release
+          std: 11
+          bt: Debug
           tc: arm-linux-gnueabihf
-          heavybuild: 1
+          heavybuild: 0
           flags: -march=armv7+fp
     steps:
     - name: checkout (action)
@@ -99,169 +99,169 @@ jobs:
       matrix:
         include:
         - arch: armv7
-          std: 11
-          bt: Debug
+          std: 23
+          bt: Release
           tc: arm-linux-gnueabihf
-          heavybuild: 0
+          heavybuild: 1
           flags: -march=armv7+fp
         - arch: armv6
-          std: 23
-          bt: Release
+          std: 11
+          bt: Debug
           tc: arm-linux-gnueabi
-          heavybuild: 1
+          heavybuild: 0
           flags: -march=armv6+fp
         - arch: armv6
-          std: 11
-          bt: Debug
+          std: 23
+          bt: Release
           tc: arm-linux-gnueabi
-          heavybuild: 0
+          heavybuild: 1
           flags: -march=armv6+fp
         - arch: armv5
-          std: 23
-          bt: Release
+          std: 11
+          bt: Debug
           tc: arm-linux-gnueabi
-          heavybuild: 1
+          heavybuild: 0
           flags: -march=armv5te+fp
         - arch: armv5
-          std: 11
-          bt: Debug
+          std: 23
+          bt: Release
           tc: arm-linux-gnueabi
-          heavybuild: 0
+          heavybuild: 1
           flags: -march=armv5te+fp
         - arch: armv4
-          std: 23
-          bt: Release
+          std: 11
+          bt: Debug
           tc: arm-linux-gnueabi
-          heavybuild: 1
+          heavybuild: 0
           flags: -march=armv4
         - arch: armv4
-          std: 11
-          bt: Debug
+          std: 23
+          bt: Release
           tc: arm-linux-gnueabi
-          heavybuild: 0
+          heavybuild: 1
           flags: -march=armv4
         - arch: aarch64
-          std: 23
-          bt: Release
+          std: 11
+          bt: Debug
           tc: aarch64-linux-gnu
-          heavybuild: 2
+          heavybuild: 1
         - arch: aarch64
-          std: 11
-          bt: Debug
+          std: 23
+          bt: Release
           tc: aarch64-linux-gnu
-          heavybuild: 1
-        - arch: loongarch64
-          std: 23
-          bt: Release
-          tc: loongarch64-linux-gnu
-          heavybuild: 1
-          version: -14
+          heavybuild: 2
         - arch: loongarch64
           std: 11
           bt: Debug
           tc: loongarch64-linux-gnu
           heavybuild: 0
           version: -14
+        - arch: loongarch64
+          std: 23
+          bt: Release
+          tc: loongarch64-linux-gnu
+          heavybuild: 1
+          version: -14
+        - arch: mips
+          std: 11
+          bt: Debug
+          tc: mips-linux-gnu
+          heavybuild: 0
         - arch: mips
           std: 23
           bt: Release
           tc: mips-linux-gnu
           heavybuild: 1
-        - arch: mips
+        - arch: mipsel
           std: 11
           bt: Debug
-          tc: mips-linux-gnu
+          tc: mipsel-linux-gnu
           heavybuild: 0
         - arch: mipsel
           std: 23
           bt: Release
           tc: mipsel-linux-gnu
           heavybuild: 1
-        - arch: mipsel
-          std: 11
-          bt: Debug
-          tc: mipsel-linux-gnu
-          heavybuild: 0
-        - arch: mips64
-          std: 23
-          bt: Release
-          tc: mips64-linux-gnuabi64
-          heavybuild: 2
         - arch: mips64
           std: 11
           bt: Debug
           tc: mips64-linux-gnuabi64
           heavybuild: 2
-        - arch: mips64el
+        - arch: mips64
           std: 23
           bt: Release
-          tc: mips64el-linux-gnuabi64
+          tc: mips64-linux-gnuabi64
           heavybuild: 2
         - arch: mips64el
           std: 11
           bt: Debug
           tc: mips64el-linux-gnuabi64
           heavybuild: 2
+        - arch: mips64el
+          std: 23
+          bt: Release
+          tc: mips64el-linux-gnuabi64
+          heavybuild: 2
+        - arch: riscv64
+          std: 11
+          bt: Debug
+          tc: riscv64-linux-gnu
+          heavybuild: 0
         - arch: riscv64
           std: 23
           bt: Release
           tc: riscv64-linux-gnu
           heavybuild: 1
-        - arch: riscv64
+        - arch: s390x
           std: 11
           bt: Debug
-          tc: riscv64-linux-gnu
+          tc: s390x-linux-gnu
           heavybuild: 0
         - arch: s390x
           std: 23
           bt: Release
           tc: s390x-linux-gnu
           heavybuild: 1
-        - arch: s390x
+        - arch: ppc
           std: 11
           bt: Debug
-          tc: s390x-linux-gnu
+          tc: powerpc-linux-gnu
           heavybuild: 0
         - arch: ppc
           std: 23
           bt: Release
           tc: powerpc-linux-gnu
           heavybuild: 1
-        - arch: ppc
+        - arch: ppc64
           std: 11
           bt: Debug
-          tc: powerpc-linux-gnu
+          tc: powerpc64-linux-gnu
           heavybuild: 0
         - arch: ppc64
           std: 23
           bt: Release
           tc: powerpc64-linux-gnu
           heavybuild: 1
-        - arch: ppc64
+        - arch: ppc64le
           std: 11
           bt: Debug
-          tc: powerpc64-linux-gnu
+          tc: powerpc64le-linux-gnu
           heavybuild: 0
         - arch: ppc64le
           std: 23
           bt: Release
           tc: powerpc64le-linux-gnu
           heavybuild: 1
-        - arch: ppc64le
+        - arch: sparc64
           std: 11
           bt: Debug
-          tc: powerpc64le-linux-gnu
+          tc: sparc64-linux-gnu
           heavybuild: 0
         - arch: sparc64
           std: 23
           bt: Release
           tc: sparc64-linux-gnu
           heavybuild: 1
-        - arch: sparc64
-          std: 11
-          bt: Debug
-          tc: sparc64-linux-gnu
-          heavybuild: 0
     steps:
     - name: checkout (action)
       uses: actions/checkout@v6
