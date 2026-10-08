@@ -4,6 +4,9 @@
 #endif
 #include "./test_lib/test_case.hpp"
 #include <gtest/gtest.h>
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/parse.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 

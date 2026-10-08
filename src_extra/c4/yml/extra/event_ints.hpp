@@ -10,6 +10,9 @@
 #ifndef C4_YML_ERROR_HPP_
 #include <c4/yml/error.hpp>
 #endif
+#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
+#include <c4/yml/resolve_options.hpp>
+#endif
 #endif
 #include <stdint.h>
 
@@ -193,8 +196,7 @@ typedef enum : evt_bits { // NOLINT
     SEQ_ = (1 <<  4),  ///< scope: seq
     MAP_ = (1 <<  5),  ///< scope: map
     DOC_ = (1 <<  6),  ///< scope: doc
-    EXPL = (1 <<  7),  ///< `---` (with BDOC) or `...` (with EDOC)
-    STRM = (1 <<  8),  ///< scope: stream
+    STRM = (1 <<  7),  ///< scope: stream
     BSEQ = BEG_|SEQ_,  ///< begin seq    (+SEQ in test suite events)
     ESEQ = END_|SEQ_,  ///< end seq      (-SEQ in test suite events)
     BMAP = BEG_|MAP_,  ///< begin map    (+MAP in test suite events)
@@ -205,27 +207,31 @@ typedef enum : evt_bits { // NOLINT
     ESTR = END_|STRM,  ///< end stream   (-STR in test suite events)
 
     // YAML string events
-    SCLR = (1 <<  9),  ///< scalar (=VAL in test suite events)
-    ALIA = (1 << 10),  ///< *anchor
-    ANCH = (1 << 11),  ///< &anchor
-    TAG_ = (1 << 12),  ///< !tag
+    SCLR = (1 <<  8),  ///< scalar (=VAL in test suite events)
+    ALIA = (1 <<  9),  ///< alias: *anchor
+    ANCH = (1 << 10),  ///< &anchor
+    TAG_ = (1 << 11),  ///< !tag
     // directives
-    YAML = (1 << 13),  ///< yaml directive: `\%YAML <version>`
-    TAGH = (1 << 14),  ///< tag directive, handle: `\%TAG <handle> ........`
-    TAGP = (1 << 15),  ///< tag directive, prefix: `\%TAG ........ <prefix>`
+    YAML = (1 << 12),  ///< yaml directive: `\%YAML <version>`
+    TAGH = (1 << 13),  ///< tag directive, handle: `\%TAG <handle> ........`
+    TAGP = (1 << 14),  ///< tag directive, prefix: `\%TAG ........ <prefix>`
 
     // YAML style flags
-    PLAI = (1 << 16),  ///< scalar: plain
-    SQUO = (1 << 17),  ///< scalar: single-quoted (')
-    DQUO = (1 << 18),  ///< scalar: double-quoted ("")
-    LITL = (1 << 19),  ///< scalar: block literal (|)
-    FOLD = (1 << 20),  ///< scalar: block folded (>)
-    FLOW = (1 << 21),  ///< container: flow: [] for seqs or {} for maps
-    BLCK = (1 << 22),  ///< container: block
+    PLAI = (1 << 15),  ///< scalar: plain
+    SQUO = (1 << 16),  ///< scalar: single-quoted (')
+    DQUO = (1 << 17),  ///< scalar: double-quoted ("")
+    LITL = (1 << 18),  ///< scalar: block literal (|)
+    FOLD = (1 << 19),  ///< scalar: block folded (>)
 
-    /// Special flag to mark a scalar as unfiltered (when the parser
-    /// is set not to filter).
-    UNFILT = (1 << 23),
+    UNFILT = (1 << 20), ///< scalar: unfiltered
+
+    FLOW = (1 << 21),  ///< For containers (@ref BSEQ or @ref BMAP): flow
+                       ///< style. If this flag is not set, the container's
+                       ///< style is block.
+                       ///<
+                       ///< For docs: explicit mark (`---` in @ref BDOC and
+                       ///< `...` @ref EDOC).
+    EXPL = FLOW,       ///< Alias for use with docs
 
     //-------------------------------------------------------------------------
     // NON-YAML FLAGS
@@ -234,10 +240,10 @@ typedef enum : evt_bits { // NOLINT
     /// arena. This happens when the filtered string is larger than
     /// the original string in the YAML code (eg from tags that
     /// resolve to a larger string, or from "\L" or "\P" in double
-    /// quotes, which expand from two to three bytes). Because of this
-    /// size expansion, the filtered string cannot be placed in the
-    /// original source and needs to be placed in the arena.
-    AREN = (1 << 24),
+    /// quoted scalars, which expand from two to three bytes). Because
+    /// of this size expansion, the filtered string cannot be placed
+    /// in the original source and needs to be placed in the arena.
+    AREN = (1 << 22),
 
     /// WithSTRing: mask of all events that encode a string following
     /// the event. For such events, the next two integers will provide
@@ -247,15 +253,24 @@ typedef enum : evt_bits { // NOLINT
     /// Special flag to enable look-back in the event array. It
     /// signifies that the previous event has a string, meaning that
     /// the jump back to that event is 3 positions. Without this flag
-    /// it would be impossible to jump to the previous event.
+    /// it would be impossible to jump back to the previous event.
     /// see also @ref WSTR
-    PSTR = (1 << 25),
+    PSTR = (1 << 23),
+
+    /// Resolved Reference: an alias that was resolved.
+    RREF = (1 << 24),
+    /// Previous Resolved Reference: same purpose as @ref PSTR but for
+    /// @ref RREF .
+    PRREF = (1 << 25),
 
     /// unused: reserved for future use (to enable rope-like buffers)
     JUMP = (1 << 26),
     /// unused: reserved for future use (same purpose as @ref PSTR,
     /// but for @ref JUMP)
     PJUMP = (1 << 27),
+
+    EXTRA2 = WSTR|RREF|JUMP,
+    PEXTRA2 = PSTR|PRREF|PJUMP,
 
     // flow style flags
     FSL_ = (1 << 28), ///< same as @ref c4::yml::FLOW_SL
@@ -275,32 +290,36 @@ typedef enum : evt_bits { // NOLINT
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextstep(evt_bits bits) noexcept
 {
-    return (bits & ievt::WSTR) ? 3 : 1;
+    return (bits & ievt::EXTRA2) ? 3 : 1;
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevstep(evt_bits bits) noexcept
 {
-    return (bits & ievt::PSTR) ? 3 : 1;
+    return (bits & ievt::PEXTRA2) ? 3 : 1;
 }
 
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits, evt_size pos) noexcept
 {
-    return pos + ((bits & ievt::WSTR) ? 3 : 1);
+    return pos + ((bits & ievt::EXTRA2) ? 3 : 1);
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits, evt_size pos) noexcept
 {
-    return pos - ((bits & ievt::PSTR) ? 3 : 1);
+    return pos - ((bits & ievt::PEXTRA2) ? 3 : 1);
 }
 
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
-    return pos + ((arr[pos] & ievt::WSTR) ? 3 : 1);
+    return pos + ((arr[pos] & ievt::EXTRA2) ? 3 : 1);
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
-    return pos - ((arr[pos] & ievt::PSTR) ? 3 : 1);
+    return pos - ((arr[pos] & ievt::PEXTRA2) ? 3 : 1);
 }
+
+
+RYML_EXPORT evt_size lookup_anchor(evt_bits const* evts, evt_size sz, csubstr src, csubstr arena, evt_size pos);
+RYML_EXPORT void resolve_refs(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, ResolveOptions const& opts={});
 
 
 //-----------------------------------------------------------------------------
@@ -315,6 +334,10 @@ struct RYML_EXPORT evtbuf
 };
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 struct RYML_EXPORT Buffers
 {
@@ -323,7 +346,7 @@ struct RYML_EXPORT Buffers
     evtbuf    evts  = {};
     bool      owned = {};
     Callbacks callbacks = {};
-    csubstr getstr(evt_size pos) const RYML_NOEXCEPT
+    C4_HOT C4_ALWAYS_INLINE csubstr getstr(evt_size pos) const RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(pos + 2 < evts.len);
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
@@ -409,13 +432,15 @@ struct MaybeParent
 };
 RYML_EXPORT MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept;
 RYML_EXPORT bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT;
+RYML_EXPORT evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos);
+RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
+RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
 RYML_EXPORT evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;
+
+RYML_EXPORT bool is_cyclic_ref_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size ref_pos, evt_size anchor_pos) noexcept;
 
 
 struct EmitKickoff

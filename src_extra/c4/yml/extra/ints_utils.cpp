@@ -11,6 +11,12 @@
 #ifndef C4_YML_EXTRA_INTS_UTILS_HPP_
 #include "c4/yml/extra/ints_utils.hpp"
 #endif
+#ifndef C4_YML_EXTRA_INTS_FORMAT_HPP_
+#include "c4/yml/extra/ints_format.hpp"
+#endif
+#ifndef C4_YML_WRITER_FILE_HPP_
+#include "c4/yml/writer_file.hpp"
+#endif
 
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wold-style-cast")
@@ -24,14 +30,20 @@ namespace extra {
 namespace ievt {
 
 namespace {
-struct FlagSym { const char *str; EventBits flags; };
+struct FlagSym { const char *str; evt_bits flags; };
 const FlagSym flag_syms_[] = {
     {"KEY_", KEY_},
     {"VAL_", VAL_},
+    {"BDOC|EXPL", BDOC|EXPL},
+    {"EDOC|EXPL", EDOC|EXPL},
+    {"BSEQ|FLOW", BSEQ|FLOW},
+    {"BMAP|FLOW", BMAP|FLOW},
+    {"BSEQ|BLCK", BSEQ},
+    {"BMAP|BLCK", BMAP},
+    {"BDOC", BDOC},
+    {"EDOC", EDOC},
     {"SCLR", SCLR},
-    {"BSEQ", BSEQ},
     {"ESEQ", ESEQ},
-    {"BMAP", BMAP},
     {"EMAP", EMAP},
     {"ALIA", ALIA},
     {"ANCH", ANCH},
@@ -42,24 +54,22 @@ const FlagSym flag_syms_[] = {
     {"LITL", LITL},
     {"FOLD", FOLD},
     {"FLOW", FLOW},
-    {"BLCK", BLCK},
-    {"BDOC", BDOC},
-    {"EDOC", EDOC},
     {"BSTR", BSTR},
     {"ESTR", ESTR},
-    {"EXPL", EXPL},
     {"AREN", AREN},
-    {"PSTR", PSTR},
-    {"UNFILT", UNFILT},
     {"YAML", YAML},
     {"TAGH", TAGH},
     {"TAGP", TAGP},
-    {"JUMP", JUMP},
-    {"PJUMP", PJUMP},
     {"FSL_", FSL_},
     {"FML1", FML1},
     {"FMLN", FMLN},
     {"FSPC", FSPC},
+    {"PSTR", PSTR},
+    {"RREF", RREF},
+    {"PRREF", PRREF},
+    {"JUMP", JUMP},
+    {"PJUMP", PJUMP},
+    {"UNFILT", UNFILT},
 };
 } // namespace
 
@@ -78,7 +88,7 @@ size_t to_str(substr buf, evt_bits flags) noexcept
     }
     if(!writer.pos)
         writer.append("NONE");
-    if(buf.len > writer.pos)
+    if(writer.pos < buf.len)
         buf[writer.pos] = '\0';
     return writer.pos;
 }
@@ -91,47 +101,10 @@ csubstr to_str_sub(substr buf, evt_bits flags)
     return buf.first(reqsize);
 }
 
-
-void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_size evts_sz, bool indent)
+void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts, evt_size evts_sz, bool indent, FILE *file)
 {
-    char buf[200];
-    evt_size level = 0;
-    for(evt_bits evtpos = 0, evtnumber = 0;
-        evtpos < evts_sz;
-        ++evtnumber,
-            evtpos = ievt::nextpos(evts, evtpos))
-    {
-        evt_bits evt = evts[evtpos];
-        csubstr flags = ievt::to_str_sub(buf, evt);
-        printf("[%d][%d] ", evtnumber, evtpos);
-        if(indent)
-        {
-            if(evt & ievt::END_)
-                --level;
-            for(evt_size i = 0; i < level; ++i)
-                printf("  ");
-            if(evt & ievt::BEG_)
-                ++level;
-        }
-        printf("%.*s(0x%x)", (int)flags.len, flags.str, evt);
-        if(evt & ievt::WSTR)
-        {
-            bool in_arena = evt & ievt::AREN;
-            csubstr region = !in_arena ? parsed_yaml : arena;
-            bool safe = (evts[evtpos + 1] >= 0)
-                && (evts[evtpos + 2] >= 0)
-                && (evts[evtpos + 1] <= (evt_bits)region.len) // NOLINT
-                && (evts[evtpos + 2] <= ((evt_bits)region.len - evts[evtpos + 1]));
-            const char *str = safe ? (region.str + evts[evtpos + 1]) : "ERR!!!";
-            evt_bits len = safe ? evts[evtpos + 2] : 6;
-            printf(": %d [%d]~~~%.*s~~~", evts[evtpos+1], evts[evtpos+2], len, str);
-            if(in_arena)
-                printf(" (arenasz=%zu)", arena.len); // LCOV_EXCL_LINE
-            else
-                printf(" (srcsz=%zu)", parsed_yaml.len);
-        }
-        printf("\n");
-    }
+    WriterFile writer(file);
+    format_ints(writer, parsed_yaml, arena, evts, evts_sz, indent);
 }
 
 } // namespace ievt

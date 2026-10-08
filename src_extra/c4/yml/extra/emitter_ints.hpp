@@ -69,6 +69,8 @@ public:
 
 private: // pending whitespace
 
+    // NOLINTBEGIN(hicpp-signed-bitwise)
+
     /// pending whitespace
     typedef enum : uint32_t { PWS_NONE_ = 0u, PWS_SPACE_ = 1u, PWS_NEWL_ = 2u } Pws_e; // NOLINT
 
@@ -158,10 +160,24 @@ private:
     C4_NODISCARD evt_size json_visit_stream_(evt_size pos);
     C4_NODISCARD evt_size json_visit_nested_(evt_size pos);
     C4_NODISCARD evt_size json_visit_container_(evt_size pos);
-    C4_NODISCARD evt_size json_visit_ml_(evt_size pos);
-    C4_NODISCARD evt_size json_visit_sl_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_container_ml_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_container_sl_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_seq_ml_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_seq_sl_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_map_ml_(evt_size pos);
+    C4_NODISCARD evt_size json_visit_map_sl_(evt_size pos);
     C4_NODISCARD evt_size json_writek_(evt_size pos);
     C4_NODISCARD evt_size json_writev_(evt_size pos, evt_bits ty, bool has_anchor_or_tag);
+
+    C4_NODISCARD evt_size json_check_anchor_tag_(evt_size pos) const
+    {
+        RYML_ASSERT_BASIC_(m_evts[pos] & (ievt::ANCH|ievt::TAG_|ievt::ALIA));
+        if C4_UNLIKELY((m_evts[pos] & (ievt::ANCH|ievt::ALIA)) && m_opts.json_err_on_anchor())
+            RYML_ERR_BASIC_("JSON does not have anchors. pos={}", pos);
+        if C4_UNLIKELY((m_evts[pos] & ievt::TAG_) && m_opts.json_err_on_tag())
+            RYML_ERR_BASIC_("JSON does not have tags. pos={}", pos);
+        return pos + 3;
+    }
 
 private:
 
@@ -215,7 +231,7 @@ public:
     C4_ALWAYS_INLINE void indent_(indent_type level) // LCOV_EXCL_LINE
     {
         C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wsign-conversion")
-        size_t num = static_cast<size_t>(2u * level);
+        size_t num = static_cast<size_t>(2u * level); // NOLINT
         this->Writer::append(' ', num);
         m_col += num;
         C4_SUPPRESS_WARNING_GCC_CLANG_POP
@@ -227,6 +243,40 @@ public:
         this->Writer::append('\n');
         m_col = 0;
     }
+
+private:
+
+    struct RrefHandler /// handler for @ref RREF (resolved references)
+    {
+        evt_size pos_refend; /// position at which the rref ends
+        evt_size pos_resume; /// position to resume after the rref ends
+        bool active;
+    };
+
+    evt_size rref_start_(evt_size pos, RrefHandler *h) RYML_NOEXCEPT
+    {
+        RYML_ASSERT_BASIC_(!h->active);
+        RYML_ASSERT_BASIC_(m_evts[pos] & ievt::RREF);
+        h->pos_refend = m_evts[pos + 2];
+        h->pos_resume = pos + 3;
+        h->active = true;
+        if((m_evts[h->pos_resume] & (~(ievt::KEY_|ievt::VAL_))) == ievt::PRREF)
+            ++h->pos_resume;
+        return m_evts[pos + 1];
+    }
+
+    static evt_size rref_check_(evt_size pos, RrefHandler *h) RYML_NOEXCEPT
+    {
+        RYML_ASSERT_BASIC_(h->active);
+        if(pos == h->pos_refend)
+        {
+            pos = h->pos_resume;
+            h->active = false;
+        }
+        return pos;
+    }
+
+    // NOLINTEND(hicpp-signed-bitwise)
 
 private:
 

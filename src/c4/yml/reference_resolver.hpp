@@ -80,15 +80,24 @@ public:
         id_type prev_anchor;
         id_type target;
         id_type parent_ref;
-        id_type parent_ref_sibling;
     };
 
     void reset_(Tree *t_, ResolveOptions const& opts);
     void resolve_();
     void gather_anchors_and_refs_();
-    void gather_anchors_and_refs_(id_type n);
-    id_type count_anchors_and_refs_(id_type n);
+    id_type gather_anchors_and_refs_(id_type n, id_type prev_anchor);
     id_type branch_size_(id_type n);
+
+    id_type add_(NodeType ty, id_type node, id_type prev_anchor, id_type parent_ref = NONE)
+    {
+        RefData & rd = m_refs.emplace_top();
+        rd.type = ty;
+        rd.node = node;
+        rd.prev_anchor = prev_anchor;
+        rd.target = NONE;
+        rd.parent_ref = parent_ref;
+        return static_cast<id_type>(&rd - m_refs.begin());
+    }
 
     id_type lookup_(RefData const* C4_RESTRICT ra);
 

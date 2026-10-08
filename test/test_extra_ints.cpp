@@ -1,6 +1,12 @@
 #include "test_lib/test_case.hpp"
-#include "test_lib/test_events_ints_helpers.hpp"
+#include "test_lib/test_helpers_ints.hpp"
+
+#ifndef C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #include <c4/yml/extra/event_handler_ints.hpp>
+#endif
+#ifndef C4_YML_EXTRA_INTS_FORMAT_HPP_
+#include <c4/yml/extra/ints_format.hpp>
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -36,6 +42,238 @@ TEST(flags, to_chars)
     #undef _
 }
 
+
+static std::string to_str(ievt::TestBuffers const& ints, bool indent)
+{
+    std::string result;
+    {
+        WriterBuf writer(to_substr(result));
+        ievt::format_ints(writer, ints.src, ints.arena, ints.evts.ptr, ints.evts.len, indent);
+        RYML_ASSERT_BASIC_(writer.m_pos >= result.size());
+        result.resize(writer.m_pos);
+    }
+    {
+        WriterBuf writer(to_substr(result));
+        ievt::format_ints(writer, ints.src, ints.arena, ints.evts.ptr, ints.evts.len, indent);
+        RYML_ASSERT_BASIC_(writer.m_pos <= result.size());
+    }
+    return result;
+}
+static void test_format(ievt::TestBuffers const& ints,
+                        std::string const& indented,
+                        std::string const& unindented)
+{
+    EXPECT_EQ(indented, to_str(ints, true));
+    EXPECT_EQ(unindented, to_str(ints, false));
+}
+
+TEST(ints_resolve, emit_empty)
+{
+    ievt::TestBuffers ints;
+    ASSERT_EQ(ints.evts.ptr, nullptr);
+    ASSERT_EQ(ints.evts.len, 0);
+    EXPECT_EQ("", ints.emitrs_yaml<std::string>());
+}
+
+TEST(ints, format_empty)
+{
+    ievt::TestBuffers ints;
+    ASSERT_EQ(ints.evts.ptr, nullptr);
+    ASSERT_EQ(ints.evts.len, 0);
+    SCOPED_CALL(test_format, (ints, "", ""));
+}
+TEST(ints, format_with_rref)
+{
+    std::string src = ""
+        "l0: &l0 [x,x]\n"
+        "l1: &l1 [*l0,*l0]\n"
+        "l2: &l2 [*l1,*l1]\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(to_substr(src), &ints);
+    SCOPED_CALL(test_format,
+                (ints,
+                ""
+                "[0][0] BSTR(0x84)\n"
+                "[1][1]   BDOC(0x44)\n"
+                "[2][2]     VAL_|BMAP|BLCK(0x26)\n"
+                "[3][3]       KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
+                "[4][6]       VAL_|ANCH|PSTR(0x800402): 5 [2]~~~l0~~~\n"
+                "[5][9]       VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
+                "[6][10]         VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
+                "[7][13]         VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
+                "[8][16]       ESEQ|PSTR(0x800018)\n"
+                "[9][17]       KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
+                "[10][20]       VAL_|ANCH|PSTR(0x800402): 19 [2]~~~l1~~~\n"
+                "[11][23]       VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
+                "[12][24]         VAL_|ALIA(0x202): 24 [2]~~~l0~~~\n"
+                "[13][27]         VAL_|ALIA|PSTR(0x800202): 28 [2]~~~l0~~~\n"
+                "[14][30]       ESEQ|PSTR(0x800018)\n"
+                "[15][31]       KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
+                "[16][34]       VAL_|ANCH|PSTR(0x800402): 37 [2]~~~l2~~~\n"
+                "[17][37]       VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
+                "[18][38]         VAL_|ALIA(0x202): 42 [2]~~~l1~~~\n"
+                "[19][41]         VAL_|ALIA|PSTR(0x800202): 46 [2]~~~l1~~~\n"
+                "[20][44]       ESEQ|PSTR(0x800018)\n"
+                "[21][45]     EMAP(0x28)\n"
+                "[22][46]   EDOC(0x48)\n"
+                "[23][47] ESTR(0x88)\n"
+                "src.len=50 arena.len(unused)=0\n"
+                "",
+                ""
+                "[0][0] BSTR(0x84)\n"
+                "[1][1] BDOC(0x44)\n"
+                "[2][2] VAL_|BMAP|BLCK(0x26)\n"
+                "[3][3] KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
+                "[4][6] VAL_|ANCH|PSTR(0x800402): 5 [2]~~~l0~~~\n"
+                "[5][9] VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
+                "[6][10] VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
+                "[7][13] VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
+                "[8][16] ESEQ|PSTR(0x800018)\n"
+                "[9][17] KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
+                "[10][20] VAL_|ANCH|PSTR(0x800402): 19 [2]~~~l1~~~\n"
+                "[11][23] VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
+                "[12][24] VAL_|ALIA(0x202): 24 [2]~~~l0~~~\n"
+                "[13][27] VAL_|ALIA|PSTR(0x800202): 28 [2]~~~l0~~~\n"
+                "[14][30] ESEQ|PSTR(0x800018)\n"
+                "[15][31] KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
+                "[16][34] VAL_|ANCH|PSTR(0x800402): 37 [2]~~~l2~~~\n"
+                "[17][37] VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
+                "[18][38] VAL_|ALIA(0x202): 42 [2]~~~l1~~~\n"
+                "[19][41] VAL_|ALIA|PSTR(0x800202): 46 [2]~~~l1~~~\n"
+                "[20][44] ESEQ|PSTR(0x800018)\n"
+                "[21][45] EMAP(0x28)\n"
+                "[22][46] EDOC(0x48)\n"
+                "[23][47] ESTR(0x88)\n"
+                "src.len=50 arena.len(unused)=0\n"
+                ""));
+    ints.resolve();
+    SCOPED_CALL(test_format,
+                (ints,
+                 ""
+                 "[0][0] BSTR(0x84)\n"
+                 "[1][1]   BDOC(0x44)\n"
+                 "[2][2]     VAL_|BMAP|BLCK(0x26)\n"
+                 "[3][3]       KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
+                 "[4][6]       VAL_|PSTR(0x800002)\n"
+                 "[5][7]       VAL_(0x2)\n"
+                 "[6][8]       VAL_(0x2)\n"
+                 "[7][9]       VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[8][10]         VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
+                 "[9][13]         VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
+                 "[10][16]       ESEQ|PSTR(0x800018)\n"
+                 "[11][17]       KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
+                 "[12][20]       VAL_|PSTR(0x800002)\n"
+                 "[13][21]       VAL_(0x2)\n"
+                 "[14][22]       VAL_(0x2)\n"
+                 "[15][23]       VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[16][24]         VAL_|RREF(0x1000002): 9:17\n"
+                 "[17][27]         VAL_|RREF|PRREF(0x3000002): 9:17\n"
+                 "[18][30]       ESEQ|PRREF(0x2000018)\n"
+                 "[19][31]       KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
+                 "[20][34]       VAL_|PSTR(0x800002)\n"
+                 "[21][35]       VAL_(0x2)\n"
+                 "[22][36]       VAL_(0x2)\n"
+                 "[23][37]       VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[24][38]         VAL_|RREF(0x1000002): 23:31\n"
+                 "[25][41]         VAL_|RREF|PRREF(0x3000002): 23:31\n"
+                 "[26][44]       ESEQ|PRREF(0x2000018)\n"
+                 "[27][45]     EMAP(0x28)\n"
+                 "[28][46]   EDOC(0x48)\n"
+                 "[29][47] ESTR(0x88)\n"
+                 "src.len=50 arena.len(unused)=0\n"
+                 "",
+                 ""
+                 "[0][0] BSTR(0x84)\n"
+                 "[1][1] BDOC(0x44)\n"
+                 "[2][2] VAL_|BMAP|BLCK(0x26)\n"
+                 "[3][3] KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
+                 "[4][6] VAL_|PSTR(0x800002)\n"
+                 "[5][7] VAL_(0x2)\n"
+                 "[6][8] VAL_(0x2)\n"
+                 "[7][9] VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[8][10] VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
+                 "[9][13] VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
+                 "[10][16] ESEQ|PSTR(0x800018)\n"
+                 "[11][17] KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
+                 "[12][20] VAL_|PSTR(0x800002)\n"
+                 "[13][21] VAL_(0x2)\n"
+                 "[14][22] VAL_(0x2)\n"
+                 "[15][23] VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[16][24] VAL_|RREF(0x1000002): 9:17\n"
+                 "[17][27] VAL_|RREF|PRREF(0x3000002): 9:17\n"
+                 "[18][30] ESEQ|PRREF(0x2000018)\n"
+                 "[19][31] KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
+                 "[20][34] VAL_|PSTR(0x800002)\n"
+                 "[21][35] VAL_(0x2)\n"
+                 "[22][36] VAL_(0x2)\n"
+                 "[23][37] VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[24][38] VAL_|RREF(0x1000002): 23:31\n"
+                 "[25][41] VAL_|RREF|PRREF(0x3000002): 23:31\n"
+                 "[26][44] ESEQ|PRREF(0x2000018)\n"
+                 "[27][45] EMAP(0x28)\n"
+                 "[28][46] EDOC(0x48)\n"
+                 "[29][47] ESTR(0x88)\n"
+                 "src.len=50 arena.len(unused)=0\n"
+                 ""));
+}
+
+TEST(ints, format_with_arena_usage)
+{
+    std::string src = ""
+        "%TAG !m! !my-\n"
+        "--- # Bulb here\n"
+        "!m!light fluorescent\n"
+        "...\n"
+        "%TAG !m! !meta-\n"
+        "--- # Color here\n"
+        "!m!light green\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(to_substr(src), &ints, ParserOptions{}.resolve_tags_all(true));
+    SCOPED_CALL(test_format,
+                (ints,
+                 ""
+                 "[0][0] BSTR(0x84)\n"
+                 "[1][1]   TAGH(0x2000): 5 [3]~~~!m!~~~\n"
+                 "[2][4]   TAGP|PSTR(0x804000): 9 [4]~~~!my-~~~\n"
+                 "[3][7]   BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[4][8]     VAL_|TAG_|AREN(0x400802): 0 [11]~~~<!my-light>~~~\n"
+                 "[5][11]     VAL_|SCLR|PLAI|PSTR(0x808102): 39 [11]~~~fluorescent~~~\n"
+                 "[6][14]   EDOC|EXPL|PSTR(0xa00048)\n"
+                 "[7][15]   TAGH(0x2000): 60 [3]~~~!m!~~~\n"
+                 "[8][18]   TAGP|PSTR(0x804000): 64 [6]~~~!meta-~~~\n"
+                 "[9][21]   BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[10][22]     VAL_|TAG_|AREN(0x400802): 11 [13]~~~<!meta-light>~~~\n"
+                 "[11][25]     VAL_|SCLR|PLAI|PSTR(0x808102): 97 [5]~~~green~~~\n"
+                 "[12][28]   EDOC|PSTR(0x800048)\n"
+                 "[13][29] ESTR(0x88)\n"
+                 "src.len=103 arena.len=256\n"
+                 "",
+                 ""
+                 "[0][0] BSTR(0x84)\n"
+                 "[1][1] TAGH(0x2000): 5 [3]~~~!m!~~~\n"
+                 "[2][4] TAGP|PSTR(0x804000): 9 [4]~~~!my-~~~\n"
+                 "[3][7] BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[4][8] VAL_|TAG_|AREN(0x400802): 0 [11]~~~<!my-light>~~~\n"
+                 "[5][11] VAL_|SCLR|PLAI|PSTR(0x808102): 39 [11]~~~fluorescent~~~\n"
+                 "[6][14] EDOC|EXPL|PSTR(0xa00048)\n"
+                 "[7][15] TAGH(0x2000): 60 [3]~~~!m!~~~\n"
+                 "[8][18] TAGP|PSTR(0x804000): 64 [6]~~~!meta-~~~\n"
+                 "[9][21] BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[10][22] VAL_|TAG_|AREN(0x400802): 11 [13]~~~<!meta-light>~~~\n"
+                 "[11][25] VAL_|SCLR|PLAI|PSTR(0x808102): 97 [5]~~~green~~~\n"
+                 "[12][28] EDOC|PSTR(0x800048)\n"
+                 "[13][29] ESTR(0x88)\n"
+                 "src.len=103 arena.len=256\n"
+                 ""));
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 TEST(ints, find_matching_open_close_next_entry)
 {
     #define CHECK_MATCHING_OPEN_CLOSE(open, close) \
@@ -65,6 +303,11 @@ TEST(ints, find_matching_open_close_next_entry)
         ints.print();
     #undef CHECK_MATCHING_OPEN_CLOSE
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 TEST(ints, grow_evts)
 {
@@ -167,7 +410,6 @@ TEST(ints, grow_arena)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-
 struct IntEventsCase
 {
     const char *file;
@@ -240,7 +482,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 1, "a"),
            e(VAL_|SCLR|PLAI|PSTR, 3, 1, "1"),
            e(EMAP|PSTR),
@@ -252,7 +494,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 3, "say"),
            e(VAL_|SCLR|PLAI|PSTR, 5, 5, "2 + 2"),
            e(EMAP|PSTR),
@@ -264,7 +506,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 4, "𝄞"),
            e(VAL_|SCLR|PLAI|PSTR, 6, 3, "✅"),
            e(EMAP|PSTR),
@@ -320,10 +562,10 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC|EXPL),
            e(VAL_|TAG_, 4, 14, "!yamlscript/v0"),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 19, 3, "foo"),
            e(VAL_|TAG_|PSTR, 24, 1, "!"),
-           e(VAL_|BSEQ|BLCK|PSTR),
+           e(VAL_|BSEQ|PSTR),
            e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 29, 1, "x"),
            e(VAL_|SCLR|PLAI|PSTR, 32, 1, "y"),
@@ -351,7 +593,7 @@ const IntEventsCase test_cases[] = {
            e(EMAP),
            e(EDOC),
            e(BDOC|EXPL),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 144, 7, "another"),
            e(VAL_|SCLR|PLAI|PSTR, 153, 3, "doc"),
            e(EMAP|PSTR),
@@ -377,7 +619,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 5, "plain"),
            e(VAL_|SCLR|PLAI|PSTR, 7, 10, "well a b c"),
            e(KEY_|SCLR|PLAI|PSTR, 24, 4, "squo"),
@@ -397,7 +639,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BSEQ|BLCK),
+           e(VAL_|BSEQ),
            e(VAL_|TAG_, 2, 5, "!!seq"),
            e(VAL_|BSEQ|FLOW|FSL_|PSTR),
            e(ESEQ),
@@ -418,11 +660,11 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 28, "defn run(prompt session=nil)"),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 32, 12, "when session"),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 50, 28, "write session _ :append true"),
            e(VAL_|SCLR|LITL|PSTR, 83, 54, "Q: $(orig-prompt:trim)\nA ($api-model):\n$(answer:trim)\n", needs_filter),
            e(EMAP|PSTR),
@@ -462,18 +704,18 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 21, 28, "defn run(prompt session=nil)"),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 53, 14, "session-text ="),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 73, 28, "when session && session:fs-e"),
            e(VAL_|SCLR|PLAI|PSTR, 0, 0, ""), // note empty scalar pointing at the front
            e(EMAP|PSTR),
            e(KEY_|SCLR|PLAI, 106, 8, "answer ="),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 120, 4, "cond"),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 132, 22, "api-model =~ /^dall-e/"),
            e(VAL_|SCLR|PLAI|PSTR, 164, 31, "openai-image(prompt).data.0.url"),
            e(KEY_|SCLR|PLAI|PSTR, 202, 31, "api-model.in?(anthropic-models)"),
@@ -489,7 +731,7 @@ const IntEventsCase test_cases[] = {
            e(KEY_|SCLR|PLAI, 492, 3, "say"),
            e(VAL_|SCLR|PLAI|PSTR, 497, 6, "answer"),
            e(KEY_|SCLR|PLAI|PSTR, 507, 12, "when session"),
-           e(VAL_|BMAP|BLCK|PSTR),
+           e(VAL_|BMAP|PSTR),
            e(KEY_|SCLR|PLAI, 525, 28, "write session _ :append true"),
            e(VAL_|SCLR|LITL|PSTR, 558, 55, "Q: $(orig-prompt:trim)\nA ($api-model):\n$(answer:trim)\n\n", needs_filter),
            e(EMAP|PSTR),
@@ -509,7 +751,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC|EXPL),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 4, 5, "plain"),
            e(VAL_|SCLR|PLAI|PSTR, 11, 5, "a b\nc"),
            e(EMAP|PSTR),
@@ -522,7 +764,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 1, 3, "key"),
            e(VAL_|SCLR|PLAI|PSTR, 6, 3, "map"),
@@ -541,7 +783,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 3, "key"),
            e(VAL_|SCLR|PLAI|PSTR, 6, 3, "seq"),
@@ -560,7 +802,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 1, "b"),
            e(VAL_|SCLR|PLAI|PSTR, 3, 1, "c"),
@@ -576,7 +818,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 2, 1, "b"),
@@ -594,7 +836,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 2, 1, "a"),
            e(VAL_|BSEQ|FLOW|FSL_|PSTR),
@@ -645,7 +887,7 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(YAML,                  6,  3, "1.2"),
            e(BDOC|EXPL|PSTR),
-           e(VAL_|BSEQ|BLCK),
+           e(VAL_|BSEQ),
            e(VAL_|TAG_,            16,  6, "!light"),
            e(VAL_|SCLR|PLAI|PSTR,  23, 11, "fluorescent"),
            e(VAL_|TAG_|PSTR,       37,  2, "!m"),
@@ -655,7 +897,7 @@ const IntEventsCase test_cases[] = {
            e(TAGH,                 59,  3, "!m!"),
            e(TAGP|PSTR,            63, 15, "!extraordinary-"),
            e(BDOC|EXPL|PSTR),
-           e(VAL_|BSEQ|BLCK),
+           e(VAL_|BSEQ),
            e(VAL_|TAG_|AREN,        0, 22, "<!extraordinary-light>"),
            e(VAL_|SCLR|PLAI|PSTR,  94,  5, "green"),
            e(VAL_|TAG_|PSTR,      102,  5, "!!int"),
@@ -669,7 +911,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|DQUO,       1, 5, "\"foo\""),
            e(VAL_|SCLR|DQUO|PSTR, 12, 5, "\"bar\""),
            e(EMAP|PSTR),
@@ -682,7 +924,7 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(BDOC),
-           e(VAL_|BMAP|BLCK),
+           e(VAL_|BMAP),
            e(KEY_|SCLR|DQUO|UNFILT,       1, 7, "\\\"foo\\\""),
            e(VAL_|SCLR|DQUO|UNFILT|PSTR, 12, 7, "\\\"bar\\\""),
            e(EMAP|PSTR),

@@ -181,6 +181,7 @@ if(RYML_EXTRA_ALL
     endif()
     if(RYML_EXTRA_INTS_UTILS OR RYML_EXTRA_ALL)
         list(APPEND RYML_EXTRA_SRC
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_format.hpp"
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_utils.cpp"
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_utils.hpp"
         )

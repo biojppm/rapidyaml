@@ -436,7 +436,7 @@ int main(int argc, const char *argv[])
     const int demo_expected[] = {
         BSTR,
         BDOC,
-        VAL_|BMAP|BLCK,
+        VAL_|BMAP,
         KEY_|SCLR|PLAI,      0,  3,  // "doe"
         VAL_|SCLR|PLAI|STR,  5, 21,  // "a deer, a female deer"
         KEY_|SCLR|PLAI|STR, 27,  3,  // "ray"

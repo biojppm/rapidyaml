@@ -10,6 +10,9 @@
 #ifndef C4_YML_SCALAR_STYLE_HPP_
 #include "c4/yml/scalar_style.hpp"
 #endif
+#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
+#include "c4/yml/resolve_options.hpp"
+#endif
 
 
 namespace c4 {
@@ -77,16 +80,18 @@ static_assert((ievt::MASK & ievt::DQUO) == ievt::DQUO, "overflow?");
 static_assert((ievt::MASK & ievt::LITL) == ievt::LITL, "overflow?");
 static_assert((ievt::MASK & ievt::FOLD) == ievt::FOLD, "overflow?");
 static_assert((ievt::MASK & ievt::FLOW) == ievt::FLOW, "overflow?");
-static_assert((ievt::MASK & ievt::BLCK) == ievt::BLCK, "overflow?");
+static_assert((ievt::MASK & ievt::EXPL) == ievt::EXPL, "overflow?");
+static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
 static_assert((ievt::MASK & ievt::KEY_) == ievt::KEY_, "overflow?");
 static_assert((ievt::MASK & ievt::VAL_) == ievt::VAL_, "overflow?");
-static_assert((ievt::MASK & ievt::EXPL) == ievt::EXPL, "overflow?");
 static_assert((ievt::MASK & ievt::YAML) == ievt::YAML, "overflow?");
 static_assert((ievt::MASK & ievt::TAGH) == ievt::TAGH, "overflow?");
 static_assert((ievt::MASK & ievt::TAGP) == ievt::TAGP, "overflow?");
 static_assert((ievt::MASK & ievt::AREN) == ievt::AREN, "overflow?");
 static_assert((ievt::MASK & ievt::PSTR) == ievt::PSTR, "overflow?");
 static_assert((ievt::MASK & ievt::WSTR) == ievt::WSTR, "overflow?");
+static_assert((ievt::MASK & ievt::RREF) == ievt::RREF, "overflow?");
+static_assert((ievt::MASK & ievt::PRREF) == ievt::PRREF, "overflow?");
 static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
 static_assert((ievt::MASK & ievt::PJUMP) == ievt::PJUMP, "overflow?");
 static_assert((ievt::MASK & ievt::FSL_) == ievt::FSL_, "overflow?");
@@ -94,7 +99,6 @@ static_assert((ievt::MASK & ievt::FML1) == ievt::FML1, "overflow?");
 static_assert((ievt::MASK & ievt::FMLN) == ievt::FMLN, "overflow?");
 static_assert((ievt::MASK & ievt::FMLX) == ievt::FMLX, "overflow?");
 static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
-static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
 
 
 namespace detail {
@@ -107,7 +111,7 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
     {
         evt_bits evt = evts[pos];
         if(detail::hasall(evt, ievt::BDOC))
-            return (evt & ievt::EXPL);
+            return (evt & ievt::FLOW);
         else if(detail::hasall(evt, ievt::ESTR))
             break;
         pos += ievt::nextstep(evt);
@@ -116,13 +120,13 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
 }
 
 
-evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
+evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
-    RYML_ASSERT_BASIC_(evts[pos] & ievt::KEY_);
     evt_bits accum = {};
+    const evt_bits stop = (evts[pos] & ievt::KEY_) ? ievt::VAL_ : ievt::KEY_;
     for( ; pos < evts_size; pos = ievt::nextpos(evts, pos))
     {
-        if(evts[pos] & ievt::VAL_)
+        if(evts[pos] & stop)
             break;
         accum |= evts[pos];
     }
@@ -130,7 +134,7 @@ evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, 
 }
 
 
-evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::END_) && (evt & (mask_open_close & ~ievt::END_)));
@@ -157,7 +161,7 @@ evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYM
 }
 
 
-evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & (mask_open_close & ~ievt::BEG_)));
@@ -184,7 +188,7 @@ evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt
 }
 
 
-evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT
+evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val)
 {
     evt_bits evt = evts[pos];
     if(detail::seqormap(evt & ~ievt::STRM))
@@ -233,6 +237,21 @@ MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcep
     return p;
 }
 
+
+bool is_cyclic_ref_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size ref_pos, evt_size anchor_pos) noexcept
+{
+    RYML_ASSERT_BASIC_(evts[ref_pos] & ievt::ALIA);
+    RYML_ASSERT_BASIC_(evts[anchor_pos] & ievt::ANCH);
+    evt_size anchor_element_pos = find_next_entry_(evts, sz, anchor_pos, evts[anchor_pos] & (ievt::KEY_|ievt::VAL_));
+    MaybeParent par = find_parent_(evts, ref_pos);
+    while(par)
+    {
+        if(par.pos == anchor_element_pos)
+            return true;
+        par = find_parent_(evts, par.pos);
+    }
+    return false;
+}
 
 EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
 {
@@ -299,7 +318,235 @@ evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
     return scalar.str ? ievt::SQUO : ievt::PLAI;
 }
 
+namespace {
+struct ReferenceResolver
+{
+private:
+    csubstr src;
+    csubstr arena;
+    evtbuf  evts;
+    evt_size newsz;
+    evt_size sz_limit;
+    ResolveOptions opts;
+    struct AnchorTargetRange_
+    {
+        evt_size beg; /// beginning pos of the range
+        evt_size end; /// end pos of the range (past 1)
+    };
+
+public:
+
+    ReferenceResolver(evtbuf evts_, csubstr src_, csubstr arena_, ResolveOptions opts_={}) noexcept
+        : src(src_)
+        , arena(arena_)
+        , evts(evts_)
+        , newsz(evts_.len)
+        , sz_limit(evts_.len * static_cast<evt_size>(opts_.max_size_multiplier()))
+        , opts(opts_)
+    {
+    }
+
+    void resolve()
+    {
+        if(!evts.len)
+            return;
+        for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+        {
+            if(evts.ptr[pos] & ievt::ALIA)
+            {
+                AnchorTargetRange_ rng = lookup_anchor_(pos);
+                set_rref_to_anchor_(pos, rng);
+            }
+            else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
+            {
+                if(!(evts.ptr[pos] & (ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD))
+                   &&
+                   getstr_(pos) == "<<")
+                {
+                    if(evts.ptr[pos] & ievt::PSTR)
+                    {
+                        if(evts.ptr[pos - 3] & (ievt::ANCH|ievt::TAG_))
+                        {
+                            if(evts.ptr[pos - 3] & ievt::PSTR)
+                                if(evts.ptr[pos - 6] & ievt::ANCH)
+                                    clear_anchor_(pos - 6);
+                            clear_anchor_(pos - 3);
+                        }
+                    }
+                    if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA))
+                    {
+                        set_rref_inheriting_from_anchor_(pos);
+                    }
+                    else if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ))
+                    {
+                        set_rref_inheriting_from_seq_(pos);
+                    }
+                }
+            }
+        }
+        if(opts.clear_anchors())
+        {
+            for(evt_size pos = 0; evts.ptr[pos] != ESTR; pos = nextpos(evts.ptr, pos))
+                if(evts.ptr[pos] & ANCH)
+                    clear_anchor_(pos);
+        }
+    }
+
+private:
+
+    csubstr getstr_(evt_size pos)
+    {
+        csubstr str = !(evts.ptr[pos] & ievt::AREN) ? src : arena;
+        RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
+        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1]) <= str.len);
+        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1] + evts.ptr[pos + 2]) <= str.len);
+        str.str = str.str + evts.ptr[pos + 1];
+        str.len = static_cast<size_t>(evts.ptr[pos + 2]);
+        return str;
+    }
+    AnchorTargetRange_ make_range_from_alias_(evt_size pos)
+    {
+        RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ANCH);
+        AnchorTargetRange_ r;
+        r.beg = pos + (!(evts.ptr[pos + 3] & ievt::TAG_) ? 3 : 6);
+        if(evts.ptr[r.beg] & ievt::SCLR)
+        {
+            r.end = r.beg + 3;
+        }
+        else
+        {
+            RYML_ASSERT_BASIC_(evts.ptr[r.beg] & ievt::BEG_);
+            r.end = detail::find_matching_close_(evts.ptr, evts.len, r.beg);
+            r.end = nextpos(evts.ptr, r.end); // END_ must be part of the range, so extend beyond it
+        }
+        return r;
+    }
+    AnchorTargetRange_ lookup_anchor_(evt_size pos)
+    {
+        // get the anchor
+        RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
+        evt_size spos = pos;
+        csubstr ref = getstr_(pos);
+        // lookup the anchor
+        while(true)
+        {
+            pos = ievt::prevpos(evts.ptr, pos);
+            if(evts.ptr[pos] & ievt::ANCH)
+            {
+                csubstr anch = getstr_(pos);
+                if(anch == ref)
+                {
+                    if C4_LIKELY (!detail::is_cyclic_ref_(evts.ptr, evts.len, spos, pos))
+                        return make_range_from_alias_(pos);
+                    RYML_ERR_BASIC_("cyclic reference: '{}}' at ALIA[{}]: ANCH at {}", anch, spos, pos);
+                }
+            }
+            else if(((evts.ptr[pos] & BDOC) == BDOC) || ((evts.ptr[pos] & BSTR) == BSTR))
+            {
+                break;
+            }
+        }
+        RYML_ERR_BASIC_("anchor not found at ALIA[{}]: {}", spos, ref);
+    }
+    evt_size count_extra(evt_size beg, evt_size end) const noexcept
+    {
+        evt_size count = end - beg;
+        for(evt_size pos = beg; pos < end; pos = nextpos(evts.ptr, pos))
+            if(detail::hasall(evts.ptr[pos], ievt::RREF))
+                count += count_extra(evts.ptr[pos+1], evts.ptr[pos+2]);
+        return count;
+    }
+    void set_rref_to_anchor_(evt_size pos, AnchorTargetRange_ rng)
+    {
+        RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
+        evt_size extra = sz_limit ? count_extra(rng.beg, rng.end) : 0;
+        newsz += extra;
+        if C4_LIKELY (!sz_limit || newsz < sz_limit)
+        {
+            evts.ptr[pos] &= ~ALIA;
+            evts.ptr[pos] |= RREF;
+            evts.ptr[pos + 1] = rng.beg;
+            evts.ptr[pos + 2] = rng.end;
+            evts.ptr[pos + 3] &= ~PSTR;
+            evts.ptr[pos + 3] |= PRREF;
+        }
+        else
+        {
+            RYML_ERR_BASIC_("aliasing would exceed max size limit");
+        }
+    }
+    void clear_anchor_(evt_size pos) // NOLINT
+    {
+        evts.ptr[pos] &= ievt::KEY_|ievt::VAL_|ievt::PEXTRA2; // keep only these flags (no unary ~ operator) // NOLINT
+        evts.ptr[pos + 2] = evts.ptr[pos + 1] = ((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
+        evts.ptr[pos + 3] &= ~ievt::PSTR;
+    }
+    void apply_inheriting_ref_entry_(evt_size pos)
+    {
+        AnchorTargetRange_ rng = lookup_anchor_(pos);
+        if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
+        {
+            RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.end - 1], ievt::EMAP));
+            ++rng.beg; // skip BMAP
+            --rng.end; // skip EMAP
+            set_rref_to_anchor_(pos, rng);
+        }
+        else
+        {
+            RYML_ERR_BASIC_("invalid inheriting reference at pos={}", pos);
+        }
+    }
+    void set_rref_inheriting_from_anchor_(evt_size pos)
+    {
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA));
+        RYML_ASSERT_BASIC_("<<" == getstr_(pos));
+        clear_anchor_(pos); // clear the << scalar
+        apply_inheriting_ref_entry_(pos + 3);
+    }
+    void set_rref_inheriting_from_seq_(evt_size pos)
+    {
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ));
+        RYML_ASSERT_BASIC_("<<" == getstr_(pos));
+        if(!(evts.ptr[pos + 4] & ievt::ALIA)) // jump the scalar, then BSEQ
+            return;
+        clear_anchor_(pos); // clear the << scalar
+        evts.ptr[pos + 3] &= ievt::KEY_|ievt::VAL_|ievt::PEXTRA2; // keep only these flags (no unary ~ operator)
+        pos += 4;
+        while(true)
+        {
+            if C4_LIKELY (evts.ptr[pos] & ievt::ALIA)
+            {
+                apply_inheriting_ref_entry_(pos);
+                pos = nextpos(evts.ptr, pos);
+                if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
+                    break;
+            }
+            else
+            {
+                RYML_ERR_BASIC_("invalid reference at pos={}", pos);
+            }
+        }
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::ESEQ));
+        evts.ptr[pos] &= ievt::PEXTRA2; // keep only these flags (no unary ~ operator)
+    }
+};
+} // namespace anon
 } // namespace detail
+
+
+
+void resolve_refs(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, ResolveOptions const& opts)
+{
+    evtbuf buf;
+    buf.ptr = evts;
+    buf.len = sz;
+    buf.cap = sz; // FIXME!
+    detail::ReferenceResolver r(buf, src, arena, opts);
+    r.resolve();
+}
+
 } // namespace ievt
 } // namespace extra
 

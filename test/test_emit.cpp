@@ -717,19 +717,19 @@ TmpStyle mkdquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { re
 TmpStyle mkfoldkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_FOLDED|VAL_FOLDED,  vpos, xievt::FOLD, true,  kpos}; }
 TmpStyle mklitlkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_LITERAL|VAL_LITERAL,  vpos, xievt::LITL, true,  kpos}; }
 
-TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, xievt::BLCK}; }
+TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, 0}; }
 TmpStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|xievt::FSL_|spc}; }
 TmpStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|xievt::FML1|spc}; }
 TmpStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|xievt::FMLN|spc}; }
 
 TmpStyle mknosty(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, evt_bits{}}; }
-TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::BLCK}; }
+TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, 0}; }
 TmpStyle mkflowsl(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FSL_|spc}; }
 TmpStyle mkflowml1(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FML1|spc}; }
 TmpStyle mkflowmln(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FMLN|spc}; }
 // use the extra arg to disambiguate overloads above ^
 TmpStyle mknosty(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, evt_bits{}, true, kpos}; }
-TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::BLCK, true, kpos}; }
+TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, 0, true, kpos}; }
 TmpStyle mkflowsl(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FSL_|spc, true, kpos}; }
 TmpStyle mkflowml1(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FML1|spc, true, kpos}; }
 TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FMLN|spc, true, kpos}; }
@@ -737,13 +737,6 @@ TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bit
 
 
 //-----------------------------------------------------------------------------
-
-#define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
-#define test_emit_yaml_tree_(...) { SCOPED_TRACE("here"); test_emit_yaml_tree(__VA_ARGS__); }
-#define test_emit_yaml_ints_(...) { SCOPED_TRACE("here"); test_emit_yaml_ints(__VA_ARGS__); }
-#define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
-#define test_emit_json_tree_(...) { SCOPED_TRACE("here"); test_emit_json_tree(__VA_ARGS__); }
-#define test_emit_json_ints_(...) { SCOPED_TRACE("here"); test_emit_json_ints(__VA_ARGS__); }
 
 static const EmitOptions without_dash = {};
 static const EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
@@ -3012,6 +3005,16 @@ TEST(emit, stream_map)
 }
 
 
+TEST(emit, nested_map_sl)
+{
+    SCOPED_TRACE("nested_map_sl");
+    std::string yaml = "{a: {b: {c: {d: e}}}}";
+    std::string json = "{\"a\": {\"b\": {\"c\": {\"d\": \"e\"}}}}";
+    TreeAndInts ti = parse_tree_and_ints(to_csubstr(yaml));
+    test_emits_(ti, yaml, json);
+}
+
+
 TEST(emit, anchor_ref)
 {
     SCOPED_TRACE("anchor_ref");
@@ -3043,33 +3046,65 @@ TEST(emit, anchor_ref_err_json)
         SCOPED_TRACE("seq");
         TreeAndInts ti = parse_tree_and_ints("[*a, *b]");
         {
+            SCOPED_TRACE("block");
+            TMPSTY(blk, ti, ti.tree, 2);
+            SCOPED_CALL(test_emit_error_json, (ti, opts));
+        }
+        {
             SCOPED_TRACE("flowsl");
             TMPSTY(flowsl, ti, ti.tree, 2);
-            test_emit_error_json(ti, opts);
+            SCOPED_CALL(test_emit_error_json, (ti, opts));
         }
         {
             SCOPED_TRACE("flowml1");
             TMPSTY(flowml1, ti, ti.tree, 2);
-            test_emit_error_json(ti, opts);
+            SCOPED_CALL(test_emit_error_json, (ti, opts));
         }
         {
             SCOPED_TRACE("nested a");
-            test_emit_error_json(ti.tree[0], ti.ints, 2, opts);
+            SCOPED_CALL(test_emit_error_json, (ti.tree[0], ti.ints, 2, opts));
         }
         {
             SCOPED_TRACE("nested b");
-            test_emit_error_json(ti.tree[1], ti.ints, 5, opts);
+            SCOPED_CALL(test_emit_error_json, (ti.tree[1], ti.ints, 5, opts));
+        }
+    }
+    {
+        SCOPED_TRACE("map");
+        TreeAndInts ti = parse_tree_and_ints("{*a : *b}");
+        {
+            SCOPED_TRACE("block");
+            TMPSTY(blk, ti, ti.tree, 2);
+            SCOPED_CALL(test_emit_error_json, (ti, opts));
+        }
+        {
+            SCOPED_TRACE("flowsl");
+            TMPSTY(flowsl, ti, ti.tree, 2);
+            SCOPED_CALL(test_emit_error_json, (ti, opts));
+        }
+        {
+            SCOPED_TRACE("flowml1");
+            TMPSTY(flowml1, ti, ti.tree, 2);
+            SCOPED_CALL(test_emit_error_json, (ti, opts));
+        }
+        {
+            SCOPED_TRACE("nested a");
+            SCOPED_CALL(test_emit_error_json, (ti.tree[0], ti.ints, 2, opts));
+        }
+        {
+            SCOPED_TRACE("nested b");
+            SCOPED_CALL(test_emit_error_json, (ti.tree[1], ti.ints, 5, opts));
         }
     }
     {
         TreeAndInts ti = parse_tree_and_ints("*a");
         {
             SCOPED_TRACE("docval");
-            test_emit_error_json(ti, opts);
+            SCOPED_CALL(test_emit_error_json, (ti, opts));
         }
         {
             SCOPED_TRACE("nested");
-            test_emit_error_json(ti.tree.rootref(), ti.ints, 2, opts);
+            SCOPED_CALL(test_emit_error_json, (ti.tree.rootref(), ti.ints, 2, opts));
         }
     }
 }
@@ -3153,12 +3188,12 @@ TEST(emit, tag_anchor)
         {
             SCOPED_TRACE("flowsl");
             TMPSTY(flowsl, ti, ti.tree, 2);
-            test_emit_error_json(ti, opts);
+            test_emit_error_json_(ti, opts);
         }
         {
             SCOPED_TRACE("flowml1");
             TMPSTY(flowml1, ti, ti.tree, 2);
-            test_emit_error_json(ti, opts);
+            test_emit_error_json_(ti, opts);
         }
     }
     {
@@ -3167,12 +3202,12 @@ TEST(emit, tag_anchor)
         {
             SCOPED_TRACE("flowsl");
             TMPSTY(flowsl, ti, ti.tree, 2);
-            test_emit_error_json(ti, opts);
+            test_emit_error_json_(ti, opts);
         }
         {
             SCOPED_TRACE("flowml1");
             TMPSTY(flowml1, ti, ti.tree, 2);
-            test_emit_error_json(ti, opts);
+            test_emit_error_json_(ti, opts);
         }
     }
 }
