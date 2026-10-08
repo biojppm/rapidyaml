@@ -6,9 +6,6 @@ c4_add_library(ryml-test-scalar-charconv-no-fast-float LIBRARY_TYPE OBJECT
     LIBS ryml
     FOLDER test)
 target_compile_definitions(ryml-test-scalar-charconv-no-fast-float PRIVATE C4CORE_NO_FAST_FLOAT)
-if(WIN32)
-    target_compile_definitions(ryml-test-scalar-charconv-no-fast-float PRIVATE _CRT_SECURE_NO_WARNINGS)
-endif()
 add_dependencies(ryml-test-build ryml-test-scalar-charconv-no-fast-float)
 
 function(ryml_get_target_exe target_name target_file)
