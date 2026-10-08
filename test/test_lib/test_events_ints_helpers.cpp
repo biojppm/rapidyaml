@@ -244,9 +244,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & directives, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
         }
-        if(evt & (ievt::EXPL))
+        if(evt & (ievt::FLOW))
         {
-            EXPECT_EQ(evt & ievt::DOC_, ievt::DOC_) << (ok = false);
+            EXPECT_NE(evt & (ievt::DOC_|ievt::MAP_|ievt::SEQ_), 0) << (ok = false);
             EXPECT_EQ(evt & style_scalar, 0) << (ok = false);
         }
         if(evt & (ievt::AREN))
@@ -265,15 +265,21 @@ void test_events_ints_invariants(csubstr parsed_yaml,
         {
             EXPECT_EQ(parent & ievt::MAP_, ievt::MAP_);
         }
-        if(evt & (ievt::FLOW|ievt::BLCK))
+        if(evt & ievt::FLOW)
         {
-            EXPECT_EQ(evt & ievt::BEG_, ievt::BEG_) << (ok = false);
-            EXPECT_EQ(evt & ievt::END_, 0) << (ok = false);
-            EXPECT_NE(evt & (ievt::MAP_|ievt::SEQ_), 0) << (ok = false);
+            if(evt & (ievt::MAP_|ievt::SEQ_))
+            {
+                EXPECT_EQ(evt & ievt::BEG_, ievt::BEG_) << (ok = false);
+                EXPECT_EQ(evt & ievt::END_, 0) << (ok = false);
+            }
+            if(evt & ievt::DOC_)
+            {
+                EXPECT_NE(evt & (ievt::BEG_|ievt::END_), 0) << (ok = false);
+            }
+            EXPECT_NE(evt & (ievt::MAP_|ievt::SEQ_|ievt::DOC_), 0) << (ok = false);
         }
         if(evt & (ievt::FSL_|ievt::FML1|ievt::FMLN|ievt::FMLX|ievt::FSPC))
         {
-            EXPECT_EQ(evt & ievt::BLCK, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::FLOW, ievt::FLOW) << (ok = false);
             EXPECT_EQ(evt & ievt::BEG_, ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & ievt::END_, 0) << (ok = false);
@@ -299,7 +305,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
         }
@@ -322,7 +328,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
             EXPECT_EQ(next & ievt::TAGP, ievt::TAGP) << (ok = false);
@@ -346,7 +352,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
             EXPECT_EQ(prev & ievt::TAGH, ievt::TAGH) << (ok = false);
@@ -365,7 +371,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
@@ -387,7 +393,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
@@ -406,7 +412,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
@@ -427,7 +433,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
@@ -435,7 +441,6 @@ void test_events_ints_invariants(csubstr parsed_yaml,
         {
             EXPECT_EQ(evt & ievt::ESEQ, ievt::SEQ_) << (ok = false);
             EXPECT_EQ(evt & ievt::EMAP, 0) << (ok = false);
-            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
@@ -444,7 +449,6 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_) << (ok = false);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), ievt::FLOW|ievt::BLCK) << (ok = false);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
@@ -457,7 +461,6 @@ void test_events_ints_invariants(csubstr parsed_yaml,
         if((evt & ievt::ESEQ) == ievt::ESEQ)
         {
             EXPECT_EQ(evt & ievt::BSEQ, ievt::SEQ_) << (ok = false);
-            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
@@ -468,14 +471,13 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
         if((evt & ievt::BMAP) == ievt::BMAP)
         {
             EXPECT_EQ(evt & ievt::EMAP, ievt::MAP_) << (ok = false);
-            EXPECT_EQ(evt & ievt::EXPL, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::WSTR, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::SCLR, 0) << (ok = false);
             EXPECT_EQ(evt & ievt::ALIA, 0) << (ok = false);
@@ -484,8 +486,6 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_) << (ok = false);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
-            EXPECT_NE(evt & (ievt::FLOW|ievt::BLCK), ievt::FLOW|ievt::BLCK) << (ok = false);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0) << (ok = false);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
@@ -521,7 +521,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
         }
@@ -538,7 +538,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
             evt_bits estyle = evt & style_scalar;
             EXPECT_EQ((estyle & (estyle << 1)), 0) << (ok = false);
@@ -556,7 +556,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
         }
@@ -573,7 +573,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
         }
@@ -590,7 +590,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0) << (ok = false);
-            EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0) << (ok = false);
+            EXPECT_EQ(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC), 0) << (ok = false);
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR) << (ok = false);
         }

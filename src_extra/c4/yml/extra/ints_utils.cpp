@@ -24,14 +24,16 @@ namespace extra {
 namespace ievt {
 
 namespace {
-struct FlagSym { const char *str; EventBits flags; };
+struct FlagSym { const char *str; evt_bits flags; };
 const FlagSym flag_syms_[] = {
     {"KEY_", KEY_},
     {"VAL_", VAL_},
     {"SCLR", SCLR},
-    {"BSEQ", BSEQ},
+    {"BSEQ|FLOW", BSEQ|FLOW},
+    {"BMAP|FLOW", BMAP|FLOW},
+    {"BSEQ|BLCK", BSEQ},
+    {"BMAP|BLCK", BMAP},
     {"ESEQ", ESEQ},
-    {"BMAP", BMAP},
     {"EMAP", EMAP},
     {"ALIA", ALIA},
     {"ANCH", ANCH},
@@ -42,24 +44,23 @@ const FlagSym flag_syms_[] = {
     {"LITL", LITL},
     {"FOLD", FOLD},
     {"FLOW", FLOW},
-    {"BLCK", BLCK},
+    {"BDOC|EXPL", BDOC|EXPL},
+    {"EDOC|EXPL", EDOC|EXPL},
     {"BDOC", BDOC},
     {"EDOC", EDOC},
     {"BSTR", BSTR},
     {"ESTR", ESTR},
-    {"EXPL", EXPL},
     {"AREN", AREN},
-    {"PSTR", PSTR},
-    {"UNFILT", UNFILT},
     {"YAML", YAML},
     {"TAGH", TAGH},
     {"TAGP", TAGP},
-    {"JUMP", JUMP},
-    {"PJUMP", PJUMP},
     {"FSL_", FSL_},
     {"FML1", FML1},
     {"FMLN", FMLN},
     {"FSPC", FSPC},
+    {"PSTR", PSTR},
+    {"JUMP", JUMP},
+    {"PJUMP", PJUMP},
 };
 } // namespace
 
@@ -78,7 +79,7 @@ size_t to_str(substr buf, evt_bits flags) noexcept
     }
     if(!writer.pos)
         writer.append("NONE");
-    if(buf.len > writer.pos)
+    if(writer.pos < buf.len)
         buf[writer.pos] = '\0';
     return writer.pos;
 }

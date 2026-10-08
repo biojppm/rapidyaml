@@ -472,7 +472,7 @@ public:
     void begin_map_key_block()
     {
         _c4dbgpf("{}/{}: bmap key block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::BLCK);
+        _send_flag_only_(ievt::KEY_|ievt::BMAP/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::BLOCK);
         _push();
@@ -489,7 +489,7 @@ public:
     void begin_map_val_block()
     {
         _c4dbgpf("{}/{}: bmap block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::VAL_|ievt::BMAP|ievt::BLCK);
+        _send_flag_only_(ievt::VAL_|ievt::BMAP/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::MAP|c4::yml::BLOCK);
         _push();
@@ -540,7 +540,7 @@ public:
     void begin_seq_key_block()
     {
         _c4dbgpf("{}/{}: bseq key block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::BLCK);
+        _send_flag_only_(ievt::KEY_|ievt::BSEQ/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::BLOCK);
         _push();
@@ -557,7 +557,7 @@ public:
     void begin_seq_val_block()
     {
         _c4dbgpf("{}/{}: bseq block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::VAL_|ievt::BSEQ|ievt::BLCK);
+        _send_flag_only_(ievt::VAL_|ievt::BSEQ/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::SEQ|c4::yml::BLOCK);
         _push();
@@ -965,7 +965,7 @@ public:
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, num_move > 0);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, 0 == (m_evt.ptr[posp1] & ievt::PSTR));
                 memmove(m_evt.ptr + posp1, m_evt.ptr + pos, (size_t)num_move * sizeof(evt_bits));
-                m_evt.ptr[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
+                m_evt.ptr[pos] = ievt::VAL_|ievt::BMAP/*|ievt::BLCK*/;
                 m_evt.ptr[posp1] &= ~ievt::VAL_;
                 m_evt.ptr[posp1] |= ievt::KEY_;
             }

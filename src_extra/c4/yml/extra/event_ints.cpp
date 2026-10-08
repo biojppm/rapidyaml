@@ -77,16 +77,18 @@ static_assert((ievt::MASK & ievt::DQUO) == ievt::DQUO, "overflow?");
 static_assert((ievt::MASK & ievt::LITL) == ievt::LITL, "overflow?");
 static_assert((ievt::MASK & ievt::FOLD) == ievt::FOLD, "overflow?");
 static_assert((ievt::MASK & ievt::FLOW) == ievt::FLOW, "overflow?");
-static_assert((ievt::MASK & ievt::BLCK) == ievt::BLCK, "overflow?");
+static_assert((ievt::MASK & ievt::EXPL) == ievt::EXPL, "overflow?");
+static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
 static_assert((ievt::MASK & ievt::KEY_) == ievt::KEY_, "overflow?");
 static_assert((ievt::MASK & ievt::VAL_) == ievt::VAL_, "overflow?");
-static_assert((ievt::MASK & ievt::EXPL) == ievt::EXPL, "overflow?");
 static_assert((ievt::MASK & ievt::YAML) == ievt::YAML, "overflow?");
 static_assert((ievt::MASK & ievt::TAGH) == ievt::TAGH, "overflow?");
 static_assert((ievt::MASK & ievt::TAGP) == ievt::TAGP, "overflow?");
 static_assert((ievt::MASK & ievt::AREN) == ievt::AREN, "overflow?");
 static_assert((ievt::MASK & ievt::PSTR) == ievt::PSTR, "overflow?");
 static_assert((ievt::MASK & ievt::WSTR) == ievt::WSTR, "overflow?");
+static_assert((ievt::MASK & ievt::RREF) == ievt::RREF, "overflow?");
+static_assert((ievt::MASK & ievt::PRREF) == ievt::PRREF, "overflow?");
 static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
 static_assert((ievt::MASK & ievt::PJUMP) == ievt::PJUMP, "overflow?");
 static_assert((ievt::MASK & ievt::FSL_) == ievt::FSL_, "overflow?");
@@ -94,7 +96,6 @@ static_assert((ievt::MASK & ievt::FML1) == ievt::FML1, "overflow?");
 static_assert((ievt::MASK & ievt::FMLN) == ievt::FMLN, "overflow?");
 static_assert((ievt::MASK & ievt::FMLX) == ievt::FMLX, "overflow?");
 static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
-static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
 
 
 namespace detail {
@@ -107,7 +108,7 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
     {
         evt_bits evt = evts[pos];
         if(detail::hasall(evt, ievt::BDOC))
-            return (evt & ievt::EXPL);
+            return (evt & ievt::FLOW);
         else if(detail::hasall(evt, ievt::ESTR))
             break;
         pos += ievt::nextstep(evt);

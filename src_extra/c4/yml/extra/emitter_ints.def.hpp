@@ -37,11 +37,15 @@ namespace detail {
 enum : evt_bits { // NOLINT
     styles_ievt_quot = ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
     styles_ievt_sclr = ievt::PLAI|styles_ievt_quot,
-    styles_ievt_cont = ievt::BLCK|ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
+    styles_ievt_cont = /*ievt::BLCK|*/ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
 };
 inline bool query_blck_cont_(evt_bits evt) noexcept
 {
-    return (evt & ievt::BLCK) || (!(evt & detail::styles_ievt_cont));
+    return !(evt & ievt::FLOW);
+}
+inline bool query_blck_cont_or_(evt_bits evt, evt_bits flowstyle) noexcept
+{
+    return (evt & flowstyle) || /*blck*/!(evt & ievt::FLOW);
 }
 inline bool key_requires_qmark_block(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
@@ -132,7 +136,7 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     else if(detail::hasall(evt, ievt::BDOC))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
-        bool expl = evt & ievt::EXPL;
+        bool expl = evt & ievt::FLOW;
         if(expl)
         {
             write_("---");
@@ -240,13 +244,11 @@ evt_size EmitterInts<Writer>::kickoff_key(evt_size pos, evt_size keypos)
     {
         RYML_ASSERT_BASIC_(detail::seqormap(m_evts[keypos]));
         evt_bits keystyle = (m_evts[keypos] & detail::styles_ievt_cont);
-        if(!keystyle)
-            keystyle = ievt::BLCK;
         write_('?');
         pend_space_();
         pos = write_tag_or_anchor(pos, keypos);
         ++m_ilevel;
-        if(keystyle & ievt::BLCK)
+        if(!keystyle)
             pend_newl_();
         pos = visit_blck_container_(pos);
         --m_ilevel;
@@ -271,7 +273,7 @@ evt_size EmitterInts<Writer>::visit_stream_(evt_size pos)
         evt_bits evt = m_evts[pos];
         if(detail::hasall(evt, ievt::BDOC))
         {
-            bool expl = doc_count || (evt & ievt::EXPL);
+            bool expl = doc_count || (evt & ievt::FLOW);
             if(expl)
             {
                 if(doc_count)
@@ -419,10 +421,10 @@ evt_size EmitterInts<Writer>::visit_doc_(evt_size pos, bool begin_expl)
             if(was_flow_container)
             {
                 // is there a better way?
-                if(begin_expl || (evt & ievt::EXPL) || detail::has_next_doc_and_is_expl_(m_evts, m_evts_size, pos))
+                if(begin_expl || (evt & ievt::FLOW) || detail::has_next_doc_and_is_expl_(m_evts, m_evts_size, pos))
                     pend_newl_();
             }
-            if(evt & ievt::EXPL)
+            if(evt & ievt::FLOW)
             {
                 write_pws_and_pend_(PWS_NEWL_);
                 write_("...");
@@ -447,8 +449,8 @@ evt_size EmitterInts<Writer>::visit_blck_container_(evt_size pos)
     evt_bits evt = m_evts[pos];
     RYML_ASSERT_BASIC_(detail::seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if(!(evt & (ievt::FLOW|ievt::BLCK)))
-        evt |= (m_evts[pos + 1] & ievt::END_) ? ievt::FSL_ : ievt::BLCK;
+    if((m_evts[pos + 1] & ievt::END_) && !(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX)))
+        evt |= ievt::FLOW|ievt::FSL_;
     write_pws_and_pend_(PWS_NONE_);
     if(evt & ievt::FSL_)
         pos = visit_flow_sl_(pos);
@@ -466,7 +468,7 @@ evt_size EmitterInts<Writer>::visit_flow_container_(evt_size pos)
     evt_bits evt = m_evts[pos];
     RYML_ASSERT_BASIC_(detail::seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if(!(evt & ievt::FLOW))
+    if(!(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX)))
         evt |= ievt::FLOW|ievt::FSL_;
     write_pws_and_pend_(PWS_NONE_);
     if(evt & ievt::FMLX)
@@ -586,10 +588,9 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
         {
             if(has_tag_or_anchor)
             {
-                if(detail::hasnone(evt, detail::styles_ievt_cont))
-                    evt |= ievt::BLCK;
+                bool blck = detail::hasnone(evt, detail::styles_ievt_cont);
                 bool empty = (m_evts[pos + 1] & ievt::END_);
-                if(!empty && (evt & ievt::BLCK))
+                if(!empty && blck)
                     pend_newl_();
             }
             ++m_depth;
@@ -693,11 +694,10 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
         }
         else if(detail::seqormap(evt))
         {
-            if(!(evt & detail::styles_ievt_cont))
-                evt |= ievt::BLCK;
+            bool blck = !(evt & detail::styles_ievt_cont);
             ++m_depth;
             ++m_ilevel;
-            if(evt & ievt::BLCK)
+            if(blck)
                 pend_newl_();
             write_pws_and_pend_(PWS_NONE_);
             pos = visit_blck_container_(pos);
@@ -1154,7 +1154,6 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
 template<class Writer>
 void EmitterInts<Writer>::flow_write_scalar_(csubstr str, evt_bits evt)
 {
-    RYML_ASSERT_BASIC_(!(evt & ievt::BLCK));
     if((evt & ievt::PLAI) || !(evt & detail::styles_ievt_sclr))
     {
         yml::detail::emit_scalar_plain_(this, str, m_ilevel);
@@ -1220,7 +1219,7 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
         if(detail::hasall(m_evts[p], ievt::BDOC))
         {
             ++numdocs;
-            has_expl = has_expl || ((m_evts[p] & ievt::EXPL) != 0);
+            has_expl = has_expl || ((m_evts[p] & ievt::FLOW) != 0);
         }
         else if(detail::hasall(m_evts[p], ievt::ESTR))
         {
@@ -1242,16 +1241,37 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
     {
         if(detail::hasall(m_evts[pos], ievt::BDOC))
         {
+            RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
             bool isflowml = false;
+            const evt_bits next = m_evts[pos + 1];
             if(mldocs)
             {
                 indent_(m_ilevel);
             }
             else
             {
-                isflowml = pos + 1 < m_evts_size && (m_evts[pos+1] & (ievt::FMLX|ievt::BLCK));
+                isflowml = detail::seqormap(next) && detail::query_blck_cont_or_(next, ievt::FMLX);
             }
-            pos = json_visit_ml_(pos);
+            if(detail::hasall(next, ievt::BSEQ))
+            {
+                if C4_UNLIKELY (next & ievt::KEY_)
+                    RYML_ERR_BASIC_("JSON does not accept seq keys");
+                write_('[');
+                pos = json_visit_container_(pos + 1) + 1;
+                write_(']');
+            }
+            else if(detail::hasall(next, ievt::BMAP))
+            {
+                if C4_UNLIKELY (next & ievt::KEY_)
+                    RYML_ERR_BASIC_("JSON does not accept map keys");
+                write_('{');
+                pos = json_visit_container_(pos + 1) + 1;
+                write_('}');
+            }
+            else
+            {
+                pos = json_visit_ml_(pos);
+            }
             while(m_evts[pos] & (ievt::TAGH|ievt::TAGP))
                 pos += ievt::nextstep(m_evts[pos]); // LCOV_EXCL_LINE
             if(mldocs)
@@ -1348,7 +1368,7 @@ evt_size EmitterInts<Writer>::json_visit_nested_(evt_size pos)
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
     }
-    if(ek.emit_key || (m_evts[ek.valpos] & (ievt::FMLX|ievt::BLCK)))
+    if(ek.emit_key || (detail::seqormap(m_evts[ek.valpos]) && detail::query_blck_cont_or_(m_evts[ek.valpos], ievt::FMLX)))
         pend_newl_();
     return pos;
 }
@@ -1357,7 +1377,7 @@ evt_size EmitterInts<Writer>::json_visit_nested_(evt_size pos)
 template<class Writer>
 evt_size EmitterInts<Writer>::json_visit_container_(evt_size pos)
 {
-    if(m_evts[pos] & (ievt::BLCK|ievt::FMLX))
+    if(detail::query_blck_cont_or_(m_evts[pos], ievt::FMLX))
     {
         if(m_opts.indent_flow_ml()) ++m_ilevel;
         pend_newl_();
@@ -1565,7 +1585,7 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
                 if((open & ievt::FSPC) || m_opts.force_flow_spc())
                     write_(' ');
             }
-            else if((open & (ievt::FML1|ievt::BLCK)) || at_end)
+            else if(at_end || detail::query_blck_cont_or_(open, ievt::FML1))
             {
                 pend_newl_();
             }
@@ -1573,7 +1593,7 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
         else
         {
             ++pos; // advance past the close event
-            if(open & (ievt::FMLX|ievt::BLCK))
+            if(detail::seqormap(open) && detail::query_blck_cont_or_(open, ievt::FMLX))
                 pend_newl_();
             break;
         }

@@ -717,19 +717,19 @@ TmpStyle mkdquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { re
 TmpStyle mkfoldkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_FOLDED|VAL_FOLDED,  vpos, xievt::FOLD, true,  kpos}; }
 TmpStyle mklitlkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_LITERAL|VAL_LITERAL,  vpos, xievt::LITL, true,  kpos}; }
 
-TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, xievt::BLCK}; }
+TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, 0}; }
 TmpStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|xievt::FSL_|spc}; }
 TmpStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|xievt::FML1|spc}; }
 TmpStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|xievt::FMLN|spc}; }
 
 TmpStyle mknosty(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, evt_bits{}}; }
-TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::BLCK}; }
+TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, 0}; }
 TmpStyle mkflowsl(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FSL_|spc}; }
 TmpStyle mkflowml1(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FML1|spc}; }
 TmpStyle mkflowmln(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FMLN|spc}; }
 // use the extra arg to disambiguate overloads above ^
 TmpStyle mknosty(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, evt_bits{}, true, kpos}; }
-TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::BLCK, true, kpos}; }
+TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, 0, true, kpos}; }
 TmpStyle mkflowsl(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FSL_|spc, true, kpos}; }
 TmpStyle mkflowml1(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FML1|spc, true, kpos}; }
 TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FMLN|spc, true, kpos}; }

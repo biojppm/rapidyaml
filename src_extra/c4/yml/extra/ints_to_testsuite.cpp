@@ -161,14 +161,14 @@ size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-li
         }
         else if((evt & ievt::BDOC) == ievt::BDOC)
         {
-            if(evt & ievt::EXPL)
+            if(evt & ievt::FLOW)
                 append("+DOC ---\n");
             else
                 append("+DOC\n");
         }
         else if((evt & ievt::EDOC) == ievt::EDOC)
         {
-            if(evt & ievt::EXPL)
+            if(evt & ievt::FLOW)
                 append("-DOC ...\n");
             else
                 append("-DOC\n");
