@@ -15,13 +15,15 @@ namespace yml {
 bool scalar_style_query_squo(csubstr scalar) noexcept
 {
     // see https://www.yaml.info/learn/quote.html#noplain
-    // cannot have leading whitespace after a newline
+    // cannot have whitespace around a newline, as it would be
+    // folded away when parsing
     for(size_t i = 0; i < scalar.len; ++i)
     {
-        if(scalar.str[i] == '\n' && i + 1 < scalar.len)
+        if(scalar.str[i] == '\n')
         {
-            char next = scalar.str[i + 1];
-            if(next == ' ' || next == '\t')
+            if(i > 0 && (scalar.str[i - 1] == ' ' || scalar.str[i - 1] == '\t'))
+                return false;
+            if(i + 1 < scalar.len && (scalar.str[i + 1] == ' ' || scalar.str[i + 1] == '\t'))
                 return false;
         }
     }
@@ -53,6 +55,9 @@ bool scalar_style_query_plain_flow(csubstr scalar) noexcept
     // see https://www.yaml.info/learn/quote.html#noplain
     if(!scalar.len)
         return !scalar.str;
+    // same whitespace constraints as single-quoted scalars
+    if(!scalar_style_query_squo(scalar))
+        return false;
     // first
     switch(scalar.str[0])
     {
@@ -103,6 +108,9 @@ bool scalar_style_query_plain_block(csubstr scalar) noexcept
     // see https://www.yaml.info/learn/quote.html#noplain
     if(!scalar.len)
         return !scalar.str;
+    // same whitespace constraints as single-quoted scalars
+    if(!scalar_style_query_squo(scalar))
+        return false;
     // first
     switch(scalar.str[0])
     {
@@ -149,9 +157,9 @@ NodeType scalar_style_choose_block(csubstr scalar) noexcept
     {
         if(scalar_style_query_plain_block(scalar))
             return SCALAR_PLAIN;
-        RYML_ASSERT_BASIC_(scalar_style_query_squo(scalar)
-                           && "if this assertion fires, please submit an issue!");
-        return SCALAR_SQUO;
+        else if(scalar_style_query_squo(scalar))
+            return SCALAR_SQUO;
+        return SCALAR_DQUO;
     }
     return scalar.str ? SCALAR_SQUO : SCALAR_PLAIN;
 }
