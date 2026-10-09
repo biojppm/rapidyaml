@@ -581,6 +581,10 @@ const scalar_style_spec scalars[] = {
     __(" ", S, S, D),
     __("\t", S, S, D),
     __("\n", S, S, D),
+    // whitespace next to a newline would be folded away
+    __("a\n b", D, D, D), _("a\n\tb", D, D, D), _("a\n\n b", D, D, D),
+    __("a \nb", D, D, D), _("a\t\nb", D, D, D), _("a \n", D, D, D),
+    __(">a\n b", D, D, D), _("- a\n b", D, D, D), _("#a \nb", D, D, D),
     // numbers
     __("0", P, P, P), _("00", P, P, D), _("000", P, P, D),
     __("1", P, P, P), _("01", P, P, D), _("001", P, P, D),
