@@ -117,13 +117,13 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
 }
 
 
-evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
+evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
-    RYML_ASSERT_BASIC_(evts[pos] & ievt::KEY_);
     evt_bits accum = {};
+    const evt_bits stop = (evts[pos] & ievt::KEY_) ? ievt::VAL_ : ievt::KEY_;
     for( ; pos < evts_size; pos = ievt::nextpos(evts, pos))
     {
-        if(evts[pos] & ievt::VAL_)
+        if(evts[pos] & stop)
             break;
         accum |= evts[pos];
     }
@@ -300,7 +300,163 @@ evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
     return scalar.str ? ievt::SQUO : ievt::PLAI;
 }
 
+namespace {
+csubstr getstr(evt_bits const* evts, csubstr src, csubstr arena, evt_size pos)
+{
+    csubstr str = !(evts[pos] & ievt::AREN) ? src : arena;
+    RYML_ASSERT_BASIC_(static_cast<size_t>(evts[pos + 1]) <= str.len);
+    RYML_ASSERT_BASIC_(static_cast<size_t>(evts[pos + 1] + evts[pos + 2]) <= str.len);
+    str.str = str.str + evts[pos + 1];
+    str.len = static_cast<size_t>(evts[pos + 2]);
+    return str;
+}
+struct AnchorTargetRange
+{
+    evt_size beg; /// beginning pos of the range
+    evt_size end; /// end pos of the range (past 1)
+};
+AnchorTargetRange make_range_from_alias(evt_bits const* evts, evt_size sz, evt_size pos)
+{
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::ANCH);
+    AnchorTargetRange r;
+    r.beg = pos + 3;
+    if(evts[r.beg] & ievt::SCLR)
+    {
+        r.end = r.beg + 3;
+    }
+    else
+    {
+        RYML_ASSERT_BASIC_(evts[r.beg] & ievt::BEG_);
+        r.end = detail::find_matching_close_(evts, sz, r.beg);
+        r.end = nextpos(evts, r.end); // END_ must be part of the range, so extend beyond it
+    }
+    return r;
+}
+AnchorTargetRange lookup_anchor(evt_bits const* evts, evt_size sz, csubstr src, csubstr arena, evt_size pos)
+{
+    // get the anchor
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::ALIA);
+    evt_size spos = pos;
+    csubstr ref = detail::getstr(evts, src, arena, pos);
+    // lookup the anchor
+    while(true)
+    {
+        pos = ievt::prevpos(evts, pos);
+        if(evts[pos] & ievt::ANCH)
+        {
+            csubstr anch = detail::getstr(evts, src, arena, pos);
+            if(anch == ref)
+                return detail::make_range_from_alias(evts, sz, pos);
+        }
+        else if(((evts[pos] & BDOC) == BDOC) || ((evts[pos] & BSTR) == BSTR))
+        {
+            break;
+        }
+    }
+    RYML_ERR_BASIC_("anchor not found at ALIA[{}]: {}", spos, ref);
+}
+void set_rref(evt_bits * evts, evt_size pos, AnchorTargetRange rng) RYML_NOEXCEPT
+{
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::ALIA);
+    evts[pos] &= ~ALIA;
+    evts[pos] |= RREF;
+    evts[pos + 1] = rng.beg;
+    evts[pos + 2] = rng.end;
+    evts[pos + 3] &= ~PSTR;
+    evts[pos + 3] |= PRREF;
+}
+void clear_anchor(evt_bits * evts, evt_size pos)
+{
+    evts[pos] &= ievt::KEY_|ievt::VAL_|ievt::PEXTRA2; // keep only these flags (no unary ~ operator)
+    evts[pos + 1] = 0;
+    evts[pos + 2] = 0;
+    evts[pos + 3] &= ~ievt::PSTR;
+}
+void apply_inheriting_ref_entry(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, evt_size pos)
+{
+    detail::AnchorTargetRange rng = detail::lookup_anchor(evts, sz, src, arena, pos);
+    if C4_LIKELY (detail::hasall(evts[rng.beg], ievt::BMAP))
+    {
+        RYML_ASSERT_BASIC_(detail::hasall(evts[rng.end - 1], ievt::EMAP));
+        ++rng.beg; // skip BMAP
+        --rng.end; // skip EMAP
+        detail::set_rref(evts, pos, rng);
+    }
+    else
+    {
+        RYML_ERR_BASIC_("invalid inheriting reference at pos={}", pos);
+    }
+}
+void apply_inheriting_ref(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::KEY_|ievt::SCLR));
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos + 3], ievt::VAL_|ievt::ALIA));
+    RYML_ASSERT_BASIC_("<<" == detail::getstr(evts, src, arena, pos));
+    detail::clear_anchor(evts, pos); // clear the << scalar
+    apply_inheriting_ref_entry(evts, sz, src, arena, pos + 3);
+}
+void apply_inheriting_seq(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::KEY_|ievt::SCLR));
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos + 3], ievt::VAL_|ievt::BSEQ));
+    RYML_ASSERT_BASIC_("<<" == detail::getstr(evts, src, arena, pos));
+    detail::clear_anchor(evts, pos); // clear the << scalar
+    pos += 3;
+    // clear the seq
+    evts[pos] &= ievt::KEY_|ievt::VAL_|ievt::PEXTRA2; // keep only these flags (no unary ~ operator)
+    ++pos; // skip BSEQ
+    while(true)
+    {
+        if C4_LIKELY (evts[pos] & ievt::ALIA)
+        {
+            apply_inheriting_ref_entry(evts, sz, src, arena, pos);
+            pos = nextpos(evts, pos);
+            if(detail::hasall(evts[pos], ievt::ESEQ))
+                break;
+        }
+        else
+        {
+            RYML_ERR_BASIC_("invalid reference at pos={}", pos);
+        }
+    }
+    RYML_ASSERT_BASIC_(detail::hasall(evts[pos], ievt::ESEQ));
+    evts[pos] &= ievt::PEXTRA2; // keep only these flags (no unary ~ operator)
+}
+} // namespace anon
 } // namespace detail
+
+
+
+void resolve_refs(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, bool clear_anchors)
+{
+    if(!sz) return;
+    for(evt_size pos = 0; evts[pos] != ievt::ESTR; pos = nextpos(evts, pos))
+    {
+        if(evts[pos] & ievt::ALIA)
+        {
+            detail::AnchorTargetRange rng = detail::lookup_anchor(evts, sz, src, arena, pos);
+            detail::set_rref(evts, pos, rng);
+        }
+        else if(detail::hasall(evts[pos], ievt::KEY_|ievt::SCLR))
+        {
+            csubstr key = detail::getstr(evts, src, arena, pos);
+            if(key == "<<")
+            {
+                if(detail::hasall(evts[pos + 3], ievt::VAL_|ievt::ALIA))
+                    detail::apply_inheriting_ref(evts, sz, src, arena, pos);
+                else if(detail::hasall(evts[pos + 3], ievt::VAL_|ievt::BSEQ))
+                    detail::apply_inheriting_seq(evts, sz, src, arena, pos);
+            }
+        }
+    }
+    if(clear_anchors)
+    {
+        for(evt_size pos = 0; evts[pos] != ESTR; pos = nextpos(evts, pos))
+            if(evts[pos] & ANCH)
+                detail::clear_anchor(evts, pos);
+    }
+}
+
 } // namespace ievt
 } // namespace extra
 

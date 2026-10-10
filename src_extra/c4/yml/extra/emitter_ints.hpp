@@ -230,6 +230,36 @@ public:
 
 private:
 
+    struct RrefHandler
+    {
+        evt_size pos_refend; /// position at which the rref ends
+        evt_size pos_resume; /// position to resume after the rref ends
+        bool active;
+    };
+
+    evt_size start_rref_(evt_size pos, RrefHandler *h) noexcept
+    {
+        RYML_ASSERT_BASIC_(!h->active);
+        RYML_ASSERT_BASIC_(m_evts[pos] & ievt::RREF);
+        h->pos_refend = m_evts[pos + 2];
+        h->pos_resume = pos + 3;
+        h->active = true;
+        return m_evts[pos + 1];
+    }
+
+    evt_size check_rref_(evt_size pos, RrefHandler *h)
+    {
+        RYML_ASSERT_BASIC_(h->active);
+        if(pos == h->pos_refend)
+        {
+            pos = h->pos_resume;
+            h->active = false;
+        }
+        return pos;
+    }
+
+private:
+
     evt_bits const* m_evts;
     evt_size    m_evts_size;
     csubstr     m_src;

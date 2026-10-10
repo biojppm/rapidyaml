@@ -59,6 +59,8 @@ const FlagSym flag_syms_[] = {
     {"FMLN", FMLN},
     {"FSPC", FSPC},
     {"PSTR", PSTR},
+    {"RREF", RREF},
+    {"PRREF", PRREF},
     {"JUMP", JUMP},
     {"PJUMP", PJUMP},
 };
@@ -97,8 +99,10 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts,
 {
     char buf[200];
     evt_size level = 0;
+    bool uses_arena = false;
+    (void)evts_sz;
     for(evt_bits evtpos = 0, evtnumber = 0;
-        evtpos < evts_sz;
+        true;
         ++evtnumber,
             evtpos = ievt::nextpos(evts, evtpos))
     {
@@ -118,6 +122,7 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts,
         if(evt & ievt::WSTR)
         {
             bool in_arena = evt & ievt::AREN;
+            uses_arena = uses_arena || in_arena;
             csubstr region = !in_arena ? parsed_yaml : arena;
             bool safe = (evts[evtpos + 1] >= 0)
                 && (evts[evtpos + 2] >= 0)
@@ -126,13 +131,19 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, evt_bits const* evts,
             const char *str = safe ? (region.str + evts[evtpos + 1]) : "ERR!!!";
             evt_bits len = safe ? evts[evtpos + 2] : 6;
             printf(": %d [%d]~~~%.*s~~~", evts[evtpos+1], evts[evtpos+2], len, str);
-            if(in_arena)
-                printf(" (arenasz=%zu)", arena.len); // LCOV_EXCL_LINE
-            else
-                printf(" (srcsz=%zu)", parsed_yaml.len);
+        }
+        if(evt & ievt::RREF)
+        {
+            printf(": %d:%d", evts[evtpos + 1], evts[evtpos + 2]);
         }
         printf("\n");
+        if(evts[evtpos] == ievt::ESTR)
+            break;
     }
+    printf("src.len=%zu", parsed_yaml.len);
+    if(uses_arena)
+        printf(" arena.len=%zu", arena.len); // LCOV_EXCL_LINE
+    printf("\n");
 }
 
 } // namespace ievt

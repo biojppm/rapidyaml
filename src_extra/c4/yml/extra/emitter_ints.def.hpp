@@ -49,11 +49,11 @@ inline bool query_blck_cont_or_(evt_bits evt, evt_bits flowstyle) noexcept
 }
 inline bool key_requires_qmark_block(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
-    return get_all_bits_key(evts, evts_size, pos) & (detail::mask_seqmap|ievt::LITL|ievt::FOLD); // NOLINT
+    return get_all_bits_key_or_val_(evts, evts_size, pos) & (detail::mask_seqmap|ievt::LITL|ievt::FOLD); // NOLINT
 }
 inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
-    return get_all_bits_key(evts, evts_size, pos) & (detail::mask_seqmap);
+    return get_all_bits_key_or_val_(evts, evts_size, pos) & (detail::mask_seqmap);
 }
 } // namespace detail
 
@@ -559,6 +559,7 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
     ++pos;
     bool newval = true;
     bool has_tag_or_anchor = false;
+    RrefHandler rref_handler = {};
     evt_bits evt = {};
     while(pos < m_evts_size)
     {
@@ -623,6 +624,10 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(evt & ievt::RREF)
+        {
+            pos = start_rref_(pos, &rref_handler);
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
@@ -631,6 +636,8 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
     nextval:
         newval = true;
         has_tag_or_anchor = false;
+        if(rref_handler.active)
+            pos = check_rref_(pos, &rref_handler);
     }
     return pos;
 }
@@ -646,6 +653,7 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
     RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BMAP));
     bool statenew = true;
     bool statekey = true;
+    RrefHandler rref_handler = {};
     ++pos;
     evt_bits evt = {};
     while(pos < m_evts_size)
@@ -655,6 +663,16 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
         {
             ++pos;
             break;
+        }
+        else if(evt & ievt::RREF)
+        {
+            pos = start_rref_(pos, &rref_handler);
+            continue;
+        }
+        else if(evt == ievt::PRREF) // this can happen on the last ref in <<: [*a, *b]
+        {
+            ++pos;
+            continue;
         }
         if(statenew)
         {
@@ -735,6 +753,8 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
     statenext:
         statenew = true;
         statekey = !statekey;
+        if(rref_handler.active)
+            pos = check_rref_(pos, &rref_handler);
     }
     return pos;
 }

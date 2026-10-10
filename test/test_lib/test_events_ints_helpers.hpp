@@ -144,6 +144,13 @@ public:
 
 public:
 
+    void resolve()
+    {
+        resolve_refs(evts.ptr, evts.len, src, arena);
+    }
+
+public:
+
     void print(bool print_all=false) const
     {
         evt_size sz = print_all ? evts.cap : num_ints();

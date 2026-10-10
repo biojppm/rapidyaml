@@ -266,6 +266,9 @@ typedef enum : evt_bits { // NOLINT
     /// but for @ref JUMP)
     PJUMP = (1 << 27),
 
+    EXTRA2 = WSTR|RREF|JUMP,
+    PEXTRA2 = PSTR|PRREF|PJUMP,
+
     // flow style flags
     FSL_ = (1 << 28), ///< same as @ref c4::yml::FLOW_SL
     FML1 = (1 << 29), ///< same as @ref c4::yml::FLOW_ML1
@@ -284,32 +287,36 @@ typedef enum : evt_bits { // NOLINT
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextstep(evt_bits bits) noexcept
 {
-    return (bits & ievt::WSTR) ? 3 : 1;
+    return (bits & ievt::EXTRA2) ? 3 : 1;
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevstep(evt_bits bits) noexcept
 {
-    return (bits & ievt::PSTR) ? 3 : 1;
+    return (bits & ievt::PEXTRA2) ? 3 : 1;
 }
 
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits, evt_size pos) noexcept
 {
-    return pos + ((bits & ievt::WSTR) ? 3 : 1);
+    return pos + ((bits & ievt::EXTRA2) ? 3 : 1);
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits, evt_size pos) noexcept
 {
-    return pos - ((bits & ievt::PSTR) ? 3 : 1);
+    return pos - ((bits & ievt::PEXTRA2) ? 3 : 1);
 }
 
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
-    return pos + ((arr[pos] & ievt::WSTR) ? 3 : 1);
+    return pos + ((arr[pos] & ievt::EXTRA2) ? 3 : 1);
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
-    return pos - ((arr[pos] & ievt::PSTR) ? 3 : 1);
+    return pos - ((arr[pos] & ievt::PEXTRA2) ? 3 : 1);
 }
+
+
+evt_size lookup_anchor(evt_bits const* evts, evt_size sz, csubstr src, csubstr arena, evt_size pos);
+void resolve_refs(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, bool clear_anchors=true);
 
 
 //-----------------------------------------------------------------------------
@@ -324,6 +331,10 @@ struct RYML_EXPORT evtbuf
 };
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 struct RYML_EXPORT Buffers
 {
@@ -332,7 +343,7 @@ struct RYML_EXPORT Buffers
     evtbuf    evts  = {};
     bool      owned = {};
     Callbacks callbacks = {};
-    csubstr getstr(evt_size pos) const RYML_NOEXCEPT
+    C4_HOT C4_ALWAYS_INLINE csubstr getstr(evt_size pos) const RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(pos + 2 < evts.len);
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
@@ -418,7 +429,7 @@ struct MaybeParent
 };
 RYML_EXPORT MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept;
 RYML_EXPORT bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT;

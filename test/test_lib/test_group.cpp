@@ -227,6 +227,12 @@ static void _test_parse_to_ints(Case const* c, substr src, extra::ievt::TestBuff
         }));
         if(parseok)
             ints->test_invariants();
+        if(c->flags & RESOLVE_REFS)
+        {
+            SCOPED_TRACE("resolve");
+            ints->resolve();
+            ints->test_invariants();
+        }
     }
     if(testing::Test::HasFailure())
     {
@@ -416,7 +422,7 @@ void YmlTestCase::_test_parse_yaml_to_ints_resize(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
         return;
     cd->ensure_ints_resize_emit_yaml(c);
-    if(c->flags & (HAS_CONTAINER_KEYS|RESOLVE_REFS)) // NOLINT
+    if(c->flags & HAS_CONTAINER_KEYS) // NOLINT
         return;
     cd->ensure_tree_emit_yaml(c);
     if(c->flags & NO_COMPARE_EMITTED_INTS) // NOLINT
@@ -437,7 +443,7 @@ void YmlTestCase::_test_parse_yaml_to_ints_noresize(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
         return;
     cd->ensure_ints_noresize_emit_yaml(c);
-    if(c->flags & (HAS_CONTAINER_KEYS|RESOLVE_REFS)) // NOLINT
+    if(c->flags & HAS_CONTAINER_KEYS) // NOLINT
         return;
     cd->ensure_tree_emit_yaml(c);
     if(c->flags & NO_COMPARE_EMITTED_INTS) // NOLINT

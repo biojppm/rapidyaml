@@ -16,44 +16,64 @@ size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz)
     return sz;
 }
 
-void test_events_ints_compare(ievt::Buffers const& expected, ievt::Buffers const& actual)
+void test_events_ints_compare(ievt::Buffers const& expect, ievt::Buffers const& actual)
 {
-    bool samelen = actual.evts.len == expected.evts.len;
-    int  samemem = memcmp(actual.evts.ptr, expected.evts.ptr, (size_t)actual.evts.len * sizeof(actual.evts.ptr[0]));
+    bool samelen = actual.evts.len == expect.evts.len;
+    int  samemem = 0 == memcmp(actual.evts.ptr, expect.evts.ptr, (size_t)actual.evts.len * sizeof(actual.evts.ptr[0]));
     if(samelen && samemem)
         return;
-    EXPECT_EQ(actual.evts.len, expected.evts.len);
+    EXPECT_EQ(actual.evts.len, expect.evts.len);
     EXPECT_EQ(0, samemem);
-    const evt_size minsz = actual.evts.len < expected.evts.len ? actual.evts.len : expected.evts.len;
     char abuf[200];(void)abuf;
     char ebuf[200];(void)ebuf;
-    for(evt_size i = 0, count = 0; i < minsz; ++i, ++count)
+    for(evt_size pos_actual = 0, pos_expect = 0, count = 0;
+        pos_actual < actual.evts.len && pos_expect < expect.evts.len;
+        ++count,
+            pos_actual = nextpos(actual.evts.ptr, pos_actual),
+            pos_expect = nextpos(expect.evts.ptr, pos_expect))
     {
-        const evt_bits ai = actual.evts.ptr[i];
-        const evt_bits ei = expected.evts.ptr[i];
-        if(ai != ei)
-        {
-            csubstr as = ievt::to_str_sub(abuf, ai);
-            csubstr es = ievt::to_str_sub(ebuf, ei);
-            EXPECT_EQ(ai, ei) << "\n"
-                << " evtid=" << count << "\n"
-                << " evtpos=" << i << "\n"
-                << " actual=" << (testing::Message() << as) << "\n"
+        const evt_bits evt_actual = actual.evts.ptr[pos_actual];
+        const evt_bits evt_expect = expect.evts.ptr[pos_expect];
+        #define SHOWINFO                                    \
+                       " evtid=" << count << "\n"           \
+                    << " pos_actual=" << pos_actual << "\n" \
+                    << " pos_expect=" << pos_expect << "\n"
+        #define SHOWINFOSTR SHOWINFO \
+                << " actual=" << (testing::Message() << as) << "\n" \
                 << " expected=" << (testing::Message() << es) << "\n"
-                ;
+        if(evt_actual != evt_expect)
+        {
+            csubstr as = ievt::to_str_sub(abuf, evt_actual);
+            csubstr es = ievt::to_str_sub(ebuf, evt_expect);
+            EXPECT_EQ(evt_actual, evt_expect) << SHOWINFOSTR;
             break;
         }
-        if(ai & ievt::WSTR)
+        if(evt_actual & ievt::WSTR)
         {
-            const csubstr as = actual.getstr(i);
-            const csubstr es = expected.getstr(i);
+            const csubstr as = actual.getstr(pos_actual);
+            const csubstr es = expect.getstr(pos_expect);
             if(as != es)
             {
-                EXPECT_EQ(as, es);
+                EXPECT_EQ(as, es) << SHOWINFOSTR;
                 break;
             }
-            i += 2;
         }
+        if(evt_actual & ievt::RREF)
+        {
+            evt_bits const *as = actual.evts.ptr + pos_actual;
+            evt_bits const *es = expect.evts.ptr + pos_expect;
+            if(as[1] != es[1] || as[2] != es[2])
+            {
+                EXPECT_EQ(as[1], es[1]) << SHOWINFO;
+                EXPECT_EQ(as[2], es[2]) << SHOWINFO;
+                break;
+            }
+        }
+        if(evt_actual == ESTR)
+            break;
+        if(evt_expect == ESTR)
+            break;
+        #undef SHOWINFO
     }
 }
 
@@ -182,7 +202,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
     for(evt_bits evtpos = 0, evtnumber = 0;
         evtpos < evts_sz;
         ++evtnumber,
-            evtpos += ((evts[evtpos] & ievt::WSTR) ? 3 : 1))
+            evtpos = nextpos(evts, evtpos))
     {
         bool ok = true;
         evt_bits evt = evts[evtpos];
@@ -454,8 +474,11 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD), 0) << (ok = false);
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
-                EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA), 0) << (ok = false);
-                EXPECT_EQ(child_evt & ievt::KEY_, 0) << (ok = false);
+                if(child_evt)
+                {
+                    EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA|ievt::RREF), 0) << (ok = false);
+                    EXPECT_EQ(child_evt & ievt::KEY_, 0) << (ok = false);
+                }
             });
         }
         if((evt & ievt::ESEQ) == ievt::ESEQ)
@@ -492,7 +515,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(next & ievt::PSTR, 0) << (ok = false);
             bool key_state = true;
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
-                EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA), 0) << (ok = false);
+                EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA|ievt::RREF), 0) << (ok = false);
                 if(key_state)
                 {
                     EXPECT_EQ(child_evt & ievt::KEY_, ievt::KEY_) << (ok = false);
@@ -503,7 +526,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
                     EXPECT_EQ(child_evt & ievt::KEY_, 0) << (ok = false);
                     EXPECT_EQ(child_evt & ievt::VAL_, ievt::VAL_) << (ok = false);
                 }
-                if(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::ALIA))
+                if(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::ALIA|ievt::RREF))
                     key_state = !key_state;
             });
         }
