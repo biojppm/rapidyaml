@@ -14,6 +14,9 @@
 - [PR#682](https://github.com/biojppm/rapidyaml/pull/682): Parser: ensure error on excess tags/anchors. Fixes [#680](https://github.com/biojppm/rapidyaml/issues/680).
 - [PR#683](https://github.com/biojppm/rapidyaml/pull/683): Parser: ensure error on unterminated seq+map `[:`
 - [PR#686](https://github.com/biojppm/rapidyaml/pull/686): Parser: fix parse of container keys in block mode, eg `- ? []:`
+- [PR#666](https://github.com/biojppm/rapidyaml/pull/666) extra ints events: 
+  - parse: add option to parse into resizing (owning) buffers
+  - emit: implement fully round-trip enabled emitter, with behavior exactly equal to the tree emitter
 
 
 ### Thanks
