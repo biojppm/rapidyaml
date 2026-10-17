@@ -91,7 +91,7 @@ C4_NO_INLINE void dbg_dump_(DumpFn &&dumpfn, csubstr fmt, Args&& ...args)
     //
     // results.bufsize is set to the size of the largest element
     // serialized. Eg int(1) will require 1 byte.
-    if(C4_UNLIKELY(results.bufsize > RYML_LOGBUF_SIZE))
+    if C4_UNLIKELY (results.bufsize > RYML_LOGBUF_SIZE)
     {
         const size_t bufsize = results.bufsize <= RYML_LOGBUF_SIZE_MAX ? results.bufsize : RYML_LOGBUF_SIZE_MAX;
         #ifdef C4_MSVC
@@ -169,7 +169,7 @@ struct prs_
 inline C4_NO_INLINE size_t to_chars(substr buf, prs_ const& v)
 {
     csubstr s = v.subject;
-    if(C4_LIKELY(s.str != nullptr))
+    if C4_LIKELY(s.str != nullptr)
     {
         csubstr ellipsis = "";
         if(v.maxsize < s.len)
@@ -192,7 +192,7 @@ C4_NO_INLINE size_t dump(SinkPfn &&sinkfn, substr buf, prs_ const& v)
     size_t sz = to_chars(buf, s.len);
     if(sz <= buf.len)
     {
-        if(C4_LIKELY(s.str != nullptr))
+        if C4_LIKELY(s.str != nullptr)
         {
             csubstr ellipsis = "";
             if(v.maxsize < s.len)

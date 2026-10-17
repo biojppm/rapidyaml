@@ -45,8 +45,8 @@ namespace yml {
  *
  * - Extra handlers (not part of the library, but provided as extra classes):
  *
- *   - @ref extra::EventHandlerInts parses YAML into a contiguous
- *     integer array representing the YAML structure.
+ *   - @ref extra::ievt::EventHandlerIntsResize parses YAML into a contiguous
+ *     integer array representing the YAML structure. It is used in:
  *       - [play.yaml.com](https://play.yaml.com/)
  *       - [matrix.yaml.info/](https://matrix.yaml.info/)
  *       - the CI of this project.
@@ -108,8 +108,8 @@ namespace yml {
  * cases. They are called by the parser when a just-handled
  * value/container is actually the first key of a new map:
  *
- *   - `actually_val_is_first_key_of_new_map_flow()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerTree" / @ref extra::EventHandlerInts::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerInts")
- *   - `actually_val_is_first_key_of_new_map_block()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerTree" / @ref extra::EventHandlerInts::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerInts")
+ *   - `actually_val_is_first_key_of_new_map_flow()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerTree" / @ref extra::ievt::EventHandlerIntsNoResize::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerInts")
+ *   - `actually_val_is_first_key_of_new_map_block()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerTree" / @ref extra::ievt::EventHandlerIntsNoResize::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerInts")
  *
  * For example, consider an implicit map inside a seq: `[a: b, c:
  * d]` which is parsed as `[{a: b}, {c: d}]`. The standard event
@@ -277,10 +277,12 @@ struct Annotation
  * - @ref EventHandlerTree (see @ref doc_event_handlers_tree) is the
  *   handler responsible for creating the ryml @ref Tree
  *
- * - @ref extra::EventHandlerInts (see @ref doc_event_handlers_ints)
- *   is the handler responsible for emitting integer-coded events. It
- *   is intended for implementing fully-conformant parsing in other
- *   programming languages (integration is currently under work for
+ * - @ref extra::ievt::EventHandlerIntsResize and
+ *   extra::ievt::EventHandlerIntsNoResize (see @ref
+ *   doc_event_handlers_ints) are the handlers responsible for emitting
+ *   integer-coded events. They is intended for implementing
+ *   fully-conformant parsing in other programming languages
+ *   (integration is currently under work for
  *   [YamlScript](https://github.com/yaml/yamlscript) and
  *   [go-yaml](https://github.com/yaml/go-yaml/)). It is not part of
  *   the library and is not installed.

@@ -145,7 +145,6 @@ function(ryml_add_bm_comparison_exe name)
     c4_add_executable(ryml-bm-${name}
         SOURCES bm_common.hpp ${ARGN}
             ../src_extra/c4/yml/extra/event_handler_ints.hpp
-            ../src_extra/c4/yml/extra/event_handler_ints.cpp
         LIBS ryml yaml yaml-cpp benchmark jsoncpp_static nlohmann_json c4fs
         INC_DIRS
             ${RYML_RAPIDJSON_INC_DIR}

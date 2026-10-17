@@ -175,7 +175,7 @@ CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={})
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    if(!n.readable())
+    if(!n.tree())
         return {};
     return emitrs_yaml(*n.tree(), n.id(), opts, cont, append);
 }
@@ -183,7 +183,7 @@ substr emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts, CharOwningCon
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool append=false)
 {
-    if(!n.readable())
+    if(!n.tree())
         return {};
     return emitrs_yaml(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
@@ -195,7 +195,7 @@ substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    if(!n.readable())
+    if(!n.tree())
         return {};
     return emitrs_json(*n.tree(), n.id(), opts, cont, append);
 }
@@ -203,7 +203,7 @@ substr emitrs_json(ConstNodeRef const& n, EmitOptions const& opts, CharOwningCon
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont, bool append=false)
 {
-    if(!n.readable())
+    if(!n.tree())
         return {};
     return emitrs_json(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
@@ -214,7 +214,7 @@ template<class CharOwningContainer>
 CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    if(n.readable())
+    if(n.tree())
         emitrs_yaml(*n.tree(), n.id(), opts, &c);
     return c;
 }
@@ -223,7 +223,7 @@ template<class CharOwningContainer>
 CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    if(n.readable())
+    if(n.tree())
         emitrs_json(*n.tree(), n.id(), opts, &c);
     return c;
 }

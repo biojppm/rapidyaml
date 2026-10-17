@@ -294,69 +294,129 @@ void bm_rymlints_estimate(bm::State& st)
 }
 
 
-void bm_rymlints_yaml_inplace(bm::State& st)
+void bm_rymlints_yaml_noresize_inplace(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
-        IntObjects obj;
+        IntObjectsNoResize obj;
         s_bm_case->prepare(st, kResetInPlace);
-        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         if(obj.again())
         {
             s_bm_case->prepare(st, kResetInPlace);
-            parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+            parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         }
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
 }
+void bm_rymlints_yaml_resize_inplace(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        st.PauseTiming();
+        IntObjectsResize obj;
+        s_bm_case->prepare(st, kResetInPlace);
+        st.ResumeTiming();
+        parse_yaml_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
 
-void bm_rymlints_yaml_inplace_reserve(bm::State& st)
+void bm_rymlints_yaml_noresize_inplace_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        IntObjects obj;
+        IntObjectsNoResize obj;
         obj.data.resize(src);
         st.ResumeTiming();
-        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_yaml_resize_inplace_reserve(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    IntObjectsResize obj;
+    obj.reserve(src);
+    for(auto _ : st)
+    {
+        st.PauseTiming();
+        s_bm_case->prepare(kResetInPlace);
+        st.ResumeTiming();
+        parse_yaml_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
 }
 
-void bm_rymlints_yaml_inplace_nofilter(bm::State& st)
+void bm_rymlints_yaml_noresize_inplace_nofilter(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
-        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
+        st.PauseTiming();
+        IntObjectsNoResize obj(ryml::ParserOptions().scalar_filtering(false));
         s_bm_case->prepare(st, kResetInPlace);
-        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        st.ResumeTiming();
+        parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         if(obj.again())
         {
             s_bm_case->prepare(st, kResetInPlace);
-            parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+            parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         }
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
 }
+void bm_rymlints_yaml_resize_inplace_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        st.PauseTiming();
+        IntObjectsResize obj(ryml::ParserOptions().scalar_filtering(false));
+        s_bm_case->prepare(st, kResetInPlace);
+        st.ResumeTiming();
+        parse_yaml_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
 
-void bm_rymlints_yaml_inplace_nofilter_reserve(bm::State& st)
+void bm_rymlints_yaml_noresize_inplace_nofilter_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
+        IntObjectsNoResize obj(ryml::ParserOptions().scalar_filtering(false));
         obj.data.resize(src);
         st.ResumeTiming();
-        parse_yaml_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_yaml_resize_inplace_nofilter_reserve(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    IntObjectsResize obj(ryml::ParserOptions().scalar_filtering(false));
+    obj.reserve(src);
+    for(auto _ : st)
+    {
+        st.PauseTiming();
+        s_bm_case->prepare(kResetInPlace);
+        st.ResumeTiming();
+        parse_yaml_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
@@ -365,26 +425,41 @@ void bm_rymlints_yaml_inplace_nofilter_reserve(bm::State& st)
 
 //-----------------------------------------------------------------------------
 
-void bm_rymlints_json_inplace(bm::State& st)
+void bm_rymlints_json_noresize_inplace(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
         ONLY_FOR_JSON;
-        IntObjects obj;
+        IntObjectsNoResize obj;
         s_bm_case->prepare(st, kResetInPlace);
-        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        parse_json_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         if(obj.again())
         {
             s_bm_case->prepare(st, kResetInPlace);
-            parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+            parse_json_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         }
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
 }
+void bm_rymlints_json_resize_inplace(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        st.PauseTiming();
+        IntObjectsResize obj;
+        s_bm_case->prepare(st, kResetInPlace);
+        st.ResumeTiming();
+        parse_json_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
 
-void bm_rymlints_json_inplace_reserve(bm::State& st)
+void bm_rymlints_json_noresize_inplace_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     size_t sz = (size_t)ryml::extra::estimate_events_ints_size(src);
@@ -393,35 +468,66 @@ void bm_rymlints_json_inplace_reserve(bm::State& st)
         ONLY_FOR_JSON;
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        IntObjects obj;
+        IntObjectsNoResize obj;
         obj.data.resize(sz, src.len);
         st.ResumeTiming();
-        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        parse_json_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
 }
-
-void bm_rymlints_json_inplace_nofilter(bm::State& st)
+void bm_rymlints_json_resize_inplace_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
         ONLY_FOR_JSON;
-        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
-        s_bm_case->prepare(st, kResetInPlace);
-        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
-        if(obj.again())
-        {
-            s_bm_case->prepare(st, kResetInPlace);
-            parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
-        }
+        st.PauseTiming();
+        IntObjectsResize obj;
+        obj.reserve(src);
+        s_bm_case->prepare(kResetInPlace);
+        st.ResumeTiming();
+        parse_json_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
 }
 
-void bm_rymlints_json_inplace_nofilter_reserve(bm::State& st)
+void bm_rymlints_json_noresize_inplace_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        IntObjectsNoResize obj(ryml::ParserOptions().scalar_filtering(false));
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_json_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        if(obj.again())
+        {
+            s_bm_case->prepare(st, kResetInPlace);
+            parse_json_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        }
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_json_resize_inplace_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        st.PauseTiming();
+        IntObjectsResize obj(ryml::ParserOptions().scalar_filtering(false));
+        s_bm_case->prepare(st, kResetInPlace);
+        st.ResumeTiming();
+        parse_json_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_rymlints_json_noresize_inplace_nofilter_reserve(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     size_t sz = (size_t)ryml::extra::estimate_events_ints_size(src);
@@ -430,10 +536,26 @@ void bm_rymlints_json_inplace_nofilter_reserve(bm::State& st)
         ONLY_FOR_JSON;
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        IntObjects obj(ryml::ParserOptions().scalar_filtering(false));
+        IntObjectsNoResize obj(ryml::ParserOptions().scalar_filtering(false));
         obj.data.resize(sz, src.len);
         st.ResumeTiming();
-        parse_json_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        parse_json_ints_noresize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
+        bm::DoNotOptimize(obj);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_json_resize_inplace_nofilter_reserve(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        st.PauseTiming();
+        IntObjectsResize obj(ryml::ParserOptions().scalar_filtering(false));
+        obj.reserve(src);
+        s_bm_case->prepare(kResetInPlace);
+        st.ResumeTiming();
+        parse_json_ints_resize_inplace(s_bm_case->filename, src, obj.parser, &obj.data);
         bm::DoNotOptimize(obj);
     }
     s_bm_case->report(st);
@@ -676,28 +798,52 @@ void bm_ryml_json_arena_reuse_nofilter_reserve(bm::State& st)
 
 //-----------------------------------------------------------------------------
 
-void bm_rymlints_yaml_inplace_reuse(bm::State& st)
+void bm_rymlints_yaml_noresize_inplace_reuse(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    s_bm_case->int_obj.data.resize(src);
+    s_bm_case->int_obj_noresize.data.resize(src);
     for(auto _ : st)
     {
         s_bm_case->prepare(st, kResetInPlace);
-        parse_yaml_inplace(s_bm_case->filename, src, s_bm_case->int_obj.parser, &s_bm_case->int_obj.data);
-        bm::DoNotOptimize(s_bm_case->int_obj);
+        parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_noresize.parser, &s_bm_case->int_obj_noresize.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_noresize);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_yaml_resize_inplace_reuse(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj_resize.reserve(src);
+    for(auto _ : st)
+    {
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_yaml_ints_resize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_resize.parser, &s_bm_case->int_obj_resize.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_resize);
     }
     s_bm_case->report(st);
 }
 
-void bm_rymlints_yaml_inplace_reuse_nofilter(bm::State& st)
+void bm_rymlints_yaml_noresize_inplace_reuse_nofilter(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    s_bm_case->int_obj_nofilter.data.resize(src);
+    s_bm_case->int_obj_noresize_nofilter.data.resize(src);
     for(auto _ : st)
     {
         s_bm_case->prepare(st, kResetInPlace);
-        parse_yaml_inplace(s_bm_case->filename, src, s_bm_case->int_obj_nofilter.parser, &s_bm_case->int_obj_nofilter.data);
-        bm::DoNotOptimize(s_bm_case->int_obj_nofilter);
+        parse_yaml_ints_noresize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_noresize_nofilter.parser, &s_bm_case->int_obj_noresize_nofilter.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_noresize_nofilter);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_yaml_resize_inplace_reuse_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj_resize_nofilter.reserve(src);
+    for(auto _ : st)
+    {
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_yaml_ints_resize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_resize_nofilter.parser, &s_bm_case->int_obj_resize_nofilter.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_resize_nofilter);
     }
     s_bm_case->report(st);
 }
@@ -705,30 +851,56 @@ void bm_rymlints_yaml_inplace_reuse_nofilter(bm::State& st)
 
 //-----------------------------------------------------------------------------
 
-void bm_rymlints_json_inplace_reuse(bm::State& st)
+void bm_rymlints_json_noresize_inplace_reuse(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    s_bm_case->int_obj.data.resize(src);
+    s_bm_case->int_obj_noresize.data.resize(src);
     for(auto _ : st)
     {
         ONLY_FOR_JSON;
         s_bm_case->prepare(st, kResetInPlace);
-        parse_json_inplace(s_bm_case->filename, src, s_bm_case->int_obj.parser, &s_bm_case->int_obj.data);
-        bm::DoNotOptimize(s_bm_case->int_obj);
+        parse_json_ints_noresize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_noresize.parser, &s_bm_case->int_obj_noresize.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_noresize);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_json_resize_inplace_reuse(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj_resize.reserve(src);
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_json_ints_resize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_resize.parser, &s_bm_case->int_obj_resize.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_resize);
     }
     s_bm_case->report(st);
 }
 
-void bm_rymlints_json_inplace_reuse_nofilter(bm::State& st)
+void bm_rymlints_json_noresize_inplace_reuse_nofilter(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
-    s_bm_case->int_obj_nofilter.data.resize(src);
+    s_bm_case->int_obj_noresize_nofilter.data.resize(src);
     for(auto _ : st)
     {
         ONLY_FOR_JSON;
         s_bm_case->prepare(st, kResetInPlace);
-        parse_json_inplace(s_bm_case->filename, src, s_bm_case->int_obj_nofilter.parser, &s_bm_case->int_obj_nofilter.data);
-        bm::DoNotOptimize(s_bm_case->int_obj_nofilter);
+        parse_json_ints_noresize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_noresize_nofilter.parser, &s_bm_case->int_obj_noresize_nofilter.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_noresize_nofilter);
+    }
+    s_bm_case->report(st);
+}
+void bm_rymlints_json_resize_inplace_reuse_nofilter(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    s_bm_case->int_obj_resize_nofilter.reserve(src);
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        s_bm_case->prepare(st, kResetInPlace);
+        parse_json_ints_resize_inplace(s_bm_case->filename, src, s_bm_case->int_obj_resize_nofilter.parser, &s_bm_case->int_obj_resize_nofilter.data);
+        bm::DoNotOptimize(s_bm_case->int_obj_resize_nofilter);
     }
     s_bm_case->report(st);
 }
@@ -841,22 +1013,40 @@ void bm_ryml_json_inplace_reuse_nofilter_reserve(bm::State& st)
 BENCHMARK(bm_rymlints_estimate);
 
 
-BENCHMARK(bm_rymlints_json_inplace_reuse_nofilter);
-BENCHMARK(bm_rymlints_json_inplace_reuse);
+BENCHMARK(bm_rymlints_json_noresize_inplace_reuse_nofilter);
+BENCHMARK(bm_rymlints_json_noresize_inplace_reuse);
 
-BENCHMARK(bm_rymlints_json_inplace_nofilter_reserve);
-BENCHMARK(bm_rymlints_json_inplace_nofilter);
-BENCHMARK(bm_rymlints_json_inplace_reserve);
-BENCHMARK(bm_rymlints_json_inplace);
+BENCHMARK(bm_rymlints_json_noresize_inplace_nofilter_reserve);
+BENCHMARK(bm_rymlints_json_noresize_inplace_nofilter);
+BENCHMARK(bm_rymlints_json_noresize_inplace_reserve);
+BENCHMARK(bm_rymlints_json_noresize_inplace);
 
 
-BENCHMARK(bm_rymlints_yaml_inplace_reuse_nofilter);
-BENCHMARK(bm_rymlints_yaml_inplace_reuse);
+BENCHMARK(bm_rymlints_json_resize_inplace_reuse_nofilter);
+BENCHMARK(bm_rymlints_json_resize_inplace_reuse);
 
-BENCHMARK(bm_rymlints_yaml_inplace_nofilter_reserve);
-BENCHMARK(bm_rymlints_yaml_inplace_nofilter);
-BENCHMARK(bm_rymlints_yaml_inplace_reserve);
-BENCHMARK(bm_rymlints_yaml_inplace);
+BENCHMARK(bm_rymlints_json_resize_inplace_nofilter_reserve);
+BENCHMARK(bm_rymlints_json_resize_inplace_nofilter);
+BENCHMARK(bm_rymlints_json_resize_inplace_reserve);
+BENCHMARK(bm_rymlints_json_resize_inplace);
+
+
+BENCHMARK(bm_rymlints_yaml_noresize_inplace_reuse_nofilter);
+BENCHMARK(bm_rymlints_yaml_noresize_inplace_reuse);
+
+BENCHMARK(bm_rymlints_yaml_noresize_inplace_nofilter_reserve);
+BENCHMARK(bm_rymlints_yaml_noresize_inplace_nofilter);
+BENCHMARK(bm_rymlints_yaml_noresize_inplace_reserve);
+BENCHMARK(bm_rymlints_yaml_noresize_inplace);
+
+
+BENCHMARK(bm_rymlints_yaml_resize_inplace_reuse_nofilter);
+BENCHMARK(bm_rymlints_yaml_resize_inplace_reuse);
+
+BENCHMARK(bm_rymlints_yaml_resize_inplace_nofilter_reserve);
+BENCHMARK(bm_rymlints_yaml_resize_inplace_nofilter);
+BENCHMARK(bm_rymlints_yaml_resize_inplace_reserve);
+BENCHMARK(bm_rymlints_yaml_resize_inplace);
 
 
 BENCHMARK(bm_ryml_json_inplace_reuse_nofilter_reserve);
