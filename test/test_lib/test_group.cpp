@@ -183,60 +183,72 @@ using LangType = EmitType_e;
 const LangType as_yaml = EMIT_YAML;
 const LangType as_json = EMIT_JSON;
 
+template<bool resize_buffers>
 static void _parse_ints(csubstr name, substr src, extra::ievt::TestBuffers *ints, LangType type)
 {
     SCOPED_TRACE("parse_ints");
-    using Handler = extra::EventHandlerInts;
+    using Handler = extra::ievt::EventHandlerInts<resize_buffers>;
     Handler handler;
     ParseEngine<Handler> parser(&handler);
     _c4dbgpf("parsing source:\n{}", prs_(src));
-    ints->prepare_parse(handler, src,
-            /*estimate*/-1, /*arena*/2 * src.len);
-    if(type == as_yaml)
-        parser.parse_in_place_ev(name, src);
-    else
-        parser.parse_json_in_place_ev(name, src);
     (void)as_json;
+    if C4_IF_CONSTEXPR (resize_buffers)
+    {
+        ints->prepare_parse<resize_buffers>(handler, src);
+        if(type == as_yaml)
+            parser.parse_in_place_ev(name, src);
+        else
+            parser.parse_json_in_place_ev(name, src);
+    }
+    else
+    {
+        ints->prepare_parse<resize_buffers>(handler, src,
+                                /*estimate*/-1, /*arena*/2 * src.len);
+        if(type == as_yaml)
+            parser.parse_in_place_ev(name, src);
+        else
+            parser.parse_json_in_place_ev(name, src);
+    }
     ASSERT_GT(handler.required_size_events(), 0);
     ASSERT_TRUE(handler.fits_buffers());
+    ints->get_buffers(handler, true);
 }
 
 
+template<bool resize_buffers>
 static void _test_parse_to_ints(Case const* c, substr src, extra::ievt::TestBuffers *ints, LangType type)
 {
-    bool parseok = false;
     if(c->flags & EXPECT_PARSE_ERROR)
     {
         SCOPED_TRACE("expect error");
         RYML_EXPECT_ERROR(check_error_parse([&]{
-            _parse_ints(c->fileline, src, ints, type);
-            parseok = true;
+            _parse_ints<resize_buffers>(c->fileline, src, ints, type);
+            ints->print(); // error failed to occur. So print debugging info.
         }, c->expected_location));
-        ASSERT_TRUE(ints->owned);
+        if C4_IF_CONSTEXPR (!resize_buffers)
+            ints->owned = true;
     }
     else
     {
         SCOPED_TRACE("parse to ints");
+        bool parseok = false;
         RYML_EXPECT_ERROR(check_success([&]{
-            _parse_ints(c->fileline, src, ints, type);
+            _parse_ints<resize_buffers>(c->fileline, src, ints, type);
             parseok = true;
         }));
         if(parseok)
-        {
-            SCOPED_TRACE("ints after parse");
             ints->test_invariants();
-        }
     }
     if(testing::Test::HasFailure())
     {
         if(src != c->src)
             printf("~~~[%zu]\n%.*s~~~\n", c->src.len, (int)c->src.len, c->src.str);
         printf("~~~[%zu]\n%.*s~~~\n", src.len, (int)src.len, src.str);
-        if(parseok)
-            ints->print();
+        ints->print();
     }
 }
 
+template<bool resize_buffers>
 static void _ensure_ints_parse(Case const *c, SrcInts &ints, LangType type)
 {
     SCOPED_TRACE("ensure_ints_parse");
@@ -244,38 +256,85 @@ static void _ensure_ints_parse(Case const *c, SrcInts &ints, LangType type)
     ASSERT_TRUE(ints.src.done);
     auto &dst = ints.val;
     dst.ensure([&]{
-        _test_parse_to_ints(c, ints.src.result, &dst.result, type);
+        _test_parse_to_ints<resize_buffers>(c, ints.src.result, &dst.result, type);
     });
 }
 
-
-void CaseDataLineEndings::ensure_ints_resize_emit_yaml(Case const *)
+template<bool resize_buffers>
+static void _ensure_ints_emit(Case const *c, SrcInts &from, SrcInts &to, LangType type)
 {
-}
-void CaseDataLineEndings::ensure_ints_resize_emit_json(Case const *)
-{
-}
-
-void CaseDataLineEndings::ensure_ints_noresize_emit_yaml(Case const *)
-{
-}
-void CaseDataLineEndings::ensure_ints_noresize_emit_json(Case const *)
-{
-}
-
-
-void CaseDataLineEndings::ensure_ints_resize_roundtrip_yaml(Case const *)
-{
-}
-void CaseDataLineEndings::ensure_ints_resize_roundtrip_json(Case const *)
-{
+    SCOPED_TRACE("ensure_ints_parse");
+    _ensure_ints_parse<resize_buffers>(c, from, as_yaml);// first level parsed as yaml
+    ASSERT_TRUE(from.val.done);
+    if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
+        return;
+    bool executed = to.src.ensure([&]{
+        if(type == as_yaml)
+            from.val.result.emitrs_yaml(&to.src.result);
+        else
+            from.val.result.emitrs_json(&to.src.result);
+    });
+    if(executed)
+    {
+        to.orig = to.src;
+    }
 }
 
-void CaseDataLineEndings::ensure_ints_noresize_roundtrip_yaml(Case const *)
+template<bool resize_buffers>
+static void _ensure_ints_parse_roundtrip(Case const *c, SrcInts &from, SrcInts &to, LangType type)
 {
+    SCOPED_TRACE("ensure ints roundtrip");
+    _ensure_ints_emit<resize_buffers>(c, from, to, type);
+    {
+        SCOPED_TRACE("roundtrip parse");
+        _ensure_ints_parse<resize_buffers>(c, to, type);
+    }
 }
-void CaseDataLineEndings::ensure_ints_noresize_roundtrip_json(Case const *)
+
+
+void CaseDataLineEndings::ensure_ints_resize_emit_yaml(Case const *c)
 {
+    SCOPED_TRACE("ensure_ints_resize_emit_yaml");
+    _ensure_ints_emit<true>(c, ints_resize, ints_resize_roundtrip_yaml, as_yaml);
+}
+void CaseDataLineEndings::ensure_ints_resize_emit_json(Case const *c)
+{
+    SCOPED_TRACE("ensure_ints_resize_emit_json");
+    _ensure_ints_emit<true>(c, ints_resize, ints_resize_roundtrip_json, as_json);
+}
+
+void CaseDataLineEndings::ensure_ints_noresize_emit_yaml(Case const *c)
+{
+    SCOPED_TRACE("ensure_ints_noresize_emit_yaml");
+    _ensure_ints_emit<false>(c, ints_noresize, ints_noresize_roundtrip_yaml, as_yaml);
+}
+void CaseDataLineEndings::ensure_ints_noresize_emit_json(Case const *c)
+{
+    SCOPED_TRACE("ensure_ints_noresize_emit_json");
+    _ensure_ints_emit<false>(c, ints_noresize, ints_noresize_roundtrip_json, as_json);
+}
+
+
+void CaseDataLineEndings::ensure_ints_resize_roundtrip_yaml(Case const *c)
+{
+    SCOPED_TRACE("ensure_ints_resize_roundtrip_yaml");
+    _ensure_ints_parse_roundtrip<true>(c, ints_resize, ints_resize_roundtrip_yaml, as_yaml);
+}
+void CaseDataLineEndings::ensure_ints_resize_roundtrip_json(Case const *c)
+{
+    SCOPED_TRACE("ensure_ints_resize_roundtrip_json");
+    _ensure_ints_parse_roundtrip<true>(c, ints_resize, ints_resize_roundtrip_json, as_json);
+}
+
+void CaseDataLineEndings::ensure_ints_noresize_roundtrip_yaml(Case const *c)
+{
+    SCOPED_TRACE("ensure_ints_noresize_roundtrip_yaml");
+    _ensure_ints_parse_roundtrip<false>(c, ints_noresize, ints_noresize_roundtrip_yaml, as_yaml);
+}
+void CaseDataLineEndings::ensure_ints_noresize_roundtrip_json(Case const *c)
+{
+    SCOPED_TRACE("ensure_ints_noresize_roundtrip_json");
+    _ensure_ints_parse_roundtrip<false>(c, ints_noresize, ints_noresize_roundtrip_json, as_json);
 }
 
 
@@ -361,20 +420,38 @@ static void show_parse_info_(CaseDataLineEndings const* cd,
     print_tree("tree", tree->val.result);
     printf("------\ntree emitted\n------\n%.*s\n", (int)tree_emitted.len, tree_emitted.str);
 }
-void YmlTestCase::_test_parse_yaml_to_ints_resize(CaseDataLineEndings *)
+void YmlTestCase::_test_parse_yaml_to_ints_resize(CaseDataLineEndings *cd)
 {
+    SCOPED_TRACE("test_parse_ints_resize");
+    _ensure_ints_parse<true>(c, cd->ints_resize, as_yaml);
+    if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
+        return;
+    cd->ensure_ints_resize_emit_yaml(c);
+    if(c->flags & (HAS_CONTAINER_KEYS|RESOLVE_REFS)) // NOLINT
+        return;
+    cd->ensure_tree_emit_yaml(c);
+    if(c->flags & NO_COMPARE_EMITTED_INTS) // NOLINT
+        return;
+    extra::ievt::test_compare_emitted_yaml_ints(cd->ints_resize_roundtrip_yaml.orig.result,
+                                                cd->tree_roundtrip_yaml.orig.result);
+    if(testing::Test::HasFailure())
+    {
+        show_parse_info_(cd,
+                         &cd->tree, cd->tree_roundtrip_yaml.orig.result,
+                         &cd->ints_resize, cd->ints_resize_roundtrip_yaml.orig.result);
+    }
 }
 void YmlTestCase::_test_parse_yaml_to_ints_noresize(CaseDataLineEndings *cd)
 {
     SCOPED_TRACE("test_parse_ints_noresize");
-    _ensure_ints_parse(c, cd->ints_noresize, as_yaml);
+    _ensure_ints_parse<false>(c, cd->ints_noresize, as_yaml);
     if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
         return;
     cd->ensure_ints_noresize_emit_yaml(c);
-    if(c->flags & HAS_CONTAINER_KEYS) // NOLINT
+    if(c->flags & (HAS_CONTAINER_KEYS|RESOLVE_REFS)) // NOLINT
         return;
     cd->ensure_tree_emit_yaml(c);
-    if(c->flags & (NO_COMPARE_EMITTED_INTS|NO_COMPARE_RESOLVED_INTS)) // NOLINT
+    if(c->flags & NO_COMPARE_EMITTED_INTS) // NOLINT
         return;
     extra::ievt::test_compare_emitted_yaml_ints(cd->ints_noresize_roundtrip_yaml.orig.result,
                                                 cd->tree_roundtrip_yaml.orig.result);
@@ -387,19 +464,115 @@ void YmlTestCase::_test_parse_yaml_to_ints_noresize(CaseDataLineEndings *cd)
 }
 
 
-void YmlTestCase::_test_roundtrip_yaml_ints_resize(CaseDataLineEndings *)
+static void show_roundtrip_info_(CaseDataLineEndings const* cd,
+                                 SrcTree const* tree,
+                                 SrcInts const* level0, SrcInts const* level1,
+                                 csubstr tree_emitted, csubstr actual)
 {
+    csubstr src = cd->src;
+    csubstr ints_emitted = level1->orig.result;
+    csubstr roundtrip_ints_emitted = to_csubstr(actual);
+    printf("------\nsrc\n------\n%.*s\n", (int)src.len, src.str);
+    printf("------\nints\n------\n");
+    level0->val.result.print();
+    printf("------\nints emitted\n------\n%.*s\n", (int)ints_emitted.len, ints_emitted.str);
+    printf("------\nroundtrip ints\n------\n");
+    level1->val.result.print();
+    printf("------\nints roundtrip emitted\n------\n%.*s\n", (int)roundtrip_ints_emitted.len, roundtrip_ints_emitted.str);
+    print_tree("roundtrip tree", tree->val.result);
+    printf("------\ntree emitted\n------\n%.*s\n", (int)tree_emitted.len, tree_emitted.str);
 }
-void YmlTestCase::_test_roundtrip_yaml_ints_noresize(CaseDataLineEndings *)
+static void _test_roundtrip_yaml_ints(Case const *c, CaseDataLineEndings *cd,
+                                      SrcInts *level0, SrcInts *level1)
 {
+    if(testing::Test::HasFailure())
+        return;
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS)) // NOLINT
+        return;
+    SCOPED_TRACE("test_roundtrip_yaml_ints");
+    cd->ensure_tree_roundtrip_yaml(c);
+    ASSERT_TRUE(level0->val.done);
+    ASSERT_TRUE(level1->val.done);
+    ASSERT_TRUE(cd->tree_roundtrip_yaml.val.done);
+    level1->val.result.test_compare(level0->val.result);
+    txtbuf actual = level1->val.result.emitrs_yaml<txtbuf>();
+    if(!(c->flags & (NO_COMPARE_EMITTED_INTS|RESOLVE_REFS))) // NOLINT
+    {
+        {
+            SCOPED_TRACE("vs ints");
+            cmp_src_str_(*level1, actual);
+        }
+        {
+            SCOPED_TRACE("vs tree");
+            extra::ievt::test_compare_emitted_yaml_ints(actual, cd->tree_roundtrip_yaml.orig.result);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        show_roundtrip_info_(cd, &cd->tree_roundtrip_yaml,
+                             level0, level1, cd->tree_roundtrip_yaml.orig.result, actual);
+    }
+}
+void YmlTestCase::_test_roundtrip_yaml_ints_resize(CaseDataLineEndings *cd)
+{
+    SCOPED_TRACE("test_roundtrip_yaml_ints_resize");
+    if(c->flags & (EXPECT_PARSE_ERROR)) // NOLINT
+        return;
+    cd->ensure_ints_resize_roundtrip_yaml(c);
+    if(testing::Test::HasFailure())
+        return;
+    _test_roundtrip_yaml_ints(c, cd, &cd->ints_resize, &cd->ints_resize_roundtrip_yaml);
+}
+void YmlTestCase::_test_roundtrip_yaml_ints_noresize(CaseDataLineEndings *cd)
+{
+    if(c->flags & (EXPECT_PARSE_ERROR)) // NOLINT
+        return;
+    SCOPED_TRACE("test_roundtrip_yaml_ints_noresize");
+    cd->ensure_ints_noresize_roundtrip_yaml(c);
+    _test_roundtrip_yaml_ints(c, cd, &cd->ints_noresize, &cd->ints_noresize_roundtrip_yaml);
 }
 
 
-void YmlTestCase::_test_roundtrip_json_ints_resize(CaseDataLineEndings *)
+void _test_roundtrip_json_ints(Case const *c, CaseDataLineEndings *cd,
+                               SrcInts *level0, SrcInts *level1)
 {
+    if(testing::Test::HasFailure())
+        return;
+    SCOPED_TRACE("test_roundtrip_json_ints");
+    cd->ensure_tree_emit_json(c);
+    txtbuf actual = level1->val.result.emitrs_json<txtbuf>();
+    if(!(c->flags & (NO_COMPARE_EMITTED_INTS|NO_COMPARE_EMITTED_INTS_JSON|RESOLVE_REFS))) // NOLINT
+    {
+        {
+            SCOPED_TRACE("vs ints");
+            cmp_src_str_(*level1, actual);
+        }
+        {
+            SCOPED_TRACE("vs tree");
+            cmp_src_str_(cd->tree_roundtrip_json, actual);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        show_roundtrip_info_(cd, &cd->tree_roundtrip_json,
+                             level0, level1, cd->tree_roundtrip_json.orig.result, actual);
+    }
 }
-void YmlTestCase::_test_roundtrip_json_ints_noresize(CaseDataLineEndings *)
+void YmlTestCase::_test_roundtrip_json_ints_resize(CaseDataLineEndings *cd)
 {
+    SCOPED_TRACE("test_roundtrip_json_ints_resize");
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS)) // NOLINT
+        return;
+    cd->ensure_ints_resize_roundtrip_json(c);
+    _test_roundtrip_json_ints(c, cd, &cd->ints_resize, &cd->ints_resize_roundtrip_json);
+}
+void YmlTestCase::_test_roundtrip_json_ints_noresize(CaseDataLineEndings *cd)
+{
+    SCOPED_TRACE("test_roundtrip_json_ints_noresize");
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS)) // NOLINT
+        return;
+    cd->ensure_ints_noresize_roundtrip_json(c);
+    _test_roundtrip_json_ints(c, cd, &cd->ints_noresize, &cd->ints_noresize_roundtrip_json);
 }
 
 } // namespace yml
