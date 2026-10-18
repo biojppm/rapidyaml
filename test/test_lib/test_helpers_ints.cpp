@@ -64,6 +64,17 @@ void test_events_ints_compare(ievt::Buffers const& expect, ievt::Buffers const& 
                 break;
             }
         }
+        if(evt_actual & ievt::RREF)
+        {
+            evt_bits const *ref_actual = actual.evts.ptr + pos_actual;
+            evt_bits const *ref_expect = expect.evts.ptr + pos_expect;
+            if(ref_actual[1] != ref_expect[1] || ref_actual[2] != ref_expect[2])
+            {
+                EXPECT_EQ(ref_actual[1], ref_expect[1]) << SHOWINFO;
+                EXPECT_EQ(ref_actual[2], ref_expect[2]) << SHOWINFO;
+                break;
+            }
+        }
         if(evt_actual == ESTR)
             break;
         if(evt_expect == ESTR)
@@ -210,12 +221,167 @@ bool compare_emitted_yaml_ints(csubstr emitted_, csubstr expected_)
 }
 } // namespace
 
-void test_compare_emitted_yaml_ints(std::string const&, std::string const&)
+void test_compare_emitted_yaml_ints(std::string const& emitted, std::string const& expected)
 {
-    (void)compare_emitted_yaml_ints;
-    (void)filter_emitted_yaml_ints;
+    SCOPED_TRACE("compare_emitted_yaml_ints");
+    if(emitted == expected)
+        return;
+    // they differ. work around some edge cases.
+    if(compare_emitted_yaml_ints(to_csubstr(emitted), to_csubstr(expected)))
+        return;
+    // remove internal ...\n
+    std::string filtered = filter_emitted_yaml_ints(to_csubstr(emitted));
+    if(filtered == expected)
+        return;
+    if(compare_emitted_yaml_ints(to_csubstr(filtered), to_csubstr(expected)))
+        return;
+    RYML_TRACE_FMT("filtered=~~~\n{}~~~\n", filtered);
+    EXPECT_EQ(expected, emitted);
 }
 
+
+//-----------------------------------------------------------------------------
+
+namespace {
+void fill_visit_seq_fwd(evt_bits const* evts, evt_size evts_sz,
+                        evt_size begpos, evt_size endpos,
+                        std::vector<evt_size> *seq)
+{
+    for(evt_size pos = begpos; pos != endpos; pos = nextpos(evts, pos))
+    {
+        if(evts[pos] & RREF)
+        {
+            evt_size first = evts[pos + 1];
+            evt_size last = evts[pos + 2];
+            fill_visit_seq_fwd(evts, evts_sz, first, last, seq);
+        }
+        else
+        {
+            seq->push_back(pos);
+        }
+        if(evts[pos] == ESTR)
+            break;
+    }
+}
+
+void verify_visit_seq_fwd(evt_bits const* evts, evt_size evts_sz,
+                          evt_size const* expected, evt_size expected_sz,
+                          evt_size begpos, evt_size endpos,
+                          evt_size &count)
+{
+    RYML_TRACE_FMT("verify_visit_seq_fwd({},{},{})", begpos, endpos, count);
+    ASSERT_GT(evts_sz, 1);
+    ASSERT_GT(endpos, 0);
+    ASSERT_NE(endpos, begpos);
+    ASSERT_LT(begpos, endpos);
+    ASSERT_LT(begpos, evts_sz);
+    ASSERT_LT(endpos, evts_sz);
+    for(evt_size pos = begpos; pos != endpos; pos = nextpos(evts, pos))
+    {
+        RYML_TRACE_FMT("pos={} count={}", pos, count);
+        ASSERT_LT(pos, evts_sz);
+        ASSERT_LT(count, expected_sz);
+        if(evts[pos] & RREF)
+        {
+            RYML_TRACE_FMT("RREF @ pos={}", pos);
+            ASSERT_LT(pos + 2, evts_sz);
+            evt_size first = evts[pos + 1];
+            evt_size last = evts[pos + 2];
+            verify_visit_seq_fwd(evts, evts_sz, expected, expected_sz, first, last, count);
+        }
+        else
+        {
+            ASSERT_EQ(pos, expected[count]);
+            ++count;
+        }
+        if(evts[pos] == ESTR)
+            break;
+    }
+}
+
+void verify_visit_seq_bwd(evt_bits const* evts, evt_size evts_sz,
+                          evt_size const* expected, evt_size expected_sz,
+                          evt_size begpos, evt_size endpos,
+                          evt_size &count)
+{
+    RYML_TRACE_FMT("verify_visit_seq_bwd({},{},{})", begpos, endpos, count);
+    ASSERT_GT(evts_sz, 1);
+    ASSERT_GT(endpos, 0);
+    ASSERT_LT(begpos, evts_sz);
+    ASSERT_LT(endpos, evts_sz);
+    evt_size const* end = expected + (expected_sz - 1);
+    for(evt_size pos = endpos; true; pos = prevpos(evts, pos))
+    {
+        RYML_TRACE_FMT("pos={} count={}", pos, count);
+        ASSERT_LT(pos, evts_sz);
+        ASSERT_LT(count, expected_sz);
+        if(evts[pos] & RREF)
+        {
+            RYML_TRACE_FMT("RREF @ pos={}", pos);
+            evt_size first = evts[pos + 1];
+            evt_size last = evts[pos + 2];
+            ASSERT_LE(first, last);
+            last = prevpos(evts, last);
+            verify_visit_seq_bwd(evts, evts_sz, expected, expected_sz, first, last, count);
+        }
+        else
+        {
+            ASSERT_EQ(pos, end[count]);
+            --count;
+        }
+        if(evts[pos] == BSTR)
+            break;
+        if(pos == begpos)
+            break;
+    }
+}
+
+void print_arr(evt_size const* evts, evt_size sz)
+{
+    printf("{");
+    for(evt_size i = 0; i < sz; ++i)
+        printf("%d,", evts[i]);
+    printf("}");
+}
+} // namespace
+
+
+void verify_visit_seq(evt_bits const* evts, evt_size evtsz,
+                      evt_size const* expected, evt_size expsz)
+{
+    SCOPED_TRACE("verify_visit_seq");
+    ASSERT_GE(evtsz, 2);
+    evt_size pos_estr = evtsz - 1;
+    while(evts[pos_estr] != ievt::ESTR && evts[pos_estr] != ievt::BSTR)
+        pos_estr = ievt::prevpos(evts, pos_estr);
+    ASSERT_EQ(evts[pos_estr], ievt::ESTR);
+    {
+        SCOPED_TRACE("fwd");
+        ievt::evt_size count_fwd = 0;
+        verify_visit_seq_fwd(evts, evtsz, expected, expsz, 0, pos_estr, count_fwd);
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("bwd");
+        ievt::evt_size count_bwd = 0;
+        verify_visit_seq_bwd(evts, evtsz, expected, expsz, 0, pos_estr, count_bwd);
+    }
+    if(testing::Test::HasFailure())
+    {
+        printf("%s:%d: see arr:\n", __FILE__, __LINE__);
+        print_arr(expected, expsz);
+        printf("\n");
+    }
+}
+
+void verify_visit_seq(evt_bits const* evts, evt_size evtsz)
+{
+    SCOPED_TRACE("verify_visit_seq");
+    std::vector<evt_size> seq;
+    seq.reserve(static_cast<size_t>(evtsz));
+    fill_visit_seq_fwd(evts, evtsz, 0, evtsz, &seq);
+    verify_visit_seq(evts, evtsz, seq.data(), static_cast<evt_size>(seq.size()));
+}
 
 
 //-----------------------------------------------------------------------------
@@ -239,7 +405,7 @@ void iter_children(evt_bits const* evts, evt_size sz, evt_size pos, Fn const& fn
         fn(pos, evts[pos]);
         if(testing::Test::HasFailure())
             break;
-        pos = ievt::detail::find_next_sibling(evts, sz, pos);
+        pos = detail::find_next_sibling(evts, sz, pos);
     }
 }
 
@@ -297,7 +463,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
         evt_bits parentpos = path.empty() ? -1 : path.back();
         evt_bits parent = path.empty() ? evt_bits{} : evts[parentpos];
         if(evtpos)
-            prev = (evt & ievt::PSTR) ? evts[evtpos - 3] : evts[evtpos - 1];
+            prev = (evt & ievt::PEX2) ? evts[evtpos - 3] : evts[evtpos - 1];
         if(nextpos < evts_sz)
             next = evts[nextpos];
         RYML_TRACE_FMT("evt #={} evtpos={} parentpos={}", evtnumber, evtpos, parentpos); \
@@ -326,7 +492,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
         // check general rules
         if(evt & ievt::WSTR)
         {
-            EXPECT_SOME(next, ievt::PSTR);
+            EXPECT_SOME(next, ievt::PEX2);
             EXPECT_LE(evtpos + 3, evts_sz);
             if(evtpos + 3 <= evts_sz)
             {
@@ -346,11 +512,11 @@ void test_events_ints_invariants(csubstr parsed_yaml,
                 }
             }
         }
-        if(evt & ievt::PSTR)
+        if(evt & ievt::PEX2)
         {
             EXPECT_GT(evtnumber, 0);
             EXPECT_GE(evtpos, 3);
-            EXPECT_ONE(prev, ievt::WSTR);
+            EXPECT_ONE(prev, ievt::EXT2);
         }
         if(evt & (ievt::BEG_|ievt::END_))
         {
@@ -395,6 +561,12 @@ void test_events_ints_invariants(csubstr parsed_yaml,
                 EXPECT_ONE(evt, ievt::BEG_|ievt::END_);
             }
         }
+        if(evt & (ievt::FSL_|ievt::FML1|ievt::FMLN|ievt::FMLX|ievt::FSPC))
+        {
+            EXPECT_ALL(evt, ievt::FLOW|ievt::BEG_);
+            EXPECT_NONE(evt, ievt::END_);
+            EXPECT_ONE(evt, ievt::MAP_|ievt::SEQ_);
+        }
         // now check each flag
         if(evt & ievt::YAML)
         {
@@ -411,9 +583,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, (ievt::BDOC|ievt::EDOC));
             EXPECT_NONE(evt, (ievt::BMAP|ievt::EMAP));
             EXPECT_NONE(evt, (ievt::BSEQ|ievt::ESEQ));
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_ALL(next, ievt::PSTR);
+            EXPECT_ALL(next, ievt::PEX2);
         }
         if(evt & ievt::TAGH)
         {
@@ -434,9 +606,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, (ievt::BDOC|ievt::EDOC));
             EXPECT_NONE(evt, (ievt::BMAP|ievt::EMAP));
             EXPECT_NONE(evt, (ievt::BSEQ|ievt::ESEQ));
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(next & ievt::PEX2, ievt::PEX2);
             EXPECT_EQ(next & ievt::TAGP, ievt::TAGP);
         }
         if(evt & ievt::TAGP)
@@ -458,9 +630,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, (ievt::BDOC|ievt::EDOC));
             EXPECT_NONE(evt, (ievt::BMAP|ievt::EMAP));
             EXPECT_NONE(evt, (ievt::BSEQ|ievt::ESEQ));
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(next & ievt::PEX2, ievt::PEX2);
             EXPECT_EQ(prev & ievt::TAGH, ievt::TAGH);
         }
         if(hasall(evt, ievt::BSTR))
@@ -478,9 +650,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::BEG_);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_);
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_NONE(next, ievt::PSTR);
+            EXPECT_NONE(next, ievt::PEX2);
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
                 EXPECT_ONE(child_evt, ievt::DOC_|ievt::YAML|ievt::TAGH|ievt::TAGP);
                 EXPECT_NONE(child_evt, ievt::SEQ_|ievt::MAP_|ievt::TAG_|ievt::ANCH|ievt::ALIA);
@@ -501,7 +673,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BDOC|ievt::EDOC), ievt::END_);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_);
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
         }
         if((evt & ievt::BDOC) == ievt::BDOC)
@@ -519,8 +691,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::BEG_);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::BEG_);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::BEG_);
+            EXPECT_NONE(evt, (ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_NONE(next, ievt::PSTR);
+            EXPECT_NONE(next, ievt::PEX2);
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
                 if(child_evt & (~ievt::VAL_))
                 {
@@ -542,8 +715,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BSTR|ievt::ESTR), ievt::END_);
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_);
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_);
+            EXPECT_NONE(evt, (ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_NONE(next, ievt::PSTR);
+            EXPECT_NONE(next, ievt::PEX2);
         }
         if((evt & ievt::BSEQ) == ievt::BSEQ)
         {
@@ -560,7 +734,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_NONE(next, ievt::PSTR);
+            EXPECT_NONE(next, ievt::PEX2);
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
                 //EXPECT_NE(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::TAG_|ievt::ANCH|ievt::ALIA|ievt::RREF), 0);
                 EXPECT_NONE(child_evt, ievt::KEY_);
@@ -581,7 +755,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), ievt::END_);
             EXPECT_NONE(evt, (ievt::FLOW));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_NONE(next, ievt::PSTR);
+            EXPECT_NONE(next, ievt::PEX2);
         }
         if((evt & ievt::BMAP) == ievt::BMAP)
         {
@@ -597,10 +771,13 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), 0);
             EXPECT_NE(evt & (ievt::KEY_|ievt::VAL_), ievt::KEY_|ievt::VAL_);
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_NONE(next, ievt::PSTR);
+            EXPECT_NONE(next, ievt::PEX2);
             bool key_state = true;
+            bool has_rref = false;
             iter_children(evts, evts_sz, evtpos, [&](evt_size, evt_bits child_evt){
-                if(!child_evt)
+                if(child_evt & ievt::RREF)
+                    has_rref = true;
+                if(has_rref || !child_evt)
                     return;
                 if(child_evt & (ievt::SEQ_|ievt::MAP_|ievt::SCLR|ievt::ALIA))
                 {
@@ -625,7 +802,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, ievt::FLOW);
             EXPECT_NONE(evt, style_scalar|directives);
             EXPECT_NONE(evt, ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD);
-            EXPECT_NONE(next, ievt::PSTR);
+            EXPECT_NONE(next, ievt::PEX2);
         }
         if(evt & ievt::SCLR)
         {
@@ -639,8 +816,8 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, (ievt::BDOC|ievt::EDOC));
             EXPECT_NONE(evt, (ievt::BSEQ|ievt::ESEQ));
             EXPECT_NONE(evt, (ievt::BMAP|ievt::EMAP));
-            EXPECT_NONE(evt, ievt::FLOW);
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
+            EXPECT_EQ(next & ievt::PEX2, ievt::PEX2);
             EXPECT_ONE_OR_NONE(evt, style_scalar);
         }
         if(evt & ievt::ALIA)
@@ -655,9 +832,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, (ievt::BDOC|ievt::EDOC));
             EXPECT_NONE(evt, (ievt::BSEQ|ievt::ESEQ));
             EXPECT_NONE(evt, (ievt::BMAP|ievt::EMAP));
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(next & ievt::PEX2, ievt::PEX2);
         }
         if(evt & ievt::ANCH)
         {
@@ -672,9 +849,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, (ievt::BDOC|ievt::EDOC));
             EXPECT_NONE(evt, (ievt::BSEQ|ievt::ESEQ));
             EXPECT_NONE(evt, (ievt::BMAP|ievt::EMAP));
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(next & ievt::PEX2, ievt::PEX2);
             // must be followed either by an entry or by TAG_ then entry
             evt_size entrypos = evtpos + ((next & ievt::TAG_) ? 6 : 3);
             RYML_TRACE_FMT("evtpos={} next_has_tag={} entrypos={}", evtpos, next & ievt::TAG_, entrypos);
@@ -695,9 +872,9 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_NONE(evt, (ievt::BDOC|ievt::EDOC));
             EXPECT_NONE(evt, (ievt::BSEQ|ievt::ESEQ));
             EXPECT_NONE(evt, (ievt::BMAP|ievt::EMAP));
-            EXPECT_NONE(evt, ievt::FLOW);
+            EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
+            EXPECT_EQ(next & ievt::PEX2, ievt::PEX2);
             // must be followed by an entry, never by an ANCH
             evt_size entrypos = evtpos + 3;
             RYML_TRACE_FMT("entrypos={}", entrypos);

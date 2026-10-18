@@ -10,8 +10,10 @@
 #include <c4/yml/parse_engine.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
+#include <c4/yml/extra/ints_format.hpp>
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
+#include <c4/yml/extra/ints_reference_resolver.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <c4/span.hpp>
 #endif
@@ -142,6 +144,16 @@ struct TestBuffers : public ievt::Buffers
         that->destroy();
     }
 
+    void copy_from(TestBuffers const& that)
+    {
+        destroy();
+        src = that.src;
+        evts = yml::detail::resize(evts, that.evts.len, that.callbacks);
+        arena = yml::detail::resize(arena, that.arena.len, that.callbacks);
+        callbacks = that.callbacks;
+        owned = true;
+    }
+
 public:
 
     template<bool resize_buffers>
@@ -207,10 +219,19 @@ public:
 
 public:
 
+    void resolve(ResolveOptions const& opts={})
+    {
+        ReferenceResolver res;
+        res.resolve_resize(this, opts);
+    }
+
+public:
+
     void print(bool print_all=false) const
     {
         evt_size sz = print_all ? evts.cap : evts.len;
-        events_ints_print(src, arena, evts.ptr, sz);
+        WriterFile writer;
+        format_ints_as_c_data(writer, src, arena, evts.ptr, sz, true);
     }
 
     evt_size num_ints() const

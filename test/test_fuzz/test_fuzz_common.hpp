@@ -12,11 +12,13 @@
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #include <c4/yml/writer_buf.hpp>
+#include <c4/yml/resolve_options.hpp>
 #endif
 #include <testsuite/testsuite_events.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
+#include <c4/yml/extra/ints_reference_resolver.hpp>
 #include <cstdio>
 
 #ifdef C4_EXCEPTIONS
@@ -36,11 +38,12 @@ bool report_errors = true;
 bool report_errors = false;
 #endif
 
-#define ASSERT_FUZZ(cond)                       \
-    if(!(cond))                                 \
-    {                                           \
-        dump2stderr("panic: " #cond "\n");      \
-        abort();                                \
+#define ASSERT_FUZZ(cond)                               \
+    if(!(cond))                                         \
+    {                                                   \
+        fprintf(stderr, "%s:%d: ", __FILE__, __LINE__); \
+        dump2stderr("panic: " #cond "\n");              \
+        abort();                                        \
     }
 
 // watchout: VS2022 requires C4_NORETURN to come before inline
