@@ -37,19 +37,23 @@ namespace detail {
 enum : evt_bits { // NOLINT
     styles_ievt_quot = ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD,
     styles_ievt_sclr = ievt::PLAI|styles_ievt_quot,
-    styles_ievt_cont = ievt::BLCK|ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
+    styles_ievt_cont = /*ievt::BLCK|*/ievt::FLOW|ievt::FSL_|ievt::FML1|ievt::FMLN,
 };
 inline bool query_blck_cont_(evt_bits evt) noexcept
 {
-    return (evt & ievt::BLCK) || (!(evt & detail::styles_ievt_cont));
+    return !(evt & ievt::FLOW);
+}
+inline bool query_blck_cont_or_(evt_bits evt, evt_bits flowstyle) noexcept
+{
+    return (evt & flowstyle) || /*blck*/!(evt & ievt::FLOW);
 }
 inline bool key_requires_qmark_block(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
-    return get_all_bits_key(evts, evts_size, pos) & (detail::mask_seqmap|ievt::LITL|ievt::FOLD); // NOLINT
+    return get_all_bits_key_or_val_(evts, evts_size, pos) & (detail::mask_seqmap|ievt::LITL|ievt::FOLD); // NOLINT
 }
 inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
-    return get_all_bits_key(evts, evts_size, pos) & (detail::mask_seqmap);
+    return get_all_bits_key_or_val_(evts, evts_size, pos) & (detail::mask_seqmap);
 }
 } // namespace detail
 
@@ -132,7 +136,7 @@ void EmitterInts<Writer>::emit_yaml_(evt_size pos)
     else if(detail::hasall(evt, ievt::BDOC))
     {
         RYML_ASSERT_BASIC_(m_ilevel == 0);
-        bool expl = evt & ievt::EXPL;
+        bool expl = evt & ievt::FLOW;
         if(expl)
         {
             write_("---");
@@ -240,13 +244,11 @@ evt_size EmitterInts<Writer>::kickoff_key(evt_size pos, evt_size keypos)
     {
         RYML_ASSERT_BASIC_(detail::seqormap(m_evts[keypos]));
         evt_bits keystyle = (m_evts[keypos] & detail::styles_ievt_cont);
-        if(!keystyle)
-            keystyle = ievt::BLCK;
         write_('?');
         pend_space_();
         pos = write_tag_or_anchor(pos, keypos);
         ++m_ilevel;
-        if(keystyle & ievt::BLCK)
+        if(!keystyle)
             pend_newl_();
         pos = visit_blck_container_(pos);
         --m_ilevel;
@@ -265,21 +267,21 @@ template<class Writer>
 evt_size EmitterInts<Writer>::visit_stream_(evt_size pos)
 {
     m_ilevel = 0;
-    uint32_t doc_count = 0;
+    bool has_tagh = false;
     while(pos < m_evts_size)
     {
         evt_bits evt = m_evts[pos];
         if(detail::hasall(evt, ievt::BDOC))
         {
-            bool expl = doc_count || (evt & ievt::EXPL);
+            bool expl = (evt & ievt::FLOW) || has_tagh;
             if(expl)
             {
-                if(doc_count)
+                if(has_tagh)
                     pend_newl_();
                 write_pws_and_pend_(PWS_SPACE_);
                 write_("---");
             }
-            ++doc_count;
+            has_tagh = false;
             RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
             if(detail::hasnone(m_evts[pos + 1], ievt::EDOC))
             {
@@ -303,6 +305,7 @@ evt_size EmitterInts<Writer>::visit_stream_(evt_size pos)
             pos += 3;
             write_(getstr_(pos));
             pos += 3;
+            has_tagh = true;
         }
         else
         {
@@ -419,10 +422,10 @@ evt_size EmitterInts<Writer>::visit_doc_(evt_size pos, bool begin_expl)
             if(was_flow_container)
             {
                 // is there a better way?
-                if(begin_expl || (evt & ievt::EXPL) || detail::has_next_doc_and_is_expl_(m_evts, m_evts_size, pos))
+                if(begin_expl || (evt & ievt::FLOW) || detail::has_next_doc_and_is_expl_(m_evts, m_evts_size, pos))
                     pend_newl_();
             }
-            if(evt & ievt::EXPL)
+            if(evt & ievt::FLOW)
             {
                 write_pws_and_pend_(PWS_NEWL_);
                 write_("...");
@@ -447,8 +450,9 @@ evt_size EmitterInts<Writer>::visit_blck_container_(evt_size pos)
     evt_bits evt = m_evts[pos];
     RYML_ASSERT_BASIC_(detail::seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if(!(evt & (ievt::FLOW|ievt::BLCK)))
-        evt |= (m_evts[pos + 1] & ievt::END_) ? ievt::FSL_ : ievt::BLCK;
+    if(!(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX)))
+        if(detail::isempty(m_evts, pos))
+            evt |= ievt::FLOW|ievt::FSL_;
     write_pws_and_pend_(PWS_NONE_);
     if(evt & ievt::FSL_)
         pos = visit_flow_sl_(pos);
@@ -466,7 +470,7 @@ evt_size EmitterInts<Writer>::visit_flow_container_(evt_size pos)
     evt_bits evt = m_evts[pos];
     RYML_ASSERT_BASIC_(detail::seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if(!(evt & ievt::FLOW))
+    if(!(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX)))
         evt |= ievt::FLOW|ievt::FSL_;
     write_pws_and_pend_(PWS_NONE_);
     if(evt & ievt::FMLX)
@@ -580,16 +584,15 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
                 evt |= detail::scalar_style_choose_block_ievt(val);
             blck_write_scalar_(val, evt);
             pos += 3;
-            goto nextval; // NOLINT
+            goto nextval;
         }
         else if(detail::seqormap(evt))
         {
             if(has_tag_or_anchor)
             {
-                if(detail::hasnone(evt, detail::styles_ievt_cont))
-                    evt |= ievt::BLCK;
+                bool blck = detail::hasnone(evt, detail::styles_ievt_cont);
                 bool empty = (m_evts[pos + 1] & ievt::END_);
-                if(!empty && (evt & ievt::BLCK))
+                if(!empty && blck)
                     pend_newl_();
             }
             ++m_depth;
@@ -693,11 +696,10 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
         }
         else if(detail::seqormap(evt))
         {
-            if(!(evt & detail::styles_ievt_cont))
-                evt |= ievt::BLCK;
+            bool blck = !(evt & detail::styles_ievt_cont);
             ++m_depth;
             ++m_ilevel;
-            if(evt & ievt::BLCK)
+            if(blck)
                 pend_newl_();
             write_pws_and_pend_(PWS_NONE_);
             pos = visit_blck_container_(pos);
@@ -1154,7 +1156,6 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
 template<class Writer>
 void EmitterInts<Writer>::flow_write_scalar_(csubstr str, evt_bits evt)
 {
-    RYML_ASSERT_BASIC_(!(evt & ievt::BLCK));
     if((evt & ievt::PLAI) || !(evt & detail::styles_ievt_sclr))
     {
         yml::detail::emit_scalar_plain_(this, str, m_ilevel);
@@ -1565,7 +1566,7 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
                 if((open & ievt::FSPC) || m_opts.force_flow_spc())
                     write_(' ');
             }
-            else if((open & (ievt::FML1|ievt::BLCK)) || at_end)
+            else if(at_end || detail::query_blck_cont_or_(open, ievt::FML1))
             {
                 pend_newl_();
             }
@@ -1573,7 +1574,7 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
         else
         {
             ++pos; // advance past the close event
-            if(open & (ievt::FMLX|ievt::BLCK))
+            if(detail::seqormap(open) && detail::query_blck_cont_or_(open, ievt::FMLX))
                 pend_newl_();
             break;
         }
