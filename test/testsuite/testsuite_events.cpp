@@ -1,6 +1,7 @@
 #include "testsuite_events.hpp"
 #include "testsuite_common.hpp"
-#include "test_lib/test_engine.hpp"
+#include "test_lib/test_compare_events.hpp"
+
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
@@ -94,7 +95,7 @@ struct Scalar
     OptionalScalar ref    = {};
     OptionalScalar tag    = {};
     NodeType       flags = {};
-    inline operator bool() const { if(anchor || tag) { RYML_ASSERT_BASIC_(scalar); } return scalar.was_set; }
+    operator bool() const { if(anchor || tag) { RYML_ASSERT_BASIC_(scalar); } return scalar.was_set; }
     void add_key_props(Tree *tree, id_type node) const
     {
         if(ref)
@@ -562,7 +563,6 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
         linenum++;
     }
 }
-
 
 } // namespace yml
 } // namespace c4

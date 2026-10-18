@@ -66,8 +66,6 @@ void test_events_ints_invariants(
     evt_bits evts_ints_sz);
 
 
-void test_compare_emitted_yaml_ints(std::string const& emitted, std::string const& expected);
-
 
 //-----------------------------------------------------------------------------
 
@@ -75,9 +73,14 @@ void test_compare_emitted_yaml_ints(std::string const& emitted, std::string cons
 void verify_visit_seq(evt_bits const* evts, evt_size evts_sz,
                       evt_size const* expected, evt_size exsz);
 
-inline void verify_visit_seq(cspan<ievt::evt_bits> evts, cspan<evt_size> expected)
+inline void verify_visit_seq(cspan<ievt::evt_bits> evts, cspan<ievt::evt_size> expected)
 {
     verify_visit_seq(evts.data(), static_cast<evt_size>(evts.size()),
+                     expected.data(), static_cast<evt_size>(expected.size()));
+}
+inline void verify_visit_seq(ievt::evtbuf evts, cspan<ievt::evt_size> expected)
+{
+    verify_visit_seq(evts.ptr, evts.len,
                      expected.data(), static_cast<evt_size>(expected.size()));
 }
 
@@ -86,6 +89,10 @@ void verify_visit_seq(evt_bits const* evts, evt_size evts_sz);
 inline void verify_visit_seq(cspan<ievt::evt_bits> evts)
 {
     verify_visit_seq(evts.data(), static_cast<evt_size>(evts.size()));
+}
+inline void verify_visit_seq(ievt::evtbuf evts)
+{
+    verify_visit_seq(evts.ptr, evts.len);
 }
 
 
@@ -136,32 +143,46 @@ public:
 
 public:
 
-    void prepare_parse(EventHandlerInts &handler,
+    template<bool resize_buffers>
+    void get_buffers(extra::ievt::EventHandlerInts<resize_buffers> &handler, bool transfer_ownership)
+    {
+        handler.get_buffers(this, transfer_ownership);
+        owned = transfer_ownership;
+        callbacks = handler.m_stack.m_callbacks;
+    }
+
+public:
+
+    template<bool resize_buffers>
+    void prepare_parse(ievt::EventHandlerInts<resize_buffers> &handler,
                        substr parsed_yaml,
                        evt_size evts_cap=-1, size_t arena_size=npos)
     {
         if(evts_cap == -1)
-            evts_cap = estimate_events_ints_size(to_csubstr(parsed_yaml));
+            evts_cap = ievt::estimate_events_size(to_csubstr(parsed_yaml));
         if(arena_size == npos)
             arena_size = parsed_yaml.size();
         _c4dbgpf("ints: setting buffer sizes: src={} ints={} arena={}", parsed_yaml.size(), evts_cap, arena_size);
         resize_(evts_cap, arena_size, parsed_yaml);
-        RYML_ASSERT_BASIC_CB_(callbacks, parsed_yaml.str == src.str);
-        handler.reset(src, arena, evts.ptr, evts.cap);
+        handler.reset(*this);
     }
 
-    bool resize_post_parse(EventHandlerInts &handler, substr parsed_yaml)
+    template<bool resize_buffers>
+    bool resize_post_parse(ievt::EventHandlerInts<resize_buffers> &handler, substr parsed_yaml)
     {
         bool ret = false;
-        if(!handler.fits_buffers())
+        if C4_IF_CONSTEXPR (resize_buffers)
         {
-            resize_(handler.required_size_events(), handler.required_size_arena(), parsed_yaml);
-            handler.reset(src, arena, evts.ptr, evts.cap);
-            ret = true;
+            EXPECT_TRUE(handler.fits_buffers());
         }
         else
         {
-            evts.len = handler.required_size_events();
+            if(!handler.fits_buffers())
+            {
+                resize_(handler.required_size_events(), handler.required_size_arena(), parsed_yaml);
+                handler.reset(*this);
+                ret = true;
+            }
         }
         return ret;
     }
@@ -181,7 +202,6 @@ public:
             EXPECT_EQ(prev_len, evts.len);
         }
         ASSERT_GE(evts.cap, evts_cap);
-        owned = true;
     }
 
 public:
@@ -240,13 +260,12 @@ public:
 
 inline void parse_ints(substr src, TestBuffers *ints, ParserOptions const& opts={})
 {
-    using Handler = extra::EventHandlerInts;
+    using Handler = extra::ievt::EventHandlerInts<true>;
     Handler handler;
     ParseEngine<Handler> parser(&handler, opts);
-    ints->prepare_parse(handler, src);
+    handler.reset(src);
     parser.parse_in_place_ev("(testyaml)", src);
-    ASSERT_TRUE(handler.fits_buffers());
-    ints->evts.len = handler.required_size_events();
+    ints->get_buffers(handler, true);
 }
 
 

@@ -13,6 +13,10 @@ ENGINE_TEST(QmrkNestedSameline0_0, HAS_CONTAINER_KEYS,
             "? ?"   "\n"
             ": a"         "\n"
             ,
+            "?\n"
+            "  : \n"
+            ": a"         "\n"
+            ,
             "+STR"        "\n"
             "+DOC"        "\n"
             "+MAP"        "\n"
@@ -40,6 +44,12 @@ ENGINE_TEST(QmrkNestedSameline0_0, HAS_CONTAINER_KEYS,
 }
 ENGINE_TEST(QmrkNestedSameline0_1, HAS_CONTAINER_KEYS,
             "? ? ?"   "\n"
+            ": a"         "\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    : \n"
+            "  : \n"
             ": a"         "\n"
             ,
             "+STR"        "\n"
@@ -75,6 +85,14 @@ ENGINE_TEST(QmrkNestedSameline0_1, HAS_CONTAINER_KEYS,
 }
 ENGINE_TEST(QmrkNestedSameline0_2, HAS_CONTAINER_KEYS,
             "? ? ? ?"   "\n"
+            ": a"         "\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    ?\n"
+            "      : "   "\n"
+            "    : "   "\n"
+            "  : "   "\n"
             ": a"         "\n"
             ,
             "+STR"        "\n"
@@ -116,6 +134,16 @@ ENGINE_TEST(QmrkNestedSameline0_2, HAS_CONTAINER_KEYS,
 }
 ENGINE_TEST(QmrkNestedSameline0_3, HAS_CONTAINER_KEYS,
             "? ? ? ? ?"   "\n"
+            ": a"         "\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    ?\n"
+            "      ?\n"
+            "        : "    "\n"
+            "      : "    "\n"
+            "    : "      "\n"
+            "  : "        "\n"
             ": a"         "\n"
             ,
             "+STR"        "\n"
@@ -165,6 +193,10 @@ ENGINE_TEST(QmrkNestedSameline0_3, HAS_CONTAINER_KEYS,
 ENGINE_TEST(QmrkNestedSameline1_00, HAS_CONTAINER_KEYS,
             "? ?"   "\n"
             ,
+            "?\n"
+            "  : "   "\n"
+            ": "   "\n"
+            ,
             "+STR"        "\n"
             "+DOC"        "\n"
             "+MAP"        "\n"
@@ -192,6 +224,12 @@ ENGINE_TEST(QmrkNestedSameline1_00, HAS_CONTAINER_KEYS,
 }
 ENGINE_TEST(QmrkNestedSameline1_01, HAS_CONTAINER_KEYS,
             "? ? ?"   "\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    : "   "\n"
+            "  : "   "\n"
+            ": "   "\n"
             ,
             "+STR"        "\n"
             "+DOC"        "\n"
@@ -226,6 +264,14 @@ ENGINE_TEST(QmrkNestedSameline1_01, HAS_CONTAINER_KEYS,
 }
 ENGINE_TEST(QmrkNestedSameline1_02, HAS_CONTAINER_KEYS,
             "? ? ? ?"   "\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    ?\n"
+            "      : "   "\n"
+            "    : "   "\n"
+            "  : "   "\n"
+            ": "   "\n"
             ,
             "+STR"        "\n"
             "+DOC"        "\n"
@@ -266,6 +312,16 @@ ENGINE_TEST(QmrkNestedSameline1_02, HAS_CONTAINER_KEYS,
 }
 ENGINE_TEST(QmrkNestedSameline1_03, HAS_CONTAINER_KEYS,
             "? ? ? ? ?"   "\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    ?\n"
+            "      ?"   "\n"
+            "        : "   "\n"
+            "      : "   "\n"
+            "    : "   "\n"
+            "  : "   "\n"
+            ": "   "\n"
             ,
             "+STR"        "\n"
             "+DOC"        "\n"
@@ -318,6 +374,10 @@ ENGINE_TEST(QmrkNestedSamelineTag0_00, HAS_CONTAINER_KEYS,
             "? ? &a !t"   "\n"
             ": a"         "\n"
             ,
+            "?\n"
+            "  &a !t : "  "\n"
+            ": a"         "\n"
+            ,
             "+STR"        "\n"
             "+DOC"        "\n"
             "+MAP"        "\n"
@@ -351,6 +411,10 @@ ENGINE_TEST(QmrkNestedSamelineTag0_01, HAS_CONTAINER_KEYS,
             "  ? &a !t"   "\n"
             ": a"         "\n"
             ,
+            "? &a !t\n"
+            "  &a !t : "  "\n"
+            ": a"         "\n"
+            ,
             "+STR"        "\n"
             "+DOC"        "\n"
             "+MAP"        "\n"
@@ -382,7 +446,8 @@ ENGINE_TEST(QmrkNestedSamelineTag0_01, HAS_CONTAINER_KEYS,
 }
 
 ENGINE_TEST(QmrkNestedSamelineTag0_02, HAS_CONTAINER_KEYS,
-            "? &a !t ? &a !t"   "\n"
+            "? &a !t\n"
+            "  &a !t : "  "\n"
             ": a"         "\n"
             ,
             "+STR"        "\n"
@@ -450,14 +515,18 @@ ENGINE_TEST(QmrkNestedBlock2,
             "  ? a\n"
             "  : b\n"
             ,
+            "?\n"
+            "  a: b\n"
+            ": \n"
+            ,
             "+STR"          "\n"
             "+DOC"          "\n"
             "+MAP"          "\n"
             "+MAP"          "\n"
-            "=VAL :a"          "\n"
-            "=VAL :b"          "\n"
+            "=VAL :a"       "\n"
+            "=VAL :b"       "\n"
             "-MAP"          "\n"
-            "=VAL :"          "\n"
+            "=VAL :"        "\n"
             "-MAP"          "\n"
             "-DOC"          "\n"
             "-STR"          "\n"
@@ -482,6 +551,12 @@ ENGINE_TEST(QmrkNestedBlock3,
             "  ? \n"
             "    ? a\n"
             "    : b\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    a: b\n"
+            "  : \n"
+            ": \n"
             ,
             "+STR"          "\n"
             "+DOC"          "\n"
@@ -522,6 +597,14 @@ ENGINE_TEST(QmrkNestedBlock4,
             "    ? \n"
             "      ? a\n"
             "      : b\n"
+            ,
+            "?\n"
+            "  ?\n"
+            "    ?\n"
+            "      a: b\n"
+            "    : \n"
+            "  : \n"
+            ": \n"
             ,
             "+STR"          "\n"
             "+DOC"          "\n"
@@ -566,6 +649,10 @@ ENGINE_TEST(QmrkNestedBlock5_0,
             "?"          "\n"
             "  ?"        "\n"
             ,
+            "?"          "\n"
+            "  : "       "\n"
+            ": "         "\n"
+            ,
             "+STR"     "\n"
             "+DOC"     "\n"
             "+MAP"     "\n"
@@ -597,6 +684,12 @@ ENGINE_TEST(QmrkNestedBlock5_1,
             "?"          "\n"
             "  ?"        "\n"
             "    ?"      "\n"
+            ,
+            "?"          "\n"
+            "  ?"        "\n"
+            "    : "     "\n"
+            "  : "       "\n"
+            ": "         "\n"
             ,
             "+STR"     "\n"
             "+DOC"     "\n"
@@ -637,6 +730,16 @@ ENGINE_TEST(QmrkNestedBlock5_2,
             "    ?"      "\n"
             "      ?"    "\n"
             "        ?"  "\n"
+            ,
+            "?"          "\n"
+            "  ?"        "\n"
+            "    ?"      "\n"
+            "      ?"    "\n"
+            "        : " "\n"
+            "      : "   "\n"
+            "    : "     "\n"
+            "  : "       "\n"
+            ": "         "\n"
             ,
             "+STR"     "\n"
             "+DOC"     "\n"
@@ -688,6 +791,11 @@ ENGINE_TEST(QmrkNestedBlock5_3,
             "  ?"        "\n"
             "?"          "\n"
             ,
+            "?"          "\n"
+            "  : "       "\n"
+            ": "        "\n"
+            ": "        "\n"
+            ,
             "+STR"     "\n"
             "+DOC"     "\n"
             "+MAP"     "\n"
@@ -732,6 +840,23 @@ ENGINE_TEST(QmrkNestedBlock5_4,
             "    ?"       "\n"
             "  ?"         "\n"
             "?"           "\n"
+            ,
+            "?"           "\n"
+            "  ?"         "\n"
+            "    ?"       "\n"
+            "      ?"     "\n"
+            "        ?"   "\n"
+            "          : ""\n"
+            "        : "  "\n"
+            "        : "  "\n"
+            "      : "    "\n"
+            "      : "    "\n"
+            "    : "      "\n"
+            "    : "      "\n"
+            "  : "        "\n"
+            "  : "        "\n"
+            ": "          "\n"
+            ": "          "\n"
             ,
             "+STR"          "\n"
             "+DOC"          "\n"
@@ -813,6 +938,20 @@ ENGINE_TEST(QmrkNestedBlock5_5,
             "          ?" "\n"
             "      ?"     "\n"
             "?"           "\n"
+            ,
+            "?"             "\n"
+            "  ?"           "\n"
+            "    ?"         "\n"
+            "      ?"       "\n"
+            "        ?"     "\n"
+            "          : "  "\n"
+            "        : "    "\n"
+            "      : "      "\n"
+            "      : "      "\n"
+            "    : "        "\n"
+            "  : "          "\n"
+            ": "            "\n"
+            ": "            "\n"
             ,
             "+STR"        "\n"
             "+DOC"        "\n"

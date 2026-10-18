@@ -279,9 +279,6 @@ TEST(emit, emitrs_null_tree)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-using evt_size = extra::evt_size;
-using evt_bits = extra::ievt::evt_bits;
-
 
 #define retonfail() do { if(testing::Test::HasFailure()) return; } while(0)
 #define bailonfail() do { if(testing::Test::HasFailure()) goto failure; /* NOLINT */ } while(0)
@@ -476,21 +473,47 @@ void test_emits_tree(ConstNodeRef node, std::string const& expected_yaml, std::s
 }
 
 
-void test_emits(Tree const& t, id_type id, extra::evt_size, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
+using extra::ievt::evt_size;
+using extra::ievt::evt_bits;
+
+void test_emits_ints(IntBufsCR, evt_size, std::string const&, std::string const&, EmitOptions const& ={}, bool =true)
+{
+}
+void test_emits_ints_nojson(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, EmitOptions const& opts={})
+{
+    test_emits_ints(ints, pos, expected_yaml, "", opts, false);
+}
+
+void test_emits_ints(evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
+{
+    retonfail();
+    IntBufs ints;
+    std::string yaml = expected_yaml;
+    parse_ints(to_substr(yaml), &ints);
+    test_emits_ints(ints, pos, expected_yaml, expected_json, opts);
+}
+
+void test_emits(Tree const& t, id_type id, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     test_emits_tree(&t, id, expected_yaml, expected_json, opts);
+    test_emits_ints(pos, expected_yaml, expected_json, opts);
 }
-void test_emits(TreeAndInts const& ti, id_type id, extra::evt_size, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
+void test_emits(TreeAndInts const& ti, id_type id, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     test_emits_tree(&ti.tree, id, expected_yaml, expected_json, opts);
+    test_emits_ints(ti.ints, pos, expected_yaml, expected_json, opts);
 }
 void test_emits(Tree const& t, id_type id, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     test_emits_tree(&t, id, expected_yaml, expected_json, opts);
+    if(id == NONE || id == 0)
+        test_emits_ints(0, expected_yaml, expected_json, opts);
 }
 void test_emits(TreeAndInts const& ti, id_type id, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     test_emits_tree(&ti.tree, id, expected_yaml, expected_json, opts);
+    if(id == NONE || id == 0)
+        test_emits_ints(ti.ints, 0, expected_yaml, expected_json, opts);
 }
 
 void test_emits(Tree const& t, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
@@ -499,6 +522,7 @@ void test_emits(Tree const& t, std::string const& expected_yaml, std::string con
         test_emits_tree(&t, NONE, expected_yaml, expected_json, opts);
     else
         test_emits_tree(&t, t.root_id(), expected_yaml, expected_json, opts);
+    test_emits_ints(0, expected_yaml, expected_json, opts);
 }
 void test_emits(TreeAndInts const& ti, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
@@ -506,29 +530,39 @@ void test_emits(TreeAndInts const& ti, std::string const& expected_yaml, std::st
         test_emits_tree(&ti.tree, NONE, expected_yaml, expected_json, opts);
     else
         test_emits_tree(&ti.tree, ti.tree.root_id(), expected_yaml, expected_json, opts);
+    test_emits_ints(ti.ints, 0, expected_yaml, expected_json, opts);
 }
 
-void test_emits(ConstNodeRef node, evt_size, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
+void test_emits(ConstNodeRef node, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     test_emits_tree(node.tree(), node.id(), expected_yaml, expected_json, opts);
+    test_emits_ints(pos, expected_yaml, expected_json, opts);
 }
-void test_emits(TreeAndInts const& ti, ConstNodeRef node, evt_size, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
+void test_emits(TreeAndInts const& ti, ConstNodeRef node, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     ASSERT_EQ(node.tree(), &ti.tree);
     test_emits_tree(node.tree(), node.id(), expected_yaml, expected_json, opts);
+    test_emits_ints(ti.ints, pos, expected_yaml, expected_json, opts);
 }
 void test_emits(ConstNodeRef node, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     test_emits_tree(node.tree(), node.id(), expected_yaml, expected_json, opts);
+    if(node.id() == NONE || (node.tree() && node.id() == node.tree()->root_id_maybe()))
+        test_emits_ints(0, expected_yaml, expected_json, opts);
 }
 void test_emits(TreeAndInts const& ti, ConstNodeRef node, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={})
 {
     ASSERT_EQ(node.tree(), &ti.tree);
     test_emits_tree(node.tree(), node.id(), expected_yaml, expected_json, opts);
+    if(node.id() == NONE || (node.tree() && node.id() == node.tree()->root_id_maybe()))
+        test_emits_ints(ti.ints, 0, expected_yaml, expected_json, opts);
 }
 
 #define test_emits_(...) { SCOPED_TRACE("test_emits"); test_emits(__VA_ARGS__); }
 #define test_emits_tree_(...) { SCOPED_TRACE("test_emits"); test_emits_tree(__VA_ARGS__); }
+#define test_emits_ints_(...) { SCOPED_TRACE("test_emits_ints"); test_emits_ints(__VA_ARGS__); }
+#define test_emits_ints_nojson_(...) { SCOPED_TRACE("test_emits_ints_nojson"); test_emits_ints_nojson(__VA_ARGS__); }
+
 
 using extra::ievt::evt_bits;
 using strref = std::string const&;
@@ -539,27 +573,52 @@ struct TmpStyle
     Tree *tree;
     id_type id;
     NodeType prev;
+    IntBufs *ints;
+    evt_size evt_pos;
+    evt_bits evt_prev;
     bool with_key;
+    evt_size evt_pos_key;
+    evt_bits evt_prev_key;
+    extra::ievt::evt_bits prev_ints;
     TmpStyle(TreeAndInts &ti, NodeRef const& n, NodeType tmp, evt_size evt_pos_, evt_bits evt,
              bool with_key_=false, evt_size evt_pos_key_={})
         : TmpStyle(&ti.tree, &ti.ints, n.id(), tmp, evt_pos_, evt, with_key_, evt_pos_key_) {}
-    TmpStyle(Tree *tree_, IntBufs *, id_type id_, NodeType tmp, evt_size, evt_bits,
-             bool with_key_=false, evt_size={})
+    TmpStyle(Tree *tree_, IntBufs *ints_, id_type id_, NodeType tmp, evt_size evt_pos_, evt_bits,
+             bool with_key_=false, evt_size evt_pos_key_={})
         : tree(tree_)
         , id(id_)
         , prev()
+        , ints(ints_)
+        , evt_pos(evt_pos_)
+        , evt_prev()
         , with_key(with_key_)
+        , evt_pos_key(evt_pos_key_)
+        , evt_prev_key()
     {
         if(tree)
         {
             prev = tree_->type(id);
             (tree->_p(id)->m_type &= ~(CONTAINER_STYLE|SCALAR_STYLE)) |= tmp;
         }
+        if(ints)
+        {
+            RYML_ASSERT_BASIC_(evt_pos < ints->evts.len);
+            evt_prev = ints->evts.ptr[evt_pos];
+            if(with_key)
+            {
+                evt_prev_key = ints->evts.ptr[evt_pos_key];
+            }
+        }
     }
     ~TmpStyle()
     {
         if(tree)
             tree->_p(id)->m_type = prev;
+        if(ints)
+        {
+            ints->evts.ptr[evt_pos] = evt_prev;
+            if(with_key) ints->evts.ptr[evt_pos_key] = evt_prev_key;
+        }
     }
 
     // legacy:
@@ -583,22 +642,22 @@ TmpStyle mkdquokv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { re
 TmpStyle mkfoldkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_FOLDED|VAL_FOLDED,  vpos, xievt::FOLD, true,  kpos}; }
 TmpStyle mklitlkv(TreeAndInts &ti, NodeRef n, evt_size kpos, evt_size vpos) { return {ti, n, KEY_LITERAL|VAL_LITERAL,  vpos, xievt::LITL, true,  kpos}; }
 
-TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, 0}; }
-TmpStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|spc}; }
-TmpStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|spc}; }
-TmpStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|spc}; }
+TmpStyle mkblk(TreeAndInts &ti, NodeRef n, evt_size pos) { return {ti, n, BLOCK,  pos, xievt::BLCK}; }
+TmpStyle mkflowsl(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_SL,  pos, xievt::FLOW|xievt::FSL_|spc}; }
+TmpStyle mkflowml1(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_ML1, pos, xievt::FLOW|xievt::FML1|spc}; }
+TmpStyle mkflowmln(TreeAndInts &ti, NodeRef n, evt_size pos, evt_bits spc=0) { return {ti, n, FLOW_MLN, pos, xievt::FLOW|xievt::FMLN|spc}; }
 
 TmpStyle mknosty(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, evt_bits{}}; }
-TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, 0}; }
-TmpStyle mkflowsl(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|spc}; }
-TmpStyle mkflowml1(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|spc}; }
-TmpStyle mkflowmln(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|spc}; }
+TmpStyle mkblk(IntBufs &ti, evt_size pos) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::BLCK}; }
+TmpStyle mkflowsl(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FSL_|spc}; }
+TmpStyle mkflowml1(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FML1|spc}; }
+TmpStyle mkflowmln(IntBufs &ti, evt_size pos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, pos, xievt::FLOW|xievt::FMLN|spc}; }
 // use the extra arg to disambiguate overloads above ^
 TmpStyle mknosty(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, evt_bits{}, true, kpos}; }
-TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, 0, true, kpos}; }
-TmpStyle mkflowsl(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|spc, true, kpos}; }
-TmpStyle mkflowml1(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|spc, true, kpos}; }
-TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|spc, true, kpos}; }
+TmpStyle mkblk(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::BLCK, true, kpos}; }
+TmpStyle mkflowsl(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FSL_|spc, true, kpos}; }
+TmpStyle mkflowml1(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FML1|spc, true, kpos}; }
+TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bits spc=0) { return {nullptr, &ti, 0, NOTYPE, vpos, xievt::FLOW|xievt::FMLN|spc, true, kpos}; }
 #define TMPSTY(sty, ...) TmpStyle C4_XCAT(tmpsty_, __LINE__) = mk##sty(__VA_ARGS__)
 
 
@@ -705,12 +764,20 @@ TEST(emit_nested, basic)
     - wonderful beers
 )";
         test_emit_yaml_tree_(ti.tree[3]["beer"], with_key, keyval);
+        test_emit_yaml_ints_(ti.ints, 53,        with_key, keyval);
+        test_emit_yaml_ints_(ti.ints, 56,        with_key, val);
         test_emit_yaml_tree_(ti.tree[3]["beer"], without_key, val);
+        test_emit_yaml_ints_(ti.ints, 53,        without_key, key);
+        test_emit_yaml_ints_(ti.ints, 56,        without_key, val);
         {
             SCOPED_TRACE("nosty");
             TMPSTY(nostykv, ti, ti.tree[3]["beer"], 53, 56);
             test_emit_yaml_tree_(ti.tree[3]["beer"], with_key, keyval);
+            test_emit_yaml_ints_(ti.ints, 53,        with_key, keyval);
+            test_emit_yaml_ints_(ti.ints, 56,        with_key, val);
             test_emit_yaml_tree_(ti.tree[3]["beer"], without_key, val);
+            test_emit_yaml_ints_(ti.ints, 53,        without_key, key);
+            test_emit_yaml_ints_(ti.ints, 56,        without_key, val);
         }
     }
 }
@@ -798,6 +865,160 @@ TEST(emit_nested, scalar_key)
     test_emit_yaml_ints_(ti.ints, 42,     without_key, "- a\n- b\n");
 }
 
+static void check_container_key_json_errs_(IntBufs & ints)
+{
+    auto check = [&]{
+    };
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ints, 2);
+        check();
+    }
+    {
+        SCOPED_TRACE("block");
+        TMPSTY(blk, ints, 2);
+        check();
+    }
+    {
+        SCOPED_TRACE("flowsl");
+        TMPSTY(flowsl, ints, 2);
+        check();
+    }
+    {
+        SCOPED_TRACE("flowml1");
+        TMPSTY(flowml1, ints, 2);
+        check();
+    }
+    {
+        SCOPED_TRACE("flowmln");
+        TMPSTY(flowmln, ints, 2);
+        check();
+    }
+}
+
+TEST(emit_nested, container_key_1)
+{
+    char src[] = "[a, b]: {c: d}";
+    IntBufs ints;
+    parse_ints(src, &ints);
+    test_emit_yaml_ints_(ints, 0, with_key,    "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_ints_(ints, 0, without_key, "? [a,b]\n: {c: d}\n");//BSTR
+    test_emit_yaml_ints_(ints, 1, with_key,    "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_ints_(ints, 1, without_key, "? [a,b]\n: {c: d}\n");//BDOC
+    test_emit_yaml_ints_(ints, 2, with_key,    "? [a,b]\n: {c: d}\n");//BMAP
+    test_emit_yaml_ints_(ints, 2, without_key, "? [a,b]\n: {c: d}\n");//BMAP
+    test_emit_yaml_ints_(ints, 3, with_key,    "? [a,b]\n: {c: d}\n");//KEY|BSEQ
+    test_emit_yaml_ints_(ints, 3, without_key, "[a,b]");//KEY|BSEQ
+    test_emit_yaml_ints_(ints, 4, with_key,    "a");
+    test_emit_yaml_ints_(ints, 4, without_key, "a");
+    test_emit_yaml_ints_(ints, 7, with_key,    "b");
+    test_emit_yaml_ints_(ints, 7, without_key, "b");
+    test_emit_yaml_ints_(ints, 11, with_key,    "{c: d}");
+    test_emit_yaml_ints_(ints, 11, without_key, "{c: d}");
+    test_emit_yaml_ints_(ints, 12, with_key,    "c: d\n");
+    test_emit_yaml_ints_(ints, 12, without_key, "c");
+    test_emit_yaml_ints_(ints, 15, with_key,    "d");
+    test_emit_yaml_ints_(ints, 15, without_key, "d");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ints, 2);
+        TMPSTY(nosty, ints, 3);
+        TMPSTY(nosty, ints, 11);
+        test_emit_yaml_ints_(ints, 0, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BSTR
+        test_emit_yaml_ints_(ints, 0, without_key, "?\n  - a\n  - b\n:\n  c: d\n");//BSTR
+        test_emit_yaml_ints_(ints, 1, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BDOC
+        test_emit_yaml_ints_(ints, 1, without_key, "?\n  - a\n  - b\n:\n  c: d\n");//BDOC
+        test_emit_yaml_ints_(ints, 2, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BMAP
+        test_emit_yaml_ints_(ints, 2, without_key, "?\n  - a\n  - b\n:\n  c: d\n");//BMAP
+        test_emit_yaml_ints_(ints, 3, with_key,    "?\n  - a\n  - b\n:\n  c: d\n");//BMAP
+        test_emit_yaml_ints_(ints, 3, without_key, "- a\n- b\n");//KEY|BSEQ
+        test_emit_yaml_ints_(ints, 4, with_key,    "a");
+        test_emit_yaml_ints_(ints, 4, without_key, "a");
+        test_emit_yaml_ints_(ints, 7, with_key,    "b");
+        test_emit_yaml_ints_(ints, 7, without_key, "b");
+        test_emit_yaml_ints_(ints, 11, with_key,    "c: d\n");
+        test_emit_yaml_ints_(ints, 11, without_key, "c: d\n");
+        test_emit_yaml_ints_(ints, 12, with_key,    "c: d\n");
+        test_emit_yaml_ints_(ints, 12, without_key, "c");
+        test_emit_yaml_ints_(ints, 15, with_key,    "d");
+        test_emit_yaml_ints_(ints, 15, without_key, "d");
+    }
+    {
+        SCOPED_TRACE("key err");
+        check_container_key_json_errs_(ints);
+    }
+}
+
+TEST(emit_nested, container_key_2)
+{
+    char src[] = "{a: b}: [c, d]";
+    IntBufs ints;
+    parse_ints(src, &ints);
+    test_emit_yaml_ints_(ints, 0, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 0, without_key, "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 1, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 1, without_key, "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 2, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 2, without_key, "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 3, with_key,    "? {a: b}\n: [c,d]\n");
+    test_emit_yaml_ints_(ints, 3, without_key, "{a: b}");
+    test_emit_yaml_ints_(ints, 4, with_key,    "a: b\n");
+    test_emit_yaml_ints_(ints, 4, without_key, "a");
+    test_emit_yaml_ints_(ints, 7, with_key,    "b");
+    test_emit_yaml_ints_(ints, 7, without_key, "b");
+    test_emit_yaml_ints_(ints, 11, with_key,    "[c,d]");
+    test_emit_yaml_ints_(ints, 11, without_key, "[c,d]");
+    test_emit_yaml_ints_(ints, 12, with_key,    "c");
+    test_emit_yaml_ints_(ints, 12, without_key, "c");
+    test_emit_yaml_ints_(ints, 15, with_key,    "d");
+    test_emit_yaml_ints_(ints, 15, without_key, "d");
+    {
+        SCOPED_TRACE("nosty");
+        TMPSTY(nosty, ints, 2);
+        TMPSTY(nosty, ints, 3);
+        TMPSTY(nosty, ints, 11);
+        test_emit_yaml_ints_(ints, 0, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 0, without_key, "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 1, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 1, without_key, "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 2, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 2, without_key, "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 3, with_key,    "?\n  a: b\n:\n  - c\n  - d\n");
+        test_emit_yaml_ints_(ints, 3, without_key, "a: b\n");
+        test_emit_yaml_ints_(ints, 4, with_key,    "a: b\n");
+        test_emit_yaml_ints_(ints, 4, without_key, "a");
+        test_emit_yaml_ints_(ints, 7, with_key,    "b");
+        test_emit_yaml_ints_(ints, 7, without_key, "b");
+        test_emit_yaml_ints_(ints, 11, with_key,    "- c\n- d\n");
+        test_emit_yaml_ints_(ints, 11, without_key, "- c\n- d\n");
+        test_emit_yaml_ints_(ints, 12, with_key,    "c");
+        test_emit_yaml_ints_(ints, 12, without_key, "c");
+        test_emit_yaml_ints_(ints, 15, with_key,    "d");
+        test_emit_yaml_ints_(ints, 15, without_key, "d");
+    }
+    {
+        SCOPED_TRACE("key err");
+        check_container_key_json_errs_(ints);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(emit, null_ints)
+{
+    IntBufs ints = {};
+    ASSERT_EQ(ints.evts.len, 0);
+    ASSERT_EQ(ints.evts.ptr, nullptr);
+    ASSERT_EQ(ints.src.len, 0);
+    ASSERT_EQ(ints.src.str, nullptr);
+    ASSERT_EQ(ints.arena.len, 0);
+    ASSERT_EQ(ints.arena.str, nullptr);
+    std::string ret;
+    //RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emitrs_yaml<std::string>(); }));
+    EXPECT_TRUE(ret.empty());
+    //RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emitrs_json<std::string>(); }));
+}
 
 
 //-----------------------------------------------------------------------------
@@ -808,11 +1029,21 @@ TEST(emit_block_seq, ambiguous_plain_emitted_as_squo)
     EXPECT_EQ(scalar_style_query_plain_flow(":\todd"), false);
     EXPECT_EQ(scalar_style_choose_flow(": odd"), SCALAR_SQUO);
     EXPECT_EQ(scalar_style_choose_flow(":\todd"), SCALAR_SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(": odd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(":\todd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt("\n \t"), xievt::DQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(csubstr{}), xievt::PLAI);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_flow_ievt(csubstr("foo").first(0)), xievt::SQUO);
     EXPECT_EQ(scalar_style_query_plain_block(": odd"), false);
     EXPECT_EQ(scalar_style_query_plain_block(":\todd"), false);
     EXPECT_EQ(scalar_style_choose_block(": odd"), SCALAR_SQUO);
     EXPECT_EQ(scalar_style_choose_block(":\todd"), SCALAR_SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(": odd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(":\todd"), xievt::SQUO);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(csubstr{}), xievt::PLAI);
+    EXPECT_EQ(xievt::detail::scalar_style_choose_block_ievt(csubstr("foo").first(0)), xievt::SQUO);
     {
+        SCOPED_TRACE("1");
         Tree t;
         NodeRef r = t.rootref();
         r.set_seq(BLOCK);
@@ -1287,6 +1518,7 @@ TEST(emit, docval)
         test_emits_(ti, root, 0, "a\n", "\"a\"");
         test_emits_(ti, root, 1, "a\n", "\"a\"");
         test_emits_tree_(root, "a\n", "\"a\"");
+        test_emits_ints_(ti.ints, 2, "a", "\"a\"");
     }
     {
         SCOPED_TRACE("plain");
@@ -1295,6 +1527,7 @@ TEST(emit, docval)
         test_emits_(ti, root, 0, "a\n", "\"a\"");
         test_emits_(ti, root, 1, "a\n", "\"a\"");
         test_emits_tree_(root, "a\n", "\"a\"");
+        test_emits_ints_(ti.ints, 2, "a", "\"a\"");
     }
     {
         SCOPED_TRACE("squo");
@@ -1303,6 +1536,7 @@ TEST(emit, docval)
         test_emits_(ti, root, 0, "'a'\n", "\"a\"");
         test_emits_(ti, root, 1, "'a'\n", "\"a\"");
         test_emits_tree_(root, "'a'\n", "\"a\"");
+        test_emits_ints_(ti.ints, 2, "'a'", "\"a\"");
     }
     {
         SCOPED_TRACE("dquo");
@@ -1311,6 +1545,7 @@ TEST(emit, docval)
         test_emits_(ti, root, 0, "\"a\"\n", "\"a\"");
         test_emits_(ti, root, 1, "\"a\"\n", "\"a\"");
         test_emits_tree_(root, "\"a\"\n", "\"a\"");
+        test_emits_ints_(ti.ints, 2, "\"a\"", "\"a\"");
     }
     {
         SCOPED_TRACE("literal");
@@ -1319,6 +1554,7 @@ TEST(emit, docval)
         test_emits_(ti, root, 0, "|-\n  a\n", "\"a\"");
         test_emits_(ti, root, 1, "|-\n  a\n", "\"a\"");
         test_emits_tree_(root, "|-\n  a\n", "\"a\"");
+        test_emits_ints_(ti.ints, 2, "|-\n  a", "\"a\"");
     }
     {
         SCOPED_TRACE("fold");
@@ -1327,6 +1563,7 @@ TEST(emit, docval)
         test_emits_(ti, root, 0, ">-\n  a\n", "\"a\"");
         test_emits_(ti, root, 1, ">-\n  a\n", "\"a\"");
         test_emits_tree_(root, ">-\n  a\n", "\"a\"");
+        test_emits_ints_(ti.ints, 2, ">-\n  a", "\"a\"");
     }
 }
 
@@ -1342,6 +1579,7 @@ TEST(emit, docval_empty)
         test_emits_(ti, root, 0, "''\n", "\"\"");
         test_emits_(ti, root, 1, "''\n", "\"\"");
         test_emits_tree_(root, "''\n", "\"\"");
+        test_emits_ints_(ti.ints, 2, "''", "\"\"");
     }
     {
         SCOPED_TRACE("plain");
@@ -1350,6 +1588,7 @@ TEST(emit, docval_empty)
         test_emits_(ti, root, 0, "\n", "\"\"");
         test_emits_(ti, root, 1, "\n", "\"\"");
         test_emits_tree_(root, "\n", "\"\"");
+        test_emits_ints_(ti.ints, 2, "", "\"\"");
     }
     {
         SCOPED_TRACE("squo");
@@ -1358,6 +1597,7 @@ TEST(emit, docval_empty)
         test_emits_(ti, root, 0, "''\n", "\"\"");
         test_emits_(ti, root, 1, "''\n", "\"\"");
         test_emits_tree_(root, "''\n", "\"\"");
+        test_emits_ints_(ti.ints, 2, "''", "\"\"");
     }
     {
         SCOPED_TRACE("dquo");
@@ -1366,6 +1606,7 @@ TEST(emit, docval_empty)
         test_emits_(ti, root, 0, "\"\"\n", "\"\"");
         test_emits_(ti, root, 1, "\"\"\n", "\"\"");
         test_emits_tree_(root, "\"\"\n", "\"\"");
+        test_emits_ints_(ti.ints, 2, "\"\"", "\"\"");
     }
     {
         SCOPED_TRACE("literal");
@@ -1374,6 +1615,7 @@ TEST(emit, docval_empty)
         test_emits_(ti, root, 0, "|-\n", "\"\"");
         test_emits_(ti, root, 1, "|-\n", "\"\"");
         test_emits_tree_(root, "|-\n", "\"\"");
+        test_emits_ints_(ti.ints, 2, "|-", "\"\"");
     }
     {
         SCOPED_TRACE("fold");
@@ -1382,6 +1624,7 @@ TEST(emit, docval_empty)
         test_emits_(ti, root, 0, ">-\n", "\"\"");
         test_emits_(ti, root, 1, ">-\n", "\"\"");
         test_emits_tree_(root, ">-\n", "\"\"");
+        test_emits_ints_(ti.ints, 2, ">-", "\"\"");
     }
 }
 
@@ -2100,6 +2343,428 @@ TEST(emit, existing_map_node_block)
 }
 
 
+//-----------------------------------------------------------------------------
+
+TEST(emit, container_key_seq_flow)
+{
+    SCOPED_TRACE("container_key_map_flow");
+    IntBufs ints;
+    std::string yaml = "[key, is, a, seq]: [val, is, a, seq]";
+    parse_ints(to_substr(yaml), &ints);
+    test_emits_ints_nojson_(ints, 0, "? [key,is,a,seq]\n: [val,is,a,seq]\n");
+    {
+        SCOPED_TRACE("root-blk");
+        TMPSTY(blk, ints, 2);
+        auto dotest = [&](strref keyval, strref key, strref val){
+            test_emits_ints_nojson_(ints, 0, keyval);
+            test_emits_ints_nojson_(ints, 1, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval, without_key);
+            test_emits_ints_nojson_(ints, 3, keyval);
+            test_emits_ints_nojson_(ints, 3, key, without_key);
+            test_emits_ints_nojson_(ints, 17, val);
+            test_emits_ints_nojson_(ints, 17, val, without_key);
+        };
+        {
+            SCOPED_TRACE("kv-blk");
+            TMPSTY(blk, ints, ints, 3, 17);
+            dotest("?\n  - key\n  - is\n  - a\n  - seq\n:\n  - val\n  - is\n  - a\n  - seq\n",
+                   "- key\n- is\n- a\n- seq\n",
+                   "- val\n- is\n- a\n- seq\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+    auto dotest = [&](strref full, strref keyval, strref key, strref val){
+        test_emits_ints_nojson_(ints, 0, full);
+        test_emits_ints_nojson_(ints, 1, full);
+        test_emits_ints_nojson_(ints, 2, full);
+        test_emits_ints_nojson_(ints, 2, full, without_key);
+        test_emits_ints_nojson_(ints, 3, keyval);
+        test_emits_ints_nojson_(ints, 3, key, without_key);
+        test_emits_ints_nojson_(ints, 17, val);
+        test_emits_ints_nojson_(ints, 17, val, without_key);
+    };
+    {
+        SCOPED_TRACE("root-flowsl");
+        TMPSTY(flowsl, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{? [\n  key,\n  is,\n  a,\n  seq\n]: [\n  val,\n  is,\n  a,\n  seq\n]}",
+                   "? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{? [\n  key,is,a,seq\n]: [\n  val,is,a,seq\n]}",
+                   "? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? [\n  key, is, a, seq\n]: [\n  val, is, a, seq\n]}",
+                   "? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{? [key,is,a,seq]: [val,is,a,seq]}",
+                   "? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? [key, is, a, seq]: [val, is, a, seq]}",
+                   "? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowml1");
+        TMPSTY(flowml1, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,\n    is,\n    a,\n    seq\n  ]: [\n    val,\n    is,\n    a,\n    seq\n  ]\n}\n",
+                   "? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,is,a,seq\n  ]: [\n    val,is,a,seq\n  ]\n}\n",
+                   "? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? [\n    key, is, a, seq\n  ]: [\n    val, is, a, seq\n  ]\n}\n",
+                   "? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? [key,is,a,seq]: [val,is,a,seq]\n}\n",
+                   "? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? [key, is, a, seq]: [val, is, a, seq]\n}\n",
+                   "? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowmln");
+        TMPSTY(flowmln, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,is,a,seq\n  ]: [\n    val,is,a,seq\n  ]\n}\n",
+                   "? [\n    key,\n    is,\n    a,\n    seq\n  ]\n: [\n    val,\n    is,\n    a,\n    seq\n  ]\n",
+                   "[\n  key,\n  is,\n  a,\n  seq\n]\n",
+                   "[\n  val,\n  is,\n  a,\n  seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? [\n    key,is,a,seq\n  ]: [\n    val,is,a,seq\n  ]\n}\n",
+                   "? [\n    key,is,a,seq\n  ]\n: [\n    val,is,a,seq\n  ]\n",
+                   "[\n  key,is,a,seq\n]\n",
+                   "[\n  val,is,a,seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            // FIXME!
+            dotest("{\n  ? [\n    key,is,a,seq\n  ]: [\n    val,is,a,seq\n  ]\n}\n",
+                   "? [\n    key, is, a, seq\n  ]\n: [\n    val, is, a, seq\n  ]\n",
+                   "[\n  key, is, a, seq\n]\n",
+                   "[\n  val, is, a, seq\n]\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? [key,is,a,seq]: [val,is,a,seq]\n}\n",
+                   "? [key,is,a,seq]\n: [val,is,a,seq]\n",
+                   "[key,is,a,seq]",
+                   "[val,is,a,seq]");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            // FIXME!
+            dotest("{\n  ? [key,is,a,seq]: [val,is,a,seq]\n}\n",
+                   "? [key, is, a, seq]\n: [val, is, a, seq]\n",
+                   "[key, is, a, seq]",
+                   "[val, is, a, seq]");
+        }
+    }
+}
+
+TEST(emit, container_key_map_flow)
+{
+    SCOPED_TRACE("container_key_map_flow");
+    IntBufs ints;
+    std::string yaml = "{key: is, a: map}: {val: is, a: map}";
+    parse_ints(to_substr(yaml), &ints);
+    test_emits_ints_nojson_(ints, 0, "? {key: is,a: map}\n: {val: is,a: map}\n");
+    {
+        SCOPED_TRACE("error on key container");
+        test_emit_error_json_ints(ints, 3);
+    }
+    {
+        SCOPED_TRACE("root-blk");
+        TMPSTY(blk, ints, 2);
+        auto dotest = [&](strref keyval, strref key, strref val){
+            test_emits_ints_nojson_(ints, 0, keyval);
+            test_emits_ints_nojson_(ints, 1, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval);
+            test_emits_ints_nojson_(ints, 2, keyval, without_key);
+            test_emits_ints_nojson_(ints, 3, keyval);
+            test_emits_ints_nojson_(ints, 3, key, without_key);
+            test_emits_ints_nojson_(ints, 17, val);
+            test_emits_ints_nojson_(ints, 17, val, without_key);
+        };
+        {
+            SCOPED_TRACE("kv-blk");
+            TMPSTY(blk, ints, ints, 3, 17);
+            dotest("?\n  key: is\n  a: map\n:\n  val: is\n  a: map\n",
+                   "key: is\na: map\n",
+                   "val: is\na: map\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
+    }
+    auto dotest = [&](strref full, strref keyval, strref key, strref val){
+        test_emits_ints_nojson_(ints, 0, full);
+        test_emits_ints_nojson_(ints, 1, full);
+        test_emits_ints_nojson_(ints, 2, full);
+        test_emits_ints_nojson_(ints, 2, full, without_key);
+        test_emits_ints_nojson_(ints, 3, keyval);
+        test_emits_ints_nojson_(ints, 3, key, without_key);
+        test_emits_ints_nojson_(ints, 17, val);
+        test_emits_ints_nojson_(ints, 17, val, without_key);
+    };
+    {
+        SCOPED_TRACE("root-flowsl");
+        TMPSTY(flowsl, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{? {\n  key: is,\n  a: map\n}: {\n  val: is,\n  a: map\n}}",
+                   "? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{? {\n  key: is,a: map\n}: {\n  val: is,a: map\n}}",
+                   "? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? {\n  key: is, a: map\n}: {\n  val: is, a: map\n}}",
+                   "? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{? {key: is,a: map}: {val: is,a: map}}",
+                   "? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{? {key: is, a: map}: {val: is, a: map}}",
+                   "? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowml1");
+        TMPSTY(flowml1, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,\n    a: map\n  }: {\n    val: is,\n    a: map\n  }\n}\n",
+                   "? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {\n    key: is, a: map\n  }: {\n    val: is, a: map\n  }\n}\n",
+                   "? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? {key: is,a: map}: {val: is,a: map}\n}\n",
+                   "? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {key: is, a: map}: {val: is, a: map}\n}\n",
+                   "? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
+    }
+    {
+        SCOPED_TRACE("root-flowmln");
+        TMPSTY(flowmln, ints, 2);
+        {
+            SCOPED_TRACE("kv-flowml1");
+            TMPSTY(flowml1, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is,\n    a: map\n  }\n: {\n    val: is,\n    a: map\n  }\n",
+                   "{\n  key: is,\n  a: map\n}\n",
+                   "{\n  val: is,\n  a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln");
+            TMPSTY(flowmln, ints, ints, 3, 17);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is,a: map\n  }\n: {\n    val: is,a: map\n  }\n",
+                   "{\n  key: is,a: map\n}\n",
+                   "{\n  val: is,a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowmln-spc");
+            TMPSTY(flowmln, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {\n    key: is,a: map\n  }: {\n    val: is,a: map\n  }\n}\n",
+                   "? {\n    key: is, a: map\n  }\n: {\n    val: is, a: map\n  }\n",
+                   "{\n  key: is, a: map\n}\n",
+                   "{\n  val: is, a: map\n}\n");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl");
+            TMPSTY(flowsl, ints, ints, 3, 17);
+            dotest("{\n  ? {key: is,a: map}: {val: is,a: map}\n}\n",
+                   "? {key: is,a: map}\n: {val: is,a: map}\n",
+                   "{key: is,a: map}",
+                   "{val: is,a: map}");
+        }
+        {
+            SCOPED_TRACE("kv-flowsl-spc");
+            TMPSTY(flowsl, ints, ints, 3, 17, xievt::FSPC);
+            dotest("{\n  ? {key: is,a: map}: {val: is,a: map}\n}\n",
+                   "? {key: is, a: map}\n: {val: is, a: map}\n",
+                   "{key: is, a: map}",
+                   "{val: is, a: map}");
+        }
+    }
+}
+
 
 TEST(emit, stream_docval)
 {
@@ -2118,9 +2783,18 @@ doc2
 )";
     TreeAndInts ti(to_csubstr(yaml));
     test_emits_tree_(ti.tree.rootref(), "--- doc0\n--- doc1\n--- doc2\n", expected_json);
+    test_emits_ints_(ti.ints, 0, "doc0\n--- doc1\n--- doc2\n", expected_json);
     test_emits_tree_(ti.tree.docref(0), "--- doc0", "\"doc0\""); // FIXME newline
+    test_emits_ints_(ti.ints, 1, "doc0\n", "\"doc0\"");
+    test_emits_ints_(ti.ints, 2, "doc0", "\"doc0\"");
+    test_emits_ints_(ti.ints, 5, "doc1", "\"doc1\"");
     test_emits_tree_(ti.tree.docref(1), "--- doc1", "\"doc1\""); // FIXME newline
+    test_emits_ints_(ti.ints, 6, "--- doc1\n", "\"doc1\"");
+    test_emits_ints_(ti.ints, 7, "doc1", "\"doc1\"");
+    test_emits_ints_(ti.ints, 10, "doc2", "\"doc2\"");
     test_emits_tree_(ti.tree.docref(2), "--- doc2", "\"doc2\""); // FIXME newline
+    test_emits_ints_(ti.ints, 11, "--- doc2\n", "\"doc2\"");
+    test_emits_ints_(ti.ints, 12, "doc2", "\"doc2\"");
     {
         SCOPED_TRACE("error on stream");
         const EmitOptions opts = EmitOptions{}.json_err_on_stream(true);
@@ -2146,8 +2820,16 @@ doc2
     TreeAndInts ti(to_csubstr(yaml));
     test_emits(ti, "--- doc0\n--- doc1\n--- doc2\n", expected_json);
     test_emits_tree_(ti.tree.docref(0), "--- doc0", "\"doc0\""); // FIXME newline
+    test_emits_ints_(ti.ints, 1, "--- doc0\n", "\"doc0\"");
+    test_emits_ints_(ti.ints, 2, "doc0", "\"doc0\"");
+    test_emits_ints_(ti.ints, 5, "doc1", "\"doc1\"");
     test_emits_tree_(ti.tree.docref(1), "--- doc1", "\"doc1\""); // FIXME newline
+    test_emits_ints_(ti.ints, 6, "--- doc1\n", "\"doc1\"");
+    test_emits_ints_(ti.ints, 7, "doc1", "\"doc1\"");
+    test_emits_ints_(ti.ints, 10, "doc2", "\"doc2\"");
     test_emits_tree_(ti.tree.docref(2), "--- doc2", "\"doc2\""); // FIXME newline
+    test_emits_ints_(ti.ints, 11, "--- doc2\n", "\"doc2\"");
+    test_emits_ints_(ti.ints, 12, "doc2", "\"doc2\"");
 }
 
 TEST(emit, stream_seq)
@@ -2161,15 +2843,27 @@ TEST(emit, stream_seq)
         SCOPED_TRACE("orig");
         test_emits_(ti, exp, expjson);
         test_emits_tree_(ti.tree.docref(0), "--- [a,b]", "[\"a\",\"b\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 1, "--- [a,b]\n", "[\"a\",\"b\"]");
+        test_emits_ints_(ti.ints, 2, "[a,b]", "[\"a\",\"b\"]");
         test_emits_tree_(ti.tree.docref(1), "--- [c,d]", "[\"c\",\"d\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 11, "--- [c,d]\n", "[\"c\",\"d\"]");
+        test_emits_ints_(ti.ints, 12, "[c,d]", "[\"c\",\"d\"]");
         test_emits_tree_(ti.tree.docref(2), "--- [e,f]", "[\"e\",\"f\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 21, "--- [e,f]\n", "[\"e\",\"f\"]");
+        test_emits_ints_(ti.ints, 22, "[e,f]", "[\"e\",\"f\"]");
     }
     {
         SCOPED_TRACE("flow spc");
         test_emits_(ti, exp, expjson);
         test_emits_tree_(ti.tree.docref(0), "--- [a,b]", "[\"a\",\"b\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 1, "--- [a,b]\n", "[\"a\",\"b\"]");
+        test_emits_ints_(ti.ints, 2, "[a,b]", "[\"a\",\"b\"]");
         test_emits_tree_(ti.tree.docref(1), "--- [c,d]", "[\"c\",\"d\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 11, "--- [c,d]\n", "[\"c\",\"d\"]");
+        test_emits_ints_(ti.ints, 12, "[c,d]", "[\"c\",\"d\"]");
         test_emits_tree_(ti.tree.docref(2), "--- [e,f]", "[\"e\",\"f\"]"); // FIXME newline
+        test_emits_ints_(ti.ints, 21, "--- [e,f]\n", "[\"e\",\"f\"]");
+        test_emits_ints_(ti.ints, 22, "[e,f]", "[\"e\",\"f\"]");
     }
     {
         SCOPED_TRACE("block");
@@ -2179,8 +2873,14 @@ TEST(emit, stream_seq)
         test_emits_(ti, "---\n- a\n- b\n---\n- c\n- d\n---\n- e\n- f\n",
                     "[\n  [\n    \"a\",\n    \"b\"\n  ],\n  [\n    \"c\",\n    \"d\"\n  ],\n  [\n    \"e\",\n    \"f\"\n  ]\n]\n");
         test_emits_tree_(ti.tree.docref(0), "---\n- a\n- b\n", "[\n  \"a\",\n  \"b\"\n]\n");
+        test_emits_ints_(ti.ints, 1, "---\n- a\n- b\n", "[\n  \"a\",\n  \"b\"\n]"); // FIXME newline
+        test_emits_ints_(ti.ints, 2, "- a\n- b\n", "[\n  \"a\",\n  \"b\"\n]\n");
         test_emits_tree_(ti.tree.docref(1), "---\n- c\n- d\n", "[\n  \"c\",\n  \"d\"\n]\n");
+        test_emits_ints_(ti.ints, 11, "---\n- c\n- d\n", "[\n  \"c\",\n  \"d\"\n]"); // FIXME newline
+        test_emits_ints_(ti.ints, 12, "- c\n- d\n", "[\n  \"c\",\n  \"d\"\n]\n");
         test_emits_tree_(ti.tree.docref(2), "---\n- e\n- f\n", "[\n  \"e\",\n  \"f\"\n]\n");
+        test_emits_ints_(ti.ints, 21, "---\n- e\n- f\n", "[\n  \"e\",\n  \"f\"\n]"); // FIXME newline
+        test_emits_ints_(ti.ints, 22, "- e\n- f\n", "[\n  \"e\",\n  \"f\"\n]\n");
     }
 }
 
@@ -2194,8 +2894,14 @@ TEST(emit, stream_map)
     {
         SCOPED_TRACE("orig");
         test_emits_tree_(ti.tree.docref(0), "--- {a: b}", "{\"a\": \"b\"}"); // FIXME newline
+        test_emits_ints_(ti.ints, 1, "--- {a: b}\n", "{\"a\": \"b\"}");
+        test_emits_ints_(ti.ints, 2, "{a: b}", "{\"a\": \"b\"}");
         test_emits_tree_(ti.tree.docref(1), "--- {c: d}", "{\"c\": \"d\"}"); // FIXME newline
+        test_emits_ints_(ti.ints, 11, "--- {c: d}\n", "{\"c\": \"d\"}");
+        test_emits_ints_(ti.ints, 12, "{c: d}", "{\"c\": \"d\"}");
         test_emits_tree_(ti.tree.docref(2), "--- {e: f}", "{\"e\": \"f\"}"); // FIXME newline
+        test_emits_ints_(ti.ints, 21, "--- {e: f}\n", "{\"e\": \"f\"}");
+        test_emits_ints_(ti.ints, 22, "{e: f}", "{\"e\": \"f\"}");
     }
     {
         SCOPED_TRACE("block");
@@ -2205,19 +2911,15 @@ TEST(emit, stream_map)
         test_emits_(ti, "---\na: b\n---\nc: d\n---\ne: f\n",
                     "[\n  {\n    \"a\": \"b\"\n  },\n  {\n    \"c\": \"d\"\n  },\n  {\n    \"e\": \"f\"\n  }\n]\n");
         test_emits_tree_(ti.tree.docref(0), "---\na: b\n", "{\n  \"a\": \"b\"\n}\n");
+        test_emits_ints_(ti.ints, 1, "---\na: b\n", "{\n  \"a\": \"b\"\n}"); // FIXME newline
+        test_emits_ints_(ti.ints, 2, "a: b\n", "{\n  \"a\": \"b\"\n}\n");
         test_emits_tree_(ti.tree.docref(1), "---\nc: d\n", "{\n  \"c\": \"d\"\n}\n");
+        test_emits_ints_(ti.ints, 11, "---\nc: d\n", "{\n  \"c\": \"d\"\n}"); // FIXME newline
+        test_emits_ints_(ti.ints, 12, "c: d\n", "{\n  \"c\": \"d\"\n}\n");
         test_emits_tree_(ti.tree.docref(2), "---\ne: f\n", "{\n  \"e\": \"f\"\n}\n");
+        test_emits_ints_(ti.ints, 21, "---\ne: f\n", "{\n  \"e\": \"f\"\n}"); // FIXME newline
+        test_emits_ints_(ti.ints, 22, "e: f\n", "{\n  \"e\": \"f\"\n}\n");
     }
-}
-
-
-TEST(emit, nested_map_sl)
-{
-    SCOPED_TRACE("nested_map_sl");
-    std::string yaml = "{a: {b: {c: {d: e}}}}";
-    std::string json = "{\"a\": {\"b\": {\"c\": {\"d\": \"e\"}}}}";
-    TreeAndInts ti(to_csubstr(yaml));
-    test_emits_(ti, yaml, json);
 }
 
 
@@ -2230,6 +2932,7 @@ TEST(emit, anchor_ref)
         test_emits_(ti, ti.tree, 1, expected, expected_json);
         test_emits_(ti, ti.tree, 2, expected, expected_json);
         test_emits_(ti, ti.tree[0], 3, "&a a", "\"a\"");
+        test_emits_ints_(ti.ints, 6, "a", "\"a\"");
         test_emits_(ti, ti.tree[1], 9, "*a", "\"*a\"");
     };
     {
@@ -2251,65 +2954,33 @@ TEST(emit, anchor_ref_err_json)
         SCOPED_TRACE("seq");
         TreeAndInts ti("[*a, *b]");
         {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, ti.tree, 2);
-            SCOPED_CALL(test_emit_error_json, (ti, opts));
-        }
-        {
             SCOPED_TRACE("flowsl");
             TMPSTY(flowsl, ti, ti.tree, 2);
-            SCOPED_CALL(test_emit_error_json, (ti, opts));
+            test_emit_error_json(ti, opts);
         }
         {
             SCOPED_TRACE("flowml1");
             TMPSTY(flowml1, ti, ti.tree, 2);
-            SCOPED_CALL(test_emit_error_json, (ti, opts));
+            test_emit_error_json(ti, opts);
         }
         {
             SCOPED_TRACE("nested a");
-            SCOPED_CALL(test_emit_error_json, (ti.tree[0], ti.ints, 2, opts));
+            test_emit_error_json(ti.tree[0], ti.ints, 2, opts);
         }
         {
             SCOPED_TRACE("nested b");
-            SCOPED_CALL(test_emit_error_json, (ti.tree[1], ti.ints, 5, opts));
-        }
-    }
-    {
-        SCOPED_TRACE("map");
-        TreeAndInts ti("{*a : *b}");
-        {
-            SCOPED_TRACE("block");
-            TMPSTY(blk, ti, ti.tree, 2);
-            SCOPED_CALL(test_emit_error_json, (ti, opts));
-        }
-        {
-            SCOPED_TRACE("flowsl");
-            TMPSTY(flowsl, ti, ti.tree, 2);
-            SCOPED_CALL(test_emit_error_json, (ti, opts));
-        }
-        {
-            SCOPED_TRACE("flowml1");
-            TMPSTY(flowml1, ti, ti.tree, 2);
-            SCOPED_CALL(test_emit_error_json, (ti, opts));
-        }
-        {
-            SCOPED_TRACE("nested a");
-            SCOPED_CALL(test_emit_error_json, (ti.tree[0], ti.ints, 2, opts));
-        }
-        {
-            SCOPED_TRACE("nested b");
-            SCOPED_CALL(test_emit_error_json, (ti.tree[1], ti.ints, 5, opts));
+            test_emit_error_json(ti.tree[1], ti.ints, 5, opts);
         }
     }
     {
         TreeAndInts ti("*a");
         {
             SCOPED_TRACE("docval");
-            SCOPED_CALL(test_emit_error_json, (ti, opts));
+            test_emit_error_json(ti, opts);
         }
         {
             SCOPED_TRACE("nested");
-            SCOPED_CALL(test_emit_error_json, (ti.tree.rootref(), ti.ints, 2, opts));
+            test_emit_error_json(ti.tree.rootref(), ti.ints, 2, opts);
         }
     }
 }
@@ -2331,15 +3002,51 @@ TEST(emit, tag_anchor)
         //
         test_emits_(ti, ti.tree[0], 3, "!kt a: !vt 8\n", "\"a\": 8\n");
         test_emits_(ti.tree[0], "!vt 8", "8", without_key);
+        test_emits_ints_(ti.ints, 3, "!kt a", "\"a\"", without_key);
+        test_emits_ints_(ti.ints, 6, "a: !vt 8\n", "\"a\": 8\n");
+        test_emits_ints_(ti.ints, 6, "a", "\"a\"", without_key);
+        test_emits_ints_(ti.ints, 9, "!vt 8", "8");
+        test_emits_ints_(ti.ints, 9, "!vt 8", "8", without_key);
+        test_emits_ints_(ti.ints, 12, "8", "8");
+        test_emits_ints_(ti.ints, 12, "8", "8", without_key);
         //
         test_emits_(ti, ti.tree[1], 15, "&ka b: &va 9\n", "\"b\": 9\n");
         test_emits_(ti.tree[1], "&va 9", "9", without_key);
+        test_emits_ints_(ti.ints, 15, "&ka b", "\"b\"", without_key);
+        test_emits_ints_(ti.ints, 18, "b: &va 9\n", "\"b\": 9\n");
+        test_emits_ints_(ti.ints, 18, "b", "\"b\"", without_key);
+        test_emits_ints_(ti.ints, 21, "&va 9", "9");
+        test_emits_ints_(ti.ints, 21, "&va 9", "9", without_key);
+        test_emits_ints_(ti.ints, 24, "9", "9");
+        test_emits_ints_(ti.ints, 24, "9", "9", without_key);
         //
         test_emits_(ti, ti.tree[2], 27, "&ka !kt c: &va !vt 10\n", "\"c\": 10\n");
         test_emits_(ti.tree[2], "&va !vt 10", "10", without_key);
+        test_emits_ints_(ti.ints, 27, "&ka !kt c", "\"c\"", without_key);
+        test_emits_ints_(ti.ints, 30, "!kt c: &va !vt 10\n", "\"c\": 10\n");
+        test_emits_ints_(ti.ints, 30, "!kt c", "\"c\"", without_key);
+        test_emits_ints_(ti.ints, 33, "c: &va !vt 10\n", "\"c\": 10\n");
+        test_emits_ints_(ti.ints, 33, "c", "\"c\"", without_key);
+        test_emits_ints_(ti.ints, 36, "&va !vt 10", "10");
+        test_emits_ints_(ti.ints, 36, "&va !vt 10", "10", without_key);
+        test_emits_ints_(ti.ints, 39, "!vt 10", "10");
+        test_emits_ints_(ti.ints, 39, "!vt 10", "10", without_key);
+        test_emits_ints_(ti.ints, 42, "10", "10");
+        test_emits_ints_(ti.ints, 42, "10", "10", without_key);
         //
         test_emits_(ti, ti.tree[3], 45, "&ka !kt d: &va !vt 11\n", "\"d\": 11\n");
         test_emits_(ti.tree[3], "&va !vt 11", "11", without_key);
+        test_emits_ints_(ti.ints, 45, "&ka !kt d", "\"d\"", without_key);
+        test_emits_ints_(ti.ints, 48, "!kt d: &va !vt 11\n", "\"d\": 11\n");
+        test_emits_ints_(ti.ints, 48, "!kt d", "\"d\"", without_key);
+        test_emits_ints_(ti.ints, 51, "d: &va !vt 11\n", "\"d\": 11\n");
+        test_emits_ints_(ti.ints, 51, "d", "\"d\"", without_key);
+        test_emits_ints_(ti.ints, 54, "&va !vt 11", "11");
+        test_emits_ints_(ti.ints, 54, "&va !vt 11", "11", without_key);
+        test_emits_ints_(ti.ints, 57, "!vt 11", "11");
+        test_emits_ints_(ti.ints, 57, "!vt 11", "11", without_key);
+        test_emits_ints_(ti.ints, 60, "11", "11");
+        test_emits_ints_(ti.ints, 60, "11", "11", without_key);
     };
     {
         TMPSTY(flowml1, ti, ti.tree, 2);
@@ -2357,12 +3064,12 @@ TEST(emit, tag_anchor)
         {
             SCOPED_TRACE("flowsl");
             TMPSTY(flowsl, ti, ti.tree, 2);
-            test_emit_error_json_(ti, opts);
+            test_emit_error_json(ti, opts);
         }
         {
             SCOPED_TRACE("flowml1");
             TMPSTY(flowml1, ti, ti.tree, 2);
-            test_emit_error_json_(ti, opts);
+            test_emit_error_json(ti, opts);
         }
     }
     {
@@ -2371,12 +3078,12 @@ TEST(emit, tag_anchor)
         {
             SCOPED_TRACE("flowsl");
             TMPSTY(flowsl, ti, ti.tree, 2);
-            test_emit_error_json_(ti, opts);
+            test_emit_error_json(ti, opts);
         }
         {
             SCOPED_TRACE("flowml1");
             TMPSTY(flowml1, ti, ti.tree, 2);
-            test_emit_error_json_(ti, opts);
+            test_emit_error_json(ti, opts);
         }
     }
 }
@@ -2418,27 +3125,158 @@ TEST(emit, container_key_tag_anchor)
   &ka !kt d: &va !vt 11
 }
 )";
+        test_emits_ints_nojson_(ints, 0, expected);
+        test_emits_ints_nojson_(ints, 1, expected);
+        test_emits_ints_nojson_(ints, 2, expected);
+        test_emits_ints_nojson_(ints, 3, "? !kt []\n: !vt 0\n");
+        test_emits_ints_nojson_(ints, 3, "!kt []", without_key);
+        test_emits_ints_nojson_(ints, 6, "? []\n: !vt 0\n");
+        test_emits_ints_nojson_(ints, 6, "[]", without_key);
+        test_emits_ints_nojson_(ints, 8, "!vt 0");
+        test_emits_ints_nojson_(ints, 8, "!vt 0", without_key);
+        test_emits_ints_nojson_(ints, 11, "0");
+        test_emits_ints_nojson_(ints, 11, "0", without_key);
         {
             SCOPED_TRACE("nosty");
             TMPSTY(nosty, ints, 6);
+            test_emits_ints_nojson_(ints, 3, "? !kt\n  []\n: !vt 0\n");
+            test_emits_ints_nojson_(ints, 3, "!kt\n[]", without_key);
+            test_emits_ints_nojson_(ints, 6, "?\n  []\n: !vt 0\n");
+            test_emits_ints_nojson_(ints, 6, "[]", without_key);
         }
         //
+        test_emits_ints_nojson_(ints, 14, "? &ka []\n: &va 1\n");
+        test_emits_ints_nojson_(ints, 14, "&ka []", without_key);
+        test_emits_ints_nojson_(ints, 17, "? []\n: &va 1\n");
+        test_emits_ints_nojson_(ints, 17, "[]", without_key);
+        test_emits_ints_nojson_(ints, 19, "&va 1");
+        test_emits_ints_nojson_(ints, 19, "&va 1", without_key);
+        test_emits_ints_nojson_(ints, 22, "1");
+        test_emits_ints_nojson_(ints, 22, "1", without_key);
         {
             SCOPED_TRACE("nosty");
             TMPSTY(nosty, ints, 17);
+            test_emits_ints_nojson_(ints, 14, "? &ka\n  []\n: &va 1\n");
+            test_emits_ints_nojson_(ints, 14, "&ka\n[]", without_key);
+            test_emits_ints_nojson_(ints, 17, "?\n  []\n: &va 1\n");
+            test_emits_ints_nojson_(ints, 17, "[]", without_key);
         }
         //
+        test_emits_ints_nojson_(ints, 25, "? &ka !kt []\n: &va !vt 2\n");
+        test_emits_ints_nojson_(ints, 25, "&ka !kt []", without_key);
+        test_emits_ints_nojson_(ints, 28, "? !kt []\n: &va !vt 2\n");
+        test_emits_ints_nojson_(ints, 28, "!kt []", without_key);
+        test_emits_ints_nojson_(ints, 31, "? []\n: &va !vt 2\n");
+        test_emits_ints_nojson_(ints, 31, "[]", without_key);
+        test_emits_ints_nojson_(ints, 33, "&va !vt 2");
+        test_emits_ints_nojson_(ints, 33, "&va !vt 2", without_key);
+        test_emits_ints_nojson_(ints, 36, "!vt 2");
+        test_emits_ints_nojson_(ints, 36, "!vt 2", without_key);
+        test_emits_ints_nojson_(ints, 39, "2");
+        test_emits_ints_nojson_(ints, 39, "2", without_key);
+        //
+        test_emits_ints_nojson_(ints, 42, "? &ka !kt []\n: &va !vt 3\n");
+        test_emits_ints_nojson_(ints, 42, "&ka !kt []", without_key);
+        test_emits_ints_nojson_(ints, 45, "? !kt []\n: &va !vt 3\n");
+        test_emits_ints_nojson_(ints, 45, "!kt []", without_key);
+        test_emits_ints_nojson_(ints, 48, "? []\n: &va !vt 3\n");
+        test_emits_ints_nojson_(ints, 48, "[]", without_key);
+        test_emits_ints_nojson_(ints, 50, "&va !vt 3");
+        test_emits_ints_nojson_(ints, 50, "&va !vt 3", without_key);
+        test_emits_ints_nojson_(ints, 53, "!vt 3");
+        test_emits_ints_nojson_(ints, 53, "!vt 3", without_key);
+        test_emits_ints_nojson_(ints, 56, "3");
+        test_emits_ints_nojson_(ints, 56, "3", without_key);
         //
         //
+        test_emits_ints_nojson_(ints, 56+3, "? !kt {}\n: !vt 4\n");
+        test_emits_ints_nojson_(ints, 56+3, "!kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+6, "? {}\n: !vt 4\n");
+        test_emits_ints_nojson_(ints, 56+6, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+8, "!vt 4");
+        test_emits_ints_nojson_(ints, 56+8, "!vt 4", without_key);
+        test_emits_ints_nojson_(ints, 56+11, "4");
+        test_emits_ints_nojson_(ints, 56+11, "4", without_key);
+        //
+        test_emits_ints_nojson_(ints, 56+14, "? &ka {}\n: &va 5\n");
+        test_emits_ints_nojson_(ints, 56+14, "&ka {}", without_key);
+        test_emits_ints_nojson_(ints, 56+17, "? {}\n: &va 5\n");
+        test_emits_ints_nojson_(ints, 56+17, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+19, "&va 5");
+        test_emits_ints_nojson_(ints, 56+19, "&va 5", without_key);
+        test_emits_ints_nojson_(ints, 56+22, "5");
+        test_emits_ints_nojson_(ints, 56+22, "5", without_key);
+        //
+        test_emits_ints_nojson_(ints, 56+25, "? &ka !kt {}\n: &va !vt 6\n");
+        test_emits_ints_nojson_(ints, 56+25, "&ka !kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+28, "? !kt {}\n: &va !vt 6\n");
+        test_emits_ints_nojson_(ints, 56+28, "!kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+31, "? {}\n: &va !vt 6\n");
+        test_emits_ints_nojson_(ints, 56+31, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+33, "&va !vt 6");
+        test_emits_ints_nojson_(ints, 56+33, "&va !vt 6", without_key);
+        test_emits_ints_nojson_(ints, 56+36, "!vt 6");
+        test_emits_ints_nojson_(ints, 56+36, "!vt 6", without_key);
+        test_emits_ints_nojson_(ints, 56+39, "6");
+        test_emits_ints_nojson_(ints, 56+39, "6", without_key);
+        //
+        test_emits_ints_nojson_(ints, 56+42, "? &ka !kt {}\n: &va !vt 7\n");
+        test_emits_ints_nojson_(ints, 56+42, "&ka !kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+45, "? !kt {}\n: &va !vt 7\n");
+        test_emits_ints_nojson_(ints, 56+45, "!kt {}", without_key);
+        test_emits_ints_nojson_(ints, 56+48, "? {}\n: &va !vt 7\n");
+        test_emits_ints_nojson_(ints, 56+48, "{}", without_key);
+        test_emits_ints_nojson_(ints, 56+50, "&va !vt 7");
+        test_emits_ints_nojson_(ints, 56+50, "&va !vt 7", without_key);
+        test_emits_ints_nojson_(ints, 56+53, "!vt 7");
+        test_emits_ints_nojson_(ints, 56+53, "!vt 7", without_key);
+        test_emits_ints_nojson_(ints, 56+56, "7");
+        test_emits_ints_nojson_(ints, 56+56, "7", without_key);
         //
         //
+        test_emits_ints_nojson_(ints, 112+3, "!kt a: !vt 8\n");
+        test_emits_ints_nojson_(ints, 112+3, "!kt a", without_key);
+        test_emits_ints_nojson_(ints, 112+6, "a: !vt 8\n");
+        test_emits_ints_nojson_(ints, 112+6, "a", without_key);
+        test_emits_ints_nojson_(ints, 112+9, "!vt 8");
+        test_emits_ints_nojson_(ints, 112+9, "!vt 8", without_key);
+        test_emits_ints_nojson_(ints, 112+12, "8");
+        test_emits_ints_nojson_(ints, 112+12, "8", without_key);
         //
+        test_emits_ints_nojson_(ints, 112+15, "&ka b: &va 9\n");
+        test_emits_ints_nojson_(ints, 112+15, "&ka b", without_key);
+        test_emits_ints_nojson_(ints, 112+18, "b: &va 9\n");
+        test_emits_ints_nojson_(ints, 112+18, "b", without_key);
+        test_emits_ints_nojson_(ints, 112+21, "&va 9");
+        test_emits_ints_nojson_(ints, 112+21, "&va 9", without_key);
+        test_emits_ints_nojson_(ints, 112+24, "9");
+        test_emits_ints_nojson_(ints, 112+24, "9", without_key);
         //
+        test_emits_ints_nojson_(ints, 112+27, "&ka !kt c: &va !vt 10\n");
+        test_emits_ints_nojson_(ints, 112+27, "&ka !kt c", without_key);
+        test_emits_ints_nojson_(ints, 112+30, "!kt c: &va !vt 10\n");
+        test_emits_ints_nojson_(ints, 112+30, "!kt c", without_key);
+        test_emits_ints_nojson_(ints, 112+33, "c: &va !vt 10\n");
+        test_emits_ints_nojson_(ints, 112+33, "c", without_key);
+        test_emits_ints_nojson_(ints, 112+36, "&va !vt 10");
+        test_emits_ints_nojson_(ints, 112+36, "&va !vt 10", without_key);
+        test_emits_ints_nojson_(ints, 112+39, "!vt 10");
+        test_emits_ints_nojson_(ints, 112+39, "!vt 10", without_key);
+        test_emits_ints_nojson_(ints, 112+42, "10");
+        test_emits_ints_nojson_(ints, 112+42, "10", without_key);
         //
-        //
-        //
-        //
-        //
+        test_emits_ints_nojson_(ints, 112+45, "&ka !kt d: &va !vt 11\n");
+        test_emits_ints_nojson_(ints, 112+45, "&ka !kt d", without_key);
+        test_emits_ints_nojson_(ints, 112+48, "!kt d: &va !vt 11\n");
+        test_emits_ints_nojson_(ints, 112+48, "!kt d", without_key);
+        test_emits_ints_nojson_(ints, 112+51, "d: &va !vt 11\n");
+        test_emits_ints_nojson_(ints, 112+51, "d", without_key);
+        test_emits_ints_nojson_(ints, 112+54, "&va !vt 11");
+        test_emits_ints_nojson_(ints, 112+54, "&va !vt 11", without_key);
+        test_emits_ints_nojson_(ints, 112+57, "!vt 11");
+        test_emits_ints_nojson_(ints, 112+57, "!vt 11", without_key);
+        test_emits_ints_nojson_(ints, 112+60, "11");
+        test_emits_ints_nojson_(ints, 112+60, "11", without_key);
     }
 }
 
