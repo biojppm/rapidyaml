@@ -9,6 +9,11 @@
 #endif
 
 #include "./test_lib/test_case.hpp"
+#include "./test_lib/tree_and_ints.hpp"
+#define test_emit_json_same_ints_(...) { SCOPED_TRACE("here"); test_emit_json_same_ints(__VA_ARGS__); }
+#define test_emit_yaml_same_ints_(...) { SCOPED_TRACE("here"); test_emit_yaml_same_ints(__VA_ARGS__); }
+#define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
+#define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
 
 #include <gtest/gtest.h>
 
@@ -82,12 +87,13 @@ TEST(serialize, type_as_str)
 }
 } // namespace foo
 
-namespace c4 {
-namespace yml {
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+namespace c4 {
+namespace yml {
 
 TEST(general, emitting)
 {
@@ -202,34 +208,26 @@ TEST(emit_json, issue72)
     r["true"].set_val("2");
     r["false"].set_val("3");
 
-    std::string out;
-    emitrs_json(t, &out);
-
-    EXPECT_EQ(out, R"({"1": null,"2": true,"3": false,"null": 1,"true": 2,"false": 3})");
+    test_emit_json_same_ints_(r, R"({"1": null,"2": true,"3": false,"null": 1,"true": 2,"false": 3})");
 }
 
 
 TEST(emit_json, issue121)
 {
-    csubstr json = R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})";
-    const Tree t = parse_json_in_arena(json);
+    const std::string json = R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})";
+    const Tree t = parse_json_in_arena(to_csubstr(json));
     EXPECT_TRUE(t["string_value"].get()->m_type.m_bits & VAL_DQUO);
     EXPECT_TRUE(t["number_value"].get()->m_type.m_bits & VAL_DQUO);
     EXPECT_TRUE(t["broken_value"].get()->m_type.m_bits & VAL_DQUO);
-    std::string out;
-    emitrs_json(t, &out);
-    EXPECT_EQ(out, json);
-    out.clear();
-    emitrs_yaml(t, &out);
-    EXPECT_EQ(out, json);
+    test_emit_json_same_ints_(t, json);
+    test_emit_yaml_same_ints_(t, json);
 }
 
 TEST(emit_json, issue291)
 {
     Tree t = parse_json_in_arena("{}");
     t["james"].set_val("045");
-    auto s = emitrs_json<std::string>(t);
-    EXPECT_EQ(s, "{\"james\": \"045\"}");
+    test_emit_json_same_ints_(t, "{\"james\": \"045\"}");
 }
 
 TEST(emit_json, issue292)
@@ -251,15 +249,15 @@ TEST(emit_json, issue292)
     EXPECT_FALSE(csubstr("1.2.3").is_real());
     Tree t = parse_json_in_arena("{}");
     t["james"].set_val("0.0.0");
-    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.0.0\"}");
+    test_emit_json_same_ints_(t, "{\"james\": \"0.0.0\"}");
     t["james"].set_val("0.1.0");
-    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.1.0\"}");
+    test_emit_json_same_ints_(t, "{\"james\": \"0.1.0\"}");
     t["james"].set_val("0.6.1");
-    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.6.1\"}");
+    test_emit_json_same_ints_(t, "{\"james\": \"0.6.1\"}");
     t["james"].set_val("1.1.9");
-    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"1.1.9\"}");
+    test_emit_json_same_ints_(t, "{\"james\": \"1.1.9\"}");
     t["james"].set_val("1.2.3");
-    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"1.2.3\"}");
+    test_emit_json_same_ints_(t, "{\"james\": \"1.2.3\"}");
 }
 
 TEST(emit_json, issue297)
@@ -270,8 +268,7 @@ comment: |
    def
 )";
     Tree t = parse_in_place(yml_buf);
-    auto s = emitrs_json<std::string>(t);
-    EXPECT_EQ(s, "{\n  \"comment\": \"abc\\ndef\\n\"\n}\n");
+    test_emit_json_same_ints_(t, "{\n  \"comment\": \"abc\\ndef\\n\"\n}\n");
 }
 
 TEST(emit_json, issue297_escaped_chars)
@@ -284,9 +281,7 @@ TEST(emit_json, issue297_escaped_chars)
     t["backslash"].set_val("abc\\def");
     t["backspace"].set_val("abc\bdef");
     t["formfeed"].set_val("abc\fdef");
-    std::string expected = R"({"quote": "abc\"def","newline": "abc\ndef","tab": "abc\tdef","carriage": "abc\rdef","backslash": "abc\\def","backspace": "abc\bdef","formfeed": "abc\fdef"})";
-    auto actual = emitrs_json<std::string>(t);
-    EXPECT_EQ(actual, expected);
+    test_emit_json_same_ints_(t, R"({"quote": "abc\"def","newline": "abc\ndef","tab": "abc\tdef","carriage": "abc\rdef","backslash": "abc\\def","backspace": "abc\bdef","formfeed": "abc\fdef"})");
 }
 
 namespace {
@@ -321,8 +316,9 @@ TEST(emit_json, issue313_quoted_numbers__1)
     0.91054189205169678,
     0.13215841352939606,
 ])");
-    std::string yaml = emitrs_json<std::string>(t0);
-    test_check_emit_check(to_csubstr(yaml), [&](Tree const &t){
+    std::string json = emitrs_json<std::string>(t0);
+    test_emit_json_same_ints_(t0, json);
+    test_check_emit_check(to_csubstr(json), [&](Tree const &t){
         for(ConstNodeRef number : t.rootref().children())
         {
             ASSERT_TRUE(number.is_val());
@@ -358,8 +354,9 @@ TEST(emit_json, issue313_quoted_numbers__2)
   [1.1130030155181885, 1.5196701288223267],  # 14
   [1.0621790885925293, 1.1791903972625732]   # 15
 ]})");
-    std::string yaml = emitrs_json<std::string>(ti);
-    test_check_emit_check(to_csubstr(yaml), [](Tree const &t){
+    std::string json = emitrs_json<std::string>(ti);
+    test_emit_json_same_ints_(ti, json);
+    test_check_emit_check(to_csubstr(json), [](Tree const &t){
         for(ConstNodeRef node : t.rootref().children())
         {
             ASSERT_TRUE(node.is_seq());
@@ -390,28 +387,46 @@ TEST(emit_json, issue313_quoted_numbers__2)
 }
 
 
-#define _test(actual_src, expected_src)                           \
-    {                                                             \
-        SCOPED_TRACE(__LINE__);                                   \
-        csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);          \
-        const Tree actual = parse_json_in_arena(file, actual_src);     \
-        const Tree expected = parse_json_in_arena(file, expected_src); \
-        print_tree(actual);                                       \
-        test_compare(actual, expected);                           \
+#define _test(actual_src, expected_src)                                 \
+    {                                                                   \
+        csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);                \
+        const Tree actual = parse_json_in_arena(file, actual_src);      \
+        const Tree expected = parse_json_in_arena(file, expected_src);  \
+        {                                                               \
+            SCOPED_TRACE(__LINE__);                                     \
+            test_compare(actual, expected);                             \
+        }                                                               \
+        std::string emitted = emitrs_json<std::string>(expected);       \
+        {                                                               \
+            SCOPED_TRACE("actual");                                     \
+            test_emit_json_same_ints(actual, emitted);                  \
+        }                                                               \
+        {                                                               \
+            SCOPED_TRACE("expected");                                   \
+            test_emit_json_same_ints(expected, emitted);                \
+        }                                                               \
     }
 
 
-TEST(json, compact_map)
+TEST(json, empty)
 {
     _test("", "");
     _test("{}", "{}");
+    _test("[]", "[]");
+    _test("{\n}", "{\n}"); // test ML
+    _test("[\n]", "[\n]"); // test ML
+    _test("{\n\n\n}", "{\n\n\n}"); // test ML
+    _test("[\n\n\n]", "[\n\n\n]"); // test ML
+}
 
+TEST(json, compact_map)
+{
     _test(R"({"a":{"a":"b"}})", R"({"a": {"a": "b"}})");
 }
 
 TEST(json, compact_seq)
 {
-    _test(R"(["a",["a","b"]])", R"(["a", ["a", "b"]])");
+    _test(R"(["a",["a","b"]])", R"(["a", ["a","b"]])");
 }
 
 TEST(json, github142)
@@ -495,7 +510,7 @@ TEST(json, issue390)
     const Tree tree = parse_in_arena(R"(quntity: 9.5e7
 quntity2: 95000000)");
     EXPECT_TRUE(csubstr("9.5e7").is_number());
-    EXPECT_EQ(emitrs_json<std::string>(tree), "{\n  \"quntity\": 9.5e7,\n  \"quntity2\": 95000000\n}\n");
+    test_emit_json_same_ints_(tree, "{\n  \"quntity\": 9.5e7,\n  \"quntity2\": 95000000\n}\n");
 }
 
 TEST(parse_json, error_on_missing_seq_val)
@@ -741,11 +756,11 @@ TEST(parse_json, seq_nested_on_seq_with_trailing_comma)
 TEST(emit_json, empty_val)
 {
     Tree t = parse_in_arena("a: \nb: \"\"\nc: !!tag\nd: !!tag e");
-    EXPECT_EQ(emitrs_json<std::string>(t), "{\n  \"a\": null,\n  \"b\": \"\",\n  \"c\": \"\",\n  \"d\": \"e\"\n}\n");
+    test_emit_json_same_ints_(t, "{\n  \"a\": null,\n  \"b\": \"\",\n  \"c\": \"\",\n  \"d\": \"e\"\n}\n");
 }
 
-//-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
 
 struct SpecialScalarError
 {

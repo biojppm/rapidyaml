@@ -1,237 +1,161 @@
 #ifndef C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_
 #define C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_
 
+#ifndef C4_RYML_TEST_GROUP_HPP_
+#include "./test_lib/test_group.hpp"
+#endif
+
 namespace c4 {
 namespace yml {
 
-int YmlTestCaseDefsWereIncluded() { return 42; }
+inline int YmlTestCaseDefsWereIncluded() { return 42; }
+
 
 //-----------------------------------------------------------------------------
 
-TEST_P(YmlTestCase, parse_unix)
+TEST_P(YmlTestCase, recreate_from_ref)
+{
+    SCOPED_TRACE("\n" + c->filelinebuf + ": case");
+    d->ensure_reftree(c);
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST_P(YmlTestCase, parse_yaml_tree_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_parse_using_ryml(&d->unix_style);
+    _test_parse_yaml_to_tree(&d->unix_style);
+    {
+        SCOPED_TRACE("redo parse to existing tree");
+        SrcTree &tree = d->unix_style.tree;
+        tree.val.result.clear();
+        tree.src.result = tree.orig.result;
+        tree.reset();
+        _test_parse_yaml_to_tree(&d->unix_style);
+    }
 }
 
-TEST_P(YmlTestCase, parse_windows)
+TEST_P(YmlTestCase, parse_yaml_tree_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_parse_using_ryml(&d->windows_style);
+    _test_parse_yaml_to_tree(&d->windows_style);
 }
 
 
 //-----------------------------------------------------------------------------
 
-TEST_P(YmlTestCase, parse_ints_unix)
+TEST_P(YmlTestCase, parse_yaml_ints_resize_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_parse_using_ints(&d->unix_style);
+    _test_parse_yaml_to_ints_resize(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, parse_ints_windows)
+TEST_P(YmlTestCase, parse_yaml_ints_resize_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_parse_using_ints(&d->windows_style);
+    _test_parse_yaml_to_ints_noresize(&d->windows_style);
 }
 
 
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, emit_yml_unix_stdout)
+TEST_P(YmlTestCase, parse_yaml_ints_noresize_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_stdout(&d->unix_style);
-}
-TEST_P(YmlTestCase, emit_json_unix_stdout)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_stdout(&d->unix_style_json);
+    _test_parse_yaml_to_ints_noresize(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, emit_yml_windows_stdout)
+TEST_P(YmlTestCase, parse_yaml_ints_noresize_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_stdout(&d->windows_style);
-}
-TEST_P(YmlTestCase, emit_json_windows_stdout)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_stdout(&d->windows_style_json);
+    _test_parse_yaml_to_ints_noresize(&d->windows_style);
 }
 
+
 //-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, emit_yml_unix_cout)
+
+TEST_P(YmlTestCase, roundtrip_yaml_tree_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_cout(&d->unix_style);
-}
-TEST_P(YmlTestCase, emit_json_unix_cout)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_cout(&d->unix_style_json);
+    _test_roundtrip_yaml_tree(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, emit_yml_windows_cout)
+TEST_P(YmlTestCase, roundtrip_yaml_tree_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_cout(&d->windows_style);
-}
-TEST_P(YmlTestCase, emit_json_windows_cout)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_cout(&d->windows_style_json);
+    _test_roundtrip_yaml_tree(&d->windows_style);
 }
 
+
 //-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, emit_yml_unix_stringstream)
+
+TEST_P(YmlTestCase, roundtrip_yaml_ints_resize_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_stringstream(&d->unix_style);
-}
-TEST_P(YmlTestCase, emit_json_unix_stringstream)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_stringstream(&d->unix_style_json);
+    _test_roundtrip_yaml_ints_resize(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, emit_yml_windows_stringstream)
+TEST_P(YmlTestCase, roundtrip_yaml_ints_resize_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_stringstream(&d->windows_style);
-}
-TEST_P(YmlTestCase, emit_json_windows_stringstream)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_stringstream(&d->windows_style_json);
+    _test_roundtrip_yaml_ints_resize(&d->windows_style);
 }
 
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, emit_yml_unix_ofstream)
+
+TEST_P(YmlTestCase, roundtrip_yaml_ints_noresize_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_ofstream(&d->unix_style);
-}
-TEST_P(YmlTestCase, emit_json_unix_ofstream)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_ofstream(&d->unix_style_json);
+    _test_roundtrip_yaml_ints_noresize(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, emit_yml_windows_ofstream)
+TEST_P(YmlTestCase, roundtrip_yaml_ints_noresize_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_ofstream(&d->windows_style);
-}
-TEST_P(YmlTestCase, emit_json_windows_ofstream)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_ofstream(&d->windows_style_json);
+    _test_roundtrip_yaml_ints_noresize(&d->windows_style);
 }
 
+
 //-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, emit_yml_unix_string)
+
+TEST_P(YmlTestCase, roundtrip_json_tree_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_string(&d->unix_style);
-}
-TEST_P(YmlTestCase, emit_json_unix_string)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_string(&d->unix_style_json);
+    _test_roundtrip_json_tree(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, emit_yml_windows_string)
+TEST_P(YmlTestCase, roundtrip_json_tree_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_emit_yml_string(&d->windows_style);
-}
-TEST_P(YmlTestCase, emit_json_windows_string)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_emit_json_string(&d->windows_style_json);
+    _test_roundtrip_json_tree(&d->windows_style);
 }
 
+
 //-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, unix_emitrs)
+
+TEST_P(YmlTestCase, roundtrip_json_ints_resize_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_emitrs(&d->unix_style);
-}
-TEST_P(YmlTestCase, unix_emitrs_json)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_emitrs_json(&d->unix_style_json);
+    _test_roundtrip_json_ints_resize(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, windows_emitrs)
+TEST_P(YmlTestCase, roundtrip_json_ints_resize_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_emitrs(&d->windows_style);
-}
-TEST_P(YmlTestCase, windows_emitrs_json)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_emitrs_json(&d->windows_style_json);
+    _test_roundtrip_json_ints_resize(&d->windows_style);
 }
 
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, unix_emitrs_cfile)
+
+TEST_P(YmlTestCase, roundtrip_json_ints_noresize_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_emitrs_cfile(&d->unix_style);
-}
-TEST_P(YmlTestCase, unix_emitrs_json_cfile)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_emitrs_json_cfile(&d->unix_style_json);
+    _test_roundtrip_json_ints_noresize(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, windows_emitrs_cfile)
+TEST_P(YmlTestCase, roundtrip_json_ints_noresize_windows)
 {
     SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_emitrs_cfile(&d->windows_style);
-}
-TEST_P(YmlTestCase, windows_emitrs_json_cfile)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_emitrs_json_cfile(&d->windows_style_json);
+    _test_roundtrip_json_ints_noresize(&d->windows_style);
 }
 
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, complete_unix_round_trip)
-{
-    SCOPED_TRACE("unix style:\n" + c->filelinebuf + ": case");
-    _test_complete_round_trip(&d->unix_style);
-}
-TEST_P(YmlTestCase, complete_unix_round_trip_json)
-{
-    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
-    _test_complete_round_trip_json(&d->unix_style_json);
-}
-
-TEST_P(YmlTestCase, complete_windows_round_trip)
-{
-    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_complete_round_trip(&d->windows_style);
-}
-TEST_P(YmlTestCase, complete_windows_round_trip_json)
-{
-    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
-    _test_complete_round_trip_json(&d->windows_style_json);
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, unix_recreate_from_ref)
-{
-    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
-    _test_recreate_from_ref(&d->unix_style);
-}
-
-TEST_P(YmlTestCase, windows_recreate_from_ref)
-{
-    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
-    _test_recreate_from_ref(&d->windows_style);
-}
 
 } // namespace c4
 } // namespace yml
