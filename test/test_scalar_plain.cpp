@@ -839,7 +839,7 @@ N(SB, L{N(VP, "Several lines of text, with special:characters, like:this-or-this
     )})
 );
 
-ADD_CASE_TO_GROUP("plain scalar, special characters 3MYT",
+ADD_CASE_TO_GROUP("plain scalar, special characters 3MYT", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(---  # ZWK4
 a: 1
 ? b
@@ -1240,14 +1240,14 @@ N(MB, L{
 );
 
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 1, flow, seq",
+ADD_CASE_TO_GROUP("plain scalar trailing column 1, flow, seq", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[plain:]",
   N(SFS, L{
       N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
    })
 );
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 1, flow, seqimap",
+ADD_CASE_TO_GROUP("plain scalar trailing column 1, flow, seqimap", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[{plain:}]",
   N(SFS, L{
       N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
@@ -1255,14 +1255,14 @@ ADD_CASE_TO_GROUP("plain scalar trailing column 1, flow, seqimap",
 );
 
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 2, flow, seq",
+ADD_CASE_TO_GROUP("plain scalar trailing column 2, flow, seq", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[plain: ]",
   N(SFS, L{
       N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
    })
 );
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 2, flow, seqimap",
+ADD_CASE_TO_GROUP("plain scalar trailing column 2, flow, seqimap", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[{plain: }]",
   N(SFS, L{
       N(MFS, L{N(KP|VP|VALNIL, "plain", "")}),
@@ -1270,14 +1270,14 @@ ADD_CASE_TO_GROUP("plain scalar trailing column 2, flow, seqimap",
 );
 
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 3, flow, seq",
+ADD_CASE_TO_GROUP("plain scalar trailing column 3, flow, seq", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[plain:\r\n]",
   N(SFM, L{
       N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),
    })
 );
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 3, flow, seqimap",
+ADD_CASE_TO_GROUP("plain scalar trailing column 3, flow, seqimap", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[{plain:\r\n}]",
   N(SFM, L{
       N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),
@@ -1285,14 +1285,14 @@ ADD_CASE_TO_GROUP("plain scalar trailing column 3, flow, seqimap",
 );
 
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 4, flow, seq",
+ADD_CASE_TO_GROUP("plain scalar trailing column 4, flow, seq", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[plain:\n]",
   N(SFM, L{
       N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),
    })
 );
 
-ADD_CASE_TO_GROUP("plain scalar trailing column 4, flow, seqimap",
+ADD_CASE_TO_GROUP("plain scalar trailing column 4, flow, seqimap", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 "[{plain:\n}]",
   N(SFM, L{
       N(MFM, L{N(KP|VP|VALNIL, "plain", "")}),

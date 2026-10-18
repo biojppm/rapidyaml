@@ -112,7 +112,7 @@ ENGINE_TEST(NestedMapFlow,
             ,
             Location(1,1,2)
             ,
-            "{{}: {}}"
+            "{? {}: {}}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -142,7 +142,7 @@ ENGINE_TEST(NestedMap3FlowEmpty,
             ,
             Location(1,1,2)
             ,
-            "{{{}: {}}: {{}: {}}}",
+            "{? {? {}: {}}: {? {}: {}}}",
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -686,6 +686,8 @@ ENGINE_TEST(SimpleMapContainerKeyFlow,
             HAS_CONTAINER_KEYS,
             "{{this: is, a: keymap}: [and,now,a,seq,val]}"
             ,
+            "{? {this: is,a: keymap}: [and,now,a,seq,val]}"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP {}\n"
@@ -708,8 +710,8 @@ ENGINE_TEST(SimpleMapContainerKeyFlow,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_flow());
     ___(ps.begin_map_val_flow());
+    ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
     ___(ps.add_sibling());
@@ -736,6 +738,8 @@ ENGINE_TEST(SimpleMapContainerKeyFlow,
 ENGINE_TEST(MapKeyFlow,
             HAS_CONTAINER_KEYS, Location(1, 1, 2),
             "{{foo: bar}: baz}"
+            ,
+            "{? {foo: bar}: baz}"
             ,
             "+STR\n"
             "+DOC\n"
@@ -766,6 +770,8 @@ ENGINE_TEST(MapKeyFlow,
 ENGINE_TEST(SeqKeyFlow,
             HAS_CONTAINER_KEYS, Location(1,1,2),
             "{[foo, bar]: baz}"
+            ,
+            "{? [foo,bar]: baz}"
             ,
             "+STR\n"
             "+DOC\n"
