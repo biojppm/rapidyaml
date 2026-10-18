@@ -1129,6 +1129,10 @@ ENGINE_TEST(DocDoubleAnchorSeqMap,
             "--- &docanchor\n"
             "&anchor [seq, yeah]: foo\n"
             ,
+            "--- &docanchor\n"
+            "? &anchor [seq,yeah]\n"
+            ": foo\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP &docanchor\n"
@@ -1157,9 +1161,14 @@ ENGINE_TEST(DocDoubleAnchorSeqMap,
 }
 
 ENGINE_TEST(DoubleAnchorSeqMap,
-            HAS_CONTAINER_KEYS,
+            HAS_CONTAINER_KEYS
+            ,
             "&docanchor\n"
             "&anchor [seq, yeah]: foo\n"
+            ,
+            "&docanchor\n"
+            "? &anchor [seq,yeah]\n"
+            ": foo\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1193,6 +1202,10 @@ ENGINE_TEST(DocDoubleAnchorKeyMap,
             "--- &docanchor\n"
             "&anchor {key: val}: foo\n"
             ,
+            "--- &docanchor\n"
+            "? &anchor {key: val}\n"
+            ": foo\n"
+            ,
             "+STR\n"
             "+DOC ---\n"
             "+MAP &docanchor\n"
@@ -1224,6 +1237,10 @@ ENGINE_TEST(DoubleAnchorKeyMap,
             HAS_CONTAINER_KEYS,
             "&docanchor\n"
             "&anchor {key: val}: foo\n"
+            ,
+            "&docanchor\n"
+            "? &anchor {key: val}\n"
+            ": foo\n"
             ,
             "+STR\n"
             "+DOC\n"
