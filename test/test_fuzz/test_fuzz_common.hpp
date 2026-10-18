@@ -15,6 +15,8 @@
 #endif
 #include <testsuite/testsuite_events.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
+#include <c4/yml/extra/emitter_ints.hpp>
+#include <c4/yml/extra/emitter_ints.def.hpp>
 #include <cstdio>
 
 #ifdef C4_EXCEPTIONS

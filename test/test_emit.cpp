@@ -476,8 +476,80 @@ void test_emits_tree(ConstNodeRef node, std::string const& expected_yaml, std::s
 using extra::ievt::evt_size;
 using extra::ievt::evt_bits;
 
-void test_emits_ints(IntBufsCR, evt_size, std::string const&, std::string const&, EmitOptions const& ={}, bool =true)
+uint32_t getdepth(evt_bits const* evts, evt_size pos)
 {
+    using namespace extra;
+    uint32_t count = 0;
+    uint32_t maxcount = 0;
+    while(evts[pos] != ievt::ESTR)
+    {
+        evt_bits evt = evts[pos];
+        if(evt & (ievt::SEQ_|ievt::MAP_))
+        {
+            if(evt & ievt::BEG_)
+            {
+                if(++count > maxcount)
+                    maxcount = count;
+            }
+            else if(evt & ievt::END_)
+            {
+                if(count)
+                    --count;
+                else
+                    break;
+            }
+        }
+        pos = ievt::nextpos(evts, pos);
+    }
+    return maxcount;
+}
+void test_emits_ints(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, std::string const& expected_json, EmitOptions const& opts={}, bool with_json=true)
+{
+    uint32_t depth = 0;
+    retonfail();
+    RYML_TRACE_FMT("startpos={}", pos);
+    EXPECT_EQ(ints.emitrs_yaml<std::string>(opts, pos), expected_yaml);
+    bailonfail();
+    EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_yaml(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_yaml);
+    EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_yaml(f, opts, pos); }), expected_yaml);
+    EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_yaml_stream(oss, opts, pos); }), expected_yaml);
+    bailonfail();
+    depth = getdepth(ints.evts.ptr, pos);
+    if(depth > 1)
+    {
+        EmitOptions optsd = opts;
+        optsd = optsd.max_depth(0);
+        RYML_TRACE_FMT("depth={}", depth);
+        RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emitrs_yaml<std::string>(optsd, pos); }));
+        bailonfail();
+        RYML_EXPECT_ERROR(check_error_basic([&]{ emit2buf([&](substr buf){ size_t sz = ints.emit_yaml(buf, optsd, pos); buf.str = nullptr; buf.len = sz ; return buf; }); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ emit2file([&](FILE *f){ return ints.emit_yaml(f, optsd, pos); }); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ emit2stream([&](std::ostringstream &oss){ ints.emit_yaml_stream(oss, optsd, pos); }); }));
+    }
+    if(with_json)
+    {
+        EXPECT_EQ(ints.emitrs_json<std::string>(opts, pos), expected_json);
+        bailonfail();
+        EXPECT_EQ(emit2buf([&](substr buf){ size_t sz = ints.emit_json(buf, opts, pos); buf.str = nullptr; buf.len = sz ; return buf; }), expected_json);
+        EXPECT_EQ(emit2file([&](FILE *f){ return ints.emit_json(f, opts, pos); }), expected_json);
+        EXPECT_EQ(emit2stream([&](std::ostringstream &oss){ ints.emit_json_stream(oss, opts, pos); }), expected_json);
+        if(depth > 1)
+        {
+            EmitOptions optsd = opts;
+            optsd = optsd.max_depth(0);
+            RYML_TRACE_FMT("depth={}", depth);
+            RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emitrs_json<std::string>(optsd, pos); }));
+            bailonfail();
+            RYML_EXPECT_ERROR(check_error_basic([&]{ emit2buf([&](substr buf){ size_t sz = ints.emit_json(buf, optsd, pos); buf.str = nullptr; buf.len = sz ; return buf; }); }));
+            RYML_EXPECT_ERROR(check_error_basic([&]{ emit2file([&](FILE *f){ return ints.emit_json(f, optsd, pos); }); }));
+            RYML_EXPECT_ERROR(check_error_basic([&]{ emit2stream([&](std::ostringstream &oss){ ints.emit_json_stream(oss, optsd, pos); }); }));
+        }
+    }
+    tmpf_.clear();
+    return;
+failure:
+    tmpf_.clear();
+    ints.print();
 }
 void test_emits_ints_nojson(IntBufsCR ints, evt_size pos, std::string const& expected_yaml, EmitOptions const& opts={})
 {
@@ -583,7 +655,7 @@ struct TmpStyle
     TmpStyle(TreeAndInts &ti, NodeRef const& n, NodeType tmp, evt_size evt_pos_, evt_bits evt,
              bool with_key_=false, evt_size evt_pos_key_={})
         : TmpStyle(&ti.tree, &ti.ints, n.id(), tmp, evt_pos_, evt, with_key_, evt_pos_key_) {}
-    TmpStyle(Tree *tree_, IntBufs *ints_, id_type id_, NodeType tmp, evt_size evt_pos_, evt_bits,
+    TmpStyle(Tree *tree_, IntBufs *ints_, id_type id_, NodeType tmp, evt_size evt_pos_, evt_bits evt,
              bool with_key_=false, evt_size evt_pos_key_={})
         : tree(tree_)
         , id(id_)
@@ -604,9 +676,11 @@ struct TmpStyle
         {
             RYML_ASSERT_BASIC_(evt_pos < ints->evts.len);
             evt_prev = ints->evts.ptr[evt_pos];
+            (ints->evts.ptr[evt_pos] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
             if(with_key)
             {
                 evt_prev_key = ints->evts.ptr[evt_pos_key];
+                (ints->evts.ptr[evt_pos_key] &= ~(xievt::detail::styles_ievt_cont|xievt::detail::styles_ievt_sclr)) |= evt; // NOLINT
             }
         }
     }
@@ -868,6 +942,13 @@ TEST(emit_nested, scalar_key)
 static void check_container_key_json_errs_(IntBufs & ints)
 {
     auto check = [&]{
+        RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emitrs_json<std::string>({}, 0); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emitrs_json<std::string>({}, 1); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emitrs_json<std::string>({}, 2); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emitrs_json<std::string>({}, 3); }));
+        RYML_EXPECT_ERROR(check_error_basic([&]{ ints.emitrs_json<std::string>(with_key, 3); }));
+        RYML_EXPECT_ERROR(check_success(    [&]{ ints.emitrs_json<std::string>(without_key, 3); }));
+        RYML_EXPECT_ERROR(check_success(    [&]{ ints.emitrs_json<std::string>({}, 11); }));
     };
     {
         SCOPED_TRACE("nosty");
@@ -1015,9 +1096,9 @@ TEST(emit, null_ints)
     ASSERT_EQ(ints.arena.len, 0);
     ASSERT_EQ(ints.arena.str, nullptr);
     std::string ret;
-    //RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emitrs_yaml<std::string>(); }));
+    RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emitrs_yaml<std::string>(); }));
     EXPECT_TRUE(ret.empty());
-    //RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emitrs_json<std::string>(); }));
+    RYML_EXPECT_ERROR(check_success([&]{ ret = ints.emitrs_json<std::string>(); }));
 }
 
 

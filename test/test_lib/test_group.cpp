@@ -261,13 +261,34 @@ static void _ensure_ints_parse(Case const *c, SrcInts &ints, LangType type)
 }
 
 template<bool resize_buffers>
-static void _ensure_ints_emit(Case const *, SrcInts &, SrcInts &, LangType)
+static void _ensure_ints_emit(Case const *c, SrcInts &from, SrcInts &to, LangType type)
 {
+    SCOPED_TRACE("ensure_ints_parse");
+    _ensure_ints_parse<resize_buffers>(c, from, as_yaml);// first level parsed as yaml
+    ASSERT_TRUE(from.val.done);
+    if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
+        return;
+    bool executed = to.src.ensure([&]{
+        if(type == as_yaml)
+            from.val.result.emitrs_yaml(&to.src.result);
+        else
+            from.val.result.emitrs_json(&to.src.result);
+    });
+    if(executed)
+    {
+        to.orig = to.src;
+    }
 }
 
 template<bool resize_buffers>
-static void _ensure_ints_parse_roundtrip(Case const *, SrcInts &, SrcInts &, LangType)
+static void _ensure_ints_parse_roundtrip(Case const *c, SrcInts &from, SrcInts &to, LangType type)
 {
+    SCOPED_TRACE("ensure ints roundtrip");
+    _ensure_ints_emit<resize_buffers>(c, from, to, type);
+    {
+        SCOPED_TRACE("roundtrip parse");
+        _ensure_ints_parse<resize_buffers>(c, to, type);
+    }
 }
 
 
@@ -411,6 +432,8 @@ void YmlTestCase::_test_parse_yaml_to_ints_resize(CaseDataLineEndings *cd)
     cd->ensure_tree_emit_yaml(c);
     if(c->flags & NO_COMPARE_EMITTED_INTS) // NOLINT
         return;
+    extra::ievt::test_compare_emitted_yaml_ints(cd->ints_resize_roundtrip_yaml.orig.result,
+                                                cd->tree_roundtrip_yaml.orig.result);
     if(testing::Test::HasFailure())
     {
         show_parse_info_(cd,
@@ -439,9 +462,54 @@ void YmlTestCase::_test_parse_yaml_to_ints_noresize(CaseDataLineEndings *cd)
 }
 
 
-static void _test_roundtrip_yaml_ints(Case const *, CaseDataLineEndings *,
-                                      SrcInts *, SrcInts *)
+static void show_roundtrip_info_(CaseDataLineEndings const* cd,
+                                 SrcTree const* tree,
+                                 SrcInts const* level0, SrcInts const* level1,
+                                 csubstr tree_emitted, csubstr actual)
 {
+    csubstr src = cd->src;
+    csubstr ints_emitted = level1->orig.result;
+    csubstr roundtrip_ints_emitted = to_csubstr(actual);
+    printf("------\nsrc\n------\n%.*s\n", (int)src.len, src.str);
+    printf("------\nints\n------\n");
+    level0->val.result.print();
+    printf("------\nints emitted\n------\n%.*s\n", (int)ints_emitted.len, ints_emitted.str);
+    printf("------\nroundtrip ints\n------\n");
+    level1->val.result.print();
+    printf("------\nints roundtrip emitted\n------\n%.*s\n", (int)roundtrip_ints_emitted.len, roundtrip_ints_emitted.str);
+    print_tree("roundtrip tree", tree->val.result);
+    printf("------\ntree emitted\n------\n%.*s\n", (int)tree_emitted.len, tree_emitted.str);
+}
+static void _test_roundtrip_yaml_ints(Case const *c, CaseDataLineEndings *cd,
+                                      SrcInts *level0, SrcInts *level1)
+{
+    if(testing::Test::HasFailure())
+        return;
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS)) // NOLINT
+        return;
+    SCOPED_TRACE("test_roundtrip_yaml_ints");
+    cd->ensure_tree_roundtrip_yaml(c);
+    ASSERT_TRUE(level0->val.done);
+    ASSERT_TRUE(level1->val.done);
+    ASSERT_TRUE(cd->tree_roundtrip_yaml.val.done);
+    level1->val.result.test_compare(level0->val.result);
+    txtbuf actual = level1->val.result.emitrs_yaml<txtbuf>();
+    if(!(c->flags & (NO_COMPARE_EMITTED_INTS|RESOLVE_REFS))) // NOLINT
+    {
+        {
+            SCOPED_TRACE("vs ints");
+            cmp_src_str_(*level1, actual);
+        }
+        {
+            SCOPED_TRACE("vs tree");
+            extra::ievt::test_compare_emitted_yaml_ints(actual, cd->tree_roundtrip_yaml.orig.result);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        show_roundtrip_info_(cd, &cd->tree_roundtrip_yaml,
+                             level0, level1, cd->tree_roundtrip_yaml.orig.result, actual);
+    }
 }
 void YmlTestCase::_test_roundtrip_yaml_ints_resize(CaseDataLineEndings *cd)
 {
@@ -463,9 +531,30 @@ void YmlTestCase::_test_roundtrip_yaml_ints_noresize(CaseDataLineEndings *cd)
 }
 
 
-void _test_roundtrip_json_ints(Case const *, CaseDataLineEndings *,
-                               SrcInts *, SrcInts *)
+void _test_roundtrip_json_ints(Case const *c, CaseDataLineEndings *cd,
+                               SrcInts *level0, SrcInts *level1)
 {
+    if(testing::Test::HasFailure())
+        return;
+    SCOPED_TRACE("test_roundtrip_json_ints");
+    cd->ensure_tree_emit_json(c);
+    txtbuf actual = level1->val.result.emitrs_json<txtbuf>();
+    if(!(c->flags & (NO_COMPARE_EMITTED_INTS|NO_COMPARE_EMITTED_INTS_JSON|RESOLVE_REFS))) // NOLINT
+    {
+        {
+            SCOPED_TRACE("vs ints");
+            cmp_src_str_(*level1, actual);
+        }
+        {
+            SCOPED_TRACE("vs tree");
+            cmp_src_str_(cd->tree_roundtrip_json, actual);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        show_roundtrip_info_(cd, &cd->tree_roundtrip_json,
+                             level0, level1, cd->tree_roundtrip_json.orig.result, actual);
+    }
 }
 void YmlTestCase::_test_roundtrip_json_ints_resize(CaseDataLineEndings *cd)
 {
