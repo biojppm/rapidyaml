@@ -418,9 +418,15 @@ void ExpectError::check_success(Tree *tree, fntestref fn)
         fn();
         _c4dbgp("check expected success: success!");
     }
-    C4_IF_EXCEPTIONS_(catch(...), else)
+    C4_IF_EXCEPTIONS_(catch(ExpectedErrorBasic const& e), else)
     {
-        FAIL() << "check expected success: failed!";
+        C4_IF_EXCEPTIONS_( , ExpectedErrorBasic const& e = s_jmp_err_basic);
+        (void)e;
+        #if defined(RYML_WITH_EXCEPTIONS_)
+        FAIL() << "exception:\n" << e.what();
+        #else
+        FAIL() << "exception:\n" << e.smsg;
+        #endif
     }
     EXPECT_EQ(context.m_error, ExpectedErrorType::err_none);
 }
@@ -637,55 +643,6 @@ void ExpectError::check_assert_visit(Tree *tree, fntestref fn, id_type id)
 
 //-----------------------------------------------------------------------------
 
-void print_path(ConstNodeRef const& n)
-{
-    size_t len = 0;
-    char buf[1024];
-    ConstNodeRef p = n;
-    while(p.readable())
-    {
-        if(p.has_key())
-        {
-            len += 1 + p.key().len;
-        }
-        else
-        {
-            int ret = snprintf(buf, sizeof(buf), "/%zu", p.has_parent() ? (size_t)p.parent().child_pos(p) : (size_t)0);
-            RYML_ASSERT_BASIC_(ret >= 0);
-            len += static_cast<size_t>(ret);
-        }
-        p = p.parent();
-    };
-    C4_ASSERT(len < sizeof(buf));
-    size_t pos = len;
-    p = n;
-    while(p.readable())
-    {
-        if(p.has_key())
-        {
-            size_t tl = p.key().len;
-            int ret = snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
-            RYML_ASSERT_BASIC_(ret >= 0);
-            pos -= static_cast<size_t>(ret);
-        }
-        else if(p.has_parent())
-        {
-            pos = (size_t)p.parent().child_pos(p);
-            int ret = snprintf(buf, 0, "/%zu", pos);
-            RYML_ASSERT_BASIC_(ret >= 0);
-            size_t tl = static_cast<size_t>(ret);
-            RYML_ASSERT_BASIC_(pos >= tl);
-            ret = snprintf(buf + static_cast<size_t>(pos - tl), tl, "/%zu", pos);
-            RYML_ASSERT_BASIC_(ret >= 0);
-            pos -= static_cast<size_t>(ret);
-        }
-        p = p.parent();
-    };
-    printf("%.*s", (int)len, buf);
-}
-
-
-
 void print_test_node(TestCaseNode const& p, int level)
 {
     printf("%*s%p", (2*level), "", (void const*)&p);
@@ -839,19 +796,19 @@ void test_invariants(NodeType ty)
         EXPECT_NONE(ty, VAL);
         if(ty & FLOW_SL)
         {
-            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_SL);
+            EXPECT_ONE(ty, CONTAINER_STYLE & ~FLOW_SPC, FLOW_SL);
         }
         if(ty & FLOW_ML1)
         {
-            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_ML1);
+            EXPECT_ONE(ty, CONTAINER_STYLE & ~FLOW_SPC, FLOW_ML1);
         }
         if(ty & FLOW_MLN)
         {
-            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_MLN);
+            EXPECT_ONE(ty, CONTAINER_STYLE & ~FLOW_SPC, FLOW_MLN);
         }
         if(ty & FLOW_SPC)
         {
-            EXPECT_ANY(ty, FLOW_MLX);
+            EXPECT_ANY(ty, FLOW_MLX|FLOW_SL);
         }
         if(ty & BLOCK)
         {
@@ -1125,13 +1082,13 @@ void test_invariants(Tree const& t)
     test_invariants(t.rootref());
     check_invariants(t);
 
-    if(!testing::UnitTest::GetInstance()->current_test_info()->result()->Passed())
+    if(testing::Test::HasFailure())
     {
         print_tree(t);
     }
 
     return;
-#if 0 == 1
+#if 0 == 1  // TODO
     for(size_t i = 0; i < t.m_size; ++i)
     {
         auto n = t.get(i);
@@ -1185,31 +1142,17 @@ void test_invariants(Tree const& t)
 CaseData* get_data(csubstr name)
 {
     static std::map<csubstr, CaseData> m;
-
     auto it = m.find(name);
-    CaseData *cd;
-    if(it == m.end())
-    {
-        cd = &m[name];
-        Case const* c = get_case(name);
-        RYML_CHECK_BASIC_(c->src.find("\n\r") == csubstr::npos);
-        {
-            std::string tmp;
-            replace_all("\r", "", c->src, &tmp);
-            cd->unix_style.assign(to_csubstr(tmp));
-            cd->unix_style_json.assign(to_csubstr(tmp));
-        }
-        {
-            std::string tmp;
-            replace_all("\n", "\r\n", cd->unix_style.src, &tmp);
-            cd->windows_style.assign(to_csubstr(tmp));
-            cd->windows_style_json.assign(to_csubstr(tmp));
-        }
-    }
-    else
-    {
-        cd = &it->second;
-    }
+    if(it != m.end())
+        return &it->second;
+    CaseData *cd = &m[name];
+    Case const* c = get_case(name);
+    RYML_CHECK_BASIC_(c->src.find("\n\r") == csubstr::npos);
+    txtbuf tmp;
+    replace_all("\r", "", c->src, &tmp);
+    cd->unix_style.assign(tmp);
+    replace_all("\n", "\r\n", cd->unix_style.src, &tmp);
+    cd->windows_style.assign(tmp);
     return cd;
 }
 

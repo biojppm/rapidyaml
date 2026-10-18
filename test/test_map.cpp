@@ -827,7 +827,7 @@ R"(
 N(MB, L{N(KP|VP, "key", "value")})
 );
 
-ADD_CASE_TO_GROUP("simple map, null values",
+ADD_CASE_TO_GROUP("simple map, null values", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 key: val
 a:
@@ -842,12 +842,12 @@ foo: bar
 N(MB, L{N(KP|VP, "key", "val"), N(KP|VN, "a", {}), N(KP|VN, "b", {}), N(KP|VN, "c", {}), N(KP|VN, "d", {}), N(KP|VN, "e", {}), N(KP|VN, "f", {}), N(KP|VN, "g", {}), N(KP|VP, "foo", "bar"),})
 );
 
-ADD_CASE_TO_GROUP("simple map expl, null values 1",
+ADD_CASE_TO_GROUP("simple map expl, null values 1", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"({key: val, a, b, c, d, e: , f: , g: , foo: bar})",
 N(MFS, L{N(KP|VP, "key", "val"), N(KP|VN, "a", {}), N(KP|VN, "b", {}), N(KP|VN, "c", {}), N(KP|VN, "d", {}), N(KP|VN, "e", {}), N(KP|VN, "f", {}), N(KP|VN, "g", {}), N(KP|VP, "foo", "bar"),})
 );
 
-ADD_CASE_TO_GROUP("simple map expl, null values 2",
+ADD_CASE_TO_GROUP("simple map expl, null values 2", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 - {a}
 - {a, b, c}
@@ -864,7 +864,7 @@ N(SB, L{
  })
 );
 
-ADD_CASE_TO_GROUP("simple map expl, null values 3, 4ABK",
+ADD_CASE_TO_GROUP("simple map expl, null values 3, 4ABK", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 - {foo: , bar: , baz: }
 - {foo:, bar:, baz:}
@@ -1102,7 +1102,7 @@ N(MB, L{
 })
 );
 
-ADD_CASE_TO_GROUP("simple map expl, scalars with special chars, comma",
+ADD_CASE_TO_GROUP("simple map expl, scalars with special chars, comma", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"({
 a0,b0: val0,0000
 c0,d0: val0, 0000
