@@ -39,7 +39,12 @@ c4_add_library(ryml
         c4/yml/detail/checks.hpp
         c4/yml/detail/dbgprint.hpp
         c4/yml/detail/emit_scalar.hpp
+        c4/yml/detail/known_keys.hpp
+        c4/yml/detail/known_keys.cpp
+        c4/yml/detail/lookup_anchor.hpp
+        c4/yml/detail/lower_bound.hpp
         c4/yml/detail/print.hpp
+        c4/yml/detail/small_map.hpp
         c4/yml/detail/stack.hpp
         c4/yml/common.hpp
         c4/yml/common.cpp
