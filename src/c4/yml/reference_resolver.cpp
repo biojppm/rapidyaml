@@ -13,119 +13,82 @@ namespace yml {
 
 /** @cond dev */
 
-id_type ReferenceResolver::count_anchors_and_refs_(id_type n)
-{
-    id_type c = 0;
-    NodeType ty = m_tree->type(n);
-    c += ty.has_key_anchor();
-    c += ty.has_val_anchor();
-    c += ty.is_key_ref();
-    c += ty.is_val_ref();
-    c += ty.has_key() && m_tree->key(n) == "<<";
-    for(id_type ch = m_tree->first_child(n); ch != NONE; ch = m_tree->next_sibling(ch))
-        c += count_anchors_and_refs_(ch);
-    return c;
-}
-
-void ReferenceResolver::gather_anchors_and_refs_(id_type n)
+id_type ReferenceResolver::gather_anchors_and_refs_(id_type n, id_type prev_anchor)
 {
     NodeType ty = m_tree->type(n);
-    // insert key refs BEFORE inserting val refs
+    // insert key BEFORE inserting val
+    // insert anchors BEFORE inserting refs
     if(ty.has_key())
     {
-        if(!ty.is_key_quoted() && m_tree->key(n) == "<<")
+        // insert key anchors BEFORE inserting val anchors
+        if(ty.has_key_anchor())
         {
-            _c4dbgpf("node[{}]: key is <<", n);
-            if(ty.has_val())
-            {
-                if(ty.is_val_ref())
-                {
-                    _c4dbgpf("node[{}]: instance[{}]: val ref, inheriting! '{}'", n, m_refs.size(), m_tree->val_ref(n));
-                    m_refs.push({VALREF, n, NONE, NONE, NONE, NONE});
-                    //m_refs.push({KEYREF, n, NONE, NONE, NONE, NONE});
-                }
-                else
-                {
-                    _c4dbgpf("node[{}]: not ref!", n);
-                }
-            }
-            else if(ty.is_seq())
-            {
-                // for merging multiple inheritance targets
-                //   <<: [ *CENTER, *BIG ]
-                _c4dbgpf("node[{}]: is seq!", n);
-                for(id_type ich = m_tree->first_child(n); ich != NONE; ich = m_tree->next_sibling(ich))
-                {
-                    _c4dbgpf("node[{}]: instance [{}]: val ref, inheriting multiple: {} '{}'", n, m_refs.size(), ich, m_tree->val_ref(ich));
-                    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, !m_tree->is_container(ich), m_tree, ich);
-                    m_refs.push({VALREF, ich, NONE, NONE, n, m_tree->next_sibling(n)});
-                }
-                return; // don't descend into the seq
-            }
-            else
-            {
-                RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, n, "refs for << must be either val or seq");
-            }
+            _c4dbgpf("node[{}]: instance[{}]: key anchor: '{}'", n, m_refs.size(), m_tree->key_anchor(n));
+            RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, ty.has_key(), m_tree, n);
+            prev_anchor = add_(KEYANCH, n, prev_anchor);
         }
         else if(ty.is_key_ref())
         {
             _c4dbgpf("node[{}]: instance[{}]: key ref: '{}', key='{}'", n, m_refs.size(), m_tree->key_ref(n), m_tree->has_key(n) ? m_tree->key(n) : csubstr{"-"});
             RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->key(n) != "<<", m_tree, n);
             RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, m_tree->key(n).ends_with(m_tree->key_ref(n)), m_tree, n);
-            m_refs.push({KEYREF, n, NONE, NONE, NONE, NONE});
+            (void)add_(KEYREF, n, prev_anchor);
         }
-    }
-    // val ref
-    if(ty.is_val_ref() && (!ty.has_key() || m_tree->key(n) != "<<"))
-    {
-        _c4dbgpf("node[{}]: instance[{}]: val ref: '{}'", n, m_refs.size(), m_tree->val_ref(n));
-        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (!ty.has_val()) || m_tree->val(n).ends_with(m_tree->val_ref(n)), m_tree, n);
-        m_refs.push({VALREF, n, NONE, NONE, NONE, NONE});
-    }
-    // anchors
-    if(ty.has_key_anchor())
-    {
-        _c4dbgpf("node[{}]: instance[{}]: key anchor: '{}'", n, m_refs.size(), m_tree->key_anchor(n));
-        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, ty.has_key(), m_tree, n);
-        m_refs.push({KEYANCH, n, NONE, NONE, NONE, NONE});
+        else if(!ty.is_key_quoted() && m_tree->key(n) == "<<")
+        {
+            _c4dbgpf("node[{}]: key is <<", n);
+            if(ty.is_seq())
+            {
+                // for merging multiple inheritance targets
+                //   <<: [ *CENTER, *BIG ]
+                _c4dbgpf("node[{}]: is seq!", n);
+                RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, !ty.has_val_anchor(), m_tree, n);
+                RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, !ty.is_val_ref(), m_tree, n);
+                for(id_type ch = m_tree->first_child(n), first = ch; ch != NONE; ch = m_tree->next_sibling(ch))
+                {
+                    _c4dbgpf("node[{}]: instance [{}]: val ref, inheriting multiple: {} '{}'", n, m_refs.size(), ch, m_tree->_p(ch)->m_val.anchor);
+                    if(m_tree->is_container(ch) || !m_tree->is_val_ref(ch))
+                    {
+                        if(ch == first)
+                            break;
+                        RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, ch, "malformed ref in inheriting seq");
+                    }
+                    (void)add_(VALREF, ch, prev_anchor, n);
+                }
+                goto finish; // don't descend into the seq  // NOLINT
+            }
+        }
     }
     if(ty.has_val_anchor())
     {
         _c4dbgpf("node[{}]: instance[{}]: val anchor: '{}'", n, m_refs.size(), m_tree->val_anchor(n));
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, ty.has_val() || ty.is_container(), m_tree, n);
-        m_refs.push({VALANCH, n, NONE, NONE, NONE, NONE});
+        prev_anchor = add_(VALANCH, n, prev_anchor);
+    }
+    if(ty.is_val_ref())
+    {
+        _c4dbgpf("node[{}]: instance[{}]: val ref: '{}'", n, m_refs.size(), m_tree->val_ref(n));
+        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (!ty.has_val()) || m_tree->val(n).ends_with(m_tree->val_ref(n)), m_tree, n);
+        (void)add_(VALREF, n, prev_anchor);
     }
     // recurse
     for(id_type ch = m_tree->first_child(n); ch != NONE; ch = m_tree->next_sibling(ch))
-        gather_anchors_and_refs_(ch);
+        prev_anchor = gather_anchors_and_refs_(ch, prev_anchor);
+finish:
+    return prev_anchor;
 }
 
 void ReferenceResolver::gather_anchors_and_refs_()
 {
     _c4dbgp("gathering anchors and refs...");
 
-    // minimize (re-)allocations by counting first
-    id_type num_anchors_and_refs = count_anchors_and_refs_(m_tree->root_id());
-    if(!num_anchors_and_refs)
-        return;
-    m_refs.reserve(num_anchors_and_refs);
+    // minimize (re-)allocations
     m_refs.clear();
+    m_refs.reserve(m_tree->size());
 
     // now descend through the hierarchy
-    gather_anchors_and_refs_(m_tree->root_id());
+    gather_anchors_and_refs_(m_tree->root_id(), NONE);
 
-    _c4dbgpf("found {} anchors/refs", m_refs.size());
-
-    // finally connect the reference list
-    id_type prev_anchor = NONE;
-    id_type count = 0;
-    for(auto &rd : m_refs)
-    {
-        rd.prev_anchor = prev_anchor;
-        if(rd.type.has_anchor())
-            prev_anchor = count;
-        ++count;
-    }
     _c4dbgp("gathering anchors and refs: finished");
 }
 
@@ -163,7 +126,6 @@ id_type ReferenceResolver::lookup_(RefData const* C4_RESTRICT ra)
         }
     }
     RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, ra->node, "anchor not found: '{}'", refname);
-    C4_UNREACHABLE_AFTER_ERR();
 }
 
 void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts)
@@ -202,7 +164,7 @@ void ReferenceResolver::resolve_()
         // subtree (which contains this reference) into a location
         // inside that same subtree, recurring without bound. Reject
         // it instead.
-        if C4_UNLIKELY(refdata.target == refdata.node || m_tree->is_ancestor(refdata.node, refdata.target))
+        if C4_UNLIKELY (m_tree->is_ancestor(refdata.node, refdata.target))
             RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, refdata.node,
                                "cyclic reference: the alias refers to an ancestor anchor");
     }
@@ -233,7 +195,10 @@ void ReferenceResolver::resolve_()
         if(refdata.parent_ref != NONE)
         {
             _c4dbgpf("instance[{}:node{}] has parent: {}", i, refdata.node, refdata.parent_ref);
-            RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_seq(refdata.parent_ref), m_tree, refdata.node);
+            RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, "<<" == m_tree->key(refdata.parent_ref), m_tree, refdata.parent_ref);
+            RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_seq(refdata.parent_ref), m_tree, refdata.parent_ref);
+            RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, !m_tree->is_key_quoted(refdata.parent_ref), m_tree, refdata.parent_ref);
+            RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(refdata.target), m_tree, refdata.target);
             const id_type p = m_tree->parent(refdata.parent_ref);
             const id_type after = (prev_parent_ref != refdata.parent_ref) ?
                 refdata.parent_ref//prev_sibling(rd.parent_ref_sibling)
@@ -297,7 +262,7 @@ void ReferenceResolver::resolve_()
                     RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, !tty.is_container(), m_tree, refdata.target);
                     RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, tty.has_val(), m_tree, refdata.target);
                     // keys cannot be containers, so don't inherit container flags
-                    const type_bits existing_style_flags = (KEY_STYLE) & m_tree->_p(refdata.target)->m_type.m_bits;
+                    const type_bits existing_style_flags = (KEY_STYLE) & tty.m_bits;
                     static_assert((KEY_STYLE << 1u) == (VAL_STYLE), "bad flags");
                     m_tree->_p(refdata.node)->m_val.scalar = m_tree->key(refdata.target);
                     m_tree->_add_flags(refdata.node, VAL | (existing_style_flags << 1u));
@@ -307,7 +272,10 @@ void ReferenceResolver::resolve_()
                     _c4dbgpf("instance[{}:node{}] duplicate contents", i, refdata.node);
                     if(size_limit)
                         check_size_(refdata.target);
+                    const type_bits next = (m_tree->type(refdata.node).m_bits & ~(VAL_STYLE|CONTAINER_STYLE|VAL|VALREF))
+                                         | (tty.m_bits & (VAL_STYLE|CONTAINER_STYLE|VAL|SEQ|MAP));
                     m_tree->duplicate_contents(refdata.target, refdata.node);
+                    m_tree->_p(refdata.node)->m_type = next;
                 }
             }
         }
