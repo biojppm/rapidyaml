@@ -10,10 +10,6 @@
 
 #include "./test_lib/test_case.hpp"
 #include "./test_lib/tree_and_ints.hpp"
-#define test_emit_json_same_ints_(...) { SCOPED_TRACE("here"); test_emit_json_same_ints(__VA_ARGS__); }
-#define test_emit_yaml_same_ints_(...) { SCOPED_TRACE("here"); test_emit_yaml_same_ints(__VA_ARGS__); }
-#define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
-#define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
 
 #include <gtest/gtest.h>
 

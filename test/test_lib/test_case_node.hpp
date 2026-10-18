@@ -4,14 +4,24 @@
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
+#include "c4/yml/fwd.hpp"
 #include "c4/std/vector.hpp"
 #include "c4/std/string.hpp"
 #include "c4/format.hpp"
-#include <c4/yml/yml.hpp>
+#include <c4/yml/common.hpp>
+#include <c4/yml/error.hpp>
+#include <c4/yml/node_type.hpp>
 #endif
 
 namespace c4 {
 namespace yml {
+
+struct TestCaseNode;
+
+void print_test_node(TestCaseNode const& t, int level=0);
+void print_test_tree(TestCaseNode const& p, int level=0);
+void print_test_tree(const char *message, TestCaseNode const& t);
+
 
 struct TaggedScalar
 {
@@ -66,6 +76,100 @@ public:
     TestCaseNode& operator= (TestCaseNode const& that) noexcept { if(&that != this) _copy(that); return *this; }
 
     ~TestCaseNode() = default;
+
+public:
+
+    void _move(TestCaseNode&& that)
+    {
+        type = that.type;
+        key = that.key;
+        key_tag = that.key_tag;
+        key_anchor = that.key_anchor;
+        val = that.val;
+        val_tag = that.val_tag;
+        val_anchor = that.val_anchor;
+        children = std::move(that.children);
+        parent = nullptr;
+        _set_parent();
+    }
+    void _copy(TestCaseNode const& that)
+    {
+        type = that.type;
+        key = that.key;
+        key_tag = that.key_tag;
+        key_anchor = that.key_anchor;
+        val = that.val;
+        val_tag = that.val_tag;
+        val_anchor = that.val_anchor;
+        children = that.children;
+        parent = nullptr;
+        _set_parent();
+    }
+
+    void _set_parent()
+    {
+        C4_SUPPRESS_WARNING_GCC_PUSH
+        #if defined(__GNUC__) && __GNUC__ >= 10
+        C4_SUPPRESS_WARNING_GCC("-Wanalyzer-possible-null-dereference")
+        #endif
+        for(auto &ch : children)
+        {
+            ch.parent = this;
+        }
+        C4_SUPPRESS_WARNING_GCC_POP
+    }
+
+    type_bits _guess() const;
+
+    bool is_root() const { return parent; }
+    bool is_doc() const { return type & DOC; }
+    bool is_map() const { return type & MAP; }
+    bool is_seq() const { return type & SEQ; }
+    bool has_val() const { return type & VAL; }
+    bool has_key() const { return type & KEY; }
+    bool is_container() const { return type & (SEQ|MAP); }
+    bool has_key_anchor() const { return type & KEYANCH; }
+    bool has_val_anchor() const { return type & VALANCH; }
+
+public:
+
+    TestCaseNode const& operator[] (size_t i) const
+    {
+        C4_ASSERT(i < children.size());
+        return children[i];
+    }
+
+    TestCaseNode const& operator[] (csubstr const& name) const
+    {
+        auto ch = lookup(name);
+        C4_ASSERT(ch != nullptr);
+        return *ch;
+    }
+
+    TestCaseNode const* lookup(csubstr const& name) const
+    {
+        C4_ASSERT( ! children.empty());
+        for(auto const& ch : children)
+            if(ch.key == name)
+                return &ch;
+        return nullptr;
+    }
+
+public:
+
+    void compare(ConstNodeRef const& n, bool ignore_quote=false) const;
+    void compare_child(ConstNodeRef const& n, id_type pos) const;
+
+    id_type reccount() const
+    {
+        id_type c = 1;
+        for(auto const& ch : children)
+            c += ch.reccount();
+        return c;
+    }
+
+    void recreate(Tree *tree, id_type node) const;
+    void recreate(NodeRef n) const;
 
 public:
 
@@ -197,100 +301,6 @@ public:
     template<size_t N> explicit TestCaseNode(NodeType t, const char (&k)[N]   , AnchorRef const& ark, iseqmap    s, AnchorRef const& arv) : type((t       |KEYANCH|VALANCH)), key(k       ), key_tag(     ), key_anchor(ark), val(), val_tag(     ), val_anchor(arv), children(s      ), parent(nullptr) { _set_parent(); }
     template<size_t N> explicit TestCaseNode(NodeType t, const char (&k)[N]   , AnchorRef const& ark, TaggedList s, AnchorRef const& arv) : type((t|VALTAG|KEYANCH|VALANCH)), key(k       ), key_tag(     ), key_anchor(ark), val(), val_tag(s.tag), val_anchor(arv), children(s.ilist), parent(nullptr) { _set_parent(); }
                        explicit TestCaseNode(NodeType t, TaggedScalar const& k, AnchorRef const& ark, iseqmap    s, AnchorRef const& arv) : type((t|KEYTAG|KEYANCH|VALANCH)), key(k.scalar), key_tag(k.tag), key_anchor(ark), val(), val_tag(     ), val_anchor(arv), children(s      ), parent(nullptr) { _set_parent(); }
-
-public:
-
-    void _move(TestCaseNode&& that)
-    {
-        type = that.type;
-        key = that.key;
-        key_tag = that.key_tag;
-        key_anchor = that.key_anchor;
-        val = that.val;
-        val_tag = that.val_tag;
-        val_anchor = that.val_anchor;
-        children = std::move(that.children);
-        parent = nullptr;
-        _set_parent();
-    }
-    void _copy(TestCaseNode const& that)
-    {
-        type = that.type;
-        key = that.key;
-        key_tag = that.key_tag;
-        key_anchor = that.key_anchor;
-        val = that.val;
-        val_tag = that.val_tag;
-        val_anchor = that.val_anchor;
-        children = that.children;
-        parent = nullptr;
-        _set_parent();
-    }
-
-    void _set_parent()
-    {
-        C4_SUPPRESS_WARNING_GCC_PUSH
-        #if defined(__GNUC__) && __GNUC__ > 9
-        C4_SUPPRESS_WARNING_GCC("-Wanalyzer-possible-null-dereference")
-        #endif
-        for(auto &ch : children)
-        {
-            ch.parent = this;
-        }
-        C4_SUPPRESS_WARNING_GCC_POP
-    }
-
-    type_bits _guess() const;
-
-    bool is_root() const { return parent; }
-    bool is_doc() const { return type & DOC; }
-    bool is_map() const { return type & MAP; }
-    bool is_seq() const { return type & SEQ; }
-    bool has_val() const { return type & VAL; }
-    bool has_key() const { return type & KEY; }
-    bool is_container() const { return type & (SEQ|MAP); }
-    bool has_key_anchor() const { return type & KEYANCH; }
-    bool has_val_anchor() const { return type & VALANCH; }
-
-public:
-
-    TestCaseNode const& operator[] (size_t i) const
-    {
-        C4_ASSERT(i < children.size());
-        return children[i];
-    }
-
-    TestCaseNode const& operator[] (csubstr const& name) const
-    {
-        auto ch = lookup(name);
-        C4_ASSERT(ch != nullptr);
-        return *ch;
-    }
-
-    TestCaseNode const* lookup(csubstr const& name) const
-    {
-        C4_ASSERT( ! children.empty());
-        for(auto const& ch : children)
-            if(ch.key == name)
-                return &ch;
-        return nullptr;
-    }
-
-public:
-
-    void compare(yml::ConstNodeRef const& n, bool ignore_quote=false) const;
-    void compare_child(yml::ConstNodeRef const& n, id_type pos) const;
-
-    id_type reccount() const
-    {
-        id_type c = 1;
-        for(auto const& ch : children)
-            c += ch.reccount();
-        return c;
-    }
-
-    void recreate(Tree *tree, id_type node) const;
-    void recreate(yml::NodeRef n) const { recreate(n.tree(), n.id()); }
 
 };
 
