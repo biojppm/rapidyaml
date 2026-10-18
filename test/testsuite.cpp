@@ -13,6 +13,8 @@
 #include "testsuite/testsuite_parts.hpp"
 #include "testsuite/testsuite_events.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
+#include "c4/yml/extra/emitter_ints.hpp"
+#include "c4/yml/extra/emitter_ints.def.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
 #include <c4/fs/fs.hpp>
 #include <gtest/gtest.h>
@@ -600,11 +602,26 @@ struct TestSequenceLevel
         _nfo_logf("EMITTED[noresize]:\n{}", emitted_from_ints_noresize_parsed_from_src_json);
     }
 
-    static void emit_ints2str(std::string *,
-                              extra::ievt::evt_bits const*, extra::ievt::evt_size ,
-                              csubstr , csubstr ,
-                              EmitType_e)
+    static void emit_ints2str(std::string *s,
+                              extra::ievt::evt_bits const* evts, extra::ievt::evt_size evts_size,
+                              csubstr src, csubstr arena,
+                              EmitType_e ety)
     {
+        ASSERT_FALSE(src.overlaps(to_substr(*s)));
+        ASSERT_FALSE(arena.overlaps(to_substr(*s)));
+        auto doit = [&](std::string *ss) -> size_t {
+            extra::ievt::EmitterInts<WriterBuf> em(EmitOptions{}, to_substr(*ss));
+            em.emit_as(ety, evts, evts_size, src, arena);
+            return em.m_pos;
+        };
+        size_t needed = doit(s);
+        bool ok = needed <= s->size();
+        s->resize(needed);
+        if(!ok)
+        {
+            size_t needed2 = doit(s);
+            ASSERT_EQ(needed2, needed);
+        }
     }
 
     void compare_trees(TestSequenceLevel const& that)
@@ -972,8 +989,45 @@ struct TestSequenceData
                                    /*ignore_scalar_style*/(num>0));
         }
     }
-    void compare_emitted_events_ints_str(size_t, TestSuiteCaseEvents *)
+    void compare_emitted_events_ints_str(size_t num, TestSuiteCaseEvents *events)
     {
+        SKIP_IF(allowed_failure);
+        SCOPED_TRACE("compare_emitted_events_ints_str");
+        ASSERT_FALSE(events->reference_events.empty());
+        parse_yaml_to_ints(num);
+        for(size_t i = 0; i < num; ++i)
+        {
+            RYML_TRACE_FMT("level={}", i);
+            ASSERT_TRUE(levels[i].ints_were_parsed);
+            {
+                SCOPED_TRACE("resize");
+                events->compare_events(to_csubstr(levels[i].evts_test_suite_from_ints_resize),
+                                       /*ignore_container_style*/false,
+                                       /*ignore_scalar_style*/(num>0));
+                if(testing::Test::HasFailure())
+                {
+                    extra::ievt::events_ints_print(to_csubstr(levels[i].src_ints_resize),
+                                                   levels[i].ints_resize.arena,
+                                                   levels[i].ints_resize.evts.ptr,
+                                                   levels[i].ints_resize.evts.len);
+                    break;
+                }
+            }
+            {
+                SCOPED_TRACE("noresize");
+                events->compare_events(to_csubstr(levels[i].evts_test_suite_from_ints_noresize),
+                                       /*ignore_container_style*/false,
+                                       /*ignore_scalar_style*/(num>0));
+                if(testing::Test::HasFailure())
+                {
+                    extra::ievt::events_ints_print(to_csubstr(levels[i].src_ints_noresize),
+                                                   to_csubstr(levels[i].arena_ints_noresize),
+                                                   levels[i].buffer_ints_noresize.data(),
+                                                   (int)levels[i].buffer_ints_noresize.size());
+                    break;
+                }
+            }
+        }
     }
 
     bool m_expected_error_to_tree_checked = false;

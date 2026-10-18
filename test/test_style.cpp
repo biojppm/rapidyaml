@@ -11,6 +11,8 @@ C4_SUPPRESS_WARNING_PUSH
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #include <c4/yml/extra/event_ints.hpp>
+#include <c4/yml/extra/emitter_ints.hpp>
+#include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/parse_engine.hpp>
@@ -43,6 +45,27 @@ EmitOptions maxcols(id_type max)
     return EmitOptions{}.max_cols(max);
 }
 
+
+//-----------------------------------------------------------------------------
+
+size_t emit2buf(substr s, IntBufs const& buf, EmitOptions const& opts={})
+{
+    xievt::EmitterInts<WriterBuf> e(opts, s);
+    e.emit_as(EMIT_YAML, buf.evts.ptr, buf.evts.len, buf.src, buf.arena);
+    return e.m_pos;
+}
+std::string emit2str(IntBufs const& buf, EmitOptions const& opts={})
+{
+    std::string s;
+    s.resize((3 * buf.src.len) / 2);
+again:
+    size_t len = emit2buf(to_substr(s), buf, opts);
+    bool ok = len <= s.size();
+    s.resize(len);
+    if(!ok)
+        goto again; // NOLINT
+    return s;
+}
 std::string emit2str(Tree const& t, EmitOptions const& opts={})
 {
     return emitrs_yaml<std::string>(t, opts);
@@ -60,6 +83,8 @@ void set_style(TreeAndInts *ti,
     which_node.set_container_style(node_style);
     (ti->ints.evts.ptr[which_evt] &= ~all_styles_container) |= evt_style;
 }
+
+
 void add_style(TreeAndInts *ti,
                NodeRef which_node, NodeType node_style,
                evt_size which_evt, evt_bits evt_style)
@@ -68,6 +93,7 @@ void add_style(TreeAndInts *ti,
     which_node.tree()->_add_flags(which_node.id(), node_style);
     ti->ints.evts.ptr[which_evt] |= evt_style;
 }
+
 void rem_style(TreeAndInts *ti,
                NodeRef which_node, NodeType node_style,
                evt_size which_evt, evt_bits evt_style)
@@ -446,8 +472,61 @@ void check_same_emit4(Tree const& expected, std::string const* expected_yaml=nul
         if(did4) showtrees_(4, ws4, actual4);
     }
 }
-void check_same_emit4(IntBufsCR&, std::string const* =nullptr)
+void check_same_emit4(IntBufsCR& expected, std::string const* expected_yaml=nullptr)
 {
+    std::string ws1, ws2, ws3, ws4;
+    IntBufs actual1, actual2, actual3, actual4;
+    bool did2 = false, did3 = false, did4 = false;
+    ws1 = emit2str(expected);
+    if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws1); }
+    {
+        SCOPED_TRACE("actual1");
+        parse_ints(to_substr(ws1), &actual1);
+        xievt::test_events_ints_compare(expected, actual1);
+        ws2 = emit2str(actual1);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws2); }
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("actual2");
+        parse_ints(to_substr(ws2), &actual2);
+        xievt::test_events_ints_compare(expected, actual2);
+        ws3 = emit2str(actual2);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws3); }
+        did2 = true;
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("actual3");
+        parse_ints(to_substr(ws3), &actual3);
+        xievt::test_events_ints_compare(expected, actual3);
+        ws4 = emit2str(actual3);
+        if(expected_yaml) { EXPECT_EQ(*expected_yaml, ws4); }
+        did3 = true;
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("actual4");
+        parse_ints(to_substr(ws4), &actual4);
+        xievt::test_events_ints_compare(expected, actual4);
+        did4 = true;
+    }
+    if(testing::Test::HasFailure())
+    {
+        auto showtrees_ = [&expected](size_t num, std::string const& ws, IntBufsCR actual)
+        {
+            std::cout << "--------\nEMITTED" << num << "\n--------\n";
+            std::cout << ws;
+            std::cout << "--------\nACTUAL" << num << "\n--------\n";
+            actual.print();
+            std::cout << "--------\nEXPECTED" << num << "\n--------\n";
+            expected.print();
+        };
+        showtrees_(1, ws1, actual1);
+        if(did2) showtrees_(2, ws2, actual2);
+        if(did3) showtrees_(3, ws3, actual3);
+        if(did4) showtrees_(4, ws4, actual4);
+    }
 }
 void check_same_emit4(TreeAndInts const& ti, std::string const* expected_yaml)
 {
@@ -470,8 +549,14 @@ void check_same_emit1(Tree const& tree, std::string const& expected, EmitOptions
     if(testing::Test::HasFailure())
         print_tree(tree);
 }
-void check_same_emit1(IntBufsCR&, std::string const&, EmitOptions const& ={})
+void check_same_emit1(IntBufsCR& ints, std::string const& expected, EmitOptions const& opts={})
 {
+    SCOPED_TRACE("check_same_emit1");
+    std::string actual = emit2str(ints, opts);
+    xievt::test_events_ints_invariants(ints.src, ints.arena, ints.evts.ptr, ints.evts.len);
+    EXPECT_EQ(expected, actual);
+    if(testing::Test::HasFailure())
+        ints.print();
 }
 void check_same_emit1(TreeAndInts const& ti, std::string const& expected, EmitOptions const& opts={})
 {

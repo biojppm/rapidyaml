@@ -505,8 +505,48 @@ void test_engine_roundtrip_tree_from_events(EngineEvtTestCase const& test_case, 
 }
 
 template<bool resize_buffers>
-static void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const&, EventProducerInts<resize_buffers>)
+static void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test_case, EventProducerInts<resize_buffers> event_producer)
 {
+    SCOPED_TRACE("roundtrip_ints_from_events");
+    EngineTestIntBuffers buffers1, buffers2;
+    std::vector<char> parsed_yaml1;
+    std::string emitted1, emitted2;
+    {
+        SCOPED_TRACE("ints_from_events");
+        test_engine_ints_from_events(test_case, event_producer, buffers1, parsed_yaml1);
+        buffers1.buf.emitrs_yaml(&emitted1);
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
+            extra::ievt::test_compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
+    }
+    std::vector<char> parsed_yaml2{emitted1.begin(), emitted1.end()};
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("roundtrip_parse2");
+        test_engine_ints_from_yaml<resize_buffers>(buffers2, to_substr(parsed_yaml2), test_case, emitted1,
+                                                   /*ignore_doc_style*/true);
+        buffers2.buf.emitrs_yaml(&emitted2);
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
+            extra::ievt::test_compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
+    }
+    if(!testing::Test::HasFailure()) // NOLINT
+    {
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED_INTS))) // NOLINT
+        {
+            SCOPED_TRACE("roundtrip_compare");
+            test_events_ints_compare(buffers1.buf, buffers2.buf, /*mask_ignore*/extra::ievt::AREN|extra::ievt::UNFILT);
+            EXPECT_EQ(emitted1, emitted2);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        printf("source: ~~~\n%.*s~~~\n", (int)test_case.yaml.size(), test_case.yaml.data());
+        printf("parsed1:\n");
+        buffers1.buf.print();
+        printf("parsed1_emitted: ~~~\n%.*s~~~\n", (int)emitted1.size(), emitted1.data());
+        printf("parsed2 (after roundtrip):\n");
+        buffers2.buf.print();
+        printf("parsed2_emitted: ~~~\n%.*s~~~\n", (int)emitted2.size(), emitted2.data());
+    }
 }
 void test_engine_roundtrip_ints_from_events_resize(EngineEvtTestCase const& test_case, EventProducerIntsResize evts)
 {
@@ -569,8 +609,52 @@ void test_engine_roundtrip_tree_from_yaml(EngineEvtTestCase const& test_case, st
 
 
 template<bool resize_buffers>
-static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const&, std::string const& )
+static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml)
 {
+    SCOPED_TRACE("roundtrip_ints_from_yaml");
+    EngineTestIntBuffers buffers1{};
+    EngineTestIntBuffers buffers2{};
+    std::string emitted1, emitted2;
+    extra::ievt::evt_size num_ints = 0;
+    std::vector<char> parsed_yaml1{yaml.begin(), yaml.end()};
+    {
+        SCOPED_TRACE("roundtrip_parse1");
+        test_engine_ints_from_yaml<resize_buffers>(buffers1, to_substr(parsed_yaml1), test_case, yaml);
+        num_ints = buffers1.buf.evts.len;
+        buffers1.buf.emitrs_yaml(&emitted1);
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
+            extra::ievt::test_compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
+    }
+    std::vector<char> parsed_yaml2{emitted1.begin(), emitted1.end()};
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("roundtrip_parse2");
+        test_engine_ints_from_yaml<resize_buffers>(buffers2, to_substr(parsed_yaml2), test_case, emitted1,
+                                                   /*ignore_doc_style*/true);
+        EXPECT_EQ(num_ints, buffers2.buf.evts.len);
+        buffers2.buf.emitrs_yaml(&emitted2);
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
+            extra::ievt::test_compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("roundtrip_compare");
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
+        {
+            test_events_ints_compare(buffers1.buf, buffers2.buf, /*mask_ignore*/extra::ievt::AREN);
+            EXPECT_EQ(emitted1, emitted2);
+        }
+    }
+    if(testing::Test::HasFailure())
+    {
+        printf("source: ~~~\n%.*s~~~\n", (int)yaml.size(), yaml.data());
+        printf("parsed1:\n");
+        buffers1.buf.print();
+        printf("parsed1_emitted: ~~~\n%.*s~~~\n", (int)emitted1.size(), emitted1.data());
+        printf("parsed2 (after roundtrip):\n");
+        buffers2.buf.print();
+        printf("parsed2_emitted: ~~~\n%.*s~~~\n", (int)emitted2.size(), emitted2.data());
+    }
 }
 void test_engine_roundtrip_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml)
 {

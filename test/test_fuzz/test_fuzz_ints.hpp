@@ -36,8 +36,26 @@ inline void destroy_ints(extra::ievt::Buffers *ints)
     ints->src = {};
     ints->arena = {};
 }
+inline size_t emit_ints(EmitType_e is_yaml, extra::ievt::Buffers const& ints, substr buf, bool error_on_excess)
+{
+    extra::ievt::EmitterInts<WriterBuf> em(EmitOptions{}, buf);
+    em.emit_as(is_yaml, ints.evts.ptr, ints.evts.len, 0, ints.src, ints.arena);
+    return em.get_result(error_on_excess).len;
+}
+inline void emit_ints(EmitType_e is_yaml, extra::ievt::Buffers const& ints, std::string *dst)
+{
+    dst->resize(ints.src.len);
+    size_t sz = emit_ints(is_yaml, ints, to_substr(*dst), /*err_on_excess*/false);
+    if(sz > dst->size())
+    {
+        dst->resize(sz);
+        size_t sz2 = emit_ints(is_yaml, ints, to_substr(*dst), /*err_on_excess*/true);
+        ASSERT_FUZZ(sz2 == sz);
+    }
+    dst->resize(sz);
+}
 template<bool resize_buffers, class FnParse>
-inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_parse, EmitType_e)
+inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_parse, EmitType_e is_yaml)
 {
     _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
     C4_UNUSED(case_number);
@@ -47,6 +65,12 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
     extra::ievt::Buffers ints{};
     std::string srcbuf;
     init_src(&ints, &srcbuf, src);
+    std::string emitted;
+    auto doemit = [&]{
+        emit_ints(is_yaml, ints, &emitted);
+        _if_dbg(dbg_printf_("emitted[{}]: [{}]~~~\n{}\n~~~\n", case_number, emitted.size(), to_csubstr(emitted)); fflush(NULL));
+        C4_DONT_OPTIMIZE(emitted);
+    };
     int status = 0;
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
@@ -56,6 +80,7 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
             fn_parse(parser, ints.src);
             ASSERT_FUZZ(handler.fits_buffers());
             handler.get_buffers(&ints, /*transfer_ownership*/true);
+            doemit();
         }
         else
         {
@@ -68,6 +93,7 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
                 fn_parse(parser, ints.src);
                 ASSERT_FUZZ(handler.fits_buffers());
             }
+            doemit();
         }
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)  // if an exception leaks from here, it is likely because of a greedy noexcept

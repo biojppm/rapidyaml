@@ -115,11 +115,26 @@ TEST(ints, grow_evts)
         handler._grow_evts_exact(cap);
         ASSERT_EQ(handler.m_evt.cap, cap);
         parser.parse_in_place_ev("(testyaml)", to_substr(src));
+        ievt::evt_size finalcap = handler.m_evt.cap;
         ASSERT_LE(handler.m_evt.len, handler.m_evt.cap);
+        bool ok = true;
         if(handler.m_evt.len <= cap)
         {
+            ok = false;
             EXPECT_GT(handler.m_evt.cap, cap);
         }
+        ievt::TestBuffers ints;
+        ints.get_buffers(handler, true);
+        ASSERT_EQ(ints.evts.cap, finalcap);
+        std::string actual = ints.emitrs_yaml<std::string>();
+        if(expected != actual)
+        {
+            RYML_TRACE_FMT("yaml=~~~{}~~~", yaml);
+            EXPECT_EQ(expected, actual);
+            ok = false;
+        }
+        if(!ok)
+            ints.print();
     };
     #define test_grow_evts_(...) { SCOPED_TRACE("call"); test_grow_evts(__VA_ARGS__); }
     test_grow_evts_(1, "a\n", {});

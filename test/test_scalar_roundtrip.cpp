@@ -352,8 +352,35 @@ ievt::evt_bits to_ievt(NodeType ty)
 #define SCOPED_CALL(fn, ...) do { SCOPED_TRACE(#fn); fn __VA_ARGS__; } while(0)
 #endif
 using pfn_ints_check = std::function<void(ievt::TestBuffers const&)>;
-void test_ints_roundtrip(txtbuf const&, pfn_ints_check const&)
+void test_ints_roundtrip(txtbuf const& emitted, pfn_ints_check const& check)
 {
+    SCOPED_TRACE("ints");
+    txtbuf orig_buf = emitted;
+    ievt::TestBuffers orig = {};
+    parse_ints(orig_buf, &orig);
+    SCOPED_CALL(orig.test_invariants, ());
+    SCOPED_CALL(check, (orig));
+    if(testing::Test::HasFailure())
+    {
+        printf("emitted=~~~\n%s\n~~~\n", catrs<txtbuf>(escaped_scalar(emitted)).c_str());
+        orig.print();
+        return;
+    }
+    const txtbuf roundtrip_buf = orig.emitrs_yaml<txtbuf>();
+    txtbuf emitted_parsed = emitted;
+    ievt::TestBuffers roundtrip;
+    parse_ints(emitted_parsed, &roundtrip);
+    SCOPED_CALL(roundtrip.test_invariants, ());
+    SCOPED_CALL(check, (orig));
+    SCOPED_CALL(roundtrip.test_compare, (orig));
+    if(testing::Test::HasFailure())
+    {
+        printf("emitted=~~~\n%s\n~~~\n", catrs<txtbuf>(escaped_scalar(emitted)).c_str());
+        orig.print();
+        printf("roundtrip=~~~\n%s\n~~~\n", roundtrip_buf.c_str());
+        roundtrip.print();
+        return;
+    }
 }
 
 void test_scalar_roundtrip_as_root(scalar_style_spec const& p, NodeType expected_style)
@@ -666,6 +693,8 @@ TEST_P(TestScalarStyle, choose_block)
     NodeType expected = p.style_block.m_bits;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
     RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
+    EXPECT_EQ(extra::ievt::detail::scalar_style_choose_block_ievt(p.scalar),
+              to_ievt(p.style_block));
 }
 
 TEST_P(TestScalarStyle, choose_json)
