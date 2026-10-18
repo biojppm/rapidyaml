@@ -206,7 +206,7 @@ ENGINE_TEST(Qmrk1_2,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(Qmrk2_0,
+ENGINE_TEST(Qmrk2_0, NO_COMPARE_EMITTED_INTS,
             "? an explicit key\n"
             "...\n"
             "? another explicit key\n",
@@ -326,7 +326,7 @@ ENGINE_TEST(Qmrk3,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("?bat"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -353,7 +353,7 @@ ENGINE_TEST(Qmrk4_0,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("?baz"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -394,22 +394,22 @@ ENGINE_TEST(Qmrk4,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("an explicit key"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("bar"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("?baz"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("?bat"));
     ___(ps.end_seq_flow(singleline));

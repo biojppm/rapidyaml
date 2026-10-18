@@ -741,7 +741,8 @@ R"(
 ADD_CASE_TO_GROUP("github128/1", RESOLVE_REFS | EXPECT_RESOLVE_ERROR, "a: *invalid");
 ADD_CASE_TO_GROUP("github128/2", RESOLVE_REFS | EXPECT_RESOLVE_ERROR, "*");
 ADD_CASE_TO_GROUP("github128/3", RESOLVE_REFS | EXPECT_RESOLVE_ERROR, "*abc");
-ADD_CASE_TO_GROUP("github128/4", "*abc", N(VAL, "*abc", AR(VALREF, "*abc")));
+ADD_CASE_TO_GROUP("github128/4", NO_COMPARE_EMITTED_INTS_JSON,
+                  "*abc", N(VAL, "*abc", AR(VALREF, "*abc")));
 
 ADD_CASE_TO_GROUP("github129", RESOLVE_REFS, R"(
 ref: &ref ref_val

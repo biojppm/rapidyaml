@@ -8,7 +8,7 @@
 #endif
 #include "test_lib/test_case.hpp"
 #include "test_lib/test_engine.hpp"
-#include "test_lib/test_events_ints_helpers.hpp"
+#include "test_lib/test_helpers_ints.hpp"
 #include "testsuite/testsuite_common.hpp"
 #include "testsuite/testsuite_parts.hpp"
 #include "testsuite/testsuite_events.hpp"

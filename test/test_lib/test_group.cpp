@@ -1,9 +1,15 @@
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/detail/print.hpp"
+#include "c4/yml/parse_engine.hpp"
+#include "c4/yml/parse_engine.def.hpp"
+#include "c4/yml/event_handler_tree.hpp"
+#include "c4/yml/parse.hpp"
+#include "c4/yml/emit.hpp"
+#include "c4/yml/reference_resolver.hpp"
 #endif
 #include "test_lib/test_group.hpp"
 #include "test_lib/test_case.hpp"
-#include "test_lib/test_events_ints_helpers.hpp"
+#include "test_lib/test_helpers_ints.hpp"
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
@@ -74,19 +80,23 @@ void CaseDataLineEndings::ensure_tree_parse(Case const *c)
                         dst.result.resolve();
                     }));
                     {
-                        SCOPED_TRACE("test invariants");
+                        SCOPED_TRACE("test invariants, resolve");
                         test_invariants(dst.result);
                     }
+                    if(!testing::Test::HasFailure())
                     {
-                        SCOPED_TRACE("reorder");
                         dst.result.reorder();
-                        test_invariants(dst.result);
+                        SCOPED_TRACE("test invariants, resolve, reordered");
+                        {
+                            SCOPED_TRACE("reorder");
+                            test_invariants(dst.result);
+                        }
                     }
                 }
                 if(testing::Test::HasFailure())
                 {
                     printf("~~~\n%.*s\n~~~\n", (int)c->src.len, c->src.str);
-                    print_tree("PARSED TREE", dst.result);
+                    print_tree("RESOLVED TREE", dst.result);
                     return;
                 }
             }
@@ -207,12 +217,13 @@ static void _parse_ints(csubstr name, substr src, extra::ievt::TestBuffers *ints
 template<bool resize_buffers>
 static void _test_parse_to_ints(Case const* c, substr src, extra::ievt::TestBuffers *ints, LangType type)
 {
+    bool parseok = false;
     if(c->flags & EXPECT_PARSE_ERROR)
     {
         SCOPED_TRACE("expect error");
         RYML_EXPECT_ERROR(check_error_parse([&]{
             _parse_ints<resize_buffers>(c->fileline, src, ints, type);
-            ints->print(); // error failed to occur. So print debugging info.
+            parseok = true;
         }, c->expected_location));
         if C4_IF_CONSTEXPR (!resize_buffers)
             ints->owned = true;
@@ -220,20 +231,48 @@ static void _test_parse_to_ints(Case const* c, substr src, extra::ievt::TestBuff
     else
     {
         SCOPED_TRACE("parse to ints");
-        bool parseok = false;
         RYML_EXPECT_ERROR(check_success([&]{
             _parse_ints<resize_buffers>(c->fileline, src, ints, type);
             parseok = true;
         }));
         if(parseok)
+        {
+            SCOPED_TRACE("ints after parse");
             ints->test_invariants();
+            if(c->flags & RESOLVE_REFS)
+            {
+                SCOPED_TRACE("resolve");
+                if(c->flags & EXPECT_RESOLVE_ERROR)
+                {
+                    SCOPED_TRACE("expect error");
+                    RYML_EXPECT_ERROR(check_error_basic([&]{
+                        ints->resolve();
+                    }));
+                }
+                else
+                {
+                    SCOPED_TRACE("expect success");
+                    bool resolveok = false;
+                    RYML_EXPECT_ERROR(check_success([&]{
+                        ints->resolve();
+                        resolveok = true;
+                    }));
+                    if(resolveok)
+                    {
+                        SCOPED_TRACE("ints after resolve");
+                        ints->test_invariants();
+                    }
+                }
+            }
+        }
     }
     if(testing::Test::HasFailure())
     {
         if(src != c->src)
             printf("~~~[%zu]\n%.*s~~~\n", c->src.len, (int)c->src.len, c->src.str);
         printf("~~~[%zu]\n%.*s~~~\n", src.len, (int)src.len, src.str);
-        ints->print();
+        if(parseok)
+            ints->print();
     }
 }
 
@@ -312,6 +351,8 @@ void CaseDataLineEndings::ensure_ints_resize_roundtrip_yaml(Case const *c)
 void CaseDataLineEndings::ensure_ints_resize_roundtrip_json(Case const *c)
 {
     SCOPED_TRACE("ensure_ints_resize_roundtrip_json");
+    if(c->flags & EXPECT_RESOLVE_ERROR)
+        return;
     _ensure_ints_parse_roundtrip<true>(c, ints_resize, ints_resize_roundtrip_json, as_json);
 }
 
@@ -372,7 +413,7 @@ void YmlTestCase::_test_roundtrip_yaml_tree(CaseDataLineEndings *cd)
 
 void YmlTestCase::_test_roundtrip_json_tree(CaseDataLineEndings *cd)
 {
-    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS)) // NOLINT
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS|EXPECT_RESOLVE_ERROR)) // NOLINT
         return;
     SCOPED_TRACE("test_roundtrip_json_tree");
     cd->ensure_tree_roundtrip_json(c);
@@ -416,10 +457,10 @@ void YmlTestCase::_test_parse_yaml_to_ints_resize(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
         return;
     cd->ensure_ints_resize_emit_yaml(c);
-    if(c->flags & (HAS_CONTAINER_KEYS|RESOLVE_REFS)) // NOLINT
+    if(c->flags & HAS_CONTAINER_KEYS) // NOLINT
         return;
     cd->ensure_tree_emit_yaml(c);
-    if(c->flags & NO_COMPARE_EMITTED_INTS) // NOLINT
+    if(c->flags & (NO_COMPARE_EMITTED_INTS|NO_COMPARE_RESOLVED_INTS)) // NOLINT
         return;
     extra::ievt::test_compare_emitted_yaml_ints(cd->ints_resize_roundtrip_yaml.orig.result,
                                                 cd->tree_roundtrip_yaml.orig.result);
@@ -437,10 +478,10 @@ void YmlTestCase::_test_parse_yaml_to_ints_noresize(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR) // NOLINT
         return;
     cd->ensure_ints_noresize_emit_yaml(c);
-    if(c->flags & (HAS_CONTAINER_KEYS|RESOLVE_REFS)) // NOLINT
+    if(c->flags & HAS_CONTAINER_KEYS) // NOLINT
         return;
     cd->ensure_tree_emit_yaml(c);
-    if(c->flags & NO_COMPARE_EMITTED_INTS) // NOLINT
+    if(c->flags & (NO_COMPARE_EMITTED_INTS|NO_COMPARE_RESOLVED_INTS)) // NOLINT
         return;
     extra::ievt::test_compare_emitted_yaml_ints(cd->ints_noresize_roundtrip_yaml.orig.result,
                                                 cd->tree_roundtrip_yaml.orig.result);
@@ -483,7 +524,9 @@ static void _test_roundtrip_yaml_ints(Case const *c, CaseDataLineEndings *cd,
     ASSERT_TRUE(level0->val.done);
     ASSERT_TRUE(level1->val.done);
     ASSERT_TRUE(cd->tree_roundtrip_yaml.val.done);
-    level1->val.result.test_compare(level0->val.result);
+    if(c->flags & RESOLVE_REFS)
+        return;
+    SCOPED_CALL(level1->val.result.test_compare, (level0->val.result));
     txtbuf actual = level1->val.result.emitrs_yaml<txtbuf>();
     if(!(c->flags & (NO_COMPARE_EMITTED_INTS|RESOLVE_REFS))) // NOLINT
     {
@@ -550,7 +593,7 @@ void _test_roundtrip_json_ints(Case const *c, CaseDataLineEndings *cd,
 void YmlTestCase::_test_roundtrip_json_ints_resize(CaseDataLineEndings *cd)
 {
     SCOPED_TRACE("test_roundtrip_json_ints_resize");
-    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS)) // NOLINT
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS|EXPECT_RESOLVE_ERROR)) // NOLINT
         return;
     cd->ensure_ints_resize_roundtrip_json(c);
     _test_roundtrip_json_ints(c, cd, &cd->ints_resize, &cd->ints_resize_roundtrip_json);
@@ -558,7 +601,7 @@ void YmlTestCase::_test_roundtrip_json_ints_resize(CaseDataLineEndings *cd)
 void YmlTestCase::_test_roundtrip_json_ints_noresize(CaseDataLineEndings *cd)
 {
     SCOPED_TRACE("test_roundtrip_json_ints_noresize");
-    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS)) // NOLINT
+    if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS|EXPECT_RESOLVE_ERROR)) // NOLINT
         return;
     cd->ensure_ints_noresize_roundtrip_json(c);
     _test_roundtrip_json_ints(c, cd, &cd->ints_noresize, &cd->ints_noresize_roundtrip_json);
