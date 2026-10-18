@@ -111,17 +111,21 @@ ryml_add_quickstart_test(ryml-test-quickstart-ints  bad_arena WILL_FAIL ARGS -a 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES
        test_lib/callbacks_tester.hpp
-       test_lib/test_case_node.hpp
-       test_lib/test_case_node.cpp
        test_lib/test_case.hpp
        test_lib/test_case.cpp
+       test_lib/test_case_node.hpp
+       test_lib/test_case_node.cpp
        test_lib/test_compare_events.hpp
        test_lib/test_compare_events.cpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
-       test_lib/test_events_ints_helpers.hpp
-       test_lib/test_events_ints_helpers.cpp
+       test_lib/test_helpers_ints.hpp
+       test_lib/test_helpers_ints.cpp
+       test_lib/test_helpers_tree.hpp
+       test_lib/test_helpers_tree.cpp
        test_lib/test_save.cpp
+       test_lib/test_utils.hpp
+       test_lib/test_utils.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
     FOLDER test)
@@ -196,6 +200,7 @@ ryml_add_test(engine_7_seqimap BIG)
 ryml_add_test(engine_8_scalars_tokens BIG)
 ryml_add_test(engine_9_indentation BIG)
 ryml_add_test(extra_ints)
+ryml_add_test(extra_ints_resolve)
 ryml_add_test(version)
 ryml_add_test(callbacks)
 ryml_add_test(stack)

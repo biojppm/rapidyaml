@@ -13,8 +13,10 @@
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
+#include <c4/span.hpp>
 #endif
 
+#include <test_lib/test_utils.hpp>
 #include <test_lib/test_compare_events.hpp>
 #include <gtest/gtest.h>
 
@@ -52,7 +54,8 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
                       csubstr parsed_source,
                       csubstr arena);
 
-void test_events_ints_compare(ievt::Buffers const& expected, ievt::Buffers const& actual);
+void test_events_ints_compare(ievt::Buffers const& expected, ievt::Buffers const& actual,
+                              evt_bits mask_ignore=0);
 
 void test_events_ints_invariants(
     csubstr parsed_yaml,
@@ -62,6 +65,35 @@ void test_events_ints_invariants(
 
 
 void test_compare_emitted_yaml_ints(std::string const& emitted, std::string const& expected);
+
+
+//-----------------------------------------------------------------------------
+
+// test structural integrity and consistency of int buffers
+void verify_visit_seq(evt_bits const* evts, evt_size evts_sz,
+                      evt_size const* expected, evt_size exsz);
+
+inline void verify_visit_seq(cspan<ievt::evt_bits> evts, cspan<ievt::evt_size> expected)
+{
+    verify_visit_seq(evts.data(), static_cast<evt_size>(evts.size()),
+                     expected.data(), static_cast<evt_size>(expected.size()));
+}
+inline void verify_visit_seq(ievt::evtbuf evts, cspan<ievt::evt_size> expected)
+{
+    verify_visit_seq(evts.ptr, evts.len,
+                     expected.data(), static_cast<evt_size>(expected.size()));
+}
+
+// check
+void verify_visit_seq(evt_bits const* evts, evt_size evts_sz);
+inline void verify_visit_seq(cspan<ievt::evt_bits> evts)
+{
+    verify_visit_seq(evts.data(), static_cast<evt_size>(evts.size()));
+}
+inline void verify_visit_seq(ievt::evtbuf evts)
+{
+    verify_visit_seq(evts.ptr, evts.len);
+}
 
 
 //-----------------------------------------------------------------------------
@@ -172,6 +204,13 @@ public:
 
 public:
 
+    void resolve(ResolveOptions const& opts={})
+    {
+        resolve_refs(evts.ptr, evts.len, src, arena, opts);
+    }
+
+public:
+
     void print(bool print_all=false) const
     {
         evt_size sz = print_all ? evts.cap : num_ints();
@@ -199,10 +238,10 @@ public:
         ievt::test_events_ints_invariants(src, arena, evts.ptr, evts.len);
     }
 
-    void test_compare(ievt::Buffers const& that) const
+    void test_compare(ievt::Buffers const& that, evt_bits mask_ignore=0) const
     {
         SCOPED_TRACE("test_compare");
-        ievt::test_events_ints_compare(that, *this);
+        ievt::test_events_ints_compare(that, *this, mask_ignore);
     }
 
     void test_expected_evts(csubstr yaml, ievt::IntEventWithScalar const* expected, evt_size sz) const
@@ -323,6 +362,33 @@ inline void parse_ints(substr src, TestBuffers *ints, ParserOptions const& opts=
     handler.reset(src);
     parser.parse_in_place_ev("(testyaml)", src);
     ints->get_buffers(handler, true);
+}
+
+
+//-----------------------------------------------------------------------------
+
+// helpers to create TestBuffers from static evt data
+inline void mkevts(TestBuffers * ints,
+                   TestBuffers const& actual,
+                   evt_bits const* evts, evt_size sz)
+{
+    ints->destroy();
+    *ints = {};
+    ints->src = actual.src;
+    ints->arena = actual.arena;
+    ints->evts.ptr = const_cast<evt_size*>(evts); // NOLINT
+    ints->evts.len = sz;
+    ints->owned = false;
+}
+inline void mkevts(TestBuffers * ints, TestBuffers const& actual, cspan<evt_size> evts)
+{
+    mkevts(ints, actual, evts.data(), (evt_size)evts.size());
+}
+inline TestBuffers mkevts(TestBuffers const& actual, cspan<evt_size> evts)
+{
+    TestBuffers ints;
+    mkevts(&ints, actual, evts.data(), (evt_size)evts.size());
+    return ints;
 }
 
 C4_SUPPRESS_WARNING_POP

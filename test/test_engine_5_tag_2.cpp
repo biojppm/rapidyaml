@@ -543,7 +543,7 @@ ENGINE_TEST(TagTestSuiteWZ62_1_0_0,
     ___(ps.set_key_tag("!!str:"));
     ___(ps.set_key_scalar_plain("bar"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -574,7 +574,7 @@ ENGINE_TEST_(TagTestSuiteWZ62_1_0_0_all, resolve_all_tags,
     ___(ps.set_key_tag("<tag:yaml.org,2002:str:>"));
     ___(ps.set_key_scalar_plain("bar"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
