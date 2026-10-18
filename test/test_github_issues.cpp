@@ -410,14 +410,14 @@ N(MB, L{N(KP|SFS, "translation", L{N(VP, "-2"), N(VP, "-2"), N(VP, "5")})})
 );
 
 // these must work without quotes
-ADD_CASE_TO_GROUP("github3-problem2-ex1",
+ADD_CASE_TO_GROUP("github3-problem2-ex1", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 audio resource:
 )",
 N(MB, L{N(KP|VN, "audio resource", /*"~"*/{})})
 );
 
-ADD_CASE_TO_GROUP("github3-problem2-ex2",
+ADD_CASE_TO_GROUP("github3-problem2-ex2", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
 R"(
 audio resource:
 more:

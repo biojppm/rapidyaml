@@ -11,38 +11,29 @@
 #include <c4/yml/detail/dbgprint.hpp>
 #include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/detail/print.hpp>
+#include <c4/yml/extra/event_ints.hpp>
 #endif
 #include "c4/span.hpp"
-
+#include <test_lib/test_events_ints_helpers.hpp>
 #include <gtest/gtest.h>
 #include <functional>
 
 
 // no pragma push for these warnings! they will be suppressed in the
 // files including this header (most test files)
-#ifdef __clang__
-#   pragma clang diagnostic ignored "-Wold-style-cast"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic ignored "-Wold-style-cast"
-#endif
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 #if defined(__clang__) && (__clang_major__ >= 13)
 C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
 #endif
 
 
-#ifdef __clang__
-#   pragma clang diagnostic push
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
-#elif defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
-#   pragma warning(disable: 4702/*unreachable code*/)
-#   if C4_MSVC_VERSION != C4_MSVC_VERSION_2017
-#       pragma warning(disable: 4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
-#   endif
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wtype-limits")
+C4_SUPPRESS_WARNING_MSVC(4296/*expression is always 'boolean_value'*/)
+C4_SUPPRESS_WARNING_MSVC(4389/*'==': signed/unsigned mismatch*/)
+C4_SUPPRESS_WARNING_MSVC(4702/*unreachable code*/)
+#if defined(_MSC_VER) && (C4_MSVC_VERSION != C4_MSVC_VERSION_2017)
+C4_SUPPRESS_WARNING_MSVC(4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
 #endif
 
 #ifdef RYML_DBG
@@ -148,7 +139,6 @@ void test_invariants(ConstNodeRef const& n);
 void print_test_node(TestCaseNode const& t, int level=0);
 void print_test_tree(TestCaseNode const& p, int level=0);
 void print_test_tree(const char *message, TestCaseNode const& t);
-void print_path(ConstNodeRef const& p);
 
 
 //-----------------------------------------------------------------------------
@@ -158,31 +148,45 @@ void print_path(ConstNodeRef const& p);
 template<class CheckFn>
 void test_check_emit_check_with_parser(Tree const& t, Parser &parser, CheckFn &&check_fn)
 {
-    #ifdef RYML_DBG
-    print_tree(t);
-    #endif
     {
         SCOPED_TRACE("original yaml");
         test_invariants(t);
         std::forward<CheckFn>(check_fn)(t, parser);
+        if(testing::Test::HasFailure())
+        {
+            print_tree(t);
+        }
     }
-    auto emit_and_parse = [&](Tree const& tp, const char* identifier){
+    auto emit_and_parse = [&](Tree const& tp, Tree *out, const char* identifier){
         SCOPED_TRACE(identifier);
         std::string emitted = emitrs_yaml<std::string>(tp);
-        #ifdef RYML_DBG
-        printf("~~~%s~~~[%zu]\n%.*s", identifier, emitted.size(), (int)emitted.size(), emitted.data());
-        #endif
-        Tree cp = parse_in_arena(&parser, to_csubstr(emitted));
-        #ifdef RYML_DBG
-        print_tree(cp);
-        #endif
-        test_invariants(cp);
-        std::forward<CheckFn>(check_fn)(cp, parser);
-        return cp;
+        parse_in_arena(&parser, to_csubstr(emitted), out);
+        test_invariants(*out);
+        std::forward<CheckFn>(check_fn)(*out, parser);
+        if(testing::Test::HasFailure())
+        {
+            printf("~~~%s~~~[%zu]\n%.*s", identifier, emitted.size(), (int)emitted.size(), emitted.data());
+            print_tree(*out);
+        }
     };
-    Tree cp = emit_and_parse(t, "emitted 1");
-    cp = emit_and_parse(cp, "emitted 2");
-    cp = emit_and_parse(cp, "emitted 3");
+    if(!testing::Test::HasFailure())
+    {
+        Tree cp1;
+        SCOPED_TRACE("level 1");
+        emit_and_parse(t, &cp1, "level 1");
+        if(!testing::Test::HasFailure())
+        {
+            Tree cp2;
+            SCOPED_TRACE("level 2");
+            emit_and_parse(cp1, &cp2, "level 2");
+            if(!testing::Test::HasFailure())
+            {
+                Tree cp3;
+                SCOPED_TRACE("level 3");
+                emit_and_parse(cp2, &cp3, "level 3");
+            }
+        }
+    }
 }
 template<class CheckFn>
 void test_check_emit_check(Tree const& t, Parser &parser, CheckFn &&check_fn)
@@ -216,7 +220,7 @@ void test_check_emit_check_with_parser(Tree const& t, CheckFn &&check_fn)
 {
     Parser::handler_type evt_handler = {};
     Parser parser(&evt_handler, ParserOptions());
-    test_check_emit_check_with_parser(t, parser, check_fn);
+    test_check_emit_check_with_parser(t, parser, std::forward<CheckFn>(check_fn));
 }
 template<class CheckFn>
 void test_check_emit_check(Tree const& t, CheckFn &&check_fn)
@@ -329,6 +333,8 @@ typedef enum {
     HAS_CONTAINER_KEYS = (1<<5),
     HAS_MULTILINE_SCALAR = (1<<6),
     NO_COMPARE_EMITTED = (1<<7),
+    NO_COMPARE_EMITTED_INTS = (1<<8),
+    NO_COMPARE_EMITTED_INTS_JSON = (1<<9),
 } TestCaseFlags_e;
 
 
@@ -350,52 +356,117 @@ struct Case
     Case(csubstr file, int line, const char *name_, int f_, const char *src_, TestCaseNode&& node) : /* */filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(to_csubstr(name_)), src(to_csubstr(src_)), root(std::move(node)), flags((TestCaseFlags_e)f_), expected_location()  {}
 };
 
+
 //-----------------------------------------------------------------------------
+
+struct txtbuf : std::string
+{
+    operator c4::substr() noexcept { return c4::substr{&(*this)[0], size()}; }//NOLINT
+    operator c4::csubstr() const noexcept { return c4::csubstr{&(*this)[0], size()}; }//NOLINT
+};
+
+template<class T>
+struct resultdep
+{
+    T result;
+    bool done = false;
+    template<class Fn>
+    bool ensure(Fn && fn)
+    {
+        if(done)
+            return false;
+        std::forward<Fn>(fn)();
+        done = true;
+        return true;
+    }
+};
+template<class T>
+struct src_and_val
+{
+    resultdep<txtbuf> orig; // original source
+    resultdep<txtbuf> src; // mutated by the parse
+    resultdep<T> val;
+    void reset() {  orig.done = src.done = val.done = false; }
+    void assign(csubstr src_)
+    {
+        if(src.ensure([&]{ src.result.assign(src_.begin(), src_.end()); }))
+            orig = src;
+    }
+};
+using SrcTree = src_and_val<Tree>;
+using SrcInts = src_and_val<extra::ievt::TestBuffers>;
+
 
 // a persistent data store to avoid repeating operations on every test
 struct CaseDataLineEndings
 {
     void assign(csubstr src_orig)
     {
-        parse_buf_ints.assign(src_orig.begin(), src_orig.end());
-        src_buf.assign(src_orig.begin(), src_orig.end());
-        src = to_substr(src_buf);
+        if(src_orig == src && src_orig.len)
+            return;
+        tree.reset();
+        tree_roundtrip_yaml.reset();
+        tree_roundtrip_json.reset();
+        tree.val.result.clear();
+        tree_roundtrip_yaml.val.result.clear();
+        tree_roundtrip_json.val.result.clear();
+        ints_resize.reset();
+        ints_resize_roundtrip_yaml.reset();
+        ints_resize_roundtrip_json.reset();
+        ints_noresize.reset();
+        ints_noresize_roundtrip_yaml.reset();
+        ints_noresize_roundtrip_json.reset();
+        const char *b = src_orig.begin();
+        const char *e = src_orig.end();
+        src.assign(b, e);
+        tree.assign(src_orig);
+        ints_resize.assign(src_orig);
+        ints_noresize.assign(src_orig);
     }
 
-    std::vector<char> src_buf;
-    substr src;
+    txtbuf src;
 
-    Tree parsed_tree{0};
+    SrcTree tree;
+    SrcTree tree_roundtrip_yaml;
+    SrcTree tree_roundtrip_json;
 
-    std::string emit_buf;
-    csubstr emitted_yml;
+    SrcInts ints_resize;
+    SrcInts ints_resize_roundtrip_yaml;
+    SrcInts ints_resize_roundtrip_json;
 
-    std::string emitjson_buf;
-    csubstr emitted_json;
+    SrcInts ints_noresize;
+    SrcInts ints_noresize_roundtrip_yaml;
+    SrcInts ints_noresize_roundtrip_json;
 
-    std::string parse_buf;
-    substr parsed_yml;
+    void ensure_tree_parse(Case const *c);
+    void ensure_tree_emit_yaml(Case const *c);
+    void ensure_tree_emit_json(Case const *c);
+    void ensure_tree_roundtrip_yaml(Case const *c);
+    void ensure_tree_roundtrip_json(Case const *c);
 
-    std::string parse_buf_json;
-    substr parsed_json;
+    void ensure_ints_parse(Case const *c, SrcInts *dst);
+    void ensure_ints_emit(Case const *c, SrcInts *ints, SrcInts *roundtrip, EmitType_e type);
+    void ensure_ints_roundtrip(Case const *c, SrcInts *ints, SrcInts *roundtrip, EmitType_e type);
 
-    Tree emitted_tree{0};
-    Tree emitted_tree_json{0};
+    void ensure_ints_resize_emit_yaml(Case const *c);
+    void ensure_ints_resize_emit_json(Case const *c);
+    void ensure_ints_resize_roundtrip_yaml(Case const *c);
+    void ensure_ints_resize_roundtrip_json(Case const *c);
 
-    Tree recreated{0};
-
-    std::string parse_buf_ints;
-    std::vector<int> parsed_ints;
-    std::vector<char> arena_ints;
+    void ensure_ints_noresize_emit_yaml(Case const *c);
+    void ensure_ints_noresize_emit_json(Case const *c);
+    void ensure_ints_noresize_roundtrip_yaml(Case const *c);
+    void ensure_ints_noresize_roundtrip_json(Case const *c);
 };
 
 
 struct CaseData
 {
     CaseDataLineEndings unix_style;
-    CaseDataLineEndings unix_style_json;
     CaseDataLineEndings windows_style;
-    CaseDataLineEndings windows_style_json;
+
+    resultdep<Tree> reftree;
+    void ensure_reftree(Case const *c);
 };
 
 
@@ -424,12 +495,6 @@ inline std::string namefor(bomspec const& param)
 } // namespace yml
 } // namespace c4
 
-#ifdef __clang__
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
+C4_SUPPRESS_WARNING_POP
 
 #endif /* TEST_CASE_HPP_ */
