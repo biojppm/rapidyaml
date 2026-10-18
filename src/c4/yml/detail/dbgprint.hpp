@@ -70,7 +70,6 @@ inline bool& dbg_enabled_() { static bool enabled = true; return enabled; }
 inline C4_NO_INLINE void dbg_set_enabled_(bool yes) { dbg_enabled_() = yes; }
 inline C4_NO_INLINE void dbg_dumper_(csubstr s)
 {
-    RYML_ASSERT_BASIC_(s.str || !s.len);
     if(s.len)
         fwrite(s.str, 1, s.len, stdout);
 }
