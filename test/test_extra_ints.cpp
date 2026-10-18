@@ -17,6 +17,42 @@ namespace yml {
 namespace extra {
 
 
+// ensure the ievt flags work despite being signed
+static_assert((ievt::MASK & ievt::BSTR) == ievt::BSTR, "overflow?");
+static_assert((ievt::MASK & ievt::ESTR) == ievt::ESTR, "overflow?");
+static_assert((ievt::MASK & ievt::BDOC) == ievt::BDOC, "overflow?");
+static_assert((ievt::MASK & ievt::EDOC) == ievt::EDOC, "overflow?");
+static_assert((ievt::MASK & ievt::BMAP) == ievt::BMAP, "overflow?");
+static_assert((ievt::MASK & ievt::EMAP) == ievt::EMAP, "overflow?");
+static_assert((ievt::MASK & ievt::BSEQ) == ievt::BSEQ, "overflow?");
+static_assert((ievt::MASK & ievt::ESEQ) == ievt::ESEQ, "overflow?");
+static_assert((ievt::MASK & ievt::ANCH) == ievt::ANCH, "overflow?");
+static_assert((ievt::MASK & ievt::ALIA) == ievt::ALIA, "overflow?");
+static_assert((ievt::MASK & ievt::TAG_) == ievt::TAG_, "overflow?");
+static_assert((ievt::MASK & ievt::PLAI) == ievt::PLAI, "overflow?");
+static_assert((ievt::MASK & ievt::SQUO) == ievt::SQUO, "overflow?");
+static_assert((ievt::MASK & ievt::DQUO) == ievt::DQUO, "overflow?");
+static_assert((ievt::MASK & ievt::LITL) == ievt::LITL, "overflow?");
+static_assert((ievt::MASK & ievt::FOLD) == ievt::FOLD, "overflow?");
+static_assert((ievt::MASK & ievt::FLOW) == ievt::FLOW, "overflow?");
+static_assert((ievt::MASK & ievt::EXPL) == ievt::EXPL, "overflow?");
+static_assert((ievt::MASK & ievt::UNFL) == ievt::UNFL, "overflow?");
+static_assert((ievt::MASK & ievt::KEY_) == ievt::KEY_, "overflow?");
+static_assert((ievt::MASK & ievt::VAL_) == ievt::VAL_, "overflow?");
+static_assert((ievt::MASK & ievt::YAML) == ievt::YAML, "overflow?");
+static_assert((ievt::MASK & ievt::TAGH) == ievt::TAGH, "overflow?");
+static_assert((ievt::MASK & ievt::TAGP) == ievt::TAGP, "overflow?");
+static_assert((ievt::MASK & ievt::AREN) == ievt::AREN, "overflow?");
+static_assert((ievt::MASK & ievt::WSTR) == ievt::WSTR, "overflow?");
+static_assert((ievt::MASK & ievt::RREF) == ievt::RREF, "overflow?");
+static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
+static_assert((ievt::MASK & ievt::PEX2) == ievt::PEX2, "overflow?");
+static_assert((ievt::MASK & ievt::FSL_) == ievt::FSL_, "overflow?");
+static_assert((ievt::MASK & ievt::FML1) == ievt::FML1, "overflow?");
+static_assert((ievt::MASK & ievt::FMLN) == ievt::FMLN, "overflow?");
+static_assert((ievt::MASK & ievt::FMLX) == ievt::FMLX, "overflow?");
+static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
+
 TEST(flags, to_chars)
 {
     using namespace ievt;
@@ -60,11 +96,23 @@ static std::string to_str(ievt::TestBuffers const& ints, bool indent)
     return result;
 }
 static void test_format(ievt::TestBuffers const& ints,
-                        std::string const& indented,
-                        std::string const& unindented)
+                        std::string const& expected_indented,
+                        std::string const& expected_unindented)
 {
-    EXPECT_EQ(indented, to_str(ints, true));
-    EXPECT_EQ(unindented, to_str(ints, false));
+    std::string actual_indented = to_str(ints, true);
+    std::string actual_unindented = to_str(ints, false);
+    #define cmpstr(exp, actual)                                     \
+        if((exp) != (actual))                                       \
+                     {                                              \
+            EXPECT_EQ(exp, actual);                                 \
+            printf("------------------------\n%s:%d: %s:\n%s\n",    \
+                   __FILE__, __LINE__, #exp, (exp).c_str());        \
+            printf("------------------------\n%s:%d: %s:\n%s\n",    \
+                   __FILE__, __LINE__, #actual, (actual).c_str());  \
+        }
+    cmpstr(expected_indented, actual_indented);
+    cmpstr(expected_unindented, actual_unindented);
+    #undef cmpstr
 }
 
 TEST(ints_resolve, emit_empty)
@@ -93,60 +141,60 @@ TEST(ints, format_with_rref)
     parse_ints(to_substr(src), &ints);
     SCOPED_CALL(test_format,
                 (ints,
-                ""
-                "[0][0] BSTR(0x84)\n"
-                "[1][1]   BDOC(0x44)\n"
-                "[2][2]     VAL_|BMAP|BLCK(0x26)\n"
-                "[3][3]       KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
-                "[4][6]       VAL_|ANCH|PSTR(0x800402): 5 [2]~~~l0~~~\n"
-                "[5][9]       VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
-                "[6][10]         VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
-                "[7][13]         VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
-                "[8][16]       ESEQ|PSTR(0x800018)\n"
-                "[9][17]       KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
-                "[10][20]       VAL_|ANCH|PSTR(0x800402): 19 [2]~~~l1~~~\n"
-                "[11][23]       VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
-                "[12][24]         VAL_|ALIA(0x202): 24 [2]~~~l0~~~\n"
-                "[13][27]         VAL_|ALIA|PSTR(0x800202): 28 [2]~~~l0~~~\n"
-                "[14][30]       ESEQ|PSTR(0x800018)\n"
-                "[15][31]       KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
-                "[16][34]       VAL_|ANCH|PSTR(0x800402): 37 [2]~~~l2~~~\n"
-                "[17][37]       VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
-                "[18][38]         VAL_|ALIA(0x202): 42 [2]~~~l1~~~\n"
-                "[19][41]         VAL_|ALIA|PSTR(0x800202): 46 [2]~~~l1~~~\n"
-                "[20][44]       ESEQ|PSTR(0x800018)\n"
-                "[21][45]     EMAP(0x28)\n"
-                "[22][46]   EDOC(0x48)\n"
-                "[23][47] ESTR(0x88)\n"
-                "src.len=50 arena.len(unused)=0\n"
-                "",
-                ""
-                "[0][0] BSTR(0x84)\n"
-                "[1][1] BDOC(0x44)\n"
-                "[2][2] VAL_|BMAP|BLCK(0x26)\n"
-                "[3][3] KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
-                "[4][6] VAL_|ANCH|PSTR(0x800402): 5 [2]~~~l0~~~\n"
-                "[5][9] VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
-                "[6][10] VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
-                "[7][13] VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
-                "[8][16] ESEQ|PSTR(0x800018)\n"
-                "[9][17] KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
-                "[10][20] VAL_|ANCH|PSTR(0x800402): 19 [2]~~~l1~~~\n"
-                "[11][23] VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
-                "[12][24] VAL_|ALIA(0x202): 24 [2]~~~l0~~~\n"
-                "[13][27] VAL_|ALIA|PSTR(0x800202): 28 [2]~~~l0~~~\n"
-                "[14][30] ESEQ|PSTR(0x800018)\n"
-                "[15][31] KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
-                "[16][34] VAL_|ANCH|PSTR(0x800402): 37 [2]~~~l2~~~\n"
-                "[17][37] VAL_|BSEQ|FLOW|FSL_|PSTR(0x10a00016)\n"
-                "[18][38] VAL_|ALIA(0x202): 42 [2]~~~l1~~~\n"
-                "[19][41] VAL_|ALIA|PSTR(0x800202): 46 [2]~~~l1~~~\n"
-                "[20][44] ESEQ|PSTR(0x800018)\n"
-                "[21][45] EMAP(0x28)\n"
-                "[22][46] EDOC(0x48)\n"
-                "[23][47] ESTR(0x88)\n"
-                "src.len=50 arena.len(unused)=0\n"
-                ""));
+                 ""
+                 "[0][0] BSTR(0x84)\n"
+                 "[1][1]   BDOC(0x44)\n"
+                 "[2][2]     VAL_|BMAP|BLCK(0x26)\n"
+                 "[3][3]       KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
+                 "[4][6]       VAL_|ANCH|PEX2(0x4000402): 5 [2]~~~l0~~~\n"
+                 "[5][9]       VAL_|BSEQ|FLOW|FSL_|PEX2(0xc200016)\n"
+                 "[6][10]         VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
+                 "[7][13]         VAL_|SCLR|PLAI|PEX2(0x4008102): 11 [1]~~~x~~~\n"
+                 "[8][16]       ESEQ|PEX2(0x4000018)\n"
+                 "[9][17]       KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
+                 "[10][20]       VAL_|ANCH|PEX2(0x4000402): 19 [2]~~~l1~~~\n"
+                 "[11][23]       VAL_|BSEQ|FLOW|FSL_|PEX2(0xc200016)\n"
+                 "[12][24]         VAL_|ALIA(0x202): 24 [2]~~~l0~~~\n"
+                 "[13][27]         VAL_|ALIA|PEX2(0x4000202): 28 [2]~~~l0~~~\n"
+                 "[14][30]       ESEQ|PEX2(0x4000018)\n"
+                 "[15][31]       KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
+                 "[16][34]       VAL_|ANCH|PEX2(0x4000402): 37 [2]~~~l2~~~\n"
+                 "[17][37]       VAL_|BSEQ|FLOW|FSL_|PEX2(0xc200016)\n"
+                 "[18][38]         VAL_|ALIA(0x202): 42 [2]~~~l1~~~\n"
+                 "[19][41]         VAL_|ALIA|PEX2(0x4000202): 46 [2]~~~l1~~~\n"
+                 "[20][44]       ESEQ|PEX2(0x4000018)\n"
+                 "[21][45]     EMAP(0x28)\n"
+                 "[22][46]   EDOC(0x48)\n"
+                 "[23][47] ESTR(0x88)\n"
+                 "src.len=50 arena.len(unused)=0\n"
+                 "",
+                 ""
+                 "[0][0] BSTR(0x84)\n"
+                 "[1][1] BDOC(0x44)\n"
+                 "[2][2] VAL_|BMAP|BLCK(0x26)\n"
+                 "[3][3] KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
+                 "[4][6] VAL_|ANCH|PEX2(0x4000402): 5 [2]~~~l0~~~\n"
+                 "[5][9] VAL_|BSEQ|FLOW|FSL_|PEX2(0xc200016)\n"
+                 "[6][10] VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
+                 "[7][13] VAL_|SCLR|PLAI|PEX2(0x4008102): 11 [1]~~~x~~~\n"
+                 "[8][16] ESEQ|PEX2(0x4000018)\n"
+                 "[9][17] KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
+                 "[10][20] VAL_|ANCH|PEX2(0x4000402): 19 [2]~~~l1~~~\n"
+                 "[11][23] VAL_|BSEQ|FLOW|FSL_|PEX2(0xc200016)\n"
+                 "[12][24] VAL_|ALIA(0x202): 24 [2]~~~l0~~~\n"
+                 "[13][27] VAL_|ALIA|PEX2(0x4000202): 28 [2]~~~l0~~~\n"
+                 "[14][30] ESEQ|PEX2(0x4000018)\n"
+                 "[15][31] KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
+                 "[16][34] VAL_|ANCH|PEX2(0x4000402): 37 [2]~~~l2~~~\n"
+                 "[17][37] VAL_|BSEQ|FLOW|FSL_|PEX2(0xc200016)\n"
+                 "[18][38] VAL_|ALIA(0x202): 42 [2]~~~l1~~~\n"
+                 "[19][41] VAL_|ALIA|PEX2(0x4000202): 46 [2]~~~l1~~~\n"
+                 "[20][44] ESEQ|PEX2(0x4000018)\n"
+                 "[21][45] EMAP(0x28)\n"
+                 "[22][46] EDOC(0x48)\n"
+                 "[23][47] ESTR(0x88)\n"
+                 "src.len=50 arena.len(unused)=0\n"
+                 ""));
     ints.resolve();
     SCOPED_CALL(test_format,
                 (ints,
@@ -155,29 +203,29 @@ TEST(ints, format_with_rref)
                  "[1][1]   BDOC(0x44)\n"
                  "[2][2]     VAL_|BMAP|BLCK(0x26)\n"
                  "[3][3]       KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
-                 "[4][6]       VAL_|PSTR(0x800002)\n"
+                 "[4][6]       VAL_|PEX2(0x4000002)\n"
                  "[5][7]       VAL_(0x2)\n"
                  "[6][8]       VAL_(0x2)\n"
-                 "[7][9]       VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[7][9]       VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[8][10]         VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
-                 "[9][13]         VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
-                 "[10][16]       ESEQ|PSTR(0x800018)\n"
+                 "[9][13]         VAL_|SCLR|PLAI|PEX2(0x4008102): 11 [1]~~~x~~~\n"
+                 "[10][16]       ESEQ|PEX2(0x4000018)\n"
                  "[11][17]       KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
-                 "[12][20]       VAL_|PSTR(0x800002)\n"
+                 "[12][20]       VAL_|PEX2(0x4000002)\n"
                  "[13][21]       VAL_(0x2)\n"
                  "[14][22]       VAL_(0x2)\n"
-                 "[15][23]       VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
-                 "[16][24]         VAL_|RREF(0x1000002): 9:17\n"
-                 "[17][27]         VAL_|RREF|PRREF(0x3000002): 9:17\n"
-                 "[18][30]       ESEQ|PRREF(0x2000018)\n"
+                 "[15][23]       VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
+                 "[16][24]         VAL_|RREF(0x800002): 9:17\n"
+                 "[17][27]         VAL_|RREF|PEX2(0x4800002): 9:17\n"
+                 "[18][30]       ESEQ|PEX2(0x4000018)\n"
                  "[19][31]       KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
-                 "[20][34]       VAL_|PSTR(0x800002)\n"
+                 "[20][34]       VAL_|PEX2(0x4000002)\n"
                  "[21][35]       VAL_(0x2)\n"
                  "[22][36]       VAL_(0x2)\n"
-                 "[23][37]       VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
-                 "[24][38]         VAL_|RREF(0x1000002): 23:31\n"
-                 "[25][41]         VAL_|RREF|PRREF(0x3000002): 23:31\n"
-                 "[26][44]       ESEQ|PRREF(0x2000018)\n"
+                 "[23][37]       VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
+                 "[24][38]         VAL_|RREF(0x800002): 23:31\n"
+                 "[25][41]         VAL_|RREF|PEX2(0x4800002): 23:31\n"
+                 "[26][44]       ESEQ|PEX2(0x4000018)\n"
                  "[27][45]     EMAP(0x28)\n"
                  "[28][46]   EDOC(0x48)\n"
                  "[29][47] ESTR(0x88)\n"
@@ -188,29 +236,29 @@ TEST(ints, format_with_rref)
                  "[1][1] BDOC(0x44)\n"
                  "[2][2] VAL_|BMAP|BLCK(0x26)\n"
                  "[3][3] KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
-                 "[4][6] VAL_|PSTR(0x800002)\n"
+                 "[4][6] VAL_|PEX2(0x4000002)\n"
                  "[5][7] VAL_(0x2)\n"
                  "[6][8] VAL_(0x2)\n"
-                 "[7][9] VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
+                 "[7][9] VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[8][10] VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
-                 "[9][13] VAL_|SCLR|PLAI|PSTR(0x808102): 11 [1]~~~x~~~\n"
-                 "[10][16] ESEQ|PSTR(0x800018)\n"
+                 "[9][13] VAL_|SCLR|PLAI|PEX2(0x4008102): 11 [1]~~~x~~~\n"
+                 "[10][16] ESEQ|PEX2(0x4000018)\n"
                  "[11][17] KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
-                 "[12][20] VAL_|PSTR(0x800002)\n"
+                 "[12][20] VAL_|PEX2(0x4000002)\n"
                  "[13][21] VAL_(0x2)\n"
                  "[14][22] VAL_(0x2)\n"
-                 "[15][23] VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
-                 "[16][24] VAL_|RREF(0x1000002): 9:17\n"
-                 "[17][27] VAL_|RREF|PRREF(0x3000002): 9:17\n"
-                 "[18][30] ESEQ|PRREF(0x2000018)\n"
+                 "[15][23] VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
+                 "[16][24] VAL_|RREF(0x800002): 9:17\n"
+                 "[17][27] VAL_|RREF|PEX2(0x4800002): 9:17\n"
+                 "[18][30] ESEQ|PEX2(0x4000018)\n"
                  "[19][31] KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
-                 "[20][34] VAL_|PSTR(0x800002)\n"
+                 "[20][34] VAL_|PEX2(0x4000002)\n"
                  "[21][35] VAL_(0x2)\n"
                  "[22][36] VAL_(0x2)\n"
-                 "[23][37] VAL_|BSEQ|FLOW|FSL_(0x10200016)\n"
-                 "[24][38] VAL_|RREF(0x1000002): 23:31\n"
-                 "[25][41] VAL_|RREF|PRREF(0x3000002): 23:31\n"
-                 "[26][44] ESEQ|PRREF(0x2000018)\n"
+                 "[23][37] VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
+                 "[24][38] VAL_|RREF(0x800002): 23:31\n"
+                 "[25][41] VAL_|RREF|PEX2(0x4800002): 23:31\n"
+                 "[26][44] ESEQ|PEX2(0x4000018)\n"
                  "[27][45] EMAP(0x28)\n"
                  "[28][46] EDOC(0x48)\n"
                  "[29][47] ESTR(0x88)\n"
@@ -236,34 +284,34 @@ TEST(ints, format_with_arena_usage)
                  ""
                  "[0][0] BSTR(0x84)\n"
                  "[1][1]   TAGH(0x2000): 5 [3]~~~!m!~~~\n"
-                 "[2][4]   TAGP|PSTR(0x804000): 9 [4]~~~!my-~~~\n"
-                 "[3][7]   BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[2][4]   TAGP|PEX2(0x4004000): 9 [4]~~~!my-~~~\n"
+                 "[3][7]   BDOC|EXPL|PEX2(0x4200044)\n"
                  "[4][8]     VAL_|TAG_|AREN(0x400802): 0 [11]~~~<!my-light>~~~\n"
-                 "[5][11]     VAL_|SCLR|PLAI|PSTR(0x808102): 39 [11]~~~fluorescent~~~\n"
-                 "[6][14]   EDOC|EXPL|PSTR(0xa00048)\n"
+                 "[5][11]     VAL_|SCLR|PLAI|PEX2(0x4008102): 39 [11]~~~fluorescent~~~\n"
+                 "[6][14]   EDOC|EXPL|PEX2(0x4200048)\n"
                  "[7][15]   TAGH(0x2000): 60 [3]~~~!m!~~~\n"
-                 "[8][18]   TAGP|PSTR(0x804000): 64 [6]~~~!meta-~~~\n"
-                 "[9][21]   BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[8][18]   TAGP|PEX2(0x4004000): 64 [6]~~~!meta-~~~\n"
+                 "[9][21]   BDOC|EXPL|PEX2(0x4200044)\n"
                  "[10][22]     VAL_|TAG_|AREN(0x400802): 11 [13]~~~<!meta-light>~~~\n"
-                 "[11][25]     VAL_|SCLR|PLAI|PSTR(0x808102): 97 [5]~~~green~~~\n"
-                 "[12][28]   EDOC|PSTR(0x800048)\n"
+                 "[11][25]     VAL_|SCLR|PLAI|PEX2(0x4008102): 97 [5]~~~green~~~\n"
+                 "[12][28]   EDOC|PEX2(0x4000048)\n"
                  "[13][29] ESTR(0x88)\n"
                  "src.len=103 arena.len=256\n"
                  "",
                  ""
                  "[0][0] BSTR(0x84)\n"
                  "[1][1] TAGH(0x2000): 5 [3]~~~!m!~~~\n"
-                 "[2][4] TAGP|PSTR(0x804000): 9 [4]~~~!my-~~~\n"
-                 "[3][7] BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[2][4] TAGP|PEX2(0x4004000): 9 [4]~~~!my-~~~\n"
+                 "[3][7] BDOC|EXPL|PEX2(0x4200044)\n"
                  "[4][8] VAL_|TAG_|AREN(0x400802): 0 [11]~~~<!my-light>~~~\n"
-                 "[5][11] VAL_|SCLR|PLAI|PSTR(0x808102): 39 [11]~~~fluorescent~~~\n"
-                 "[6][14] EDOC|EXPL|PSTR(0xa00048)\n"
+                 "[5][11] VAL_|SCLR|PLAI|PEX2(0x4008102): 39 [11]~~~fluorescent~~~\n"
+                 "[6][14] EDOC|EXPL|PEX2(0x4200048)\n"
                  "[7][15] TAGH(0x2000): 60 [3]~~~!m!~~~\n"
-                 "[8][18] TAGP|PSTR(0x804000): 64 [6]~~~!meta-~~~\n"
-                 "[9][21] BDOC|EXPL|PSTR(0xa00044)\n"
+                 "[8][18] TAGP|PEX2(0x4004000): 64 [6]~~~!meta-~~~\n"
+                 "[9][21] BDOC|EXPL|PEX2(0x4200044)\n"
                  "[10][22] VAL_|TAG_|AREN(0x400802): 11 [13]~~~<!meta-light>~~~\n"
-                 "[11][25] VAL_|SCLR|PLAI|PSTR(0x808102): 97 [5]~~~green~~~\n"
-                 "[12][28] EDOC|PSTR(0x800048)\n"
+                 "[11][25] VAL_|SCLR|PLAI|PEX2(0x4008102): 97 [5]~~~green~~~\n"
+                 "[12][28] EDOC|PEX2(0x4000048)\n"
                  "[13][29] ESTR(0x88)\n"
                  "src.len=103 arena.len=256\n"
                  ""));
@@ -469,12 +517,12 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|TAG_, 0, 19, "!yamlscript/v0/bare"),
-           e(VAL_|SCLR|PLAI|PSTR, 0, 0, ""),
-           e(EDOC|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 0, 0, ""),
+           e(EDOC|PEX2),
            e(BDOC|EXPL),
            e(VAL_|TAG_, 24, 5, "!code"),
-           e(VAL_|SCLR|PLAI|PSTR, 30, 2, "42"),
-           e(EDOC|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 30, 2, "42"),
+           e(EDOC|PEX2),
            e(ESTR),
        }),
     // case -------------------------------------------------
@@ -484,8 +532,8 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 1, "a"),
-           e(VAL_|SCLR|PLAI|PSTR, 3, 1, "1"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 3, 1, "1"),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -496,8 +544,8 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 3, "say"),
-           e(VAL_|SCLR|PLAI|PSTR, 5, 5, "2 + 2"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 5, 5, "2 + 2"),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -508,8 +556,8 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 4, "𝄞"),
-           e(VAL_|SCLR|PLAI|PSTR, 6, 3, "✅"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 6, 3, "✅"),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -520,9 +568,9 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 1, "a"),
-           e(VAL_|SCLR|PLAI|PSTR, 4, 1, "b"),
-           e(VAL_|SCLR|PLAI|PSTR, 7, 1, "c"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 4, 1, "b"),
+           e(VAL_|SCLR|PLAI|PEX2, 7, 1, "c"),
+           e(ESEQ|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -534,8 +582,8 @@ const IntEventsCase test_cases[] = {
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 1, 1, "a"),
-           e(VAL_|SCLR|PLAI|PSTR, 4, 1, "b"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 4, 1, "b"),
+           e(EMAP|PEX2),
            e(ESEQ),
            e(EDOC),
            e(ESTR),
@@ -562,41 +610,41 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC|EXPL),
            e(VAL_|TAG_, 4, 14, "!yamlscript/v0"),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 19, 3, "foo"),
-           e(VAL_|TAG_|PSTR, 24, 1, "!"),
-           e(VAL_|BSEQ|PSTR),
+           e(VAL_|TAG_|PEX2, 24, 1, "!"),
+           e(VAL_|BSEQ|PEX2),
            e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 29, 1, "x"),
-           e(VAL_|SCLR|PLAI|PSTR, 32, 1, "y"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 32, 1, "y"),
+           e(EMAP|PEX2),
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 38, 1, "x"),
-           e(VAL_|SCLR|PLAI|PSTR, 41, 1, "y"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 41, 1, "y"),
+           e(ESEQ|PEX2),
            e(VAL_|SCLR|PLAI, 46, 3, "foo"),
-           e(VAL_|SCLR|SQUO|PSTR, 53, 3, "foo"),
-           e(VAL_|SCLR|DQUO|PSTR, 61, 3, "foo"),
-           e(VAL_|SCLR|LITL|PSTR, 70, 4, "foo\n", needs_filter),
-           e(VAL_|SCLR|FOLD|PSTR, 80, 4, "foo\n", needs_filter),
-           e(VAL_|BSEQ|FLOW|FSL_|PSTR),
+           e(VAL_|SCLR|SQUO|PEX2, 53, 3, "foo"),
+           e(VAL_|SCLR|DQUO|PEX2, 61, 3, "foo"),
+           e(VAL_|SCLR|LITL|PEX2, 70, 4, "foo\n", needs_filter),
+           e(VAL_|SCLR|FOLD|PEX2, 80, 4, "foo\n", needs_filter),
+           e(VAL_|BSEQ|FLOW|FSL_|PEX2),
            e(VAL_|SCLR|PLAI, 89, 1, "1"),
-           e(VAL_|SCLR|PLAI|PSTR, 92, 1, "2"),
-           e(VAL_|SCLR|PLAI|PSTR, 95, 4, "true"),
-           e(VAL_|SCLR|PLAI|PSTR, 101, 5, "false"),
-           e(VAL_|SCLR|PLAI|PSTR, 108, 4, "null"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 92, 1, "2"),
+           e(VAL_|SCLR|PLAI|PEX2, 95, 4, "true"),
+           e(VAL_|SCLR|PLAI|PEX2, 101, 5, "false"),
+           e(VAL_|SCLR|PLAI|PEX2, 108, 4, "null"),
+           e(ESEQ|PEX2),
            e(VAL_|ANCH, 117, 8, "anchor-1"),
-           e(VAL_|TAG_|PSTR, 126, 6, "!tag-1"),
-           e(VAL_|SCLR|PLAI|PSTR, 133, 6, "foobar"),
-           e(ESEQ|PSTR),
+           e(VAL_|TAG_|PEX2, 126, 6, "!tag-1"),
+           e(VAL_|SCLR|PLAI|PEX2, 133, 6, "foobar"),
+           e(ESEQ|PEX2),
            e(EMAP),
            e(EDOC),
            e(BDOC|EXPL),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 144, 7, "another"),
-           e(VAL_|SCLR|PLAI|PSTR, 153, 3, "doc"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 153, 3, "doc"),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -621,16 +669,16 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 5, "plain"),
-           e(VAL_|SCLR|PLAI|PSTR, 7, 10, "well a b c"),
-           e(KEY_|SCLR|PLAI|PSTR, 24, 4, "squo"),
-           e(VAL_|SCLR|SQUO|PSTR, 31, 12, "single'quote", needs_filter),
-           e(KEY_|SCLR|PLAI|PSTR, 46, 4, "dquo"),
-           e(VAL_|SCLR|DQUO|PSTR, 53, 4, "x\t\ny", needs_filter),
-           e(KEY_|SCLR|PLAI|PSTR, 61, 3, "lit"),
-           e(VAL_|SCLR|LITL|PSTR, 68, 6, "X\nY\nZ\n", needs_filter),
-           e(KEY_|SCLR|PLAI|PSTR, 89, 4, "fold"),
-           e(VAL_|SCLR|FOLD|PSTR, 97, 6, "U V W\n", needs_filter),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 7, 10, "well a b c"),
+           e(KEY_|SCLR|PLAI|PEX2, 24, 4, "squo"),
+           e(VAL_|SCLR|SQUO|PEX2, 31, 12, "single'quote", needs_filter),
+           e(KEY_|SCLR|PLAI|PEX2, 46, 4, "dquo"),
+           e(VAL_|SCLR|DQUO|PEX2, 53, 4, "x\t\ny", needs_filter),
+           e(KEY_|SCLR|PLAI|PEX2, 61, 3, "lit"),
+           e(VAL_|SCLR|LITL|PEX2, 68, 6, "X\nY\nZ\n", needs_filter),
+           e(KEY_|SCLR|PLAI|PEX2, 89, 4, "fold"),
+           e(VAL_|SCLR|FOLD|PEX2, 97, 6, "U V W\n", needs_filter),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -641,7 +689,7 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BSEQ),
            e(VAL_|TAG_, 2, 5, "!!seq"),
-           e(VAL_|BSEQ|FLOW|FSL_|PSTR),
+           e(VAL_|BSEQ|FLOW|FSL_|PEX2),
            e(ESEQ),
            e(ESEQ),
            e(EDOC),
@@ -662,12 +710,12 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 0, 28, "defn run(prompt session=nil)"),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 32, 12, "when session"),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 50, 28, "write session _ :append true"),
-           e(VAL_|SCLR|LITL|PSTR, 83, 54, "Q: $(orig-prompt:trim)\nA ($api-model):\n$(answer:trim)\n", needs_filter),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|LITL|PEX2, 83, 54, "Q: $(orig-prompt:trim)\nA ($api-model):\n$(answer:trim)\n", needs_filter),
+           e(EMAP|PEX2),
            e(EMAP),
            e(EMAP),
            e(EDOC),
@@ -706,35 +754,35 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 21, 28, "defn run(prompt session=nil)"),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 53, 14, "session-text ="),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 73, 28, "when session && session:fs-e"),
-           e(VAL_|SCLR|PLAI|PSTR, 0, 0, ""), // note empty scalar pointing at the front
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 0, 0, ""), // note empty scalar pointing at the front
+           e(EMAP|PEX2),
            e(KEY_|SCLR|PLAI, 106, 8, "answer ="),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 120, 4, "cond"),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 132, 22, "api-model =~ /^dall-e/"),
-           e(VAL_|SCLR|PLAI|PSTR, 164, 31, "openai-image(prompt).data.0.url"),
-           e(KEY_|SCLR|PLAI|PSTR, 202, 31, "api-model.in?(anthropic-models)"),
-           e(VAL_|SCLR|PLAI|PSTR, 243, 42, "anthropic(prompt):anthropic-message:format"),
-           e(KEY_|SCLR|PLAI|PSTR, 292, 26, "api-model.in?(groq-models)"),
-           e(VAL_|SCLR|PLAI|PSTR, 328, 45, "groq(prompt).choices.0.message.content:format"),
-           e(KEY_|SCLR|PLAI|PSTR, 380, 28, "api-model.in?(openai-models)"),
-           e(VAL_|SCLR|PLAI|PSTR, 418, 52, "openai-chat(prompt).choices.0.message.content:format"),
-           e(KEY_|SCLR|PLAI|PSTR, 477, 4, "else"),
-           e(VAL_|SCLR|PLAI|PSTR, 483, 5, "die()"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 164, 31, "openai-image(prompt).data.0.url"),
+           e(KEY_|SCLR|PLAI|PEX2, 202, 31, "api-model.in?(anthropic-models)"),
+           e(VAL_|SCLR|PLAI|PEX2, 243, 42, "anthropic(prompt):anthropic-message:format"),
+           e(KEY_|SCLR|PLAI|PEX2, 292, 26, "api-model.in?(groq-models)"),
+           e(VAL_|SCLR|PLAI|PEX2, 328, 45, "groq(prompt).choices.0.message.content:format"),
+           e(KEY_|SCLR|PLAI|PEX2, 380, 28, "api-model.in?(openai-models)"),
+           e(VAL_|SCLR|PLAI|PEX2, 418, 52, "openai-chat(prompt).choices.0.message.content:format"),
+           e(KEY_|SCLR|PLAI|PEX2, 477, 4, "else"),
+           e(VAL_|SCLR|PLAI|PEX2, 483, 5, "die()"),
+           e(EMAP|PEX2),
            e(EMAP),
            e(KEY_|SCLR|PLAI, 492, 3, "say"),
-           e(VAL_|SCLR|PLAI|PSTR, 497, 6, "answer"),
-           e(KEY_|SCLR|PLAI|PSTR, 507, 12, "when session"),
-           e(VAL_|BMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 497, 6, "answer"),
+           e(KEY_|SCLR|PLAI|PEX2, 507, 12, "when session"),
+           e(VAL_|BMAP|PEX2),
            e(KEY_|SCLR|PLAI, 525, 28, "write session _ :append true"),
-           e(VAL_|SCLR|LITL|PSTR, 558, 55, "Q: $(orig-prompt:trim)\nA ($api-model):\n$(answer:trim)\n\n", needs_filter),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|LITL|PEX2, 558, 55, "Q: $(orig-prompt:trim)\nA ($api-model):\n$(answer:trim)\n\n", needs_filter),
+           e(EMAP|PEX2),
            e(EMAP),
            e(EMAP),
            e(EDOC),
@@ -753,8 +801,8 @@ const IntEventsCase test_cases[] = {
            e(BDOC|EXPL),
            e(VAL_|BMAP),
            e(KEY_|SCLR|PLAI, 4, 5, "plain"),
-           e(VAL_|SCLR|PLAI|PSTR, 11, 5, "a b\nc"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 11, 5, "a b\nc"),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -767,12 +815,12 @@ const IntEventsCase test_cases[] = {
            e(VAL_|BMAP),
            e(KEY_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 1, 3, "key"),
-           e(VAL_|SCLR|PLAI|PSTR, 6, 3, "map"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 6, 3, "map"),
+           e(EMAP|PEX2),
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 13, 3, "seq"),
-           e(VAL_|SCLR|PLAI|PSTR, 18, 3, "val"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 18, 3, "val"),
+           e(ESEQ|PEX2),
            e(EMAP),
            e(EDOC),
            e(ESTR),
@@ -786,12 +834,12 @@ const IntEventsCase test_cases[] = {
            e(VAL_|BMAP),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 3, "key"),
-           e(VAL_|SCLR|PLAI|PSTR, 6, 3, "seq"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 6, 3, "seq"),
+           e(ESEQ|PEX2),
            e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|SCLR|PLAI, 13, 3, "map"),
-           e(VAL_|SCLR|PLAI|PSTR, 18, 3, "val"),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 18, 3, "val"),
+           e(EMAP|PEX2),
            e(EMAP),
            e(EDOC),
            e(ESTR),
@@ -805,10 +853,10 @@ const IntEventsCase test_cases[] = {
            e(VAL_|BMAP),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 1, 1, "b"),
-           e(VAL_|SCLR|PLAI|PSTR, 3, 1, "c"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 3, 1, "c"),
+           e(ESEQ|PEX2),
            e(VAL_|SCLR|PLAI, 7, 1, "d"),
-           e(EMAP|PSTR),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -822,11 +870,11 @@ const IntEventsCase test_cases[] = {
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 2, 1, "b"),
-           e(VAL_|SCLR|PLAI|PSTR, 4, 1, "c"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 4, 1, "c"),
+           e(ESEQ|PEX2),
            e(ESEQ),
            e(VAL_|SCLR|PLAI, 9, 1, "d"),
-           e(EMAP|PSTR),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -839,21 +887,21 @@ const IntEventsCase test_cases[] = {
            e(VAL_|BMAP),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 2, 1, "a"),
-           e(VAL_|BSEQ|FLOW|FSL_|PSTR),
+           e(VAL_|BSEQ|FLOW|FSL_|PEX2),
            e(VAL_|BMAP|FLOW|FSL_),
            e(KEY_|BSEQ|FLOW|FSL_),
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|PLAI, 9, 1, "b"),
-           e(VAL_|SCLR|PLAI|PSTR, 11, 1, "c"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2, 11, 1, "c"),
+           e(ESEQ|PEX2),
            e(ESEQ),
            e(VAL_|SCLR|PLAI, 16, 1, "d"),
-           e(EMAP|PSTR),
+           e(EMAP|PEX2),
            e(VAL_|SCLR|PLAI, 19, 1, "e"),
-           e(ESEQ|PSTR),
+           e(ESEQ|PEX2),
            e(ESEQ),
            e(VAL_|SCLR|PLAI, 24, 2, "23"),
-           e(EMAP|PSTR),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -866,8 +914,8 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BSEQ|FLOW|FSL_),
            e(VAL_|SCLR|DQUO|AREN, 0, 18, dqesc_L6),
-           e(VAL_|SCLR|DQUO|AREN|PSTR, 18, 18, dqesc_P6),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|DQUO|AREN|PEX2, 18, 18, dqesc_P6),
+           e(ESEQ|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -886,23 +934,23 @@ const IntEventsCase test_cases[] = {
        {
            e(BSTR),
            e(YAML,                  6,  3, "1.2"),
-           e(BDOC|EXPL|PSTR),
+           e(BDOC|EXPL|PEX2),
            e(VAL_|BSEQ),
            e(VAL_|TAG_,            16,  6, "!light"),
-           e(VAL_|SCLR|PLAI|PSTR,  23, 11, "fluorescent"),
-           e(VAL_|TAG_|PSTR,       37,  2, "!m"),
-           e(VAL_|SCLR|PLAI|PSTR,  40,  9, "something"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2,  23, 11, "fluorescent"),
+           e(VAL_|TAG_|PEX2,       37,  2, "!m"),
+           e(VAL_|SCLR|PLAI|PEX2,  40,  9, "something"),
+           e(ESEQ|PEX2),
            e(EDOC|EXPL),
            e(TAGH,                 59,  3, "!m!"),
-           e(TAGP|PSTR,            63, 15, "!extraordinary-"),
-           e(BDOC|EXPL|PSTR),
+           e(TAGP|PEX2,            63, 15, "!extraordinary-"),
+           e(BDOC|EXPL|PEX2),
            e(VAL_|BSEQ),
            e(VAL_|TAG_|AREN,        0, 22, "<!extraordinary-light>"),
-           e(VAL_|SCLR|PLAI|PSTR,  94,  5, "green"),
-           e(VAL_|TAG_|PSTR,      102,  5, "!!int"),
-           e(VAL_|SCLR|PLAI|PSTR, 108,  1, "2"),
-           e(ESEQ|PSTR),
+           e(VAL_|SCLR|PLAI|PEX2,  94,  5, "green"),
+           e(VAL_|TAG_|PEX2,      102,  5, "!!int"),
+           e(VAL_|SCLR|PLAI|PEX2, 108,  1, "2"),
+           e(ESEQ|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -913,8 +961,8 @@ const IntEventsCase test_cases[] = {
            e(BDOC),
            e(VAL_|BMAP),
            e(KEY_|SCLR|DQUO,       1, 5, "\"foo\""),
-           e(VAL_|SCLR|DQUO|PSTR, 12, 5, "\"bar\""),
-           e(EMAP|PSTR),
+           e(VAL_|SCLR|DQUO|PEX2, 12, 5, "\"bar\""),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -925,9 +973,9 @@ const IntEventsCase test_cases[] = {
            e(BSTR),
            e(BDOC),
            e(VAL_|BMAP),
-           e(KEY_|SCLR|DQUO|UNFILT,       1, 7, "\\\"foo\\\""),
-           e(VAL_|SCLR|DQUO|UNFILT|PSTR, 12, 7, "\\\"bar\\\""),
-           e(EMAP|PSTR),
+           e(KEY_|SCLR|DQUO|UNFL,       1, 7, "\\\"foo\\\""),
+           e(VAL_|SCLR|DQUO|UNFL|PEX2, 12, 7, "\\\"bar\\\""),
+           e(EMAP|PEX2),
            e(EDOC),
            e(ESTR),
        }),
@@ -943,7 +991,7 @@ const IntEventsCase test_cases[] = {
            //e(VAL_|SCLR|LITL|AREN, 0, 4, "abc\n"), // result has additional newline
            // we get this (shifted left by 1, in the source code)
            e(VAL_|SCLR|LITL, 1, 4, "abc\n"), // result has additional newline
-           e(EDOC|PSTR),
+           e(EDOC|PEX2),
            e(ESTR),
        }),
     // case -------------------------------------------------
@@ -958,7 +1006,7 @@ const IntEventsCase test_cases[] = {
            //e(VAL_|SCLR|FOLD|AREN, 0, 4, "abc\n"), // result has additional newline
            // we get this (shifted left by 1, in the source code)
            e(VAL_|SCLR|FOLD, 1, 4, "abc\n"), // result has additional newline
-           e(EDOC|PSTR),
+           e(EDOC|PEX2),
            e(ESTR),
        }),
 };

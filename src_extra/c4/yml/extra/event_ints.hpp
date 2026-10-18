@@ -10,6 +10,9 @@
 #ifndef C4_YML_ERROR_HPP_
 #include <c4/yml/error.hpp>
 #endif
+#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
+#include <c4/yml/resolve_options.hpp>
+#endif
 #endif
 #include <stdint.h>
 
@@ -47,9 +50,9 @@ namespace ievt {
  *   BDOC,                        // begin doc
  *   VAL_|BSEQ|FLOW,              // begin seq as val, flow
  *   VAL_|SCLR|PLAI,      1, 1,   // val scalar, plain style, "a"  : string starts at offset 1 and has length 1
- *   VAL_|SCLR|PLAI|PSTR, 4, 2,   // val scalar, plain style, "bb" : string starts at offset 4 and has length 2; preceded by a string event (PSTR)
- *   VAL_|SCLR|PLAI|PSTR, 8, 3,   // val scalar, plain style, "ccc": string starts at offset 8 and has length 3; preceded by a string event (PSTR)
- *   ESEQ|PSTR,                   // end seq; preceded by a string event (PSTR)
+ *   VAL_|SCLR|PLAI|PEX2, 4, 2,   // val scalar, plain style, "bb" : string starts at offset 4 and has length 2; preceded by a string event (PEX2)
+ *   VAL_|SCLR|PLAI|PEX2, 8, 3,   // val scalar, plain style, "ccc": string starts at offset 8 and has length 3; preceded by a string event (PEX2)
+ *   ESEQ|PEX2,                   // end seq; preceded by a string event (PEX2)
  *   EDOC,                        // end doc
  *   ESTR,                        // end stream
  * };
@@ -77,7 +80,7 @@ i      :   0        1       2                  3               4  5
                 event4 "bb"..........|..|              event5 "ccc".........|..|
                 |                    |  |              |                    |  |
  (cont)--> -----+--------------------+--+--------------+--------------------+--+-----> (continued)
-arr[i] :        VAL_|SCLR|PLAI|PSTR..4..2              VAL_|SCLR|PLAI|PSTR..8..3
+arr[i] :        VAL_|SCLR|PLAI|PEX2..4..2              VAL_|SCLR|PLAI|PEX2..8..3
 i      :        6              |     7  8              9              |     10 11
                                |                                      |
                                prev event has string                  prev event has string
@@ -89,7 +92,7 @@ i      :        6              |     7  8              9              |     10 1
                 event6 ]      event7   event8
                 |             |        |
  (cont)--> -----+-------------+--------+-----|    (end)
-arr[i] :        ESEQ|PSTR     EDOC     ESTR
+arr[i] :        ESEQ|PEX2     EDOC     ESTR
 i      :        12   |        13       14
                      |
                      prev event has string
@@ -105,11 +108,11 @@ i      :        12   |        13       14
  * strings `a`, `bb`, and `ccc` at positions 3, 6 and 9,
  * respectively).
  *
- * The flag @ref ievt::PSTR and the mask @ref ievt::WSTR are provided to
+ * The flag @ref ievt::PEX2 and the mask @ref ievt::WSTR are provided to
  * enable easier iteration over the array: you can use them to test for
  * presence of a string when iterating over the array.
  *
- * The flag @ref ievt::PSTR announces that an event is *preceded* by a
+ * The flag @ref ievt::PEX2 announces that an event is *preceded* by a
  * string. That is, the previous event has a string, so that when this
  * flag is found while iterating right-to-left, a jump of -3 should be
  * used to get at the bitmask of the previous event. (In the example
@@ -131,8 +134,8 @@ i      :        12   |        13       14
  *   BDOC,                        // begin doc
  *   VAL_|BMAP|BLCK,              // begin map as val, block
  *   KEY_|SCLR|PLAI,      0, 1,   // key scalar, plain style: "a"   starts at offset 0 and has length 1
- *   VAL_|SCLR|PLAI|PSTR, 3, 2,   // val scalar, plain style: "bb"  starts at offset 3 and has length 2
- *   EMAP|PSTR,                   // end map
+ *   VAL_|SCLR|PLAI|PEX2, 3, 2,   // val scalar, plain style: "bb"  starts at offset 3 and has length 2
+ *   EMAP|PEX2,                   // end map
  *   EDOC,                        // end doc
  *   ESTR,                        // end stream
  * };
@@ -220,7 +223,7 @@ typedef enum : evt_bits { // NOLINT
     LITL = (1 << 18),  ///< scalar: block literal (|)
     FOLD = (1 << 19),  ///< scalar: block folded (>)
 
-    UNFILT = (1 << 20), ///< scalar: unfiltered
+    UNFL = (1 << 20),  ///< scalar: unfiltered
 
     FLOW = (1 << 21),  ///< For containers (@ref BSEQ or @ref BMAP): flow
                        ///< style. If this flag is not set, the container's
@@ -239,42 +242,45 @@ typedef enum : evt_bits { // NOLINT
     /// resolve to a larger string, or from "\L" or "\P" in double
     /// quoted scalars, which expand from two to three bytes). Because
     /// of this size expansion, the filtered string cannot be placed
-    /// in the original source and needs to be placed in the arena.
+    /// in the original source buffer and needs to be placed in the
+    /// arena buffer. Implies presence of @ref WSTR .
     AREN = (1 << 22),
 
-    /// WithSTRing: mask of all events that encode a string following
-    /// the event. For such events, the next two integers will provide
-    /// respectively the string's offset and length. See also @ref PSTR
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
-
-    /// Special flag to enable look-back in the event array. It
-    /// signifies that the previous event has a string, meaning that
-    /// the jump back to that event is 3 positions. Without this flag
-    /// it would be impossible to jump back to the previous event.
-    /// see also @ref WSTR
-    PSTR = (1 << 23),
-
-    /// Resolved Reference: an alias that was resolved.
-    RREF = (1 << 24),
-    /// Previous Resolved Reference: same purpose as @ref PSTR but for
-    /// @ref RREF .
-    PRREF = (1 << 25),
+    /// Resolved Reference: an alias that was resolved, specifying the
+    /// range of the referred events. This event is followed by two
+    /// extra integers: the positions of the first and last (past one)
+    /// events that are referred. See also @ref EXT2 and @ref PEX2 .
+    RREF = (1 << 23),
 
     /// unused: reserved for future use (to enable rope-like buffers)
-    JUMP = (1 << 26),
-    /// unused: reserved for future use (same purpose as @ref PSTR,
-    /// but for @ref JUMP)
-    PJUMP = (1 << 27),
+    JUMP = (1 << 24),
 
-    EXTRA2 = WSTR|RREF|JUMP,
-    PEXTRA2 = PSTR|PRREF|PJUMP,
+    /// unused: reserved for future use (to enable 64 bit integers)
+    QWRD = (1 << 25),
+
+    /// Special flag to enable look-back in the event array. It
+    /// signifies that the previous event is followed by two extra
+    /// ints, meaning that the jump back to that event is 3
+    /// positions. Without this flag it would be impossible to jump
+    /// back to the previous event. See also @ref EXT2 .
+    PEX2 = (1 << 26),
+
+    /// WithSTRing: mask of all events that encode a string following
+    /// the event. For such events, the next two integers after the
+    /// event specify respectively the string's offset and length. See
+    /// also @ref EXT2 and @ref PEX2 .
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
+
+    /// EXTra2: mask of all events that are followed by two extra
+    /// integers. See also @ref PEX2
+    EXT2 = WSTR|RREF|JUMP,
 
     // flow style flags
-    FSL_ = (1 << 28), ///< same as @ref c4::yml::FLOW_SL
-    FML1 = (1 << 29), ///< same as @ref c4::yml::FLOW_ML1
-    FMLN = (1 << 30), ///< same as @ref c4::yml::FLOW_MLN
+    FSL_ = (1 << 27), ///< same as @ref c4::yml::FLOW_SL
+    FML1 = (1 << 28), ///< same as @ref c4::yml::FLOW_ML1
+    FMLN = (1 << 29), ///< same as @ref c4::yml::FLOW_MLN
     FMLX = FML1|FMLN, ///< same as @ref c4::yml::FLOW_MLX
-    FSPC = (1 << 31), ///< same as @ref c4::yml::FLOW_SPC
+    FSPC = (1 << 30), ///< same as @ref c4::yml::FLOW_SPC
 
     /// the last flag defined above
     LAST = FSPC,
@@ -287,32 +293,36 @@ typedef enum : evt_bits { // NOLINT
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextstep(evt_bits bits) noexcept
 {
-    return (bits & ievt::EXTRA2) ? 3 : 1;
+    return (bits & ievt::EXT2) ? 3 : 1;
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevstep(evt_bits bits) noexcept
 {
-    return (bits & ievt::PEXTRA2) ? 3 : 1;
+    return (bits & ievt::PEX2) ? 3 : 1;
 }
 
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits, evt_size pos) noexcept
 {
-    return pos + ((bits & ievt::EXTRA2) ? 3 : 1);
+    return pos + ((bits & ievt::EXT2) ? 3 : 1);
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits, evt_size pos) noexcept
 {
-    return pos - ((bits & ievt::PEXTRA2) ? 3 : 1);
+    return pos - ((bits & ievt::PEX2) ? 3 : 1);
 }
 
 
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
-    return pos + ((arr[pos] & ievt::EXTRA2) ? 3 : 1);
+    return pos + ((arr[pos] & ievt::EXT2) ? 3 : 1);
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
-    return pos - ((arr[pos] & ievt::PEXTRA2) ? 3 : 1);
+    return pos - ((arr[pos] & ievt::PEX2) ? 3 : 1);
 }
+
+
+RYML_EXPORT evt_size lookup_anchor(evt_bits const* evts, evt_size sz, csubstr src, csubstr arena, evt_size pos);
+RYML_EXPORT void resolve_refs(evt_bits * evts, evt_size sz, csubstr src, csubstr arena, ResolveOptions const& opts={});
 
 
 //-----------------------------------------------------------------------------
@@ -327,17 +337,21 @@ struct RYML_EXPORT evtbuf
 };
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 struct RYML_EXPORT Buffers
 {
     substr    src   = {};
     substr    arena = {};
     evtbuf    evts  = {};
-    csubstr getstr(evt_size pos) const RYML_NOEXCEPT
+    C4_HOT C4_ALWAYS_INLINE csubstr getstr(evt_size pos) const RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(pos + 2 < evts.len);
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
-        csubstr region = (evts.ptr[pos] & ievt::AREN) ? arena : src;
+        csubstr region = !(evts.ptr[pos] & ievt::AREN) ? src : arena;
         RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1]) <= region.len);
         RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1] + evts.ptr[pos + 2]) <= region.len);
         return {region.str + evts.ptr[pos + 1], static_cast<size_t>(evts.ptr[pos + 2])};
@@ -401,13 +415,15 @@ struct MaybeParent
 };
 RYML_EXPORT MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept;
 RYML_EXPORT bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT;
+RYML_EXPORT evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos);
+RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
+RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
 RYML_EXPORT evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;
+
+RYML_EXPORT bool is_cyclic_ref_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size ref_pos, evt_size anchor_pos) noexcept;
 
 
 struct EmitKickoff

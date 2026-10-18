@@ -431,21 +431,20 @@ int main(int argc, const char *argv[])
         "";
 
     // these are the events we expect from parsing the demo YAML
-    auto STR = c4::yml::extra::ievt::PSTR; // PSTR does not work in windows
     using namespace ievt;
     const int demo_expected[] = {
         BSTR,
         BDOC,
         VAL_|BMAP,
-        KEY_|SCLR|PLAI,      0,  3,  // "doe"
-        VAL_|SCLR|PLAI|STR,  5, 21,  // "a deer, a female deer"
-        KEY_|SCLR|PLAI|STR, 27,  3,  // "ray"
-        VAL_|SCLR|PLAI|STR, 32, 20,  // "a drop of golden sun"
-        KEY_|SCLR|PLAI|STR, 53,  2,  // "me"
-        VAL_|SCLR|PLAI|STR, 58, 20,  // "a name I call myself"
-        KEY_|SCLR|PLAI|STR, 79,  3,  // "far"
-        VAL_|SCLR|PLAI|STR, 84, 22,  // "a long long way to run"
-        EMAP|STR,
+        KEY_|SCLR|PLAI,       0,  3,  // "doe"
+        VAL_|SCLR|PLAI|PEX2,  5, 21,  // "a deer, a female deer"
+        KEY_|SCLR|PLAI|PEX2, 27,  3,  // "ray"
+        VAL_|SCLR|PLAI|PEX2, 32, 20,  // "a drop of golden sun"
+        KEY_|SCLR|PLAI|PEX2, 53,  2,  // "me"
+        VAL_|SCLR|PLAI|PEX2, 58, 20,  // "a name I call myself"
+        KEY_|SCLR|PLAI|PEX2, 79,  3,  // "far"
+        VAL_|SCLR|PLAI|PEX2, 84, 22,  // "a long long way to run"
+        EMAP|PEX2,
         EDOC,
         ESTR,
     };
@@ -456,14 +455,14 @@ int main(int argc, const char *argv[])
      * pos=1	event[1]:	                BDOC = 0x00000004
      * pos=2	event[2]:	      VAL_|BMAP|BLCK = 0x00140010
      * pos=3	event[3]:	      KEY_|SCLR|PLAI = 0x00081100	str=(0,3)	'doe'
-     * pos=6	event[4]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(5,21)	'a deer, a female deer'
-     * pos=9	event[5]:	 KEY_|SCLR|PLAI|PSTR = 0x04081100	str=(27,3)	'ray'
-     * pos=12	event[6]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(32,20)	'a drop of golden sun'
-     * pos=15	event[7]:	 KEY_|SCLR|PLAI|PSTR = 0x04081100	str=(53,2)	'me'
-     * pos=18	event[8]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(58,20)	'a name I call myself'
-     * pos=21	event[9]:	 KEY_|SCLR|PLAI|PSTR = 0x04081100	str=(79,3)	'far'
-     * pos=24	event[10]:	 VAL_|SCLR|PLAI|PSTR = 0x04101100	str=(84,22)	'a long long way to run'
-     * pos=27	event[11]:	           EMAP|PSTR = 0x04000020
+     * pos=6	event[4]:	 VAL_|SCLR|PLAI|PEX2 = 0x04101100	str=(5,21)	'a deer, a female deer'
+     * pos=9	event[5]:	 KEY_|SCLR|PLAI|PEX2 = 0x04081100	str=(27,3)	'ray'
+     * pos=12	event[6]:	 VAL_|SCLR|PLAI|PEX2 = 0x04101100	str=(32,20)	'a drop of golden sun'
+     * pos=15	event[7]:	 KEY_|SCLR|PLAI|PEX2 = 0x04081100	str=(53,2)	'me'
+     * pos=18	event[8]:	 VAL_|SCLR|PLAI|PEX2 = 0x04101100	str=(58,20)	'a name I call myself'
+     * pos=21	event[9]:	 KEY_|SCLR|PLAI|PEX2 = 0x04081100	str=(79,3)	'far'
+     * pos=24	event[10]:	 VAL_|SCLR|PLAI|PEX2 = 0x04101100	str=(84,22)	'a long long way to run'
+     * pos=27	event[11]:	           EMAP|PEX2 = 0x04000020
      * pos=28	event[12]:	                EDOC = 0x00000008
      * pos=29	event[13]:	                ESTR = 0x00000002
      */

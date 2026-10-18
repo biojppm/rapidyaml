@@ -533,7 +533,7 @@ static void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("roundtrip_compare");
-        buffers1.buf.test_compare(buffers2.buf, /*mask_ignore*/extra::ievt::AREN|extra::ievt::UNFILT); // NOLINT
+        buffers1.buf.test_compare(buffers2.buf, /*mask_ignore*/extra::ievt::AREN|extra::ievt::UNFL); // NOLINT
         EXPECT_EQ(emitted1, emitted2);
     }
     if(testing::Test::HasFailure())
@@ -644,7 +644,7 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("roundtrip_compare");
-        test_events_ints_compare(buffers1.buf, buffers2.buf, extra::ievt::AREN|extra::ievt::UNFILT);// NOLINT
+        test_events_ints_compare(buffers1.buf, buffers2.buf, extra::ievt::AREN|extra::ievt::UNFL);// NOLINT
         EXPECT_EQ(emitted1, emitted2);
     }
     if(testing::Test::HasFailure())
