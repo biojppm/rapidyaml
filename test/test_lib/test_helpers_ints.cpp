@@ -384,16 +384,6 @@ namespace {
 #define scope (ievt::MAP_|ievt::SEQ_|ievt::DOC_|ievt::STRM|ievt::BEG_|ievt::END_)
 #define directives (ievt::YAML|ievt::TAGH|ievt::TAGP)
 
-evt_size next_sibling(evt_bits const* evts, evt_size sz, evt_size pos)
-{
-    if(evts[pos] & ievt::BEG_)
-    {
-        evt_size close = detail::find_matching_close_(evts, sz, pos);
-        return ievt::nextpos(evts, close);
-    }
-    return ievt::nextpos(evts, pos);
-}
-
 template<class Fn>
 void iter_children(evt_bits const* evts, evt_size sz, evt_size pos, Fn const& fn)
 {
@@ -405,7 +395,7 @@ void iter_children(evt_bits const* evts, evt_size sz, evt_size pos, Fn const& fn
         fn(pos, evts[pos]);
         if(testing::Test::HasFailure())
             break;
-        pos = next_sibling(evts, sz, pos);
+        pos = detail::find_next_sibling(evts, sz, pos);
     }
 }
 
