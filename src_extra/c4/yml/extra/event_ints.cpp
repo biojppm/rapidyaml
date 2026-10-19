@@ -13,6 +13,9 @@
 #ifndef C4_YML_RESOLVE_OPTIONS_HPP_
 #include "c4/yml/resolve_options.hpp"
 #endif
+#ifndef C4_YML_DETAIL_SMALL_MAP_HPP_
+#include "c4/yml/detail/small_map.hpp"
+#endif
 
 // NOLINTBEGIN(hicpp-signed-bitwise)
 
@@ -280,21 +283,33 @@ evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
     return scalar.str ? ievt::SQUO : ievt::PLAI;
 }
 
+
+//-----------------------------------------------------------------------------
+
 namespace {
+
 struct ReferenceResolver
 {
 private:
+    struct AnchorTargetRange_
+    {
+        evt_size beg; /// beginning pos of the range
+        evt_size end; /// end pos of the range (past 1)
+        evt_size pos; /// anchor pos
+    };
+    template<class K, class V>
+    using map = yml::detail::small_map<K,V>;
+
+private:
+
     csubstr src;
     csubstr arena;
     evtbuf  evts;
     evt_size newsz;
     evt_size sz_limit;
     ResolveOptions opts;
-    struct AnchorTargetRange_
-    {
-        evt_size beg; /// beginning pos of the range
-        evt_size end; /// end pos of the range (past 1)
-    };
+    map<csubstr, AnchorTargetRange_> anchor_map;
+    map<csubstr, evt_size> merge_map;
 
 public:
 
@@ -305,6 +320,8 @@ public:
         , newsz(evts_.len)
         , sz_limit(evts_.len * static_cast<evt_size>(opts_.max_size_multiplier()))
         , opts(opts_)
+        , anchor_map()
+        , merge_map()
     {
     }
 
@@ -312,51 +329,142 @@ public:
     {
         if(!evts.len)
             return;
+        // gather all the anchors
+        anchor_map.clear();
+        for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+            if(evts.ptr[pos] & ievt::ANCH)
+                add_anchor_(pos);
+        anchor_map.sort();
+        // now go to all refs, and resolve them
         for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
         {
-            if(evts.ptr[pos] & ievt::ALIA)
+            if(resolve_(pos))
             {
-                AnchorTargetRange_ rng = lookup_anchor_(pos);
-                set_rref_to_anchor_(pos, rng);
-            }
-            else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
-            {
-                if(!(evts.ptr[pos] & (ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD))
-                   &&
-                   getstr_(pos) == "<<")
-                {
-                    if(evts.ptr[pos] & ievt::PEX2)
-                    {
-                        if(evts.ptr[pos - 3] & (ievt::ANCH|ievt::TAG_))
-                        {
-                            if(evts.ptr[pos - 3] & ievt::PEX2)
-                                if(evts.ptr[pos - 6] & ievt::ANCH)
-                                    clear_anchor_(pos - 6);
-                            clear_anchor_(pos - 3);
-                        }
-                    }
-                    if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA))
-                    {
-                        set_rref_inheriting_from_anchor_(pos);
-                    }
-                    else if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ))
-                    {
-                        set_rref_inheriting_from_seq_(pos);
-                    }
-                }
+                ;
             }
         }
+        // finally:
         if(opts.clear_anchors())
-        {
-            for(evt_size pos = 0; evts.ptr[pos] != ESTR; pos = nextpos(evts.ptr, pos))
-                if(evts.ptr[pos] & ANCH)
-                    clear_anchor_(pos);
-        }
+            for(auto const& entry : anchor_map.m_arr)
+                clear_anchor_(entry.val.pos);
     }
+
 
 private:
 
-    csubstr getstr_(evt_size pos)
+    C4_NODISCARD bool resolve_(evt_size &pos)
+    {
+        bool ret = false;
+        if(detail::hasall(evts.ptr[pos], ievt::BSEQ))
+        {
+            pos = resolve_children_seq_(pos);
+            ret = true;
+        }
+        else if(detail::hasall(evts.ptr[pos], ievt::BMAP))
+        {
+            pos = resolve_children_map_(pos);
+            ret = true;
+        }
+        else if(evts.ptr[pos] & ievt::ALIA)
+        {
+            AnchorTargetRange_ rng = lookup_anchor_(pos);
+            set_rref_to_anchor_(pos, rng);
+            ret = true;
+        }
+        return ret;
+    }
+
+    C4_NODISCARD evt_size resolve_children_seq_(evt_size pos)
+    {
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BSEQ));
+        ++pos;
+        for( ; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+        {
+            if(resolve_(pos))
+            {
+                ;
+            }
+            else if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
+            {
+                break;
+            }
+        }
+        return pos;
+    }
+
+    C4_NODISCARD evt_size resolve_children_map_(evt_size parent)
+    {
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
+        evt_size pos = parent + 1;
+        for( ; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+        {
+            if(resolve_(pos))
+            {
+                ;
+            }
+            else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR|ievt::PLAI)
+                    &&
+                    getstr_(pos) == "<<"
+                    &&
+                    validate_inherit_(pos))
+            {
+                // clear possible anchors or tags for the << scalar
+                if(evts.ptr[pos] & ievt::PEX2)
+                {
+                    if(evts.ptr[pos - 3] & (ievt::ANCH|ievt::TAG_))
+                    {
+                        if(detail::hasall(evts.ptr[pos - 3], ievt::TAG_|ievt::PEX2))
+                            if(evts.ptr[pos - 6] & ievt::ANCH)
+                                clear_anchor_(pos - 6);
+                        clear_anchor_(pos - 3);
+                    }
+                }
+                if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA))
+                {
+                    set_rref_inherit_single_(pos);
+                }
+                else if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ))
+                {
+                    set_rref_inherit_multiple_(pos);
+                }
+            }
+            else if(detail::hasall(evts.ptr[pos], ievt::EMAP))
+            {
+                break;
+            }
+        }
+        return pos;
+    }
+
+    bool validate_inherit_(evt_size pos) const
+    {
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR|ievt::PLAI));
+        RYML_ASSERT_BASIC_(getstr_(pos) == "<<");
+        pos += 3;
+        if(detail::hasall(evts.ptr[pos], ievt::VAL_|ievt::ALIA))
+            return true;
+        if(detail::hasall(evts.ptr[pos], ievt::VAL_|ievt::BSEQ))
+        {
+            bool isref = false;
+            ++pos;
+            while(true)
+            {
+                if(evts.ptr[pos] & ALIA)
+                {
+                    isref = true;
+                    pos += 3;
+                }
+                else if(evts.ptr[pos] & ESEQ)
+                    break;
+                else if C4_UNLIKELY (isref)
+                    RYML_ERR_BASIC_("invalid reference at pos={}", pos);
+            }
+            return isref;
+        }
+        return false;
+    }
+
+    csubstr getstr_(evt_size pos) const
     {
         csubstr str = !(evts.ptr[pos] & ievt::AREN) ? src : arena;
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
@@ -366,10 +474,10 @@ private:
         str.len = static_cast<size_t>(evts.ptr[pos + 2]);
         return str;
     }
-    AnchorTargetRange_ make_range_from_alias_(evt_size pos)
+    void add_anchor_(evt_size pos)
     {
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ANCH);
-        AnchorTargetRange_ r;
+        AnchorTargetRange_& r = anchor_map.insert(getstr_(pos));
         r.beg = pos + (!(evts.ptr[pos + 3] & ievt::TAG_) ? 3 : 6);
         if(evts.ptr[r.beg] & ievt::SCLR)
         {
@@ -381,34 +489,21 @@ private:
             r.end = detail::find_matching_close_(evts.ptr, evts.len, r.beg);
             r.end = nextpos(evts.ptr, r.end); // END_ must be part of the range, so extend beyond it
         }
-        return r;
+        r.pos = pos;
     }
-    AnchorTargetRange_ lookup_anchor_(evt_size pos)
+    AnchorTargetRange_ lookup_anchor_(evt_size pos) const
     {
-        // get the anchor
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
-        evt_size spos = pos;
         csubstr ref = getstr_(pos);
-        // lookup the anchor
-        while(true)
+        AnchorTargetRange_ const* r = anchor_map.lookup(ref);
+        if C4_LIKELY (!!r)
         {
-            pos = ievt::prevpos(evts.ptr, pos);
-            if(evts.ptr[pos] & ievt::ANCH)
-            {
-                csubstr anch = getstr_(pos);
-                if(anch == ref)
-                {
-                    if C4_LIKELY (!detail::is_cyclic_ref_(evts.ptr, evts.len, spos, pos))
-                        return make_range_from_alias_(pos);
-                    RYML_ERR_BASIC_("cyclic reference: '{}}' at ALIA[{}]: ANCH at {}", anch, spos, pos);
-                }
-            }
-            else if(((evts.ptr[pos] & BDOC) == BDOC) || ((evts.ptr[pos] & BSTR) == BSTR))
-            {
-                break;
-            }
+            RYML_ASSERT_BASIC_(getstr_(r->pos) == ref);
+            if C4_LIKELY (!detail::is_cyclic_ref_(evts.ptr, evts.len, pos, r->pos))
+                 return *r;
+            RYML_ERR_BASIC_("cyclic reference: '{}' at ALIA[{}]: ANCH at {}", ref, r->pos, pos);
         }
-        RYML_ERR_BASIC_("anchor not found at ALIA[{}]: {}", spos, ref);
+        RYML_ERR_BASIC_("anchor not found: reference at ALIA[{}]: {}", pos, ref);
     }
     evt_size count_extra(evt_size beg, evt_size end) const noexcept
     {
@@ -458,7 +553,7 @@ private:
             RYML_ERR_BASIC_("invalid inheriting reference at pos={}", pos);
         }
     }
-    void set_rref_inheriting_from_anchor_(evt_size pos)
+    void set_rref_inherit_single_(evt_size pos)
     {
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA));
@@ -466,10 +561,11 @@ private:
         clear_anchor_(pos); // clear the << scalar
         apply_inheriting_ref_entry_(pos + 3);
     }
-    void set_rref_inheriting_from_seq_(evt_size pos)
+    void set_rref_inherit_multiple_(evt_size pos)
     {
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ));
+        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 4], ievt::ALIA));
         RYML_ASSERT_BASIC_("<<" == getstr_(pos));
         if(!(evts.ptr[pos + 4] & ievt::ALIA)) // jump the scalar, then BSEQ
             return;
