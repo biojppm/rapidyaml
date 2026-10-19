@@ -423,6 +423,13 @@ RYML_EXPORT evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;
 
+inline evt_size find_next_sibling(evt_bits const* evts, evt_size sz, evt_size pos)
+{
+    if(evts[pos] & ievt::BEG_)
+        pos = detail::find_matching_close_(evts, sz, pos);
+    return ievt::nextpos(evts, pos);
+}
+
 RYML_EXPORT bool is_cyclic_ref_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size ref_pos, evt_size anchor_pos) noexcept;
 
 

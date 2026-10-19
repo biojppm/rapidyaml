@@ -338,7 +338,7 @@ public:
         // now go to all refs, and resolve them
         for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
         {
-            if(resolve_(pos))
+            if(descend_(pos))
             {
                 ;
             }
@@ -346,13 +346,13 @@ public:
         // finally:
         if(opts.clear_anchors())
             for(auto const& entry : anchor_map.m_arr)
-                clear_anchor_(entry.val.pos);
+                clear_str_(entry.val.pos);
     }
 
 
 private:
 
-    C4_NODISCARD bool resolve_(evt_size &pos)
+    C4_NODISCARD bool descend_(evt_size &pos)
     {
         bool ret = false;
         if(detail::hasall(evts.ptr[pos], ievt::BSEQ))
@@ -365,12 +365,6 @@ private:
             pos = resolve_children_map_(pos);
             ret = true;
         }
-        else if(evts.ptr[pos] & ievt::ALIA)
-        {
-            AnchorTargetRange_ rng = lookup_anchor_(pos);
-            set_rref_to_anchor_(pos, rng);
-            ret = true;
-        }
         return ret;
     }
 
@@ -380,7 +374,12 @@ private:
         ++pos;
         for( ; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
         {
-            if(resolve_(pos))
+            if(evts.ptr[pos] & ievt::ALIA)
+            {
+                AnchorTargetRange_ rng = lookup_anchor_(pos);
+                set_rref_to_anchor_(pos, rng);
+            }
+            else if(descend_(pos))
             {
                 ;
             }
@@ -395,38 +394,55 @@ private:
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent)
     {
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
-        evt_size pos = parent + 1;
-        for( ; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+        merge_map.clear();
+        for(evt_size child = parent + 1; evts.ptr[child] != ievt::ESTR; child = detail::find_next_sibling(evts.ptr, evts.len, child))
         {
-            if(resolve_(pos))
+            if(evts.ptr[child] & ievt::ALIA)
             {
-                ;
+                AnchorTargetRange_ rng = lookup_anchor_(child);
+                set_rref_to_anchor_(child, rng);
             }
-            else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR|ievt::PLAI)
+            else if(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR|ievt::PLAI)
                     &&
-                    getstr_(pos) == "<<"
+                    getstr_(child) == "<<"
                     &&
-                    validate_inherit_(pos))
+                    validate_inherit_(child))
             {
-                // clear possible anchors or tags for the << scalar
-                if(evts.ptr[pos] & ievt::PEX2)
+                // clear any anchors or tags immediately preceding the << scalar
+                if(evts.ptr[child] & ievt::PEX2)
                 {
-                    if(evts.ptr[pos - 3] & (ievt::ANCH|ievt::TAG_))
+                    if(evts.ptr[child - 3] & (ievt::ANCH|ievt::TAG_))
                     {
-                        if(detail::hasall(evts.ptr[pos - 3], ievt::TAG_|ievt::PEX2))
-                            if(evts.ptr[pos - 6] & ievt::ANCH)
-                                clear_anchor_(pos - 6);
-                        clear_anchor_(pos - 3);
+                        if(detail::hasall(evts.ptr[child - 3], ievt::TAG_|ievt::PEX2))
+                            if(evts.ptr[child - 6] & ievt::ANCH)
+                                clear_str_(child - 6);
+                        clear_str_(child - 3);
                     }
                 }
-                if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA))
+                if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::ALIA))
                 {
-                    set_rref_inherit_single_(pos);
+                    merge_map_single_(child);
                 }
-                else if(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ))
+                else if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::BSEQ))
                 {
-                    set_rref_inherit_multiple_(pos);
+                    merge_map_multiple_(child);
                 }
+            }
+            else if(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR))
+            {
+                merge_map.insert(getstr_(child)) = child;
+            }
+            else if(detail::hasall(evts.ptr[child], ievt::EMAP))
+            {
+                break;
+            }
+        }
+        evt_size pos = parent + 1;
+        for( ; evts.ptr[pos] != ievt::ESTR; pos = detail::find_next_sibling(evts.ptr, evts.len, pos))
+        {
+            if(descend_(pos))
+            {
+                ;
             }
             else if(detail::hasall(evts.ptr[pos], ievt::EMAP))
             {
@@ -532,13 +548,13 @@ private:
             RYML_ERR_BASIC_("aliasing would exceed max size limit");
         }
     }
-    void clear_anchor_(evt_size pos) // NOLINT
+    void clear_str_(evt_size pos) // NOLINT
     {
         evts.ptr[pos] &= ievt::KEY_|ievt::VAL_|ievt::PEX2; // keep only these flags (no unary ~ operator) // NOLINT
         evts.ptr[pos + 2] = evts.ptr[pos + 1] = ((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
         evts.ptr[pos + 3] &= ~ievt::PEX2;
     }
-    void apply_inheriting_ref_entry_(evt_size pos)
+    void apply_inheriting_ref_(evt_size pos)
     {
         AnchorTargetRange_ rng = lookup_anchor_(pos);
         if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
@@ -546,45 +562,45 @@ private:
             RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.end - 1], ievt::EMAP));
             ++rng.beg; // skip BMAP
             --rng.end; // skip EMAP
-            set_rref_to_anchor_(pos, rng);
+            bool use_rref = merge_map.m_arr.empty();
+            if(use_rref)
+            {
+                set_rref_to_anchor_(pos, rng);
+            }
+            else
+            {
+                RYML_ERR_BASIC_("TODO merge! pos={}", pos);
+            }
         }
         else
         {
             RYML_ERR_BASIC_("invalid inheriting reference at pos={}", pos);
         }
     }
-    void set_rref_inherit_single_(evt_size pos)
+    void merge_map_single_(evt_size pos)
     {
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA));
         RYML_ASSERT_BASIC_("<<" == getstr_(pos));
-        clear_anchor_(pos); // clear the << scalar
-        apply_inheriting_ref_entry_(pos + 3);
+        clear_str_(pos); // clear the << scalar
+        apply_inheriting_ref_(pos + 3);
     }
-    void set_rref_inherit_multiple_(evt_size pos)
+    void merge_map_multiple_(evt_size pos)
     {
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ));
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 4], ievt::ALIA));
         RYML_ASSERT_BASIC_("<<" == getstr_(pos));
-        if(!(evts.ptr[pos + 4] & ievt::ALIA)) // jump the scalar, then BSEQ
-            return;
-        clear_anchor_(pos); // clear the << scalar
+        clear_str_(pos); // clear the << scalar
         evts.ptr[pos + 3] &= ievt::KEY_|ievt::VAL_|ievt::PEX2; // keep only these flags (no unary ~ operator)
         pos += 4;
         while(true)
         {
-            if C4_LIKELY (evts.ptr[pos] & ievt::ALIA)
-            {
-                apply_inheriting_ref_entry_(pos);
-                pos = nextpos(evts.ptr, pos);
-                if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
-                    break;
-            }
-            else
-            {
-                RYML_ERR_BASIC_("invalid reference at pos={}", pos);
-            }
+            RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
+            apply_inheriting_ref_(pos);
+            pos = nextpos(evts.ptr, pos);
+            if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
+                break;
         }
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::ESEQ));
         evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
