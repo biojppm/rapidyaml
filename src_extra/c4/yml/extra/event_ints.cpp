@@ -397,8 +397,10 @@ private:
         merge_map.clear();
         for(evt_size child = parent + 1; evts.ptr[child] != ievt::ESTR; child = detail::find_next_sibling(evts.ptr, evts.len, child))
         {
+printf("aki parent=%d child=%d: 0\n", parent, child);
             if(evts.ptr[child] & ievt::ALIA)
             {
+printf("aki parent=%d child=%d: 1\n", parent, child);
                 AnchorTargetRange_ rng = lookup_anchor_(child);
                 set_rref_to_anchor_(child, rng);
             }
@@ -408,9 +410,11 @@ private:
                     &&
                     validate_inherit_(child))
             {
+printf("aki parent=%d child=%d: 2\n", parent, child);
                 // clear any anchors or tags immediately preceding the << scalar
                 if(evts.ptr[child] & ievt::PEX2)
                 {
+printf("aki parent=%d child=%d: 2.1\n", parent, child);
                     if(evts.ptr[child - 3] & (ievt::ANCH|ievt::TAG_))
                     {
                         if(detail::hasall(evts.ptr[child - 3], ievt::TAG_|ievt::PEX2))
@@ -421,19 +425,23 @@ private:
                 }
                 if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::ALIA))
                 {
+printf("aki parent=%d child=%d: 2.2\n", parent, child);
                     merge_map_single_(child);
                 }
                 else if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::BSEQ))
                 {
+printf("aki parent=%d child=%d: 2.3\n", parent, child);
                     merge_map_multiple_(child);
                 }
             }
             else if(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR))
             {
+printf("aki parent=%d child=%d: 3\n", parent, child);
                 merge_map.insert(getstr_(child)) = child;
             }
             else if(detail::hasall(evts.ptr[child], ievt::EMAP))
             {
+printf("aki parent=%d child=%d: 4\n", parent, child);
                 break;
             }
         }
@@ -554,7 +562,39 @@ private:
         evts.ptr[pos + 2] = evts.ptr[pos + 1] = ((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
         evts.ptr[pos + 3] &= ~ievt::PEX2;
     }
-    void apply_inheriting_ref_(evt_size pos)
+    bool needs_merge_(evt_size beg, evt_size end)
+    {
+        RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
+        if(!merge_map.m_arr.empty())
+        {
+            merge_map.sort();
+            while(beg < end)
+            {
+                if(detail::hasall(evts.ptr[beg], ievt::KEY_|ievt::SCLR))
+                {
+                    if(merge_map.lookup(getstr_(beg)))
+                        return true;
+                }
+                beg = detail::find_next_sibling(evts.ptr, evts.len, beg);
+            }
+        }
+        return false;
+    }
+    void add_keys_(evt_size beg, evt_size end)
+    {
+        RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
+        while(beg < end)
+        {
+            if(detail::hasall(evts.ptr[beg], ievt::KEY_|ievt::SCLR))
+            {
+                csubstr key = getstr_(beg);
+                if(!merge_map.lookup(key))
+                    merge_map.insert(key) = beg;
+            }
+            beg = detail::find_next_sibling(evts.ptr, evts.len, beg);
+        }
+    }
+    void apply_inheriting_ref_(evt_size pos, bool more)
     {
         AnchorTargetRange_ rng = lookup_anchor_(pos);
         if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
@@ -562,15 +602,12 @@ private:
             RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.end - 1], ievt::EMAP));
             ++rng.beg; // skip BMAP
             --rng.end; // skip EMAP
-            bool use_rref = merge_map.m_arr.empty();
-            if(use_rref)
-            {
+            if(!needs_merge_(rng.beg, rng.end))
                 set_rref_to_anchor_(pos, rng);
-            }
             else
-            {
                 RYML_ERR_BASIC_("TODO merge! pos={}", pos);
-            }
+            if(more)
+                add_keys_(rng.beg, rng.end);
         }
         else
         {
@@ -583,7 +620,7 @@ private:
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA));
         RYML_ASSERT_BASIC_("<<" == getstr_(pos));
         clear_str_(pos); // clear the << scalar
-        apply_inheriting_ref_(pos + 3);
+        apply_inheriting_ref_(pos + 3, false);
     }
     void merge_map_multiple_(evt_size pos)
     {
@@ -597,9 +634,11 @@ private:
         while(true)
         {
             RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
-            apply_inheriting_ref_(pos);
-            pos = nextpos(evts.ptr, pos);
-            if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
+            evt_size next = nextpos(evts.ptr, pos);
+            bool is_last = detail::hasall(evts.ptr[next], ievt::ESEQ);
+            apply_inheriting_ref_(pos, !is_last);
+            pos = next;
+            if(is_last)
                 break;
         }
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::ESEQ));
