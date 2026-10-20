@@ -345,16 +345,21 @@ void verify_visit_seq(evt_bits const* evts, evt_size evtsz,
                       evt_size const* expected, evt_size expsz)
 {
     SCOPED_TRACE("verify_visit_seq");
+    ASSERT_GE(evtsz, 2);
+    evt_size pos_estr = evtsz - 1;
+    while(evts[pos_estr] != ievt::ESTR && evts[pos_estr] != ievt::BSTR)
+        pos_estr = ievt::prevpos(evts, pos_estr);
+    ASSERT_EQ(evts[pos_estr], ievt::ESTR);
     {
         SCOPED_TRACE("fwd");
         ievt::evt_size count_fwd = 0;
-        verify_visit_seq_fwd(evts, evtsz, expected, expsz, 0, (evtsz-1), count_fwd);
+        verify_visit_seq_fwd(evts, evtsz, expected, expsz, 0, pos_estr, count_fwd);
     }
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("bwd");
         ievt::evt_size count_bwd = 0;
-        verify_visit_seq_bwd(evts, evtsz, expected, expsz, 0, (evtsz-1), count_bwd);
+        verify_visit_seq_bwd(evts, evtsz, expected, expsz, 0, pos_estr, count_bwd);
     }
     if(testing::Test::HasFailure())
     {

@@ -409,7 +409,7 @@ private:
                 csubstr key = getstr_(child);
                 // is it a merge key such as `<<: *ref` or `<<: [*ref1,*ref2]`
                 if(is_merge_(child, key))
-                    merge_elements(child);
+                    merge_elements_(child);
                 else
                     merge_map.insert(key) = child;
             }
@@ -538,7 +538,7 @@ private:
         return false;
     }
 
-    void merge_elements(evt_size child)
+    void merge_elements_(evt_size child)
     {
         // clear any anchors or tags immediately preceding the << scalar
         if(evts.ptr[child] & ievt::PEX2)
@@ -675,7 +675,7 @@ private:
         }
         wpos += num;
     }
-    bool can_resize = true;
+    bool can_resize = false;
     bool grow_evts_to_add_(evt_size extra)
     {
         evt_size slack = evts.cap - wpos;
@@ -691,6 +691,7 @@ private:
             evts = yml::detail::resize(evts, newcap, merge_map.m_arr.m_callbacks);
             return true;
         }
+        RYML_ERR_BASIC_("not implemented");
         return false;
     }
 };
