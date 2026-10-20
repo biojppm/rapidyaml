@@ -11,8 +11,9 @@ namespace yml {
 namespace extra {
 
 
-
+namespace {
 #define test_cyclic_reference_(...) SCOPED_CALL(test_cyclic_reference, (__VA_ARGS__))
+C4_NO_INLINE
 void test_cyclic_reference(ievt::TestBuffers const& ints, bool cyclic,
                            ievt::evt_bits anchor_bits, ievt::evt_size anchor_pos, csubstr anchor,
                            ievt::evt_bits ref_bits, ievt::evt_size ref_pos, csubstr ref)
@@ -21,77 +22,35 @@ void test_cyclic_reference(ievt::TestBuffers const& ints, bool cyclic,
     ASSERT_EQ(ints.getstr(anchor_pos), anchor);
     ASSERT_TRUE(ievt::detail::hasall(ints.evts.ptr[ref_pos], ref_bits|ievt::ALIA));
     ASSERT_EQ(ints.getstr(ref_pos), ref);
-    EXPECT_EQ(cyclic, ievt::detail::is_cyclic_ref_(ints.evts.ptr, ints.evts.len, ref_pos, anchor_pos));
+    if(anchor == ref)
+    {
+        EXPECT_EQ(cyclic, ievt::detail::is_cyclic_ref_(ints.evts.ptr, ints.evts.len, ref_pos, anchor_pos));
+    }
 }
-
-
-TEST(ints, cyclic_references)
+C4_NO_INLINE
+void test_cyclic_reference(ievt::TestBuffers & ints, bool cyclic)
 {
-    std::string src =
-        "- &x [a,*x]\n"
-        "- &y [b,*y]\n"
-        "- {&z x: *z}\n"  // non cyclic!
-        "- &a0\n"
-        "  - *a0\n"
-        "- &a1\n"
-        "  - - - - a\n"
-        "        - *a1\n"
-        "";
-    ievt::TestBuffers ints;
-    parse_ints(to_substr(src), &ints);
-    bool cyclic = true, noncyc/*lic*/ = false;
-    //
-    test_cyclic_reference_(ints, cyclic, ievt::VAL_, 3, "x", ievt::VAL_, 10, "x");
-    test_cyclic_reference_(ints, cyclic, ievt::VAL_, 14, "y", ievt::VAL_, 21, "y");
-    test_cyclic_reference_(ints, noncyc, ievt::KEY_, 26, "z", ievt::VAL_, 32, "z");
-    test_cyclic_reference_(ints, cyclic, ievt::VAL_, 36, "a0", ievt::VAL_, 40, "a0");
-    test_cyclic_reference_(ints, cyclic, ievt::VAL_, 44, "a1", ievt::VAL_, 54, "a1");
-    //
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 3, "x", ievt::VAL_, 21, "y");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 3, "x", ievt::VAL_, 32, "z");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 3, "x", ievt::VAL_, 40, "a0");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 3, "x", ievt::VAL_, 54, "a1");
-    //
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 14, "y", ievt::VAL_, 10, "x");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 14, "y", ievt::VAL_, 32, "z");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 14, "y", ievt::VAL_, 40, "a0");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 14, "y", ievt::VAL_, 54, "a1");
-    //
-    test_cyclic_reference_(ints, noncyc, ievt::KEY_, 26, "z", ievt::VAL_, 10, "x");
-    test_cyclic_reference_(ints, noncyc, ievt::KEY_, 26, "z", ievt::VAL_, 21, "y");
-    test_cyclic_reference_(ints, noncyc, ievt::KEY_, 26, "z", ievt::VAL_, 40, "a0");
-    test_cyclic_reference_(ints, noncyc, ievt::KEY_, 26, "z", ievt::VAL_, 54, "a1");
-    //
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 36, "a0", ievt::VAL_, 10, "x");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 36, "a0", ievt::VAL_, 21, "y");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 36, "a0", ievt::VAL_, 32, "z");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 36, "a0", ievt::VAL_, 54, "a1");
-    //
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 44, "a1", ievt::VAL_, 10, "x");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 44, "a1", ievt::VAL_, 21, "y");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 44, "a1", ievt::VAL_, 32, "z");
-    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 44, "a1", ievt::VAL_, 40, "a0");
-    //
+    RYML_TRACE_FMT("src=~~~{}~~~", escaped_scalar(ints.src));
+    if(cyclic)
+    {
+        RYML_EXPECT_ERROR(check_error_basic([&]{
+            ints.resolve();
+        }));
+    }
+    else
+    {
+        RYML_EXPECT_ERROR(check_success([&]{
+            ints.resolve();
+        }));
+    }
+    if(testing::Test::HasFailure())
+        ints.print();
 }
-#undef test_cyclic_reference_
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(ints_resolve, empty)
-{
-    ievt::TestBuffers ints;
-    ASSERT_EQ(ints.evts.ptr, nullptr);
-    ASSERT_EQ(ints.evts.len, 0);
-    ints.resolve();
-    ASSERT_EQ(ints.evts.ptr, nullptr);
-    ASSERT_EQ(ints.evts.len, 0);
-}
+bool cyclic = true, noncyc = false;
 
 
 #define test_ints_resolve(...) SCOPED_CALL(test_ints_resolve_, (__VA_ARGS__))
+C4_NO_INLINE
 void test_ints_resolve_(std::string & src,
                         std::string const& emitted_yaml,
                         std::string const& emitted_json,
@@ -100,9 +59,10 @@ void test_ints_resolve_(std::string & src,
                         cspan<ievt::evt_bits> evts_expected,
                         cspan<ievt::evt_bits> evts_resolved,
                         cspan<ievt::evt_size> pos_seq={},
-                        cspan<ievt::evt_size> pos_seq_resolved={})
+                        cspan<ievt::evt_size> pos_seq_resolved={},
+                        bool expect_resolve_error=false)
 {
-    SCOPED_TRACE("test ints resolve");
+    SCOPED_TRACE("test_ints_resolve_");
     using namespace ievt;
     TestBuffers actual;
     parse_ints(to_substr(src), &actual);
@@ -166,18 +126,23 @@ void test_ints_resolve_(std::string & src,
             }
         }
     }
+    if(expect_resolve_error)
+    {
+        RYML_EXPECT_ERROR(check_error_basic([&]{
+            actual.resolve();
+        }));
+    }
+    else
     {
         SCOPED_TRACE("resolved");
         if(pos_seq_resolved.empty())
-        {
             SCOPED_CALL(verify_visit_seq, (evts_resolved));
-        }
         else
-        {
             SCOPED_CALL(verify_visit_seq, (evts_resolved, pos_seq_resolved));
-        }
         TestBuffers expected = mkevts(actual, evts_resolved);
-        actual.resolve();
+        RYML_EXPECT_ERROR(check_success([&]{
+            actual.resolve();
+        }));
         SCOPED_CALL(expected.test_invariants, ());
         SCOPED_CALL(actual.test_invariants, ());
         actual.test_compare(expected);
@@ -209,6 +174,218 @@ void test_ints_resolve_(std::string & src,
             actual.print();
         }
     }
+}
+
+C4_NO_INLINE
+void test_ints_resolve_(std::string & src,
+                        std::string const& emitted_yaml,
+                        std::string const& emitted_json,
+                        cspan<ievt::evt_bits> evts_expected,
+                        cspan<ievt::evt_size> pos_seq={})
+{
+    test_ints_resolve_(src,
+                       emitted_yaml,
+                       emitted_json,
+                       {},
+                       {},
+                       evts_expected,
+                       {},
+                       pos_seq,
+                       {},
+                       /*expect_resolve_error*/true);
+}
+} // namespace
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(ints, cyclic_references_00)
+{
+    txtbuf src =
+        "&a b\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc);
+}
+TEST(ints, cyclic_references_00_1)
+{
+    txtbuf src =
+        "&a *a\n"
+        "";
+    ievt::TestBuffers ints;
+    RYML_EXPECT_ERROR(check_error_parse([&]{
+        parse_ints(src, &ints);
+    }));
+}
+TEST(ints, cyclic_references_00_2)
+{
+    txtbuf src =
+        "*a\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, /*expect_resolve_error*/true);
+}
+
+TEST(ints, cyclic_references_0)
+{
+    txtbuf src =
+        "- &x [a,b]\n"
+        "- &y [*x,*y]\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  3, "x", ievt::VAL_, 18, "x");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  3, "x", ievt::VAL_, 21, "y");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 14, "y", ievt::VAL_, 18, "x");
+    test_cyclic_reference_(ints, cyclic, ievt::VAL_, 14, "y", ievt::VAL_, 21, "y");
+    test_cyclic_reference_(ints, cyclic);
+}
+TEST(ints, cyclic_references_0_1)
+{
+    txtbuf src =
+        "- &x [a,b]\n"
+        "- &y [*x,*x]\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  3, "x", ievt::VAL_, 18, "x");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  3, "x", ievt::VAL_, 21, "x");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 14, "y", ievt::VAL_, 18, "x");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 14, "y", ievt::VAL_, 21, "x");
+    test_cyclic_reference_(ints, noncyc);
+}
+
+TEST(ints, cyclic_references_1_0)
+{
+    txtbuf src =
+        "{&z x: *z}\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc, ievt::KEY_,  3, "z", ievt::VAL_, 9, "z");
+    test_cyclic_reference_(ints, noncyc);
+}
+TEST(ints, cyclic_references_1_1)
+{
+    txtbuf src =
+        "&z {&x x: a, *x : *z}\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  2, "z", ievt::KEY_, 15, "x");
+    test_cyclic_reference_(ints, cyclic, ievt::VAL_,  2, "z", ievt::VAL_, 18, "z");
+    test_cyclic_reference_(ints, noncyc, ievt::KEY_,  6, "x", ievt::KEY_, 15, "x");
+    test_cyclic_reference_(ints, noncyc, ievt::KEY_,  6, "x", ievt::VAL_, 18, "z");
+    test_cyclic_reference_(ints, cyclic);
+}
+TEST(ints, cyclic_references_1_2)
+{
+    txtbuf src =
+        "&z {&x x: a, *z : *x}\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, cyclic, ievt::VAL_,  2, "z", ievt::KEY_, 15, "z");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  2, "z", ievt::VAL_, 18, "x");
+    test_cyclic_reference_(ints, noncyc, ievt::KEY_,  6, "x", ievt::KEY_, 15, "z");
+    test_cyclic_reference_(ints, noncyc, ievt::KEY_,  6, "x", ievt::VAL_, 18, "x");
+    test_cyclic_reference_(ints, cyclic);
+}
+
+TEST(ints, cyclic_references_2_0)
+{
+    txtbuf src =
+        "- &a0\n"
+        "- &a1\n"
+        "  - *a0\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  3, "a0", ievt::VAL_, 13, "a0");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  9, "a1", ievt::VAL_, 13, "a0");
+    test_cyclic_reference_(ints, noncyc);
+}
+TEST(ints, cyclic_references_2_1)
+{
+    txtbuf src =
+        "- &a0\n"
+        "- &a1\n"
+        "  - *a1\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  3, "a0", ievt::VAL_, 13, "a1");
+    test_cyclic_reference_(ints, cyclic, ievt::VAL_,  9, "a1", ievt::VAL_, 13, "a1");
+    test_cyclic_reference_(ints, cyclic);
+}
+
+
+TEST(ints, cyclic_references_3_0)
+{
+    txtbuf src =
+        "- &a0\n"
+        "  - - - - &a1\n"
+        "        - *a1\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_,  3, "a0", ievt::VAL_, 16, "a1");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 10, "a1", ievt::VAL_, 16, "a1");
+    test_cyclic_reference_(ints, noncyc);
+}
+TEST(ints, cyclic_references_3_1)
+{
+    txtbuf src =
+        "- &a0\n"
+        "  - - - - &a1\n"
+        "        - *a0\n"
+        "";
+    ievt::TestBuffers ints;
+    parse_ints(src, &ints);
+    test_cyclic_reference_(ints, cyclic, ievt::VAL_,  3, "a0", ievt::VAL_, 16, "a0");
+    test_cyclic_reference_(ints, noncyc, ievt::VAL_, 10, "a1", ievt::VAL_, 16, "a0");
+    test_cyclic_reference_(ints, cyclic);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(ints_resolve, empty)
+{
+    ievt::TestBuffers ints;
+    ASSERT_EQ(ints.evts.ptr, nullptr);
+    ASSERT_EQ(ints.evts.len, 0);
+    ints.resolve();
+    ASSERT_EQ(ints.evts.ptr, nullptr);
+    ASSERT_EQ(ints.evts.len, 0);
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(ints_resolve, 0_err_missing_anchor)
+{
+    using namespace ievt;
+    std::string src = ""
+        "*anchor\n"
+        "";
+    std::string json = ""
+        "\"anchor\""
+        "";
+    const evt_bits evts_expected[] = {
+        /*[0][0]*/ BSTR,
+        /*[1][1]*/   BDOC,
+        /*[2][2]*/     VAL_|ALIA, 1,6, /*anchor*/
+        /*[3][5]*/   EDOC|PEX2,
+        /*[4][6]*/ ESTR,
+    };
+    test_ints_resolve(src, src, json, evts_expected);
 }
 
 
@@ -1273,7 +1450,7 @@ TEST(ints_resolve, 5_inherit_seq_block)
         /*[25][53]*/         VAL_|RREF, 10,16, /*map0*/
         /*[26][56]*/         VAL_|RREF|PEX2, 24,30, /*map1*/
         /*[27][59]*/         VAL_|RREF|PEX2, 38,44, /*map2*/
-        /*[28][62]*/         PEX2,
+        /*[28][62]*/         VAL_|PEX2,
         /*[29][63]*/       EMAP,
         /*[30][64]*/     EMAP,
         /*[31][65]*/   EDOC,
@@ -1417,7 +1594,7 @@ TEST(ints_resolve, 5_inherit_seq_flowml)
         /*[25][53]*/         VAL_|RREF, 10,16, /*map0*/
         /*[26][56]*/         VAL_|RREF|PEX2, 24,30, /*map1*/
         /*[27][59]*/         VAL_|RREF|PEX2, 38,44, /*map2*/
-        /*[28][62]*/         PEX2,
+        /*[28][62]*/         VAL_|PEX2,
         /*[29][63]*/       EMAP,
         /*[30][64]*/     EMAP,
         /*[31][65]*/   EDOC,
@@ -1559,7 +1736,7 @@ TEST(ints_resolve, 5_inherit_seq_flowsl)
         /*[25][53]*/         VAL_|RREF, 10,16, /*map0*/
         /*[26][56]*/         VAL_|RREF|PEX2, 24,30, /*map1*/
         /*[27][59]*/         VAL_|RREF|PEX2, 38,44, /*map2*/
-        /*[28][62]*/         PEX2,
+        /*[28][62]*/         VAL_|PEX2,
         /*[29][63]*/       EMAP,
         /*[30][64]*/     EMAP,
         /*[31][65]*/   EDOC,
@@ -1697,7 +1874,7 @@ TEST(ints_resolve, 6_inherit_seq_with_more_members)
         /*[25][53]*/         VAL_|RREF, 10,16, /*map0*/
         /*[26][56]*/         VAL_|RREF|PEX2, 24,30, /*map1*/
         /*[27][59]*/         VAL_|RREF|PEX2, 38,44, /*map2*/
-        /*[28][62]*/         PEX2,
+        /*[28][62]*/         VAL_|PEX2,
         /*[29][63]*/       EMAP,
         /*[30][64]*/       KEY_|SCLR|PLAI, 110,7, /*another*/
         /*[31][67]*/       VAL_|SCLR|PLAI|PEX2, 119,6, /*member*/
@@ -1710,6 +1887,117 @@ TEST(ints_resolve, 6_inherit_seq_with_more_members)
 
 
 //-----------------------------------------------------------------------------
+
+TEST(ints_resolve, 7_inherit_seq_merge_0_empty)
+{
+    using namespace ievt;
+    std::string src = ""
+        "map0: &map0 {}\n"
+        "map1: &map1 {}\n"
+        "map2: &map2 {}\n"
+        "inherit:\n"
+        "  <<: [*map0,*map1,*map2]\n"
+        "";
+    std::string resolved = ""
+        "map0: {}\n"
+        "map1: {}\n"
+        "map2: {}\n"
+        "inherit:\n"
+        "  {}" // FIXME
+        "";
+    std::string json = ""
+        "{\n"
+        "  \"map0\": {},\n"
+        "  \"map1\": {},\n"
+        "  \"map2\": {},\n"
+        "  \"inherit\": {\n"
+        "    \"<<\": [\"*map0\",\"*map1\",\"*map2\"]\n"
+        "  }\n"
+        "}\n"
+        "";
+    std::string resolved_json = ""
+        "{\n"
+        "  \"map0\": {},\n"
+        "  \"map1\": {},\n"
+        "  \"map2\": {},\n"
+        "  \"inherit\": {\n"
+        "  }\n"
+        "}\n"
+        "";
+    const evt_bits evts_expected[] = {
+        /*[0][0]*/ BSTR,
+        /*[1][1]*/   BDOC,
+        /*[2][2]*/     VAL_|BMAP,
+        /*[3][3]*/       KEY_|SCLR|PLAI, 0,4,/*map0*/
+        /*[4][6]*/       VAL_|ANCH|PEX2, 7,4,/*map0*/
+        /*[5][9]*/       VAL_|BMAP|FLOW|FSL_|PEX2,
+        /*[6][10]*/       EMAP,
+        /*[7][11]*/       KEY_|SCLR|PLAI, 15,4,/*map1*/
+        /*[8][14]*/       VAL_|ANCH|PEX2, 22,4,/*map1*/
+        /*[9][17]*/       VAL_|BMAP|FLOW|FSL_|PEX2,
+        /*[10][18]*/       EMAP,
+        /*[11][19]*/       KEY_|SCLR|PLAI, 30,4,/*map2*/
+        /*[12][22]*/       VAL_|ANCH|PEX2, 37,4,/*map2*/
+        /*[13][25]*/       VAL_|BMAP|FLOW|FSL_|PEX2,
+        /*[14][26]*/       EMAP,
+        /*[15][27]*/       KEY_|SCLR|PLAI, 45,7,/*inherit*/
+        /*[16][30]*/       VAL_|BMAP|PEX2,
+        /*[17][31]*/         KEY_|SCLR|PLAI, 56,2,/*<<*/
+        /*[18][34]*/         VAL_|BSEQ|FLOW|FSL_|PEX2,
+        /*[19][35]*/           VAL_|ALIA, 62,4,/*map0*/
+        /*[20][38]*/           VAL_|ALIA|PEX2, 68,4,/*map1*/
+        /*[21][41]*/           VAL_|ALIA|PEX2, 74,4,/*map2*/
+        /*[22][44]*/         ESEQ|PEX2,
+        /*[23][45]*/       EMAP,
+        /*[24][46]*/     EMAP,
+        /*[25][47]*/   EDOC,
+        /*[26][48]*/ ESTR,
+    };
+    const evt_bits evts_resolved[] = {
+        /*[0][0]*/ BSTR,
+        /*[1][1]*/   BDOC,
+        /*[2][2]*/     VAL_|BMAP,
+        /*[3][3]*/       KEY_|SCLR|PLAI, 0,4,/*map0*/
+        /*[4][6]*/       VAL_|PEX2,
+        /*[5][7]*/       VAL_,
+        /*[6][8]*/       VAL_,
+        /*[7][9]*/       VAL_|BMAP|FLOW|FSL_,
+        /*[8][10]*/       EMAP,
+        /*[9][11]*/       KEY_|SCLR|PLAI, 15,4,/*map1*/
+        /*[10][14]*/       VAL_|PEX2,
+        /*[11][15]*/       VAL_,
+        /*[12][16]*/       VAL_,
+        /*[13][17]*/       VAL_|BMAP|FLOW|FSL_,
+        /*[14][18]*/       EMAP,
+        /*[15][19]*/       KEY_|SCLR|PLAI, 30,4,/*map2*/
+        /*[16][22]*/       VAL_|PEX2,
+        /*[17][23]*/       VAL_,
+        /*[18][24]*/       VAL_,
+        /*[19][25]*/       VAL_|BMAP|FLOW|FSL_,
+        /*[20][26]*/       EMAP,
+        /*[21][27]*/       KEY_|SCLR|PLAI, 45,7,/*inherit*/
+        /*[22][30]*/       VAL_|BMAP|PEX2,
+        /*[23][31]*/         KEY_,
+        /*[24][32]*/         KEY_,
+        /*[25][33]*/         KEY_,
+        /*[26][34]*/         VAL_,
+        /*[27][35]*/         VAL_,
+        /*[28][36]*/         VAL_,
+        /*[29][37]*/         VAL_,
+        /*[30][38]*/         VAL_,
+        /*[31][39]*/         VAL_,
+        /*[32][40]*/         VAL_,
+        /*[33][41]*/         VAL_,
+        /*[34][42]*/         VAL_,
+        /*[35][43]*/         VAL_,
+        /*[36][44]*/         VAL_,
+        /*[37][45]*/       EMAP,
+        /*[38][46]*/     EMAP,
+        /*[39][47]*/   EDOC,
+        /*[40][48]*/ ESTR,
+    };
+    test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
+}
 
 TEST(ints_resolve, 7_inherit_seq_merge)
 {
@@ -1872,19 +2160,182 @@ TEST(ints_resolve, 7_inherit_seq_merge)
         /*[39][71]*/         VAL_|RREF, 10,16,
         /*[40][74]*/         VAL_|RREF|PEX2, 91,97,
         /*[41][77]*/         VAL_|RREF|PEX2, 97,103,
-        /*[42][80]*/         PEX2,
+        /*[42][80]*/         VAL_|PEX2,
         /*[43][81]*/       EMAP,
         /*[44][82]*/       KEY_|SCLR|PLAI, 152,7,/*another*/
         /*[45][85]*/       VAL_|SCLR|PLAI|PEX2, 161,6,/*member*/
         /*[46][88]*/     EMAP|PEX2,
         /*[47][89]*/   EDOC,
         /*[48][90]*/ ESTR,
-        // these entries had to be added while merging:
+        // these entries are added while merging:
         /*[49][91]*/         KEY_|SCLR|PLAI, 53,4,/*key1*/
         /*[50][94]*/         VAL_|SCLR|PLAI|PEX2, 59,4,/*val1*/
         /*[51][97]*/         KEY_|SCLR|PLAI|PEX2, 106,4,/*key2*/
         /*[52][100]*/         VAL_|SCLR|PLAI|PEX2, 112,4,/*val2*/
         /*[53][103]*/         KEY_|PEX2,
+    };
+    test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(ints_resolve, 8_inherit_seq_merge)
+{
+    using namespace ievt;
+    std::string src = ""
+        "map0: &map0\n"
+        "  key0: val00\n"
+        "  key1: val10\n"
+        "  key2: val20\n"
+        "map1: &map1\n"
+        "  key1: val11\n"
+        "map2: &map2\n"
+        "  key2: val22\n"
+        "inherit:\n"
+        "  <<: [*map0,*map1,*map2]\n"
+        "";
+    std::string resolved = ""
+        "map0:\n"
+        "  key0: val00\n"
+        "  key1: val10\n"
+        "  key2: val20\n"
+        "map1:\n"
+        "  key1: val11\n"
+        "map2:\n"
+        "  key2: val22\n"
+        "inherit:\n"
+        "  key0: val00\n"
+        "  key1: val10\n"
+        "  key2: val20\n"
+        "";
+    std::string json = ""
+        "{\n"
+        "  \"map0\": {\n"
+        "    \"key0\": \"val00\",\n"
+        "    \"key1\": \"val10\",\n"
+        "    \"key2\": \"val20\"\n"
+        "  },\n"
+        "  \"map1\": {\n"
+        "    \"key1\": \"val11\"\n"
+        "  },\n"
+        "  \"map2\": {\n"
+        "    \"key2\": \"val22\"\n"
+        "  },\n"
+        "  \"inherit\": {\n"
+        "    \"<<\": [\"*map0\",\"*map1\",\"*map2\"]\n"
+        "  }\n"
+        "}\n"
+        "";
+    std::string resolved_json = ""
+        "{\n"
+        "  \"map0\": {\n"
+        "    \"key0\": \"val00\",\n"
+        "    \"key1\": \"val10\",\n"
+        "    \"key2\": \"val20\"\n"
+        "  },\n"
+        "  \"map1\": {\n"
+        "    \"key1\": \"val11\"\n"
+        "  },\n"
+        "  \"map2\": {\n"
+        "    \"key2\": \"val22\"\n"
+        "  },\n"
+        "  \"inherit\": {\n"
+        "    \"key0\": \"val00\",\n"
+        "    \"key1\": \"val10\",\n"
+        "    \"key2\": \"val20\"\n"
+        "  }\n"
+        "}\n"
+        "";
+    const evt_bits evts_expected[] = {
+        /*[0][0]*/ BSTR,
+        /*[1][1]*/   BDOC,
+        /*[2][2]*/     VAL_|BMAP,
+        /*[3][3]*/       KEY_|SCLR|PLAI, 0,4,/*map0*/
+        /*[4][6]*/       VAL_|ANCH|PEX2, 7,4,/*map0*/
+        /*[5][9]*/       VAL_|BMAP|PEX2,
+        /*[6][10]*/         KEY_|SCLR|PLAI, 14,4,/*key0*/
+        /*[7][13]*/         VAL_|SCLR|PLAI|PEX2, 20,5,/*val00*/
+        /*[8][16]*/         KEY_|SCLR|PLAI|PEX2, 28,4,/*key1*/
+        /*[9][19]*/         VAL_|SCLR|PLAI|PEX2, 34,5,/*val10*/
+        /*[10][22]*/         KEY_|SCLR|PLAI|PEX2, 42,4,/*key2*/
+        /*[11][25]*/         VAL_|SCLR|PLAI|PEX2, 48,5,/*val20*/
+        /*[12][28]*/       EMAP|PEX2,
+        /*[13][29]*/       KEY_|SCLR|PLAI, 54,4,/*map1*/
+        /*[14][32]*/       VAL_|ANCH|PEX2, 61,4,/*map1*/
+        /*[15][35]*/       VAL_|BMAP|PEX2,
+        /*[16][36]*/         KEY_|SCLR|PLAI, 68,4,/*key1*/
+        /*[17][39]*/         VAL_|SCLR|PLAI|PEX2, 74,5,/*val11*/
+        /*[18][42]*/       EMAP|PEX2,
+        /*[19][43]*/       KEY_|SCLR|PLAI, 80,4,/*map2*/
+        /*[20][46]*/       VAL_|ANCH|PEX2, 87,4,/*map2*/
+        /*[21][49]*/       VAL_|BMAP|PEX2,
+        /*[22][50]*/         KEY_|SCLR|PLAI, 94,4,/*key2*/
+        /*[23][53]*/         VAL_|SCLR|PLAI|PEX2, 100,5,/*val22*/
+        /*[24][56]*/       EMAP|PEX2,
+        /*[25][57]*/       KEY_|SCLR|PLAI, 106,7,/*inherit*/
+        /*[26][60]*/       VAL_|BMAP|PEX2,
+        /*[27][61]*/         KEY_|SCLR|PLAI, 117,2,/*<<*/
+        /*[28][64]*/         VAL_|BSEQ|FLOW|FSL_|PEX2,
+        /*[29][65]*/           VAL_|ALIA, 123,4,/*map0*/
+        /*[30][68]*/           VAL_|ALIA|PEX2, 129,4,/*map1*/
+        /*[31][71]*/           VAL_|ALIA|PEX2, 135,4,/*map2*/
+        /*[32][74]*/         ESEQ|PEX2,
+        /*[33][75]*/       EMAP,
+        /*[34][76]*/     EMAP,
+        /*[35][77]*/   EDOC,
+        /*[36][78]*/ ESTR,
+    };
+    const evt_bits evts_resolved[] = {
+        /*[0][0]*/ BSTR,
+        /*[1][1]*/   BDOC,
+        /*[2][2]*/     VAL_|BMAP,
+        /*[3][3]*/       KEY_|SCLR|PLAI, 0,4,/*map0*/
+        /*[4][6]*/       VAL_|PEX2,
+        /*[5][7]*/       VAL_,
+        /*[6][8]*/       VAL_,
+        /*[7][9]*/       VAL_|BMAP,
+        /*[8][10]*/         KEY_|SCLR|PLAI, 14,4,/*key0*/
+        /*[9][13]*/         VAL_|SCLR|PLAI|PEX2, 20,5,/*val00*/
+        /*[10][16]*/         KEY_|SCLR|PLAI|PEX2, 28,4,/*key1*/
+        /*[11][19]*/         VAL_|SCLR|PLAI|PEX2, 34,5,/*val10*/
+        /*[12][22]*/         KEY_|SCLR|PLAI|PEX2, 42,4,/*key2*/
+        /*[13][25]*/         VAL_|SCLR|PLAI|PEX2, 48,5,/*val20*/
+        /*[14][28]*/       EMAP|PEX2,
+        /*[15][29]*/       KEY_|SCLR|PLAI, 54,4,/*map1*/
+        /*[16][32]*/       VAL_|PEX2,
+        /*[17][33]*/       VAL_,
+        /*[18][34]*/       VAL_,
+        /*[19][35]*/       VAL_|BMAP,
+        /*[20][36]*/         KEY_|SCLR|PLAI, 68,4,/*key1*/
+        /*[21][39]*/         VAL_|SCLR|PLAI|PEX2, 74,5,/*val11*/
+        /*[22][42]*/       EMAP|PEX2,
+        /*[23][43]*/       KEY_|SCLR|PLAI, 80,4,/*map2*/
+        /*[24][46]*/       VAL_|PEX2,
+        /*[25][47]*/       VAL_,
+        /*[26][48]*/       VAL_,
+        /*[27][49]*/       VAL_|BMAP,
+        /*[28][50]*/         KEY_|SCLR|PLAI, 94,4,/*key2*/
+        /*[29][53]*/         VAL_|SCLR|PLAI|PEX2, 100,5,/*val22*/
+        /*[30][56]*/       EMAP|PEX2,
+        /*[31][57]*/       KEY_|SCLR|PLAI, 106,7,/*inherit*/
+        /*[32][60]*/       VAL_|BMAP|PEX2,
+        /*[33][61]*/         KEY_,
+        /*[34][62]*/         KEY_,
+        /*[35][63]*/         KEY_,
+        /*[36][64]*/         VAL_,
+        /*[37][65]*/         VAL_|RREF, 10,28,
+        /*[38][68]*/         VAL_|PEX2,
+        /*[39][69]*/         VAL_,
+        /*[40][70]*/         VAL_,
+        /*[41][71]*/         VAL_,
+        /*[42][72]*/         VAL_,
+        /*[43][73]*/         VAL_,
+        /*[44][74]*/         VAL_,
+        /*[45][75]*/       EMAP,
+        /*[46][76]*/     EMAP,
+        /*[47][77]*/   EDOC,
+        /*[48][78]*/ ESTR,
     };
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
 }

@@ -61,7 +61,7 @@ void test_basic(size_t num, size_t den)
     for(size_t i = 0; i < num_elms; ++i)
     {
         K val = static_cast<K>(num_elms - i);
-        map.insert(val, val);
+        map.insert(val) = val;
     }
     if(num_elms > map.m_small_limit)
         map.sort();

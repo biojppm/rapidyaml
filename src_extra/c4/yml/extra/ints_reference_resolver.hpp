@@ -49,21 +49,26 @@ private:
     evt_size sz_limit;
     ResolveOptions opts;
     map<csubstr, AnchorTargetRange_> anchor_map;
-    map<csubstr, evt_size> merge_map;
+    map<csubstr, evt_size> known_keys;
+    vec<evt_size, 32> parents;
+    vec<evt_size, 32> siblings;
     bool can_resize;
 
 private:
 
     void resolve_(Buffers *evts_, ResolveOptions const& opts_);
     void reset_(Buffers evts_, bool can_resize_, ResolveOptions opts_);
+    C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
+    C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
+    C4_NODISCARD bool is_cyclic_ref_(evt_size anchor) const noexcept;
     C4_NODISCARD bool descend_(evt_size &pos);
     C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
     void add_anchor_(evt_size pos);
     AnchorTargetRange_ lookup_anchor_(evt_size pos) const;
-    evt_size count_extra(evt_size beg, evt_size end) const noexcept;
+    C4_NODISCARD evt_size count_extra(evt_size beg, evt_size end) const noexcept;
+    void set_noref_(evt_size pos);
     void set_rref_(evt_size pos, evt_size beg, evt_size end);
-    void set_rref_to_anchor_(evt_size pos, evt_size beg, evt_size end);
     void clear_str_(evt_size pos);
     bool is_merge_map_(evt_size pos, csubstr key) const;
     void handle_merge_map_(evt_size child);
@@ -71,7 +76,8 @@ private:
     void merge_map_multiple_(evt_size pos);
     void apply_merge_ref_(evt_size pos, bool more);
     bool needs_merge_key_by_key_(evt_size beg, evt_size end);
-    void add_merge_elms_(evt_size beg, evt_size end, bool copy_nonexisting, bool more_to_add);
+    void add_to_known_keys_(evt_size beg, evt_size end);
+    void add_merge_elms_(evt_size beg, evt_size end, bool more_to_add);
     void copy_keyval_to_end_(evt_size keyval);
     bool grow_evts_to_add_(evt_size extra);
 
