@@ -657,9 +657,11 @@ private:
         evt_size val = detail::find_next_entry_(evts.ptr, evts.len, keyval, ievt::VAL_);
         RYML_ASSERT_BASIC_(evts.ptr[val] & ievt::VAL_);
         evt_size num;
+        evt_bits sentinel = ievt::KEY_;
         if(evts.ptr[val] & ievt::SCLR) // scalars
         {
             num = val + 3 - keyval;
+            sentinel |= ievt::PEX2;
         }
         else // containers
         {
@@ -672,20 +674,22 @@ private:
         {
             memcpy(evts.ptr + wpos, evts.ptr + keyval, static_cast<size_t>(num) * sizeof(evt_size));
             evts.len += num;
+            RYML_ASSERT_BASIC_(evts.cap > evts.len); // there must be room for the sentinel
+            evts.ptr[evts.len] = sentinel;
         }
         wpos += num;
     }
     bool can_resize = false;
     bool grow_evts_to_add_(evt_size extra)
     {
-        evt_size slack = evts.cap - wpos;
-        if(slack > extra)
+        evt_size slack = evts.cap - wpos - 1;
+        if(slack >= extra)
         {
             return true;
         }
         else if(can_resize)
         {
-            evt_size newcap = wpos + extra;
+            evt_size newcap = wpos + extra + 1;
             evt_size nextcap = (3 * evts.cap) / 2; // do not grow too quick
             newcap = newcap > nextcap ? newcap : nextcap;
             evts = yml::detail::resize(evts, newcap, merge_map.m_arr.m_callbacks);
