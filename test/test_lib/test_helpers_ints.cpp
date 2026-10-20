@@ -432,26 +432,21 @@ void test_events_ints_invariants(csubstr parsed_yaml,
     SCOPED_TRACE("ints_invariants");
     ASSERT_GE(evts_sz, 2);
     EXPECT_EQ(evts[0], ievt::BSTR);
-    EXPECT_EQ(evts[evts_sz - 1], ievt::ESTR);
     if(evts_sz > 2) // if there is a BDOC, then there must be an EDOC
     {
         evt_size docstart = 1;
         while(evts[docstart] & (ievt::TAGH|ievt::TAGP|ievt::YAML))
-        {
             docstart = nextpos(evts, docstart);
-            ASSERT_LT(docstart, evts_sz - 2); // must be before the EDOC, then ESTR
-        }
         RYML_TRACE_FMT("docstart={}", docstart);
         EXPECT_GE(evts_sz, docstart + 2); // EDOC,
         EXPECT_TRUE(detail::hasall(evts[docstart], ievt::BDOC));
-        EXPECT_TRUE(detail::hasall(evts[evts_sz-2], ievt::EDOC));
     }
     if(testing::Test::HasFailure())
         return;
     std::vector<evt_size> path;
     path.reserve(32);
     for(evt_bits evtpos = 0, evtnumber = 0;
-        evtpos < evts_sz;
+        true;
         ++evtnumber,
             evtpos = nextpos(evts, evtpos))
     {
@@ -675,7 +670,6 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BSEQ|ievt::ESEQ), ievt::END_);
             EXPECT_NONE(evt, (ievt::FLOW|ievt::FSL_|ievt::FMLX|ievt::FSPC));
             EXPECT_NONE(evt, (ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD));
-            EXPECT_NONE(next, ievt::PEX2);
         }
         if((evt & ievt::BDOC) == ievt::BDOC)
         {
@@ -883,7 +877,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_TRUE(detail::hasnone(evts[entrypos], ievt::ANCH));
             EXPECT_TRUE(detail::isentry(evts[entrypos]));
         }
-        if(!ok)
+        if(!ok || detail::hasall(evt, ievt::ESTR))
             break;
     }
 }

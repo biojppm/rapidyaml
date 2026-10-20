@@ -179,6 +179,8 @@ if(RYML_EXTRA_ALL
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/event_handler_ints.hpp"
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/emitter_ints.hpp"
             "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/emitter_ints.def.hpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_reference_resolver.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src_extra/c4/yml/extra/ints_reference_resolver.hpp"
         )
     endif()
     if(RYML_EXTRA_INTS_UTILS OR RYML_EXTRA_ALL)

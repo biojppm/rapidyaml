@@ -62,6 +62,8 @@ public:
 
 public:
 
+    small_map(Callbacks const& cb={}) : m_arr(cb) {}
+
     void clear()
     {
         m_arr.clear();
