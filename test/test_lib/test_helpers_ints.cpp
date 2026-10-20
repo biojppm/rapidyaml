@@ -40,38 +40,38 @@ void test_events_ints_compare(ievt::Buffers const& expect, ievt::Buffers const& 
                        " evtid=" << count << "\n"           \
                     << " pos_actual=" << pos_actual << "\n" \
                     << " pos_expect=" << pos_expect << "\n"
-        #define SHOWINFOSTR SHOWINFO \
-                << " actual=" << (testing::Message() << as) << "\n" \
-                << " expected=" << (testing::Message() << es) << "\n"
+        #define SHOWINFOSTR(as,es) SHOWINFO \
+                << " " << #as << "=" << (testing::Message() << (as)) << "\n" \
+                << " " << #es << "=" << (testing::Message() << (es)) << "\n"
         if(evt_actual != evt_expect)
         {
             evt_bits diff = evt_actual ^ evt_expect;
             if(diff & (~mask_ignore))
             {
-                csubstr as = ievt::to_str_sub(abuf, evt_actual);
-                csubstr es = ievt::to_str_sub(ebuf, evt_expect);
-                EXPECT_EQ(evt_actual, evt_expect) << SHOWINFOSTR;
+                csubstr ty_actual = ievt::to_str_sub(abuf, evt_actual);
+                csubstr ty_expect = ievt::to_str_sub(ebuf, evt_expect);
+                EXPECT_EQ(evt_actual, evt_expect) << SHOWINFOSTR(ty_actual, ty_expect);
             }
             break;
         }
         if(evt_actual & ievt::WSTR)
         {
-            const csubstr as = actual.getstr(pos_actual);
-            const csubstr es = expect.getstr(pos_expect);
-            if(as != es)
+            const csubstr scalar_actual = actual.getstr(pos_actual);
+            const csubstr scalar_expect = expect.getstr(pos_expect);
+            if(scalar_actual != scalar_expect)
             {
-                EXPECT_EQ(as, es) << SHOWINFOSTR;
+                EXPECT_EQ(scalar_actual, scalar_expect) << SHOWINFOSTR(scalar_actual, scalar_expect);
                 break;
             }
         }
         if(evt_actual & ievt::RREF)
         {
-            evt_bits const *as = actual.evts.ptr + pos_actual;
-            evt_bits const *es = expect.evts.ptr + pos_expect;
-            if(as[1] != es[1] || as[2] != es[2])
+            evt_bits const *ref_actual = actual.evts.ptr + pos_actual;
+            evt_bits const *ref_expect = expect.evts.ptr + pos_expect;
+            if(ref_actual[1] != ref_expect[1] || ref_actual[2] != ref_expect[2])
             {
-                EXPECT_EQ(as[1], es[1]) << SHOWINFO;
-                EXPECT_EQ(as[2], es[2]) << SHOWINFO;
+                EXPECT_EQ(ref_actual[1], ref_expect[1]) << SHOWINFO;
+                EXPECT_EQ(ref_actual[2], ref_expect[2]) << SHOWINFO;
                 break;
             }
         }

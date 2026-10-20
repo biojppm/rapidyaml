@@ -112,9 +112,9 @@ struct TestBuffers : public ievt::Buffers
         if(owned)
         {
             if(evts.ptr)
-                callbacks.m_free(evts.ptr, static_cast<size_t>(evts.cap) * sizeof(evts.ptr[0]), callbacks.m_user_data);
+                RYML_CB_FREE_(callbacks, evts.ptr, evt_size, static_cast<size_t>(evts.len));
             if(arena.str)
-                callbacks.m_free(arena.str, arena.len * sizeof(arena.str[0]), callbacks.m_user_data);
+                RYML_CB_FREE_(callbacks, arena.str, char, arena.len);
         }
         evts = {};
         src = {};
@@ -138,6 +138,16 @@ struct TestBuffers : public ievt::Buffers
         owned = that->owned;
         that->owned = false;
         that->destroy();
+    }
+
+    void copy_from(TestBuffers const& that)
+    {
+        destroy();
+        src = that.src;
+        evts = yml::detail::resize(evts, that.evts.len, that.callbacks);
+        arena = yml::detail::resize(arena, that.arena.len, that.callbacks);
+        callbacks = that.callbacks;
+        owned = true;
     }
 
 public:

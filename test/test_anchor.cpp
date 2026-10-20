@@ -1660,7 +1660,7 @@ N(SB, L{
 })
 );
 
-ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
+ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS/*|NO_COMPARE_RESOLVED_INTS*/,
 R"(# https://yaml.org/type/merge.html
 - &CENTER { x: 1, y: 2 }
 - &LEFT { x: 0, y: 2 }
@@ -1692,8 +1692,8 @@ R"(# https://yaml.org/type/merge.html
 N(SB, L{
     N(MFS, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2")}),
     N(MFS, L{N(KP|VP, "x", "0" ), N(KP|VP, "y", "2")}),
-    N(MFS, L{N(KP|VP, "r", "10")             }),
-    N(MFS, L{N(KP|VP, "r", "1" )             }),
+    N(MFS, L{N(KP|VP, "r", "10")}),
+    N(MFS, L{N(KP|VP, "r", "1" )}),
     N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
     N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
     N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),

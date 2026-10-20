@@ -73,6 +73,7 @@ inline void PrintTo(Callbacks const& cb, ::std::ostream* os)
 
 struct txtbuf : std::string
 {
+    using std::string::string;
     operator c4::substr() noexcept { return c4::substr{&(*this)[0], size()}; }//NOLINT
     operator c4::csubstr() const noexcept { return c4::csubstr{&(*this)[0], size()}; }//NOLINT
 };

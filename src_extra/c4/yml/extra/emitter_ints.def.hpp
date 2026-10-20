@@ -55,6 +55,19 @@ inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size e
 {
     return get_all_bits_key_or_val_(evts, evts_size, pos) & (detail::mask_seqmap);
 }
+inline bool isempty(evt_bits const* C4_RESTRICT evts, evt_size beg)
+{
+    RYML_ASSERT_BASIC_(detail::seqormap(evts[beg]));
+    ++beg;
+    while(true)
+    {
+        if(evts[beg] & (ievt::SCLR|ievt::BEG_|ievt::TAG_|ievt::ANCH|ievt::RREF))
+            return false;
+        else if(evts[beg] & ievt::END_)
+            return true;
+        beg = nextpos(evts, beg);
+    }
+}
 } // namespace detail
 
 
@@ -450,8 +463,9 @@ evt_size EmitterInts<Writer>::visit_blck_container_(evt_size pos)
     evt_bits evt = m_evts[pos];
     RYML_ASSERT_BASIC_(detail::seqormap(evt));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
-    if((m_evts[pos + 1] & ievt::END_) && !(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX)))
-        evt |= ievt::FLOW|ievt::FSL_;
+    if(!(evt & (ievt::FLOW|ievt::FSL_|ievt::FMLX)))
+        if(detail::isempty(m_evts, pos))
+            evt |= ievt::FLOW|ievt::FSL_;
     write_pws_and_pend_(PWS_NONE_);
     if(evt & ievt::FSL_)
         pos = visit_flow_sl_(pos);
