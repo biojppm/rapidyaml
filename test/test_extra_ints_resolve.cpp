@@ -1884,7 +1884,7 @@ TEST(ints_resolve, 7_inherit_seq_merge)
         /*[50][94]*/         VAL_|SCLR|PLAI|PEX2, 59,4,/*val1*/
         /*[51][97]*/         KEY_|SCLR|PLAI|PEX2, 106,4,/*key2*/
         /*[52][100]*/         VAL_|SCLR|PLAI|PEX2, 112,4,/*val2*/
-        /*[53][103]*/         VAL_|PEX2,
+        /*[53][103]*/         KEY_|PEX2,
     };
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
 }
