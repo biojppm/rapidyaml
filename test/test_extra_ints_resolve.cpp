@@ -1870,8 +1870,8 @@ TEST(ints_resolve, 7_inherit_seq_merge)
         /*[37][69]*/         KEY_,
         /*[38][70]*/         VAL_,
         /*[39][71]*/         VAL_|RREF, 10,16,
-        /*[40][74]*/         VAL_|RREF|PEX2, 24,36,
-        /*[41][77]*/         VAL_|RREF|PEX2, 44,62,
+        /*[40][74]*/         VAL_|RREF|PEX2, 91,97,
+        /*[41][77]*/         VAL_|RREF|PEX2, 97,103,
         /*[42][80]*/         PEX2,
         /*[43][81]*/       EMAP,
         /*[44][82]*/       KEY_|SCLR|PLAI, 152,7,/*another*/
@@ -1879,6 +1879,11 @@ TEST(ints_resolve, 7_inherit_seq_merge)
         /*[46][88]*/     EMAP|PEX2,
         /*[47][89]*/   EDOC,
         /*[48][90]*/ ESTR,
+        // these entries had to be added while merging:
+        /*[49][91]*/         KEY_|SCLR|PLAI, 53,4,/*key1*/
+        /*[50][94]*/         VAL_|SCLR|PLAI|PEX2, 59,4,/*val1*/
+        /*[51][97]*/         KEY_|SCLR|PLAI|PEX2, 106,4,/*key2*/
+        /*[52][100]*/         VAL_|SCLR|PLAI|PEX2, 112,4,/*val2*/
     };
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
 }
