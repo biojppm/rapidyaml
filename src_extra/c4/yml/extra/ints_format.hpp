@@ -38,7 +38,7 @@ void format_ints(Writer &writer,
     evt_size level = 0;
     bool uses_arena = false;
     for(evt_bits evtpos = 0, evtnumber = 0;
-        true;
+        evtpos < evts_sz;
         ++evtnumber,
             evtpos = ievt::nextpos(evts, evtpos))
     {
@@ -91,8 +91,6 @@ void format_ints(Writer &writer,
             writer.append(to_chars_sub(buf, end));
         }
         writer.append('\n');
-        if(evts[evtpos] == ievt::ESTR)
-            break;
     }
     writer.append("src.len=");
     writer.append(to_chars_sub(buf, parsed_yaml.len));

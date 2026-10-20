@@ -12,6 +12,7 @@
 #include <c4/yml/extra/ints_utils.hpp>
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
+#include <c4/yml/extra/ints_reference_resolver.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <c4/span.hpp>
 #endif
@@ -206,7 +207,17 @@ public:
 
     void resolve(ResolveOptions const& opts={})
     {
-        resolve_refs(evts.ptr, evts.len, src, arena, opts);
+        ReferenceResolver res;
+        if(owned)
+        {
+            res.resolve_resize(this, opts);
+        }
+        else
+        {
+            Buffers& this_ = *this;
+            evt_size reqsize = res.resolve_noresize(this_, opts);
+            ASSERT_EQ(evts.len, reqsize);
+        }
     }
 
 public:
