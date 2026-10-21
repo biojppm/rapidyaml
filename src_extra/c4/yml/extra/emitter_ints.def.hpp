@@ -684,7 +684,7 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
             pos = rref_start_(pos, &rref_handler);
             continue;
         }
-        if(statenew)
+        if(statenew && (evt & (~ievt::PEX2)))
         {
             if(statekey)
             {
@@ -1031,7 +1031,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
             pos = rref_start_(pos, &rref_handler);
             continue;
         }
-        if(statenew)
+        if(statenew && (evt & (~ievt::PEX2)))
         {
             if(statekey)
             {
@@ -1130,7 +1130,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
             pos = rref_start_(pos, &rref_handler);
             continue;
         }
-        if(statenew)
+        if(statenew && (evt & (~ievt::PEX2)))
         {
             if(statekey)
             {

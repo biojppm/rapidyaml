@@ -234,21 +234,13 @@ public:
 
     void print(bool print_all=false) const
     {
-        evt_size sz = print_all ? evts.cap : num_ints();
+        evt_size sz = print_all ? evts.cap : evts.len;
         ievt::events_ints_print(to_csubstr(src), to_csubstr(arena), evts.ptr, sz);
     }
 
     evt_size num_ints() const
     {
-        evt_size sz = evts.len;
-        for(evt_size i = 0; i < sz; ++i)
-        {
-            if(evts.ptr[i] & extra::ievt::WSTR) // NOLINT
-                i += 2; // NOLINT
-            else if(!evts.ptr[i])
-                return i;
-        }
-        return sz;
+        return evts.len;
     }
 
 public:

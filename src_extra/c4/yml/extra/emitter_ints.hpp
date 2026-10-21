@@ -260,7 +260,7 @@ private:
         h->pos_refend = m_evts[pos + 2];
         h->pos_resume = pos + 3;
         h->active = true;
-        if((m_evts[h->pos_resume] & (~(ievt::KEY_|ievt::VAL_))) == ievt::PEX2)
+        while(!(m_evts[h->pos_resume] & ~ievt::PEX2))
             ++h->pos_resume;
         return m_evts[pos + 1];
     }

@@ -261,9 +261,9 @@ evt_size ReferenceResolver::count_extra(evt_size beg, evt_size end) const noexce
 
 void ReferenceResolver::clear_str_(evt_size pos)
 {
-    evts.ptr[pos] &= ievt::KEY_|ievt::VAL_|ievt::PEX2; // keep only these flags (no unary ~ operator)
-    evts.ptr[pos + 1] = ((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
-    evts.ptr[pos + 2] = ((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
+    evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
+    evts.ptr[pos + 1] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
+    evts.ptr[pos + 2] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
     evts.ptr[pos + 3] &= ~ievt::PEX2;
 }
 
@@ -271,9 +271,9 @@ void ReferenceResolver::set_noref_(evt_size pos)
 {
     RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
     RYML_ASSERT_BASIC_(evts.ptr[pos + 3] & ievt::PEX2);
-    evts.ptr[pos] &= ~ievt::ALIA;
-    evts.ptr[pos + 1] = ((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
-    evts.ptr[pos + 2] = ((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
+    evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
+    evts.ptr[pos + 1] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
+    evts.ptr[pos + 2] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
     evts.ptr[pos + 3] &= ~ievt::PEX2;
 }
 
@@ -285,7 +285,7 @@ void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
     newsz += extra;
     if C4_LIKELY (!sz_limit || newsz < sz_limit)
     {
-        evts.ptr[pos] &= ~ievt::ALIA;
+        evts.ptr[pos] &= ~(ievt::ALIA|ievt::KEY_|ievt::VAL_);
         evts.ptr[pos] |= ievt::RREF;
         evts.ptr[pos + 1] = beg;
         evts.ptr[pos + 2] = end;
@@ -374,7 +374,7 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos)
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 4], ievt::ALIA));
     RYML_ASSERT_BASIC_("<<" == getstr(pos));
     clear_str_(pos); // clear the << scalar
-    evts.ptr[pos + 3] = ievt::VAL_; // keep only these flags (no unary ~ operator)
+    evts.ptr[pos + 3] = 0; // clear the BSEQ
     pos += 4;
     while(true)
     {
@@ -388,7 +388,6 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos)
     }
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::ESEQ));
     evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
-    evts.ptr[pos] |= ievt::VAL_;
 }
 
 void ReferenceResolver::apply_merge_ref_(evt_size pos, bool more)
