@@ -254,9 +254,7 @@ static void _test_parse_to_ints(Case const* c, substr src, extra::ievt::TestBuff
                     SCOPED_TRACE("expect success");
                     bool resolveok = false;
                     RYML_EXPECT_ERROR(check_success([&]{
-ints->print();
                         ints->resolve();
-ints->print();
                         resolveok = true;
                     }));
                     if(resolveok)

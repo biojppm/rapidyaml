@@ -380,13 +380,9 @@ inline void test_resolve(ResolveOptions opts, std::string const& yaml, std::stri
     SCOPED_CALL(test_emit_yaml, (ti, yaml));
     SCOPED_CALL(test_resolve, (ti, opts));
     if(!resolved.empty())
-    {
         SCOPED_CALL(test_emit_yaml, (ti, resolved));
-    }
     else
-    {
         SCOPED_CALL(test_emit_yaml, (ti, yaml));
-    }
 }
 inline void test_resolve(std::string const& yaml, std::string const& resolved={})
 {
@@ -396,6 +392,20 @@ inline void test_resolve_err(std::string const& yaml, ResolveOptions opts={})
 {
     TreeAndInts ti(to_csubstr(yaml));
     SCOPED_CALL(test_resolve_err, (ti, opts));
+}
+inline void test_emit_resolve_err(std::string const& yaml, std::string const& json, ResolveOptions opts={})
+{
+    TreeAndInts ti(to_csubstr(yaml));
+    SCOPED_CALL(test_emit_yaml, (ti, yaml));
+    SCOPED_CALL(test_emit_json, (ti, json));
+    SCOPED_CALL(test_resolve_err, (ti, opts));
+}
+inline void test_emit_resolve(std::string const& src, std::string const& yaml, std::string const& json, ResolveOptions opts={})
+{
+    TreeAndInts ti(to_csubstr(src));
+    SCOPED_CALL(test_resolve, (ti, opts));
+    SCOPED_CALL(test_emit_yaml, (ti, yaml));
+    SCOPED_CALL(test_emit_json, (ti, json));
 }
 
 } // namespace yml
