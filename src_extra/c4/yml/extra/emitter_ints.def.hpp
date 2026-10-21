@@ -55,17 +55,37 @@ inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size e
 {
     return get_all_bits_key_or_val_(evts, evts_size, pos) & (detail::mask_seqmap);
 }
-inline bool isempty(evt_bits const* C4_RESTRICT evts, evt_size beg)
+inline bool isempty_rref(evt_bits const* C4_RESTRICT evts, evt_size pos)
 {
-    RYML_ASSERT_BASIC_(detail::seqormap(evts[beg]));
-    ++beg;
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::RREF);
+    evt_size end = evts[pos + 2];
+    pos = evts[pos + 1];
+    pos += 3;
+    while(pos != end)
+    {
+        if(evts[pos] & (ievt::SCLR|ievt::BEG_|ievt::TAG_|ievt::ANCH|ievt::ALIA))
+            return false;
+        else if(evts[pos] & ievt::RREF)
+            return isempty_rref(evts, pos);
+        else if(evts[pos] & ievt::END_)
+            return true;
+        pos = nextpos(evts, pos);
+    }
+    return true;
+}
+inline bool isempty(evt_bits const* C4_RESTRICT evts, evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::seqormap(evts[pos]));
+    ++pos;
     while(true)
     {
-        if(evts[beg] & (ievt::SCLR|ievt::BEG_|ievt::TAG_|ievt::ANCH|ievt::RREF))
+        if(evts[pos] & (ievt::SCLR|ievt::BEG_|ievt::TAG_|ievt::ANCH|ievt::ALIA))
             return false;
-        else if(evts[beg] & ievt::END_)
+        else if(evts[pos] & ievt::RREF)
+            return isempty_rref(evts, pos);
+        else if(evts[pos] & ievt::END_)
             return true;
-        beg = nextpos(evts, beg);
+        pos = nextpos(evts, pos);
     }
 }
 } // namespace detail

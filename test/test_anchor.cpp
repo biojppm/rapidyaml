@@ -192,74 +192,112 @@ TEST(anchors, cyclic_roundtrips_ok)
     ASSERT_TRUE(ti.tree[0].is_val_ref());
     EXPECT_EQ(ti.tree.rootref().val_anchor(), "x");
     EXPECT_EQ(ti.tree[0].val_ref(), "x");
-    SCOPED_CALL(test_emit_yaml, (ti, yaml));
+    SCOPED_CALL(test_emit_resolve_err, (yaml, "[\n  \"*x\"\n]\n"));
 }
 
 
 
-// Resolving a reference whose target is itself or an ancestor would
-// materialize the target subtree (which contains the reference) into
-// a location inside itself, recursing without bound. It must be
-// rejected rather than overflowing the stack.
 TEST(anchors, err_on_cyclic_reference_1)
 {
-    SCOPED_CALL(test_resolve_err, (
-        ""
+    SCOPED_CALL(test_emit_resolve_err, (
         "&x\n"
         "- *x\n"
+        ,
+        "[\n"
+        "  \"*x\"\n"
+        "]\n"
         ""));
 }
 
 TEST(anchors, err_on_cyclic_reference_2)
 {
-    SCOPED_CALL(test_resolve_err, ("&x {a: *x}"));
+    SCOPED_CALL(test_emit_resolve_err, ("&x {a: *x}", "{\"a\": \"*x\"}"));
 }
 
 TEST(anchors, err_on_cyclic_reference_2_1)
 {
     // this is legal (and not cyclic):
-    SCOPED_CALL(test_resolve, ("{&x a: *x}", "{a: a}"));
+    SCOPED_CALL(test_emit_resolve, (
+                    "{&x a: *x}",
+                    "{a: a}",
+                    "{\"a\": \"a\"}"
+                    ""));
 }
 
 TEST(anchors, err_on_cyclic_reference_3)
 {
-    SCOPED_CALL(test_resolve_err, (
+    SCOPED_CALL(test_emit_resolve_err, (
         ""
         "&x\n"
         "- - - - a\n"
         "      - *x\n"
+        ,
+        ""
+        "[\n"
+        "  [\n"
+        "    [\n"
+        "      [\n"
+        "        \"a\",\n"
+        "        \"*x\"\n"
+        "      ]\n"
+        "    ]\n"
+        "  ]\n"
+        "]\n"
         ""));
 }
 
 TEST(anchors, err_on_cyclic_reference_4)
 {
-    SCOPED_CALL(test_resolve_err, (
+    SCOPED_CALL(test_emit_resolve_err, (
         ""
         "&x\n"
         "a:\n"
         "  <<: *x\n"
+        ,
+        "{\n"
+        "  \"a\": {\n"
+        "    \"<<\": \"*x\"\n"
+        "  }\n"
+        "}\n"
         ""));
 }
 
 TEST(anchors, err_on_cyclic_reference_5)
 {
-    SCOPED_CALL(test_resolve_err, (
+    SCOPED_CALL(test_emit_resolve_err, (
         ""
         "&x\n"
         "a:\n"
         "  <<: [*x,*x,*x]\n"
+        ,
+        "{\n"
+        "  \"a\": {\n"
+        "    \"<<\": [\"*x\",\"*x\",\"*x\"]\n"
+        "  }\n"
+        "}\n"
         ""));
 }
 
 TEST(anchors, err_on_cyclic_reference_6)
 {
-    SCOPED_CALL(test_resolve_err, (
+    SCOPED_CALL(test_emit_resolve_err, (
         ""
         "map0: &map0\n"
         "  k0: v0\n"
         "map1: &map1\n"
         "  k1: v1\n"
         "  <<: [*map0,*map1]\n"
+        ,
+        ""
+        "{\n"
+        "  \"map0\": {\n"
+        "    \"k0\": \"v0\"\n"
+        "  },\n"
+        "  \"map1\": {\n"
+        "    \"k1\": \"v1\",\n"
+        "    \"<<\": [\"*map0\",\"*map1\"]\n"
+        "  }\n"
+        "}\n"
         ""));
 }
 
@@ -1008,7 +1046,7 @@ tpl: &anchor
     EXPECT_EQ(tree["<<"].val(), "not a reference");
     EXPECT_EQ(ti.ints.getstr(49), "not a reference");
     EXPECT_EQ(tree["it"].val(), "works");
-    EXPECT_EQ(evt.ptr[69], extra::ievt::VAL_|extra::ievt::RREF); // NOLINT
+    EXPECT_EQ(evt.ptr[69], extra::ievt::RREF); // NOLINT
     EXPECT_EQ(evt.ptr[70], 59);
     EXPECT_EQ(evt.ptr[71], 65);
     EXPECT_EQ(ti.ints.getstr(59), "it");
@@ -1673,31 +1711,31 @@ R"(# https://yaml.org/type/merge.html
   x: 1
   y: 2
   r: 10
-  label: center/big
+  label: center/big0
 
 - # Merge one map
   << : *CENTER
   r: 10
-  label: center/big
+  label: center/big1
 
 - # Merge multiple maps
   << : [ *CENTER, *BIG ]
-  label: center/big
+  label: center/big2
 
 - # Override
   << : [ *SMALL, *LEFT, *BIG ]
   x: 1
-  label: center/big
+  label: center/big3
 )",
 N(SB, L{
     N(MFS, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2")}),
     N(MFS, L{N(KP|VP, "x", "0" ), N(KP|VP, "y", "2")}),
     N(MFS, L{N(KP|VP, "r", "10")}),
     N(MFS, L{N(KP|VP, "r", "1" )}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big0")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big1")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big2")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big3")}),
 })
 );
 

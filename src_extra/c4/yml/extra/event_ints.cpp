@@ -85,7 +85,9 @@ evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evt
     const evt_bits stop = (evts[pos] & ievt::KEY_) ? ievt::VAL_ : ievt::KEY_;
     for( ; pos < evts_size; pos = ievt::nextpos(evts, pos))
     {
-        if(evts[pos] & stop)
+        if(!(evts[pos] & ievt::EXT2))
+            continue;
+        else if(evts[pos] & stop)
             break;
         accum |= evts[pos];
     }
