@@ -168,6 +168,21 @@ evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_siz
     RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
 }
 
+evt_size find_prev_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val)
+{
+    (void)sz;
+    evt_bits evt = evts[pos];
+    pos = ievt::prevpos(evt, pos);
+    while(true)
+    {
+        evt = evts[pos];
+        if((evt & key_or_val) && detail::isentry(evt))
+            return pos;
+        pos -= ievt::prevstep(evt);
+    } while( ! detail::hasall(evt, ESTR));
+    RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
+}
+
 
 MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept
 {

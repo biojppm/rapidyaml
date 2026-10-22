@@ -236,6 +236,12 @@ typedef enum : evt_bits { // NOLINT
     //-------------------------------------------------------------------------
     // NON-YAML FLAGS
 
+    /// WithSTRing: mask of all events that encode a string following
+    /// the event. For such events, the next two integers after the
+    /// event specify respectively the string's offset and length. See
+    /// also @ref EXT2 and @ref PEX2 .
+    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
+
     /// Special flag to mark events whose string was placed in the
     /// arena. This happens when the filtered string is larger than
     /// the original string in the YAML code (eg from tags that
@@ -264,12 +270,6 @@ typedef enum : evt_bits { // NOLINT
     /// positions. Without this flag it would be impossible to jump
     /// back to the previous event. See also @ref EXT2 .
     PEX2 = (1 << 26),
-
-    /// WithSTRing: mask of all events that encode a string following
-    /// the event. For such events, the next two integers after the
-    /// event specify respectively the string's offset and length. See
-    /// also @ref EXT2 and @ref PEX2 .
-    WSTR = SCLR|ALIA|ANCH|TAG_|TAGH|TAGP|YAML,
 
     /// EXTra2: mask of all events that are followed by two extra
     /// integers. See also @ref PEX2
@@ -431,6 +431,7 @@ RYML_EXPORT evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, 
 RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos);
 RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
 RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
+RYML_EXPORT evt_size find_prev_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
 RYML_EXPORT evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;

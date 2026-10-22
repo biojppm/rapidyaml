@@ -178,7 +178,29 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
 C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
+    // reset known keys
     known_keys.clear();
+    num_known_keys = 0;
+    // populate known_keys with all the direct children. this is
+    // because these take precedence over merged-in children,
+    // even if the direct child appears after them.
+    // see:
+    // https://yamlvalidate.com/blog/yaml-anchors-aliases-merge-keys/
+    for(evt_size child = parent + 1; evts.ptr[child] != ievt::ESTR; child = next_sibling_memoized_(child))
+    {
+        if(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR))
+        {
+            csubstr key = getstr(child);
+            if( ! is_merge_elm_(child, key))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
+            {
+                KnownKey_ const* existing_key = known_keys.lookup(key);
+                if( ! existing_key) // is this a new key?
+                {
+                    add_known_key_(key, child, /*merged_in*/false, /*copied*/false);
+                }
+            }
+        }
+    }
     for(evt_size child = parent + 1; evts.ptr[child] != ievt::ESTR; child = next_sibling_memoized_(child))
     {
         if(evts.ptr[child] & ievt::ALIA)
@@ -189,11 +211,10 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
         else if(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR))
         {
             csubstr key = getstr(child);
-            // is it a merge key such as `<<: *ref` or `<<: [*ref1,*ref2]`
-            if(is_merge_map_(child, key))
-                handle_merge_map_(child);
+            if(is_merge_elm_(child, key))
+                handle_merge_elm_(child);
             else
-                known_keys.insert(key) = child;
+                RYML_ASSERT_BASIC_(known_keys.lookup(key));
         }
         else if(detail::hasall(evts.ptr[child], ievt::EMAP))
         {
@@ -262,9 +283,77 @@ evt_size ReferenceResolver::count_extra(evt_size beg, evt_size end) const noexce
 void ReferenceResolver::clear_str_(evt_size pos)
 {
     evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
-    evts.ptr[pos + 1] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
-    evts.ptr[pos + 2] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
+    evts.ptr[pos + 1] = 0;
+    evts.ptr[pos + 2] = 0;
     evts.ptr[pos + 3] &= ~ievt::PEX2;
+}
+
+void ReferenceResolver::clear_str2_(evt_size pos)
+{
+    evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
+    evts.ptr[pos + 1] = 0;
+    evts.ptr[pos + 2] = 0;
+    evts.ptr[pos + 3] = 0;
+    evts.ptr[pos + 4] = 0;
+    evts.ptr[pos + 5] = 0;
+    evts.ptr[pos + 6] &= ~ievt::PEX2;
+}
+
+bool ReferenceResolver::maybe_clear_anchtag_(evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[pos]));
+    if(evts.ptr[pos] & ievt::PEX2)
+    {
+        if(evts.ptr[pos - 3] & (ievt::ANCH|ievt::TAG_))
+        {
+            if(detail::hasall(evts.ptr[pos - 3], ievt::TAG_|ievt::PEX2)
+               &&
+               (evts.ptr[pos - 6] & ievt::ANCH))
+                clear_str2_(pos - 6);
+            else
+                clear_str_(pos - 3);
+        }
+    }
+    return false;
+}
+
+void ReferenceResolver::rem_entry_(evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[pos]));
+    evt_bits clr = maybe_clear_anchtag_(pos) ? 0 : ievt::PEX2;
+    if(evts.ptr[pos] & ievt::WSTR)
+    {
+        evts.ptr[pos] = clr; // don't clear before the if
+        clear_str_(pos);
+    }
+    else
+    {
+        RYML_ASSERT_BASIC_(detail::seqormap(evts.ptr[pos]));
+        evt_size sib = next_sibling_memoized_(pos);
+        evts.ptr[pos] = clr; // don't clear before the if
+        // cannot use memset because there may be RREF elements inside
+        for(evt_size i = pos + 1, next = i; i != sib; i = next)
+        {
+            evt_size evt = evts.ptr[i];
+            evts.ptr[i] = 0;
+            next = i + 1;
+            if(evt & ievt::EXT2)
+            {
+                evts.ptr[i + 1] = 0;
+                evts.ptr[i + 2] = 0;
+                next = i + 3;
+            }
+        }
+        evts.ptr[sib] &= ~ievt::PEX2;
+    }
+}
+
+void ReferenceResolver::rem_keyval_(evt_size pos_key)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos_key], ievt::KEY_|ievt::SCLR));
+    evt_size pos_val = detail::find_next_entry_(evts.ptr, evts.len, pos_key, ievt::VAL_);
+    rem_entry_(pos_key);
+    rem_entry_(pos_val);
 }
 
 void ReferenceResolver::set_noref_(evt_size pos)
@@ -272,8 +361,8 @@ void ReferenceResolver::set_noref_(evt_size pos)
     RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
     RYML_ASSERT_BASIC_(evts.ptr[pos + 3] & ievt::PEX2);
     evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
-    evts.ptr[pos + 1] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
-    evts.ptr[pos + 2] = 0;//((ievt::KEY_|ievt::VAL_) & evts.ptr[pos]);
+    evts.ptr[pos + 1] = 0;
+    evts.ptr[pos + 2] = 0;
     evts.ptr[pos + 3] &= ~ievt::PEX2;
 }
 
@@ -296,7 +385,7 @@ void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
     }
 }
 
-bool ReferenceResolver::is_merge_map_(evt_size pos, csubstr key) const
+bool ReferenceResolver::is_merge_elm_(evt_size pos, csubstr key) const
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
     if(!(evts.ptr[pos] & ievt::PLAI) || key != "<<")
@@ -335,19 +424,10 @@ bool ReferenceResolver::is_merge_map_(evt_size pos, csubstr key) const
     return false;
 }
 
-void ReferenceResolver::handle_merge_map_(evt_size child)
+void ReferenceResolver::handle_merge_elm_(evt_size child)
 {
     // clear any anchors or tags immediately preceding the << scalar
-    if(evts.ptr[child] & ievt::PEX2)
-    {
-        if(evts.ptr[child - 3] & (ievt::ANCH|ievt::TAG_))
-        {
-            if(detail::hasall(evts.ptr[child - 3], ievt::TAG_|ievt::PEX2))
-                if(evts.ptr[child - 6] & ievt::ANCH)
-                    clear_str_(child - 6);
-            clear_str_(child - 3);
-        }
-    }
+    maybe_clear_anchtag_(child);
     if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::ALIA))
     {
         merge_map_single_(child);
@@ -364,7 +444,7 @@ void ReferenceResolver::merge_map_single_(evt_size pos)
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA));
     RYML_ASSERT_BASIC_("<<" == getstr(pos));
     clear_str_(pos); // clear the << scalar
-    apply_merge_ref_(pos + 3, /*more*/false);
+    apply_merge_ref_(pos + 3);
 }
 
 void ReferenceResolver::merge_map_multiple_(evt_size pos)
@@ -380,17 +460,16 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos)
     {
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
         evt_size next = nextpos(evts.ptr, pos);
-        bool is_last = detail::hasall(evts.ptr[next], ievt::ESEQ);
-        apply_merge_ref_(pos, /*more*/!is_last);
+        apply_merge_ref_(pos);
         pos = next;
-        if(is_last)
+        if(detail::hasall(evts.ptr[next], ievt::ESEQ))
             break;
     }
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::ESEQ));
     evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
 }
 
-void ReferenceResolver::apply_merge_ref_(evt_size pos, bool more)
+void ReferenceResolver::apply_merge_ref_(evt_size pos)
 {
     AnchorTargetRange_ rng = lookup_anchor_(pos);
     if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
@@ -405,13 +484,12 @@ void ReferenceResolver::apply_merge_ref_(evt_size pos, bool more)
         else if(!needs_merge_key_by_key_(rng.beg, rng.end))
         {
             set_rref_(pos, rng.beg, rng.end);
-            if(more)
-                add_to_known_keys_(rng.beg, rng.end);
+            add_to_known_keys_(rng.beg, rng.end);
         }
         else if(rng.beg != rng.end)
         {
             evt_size wpos0 = wpos;
-            add_merge_elms_(rng.beg, rng.end, more);
+            add_merge_elms_(rng.beg, rng.end);
             if(wpos > wpos0)
                 set_rref_(pos, wpos0, wpos);
             else
@@ -420,7 +498,7 @@ void ReferenceResolver::apply_merge_ref_(evt_size pos, bool more)
     }
     else
     {
-        RYML_ERR_BASIC_("invalid inheriting reference at pos={}", pos);
+        RYML_ERR_BASIC_("invalid merge reference at pos={}", pos);
     }
 }
 
@@ -444,6 +522,15 @@ bool ReferenceResolver::needs_merge_key_by_key_(evt_size beg, evt_size end)
     return false;
 }
 
+void ReferenceResolver::add_known_key_(csubstr key, evt_size id, bool merged_in, bool copied)
+{
+    KnownKey_ &entry = known_keys.insert(key);
+    entry.id = id;
+    entry.count = num_known_keys++;
+    entry.merged_in = merged_in;
+    entry.copied = copied;
+}
+
 void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end)
 {
     RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
@@ -453,13 +540,13 @@ void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end)
         {
             csubstr key = getstr(beg);
             if(!known_keys.lookup(key))
-                known_keys.insert(key) = beg;
+                add_known_key_(key, beg, /*merged_in*/true, /*copied*/false);
         }
         beg = next_sibling_memoized_(beg);
     }
 }
 
-void ReferenceResolver::add_merge_elms_(evt_size beg, evt_size end, bool more_to_add)
+void ReferenceResolver::add_merge_elms_(evt_size beg, evt_size end)
 {
     RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
     while(beg < end)
@@ -470,8 +557,7 @@ void ReferenceResolver::add_merge_elms_(evt_size beg, evt_size end, bool more_to
             if(!known_keys.lookup(key))
             {
                 copy_keyval_to_end_(beg);
-                if(more_to_add)
-                    known_keys.insert(key) = beg;
+                add_known_key_(key, beg, /*merged_in*/true, /*copied*/true);
             }
         }
         beg = next_sibling_memoized_(beg);

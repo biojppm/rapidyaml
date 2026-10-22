@@ -680,6 +680,30 @@ TEST(anchors, billion_laughs_roundtrip_map_block)
 
 
 //-----------------------------------------------------------------------------
+
+TEST(anchors, merge0)
+{
+    SCOPED_CALL(test_resolve, (
+        "- &LEFT {x: 0,y: 2}\n" "- &BIG {r: 10}\n" "- &SMALL {r: 1}\n"
+        "- <<: [*BIG,*LEFT,*SMALL]\n" "  x: 1\n"
+        "- <<: [*BIG,*SMALL,*LEFT]\n" "  x: 1\n"
+        "- <<: [*LEFT,*BIG,*SMALL]\n" "  x: 1\n"
+        "- x: 1\n" "  <<: [*BIG,*LEFT,*SMALL]\n"
+        "- x: 1\n" "  <<: [*LEFT,*BIG,*SMALL]\n"
+        "- x: 1\n" "  <<: [*LEFT,*BIG,*SMALL]\n"
+        ,
+        "- {x: 0,y: 2}\n" "- {r: 10}\n" "- {r: 1}\n"
+        "- r: 10\n" "  y: 2\n" "  x: 1\n"
+        "- r: 10\n" "  y: 2\n" "  x: 1\n"
+        "- y: 2\n" "  r: 10\n" "  x: 1\n"
+        "- x: 1\n" "  r: 10\n" "  y: 2\n"
+        "- x: 1\n" "  y: 2\n" "  r: 10\n"
+        "- x: 1\n" "  y: 2\n" "  r: 10\n"
+        ""));
+}
+
+
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
@@ -1581,6 +1605,14 @@ k1:
 k2:
   <<: *base_2
   <<: *base_1
+k3:
+  a: 100
+  <<: *base_1
+  <<: *base_2
+k4:
+  <<: *base_1
+  <<: *base_2
+  a: 100
 )";
     TreeAndInts ti(to_csubstr(yaml));
     Tree const& t = ti.tree;
@@ -1593,34 +1625,25 @@ k2:
     EXPECT_EQ(t["k1"]["b"].val(), "10");
     EXPECT_EQ(t["k2"]["a"].val(), "10");
     EXPECT_EQ(t["k2"]["b"].val(), "10");
-    test_emit_yaml_tree_(ti.tree,
-                         "base_1:\n"
-                         "  a: 10\n"
-                         "  b: 10\n"
-                         "base_2:\n"
-                         "  a: 30\n"
-                         "k1:\n"
-                         "  b: 10\n"
-                         "  a: 30\n"
-                         "k2:\n"
-                         "  a: 10\n"
-                         "  b: 10\n"
-                         "");
-    test_emit_yaml_ints_(ti.ints, 0,
-                         "base_1:\n"
-                         "  a: 10\n"
-                         "  b: 10\n"
-                         "base_2:\n"
-                         "  a: 30\n"
-                         "k1:\n"
-                         "  a: 10\n"
-                         "  b: 10\n"
-                         "  a: 30\n"
-                         "k2:\n"
-                         "  a: 30\n"
-                         "  a: 10\n"
-                         "  b: 10\n"
-                         "");
+    test_emit_yaml_(ti,
+                    "base_1:\n"
+                    "  a: 10\n"
+                    "  b: 10\n"
+                    "base_2:\n"
+                    "  a: 30\n"
+                    "k1:\n"
+                    "  a: 10\n"
+                    "  b: 10\n"
+                    "k2:\n"
+                    "  a: 30\n"
+                    "  b: 10\n"
+                    "k3:\n"
+                    "  a: 100\n"
+                    "  b: 10\n"
+                    "k4:\n"
+                    "  b: 10\n"
+                    "  a: 100\n"
+                    "");
 }
 
 

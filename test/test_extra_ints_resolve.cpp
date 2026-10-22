@@ -56,8 +56,8 @@ void test_ints_resolve_(std::string & src,
                         std::string const& emitted_json,
                         std::string const& resolved_yaml,
                         std::string const& resolved_json,
-                        cspan<ievt::evt_bits> evts_expected,
-                        cspan<ievt::evt_bits> evts_resolved,
+                        cspan<ievt::evt_bits> evts_expected={},
+                        cspan<ievt::evt_bits> evts_resolved={},
                         cspan<ievt::evt_size> pos_seq={},
                         cspan<ievt::evt_size> pos_seq_resolved={},
                         bool expect_resolve_error=false)
@@ -68,20 +68,28 @@ void test_ints_resolve_(std::string & src,
     parse_ints(to_substr(src), &actual);
     {
         SCOPED_TRACE("unresolved");
+        bool exp = !evts_expected.empty();
         if(pos_seq.empty())
         {
-            SCOPED_CALL(verify_visit_seq, (evts_expected));
+            if(exp)
+                SCOPED_CALL(verify_visit_seq, (evts_expected));
             SCOPED_CALL(verify_visit_seq, (actual.evts));
         }
         else
         {
-            SCOPED_CALL(verify_visit_seq, (evts_expected, pos_seq));
+            if(exp)
+                SCOPED_CALL(verify_visit_seq, (evts_expected, pos_seq));
             SCOPED_CALL(verify_visit_seq, (actual.evts, pos_seq));
         }
-        TestBuffers expected = mkevts(actual, evts_expected);
-        SCOPED_CALL(expected.test_invariants, ());
+        TestBuffers expected;
+        if(exp)
+        {
+            expected = mkevts(actual, evts_expected);
+            SCOPED_CALL(expected.test_invariants, ());
+        }
         SCOPED_CALL(actual.test_invariants, ());
-        SCOPED_CALL(actual.test_compare, (expected));
+        if(exp)
+            SCOPED_CALL(actual.test_compare, (expected));
         if(testing::Test::HasFailure())
         {
             printf("--------------\nexpected:");
@@ -92,10 +100,13 @@ void test_ints_resolve_(std::string & src,
         }
         {
             SCOPED_TRACE("yaml");
-            std::string expect_emitted = expected.emitrs_yaml<std::string>();
+            std::string expect_emitted = exp ? expected.emitrs_yaml<std::string>() : "";
             std::string actual_emitted = actual.emitrs_yaml<std::string>();
             EXPECT_EQ(emitted_yaml, actual_emitted);
-            EXPECT_EQ(expect_emitted, actual_emitted);
+            if(exp)
+            {
+                EXPECT_EQ(expect_emitted, actual_emitted);
+            }
             if(testing::Test::HasFailure())
             {
                 printf("--------------\nactual:");
@@ -110,10 +121,13 @@ void test_ints_resolve_(std::string & src,
         if(!emitted_json.empty())
         {
             SCOPED_TRACE("json");
-            std::string expect_emitted = expected.emitrs_json<std::string>();
+            std::string expect_emitted = exp ? expected.emitrs_json<std::string>() : "";
             std::string actual_emitted = actual.emitrs_json<std::string>();
             EXPECT_EQ(emitted_json, actual_emitted);
-            EXPECT_EQ(expect_emitted, actual_emitted);
+            if(exp)
+            {
+                EXPECT_EQ(expect_emitted, actual_emitted);
+            }
             if(testing::Test::HasFailure())
             {
                 printf("--------------\nactual:");
@@ -135,39 +149,56 @@ void test_ints_resolve_(std::string & src,
     else
     {
         SCOPED_TRACE("resolved");
-        if(pos_seq_resolved.empty())
-            SCOPED_CALL(verify_visit_seq, (evts_resolved));
-        else
-            SCOPED_CALL(verify_visit_seq, (evts_resolved, pos_seq_resolved));
-        TestBuffers expected = mkevts(actual, evts_resolved);
+        bool exp = !evts_resolved.empty();
+        if(exp)
+        {
+            if(pos_seq_resolved.empty())
+                SCOPED_CALL(verify_visit_seq, (evts_resolved));
+            else
+                SCOPED_CALL(verify_visit_seq, (evts_resolved, pos_seq_resolved));
+        }
+        TestBuffers expected;
+        if(exp)
+            expected = mkevts(actual, evts_resolved);
         RYML_EXPECT_ERROR(check_success([&]{
             actual.resolve();
         }));
-        SCOPED_CALL(expected.test_invariants, ());
+        if(exp)
+            SCOPED_CALL(expected.test_invariants, ());
         SCOPED_CALL(actual.test_invariants, ());
-        actual.test_compare(expected);
+        if(exp)
+            actual.test_compare(expected);
         if(testing::Test::HasFailure())
         {
-            printf("--------------\nexpected:");
-            expected.print();
+            if(exp)
+            {
+                printf("--------------\nexpected:");
+                expected.print();
+            }
             printf("--------------\nactual:");
             actual.print();
             return;
         }
         {
             SCOPED_TRACE("yaml");
-            std::string expect_resolved_emitted = expected.emitrs_yaml<std::string>();
+            std::string expect_resolved_emitted = exp ? expected.emitrs_yaml<std::string>() : "";
             std::string actual_resolved_emitted = actual.emitrs_yaml<std::string>();
             EXPECT_EQ(resolved_yaml, actual_resolved_emitted);
-            EXPECT_EQ(expect_resolved_emitted, actual_resolved_emitted);
+            if(exp)
+            {
+                EXPECT_EQ(expect_resolved_emitted, actual_resolved_emitted);
+            }
         }
         if(!resolved_json.empty())
         {
             SCOPED_TRACE("json");
-            std::string expect_resolved_emitted = expected.emitrs_json<std::string>();
+            std::string expect_resolved_emitted = exp ? expected.emitrs_json<std::string>() : "";
             std::string actual_resolved_emitted = actual.emitrs_json<std::string>();
             EXPECT_EQ(resolved_json, actual_resolved_emitted);
-            EXPECT_EQ(expect_resolved_emitted, actual_resolved_emitted);
+            if(exp)
+            {
+                EXPECT_EQ(expect_resolved_emitted, actual_resolved_emitted);
+            }
         }
         if(testing::Test::HasFailure())
         {
@@ -183,16 +214,32 @@ void test_ints_resolve_(std::string & src,
                         cspan<ievt::evt_bits> evts_expected,
                         cspan<ievt::evt_size> pos_seq={})
 {
-    test_ints_resolve_(src,
-                       emitted_yaml,
-                       emitted_json,
-                       {},
-                       {},
-                       evts_expected,
-                       {},
-                       pos_seq,
-                       {},
-                       /*expect_resolve_error*/true);
+    test_ints_resolve(src,
+                      emitted_yaml,
+                      emitted_json,
+                      {},
+                      {},
+                      evts_expected,
+                      {},
+                      pos_seq,
+                      {},
+                      /*expect_resolve_error*/true);
+}
+
+void test_ints_resolve_(std::string & src,
+                        std::string const& emitted_yaml,
+                        std::string const& resolved_yaml)
+{
+    test_ints_resolve(src,
+                      emitted_yaml,
+                      "",
+                      resolved_yaml,
+                      "",
+                      {},
+                      {},
+                      {},
+                      {},
+                      /*expect_resolve_error*/false);
 }
 } // namespace
 
