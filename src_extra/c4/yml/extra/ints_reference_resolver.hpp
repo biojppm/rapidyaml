@@ -39,6 +39,13 @@ private:
         evt_size end; /// end pos of the range (past 1)
         evt_size pos; /// anchor pos
     };
+    struct KnownKey_
+    {
+        evt_size id;    /// pos of the key in the evt array
+        evt_size count; /// count of other keys when this was added
+        bool merged_in;
+        bool copied;
+    };
     template<class K, class V> using map = yml::detail::small_map<K,V>;
     template<class T, size_t N> using vec = yml::detail::stack<T, N>;
 
@@ -49,9 +56,10 @@ private:
     evt_size sz_limit;
     ResolveOptions opts;
     map<csubstr, AnchorTargetRange_> anchor_map;
-    map<csubstr, evt_size> known_keys;
+    map<csubstr, KnownKey_> known_keys;
     vec<evt_size, 32> parents;
     vec<evt_size, 32> siblings;
+    evt_size num_known_keys;
     bool can_resize;
 
 private:
@@ -70,14 +78,19 @@ private:
     void set_noref_(evt_size pos);
     void set_rref_(evt_size pos, evt_size beg, evt_size end);
     void clear_str_(evt_size pos);
-    bool is_merge_map_(evt_size pos, csubstr key) const;
-    void handle_merge_map_(evt_size child);
+    void clear_str2_(evt_size pos);
+    bool maybe_clear_anchtag_(evt_size pos);
+    void rem_entry_(evt_size pos);
+    void rem_keyval_(evt_size pos_key);
+    bool is_merge_elm_(evt_size pos, csubstr key) const;
+    void handle_merge_elm_(evt_size child);
     void merge_map_single_(evt_size pos);
     void merge_map_multiple_(evt_size pos);
-    void apply_merge_ref_(evt_size pos, bool more);
+    void apply_merge_ref_(evt_size pos);
     bool needs_merge_key_by_key_(evt_size beg, evt_size end);
+    void add_known_key_(csubstr key, evt_size id, bool merged_in, bool copied);
     void add_to_known_keys_(evt_size beg, evt_size end);
-    void add_merge_elms_(evt_size beg, evt_size end, bool more_to_add);
+    void add_merge_elms_(evt_size beg, evt_size end);
     void copy_keyval_to_end_(evt_size keyval);
     bool grow_evts_to_add_(evt_size extra);
 
