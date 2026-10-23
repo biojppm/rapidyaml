@@ -693,12 +693,12 @@ TEST(anchors, merge0)
         "- x: 1\n" "  <<: [*LEFT,*BIG,*SMALL]\n"
         ,
         "- {x: 0,y: 2}\n" "- {r: 10}\n" "- {r: 1}\n"
-        "- r: 10\n" "  y: 2\n" "  x: 1\n"
-        "- r: 10\n" "  y: 2\n" "  x: 1\n"
-        "- y: 2\n" "  r: 10\n" "  x: 1\n"
-        "- x: 1\n" "  r: 10\n" "  y: 2\n"
-        "- x: 1\n" "  y: 2\n" "  r: 10\n"
-        "- x: 1\n" "  y: 2\n" "  r: 10\n"
+        "- r: 10\n" "  y: 2\n"  "  x: 1\n"
+        "- r: 10\n" "  y: 2\n"  "  x: 1\n"
+        "- y: 2\n"  "  r: 10\n" "  x: 1\n"
+        "- x: 1\n"  "  r: 10\n" "  y: 2\n"
+        "- x: 1\n"  "  y: 2\n"  "  r: 10\n"
+        "- x: 1\n"  "  y: 2\n"  "  r: 10\n"
         ""));
 }
 
@@ -1554,7 +1554,83 @@ a5: &a5
 
 TEST(anchors, issue_484_0)
 {
-    csubstr yaml = R"(
+    csubstr cases[] = {
+csubstr(R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  <<: [*base_1,*base_2]
+k2:
+  <<: [*base_2,*base_1]
+k3:
+  a: 100
+  <<: [*base_1,*base_2]
+k4:
+  <<: [*base_1,*base_2]
+  a: 100
+k5:
+  a: 100
+  <<: [*base_2,*base_1]
+k6:
+  <<: [*base_2,*base_1]
+  a: 100
+)"),
+csubstr(R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  !!merge <<: [*base_1,*base_2]
+k2:
+  !!merge <<: [*base_2,*base_1]
+k3:
+  a: 100
+  !!merge <<: [*base_1,*base_2]
+k4:
+  !!merge <<: [*base_1,*base_2]
+  a: 100
+k5:
+  a: 100
+  !!merge <<: [*base_2,*base_1]
+k6:
+  !!merge <<: [*base_2,*base_1]
+  a: 100
+)"),
+csubstr(R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  <<: *base_1
+  <<: *base_2
+k2:
+  <<: *base_2
+  <<: *base_1
+k3:
+  a: 100
+  <<: *base_1
+  <<: *base_2
+k4:
+  <<: *base_1
+  <<: *base_2
+  a: 100
+k5:
+  a: 100
+  <<: *base_2
+  <<: *base_1
+k6:
+  <<: *base_2
+  <<: *base_1
+  a: 100
+)"),
+csubstr(R"(
 base_1: &base_1
   a: 10
   b: 10
@@ -1566,29 +1642,60 @@ k1:
 k2:
   !!merge <<: *base_2
   !!merge <<: *base_1
-)";
-    Tree t = parse_in_arena(yaml);
-    EXPECT_EQ(t["k1"][0].val(), "*base_1");
-    EXPECT_EQ(t["k1"][1].val(), "*base_2");
-    EXPECT_EQ(t["k2"][0].val(), "*base_2");
-    EXPECT_EQ(t["k2"][1].val(), "*base_1");
-    t.resolve();
-    EXPECT_EQ(t["k1"]["a"].val(), "10");
-    EXPECT_EQ(t["k1"]["b"].val(), "20");
-    EXPECT_EQ(t["k2"]["a"].val(), "10");
-    EXPECT_EQ(t["k2"]["b"].val(), "10");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(base_1:
-  a: 10
-  b: 10
-base_2:
-  b: 20
-k1:
-  a: 10
-  b: 20
-k2:
-  a: 10
-  b: 10
-)");
+k3:
+  a: 100
+  !!merge <<: *base_1
+  !!merge <<: *base_2
+k4:
+  !!merge <<: *base_1
+  !!merge <<: *base_2
+  a: 100
+k5:
+  a: 100
+  !!merge <<: *base_2
+  !!merge <<: *base_1
+k6:
+  !!merge <<: *base_2
+  !!merge <<: *base_1
+  a: 100
+)"),
+    };
+    size_t count = 0;
+    for(csubstr yaml : cases)
+    {
+        RYML_TRACE_FMT("case #{}", count++);
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_(ti);
+        if(testing::Test::HasFailure())
+            break;
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "base_2:\n"
+                        "  b: 20\n"
+                        "k1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "k2:\n"
+                        "  b: 20\n"
+                        "  a: 10\n"
+                        "k3:\n"
+                        "  a: 100\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "k5:\n"
+                        "  a: 100\n"
+                        "  b: 20\n"
+                        "k6:\n"
+                        "  b: 20\n"
+                        "  a: 100\n"
+                        "");
+        if(testing::Test::HasFailure())
+            break;
+    }
 }
 
 TEST(anchors, issue_484_1)
@@ -1614,36 +1721,63 @@ k4:
   <<: *base_2
   a: 100
 )";
-    TreeAndInts ti(to_csubstr(yaml));
-    Tree const& t = ti.tree;
-    EXPECT_EQ(t["k1"][0].val(), "*base_1");
-    EXPECT_EQ(t["k1"][1].val(), "*base_2");
-    EXPECT_EQ(t["k2"][0].val(), "*base_2");
-    EXPECT_EQ(t["k2"][1].val(), "*base_1");
-    test_resolve_(ti);
-    EXPECT_EQ(t["k1"]["a"].val(), "30");
-    EXPECT_EQ(t["k1"]["b"].val(), "10");
-    EXPECT_EQ(t["k2"]["a"].val(), "10");
-    EXPECT_EQ(t["k2"]["b"].val(), "10");
-    test_emit_yaml_(ti,
-                    "base_1:\n"
-                    "  a: 10\n"
-                    "  b: 10\n"
-                    "base_2:\n"
-                    "  a: 30\n"
-                    "k1:\n"
-                    "  a: 10\n"
-                    "  b: 10\n"
-                    "k2:\n"
-                    "  a: 30\n"
-                    "  b: 10\n"
-                    "k3:\n"
-                    "  a: 100\n"
-                    "  b: 10\n"
-                    "k4:\n"
-                    "  b: 10\n"
-                    "  a: 100\n"
-                    "");
+    {
+        SCOPED_TRACE("standard");
+        TreeAndInts ti(to_csubstr(yaml));
+        Tree const& t = ti.tree;
+        EXPECT_EQ(t["k1"][0].val(), "*base_1");
+        EXPECT_EQ(t["k1"][1].val(), "*base_2");
+        EXPECT_EQ(t["k2"][0].val(), "*base_2");
+        EXPECT_EQ(t["k2"][1].val(), "*base_1");
+        test_resolve_(ti);
+        EXPECT_EQ(t["k1"]["a"].val(), "10");
+        EXPECT_EQ(t["k1"]["b"].val(), "10");
+        EXPECT_EQ(t["k2"]["a"].val(), "30");
+        EXPECT_EQ(t["k2"]["b"].val(), "10");
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "base_2:\n"
+                        "  a: 30\n"
+                        "k1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "k2:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k3:\n"
+                        "  a: 100\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "");
+    }
+    {
+        SCOPED_TRACE("latest");
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_(ti, ResolveOptions{}.set_overwrite_latest());
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "base_2:\n"
+                        "  a: 30\n"
+                        "k1:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k2:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "k3:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "");
+    }
 }
 
 

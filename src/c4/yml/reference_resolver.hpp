@@ -5,8 +5,8 @@
 #ifndef C4_YML_RESOLVE_OPTIONS_HPP_
 #include "c4/yml/resolve_options.hpp"
 #endif
-#ifndef C4_YML_DETAIL_STACK_HPP_
-#include "c4/yml/detail/stack.hpp"
+#ifndef C4_YML_DETAIL_SMALL_MAP_HPP_
+#include "c4/yml/detail/small_map.hpp"
 #endif
 #ifndef C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
@@ -61,6 +61,8 @@ struct ReferenceResolver
      */
     RYML_EXPORT void resolve(Tree *tree, ResolveOptions const& opts={});
 
+public:
+
     /** @cond dev */
     RYML_DEPRECATED("use the overload receiving ResolveOptions")
     void resolve(Tree *tree, bool clear_anchors)
@@ -81,12 +83,22 @@ public:
         id_type target;
         id_type parent_ref;
     };
+    struct KnownKey
+    {
+        id_type node;
+        bool original;
+    };
 
     void reset_(Tree *t_, ResolveOptions const& opts);
     void resolve_();
     void gather_anchors_and_refs_();
     id_type gather_anchors_and_refs_(id_type n, id_type prev_anchor);
-    id_type branch_size_(id_type n);
+    id_type branch_size_(id_type node);
+    void check_size_limit_(id_type node);
+
+    void start_merge_(id_type dst_map);
+    void add_known_key_(csubstr key, id_type node, bool original);
+    id_type merge_to_map_(RefData const& rd, id_type dst_map, id_type after);
 
     id_type add_(NodeType ty, id_type node, id_type prev_anchor, id_type parent_ref = NONE)
     {
@@ -102,8 +114,11 @@ public:
     id_type lookup_(RefData const* C4_RESTRICT ra);
 
     detail::stack<RefData> m_refs; // We're using this purely as an array
+    detail::small_map<csubstr, KnownKey> m_known_keys;
     Tree *C4_RESTRICT m_tree;
     ResolveOptions m_opts;
+    id_type m_size_limit;
+    id_type m_known_key_subject;
 
     /** @endcond */
 };

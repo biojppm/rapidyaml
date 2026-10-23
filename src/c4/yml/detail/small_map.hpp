@@ -94,6 +94,11 @@ public:
         return m_arr.size() <= m_small_limit ? lookup_linear_(key) : lookup_binary_(key);
     }
 
+    C4_ALWAYS_INLINE V * lookup_modify(K const& key) noexcept
+    {
+        return m_arr.size() <= m_small_limit ? lookup_linear_(key) : lookup_binary_(key);
+    }
+
 private:
 
     V const* lookup_linear_(K const& key) const noexcept
@@ -108,6 +113,15 @@ private:
         RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, m_arr.size() == m_sorted_size);
         value_type const* bound = detail::lower_bound(m_arr.begin(), m_arr.end(), key);
         return bound->key == key ? &bound->val : nullptr;
+    }
+
+    V* lookup_linear_(K const& key) noexcept
+    {
+        return const_cast<V*>(const_cast<small_map const*>(this)->lookup_linear_(key));
+    }
+    V* lookup_binary_(K const& key) noexcept
+    {
+        return const_cast<V*>(const_cast<small_map const*>(this)->lookup_binary_(key));
     }
 };
 

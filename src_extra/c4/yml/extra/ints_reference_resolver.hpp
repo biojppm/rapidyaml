@@ -33,17 +33,21 @@ public:
 
 private:
 
-    struct AnchorTargetRange_
+    struct Range_
     {
         evt_size beg; /// beginning pos of the range
         evt_size end; /// end pos of the range (past 1)
+        evt_size len() const noexcept { return end - beg; }
+    };
+    struct AnchorTargetRange_ : Range_
+    {
         evt_size pos; /// anchor pos
     };
     struct KnownKey_
     {
         evt_size id;    /// pos of the key in the evt array
         evt_size count; /// count of other keys when this was added
-        bool merged_in;
+        bool original;
         bool copied;
     };
     template<class K, class V> using map = yml::detail::small_map<K,V>;
@@ -66,9 +70,12 @@ private:
 
     void resolve_(Buffers *evts_, ResolveOptions const& opts_);
     void reset_(Buffers evts_, bool can_resize_, ResolveOptions opts_);
+
     C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
-    C4_NODISCARD bool is_cyclic_ref_(evt_size anchor) const noexcept;
+    C4_NODISCARD bool is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT;
+    C4_NODISCARD Range_ val_range_(evt_size keyval);
+
     C4_NODISCARD bool descend_(evt_size &pos);
     C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
@@ -76,6 +83,7 @@ private:
     AnchorTargetRange_ lookup_anchor_(evt_size pos) const;
     C4_NODISCARD evt_size count_extra(evt_size beg, evt_size end) const noexcept;
     void set_noref_(evt_size pos);
+    void replace_with_ref_(evt_size pos, evt_size beg, evt_size end);
     void set_rref_(evt_size pos, evt_size beg, evt_size end);
     void clear_str_(evt_size pos);
     void clear_str2_(evt_size pos);
@@ -88,9 +96,10 @@ private:
     void merge_map_multiple_(evt_size pos);
     void apply_merge_ref_(evt_size pos);
     bool needs_merge_key_by_key_(evt_size beg, evt_size end);
-    void add_known_key_(csubstr key, evt_size id, bool merged_in, bool copied);
+    void add_known_key_(csubstr key, evt_size id, bool original, bool copied);
     void add_to_known_keys_(evt_size beg, evt_size end);
     void add_merge_elms_(evt_size beg, evt_size end);
+    void overwrite_keyval_(evt_size src, evt_size dst);
     void copy_keyval_to_end_(evt_size keyval);
     bool grow_evts_to_add_(evt_size extra);
 

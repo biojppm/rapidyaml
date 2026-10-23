@@ -1088,7 +1088,7 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
                 {
                     // the dst duplicate is located before the node which will be inserted,
                     // and will be overridden by the duplicate. So replace it.
-                    _c4dbgpf("duplicate_no_dstnode_dup: replace {}/{} with {}/{}", parent, dstnode_dup, node, i);
+                    _c4dbgpf("duplicate_no_rep: replace {}/{} with {}/{}", parent, dstnode_dup, node, i);
                     if(prev == dstnode_dup)
                         prev = prev_sibling(dstnode_dup);
                     remove(dstnode_dup);
@@ -1096,7 +1096,7 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
                 }
                 else if(prev == NONE)
                 {
-                    _c4dbgpf("duplicate_no_dstnode_dup: {}=prev <- {}", prev, dstnode_dup);
+                    _c4dbgpf("duplicate_no_rep: {}=prev <- {}", prev, dstnode_dup);
                     // first iteration with prev = after = NONE and dstnode_dupetition
                     prev = dstnode_dup;
                 }
@@ -1104,11 +1104,11 @@ id_type Tree::duplicate_children_no_rep(Tree const *src, id_type node, id_type p
                 {
                     // dstnode_dup is located after the node which will be inserted
                     // and overrides it. So move the dstnode_dup into this node's place.
-                    _c4dbgpf("duplicate_no_dstnode_dup: move({}, {})", dstnode_dup, prev);
+                    _c4dbgpf("duplicate_no_rep: move({}, {})", dstnode_dup, prev);
                     move(dstnode_dup, prev);
                     prev = dstnode_dup;
                 }
-            } // there's a dstnode_dupetition
+            } // there's a repetition
         }
     }
 
