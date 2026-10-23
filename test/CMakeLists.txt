@@ -111,17 +111,21 @@ ryml_add_quickstart_test(ryml-test-quickstart-ints  bad_arena WILL_FAIL ARGS -a 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES
        test_lib/callbacks_tester.hpp
-       test_lib/test_case_node.hpp
-       test_lib/test_case_node.cpp
        test_lib/test_case.hpp
        test_lib/test_case.cpp
+       test_lib/test_case_node.hpp
+       test_lib/test_case_node.cpp
        test_lib/test_compare_events.hpp
        test_lib/test_compare_events.cpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
-       test_lib/test_events_ints_helpers.hpp
-       test_lib/test_events_ints_helpers.cpp
+       test_lib/test_helpers_ints.hpp
+       test_lib/test_helpers_ints.cpp
+       test_lib/test_helpers_tree.hpp
+       test_lib/test_helpers_tree.cpp
        test_lib/test_save.cpp
+       test_lib/test_utils.hpp
+       test_lib/test_utils.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
     FOLDER test)
@@ -167,8 +171,15 @@ endfunction()
 
 
 # some subjects have to be split over several files because gtest
-# causes some amount of bloat and some compilers (VS) or platforms
-# (mips) choke on the large binary
+# causes some amount of code bloat and some compilers (VS) or
+# platforms (mips) choke on the large binary
+
+ryml_add_test(callbacks)
+ryml_add_test(stack)
+ryml_add_test(location)
+ryml_add_test(small_map)
+ryml_add_test(version)
+ryml_add_test(file)
 
 ryml_add_test(engine_1_doc_1 BIG)
 ryml_add_test(engine_1_doc_2 BIG)
@@ -196,9 +207,7 @@ ryml_add_test(engine_7_seqimap BIG)
 ryml_add_test(engine_8_scalars_tokens BIG)
 ryml_add_test(engine_9_indentation BIG)
 ryml_add_test(extra_ints)
-ryml_add_test(version)
-ryml_add_test(callbacks)
-ryml_add_test(stack)
+ryml_add_test(extra_ints_resolve)
 ryml_add_test(filter)
 ryml_add_test(parser)
 ryml_add_test(node_type)
@@ -213,13 +222,11 @@ ryml_add_test(serialize_3)
 ryml_add_test(basic)
 ryml_add_test(json)
 ryml_add_test(merge)
-ryml_add_test(location)
 ryml_add_test(bom_1)
 ryml_add_test(bom_2)
 ryml_add_test(scalar_roundtrip)
 ryml_add_test(escape_scalar)
 ryml_add_test(print_tree)
-ryml_add_test(file)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(doc)
 ryml_add_test_case_group(seq)

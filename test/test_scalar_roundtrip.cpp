@@ -10,7 +10,7 @@
 #include <c4/yml/extra/event_ints.hpp>
 #endif
 #include "./test_lib/test_case.hpp"
-#include "./test_lib/test_events_ints_helpers.hpp"
+#include "./test_lib/test_helpers_ints.hpp"
 
 #include <gtest/gtest.h>
 #include "./test_lib/callbacks_tester.hpp"
@@ -478,7 +478,7 @@ void test_scalar_roundtrip_on_seq(scalar_style_spec const& p, NodeType seq_style
                 evt_bits expected_bits = to_ievt(expected_style);
                 RYML_TRACE_FMT("pos={} evt={}", pos, evt);
                 ASSERT_EQ(evt & ievt::SCLR, ievt::SCLR);
-                EXPECT_EQ(evt & ~(ievt::KEY_|ievt::VAL_|ievt::SCLR|ievt::PSTR), expected_bits);
+                EXPECT_EQ(evt & ~(ievt::KEY_|ievt::VAL_|ievt::SCLR|ievt::PEX2), expected_bits);
                 SCOPED_CALL(compare_scalar, (scalar, ints.getstr(pos)));
             }
         };
@@ -575,11 +575,11 @@ void test_scalar_roundtrip_on_map(scalar_style_spec const& p,
                 ASSERT_EQ(evt & (key_or_val|ievt::SCLR), key_or_val|ievt::SCLR);
                 if(use_scalar)
                 {
-                    EXPECT_EQ(evt & ~(key_or_val|ievt::SCLR|ievt::PSTR), expected_bits);
+                    EXPECT_EQ(evt & ~(key_or_val|ievt::SCLR|ievt::PEX2), expected_bits);
                 }
                 else
                 {
-                    EXPECT_EQ(evt & ~(key_or_val|ievt::SCLR|ievt::PSTR), ievt::PLAI);
+                    EXPECT_EQ(evt & ~(key_or_val|ievt::SCLR|ievt::PEX2), ievt::PLAI);
                 }
                 SCOPED_CALL(compare_scalar, (expected_scalar, ints.getstr(pos)));
                 pos += 6;

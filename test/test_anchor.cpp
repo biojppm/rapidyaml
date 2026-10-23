@@ -1,5 +1,9 @@
 #include "./test_lib/test_group.hpp"
 #include "./test_lib/test_group.def.hpp"
+#include "./test_lib/tree_and_ints.hpp"
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/reference_resolver.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -22,74 +26,686 @@ TEST(anchors, ReferenceResolver)
     }));
 }
 
-TEST(anchors, err_on_multiple_inheritance_map)
+
+TEST(anchors, errs_on_inheritance_0_scalar)
 {
-    Tree tree = parse_in_arena(R"(
-a: &a a
-b: &b b
-c:
-  <<: {map: wrong}
-)");
-    RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(); }));
+    SCOPED_CALL(test_resolve, ("<<: \n"));
+    SCOPED_CALL(test_resolve, ("<<: scalar notref\n"));
+}
+TEST(anchors, errs_on_inheritance_1_map)
+{
+    SCOPED_CALL(test_resolve, ("<<: {}\n"));
+    SCOPED_CALL(test_resolve, ("<<: {map: notref}\n"));
+}
+TEST(anchors, errs_on_inheritance_2_seq)
+{
+    SCOPED_CALL(test_resolve, ("<<: []\n"));
+    SCOPED_CALL(test_resolve, ("<<: [seq,notref]\n"));
+}
+TEST(anchors, errs_on_inheritance_3_ok)
+{
+    SCOPED_CALL(test_resolve, (
+        "scalar: &scalar a\n"
+        "seq: &seq [b]\n"
+        "map1: &map1\n"
+        "  c: d\n"
+        "map2: &map2\n"
+        "  e: f\n"
+        "inherit:\n"
+        "  <<: [*map1,*map2]\n"
+        ""
+        ,
+        ""
+        "scalar: a\n"
+        "seq: [b]\n"
+        "map1:\n"
+        "  c: d\n"
+        "map2:\n"
+        "  e: f\n"
+        "inherit:\n"
+        "  c: d\n"
+        "  e: f\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_4_err_on_map_then_scalar)
+{
+    SCOPED_CALL(test_resolve_err, (
+        ""
+        "scalar: &scalar a\n"
+        "seq: &seq [b]\n"
+        "map1: &map1\n"
+        "  c: d\n"
+        "map2: &map2\n"
+        "  d: e\n"
+        "inherit:\n"
+        "  <<: [*map1,*scalar]\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_4_err_on_map_then_seq)
+{
+    SCOPED_CALL(test_resolve_err, (
+        ""
+        "scalar: &scalar a\n"
+        "seq: &seq [b]\n"
+        "map1: &map1\n"
+        "  c: d\n"
+        "map2: &map2\n"
+        "  d: e\n"
+        "inherit:\n"
+        "  <<: [*map1,*seq]\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_4_err_on_map_then_notref)
+{
+    SCOPED_CALL(test_resolve_err, (
+        ""
+        "scalar: &scalar a\n"
+        "seq: &seq [b]\n"
+        "map1: &map1\n"
+        "  c: d\n"
+        "map2: &map2\n"
+        "  d: e\n"
+        "inherit:\n"
+        "  <<: [*map1,notref]\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_5_err_on_ref_then_scalar)
+{
+    SCOPED_CALL(test_resolve_err, (
+        "scalar: &scalar a\n"
+        "seq: &seq [b]\n"
+        "map1: &map1\n"
+        "  c: d\n"
+        "map2: &map2\n"
+        "  c: d\n"
+        "inherit:\n"
+        "  <<: [*map1,0]\n"
+        ""));
+    SCOPED_CALL(test_resolve_err, (
+        ""
+        "scalar: &scalar a\n"
+        "seq: &seq [b]\n"
+        "map1: &map1\n"
+        "  c: d\n"
+        "map2: &map2\n"
+        "  c: d\n"
+        "inherit:\n"
+        "  <<: [*map1,*map2,0]\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_5_err_on_ref_then_seq)
+{
+    SCOPED_CALL(test_resolve_err, (
+                    "scalar: &scalar a\n"
+                    "seq: &seq [b]\n"
+                    "map1: &map1\n"
+                    "  c: d\n"
+                    "map2: &map2\n"
+                    "  c: d\n"
+                    "inherit:\n"
+                    "  <<: [*map1,[seq]]\n"
+                    ""));
+    SCOPED_CALL(test_resolve_err, (
+                    "scalar: &scalar a\n"
+                    "seq: &seq [b]\n"
+                    "map1: &map1\n"
+                    "  c: d\n"
+                    "map2: &map2\n"
+                    "  c: d\n"
+                    "inherit:\n"
+                    "  <<: [*map1,*map2,[seq]]\n"
+                    ""));
+}
+TEST(anchors, errs_on_inheritance_5_err_on_ref_then_map)
+{
+    SCOPED_CALL(test_resolve_err, (
+                    "scalar: &scalar a\n"
+                    "seq: &seq [b]\n"
+                    "map1: &map1\n"
+                    "  c: d\n"
+                    "map2: &map2\n"
+                    "  c: d\n"
+                    "inherit:\n"
+                    "  <<: [*map1,{map:}]\n"
+                    ""));
+    SCOPED_CALL(test_resolve_err, (
+                    "scalar: &scalar a\n"
+                    "seq: &seq [b]\n"
+                    "map1: &map1\n"
+                    "  c: d\n"
+                    "map2: &map2\n"
+                    "  c: d\n"
+                    "inherit:\n"
+                    "  <<: [*map1,*map2,{map:}]\n"
+                    ""));
 }
 
 
-TEST(anchors, circular)
+
+TEST(anchors, cyclic_roundtrips_ok)
 {
-    Tree t = parse_in_arena(R"(&x
+    std::string yaml = R"(&x
 - *x
-)");
-    ASSERT_TRUE(t.rootref().has_val_anchor());
-    ASSERT_TRUE(t[0].is_val_ref());
-    EXPECT_EQ(t.rootref().val_anchor(), "x");
-    EXPECT_EQ(t[0].val_ref(), "x");
+)";
+    TreeAndInts ti(to_csubstr(yaml));
+    ASSERT_TRUE(ti.tree.rootref().has_val_anchor());
+    ASSERT_TRUE(ti.tree[0].is_val_ref());
+    EXPECT_EQ(ti.tree.rootref().val_anchor(), "x");
+    EXPECT_EQ(ti.tree[0].val_ref(), "x");
+    SCOPED_CALL(test_emit_resolve_err, (yaml, "[\n  \"*x\"\n]\n"));
 }
 
-TEST(anchors, err_on_circular_reference)
+
+
+TEST(anchors, err_on_cyclic_reference_1)
 {
-    // Resolving a reference whose target is itself or an ancestor would materialize the
-    // target subtree (which contains the reference) into a location inside itself, recursing
-    // without bound. It must be rejected rather than overflowing the stack.
-    {
-        Tree tree = parse_in_arena(R"(&x
-- *x
-)");
-        RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(); }));
-    }
-    {
-        Tree tree = parse_in_arena("&x {a: *x}\n");
-        RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(); }));
-    }
+    SCOPED_CALL(test_emit_resolve_err, (
+        "&x\n"
+        "- *x\n"
+        ,
+        "[\n"
+        "  \"*x\"\n"
+        "]\n"
+        ""));
 }
 
-TEST(anchors, billion_laughs)
+TEST(anchors, err_on_cyclic_reference_2)
 {
-    const Tree orig = parse_in_arena(R"(
+    SCOPED_CALL(test_emit_resolve_err, ("&x {a: *x}", "{\"a\": \"*x\"}"));
+}
+
+TEST(anchors, err_on_cyclic_reference_2_1)
+{
+    // this is legal (and not cyclic):
+    SCOPED_CALL(test_emit_resolve, (
+                    "{&x a: *x}",
+                    "{a: a}",
+                    "{\"a\": \"a\"}"
+                    ""));
+}
+
+TEST(anchors, err_on_cyclic_reference_3)
+{
+    SCOPED_CALL(test_emit_resolve_err, (
+        ""
+        "&x\n"
+        "- - - - a\n"
+        "      - *x\n"
+        ,
+        ""
+        "[\n"
+        "  [\n"
+        "    [\n"
+        "      [\n"
+        "        \"a\",\n"
+        "        \"*x\"\n"
+        "      ]\n"
+        "    ]\n"
+        "  ]\n"
+        "]\n"
+        ""));
+}
+
+TEST(anchors, err_on_cyclic_reference_4)
+{
+    SCOPED_CALL(test_emit_resolve_err, (
+        ""
+        "&x\n"
+        "a:\n"
+        "  <<: *x\n"
+        ,
+        "{\n"
+        "  \"a\": {\n"
+        "    \"<<\": \"*x\"\n"
+        "  }\n"
+        "}\n"
+        ""));
+}
+
+TEST(anchors, err_on_cyclic_reference_5)
+{
+    SCOPED_CALL(test_emit_resolve_err, (
+        ""
+        "&x\n"
+        "a:\n"
+        "  <<: [*x,*x,*x]\n"
+        ,
+        "{\n"
+        "  \"a\": {\n"
+        "    \"<<\": [\"*x\",\"*x\",\"*x\"]\n"
+        "  }\n"
+        "}\n"
+        ""));
+}
+
+TEST(anchors, err_on_cyclic_reference_6)
+{
+    SCOPED_CALL(test_emit_resolve_err, (
+        ""
+        "map0: &map0\n"
+        "  k0: v0\n"
+        "map1: &map1\n"
+        "  k1: v1\n"
+        "  <<: [*map0,*map1]\n"
+        ,
+        ""
+        "{\n"
+        "  \"map0\": {\n"
+        "    \"k0\": \"v0\"\n"
+        "  },\n"
+        "  \"map1\": {\n"
+        "    \"k1\": \"v1\",\n"
+        "    \"<<\": [\"*map0\",\"*map1\"]\n"
+        "  }\n"
+        "}\n"
+        ""));
+}
+
+
+csubstr billion_laughs = R"(
 l0: &l0 [x,x]     # 3
 l1: &l1 [*l0,*l0] # 7
 l2: &l2 [*l1,*l1] # 15
-)");
+)";
+TEST(anchors, billion_laughs_small_limit)
+{
+    SCOPED_TRACE("small limit should cause an error");
+    TreeAndInts ti(billion_laughs);
+    ResolveOptions opts{};
+    id_type mult = 2;
+    EXPECT_NE(opts.max_size_multiplier(), mult);
+    opts.max_size_multiplier(mult);
+    EXPECT_EQ(opts.max_size_multiplier(), mult);
+    SCOPED_CALL(test_resolve_err, (ti, opts));
+}
+TEST(anchors, billion_laughs_large_limit)
+{
+    SCOPED_TRACE("large limit should accept resolve");
+    TreeAndInts ti(billion_laughs);
+    ResolveOptions opts{};
+    id_type mult = 10000;
+    EXPECT_NE(opts.max_size_multiplier(), mult);
+    opts.max_size_multiplier(mult);
+    EXPECT_EQ(opts.max_size_multiplier(), mult);
+    SCOPED_CALL(test_resolve, (ti));
+}
+TEST(anchors, billion_laughs_no_limit)
+{
+    SCOPED_TRACE("no limit should accept resolve");
+    TreeAndInts ti(billion_laughs);
+    ResolveOptions opts{};
+    id_type mult = 0;
+    EXPECT_NE(opts.max_size_multiplier(), mult);
+    opts.max_size_multiplier(mult);
+    EXPECT_EQ(opts.max_size_multiplier(), mult);
+    SCOPED_CALL(test_resolve, (ti));
+}
+
+
+// https://en.wikipedia.org/wiki/Billion_laughs_attack
+static void test_billion_laughs_roundtrip(
+    std::string const& yaml,
+    std::string const& roundtrip,
+    std::string const& roundtrip_no_clear_anchors)
+{
     {
-        SCOPED_TRACE("small limit should cause an error");
-        Tree tree = orig;
-        ResolveOptions opts{};
-        id_type mult = 2;
-        EXPECT_NE(opts.max_size_multiplier(), mult);
-        opts.max_size_multiplier(mult);
-        EXPECT_EQ(opts.max_size_multiplier(), mult);
-        RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{ tree.resolve(opts); }));
+        SCOPED_TRACE("no resolve");
+        TreeAndInts ti(to_csubstr(yaml));
+        SCOPED_CALL(test_emit_yaml, (ti, yaml));
     }
     {
-        SCOPED_TRACE("large limit should accept resolve");
-        Tree tree = orig;
-        ResolveOptions opts{};
-        id_type mult = 10000;
-        EXPECT_NE(opts.max_size_multiplier(), mult);
-        opts.max_size_multiplier(mult);
-        EXPECT_EQ(opts.max_size_multiplier(), mult);
-        RYML_EXPECT_ERROR(check_success(&tree, [&]{ tree.resolve(opts); }));
+        SCOPED_TRACE("resolve clear anchors (defaults)");
+        ResolveOptions opts = {};
+        ASSERT_TRUE(opts.clear_anchors());
+        TreeAndInts ti(to_csubstr(yaml));
+        SCOPED_CALL(test_resolve, (ti, opts));
+        SCOPED_CALL(test_emit_yaml, (ti, roundtrip));
+    }
+    {
+        SCOPED_TRACE("resolve keep anchors");
+        ResolveOptions opts = ResolveOptions{}.clear_anchors(false);
+        ASSERT_FALSE(opts.clear_anchors());
+        TreeAndInts ti(to_csubstr(yaml));
+        SCOPED_CALL(test_resolve, (ti, opts));
+        test_resolve(ti, opts);
+        SCOPED_CALL(test_emit_yaml, (ti, roundtrip_no_clear_anchors));
     }
 }
+
+TEST(anchors, billion_laughs_roundtrip_seq_flow_sl)
+{
+    SCOPED_CALL(test_billion_laughs_roundtrip, (
+        "a: &a [0,0]\n"
+        "b: &b [*a,*a]\n"
+        "c: &c [*b,*b]\n"
+        "",
+        "a: [0,0]\n"
+        "b: [[0,0],[0,0]]\n"
+        "c: [[[0,0],[0,0]],[[0,0],[0,0]]]\n"
+        "",
+        "a: &a [0,0]\n"
+        "b: &b [[0,0],[0,0]]\n"
+        "c: &c [[[0,0],[0,0]],[[0,0],[0,0]]]\n"
+        ""));
+}
+
+TEST(anchors, billion_laughs_roundtrip_map_flow_sl)
+{
+    SCOPED_CALL(test_billion_laughs_roundtrip, (
+        "a: &a {0: 0}\n"
+        "b: &b {1: *a,2: *a}\n"
+        "c: &c {1: *b,2: *b}\n"
+        "",
+        "a: {0: 0}\n"
+        "b: {1: {0: 0},2: {0: 0}}\n"
+        "c: {1: {1: {0: 0},2: {0: 0}},2: {1: {0: 0},2: {0: 0}}}\n"
+        "",
+        "a: &a {0: 0}\n"
+        "b: &b {1: {0: 0},2: {0: 0}}\n"
+        "c: &c {1: {1: {0: 0},2: {0: 0}},2: {1: {0: 0},2: {0: 0}}}\n"
+        ""));
+}
+
+TEST(anchors, billion_laughs_roundtrip_seq_flow_ml)
+{
+    SCOPED_CALL(test_billion_laughs_roundtrip, (
+        "a: &a [\n"
+        "    0,\n"
+        "    0\n"
+        "  ]\n"
+        "b: &b [\n"
+        "    *a,\n"
+        "    *a\n"
+        "  ]\n"
+        "c: &c [\n"
+        "    *b,\n"
+        "    *b\n"
+        "  ]\n"
+        "",
+        "a: [\n"
+        "    0,\n"
+        "    0\n"
+        "  ]\n"
+        "b: [\n"
+        "    [\n"
+        "      0,\n"
+        "      0\n"
+        "    ],\n"
+        "    [\n"
+        "      0,\n"
+        "      0\n"
+        "    ]\n"
+        "  ]\n"
+        "c: [\n"
+        "    [\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ],\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ]\n"
+        "    ],\n"
+        "    [\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ],\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ]\n"
+        "    ]\n"
+        "  ]\n"
+        "",
+        "a: &a [\n"
+        "    0,\n"
+        "    0\n"
+        "  ]\n"
+        "b: &b [\n"
+        "    [\n"
+        "      0,\n"
+        "      0\n"
+        "    ],\n"
+        "    [\n"
+        "      0,\n"
+        "      0\n"
+        "    ]\n"
+        "  ]\n"
+        "c: &c [\n"
+        "    [\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ],\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ]\n"
+        "    ],\n"
+        "    [\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ],\n"
+        "      [\n"
+        "        0,\n"
+        "        0\n"
+        "      ]\n"
+        "    ]\n"
+        "  ]\n"
+        ""));
+}
+
+TEST(anchors, billion_laughs_roundtrip_map_flow_ml)
+{
+    SCOPED_CALL(test_billion_laughs_roundtrip, (
+        "a: &a {\n"
+        "    0: 0\n"
+        "  }\n"
+        "b: &b {\n"
+        "    1: *a,\n"
+        "    2: *a\n"
+        "  }\n"
+        "c: &c {\n"
+        "    1: *b,\n"
+        "    2: *b\n"
+        "  }\n"
+        "",
+        "a: {\n"
+        "    0: 0\n"
+        "  }\n"
+        "b: {\n"
+        "    1: {\n"
+        "      0: 0\n"
+        "    },\n"
+        "    2: {\n"
+        "      0: 0\n"
+        "    }\n"
+        "  }\n"
+        "c: {\n"
+        "    1: {\n"
+        "      1: {\n"
+        "        0: 0\n"
+        "      },\n"
+        "      2: {\n"
+        "        0: 0\n"
+        "      }\n"
+        "    },\n"
+        "    2: {\n"
+        "      1: {\n"
+        "        0: 0\n"
+        "      },\n"
+        "      2: {\n"
+        "        0: 0\n"
+        "      }\n"
+        "    }\n"
+        "  }\n"
+        "",
+        "a: &a {\n"
+        "    0: 0\n"
+        "  }\n"
+        "b: &b {\n"
+        "    1: {\n"
+        "      0: 0\n"
+        "    },\n"
+        "    2: {\n"
+        "      0: 0\n"
+        "    }\n"
+        "  }\n"
+        "c: &c {\n"
+        "    1: {\n"
+        "      1: {\n"
+        "        0: 0\n"
+        "      },\n"
+        "      2: {\n"
+        "        0: 0\n"
+        "      }\n"
+        "    },\n"
+        "    2: {\n"
+        "      1: {\n"
+        "        0: 0\n"
+        "      },\n"
+        "      2: {\n"
+        "        0: 0\n"
+        "      }\n"
+        "    }\n"
+        "  }\n"
+        ""));
+}
+
+TEST(anchors, billion_laughs_roundtrip_seq_block)
+{
+    SCOPED_CALL(test_billion_laughs_roundtrip, (
+        "a: &a\n"
+        "  - 0\n"
+        "  - 0\n"
+        "b: &b\n"
+        "  - *a\n"
+        "  - *a\n"
+        "c: &c\n"
+        "  - *b\n"
+        "  - *b\n"
+        "",
+        "a:\n"
+        "  - 0\n"
+        "  - 0\n"
+        "b:\n"
+        "  - - 0\n"
+        "    - 0\n"
+        "  - - 0\n"
+        "    - 0\n"
+        "c:\n"
+        "  - - - 0\n"
+        "      - 0\n"
+        "    - - 0\n"
+        "      - 0\n"
+        "  - - - 0\n"
+        "      - 0\n"
+        "    - - 0\n"
+        "      - 0\n"
+        "",
+        "a: &a\n"
+        "  - 0\n"
+        "  - 0\n"
+        "b: &b\n"
+        "  - - 0\n"
+        "    - 0\n"
+        "  - - 0\n"
+        "    - 0\n"
+        "c: &c\n"
+        "  - - - 0\n"
+        "      - 0\n"
+        "    - - 0\n"
+        "      - 0\n"
+        "  - - - 0\n"
+        "      - 0\n"
+        "    - - 0\n"
+        "      - 0\n"
+        ""));
+}
+
+TEST(anchors, billion_laughs_roundtrip_map_block)
+{
+    SCOPED_CALL(test_billion_laughs_roundtrip, (
+        "a: &a\n"
+        "  0: 0\n"
+        "b: &b\n"
+        "  1: *a\n"
+        "  2: *a\n"
+        "c: &c\n"
+        "  1: *b\n"
+        "  2: *b\n"
+        "",
+        "a:\n"
+        "  0: 0\n"
+        "b:\n"
+        "  1:\n"
+        "    0: 0\n"
+        "  2:\n"
+        "    0: 0\n"
+        "c:\n"
+        "  1:\n"
+        "    1:\n"
+        "      0: 0\n"
+        "    2:\n"
+        "      0: 0\n"
+        "  2:\n"
+        "    1:\n"
+        "      0: 0\n"
+        "    2:\n"
+        "      0: 0\n"
+        "",
+        "a: &a\n"
+        "  0: 0\n"
+        "b: &b\n"
+        "  1:\n"
+        "    0: 0\n"
+        "  2:\n"
+        "    0: 0\n"
+        "c: &c\n"
+        "  1:\n"
+        "    1:\n"
+        "      0: 0\n"
+        "    2:\n"
+        "      0: 0\n"
+        "  2:\n"
+        "    1:\n"
+        "      0: 0\n"
+        "    2:\n"
+        "      0: 0\n"
+        ""));
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(anchors, merge0)
+{
+    SCOPED_CALL(test_resolve, (
+        "- &LEFT {x: 0,y: 2}\n" "- &BIG {r: 10}\n" "- &SMALL {r: 1}\n"
+        "- <<: [*BIG,*LEFT,*SMALL]\n" "  x: 1\n"
+        "- <<: [*BIG,*SMALL,*LEFT]\n" "  x: 1\n"
+        "- <<: [*LEFT,*BIG,*SMALL]\n" "  x: 1\n"
+        "- x: 1\n" "  <<: [*BIG,*LEFT,*SMALL]\n"
+        "- x: 1\n" "  <<: [*LEFT,*BIG,*SMALL]\n"
+        "- x: 1\n" "  <<: [*LEFT,*BIG,*SMALL]\n"
+        ,
+        "- {x: 0,y: 2}\n" "- {r: 10}\n" "- {r: 1}\n"
+        "- r: 10\n" "  y: 2\n"  "  x: 1\n"
+        "- r: 10\n" "  y: 2\n"  "  x: 1\n"
+        "- y: 2\n"  "  r: 10\n" "  x: 1\n"
+        "- x: 1\n"  "  r: 10\n" "  y: 2\n"
+        "- x: 1\n"  "  y: 2\n"  "  r: 10\n"
+        "- x: 1\n"  "  y: 2\n"  "  r: 10\n"
+        ""));
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 TEST(anchors, node_scalar_set_ref_when_empty)
 {
@@ -133,7 +749,8 @@ TEST(anchors, node_scalar_set_ref_when_non_empty)
 
 TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
 {
-    Tree t = parse_in_arena("{foo: &foo: 1, *foo: : 2, '*foo:': 3}");
+    TreeAndInts ti("{foo: &foo: 1, *foo: : 2, '*foo:': 3}");
+    Tree &t = ti.tree;
     EXPECT_TRUE(t[1].is_key_ref());
     EXPECT_FALSE(t[2].is_key_ref());
     EXPECT_FALSE(t[1].is_key_quoted());
@@ -141,14 +758,15 @@ TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
     EXPECT_EQ(t[1].key(), "*foo:");
     EXPECT_EQ(t[1].key_ref(), "foo:");
     EXPECT_EQ(t[2].key(), "*foo:");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo: 1,*foo: : 2,'*foo:': 3})");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: 1,1: 2,'*foo:': 3})");
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: &foo: 1,*foo: : 2,'*foo:': 3})"));
+    SCOPED_CALL(test_resolve, (ti));
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: 1,1: 2,'*foo:': 3})"));
 }
 
 TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
 {
-    Tree t = parse_in_arena("{foo: &foo: 1, ref: *foo:, quo: '*foo:'}");
+    TreeAndInts ti("{foo: &foo: 1, ref: *foo:, quo: '*foo:'}");
+    Tree &t = ti.tree;
     EXPECT_TRUE(t["ref"].is_val_ref());
     EXPECT_FALSE(t["quo"].is_val_ref());
     EXPECT_FALSE(t["ref"].is_val_quoted());
@@ -156,19 +774,20 @@ TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
     EXPECT_EQ(t["ref"].val_ref(), "foo:");
     EXPECT_EQ(t["ref"].val(), "*foo:");
     EXPECT_EQ(t["quo"].val(), "*foo:");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo: 1,ref: *foo:,quo: '*foo:'})");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: 1,ref: 1,quo: '*foo:'})");
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: &foo: 1,ref: *foo:,quo: '*foo:'})"));
+    SCOPED_CALL(test_resolve, (ti));
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: 1,ref: 1,quo: '*foo:'})"));
 }
 
 TEST(anchors, no_ambiguity_with_inheritance)
 {
-    Tree t = parse_in_arena(R"({
+    TreeAndInts ti(R"({
 foo: &foo {a: 1, b: 2},
 bar: {<<: *foo},
  sq: {'<<': haha},
  dq: {"<<": hehe}
 })");
+    Tree &t = ti.tree;
     _c4dbg_tree("parsed tree", t);
     EXPECT_TRUE(t["bar"].has_child("<<"));
     EXPECT_FALSE(t["bar"]["<<"].is_key_ref());
@@ -183,21 +802,23 @@ bar: {<<: *foo},
     EXPECT_EQ(t["bar"]["<<"].val(), "*foo");
     //EXPECT_EQ(t["bar"]["<<"].key_ref(), "<<"); // not a ref!
     EXPECT_EQ(t["bar"]["<<"].val_ref(), "foo");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({
-  foo: &foo {a: 1,b: 2},
-  bar: {<<: *foo},
-  sq: {'<<': haha},
-  dq: {"<<": hehe}
-}
-)");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({
-  foo: {a: 1,b: 2},
-  bar: {a: 1,b: 2},
-  sq: {'<<': haha},
-  dq: {"<<": hehe}
-}
-)");
+    SCOPED_CALL(test_emit_yaml, (ti, ""
+                                 "{\n"
+                                 "  foo: &foo {a: 1,b: 2},\n"
+                                 "  bar: {<<: *foo},\n"
+                                 "  sq: {'<<': haha},\n"
+                                 "  dq: {\"<<\": hehe}\n"
+                                 "}\n"
+                                 ""));
+    SCOPED_CALL(test_resolve, (ti));
+    SCOPED_CALL(test_emit_yaml, (ti,
+                                 "{\n"
+                                 "  foo: {a: 1,b: 2},\n"
+                                 "  bar: {a: 1,b: 2},\n"
+                                 "  sq: {'<<': haha},\n"
+                                 "  dq: {\"<<\": hehe}\n"
+                                 "}\n"
+                                 ""));
 }
 
 TEST(anchors, programatic_key_ref)
@@ -417,7 +1038,7 @@ TEST(anchors, set_val_ref_replaces_existing_key)
 
 TEST(anchors, github529)
 {
-    csubstr unresolved = R"(
+    std::string unresolved = R"(
 dimensions: 3
 type: EXPRESSION
 variables:
@@ -431,7 +1052,9 @@ tpl: &anchor
   it: works
 <<: *anchor
  )";
-    Tree tree = parse_in_arena(unresolved);
+    TreeAndInts ti(to_csubstr(unresolved));
+    Tree const& tree = ti.tree;
+    extra::ievt::evtbuf evt = ti.ints.evts;
     //print_tree(tree);
     EXPECT_FALSE(tree["variables"]["<<"].is_val_ref());
     EXPECT_TRUE(tree["variables"]["<<"].is_key_quoted());
@@ -441,10 +1064,17 @@ tpl: &anchor
     EXPECT_EQ(tree[7].key(), "<<");
     EXPECT_TRUE(tree[7].is_val_ref());
     EXPECT_FALSE(tree[7].is_key_quoted());
-    tree.resolve();
+    SCOPED_CALL(test_resolve, (ti));
     EXPECT_EQ(tree["variables"]["<<"][0].val(), "biomes/abstract/carving/carving_land.yml:carving.sampler.variables");
+    EXPECT_EQ(ti.ints.getstr(23), "biomes/abstract/carving/carving_land.yml:carving.sampler.variables");
     EXPECT_EQ(tree["<<"].val(), "not a reference");
+    EXPECT_EQ(ti.ints.getstr(49), "not a reference");
     EXPECT_EQ(tree["it"].val(), "works");
+    EXPECT_EQ(evt.ptr[69], extra::ievt::RREF); // NOLINT
+    EXPECT_EQ(evt.ptr[70], 59);
+    EXPECT_EQ(evt.ptr[71], 65);
+    EXPECT_EQ(ti.ints.getstr(59), "it");
+    EXPECT_EQ(ti.ints.getstr(62), "works");
 }
 
 
@@ -551,14 +1181,14 @@ TEST(anchors, github566_seq_FLOW_SL)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(weird_anchor_cases_from_suite, 2SXE)
+TEST(anchors, weird_anchor_cases_from_suite_2SXE)
 {
-    Tree t = parse_in_arena(R"(&a: key: &a value
+    TreeAndInts ti(R"(&a: key: &a value
 foo:
   *a:
 )");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: value
+    test_resolve_(ti);
+    test_emit_yaml(ti, R"(key: value
 foo: key
 )");
 }
@@ -677,14 +1307,14 @@ TEST(CaseNode, anchors)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(simple_anchor, resolve_works_on_an_empty_tree)
+TEST(anchors, resolve_works_on_an_empty_tree)
 {
     Tree t(0);
     t.resolve();
     EXPECT_TRUE(t.empty());
 }
 
-TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
+TEST(anchors, resolve_works_on_a_tree_without_refs)
 {
     Tree t = parse_in_arena("[a, b, c, d, e, f]");
     size_t size_before = t.size();
@@ -692,7 +1322,7 @@ TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
     EXPECT_EQ(t.size(), size_before);
 }
 
-TEST(simple_anchor, resolve_works_on_keyrefvalref)
+TEST(anchors, resolve_works_on_keyrefvalref)
 {
     Tree t = parse_in_arena("{&a a: &b b, *b : *a}");
     EXPECT_EQ(t["a"].has_key_anchor(), true);
@@ -711,7 +1341,7 @@ TEST(simple_anchor, resolve_works_on_keyrefvalref)
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"({a: b,b: a})");
 }
 
-TEST(simple_anchor, anchors_of_first_child_key_implicit)
+TEST(anchors, anchors_of_first_child_key_implicit)
 {
     csubstr yaml = R"(&anchor0
 &anchor4 top4:
@@ -758,7 +1388,7 @@ top62:
     ASSERT_EQ(t["top62"]["key62"].has_key_anchor(), false);
 }
 
-TEST(simple_anchor, merge_seqs)
+TEST(anchors, merge_seqs)
 {
     const Tree src = parse_in_arena(R"([0, 1])");
     {
@@ -778,88 +1408,53 @@ TEST(simple_anchor, merge_seqs)
     }
 }
 
-TEST(simple_anchor, issue_400)
+TEST(anchors, issue_400)
 {
-    csubstr yaml = R"(
+    TreeAndInts ti(R"(
 a: &a
   x: 1
 b: &b
   ref: *a
 c:
   ref: *b
-)";
-    {
-        Tree t = parse_in_arena(yaml);
-        t.resolve();
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a:
-  x: 1
-b:
-  ref:
-    x: 1
-c:
-  ref:
-    ref:
-      x: 1
 )");
-    }
+    test_resolve_(ti);
+    test_emit_yaml_(ti,
+                    "a:\n"
+                    "  x: 1\n"
+                    "b:\n"
+                    "  ref:\n"
+                    "    x: 1\n"
+                    "c:\n"
+                    "  ref:\n"
+                    "    ref:\n"
+                    "      x: 1\n"
+                    "");
 }
 
-TEST(simple_anchor, billion_laughs)
+TEST(anchors, resolve_nested)
 {
-    // https://en.wikipedia.org/wiki/Billion_laughs_attack
-    csubstr yaml = R"(a: &a ["lol","lol"]
-b: &b [*a,*a]
-c: &c [*b,*b]
-)";
-    {
-        Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
-    }
-    {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(true));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: ["lol","lol"]
-b: [["lol","lol"],["lol","lol"]]
-c: [[["lol","lol"],["lol","lol"]],[["lol","lol"],["lol","lol"]]]
-)");
-    }
-    {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(false));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: &a ["lol","lol"]
-b: &b [&a ["lol","lol"],&a ["lol","lol"]]
-c: &c [&b [&a ["lol","lol"],&a ["lol","lol"]],&b [&a ["lol","lol"],&a ["lol","lol"]]]
-)");
-    }
-}
-
-TEST(simple_anchor, resolve_nested)
-{
-    csubstr yaml = R"(a: &a
+    std::string yaml = R"(a: &a
   b:
     <<: *a
 )";
     {
-        Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+        TreeAndInts ti(to_csubstr(yaml));
+        test_emit_yaml_(ti, yaml);
     }
     {
-        Tree t = parse_in_arena(yaml);
-        ExpectError::check_error_visit(&t, [&]{
-            t.resolve(ResolveOptions{}.clear_anchors(true));
-        });
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_err_(ti, ResolveOptions{}.clear_anchors(true));
     }
     {
-        Tree t = parse_in_arena(yaml);
-        ExpectError::check_error_visit(&t, [&]{
-            t.resolve(ResolveOptions{}.clear_anchors(false));
-        });
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_err_(ti, ResolveOptions{}.clear_anchors(false));
     }
 }
 
-TEST(simple_anchor, resolve_nested_2)
+TEST(anchors, resolve_nested_2)
 {
-    csubstr yaml = R"(a0: &a0
+    std::string yaml = R"(a0: &a0
   b0: &b0
     c0: &c0 v0
 a1: &a1
@@ -874,90 +1469,168 @@ a5: &a5
   ref: *a4
 )";
     {
-        Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+        TreeAndInts ti(to_csubstr(yaml));
+        test_emit_yaml_(ti, yaml);
     }
     {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(true));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0:
-  b0:
-    c0: v0
-a1:
-  ref:
-    b0:
-      c0: v0
-a2:
-  ref:
-    ref:
-      b0:
-        c0: v0
-a3:
-  ref:
-    ref:
-      ref:
-        b0:
-          c0: v0
-a4:
-  ref:
-    ref:
-      ref:
-        ref:
-          b0:
-            c0: v0
-a5:
-  ref:
-    ref:
-      ref:
-        ref:
-          ref:
-            b0:
-              c0: v0
-)");
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve(ti, ResolveOptions{}.clear_anchors(true));
+        test_emit_yaml_(ti,
+                        "a0:\n"
+                        "  b0:\n"
+                        "    c0: v0\n"
+                        "a1:\n"
+                        "  ref:\n"
+                        "    b0:\n"
+                        "      c0: v0\n"
+                        "a2:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      b0:\n"
+                        "        c0: v0\n"
+                        "a3:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        b0:\n"
+                        "          c0: v0\n"
+                        "a4:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        ref:\n"
+                        "          b0:\n"
+                        "            c0: v0\n"
+                        "a5:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        ref:\n"
+                        "          ref:\n"
+                        "            b0:\n"
+                        "              c0: v0\n"
+                        "");
     }
     {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(false));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0: &a0
-  b0: &b0
-    c0: &c0 v0
-a1: &a1
-  ref: &a0
-    b0: &b0
-      c0: &c0 v0
-a2: &a2
-  ref: &a1
-    ref: &a0
-      b0: &b0
-        c0: &c0 v0
-a3: &a3
-  ref: &a2
-    ref: &a1
-      ref: &a0
-        b0: &b0
-          c0: &c0 v0
-a4: &a4
-  ref: &a3
-    ref: &a2
-      ref: &a1
-        ref: &a0
-          b0: &b0
-            c0: &c0 v0
-a5: &a5
-  ref: &a4
-    ref: &a3
-      ref: &a2
-        ref: &a1
-          ref: &a0
-            b0: &b0
-              c0: &c0 v0
-)");
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve(ti, ResolveOptions{}.clear_anchors(false));
+        test_emit_yaml_(ti,
+                        "a0: &a0\n"
+                        "  b0: &b0\n"
+                        "    c0: &c0 v0\n"
+                        "a1: &a1\n"
+                        "  ref:\n"
+                        "    b0: &b0\n"
+                        "      c0: &c0 v0\n"
+                        "a2: &a2\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      b0: &b0\n"
+                        "        c0: &c0 v0\n"
+                        "a3: &a3\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        b0: &b0\n"
+                        "          c0: &c0 v0\n"
+                        "a4: &a4\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        ref:\n"
+                        "          b0: &b0\n"
+                        "            c0: &c0 v0\n"
+                        "a5: &a5\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        ref:\n"
+                        "          ref:\n"
+                        "            b0: &b0\n"
+                        "              c0: &c0 v0\n"
+                        "");
     }
 }
 
-TEST(simple_anchor, issue_484_0)
+TEST(anchors, issue_484_0)
 {
-    csubstr yaml = R"(
+    csubstr cases[] = {
+csubstr(R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  <<: [*base_1,*base_2]
+k2:
+  <<: [*base_2,*base_1]
+k3:
+  a: 100
+  <<: [*base_1,*base_2]
+k4:
+  <<: [*base_1,*base_2]
+  a: 100
+k5:
+  a: 100
+  <<: [*base_2,*base_1]
+k6:
+  <<: [*base_2,*base_1]
+  a: 100
+)"),
+csubstr(R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  !!merge <<: [*base_1,*base_2]
+k2:
+  !!merge <<: [*base_2,*base_1]
+k3:
+  a: 100
+  !!merge <<: [*base_1,*base_2]
+k4:
+  !!merge <<: [*base_1,*base_2]
+  a: 100
+k5:
+  a: 100
+  !!merge <<: [*base_2,*base_1]
+k6:
+  !!merge <<: [*base_2,*base_1]
+  a: 100
+)"),
+csubstr(R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  <<: *base_1
+  <<: *base_2
+k2:
+  <<: *base_2
+  <<: *base_1
+k3:
+  a: 100
+  <<: *base_1
+  <<: *base_2
+k4:
+  <<: *base_1
+  <<: *base_2
+  a: 100
+k5:
+  a: 100
+  <<: *base_2
+  <<: *base_1
+k6:
+  <<: *base_2
+  <<: *base_1
+  a: 100
+)"),
+csubstr(R"(
 base_1: &base_1
   a: 10
   b: 10
@@ -969,34 +1642,65 @@ k1:
 k2:
   !!merge <<: *base_2
   !!merge <<: *base_1
-)";
-    Tree t = parse_in_arena(yaml);
-    EXPECT_EQ(t["k1"][0].val(), "*base_1");
-    EXPECT_EQ(t["k1"][1].val(), "*base_2");
-    EXPECT_EQ(t["k2"][0].val(), "*base_2");
-    EXPECT_EQ(t["k2"][1].val(), "*base_1");
-    t.resolve();
-    EXPECT_EQ(t["k1"]["a"].val(), "10");
-    EXPECT_EQ(t["k1"]["b"].val(), "20");
-    EXPECT_EQ(t["k2"]["a"].val(), "10");
-    EXPECT_EQ(t["k2"]["b"].val(), "10");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(base_1:
-  a: 10
-  b: 10
-base_2:
-  b: 20
-k1:
-  a: 10
-  b: 20
-k2:
-  a: 10
-  b: 10
-)");
+k3:
+  a: 100
+  !!merge <<: *base_1
+  !!merge <<: *base_2
+k4:
+  !!merge <<: *base_1
+  !!merge <<: *base_2
+  a: 100
+k5:
+  a: 100
+  !!merge <<: *base_2
+  !!merge <<: *base_1
+k6:
+  !!merge <<: *base_2
+  !!merge <<: *base_1
+  a: 100
+)"),
+    };
+    size_t count = 0;
+    for(csubstr yaml : cases)
+    {
+        RYML_TRACE_FMT("case #{}", count++);
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_(ti);
+        if(testing::Test::HasFailure())
+            break;
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "base_2:\n"
+                        "  b: 20\n"
+                        "k1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "k2:\n"
+                        "  b: 20\n"
+                        "  a: 10\n"
+                        "k3:\n"
+                        "  a: 100\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "k5:\n"
+                        "  a: 100\n"
+                        "  b: 20\n"
+                        "k6:\n"
+                        "  b: 20\n"
+                        "  a: 100\n"
+                        "");
+        if(testing::Test::HasFailure())
+            break;
+    }
 }
 
-TEST(simple_anchor, issue_484_1)
+TEST(anchors, issue_484_1)
 {
-    csubstr yaml = R"(
+    std::string yaml = R"(
 base_1: &base_1
   a: 10
   b: 10
@@ -1008,48 +1712,87 @@ k1:
 k2:
   <<: *base_2
   <<: *base_1
+k3:
+  a: 100
+  <<: *base_1
+  <<: *base_2
+k4:
+  <<: *base_1
+  <<: *base_2
+  a: 100
 )";
-    Tree t = parse_in_arena(yaml);
-    EXPECT_EQ(t["k1"][0].val(), "*base_1");
-    EXPECT_EQ(t["k1"][1].val(), "*base_2");
-    EXPECT_EQ(t["k2"][0].val(), "*base_2");
-    EXPECT_EQ(t["k2"][1].val(), "*base_1");
-    t.resolve();
-    EXPECT_EQ(t["k1"]["a"].val(), "30");
-    EXPECT_EQ(t["k1"]["b"].val(), "10");
-    EXPECT_EQ(t["k2"]["a"].val(), "10");
-    EXPECT_EQ(t["k2"]["b"].val(), "10");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(base_1:
-  a: 10
-  b: 10
-base_2:
-  a: 30
-k1:
-  b: 10
-  a: 30
-k2:
-  a: 10
-  b: 10
-)");
+    {
+        SCOPED_TRACE("standard");
+        TreeAndInts ti(to_csubstr(yaml));
+        Tree const& t = ti.tree;
+        EXPECT_EQ(t["k1"][0].val(), "*base_1");
+        EXPECT_EQ(t["k1"][1].val(), "*base_2");
+        EXPECT_EQ(t["k2"][0].val(), "*base_2");
+        EXPECT_EQ(t["k2"][1].val(), "*base_1");
+        test_resolve_(ti);
+        EXPECT_EQ(t["k1"]["a"].val(), "10");
+        EXPECT_EQ(t["k1"]["b"].val(), "10");
+        EXPECT_EQ(t["k2"]["a"].val(), "30");
+        EXPECT_EQ(t["k2"]["b"].val(), "10");
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "base_2:\n"
+                        "  a: 30\n"
+                        "k1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "k2:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k3:\n"
+                        "  a: 100\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "");
+    }
+    {
+        SCOPED_TRACE("latest");
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_(ti, ResolveOptions{}.set_overwrite_latest());
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "base_2:\n"
+                        "  a: 30\n"
+                        "k1:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k2:\n"
+                        "  a: 10\n"
+                        "  b: 10\n"
+                        "k3:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "");
+    }
 }
 
 
-TEST(simple_anchor, key_anchor_error_json)
+TEST(anchors, key_anchor_error_json)
 {
-    Tree tree = parse_in_arena("{&k key: val}");
-    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
-    ExpectError::check_error_visit(&tree, [&]{
-        emitrs_json<std::string>(tree, EmitOptions{}.json_err_on_anchor(true));
-    });
+    TreeAndInts ti("{&k key: val}");
+    test_emit_json_(ti, "{\"key\": \"val\"}");
+    test_emit_error_json_(ti, EmitOptions{}.json_err_on_anchor(true));
 }
 
-TEST(simple_anchor, val_anchor_error_json)
+TEST(anchors, val_anchor_error_json)
 {
-    Tree tree = parse_in_arena("{key: &v val}");
-    EXPECT_EQ(emitrs_json<std::string>(tree), "{\"key\": \"val\"}");
-    ExpectError::check_error_visit(&tree, [&]{
-        emitrs_json<std::string>(tree, EmitOptions{}.json_err_on_anchor(true));
-    });
+    TreeAndInts ti("{key: &v val}");
+    test_emit_json_(ti, "{\"key\": \"val\"}");
+    test_emit_error_json_(ti, EmitOptions{}.json_err_on_anchor(true));
 }
 
 
@@ -1112,7 +1855,7 @@ N(SB, L{
 })
 );
 
-ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS/*|NO_COMPARE_RESOLVED_INTS*/,
 R"(# https://yaml.org/type/merge.html
 - &CENTER { x: 1, y: 2 }
 - &LEFT { x: 0, y: 2 }
@@ -1125,31 +1868,31 @@ R"(# https://yaml.org/type/merge.html
   x: 1
   y: 2
   r: 10
-  label: center/big
+  label: center/big0
 
 - # Merge one map
   << : *CENTER
   r: 10
-  label: center/big
+  label: center/big1
 
 - # Merge multiple maps
   << : [ *CENTER, *BIG ]
-  label: center/big
+  label: center/big2
 
 - # Override
   << : [ *SMALL, *LEFT, *BIG ]
   x: 1
-  label: center/big
+  label: center/big3
 )",
 N(SB, L{
     N(MFS, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2")}),
     N(MFS, L{N(KP|VP, "x", "0" ), N(KP|VP, "y", "2")}),
-    N(MFS, L{N(KP|VP, "r", "10")             }),
-    N(MFS, L{N(KP|VP, "r", "1" )             }),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+    N(MFS, L{N(KP|VP, "r", "10")}),
+    N(MFS, L{N(KP|VP, "r", "1" )}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big0")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big1")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big2")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big3")}),
 })
 );
 
@@ -1456,7 +2199,7 @@ N(SB, L{
 })
 );
 
-ADD_CASE_TO_GROUP("anchor example 3, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("anchor example 3, resolved", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
 R"(
 - step:  &id001                  # defines anchor label &id001
     instrument:      Lasik 2000
@@ -1851,7 +2594,7 @@ N(MB, L{
   })
 );
 
-ADD_CASE_TO_GROUP("github 484, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("github 484, resolved", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
 R"(
 base_1: &base_1
   a: 10
@@ -1864,6 +2607,50 @@ k1:
 k2:
   !!merge <<: *base_2
   !!merge <<: *base_1
+)",
+N(MB, L{
+      N(KP|MB, "base_1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "base_2", L{/*                 */N(KP|VP, "b", "20")}),
+      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "20")}),
+      N(KP|MB, "k2", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+  })
+);
+
+ADD_CASE_TO_GROUP("github 484, resolved, anch", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
+R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  &k1a <<: *base_1
+  &k2b <<: *base_2
+k2:
+  &k2a <<: *base_2
+  &k2b <<: *base_1
+)",
+N(MB, L{
+      N(KP|MB, "base_1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "base_2", L{/*                 */N(KP|VP, "b", "20")}),
+      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "20")}),
+      N(KP|MB, "k2", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+  })
+);
+
+ADD_CASE_TO_GROUP("github 484, resolved, anch + tag", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
+R"(
+base_1: &base_1
+  a: 10
+  b: 10
+base_2: &base_2
+  b: 20
+k1:
+  &k1a !!merge <<: *base_1
+  &k2b !!merge <<: *base_2
+k2:
+  &k2a !!merge <<: *base_2
+  &k2b !!merge <<: *base_1
 )",
 N(MB, L{
       N(KP|MB, "base_1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),

@@ -4,9 +4,8 @@
 #ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
 #include "c4/yml/extra/event_ints.hpp"
 #endif
+#include <cstdio>
 
-
-//-----------------------------------------------------------------------------
 
 namespace c4 {
 namespace yml {
@@ -16,29 +15,23 @@ namespace ievt {
 /** @addtogroup doc_event_handlers_ints
  * @{ */
 
-/** Convert bit mask of @ref ievt::evt_bits to text. */
+/** Convert bit mask of @ref EventBits to text. */
 RYML_EXPORT size_t to_str(substr buf, evt_bits flags) noexcept;
-/** Convert bit mask of @ref ievt::evt_bits to text. */
+/** Convert bit mask of @ref EventBits to text. */
 RYML_EXPORT csubstr to_str_sub(substr buf, evt_bits flags);
 
-/** Print integer events to stdout */
-RYML_EXPORT void events_ints_print(csubstr parsed_yaml, csubstr arena,
+/** Print integer events to file/stdout */
+RYML_EXPORT void events_ints_print(csubstr parsed_yaml,
+                                   csubstr arena,
                                    evt_bits const* evts_ints, evt_size evts_ints_sz,
-                                   bool indent=true);
+                                   bool indent=true,
+                                   FILE *file=nullptr);
 
 /** @} */
 
 } // namespace ievt
-} // namespace extra
-} // namespace yml
-} // namespace c4
-
-
 
 /** @cond dev */
-namespace c4 {
-namespace yml {
-namespace extra {
 RYML_DEPRECATED("use ievt::events_ints_print")
 inline void events_ints_print(csubstr parsed_yaml, csubstr arena,
                               ievt::evt_bits const* evts_ints,
@@ -46,9 +39,10 @@ inline void events_ints_print(csubstr parsed_yaml, csubstr arena,
 {
     ievt::events_ints_print(parsed_yaml, arena, evts_ints, evts_ints_sz);
 }
+/** @endcond */
+
 } // namespace extra
 } // namespace yml
 } // namespace c4
-/** @endcond */
 
 #endif /* C4_YML_EXTRA_INTS_UTILS_HPP_ */

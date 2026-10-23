@@ -254,6 +254,95 @@ void TestCaseNode::recreate(Tree *tree, id_type node) const
     for(TestCaseNode const& ch : children)
         ch.recreate(tree, tree->append_child(node));
 }
+void TestCaseNode::recreate(NodeRef n) const
+{
+    recreate(n.tree(), n.id());
+}
+
+
+//-----------------------------------------------------------------------------
+
+void print_test_node(TestCaseNode const& p, int level)
+{
+    printf("%*s%p", (2*level), "", (void const*)&p);
+    if( ! p.parent)
+    {
+        printf(" [ROOT]");
+    }
+    printf(" %s:", NodeType::type_str(p.type));
+    if(p.has_key())
+    {
+        const char code = _scalar_code_key(p.type);
+        if(p.has_key_anchor())
+        {
+            csubstr ka = p.key_anchor.str;
+            printf(" &%.*s", (int)ka.len, ka.str);
+        }
+        if(p.key_tag.empty())
+        {
+            csubstr v  = p.key;
+            printf(" %c%.*s%c", code, (int)v.len, v.str, code);
+        }
+        else
+        {
+            csubstr vt = p.key_tag;
+            csubstr v  = p.key;
+            printf(" %.*s %c%.*s%c'", (int)vt.len, vt.str, code, (int)v.len, v.str, code);
+        }
+    }
+    if(p.has_val())
+    {
+        const char code = _scalar_code_val(p.type);
+        if(p.val_tag.empty())
+        {
+            csubstr v  = p.val;
+            printf(" %c%.*s%c", code, (int)v.len, v.str, code);
+        }
+        else
+        {
+            csubstr vt = p.val_tag;
+            csubstr v  = p.val;
+            printf(" %.*s%c%.*s%c", (int)vt.len, vt.str, code, (int)v.len, v.str, code);
+        }
+    }
+    else
+    {
+        if( ! p.val_tag.empty())
+        {
+            csubstr vt = p.val_tag;
+            printf(" %.*s", (int)vt.len, vt.str);
+        }
+    }
+    if(p.has_val_anchor())
+    {
+        auto &a = p.val_anchor.str;
+        printf(" valanchor='&%.*s'", (int)a.len, a.str);
+    }
+    printf(" (%zd sibs)", p.parent ? p.parent->children.size() : 0);
+    if(p.is_container())
+    {
+        printf(" %zd children:", p.children.size());
+    }
+    printf("\n");
+}
+
+
+void print_test_tree(TestCaseNode const& p, int level)
+{
+    print_test_node(p, level);
+    for(auto const& ch : p.children)
+        print_test_tree(ch, level+1);
+}
+
+void print_test_tree(const char *message, TestCaseNode const& t)
+{
+    printf("--------------------------------------\n");
+    if(message != nullptr)
+        printf("%s:\n", message);
+    print_test_tree(t, 0);
+    printf("#nodes: %zu\n", (size_t)t.reccount());
+    printf("--------------------------------------\n");
+}
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 
