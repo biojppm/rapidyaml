@@ -40,7 +40,7 @@ public:
 
 private:
 
-    EmitOptions& set_flags_(bool enabled, Flags_e f)
+    EmitOptions& set_flag_(bool enabled, Flags_e f)
     {
         if(enabled)
             m_flags |= f;
@@ -60,13 +60,13 @@ public:
     /** Indent the contents of @ref FLOW_ML1 and @ref FLOW_MLN
      * containers. Enabled by default. */
     C4_ALWAYS_INLINE bool indent_flow_ml() const noexcept { return (m_flags & INDENT_FLOW_ML) != 0; }
-    EmitOptions& indent_flow_ml(bool enabled) noexcept { return set_flags_(enabled, INDENT_FLOW_ML); }
+    EmitOptions& indent_flow_ml(bool enabled) noexcept { return set_flag_(enabled, INDENT_FLOW_ML); }
 
     /** Force everywhere a space after comma in flow mode, overriding
      * the @ref FLOW_SPC status of individual containers. This only
      * applies to @ref FLOW_ML1 or @ref FLOW_MLN containers. Disabled
      * by default. */
-    EmitOptions& force_flow_spc(bool enabled) noexcept { return set_flags_(enabled, FORCE_FLOW_SPC); }
+    EmitOptions& force_flow_spc(bool enabled) noexcept { return set_flag_(enabled, FORCE_FLOW_SPC); }
     C4_ALWAYS_INLINE bool force_flow_spc() const noexcept { return (m_flags & FORCE_FLOW_SPC) != 0; }
 
     /** Set max columns for the emitted YAML in @ref FLOW_MLN
@@ -90,13 +90,13 @@ public:
     /** When emit starts on a nested (non-root) node, emit the node's
      * key as well. This will maek the resulting YAML a map with the
      * node as its single element. Enabled by default. */
-    EmitOptions& emit_nonroot_key(bool enabled) noexcept { return set_flags_(enabled, EMIT_NONROOT_KEY); }
+    EmitOptions& emit_nonroot_key(bool enabled) noexcept { return set_flag_(enabled, EMIT_NONROOT_KEY); }
     C4_ALWAYS_INLINE bool emit_nonroot_key() const noexcept { return (m_flags & EMIT_NONROOT_KEY) != 0; }
 
     /** When emit starts on a nested (non-root) node, emit a leading
      * dash. This will make the resulting YAML a seq with the node as
      * its single element. Disabled by default. */
-    EmitOptions& emit_nonroot_dash(bool enabled) noexcept { return set_flags_(enabled, EMIT_NONROOT_DASH); }
+    EmitOptions& emit_nonroot_dash(bool enabled) noexcept { return set_flag_(enabled, EMIT_NONROOT_DASH); }
     C4_ALWAYS_INLINE bool emit_nonroot_dash() const noexcept { return (m_flags & EMIT_NONROOT_DASH) != 0; }
 
     /** @} */
@@ -110,17 +110,17 @@ public:
 
     /** Whether to trigger an error (or emit as seq) when finding a
      * stream in json mode. Disabled by default. */
-    EmitOptions& json_err_on_stream(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_STREAM); }
+    EmitOptions& json_err_on_stream(bool enabled) noexcept { return set_flag_(enabled, JSON_ERR_ON_STREAM); }
     C4_ALWAYS_INLINE bool json_err_on_stream() const noexcept { return (m_flags & JSON_ERR_ON_STREAM) != 0; }
 
     /** Whether to trigger an error (or ignore the tag) when finding a
      * tag in json mode. Disabled by default. */
-    EmitOptions& json_err_on_tag(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_TAG); }
+    EmitOptions& json_err_on_tag(bool enabled) noexcept { return set_flag_(enabled, JSON_ERR_ON_TAG); }
     C4_ALWAYS_INLINE bool json_err_on_tag() const noexcept { return (m_flags & JSON_ERR_ON_TAG) != 0; }
 
     /** Whether to trigger an error (or ignore the anchor) when
      * finding an anchor in json mode. Disabled by default. */
-    EmitOptions& json_err_on_anchor(bool enabled) noexcept { return set_flags_(enabled, JSON_ERR_ON_ANCHOR); }
+    EmitOptions& json_err_on_anchor(bool enabled) noexcept { return set_flag_(enabled, JSON_ERR_ON_ANCHOR); }
     C4_ALWAYS_INLINE bool json_err_on_anchor() const noexcept { return (m_flags & JSON_ERR_ON_ANCHOR) != 0; }
 
     /** @} */

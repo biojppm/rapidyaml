@@ -208,8 +208,8 @@ inline void test_emit_yaml_same_ints(ConstNodeRef n, std::string const& expected
 
 inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, std::string const& expected, EmitOptions const& opts={})
 {
-    test_emit_yaml_tree(n, expected, opts);
-    test_emit_yaml_ints(ints, pos, expected, opts);
+    SCOPED_CALL(test_emit_yaml_ints, (ints, pos, expected, opts));
+    SCOPED_CALL(test_emit_yaml_tree, (n, expected, opts));
 }
 inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
 {

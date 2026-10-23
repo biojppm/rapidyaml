@@ -99,7 +99,7 @@ void ReferenceResolver::reset_(Buffers evts_, bool can_resize_, ResolveOptions o
     Buffers::operator=(evts_);
     wpos = evts.len;
     newsz = evts.len;
-    sz_limit = evts.len * static_cast<evt_size>(opts_.max_size_multiplier());
+    sz_limit = static_cast<evt_size>(opts_.max_size(static_cast<size_t>(evts.len)));
     opts = opts_;
     can_resize = can_resize_;
     parents.clear();
@@ -124,7 +124,7 @@ C4_NODISCARD evt_size ReferenceResolver::matching_close_memoized_(evt_size pos)
     return ievt::prevpos(evts.ptr, next_sibling_memoized_(pos));
 }
 
-C4_NODISCARD bool ReferenceResolver::is_cyclic_ref_(evt_size anchor) const noexcept
+C4_NODISCARD bool ReferenceResolver::is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[anchor], ievt::ANCH));
     evt_size elm = detail::find_next_entry_(evts.ptr, evts.len, anchor, ievt::KEY_|ievt::VAL_);
@@ -132,6 +132,25 @@ C4_NODISCARD bool ReferenceResolver::is_cyclic_ref_(evt_size anchor) const noexc
         if(elm == parents.top(i))
             return true;
     return false;
+}
+
+C4_NODISCARD auto ReferenceResolver::val_range_(evt_size beg) -> Range_
+{
+    Range_ rng;
+    RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
+    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[beg]));
+    rng.beg = detail::find_next_entry_(evts.ptr, evts.len, beg, ievt::VAL_);
+    RYML_ASSERT_BASIC_(evts.ptr[rng.beg] & ievt::VAL_);
+    if(evts.ptr[rng.beg] & ievt::SCLR) // scalars
+    {
+        rng.end = rng.beg + 3;
+    }
+    else // containers
+    {
+        RYML_ASSERT_BASIC_(detail::seqormap(evts.ptr[rng.beg]));
+        rng.end = matching_close_memoized_(rng.end) + 1/*include the end*/;
+    }
+    return rng;
 }
 
 C4_NODISCARD bool ReferenceResolver::descend_(evt_size &pos)
@@ -196,7 +215,7 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
                 KnownKey_ const* existing_key = known_keys.lookup(key);
                 if( ! existing_key) // is this a new key?
                 {
-                    add_known_key_(key, child, /*merged_in*/false, /*copied*/false);
+                    add_known_key_(key, child, /*original*/true, /*copied*/false);
                 }
             }
         }
@@ -366,16 +385,13 @@ void ReferenceResolver::set_noref_(evt_size pos)
     evts.ptr[pos + 3] &= ~ievt::PEX2;
 }
 
-void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
+void ReferenceResolver::replace_with_ref_(evt_size pos, evt_size beg, evt_size end)
 {
-    RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
-    RYML_ASSERT_BASIC_(evts.ptr[pos + 3] & ievt::PEX2);
     evt_size extra = sz_limit ? count_extra(beg, end) : 0;
     newsz += extra;
     if C4_LIKELY (!sz_limit || newsz < sz_limit)
     {
-        evts.ptr[pos] &= ~(ievt::ALIA|ievt::KEY_|ievt::VAL_);
-        evts.ptr[pos] |= ievt::RREF;
+        evts.ptr[pos] = ievt::RREF;
         evts.ptr[pos + 1] = beg;
         evts.ptr[pos + 2] = end;
     }
@@ -383,6 +399,13 @@ void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
     {
         RYML_ERR_BASIC_("aliasing would exceed max size limit");
     }
+}
+
+void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
+{
+    RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
+    RYML_ASSERT_BASIC_(evts.ptr[pos + 3] & ievt::PEX2);
+    replace_with_ref_(pos, beg, end);
 }
 
 bool ReferenceResolver::is_merge_elm_(evt_size pos, csubstr key) const
@@ -522,12 +545,12 @@ bool ReferenceResolver::needs_merge_key_by_key_(evt_size beg, evt_size end)
     return false;
 }
 
-void ReferenceResolver::add_known_key_(csubstr key, evt_size id, bool merged_in, bool copied)
+void ReferenceResolver::add_known_key_(csubstr key, evt_size id, bool original, bool copied)
 {
     KnownKey_ &entry = known_keys.insert(key);
     entry.id = id;
     entry.count = num_known_keys++;
-    entry.merged_in = merged_in;
+    entry.original = original;
     entry.copied = copied;
 }
 
@@ -540,7 +563,7 @@ void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end)
         {
             csubstr key = getstr(beg);
             if(!known_keys.lookup(key))
-                add_known_key_(key, beg, /*merged_in*/true, /*copied*/false);
+                add_known_key_(key, beg, /*original*/false, /*copied*/false);
         }
         beg = next_sibling_memoized_(beg);
     }
@@ -554,13 +577,62 @@ void ReferenceResolver::add_merge_elms_(evt_size beg, evt_size end)
         if(detail::hasall(evts.ptr[beg], ievt::KEY_|ievt::SCLR))
         {
             csubstr key = getstr(beg);
-            if(!known_keys.lookup(key))
+            KnownKey_ const* existing = known_keys.lookup(key);
+            if(!existing)
             {
                 copy_keyval_to_end_(beg);
-                add_known_key_(key, beg, /*merged_in*/true, /*copied*/true);
+                add_known_key_(key, beg, /*original*/false, /*copied*/true);
+            }
+            else if((( ! existing->original) && opts.overwrite_existing()) ||
+                    (existing->original && opts.overwrite_original()))
+            {
+                RYML_ASSERT_BASIC_(key == getstr(existing->id));
+                overwrite_keyval_(existing->id, beg);
             }
         }
         beg = next_sibling_memoized_(beg);
+    }
+}
+
+void ReferenceResolver::overwrite_keyval_(evt_size orig, evt_size dst)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[dst], ievt::KEY_|ievt::SCLR));
+    RYML_ASSERT_BASIC_(orig != dst);
+    RYML_ASSERT_BASIC_(evts.ptr[orig + 3] & ievt::VAL_);
+    const Range_ srcrng = val_range_(orig);
+    const Range_ dstrng = val_range_(dst);
+    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[srcrng.beg]));
+    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[dstrng.beg]));
+    RYML_ASSERT_BASIC_(evts.ptr[srcrng.beg] & ievt::VAL_);
+    RYML_ASSERT_BASIC_(evts.ptr[dstrng.beg] & ievt::VAL_);
+    RYML_ASSERT_BASIC_((srcrng.beg != dstrng.beg) && (srcrng.end != dstrng.end));
+    if((evts.ptr[srcrng.beg] & ievt::SCLR) &&
+       (evts.ptr[dstrng.beg] & ievt::SCLR))
+    {
+        // if both are scalars, copy the src scalar and its style
+        RYML_ASSERT_BASIC_(srcrng.end == srcrng.beg + 3);
+        RYML_ASSERT_BASIC_(dstrng.end == dstrng.beg + 3);
+        enum : evt_bits { scalar_sty = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD };
+        evts.ptr[dstrng.beg] &= ~scalar_sty;
+        evts.ptr[dstrng.beg] |= evts.ptr[srcrng.beg] & scalar_sty;
+        evts.ptr[dstrng.beg + 1] = evts.ptr[srcrng.beg + 1];
+        evts.ptr[dstrng.beg + 2] = evts.ptr[srcrng.beg + 2];
+    }
+    else if((evts.ptr[dstrng.beg] & ievt::SCLR) || (dstrng.len() > 2))
+    {
+        // dst val is scalar can be substituted by a ref
+        // (has enough room for the three ints)
+        RYML_ASSERT_BASIC_(!(evts.ptr[dstrng.beg] & ievt::SCLR));
+        replace_with_ref_(dstrng.beg, srcrng.beg, srcrng.end);
+    }
+    else // the ref does not fit in the val. but it fits the keyval!
+    {
+        // set the dst key as ref to the src keyval
+        RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[srcrng.beg - 3]));
+        RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[dstrng.beg - 3]));
+        RYML_ASSERT_BASIC_(evts.ptr[srcrng.beg - 3] & ievt::VAL_);
+        RYML_ASSERT_BASIC_(evts.ptr[dstrng.beg - 3] & ievt::VAL_);
+        replace_with_ref_(dstrng.beg - 3, srcrng.beg - 3, srcrng.end);
     }
 }
 
@@ -569,20 +641,9 @@ void ReferenceResolver::copy_keyval_to_end_(evt_size keyval)
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[keyval], ievt::KEY_|ievt::SCLR));
     evt_size val = detail::find_next_entry_(evts.ptr, evts.len, keyval, ievt::VAL_);
     RYML_ASSERT_BASIC_(evts.ptr[val] & ievt::VAL_);
-    evt_size num;
-    evt_bits sentinel = ievt::KEY_;
-    if(evts.ptr[val] & ievt::SCLR) // scalars
-    {
-        num = val + 3 - keyval;
-        sentinel |= ievt::PEX2;
-    }
-    else // containers
-    {
-        RYML_ASSERT_BASIC_(detail::seqormap(evts.ptr[val]));
-        num = matching_close_memoized_(val)
-            + 1/*include the end*/
-            - keyval;
-    }
+    evt_bits sentinel = (evts.ptr[val] & ievt::SCLR) ? ievt::PEX2 : 0;
+    Range_ rng = val_range_(val);
+    evt_size num = rng.len();
     RYML_ASSERT_BASIC_(num);
     if(grow_evts_to_add_(num))
     {
