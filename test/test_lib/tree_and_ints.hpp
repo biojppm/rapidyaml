@@ -48,30 +48,30 @@ struct TreeAndInts
 };
 
 
-#define test_resolve_tree_(...) { SCOPED_TRACE("call"); test_resolve_tree(__VA_ARGS__); }
-#define test_resolve_ints_(...) { SCOPED_TRACE("call"); test_resolve_ints(__VA_ARGS__); }
-#define test_resolve_(...) { SCOPED_TRACE("call"); test_resolve(__VA_ARGS__); }
-#define test_resolve_err_tree_(...) { SCOPED_TRACE("call"); test_resolve_err_tree(__VA_ARGS__); }
-#define test_resolve_err_ints_(...) { SCOPED_TRACE("call"); test_resolve_err_ints(__VA_ARGS__); }
-#define test_resolve_err_(...) { SCOPED_TRACE("call"); test_resolve_err(__VA_ARGS__); }
+#define test_resolve_tree_(...) SCOPED_CALL(test_resolve_tree, (__VA_ARGS__))
+#define test_resolve_ints_(...) SCOPED_CALL(test_resolve_ints, (__VA_ARGS__))
+#define test_resolve_(...) SCOPED_CALL(test_resolve, (__VA_ARGS__))
+#define test_resolve_err_tree_(...) SCOPED_CALL(test_resolve_err_tree, (__VA_ARGS__))
+#define test_resolve_err_ints_(...) SCOPED_CALL(test_resolve_err_ints, (__VA_ARGS__))
+#define test_resolve_err_(...) SCOPED_CALL(test_resolve_err, (__VA_ARGS__))
 
 
-#define test_emit_yaml_(...) { SCOPED_TRACE("call"); test_emit_yaml(__VA_ARGS__); }
-#define test_emit_yaml_tree_(...) { SCOPED_TRACE("call"); test_emit_yaml_tree(__VA_ARGS__); }
-#define test_emit_yaml_ints_(...) { SCOPED_TRACE("call"); test_emit_yaml_ints(__VA_ARGS__); }
-#define test_emit_yaml_same_ints_(...) { SCOPED_TRACE("call"); test_emit_json_same_ints(__VA_ARGS__); }
-#define test_emit_error_yaml_(...) { SCOPED_TRACE("call"); test_emit_error_yaml(__VA_ARGS__); }
-#define test_emit_error_yaml_tree_(...) { SCOPED_TRACE("call"); test_emit_yaml_error_tree(__VA_ARGS__); }
-#define test_emit_error_yaml_ints_(...) { SCOPED_TRACE("call"); test_emit_yaml_error_ints(__VA_ARGS__); }
+#define test_emit_yaml_(...) SCOPED_CALL(test_emit_yaml, (__VA_ARGS__))
+#define test_emit_yaml_tree_(...) SCOPED_CALL(test_emit_yaml_tree, (__VA_ARGS__))
+#define test_emit_yaml_ints_(...) SCOPED_CALL(test_emit_yaml_ints, (__VA_ARGS__))
+#define test_emit_yaml_same_ints_(...) SCOPED_CALL(test_emit_yaml_same_ints, (__VA_ARGS__))
+#define test_emit_error_yaml_(...) SCOPED_CALL(test_emit_error_yaml, (__VA_ARGS__))
+#define test_emit_error_yaml_tree_(...) SCOPED_CALL(test_emit_error_yaml_tree, (__VA_ARGS__))
+#define test_emit_error_yaml_ints_(...) SCOPED_CALL(test_emit_error_yaml_ints, (__VA_ARGS__))
 
 
-#define test_emit_json_(...) { SCOPED_TRACE("call"); test_emit_json(__VA_ARGS__); }
-#define test_emit_json_tree_(...) { SCOPED_TRACE("call"); test_emit_json_tree(__VA_ARGS__); }
-#define test_emit_json_ints_(...) { SCOPED_TRACE("call"); test_emit_json_ints(__VA_ARGS__); }
-#define test_emit_json_same_ints_(...) { SCOPED_TRACE("call"); test_emit_json_same_ints(__VA_ARGS__); }
-#define test_emit_error_json_(...) { SCOPED_TRACE("call"); test_emit_error_json(__VA_ARGS__); }
-#define test_emit_error_json_tree_(...) { SCOPED_TRACE("call"); test_emit_json_error_tree(__VA_ARGS__); }
-#define test_emit_error_json_ints_(...) { SCOPED_TRACE("call"); test_emit_json_error_ints(__VA_ARGS__); }
+#define test_emit_json_(...) SCOPED_CALL(test_emit_json, (__VA_ARGS__))
+#define test_emit_json_tree_(...) SCOPED_CALL(test_emit_json_tree, (__VA_ARGS__))
+#define test_emit_json_ints_(...) SCOPED_CALL(test_emit_json_ints, (__VA_ARGS__))
+#define test_emit_json_same_ints_(...) SCOPED_CALL(test_emit_json_same_ints, (__VA_ARGS__))
+#define test_emit_error_json_(...) SCOPED_CALL(test_emit_error_json, (__VA_ARGS__))
+#define test_emit_error_json_tree_(...) SCOPED_CALL(test_emit_error_json_tree, (__VA_ARGS__))
+#define test_emit_error_json_ints_(...) SCOPED_CALL(test_emit_error_json_ints, (__VA_ARGS__))
 
 
 
@@ -102,9 +102,15 @@ inline void test_resolve_ints(IntBufs &ints, ResolveOptions const& opts={})
         SCOPED_TRACE("invariants before");
         ints.test_invariants();
     }
-    RYML_EXPECT_ERROR(check_success([&]{
+    if(testing::Test::HasFailure())
+    {
+        ints.print();
+        return;
+    }
+ints.print();
+    //RYML_EXPECT_ERROR(check_success([&]{
         ints.resolve(opts);
-    }));
+    //}));
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("invariants after");

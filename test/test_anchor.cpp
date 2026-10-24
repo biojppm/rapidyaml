@@ -1702,10 +1702,10 @@ TEST(anchors, issue_484_1)
 {
     std::string yaml = R"(
 base_1: &base_1
-  a: 10
-  b: 10
+  a: a1
+  b: b1
 base_2: &base_2
-  a: 30
+  a: a2
 k1:
   <<: *base_1
   <<: *base_2
@@ -1713,13 +1713,13 @@ k2:
   <<: *base_2
   <<: *base_1
 k3:
-  a: 100
+  a: ak3
   <<: *base_1
   <<: *base_2
 k4:
   <<: *base_1
   <<: *base_2
-  a: 100
+  a: ak4
 )";
     {
         SCOPED_TRACE("standard");
@@ -1730,10 +1730,36 @@ k4:
         EXPECT_EQ(t["k2"][0].val(), "*base_2");
         EXPECT_EQ(t["k2"][1].val(), "*base_1");
         test_resolve_(ti);
-        EXPECT_EQ(t["k1"]["a"].val(), "10");
-        EXPECT_EQ(t["k1"]["b"].val(), "10");
-        EXPECT_EQ(t["k2"]["a"].val(), "30");
-        EXPECT_EQ(t["k2"]["b"].val(), "10");
+        EXPECT_EQ(t["k1"]["a"].val(), "a1");
+        EXPECT_EQ(t["k1"]["b"].val(), "b1");
+        EXPECT_EQ(t["k2"]["a"].val(), "a2");
+        EXPECT_EQ(t["k2"]["b"].val(), "b1");
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: a1\n"
+                        "  b: b1\n"
+                        "base_2:\n"
+                        "  a: a2\n"
+                        "base_2:\n"
+                        "  a: a2\n"
+                        "k1:\n"
+                        "  a: a1\n"
+                        "  b: b1\n"
+                        "k2:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k3:\n"
+                        "  a: 100\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "");
+    }
+    {
+        SCOPED_TRACE("latest");
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_(ti, ResolveOptions{}.set_overwrite_latest());
         test_emit_yaml_(ti,
                         "base_1:\n"
                         "  a: 10\n"
@@ -1741,8 +1767,74 @@ k4:
                         "base_2:\n"
                         "  a: 30\n"
                         "k1:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k2:\n"
                         "  a: 10\n"
                         "  b: 10\n"
+                        "k3:\n"
+                        "  a: 30\n"
+                        "  b: 10\n"
+                        "k4:\n"
+                        "  b: 10\n"
+                        "  a: 100\n"
+                        "");
+    }
+}
+
+TEST(anchors, issue_484_2)
+{
+    std::string yaml = R"(
+base_1: &base_1
+  a: a1
+  b: b1
+base_2: &base_2
+  a: a2
+base_3: &base_3
+  b: b3
+k1:
+  <<: *base_1
+  <<: *base_2
+  <<: *base_3
+k2:
+  <<: *base_3
+  <<: *base_2
+  <<: *base_1
+k3:
+  a: ak3
+  <<: *base_1
+  <<: *base_2
+  <<: *base_3
+k4:
+  <<: *base_1
+  <<: *base_2
+  <<: *base_3
+  a: ak4
+)";
+    {
+        SCOPED_TRACE("standard");
+        TreeAndInts ti(to_csubstr(yaml));
+        Tree const& t = ti.tree;
+        EXPECT_EQ(t["k1"][0].val(), "*base_1");
+        EXPECT_EQ(t["k1"][1].val(), "*base_2");
+        EXPECT_EQ(t["k2"][0].val(), "*base_2");
+        EXPECT_EQ(t["k2"][1].val(), "*base_1");
+        test_resolve_(ti);
+        EXPECT_EQ(t["k1"]["a"].val(), "a1");
+        EXPECT_EQ(t["k1"]["b"].val(), "b1");
+        EXPECT_EQ(t["k2"]["a"].val(), "a2");
+        EXPECT_EQ(t["k2"]["b"].val(), "b3");
+        test_emit_yaml_(ti,
+                        "base_1:\n"
+                        "  a: a1\n"
+                        "  b: b1\n"
+                        "base_2:\n"
+                        "  a: a2\n"
+                        "base_2:\n"
+                        "  a: a2\n"
+                        "k1:\n"
+                        "  a: a1\n"
+                        "  b: b1\n"
                         "k2:\n"
                         "  a: 30\n"
                         "  b: 10\n"

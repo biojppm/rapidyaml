@@ -38,6 +38,8 @@ template<class T>
 struct small_map_range
 {
     T lo, hi;
+    C4_ALWAYS_INLINE T begin() const noexcept { return lo; }
+    C4_ALWAYS_INLINE T end() const noexcept { return hi; }
 };
 
 
@@ -79,12 +81,14 @@ public:
 
     void sort() noexcept
     {
-        if((m_arr.size() > m_small_limit) &&
-           (m_arr.size() > m_sorted_size))
-        {
-            std::stable_sort(m_arr.begin(), m_arr.end());
-            m_sorted_size = m_arr.size();
-        }
+        std::stable_sort(m_arr.begin(), m_arr.end());
+        m_sorted_size = m_arr.size();
+    }
+
+    void sort_if_needed() noexcept
+    {
+        if((m_arr.size() > m_small_limit) && (m_arr.size() > m_sorted_size))
+            sort();
     }
 
 public:
@@ -97,6 +101,17 @@ public:
     C4_ALWAYS_INLINE V * lookup_modify(K const& key) noexcept
     {
         return m_arr.size() <= m_small_limit ? lookup_linear_(key) : lookup_binary_(key);
+    }
+
+    small_map_range<value_type const*> equal_range(K const& key) const noexcept
+    {
+        RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, m_arr.size() == m_sorted_size);
+        small_map_range<value_type const*> r;
+        r.hi = r.lo = detail::lower_bound(m_arr.begin(), m_arr.end(), key);
+        RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, r.lo->key == key || !lookup(key));
+        while(r.hi->key == key)
+            ++r.hi;
+        return r.hi;
     }
 
 private:
