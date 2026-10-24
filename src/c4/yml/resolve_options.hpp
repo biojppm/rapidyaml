@@ -71,6 +71,12 @@ public:
     ResolveOptions& set_overwrite_standard() noexcept { set_flag_(false, OVERWRITE_EXISTING|OVERWRITE_ORIGINAL); return *this; } /// set the standard behaviour when merging.
     ResolveOptions& set_overwrite_latest() noexcept { set_flag_(true, OVERWRITE_EXISTING|OVERWRITE_ORIGINAL); return *this; } /// set to the non-standard behaviour of choosing latest, ie overwriting both existing and original nodes while merging.
 
+    /// query whether a value should be overwritten
+    bool overwrite(bool original) const noexcept
+    {
+        return m_flags & (original ? OVERWRITE_ORIGINAL : OVERWRITE_EXISTING);
+    }
+
     /** @} */
 
 public:

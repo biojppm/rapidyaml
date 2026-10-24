@@ -37,20 +37,25 @@ private:
     {
         evt_size beg; /// beginning pos of the range
         evt_size end; /// end pos of the range (past 1)
-        evt_size len() const noexcept { return end - beg; }
     };
     struct AnchorTargetRange_ : Range_
     {
         evt_size pos; /// anchor pos
     };
+    enum : uint32_t {
+        FROM_TARGET = 1u, ///< key is member of the target map
+        FROM_ALIAS = 2u, ///< key is member of an alias map
+        CONFLICT = 4u, ///< there are other similar named keys
+        COPIED = 8u,
+    } KnownKeyStatus_e;
     struct KnownKey_
     {
-        evt_size id;    /// pos of the key in the evt array
-        evt_size count; /// count of other keys when this was added
-        bool original;
-        bool copied;
+        evt_size id;       /// pos of the key in the evt array
+        evt_size unqcount; /// count of unique keys when this was added
+        evt_size count;    /// count of other keys when this was added
+        uint32_t status;
     };
-    template<class K, class V> using map = yml::detail::small_map<K,V>;
+    template<class K, class V> using map = yml::detail::small_map<K, V, 32>;
     template<class T, size_t N> using vec = yml::detail::stack<T, N>;
 
 private:
@@ -64,6 +69,7 @@ private:
     vec<evt_size, 32> parents;
     vec<evt_size, 32> siblings;
     evt_size num_known_keys;
+    evt_size num_unique_keys;
     bool can_resize;
 
 private:
@@ -79,6 +85,8 @@ private:
     C4_NODISCARD bool descend_(evt_size &pos);
     C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
+    C4_NODISCARD bool map_has_merge_elms_(evt_size map);
+    C4_NODISCARD bool populate_known_keys_(evt_size map);
     void add_anchor_(evt_size pos);
     AnchorTargetRange_ lookup_anchor_(evt_size pos) const;
     C4_NODISCARD evt_size count_extra(evt_size beg, evt_size end) const noexcept;
@@ -87,18 +95,20 @@ private:
     void set_rref_(evt_size pos, evt_size beg, evt_size end);
     void clear_str_(evt_size pos);
     void clear_str2_(evt_size pos);
+    void clear_range_(evt_size beg, evt_size end) noexcept;
     bool maybe_clear_anchtag_(evt_size pos);
     void rem_entry_(evt_size pos);
     void rem_keyval_(evt_size pos_key);
     bool is_merge_elm_(evt_size pos, csubstr key) const;
-    void handle_merge_elm_(evt_size child);
-    void merge_map_single_(evt_size pos);
-    void merge_map_multiple_(evt_size pos);
-    void apply_merge_ref_(evt_size pos);
-    bool needs_merge_key_by_key_(evt_size beg, evt_size end);
-    void add_known_key_(csubstr key, evt_size id, bool original, bool copied);
-    void add_to_known_keys_(evt_size beg, evt_size end);
-    void add_merge_elms_(evt_size beg, evt_size end);
+    void handle_merge_elm_(evt_size child, bool key_conflict);
+    void merge_map_single_(evt_size pos, bool key_conflict);
+    void merge_map_multiple_(evt_size pos, bool key_conflict);
+    void apply_merge_ref_(evt_size pos, bool key_conflict);
+    void add_known_key_(evt_size id, uint32_t status, bool *key_conflict);
+    void add_to_known_keys_(evt_size beg, evt_size end, uint32_t status, bool *key_conflict);
+    void add_to_known_keys_(evt_size alia, uint32_t status, bool *key_conflict);
+    bool has_key_conflict_(evt_size beg, evt_size end);
+    Range_ add_merge_elms_(evt_size beg, evt_size end);
     void overwrite_keyval_(evt_size src, evt_size dst);
     void copy_keyval_to_end_(evt_size keyval);
     bool grow_evts_to_add_(evt_size extra);
