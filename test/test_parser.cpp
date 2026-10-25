@@ -620,11 +620,206 @@ TEST(Parser, estimate_tree_capacity)
     EXPECT_EQ(3, estimate_tree_capacity(R"({a: 0, b: 1})"));
     EXPECT_EQ(4, estimate_tree_capacity(R"({a: 0, b: 1, c: 2})"));
     EXPECT_EQ(5, estimate_tree_capacity(R"({a: 0, b: 1, c: 2, d: 3})"));
-    EXPECT_EQ(9, estimate_tree_capacity(R"(- {a: 0, b: 1, c: 2, d: 3}
+    EXPECT_EQ(13, estimate_tree_capacity(R"(- {a: 0, b: 1, c: 2, d: 3}
 - a
 - b
 - c
 )"));
+    {
+        csubstr src = R"(- name: foo
+  x: 1
+- name: bar
+)";
+        EXPECT_EQ(6, estimate_tree_capacity(src));
+        Tree t = parse_in_arena(src);
+        EXPECT_EQ(6, t.size());
+        EXPECT_GE(estimate_tree_capacity(src), t.size());
+    }
+    EXPECT_EQ(2, estimate_tree_capacity(R"(abcdef- x)"));
+    EXPECT_EQ(2, estimate_tree_capacity(R"(abcdefg- x)"));
+    EXPECT_EQ(3, estimate_tree_capacity(R"(abcdefg-
+)"));
+    EXPECT_EQ(1, estimate_tree_capacity(R"(abcdefg-x)"));
+    EXPECT_EQ(2, estimate_tree_capacity(R"(abcdefg- 2345678)"));
+    EXPECT_EQ(1, estimate_tree_capacity(R"(abcdefg-)"));
+    {
+        std::string dashes;
+        for(int i = 0; i < 2000; ++i)
+            dashes += "-\n";
+        EXPECT_EQ(4001, estimate_tree_capacity(to_csubstr(dashes)));
+    }
+    {
+        auto bytewise = [](csubstr src) {
+            id_type n = 1;
+            for(size_t i = 0; i < src.len; ++i)
+            {
+                const char c = src.str[i];
+                n += (c == '\n') || (c == ',') || (c == '[') || (c == '{');
+                n += (c == '-') && (i + 1 < src.len) && (src.str[i + 1] == ' ' || src.str[i + 1] == '\n');
+            }
+            return n;
+        };
+        const char chars[] = {'-', ' ', '\n', ',', '[', '{', 'a', '}', ';'};
+        std::string buf;
+        uint32_t rng = 12345u;
+        auto next = [&rng]{ rng = rng * 1664525u + 1013904223u; return rng >> 16; };
+        for(size_t iter = 0; iter < 20000; ++iter)
+        {
+            buf.resize(iter % 100 ? next() % 41u : 1000u + next() % 2100u);
+            for(char &c : buf)
+                c = chars[next() % sizeof(chars)];
+            csubstr src = to_csubstr(buf);
+            ASSERT_EQ(estimate_tree_capacity(src), bytewise(src)) << '"' << buf << '"';
+        }
+    }
+}
+
+std::string many_entries(size_t min_size)
+{
+    std::string src;
+    while(src.size() < min_size)
+        src += "- name: foo\n  x: 1\n";
+    return src;
+}
+
+void expect_sampled_capacity(Tree const& t, csubstr src)
+{
+    const id_type full = estimate_tree_capacity(src);
+    EXPECT_GE(t.capacity(), full + full / 5);
+    EXPECT_LE(t.capacity(), full + full / 4 + 16);
+}
+
+TEST(Parser, reserve_from_source)
+{
+    const std::string src = many_entries(200 * 1024);
+    const csubstr csrc = to_csubstr(src);
+    const id_type num_nodes = 1 + 3 * (src.size() / 19);
+    ASSERT_GE(src.size(), (size_t)RYML_RESERVE_FROM_SOURCE_MIN);
+    EXPECT_EQ(estimate_tree_capacity(csrc), num_nodes);
+    {
+        Tree t = parse_in_arena(csrc);
+        EXPECT_EQ(t.size(), num_nodes);
+        expect_sampled_capacity(t, csrc);
+    }
+    {
+        Tree t;
+        parse_in_arena(csrc, &t);
+        EXPECT_EQ(t.size(), num_nodes);
+        expect_sampled_capacity(t, csrc);
+    }
+    {
+        std::string json = "[";
+        id_type n = 1;
+        for( ; json.size() < 200 * 1024; n += 3)
+            json += "{\"name\": \"foo\", \"x\": 1},";
+        json.back() = ']';
+        Tree t;
+        parse_json_in_arena(to_csubstr(json), &t);
+        EXPECT_EQ(t.size(), n);
+        expect_sampled_capacity(t, to_csubstr(json));
+    }
+    {
+        Tree t(num_nodes + 100);
+        parse_in_arena(csrc, &t);
+        EXPECT_EQ(t.size(), num_nodes);
+        EXPECT_EQ(t.capacity(), num_nodes + 100);
+    }
+    {
+        Tree t;
+        t.rootref().set_seq();
+        parse_in_arena(csrc, t.rootref().append_child());
+        EXPECT_EQ(t.size(), num_nodes + 1);
+        EXPECT_GT(t.capacity(), num_nodes + 1);
+        EXPECT_EQ(t.capacity() & (t.capacity() - 1), 0);
+    }
+    {
+        const std::string small = many_entries(1000);
+        Tree t = parse_in_arena(to_csubstr(small));
+        EXPECT_EQ(t.size(), 1 + 3 * (small.size() / 19));
+        EXPECT_EQ(t.capacity(), 256);
+    }
+}
+
+std::string block_lines(size_t min_size, size_t n)
+{
+    std::string line = "  " + std::string(n, 'x') + "\n";
+    std::string src;
+    while(src.size() < min_size)
+        src += line;
+    return src;
+}
+
+std::string many_keys(size_t min_size)
+{
+    std::string src;
+    for(size_t i = 0; src.size() < min_size; ++i)
+        src += "k" + std::to_string(i) + ": v\n";
+    return src;
+}
+
+void expect_same_as_reserved(Tree const& t, csubstr src)
+{
+    const id_type cap = t.size() + RYML_DEFAULT_TREE_CAPACITY;
+    Tree ref(cap);
+    parse_in_arena(src, &ref);
+    EXPECT_EQ(ref.capacity(), cap);
+    EXPECT_EQ(t.size(), ref.size());
+    EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(ref));
+}
+
+TEST(Parser, reserve_from_source_scalar)
+{
+    const std::string src = "big: |\n" + block_lines(300 * 1024, 4000);
+    const csubstr csrc = to_csubstr(src);
+    Tree t = parse_in_arena(csrc);
+    EXPECT_EQ(t.size(), 2);
+    EXPECT_LE(t.capacity(), 128);
+    EXPECT_EQ(t["big"].val().len, 4001 * ((src.size() - 7) / 4003));
+    expect_same_as_reserved(t, csrc);
+}
+
+TEST(Parser, reserve_from_source_dense_between_windows)
+{
+    std::string src = "a: |\n" + block_lines(30 * 1024, 4000);
+    src += many_keys(50 * 1024);
+    src += "z: |\n" + block_lines(220 * 1024, 4000);
+    const csubstr csrc = to_csubstr(src);
+    Tree t = parse_in_arena(csrc);
+    EXPECT_GT(t.size(), 5000);
+    EXPECT_GE(t.capacity(), t.size());
+    EXPECT_LT(t.capacity(), 2 * t.size());
+    EXPECT_EQ(t["k0"].val(), "v");
+    EXPECT_EQ(t["z"].val().len % 4001, 0);
+    expect_same_as_reserved(t, csrc);
+}
+
+TEST(Parser, reserve_from_source_dense_tail)
+{
+    std::string src = "a: |\n" + block_lines(250 * 1024, 4000);
+    src += many_keys(50 * 1024);
+    const csubstr csrc = to_csubstr(src);
+    Tree t = parse_in_arena(csrc);
+    EXPECT_GT(t.size(), 5000);
+    EXPECT_GE(t.capacity(), t.size());
+    EXPECT_EQ(t["k0"].val(), "v");
+    expect_same_as_reserved(t, csrc);
+}
+
+TEST(Parser, reserve_then_parse)
+{
+    for(size_t size : {size_t(1000), size_t(200 * 1024)})
+    {
+        const std::string src = many_entries(size);
+        const csubstr csrc = to_csubstr(src);
+        Tree alone = parse_in_arena(csrc);
+        Tree reserved;
+        reserved.reserve(estimate_tree_capacity(csrc));
+        EXPECT_EQ(reserved.capacity(), estimate_tree_capacity(csrc));
+        parse_in_arena(csrc, &reserved);
+        EXPECT_EQ(reserved.capacity(), estimate_tree_capacity(csrc));
+        EXPECT_EQ(reserved.size(), alone.size());
+        EXPECT_EQ(emitrs_yaml<std::string>(reserved), emitrs_yaml<std::string>(alone));
+    }
 }
 
 TEST(Parser, alloc_arena)
