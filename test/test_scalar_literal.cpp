@@ -736,6 +736,35 @@ TEST(block_literal, trailing_newlines_5_6)
 }
 
 
+TEST(block_literal, empty_block_before_doc_token)
+{
+    test_check_emit_check(R"(--- |
+--- |
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        EXPECT_EQ(t.docref(0).val(), csubstr(""));
+        EXPECT_EQ(t.docref(1).val(), csubstr(""));
+    });
+    test_check_emit_check(R"(|
+
+---
+a
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        EXPECT_EQ(t.docref(0).val(), csubstr(""));
+        EXPECT_EQ(t.docref(1).val(), csubstr("a"));
+    });
+    test_check_emit_check(R"(|+
+...
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(""));
+    });
+}
+
+
 //-----------------------------------------------------------------------------
 
 TEST(block_literal, empty_block_as_container_member)
