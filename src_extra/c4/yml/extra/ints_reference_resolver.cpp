@@ -514,9 +514,13 @@ void ReferenceResolver::handle_merge_elm_(evt_size child, bool key_conflict)
     // clear any anchors or tags immediately preceding the << scalar
     maybe_clear_anchtag_(child);
     if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::ALIA))
+    {
         merge_map_single_(child, key_conflict);
+    }
     else if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::BSEQ))
+    {
         merge_map_multiple_(child, key_conflict);
+    }
 }
 
 void ReferenceResolver::merge_map_single_(evt_size pos, bool key_conflict)
@@ -552,29 +556,43 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos, bool key_conflict)
 
 void ReferenceResolver::apply_merge_ref_(evt_size pos, bool key_conflict)
 {
+printf("aki 0 merging %d: conflict=%d\n", pos, key_conflict);
     AnchorTargetRange_ rng = lookup_anchor_(pos);
+printf("aki 1 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
     if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
     {
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.end - 1], ievt::EMAP));
         ++rng.beg; // skip BMAP
         --rng.end; // skip EMAP
+printf("aki 2 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
         if(rng.beg == rng.end) // src map is empty?
         {
+printf("aki 3 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
             set_noref_(pos);
         }
         else if(!key_conflict || !has_key_conflict_(rng.beg, rng.end))
         {
+printf("aki 4 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
             set_rref_(pos, rng.beg, rng.end);
         }
         else
         {
+printf("aki 5 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
             RYML_ASSERT_BASIC_(rng.beg != rng.end);
             Range_ newrng = add_merge_elms_(rng.beg, rng.end);
+printf("aki 5.1 merging %d: newrng=(%d,%d)\n", pos, rng.beg, rng.end);
             if(newrng.end > newrng.beg)
+{
+printf("aki 5.2 merging %d: newrng=(%d,%d)\n", pos, newrng.beg, newrng.end);
                 set_rref_(pos, newrng.beg, newrng.end);
+}
             else
+{
+printf("aki 5.3 merging %d: newrng=(%d,%d)\n", pos, newrng.beg, newrng.end);
                 set_noref_(pos);
+}
         }
+printf("aki 6 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
     }
     else
     {
