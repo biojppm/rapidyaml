@@ -762,6 +762,12 @@ a
         ASSERT_TRUE(t.rootref().is_val());
         EXPECT_EQ(t.rootref().val(), csubstr(""));
     });
+    test_check_emit_check(R"(|-
+...
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(""));
+    });
 }
 
 
