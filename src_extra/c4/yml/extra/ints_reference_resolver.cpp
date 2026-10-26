@@ -55,20 +55,30 @@ KnownKey_ const* krng_select_latest_(KnownKeyRange_ r) noexcept
     return which;
 }
 
-KnownKey_ const* krng_select_earliest_(KnownKeyRange_ r) noexcept
+KnownKey_ const* krng_select_earliest_original_earliest_rest_(KnownKeyRange_ r) noexcept
 {
     static_assert(std::is_same<evt_size,decltype(INT_MAX)>::value, "evt_size vs INT_MAX");
     evt_size minpos = INT_MAX;
+    evt_size minpos_orig = INT_MAX;
     KnownKey_ const* which = nullptr;
+    KnownKey_ const* which_orig = nullptr;
     for(auto const& kv : r)
     {
+        if(kv.val.status & ievt::ReferenceResolver::FROM_TARGET)
+        {
+            if(kv.val.count < minpos_orig)
+            {
+                minpos_orig = kv.val.count;
+                which_orig = &kv.val;
+            }
+        }
         if(kv.val.count < minpos)
         {
             minpos = kv.val.count;
             which = &kv.val;
         }
     }
-    return which;
+    return which_orig ? which_orig : which;
 }
 
 KnownKey_ const* krng_select_earliest_original_latest_rest_(KnownKeyRange_ r) noexcept
@@ -133,7 +143,7 @@ KnownKey_ const* krng_select_(KnownKeyRange_ r, ResolveOptions opts) noexcept
     else if(opts.overwrite_mergedin())
         which = krng_select_earliest_original_latest_rest_(r);
     else
-        which = krng_select_earliest_(r); // this is the standard
+        which = krng_select_earliest_original_earliest_rest_(r); // this is the standard
     RYML_ASSERT_BASIC_(which);
     RYML_ASSERT_BASIC_(which >= &r.lo->val);
     RYML_ASSERT_BASIC_(which < &r.hi->val);
@@ -198,6 +208,20 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_noresize(Buffers evts_, Resolve
     return wpos;
 }
 
+void ReferenceResolver::reset_(Buffers evts_, bool can_resize_, ResolveOptions opts_)
+{
+    Buffers::operator=(evts_);
+    wpos = evts.len;
+    newsz = evts.len;
+    sz_limit = static_cast<evt_size>(opts_.max_size(static_cast<size_t>(evts.len)));
+    opts = opts_;
+    can_resize = can_resize_;
+    parents.clear();
+    siblings.resize(static_cast<size_t>(evts.len));
+    for(size_t i = 0; i < siblings.size(); ++i)
+        siblings[i] = nosibling;
+}
+
 void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
 {
     if(!evts_->evts.len)
@@ -205,10 +229,20 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
     reset_(*evts_, can_resize, opts_);
     evt_size len0 = evts.len;
     // gather all the anchors
+    bool has_refs = false;
     anchor_map.clear();
     for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+    {
         if(evts.ptr[pos] & ievt::ANCH)
             add_anchor_(pos);
+        else if(evts.ptr[pos] & ievt::ALIA)
+            has_refs = true;
+    }
+    // exit early if there's nothing to do
+    if(!has_refs &&
+       !opts.merge_repeated_keys() &&
+       (!opts.clear_anchors() || anchor_map.m_arr.empty()))
+        return;
     anchor_map.sort_if_needed();
     // now go to all refs, and resolve them
     for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
@@ -238,20 +272,6 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
         evts.len = wpos;
         evts_->operator=(*this);
     }
-}
-
-void ReferenceResolver::reset_(Buffers evts_, bool can_resize_, ResolveOptions opts_)
-{
-    Buffers::operator=(evts_);
-    wpos = evts.len;
-    newsz = evts.len;
-    sz_limit = static_cast<evt_size>(opts_.max_size(static_cast<size_t>(evts.len)));
-    opts = opts_;
-    can_resize = can_resize_;
-    parents.clear();
-    siblings.resize(static_cast<size_t>(evts.len));
-    for(size_t i = 0; i < siblings.size(); ++i)
-        siblings[i] = nosibling;
 }
 
 C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_(evt_size pos)
