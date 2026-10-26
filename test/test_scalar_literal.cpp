@@ -1208,6 +1208,28 @@ TEST(block_literal, indentation_indicator_1)
     }
 }
 
+TEST(block_literal, empty_block_with_explicit_indentation)
+{
+    test_check_emit_check(R"(a: |2
+b: c
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        EXPECT_EQ(t["a"].val(), csubstr(""));
+        EXPECT_EQ(t["b"].val(), csubstr("c"));
+    });
+    test_check_emit_check(R"(- |1-
+- |2+
+- x
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 3u);
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("x"));
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
