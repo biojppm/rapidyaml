@@ -1195,6 +1195,19 @@ TEST(block_literal, indentation_indicator_1)
         Tree t = parse_in_arena("--- | # comment\n  a");
         EXPECT_EQ(t.docref(0).val(), "a\n");
     }
+    for(csubstr yaml : {csubstr("--- |2zza"), csubstr("--- |2 zza"), csubstr("--- |2-zza"), csubstr("--- |-2 zza"), csubstr("--- >2+ zza"), csubstr("--- |2#")})
+    {
+        SCOPED_TRACE(yaml);
+        Tree t;
+        ExpectError::check_error_parse(&t, [&t, yaml]{
+            t = parse_in_arena(yaml);
+        });
+    }
+    {
+        SCOPED_TRACE("here");
+        Tree t = parse_in_arena("--- |2- # comment\n  a");
+        EXPECT_EQ(t.docref(0).val(), "a");
+    }
     {
         SCOPED_TRACE("here");
         Tree t;

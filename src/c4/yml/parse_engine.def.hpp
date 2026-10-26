@@ -2279,6 +2279,18 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         csubstr t = s.sub(1);
         _c4dbgpf("blck: spec is multichar: {}", prs_(t));
         RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, t.len >= 1, m_evt_handler->m_curr->pos);
+        // the indicators can only be followed by whitespace, optionally
+        // followed by a comment
+        {
+            const size_t indicators_end = t.first_not_of("0123456789+-");
+            if(indicators_end != npos)
+            {
+                csubstr after = t.sub(indicators_end);
+                csubstr trimmed = after.triml(" \t");
+                if C4_UNLIKELY(trimmed.len && (trimmed.str[0] != '#' || trimmed.str == after.str))
+                    _c4err("parse error: invalid token");
+            }
+        }
         size_t pos = t.first_of("-+");
         _c4dbgpf("blck: spec chomp char: pos={}", pos);
         if(pos != npos)
