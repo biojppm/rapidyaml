@@ -111,7 +111,7 @@ public:
         RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, r.lo->key == key || !lookup(key));
         while(r.hi->key == key)
             ++r.hi;
-        return r.hi;
+        return r;
     }
 
 private:
