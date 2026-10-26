@@ -2390,6 +2390,16 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                 _c4dbgpf("blck: line not empty. indref={} indprov={} indentation={}", indref, provisional_indentation, lc.indentation);
                 if C4_UNLIKELY(lc.full.begins_with('\t'))
                     _c4err("parse error");
+                if(lc.indentation == 0 && _is_doc_token(lc.rem))
+                {
+                    _c4dbgp("blck: stop. doc token before any content");
+                    if(raw_block.len == 0)
+                    {
+                        _c4dbgp("blck: was empty, undo next line");
+                        _line_ended_undo();
+                    }
+                    break;
+                }
                 if(provisional_indentation == npos)
                 {
                     if(lc.indentation < indref)
