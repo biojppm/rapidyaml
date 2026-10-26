@@ -11,6 +11,10 @@
 
 #include <gtest/gtest.h>
 #include <unordered_map>
+#ifdef __linux__
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
@@ -912,6 +916,74 @@ TEST(Tree, reserve)
     test_invariants(t);
 }
 
+TEST(Tree, reserve_empty_and_reused)
+{
+    {
+        Tree t(0, 0);
+        EXPECT_EQ(t.capacity(), 0);
+        t.reserve(100);
+        EXPECT_EQ(t.capacity(), 100);
+        EXPECT_EQ(t.size(), 1);
+        EXPECT_EQ(t.slack(), 99);
+        test_invariants(t);
+        parse_in_arena("[a, b, c]", &t);
+        EXPECT_EQ(t.size(), 4);
+        EXPECT_EQ(t.capacity(), 100);
+        test_invariants(t);
+    }
+    {
+        Tree t;
+        parse_in_arena("{a: [0, 1, 2], b: [3, 4, 5], c: [6, 7, 8], d: [9, 10, 11]}", &t);
+        EXPECT_EQ(t.size(), 17);
+        EXPECT_EQ(t.capacity(), 32);
+        t.clear();
+        t.clear_arena();
+        t.reserve(16);
+        EXPECT_EQ(t.capacity(), 32);
+        EXPECT_EQ(t.size(), 1);
+        t.reserve(1000);
+        EXPECT_EQ(t.capacity(), 1000);
+        EXPECT_EQ(t.size(), 1);
+        EXPECT_EQ(t.slack(), 999);
+        test_invariants(t);
+        parse_in_arena("[a, b, c]", &t);
+        EXPECT_EQ(t.size(), 4);
+        EXPECT_EQ(t.capacity(), 1000);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
+        test_invariants(t);
+    }
+    {
+        Tree t;
+        parse_in_arena("[a, b, c]", &t);
+        t.reserve(5000);
+        EXPECT_EQ(t.capacity(), 5000);
+        EXPECT_EQ(t.size(), 4);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
+        test_invariants(t);
+    }
+}
+
+#ifdef __linux__
+TEST(Tree, reserve_makes_memory_resident)
+{
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    Tree t;
+    t.reserve(1000000);
+    char *beg = reinterpret_cast<char*>(t.m_buf + t.m_first_unused);
+    char *end = reinterpret_cast<char*>(t.m_buf + t.m_cap);
+    uintptr_t first = reinterpret_cast<uintptr_t>(beg) & ~(uintptr_t)(page - 1);
+    const size_t len = (size_t)(reinterpret_cast<uintptr_t>(end) - first);
+    const size_t num_pages = (len + page - 1) / page;
+    const size_t num_pages_4k = (len + 4095) / 4096;
+    std::vector<unsigned char> resident(num_pages > num_pages_4k ? num_pages : num_pages_4k);
+    ASSERT_EQ(mincore(reinterpret_cast<void*>(first), len, resident.data()), 0);
+    size_t num_resident = 0;
+    for(size_t i = 0; i < num_pages; ++i)
+        num_resident += (resident[i] & 1u);
+    EXPECT_EQ(num_resident, num_pages);
+}
+#endif
+
 // https://github.com/biojppm/rapidyaml/issues/288
 TEST(Tree, reserve_arena_issue288)
 {
@@ -979,6 +1051,80 @@ TEST(Tree, issue564_relocate_arena_0)
     ExpectError::check_success([&]{
         dest.to_arena(to_csubstr(loong));  // error
     });
+}
+
+id_type free_list_length(Tree const& t)
+{
+    id_type n = 0;
+    for(id_type i = t.m_free_head; i != NONE; i = t.m_buf[i].m_next_sibling)
+        ++n;
+    return n;
+}
+
+TEST(Tree, unused_tail)
+{
+    Tree t(16);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(free_list_length(t), 0);
+    test_invariants(t);
+    NodeRef root = t.rootref();
+    root.set_seq();
+    for(int i = 0; i < 5; ++i)
+        root.append_child() << i;
+    EXPECT_EQ(t.size(), 6);
+    EXPECT_EQ(free_list_length(t), 0);
+    test_invariants(t);
+    const id_type second = root[1].id();
+    const id_type fourth = root[3].id();
+    t.remove(second);
+    t.remove(fourth);
+    EXPECT_EQ(t.size(), 4);
+    EXPECT_EQ(free_list_length(t), 2);
+    test_invariants(t);
+    EXPECT_EQ(root.append_child().id(), fourth);
+    EXPECT_EQ(root.append_child().id(), second);
+    EXPECT_EQ(free_list_length(t), 0);
+    EXPECT_EQ(root.append_child().id(), 6);
+    EXPECT_EQ(t.size(), 7);
+    test_invariants(t);
+    t.reserve(64);
+    EXPECT_EQ(t.capacity(), 64);
+    EXPECT_EQ(free_list_length(t), 0);
+    test_invariants(t);
+    for(int i = 0; t.size() < 40; ++i)
+        root.append_child() << i;
+    EXPECT_EQ(t.size(), 40);
+    EXPECT_EQ(t.last_child(t.root_id()), 39);
+    t.remove(5);
+    EXPECT_EQ(free_list_length(t), 1);
+    test_invariants(t);
+    {
+        Tree cp(t);
+        EXPECT_EQ(cp.capacity(), 64);
+        EXPECT_EQ(cp.size(), 39);
+        EXPECT_EQ(free_list_length(cp), 1);
+        test_invariants(cp);
+        EXPECT_EQ(emitrs_yaml<std::string>(cp), emitrs_yaml<std::string>(t));
+        Tree mv(std::move(cp));
+        EXPECT_EQ(mv.size(), 39);
+        EXPECT_EQ(free_list_length(mv), 1);
+        test_invariants(mv);
+        EXPECT_EQ(mv.append_child(mv.root_id()), 5);
+        EXPECT_EQ(mv.append_child(mv.root_id()), 40);
+        test_invariants(mv);
+    }
+    t.clear();
+    EXPECT_EQ(t.capacity(), 64);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(free_list_length(t), 0);
+    test_invariants(t);
+    parse_in_arena("[a, b, c]", &t);
+    EXPECT_EQ(t.size(), 4);
+    EXPECT_EQ(t.last_child(t.root_id()), 3);
+    EXPECT_EQ(t.capacity(), 64);
+    test_invariants(t);
+    t.reorder();
+    test_invariants(t);
 }
 
 TEST(Tree, clear)

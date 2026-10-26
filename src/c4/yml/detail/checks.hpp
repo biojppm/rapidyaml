@@ -144,14 +144,16 @@ inline void check_invariants(Tree const& t, id_type node)
 
 inline void check_free_list(Tree const& t)
 {
+    C4_CHECK(t.m_first_unused >= t.m_size && t.m_first_unused <= t.m_cap);
     if(t.m_free_head == NONE)
     {
         C4_CHECK(t.m_free_tail == t.m_free_head);
+        C4_CHECK(t.m_first_unused == t.m_size);
         return;
     }
 
-    C4_CHECK(t.m_free_head >= 0 && t.m_free_head < t.m_cap);
-    C4_CHECK(t.m_free_tail >= 0 && t.m_free_tail < t.m_cap);
+    C4_CHECK(t.m_free_head >= 0 && t.m_free_head < t.m_first_unused);
+    C4_CHECK(t.m_free_tail >= 0 && t.m_free_tail < t.m_first_unused);
 
     auto const& head = *t._p(t.m_free_head);
     //auto const& tail = *t._p(t.m_free_tail);
@@ -170,7 +172,7 @@ inline void check_free_list(Tree const& t)
         prev = i;
         ++count;
     }
-    C4_CHECK(count == t.slack());
+    C4_CHECK(count + (t.m_cap - t.m_first_unused) == t.slack());
 }
 
 
