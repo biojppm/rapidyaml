@@ -90,8 +90,7 @@ private:
     C4_NODISCARD bool descend_(evt_size &pos);
     C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
-    C4_NODISCARD bool map_has_merge_elms_(evt_size map);
-    C4_NODISCARD bool populate_known_keys_(evt_size map);
+    C4_NODISCARD bool requires_merge_(evt_size map, bool *key_conflict);
     void add_anchor_(evt_size pos);
     AnchorTargetRange_ lookup_anchor_(evt_size pos) const;
     C4_NODISCARD evt_size count_extra(evt_size beg, evt_size end) const noexcept;
