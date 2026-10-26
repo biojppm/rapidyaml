@@ -192,7 +192,7 @@ id_type ReferenceResolver::merge_to_map_(RefData const& refdata, id_type dst_map
             after = m_tree->duplicate(chsrc, dst_map, after);
             add_known_key_(key, after, /*original*/false);
         }
-        else if(( ! existing->original && m_opts.overwrite_existing()) ||
+        else if(( ! existing->original && m_opts.overwrite_mergedin()) ||
                 (existing->original && m_opts.overwrite_original()))
         {
             m_tree->remove_children(existing->node);

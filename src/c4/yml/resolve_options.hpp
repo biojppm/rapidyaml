@@ -16,7 +16,7 @@ private:
 
     typedef enum : uint32_t {
         CLEAR_ANCHORS = 1u << 0u,
-        OVERWRITE_EXISTING = 1u << 1u,
+        OVERWRITE_MERGEDIN = 1u << 1u,
         OVERWRITE_ORIGINAL = 1u << 2u,
         DEFAULT_FLAGS = CLEAR_ANCHORS,
     } Flags_e;
@@ -65,16 +65,13 @@ public:
     C4_ALWAYS_INLINE bool overwrite_original() const noexcept { return (m_flags & OVERWRITE_ORIGINAL) != 0; } /// enable overwriting of nodes originally in the target map. default is false.
     ResolveOptions& overwrite_original(bool enabled) noexcept { set_flag_(enabled, OVERWRITE_ORIGINAL); return *this; } /// enable overwriting of nodes originally in the target map. default is false.
 
-    C4_ALWAYS_INLINE bool overwrite_existing() const noexcept { return (m_flags & OVERWRITE_EXISTING) != 0; } ///< enable overwriting of nodes merged earlier, ie non-original nodes. default is false.
-    ResolveOptions& overwrite_existing(bool enabled) noexcept { set_flag_(enabled, OVERWRITE_EXISTING); return *this; } ///< enable overwriting of nodes merged earlier, ie non-original nodes. default is false.
-
-    ResolveOptions& set_overwrite_standard() noexcept { set_flag_(false, OVERWRITE_EXISTING|OVERWRITE_ORIGINAL); return *this; } /// set the standard behaviour when merging.
-    ResolveOptions& set_overwrite_latest() noexcept { set_flag_(true, OVERWRITE_EXISTING|OVERWRITE_ORIGINAL); return *this; } /// set to the non-standard behaviour of choosing latest, ie overwriting both existing and original nodes while merging.
+    C4_ALWAYS_INLINE bool overwrite_mergedin() const noexcept { return (m_flags & OVERWRITE_MERGEDIN) != 0; } ///< enable overwriting of nodes merged earlier, ie non-original nodes. default is false.
+    ResolveOptions& overwrite_mergedin(bool enabled) noexcept { set_flag_(enabled, OVERWRITE_MERGEDIN); return *this; } ///< enable overwriting of nodes merged earlier, ie non-original nodes. default is false.
 
     /// query whether a value should be overwritten
     bool overwrite(bool original) const noexcept
     {
-        return m_flags & (original ? OVERWRITE_ORIGINAL : OVERWRITE_EXISTING);
+        return m_flags & (original ? OVERWRITE_ORIGINAL : OVERWRITE_MERGEDIN);
     }
 
     /** @} */
