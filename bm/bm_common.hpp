@@ -111,39 +111,41 @@ namespace bm = benchmark;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-using IntHandler = ryml::extra::EventHandlerInts;
-using IntParser = ryml::ParseEngine<IntHandler>;
-struct IntData
+using IntHandlerResize   = ryml::extra::ievt::EventHandlerInts<true>;
+using IntHandlerNoResize = ryml::extra::ievt::EventHandlerInts<false>;
+using IntParserResize    = ryml::ParseEngine<IntHandlerResize>;
+using IntParserNoResize  = ryml::ParseEngine<IntHandlerNoResize>;
+struct IntDataNoResize
 {
     std::vector<int> events;
     std::vector<char> arena;
-    void resize(ryml::extra::EventHandlerInts const& handler)
+    void resize(IntHandlerNoResize const& handler)
     {
         resize((size_t)handler.required_size_events(),
                handler.required_size_arena());
     }
-    void resize(ryml::substr src)
+    void resize(ryml::csubstr src)
     {
-        resize((size_t)ryml::extra::estimate_events_ints_size(src),
+        resize((size_t)ryml::extra::ievt::estimate_events_size(src),
                src.len);
     }
     void resize(size_t evt_sz, size_t arn_sz)
     {
         events.resize(evt_sz);
-        events.resize(arn_sz);
+        arena.resize(arn_sz);
     }
 };
-struct IntObjects
+struct IntObjectsNoResize
 {
-    IntObjects(ryml::ParserOptions opts={})
+    IntObjectsNoResize(ryml::ParserOptions opts={})
         : handler()
         , parser(&handler, opts)
         , data()
     {
     }
-    IntHandler handler;
-    IntParser parser;
-    IntData data;
+    IntHandlerNoResize handler;
+    IntParserNoResize parser;
+    IntDataNoResize data;
     bool again()
     {
         if(!handler.fits_buffers())
@@ -154,7 +156,7 @@ struct IntObjects
         return false;
     }
 };
-inline void parse_yaml_inplace(ryml::csubstr filename, ryml::substr src, IntParser &parser, IntData *dst)
+inline void parse_yaml_ints_noresize_inplace(ryml::csubstr filename, ryml::substr src, IntParserNoResize &parser, IntDataNoResize *dst)
 {
     parser.m_evt_handler->reset(src,
                                 ryml::to_substr(dst->arena),
@@ -162,13 +164,43 @@ inline void parse_yaml_inplace(ryml::csubstr filename, ryml::substr src, IntPars
                                 (int)dst->events.size());
     parser.parse_in_place_ev(filename, src);
 }
-inline void parse_json_inplace(ryml::csubstr filename, ryml::substr src, IntParser &parser, IntData *dst)
+inline void parse_json_ints_noresize_inplace(ryml::csubstr filename, ryml::substr src, IntParserNoResize &parser, IntDataNoResize *dst)
 {
     parser.m_evt_handler->reset(src,
                                 ryml::to_substr(dst->arena),
                                 dst->events.data(),
                                 (int)dst->events.size());
     parser.parse_json_in_place_ev(filename, src);
+}
+
+struct IntObjectsResize
+{
+    IntObjectsResize(ryml::ParserOptions opts={})
+        : handler()
+        , parser(&handler, opts)
+        , data()
+    {
+    }
+    IntHandlerResize handler;
+    IntParserResize parser;
+    ryml::extra::ievt::Buffers data;
+    void reserve(ryml::csubstr src)
+    {
+        handler.reserve_evts(ryml::extra::ievt::estimate_events_size(src));
+        handler.reserve_arena(src.len);
+    }
+};
+inline void parse_yaml_ints_resize_inplace(ryml::csubstr filename, ryml::substr src, IntParserResize &parser, ryml::extra::ievt::Buffers *dst)
+{
+    parser.m_evt_handler->reset(src);
+    parser.parse_in_place_ev(filename, src);
+    *dst = parser.m_evt_handler->get_buffers();
+}
+inline void parse_json_ints_resize_inplace(ryml::csubstr filename, ryml::substr src, IntParserResize &parser, ryml::extra::ievt::Buffers *dst)
+{
+    parser.m_evt_handler->reset(src);
+    parser.parse_json_in_place_ev(filename, src);
+    *dst = parser.m_evt_handler->get_buffers();
 }
 
 
@@ -200,8 +232,11 @@ struct BmCase
     rapidjson::Document    rapidjson_doc;
     ryml::Tree             libyaml_tree;
 
-    IntObjects int_obj;
-    IntObjects int_obj_nofilter{ryml::ParserOptions().scalar_filtering(false)};
+    IntObjectsNoResize     int_obj_noresize;
+    IntObjectsNoResize     int_obj_noresize_nofilter{ryml::ParserOptions().scalar_filtering(false)};
+
+    IntObjectsResize       int_obj_resize;
+    IntObjectsResize       int_obj_resize_nofilter{ryml::ParserOptions().scalar_filtering(false)};
 
     void run(std::string name, int argc, char **argv)
     {

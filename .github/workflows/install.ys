@@ -25,11 +25,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: find_package/linux,        sdir: test/test_install,      os: ubuntu-24.04,   cxx: g++-16,     gen: -DCMAKE_CXX_COMPILER=g++-16,               tgt: all,       bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
+          - {name: find_package/linux,        sdir: test/test_install,      os: ubuntu-24.04,   cxx: g++-16,     gen: -DCMAKE_CXX_COMPILER=g++-16,               tgt: all,       bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON, heavybuild: yes}
           - {name: find_package/linux/libcxx, sdir: test/test_install,      os: ubuntu-24.04,   cxx: clang++-18, gen: -DCMAKE_CXX_COMPILER=clang++-18,           tgt: all,       bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON, commonvars: -DRYML_USE_LIBCXX=ON}
           - {name: find_package/macos,        sdir: test/test_install,      os: macos-15-intel, cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
           - {name: find_package/win,          sdir: test/test_install,      os: windows-latest, cxx: vs2026,     gen: -G 'Visual Studio 18 2026' -A x64,         tgt: ALL_BUILD, bt: Debug,   vars: -Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake -DRYML_TEST_INSTALL_PACKAGE_MODE=ON}
-          - {name: find_library/linux,        sdir: test/test_install,      os: ubuntu-24.04,   cxx: g++-16,     gen: -DCMAKE_CXX_COMPILER=g++-16,               tgt: all,       bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
+          - {name: find_library/linux,        sdir: test/test_install,      os: ubuntu-24.04,   cxx: g++-16,     gen: -DCMAKE_CXX_COMPILER=g++-16,               tgt: all,       bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF, heavybuild: yes}
           - {name: find_library/linux/libcxx, sdir: test/test_install,      os: ubuntu-24.04,   cxx: clang++-18, gen: -DCMAKE_CXX_COMPILER=clang++-18,           tgt: all,       bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF, commonvars: -DRYML_USE_LIBCXX=ON}
           - {name: find_library/macos,        sdir: test/test_install,      os: macos-15-intel, cxx: xcode,      gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, tgt: ALL_BUILD, bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
           - {name: find_library/win,          sdir: test/test_install,      os: windows-latest, cxx: vs2026,     gen: -G 'Visual Studio 18 2026' -A x64,         tgt: ALL_BUILD, bt: Debug,   vars: -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF}
@@ -87,14 +87,24 @@ jobs:
           ${{matrix.commonvars}}
     - name: build
       run: |
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        if [ -n "${{matrix.heavybuild}}" ] ; then
+            if (( $numprocs > 1 )) ; then
+                numprocs=$(($numprocs / 2))
+            fi
+        fi
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         if [ "${{matrix.sdir}}" == "test/test_singleheader" ] ; then
            cmake --build $BDIR --config ${{matrix.bt}} --target ryml_hdr_ints
            cmake --build $BDIR --config ${{matrix.bt}} --target ryml_hdr_all
         fi
-        cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j
+        cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j $numprocs
     - name: run
       run: |
+        source .github/setenv.sh
         cd $BDIR/test
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         ctest -C ${{matrix.bt}} --output-on-failure
 
 
@@ -107,7 +117,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: gcc,    os: ubuntu-24.04,   gen: -DCMAKE_CXX_COMPILER=g++,                  bt: Debug, rel: lib/cmake/c4core }
+          - {name: gcc,    os: ubuntu-24.04,   gen: -DCMAKE_CXX_COMPILER=g++,                  bt: Debug, rel: lib/cmake/c4core, heavybuild: yes }
           - {name: clang,  os: ubuntu-24.04,   gen: -DCMAKE_CXX_COMPILER=clang++,              bt: Debug, rel: lib/cmake/c4core }
           - {name: xcode,  os: macos-15-intel, gen: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64, bt: Debug, rel: lib/cmake/c4core }
           - {name: vs2026, os: windows-latest, gen: -G 'Visual Studio 18 2026' -A x64,         bt: Debug, rel: cmake }
@@ -142,9 +152,18 @@ jobs:
         cmake --build build --target ryml --parallel --config ${{matrix.bt}}
     - name: build tests
       run: |
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        if [ -n "${{matrix.heavybuild}}" ] ; then
+            if (( $numprocs > 1 )) ; then
+                numprocs=$(($numprocs / 2))
+            fi
+        fi
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build --target ryml-test-build --parallel --config ${{matrix.bt}}
     - name: run tests
       run: |
-        export CTEST_PARALLEL_LEVEL=`nproc`
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build --target ryml-test-run --config ${{matrix.bt}}
 
