@@ -1694,6 +1694,7 @@ static const ResolveOptions opts_owmergedin_mrg = ResolveOptions{opts_owmergedin
 static const ResolveOptions opts_oworiginal_mrg = ResolveOptions{opts_oworiginal}.merge_repeated_keys(true);
 static const ResolveOptions opts_owalways_mrg = ResolveOptions{opts_owalways}.merge_repeated_keys(true);
 
+
 #define test_resolve_with_options_(optsname, yaml, resolved)    \
     {                                                           \
         SCOPED_TRACE(#optsname);                                \

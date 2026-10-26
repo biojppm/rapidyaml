@@ -105,12 +105,15 @@ public:
 
     small_map_range<value_type const*> equal_range(K const& key) const noexcept
     {
-        RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, m_arr.size() == m_sorted_size);
+        RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, m_sorted_size == m_arr.size());
         small_map_range<value_type const*> r;
         r.hi = r.lo = detail::lower_bound(m_arr.begin(), m_arr.end(), key);
-        RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, r.lo->key == key || !lookup(key));
-        while(r.hi->key == key)
-            ++r.hi;
+        if(r.lo != m_arr.end())
+        {
+            RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, r.lo->key == key || !lookup(key));
+            while(r.hi->key == key)
+                ++r.hi;
+        }
         return r;
     }
 
