@@ -40,21 +40,6 @@ enum : evt_size { nosibling = -1 };
 using KnownKey_ = ievt::ReferenceResolver::KnownKey_;
 using KnownKeyRange_ = ievt::ReferenceResolver::KnownKeyRange_;
 
-KnownKey_ const* krng_select_earliest_(KnownKeyRange_ r) noexcept
-{
-    evt_size minpos = INT_MAX;
-    KnownKey_ const* which = nullptr;
-    for(auto const& kv : r)
-    {
-        if(kv.val.count < minpos)
-        {
-            minpos = kv.val.count;
-            which = &kv.val;
-        }
-    }
-    return which;
-}
-
 KnownKey_ const* krng_select_latest_(KnownKeyRange_ r) noexcept
 {
     evt_size maxpos = -1;
@@ -70,10 +55,27 @@ KnownKey_ const* krng_select_latest_(KnownKeyRange_ r) noexcept
     return which;
 }
 
-KnownKey_ const* krng_select_original_then_earliest_(KnownKeyRange_ r) noexcept
+KnownKey_ const* krng_select_earliest_(KnownKeyRange_ r) noexcept
 {
+    static_assert(std::is_same<evt_size,decltype(INT_MAX)>::value, "evt_size vs INT_MAX");
     evt_size minpos = INT_MAX;
-    evt_size minpos_orig = minpos;
+    KnownKey_ const* which = nullptr;
+    for(auto const& kv : r)
+    {
+        if(kv.val.count < minpos)
+        {
+            minpos = kv.val.count;
+            which = &kv.val;
+        }
+    }
+    return which;
+}
+
+KnownKey_ const* krng_select_earliest_original_latest_rest_(KnownKeyRange_ r) noexcept
+{
+    static_assert(std::is_same<evt_size,decltype(INT_MAX)>::value, "evt_size vs INT_MAX");
+    evt_size maxpos = -1;
+    evt_size minpos_orig = INT_MAX;
     KnownKey_ const* which = nullptr;
     KnownKey_ const* which_orig = nullptr;
     for(auto const& kv : r)
@@ -86,19 +88,20 @@ KnownKey_ const* krng_select_original_then_earliest_(KnownKeyRange_ r) noexcept
                 which_orig = &kv.val;
             }
         }
-        if(kv.val.count < minpos)
+        if(kv.val.count > maxpos)
         {
-            minpos = kv.val.count;
+            maxpos = kv.val.count;
             which = &kv.val;
         }
     }
     return which_orig ? which_orig : which;
 }
 
-KnownKey_ const* krng_select_original_then_latest_(KnownKeyRange_ r) noexcept
+KnownKey_ const* krng_select_latest_original_earliest_rest_(KnownKeyRange_ r) noexcept
 {
-    evt_size maxpos = -1;
-    evt_size maxpos_orig = maxpos;
+    static_assert(std::is_same<evt_size,decltype(INT_MAX)>::value, "evt_size vs INT_MAX");
+    evt_size minpos = -1;
+    evt_size maxpos_orig = minpos;
     KnownKey_ const* which = nullptr;
     KnownKey_ const* which_orig = nullptr;
     for(auto const& kv : r)
@@ -111,9 +114,9 @@ KnownKey_ const* krng_select_original_then_latest_(KnownKeyRange_ r) noexcept
                 which_orig = &kv.val;
             }
         }
-        if(kv.val.count > maxpos)
+        if(kv.val.count < minpos)
         {
-            maxpos = kv.val.count;
+            minpos = kv.val.count;
             which = &kv.val;
         }
     }
@@ -126,11 +129,11 @@ KnownKey_ const* krng_select_(KnownKeyRange_ r, ResolveOptions opts) noexcept
     if(opts.overwrite_original() && opts.overwrite_mergedin())
         which = krng_select_latest_(r);
     else if(opts.overwrite_original())
-        which = krng_select_earliest_(r);
+        which = krng_select_latest_original_earliest_rest_(r);
     else if(opts.overwrite_mergedin())
-        which = krng_select_original_then_latest_(r);
+        which = krng_select_earliest_original_latest_rest_(r);
     else
-        which = krng_select_original_then_earliest_(r); // this is the standard
+        which = krng_select_earliest_(r); // this is the standard
     RYML_ASSERT_BASIC_(which);
     RYML_ASSERT_BASIC_(which >= &r.lo->val);
     RYML_ASSERT_BASIC_(which < &r.hi->val);
@@ -351,22 +354,12 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
     return pos;
 }
 
-C4_NODISCARD bool ReferenceResolver::map_has_merge_elms_(evt_size pos)
-{
-    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BMAP));
-    for(evt_size ch = pos + 1; evts.ptr[ch] != ievt::ESTR; ch = next_sibling_memoized_(ch))
-        if(detail::hasall(evts.ptr[ch], ievt::KEY_|ievt::SCLR))
-            if(is_merge_elm_(ch))
-                return true;
-    return false;
-}
-
-C4_NODISCARD bool ReferenceResolver::populate_known_keys_(evt_size pos)
+C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos, bool *key_conflict)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BMAP));
     known_keys.clear();
     unique_keys.clear();
-    bool key_conflict = false;
+    bool has_merge_elm = false;
     // https://yamlvalidate.com/blog/yaml-anchors-aliases-merge-keys/
 printf("populate(%d): enter\n", pos);
     for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
@@ -381,17 +374,18 @@ printf("wtf 0.0.1 ch=%d, key=%.*s\n", ch, static_cast<int>(key.len), key.str);
         if( ! is_merge_elm_(ch, key))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
         {
 printf("wtf 0.1 ch=%d\n", ch);
-            add_known_key_(ch, FROM_TARGET, &key_conflict);
+            add_known_key_(ch, FROM_TARGET, key_conflict);
         }
         else
         {
+            has_merge_elm = true;
 printf("wtf 1 ch=%d\n", ch);
             Range_ rng = keyval_range_val_(ch);
 printf("wtf 2 ch=%d rng=(%d,%d)\n", ch, rng.beg, rng.end);
             if(detail::hasall(evts.ptr[rng.beg], ievt::VAL_|ievt::ALIA))
             {
 printf("wtf 3 ch=%d\n", ch);
-                add_to_known_keys_(rng.beg, FROM_ALIAS, &key_conflict);
+                add_to_known_keys_(rng.beg, FROM_ALIAS, key_conflict);
             }
             else
             {
@@ -404,7 +398,7 @@ printf("wtf 4.1 ch=%d rng.beg=%d\n", ch, rng.beg);
                 {
                     RYML_ASSERT_BASIC_(evts.ptr[rng.beg] & ievt::ALIA);
 printf("wtf 4.2 ch=%d rng.beg=%d\n", ch, rng.beg);
-                    add_to_known_keys_(rng.beg, FROM_ALIAS, &key_conflict);
+                    add_to_known_keys_(rng.beg, FROM_ALIAS, key_conflict);
 printf("wtf 4.3 ch=%d rng.beg=%d\n", ch, rng.beg);
                     rng.beg = nextpos(evts.ptr, rng.beg);
 printf("wtf 4.4 ch=%d rng.beg=%d\n", ch, rng.beg);
@@ -415,7 +409,7 @@ printf("wtf 4.4 ch=%d rng.beg=%d\n", ch, rng.beg);
 printf("wtf 5 ch=%d rng.beg=%d\n", ch, rng.beg);
         }
     }
-    if(key_conflict)
+    if(*key_conflict)
     {
         known_keys.sort();
         unique_keys.sort();
@@ -428,8 +422,8 @@ for(auto const& kv : known_keys.m_arr)
     prkv(kv);
     printf("\n");
 }
-printf("populate(%d) key_conflict: %d\n", pos, key_conflict);
-    return key_conflict;
+printf("populate(%d) has_merge_elm=%d key_conflict: %d\n", pos, has_merge_elm, *key_conflict);
+    return has_merge_elm || (*key_conflict && opts.merge_repeated_keys());
 }
 
 void ReferenceResolver::add_known_key_(evt_size id, uint32_t status, bool *key_conflict)
@@ -485,10 +479,10 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
     enum : evt_size { noposref = -1 };
     evt_size posref = noposref;
     bool key_conflict = false;
-printf("-------------------------\n"
-       "merge id=%d: enter\n", parent);
-    if(map_has_merge_elms_(parent))
-        key_conflict = populate_known_keys_(parent);
+printf("-------------------------\n");
+printf("merge id=%d: enter\n", parent);
+    bool do_merge = requires_merge_(parent, &key_conflict);
+printf("merge id=%d: do_merge=%d key_conflict=%d\n", parent, do_merge, key_conflict);
     for(evt_size child = parent + 1; !detail::hasall(evts.ptr[child], ievt::EMAP); child = next_sibling_memoized_(child))
     {
         if(evts.ptr[child] & ievt::ALIA)
@@ -511,6 +505,7 @@ printf("merge id=%d: resolve %d: noconflict\n", parent, child);
                 else
                 {
 printf("merge id=%d: resolve %d: conflict\n", parent, child);
+                    maybe_clear_anchtag_(child);
                     clear_keyval_(child);
                     if(posref == noposref)
                         posref = child;
@@ -518,7 +513,7 @@ printf("merge id=%d: resolve %d: conflict\n", parent, child);
             }
         }
     }
-    if(key_conflict)
+    if(do_merge)
     {
         Range_ newrng;
         newrng.beg = wpos;
@@ -561,15 +556,15 @@ printf("\n");
             }
         }
         newrng.end = wpos;
-printf("aki 5.1 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end);
-        RYML_ASSERT_BASIC_(posref != noposref);
-        //RYML_ASSERT_BASIC_((evts.ptr[posref] & ~ievt::EXT2) == 0);
-        //RYML_ASSERT_BASIC_(evts.ptr[posref + 1] == 0);
-        //RYML_ASSERT_BASIC_(evts.ptr[posref + 2] == 0);
-        //RYML_ASSERT_BASIC_((evts.ptr[posref + 3] & ievt::EXT2) == 0);
+printf("aki 5.1 newrng=(%d,%d)\n", newrng.beg, newrng.end);
         if(newrng.end > newrng.beg)
 {
-printf("aki 5.2 merging\n");
+printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end);
+            RYML_ASSERT_BASIC_(posref != noposref);
+            //RYML_ASSERT_BASIC_((evts.ptr[posref] & ~ievt::EXT2) == 0);
+            //RYML_ASSERT_BASIC_(evts.ptr[posref + 1] == 0);
+            //RYML_ASSERT_BASIC_(evts.ptr[posref + 2] == 0);
+            //RYML_ASSERT_BASIC_((evts.ptr[posref + 3] & ievt::EXT2) == 0);
             replace_with_ref_(posref, newrng.beg, newrng.end);
 }
     }

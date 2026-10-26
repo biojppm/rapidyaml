@@ -9,7 +9,8 @@ namespace c4 {
 namespace yml {
 
 
-/** Options to control reference resolving. See @ref ReferenceResolver */
+/** Options to control reference resolving. See @ref ReferenceResolver
+ * and @ref IntsReferenceResolver */
 struct ResolveOptions
 {
 private:
@@ -18,6 +19,7 @@ private:
         CLEAR_ANCHORS = 1u << 0u,
         OVERWRITE_MERGEDIN = 1u << 1u,
         OVERWRITE_ORIGINAL = 1u << 2u,
+        MERGE_REPEATED_KEYS = 1u << 3u,
         DEFAULT_FLAGS = CLEAR_ANCHORS,
     } Flags_e;
 
@@ -45,6 +47,22 @@ public:
 
     ResolveOptions& clear_anchors(bool clear) noexcept { set_flag_(clear, CLEAR_ANCHORS); return *this; }
     C4_ALWAYS_INLINE bool clear_anchors() const noexcept { return (m_flags & CLEAR_ANCHORS) != 0; }
+
+    /** @} */
+
+public:
+
+    /** @name clear repeated keys
+     *
+     * Controls whether repeated keys should be merged even if the map
+     * has no merge elements (<<). Defaults to false.
+     *
+     * @{
+     *
+     */
+
+    ResolveOptions& merge_repeated_keys(bool clear) noexcept { set_flag_(clear, MERGE_REPEATED_KEYS); return *this; }
+    C4_ALWAYS_INLINE bool merge_repeated_keys() const noexcept { return (m_flags & MERGE_REPEATED_KEYS) != 0; }
 
     /** @} */
 

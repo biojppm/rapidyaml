@@ -1689,6 +1689,10 @@ static const ResolveOptions opts_owmergedin = ResolveOptions{}.overwrite_mergedi
 static const ResolveOptions opts_oworiginal = ResolveOptions{}.overwrite_original(true);
 static const ResolveOptions opts_owalways = ResolveOptions{}.overwrite_mergedin(true)
                                                             .overwrite_original(true);
+static const ResolveOptions opts_standard_mrg = ResolveOptions{opts_standard}.merge_repeated_keys(true);
+static const ResolveOptions opts_owmergedin_mrg = ResolveOptions{opts_owmergedin}.merge_repeated_keys(true);
+static const ResolveOptions opts_oworiginal_mrg = ResolveOptions{opts_oworiginal}.merge_repeated_keys(true);
+static const ResolveOptions opts_owalways_mrg = ResolveOptions{opts_owalways}.merge_repeated_keys(true);
 
 #define test_resolve_with_options_(optsname, yaml, resolved)    \
     {                                                           \
@@ -1697,6 +1701,67 @@ static const ResolveOptions opts_owalways = ResolveOptions{}.overwrite_mergedin(
         test_resolve_(ti, optsname);                            \
         test_emit_yaml_(ti, resolved);                          \
     }
+
+
+TEST(anchors, repeated_children_doc_0)
+{
+    std::string yaml = R"(
+foo: 0
+foo: 1
+)";
+    test_resolve_with_options_(opts_standard,       yaml, "foo: 0\nfoo: 1\n");
+    test_resolve_with_options_(opts_standard_mrg,   yaml, "foo: 0\n");
+    test_resolve_with_options_(opts_owalways,       yaml, "foo: 0\nfoo: 1\n");
+    test_resolve_with_options_(opts_owalways_mrg,   yaml, "foo: 1\n");
+    test_resolve_with_options_(opts_oworiginal,     yaml, "foo: 0\nfoo: 1\n");
+    test_resolve_with_options_(opts_oworiginal_mrg, yaml, "foo: 1\n");
+    test_resolve_with_options_(opts_owmergedin,     yaml, "foo: 0\nfoo: 1\n");
+    test_resolve_with_options_(opts_owmergedin_mrg, yaml, "foo: 0\n");
+}
+
+TEST(anchors, repeated_children_doc_1)
+{
+    std::string yaml = R"(
+foo: 1
+foo: 0
+)";
+    test_resolve_with_options_(opts_standard,       yaml, "foo: 1\nfoo: 0\n");
+    test_resolve_with_options_(opts_standard_mrg,   yaml, "foo: 1\n");
+    test_resolve_with_options_(opts_owalways,       yaml, "foo: 1\nfoo: 0\n");
+    test_resolve_with_options_(opts_owalways_mrg,   yaml, "foo: 0\n");
+    test_resolve_with_options_(opts_owmergedin,     yaml, "foo: 1\nfoo: 0\n");
+    test_resolve_with_options_(opts_owmergedin_mrg, yaml, "foo: 1\n");
+    test_resolve_with_options_(opts_oworiginal,     yaml, "foo: 1\nfoo: 0\n");
+    test_resolve_with_options_(opts_oworiginal_mrg, yaml, "foo: 0\n");
+}
+
+TEST(anchors, repeated_children_0)
+{
+    std::string yaml = R"(map:
+  foo: 0
+  foo: 1
+)";
+    test_resolve_with_options_(opts_standard,       yaml, "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(opts_standard_mrg,   yaml, "map:\n  foo: 0\n");
+    test_resolve_with_options_(opts_owalways,       yaml, "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(opts_owalways_mrg,   yaml, "map:\n  foo: 1\n");
+    test_resolve_with_options_(opts_oworiginal,     yaml, "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(opts_oworiginal_mrg, yaml, "map:\n  foo: 1\n");
+    test_resolve_with_options_(opts_owmergedin,     yaml, "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(opts_owmergedin_mrg, yaml, "map:\n  foo: 0\n");
+}
+
+TEST(anchors, repeated_children_1)
+{
+    std::string yaml = R"(map:
+  foo: 1
+  foo: 0
+)";
+    test_resolve_with_options_(opts_standard_mrg, yaml, "map:\n  foo: 1\n");
+    test_resolve_with_options_(opts_owalways_mrg, yaml, "map:\n  foo: 0\n");
+    test_resolve_with_options_(opts_owmergedin_mrg, yaml, "map:\n  foo: 1\n");
+    test_resolve_with_options_(opts_oworiginal_mrg, yaml, "map:\n  foo: 0\n");
+}
 
 TEST(anchors, issue_484_1)
 {
