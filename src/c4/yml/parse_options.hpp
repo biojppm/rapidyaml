@@ -28,6 +28,7 @@ private:
         RESOLVE_TAGS_ALL = (1u << 2u),
         SCALAR_FILTERING = (1u << 3u),
         LOCATIONS = (1u << 4u),
+        ESTIMATE_CAPACITY = (1u << 5u),
         DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
     } Flags_e;
 
@@ -120,6 +121,32 @@ public:
     }
     /** query source location tracking status */
     C4_ALWAYS_INLINE bool locations() const noexcept { return (m_flags & LOCATIONS); }
+
+    /** @} */
+
+public:
+
+    /** @name reserving the tree from the source */
+    /** @{ */
+
+    /** enable/disable reserving the tree from an estimate before
+     * parsing. When enabled, a parse into a new tree (one that holds
+     * only an empty root, with the default capacity) first estimates
+     * the number of nodes from a sample of the source, and reserves
+     * them, so that the tree does not need to grow while parsing. This
+     * is done only for sources of at least 128 KiB; below that, the
+     * estimate costs about as much as the growth it saves. A tree
+     * reserved by the caller, or a parse into an existing tree or
+     * node, are not changed. The extra::EventHandlerInts handler
+     * ignores this option, because it writes into a buffer the caller
+     * provides: use extra::estimate_events_ints_size() to size it.
+     * Disabled by default. */
+    ParserOptions& estimate_capacity(bool enabled) noexcept
+    {
+        return set_flags_(enabled, ESTIMATE_CAPACITY);
+    }
+    /** query status of reserving the tree from an estimate */
+    C4_ALWAYS_INLINE bool estimate_capacity() const noexcept { return (m_flags & ESTIMATE_CAPACITY); }
 
     /** @} */
 

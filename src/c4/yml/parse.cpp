@@ -143,18 +143,55 @@ C4_ALWAYS_INLINE void reset_handler_(Parser *parser, Tree *tree, id_type node_id
     parser->m_evt_handler->reset(tree, node_id);
     RYML_ASSERT_BASIC_(parser->m_evt_handler->m_tree == tree);
 }
+constexpr const size_t kib_ = 1024;
+id_type estimate_tree_capacity_sampled_(csubstr src)
+{
+    const size_t window = 16 * kib_;
+    const size_t num_windows = 4;
+    uint64_t count = 0;
+    for(size_t k = 0; k < num_windows; ++k)
+    {
+        const size_t pos = k * ((src.len - window) / (num_windows - 1));
+        count += static_cast<uint64_t>(estimate_tree_capacity(src.sub(pos, window)) - 1);
+    }
+    uint64_t cap = (count * static_cast<uint64_t>(src.len)) / static_cast<uint64_t>(num_windows * window);
+    cap += (cap / 4) + 1;
+    const uint64_t max_ids = static_cast<uint64_t>(std::numeric_limits<id_type>::max()) - 2u;
+    const uint64_t max_nodes = static_cast<uint64_t>(SIZE_MAX / sizeof(NodeData));
+    const uint64_t min_nodes = static_cast<uint64_t>(RYML_DEFAULT_TREE_CAPACITY);
+    cap = cap < max_ids ? cap : max_ids;
+    cap = cap < max_nodes ? cap : max_nodes;
+    cap = cap > min_nodes ? cap : min_nodes;
+    return static_cast<id_type>(cap);
+}
+C4_ALWAYS_INLINE void reserve_from_source_(Parser const* parser, Tree *tree, id_type node_id, csubstr src)
+{
+    if(parser->options().estimate_capacity()
+       && src.len >= 128 * kib_
+       && node_id == tree->root_id()
+       && tree->size() == 1
+       && tree->capacity() <= RYML_DEFAULT_TREE_CAPACITY
+       && tree->type(node_id) == NOTYPE)
+    {
+        const id_type cap = estimate_tree_capacity_sampled_(src);
+        if(cap > tree->capacity())
+            tree->reserve(cap);
+    }
+}
 // assumes checks above were done prior to calling
 void parse_yaml_(Parser *parser, csubstr filename, substr yaml, Tree *tree, id_type node_id)
 {
-    reset_handler_(parser, tree, node_id);
     checksrc_(tree, yaml);
+    reserve_from_source_(parser, tree, node_id, yaml);
+    reset_handler_(parser, tree, node_id);
     parser->parse_in_place_ev(filename, yaml);
 }
 // assumes checks above were done prior to calling
 void parse_json_(Parser *parser, csubstr filename, substr json, Tree *tree, id_type node_id)
 {
-    reset_handler_(parser, tree, node_id);
     checksrc_(tree, json);
+    reserve_from_source_(parser, tree, node_id, json);
+    reset_handler_(parser, tree, node_id);
     parser->parse_json_in_place_ev(filename, json);
 }
 } // namespace
@@ -251,13 +288,51 @@ Tree parse_json_in_arena(                  csubstr json                         
 
 //-----------------------------------------------------------------------------
 
+namespace {
+C4_ALWAYS_INLINE uint64_t bytes_eq_(uint64_t w, uint64_t pattern) noexcept
+{
+    const uint64_t lo7 = UINT64_C(0x7f7f7f7f7f7f7f7f);
+    const uint64_t x = w ^ pattern;
+    return ~(((x & lo7) + lo7) | x | lo7);
+}
+}
+
 RYML_EXPORT id_type estimate_tree_capacity(csubstr src)
 {
     id_type num_nodes = 1; // root
-    for(size_t i = 0; i < src.len; ++i)
+    size_t i = 0;
+    #if defined(C4_BYTE_ORDER) && defined(C4EL_) && (C4_BYTE_ORDER == C4EL_)
+    const uint64_t ones = UINT64_C(0x0101010101010101);
+    uint64_t dash_carry = 0;
+    while(i + 8 <= src.len)
+    {
+        const size_t words = (src.len - i) / 8;
+        const size_t e = i + (8 * (words < 127 ? words : 127));
+        uint64_t acc = 0;
+        for( ; i < e; i += 8)
+        {
+            uint64_t w;
+            memcpy(&w, src.str + i, 8);
+            const uint64_t nl = bytes_eq_(w, ones * static_cast<uint64_t>('\n'));
+            const uint64_t sp = bytes_eq_(w, ones * static_cast<uint64_t>(' ')) | nl;
+            const uint64_t dash = bytes_eq_(w, ones * static_cast<uint64_t>('-'));
+            const uint64_t node = nl | bytes_eq_(w, ones * static_cast<uint64_t>(',')) | bytes_eq_(w | (ones * UINT64_C(0x20)), ones * static_cast<uint64_t>('{'));
+            const uint64_t entry = ((dash << 8u) | dash_carry) & sp;
+            dash_carry = dash >> 56u;
+            acc += (node >> 7u) + (entry >> 7u);
+        }
+        const uint64_t lo8 = UINT64_C(0x00ff00ff00ff00ff);
+        const uint64_t pairs = (acc & lo8) + ((acc >> 8u) & lo8);
+        num_nodes += static_cast<id_type>((pairs * UINT64_C(0x0001000100010001)) >> 48u);
+    }
+    if(dash_carry && i < src.len && (src.str[i] == ' ' || src.str[i] == '\n'))
+        ++num_nodes;
+    #endif
+    for( ; i < src.len; ++i)
     {
         const char c = src.str[i];
         num_nodes += (c == '\n') || (c == ',') || (c == '[') || (c == '{');
+        num_nodes += (c == '-') && (i + 1 < src.len) && (src.str[i + 1] == ' ' || src.str[i + 1] == '\n');
     }
     return num_nodes;
 }
