@@ -1894,7 +1894,7 @@ TEST(anchors, issue_484_0)
     }
 }
 
-TEST(anchors, issue_484_0_flow)
+TEST(anchors, issue_484_0_flow_sl)
 {
     csubstr cases[] = {
         csubstr(""
@@ -1970,6 +1970,82 @@ TEST(anchors, issue_484_0_flow)
     }
 }
 
+TEST(anchors, issue_484_0_flow_ml)
+{
+    csubstr cases[] = {
+        csubstr(""
+                "[\n"
+                "  {\nbase_1: &base_1 {\na: 10,b: 10}},\n"
+                "  {\nbase_2: &base_2 {\nb: 20}},\n"
+                "  {\nk1: {\n<<: [*base_1,*base_2]}},\n"
+                "  {\nk2: {\n<<: [*base_2,*base_1]}},\n"
+                "  {\nk3: {\na: 100,<<: [*base_1,*base_2]}},\n"
+                "  {\nk4: {\n<<: [*base_1,*base_2],a: 100}},\n"
+                "  {\nk5: {\na: 100,<<: [*base_2,*base_1]}},\n"
+                "  {\nk6: {\n<<: [*base_2,*base_1],a: 100}}\n"
+                "]"
+                ""),
+        csubstr(""
+                "[\n"
+                "  {\nbase_1: &base_1 {\na: 10,b: 10}},\n"
+                "  {\nbase_2: &base_2 {\nb: 20}},\n"
+                "  {\nk1: {\n<<: *base_1,<<: *base_2}},\n"
+                "  {\nk2: {\n<<: *base_2,<<: *base_1}},\n"
+                "  {\nk3: {\na: 100,<<: *base_1,<<: *base_2}},\n"
+                "  {\nk4: {\n<<: *base_1,<<: *base_2,a: 100}},\n"
+                "  {\nk5: {\na: 100,<<: *base_2,<<: *base_1}},\n"
+                "  {\nk6: {\n<<: *base_2,<<: *base_1,a: 100}}\n"
+                "]"
+                ""),
+        csubstr(""
+                "[\n"
+                "  {\nbase_1: &base_1 {\na: 10,b: 10}},\n"
+                "  {\nbase_2: &base_2 {\nb: 20}},\n"
+                "  {\nk1: {\n!!merge <<: [*base_1,*base_2]}},\n"
+                "  {\nk2: {\n!!merge <<: [*base_2,*base_1]}},\n"
+                "  {\nk3: {\na: 100,!!merge <<: [*base_1,*base_2]}},\n"
+                "  {\nk4: {\n!!merge <<: [*base_1,*base_2],a: 100}},\n"
+                "  {\nk5: {\na: 100,!!merge <<: [*base_2,*base_1]}},\n"
+                "  {\nk6: {\n!!merge <<: [*base_2,*base_1],a: 100}}\n"
+                "]"
+                ""),
+        csubstr(""
+                "[\n"
+                "  {\nbase_1: &base_1 {\na: 10,b: 10}},\n"
+                "  {\nbase_2: &base_2 {\nb: 20}},\n"
+                "  {\nk1: {\n!!merge <<: *base_1,!!merge <<: *base_2}},\n"
+                "  {\nk2: {\n!!merge <<: *base_2,!!merge <<: *base_1}},\n"
+                "  {\nk3: {\na: 100,!!merge <<: *base_1,!!merge <<: *base_2}},\n"
+                "  {\nk4: {\n!!merge <<: *base_1,!!merge <<: *base_2,a: 100}},\n"
+                "  {\nk5: {\na: 100,!!merge <<: *base_2,!!merge <<: *base_1}},\n"
+                "  {\nk6: {\n!!merge <<: *base_2,!!merge <<: *base_1,a: 100}}\n"
+                "]"
+                ""),
+    };
+    size_t count = 0;
+    for(csubstr yaml : cases)
+    {
+        RYML_TRACE_FMT("case #{}", count++);
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_(ti);
+        if(testing::Test::HasFailure()) break;
+        test_emit_yaml_(ti,
+                        ""
+                        "[\n"
+                        "  {\n    base_1: {\n      a: 10,\n      b: 10\n    }\n  },\n"
+                        "  {\n    base_2: {\n      b: 20\n    }\n  },\n"
+                        "  {\n    k1: {\n      a: 10,\n      b: 10\n    }\n  },\n"
+                        "  {\n    k2: {\n      b: 20,\n      a: 10\n    }\n  },\n"
+                        "  {\n    k3: {\n      a: 100,\n      b: 10\n    }\n  },\n"
+                        "  {\n    k4: {\n      b: 10,\n      a: 100\n    }\n  },\n"
+                        "  {\n    k5: {\n      a: 100,\n      b: 20\n    }\n  },\n"
+                        "  {\n    k6: {\n      b: 20,\n      a: 100\n    }\n  }\n"
+                        "]\n"
+                        "");
+        if(testing::Test::HasFailure()) break;
+    }
+}
+
 
 TEST(anchors, issue_484_1)
 {
@@ -2039,7 +2115,7 @@ TEST(anchors, issue_484_1)
                                "");
 }
 
-TEST(anchors, issue_484_1_flow)
+TEST(anchors, issue_484_1_flow_sl)
 {
     std::string yaml = ""
         "[\n"
@@ -2123,6 +2199,90 @@ TEST(anchors, issue_484_1_flow)
                                "");
 }
 
+TEST(anchors, issue_484_1_flow_ml)
+{
+    std::string yaml = ""
+        "[\n"
+        "  {\nbase_1: &base_1 {\na: a1}},\n"
+        "  {\nbase_2: &base_2 {\nb: b2}},\n"
+        "  {\nk1: {\n<<: *base_1,<<: *base_2}},\n"
+        "  {\nk2: {\n<<: *base_2,<<: *base_1}},\n"
+        "  {\nk3: {\na: ak3,<<: *base_1,<<: *base_2}},\n"
+        "  {\nk4: {\n<<: *base_1,<<: *base_2,a: ak4}}\n"
+        "]\n"
+        "";
+    test_resolve_with_options0(yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_orig, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_merg, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a1,\n      b: b2\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a1,\n      b: b2\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_orig_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_merg_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a1,\n      b: b2\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a1,\n      b: b2\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "]\n"
+                               "");
+}
+
 TEST(anchors, issue_484_2)
 {
     std::string yaml = ""
@@ -2191,7 +2351,7 @@ TEST(anchors, issue_484_2)
                                "");
 }
 
-TEST(anchors, issue_484_2_flow)
+TEST(anchors, issue_484_2_flow_sl)
 {
     std::string yaml = ""
         "[\n"
@@ -2271,6 +2431,90 @@ TEST(anchors, issue_484_2_flow)
                                "  {k2: {a: a1,b: b1}},\n"
                                "  {k3: {a: a2,b: b1}},\n"
                                "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
+                               "]\n"
+                               "");
+}
+
+TEST(anchors, issue_484_2_flow_ml)
+{
+    std::string yaml = ""
+        "[\n"
+        "  {\nbase_1: &base_1 {\na: a1,b: b1}},\n"
+        "  {\nbase_2: &base_2 {\na: a2}},\n"
+        "  {\nk1: {\n<<: *base_1,<<: *base_2}},\n"
+        "  {\nk2: {\n<<: *base_2,<<: *base_1}},\n"
+        "  {\nk3: {\na: ak3,<<: *base_1,<<: *base_2}},\n"
+        "  {\nk4: {\n<<: *base_1,<<: *base_2,a: ak4}},\n"
+        "]\n"
+        "";
+    test_resolve_with_options0(yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_orig, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_merg, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a1,\n      b: b1\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a1,\n      b: b1\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_orig_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_merg_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a2,\n      b: b1\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a2,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
                                "]\n"
                                "");
 }
@@ -2359,7 +2603,7 @@ TEST(anchors, issue_484_3)
                                "");
 }
 
-TEST(anchors, issue_484_3_flow)
+TEST(anchors, issue_484_3_flow_sl)
 {
     std::string yaml = ""
         "[\n"
@@ -2455,6 +2699,106 @@ TEST(anchors, issue_484_3_flow)
                                "  {k3: {a: a2,b: b3}},\n"
                                "  {k4: {a: a2,b: b3}},\n"
                                "  {k5: {b: b3,a: ak5}}\n"
+                               "]\n"
+                               "");
+}
+
+TEST(anchors, issue_484_3_flow_ml)
+{
+    std::string yaml = ""
+        "[\n"
+        "  {\n    base_1: &base_1 {\na: a1,b: b1}},\n"
+        "  {\n    base_2: &base_2 {\na: a2}},\n"
+        "  {\n    base_3: &base_3 {\nb: b3}},\n"
+        "  {\n    k1: {\n<<: *base_1,<<: *base_2,<<: *base_3}},\n"
+        "  {\n    k2: {\n<<: *base_3,<<: *base_2,<<: *base_1}},\n"
+        "  {\n    k3: {\na: ak3,<<: *base_1,<<: *base_2,<<: *base_3}},\n"
+        "  {\n    k4: {\n<<: *base_1,a: ak4,<<: *base_2,<<: *base_3}},\n"
+        "  {\n    k5: {\n<<: *base_1,<<: *base_2,<<: *base_3,a: ak5}}\n"
+        "]\n"
+        "";
+    test_resolve_with_options0(yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    base_3: {\n      b: b3\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b3,\n      a: a2\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b1,\n      a: ak4,\n    }\n  },\n" // FIXME! 'a' must be first // FIXME comma
+                               "  {\n    k5: {\n      b: b1,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_orig, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    base_3: {\n      b: b3\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b3,\n      a: a2\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b1,\n      a: ak4,\n    }\n  },\n" // FIXME! 'a' must be first // FIXME comma
+                               "  {\n    k5: {\n      b: b1,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_merg, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    base_3: {\n      b: b3\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b3,\n      a: a2\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k5: {\n      a: a1,\n      b: b1\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    base_3: {\n      b: b3\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b3,\n      a: a2\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k5: {\n      a: a1,\n      b: b1\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_orig_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    base_3: {\n      b: b3\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a2,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b1,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: ak3,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k4: {\n      b: b3,\n      a: ak4,\n    }\n  },\n" // FIXME! 'a' must be first // FIXME comma
+                               "  {\n    k5: {\n      b: b3,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
+                               "]\n"
+                               "");
+    test_resolve_with_options_(opts_pri_merg_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    base_3: {\n      b: b3\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a2,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b1,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a2,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a2,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k5: {\n      a: a2,\n      b: b3\n    }\n  }\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+                               "[\n"
+                               "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
+                               "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
+                               "  {\n    base_3: {\n      b: b3\n    }\n  },\n"
+                               "  {\n    k1: {\n      a: a2,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k2: {\n      b: b1,\n      a: a1\n    }\n  },\n"
+                               "  {\n    k3: {\n      a: a2,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k4: {\n      a: a2,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k5: {\n      b: b3,\n      a: ak5\n    }\n  }\n"
                                "]\n"
                                "");
 }
