@@ -627,6 +627,32 @@ TEST(Parser, estimate_tree_capacity)
 )"));
 }
 
+std::string many_entries(size_t min_size)
+{
+    std::string src;
+    while(src.size() < min_size)
+        src += "- name: foo\n  x: 1\n";
+    return src;
+}
+
+TEST(Parser, reserve_then_parse)
+{
+    for(size_t size : {size_t(1000), size_t(200 * 1024)})
+    {
+        const std::string src = many_entries(size);
+        const csubstr csrc = to_csubstr(src);
+        Tree alone = parse_in_arena(csrc);
+        const id_type cap = alone.size() + RYML_DEFAULT_TREE_CAPACITY;
+        Tree reserved;
+        reserved.reserve(cap);
+        EXPECT_EQ(reserved.capacity(), cap);
+        parse_in_arena(csrc, &reserved);
+        EXPECT_EQ(reserved.capacity(), cap);
+        EXPECT_EQ(reserved.size(), alone.size());
+        EXPECT_EQ(emitrs_yaml<std::string>(reserved), emitrs_yaml<std::string>(alone));
+    }
+}
+
 TEST(Parser, alloc_arena)
 {
     Tree tree;
