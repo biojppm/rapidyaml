@@ -43,8 +43,8 @@ public:
         evt_size pos; /// anchor pos
     };
     typedef enum : uint32_t {
-        FROM_TARGET = 1u, ///< key is member of the target map
-        FROM_ALIAS = 2u, ///< key is member of an alias map
+        ORIGINAL = 1u, ///< key is member of the target map
+        MERGEDIN = 2u, ///< key is member of an alias map
         CONFLICT = 4u, ///< there are other similar named keys
         COPIED = 8u,
     } KnownKeyStatus_e;
