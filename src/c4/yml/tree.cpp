@@ -297,7 +297,7 @@ void Tree::reserve(id_type cap)
 {
     if(cap > m_cap)
     {
-        NodeData *buf = RYML_CB_ALLOC_HINT_(m_callbacks, NodeData, (size_t)cap, m_buf);
+        NodeData *buf = static_cast<NodeData*>(m_callbacks.allocate_and_make_resident((size_t)cap * sizeof(NodeData), m_buf));
         if(m_buf)
         {
             memcpy(buf, m_buf, (size_t)m_first_unused * sizeof(NodeData));

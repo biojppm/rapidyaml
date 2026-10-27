@@ -110,14 +110,15 @@ Callbacks::Callbacks() noexcept
     m_free(free_impl),
     m_error_basic(error_basic_impl),
     m_error_parse(error_parse_impl),
-    m_error_visit(error_visit_impl)
+    m_error_visit(error_visit_impl),
     #else
     m_allocate(nullptr),
     m_free(nullptr),
     m_error_basic(nullptr),
     m_error_parse(nullptr),
-    m_error_visit(nullptr)
+    m_error_visit(nullptr),
     #endif
+    m_make_resident(nullptr)
 {
 }
 
@@ -129,14 +130,15 @@ Callbacks::Callbacks(void *user_data, pfn_allocate alloc_, pfn_free free_, pfn_e
     m_free(free_ ? free_ : free_impl),
     m_error_basic(error_basic_ ? error_basic_ : error_basic_impl),
     m_error_parse(error_parse_impl),
-    m_error_visit(error_visit_impl)
+    m_error_visit(error_visit_impl),
     #else
     m_allocate(alloc_),
     m_free(free_),
     m_error_basic(error_basic_),
     m_error_parse(nullptr),
-    m_error_visit(nullptr)
+    m_error_visit(nullptr),
     #endif
+    m_make_resident(nullptr)
 {
 }
 
@@ -189,6 +191,12 @@ Callbacks& Callbacks::set_error_visit(pfn_error_visit error_visit)
     #ifndef RYML_NO_DEFAULT_CALLBACKS
     m_error_visit = m_error_visit ? m_error_visit : error_visit_impl;
     #endif
+    return *this;
+}
+
+Callbacks& Callbacks::set_make_resident(pfn_make_resident make_resident)
+{
+    m_make_resident = make_resident;
     return *this;
 }
 

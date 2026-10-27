@@ -11,6 +11,14 @@
 
 #include <gtest/gtest.h>
 #include <unordered_map>
+#include <vector>
+#if defined(C4_WIN)
+#ifndef RYML_SINGLE_HEADER // else it is in the single header
+#include <c4/windows.hpp>
+#endif
+#elif defined(C4_POSIX) || defined(C4_MACOS) || defined(C4_IOS) || defined(C4_ANDROID)
+#include <unistd.h>
+#endif
 
 C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
@@ -957,6 +965,82 @@ TEST(Tree, reserve_empty_and_reused)
         EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
         test_invariants(t);
     }
+}
+
+namespace {
+/** an example of a make_resident callback, as a user could write it:
+ * write one byte in each page of the block, so that the system maps
+ * the pages now, and not later when the parser writes the nodes. */
+void make_resident_one_byte_per_page(void *mem, size_t len, void * /*user_data*/)
+{
+    size_t page = 0;
+    #if defined(C4_WIN)
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    page = static_cast<size_t>(info.dwPageSize);
+    #elif defined(C4_POSIX) || defined(C4_MACOS) || defined(C4_IOS) || defined(C4_ANDROID)
+    const long sz = sysconf(_SC_PAGESIZE);
+    page = sz > 0 ? static_cast<size_t>(sz) : 0u;
+    #endif
+    if(!page) // no page size: do nothing
+        return;
+    char *bytes = static_cast<char*>(mem);
+    for(size_t i = 0; i < len; i += page)
+        bytes[i] = 0;
+}
+struct MakeResidentCall
+{
+    void *mem;
+    size_t len;
+};
+std::vector<MakeResidentCall> s_make_resident_calls;
+void make_resident_counting(void *mem, size_t len, void *user_data)
+{
+    s_make_resident_calls.push_back(MakeResidentCall{mem, len});
+    make_resident_one_byte_per_page(mem, len, user_data);
+}
+} // namespace
+
+TEST(Tree, reserve_without_make_resident)
+{
+    Tree t(0, 0);
+    EXPECT_EQ(t.callbacks().m_make_resident, nullptr);
+    t.reserve(100);
+    EXPECT_EQ(t.capacity(), 100);
+    parse_in_arena("[a, b, c]", &t);
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
+}
+
+TEST(Tree, reserve_calls_make_resident)
+{
+    s_make_resident_calls.clear();
+    Callbacks cb = get_callbacks();
+    cb.set_make_resident(&make_resident_counting);
+    Tree t(0, 0, cb);
+    EXPECT_TRUE(s_make_resident_calls.empty());
+    t.reserve(100);
+    ASSERT_EQ(s_make_resident_calls.size(), 1u);
+    EXPECT_EQ(s_make_resident_calls[0].mem, static_cast<void*>(t.get(0)));
+    EXPECT_EQ(s_make_resident_calls[0].len, 100u * sizeof(NodeData));
+    t.reserve(50); // no allocation, no call
+    EXPECT_EQ(s_make_resident_calls.size(), 1u);
+    parse_in_arena("[a, b, c]", &t);
+    EXPECT_EQ(s_make_resident_calls.size(), 1u);
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
+    // growth inside the parse also goes through reserve()
+    std::string src = "[";
+    for(int i = 0; i < 200; ++i)
+        src += "x, ";
+    src += "y]";
+    t.clear();
+    t.clear_arena();
+    parse_in_arena(to_csubstr(src), &t);
+    ASSERT_GE(s_make_resident_calls.size(), 2u);
+    EXPECT_EQ(s_make_resident_calls.back().mem, static_cast<void*>(t.get(0)));
+    EXPECT_EQ(s_make_resident_calls.back().len, static_cast<size_t>(t.capacity()) * sizeof(NodeData));
+    EXPECT_EQ(t.rootref().num_children(), 201);
+    test_invariants(t);
+    s_make_resident_calls.clear();
 }
 
 // https://github.com/biojppm/rapidyaml/issues/288
