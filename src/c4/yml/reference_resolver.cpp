@@ -186,14 +186,14 @@ id_type ReferenceResolver::merge_to_map_(RefData const& refdata, id_type dst_map
     for(id_type chsrc = m_tree->first_child(refdata.target); chsrc != NONE; chsrc = m_tree->next_sibling(chsrc))
     {
         csubstr key = m_tree->key(chsrc);
-        KnownKey *existing = m_known_keys.lookup_modify(key);
+        KnownKey const* existing = m_known_keys.lookup(key);
         if(!existing)
         {
             after = m_tree->duplicate(chsrc, dst_map, after);
             add_known_key_(key, after, /*original*/false);
         }
-        else if(( ! existing->original && m_opts.overwrite_mergedin()) ||
-                (existing->original && m_opts.overwrite_original()))
+        else //if(( ! existing->original && m_opts.overwrite_mergedin()) ||
+             //   (existing->original && m_opts.overwrite_original()))
         {
             m_tree->remove_children(existing->node);
             m_tree->duplicate_contents(chsrc, existing->node);

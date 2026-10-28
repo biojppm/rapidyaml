@@ -4,11 +4,8 @@
 #ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
 #include "c4/yml/extra/event_ints.hpp"
 #endif
-#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
-#include "c4/yml/resolve_options.hpp"
-#endif
-#ifndef C4_YML_DETAIL_SMALL_MAP_HPP_
-#include "c4/yml/detail/small_map.hpp"
+#ifndef C4_YML_DETAIL_KNOWN_KEYS_HPP_
+#include "c4/yml/detail/known_keys.hpp"
 #endif
 
 
@@ -16,6 +13,7 @@ namespace c4 {
 namespace yml {
 namespace extra {
 namespace ievt {
+
 
 /** @addtogroup doc_event_handlers_ints
  * @{ */
@@ -42,25 +40,9 @@ public:
     {
         evt_size pos; /// anchor pos
     };
-    typedef enum : uint32_t {
-        ORIGINAL = 1u, ///< key is member of the target map
-        MERGEDIN = 2u, ///< key is member of an alias map
-        CONFLICT = 4u, ///< there are other similar named keys
-        COPIED = 8u,
-    } KnownKeyStatus_e;
-    struct KnownKey_
-    {
-        evt_size id;       /// pos of the key in the evt array
-        evt_size unqcount; /// count of unique keys when this was added
-        evt_size count;    /// count of other keys when this was added
-        uint32_t status;
-        csubstr key; // FIXME remove
-    };
     template<class T, size_t N> using vec = yml::detail::stack<T, N>;
     template<class K, class V> using map = yml::detail::small_map<K, V, 32>;
-    using KnownKeysMap = map<csubstr, KnownKey_>;
-    using KnownKeyIndicesMap = map<evt_size, csubstr>;
-    using KnownKeyRange_ = KnownKeysMap::range_type;
+    using KnownKeys = yml::detail::KnownKeys;
 
 private:
 
@@ -69,8 +51,7 @@ private:
     evt_size sz_limit;
     ResolveOptions opts;
     map<csubstr, AnchorTargetRange_> anchor_map;
-    KnownKeysMap known_keys;
-    KnownKeyIndicesMap unique_keys;
+    KnownKeys known_keys;
     vec<evt_size, 32> parents;
     vec<evt_size, 32> siblings;
     bool can_resize;
@@ -110,14 +91,12 @@ private:
     void merge_map_single_(evt_size pos, bool key_conflict);
     void merge_map_multiple_(evt_size pos, bool key_conflict);
     void apply_merge_ref_(evt_size pos, bool key_conflict);
-    void add_known_key_(evt_size id, uint32_t status, bool *key_conflict);
     void add_to_known_keys_(evt_size beg, evt_size end, uint32_t status, bool *key_conflict);
     void add_to_known_keys_(evt_size alia, uint32_t status, bool *key_conflict);
     bool has_key_conflict_(evt_size beg, evt_size end);
     void overwrite_keyval_(evt_size src, evt_size dst);
     void copy_keyval_to_end_(evt_size keyval);
     bool grow_evts_to_add_(evt_size extra);
-    bool krng_check_(KnownKeyRange_ r);
 
 public:
 
