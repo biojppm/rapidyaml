@@ -1309,22 +1309,27 @@ TEST(CaseNode, anchors)
 
 TEST(anchors, resolve_works_on_an_empty_tree)
 {
-    Tree t(0);
-    t.resolve();
-    EXPECT_TRUE(t.empty());
+    TreeAndInts ti;
+    ti.tree = std::move(Tree(0));
+    test_resolve_(ti);
+    EXPECT_TRUE(ti.tree.empty());
 }
 
 TEST(anchors, resolve_works_on_a_tree_without_refs)
 {
-    Tree t = parse_in_arena("[a, b, c, d, e, f]");
-    size_t size_before = t.size();
-    t.resolve();
-    EXPECT_EQ(t.size(), size_before);
+    TreeAndInts ti("[a, b, c, d, e, f]");
+    id_type size_before_tree = ti.tree.size();
+    extra::ievt::evt_size size_before_ints = ti.ints.evts.len;
+    test_resolve_(ti);
+    EXPECT_EQ(ti.tree.size(), size_before_tree);
+    EXPECT_EQ(ti.ints.evts.len, size_before_ints);
+    test_emit_yaml_(ti, "[a,b,c,d,e,f]");
 }
 
 TEST(anchors, resolve_works_on_keyrefvalref)
 {
-    Tree t = parse_in_arena("{&a a: &b b, *b : *a}");
+    TreeAndInts ti("{&a a: &b b, *b : *a}");
+    Tree const& t = ti.tree;
     EXPECT_EQ(t["a"].has_key_anchor(), true);
     EXPECT_EQ(t["a"].has_val_anchor(), true);
     EXPECT_EQ(t["a"].key_anchor(), "a");
@@ -1333,12 +1338,11 @@ TEST(anchors, resolve_works_on_keyrefvalref)
     EXPECT_EQ(t["*b"].is_val_ref(), true);
     EXPECT_EQ(t["*b"].key_ref(), "b");
     EXPECT_EQ(t["*b"].val_ref(), "a");
-    _c4dbg_tree(t);
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({&a a: &b b,*b : *a})");
-    t.resolve();
+    test_emit_yaml_(ti, "{&a a: &b b,*b : *a}");
+    test_resolve_(ti);
     EXPECT_EQ(t["a"].val(), "b");
     EXPECT_EQ(t["b"].val(), "a");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({a: b,b: a})");
+    test_emit_yaml_(ti, "{a: b,b: a}");
 }
 
 TEST(anchors, anchors_of_first_child_key_implicit)
@@ -2878,7 +2882,7 @@ N(SB, L{
 })
 );
 
-ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS/*|NO_COMPARE_RESOLVED_INTS*/,
+ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS,
 R"(# https://yaml.org/type/merge.html
 - &CENTER { x: 1, y: 2 }
 - &LEFT { x: 0, y: 2 }
