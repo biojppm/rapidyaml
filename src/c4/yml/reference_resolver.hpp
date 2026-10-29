@@ -111,6 +111,7 @@ public:
     AnchorData const* lookup_anchor_(id_type ref_node, id_type count, csubstr ref);
     void handle_key_ref_(id_type ref_node, AnchorData const& anchor);
     void handle_val_ref_(id_type ref_node, AnchorData const& anchor);
+    void clear_anchors_(id_type node);
 
     detail::small_map<csubstr, AnchorData> m_anchors;
     detail::KnownKeys m_known_keys;

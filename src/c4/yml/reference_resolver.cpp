@@ -266,16 +266,20 @@ id_type ReferenceResolver::gather_anchors_(id_type node, id_type visit_count, bo
 id_type ReferenceResolver::resolve_(id_type node, id_type visit_count)
 {
     NodeType ty = m_tree->type(node);
+    _c4dbgpf("resolve[{}]: enter", node);
+printf("resolve[%zu]: enter\n", node);
     if(ty.is_key_ref())
     {
-        _c4dbgpf("node[{}]: key ref: '{}'", node, m_tree->key_ref(node));
+        _c4dbgpf("node[{}]: ... key ref: '{}'", node, m_tree->key_ref(node));
+printf("node[%zu]: key ref: '%.*s'\n", node, static_cast<int>(m_tree->key_ref(node).len), m_tree->key_ref(node).str);
         AnchorData const* anch = lookup_anchor_(node, visit_count, m_tree->key_ref(node));
         if C4_LIKELY (!!anch)
             handle_key_ref_(node, *anch);
     }
     if(ty.is_val_ref())
     {
-        _c4dbgpf("node[{}]: val ref: '{}'", node, m_tree->key_ref(node));
+        _c4dbgpf("node[{}]: val ref: '{}'", node, m_tree->val_ref(node));
+printf("node[%zu]: val ref: '%.*s'\n", node, static_cast<int>(m_tree->val_ref(node).len), m_tree->val_ref(node).str);
         AnchorData const* anch = lookup_anchor_(node, visit_count, m_tree->val_ref(node));
         if C4_LIKELY (!!anch)
             handle_val_ref_(node, *anch);
@@ -288,8 +292,10 @@ id_type ReferenceResolver::resolve_(id_type node, id_type visit_count)
     ++visit_count;
     for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
     {
+printf("resolve[%zu]: descending to %zu\n", node, ch);
         visit_count = resolve_(ch, visit_count);
     }
+printf("resolve[%zu]: exit\n", node);
     return visit_count;
 }
 
@@ -309,23 +315,23 @@ auto ReferenceResolver::lookup_anchor_(id_type ref_node, id_type visit_count, cs
 void ReferenceResolver::handle_val_ref_(id_type ref_node, AnchorData const& anchor)
 {
     _c4dbgpf("node[{}] is val ref", ref_node);
-    NodeType tty = m_tree->type(anchor.node);
+    NodeType aty = m_tree->type(anchor.node);
     if(anchor.val_anchor)
     {
         _c4dbgpf("node[{}]: duplicate contents to val", ref_node);
         check_size_limit_(anchor.node);
         const type_bits next = (m_tree->type(ref_node).m_bits & ~(VAL_STYLE|CONTAINER_STYLE|VAL|VALREF))
-            | (tty.m_bits & (VAL_STYLE|CONTAINER_STYLE|VAL|SEQ|MAP));
+            | (aty.m_bits & (VAL_STYLE|CONTAINER_STYLE|VAL|SEQ|MAP));
         m_tree->duplicate_contents(anchor.node, ref_node);
         m_tree->_p(ref_node)->m_type = next;
     }
     else
     {
         _c4dbgpf("node[{}] target.anchor==key.anchor=={}", ref_node, m_tree->key_anchor(anchor.node));
-        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, !tty.is_container(), m_tree, anchor.node);
-        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, tty.has_val(), m_tree, anchor.node);
+        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, !aty.is_container(), m_tree, anchor.node);
+        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, aty.has_val(), m_tree, anchor.node);
         // keys cannot be containers, so don't inherit container flags
-        const type_bits existing_style_flags = (KEY_STYLE) & tty.m_bits;
+        const type_bits existing_style_flags = (KEY_STYLE) & aty.m_bits;
         static_assert((KEY_STYLE << 1u) == (VAL_STYLE), "bad flags");
         m_tree->_p(ref_node)->m_val.scalar = m_tree->key(anchor.node);
         m_tree->_add_flags(ref_node, VAL | (existing_style_flags << 1u));
@@ -390,6 +396,9 @@ void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts)
         // have nested anchors; these anchors will have been newly
         // injected during the resolution; collect again, and clear
         // again, to ensure those are also cleared:
+        gather_anchors_(m_tree->root_id(), 0, &has_refs);
+        for(auto const& kv : m_anchors.m_arr)
+            m_tree->rem_anchor_ref(kv.val.node);
         _c4dbg_tree("final resolved tree", *m_tree);
     }
 
