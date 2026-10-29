@@ -135,7 +135,7 @@ KnownKeys::Entry const* select_(KnownKeys::KnownKeyRange_ r, ResolveOptions opts
 } // namespace
 
 
-void KnownKeys::add(csubstr key, id_type id, status_bits status, bool *key_conflict) noexcept
+void KnownKeys::add(csubstr key, id_type id, status_bits status) noexcept
 {
     count_type count = static_cast<count_type>(known_keys.m_arr.size());
     count_type unq = static_cast<count_type>(unique_keys.m_arr.size());
@@ -146,7 +146,6 @@ void KnownKeys::add(csubstr key, id_type id, status_bits status, bool *key_confl
     }
     else
     {
-        *key_conflict = true;
         status |= CONFLICT;
         existing->status |= CONFLICT;
         unq = existing->unqcount;
@@ -157,6 +156,7 @@ void KnownKeys::add(csubstr key, id_type id, status_bits status, bool *key_confl
     entry.unqcount = unq;
     entry.status = status;
     entry.key = key;
+    all_entries |= status;
 }
 
 auto KnownKeys::select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXCEPT

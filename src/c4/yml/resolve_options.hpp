@@ -17,10 +17,13 @@ private:
 
     typedef enum : uint32_t {
         CLEAR_ANCHORS = 1u << 0u,
-        PICK_LAST = 1u << 1u,
-        PRIORITY_MERGEDIN = 1u << 2u,
-        PRIORITY_ORIGINAL = 1u << 3u,
-        MERGE_REPEATED_KEYS = 1u << 4u,
+        WHOLE_SCOPE = 1u << 1u,
+        IGNORE_MISSING_ANCHORS = 1u << 2u,
+        ACCEPT_MULTIPLE_ANCHORS = 1u << 3u,
+        PICK_LAST = 1u << 4u,
+        PRIORITY_MERGEDIN = 1u << 5u,
+        PRIORITY_ORIGINAL = 1u << 6u,
+        MERGE_REPEATED_KEYS = 1u << 7u,
         DEFAULT_FLAGS = CLEAR_ANCHORS|PRIORITY_ORIGINAL,
     } Flags_e;
 
@@ -53,7 +56,61 @@ public:
 
 public:
 
-    /** @name pick_last
+    /** @name extension: whole_scope
+     *
+     * Controls whether anchors are visible everywhere in the
+     * tree. The standard dictates that the anchor is visible only to
+     * nodes after the anchor in the serialization; this setting makes
+     * the anchor visible everywhere in the tree, thus making it
+     * visible even by nodes before the anchor. Defaults to false (the
+     * standard behavior).
+     *
+     * @{
+     *
+     */
+
+    ResolveOptions& whole_scope(bool clear) noexcept { set_flag_(clear, WHOLE_SCOPE); return *this; }
+    C4_ALWAYS_INLINE bool whole_scope() const noexcept { return (m_flags & WHOLE_SCOPE) != 0; }
+
+    /** @} */
+
+public:
+
+    /** @name extension: ignore_missing_anchors
+     *
+     * Controls whether missing errors are ignored. When set to true,
+     * no error is reported when an error is not found. Defaults to
+     * false.
+     *
+     * @{
+     *
+     */
+
+    ResolveOptions& ignore_missing_anchors(bool clear) noexcept { set_flag_(clear, IGNORE_MISSING_ANCHORS); return *this; }
+    C4_ALWAYS_INLINE bool ignore_missing_anchors() const noexcept { return (m_flags & IGNORE_MISSING_ANCHORS) != 0; }
+
+    /** @} */
+
+public:
+
+    /** @name extension: accept_multiple_anchors
+     *
+     * Controls whether missing errors are ignored. When set to true,
+     * no error is reported when an error is not found. Defaults to
+     * false.
+     *
+     * @{
+     *
+     */
+
+    ResolveOptions& accept_multiple_anchors(bool clear) noexcept { set_flag_(clear, ACCEPT_MULTIPLE_ANCHORS); return *this; }
+    C4_ALWAYS_INLINE bool accept_multiple_anchors() const noexcept { return (m_flags & ACCEPT_MULTIPLE_ANCHORS) != 0; }
+
+    /** @} */
+
+public:
+
+    /** @name extension: pick_last
      *
      * When picking among same-key children, select the last possible
      * candidate. The standard behavior is picking the first. Defaults
@@ -74,15 +131,15 @@ public:
 
 public:
 
-    /** @name priority
+    /** @name extension: priority
      *
      * Controls how children with same-key are selected when merging a
      * map. Defaults to priority_original, meaning give priority to
-     * children originally in the map. Otherwise, there is
-     * priority_mergedin, meaning priority to children added to the
-     * map via merge operator `<<`. If neither or both of
-     * priority_original and priority_mergedin are set, the behavior
-     * is no-priority.
+     * children originally in the map (as specified by the YAML
+     * standard). Otherwise, there is priority_mergedin, meaning
+     * priority to children added to the map via merge operator
+     * `<<`. If neither or both of priority_original and
+     * priority_mergedin are set, the behavior is no-priority.
      *
      * See https://yamlvalidate.com/blog/yaml-anchors-aliases-merge-keys/
      *
@@ -102,7 +159,7 @@ public:
 
 public:
 
-    /** @name merged repeated keys
+    /** @name extension: merged repeated keys
      *
      * Controls whether repeated keys should be merged even if the map
      * has no merge element children (<<). Defaults to false.
@@ -133,7 +190,7 @@ public:
 
     ResolveOptions& max_size_multiplier(id_type mult) noexcept { m_max_size_multiplier = mult; return *this; }
     C4_ALWAYS_INLINE id_type max_size_multiplier() const noexcept { return m_max_size_multiplier; }
-    C4_ALWAYS_INLINE id_type max_size(id_type size_orig) const noexcept { return m_max_size_multiplier > 1 ? m_max_size_multiplier * size_orig : 0u; }
+    C4_ALWAYS_INLINE id_type max_size(id_type size_orig) const noexcept { return m_max_size_multiplier > 1 ? m_max_size_multiplier * size_orig : 0u; } /// get the max size based on a starting size
 
     /** @} */
 
@@ -143,7 +200,6 @@ private:
     uint32_t m_flags = DEFAULT_FLAGS;
 
 };
-
 
 } // namespace yml
 } // namespace c4

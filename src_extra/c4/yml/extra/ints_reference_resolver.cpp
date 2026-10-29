@@ -2,16 +2,11 @@
 #include "c4/yml/extra/ints_reference_resolver.hpp"
 #endif
 
-#define C4_YML_EXTRA_INTS_REFERENCE_RESOLVER_HPP_
-
 #ifndef C4_YML_EXTRA_EVENT_INTS_HPP_
 #include "c4/yml/extra/event_ints.hpp"
 #endif
-#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
-#include "c4/yml/resolve_options.hpp"
-#endif
-#ifndef C4_YML_DETAIL_SMALL_MAP_HPP_
-#include "c4/yml/detail/small_map.hpp"
+#ifndef C4_YML_DETAIL_LOOKUP_ANCHOR_HPP_
+#include "c4/yml/detail/lookup_anchor.hpp"
 #endif
 
 
@@ -92,7 +87,7 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
        !opts.merge_repeated_keys() &&
        (!opts.clear_anchors() || anchor_map.m_arr.empty()))
         return;
-    anchor_map.sort_if_needed();
+    anchor_map.sort();
     // now go to all refs, and resolve them
     for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
     {
@@ -105,14 +100,15 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
         }
         else if(evts.ptr[pos] & ievt::ALIA)
         {
-            AnchorTargetRange_ rng = lookup_anchor_(pos);
-            set_rref_(pos, rng.beg, rng.end);
+            AnchorData const* anch = lookup_anchor_(pos);
+            if(anch)
+                set_rref_(pos, anch->rng.beg, anch->rng.end);
         }
     }
     // finally:
     if(opts.clear_anchors())
         for(auto const& entry : anchor_map.m_arr)
-            clear_str_(entry.val.pos);
+            clear_str_(static_cast<evt_size>(entry.val.visit_count));
     // adjust for the sentinel
     if(wpos > len0)
         ++wpos;
@@ -208,8 +204,9 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
     {
         if(evts.ptr[pos] & ievt::ALIA)
         {
-            AnchorTargetRange_ rng = lookup_anchor_(pos);
-            set_rref_(pos, rng.beg, rng.end);
+            AnchorData const* anch = lookup_anchor_(pos);
+            if(anch)
+                set_rref_(pos, anch->rng.beg, anch->rng.end);
         }
         else if(descend_(pos))
         {
@@ -223,11 +220,10 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
     return pos;
 }
 
-C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos, bool *key_conflict)
+C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BMAP));
     known_keys.start_adding();
-    bool has_merge_elm = false;
     // https://yamlvalidate.com/blog/yaml-anchors-aliases-merge-keys/
 printf("populate(%d): enter\n", pos);
     for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
@@ -242,18 +238,17 @@ printf("wtf 0.0.1 ch=%d, key=%.*s\n", ch, static_cast<int>(key.len), key.str);
         if( ! is_merge_elm_(ch, key))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
         {
 printf("wtf 0.1 ch=%d\n", ch);
-            known_keys.add(key, static_cast<id_type>(ch), KnownKeys::ORIGINAL, key_conflict);
+            known_keys.add(key, static_cast<id_type>(ch), KnownKeys::ORIGINAL);
         }
         else
         {
-            has_merge_elm = true;
 printf("wtf 1 ch=%d\n", ch);
             Range_ rng = keyval_range_val_(ch);
 printf("wtf 2 ch=%d rng=(%d,%d)\n", ch, rng.beg, rng.end);
             if(detail::hasall(evts.ptr[rng.beg], ievt::VAL_|ievt::ALIA))
             {
 printf("wtf 3 ch=%d\n", ch);
-                add_to_known_keys_(rng.beg, KnownKeys::MERGEDIN, key_conflict);
+                add_to_known_keys_(rng.beg, KnownKeys::MERGEDIN);
             }
             else
             {
@@ -266,7 +261,7 @@ printf("wtf 4.1 ch=%d rng.beg=%d\n", ch, rng.beg);
                 {
                     RYML_ASSERT_BASIC_(evts.ptr[rng.beg] & ievt::ALIA);
 printf("wtf 4.2 ch=%d rng.beg=%d\n", ch, rng.beg);
-                    add_to_known_keys_(rng.beg, KnownKeys::MERGEDIN, key_conflict);
+                    add_to_known_keys_(rng.beg, KnownKeys::MERGEDIN);
 printf("wtf 4.3 ch=%d rng.beg=%d\n", ch, rng.beg);
                     rng.beg = nextpos(evts.ptr, rng.beg);
 printf("wtf 4.4 ch=%d rng.beg=%d\n", ch, rng.beg);
@@ -277,42 +272,30 @@ printf("wtf 4.4 ch=%d rng.beg=%d\n", ch, rng.beg);
 printf("wtf 5 ch=%d rng.beg=%d\n", ch, rng.beg);
         }
     }
-    bool reply = has_merge_elm || (*key_conflict && opts.merge_repeated_keys());
-    if(reply)
-    {
+    bool req = known_keys.requires_merge();
+    if(req)
         known_keys.adding_is_complete();
-    }
-printf("populate(%d): exit\n", pos);
-int kcount = 0;
-for(auto const& kv : known_keys.known_keys.m_arr)
-{
-    printf("populate(%d) key[%d]: ", pos, kcount++);
-    prkv(kv);
-    printf("\n");
-}
-printf("populate(%d) has_merge_elm=%d key_conflict: %d\n", pos, has_merge_elm, *key_conflict);
-    return reply;
+    return req;
 }
 
-void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end, uint32_t status, bool *has_key_conflict)
+void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end, uint32_t status)
 {
     RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
     RYML_ASSERT_BASIC_(!(status & KnownKeys::CONFLICT));
     while(beg < end)
     {
         if(detail::hasall(evts.ptr[beg], ievt::KEY_|ievt::SCLR))
-            known_keys.add(getstr(beg), static_cast<id_type>(beg), status, has_key_conflict);
+            known_keys.add(getstr(beg), static_cast<id_type>(beg), status);
         beg = next_sibling_memoized_(beg);
     }
 }
 
-void ReferenceResolver::add_to_known_keys_(evt_size alia, uint32_t status, bool *has_key_conflict)
+void ReferenceResolver::add_to_known_keys_(evt_size alia, uint32_t status)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[alia], ievt::VAL_|ievt::ALIA));
-    AnchorTargetRange_ rng = lookup_anchor_(alia);
-    ++rng.beg;
-    --rng.end;
-    add_to_known_keys_(rng.beg, rng.end, status, has_key_conflict);
+    AnchorData const* anch = lookup_anchor_(alia);
+    if(anch)
+        add_to_known_keys_(anch->rng.beg + 1, anch->rng.end - 1, status);
 }
 
 C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
@@ -320,18 +303,18 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
     enum : evt_size { noposref = -1 };
     evt_size posref = noposref;
-    bool key_conflict = false;
 printf("-------------------------\n");
 printf("merge id=%d: enter\n", parent);
-    bool do_merge = requires_merge_(parent, &key_conflict);
-printf("merge id=%d: do_merge=%d key_conflict=%d\n", parent, do_merge, key_conflict);
+    bool do_merge = requires_merge_(parent);
+printf("merge id=%d: do_merge=%d key_conflict=%d\n", parent, do_merge, known_keys.has_key_conflict());
     for(evt_size child = parent + 1; !detail::hasall(evts.ptr[child], ievt::EMAP); child = next_sibling_memoized_(child))
     {
         if(evts.ptr[child] & ievt::ALIA)
         {
 printf("merge id=%d: resolve %d: ALIA\n", parent, child);
-            AnchorTargetRange_ rng = lookup_anchor_(child);
-            set_rref_(child, rng.beg, rng.end);
+            AnchorData const* anch = lookup_anchor_(child);
+            if(anch)
+                set_rref_(child, anch->rng.beg, anch->rng.end);
         }
         else if(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR))
         {
@@ -339,10 +322,10 @@ printf("merge id=%d: resolve %d: key\n", parent, child);
             if(is_merge_elm_(child))
             {
 printf("merge id=%d: resolve %d: merge_elm\n", parent, child);
-                if( ! key_conflict)
+                if( ! known_keys.has_key_conflict())
                 {
 printf("merge id=%d: resolve %d: noconflict\n", parent, child);
-                    handle_merge_elm_(child, key_conflict);
+                    handle_merge_elm_(child, known_keys.has_key_conflict());
                 }
                 else
                 {
@@ -355,12 +338,12 @@ printf("merge id=%d: resolve %d: conflict\n", parent, child);
             }
         }
     }
-    if(do_merge && key_conflict)
+    if(do_merge && known_keys.has_key_conflict())
     {
         Range_ newrng;
         newrng.beg = wpos;
-        size_t num_unique = known_keys.num_unique_keys();
-        for(size_t i = 0; i < num_unique; ++i)
+        id_type num_unique = known_keys.num_unique_keys();
+        for(id_type i = 0; i < num_unique; ++i)
         {
             // select the key to remain
 printf("merge map=%d: ", parent);
@@ -418,36 +401,33 @@ printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end
 void ReferenceResolver::add_anchor_(evt_size pos)
 {
     RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ANCH);
-    AnchorTargetRange_& r = anchor_map.insert(getstr(pos));
-    r.beg = pos + (!(evts.ptr[pos + 3] & ievt::TAG_) ? 3 : 6);
-    if(evts.ptr[r.beg] & ievt::SCLR)
+    AnchorData& r = anchor_map.insert(getstr(pos));
+    r.rng.beg = pos + (!(evts.ptr[pos + 3] & ievt::TAG_) ? 3 : 6);
+    if(evts.ptr[r.rng.beg] & ievt::SCLR)
     {
-        r.end = r.beg + 3;
+        r.rng.end = r.rng.beg + 3;
     }
     else
     {
-        RYML_ASSERT_BASIC_(evts.ptr[r.beg] & ievt::BEG_);
-        r.end = next_sibling_memoized_(r.beg); // END_ must be part of the range, so extend beyond it
+        RYML_ASSERT_BASIC_(evts.ptr[r.rng.beg] & ievt::BEG_);
+        r.rng.end = next_sibling_memoized_(r.rng.beg); // END_ must be part of the range, so extend beyond it
     }
-    r.pos = pos;
+    r.visit_count = static_cast<id_type>(pos);
 }
 
-ReferenceResolver::AnchorTargetRange_ ReferenceResolver::lookup_anchor_(evt_size pos) const
+auto ReferenceResolver::lookup_anchor_(evt_size pos) const
+    -> AnchorData const*
 {
     RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
     csubstr ref = getstr(pos);
-    AnchorTargetRange_ const* r = anchor_map.lookup(ref);
-    if C4_LIKELY (!!r)
-    {
-        RYML_ASSERT_BASIC_(getstr(r->pos) == ref);
-        if(r->pos < pos) // the anchor must come before the ref point
-        {
-            if C4_LIKELY (!is_cyclic_ref_(r->pos))
-                 return *r;
-            RYML_ERR_BASIC_("cyclic reference: '{}' at ALIA[{}]: ANCH at {}", ref, r->pos, pos);
-        }
-    }
-    RYML_ERR_BASIC_("anchor not found: reference at ALIA[{}]: {}", pos, ref);
+    AnchorData const* r = yml::detail::lookup_anchor(anchor_map, static_cast<size_t>(pos), ref, opts);
+    if(!r)
+        return nullptr;
+    evt_size apos = static_cast<evt_size>(r->visit_count);
+    RYML_ASSERT_BASIC_(getstr(apos) == ref);
+    if C4_LIKELY (!is_cyclic_ref_(apos))
+        return r;
+    RYML_ERR_BASIC_("cyclic reference: '{}' at ALIA[{}]: ANCH at {}", ref, apos, pos);
 }
 
 evt_size ReferenceResolver::count_extra(evt_size beg, evt_size end) const noexcept
@@ -661,7 +641,10 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos, bool key_conflict)
 void ReferenceResolver::apply_merge_ref_(evt_size pos, bool key_conflict)
 {
 printf("aki 0 merging %d: conflict=%d\n", pos, key_conflict);
-    AnchorTargetRange_ rng = lookup_anchor_(pos);
+    AnchorData const* anch = lookup_anchor_(pos);
+    if(!anch)
+        return;
+    Range_ rng = anch->rng;
 printf("aki 1 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
     if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
     {

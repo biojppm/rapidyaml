@@ -107,10 +107,9 @@ inline void test_resolve_ints(IntBufs &ints, ResolveOptions const& opts={})
         ints.print();
         return;
     }
-ints.print();
-    //RYML_EXPECT_ERROR(check_success([&]{
+    RYML_EXPECT_ERROR(check_success([&]{
         ints.resolve(opts);
-    //}));
+    }));
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("invariants after");

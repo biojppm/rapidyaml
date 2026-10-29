@@ -51,6 +51,7 @@ public:
 
     map<csubstr, Entry> known_keys;
     map<count_type, csubstr> unique_keys;
+    status_bits all_entries;
     ResolveOptions opts;
 
     using KnownKeyRange_ = decltype(known_keys)::range_type;
@@ -59,10 +60,7 @@ public:
 
     KnownKeys(Callbacks const& cb) noexcept : known_keys(cb), unique_keys(cb), opts() {}
 
-    void reset(ResolveOptions opts_) noexcept
-    {
-        opts = opts_;
-    }
+    void reset(ResolveOptions opts_) noexcept { opts = opts_; }
 
 public:
 
@@ -70,17 +68,41 @@ public:
     {
         known_keys.clear();
         unique_keys.clear();
+        all_entries = {};
     }
 
-    void add(csubstr key, id_type id, status_bits status, bool *key_conflict) noexcept;
+    void add(csubstr key, id_type id, status_bits status) noexcept;
 
-    void adding_is_complete()
+    bool adding_is_complete()
     {
-        unique_keys.sort();
-        known_keys.sort();
+        bool ret = requires_merge();
+        if(ret)
+        {
+            unique_keys.sort();
+            known_keys.sort();
+        }
+int kcount = 0;
+for(auto const& kv : known_keys.m_arr)
+{
+    printf("... key[%d]: ", kcount++);
+    prkv(kv);
+    printf("\n");
+}
+printf("... has_merge_elm=%d key_conflict: %d\n", (all_entries & MERGEDIN), (all_entries & CONFLICT));
+        return ret;
     }
 
 public:
+
+    bool has_key_conflict() const noexcept
+    {
+        return (all_entries & CONFLICT);
+    }
+
+    bool requires_merge() const noexcept
+    {
+        return (all_entries & MERGEDIN) || ((all_entries & CONFLICT) && opts.merge_repeated_keys());
+    }
 
     id_type num_unique_keys() const noexcept
     {

@@ -53,6 +53,8 @@ public:
         small_limit_default = 64,
     };
 
+    using key_type = K;
+    using mapped_type = V;
     using value_type = small_map_entry<K, V>;
     using range_type = small_map_range<value_type const*>;
 
