@@ -36,9 +36,11 @@ public:
         evt_size beg; /// beginning pos of the range
         evt_size end; /// end pos of the range (past 1)
     };
-    struct AnchorTargetRange_ : Range_
+    // an anchor has
+    struct AnchorData
     {
-        evt_size pos; /// anchor pos
+        id_type  visit_count; /// the pos of the anchor
+        Range_   rng;         /// range of the anchored data
     };
     template<class T, size_t N> using vec = yml::detail::stack<T, N>;
     template<class K, class V> using map = yml::detail::small_map<K, V, 32>;
@@ -50,7 +52,7 @@ private:
     evt_size newsz;
     evt_size sz_limit;
     ResolveOptions opts;
-    map<csubstr, AnchorTargetRange_> anchor_map;
+    map<csubstr, AnchorData> anchor_map;
     KnownKeys known_keys;
     vec<evt_size, 32> parents;
     vec<evt_size, 32> siblings;
@@ -71,9 +73,9 @@ private:
     C4_NODISCARD bool descend_(evt_size &pos);
     C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
-    C4_NODISCARD bool requires_merge_(evt_size map, bool *key_conflict);
+    C4_NODISCARD bool requires_merge_(evt_size map);
     void add_anchor_(evt_size pos);
-    AnchorTargetRange_ lookup_anchor_(evt_size pos) const;
+    AnchorData const* lookup_anchor_(evt_size pos) const;
     C4_NODISCARD evt_size count_extra(evt_size beg, evt_size end) const noexcept;
     void set_noref_(evt_size pos);
     void replace_with_ref_(evt_size pos, evt_size beg, evt_size end);
@@ -91,8 +93,8 @@ private:
     void merge_map_single_(evt_size pos, bool key_conflict);
     void merge_map_multiple_(evt_size pos, bool key_conflict);
     void apply_merge_ref_(evt_size pos, bool key_conflict);
-    void add_to_known_keys_(evt_size beg, evt_size end, uint32_t status, bool *key_conflict);
-    void add_to_known_keys_(evt_size alia, uint32_t status, bool *key_conflict);
+    void add_to_known_keys_(evt_size beg, evt_size end, uint32_t status);
+    void add_to_known_keys_(evt_size alia, uint32_t status);
     bool has_key_conflict_(evt_size beg, evt_size end);
     void overwrite_keyval_(evt_size src, evt_size dst);
     void copy_keyval_to_end_(evt_size keyval);

@@ -1168,7 +1168,7 @@ void Tree::resolve(ResolveOptions const& opts)
 {
     if(m_size == 0)
         return;
-    ReferenceResolver rr;
+    ReferenceResolver rr(callbacks());
     resolve(&rr, opts);
 }
 

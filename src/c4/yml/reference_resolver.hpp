@@ -2,11 +2,8 @@
 #define C4_YML_REFERENCE_RESOLVER_HPP_
 
 
-#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
-#include "c4/yml/resolve_options.hpp"
-#endif
-#ifndef C4_YML_DETAIL_SMALL_MAP_HPP_
-#include "c4/yml/detail/small_map.hpp"
+#ifndef C4_YML_DETAIL_KNOWN_KEYS_HPP_
+#include "c4/yml/detail/known_keys.hpp"
 #endif
 #ifndef C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
@@ -27,7 +24,8 @@ namespace yml {
  * @ref ResolveOptions . */
 struct ReferenceResolver
 {
-    ReferenceResolver() = default;
+    ReferenceResolver() noexcept : ReferenceResolver(get_callbacks()) {}
+    ReferenceResolver(Callbacks const& cb);
 
     /** Resolve references: for each reference, look for a matching
      * anchor, and copy its contents to the ref node.
@@ -83,42 +81,42 @@ public:
         id_type target;
         id_type parent_ref;
     };
-    struct KnownKey
+    struct AnchorData
     {
         id_type node;
-        bool original;
+        id_type visit_count;
+        bool val_anchor;
     };
+    using key_status = detail::KnownKeys::status_bits;
 
     void reset_(Tree *t_, ResolveOptions const& opts);
-    void resolve_();
-    void gather_anchors_and_refs_();
-    id_type gather_anchors_and_refs_(id_type n, id_type prev_anchor);
+    id_type resolve_(id_type node, id_type count);
     id_type branch_size_(id_type node);
     void check_size_limit_(id_type node);
 
-    void start_merge_(id_type dst_map);
-    void add_known_key_(csubstr key, id_type node, bool original);
-    id_type merge_to_map_(RefData const& rd, id_type dst_map, id_type after);
+    bool requires_merge_(id_type dst_map, id_type visit_count);
+    bool maybe_merge_keys_(id_type dst_map, id_type visit_count);
 
-    id_type add_(NodeType ty, id_type node, id_type prev_anchor, id_type parent_ref = NONE)
+    bool is_merge_elm_(id_type child) const;
+    void add_keys_mergedin_(id_type node, id_type visit_count);
+    id_type gather_anchors_(id_type node, id_type count, bool *hasrefs);
+    void add_anchor_(csubstr anch, id_type node, id_type count, bool val_anchor)
     {
-        RefData & rd = m_refs.emplace_top();
-        rd.type = ty;
-        rd.node = node;
-        rd.prev_anchor = prev_anchor;
-        rd.target = NONE;
-        rd.parent_ref = parent_ref;
-        return static_cast<id_type>(&rd - m_refs.begin());
+        AnchorData &d = m_anchors.insert(anch);
+        d.node = node;
+        d.visit_count = count;
+        d.val_anchor = val_anchor;
+
     }
+    AnchorData const* lookup_anchor_(id_type ref_node, id_type count, csubstr ref);
+    void handle_key_ref_(id_type ref_node, AnchorData const& anchor);
+    void handle_val_ref_(id_type ref_node, AnchorData const& anchor);
 
-    id_type lookup_(RefData const* C4_RESTRICT ra);
-
-    detail::stack<RefData> m_refs; // We're using this purely as an array
-    detail::small_map<csubstr, KnownKey> m_known_keys;
+    detail::small_map<csubstr, AnchorData> m_anchors;
+    detail::KnownKeys m_known_keys;
     Tree *C4_RESTRICT m_tree;
     ResolveOptions m_opts;
     id_type m_size_limit;
-    id_type m_known_key_subject;
 
     /** @endcond */
 };
