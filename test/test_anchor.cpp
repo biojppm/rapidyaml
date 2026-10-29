@@ -3226,7 +3226,7 @@ N(SB, L{
 })
 );
 
-ADD_CASE_TO_GROUP("anchor example 3, resolved", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
+ADD_CASE_TO_GROUP("anchor example 3, resolved", RESOLVE_REFS,
 R"(
 - step:  &id001                  # defines anchor label &id001
     instrument:      Lasik 2000
@@ -3519,6 +3519,7 @@ R"(
   *a8 : w8
 - *a0
 - *a7
+- *a8
 - *a9
 )",
 N(SB, L{
@@ -3537,6 +3538,7 @@ N(SB, L{
   }),
   N(VAL, "*a0", AR(VALREF, "*a0")),
   N(VAL, "*a7", AR(VALREF, "*a7")),
+  N(VAL, "*a8", AR(VALREF, "*a8")),
   N(VAL, "*a9", AR(VALREF, "*a9")),
 }, AR(VALANCH, "seq"))
 );
@@ -3564,6 +3566,7 @@ R"(
   *a8 : w8
 - *a0
 - *a7
+- *a8
 - *a9
 )",
 N(SB, L{
@@ -3582,6 +3585,7 @@ N(SB, L{
   }),
   N(MB, L{N(KP|VP, "k1", "v1"), N(KP|VP, "k2", "v2"), N(KP|VP, "k3", "v3")}),
   N(MB, L{N(KP|VP, "k8", "v8")}),
+  N(VP, "k8"),
   N(MB, L{N(KP|VP, "k10", "v10")}),
 })
 );
@@ -3621,7 +3625,7 @@ N(MB, L{
   })
 );
 
-ADD_CASE_TO_GROUP("github 484, resolved", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
+ADD_CASE_TO_GROUP("github 484, resolved", RESOLVE_REFS,
 R"(
 base_1: &base_1
   a: 10
@@ -3638,12 +3642,12 @@ k2:
 N(MB, L{
       N(KP|MB, "base_1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
       N(KP|MB, "base_2", L{/*                 */N(KP|VP, "b", "20")}),
-      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "20")}),
-      N(KP|MB, "k2", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "k2", L{N(KP|VP, "b", "20"), N(KP|VP, "a", "10")}),
   })
 );
 
-ADD_CASE_TO_GROUP("github 484, resolved, anch", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
+ADD_CASE_TO_GROUP("github 484, resolved, anch", RESOLVE_REFS,
 R"(
 base_1: &base_1
   a: 10
@@ -3660,12 +3664,12 @@ k2:
 N(MB, L{
       N(KP|MB, "base_1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
       N(KP|MB, "base_2", L{/*                 */N(KP|VP, "b", "20")}),
-      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "20")}),
-      N(KP|MB, "k2", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "k2", L{N(KP|VP, "b", "20"), N(KP|VP, "a", "10")}),
   })
 );
 
-ADD_CASE_TO_GROUP("github 484, resolved, anch + tag", RESOLVE_REFS|NO_COMPARE_RESOLVED_INTS,
+ADD_CASE_TO_GROUP("github 484, resolved, anch + tag", RESOLVE_REFS,
 R"(
 base_1: &base_1
   a: 10
@@ -3682,8 +3686,8 @@ k2:
 N(MB, L{
       N(KP|MB, "base_1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
       N(KP|MB, "base_2", L{/*                 */N(KP|VP, "b", "20")}),
-      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "20")}),
-      N(KP|MB, "k2", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "k1", L{N(KP|VP, "a", "10"), N(KP|VP, "b", "10")}),
+      N(KP|MB, "k2", L{N(KP|VP, "b", "20"), N(KP|VP, "a", "10")}),
   })
 );
 
