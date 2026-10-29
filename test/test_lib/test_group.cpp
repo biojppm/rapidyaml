@@ -379,6 +379,8 @@ void YmlTestCase::_test_parse_yaml_to_tree(CaseDataLineEndings *cd)
     cd->ensure_tree_parse(c);
     if(c->flags & (EXPECT_PARSE_ERROR|HAS_CONTAINER_KEYS|EXPECT_RESOLVE_ERROR)) // NOLINT
         return;
+print_tree("cd", cd->tree.val.result);
+std::cout << cd->tree.val.result;
     d->ensure_reftree(c);
     {
         SCOPED_TRACE("comparing parsed tree to ref tree");

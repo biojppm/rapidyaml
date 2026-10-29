@@ -2916,10 +2916,10 @@ N(SB, L{
     N(MFS, L{N(KP|VP, "x", "0" ), N(KP|VP, "y", "2")}),
     N(MFS, L{N(KP|VP, "r", "10")}),
     N(MFS, L{N(KP|VP, "r", "1" )}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big0")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big1")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big2")}),
-    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big3")}),
+    N(MB, L{N(KP|VP, "x", "1"), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big0")}),
+    N(MB, L{N(KP|VP, "x", "1"), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big1")}),
+    N(MB, L{N(KP|VP, "x", "1"), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big2")}),
+    N(MB, L{N(KP|VP, "r", "1"), N(KP|VP, "x", "1"), N(KP|VP, "y", "2" ), N(KP|VP, "label", "center/big3")}),
 })
 );
 

@@ -18,6 +18,7 @@
 #define _c4dbg_tree(...)
 #define _c4dbg_node(...)
 #endif
+#include "c4/yml/detail/print.hpp"
 
 
 namespace c4 {
@@ -171,33 +172,40 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
     if(!requires_merge_(node, visit_count))
         return false;
     KNK::KnownKeyRange_ rng;
-    id_type after = m_tree->last_child(node);
+    id_type after = NONE; // keep track where to insert nodes
     id_type num_unique = m_known_keys.num_unique_keys();
-printf("merge: #unique_keys=%zu\n", num_unique);
-    for(id_type i = 0; i < num_unique; ++i)
+print_tree("before merge", *m_tree, node);
+printf("merge[%zu]: #unique_keys=%zu\n", node, num_unique);
+    for(id_type i = 0; i < num_unique; ++i, ++visit_count)
     {
-printf("merge: ... unique_key[%zu]\n", i);
+printf("merge[%zu]: ... unique_key[%zu]\n", node, i);
         KNK::Entry const* selected = m_known_keys.select(i, &rng);
         RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, rng.hi > rng.lo, m_tree, node);
-printf("merge: ... unique_key[%zu]: %.*s #selected=%zd\n", i, static_cast<int>(rng.lo->key.len), rng.lo->key.str, rng.hi - rng.lo);
+printf("merge[%zu]: ... unique_key[%zu]: %.*s #selected=%zd\n", node, i, static_cast<int>(rng.lo->key.len), rng.lo->key.str, rng.hi - rng.lo);
         // clear all unselected original keys in the range; but do not
         // clear keys from aliases, which must remain there (in the
         // anchored elements).
         bool done = false;
         for(auto const& kv : rng)
         {
-printf("merge: ... unique_key[%zu]: %.*s #selected=%zd\n", i, static_cast<int>(rng.lo->key.len), rng.lo->key.str, rng.hi - rng.lo);
+printf("merge[%zu]: ... after=%zu ", node, after);
+prkv(kv);
+printf("\n");
             if(kv.val.status & KNK::ORIGINAL)
             {
+printf("merge[%zu]: ... original\n", node);
                 if(&kv.val != selected)
                 {
+printf("merge[%zu]: ... !selected\n", node);
                     if(!done)
                     {
+printf("merge[%zu]: ... !done\n", node);
                         done = true;
                         if(!(selected->status & KNK::ORIGINAL))
                         {
                             m_tree->remove_children(kv.val.id);
                             m_tree->duplicate_contents(selected->id, kv.val.id);
+                            after = kv.val.id;
                         }
                     }
                     else
@@ -207,7 +215,9 @@ printf("merge: ... unique_key[%zu]: %.*s #selected=%zd\n", i, static_cast<int>(r
                 }
                 else if(!done)
                 {
+printf("merge[%zu]: ... selected\n", node);
                     done = true;
+                    after = selected->id;
 // descend into the original selected key
 visit_count = resolve_(selected->id, visit_count);
                 }
@@ -219,7 +229,7 @@ visit_count = resolve_(selected->id, visit_count);
         {
             after = m_tree->duplicate(selected->id, node, after);
         }
-        ++visit_count;
+print_tree("after merge key", *m_tree, node);
     }
     return true;
 }

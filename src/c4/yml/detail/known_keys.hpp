@@ -18,11 +18,11 @@ namespace detail {
     printf("%.*s unqcount=%d count=%d id=%zu original=%d mergedin=%d conflict=%d", \
            static_cast<int>(kv.val.key.len), kv.val.key.str,            \
            kv.val.unqcount, kv.val.count, kv.val.id,                    \
-           kv.val.status & KnownKeys::ORIGINAL, kv.val.status & KnownKeys::MERGEDIN, kv.val.status & KnownKeys::CONFLICT)
+           kv.val.status & yml::detail::KnownKeys::ORIGINAL, kv.val.status & yml::detail::KnownKeys::MERGEDIN, kv.val.status & yml::detail::KnownKeys::CONFLICT)
 #define prv(v) \
     printf("unqcount=%d count=%d id=%zu original=%d mergedin=%d conflict=%d", \
            v.unqcount, v.count, v.id,                    \
-           v.status & KnownKeys::ORIGINAL, v.status & KnownKeys::MERGEDIN, v.status & KnownKeys::CONFLICT)
+           v.status & yml::detail::KnownKeys::ORIGINAL, v.status & yml::detail::KnownKeys::MERGEDIN, v.status & yml::detail::KnownKeys::CONFLICT)
 
 
 struct KnownKeys
