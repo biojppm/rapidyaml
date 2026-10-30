@@ -61,8 +61,17 @@ void ReferenceResolver::reset_(Buffers evts_, bool can_resize_, ResolveOptions o
     known_keys.reset(opts_);
     can_resize = can_resize_;
     parents.clear();
-    siblings.resize(static_cast<size_t>(evts.len));
-    for(size_t i = 0; i < siblings.size(); ++i)
+    siblings.resize(static_cast<size_t>(evts.cap));
+    reset_siblings_range_(0, evts.cap);
+}
+
+void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
+{
+    id_type sbeg = static_cast<id_type>(beg);
+    id_type send = static_cast<id_type>(end);
+    RYML_ASSERT_BASIC_(sbeg <= siblings.size());
+    RYML_ASSERT_BASIC_(send <= siblings.size());
+    for(id_type i = sbeg; i < send; ++i)
         siblings[i] = nosibling;
 }
 
@@ -301,13 +310,12 @@ void ReferenceResolver::add_to_known_keys_(evt_size alia, uint32_t status)
 C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
-    enum : evt_size { noposref = -1 };
-    evt_size posref = noposref;
 printf("-------------------------\n");
 printf("merge id=%d: enter\n", parent);
     bool do_merge = requires_merge_(parent);
-printf("merge id=%d: do_merge=%d key_conflict=%d\n", parent, do_merge, known_keys.has_key_conflict());
-    for(evt_size child = parent + 1; !detail::hasall(evts.ptr[child], ievt::EMAP); child = next_sibling_memoized_(child))
+    bool key_conflict = known_keys.has_key_conflict();
+printf("merge id=%d: do_merge=%d key_conflict=%d\n", parent, do_merge, key_conflict);
+    for(evt_size child = parent + 1; true; child = next_sibling_memoized_(child))
     {
         if(evts.ptr[child] & ievt::ALIA)
         {
@@ -322,66 +330,27 @@ printf("merge id=%d: resolve %d: key\n", parent, child);
             if(is_merge_elm_(child))
             {
 printf("merge id=%d: resolve %d: merge_elm\n", parent, child);
-                if( ! known_keys.has_key_conflict())
+                if( ! key_conflict)
                 {
 printf("merge id=%d: resolve %d: noconflict\n", parent, child);
-                    handle_merge_elm_(child, known_keys.has_key_conflict());
+                    handle_merge_elm_(child, key_conflict);
                 }
                 else
                 {
 printf("merge id=%d: resolve %d: conflict\n", parent, child);
                     maybe_clear_anchtag_(child);
                     clear_keyval_(child);
-                    if(posref == noposref)
-                        posref = child;
                 }
             }
+        }
+        else if(detail::hasall(evts.ptr[child], ievt::EMAP))
+        {
+            break;
         }
     }
-    if(do_merge && known_keys.has_key_conflict())
+    if(do_merge && key_conflict)
     {
-        Range_ newrng;
-        newrng.beg = wpos;
-        id_type num_unique = known_keys.num_unique_keys();
-        for(id_type i = 0; i < num_unique; ++i)
-        {
-            // select the key to remain
-printf("merge map=%d: ", parent);
-            KnownKeys::KnownKeyRange_ r;
-            KnownKeys::Entry const* selected = known_keys.select(i, &r);
-            // clear all other in-target keys in the range. keys from aliases
-            // must remain there (in the anchored elements).
-            for(auto const& kv : r)
-            {
-                if((kv.val.status & KnownKeys::ORIGINAL) && (&kv.val != selected))
-                {
-printf("merge id=%d: clearing: ", parent);
-prkv(kv);
-printf("\n");
-                    clear_keyval_(static_cast<evt_size>(kv.val.id));
-                }
-            }
-            // enforce the selected key
-            if(!(selected->status & KnownKeys::ORIGINAL))
-            {
-printf("merge id=%d: copying: ", parent);
-prv((*selected));
-printf("\n");
-                copy_keyval_to_end_(static_cast<evt_size>(selected->id));
-            }
-        }
-        newrng.end = wpos;
-printf("aki 5.1 newrng=(%d,%d)\n", newrng.beg, newrng.end);
-        if(newrng.end > newrng.beg)
-{
-printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end);
-            RYML_ASSERT_BASIC_(posref != noposref);
-            //RYML_ASSERT_BASIC_((evts.ptr[posref] & ~ievt::EXT2) == 0);
-            //RYML_ASSERT_BASIC_(evts.ptr[posref + 1] == 0);
-            //RYML_ASSERT_BASIC_(evts.ptr[posref + 2] == 0);
-            //RYML_ASSERT_BASIC_((evts.ptr[posref + 3] & ievt::EXT2) == 0);
-            replace_with_ref_(posref, newrng.beg, newrng.end);
-}
+        return merge_map_keys_(parent);
     }
     evt_size pos = parent + 1;
     for( ; evts.ptr[pos] != ievt::ESTR; pos = next_sibling_memoized_(pos))
@@ -397,6 +366,136 @@ printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end
     }
     return pos;
 }
+
+
+C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
+    // this is the number of slots we have to write
+    // in-place, ie between BMAP and EMAP:
+    const evt_size firstslot = parent + 1;
+    const evt_size lastslot = matching_close_memoized_(parent);
+    RYML_ASSERT_BASIC_(lastslot - firstslot > 3);
+    // we'll copy the map data to a scratch space, and then
+    // selectively copy from the scratch to in-place at the
+    // map. once (if) the data overflows the available space in
+    // the map, new elements are added at the end of the evts
+    // buffer, after the ESTR event
+    RYML_ASSERT_BASIC_(lastslot - firstslot > 3);
+    // copy the data, including the sentinel event because of PEX2
+    scratch.resize(static_cast<size_t>((lastslot+1) - firstslot));
+    memcpy(&scratch[0], evts.ptr + firstslot, static_cast<size_t>((lastslot+1) - firstslot) * sizeof(evt_bits));
+    evt_bits const* C4_RESTRICT tmp = &scratch[0];
+    evt_size wslot = 0; // current write slot
+    evt_size posref = -1;
+    // now define facilities to copy the data
+    auto cpdata = [&](evt_bits const* C4_RESTRICT data, evt_size beg, evt_size end, bool is_last_entry){
+        evt_size sz = end - beg;
+        RYML_ASSERT_BASIC_(sz);
+        // leave room for a RREF before spilling to past ESTR
+        evt_size extra = is_last_entry ? 0 : 3;
+        evt_size dstpos = firstslot + wslot;
+        if(dstpos + sz + extra < lastslot)
+        {
+            RYML_ASSERT_BASIC_(data != tmp || static_cast<size_t>(beg) < scratch.size());
+            // we only need to copy if the data is going to end up
+            // in a different position
+printf("copytomap:   beg=%d wslot=%d  ----  sz=%d  %d:%d  <--  %d:%d\n", beg, wslot, sz, dstpos, dstpos+sz, beg, end);
+            if(data != tmp || beg != wslot)
+            {
+printf("copytomap:   done!\n");
+                RYML_ASSERT_BASIC_(dstpos > 2);
+                RYML_ASSERT_BASIC_(dstpos + sz < evts.len);
+                const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
+                const evt_bits xend = data[end] & ievt::PEX2;
+                memcpy(evts.ptr + dstpos, data + beg, static_cast<size_t>(sz) * sizeof(evt_bits));
+                evts.ptr[dstpos] &= ~ievt::PEX2;
+                evts.ptr[dstpos] |= xbeg;
+                evts.ptr[dstpos + sz] &= ~ievt::PEX2;
+                evts.ptr[dstpos + sz] |= xend;
+            }
+else
+{
+printf("copytomap:   noneed!\n");
+}
+        }
+        else
+        {
+            if(posref == -1)
+            {
+printf("copytoend:  markref=%d\n", dstpos);
+                posref = dstpos;
+            }
+printf("copytoend:  sz=%d  %d:%d  <--  %d:%d\n", sz, wpos, wpos+sz, beg, end);
+            copy_range_to_end_(data, beg, end);
+        }
+        wslot += sz;
+    };
+    auto copy_keyval_original = [&](evt_size id, bool is_last_entry){
+        RYML_ASSERT_BASIC_(id >= firstslot && id < lastslot);
+        const Range_ r = keyval_range_(id);
+        cpdata(tmp, r.beg - firstslot, r.end - firstslot, is_last_entry);
+    };
+    auto copy_keyval_mergedin = [&](evt_size id, bool is_last_entry){
+        RYML_ASSERT_BASIC_(id < firstslot || id > lastslot);
+        const Range_ r = keyval_range_(id);
+        cpdata(evts.ptr, r.beg, r.end, is_last_entry);
+    };
+    // this is the range of new members added at the end (past the
+    // ESTR event), when (if) the data overflows the original
+    // space in the map.
+    Range_ newrng;
+    newrng.beg = wpos;
+    // we're ready. iterate by unique key
+    for(id_type i = 0; i < known_keys.num_unique_keys(); ++i)
+    {
+        // iterate all the key's candidates
+printf("merge[%d]: unique_key=%zu  wslot=%d -------\n", parent, i, wslot);
+        KnownKeys::KnownKeyRange_ keyentries;
+        KnownKeys::Entry const* selected = known_keys.select(i, &keyentries);
+        RYML_ASSERT_BASIC_(keyentries.lo < keyentries.hi);
+evt_size eidx = 0;
+        for(auto const& kv : keyentries)
+        {
+            evt_size id = static_cast<evt_size>(kv.val.id);
+            bool is_last = (&kv + 1 == keyentries.hi);
+printf("merge[%d]: unique_key=%zu ... rng[%d] id=%d ...", parent, i, eidx++, id);
+prkv(kv);
+printf("\n");
+            if(&kv.val == selected)
+            {
+                if(kv.val.status & KnownKeys::ORIGINAL)
+                {
+printf("merge[%d]: unique_key=%zu ...... original, selected! copy! wslot=%d\n", parent, i, wslot);
+                    copy_keyval_original(id, is_last);
+                }
+                else
+                {
+printf("merge[%d]: unique_key=%zu ...... mergedin, selected. copy! wslot=%d\n", parent, i, wslot);
+                    copy_keyval_mergedin(id, is_last);
+                }
+            }
+        }
+    }
+    newrng.end = wpos;
+printf("aki 5.1 newrng=(%d,%d)\n", newrng.beg, newrng.end);
+    if(newrng.end > newrng.beg)
+    {
+printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end);
+        RYML_ASSERT_BASIC_(posref != -1);
+        RYML_ASSERT_BASIC_(posref + 3 <= lastslot);
+        replace_with_ref_(posref, newrng.beg, newrng.end);
+        wslot += 3;
+    }
+    if(firstslot + wslot < lastslot)
+    {
+printf("aki 5.2 clear (%d,%d)\n", firstslot + wslot, lastslot);
+        clear_range_(firstslot + wslot, lastslot);
+    }
+    reset_siblings_range_(firstslot, lastslot);
+    return lastslot;
+}
+
 
 void ReferenceResolver::add_anchor_(evt_size pos)
 {
@@ -535,6 +634,7 @@ void ReferenceResolver::replace_with_ref_(evt_size pos, evt_size beg, evt_size e
         evts.ptr[pos] = ievt::RREF | (evts.ptr[pos] & ievt::PEX2);
         evts.ptr[pos + 1] = beg;
         evts.ptr[pos + 2] = end;
+        evts.ptr[pos + 3] |= ievt::PEX2;
     }
     else
     {
@@ -546,7 +646,18 @@ void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
 {
     RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
     RYML_ASSERT_BASIC_(evts.ptr[pos + 3] & ievt::PEX2);
-    replace_with_ref_(pos, beg, end);
+    if((beg + 3 == end) && (evts.ptr[beg] & ievt::SCLR))
+    {
+        evts.ptr[pos] &= ievt::PEX2; // retain only this
+        evts.ptr[pos] |= evts.ptr[beg] & ~ievt::PEX2; // copy everything but PEX2
+        evts.ptr[pos + 1] = evts.ptr[beg + 1];
+        evts.ptr[pos + 2] = evts.ptr[beg + 2];
+        evts.ptr[pos + 2] |= ievt::PEX2;
+    }
+    else
+    {
+        replace_with_ref_(pos, beg, end);
+    }
 }
 
 // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
@@ -692,15 +803,14 @@ void ReferenceResolver::clear_range_(evt_size beg, evt_size end) noexcept
     RYML_ASSERT_BASIC_(beg <= end);
     RYML_ASSERT_BASIC_(beg <= evts.len);
     RYML_ASSERT_BASIC_(end + 1 < evts.len);
-    size_t num_to_clear = static_cast<size_t>(end - beg);
-    if(num_to_clear)
+    size_t num = static_cast<size_t>(end - beg);
+    if(num)
     {
         evt_bits first = evts.ptr[beg] & ievt::PEX2;
-        memset(evts.ptr + beg, 0, num_to_clear * sizeof(evt_size));
+        memset(evts.ptr + beg, 0, num * sizeof(evt_size));
         evts.ptr[beg] = first;
         evts.ptr[end] &= ~ievt::PEX2;
     }
-
 }
 
 void ReferenceResolver::clear_keyval_(evt_size keyval) noexcept
@@ -758,13 +868,18 @@ void ReferenceResolver::copy_keyval_to_end_(evt_size keyval)
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[keyval], ievt::KEY_|ievt::SCLR));
     const Range_ rng = keyval_range_val_(keyval);
     RYML_ASSERT_BASIC_(evts.ptr[rng.beg] & ievt::VAL_);
-    const evt_size num = rng.end - keyval;
+    copy_range_to_end_(evts.ptr, rng.beg, rng.end);
+}
+
+void ReferenceResolver::copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end)
+{
+    const evt_size num = end - beg;
     RYML_ASSERT_BASIC_(num);
     if(grow_evts_to_add_(num))
     {
         const evt_bits xbeg = evts.ptr[wpos] & ievt::PEX2;
-        const evt_bits xend = evts.ptr[rng.end] & ievt::PEX2;
-        memcpy(evts.ptr + wpos, evts.ptr + keyval, static_cast<size_t>(num) * sizeof(evt_size));
+        const evt_bits xend = mem[end] & ievt::PEX2;
+        memcpy(evts.ptr + wpos, mem + beg, static_cast<size_t>(num) * sizeof(evt_size));
         evts.ptr[wpos] &= ~ievt::PEX2;
         evts.ptr[wpos] |= xbeg;
         evts.len += num;

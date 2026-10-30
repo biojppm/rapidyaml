@@ -159,25 +159,33 @@ void KnownKeys::add(csubstr key, id_type id, status_bits status) noexcept
     all_entries |= status;
 }
 
-auto KnownKeys::select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXCEPT
+auto KnownKeys::select(csubstr key, KnownKeyRange_ *out) const RYML_NOEXCEPT
     -> Entry const*
 {
-    RYML_ASSERT_BASIC_(unique_key < unique_keys.m_arr.size());
-    csubstr key = unique_keys.m_arr[unique_key].val;
-    *rng = known_keys.equal_range(key);
-printf("entry[%zu] key=%.*s numentries=%zd\n", unique_key, static_cast<int>(key.len), key.str, rng->hi - rng->lo);
-for(auto const& kv : *rng)
+    KnownKeyRange_ rng = known_keys.equal_range(key);
+printf("entry[%d] key=%.*s numentries=%zd\n", rng.lo != rng.hi ? rng.lo->val.unqcount : -1, static_cast<int>(key.len), key.str, rng.hi - rng.lo);
+for(auto const& kv : rng)
 {
 printf("... ");
 prkv(kv);
 printf("\n");
 }
-    RYML_ASSERT_BASIC_(check_(*this, *rng));
-    Entry const* selected = select_(*rng, opts);
+    RYML_ASSERT_BASIC_(check_(*this, rng));
+    Entry const* selected = select_(rng, opts);
 printf("-------> selected: ");
 prv((*selected));
 printf("\n");
+    if(out)
+        *out = rng;
     return selected;
+}
+
+auto KnownKeys::select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXCEPT
+    -> Entry const*
+{
+    RYML_ASSERT_BASIC_(unique_key < unique_keys.m_arr.size());
+    csubstr key = unique_keys.m_arr[unique_key].val;
+    return select(key, rng);
 }
 
 

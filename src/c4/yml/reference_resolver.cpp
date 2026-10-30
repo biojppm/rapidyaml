@@ -18,7 +18,9 @@
 #define _c4dbg_tree(...)
 #define _c4dbg_node(...)
 #endif
-#include "c4/yml/detail/print.hpp"
+
+
+#include "c4/yml/detail/print.hpp" // FIXME
 
 
 namespace c4 {
@@ -41,14 +43,23 @@ void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts)
     m_opts = opts;
     m_size_limit = m_opts.max_size(m_tree->size());
     m_known_keys.reset(m_opts);
+    m_branch_size.resize(m_tree->capacity());
+    for(uint32_t & v : m_branch_size)
+        v = 0;
 }
 
 id_type ReferenceResolver::branch_size_(id_type node)
 {
-    id_type count = 1;
-    for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
-        count += branch_size_(ch);
-    return count;
+    RYML_ASSERT_BASIC_CB_(m_tree->m_callbacks, node < m_branch_size.size());
+    uint32_t sz = m_branch_size[node];
+    if(!sz)
+    {
+        sz = 1;
+        for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
+            sz += static_cast<uint32_t>(branch_size_(ch));
+        m_branch_size[node] = sz;
+    }
+    return static_cast<id_type>(sz);
 }
 
 void ReferenceResolver::check_size_limit_(id_type node_to_dup)

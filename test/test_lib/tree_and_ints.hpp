@@ -85,9 +85,9 @@ inline void test_resolve_tree(Tree &tree, ResolveOptions const& opts={})
         SCOPED_TRACE("invariants before");
         test_invariants(tree);
     }
-    //RYML_EXPECT_ERROR(check_success(&tree, [&]{
+    RYML_EXPECT_ERROR(check_success(&tree, [&]{
         tree.resolve(opts);
-    //}));
+    }));
     {
         SCOPED_TRACE("invariants after");
         test_invariants(tree);
@@ -214,7 +214,7 @@ inline void test_emit_yaml_same_ints(ConstNodeRef n, std::string const& expected
 inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, std::string const& expected, EmitOptions const& opts={})
 {
     SCOPED_CALL(test_emit_yaml_ints, (ints, pos, expected, opts));
-    (void)n;//SCOPED_CALL(test_emit_yaml_tree, (n, expected, opts));
+    SCOPED_CALL(test_emit_yaml_tree, (n, expected, opts));
 }
 inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
 {

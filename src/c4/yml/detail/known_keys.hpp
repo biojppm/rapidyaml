@@ -109,7 +109,8 @@ public:
         return unique_keys.m_arr.size();
     }
 
-    Entry const* select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXCEPT;
+    Entry const* select(id_type unique_key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
+    Entry const* select(csubstr key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
 
     bool exists_with_conflict(csubstr key) const noexcept
     {
