@@ -36,7 +36,6 @@ public:
         evt_size beg; /// beginning pos of the range
         evt_size end; /// end pos of the range (past 1)
     };
-    // an anchor has
     struct AnchorData
     {
         id_type  visit_count; /// the pos of the anchor
@@ -45,6 +44,14 @@ public:
     template<class T, size_t N> using vec = yml::detail::stack<T, N>;
     template<class K, class V> using map = yml::detail::small_map<K, V, 32>;
     using KnownKeys = yml::detail::KnownKeys;
+
+    struct MapMergeWriter
+    {
+        cevtbuf scratch;
+        evtbuf  evt;
+        evt_size firstslot;
+        evt_size lastslot;
+    };
 
 private:
 

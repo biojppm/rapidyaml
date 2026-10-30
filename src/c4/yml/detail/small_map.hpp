@@ -119,6 +119,20 @@ public:
         return r;
     }
 
+    small_map_range<value_type*> equal_range(K const& key) noexcept
+    {
+        RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, m_sorted_size == m_arr.size());
+        small_map_range<value_type*> r;
+        r.hi = r.lo = detail::lower_bound(m_arr.begin(), m_arr.end(), key);
+        if(r.lo != m_arr.end())
+        {
+            RYML_ASSERT_BASIC_CB_(m_arr.m_callbacks, r.lo->key == key || !lookup(key));
+            while(r.hi->key == key)
+                ++r.hi;
+        }
+        return r;
+    }
+
 private:
 
     V const* lookup_linear_(K const& key) const noexcept
