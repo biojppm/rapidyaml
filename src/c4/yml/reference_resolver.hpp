@@ -62,16 +62,6 @@ struct ReferenceResolver
 public:
 
     /** @cond dev */
-    RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(Tree *tree, bool clear_anchors)
-    {
-        resolve(tree, ResolveOptions{}.clear_anchors(clear_anchors));
-    }
-    /** @endcond */
-
-public:
-
-    /** @cond dev */
 
     struct RefData
     {
@@ -114,10 +104,19 @@ public:
     void clear_anchors_(id_type node);
 
     detail::small_map<csubstr, AnchorData> m_anchors;
+    detail::stack<uint32_t> m_branch_size;
     detail::KnownKeys m_known_keys;
     Tree *C4_RESTRICT m_tree;
     ResolveOptions m_opts;
     id_type m_size_limit;
+
+public:
+
+    RYML_DEPRECATED("use the overload receiving ResolveOptions")
+    void resolve(Tree *tree, bool clear_anchors)
+    {
+        resolve(tree, ResolveOptions{}.clear_anchors(clear_anchors));
+    }
 
     /** @endcond */
 };

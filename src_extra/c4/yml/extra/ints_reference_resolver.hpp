@@ -56,12 +56,14 @@ private:
     KnownKeys known_keys;
     vec<evt_size, 32> parents;
     vec<evt_size, 32> siblings;
+    vec<evt_size, 32> scratch;
     bool can_resize;
 
 private:
 
     void resolve_(Buffers *evts_, ResolveOptions const& opts_);
     void reset_(Buffers evts_, bool can_resize_, ResolveOptions opts_);
+    void reset_siblings_range_(evt_size beg, evt_size end);
 
     C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
@@ -74,6 +76,7 @@ private:
     C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
     C4_NODISCARD bool requires_merge_(evt_size map);
+    C4_NODISCARD evt_size merge_map_keys_(evt_size map);
     void add_anchor_(evt_size pos);
     AnchorData const* lookup_anchor_(evt_size pos) const;
     C4_NODISCARD evt_size count_extra(evt_size beg, evt_size end) const noexcept;
@@ -98,6 +101,7 @@ private:
     bool has_key_conflict_(evt_size beg, evt_size end);
     void overwrite_keyval_(evt_size src, evt_size dst);
     void copy_keyval_to_end_(evt_size keyval);
+    void copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end);
     bool grow_evts_to_add_(evt_size extra);
 
 public:
