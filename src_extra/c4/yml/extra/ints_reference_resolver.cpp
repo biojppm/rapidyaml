@@ -9,6 +9,15 @@
 #include "c4/yml/detail/lookup_anchor.hpp"
 #endif
 
+#include "c4/yml/extra/ints_utils.hpp"
+#define print____(...)                                  \
+    do {                                                \
+        printf("-----------------------------------\n");\
+        printf("%s:%d: ", __FILE__, __LINE__);          \
+        printf(__VA_ARGS__);                            \
+        printf("\n");                                   \
+        events_ints_print(src, arena, evts.ptr, wpos);  \
+    } while(0)
 
 // NOLINTBEGIN(*-signed-bitwise)
 
@@ -56,12 +65,12 @@ void ReferenceResolver::reset_(Buffers evts_, bool can_resize_, ResolveOptions o
     Buffers::operator=(evts_);
     wpos = evts.len;
     newsz = evts.len;
-    sz_limit = static_cast<evt_size>(opts_.max_size(static_cast<size_t>(evts.len)));
+    sz_limit = static_cast<evt_size>(opts_.max_size(static_cast<id_type>(evts.len)));
     opts = opts_;
     known_keys.reset(opts_);
     can_resize = can_resize_;
     parents.clear();
-    siblings.resize(static_cast<size_t>(evts.cap));
+    siblings.resize(static_cast<id_type>(evts.cap));
     reset_siblings_range_(0, evts.cap);
 }
 
@@ -71,8 +80,8 @@ void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
     id_type send = static_cast<id_type>(end);
     RYML_ASSERT_BASIC_(sbeg <= siblings.size());
     RYML_ASSERT_BASIC_(send <= siblings.size());
-    for(id_type i = sbeg; i < send; ++i)
-        siblings[i] = nosibling;
+    for( ; sbeg < send; ++sbeg)
+        siblings[sbeg] = nosibling;
 }
 
 void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
@@ -80,7 +89,7 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
     if(!evts_->evts.len)
         return;
     reset_(*evts_, can_resize, opts_);
-    evt_size len0 = evts.len;
+    evt_size startlen = evts.len;
     // gather all the anchors
     bool has_refs = false;
     anchor_map.clear();
@@ -97,6 +106,7 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
        (!opts.clear_anchors() || anchor_map.m_arr.empty()))
         return;
     anchor_map.sort();
+print____("before resolve");
     // now go to all refs, and resolve them
     for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
     {
@@ -116,11 +126,16 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
     }
     // finally:
     if(opts.clear_anchors())
+    {
+print____("before clear anchors");
         for(auto const& entry : anchor_map.m_arr)
+        {
             clear_str_(static_cast<evt_size>(entry.val.visit_count));
+print____("after clear anchor at %zu", entry.val.visit_count);
+        }
+    }
     // adjust for the sentinel
-    if(wpos > len0)
-        ++wpos;
+    wpos += (wpos > startlen);
     if(can_resize)
     {
         evts.len = wpos;
@@ -201,6 +216,7 @@ C4_NODISCARD bool ReferenceResolver::descend_(evt_size &pos)
         pos = resolve_children_map_(pos);
         ret = true;
     }
+printf("after descend. pos=%d\n", pos);
     parents.pop();
     return ret;
 }
@@ -239,9 +255,18 @@ printf("populate(%d): enter\n", pos);
     {
 printf("wtf 0 ch=%d\n", ch);
         if(detail::hasall(evts.ptr[ch], ievt::EMAP))
+        {
             break;
-        else if(!detail::hasall(evts.ptr[ch], ievt::KEY_|ievt::SCLR))
+        }
+        else if(detail::hasall(evts.ptr[ch], ievt::KEY_|ievt::ALIA))
+        {
+            known_keys.add(getstr(ch), static_cast<id_type>(ch), KnownKeys::ORIGINAL);
             continue;
+        }
+        else if(!detail::hasall(evts.ptr[ch], ievt::KEY_|ievt::SCLR))
+        {
+            continue;
+        }
         csubstr key = getstr(ch);
 printf("wtf 0.0.1 ch=%d, key=%.*s\n", ch, static_cast<int>(key.len), key.str);
         if( ! is_merge_elm_(ch, key))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
@@ -319,10 +344,13 @@ printf("merge id=%d: do_merge=%d key_conflict=%d\n", parent, do_merge, key_confl
     {
         if(evts.ptr[child] & ievt::ALIA)
         {
-printf("merge id=%d: resolve %d: ALIA\n", parent, child);
+printf("merge id=%d: resolve %d: ALIA\n", parent, child);(void)fflush(nullptr);
             AnchorData const* anch = lookup_anchor_(child);
             if(anch)
+{
                 set_rref_(child, anch->rng.beg, anch->rng.end);
+print____("merge id=%d: after resolve %d: ALIA", parent, child);
+}
         }
         else if(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR))
         {
@@ -400,24 +428,22 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
             RYML_ASSERT_BASIC_(data != tmp || static_cast<size_t>(beg) < scratch.size());
             // we only need to copy if the data is going to end up
             // in a different position
-printf("copytomap:   beg=%d wslot=%d  ----  sz=%d  %d:%d  <--  %d:%d\n", beg, wslot, sz, dstpos, dstpos+sz, beg, end);
-            if(data != tmp || beg != wslot)
+printf("copytomap:   inplace  beg=%d wslot=%d\n", beg, wslot);
+            if(data == tmp && beg == wslot)
             {
-printf("copytomap:   done!\n");
-                RYML_ASSERT_BASIC_(dstpos > 2);
-                RYML_ASSERT_BASIC_(dstpos + sz < evts.len);
-                const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
-                const evt_bits xend = data[end] & ievt::PEX2;
-                memcpy(evts.ptr + dstpos, data + beg, static_cast<size_t>(sz) * sizeof(evt_bits));
-                evts.ptr[dstpos] &= ~ievt::PEX2;
-                evts.ptr[dstpos] |= xbeg;
-                evts.ptr[dstpos + sz] &= ~ievt::PEX2;
-                evts.ptr[dstpos + sz] |= xend;
+printf("copytomap:   inplace nothing to do\n");
+                return;
             }
-else
-{
-printf("copytomap:   noneed!\n");
-}
+printf("copytomap:   inplace overwrite  sz=%d  %d:%d  <--  %d:%d\n", sz, dstpos, dstpos+sz, beg, end);
+            RYML_ASSERT_BASIC_(dstpos > 2);
+            RYML_ASSERT_BASIC_(dstpos + sz < evts.len);
+            const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
+            const evt_bits xend = data[end] & ievt::PEX2;
+            memcpy(evts.ptr + dstpos, data + beg, static_cast<size_t>(sz) * sizeof(evt_bits));
+            evts.ptr[dstpos] &= ~ievt::PEX2;
+            evts.ptr[dstpos] |= xbeg;
+            evts.ptr[dstpos + sz] &= ~ievt::PEX2;
+            evts.ptr[dstpos + sz] |= xend;
         }
         else
         {
@@ -434,7 +460,35 @@ printf("copytoend:  sz=%d  %d:%d  <--  %d:%d\n", sz, wpos, wpos+sz, beg, end);
     auto copy_keyval_original = [&](evt_size id, bool is_last_entry){
         RYML_ASSERT_BASIC_(id >= firstslot && id < lastslot);
         const Range_ r = keyval_range_(id);
-        cpdata(tmp, r.beg - firstslot, r.end - firstslot, is_last_entry);
+        evt_size beg = r.beg - firstslot;
+        evt_size end = r.end - firstslot;
+        evt_size shift = wslot - beg;
+        cpdata(tmp, beg, end, is_last_entry);
+        // update anchor data
+        for(evt_size scratchpos = beg; scratchpos != end; scratchpos = nextpos(tmp, scratchpos))
+        {
+            if(tmp[scratchpos] & ievt::ANCH)
+            {
+                evt_size origpos = firstslot + scratchpos;
+printf("copyorig:   anchor! scrachpos=%d origpos=%d nowat=%d shift=%d\n", scratchpos, origpos, origpos + shift, shift);
+                RYML_ASSERT_BASIC_(!(tmp[scratchpos] & ievt::AREN));
+                csubstr anch = src.sub(static_cast<size_t>(tmp[scratchpos + 1]),
+                                       static_cast<size_t>(tmp[scratchpos + 2]));
+printf("copyorig:   anchor=%.*s\n", static_cast<int>(anch.len), anch.str);
+                auto rng = anchor_map.equal_range(anch);
+                for(auto &entry : rng)
+                {
+                    if(entry.val.visit_count == static_cast<id_type>(origpos))
+                    {
+                        evt_size next = origpos + shift;
+printf("copyorig:   anchor! origpos=%d shift=%d next=%d\n", origpos, shift, next);
+                        RYML_ASSERT_BASIC_(next >= firstslot && next < lastslot);
+                        entry.val.visit_count = static_cast<id_type>(next);
+                        break;
+                    }
+                }
+            }
+        }
     };
     auto copy_keyval_mergedin = [&](evt_size id, bool is_last_entry){
         RYML_ASSERT_BASIC_(id < firstslot || id > lastslot);
@@ -468,11 +522,13 @@ printf("\n");
                 {
 printf("merge[%d]: unique_key=%zu ...... original, selected! copy! wslot=%d\n", parent, i, wslot);
                     copy_keyval_original(id, is_last);
+print____("after cp original");
                 }
                 else
                 {
 printf("merge[%d]: unique_key=%zu ...... mergedin, selected. copy! wslot=%d\n", parent, i, wslot);
                     copy_keyval_mergedin(id, is_last);
+print____("after cp mergedin");
                 }
             }
         }
@@ -486,11 +542,13 @@ printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end
         RYML_ASSERT_BASIC_(posref + 3 <= lastslot);
         replace_with_ref_(posref, newrng.beg, newrng.end);
         wslot += 3;
+print____("add ref to wpos");
     }
     if(firstslot + wslot < lastslot)
     {
 printf("aki 5.2 clear (%d,%d)\n", firstslot + wslot, lastslot);
         clear_range_(firstslot + wslot, lastslot);
+print____("after clear range");
     }
     reset_siblings_range_(firstslot, lastslot);
     return lastslot;
@@ -648,11 +706,10 @@ void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
     RYML_ASSERT_BASIC_(evts.ptr[pos + 3] & ievt::PEX2);
     if((beg + 3 == end) && (evts.ptr[beg] & ievt::SCLR))
     {
-        evts.ptr[pos] &= ievt::PEX2; // retain only this
-        evts.ptr[pos] |= evts.ptr[beg] & ~ievt::PEX2; // copy everything but PEX2
+        evts.ptr[pos] &= ievt::PEX2|ievt::KEY_|ievt::VAL_; // retain only this
+        evts.ptr[pos] |= evts.ptr[beg] & ~(ievt::PEX2|ievt::KEY_|ievt::VAL_); // copy everything but this
         evts.ptr[pos + 1] = evts.ptr[beg + 1];
         evts.ptr[pos + 2] = evts.ptr[beg + 2];
-        evts.ptr[pos + 2] |= ievt::PEX2;
     }
     else
     {
