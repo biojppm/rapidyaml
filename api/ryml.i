@@ -12,6 +12,7 @@
 #define SWIG_FILE_WITH_INIT
 
 #include <c4/yml/yml.hpp>
+#include <c4/yml/error.hpp>
 #include <c4/yml/error.def.hpp>
 
 namespace c4 {
@@ -20,9 +21,33 @@ namespace yml {
 using substr = c4::substr;
 using csubstr = c4::csubstr;
 
+// The error handlers of the module. The default handlers write the
+// error to stderr before they throw; here the exception handler below
+// turns each exception into the python exception that carries the
+// message, so these throw without writing anything.
+[[noreturn]] void _ryml_python_error_basic(csubstr msg, ErrorDataBasic const& errdata, void * /*user_data*/)
+{
+    throw ExceptionBasic(msg, errdata);
+}
+[[noreturn]] void _ryml_python_error_parse(csubstr msg, ErrorDataParse const& errdata, void * /*user_data*/)
+{
+    throw ExceptionParse(msg, errdata);
+}
+[[noreturn]] void _ryml_python_error_visit(csubstr msg, ErrorDataVisit const& errdata, void * /*user_data*/)
+{
+    throw ExceptionVisit(msg, errdata);
+}
+
 } /* namespace yml */
 } /* namespace c4 */
 
+%}
+
+%init %{
+c4::yml::set_callbacks(c4::yml::Callbacks()
+    .set_error_basic(c4::yml::_ryml_python_error_basic)
+    .set_error_parse(c4::yml::_ryml_python_error_parse)
+    .set_error_visit(c4::yml::_ryml_python_error_visit));
 %}
 
 
