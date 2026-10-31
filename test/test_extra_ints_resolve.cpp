@@ -2714,15 +2714,18 @@ TEST(ints_resolve, 9_inherit_merge_2_have_to_move_forward)
         "";
     std::string resolved = ""
         "map0:\n  key0: val00\n  key1: val10\n  key2: val20\n"
-        "map1:\n  key11: val11\n"
-        "map2:\n  key22: val22\n"
+        "map1:\n  key11: val11\n  key1: val11\n  key12: val12\n"
+        "map2:\n  key2: val22\n  key1: val21\n  key22: val22\n"
         "inherit:\n"
         "  key0: val00\n"
         "  key1: val10\n"
         "  key2: val20\n"
+        "  key11: val11\n"
+        "  key12: val12\n"
+        "  key22: val22\n"
         "  seq0:\n    - sval00\n    - sval01\n"
         "  seq1:\n    - sval10\n    - sval11\n"
-        "  sval: sval11\n"
+        "  sval01: sval11\n"
         "";
     std::string json = ""
         "{\n"
@@ -2740,12 +2743,15 @@ TEST(ints_resolve, 9_inherit_merge_2_have_to_move_forward)
     std::string resolved_json = ""
         "{\n"
         "  \"map0\": {\n    \"key0\": \"val00\",\n    \"key1\": \"val10\",\n    \"key2\": \"val20\"\n  },\n"
-        "  \"map1\": {\n    \"key11\": \"val11\"\n  },\n"
-        "  \"map2\": {\n    \"key21\": \"val22\"\n  },\n"
+        "  \"map1\": {\n    \"key11\": \"val11\",\n    \"key1\": \"val11\",\n    \"key12\": \"val12\"\n  },\n"
+        "  \"map2\": {\n    \"key2\": \"val22\",\n    \"key1\": \"val21\",\n    \"key22\": \"val22\"\n  },\n"
         "  \"inherit\": {\n"
         "    \"key0\": \"val00\",\n"
         "    \"key1\": \"val10\",\n"
         "    \"key2\": \"val20\",\n"
+        "    \"key11\": \"val11\",\n"
+        "    \"key12\": \"val12\",\n"
+        "    \"key22\": \"val22\",\n"
         "    \"seq0\": [\n      \"sval00\",\n      \"sval01\"\n    ],\n"
         "    \"seq1\": [\n      \"sval10\",\n      \"sval11\"\n    ],\n"
         "    \"sval01\": \"sval11\"\n"
@@ -2832,38 +2838,56 @@ TEST(ints_resolve, 9_inherit_merge_2_have_to_move_forward)
         /*[19][35]*/       VAL_|BMAP,
         /*[20][36]*/         KEY_|SCLR|PLAI, 68,5,/*key11*/
         /*[21][39]*/         VAL_|SCLR|PLAI|PEX2, 75,5,/*val11*/
-        /*[22][42]*/       EMAP|PEX2,
-        /*[23][43]*/       KEY_|SCLR|PLAI, 81,4,/*map2*/
-        /*[24][46]*/       PEX2,0,0,
-        /*[27][49]*/       VAL_|BMAP,
-        /*[28][50]*/         KEY_|SCLR|PLAI, 95,5,/*key21*/
-        /*[29][53]*/         VAL_|SCLR|PLAI|PEX2, 102,5,/*val22*/
-        /*[30][56]*/       EMAP|PEX2,
-        /*[31][57]*/       KEY_|SCLR|PLAI, 108,7,/*inherit*/
-        /*[32][60]*/       VAL_|BMAP|PEX2,
-        /*[33][61]*/         0,0,0,0,
-        /*[37][65]*/         RREF, 10,28,
-        /*[38][68]*/         RREF|PEX2, 36,42,
-        /*[39][71]*/         RREF|PEX2, 50,56,
-        /*[40][74]*/         PEX2,
-        /*[41][75]*/         KEY_|SCLR|PLAI, 145,4,/*seq0*/
-        /*[42][78]*/         VAL_|BSEQ|PEX2,
-        /*[43][79]*/           VAL_|SCLR|PLAI, 157,6,/*sval00*/
-        /*[44][82]*/           PEX2,0,0,
-        /*[47][85]*/           VAL_|SCLR|PLAI, 178,6,/*sval01*/
-        /*[48][88]*/         ESEQ|PEX2,
-        /*[49][89]*/         KEY_|SCLR|PLAI, 187,4,/*seq1*/
-        /*[50][92]*/         VAL_|BSEQ|PEX2,
-        /*[51][93]*/           VAL_|SCLR|PLAI, 199,6,/*sval10*/
-        /*[52][96]*/           PEX2,0,0,
-        /*[55][99]*/           VAL_|SCLR|PLAI, 220,6,/*sval11*/
-        /*[56][102]*/         ESEQ|PEX2,
-        /*[57][103]*/         KEY_|SCLR|PLAI, 178,6,/*sval01*/
-        /*[58][106]*/         VAL_|SCLR|PLAI|PEX2, 220,6,/*sval11*/
-        /*[59][109]*/       EMAP|PEX2,
-        /*[60][110]*/     EMAP,
-        /*[61][111]*/   EDOC,
-        /*[62][112]*/ ESTR,
+        /*[22][42]*/         KEY_|SCLR|PLAI|PEX2, 83,4,/*key1*/
+        /*[23][45]*/         VAL_|SCLR|PLAI|PEX2, 89,5,/*val11*/
+        /*[24][48]*/         KEY_|SCLR|PLAI|PEX2, 97,5,/*key12*/
+        /*[25][51]*/         VAL_|SCLR|PLAI|PEX2, 104,5,/*val12*/
+        /*[26][54]*/       EMAP|PEX2,
+        /*[27][55]*/       KEY_|SCLR|PLAI, 110,4,/*map2*/
+        /*[28][58]*/       PEX2,0,0,
+        /*[31][61]*/       VAL_|BMAP,
+        /*[32][62]*/         KEY_|SCLR|PLAI, 124,4,/*key2*/
+        /*[33][65]*/         VAL_|SCLR|PLAI|PEX2, 130,5,/*val22*/
+        /*[34][68]*/         KEY_|SCLR|PLAI|PEX2, 138,4,/*key1*/
+        /*[35][71]*/         VAL_|SCLR|PLAI|PEX2, 144,5,/*val21*/
+        /*[36][74]*/         KEY_|SCLR|PLAI|PEX2, 152,5,/*key22*/
+        /*[37][77]*/         VAL_|SCLR|PLAI|PEX2, 159,5,/*val22*/
+        /*[38][80]*/       EMAP|PEX2,
+        /*[39][81]*/       KEY_|SCLR|PLAI, 165,7,/*inherit*/
+        /*[40][84]*/       VAL_|BMAP|PEX2,
+        /*[41][85]*/         KEY_|SCLR|PLAI, 14,4,/*key0*/
+        /*[42][88]*/         VAL_|SCLR|PLAI|PEX2, 20,5,/*val00*/
+        /*[43][91]*/         KEY_|SCLR|PLAI|PEX2, 28,4,/*key1*/
+        /*[44][94]*/         VAL_|SCLR|PLAI|PEX2, 34,5,/*val10*/
+        /*[45][97]*/         KEY_|SCLR|PLAI|PEX2, 42,4,/*key2*/
+        /*[46][100]*/         VAL_|SCLR|PLAI|PEX2, 48,5,/*val20*/
+        /*[47][103]*/         KEY_|SCLR|PLAI|PEX2, 68,5,/*key11*/
+        /*[48][106]*/         VAL_|SCLR|PLAI|PEX2, 75,5,/*val11*/
+        /*[49][109]*/         KEY_|SCLR|PLAI|PEX2, 97,5,/*key12*/
+        /*[50][112]*/         VAL_|SCLR|PLAI|PEX2, 104,5,/*val12*/
+        /*[51][115]*/         KEY_|SCLR|PLAI|PEX2, 152,5,/*key22*/
+        /*[52][118]*/         VAL_|SCLR|PLAI|PEX2, 159,5,/*val22*/
+        /*[53][121]*/         RREF|PEX2,137,171,
+        /*[54][124]*/         PEX2,0,0,0,0,0,0,0,0,
+        /*[63][133]*/       EMAP,
+        /*[64][134]*/     EMAP,
+        /*[65][135]*/   EDOC,
+        /*[66][136]*/ ESTR,
+        /*[67][137]*/ KEY_|SCLR|PLAI, 202,4,/*seq0*/
+        /*[68][140]*/ VAL_|BSEQ|PEX2,
+        /*[69][141]*/   VAL_|SCLR|PLAI, 214,6,/*sval00*/
+        /*[70][144]*/   PEX2,0,0,
+        /*[73][147]*/   VAL_|SCLR|PLAI, 235,6,/*sval01*/
+        /*[74][150]*/ ESEQ|PEX2,
+        /*[75][151]*/ KEY_|SCLR|PLAI, 244,4,/*seq1*/
+        /*[76][154]*/ VAL_|BSEQ|PEX2,
+        /*[77][155]*/   VAL_|SCLR|PLAI, 256,6,/*sval10*/
+        /*[78][158]*/   PEX2,0,0,
+        /*[81][161]*/   VAL_|SCLR|PLAI, 277,6,/*sval11*/
+        /*[82][164]*/ ESEQ|PEX2,
+        /*[83][165]*/ KEY_|SCLR|PLAI, 235,6,/*sval01*/
+        /*[84][168]*/ VAL_|SCLR|PLAI|PEX2, 277,6,/*sval11*/
+        /*[85][171]*/ PEX2,
     };
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
 }
