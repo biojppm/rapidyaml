@@ -16,7 +16,7 @@
         printf("%s:%d: ", __FILE__, __LINE__);          \
         printf(__VA_ARGS__);                            \
         printf("\n");                                   \
-        events_ints_print(src, arena, evts.ptr, wpos);  \
+        /*events_ints_print(src, arena, evts.ptr, wpos);*/  \
     } while(0)
 
 // NOLINTBEGIN(*-signed-bitwise)
@@ -428,7 +428,7 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
             RYML_ASSERT_BASIC_(data != tmp || static_cast<size_t>(beg) < scratch.size());
             // we only need to copy if the data is going to end up
             // in a different position
-printf("copytomap:   inplace  beg=%d wslot=%d\n", beg, wslot);
+printf("copytomap:   inplace  beg=%d wslot=%d/%d\n", beg, wslot, lastslot-firstslot);
             if(data == tmp && beg == wslot)
             {
 printf("copytomap:   inplace nothing to do\n");
