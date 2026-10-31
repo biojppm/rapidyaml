@@ -28,7 +28,7 @@ namespace ievt {
 
 
 namespace {
-enum : evt_size { nosibling = -1 };
+enum : evt_size { nosibling = -1 }; // NOLINT
 } // namespace
 
 
@@ -180,8 +180,28 @@ C4_NODISCARD auto ReferenceResolver::elm_range_(evt_size elm) -> Range_
     }
     else // containers
     {
-        RYML_ASSERT_BASIC_(detail::seqormap(evts.ptr[rng.beg]));
-        rng.end = matching_close_memoized_(rng.beg) + 1/*include the end*/;
+        RYML_ASSERT_BASIC_(detail::seqormap(evts.ptr[elm]));
+        rng.end = matching_close_memoized_(elm)
+            + 1/*include the end*/;
+    }
+    return rng;
+}
+
+C4_NODISCARD auto ReferenceResolver::elm_range_scratch_(evt_size elm) -> Range_
+{
+    id_type selm = static_cast<id_type>(elm);
+    RYML_ASSERT_BASIC_(detail::isentry(scratch[selm]));
+    Range_ rng;
+    rng.beg = elm;
+    if(scratch[selm] & (ievt::SCLR|ievt::ALIA)) // scalars
+    {
+        rng.end = rng.beg + 3;
+    }
+    else // containers. don't use the memoized matching close!
+    {
+        RYML_ASSERT_BASIC_(detail::seqormap(scratch[selm]));
+        rng.end = detail::find_matching_close_(&scratch[0], static_cast<evt_size>(scratch.size()), rng.beg)
+            + 1/*include the end*/;
     }
     return rng;
 }
@@ -191,6 +211,17 @@ C4_NODISCARD auto ReferenceResolver::keyval_range_(evt_size beg) -> Range_
     RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
     RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[beg]));
     Range_ r = elm_range_(detail::find_next_entry_(evts.ptr, evts.len, beg, ievt::VAL_));
+    r.beg = beg;
+    return r;
+}
+
+C4_NODISCARD auto ReferenceResolver::keyval_range_scratch_(evt_size beg) -> Range_
+{
+    id_type sbeg = static_cast<id_type>(beg);
+    RYML_ASSERT_BASIC_(beg >= 0 && sbeg < scratch.size());
+    RYML_ASSERT_BASIC_(scratch[sbeg] & ievt::KEY_);
+    RYML_ASSERT_BASIC_(detail::isentry(scratch[sbeg]));
+    Range_ r = elm_range_scratch_(detail::find_next_entry_(&scratch[0], static_cast<evt_size>(scratch.size()), beg, ievt::VAL_));
     r.beg = beg;
     return r;
 }
@@ -423,18 +454,19 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
         // leave room for a RREF before spilling to past ESTR
         evt_size extra = is_last_entry ? 0 : 3;
         evt_size dstpos = firstslot + wslot;
+printf("copydata:  slot=%d:%d  dstpos=%d  wslot=%d/%d  sz=%d  extra=%d\n", firstslot, lastslot, dstpos, wslot, lastslot-firstslot, sz, extra);
         if(dstpos + sz + extra < lastslot)
         {
             RYML_ASSERT_BASIC_(data != tmp || static_cast<size_t>(beg) < scratch.size());
             // we only need to copy if the data is going to end up
             // in a different position
-printf("copytomap:   inplace  beg=%d wslot=%d/%d\n", beg, wslot, lastslot-firstslot);
+printf("copyinplace:  beg=%d wslot=%d/%d\n", beg, wslot, lastslot-firstslot);
             if(data == tmp && beg == wslot)
             {
-printf("copytomap:   inplace nothing to do\n");
-                return;
+printf("copyinplace:  nothing to do\n");
+                return dstpos;
             }
-printf("copytomap:   inplace overwrite  sz=%d  %d:%d  <--  %d:%d\n", sz, dstpos, dstpos+sz, beg, end);
+printf("copyinplace:  overwrite  sz=%d  %d:%d  <--  %d:%d  (%d:%d)\n", sz, dstpos, dstpos+sz, beg, end, beg+firstslot, end+firstslot);
             RYML_ASSERT_BASIC_(dstpos > 2);
             RYML_ASSERT_BASIC_(dstpos + sz < evts.len);
             const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
@@ -452,25 +484,29 @@ printf("copytomap:   inplace overwrite  sz=%d  %d:%d  <--  %d:%d\n", sz, dstpos,
 printf("copytoend:  markref=%d\n", dstpos);
                 posref = dstpos;
             }
-printf("copytoend:  sz=%d  %d:%d  <--  %d:%d\n", sz, wpos, wpos+sz, beg, end);
+            dstpos = wpos;
+printf("copytoend:  sz=%d  %d:%d  <--  %d:%d  (%d:%d)\n", sz, wpos, wpos+sz, beg, end, beg+firstslot, end+firstslot);
             copy_range_to_end_(data, beg, end);
         }
         wslot += sz;
+        return dstpos;
     };
     auto copy_keyval_original = [&](evt_size id, bool is_last_entry){
         RYML_ASSERT_BASIC_(id >= firstslot && id < lastslot);
-        const Range_ r = keyval_range_(id);
-        evt_size beg = r.beg - firstslot;
-        evt_size end = r.end - firstslot;
-        evt_size shift = wslot - beg;
-        cpdata(tmp, beg, end, is_last_entry);
+        const Range_ r = keyval_range_scratch_(id - firstslot);
+        evt_size wpos0 = wpos;
+        evt_size copy_pos = cpdata(tmp, r.beg, r.end, is_last_entry);
+printf("copyorig:   %d <-- %d\n", copy_pos, id);
+        // copy_pos maybe inplace or at the end
+        evt_size shift = copy_pos - (firstslot + r.beg);
         // update anchor data
-        for(evt_size scratchpos = beg; scratchpos != end; scratchpos = nextpos(tmp, scratchpos))
+        for(evt_size scratchpos = r.beg; scratchpos != r.end; scratchpos = nextpos(tmp, scratchpos))
         {
             if(tmp[scratchpos] & ievt::ANCH)
             {
                 evt_size origpos = firstslot + scratchpos;
-printf("copyorig:   anchor! scrachpos=%d origpos=%d nowat=%d shift=%d\n", scratchpos, origpos, origpos + shift, shift);
+                evt_size next = origpos + shift;
+printf("copyorig:   anchor! scratchpos=%d origpos=%d next=%d shift=%d\n", scratchpos, origpos, next, shift);
                 RYML_ASSERT_BASIC_(!(tmp[scratchpos] & ievt::AREN));
                 csubstr anch = src.sub(static_cast<size_t>(tmp[scratchpos + 1]),
                                        static_cast<size_t>(tmp[scratchpos + 2]));
@@ -480,9 +516,13 @@ printf("copyorig:   anchor=%.*s\n", static_cast<int>(anch.len), anch.str);
                 {
                     if(entry.val.visit_count == static_cast<id_type>(origpos))
                     {
-                        evt_size next = origpos + shift;
-printf("copyorig:   anchor! origpos=%d shift=%d next=%d\n", origpos, shift, next);
-                        RYML_ASSERT_BASIC_(next >= firstslot && next < lastslot);
+printf("copyorig:   anchor! origpos=%d shift=%d next=%d wpos=%d\n", origpos, shift, next, wpos);
+printf("copyorig:   anchor! copy_pos=%d evts.len=%d\n", copy_pos, evts.len);
+                        RYML_ASSERT_BASIC_(copy_pos < wpos0 ?
+                                           (next >= firstslot && next < lastslot) :
+                                           (next >= wpos0 && next < wpos));
+                        RYML_ASSERT_BASIC_(evts.ptr[next] & ievt::ANCH);
+                        RYML_ASSERT_BASIC_(getstr(next) == anch);
                         entry.val.visit_count = static_cast<id_type>(next);
                         break;
                     }
@@ -542,9 +582,10 @@ printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", posref, newrng.beg, newrng.end
         RYML_ASSERT_BASIC_(posref + 3 <= lastslot);
         replace_with_ref_(posref, newrng.beg, newrng.end);
         wslot += 3;
+        clear_range_(posref + 3, lastslot);
 print____("add ref to wpos");
     }
-    if(firstslot + wslot < lastslot)
+    else if(firstslot + wslot < lastslot)
     {
 printf("aki 5.2 clear (%d,%d)\n", firstslot + wslot, lastslot);
         clear_range_(firstslot + wslot, lastslot);

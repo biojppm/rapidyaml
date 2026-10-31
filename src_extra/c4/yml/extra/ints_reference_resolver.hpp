@@ -76,7 +76,9 @@ private:
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
     C4_NODISCARD bool is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT;
     C4_NODISCARD Range_ elm_range_(evt_size keyval);
+    C4_NODISCARD Range_ elm_range_scratch_(evt_size keyval);
     C4_NODISCARD Range_ keyval_range_(evt_size keyval);
+    C4_NODISCARD Range_ keyval_range_scratch_(evt_size keyval);
     C4_NODISCARD Range_ keyval_range_val_(evt_size keyval);
 
     C4_NODISCARD bool descend_(evt_size &pos);
