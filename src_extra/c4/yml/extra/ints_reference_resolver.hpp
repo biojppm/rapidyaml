@@ -22,7 +22,8 @@ struct RYML_EXPORT ReferenceResolver : private Buffers
 {
 public:
 
-    ReferenceResolver(Callbacks const& cb={});
+    ReferenceResolver() noexcept : ReferenceResolver(get_callbacks()) {}
+    ReferenceResolver(Callbacks const& cb) noexcept;
 
     void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={});
     C4_NODISCARD evt_size resolve_noresize(Buffers evts_, ResolveOptions const& opts_={});

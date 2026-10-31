@@ -565,13 +565,13 @@ TEST(ints_resolve, 1_to_scalar_seq_block)
         VAL_|BSEQ,
         0, 0, 0,
         VAL_|SCLR|PLAI,  7, 3,
-        RREF|PEX2,  6, 9, // this was resolved
+        VAL_|SCLR|PLAI|PEX2,  7, 3, // this was resolved
         ESEQ|PEX2,
         EDOC,
         ESTR,
     };
     const evt_size pos[] = {0,1,2,3,6,9,12,13,14};
-    const evt_size pos_resolved[] = {0,1,2,3,4,5,6,6,12,13,14};
+    const evt_size pos_resolved[] = {0,1,2,3,4,5,6,9,12,13,14};
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved, pos, pos_resolved);
 }
 
@@ -599,13 +599,13 @@ TEST(ints_resolve, 1_to_scalar_seq_flow_ml)
         /*2*/VAL_|BSEQ|FLOW|FML1,
         /*3*/0, 0, 0,
         /*6*/VAL_|SCLR|PLAI,  9, 3,
-        /*9*/RREF|PEX2,  6, 9, // this was resolved
+        /*9*/VAL_|SCLR|PLAI|PEX2,  9, 3, // this was resolved
         /*12*/ESEQ|PEX2,
         /*13*/EDOC,
         /*14*/ESTR,
     };
     const evt_size pos[] = {0,1,2,3,6,9,12,13,14};
-    const evt_size pos_resolved[] = {0,1,2,3,4,5,6,6,12,13,14};
+    const evt_size pos_resolved[] = {0,1,2,3,4,5,6,9,12,13,14};
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved, pos, pos_resolved);
 }
 
@@ -633,13 +633,13 @@ TEST(ints_resolve, 1_to_scalar_seq_flow_sl)
         VAL_|BSEQ|FLOW|FSL_,
         0, 0, 0,
         VAL_|SCLR|PLAI,  6, 3,
-        RREF|PEX2,  6, 9, // this was resolved
+        VAL_|SCLR|PLAI|PEX2,  6, 3, // this was resolved
         ESEQ|PEX2,
         EDOC,
         ESTR,
     };
     const evt_size pos[] = {0,1,2,3,6,9,12,13,14};
-    const evt_size pos_resolved[] = {0,1,2,3,4,5,6,6,12,13,14};
+    const evt_size pos_resolved[] = {0,1,2,3,4,5,6,9,12,13,14};
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved, pos, pos_resolved);
 }
 
@@ -1693,36 +1693,18 @@ TEST(ints_resolve, 5_inherit_seq_flowsl)
         "";
     std::string json = ""
         "{"
-        "\"map0\": {"
-        "\"key0\": \"val0\""
-        "},"
-        "\"map1\": {"
-        "\"key1\": \"val1\""
-        "},"
-        "\"map2\": {"
-        "\"key2\": \"val2\""
-        "},"
-        "\"inherit\": {"
-        "\"<<\": [\"*map0\",\"*map1\",\"*map2\"]"
-        "}"
+        "\"map0\": {\"key0\": \"val0\"},"
+        "\"map1\": {\"key1\": \"val1\"},"
+        "\"map2\": {\"key2\": \"val2\"},"
+        "\"inherit\": {\"<<\": [\"*map0\",\"*map1\",\"*map2\"]}"
         "}"
         "";
     std::string resolved_json = ""
         "{"
-        "\"map0\": {"
-        "\"key0\": \"val0\""
-        "},"
-        "\"map1\": {"
-        "\"key1\": \"val1\""
-        "},"
-        "\"map2\": {"
-        "\"key2\": \"val2\""
-        "},"
-        "\"inherit\": {"
-        "\"key0\": \"val0\","
-        "\"key1\": \"val1\","
-        "\"key2\": \"val2\""
-        "}"
+        "\"map0\": {\"key0\": \"val0\"},"
+        "\"map1\": {\"key1\": \"val1\"},"
+        "\"map2\": {\"key2\": \"val2\"},"
+        "\"inherit\": {\"key0\": \"val0\",\"key1\": \"val1\",\"key2\": \"val2\"}"
         "}"
         "";
     const evt_bits evts_expected[] = {
@@ -2011,39 +1993,20 @@ TEST(ints_resolve, 7_inherit_seq_merge_0_empty)
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP,
         /*[3][3]*/       KEY_|SCLR|PLAI, 0,4,/*map0*/
-        /*[4][6]*/       PEX2,
-        /*[5][7]*/       0,
-        /*[6][8]*/       0,
+        /*[4][6]*/       PEX2,0,0,
         /*[7][9]*/       VAL_|BMAP|FLOW|FSL_,
         /*[8][10]*/       EMAP,
         /*[9][11]*/       KEY_|SCLR|PLAI, 15,4,/*map1*/
-        /*[10][14]*/       PEX2,
-        /*[11][15]*/       0,
-        /*[12][16]*/       0,
+        /*[10][14]*/       PEX2,0,0,
         /*[13][17]*/       VAL_|BMAP|FLOW|FSL_,
         /*[14][18]*/       EMAP,
         /*[15][19]*/       KEY_|SCLR|PLAI, 30,4,/*map2*/
-        /*[16][22]*/       PEX2,
-        /*[17][23]*/       0,
-        /*[18][24]*/       0,
+        /*[16][22]*/       PEX2,0,0,
         /*[19][25]*/       VAL_|BMAP|FLOW|FSL_,
         /*[20][26]*/       EMAP,
         /*[21][27]*/       KEY_|SCLR|PLAI, 45,7,/*inherit*/
         /*[22][30]*/       VAL_|BMAP|PEX2,
-        /*[23][31]*/         0,
-        /*[24][32]*/         0,
-        /*[25][33]*/         0,
-        /*[26][34]*/         0,
-        /*[27][35]*/         0,
-        /*[28][36]*/         0,
-        /*[29][37]*/         0,
-        /*[30][38]*/         0,
-        /*[31][39]*/         0,
-        /*[32][40]*/         0,
-        /*[33][41]*/         0,
-        /*[34][42]*/         0,
-        /*[35][43]*/         0,
-        /*[36][44]*/         0,
+        /*[23][31]*/         0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         /*[37][45]*/       EMAP,
         /*[38][46]*/     EMAP,
         /*[39][47]*/   EDOC,
@@ -2171,21 +2134,18 @@ TEST(ints_resolve, 7_inherit_seq_merge)
         /*[40][90]*/ ESTR,
     };
     const evt_bits evts_resolved[] = {
+
         /*[0][0]*/ BSTR,
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP,
         /*[3][3]*/       KEY_|SCLR|PLAI, 0,4,/*map0*/
-        /*[4][6]*/       PEX2,
-        /*[5][7]*/       0,
-        /*[6][8]*/       0,
+        /*[4][6]*/       PEX2,0,0,
         /*[7][9]*/       VAL_|BMAP,
         /*[8][10]*/         KEY_|SCLR|PLAI, 14,4,/*key0*/
         /*[9][13]*/         VAL_|SCLR|PLAI|PEX2, 20,4,/*val0*/
         /*[10][16]*/       EMAP|PEX2,
         /*[11][17]*/       KEY_|SCLR|PLAI, 25,4,/*map1*/
-        /*[12][20]*/       PEX2,
-        /*[13][21]*/       0,
-        /*[14][22]*/       0,
+        /*[12][20]*/       PEX2,0,0,
         /*[15][23]*/       VAL_|BMAP,
         /*[16][24]*/         KEY_|SCLR|PLAI, 39,4,/*key0*/
         /*[17][27]*/         VAL_|SCLR|PLAI|PEX2, 45,5,/*val01*/
@@ -2193,9 +2153,7 @@ TEST(ints_resolve, 7_inherit_seq_merge)
         /*[19][33]*/         VAL_|SCLR|PLAI|PEX2, 59,4,/*val1*/
         /*[20][36]*/       EMAP|PEX2,
         /*[21][37]*/       KEY_|SCLR|PLAI, 64,4,/*map2*/
-        /*[22][40]*/       PEX2,
-        /*[23][41]*/       0,
-        /*[24][42]*/       0,
+        /*[22][40]*/       PEX2,0,0,
         /*[25][43]*/       VAL_|BMAP,
         /*[26][44]*/         KEY_|SCLR|PLAI, 78,4,/*key0*/
         /*[27][47]*/         VAL_|SCLR|PLAI|PEX2, 84,5,/*val02*/
@@ -2206,26 +2164,21 @@ TEST(ints_resolve, 7_inherit_seq_merge)
         /*[32][62]*/       EMAP|PEX2,
         /*[33][63]*/       KEY_|SCLR|PLAI, 117,7,/*inherit*/
         /*[34][66]*/       VAL_|BMAP|PEX2,
-        /*[35][67]*/         0,
-        /*[36][68]*/         0,
-        /*[37][69]*/         0,
-        /*[38][70]*/         0,
-        /*[39][71]*/         RREF, 10,16,
-        /*[40][74]*/         RREF|PEX2, 91,97,
-        /*[41][77]*/         RREF|PEX2, 97,103,
-        /*[42][80]*/         PEX2,
+        /*[35][67]*/         KEY_|SCLR|PLAI, 14,4,/*key0*/
+        /*[36][70]*/         VAL_|SCLR|PLAI|PEX2, 20,4,/*val0*/
+        /*[37][73]*/         RREF|PEX2,91,103,
+        /*[38][76]*/         PEX2,0,0,0,0,
         /*[43][81]*/       EMAP,
         /*[44][82]*/       KEY_|SCLR|PLAI, 152,7,/*another*/
         /*[45][85]*/       VAL_|SCLR|PLAI|PEX2, 161,6,/*member*/
         /*[46][88]*/     EMAP|PEX2,
         /*[47][89]*/   EDOC,
         /*[48][90]*/ ESTR,
-        // these entries are added while merging:
-        /*[49][91]*/         KEY_|SCLR|PLAI, 53,4,/*key1*/
-        /*[50][94]*/         VAL_|SCLR|PLAI|PEX2, 59,4,/*val1*/
-        /*[51][97]*/         KEY_|SCLR|PLAI|PEX2, 106,4,/*key2*/
-        /*[52][100]*/         VAL_|SCLR|PLAI|PEX2, 112,4,/*val2*/
-        /*[53][103]*/         PEX2,
+        /*[49][91]*/ KEY_|SCLR|PLAI, 53,4,/*key1*/
+        /*[50][94]*/ VAL_|SCLR|PLAI|PEX2, 59,4,/*val1*/
+        /*[51][97]*/ KEY_|SCLR|PLAI|PEX2, 106,4,/*key2*/
+        /*[52][100]*/ VAL_|SCLR|PLAI|PEX2, 112,4,/*val2*/
+        /*[53][103]*/ PEX2,
     };
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
 }
@@ -2237,70 +2190,35 @@ TEST(ints_resolve, 8_inherit_seq_merge)
 {
     using namespace ievt;
     std::string src = ""
-        "map0: &map0\n"
-        "  key0: val00\n"
-        "  key1: val10\n"
-        "  key2: val20\n"
-        "map1: &map1\n"
-        "  key1: val11\n"
-        "map2: &map2\n"
-        "  key2: val22\n"
-        "inherit:\n"
-        "  <<: [*map0,*map1,*map2]\n"
+        "map0: &map0\n  key0: val00\n  key1: val10\n  key2: val20\n"
+        "map1: &map1\n  key1: val11\n"
+        "map2: &map2\n  key2: val22\n"
+        "inherit:\n  <<: [*map0,*map1,*map2]\n"
         "";
     std::string resolved = ""
-        "map0:\n"
-        "  key0: val00\n"
-        "  key1: val10\n"
-        "  key2: val20\n"
-        "map1:\n"
-        "  key1: val11\n"
-        "map2:\n"
-        "  key2: val22\n"
-        "inherit:\n"
-        "  key0: val00\n"
-        "  key1: val10\n"
-        "  key2: val20\n"
+        "map0:\n  key0: val00\n  key1: val10\n  key2: val20\n"
+        "map1:\n  key1: val11\n"
+        "map2:\n  key2: val22\n"
+        "inherit:\n  key0: val00\n  key1: val10\n  key2: val20\n"
         "";
     std::string json = ""
         "{\n"
-        "  \"map0\": {\n"
-        "    \"key0\": \"val00\",\n"
-        "    \"key1\": \"val10\",\n"
-        "    \"key2\": \"val20\"\n"
-        "  },\n"
-        "  \"map1\": {\n"
-        "    \"key1\": \"val11\"\n"
-        "  },\n"
-        "  \"map2\": {\n"
-        "    \"key2\": \"val22\"\n"
-        "  },\n"
-        "  \"inherit\": {\n"
-        "    \"<<\": [\"*map0\",\"*map1\",\"*map2\"]\n"
-        "  }\n"
+        "  \"map0\": {\n    \"key0\": \"val00\",\n    \"key1\": \"val10\",\n    \"key2\": \"val20\"\n  },\n"
+        "  \"map1\": {\n    \"key1\": \"val11\"\n  },\n"
+        "  \"map2\": {\n    \"key2\": \"val22\"\n  },\n"
+        "  \"inherit\": {\n    \"<<\": [\"*map0\",\"*map1\",\"*map2\"]\n  }\n"
         "}\n"
         "";
     std::string resolved_json = ""
         "{\n"
-        "  \"map0\": {\n"
-        "    \"key0\": \"val00\",\n"
-        "    \"key1\": \"val10\",\n"
-        "    \"key2\": \"val20\"\n"
-        "  },\n"
-        "  \"map1\": {\n"
-        "    \"key1\": \"val11\"\n"
-        "  },\n"
-        "  \"map2\": {\n"
-        "    \"key2\": \"val22\"\n"
-        "  },\n"
-        "  \"inherit\": {\n"
-        "    \"key0\": \"val00\",\n"
-        "    \"key1\": \"val10\",\n"
-        "    \"key2\": \"val20\"\n"
-        "  }\n"
+        "  \"map0\": {\n    \"key0\": \"val00\",\n    \"key1\": \"val10\",\n    \"key2\": \"val20\"\n  },\n"
+        "  \"map1\": {\n    \"key1\": \"val11\"\n  },\n"
+        "  \"map2\": {\n    \"key2\": \"val22\"\n  },\n"
+        "  \"inherit\": {\n    \"key0\": \"val00\",\n    \"key1\": \"val10\",\n    \"key2\": \"val20\"\n  }\n"
         "}\n"
         "";
     const evt_bits evts_expected[] = {
+
         /*[0][0]*/ BSTR,
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP,
@@ -2329,32 +2247,23 @@ TEST(ints_resolve, 8_inherit_seq_merge)
         /*[25][57]*/       KEY_|SCLR|PLAI, 106,7,/*inherit*/
         /*[26][60]*/       VAL_|BMAP|PEX2,
         /*[27][61]*/         KEY_|SCLR|PLAI, 117,2,/*<<*/
-        /*[28][64]*/         VAL_|ALIA|PEX2, 122,4,/*map1*/
-        /*[29][67]*/         KEY_|SCLR|PLAI|PEX2, 129,4,/*seq0*/
-        /*[30][70]*/         VAL_|BSEQ|PEX2,
-        /*[31][71]*/           VAL_|SCLR|PLAI, 141,6,/*sval00*/
-        /*[32][74]*/           VAL_|ANCH|PEX2, 155,6,/*sval01*/
-        /*[33][77]*/           VAL_|SCLR|PLAI|PEX2, 162,6,/*sval01*/
-        /*[34][80]*/         ESEQ|PEX2,
-        /*[35][81]*/         KEY_|SCLR|PLAI, 171,4,/*seq1*/
-        /*[36][84]*/         VAL_|BSEQ|PEX2,
-        /*[37][85]*/           VAL_|SCLR|PLAI, 183,6,/*sval10*/
-        /*[38][88]*/           VAL_|ANCH|PEX2, 197,6,/*sval11*/
-        /*[39][91]*/           VAL_|SCLR|PLAI|PEX2, 204,6,/*sval11*/
-        /*[40][94]*/         ESEQ|PEX2,
-        /*[41][95]*/         KEY_|ALIA, 214,6,/*sval01*/
-        /*[42][98]*/         VAL_|ALIA|PEX2, 224,6,/*sval11*/
-        /*[43][101]*/       EMAP|PEX2,
-        /*[44][102]*/     EMAP,
-        /*[45][103]*/   EDOC,
-        /*[46][104]*/ ESTR,
+        /*[28][64]*/         VAL_|BSEQ|FLOW|FSL_|PEX2,
+        /*[29][65]*/           VAL_|ALIA, 123,4,/*map0*/
+        /*[30][68]*/           VAL_|ALIA|PEX2, 129,4,/*map1*/
+        /*[31][71]*/           VAL_|ALIA|PEX2, 135,4,/*map2*/
+        /*[32][74]*/         ESEQ|PEX2,
+        /*[33][75]*/       EMAP,
+        /*[34][76]*/     EMAP,
+        /*[35][77]*/   EDOC,
+        /*[36][78]*/ ESTR,
     };
     const evt_bits evts_resolved[] = {
+
         /*[0][0]*/ BSTR,
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP,
         /*[3][3]*/       KEY_|SCLR|PLAI, 0,4,/*map0*/
-        /*[4][6]*/       PEX2, 0, 0,
+        /*[4][6]*/       PEX2,0,0,
         /*[7][9]*/       VAL_|BMAP,
         /*[8][10]*/         KEY_|SCLR|PLAI, 14,4,/*key0*/
         /*[9][13]*/         VAL_|SCLR|PLAI|PEX2, 20,5,/*val00*/
@@ -2364,29 +2273,33 @@ TEST(ints_resolve, 8_inherit_seq_merge)
         /*[13][25]*/         VAL_|SCLR|PLAI|PEX2, 48,5,/*val20*/
         /*[14][28]*/       EMAP|PEX2,
         /*[15][29]*/       KEY_|SCLR|PLAI, 54,4,/*map1*/
-        /*[16][32]*/       PEX2, 0, 0,
+        /*[16][32]*/       PEX2,0,0,
         /*[19][35]*/       VAL_|BMAP,
         /*[20][36]*/         KEY_|SCLR|PLAI, 68,4,/*key1*/
         /*[21][39]*/         VAL_|SCLR|PLAI|PEX2, 74,5,/*val11*/
         /*[22][42]*/       EMAP|PEX2,
         /*[23][43]*/       KEY_|SCLR|PLAI, 80,4,/*map2*/
-        /*[24][46]*/       PEX2, 0, 0,
+        /*[24][46]*/       PEX2,0,0,
         /*[27][49]*/       VAL_|BMAP,
         /*[28][50]*/         KEY_|SCLR|PLAI, 94,4,/*key2*/
         /*[29][53]*/         VAL_|SCLR|PLAI|PEX2, 100,5,/*val22*/
         /*[30][56]*/       EMAP|PEX2,
         /*[31][57]*/       KEY_|SCLR|PLAI, 106,7,/*inherit*/
         /*[32][60]*/       VAL_|BMAP|PEX2,
-        /*[33][61]*/         0, 0, 0,
-        /*[36][64]*/         0,
-        /*[37][65]*/         RREF, 10,28,
-        /*[38][68]*/         PEX2, 0, 0,
-        /*[41][71]*/         0, 0, 0,
-        /*[44][74]*/         0,
-        /*[45][75]*/       EMAP,
-        /*[46][76]*/     EMAP,
-        /*[47][77]*/   EDOC,
-        /*[48][78]*/ ESTR,
+        /*[33][61]*/         KEY_|SCLR|PLAI, 14,4,/*key0*/
+        /*[34][64]*/         VAL_|SCLR|PLAI|PEX2, 20,5,/*val00*/
+        /*[35][67]*/         RREF|PEX2,79,91,
+        /*[36][70]*/         PEX2,0,0,0,0,
+        /*[41][75]*/       EMAP,
+        /*[42][76]*/     EMAP,
+        /*[43][77]*/   EDOC,
+        /*[44][78]*/ ESTR,
+        /*[45][79]*/ KEY_|SCLR|PLAI, 28,4,/*key1*/
+        /*[46][82]*/ VAL_|SCLR|PLAI|PEX2, 34,5,/*val10*/
+        /*[47][85]*/ KEY_|SCLR|PLAI|PEX2, 42,4,/*key2*/
+        /*[48][88]*/ VAL_|SCLR|PLAI|PEX2, 48,5,/*val20*/
+        /*[49][91]*/ PEX2,
+
     };
     test_ints_resolve(src, src, json, resolved, resolved_json, evts_expected, evts_resolved);
 }
