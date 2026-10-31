@@ -146,6 +146,7 @@ print____("after clear anchor at %zu", entry.val.visit_count);
 C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_(evt_size pos)
 {
     size_t spos = static_cast<size_t>(pos);
+    RYML_ASSERT_BASIC_(spos < siblings.size());
     evt_size sib = siblings[spos];
     if(sib != nosibling)
         return sib;
@@ -345,7 +346,7 @@ printf("wtf 5 ch=%d rng.beg=%d\n", ch, rng.beg);
 
 void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end, uint32_t status)
 {
-    RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
+    RYML_ASSERT_BASIC_((evts.ptr[beg] & ievt::KEY_) || beg == end);
     RYML_ASSERT_BASIC_(!(status & KnownKeys::CONFLICT));
     while(beg < end)
     {
@@ -461,21 +462,23 @@ printf("copydata:  slot=%d:%d  dstpos=%d  wslot=%d/%d  sz=%d  extra=%d\n", first
             // we only need to copy if the data is going to end up
             // in a different position
 printf("copyinplace:  beg=%d wslot=%d/%d\n", beg, wslot, lastslot-firstslot);
-            if(data == tmp && beg == wslot)
+            if(!(data == tmp && beg == wslot))
             {
-printf("copyinplace:  nothing to do\n");
-                return dstpos;
-            }
 printf("copyinplace:  overwrite  sz=%d  %d:%d  <--  %d:%d  (%d:%d)\n", sz, dstpos, dstpos+sz, beg, end, beg+firstslot, end+firstslot);
-            RYML_ASSERT_BASIC_(dstpos > 2);
-            RYML_ASSERT_BASIC_(dstpos + sz < evts.len);
-            const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
-            const evt_bits xend = data[end] & ievt::PEX2;
-            memcpy(evts.ptr + dstpos, data + beg, static_cast<size_t>(sz) * sizeof(evt_bits));
-            evts.ptr[dstpos] &= ~ievt::PEX2;
-            evts.ptr[dstpos] |= xbeg;
-            evts.ptr[dstpos + sz] &= ~ievt::PEX2;
-            evts.ptr[dstpos + sz] |= xend;
+                RYML_ASSERT_BASIC_(dstpos > 2);
+                RYML_ASSERT_BASIC_(dstpos + sz < evts.len);
+                const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
+                const evt_bits xend = data[end] & ievt::PEX2;
+                memcpy(evts.ptr + dstpos, data + beg, static_cast<size_t>(sz) * sizeof(evt_bits));
+                evts.ptr[dstpos] &= ~ievt::PEX2;
+                evts.ptr[dstpos] |= xbeg;
+                evts.ptr[dstpos + sz] &= ~ievt::PEX2;
+                evts.ptr[dstpos + sz] |= xend;
+            }
+else
+{
+printf("copyinplace:  nothing to do\n");
+}
         }
         else
         {
@@ -973,8 +976,11 @@ void ReferenceResolver::copy_range_to_end_(evt_bits const* mem, evt_size beg, ev
 {
     const evt_size num = end - beg;
     RYML_ASSERT_BASIC_(num);
+    evt_bits const* orig = evts.ptr;
     if(grow_evts_to_add_(num))
     {
+        if(mem == orig)
+            mem = evts.ptr;
         const evt_bits xbeg = evts.ptr[wpos] & ievt::PEX2;
         const evt_bits xend = mem[end] & ievt::PEX2;
         memcpy(evts.ptr + wpos, mem + beg, static_cast<size_t>(num) * sizeof(evt_size));
@@ -1000,6 +1006,7 @@ bool ReferenceResolver::grow_evts_to_add_(evt_size extra)
         evt_size nextcap = (3 * evts.cap) / 2; // do not grow too quick
         newcap = newcap > nextcap ? newcap : nextcap;
         evts = yml::detail::resize(evts, newcap, known_keys.known_keys.m_arr.m_callbacks);
+        siblings.resize(static_cast<id_type>(evts.cap));
         return true;
     }
     return false;
