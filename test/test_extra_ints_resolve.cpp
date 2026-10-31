@@ -160,6 +160,7 @@ void test_ints_resolve_(std::string & src,
         TestBuffers expected;
         if(exp)
             expected = mkevts(actual, evts_resolved);
+actual.print();
         RYML_EXPECT_ERROR(check_success([&]{
             actual.resolve();
         }));
@@ -851,39 +852,39 @@ TEST(ints_resolve, 3_key_vs_seq)
         /*[0][0]*/ BSTR,
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP,
-        /*[3][3]*/       0,0,0,  /*keyscalar*/
-        /*[4][6]*/       KEY_|SCLR|PLAI, 11,3,  /*key*/
-        /*[5][9]*/       PEX2, 0,0,  /*valscalar*/
-        /*[6][12]*/       VAL_|SCLR|PLAI, 27,3,  /*val*/
-        /*[7][15]*/       PEX2, 0,0,  /*keyseq*/
-        /*[8][18]*/       KEY_|BSEQ|FLOW|FSL_,
-        /*[9][19]*/         VAL_|SCLR|PLAI, 40,1,  /*a*/
-        /*[10][22]*/         VAL_|SCLR|PLAI|PEX2, 43,1,  /*b*/
-        /*[11][25]*/       ESEQ|PEX2,
-        /*[12][26]*/       0, 0,0,  /*valseq*/
-        /*[13][29]*/       VAL_|BSEQ|FLOW|FSL_,
-        /*[14][30]*/         VAL_|SCLR|PLAI, 56,1,  /*c*/
-        /*[15][33]*/         VAL_|SCLR|PLAI|PEX2, 59,1,  /*d*/
-        /*[16][36]*/       ESEQ|PEX2,
-        /*[17][37]*/       0, 0,0,  /*keymap*/
-        /*[18][40]*/       KEY_|BMAP|FLOW|FSL_,
-        /*[19][41]*/         KEY_|SCLR|PLAI, 71,1,  /*e*/
-        /*[20][44]*/         VAL_|SCLR|PLAI|PEX2, 74,1,  /*f*/
-        /*[21][47]*/       EMAP|PEX2,
-        /*[22][48]*/       0, 0,0,  /*valmap*/
-        /*[23][51]*/       VAL_|BMAP|FLOW|FSL_,
-        /*[24][52]*/         KEY_|SCLR|PLAI, 87,1,  /*g*/
-        /*[25][55]*/         VAL_|SCLR|PLAI|PEX2, 90,1,  /*h*/
-        /*[26][58]*/       EMAP|PEX2,
-        /*[27][59]*/       RREF, 12,15,  /*valscalar*/
-        /*[28][62]*/       RREF|PEX2, 6,9,  /*keyscalar*/
-        /*[29][65]*/       RREF|PEX2, 29,37,  /*valseq*/
-        /*[30][68]*/       RREF|PEX2, 18,26,  /*keyseq*/
-        /*[31][71]*/       RREF|PEX2, 51,59,  /*valmap*/
-        /*[32][74]*/       RREF|PEX2, 40,48,  /*keymap*/
-        /*[33][77]*/     EMAP|PEX2,
-        /*[34][78]*/   EDOC,
-        /*[35][79]*/ ESTR,
+        /*[3][3]*/       0,0,0,
+        /*[6][6]*/       KEY_|SCLR|PLAI, 11,3,/*key*/
+        /*[7][9]*/       PEX2,0,0,
+        /*[10][12]*/       VAL_|SCLR|PLAI, 27,3,/*val*/
+        /*[11][15]*/       PEX2,0,0,
+        /*[14][18]*/       KEY_|BSEQ|FLOW|FSL_,
+        /*[15][19]*/         VAL_|SCLR|PLAI, 40,1,/*a*/
+        /*[16][22]*/         VAL_|SCLR|PLAI|PEX2, 43,1,/*b*/
+        /*[17][25]*/       ESEQ|PEX2,
+        /*[18][26]*/       0,0,0,
+        /*[21][29]*/       VAL_|BSEQ|FLOW|FSL_,
+        /*[22][30]*/         VAL_|SCLR|PLAI, 56,1,/*c*/
+        /*[23][33]*/         VAL_|SCLR|PLAI|PEX2, 59,1,/*d*/
+        /*[24][36]*/       ESEQ|PEX2,
+        /*[25][37]*/       0,0,0,
+        /*[28][40]*/       KEY_|BMAP|FLOW|FSL_,
+        /*[29][41]*/         KEY_|SCLR|PLAI, 71,1,/*e*/
+        /*[30][44]*/         VAL_|SCLR|PLAI|PEX2, 74,1,/*f*/
+        /*[31][47]*/       EMAP|PEX2,
+        /*[32][48]*/       0,0,0,
+        /*[35][51]*/       VAL_|BMAP|FLOW|FSL_,
+        /*[36][52]*/         KEY_|SCLR|PLAI, 87,1,/*g*/
+        /*[37][55]*/         VAL_|SCLR|PLAI|PEX2, 90,1,/*h*/
+        /*[38][58]*/       EMAP|PEX2,
+        /*[39][59]*/       KEY_|SCLR|PLAI, 27,3,/*val*/
+        /*[40][62]*/       VAL_|SCLR|PLAI|PEX2, 11,3,/*key*/
+        /*[41][65]*/       RREF|PEX2,29,37,
+        /*[42][68]*/       RREF|PEX2,18,26,
+        /*[43][71]*/       RREF|PEX2,51,59,
+        /*[44][74]*/       RREF|PEX2,40,48,
+        /*[45][77]*/     EMAP|PEX2,
+        /*[46][78]*/   EDOC,
+        /*[47][79]*/ ESTR,
     };
     test_ints_resolve(src, emitted, {}, resolved, {}, evts_expected, evts_resolved);
 }
@@ -963,39 +964,39 @@ TEST(ints_resolve, 3_key_vs_seq_flow_ml)
         /*[0][0]*/ BSTR,
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP|FLOW|FML1,
-        /*[3][3]*/       0, 0,0, /*keyscalar*/
-        /*[4][6]*/       KEY_|SCLR|PLAI, 15,3, /*key*/
-        /*[5][9]*/       PEX2, 0,0, /*valscalar*/
-        /*[6][12]*/       VAL_|SCLR|PLAI, 31,3, /*val*/
-        /*[7][15]*/       PEX2, 0,0, /*keyseq*/
-        /*[8][18]*/       KEY_|BSEQ|FLOW|FSL_,
-        /*[9][19]*/         VAL_|SCLR|PLAI, 47,1, /*a*/
-        /*[10][22]*/         VAL_|SCLR|PLAI|PEX2, 50,1, /*b*/
-        /*[11][25]*/       ESEQ|PEX2,
-        /*[12][26]*/       0, 0,0, /*valseq*/
-        /*[13][29]*/       VAL_|BSEQ|FLOW|FSL_,
-        /*[14][30]*/         VAL_|SCLR|PLAI, 63,1, /*c*/
-        /*[15][33]*/         VAL_|SCLR|PLAI|PEX2, 66,1, /*d*/
-        /*[16][36]*/       ESEQ|PEX2,
-        /*[17][37]*/       0, 0,0, /*keymap*/
-        /*[18][40]*/       KEY_|BMAP|FLOW|FSL_,
-        /*[19][41]*/         KEY_|SCLR|PLAI, 81,1, /*e*/
-        /*[20][44]*/         VAL_|SCLR|PLAI|PEX2, 84,1, /*f*/
-        /*[21][47]*/       EMAP|PEX2,
-        /*[22][48]*/       0, 0,0, /*valmap*/
-        /*[23][51]*/       VAL_|BMAP|FLOW|FSL_,
-        /*[24][52]*/         KEY_|SCLR|PLAI, 97,1, /*g*/
-        /*[25][55]*/         VAL_|SCLR|PLAI|PEX2, 100,1, /*h*/
-        /*[26][58]*/       EMAP|PEX2,
-        /*[27][59]*/       RREF, 12,15,  /*valscalar*/
-        /*[28][62]*/       RREF|PEX2, 6,9,  /*keyscalar*/
-        /*[29][65]*/       RREF|PEX2, 29,37,  /*valseq*/
-        /*[30][68]*/       RREF|PEX2, 18,26,  /*keyseq*/
-        /*[31][71]*/       RREF|PEX2, 51,59,  /*valmap*/
-        /*[32][74]*/       RREF|PEX2, 40,48,  /*keymap*/
-        /*[33][77]*/     EMAP|PEX2,
-        /*[34][78]*/   EDOC,
-        /*[35][79]*/ ESTR,
+        /*[3][3]*/       0,0,0,
+        /*[6][6]*/       KEY_|SCLR|PLAI, 15,3,/*key*/
+        /*[7][9]*/       PEX2,0,0,
+        /*[10][12]*/       VAL_|SCLR|PLAI, 31,3,/*val*/
+        /*[11][15]*/       PEX2,0,0,
+        /*[14][18]*/       KEY_|BSEQ|FLOW|FSL_,
+        /*[15][19]*/         VAL_|SCLR|PLAI, 47,1,/*a*/
+        /*[16][22]*/         VAL_|SCLR|PLAI|PEX2, 50,1,/*b*/
+        /*[17][25]*/       ESEQ|PEX2,
+        /*[18][26]*/       0,0,0,
+        /*[21][29]*/       VAL_|BSEQ|FLOW|FSL_,
+        /*[22][30]*/         VAL_|SCLR|PLAI, 63,1,/*c*/
+        /*[23][33]*/         VAL_|SCLR|PLAI|PEX2, 66,1,/*d*/
+        /*[24][36]*/       ESEQ|PEX2,
+        /*[25][37]*/       0,0,0,
+        /*[28][40]*/       KEY_|BMAP|FLOW|FSL_,
+        /*[29][41]*/         KEY_|SCLR|PLAI, 81,1,/*e*/
+        /*[30][44]*/         VAL_|SCLR|PLAI|PEX2, 84,1,/*f*/
+        /*[31][47]*/       EMAP|PEX2,
+        /*[32][48]*/       0,0,0,
+        /*[35][51]*/       VAL_|BMAP|FLOW|FSL_,
+        /*[36][52]*/         KEY_|SCLR|PLAI, 97,1,/*g*/
+        /*[37][55]*/         VAL_|SCLR|PLAI|PEX2, 100,1,/*h*/
+        /*[38][58]*/       EMAP|PEX2,
+        /*[39][59]*/       KEY_|SCLR|PLAI, 31,3,/*val*/
+        /*[40][62]*/       VAL_|SCLR|PLAI|PEX2, 15,3,/*key*/
+        /*[41][65]*/       RREF|PEX2,29,37,
+        /*[42][68]*/       RREF|PEX2,18,26,
+        /*[43][71]*/       RREF|PEX2,51,59,
+        /*[44][74]*/       RREF|PEX2,40,48,
+        /*[45][77]*/     EMAP|PEX2,
+        /*[46][78]*/   EDOC,
+        /*[47][79]*/ ESTR,
     };
     test_ints_resolve(src, emitted, {}, resolved, {}, evts_expected, evts_resolved);
 }
@@ -1075,42 +1076,46 @@ TEST(ints_resolve, 3_key_vs_seq_flow_sl)
         /*[0][0]*/ BSTR,
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP|FLOW|FSL_,
-        /*[3][3]*/       0, 0,0, /*keyscalar*/
-        /*[4][6]*/       KEY_|SCLR|PLAI, 15,3, /*key*/
-        /*[5][9]*/       PEX2, 0,0, /*valscalar*/
-        /*[6][12]*/       VAL_|SCLR|PLAI, 31,3, /*val*/
-        /*[7][15]*/       PEX2, 0,0, /*keyseq*/
-        /*[8][18]*/       KEY_|BSEQ|FLOW|FSL_,
-        /*[9][19]*/         VAL_|SCLR|PLAI, 47,1, /*a*/
-        /*[10][22]*/         VAL_|SCLR|PLAI|PEX2, 50,1, /*b*/
-        /*[11][25]*/       ESEQ|PEX2,
-        /*[12][26]*/       0, 0,0, /*valseq*/
-        /*[13][29]*/       VAL_|BSEQ|FLOW|FSL_,
-        /*[14][30]*/         VAL_|SCLR|PLAI, 63,1, /*c*/
-        /*[15][33]*/         VAL_|SCLR|PLAI|PEX2, 66,1, /*d*/
-        /*[16][36]*/       ESEQ|PEX2,
-        /*[17][37]*/       0, 0,0, /*keymap*/
-        /*[18][40]*/       KEY_|BMAP|FLOW|FSL_,
-        /*[19][41]*/         KEY_|SCLR|PLAI, 81,1, /*e*/
-        /*[20][44]*/         VAL_|SCLR|PLAI|PEX2, 84,1, /*f*/
-        /*[21][47]*/       EMAP|PEX2,
-        /*[22][48]*/       0, 0,0, /*valmap*/
-        /*[23][51]*/       VAL_|BMAP|FLOW|FSL_,
-        /*[24][52]*/         KEY_|SCLR|PLAI, 97,1, /*g*/
-        /*[25][55]*/         VAL_|SCLR|PLAI|PEX2, 100,1, /*h*/
-        /*[26][58]*/       EMAP|PEX2,
-        /*[27][59]*/       RREF, 12,15,  /*valscalar*/
-        /*[28][62]*/       RREF|PEX2, 6,9,  /*keyscalar*/
-        /*[29][65]*/       RREF|PEX2, 29,37,  /*valseq*/
-        /*[30][68]*/       RREF|PEX2, 18,26,  /*keyseq*/
-        /*[31][71]*/       RREF|PEX2, 51,59,  /*valmap*/
-        /*[32][74]*/       RREF|PEX2, 40,48,  /*keymap*/
-        /*[33][77]*/     EMAP|PEX2,
-        /*[34][78]*/   EDOC,
-        /*[35][79]*/ ESTR,
+        /*[3][3]*/       0,0,0,
+        /*[6][6]*/       KEY_|SCLR|PLAI, 15,3,/*key*/
+        /*[7][9]*/       PEX2,0,0,
+        /*[10][12]*/       VAL_|SCLR|PLAI, 31,3,/*val*/
+        /*[11][15]*/       PEX2,0,0,
+        /*[14][18]*/       KEY_|BSEQ|FLOW|FSL_,
+        /*[15][19]*/         VAL_|SCLR|PLAI, 47,1,/*a*/
+        /*[16][22]*/         VAL_|SCLR|PLAI|PEX2, 50,1,/*b*/
+        /*[17][25]*/       ESEQ|PEX2,
+        /*[18][26]*/       0,0,0,
+        /*[21][29]*/       VAL_|BSEQ|FLOW|FSL_,
+        /*[22][30]*/         VAL_|SCLR|PLAI, 63,1,/*c*/
+        /*[23][33]*/         VAL_|SCLR|PLAI|PEX2, 66,1,/*d*/
+        /*[24][36]*/       ESEQ|PEX2,
+        /*[25][37]*/       0,0,0,
+        /*[28][40]*/       KEY_|BMAP|FLOW|FSL_,
+        /*[29][41]*/         KEY_|SCLR|PLAI, 81,1,/*e*/
+        /*[30][44]*/         VAL_|SCLR|PLAI|PEX2, 84,1,/*f*/
+        /*[31][47]*/       EMAP|PEX2,
+        /*[32][48]*/       0,0,0,
+        /*[35][51]*/       VAL_|BMAP|FLOW|FSL_,
+        /*[36][52]*/         KEY_|SCLR|PLAI, 97,1,/*g*/
+        /*[37][55]*/         VAL_|SCLR|PLAI|PEX2, 100,1,/*h*/
+        /*[38][58]*/       EMAP|PEX2,
+        /*[39][59]*/       KEY_|SCLR|PLAI, 31,3,/*val*/
+        /*[40][62]*/       VAL_|SCLR|PLAI|PEX2, 15,3,/*key*/
+        /*[41][65]*/       RREF|PEX2,29,37,
+        /*[42][68]*/       RREF|PEX2,18,26,
+        /*[43][71]*/       RREF|PEX2,51,59,
+        /*[44][74]*/       RREF|PEX2,40,48,
+        /*[45][77]*/     EMAP|PEX2,
+        /*[46][78]*/   EDOC,
+        /*[47][79]*/ ESTR,
     };
     test_ints_resolve(src, emitted, {}, resolved, {}, evts_expected, evts_resolved);
 }
+
+
+//-----------------------------------------------------------------------------
+
 
 TEST(ints_resolve, 4_inherit_block)
 {
