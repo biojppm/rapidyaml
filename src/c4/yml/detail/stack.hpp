@@ -126,6 +126,13 @@ public:
         ++m_size;
     }
 
+    T& emplace_top()
+    {
+        if(m_size == m_capacity)
+            reserve(m_capacity + 1);
+        return m_stack[m_size++];
+    }
+
     T const& C4_RESTRICT pop()
     {
         RYML_ASSERT_BASIC_CB_(m_callbacks, m_size > 0);

@@ -17,6 +17,9 @@ struct ReferenceResolver;
 template<class EventHandler> class ParseEngine;
 struct EventHandlerTree;
 using Parser = ParseEngine<EventHandlerTree>;
+struct ParserOptions;
+struct EmitOptions;
+struct ResolveOptions;
 
 } // namespace c4
 } // namespace yml

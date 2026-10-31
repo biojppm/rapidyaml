@@ -468,7 +468,7 @@ public:
     void begin_map_key_block()
     {
         _c4dbgpf("{}/{}: bmap key block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::KEY_|ievt::BMAP|ievt::BLCK);
+        _send_flag_only_(ievt::KEY_|ievt::BMAP/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::MAP|c4::yml::BLOCK);
         _push();
@@ -485,7 +485,7 @@ public:
     void begin_map_val_block()
     {
         _c4dbgpf("{}/{}: bmap block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::VAL_|ievt::BMAP|ievt::BLCK);
+        _send_flag_only_(ievt::VAL_|ievt::BMAP/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::MAP|c4::yml::BLOCK);
         _push();
@@ -536,7 +536,7 @@ public:
     void begin_seq_key_block()
     {
         _c4dbgpf("{}/{}: bseq key block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::KEY_|ievt::BSEQ|ievt::BLCK);
+        _send_flag_only_(ievt::KEY_|ievt::BSEQ/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::KEY|c4::yml::SEQ|c4::yml::BLOCK);
         _push();
@@ -553,7 +553,7 @@ public:
     void begin_seq_val_block()
     {
         _c4dbgpf("{}/{}: bseq block", m_evt.len, m_evt.cap);
-        _send_flag_only_(ievt::VAL_|ievt::BSEQ|ievt::BLCK);
+        _send_flag_only_(ievt::VAL_|ievt::BSEQ/*|ievt::BLCK*/);
         _mark_parent_with_children_();
         ryml_enable_(c4::yml::SEQ|c4::yml::BLOCK);
         _push();
@@ -706,12 +706,12 @@ public:
         if C4_IF_CONSTEXPR (resize_buffers)
         {
             RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, m_evt.len < m_evt.cap);
-            m_evt.ptr[m_evt.len] |= ievt::UNFILT;
+            m_evt.ptr[m_evt.len] |= ievt::UNFL;
         }
         else
         {
             if(m_evt.len < m_evt.cap)
-                m_evt.ptr[m_evt.len] |= ievt::UNFILT;
+                m_evt.ptr[m_evt.len] |= ievt::UNFL;
         }
     }
 
@@ -736,7 +736,7 @@ private:
         _c4dbgpf("{}/{}: arena! ->{}", i, m_evt.cap, m_evt.ptr[(i)+1]); \
     }                                                                   \
     m_evt.ptr[(i) + 2] = (evt_bits)(scalar).len;                        \
-    m_evt.ptr[(i) + 3] = ievt::PSTR
+    m_evt.ptr[(i) + 3] = ievt::PEX2
     /** @endcond */
 
 public:
@@ -883,11 +883,11 @@ public:
                     memmove(m_evt.ptr + pos + 1, m_evt.ptr + pos, (size_t)num_move * sizeof(evt_bits));
                 }
                 m_evt.ptr[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
-                // move PSTR to prev
-                if(m_evt.ptr[pos + 1] & ievt::PSTR)
+                // move PEX2 to prev
+                if(m_evt.ptr[pos + 1] & ievt::PEX2)
                 {
-                    m_evt.ptr[pos    ] |= ievt::PSTR;
-                    m_evt.ptr[pos + 1] &= ~ievt::PSTR;
+                    m_evt.ptr[pos    ] |= ievt::PEX2;
+                    m_evt.ptr[pos + 1] &= ~ievt::PEX2;
                 }
             }
             else
@@ -917,11 +917,11 @@ public:
                 // set next as key, not val
                 m_evt.ptr[posp1] |= ievt::KEY_;
                 m_evt.ptr[posp1] &= ~ievt::VAL_;
-                // move PSTR to pos
-                if(m_evt.ptr[posp1] & ievt::PSTR)
+                // move PEX2 to pos
+                if(m_evt.ptr[posp1] & ievt::PEX2)
                 {
-                    m_evt.ptr[pos] |= ievt::PSTR;
-                    m_evt.ptr[posp1] &= ~ievt::PSTR;
+                    m_evt.ptr[pos] |= ievt::PEX2;
+                    m_evt.ptr[posp1] &= ~ievt::PEX2;
                 }
             }
         }
@@ -959,9 +959,9 @@ public:
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, posp1 < m_evt.cap);
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, ((m_evt.ptr[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt.ptr[pos] & ievt::BMAP) == ievt::BMAP));
                 RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, num_move > 0);
-                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, 0 == (m_evt.ptr[posp1] & ievt::PSTR));
+                RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, 0 == (m_evt.ptr[posp1] & ievt::PEX2));
                 memmove(m_evt.ptr + posp1, m_evt.ptr + pos, (size_t)num_move * sizeof(evt_bits));
-                m_evt.ptr[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
+                m_evt.ptr[pos] = ievt::VAL_|ievt::BMAP/*|ievt::BLCK*/;
                 m_evt.ptr[posp1] &= ~ievt::VAL_;
                 m_evt.ptr[posp1] |= ievt::KEY_;
             }
@@ -1055,7 +1055,7 @@ public:
     C4_ALWAYS_INLINE evt_size _prev(evt_size pos) const noexcept
     {
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, pos < m_evt.cap);
-        return pos - ((m_evt.ptr[pos] & ievt::PSTR) ? 3 : 1);
+        return pos - ((m_evt.ptr[pos] & ievt::PEX2) ? 3 : 1);
     }
 
     C4_ALWAYS_INLINE bool _is_sub_(csubstr str) const noexcept
@@ -1074,7 +1074,7 @@ public:
     C4_NO_INLINE void _grow_evts_exact(evt_size next)
     {
         _c4dbgpf("{}/{}: resize evts {}->{}", m_evt.len, m_evt.cap, m_evt.cap, next);
-        // the actual current len is len+1 (eg because of PSTR already
+        // the actual current len is len+1 (eg because of PEX2 already
         // being set on it). so temporarily bump the length to prevent
         // that value from being zeroed.
         evtbuf cp = m_evt;
@@ -1162,7 +1162,7 @@ public:
             evt_bits e = m_evt.ptr[pos];
             if((e & ievt::BDOC) == ievt::BDOC)
                 return pos;
-            pos -= (e & ievt::PSTR) ? 3 : 1;
+            pos -= (e & ievt::PEX2) ? 3 : 1;
         }
         return -1; // LCOV_EXCL_LINE
     }
@@ -1182,11 +1182,11 @@ public:
 
     C4_ALWAYS_INLINE evt_bits translate_flowml_(type_bits multiline_style) const noexcept
     {
-        static_assert((uint32_t)(FLOW_ML1 << 12) == (uint32_t)ievt::FML1, "");
-        static_assert((uint32_t)(FLOW_MLN << 12) == (uint32_t)ievt::FMLN, "");
-        static_assert((uint32_t)(FLOW_MLX << 12) == (uint32_t)ievt::FMLX, "");
+        static_assert((uint32_t)(FLOW_ML1 << 11) == (uint32_t)ievt::FML1, "");
+        static_assert((uint32_t)(FLOW_MLN << 11) == (uint32_t)ievt::FMLN, "");
+        static_assert((uint32_t)(FLOW_MLX << 11) == (uint32_t)ievt::FMLX, "");
         RYML_ASSERT_BASIC_CB_(base_type::m_stack.m_callbacks, 0 == (multiline_style & ~FLOW_MLX));
-        return (evt_bits)(multiline_style << 12);
+        return (evt_bits)(multiline_style << 11);
     }
 
     /** @} */

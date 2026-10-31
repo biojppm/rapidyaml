@@ -2,11 +2,8 @@
 #define C4_YML_REFERENCE_RESOLVER_HPP_
 
 
-#ifndef C4_YML_RESOLVE_OPTIONS_HPP_
-#include "c4/yml/resolve_options.hpp"
-#endif
-#ifndef C4_YML_DETAIL_STACK_HPP_
-#include "c4/yml/detail/stack.hpp"
+#ifndef C4_YML_DETAIL_KNOWN_KEYS_HPP_
+#include "c4/yml/detail/known_keys.hpp"
 #endif
 #ifndef C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
@@ -27,7 +24,8 @@ namespace yml {
  * @ref ResolveOptions . */
 struct ReferenceResolver
 {
-    ReferenceResolver() = default;
+    ReferenceResolver() noexcept : ReferenceResolver(get_callbacks()) {}
+    ReferenceResolver(Callbacks const& cb);
 
     /** Resolve references: for each reference, look for a matching
      * anchor, and copy its contents to the ref node.
@@ -61,14 +59,6 @@ struct ReferenceResolver
      */
     RYML_EXPORT void resolve(Tree *tree, ResolveOptions const& opts={});
 
-    /** @cond dev */
-    RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(Tree *tree, bool clear_anchors)
-    {
-        resolve(tree, ResolveOptions{}.clear_anchors(clear_anchors));
-    }
-    /** @endcond */
-
 public:
 
     /** @cond dev */
@@ -80,21 +70,53 @@ public:
         id_type prev_anchor;
         id_type target;
         id_type parent_ref;
-        id_type parent_ref_sibling;
     };
+    struct AnchorData
+    {
+        id_type node;
+        id_type visit_count;
+        bool val_anchor;
+    };
+    using key_status = detail::KnownKeys::status_bits;
 
     void reset_(Tree *t_, ResolveOptions const& opts);
-    void resolve_();
-    void gather_anchors_and_refs_();
-    void gather_anchors_and_refs_(id_type n);
-    id_type count_anchors_and_refs_(id_type n);
-    id_type branch_size_(id_type n);
+    id_type resolve_(id_type node, id_type count);
+    id_type branch_size_(id_type node);
+    void check_size_limit_(id_type node);
 
-    id_type lookup_(RefData const* C4_RESTRICT ra);
+    bool requires_merge_(id_type dst_map, id_type visit_count);
+    bool maybe_merge_keys_(id_type dst_map, id_type visit_count);
 
-    detail::stack<RefData> m_refs; // We're using this purely as an array
+    bool is_merge_elm_(id_type child) const;
+    void add_keys_mergedin_(id_type node, id_type visit_count);
+    id_type gather_anchors_(id_type node, id_type count, bool *hasrefs);
+    void add_anchor_(csubstr anch, id_type node, id_type count, bool val_anchor)
+    {
+        AnchorData &d = m_anchors.insert(anch);
+        d.node = node;
+        d.visit_count = count;
+        d.val_anchor = val_anchor;
+
+    }
+    AnchorData const* lookup_anchor_(id_type ref_node, id_type count, csubstr ref);
+    void handle_key_ref_(id_type ref_node, AnchorData const& anchor);
+    void handle_val_ref_(id_type ref_node, AnchorData const& anchor);
+    void clear_anchors_(id_type node);
+
+    detail::small_map<csubstr, AnchorData> m_anchors;
+    detail::stack<uint32_t> m_branch_size;
+    detail::KnownKeys m_known_keys;
     Tree *C4_RESTRICT m_tree;
     ResolveOptions m_opts;
+    id_type m_size_limit;
+
+public:
+
+    RYML_DEPRECATED("use the overload receiving ResolveOptions")
+    void resolve(Tree *tree, bool clear_anchors)
+    {
+        resolve(tree, ResolveOptions{}.clear_anchors(clear_anchors));
+    }
 
     /** @endcond */
 };
