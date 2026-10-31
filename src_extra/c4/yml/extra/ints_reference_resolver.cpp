@@ -33,7 +33,7 @@ enum : evt_size { nosibling = -1 }; // NOLINT
 
 
 
-ReferenceResolver::ReferenceResolver(Callbacks const& cb)
+ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     : Buffers()
     , wpos()
     , newsz()
@@ -41,8 +41,8 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb)
     , opts()
     , anchor_map(cb)
     , known_keys(cb)
-    , parents()
-    , siblings()
+    , parents(cb)
+    , siblings(cb)
     , can_resize()
 {
 }
