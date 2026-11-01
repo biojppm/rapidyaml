@@ -1,8 +1,9 @@
 #ifndef C4_YML_DETAIL_PRINT_HPP_
 #define C4_YML_DETAIL_PRINT_HPP_
 
-#include "c4/yml/tree.hpp"
+#ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
+#endif
 
 #ifdef RYML_DBG
 #define _c4dbg_tree(...) print_tree(__VA_ARGS__)
@@ -20,22 +21,6 @@ namespace yml {
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 C4_SUPPRESS_WARNING_GCC("-Wattributes")
-
-inline const char* _container_style_code(Tree const& p, id_type node)
-{
-    if(p.is_container(node))
-    {
-        if(p._p(node)->m_type & (FLOW_SL|FLOW_MLX))
-        {
-            return "[FLOW]";
-        }
-        if(p._p(node)->m_type & (BLOCK))
-        {
-            return "[BLCK]";
-        }
-    }
-    return "";
-}
 inline char _scalar_code(NodeType masked)
 {
     if(masked & (KEY_LITERAL|VAL_LITERAL))
@@ -64,7 +49,7 @@ inline char _scalar_code_key(Tree const& p, id_type node)
 }
 inline char _scalar_code_val(Tree const& p, id_type node)
 {
-    return _scalar_code_key(p._p(node)->m_type);
+    return _scalar_code_val(p._p(node)->m_type);
 }
 inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, id_type count, bool print_children, bool print_address=false)
 {
@@ -86,16 +71,17 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
     if(p.is_root(node)) printf(" [ROOT]");
     char typebuf[128];
     csubstr typestr = type.type_str_sub(typebuf);
-    _RYML_CHECK_BASIC(typestr.str);
+    RYML_CHECK_BASIC_(typestr.str);
     printf(" %.*s", (int)typestr.len, typestr.str);
-    if(p.has_key(node))
+    NodeType ty = p.type(node);
+    if(ty.has_key())
     {
-        if(p.has_key_anchor(node))
+        if(ty.has_key_anchor())
         {
             csubstr ka = p.key_anchor(node);
             printf(" &%.*s", (int)ka.len, ka.str);
         }
-        if(p.has_key_tag(node))
+        if(ty.has_key_tag())
         {
             csubstr kt = p.key_tag(node);
             if(kt.begins_with('<'))
@@ -107,12 +93,12 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
         csubstr k  = p.key(node);
         printf(" %c%.*s%c :", code, (int)k.len, k.str, code);
     }
-    if(p.has_val_anchor(node))
+    if(ty.has_val_anchor())
     {
         csubstr a = p.val_anchor(node);
         printf(" &%.*s", (int)a.len, a.str);
     }
-    if(p.has_val_tag(node))
+    if(ty.has_val_tag())
     {
         csubstr vt = p.val_tag(node);
         if(vt.begins_with('<'))
@@ -120,7 +106,7 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
         else
             printf(" <%.*s>", (int)vt.len, vt.str);
     }
-    if(p.has_val(node))
+    if(ty.has_val())
     {
         const char code = _scalar_code_val(p, node);
         csubstr v  = p.val(node);
@@ -130,7 +116,7 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
 
     ++count;
 
-    if(!p.is_container(node))
+    if(!ty.is_container())
     {
         printf("\n");
     }
@@ -154,9 +140,9 @@ inline C4_NO_INLINE id_type print_node(Tree const& p, id_type node, int level, i
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline void print_node(ConstNodeRef const& p, int level=0, bool print_address=false) // LCOV_EXCL_LINE
+inline void print_node(ConstNodeRef const& p, int level=0, bool print_address=false)
 {
-    print_node(*p.tree(), p.id(), level, 0, true, print_address); // LCOV_EXCL_LINE
+    print_node(*p.tree(), p.id(), level, 0, true, print_address);
 }
 
 
@@ -164,19 +150,19 @@ inline void print_node(ConstNodeRef const& p, int level=0, bool print_address=fa
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline id_type print_tree(const char *message, Tree const& p, id_type node=NONE, bool print_address=false)
+inline id_type print_tree(const char *message, Tree const& tree, id_type node=NONE, bool print_address=false)
 {
     printf("--------------------------------------\n");
     if(message != nullptr)
         printf("%s:\n", message);
     id_type ret = 0;
-    if(!p.empty())
+    if(!tree.empty())
     {
         if(node == NONE)
-            node = p.root_id();
-        ret = print_node(p, node, 0, 0, true, print_address);
+            node = tree.root_id();
+        ret = print_node(tree, node, 0, 0, true, print_address);
     }
-    printf("#nodes=%zu vs #printed=%zu\n", (size_t)p.size(), (size_t)ret);
+    printf("#nodes=%zu vs #printed=%zu\n", (size_t)tree.size(), (size_t)ret);
     printf("--------------------------------------\n");
     return ret;
 }
@@ -186,7 +172,7 @@ inline id_type print_tree(Tree const& p, id_type node=NONE, bool print_address=f
     return print_tree(nullptr, p, node, print_address);
 }
 
-inline void print_tree(ConstNodeRef const& p, int level, bool print_address=false)
+inline void print_tree(ConstNodeRef const& p, int level=0, bool print_address=false)
 {
     print_node(p, level, print_address);
     for(ConstNodeRef ch : p.children())

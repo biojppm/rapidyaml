@@ -3,7 +3,6 @@
 #include <c4/yml/yml.hpp>
 #endif
 #include "./test_lib/test_case.hpp"
-#include <gtest/gtest.h>
 
 
 RYML_DEFINE_TEST_MAIN()

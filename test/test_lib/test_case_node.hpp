@@ -1,5 +1,5 @@
-#ifndef _C4_YML_TEST_TEST_CASE_NODE_HPP_
-#define _C4_YML_TEST_TEST_CASE_NODE_HPP_
+#ifndef C4_YML_TEST_TEST_CASE_NODE_HPP_
+#define C4_YML_TEST_TEST_CASE_NODE_HPP_
 
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
@@ -25,11 +25,11 @@ struct TaggedScalar
 
 struct AnchorRef
 {
-    NodeType_e type;
+    type_bits type;
     csubstr str;
     AnchorRef() : type(NOTYPE), str() {}
-    AnchorRef(NodeType_e t) : type(t), str() {}
-    AnchorRef(NodeType_e t, csubstr v) : type(t), str(v) {}
+    AnchorRef(type_bits t) : type(t), str() {}
+    AnchorRef(type_bits t, csubstr v) : type(t), str(v) {}
 };
 
 
@@ -72,7 +72,7 @@ public:
     // brace yourself: what you are about to see is ... crazy.
 
     TestCaseNode() : TestCaseNode(NOTYPE) {}
-    TestCaseNode(NodeType_e t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+    TestCaseNode(type_bits t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
 
     // val
     template<size_t N> explicit TestCaseNode(const char (&v)[N]   ) : type((VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
@@ -82,7 +82,7 @@ public:
     template<size_t N> explicit TestCaseNode(const char (&v)[N]   , AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
                        explicit TestCaseNode(TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|VAL|VALTAG)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
                        explicit TestCaseNode(std::nullptr_t       , AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(        ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
-                       explicit TestCaseNode(                       AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); _RYML_ASSERT_BASIC(arv.type == VALREF); }
+                       explicit TestCaseNode(                       AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); RYML_ASSERT_BASIC_(arv.type == VALREF); }
 
 
     // val, explicit type
@@ -105,7 +105,7 @@ public:
                                  explicit TestCaseNode(std::nullptr_t       , TaggedScalar const& v) : type((KEYVAL       |VALTAG    )), key(        ), key_tag(     ), key_anchor(   ), val(v.scalar), val_tag(v.tag), val_anchor(   ), children(), parent(nullptr) { _set_parent(); }
                                  explicit TestCaseNode(TaggedScalar const& k, std::nullptr_t       ) : type((KEYVAL|KEYTAG           )), key(k.scalar), key_tag(k.tag), key_anchor(   ), val(        ), val_tag(     ), val_anchor(   ), children(), parent(nullptr) { _set_parent(); }
                                  explicit TestCaseNode(std::nullptr_t       , std::nullptr_t       ) : type((KEYVAL                  )), key(        ), key_tag(     ), key_anchor(   ), val(        ), val_tag(     ), val_anchor(   ), children(), parent(nullptr) { _set_parent(); }
-                                 explicit TestCaseNode(AnchorRef  const& ark, AnchorRef  const& arv) : type((KEYVAL|ark.type|arv.type)), key(ark.str ), key_tag(     ), key_anchor(ark), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); _RYML_ASSERT_BASIC(ark.type == KEYREF); _RYML_ASSERT_BASIC(arv.type == VALREF); }
+                                 explicit TestCaseNode(AnchorRef  const& ark, AnchorRef  const& arv) : type((KEYVAL|ark.type|arv.type)), key(ark.str ), key_tag(     ), key_anchor(ark), val(arv.str ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); RYML_ASSERT_BASIC_(ark.type == KEYREF); RYML_ASSERT_BASIC_(arv.type == VALREF); }
     // keyval, with val anchor/ref
     template<size_t N, size_t M> explicit TestCaseNode(const char (&k)[N]   , const char (&v)[M]   , AnchorRef const& arv) : type((arv.type|KEYVAL              )), key(k       ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
     template<size_t N>           explicit TestCaseNode(const char (&k)[N]   , TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|KEYVAL|VALTAG       )), key(k       ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
@@ -240,7 +240,7 @@ public:
         C4_SUPPRESS_WARNING_GCC_POP
     }
 
-    NodeType_e _guess() const;
+    type_bits _guess() const;
 
     bool is_root() const { return parent; }
     bool is_doc() const { return type & DOC; }
@@ -296,4 +296,4 @@ public:
 } // namespace yml
 } // namespace c4
 
-#endif // _C4_YML_TEST_TEST_CASE_NODE_HPP_
+#endif // C4_YML_TEST_TEST_CASE_NODE_HPP_

@@ -8,9 +8,9 @@ import os
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'rapidyaml'
-copyright = '2018-2024 Joao Paulo Magalhaes <dev@jpmag.me>'
+copyright = '2018-2026 Joao Paulo Magalhaes <dev@jpmag.me>'
 author = 'Joao Paulo Magalhaes <dev@jpmag.me>'
-release = '0.15.2'
+release = '0.16.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -56,7 +56,6 @@ html_extra_path = ['./doxygen/html']
 # https://breathe.readthedocs.io/en/latest/
 
 # disabled as it was not working well with the groups
-"""
 extensions.append("breathe")
 this_dir = os.path.dirname(__file__)
 xml_dir = os.path.join(this_dir, "doxygen/xml")
@@ -65,7 +64,6 @@ breathe_projects = {
     "rapidyaml": xml_dir
 }
 breathe_default_project = "rapidyaml"
-"""
 
 
 # ----------------------------------------------------------------------------

@@ -1,10 +1,10 @@
-#ifndef _C4_YML_PARSE_HPP_
-#define _C4_YML_PARSE_HPP_
+#ifndef C4_YML_PARSE_HPP_
+#define C4_YML_PARSE_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
-#ifndef _C4_YML_PARSE_OPTIONS_HPP_
+#ifndef C4_YML_PARSE_OPTIONS_HPP_
 #include "c4/yml/parse_options.hpp"
 #endif
 
@@ -40,7 +40,7 @@ using Parser = ParseEngine<EventHandlerTree>;
 
 //-----------------------------------------------------------------------------
 
-/** @defgroup doc_parse_in_place__with_existing_parser Parse in place with existing parser
+/** @addtogroup doc_parse_in_place__with_existing_parser
  *
  * @brief parse a mutable YAML source buffer (re)using an existing
  * parser. Scalars requiring filtering are mutated in place (except in
@@ -96,7 +96,7 @@ RYML_EXPORT Tree parse_json_in_place(Parser *parser,                   substr js
 
 //-----------------------------------------------------------------------------
 
-/** @defgroup doc_parse_in_place___with_temporary_parser Parse in place with temporary parser
+/** @addtogroup doc_parse_in_place___with_temporary_parser Parse in place with temporary parser
  *
  * @brief parse a mutable YAML source buffer. Scalars requiring
  * filtering are mutated in place (except in the rare cases where the
@@ -139,7 +139,7 @@ RYML_EXPORT Tree parse_json_in_place(                  substr json              
 //-----------------------------------------------------------------------------
 
 
-/** @defgroup doc_parse_in_arena__with_existing_parser Parse in arena with existing parser
+/** @addtogroup doc_parse_in_arena__with_existing_parser Parse in arena with existing parser
  *
  * @brief parse a read-only (immutable) YAML source buffer. This is
  * achieved by first copying the contents of the buffer to the tree's
@@ -179,7 +179,7 @@ RYML_EXPORT Tree parse_json_in_place(                  substr json              
  *
  * @{
  */
-
+/** @cond dev */
 #define RYML_DONT_PARSE_SUBSTR_IN_ARENA ""                      \
     "Do not pass a (mutable) substr to parse_in_arena(); "      \
     "if you have a substr, it should be parsed in place. "      \
@@ -187,6 +187,7 @@ RYML_EXPORT Tree parse_json_in_place(                  substr json              
     "the buffer to csubstr prior to calling. This function "    \
     " is deliberately left undefined, so that calling it "      \
     "will cause a linker error."
+/** @endcond */
 
 // this is vertically aligned to highlight the parameter differences.
 RYML_EXPORT void parse_in_arena(Parser *parser, csubstr filename, csubstr yaml, Tree *t, id_type node_id); ///< (1) parse YAML into an existing tree node. The filename will be used in any error messages arising during the parse.
@@ -239,7 +240,7 @@ RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_json_in_arena(Parser
 //-----------------------------------------------------------------------------
 
 
-/** @defgroup doc_parse_in_arena__with_temporary_parser Parse in arena with temporary parser
+/** @addtogroup doc_parse_in_arena__with_temporary_parser Parse in arena with temporary parser
  *
  * @brief parse a read-only (immutable) YAML source buffer. This is
  * achieved by first copying the contents of the buffer to the tree's
@@ -325,4 +326,4 @@ RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_json_in_arena(csubst
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_PARSE_HPP_ */
+#endif /* C4_YML_PARSE_HPP_ */

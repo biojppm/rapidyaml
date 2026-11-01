@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/clang_tidy.ys
+# DO NOT EDIT - GENERATED FROM clang_tidy.ys
 
 name: clang_tidy
 defaults:
@@ -11,7 +11,7 @@ defaults:
     - master
   pull_request:
     branches:
-    - '*'
+    - '**'
 env:
   PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
@@ -23,14 +23,14 @@ jobs:
     if: always()
     continue-on-error: false
     runs-on: ubuntu-24.04
-    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+    container: ghcr.io/biojppm/c4core/ubuntu24.04:latest
     name: clang_tidy/c++${{matrix.std}}/${{matrix.bt}}
     strategy:
       fail-fast: false
       matrix:
         include:
         - std: 11
-          clang: 18
+          clang: 22
           bt: Debug
           bits: 64
     env:
@@ -44,10 +44,11 @@ jobs:
       OS: ${{matrix.os}}
     steps:
     - name: checkout (action + docker)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - name: install
       run: c4core-install clang++-${{matrix.clang}}

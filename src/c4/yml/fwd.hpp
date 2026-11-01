@@ -1,5 +1,5 @@
-#ifndef _C4_YML_FWD_HPP_
-#define _C4_YML_FWD_HPP_
+#ifndef C4_YML_FWD_HPP_
+#define C4_YML_FWD_HPP_
 
 /** @file fwd.hpp forward declarations */
 
@@ -21,4 +21,4 @@ using Parser = ParseEngine<EventHandlerTree>;
 } // namespace c4
 } // namespace yml
 
-#endif /* _C4_YML_FWD_HPP_ */
+#endif /* C4_YML_FWD_HPP_ */

@@ -9,7 +9,7 @@ namespace yml {
 namespace {
 
 template<class CreateFn, class TestFn>
-void test_bom(bomspec const& bom, CreateFn &&createfn, TestFn &&testfn, bool with_docs=true)
+void test_bom(bomspec const& bom, CreateFn &&createfn, TestFn &&testfn, bool with_docs_=true, bool mistaken_as_scalar_=false)
 {
     Parser::handler_type handler;
     Parser parser(&handler);
@@ -21,10 +21,19 @@ void test_bom(bomspec const& bom, CreateFn &&createfn, TestFn &&testfn, bool wit
         #ifdef RYML_DBG
         std::cout << "------------------\n" << bom.name << "\n" << buf << "\n";
         #endif
-        Tree tree = parse_in_arena(&parser, to_csubstr(buf));
-        std::forward<TestFn>(testfn)(parser, tree.crootref(), bom);
+        if(!bom.supported && !mistaken_as_scalar_)
+        {
+            RYML_EXPECT_ERROR(check_error_parse([&]{
+                Tree tree = parse_in_arena(to_csubstr(buf));
+            }));
+        }
+        else
+        {
+            Tree tree = parse_in_arena(&parser, to_csubstr(buf));
+            std::forward<TestFn>(testfn)(parser, tree.crootref(), bom);
+        }
     }
-    if(with_docs)
+    if(with_docs_)
     {
         SCOPED_TRACE(bom.name);
         std::string buf = std::forward<CreateFn>(createfn)(bom);
@@ -35,15 +44,24 @@ void test_bom(bomspec const& bom, CreateFn &&createfn, TestFn &&testfn, bool wit
         #ifdef RYML_DBG
         std::cout << "------------------\n" << bom.name << " x2\n" << buf << "\n";
         #endif
-        Tree tree = parse_in_arena(&parser, to_csubstr(buf));
+        if(!bom.supported && !mistaken_as_scalar_)
         {
-            SCOPED_TRACE("doc 0");
-            std::forward<TestFn>(testfn)(parser, tree.docref(0), bom);
+            RYML_EXPECT_ERROR(check_error_parse([&]{
+                Tree tree = parse_in_arena(to_csubstr(buf));
+            }));
         }
-        if(tree.num_children(tree.root_id()) > 1)
+        else
         {
-            SCOPED_TRACE("doc 1");
-            std::forward<TestFn>(testfn)(parser, tree.docref(1), bom);
+            Tree tree = parse_in_arena(&parser, to_csubstr(buf));
+            {
+                SCOPED_TRACE("doc 0");
+                std::forward<TestFn>(testfn)(parser, tree.docref(0), bom);
+            }
+            if(tree.num_children(tree.root_id()) > 1)
+            {
+                SCOPED_TRACE("doc 1");
+                std::forward<TestFn>(testfn)(parser, tree.docref(1), bom);
+            }
         }
     }
 }
@@ -59,8 +77,17 @@ void test_bom_json(bomspec const& bom, CreateFn &&createfn, TestFn &&testfn)
     #ifdef RYML_DBG
     std::cout << "------------------\n" << bom.name << "\n" << buf << "\n";
     #endif
-    Tree tree = parse_json_in_arena(&parser, to_csubstr(buf));
-    std::forward<TestFn>(testfn)(parser, tree.crootref(), bom);
+    if(!bom.supported)
+    {
+        RYML_EXPECT_ERROR(check_error_parse([&]{
+            Tree tree = parse_json_in_arena(to_csubstr(buf));
+        }));
+    }
+    else
+    {
+        Tree tree = parse_json_in_arena(&parser, to_csubstr(buf));
+        std::forward<TestFn>(testfn)(parser, tree.crootref(), bom);
+    }
 }
 
 typedef enum {
@@ -71,7 +98,7 @@ typedef enum {
 using bom2spec = std::tuple<bomspec,bomspec>;
 
 template<class CreateFn, class TestFn>
-void test_bom2(bom2spec const& spec, CreateFn &&createfn, TestFn &&testfn, bom2_err_e err=bom2_err_vs)
+void test_bom2(bom2spec const& spec, CreateFn &&createfn, TestFn &&testfn, bom2_err_e err=bom2_err_vs, bool mistaken1_as_scalar=false, bool mistaken2_as_scalar=false)
 {
     bomspec const& bom1 = std::get<0>(spec);
     bomspec const& bom2 = std::get<1>(spec);
@@ -82,7 +109,13 @@ void test_bom2(bom2spec const& spec, CreateFn &&createfn, TestFn &&testfn, bom2_
     #ifdef RYML_DBG
     std::cout << "------------------\n" << bom1.name << " vs " << bom2.name << "\n" << buf << "\n";
     #endif
-    if(err == bom2_err_none || (err == bom2_err_vs && (bom1.encoding == bom2.encoding || bom2.bom.empty())))
+    if((!bom1.supported && !mistaken1_as_scalar) || (!bom2.supported && !mistaken2_as_scalar))
+    {
+        RYML_EXPECT_ERROR(check_error_parse([&]{
+            Tree tree = parse_in_arena(to_csubstr(buf));
+        }));
+    }
+    else if(err == bom2_err_none || (err == bom2_err_vs && (bom1.encoding == bom2.encoding || bom2.bom.empty())))
     {
         Parser::handler_type handler;
         Parser parser(&handler);
@@ -124,6 +157,10 @@ std::string mkstr(Args&& ...args)
 {
     return c4::formatrs<std::string>(std::forward<Args>(args)...);
 }
+
+const bool with_docs = true;
+const bool not_mistaken_as_scalar = false;
+const bool mistaken_as_scalar = true;
 } // namespace anon
 
 
@@ -274,7 +311,7 @@ TEST_P(TestBOM, scalar_and_bom)
              [&](Parser const& parser, ConstNodeRef const& node, bomspec const& bom){
                  EXPECT_EQ(parser.encoding(), UTF8);
                  EXPECT_EQ(node.val(), mkscalar(bom));
-             });
+             }, with_docs, mistaken_as_scalar);
 }
 
 TEST_P(TestBOM, scalar_bom_scalar)
@@ -287,7 +324,7 @@ TEST_P(TestBOM, scalar_bom_scalar)
              [&](Parser const& parser, ConstNodeRef const& node, bomspec const& bom){
                  EXPECT_EQ(parser.encoding(), UTF8);
                  EXPECT_EQ(node.val(), mkscalar(bom));
-             });
+             }, with_docs, mistaken_as_scalar);
 }
 
 TEST_P(TestBOM, bom_and_seq)
@@ -585,7 +622,8 @@ TEST_P(TestBOM2, bom_doc_bom_3)
             EXPECT_EQ(node.val(), expected);
         }
     };
-    test_bom2(GetParam(), mkyaml, test, bom2_err_none);
+    test_bom2(GetParam(), mkyaml, test, bom2_err_none,
+              not_mistaken_as_scalar, mistaken_as_scalar);
 }
 
 
@@ -645,7 +683,8 @@ TEST_P(TestBOM2, bom_scalar_doc_bom_scalar_2)
     auto mkyaml = [](bomspec const& bom1, bomspec const& bom2){
         return mkstr("{}---{} abc\n---{} def\n", bom1.bom, bom1.bom, bom2.bom);
     };
-    test_bom2(GetParam(), mkyaml, test_bom_scalar_doc_bom_scalar_2_fn, bom2_err_none);
+    test_bom2(GetParam(), mkyaml, test_bom_scalar_doc_bom_scalar_2_fn, bom2_err_none,
+              not_mistaken_as_scalar, mistaken_as_scalar);
 }
 
 TEST_P(TestBOM2, bom_scalar_doc_bom_scalar_3)
@@ -653,7 +692,8 @@ TEST_P(TestBOM2, bom_scalar_doc_bom_scalar_3)
     auto mkyaml = [](bomspec const& bom1, bomspec const& bom2){
         return mkstr("{}---{}\nabc\n---{}\ndef\n", bom1.bom, bom1.bom, bom2.bom);
     };
-    test_bom2(GetParam(), mkyaml, test_bom_scalar_doc_bom_scalar_2_fn, bom2_err_none);
+    test_bom2(GetParam(), mkyaml, test_bom_scalar_doc_bom_scalar_2_fn, bom2_err_none,
+              not_mistaken_as_scalar, mistaken_as_scalar);
 }
 
 

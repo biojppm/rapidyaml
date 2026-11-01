@@ -4,13 +4,14 @@ add_custom_target(ryml-bm-plot)
 c4_set_folder_remote_project_targets(bm/plot ryml-bm-plot)
 find_package(Python REQUIRED COMPONENTS Interpreter)
 
-# thirdparty libs that will be compared with ryml
-
-set(_ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 if(NOT (CMAKE_VERSION VERSION_LESS "4.0.0"))
     c4_log(STATUS "setting CMAKE_POLICY_VERSION_MINIMUM=3.5 to compile benchmarked libs")
     set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
 endif()
+
+# thirdparty libs that will be compared with ryml
+
+set(_ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
 # libyaml
 c4_require_subproject(libyaml REMOTE
@@ -61,7 +62,29 @@ if(MSVC)
     target_compile_definitions(yaml-cpp PUBLIC -D_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
 endif()
 
-# jsoncpp needs to be compiled
+# jsoncpp needs to be compiled. the jsoncpp cmake file sets all these
+# variables; work around this by saving them to restore later.
+macro(variables_save_ varlist)
+    foreach(varname ${ARGN})
+        set(_saved_value_${varname} "${${varname}}")
+    endforeach()
+    set(${varlist} ${ARGN})
+endmacro()
+macro(variables_restore_ varlist)
+    foreach(varname ${varlist})
+        set(${varname} "${_saved_value_${varname}}" CACHE PATH "" FORCE)
+        unset(_saved_value_${varname})
+    endforeach()
+endmacro()
+variables_save_(vars_jsoncpp
+    CCACHE_EXECUTABLE
+    CMAKE_CXX_COMPILER_LAUNCHER
+    CMAKE_C_COMPILER_LAUNCHER
+    CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+    CMAKE_LIBRARY_OUTPUT_DIRECTORY
+    CMAKE_PDB_OUTPUT_DIRECTORY
+    CMAKE_RUNTIME_OUTPUT_DIRECTORY
+    )
 c4_require_subproject(jsoncpp REMOTE
     GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
     GIT_TAG 65bb1b1c1d8019dc72279c12bb74df92925dfd5e
@@ -75,6 +98,7 @@ c4_require_subproject(jsoncpp REMOTE
 	)
 c4_set_folder_remote_project_targets(ext/jsoncpp
     jsoncpp
+    jsoncpp_lib
     jsoncpp_object
     jsoncpp_static
     examples
@@ -82,6 +106,7 @@ c4_set_folder_remote_project_targets(ext/jsoncpp
     readFromString
     streamWrite
     stringWrite)
+variables_restore_("${vars_jsoncpp}")
 
 # nlohmannjson needs to be compiled
 c4_require_subproject(nlohmann_json REMOTE
@@ -99,10 +124,10 @@ c4_download_remote_proj(rapidjson rapidjson_dir
     GIT_REPOSITORY https://github.com/Tencent/rapidjson
     GIT_TAG version1.1.0)
 set(RYML_RAPIDJSON_INC_DIR ${rapidjson_dir}/include)
-if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/rapidjson.was.patched)
+if(NOT EXISTS ${rapidjson_dir}.was.patched)
     execute_process(COMMAND ${CMAKE_COMMAND} -E echo "cd ${rapidjson_dir} ; git --git-dir= apply ${CMAKE_CURRENT_LIST_DIR}/rapidjson.fix.diff"
         COMMAND git --git-dir= apply ${CMAKE_CURRENT_LIST_DIR}/rapidjson.fix.diff
-        COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/rapidjson.was.patched
+        COMMAND ${CMAKE_COMMAND} -E touch ${rapidjson_dir}.was.patched
         WORKING_DIRECTORY ${rapidjson_dir})
 endif()
 
@@ -141,12 +166,13 @@ endfunction()
 ryml_add_bm_comparison_exe(emit bm_emit.cpp)
 ryml_add_bm_comparison_exe(parse bm_parse.cpp)
 
+
 function(ryml_add_bm_comparison_case target name case_file)
     c4_dbg("adding benchmark case: ${case_file}")
     get_filename_component(case "${case_file}" NAME_WE) # case identifier
     get_filename_component(ext "${case_file}" EXT) # prevent json readers from reading yml data
     if(NOT ("${ext}" STREQUAL ".json"))
-        set(filter_json "ryml_yaml|yaml")
+        set(filter_json "ryml_yaml|rymlints_yaml|yaml")
     endif()
     c4_add_target_benchmark(${target} ${case}
         FILTER "${filter_json}"
@@ -156,18 +182,35 @@ function(ryml_add_bm_comparison_case target name case_file)
     _c4_set_target_folder(ryml-bm-${name}-${case} bm/run)
     add_custom_target(ryml-bm-${name}-${case}-plot
         #DEPENDS ${result_files}
-        COMMAND cmake -E echo "${Python_EXECUTABLE}"
+        COMMAND cmake -E echo "${Python_EXECUTABLE}-------------------------------"
         COMMAND ${Python_EXECUTABLE} --version
-        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bm_plot_rapidyaml.py ${name} ${case} ${results_file}
+        COMMAND cmake -E echo "${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bm_plot_rapidyaml.py ${name} ${case} ${case_file} ${results_file}"
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bm_plot_rapidyaml.py ${name} ${case} ${case_file} ${results_file}
         )
     _c4_set_target_folder(ryml-bm-${name}-${case}-plot bm/plot)
     add_dependencies(ryml-bm-plot ryml-bm-${name}-${case}-plot)
+    if(NOT TARGET ryml-bm-plot-scatter)
+        add_custom_target(ryml-bm-plot-scatter
+            COMMAND cmake -E echo "${Python_EXECUTABLE}"
+            COMMAND ${Python_EXECUTABLE} --version
+            COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bm_plot_rapidyaml.py scatter ${CMAKE_CURRENT_BINARY_DIR}/bm-results
+        )
+        _c4_set_target_folder(ryml-bm-plot-scatter bm/run)
+        add_dependencies(ryml-bm-plot ryml-bm-plot-scatter)
+    endif()
+    add_dependencies(ryml-bm-plot-scatter ryml-bm-${name}-${case}-plot)
 endfunction()
 
 
 set(RYML_BM_CASE_MANIFESTS "" CACHE STRING "additional benchmark case manifests")
+if(EXISTS ${C4_EXTERN_DIR}/rapidyaml-data/)
+    list(APPEND ryml_more_bm_manifests
+        ${C4_EXTERN_DIR}/rapidyaml-data/bm/bm-cases.txt
+        ${C4_EXTERN_DIR}/rapidyaml-data/bm/large_yaml_files/bm-cases.txt
+    )
+endif()
 
-foreach(mnf ${RYML_BM_CASE_MANIFESTS} "${CMAKE_CURRENT_LIST_DIR}/cases/bm-cases.txt")
+foreach(mnf ${RYML_BM_CASE_MANIFESTS} "${CMAKE_CURRENT_LIST_DIR}/cases/bm-cases.txt" ${ryml_more_bm_manifests})
     if(NOT EXISTS "${mnf}")
         c4_err("benchmark manifest file not found: ${mnf}")
     endif()

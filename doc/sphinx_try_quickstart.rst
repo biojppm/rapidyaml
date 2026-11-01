@@ -11,8 +11,7 @@
       include(FetchContent)
       FetchContent_Declare(ryml
           GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
-          GIT_TAG v0.15.2
-          GIT_SHALLOW FALSE  # ensure submodules are checked out
+          GIT_TAG v0.16.0
       )
       FetchContent_MakeAvailable(ryml)
       add_executable(my-quickstart ${ryml_SOURCE_DIR}/samples/quickstart.cpp)

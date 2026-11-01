@@ -7,17 +7,17 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-size_t num_ints(IntEventWithScalar const *evt, size_t evt_size)
+size_t num_ints(IntEventWithScalar const *evt, size_t evt_sz)
 {
     size_t sz = 0;
-    for(size_t i = 0; i < evt_size; ++i)
+    for(size_t i = 0; i < evt_sz; ++i)
         sz += evt[i].required_size();
     return sz;
 }
 
 
 void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
-                      ievt::DataType const* actual, size_t actual_sz,
+                      ievt::evt_bits const* actual, size_t actual_sz,
                       csubstr yaml,
                       csubstr parsed_source,
                       csubstr arena)
@@ -28,8 +28,8 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
     EXPECT_EQ(actual_sz, num_ints_expected);
     status = (actual_sz == num_ints_expected);
 
-    char actualbuf[100];(void)actualbuf;
-    char expectedbuf[100];(void)expectedbuf;
+    char actualbuf[200];(void)actualbuf;
+    char expectedbuf[200];(void)expectedbuf;
     for(size_t ia = 0, ie = 0; ie < expected_sz; ++ie)
     {
         EXPECT_LT(ia, actual_sz);
@@ -43,8 +43,8 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
         status &= int(lhs == rhs);                              \
         EXPECT_EQ(lhs, rhs);                                    \
     } while(0)
-        csubstr sactual = ievt::to_chars_sub(actualbuf, actual[ia]);
-        csubstr sexpect = ievt::to_chars_sub(expectedbuf, expected[ie].flags);
+        csubstr sactual = ievt::to_str_sub(actualbuf, actual[ia]);
+        csubstr sexpect = ievt::to_str_sub(expectedbuf, expected[ie].flags);
         _test_eq(actual[ia], expected[ie].flags, "", 0);
         _test_eq(sactual, sexpect, "", 0);
         if((expected[ie].flags & ievt::WSTR) && (actual[ia] & ievt::WSTR))
@@ -100,24 +100,24 @@ void test_events_ints(IntEventWithScalar const* expected, size_t expected_sz,
 
 void test_events_ints_invariants(csubstr parsed_yaml,
                                  csubstr arena,
-                                 ievt::DataType const* evts,
-                                 ievt::DataType evts_sz)
+                                 ievt::evt_bits const* evts,
+                                 ievt::evt_bits evts_sz)
 {
-    char bufpos[100];
-    char bufprev[100];
+    char bufpos[200];
+    char bufprev[200];
     EXPECT_GT(evts_sz, 0);
-    for(ievt::DataType evtpos = 0, evtnumber = 0;
+    for(ievt::evt_bits evtpos = 0, evtnumber = 0;
         evtpos < evts_sz;
         ++evtnumber,
             evtpos += ((evts[evtpos] & ievt::WSTR) ? 3 : 1))
     {
-        ievt::DataType evt = evts[evtpos];
-        ievt::DataType prev = {};
-        ievt::DataType nextpos = evtpos + ((evt & ievt::WSTR) ? 3 : 1);
-        ievt::DataType next = {};
+        ievt::evt_bits evt = evts[evtpos];
+        ievt::evt_bits prev = {};
+        ievt::evt_bits nextpos = evtpos + ((evt & ievt::WSTR) ? 3 : 1);
+        ievt::evt_bits next = {};
         SCOPED_TRACE(evtpos); // position in the array
         SCOPED_TRACE(evtnumber); // event number
-        SCOPED_TRACE(ievt::to_chars_sub(bufpos, evt));
+        SCOPED_TRACE(ievt::to_str_sub(bufpos, evt));
         if(evtpos)
             prev = (evt & ievt::PSTR) ? evts[evtpos - 3] : evts[evtpos - 1];
         if(nextpos < evts_sz)
@@ -146,12 +146,12 @@ void test_events_ints_invariants(csubstr parsed_yaml,
         {
             EXPECT_GT(evtnumber, 0);
             EXPECT_GE(evtpos, 3);
-            SCOPED_TRACE(ievt::to_chars_sub(bufprev, prev));
+            SCOPED_TRACE(ievt::to_str_sub(bufprev, prev));
             EXPECT_NE(prev & ievt::WSTR, 0);
         }
-        constexpr const ievt::DataType style = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD;
-        constexpr const ievt::DataType scope = ievt::MAP_|ievt::SEQ_|ievt::DOC_|ievt::STRM;
-        constexpr const ievt::DataType directives = ievt::YAML|ievt::TAGH|ievt::TAGP;
+        constexpr const ievt::evt_bits style = ievt::PLAI|ievt::SQUO|ievt::DQUO|ievt::LITL|ievt::FOLD;
+        constexpr const ievt::evt_bits scope = ievt::MAP_|ievt::SEQ_|ievt::DOC_|ievt::STRM;
+        constexpr const ievt::evt_bits directives = ievt::YAML|ievt::TAGH|ievt::TAGP;
         if(evt & (ievt::BEG_|ievt::END_))
         {
             EXPECT_NE(evt & scope, 0);
@@ -404,7 +404,7 @@ void test_events_ints_invariants(csubstr parsed_yaml,
             EXPECT_EQ(evt & (ievt::BMAP|ievt::EMAP), 0);
             EXPECT_EQ(evt & (ievt::FLOW|ievt::BLCK), 0);
             EXPECT_EQ(next & ievt::PSTR, ievt::PSTR);
-            ievt::DataType estyle = evt & style;
+            ievt::evt_bits estyle = evt & style;
             EXPECT_NE(estyle, 0);
             EXPECT_EQ((estyle & (estyle << 1)), 0);
             _test_str_in_buffer(evtpos);

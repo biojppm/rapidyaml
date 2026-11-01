@@ -8,22 +8,18 @@
     #endif
 #endif
 
-#ifndef _C4_YML_ESCAPE_SCALAR_HPP_
+#ifndef C4_YML_ESCAPE_SCALAR_HPP_
 #include "c4/yml/escape_scalar.hpp"
 #endif
 
-#ifndef _C4_YML_EXTRA_INTS_UTILS_HPP_
+#ifndef C4_YML_EXTRA_INTS_UTILS_HPP_
 #include "c4/yml/extra/ints_utils.hpp"
-#endif
-
-#ifndef _C4_BITMASK_HPP_
-#include "c4/bitmask.hpp"
 #endif
 
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wold-style-cast")
 C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wold-style-cast")
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -33,13 +29,14 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
-C4_NODISCARD RYML_EXPORT size_t events_ints_to_testsuite(csubstr parsed_yaml,
-                                                         csubstr arena,
-                                                         ievt::DataType const* evts_ints,
-                                                         ievt::DataType evts_ints_sz,
-                                                         substr evts_test_suite)
+C4_NODISCARD RYML_EXPORT
+size_t events_ints_to_testsuite(csubstr parsed_yaml, // NOLINT(*-use-internal-linkage)
+                                csubstr arena,
+                                ievt::evt_bits const* evts_ints,
+                                ievt::evt_bits evts_ints_sz,
+                                substr evts_test_suite)
 {
-    auto getstr = [&](ievt::DataType i){
+    auto getstr = [&](ievt::evt_bits i){
         bool in_arena = evts_ints[i] & ievt::AREN;
         csubstr region = !in_arena ? parsed_yaml : arena;
         return region.sub((size_t)evts_ints[i+1], (size_t)evts_ints[i+2]);
@@ -61,20 +58,10 @@ C4_NODISCARD RYML_EXPORT size_t events_ints_to_testsuite(csubstr parsed_yaml,
                 append(" ");
                 append(tag);
             }
-            else if(tag.begins_with("!<"))
-            {
-                append(" ");
-                append(tag.sub(1));
-            }
-            else if(tag.begins_with('!'))
-            {
-                append(" <");
-                append(tag);
-                append(">");
-            }
             else
             {
-                append(" <!");
+                RYML_ASSERT_BASIC_(tag.begins_with('!'));
+                append(" <");
                 append(tag);
                 append(">");
             }
@@ -115,8 +102,8 @@ C4_NODISCARD RYML_EXPORT size_t events_ints_to_testsuite(csubstr parsed_yaml,
         append(evt);
         append_esc(val);
     };
-    ievt::DataType evt = 0;
-    for(ievt::DataType i = 0; i < evts_ints_sz; i += (evt & ievt::WSTR) ? 3 : 1)
+    ievt::evt_bits evt = 0;
+    for(ievt::evt_bits i = 0; i < evts_ints_sz; i += (evt & ievt::WSTR) ? 3 : 1)
     {
         evt = evts_ints[i];
         if(evt & ievt::SCLR)
@@ -201,6 +188,6 @@ C4_NODISCARD RYML_EXPORT size_t events_ints_to_testsuite(csubstr parsed_yaml,
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
 C4_SUPPRESS_WARNING_CLANG_POP
 C4_SUPPRESS_WARNING_GCC_POP

@@ -2,10 +2,6 @@
 #include "test_lib/test_events_ints_helpers.hpp"
 #include <c4/yml/extra/event_handler_ints.hpp>
 
-#ifndef _C4_YML_PARSE_ENGINE_DEF_HPP_
-#include <c4/yml/parse_engine.def.hpp>
-#endif
-
 RYML_DEFINE_TEST_MAIN()
 
 // NOLINTBEGIN(hicpp-signed-bitwise)
@@ -13,6 +9,31 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 namespace extra {
+
+
+TEST(flags, to_chars)
+{
+    using namespace ievt;
+    char buf1_[1]; substr buf1 = buf1_;
+    char buf_[200]; substr buf = buf_;
+#define _(flags, str)                                       \
+    {                                                       \
+        ievt::evt_bits flags_{flags};                       \
+        csubstr actual(str);                                \
+        EXPECT_EQ(ievt::to_str(buf1, flags_), actual.len);  \
+        size_t ret = ievt::to_str(buf, flags_);             \
+        ASSERT_LE(ret, buf.len);                            \
+        EXPECT_EQ(buf.first(ret), actual);                  \
+        buf.fill(0);                                        \
+        csubstr r = ievt::to_str_sub(buf, flags_);          \
+        ASSERT_LE(r.len, buf.len);                          \
+        EXPECT_EQ(r, actual);                               \
+    }
+    _(0, "NONE");
+    _(KEY_, "KEY_");
+    _(VAL_, "VAL_");
+    _(KEY_|VAL_, "KEY_|VAL_");
+}
 
 
 struct IntEventsCase
@@ -23,13 +44,13 @@ struct IntEventsCase
     csubstr yaml;
     const std::vector<IntEventWithScalar> evt;
 
-    void testeq(csubstr parsed_source, csubstr arena, ievt::DataType const* actual, size_t actual_size) const
+    void testeq(csubstr parsed_source, csubstr arena, ievt::evt_bits const* actual, size_t actual_size) const
     {
         RYML_TRACE_FMT("defined in:\n{}:{}: (here)\n", file, line);
         #ifdef RYML_DBG
-        events_ints_print(parsed_source, arena, actual, (extra::ievt::DataType)actual_size);
+        events_ints_print(parsed_source, arena, actual, (extra::ievt::evt_bits)actual_size);
         #endif
-        test_events_ints_invariants(parsed_source, arena, actual, (ievt::DataType)actual_size);
+        test_events_ints_invariants(parsed_source, arena, actual, (ievt::evt_bits)actual_size);
         test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, arena);
     }
 };
@@ -48,20 +69,20 @@ std::ostream& operator<<(std::ostream& os, const IntEventsCase& e)
     csubstr name = {name##_, C4_COUNTOF(name##_)}
 
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L6,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P6,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
     );
 
 using namespace ievt;
@@ -585,7 +606,7 @@ struct IntEventsTestHelper
     extra::EventHandlerInts handler;
     ParseEngine<extra::EventHandlerInts> parser;
     std::string src_copy;
-    std::vector<DataType> actual;
+    std::vector<evt_bits> actual;
     std::string arena;
     IntEventsTestHelper(IntEventsCase const& ec_)
         : ec(ec_)

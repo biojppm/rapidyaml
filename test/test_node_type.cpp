@@ -14,6 +14,9 @@
 #include "./test_lib/callbacks_tester.hpp"
 
 RYML_DEFINE_TEST_MAIN()
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
+#endif
 
 namespace c4 {
 namespace yml {
@@ -348,6 +351,59 @@ TEST(NodeType, is_quoted)
     EXPECT_TRUE(NodeType(VAL|KEYQUO).is_quoted());
 }
 
+const type_bits non_style_types[] = {
+    KEY,VAL,
+    MAP,SEQ,
+    DOC,STREAM,
+    KEYREF,VALREF,
+    KEYANCH,VALANCH,
+    KEYTAG,VALTAG,
+    KEYNIL,VALNIL,
+    KEY_UNFILT,VAL_UNFILT
+};
+const type_bits key_styles[] = {
+    KEY_LITERAL,KEY_FOLDED,KEY_PLAIN,KEY_SQUO,KEY_DQUO
+};
+const type_bits val_styles[] = {
+    VAL_LITERAL,VAL_FOLDED,VAL_PLAIN,VAL_SQUO,VAL_DQUO
+};
+
+TEST(NodeType, val_style)
+{
+    RYML_COMPARE_NODE_TYPE(NodeType(VAL_SQUO|VAL_DQUO).val_style(), NodeType{VAL_SQUO|VAL_DQUO}, ==, EQ);
+    RYML_COMPARE_NODE_TYPE(NodeType(KEY_SQUO|KEY_DQUO).val_style(), NodeType{}      , ==, EQ);
+    for(type_bits t : non_style_types)
+    {
+        RYML_COMPARE_NODE_TYPE(NodeType(t).val_style(), NodeType{}, ==, EQ);
+    }
+    for(type_bits t : key_styles)
+    {
+        RYML_COMPARE_NODE_TYPE(NodeType(t).val_style(), NodeType{}, ==, EQ);
+    }
+    for(type_bits t : val_styles)
+    {
+        RYML_COMPARE_NODE_TYPE(NodeType(t).val_style(), NodeType(t), ==, EQ);
+    }
+}
+
+TEST(NodeType, key_style)
+{
+    RYML_COMPARE_NODE_TYPE(NodeType(VAL_SQUO|VAL_DQUO).key_style(), NodeType{}, ==, EQ);
+    RYML_COMPARE_NODE_TYPE(NodeType(KEY_SQUO|KEY_DQUO).key_style(), NodeType{KEY_SQUO|KEY_DQUO}, ==, EQ);
+    for(type_bits t : non_style_types)
+    {
+        RYML_COMPARE_NODE_TYPE(NodeType(t).key_style(), NodeType{}, ==, EQ);
+    }
+    for(type_bits t : key_styles)
+    {
+        RYML_COMPARE_NODE_TYPE(NodeType(t).key_style(), NodeType(t), ==, EQ);
+    }
+    for(type_bits t : val_styles)
+    {
+        RYML_COMPARE_NODE_TYPE(NodeType(t).key_style(), NodeType{}, ==, EQ);
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 
@@ -371,114 +427,114 @@ TEST(NodeType, scalar_style_choose_json)
 
 TEST(NodeType, scalar_style_choose)
 {
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose(" \n\t"), SCALAR_DQUO);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-.inf"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-.INF"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-.034"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-.034x"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("2.35e-10"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-2.35e-10"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+2.35e-10"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0.1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0.1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0.1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("01"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0x1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0o1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0b1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0x1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0o1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0b1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-01"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0x1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0o1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0b1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0x1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0o1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0b1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+01"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0x1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0o1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0b1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0x1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0o1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0b1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("01"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0X1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0O1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0B1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0X1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0O1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("0B1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-01"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0X1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0O1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0B1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0X1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0O1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("-0B1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+01"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0X1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0O1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0B1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0X1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0O1"), SCALAR_PLAIN);
-    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose("+0B1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow(" \n\t"), SCALAR_DQUO);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-.inf"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-.INF"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-.034"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-.034x"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("2.35e-10"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-2.35e-10"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+2.35e-10"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0.1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0.1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0.1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("01"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0x1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0o1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0b1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0x1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0o1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0b1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-01"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0x1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0o1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0b1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0x1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0o1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0b1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+01"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0x1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0o1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0b1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0x1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0o1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0b1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("01"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0X1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0O1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0B1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0X1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0O1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("0B1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-01"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0X1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0O1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0B1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0X1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0O1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("-0B1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+01"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0X1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0O1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0B1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0X1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0O1"), SCALAR_PLAIN);
+    RYML_COMPARE_NODE_TYPE_EQ(scalar_style_choose_flow("+0B1"), SCALAR_PLAIN);
 }
 
 TEST(NodeType, scalar_style_query_plain)
 {
-    EXPECT_TRUE(scalar_style_query_plain("-.inf"));
-    EXPECT_TRUE(scalar_style_query_plain("-.INF"));
-    EXPECT_TRUE(scalar_style_query_plain("-.034"));
-    EXPECT_TRUE(scalar_style_query_plain("-.034x"));
-    EXPECT_TRUE(scalar_style_query_plain("2.35e-10"));
-    EXPECT_TRUE(scalar_style_query_plain("-2.35e-10"));
-    EXPECT_TRUE(scalar_style_query_plain("+2.35e-10"));
-    EXPECT_TRUE(scalar_style_query_plain("0.1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0.1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0.1"));
-    EXPECT_TRUE(scalar_style_query_plain("01"));
-    EXPECT_TRUE(scalar_style_query_plain("0x1"));
-    EXPECT_TRUE(scalar_style_query_plain("0o1"));
-    EXPECT_TRUE(scalar_style_query_plain("0b1"));
-    EXPECT_TRUE(scalar_style_query_plain("0x1"));
-    EXPECT_TRUE(scalar_style_query_plain("0o1"));
-    EXPECT_TRUE(scalar_style_query_plain("0b1"));
-    EXPECT_TRUE(scalar_style_query_plain("+01"));
-    EXPECT_TRUE(scalar_style_query_plain("+0x1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0o1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0b1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0x1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0o1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0b1"));
-    EXPECT_TRUE(scalar_style_query_plain("-01"));
-    EXPECT_TRUE(scalar_style_query_plain("-0x1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0o1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0b1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0x1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0o1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0b1"));
-    EXPECT_TRUE(scalar_style_query_plain("0X1"));
-    EXPECT_TRUE(scalar_style_query_plain("0O1"));
-    EXPECT_TRUE(scalar_style_query_plain("0B1"));
-    EXPECT_TRUE(scalar_style_query_plain("0X1"));
-    EXPECT_TRUE(scalar_style_query_plain("0O1"));
-    EXPECT_TRUE(scalar_style_query_plain("0B1"));
-    EXPECT_TRUE(scalar_style_query_plain("+01"));
-    EXPECT_TRUE(scalar_style_query_plain("+0X1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0O1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0B1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0X1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0O1"));
-    EXPECT_TRUE(scalar_style_query_plain("+0B1"));
-    EXPECT_TRUE(scalar_style_query_plain("-01"));
-    EXPECT_TRUE(scalar_style_query_plain("-0X1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0O1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0B1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0X1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0O1"));
-    EXPECT_TRUE(scalar_style_query_plain("-0B1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-.inf"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-.INF"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-.034"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-.034x"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0.1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0.1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0.1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("01"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0x1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0o1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0b1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0x1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0o1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0b1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+01"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0x1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0o1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0b1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0x1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0o1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0b1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-01"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0x1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0o1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0b1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0x1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0o1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0b1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0X1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0O1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0B1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0X1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0O1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("0B1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+01"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0X1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0O1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0B1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0X1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0O1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("+0B1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-01"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0X1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0O1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0B1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0X1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0O1"));
+    EXPECT_TRUE(scalar_style_query_plain_flow("-0B1"));
 }
 
 
@@ -525,6 +581,10 @@ const scalar_style_spec scalars[] = {
     __(" ", S, S, D),
     __("\t", S, S, D),
     __("\n", S, S, D),
+    // whitespace next to a newline would be folded away
+    __("a\n b", D, D, D), _("a\n\tb", D, D, D), _("a\n\n b", D, D, D),
+    __("a \nb", D, D, D), _("a\t\nb", D, D, D), _("a \n", D, D, D),
+    __(">a\n b", D, D, D), _("- a\n b", D, D, D), _("#a \nb", D, D, D),
     // numbers
     __("0", P, P, P), _("00", P, P, D), _("000", P, P, D),
     __("1", P, P, P), _("01", P, P, D), _("001", P, P, D),
@@ -639,7 +699,7 @@ size_t to_chars(substr buf, showtype_ s)
 {
     size_t pos = s.ty.type_str(buf);
     buf = buf.sub(pos < buf.len ? pos : buf.len);
-    pos += format(buf, "({})", s.ty.type);
+    pos += format(buf, "({})", s.ty.m_bits);
     return pos;
 }
 
@@ -720,7 +780,7 @@ void test_plain_valid(scalar_style_spec const& p, bool flow, cspan<csubstr> case
 {
     if(p.style_flow != P || !p.scalar.len || p.scalar.first_not_of(" \n\t\r") == npos)
         return;
-    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.type));
+    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.m_bits));
     std::string buf;
     size_t i = 0;
     for(csubstr c : cases)
@@ -846,6 +906,9 @@ void test_scalar_roundtrip_on_seq(scalar_style_spec const& p, NodeType seq_style
         EXPECT_TRUE(ch.type().is_val_styled()); // style is set on the roundtrip
         NodeType actual_style = ch.type() & expected_style;
         RYML_COMPARE_NODE_TYPE(expected_style, actual_style, ==, EQ);
+        RYML_COMPARE_NODE_TYPE(expected_style, ch.type().val_style() & expected_style, ==, EQ);
+        RYML_COMPARE_NODE_TYPE(expected_style, parsed.type(ch.id()).val_style() & expected_style, ==, EQ);
+        RYML_COMPARE_NODE_TYPE(expected_style, parsed.val_style(ch.id()) & expected_style, ==, EQ);
     }
     if(testing::Test::HasFailure())
     {
@@ -891,16 +954,22 @@ void test_scalar_roundtrip_on_map(scalar_style_spec const& p, NodeType map_style
         {
             compare_scalar(scalar, ch.key());
             EXPECT_TRUE(ch.type().is_key_styled()); // style is set on the roundtrip
-            NodeType actual_style = ch.type() & expected_style_key;
+            const NodeType actual_style = ch.type() & expected_style_key;
             RYML_COMPARE_NODE_TYPE(expected_style_key, actual_style, ==, EQ);
+            RYML_COMPARE_NODE_TYPE(expected_style_key, ch.type().key_style() & expected_style_key, ==, EQ);
+            RYML_COMPARE_NODE_TYPE(expected_style_key, parsed.type(ch.id()).key_style() & expected_style_key, ==, EQ);
+            RYML_COMPARE_NODE_TYPE(expected_style_key, parsed.key_style(ch.id()) & expected_style_key, ==, EQ);
         }
     }
     for(ConstNodeRef ch : parsed["vals"].children())
     {
         compare_scalar(scalar, ch.val());
         EXPECT_TRUE(ch.type().is_val_styled()); // style is set on the roundtrip
-        NodeType actual_style = ch.type() & expected_style_val;
+        const NodeType actual_style = ch.type() & expected_style_val;
         RYML_COMPARE_NODE_TYPE(expected_style_val, actual_style, ==, EQ);
+        RYML_COMPARE_NODE_TYPE(expected_style_val, ch.type().val_style() & expected_style_val, ==, EQ);
+        RYML_COMPARE_NODE_TYPE(expected_style_val, parsed.type(ch.id()).val_style() & expected_style_val, ==, EQ);
+        RYML_COMPARE_NODE_TYPE(expected_style_val, parsed.val_style(ch.id()) & expected_style_val, ==, EQ);
     }
     if(testing::Test::HasFailure())
     {
@@ -919,7 +988,7 @@ bool block = false;
 TEST_P(TestScalarStyle, query_plain_flow)
 {
     scalar_style_spec const& p = GetParam();
-    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.type));
+    SHOWPARAM(p, "expected_flow={}", showtype(p.style_flow.m_bits));
     EXPECT_EQ(scalar_style_query_plain_flow(p.scalar), p.style_flow == P);
     EXPECT_EQ(scalar_style_query_plain_flow(p.scalar),
               scalar_style_query_plain(p.scalar, flow));
@@ -956,7 +1025,7 @@ TEST_P(TestScalarStyle, query_plain_flow_invalid_at_end)
 TEST_P(TestScalarStyle, query_plain_block)
 {
     scalar_style_spec const& p = GetParam();
-    SHOWPARAM(p, "expected_block={}", showtype(p.style_block.type));
+    SHOWPARAM(p, "expected_block={}", showtype(p.style_block.m_bits));
     EXPECT_EQ(scalar_style_query_plain_block(p.scalar), p.style_block == P);
     EXPECT_EQ(scalar_style_query_plain_block(p.scalar),
               scalar_style_query_plain(p.scalar, block));
@@ -994,7 +1063,7 @@ TEST_P(TestScalarStyle, choose_flow)
 {
     scalar_style_spec const& p = GetParam();
     NodeType actual = scalar_style_choose_flow(p.scalar);
-    NodeType expected = p.style_flow.type;
+    NodeType expected = p.style_flow.m_bits;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
     RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }
@@ -1003,7 +1072,7 @@ TEST_P(TestScalarStyle, choose_block)
 {
     scalar_style_spec const& p = GetParam();
     NodeType actual = scalar_style_choose_block(p.scalar);
-    NodeType expected = p.style_block.type;
+    NodeType expected = p.style_block.m_bits;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
     RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }
@@ -1012,7 +1081,7 @@ TEST_P(TestScalarStyle, choose_json)
 {
     scalar_style_spec const& p = GetParam();
     NodeType actual = scalar_style_json_choose(p.scalar);
-    NodeType expected = p.style_json.type;
+    NodeType expected = p.style_json.m_bits;
     SHOWPARAM(p, "\n  actual  ={}\n  expected={}", showtype(actual), showtype(expected));
     RYML_COMPARE_NODE_TYPE(actual, expected, ==, EQ);
 }

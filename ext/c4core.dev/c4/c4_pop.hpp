@@ -1,0 +1,19 @@
+#ifdef C4_PUSH_HPP_ // this must match the include guard from c4_push
+
+/** @file c4_pop.hpp disables the macros and control directives
+ * enabled in c4_push.hpp.
+ * @see c4_push.hpp */
+
+#include "c4/unrestrict.hpp"
+
+#ifdef C4_WIN
+#   include "c4/windows_pop.hpp"
+#endif
+
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
+
+#undef C4_PUSH_HPP_
+
+#endif /* C4_PUSH_HPP_ */

@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.12)
-
 project(ryml-quickstart
     DESCRIPTION "Shows how to use a custom c4core version different from ryml's c4core submodule"
     LANGUAGES CXX)
@@ -7,19 +6,22 @@ include(../../ext/c4core/cmake/c4Project.cmake)
 c4_project(VERSION 0.1.0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
-set(C4CORE_TAG master CACHE STRING "tag/hash for the c4core repo")
-message(STATUS "Using c4core version: ${C4CORE_TAG}")
+set(C4CORE_REPO https://github.com/biojppm/c4core CACHE STRING "")
+set(C4CORE_TAG master CACHE STRING "")
+include(FetchContent)
+message(STATUS "fetch c4core from repo: ${C4CORE_REPO}")
+message(STATUS "fetch c4core from tag: ${C4CORE_TAG}")
+FetchContent_Declare(c4core
+    GIT_REPOSITORY ${C4CORE_REPO}
+    GIT_TAG ${C4CORE_TAG}
+)
+FetchContent_MakeAvailable(c4core)
 
-# download a different c4core version from the repo
-c4_require_subproject(c4core REMOTE
-    GIT_REPOSITORY https://github.com/biojppm/c4core.git
-    GIT_TAG ${C4CORE_TAG})
-
-# and now, within ryml's CMakeLists.txt, the call to
-# c4_require_subproject(c4core) will use the version
-# downloaded above, instead of the submodule version from
-# the ryml repo:
-c4_require_subproject(ryml SUBDIRECTORY ../..)
+# and now use RYML_STANDALONE=OFF to inform ryml to link with c4core
+# (which must already be available as a target), instead of using the
+# c4core sources packaged with ryml:
+set(RYML_STANDALONE OFF CACHE BOOL "" FORCE) # override the default in ryml
+add_subdirectory(../.. ryml)
 
 add_executable(ryml-quickstart ../quickstart.cpp)
 target_link_libraries(ryml-quickstart ryml::ryml)

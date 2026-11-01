@@ -22,9 +22,8 @@ TEST(simple_doc, issue_251)
     {
         Tree tree;
         NodeRef root = tree.rootref();
-        root |= MAP;
-        root["test"] = "...";
-        root["test"] |= VAL_SQUO;
+        root.set_map();
+        root["test"].set_val("...", VAL_SQUO);
         std::string s = emitrs_yaml<std::string>(tree);
         test_check_emit_check(to_csubstr(s), [](Tree const &t){
             EXPECT_EQ(t["test"].val(), "...");

@@ -401,7 +401,7 @@ ENGINE_TEST(AnchorMapFlowMultiLine,
     ___(ps.end_stream());
 }
 
-// WATCHOUT: see https://play.yaml.io/main/parser?input=Jm1hcAomcmtleTEgZm9vOiAmcnZhbDEgYmFyCipya2V5MSA6ICpydmFsMQ==
+// WATCHOUT: see https://play.yaml.com/main/parser?input=Jm1hcAomcmtleTEgZm9vOiAmcnZhbDEgYmFyCipya2V5MSA6ICpydmFsMQ==
 ENGINE_TEST(AnchorMapFlowWithRef,
             "&map\n{&rkey1 key1: &rval1 val1,*rkey1 : *rval1}"
             ,
@@ -434,7 +434,7 @@ ENGINE_TEST(AnchorMapFlowWithRef,
     ___(ps.end_stream());
 }
 
-// WATCHOUT: see https://play.yaml.io/main/parser?input=Jm1hcAomcmtleTEgZm9vOiAmcnZhbDEgYmFyCipya2V5MSA6ICpydmFsMQ==
+// WATCHOUT: see https://play.yaml.com/main/parser?input=Jm1hcAomcmtleTEgZm9vOiAmcnZhbDEgYmFyCipya2V5MSA6ICpydmFsMQ==
 ENGINE_TEST(AnchorMapFlowWithRefMultiLine,
             "&map\n{\n&rkey1 key1: &rval1 val1,\n*rkey1 : *rval1\n}"
             ,

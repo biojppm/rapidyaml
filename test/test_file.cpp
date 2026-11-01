@@ -17,11 +17,18 @@ std::string mkfile(Container const& expected)
     file_put_contents(expected, name.c_str());
     return name;
 }
+template<class Container>
+std::string mkfile2(Container const& expected)
+{
+    std::string name = c4::fs::tmpnam<std::string>();
+    detail::ScopedFILE sf(name.c_str(), "wb");
+    file_put_contents(expected, sf.file, name.c_str());
+    return name;
+}
 
 template<class Container>
-void test_roundtrip(Container const& expected)
+void test_roundtrip_reads(Container const& expected, std::string const& name)
 {
-    std::string name = mkfile(expected);
     const char *filename = name.c_str();
     Container actual = file_get_contents<Container>(filename);
     EXPECT_EQ(actual.size(), expected.size());
@@ -43,7 +50,22 @@ void test_roundtrip(Container const& expected)
         EXPECT_EQ(other.size(), expected.size());
         EXPECT_EQ(other, expected);
     }
-    c4::fs::rmfile(filename);
+}
+template<class Container>
+void test_roundtrip(Container const& expected)
+{
+    {
+        SCOPED_TRACE("mk1");
+        std::string name = mkfile(expected);
+        test_roundtrip_reads<Container>(expected, name);
+        c4::fs::rmfile(name.c_str());
+    }
+    {
+        SCOPED_TRACE("mk2");
+        std::string name = mkfile2(expected);
+        test_roundtrip_reads<Container>(expected, name);
+        c4::fs::rmfile(name.c_str());
+    }
 }
 template<class T>
 void testvec()

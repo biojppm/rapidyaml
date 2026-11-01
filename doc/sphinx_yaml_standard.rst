@@ -34,14 +34,27 @@ ryml deliberately makes no effort to follow the standard in the
 following situations:
 
 -  ryml's parser engine correctly handles all YAML features. But the 
-   destination tree does NOT accept containers as map keys: map keys
-   must always be scalars. But note that this is a limitation
-   only of the final tree.
+   destination tree does not accept containers as map keys: map keys
+   must always be scalars. However, note that this is a limitation
+   only of the final tree, and not of the parser.
 -  Tab characters after ``:`` and ``-`` are not accepted tokens, unless
    ryml is compiled with the macro ``RYML_WITH_TAB_TOKENS``. This
    requirement exists because checking for tabs introduces branching
    into the parser’s hot code and in some cases costs as much as 10% in
    parsing time.
+-  ``%YAML`` directives have no effect and are ignored.
+-  ``%TAG`` directives are limited to a default maximum of 4 instances
+   per ``Tree``. To increase this maximum, define the preprocessor
+   symbol ``RYML_MAX_TAG_DIRECTIVES`` to a suitable value. This
+   arbitrary limit reflects the usual practice of having at most 1 or
+   2 tag directives; also, be aware that this feature is under
+   consideration for removal in YAML 1.3.
+-  UTF16 and UTF32 encoded files are not supported.
+-  Byte Order Marks: while ryml correctly handles BOMs at the beginning
+   of the stream or documents (as per the standard), BOMs inside
+   scalars are ignored. The `standard mandates that they should be
+   quoted <https://yaml.org/spec/1.2.2/#52-character-encodings>` when
+   emitted; this is not done.
 -  Non-unique map keys are allowed. Enforcing key uniqueness in the
    parser or in the tree would cause log-linear parsing complexity (for
    root children on a mostly flat tree), and would increase code size
@@ -53,13 +66,6 @@ following situations:
    a post-parse walk through the tree. So choosing to not enforce key
    uniqueness adheres to the spirit of “don’t pay for what you don’t
    use”.
--  ``%YAML`` directives have no effect and are ignored.
--  ``%TAG`` directives are limited to a default maximum of 4 instances
-   per ``Tree``. To increase this maximum, define the preprocessor
-   symbol ``RYML_MAX_TAG_DIRECTIVES`` to a suitable value. This
-   arbitrary limit reflects the usual practice of having at most 1 or 2
-   tag directives; also, be aware that this feature is under
-   consideration for removal in YAML 1.3.
 
 
 
@@ -70,11 +76,12 @@ As part of its CI testing, ryml uses and passes all the cases from the
 `YAML test suite <https://github.com/yaml/yaml-test-suite>`__. This is
 an extensive and merciless set of reference cases covering the full
 YAML spec. Each of these cases has several subparts:
- - ``in-yaml``: mildly, plainly or extremely difficult-to-parse YAML
- - ``in-json``: equivalent JSON (where possible/meaningful)
- - ``out-yaml``: equivalent standard YAML
- - ``emit-yaml``: equivalent standard YAML
- - ``events``: reference events according to the YAML standard
+
+ * ``in-yaml`` mildly, plainly or extremely difficult-to-parse YAML
+ * ``in-json`` equivalent JSON (where possible/meaningful)
+ * ``out-yaml`` equivalent standard YAML
+ * ``emit-yaml`` equivalent standard YAML
+ * ``events`` reference events according to the YAML standard
 
 .. note::
 

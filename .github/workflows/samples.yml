@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/samples.ys
+# DO NOT EDIT - GENERATED FROM samples.ys
 
 name: samples
 defaults:
@@ -11,7 +11,7 @@ defaults:
     - master
   pull_request:
     branches:
-    - '*'
+    - '**'
 env:
   PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
@@ -88,28 +88,37 @@ jobs:
       CMANY: 'ON'
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Install python 3.12
       uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - name: checkout c4core
+      run: |
+        cd ext
+        make c4core
     - name: show info
       run: source .github/setenv.sh && c4_show_info
+    - name: add_subdirectory
+      run: cd samples/add_subdirectory && ./run.sh $BT ${{matrix.args}}
+    - name: ints_only
+      run: cd samples/ints_only && ./run.sh $BT ${{matrix.args}}
     - name: singleheader
       run: cd samples/singleheader && ./run.sh $BT ${{matrix.args}}
+    - name: singlesource
+      run: cd samples/singlesource && ./run.sh $BT ${{matrix.args}}
     - name: singleheader-ints
       run: cd samples/singleheader-ints && ./run.sh $BT ${{matrix.args}}
     - name: singleheaderlib
       run: cd samples/singleheaderlib && ./run.sh $BT ${{matrix.args}}
     - name: singleheaderlib-ints
       run: cd samples/singleheaderlib-ints && ./run.sh $BT ${{matrix.args}}
-    - name: add_subdirectory
-      run: cd samples/add_subdirectory && ./run.sh $BT ${{matrix.args}}
     - name: find_package
       run: cd samples/find_package && ./run.sh $BT ${{matrix.args}}
     - name: custom_c4core

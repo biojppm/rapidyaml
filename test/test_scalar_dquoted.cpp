@@ -20,8 +20,8 @@ struct dquoted_case
 
 
 // double quoted filtering can result in an output larger than the input.
-// so we ensure adequate test covering by using different sizes.
-// test also cases where the destination string is not large
+// so we ensure adequate test coverage by using different sizes.
+// we also test cases where the destination string is not large
 // enough to accomodate the filtered string.
 
 /** when filtering from src to dst, specifying the dst sz is enough to
@@ -152,85 +152,85 @@ DECLARE_CSUBSTR_FROM_CHAR_ARR(dqescparsed,
          '\v',
          INT8_C(0x1b),
           // \_
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
          // \N
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
          // \L
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
          // \P
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore2,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore3,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore4,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N2,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N3,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N4,
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
+         RYML_CHCONST_(-0x3e, 0xc2), RYML_CHCONST_(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L2,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L3,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L4,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P2,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P3,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P4,
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
+         RYML_CHCONST_(-0x1e, 0xe2), RYML_CHCONST_(-0x80, 0x80), RYML_CHCONST_(-0x57, 0xa9),
     );
 
 // declare double quoted test cases
@@ -453,7 +453,7 @@ TEST(double_quoted, leading_whitespace)
         Tree t = parse_in_arena("\"\"");
         ASSERT_TRUE(t.rootref().is_val());
         ASSERT_TRUE(t.rootref().type().is_val_dquo());
-        t.rootref() = val;
+        t.rootref().set_val(val);
         emitrs_yaml<std::string>(t, &emitted);
         _c4dbgpf("emitted: ~~~{}~~~", to_csubstr(emitted));
     }
@@ -734,7 +734,7 @@ TEST(double_quoted, test_suite_L24T)
 
 //-----------------------------------------------------------------------------
 
-void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
+static void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
 {
     SCOPED_TRACE(case_name);
     SCOPED_TRACE(yaml);
@@ -743,6 +743,34 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
         parse_in_arena(yaml, &tree);
     }, loc);
 }
+
+TEST(double_quoted, fuzz_crash_0)
+{
+    verify_error_is_reported("short case",
+                             "&1 !kt1 \"%':\n"
+                             "\n"
+                             " k\": c\n"
+                             "",
+                             Location(3, 6));
+    verify_error_is_reported("full case",
+                             "&1 !kt1 \"%':\n"
+                             "\n"
+                             "  '.':\n"
+                             "\n"
+                             "  ',':\n"
+                             "\n"
+                             "  '':\n"
+                             "\n"
+                             "  '':\n"
+                             "\n"
+                             "\n"
+                             "k\": c\n"
+                             "",
+                             Location(12, 5));
+}
+
+
+//-----------------------------------------------------------------------------
 
 TEST(double_quoted, error_on_unmatched_quotes)
 {
@@ -852,9 +880,8 @@ TEST(double_quoted, github253)
     {
         Tree tree;
         NodeRef root = tree.rootref();
-        root |= MAP;
-        root["t"] = "t't\\nt";
-        root["t"] |= VAL_DQUO;
+        root.set_map();
+        root["t"].set_val("t't\\nt", VAL_DQUO);
         std::string s = emitrs_yaml<std::string>(tree);
         Tree tree2 = parse_in_arena(to_csubstr(s));
         EXPECT_EQ(tree2["t"].val(), tree["t"].val());
@@ -862,9 +889,8 @@ TEST(double_quoted, github253)
     {
         Tree tree;
         NodeRef root = tree.rootref();
-        root |= MAP;
-        root["t"] = "t't\\nt";
-        root["t"] |= VAL_SQUO;
+        root.set_map();
+        root["t"].set_val("t't\\nt", VAL_SQUO);
         std::string s = emitrs_yaml<std::string>(tree);
         Tree tree2 = parse_in_arena(to_csubstr(s));
         EXPECT_EQ(tree2["t"].val(), tree["t"].val());
@@ -872,9 +898,8 @@ TEST(double_quoted, github253)
     {
         Tree tree;
         NodeRef root = tree.rootref();
-        root |= MAP;
-        root["s"] = "t\rt";
-        root["s"] |= VAL_DQUO;
+        root.set_map();
+        root["s"].set_val("t\rt", VAL_DQUO);
         std::string s = emitrs_yaml<std::string>(tree);
         EXPECT_EQ(s, "s: \"t\\rt\"\n");
         Tree tree2 = parse_in_arena(to_csubstr(s));

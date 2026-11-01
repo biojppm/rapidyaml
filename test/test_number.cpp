@@ -11,6 +11,25 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+TEST(asdasd,  asasldkjas)
+{
+    csubstr sstr = "ptr";
+    /* */ char mbuf[] = "ptr";
+    const char cbuf[] = "ptr";
+    EXPECT_EQ(sstr, mbuf);
+    EXPECT_EQ(sstr, cbuf);
+    EXPECT_EQ(mbuf, sstr);
+    EXPECT_EQ(cbuf, sstr);
+    EXPECT_EQ(sstr, (const char*)mbuf);
+    EXPECT_EQ(sstr, (const char*)cbuf);
+    EXPECT_EQ((const char*)mbuf, sstr);
+    EXPECT_EQ((const char*)cbuf, sstr);
+    EXPECT_EQ(sstr, (char*)mbuf);
+    EXPECT_EQ((char*)mbuf, sstr);
+    EXPECT_EQ(sstr, "ptr");
+    EXPECT_EQ("ptr", sstr);
+}
+
 template<class I>
 auto mkvals() -> typename std::enable_if<std::is_signed<I>::value, std::vector<I>>::type
 {
@@ -33,21 +52,21 @@ void test_ints()
     for(I val : values)
     {
         I out;
-        r["dec"].append_child() << val;
-        r["hex"].append_child() << fmt::hex(val);
-        r["bin"].append_child() << fmt::bin(val);
-        r["oct"].append_child() << fmt::oct(val);
+        r["dec"].append_child().save(val);
+        r["hex"].append_child().save(fmt::hex(val));
+        r["bin"].append_child().save(fmt::bin(val));
+        r["oct"].append_child().save(fmt::oct(val));
         out = notval(val);
-        r["dec"].last_child() >> out;
+        r["dec"].last_child().load(&out);
         EXPECT_EQ(out, val);
         out = notval(val);
-        r["hex"].last_child() >> out;
+        r["hex"].last_child().load(&out);
         EXPECT_EQ(out, val);
         out = notval(val);
-        r["bin"].last_child() >> out;
+        r["bin"].last_child().load(&out);
         EXPECT_EQ(out, val);
         out = notval(val);
-        r["oct"].last_child() >> out;
+        r["oct"].last_child().load(&out);
         EXPECT_EQ(out, val);
     }
     {
@@ -62,16 +81,16 @@ void test_ints()
         for(I val : values)
         {
             I out = notval(val);
-            parsed["dec"][pos] >> out;
+            parsed["dec"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["hex"][pos] >> out;
+            parsed["hex"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["bin"][pos]>> out;
+            parsed["bin"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["oct"][pos] >> out;
+            parsed["oct"][pos].load(&out);
             EXPECT_EQ(out, val);
             ++pos;
         }
@@ -92,16 +111,16 @@ void test_ints()
         for(I val : values)
         {
             I out = notval(val);
-            parsed["dec"][pos] >> out;
+            parsed["dec"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["hex"][pos] >> out;
+            parsed["hex"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["bin"][pos]>> out;
+            parsed["bin"][pos].load(&out);
             EXPECT_EQ(out, val);
             out = notval(val);
-            parsed["oct"][pos] >> out;
+            parsed["oct"][pos].load(&out);
             EXPECT_EQ(out, val);
             ++pos;
         }
@@ -139,9 +158,9 @@ static bool fleq(T a, T b)
 TEST(number, nan_0)
 {
     Tree t;
-    t.rootref() |= SEQ;
-    t[0] << std::numeric_limits<float>::quiet_NaN();
-    t[1] << std::numeric_limits<double>::quiet_NaN();
+    t.rootref().set_seq();
+    t[0].save(std::numeric_limits<float>::quiet_NaN());
+    t[1].save(std::numeric_limits<double>::quiet_NaN());
     EXPECT_EQ(t[0].val(), ".nan");
     EXPECT_EQ(t[1].val(), ".nan");
     EXPECT_EQ(emitrs_yaml<std::string>(t),
@@ -180,8 +199,8 @@ set:
                 double d = 0.;
                 EXPECT_FALSE(std::isnan(f));
                 EXPECT_FALSE(std::isnan(d));
-                ch >> f;
-                ch >> d;
+                ch.load(&f);
+                ch.load(&d);
                 EXPECT_TRUE(std::isnan(f));
                 EXPECT_TRUE(std::isnan(d));
             }
@@ -190,8 +209,8 @@ set:
                 double d = 0.;
                 EXPECT_FALSE(std::isnan(f));
                 EXPECT_FALSE(std::isnan(d));
-                ch >> key(f);
-                ch >> key(d);
+                ch.load_key(&f);
+                ch.load_key(&d);
                 EXPECT_TRUE(std::isnan(f));
                 EXPECT_TRUE(std::isnan(d));
             }
@@ -200,10 +219,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -244,13 +263,13 @@ set:
 TEST(number, inf_0)
 {
     Tree t;
-    t.rootref() |= SEQ;
+    t.rootref().set_seq();
     const float finf = std::numeric_limits<float>::infinity();
     const double dinf = std::numeric_limits<double>::infinity();
-    t[0] << finf;
-    t[1] << dinf;
-    t[2] << -finf;
-    t[3] << -dinf;
+    t[0].save(finf);
+    t[1].save(dinf);
+    t[2].save(-finf);
+    t[3].save(-dinf);
     EXPECT_EQ(t[0].val(), ".inf");
     EXPECT_EQ(t[1].val(), ".inf");
     EXPECT_EQ(t[2].val(), "-.inf");
@@ -263,6 +282,9 @@ TEST(number, inf_0)
 - -.inf
 - -.inf
 )");
+    EXPECT_TRUE(scalar_is_special_json(".inf"));
+    EXPECT_TRUE(scalar_is_special_json("-.inf"));
+    EXPECT_TRUE(scalar_is_special_json("+.inf"));
     EXPECT_EQ(emitrs_json<std::string>(t),
               R"([".inf",".inf","-.inf","-.inf"])");
 }
@@ -309,8 +331,8 @@ set:
                 EXPECT_FALSE(fleq(d, dinf));
                 EXPECT_FALSE(std::isinf(f));
                 EXPECT_FALSE(std::isinf(d));
-                ch >> f;
-                ch >> d;
+                ch.load(&f);
+                ch.load(&d);
                 EXPECT_TRUE(fleq(f, finf));
                 EXPECT_TRUE(fleq(d, dinf));
                 EXPECT_TRUE(std::isinf(f));
@@ -323,8 +345,8 @@ set:
                 EXPECT_FALSE(fleq(d, dinf));
                 EXPECT_FALSE(std::isinf(f));
                 EXPECT_FALSE(std::isinf(d));
-                ch >> key(f);
-                ch >> key(d);
+                ch.load_key(&f);
+                ch.load_key(&d);
                 EXPECT_TRUE(fleq(f, finf));
                 EXPECT_TRUE(fleq(d, dinf));
                 EXPECT_TRUE(std::isinf(f));
@@ -335,10 +357,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -411,16 +433,16 @@ set:
             {
                 float f = 0.f;
                 double d = 0.;
-                ch >> f;
-                ch >> d;
+                ch.load(&f);
+                ch.load(&d);
                 EXPECT_TRUE(fleq(f, -finf));
                 EXPECT_TRUE(fleq(d, -dinf));
             }
             {
                 float f = 0.f;
                 double d = 0.;
-                ch >> key(f);
-                ch >> key(d);
+                ch.load_key(&f);
+                ch.load_key(&d);
                 EXPECT_TRUE(fleq(f, -finf));
                 EXPECT_TRUE(fleq(d, -dinf));
             }
@@ -429,10 +451,10 @@ set:
             SCOPED_TRACE(ch.key());
             float f = 0.f;
             double d = 0.;
-            ExpectError::check_error_visit(&t, [&]{ ch >> f; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> d; });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(f); });
-            ExpectError::check_error_visit(&t, [&]{ ch >> key(d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
         }
         EXPECT_EQ(emitrs_yaml<std::string>(t),
                   R"(good:
@@ -467,11 +489,376 @@ set:
     });
 }
 
+TEST(number, inf_3)
+{
+    csubstr yaml = R"(
+good:
+  +.inf: +.inf
+  +.inf:   +.inf
+  +.Inf: +.Inf
+  +.INF: +.INF
+  +inf: +inf
+  +infinity: +infinity
+  infinity: infinity
+  +.inf:
+    +.inf
+set:
+  nothing0: nothing
+  nothing1: nothing
+)";
+    test_check_emit_check(yaml, [](Tree const& t){
+        float finf = std::numeric_limits<float>::infinity();
+        double dinf = std::numeric_limits<double>::infinity();
+        EXPECT_EQ(t["good"][0].val(), "+.inf");
+        EXPECT_EQ(t["good"][1].val(), "+.inf");
+        EXPECT_EQ(t["good"][2].val(), "+.Inf");
+        EXPECT_EQ(t["good"][3].val(), "+.INF");
+        EXPECT_EQ(t["good"][4].val(), "+inf");
+        EXPECT_EQ(t["good"][5].val(), "+infinity");
+        EXPECT_EQ(t["good"][6].val(), "infinity");
+        EXPECT_EQ(t["good"][7].val(), "+.inf");
+        EXPECT_EQ(t["good"][0].key(), "+.inf");
+        EXPECT_EQ(t["good"][1].key(), "+.inf");
+        EXPECT_EQ(t["good"][2].key(), "+.Inf");
+        EXPECT_EQ(t["good"][3].key(), "+.INF");
+        EXPECT_EQ(t["good"][4].key(), "+inf");
+        EXPECT_EQ(t["good"][5].key(), "+infinity");
+        EXPECT_EQ(t["good"][6].key(), "infinity");
+        EXPECT_EQ(t["good"][7].key(), "+.inf");
+        for(ConstNodeRef ch : t["good"]){
+            SCOPED_TRACE(ch.key());
+            {
+                float f = 0.f;
+                double d = 0.;
+                ch.load(&f);
+                ch.load(&d);
+                EXPECT_TRUE(fleq(f, finf));
+                EXPECT_TRUE(fleq(d, dinf));
+            }
+            {
+                float f = 0.f;
+                double d = 0.;
+                ch.load_key(&f);
+                ch.load_key(&d);
+                EXPECT_TRUE(fleq(f, finf));
+                EXPECT_TRUE(fleq(d, dinf));
+            }
+        }
+        for(ConstNodeRef ch : t["set"]){
+            SCOPED_TRACE(ch.key());
+            float f = 0.f;
+            double d = 0.;
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load(&d); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&f); });
+            ExpectError::check_error_visit(&t, [&]{ ch.load_key(&d); });
+        }
+        EXPECT_EQ(emitrs_yaml<std::string>(t),
+                  R"(good:
+  +.inf: +.inf
+  +.inf: +.inf
+  +.Inf: +.Inf
+  +.INF: +.INF
+  +inf: +inf
+  +infinity: +infinity
+  infinity: infinity
+  +.inf: +.inf
+set:
+  nothing0: nothing
+  nothing1: nothing
+)");
+        EXPECT_EQ(emitrs_json<std::string>(t),
+                  R"({
+  "good": {
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf",
+    ".inf": ".inf"
+  },
+  "set": {
+    "nothing0": "nothing",
+    "nothing1": "nothing"
+  }
+}
+)");
+    });
+}
+
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+namespace {
+template<class T>
+struct val_and_str
+{
+    csubstr str;
+    T val;
+};
+template<class T>
+Tree make_tree(val_and_str<T> const* vals, size_t num_vals)
+{
+    Tree tree;
+    NodeRef r = tree;
+    r.set_map();
+    auto append = [&](csubstr number) {
+        NodeRef ch = r.append_child();
+        ch .set_key_serialized(number);
+        ch .set_serialized(number);
+    };
+    for(size_t i = 0; i < num_vals; ++i)
+    {
+        append(vals[i].str);
+    }
+    return tree;
+}
+template<class T, class Cmp>
+void check_vals(val_and_str<T> const* vals, size_t num_vals, Cmp const& cmp)
+{
+    Tree tree = make_tree(vals, num_vals);
+    NodeRef tmp = tree["tmp"];
+    for(size_t i = 0; i < num_vals; ++i)
+    {
+        auto const& vs = vals[i];
+        T val = {};
+        ConstNodeRef node = tree[vs.str];
+        ReadResult rr = node.deserialize(&val);
+        {
+            RYML_TRACE_FMT("i={}  vs.str={}  vs.val={}   val={}", i, vs.str, vs.val, val);
+            EXPECT_TRUE(rr);
+            EXPECT_TRUE(cmp(vs.val, val));
+        }
+        tmp.save(val);
+        val = {};
+        rr = tmp.deserialize(&val);
+        {
+            RYML_TRACE_FMT("i={}  vs.str={}  vs.val={}   val={}", i, vs.str, vs.val, val);
+            EXPECT_TRUE(rr);
+            EXPECT_TRUE(cmp(vs.val, val));
+        }
+    }
+}
+
+template<class T> bool cmpints(T lhs, T rhs) { return lhs == rhs; }
+template<class T> bool cmpfloat(T lhs, T rhs, T eps) { return std::abs(lhs - rhs) < eps; }
+
+#define int_cases_bin(lcase, ucase, _)\
+            _(lcase, ucase, "0", 0),\
+            _(lcase, ucase, "1", 1),\
+            _(lcase, ucase, "10", 2),\
+            _(lcase, ucase, "010", 2),\
+            _(lcase, ucase, "0010", 2),\
+            _(lcase, ucase, "11", 3),\
+            _(lcase, ucase, "011", 3),\
+            _(lcase, ucase, "0011", 3),\
+            _(lcase, ucase, "100", 4),\
+            _(lcase, ucase, "0100", 4),\
+            _(lcase, ucase, "00100", 4),\
+            _(lcase, ucase, "101", 5),\
+            _(lcase, ucase, "0101", 5),\
+            _(lcase, ucase, "00101", 5),
+#define int_cases_oct(lcase, ucase, _)\
+            _(lcase, ucase, "0", 0),\
+            _(lcase, ucase, "1", 1),\
+            _(lcase, ucase, "10", 8),\
+            _(lcase, ucase, "010", 8),\
+            _(lcase, ucase, "0010", 8),\
+            _(lcase, ucase, "11", 9),\
+            _(lcase, ucase, "011", 9),\
+            _(lcase, ucase, "0011", 9),\
+            _(lcase, ucase, "100", 64),\
+            _(lcase, ucase, "0100", 64),\
+            _(lcase, ucase, "00100", 64),\
+            _(lcase, ucase, "101", 65),\
+            _(lcase, ucase, "0101", 65),\
+            _(lcase, ucase, "00101", 65),
+#define int_cases_hex(lcase, ucase, _)\
+            _(lcase, ucase, "0", 0),\
+            _(lcase, ucase, "1", 1),\
+            _(lcase, ucase, "10", 16),\
+            _(lcase, ucase, "010", 16),\
+            _(lcase, ucase, "0010", 16),\
+            _(lcase, ucase, "11", 17),\
+            _(lcase, ucase, "011", 17),\
+            _(lcase, ucase, "0011", 17),\
+            _(lcase, ucase, "100", 256),\
+            _(lcase, ucase, "0100", 256),\
+            _(lcase, ucase, "00100", 256),\
+            _(lcase, ucase, "101", 257),\
+            _(lcase, ucase, "0101", 257),\
+            _(lcase, ucase, "00101", 257),
+
+#define signed_case(lcase, ucase, str, val)                     \
+    {csubstr("" lcase str), val}, {csubstr("" ucase str), val},\
+    {csubstr("+" lcase str), val}, {csubstr("+" ucase str), val},\
+    {csubstr("-" lcase str), -(val)}, {csubstr("-" ucase str), -(val)}
+#define unsigned_case(lcase, ucase, str, val)                     \
+    {csubstr("" lcase str), val}, {csubstr("" ucase str), val},   \
+    {csubstr("+" lcase str), val}, {csubstr("+" ucase str), val}
+
+template<class T>
+auto test_ints_bin() -> typename std::enable_if<std::is_signed<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_bin("0b", "0B", signed_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+template<class T>
+auto test_ints_bin() -> typename std::enable_if<std::is_unsigned<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_bin("0b", "0B", unsigned_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+
+template<class T>
+auto test_ints_oct() -> typename std::enable_if<std::is_signed<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_oct("0o", "0O", signed_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+template<class T>
+auto test_ints_oct() -> typename std::enable_if<std::is_unsigned<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_oct("0o", "0O", unsigned_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+
+template<class T>
+auto test_ints_hex() -> typename std::enable_if<std::is_signed<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_hex("0x", "0X", signed_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+template<class T>
+auto test_ints_hex() -> typename std::enable_if<std::is_unsigned<T>::value, void>::type // NOLINT
+{
+    const val_and_str<T> vals[] = { int_cases_hex("0x", "0X", unsigned_case) };
+    check_vals(vals, C4_COUNTOF(vals), cmpints<T>);
+}
+
+
+template<class T>
+void test_hex_float(T epsilon)
+{
+    const val_and_str<T> vals[] = {
+        #define _(str, val)                                 \
+            {csubstr("0x" str), val}, {csubstr("0X" str), val},\
+            {csubstr("+0x" str), val}, {csubstr("+0X" str), val},\
+            {csubstr("-0x" str), -(val)}, {csubstr("-0X" str), -(val)}
+        _("0p+0", 0),
+        _("1p+0", 1),
+        _("2p+0", 2),
+        _("3p+0", 3),
+        #undef _
+    };
+    auto cmp = [epsilon](T lhs, T rhs){ return cmpfloat(lhs, rhs, epsilon); };
+    check_vals(vals, C4_COUNTOF(vals), cmp);
+}
+
+
+TEST(number, bin_ints)
+{
+    test_ints_bin<int8_t>();
+    test_ints_bin<int16_t>();
+    test_ints_bin<int32_t>();
+    test_ints_bin<int64_t>();
+    test_ints_bin<uint8_t>();
+    test_ints_bin<uint16_t>();
+    test_ints_bin<uint32_t>();
+    test_ints_bin<uint64_t>();
+}
+
+TEST(number, oct_ints)
+{
+    test_ints_oct<int8_t>();
+    test_ints_oct<int16_t>();
+    test_ints_oct<int32_t>();
+    test_ints_oct<int64_t>();
+    test_ints_oct<uint8_t>();
+    test_ints_oct<uint16_t>();
+    test_ints_oct<uint32_t>();
+    test_ints_oct<uint64_t>();
+}
+
+TEST(number, hex_ints)
+{
+    //test_ints_hex<int8_t>();
+    test_ints_hex<int16_t>();
+    test_ints_hex<int32_t>();
+    test_ints_hex<int64_t>();
+    //test_ints_hex<uint8_t>();
+    test_ints_hex<uint16_t>();
+    test_ints_hex<uint32_t>();
+    test_ints_hex<uint64_t>();
+}
+
+} // namespace
+
+TEST(number, hex_double)
+{
+    test_hex_float<double>(1.e-10);
+}
+
+TEST(number, hex_float)
+{
+    test_hex_float<float>(1.e-6f);
+}
+
+
+namespace {
+template<class T>
+void test_hex_float_error()
+{
+    csubstr vals[] = {
+        //"++0xap0", // FIXME
+        //"+-0xap0", // FIXME
+        "-+0xap0",
+        "--0xap0",
+        "+0xap++0",
+        "-0xap++0",
+        //"+0xap+-0", //FIXME
+        //"-0xap+-0", //FIXME
+        "+0xap-+0",
+        "-0xap-+0",
+        "+0xap--0",
+        "-0xap--0",
+        "+0xrp0",
+        "-0xrp0",
+        "+0x+ap0",
+        "-0x+ap0",
+        "+0x-ap0",
+        "-0x-ap0",
+    };
+    for(csubstr v : vals)
+    {
+        SCOPED_TRACE(v);
+        T var = {};
+        EXPECT_FALSE(scalar_deserialize(v, &var));
+    }
+}
+} // namespace
+
+TEST(number, hex_error_float)
+{
+    test_hex_float_error<float>();
+}
+
+TEST(number, hex_error_double)
+{
+    test_hex_float_error<double>();
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+namespace {
 template<class T>
 static void checkinf_(ConstNodeRef const& n)
 {
@@ -479,7 +866,7 @@ static void checkinf_(ConstNodeRef const& n)
     SCOPED_TRACE(val);
     T fa = T(0);
     EXPECT_FALSE(std::isinf(fa));
-    n >> fa;
+    n.load(&fa);
     EXPECT_TRUE(std::isinf(fa));
 }
 #define checkinf(n) do { SCOPED_TRACE(#n); checkinf_<float>(n);  checkinf_<double>(n); } while(0)
@@ -490,10 +877,11 @@ static void checknan_(ConstNodeRef const& n)
     SCOPED_TRACE(val);
     T fa = T(0);
     EXPECT_FALSE(std::isnan(fa));
-    n >> fa;
+    n.load(&fa);
     EXPECT_TRUE(std::isnan(fa));
 }
 #define checknan(n) do { SCOPED_TRACE(#n); checknan_<float>(n);  checknan_<double>(n); } while(0)
+} // namespace
 
 
 TEST(number, github_312__proposed_8e888_cannot_be_converted)
@@ -509,8 +897,8 @@ TEST(number, github_312__proposed_8e888_cannot_be_converted)
     EXPECT_FALSE(from_chars_float("-8e888", &f));
     EXPECT_FALSE(from_chars_float("-8e888", &d));
     Tree t = parse_in_arena("8e888");
-    ExpectError::check_error_visit(&t, [&]{ t.rootref() >> f; });
-    ExpectError::check_error_visit(&t, [&]{ t.rootref() >> d; });
+    ExpectError::check_error_visit(&t, [&]{ t.rootref().load(&f); });
+    ExpectError::check_error_visit(&t, [&]{ t.rootref().load(&d); });
 }
 
 TEST(number, github_312_535__json_styles_for_special_values)
@@ -563,6 +951,10 @@ TEST(number, github_312_535)
     C4_SUPPRESS_WARNING_GCC("-Wduplicated-branches")
     #endif
     auto checktree_ = [](Tree const& t, int type){
+        C4_SUPPRESS_WARNING_GCC_PUSH
+        #if defined(__GNUC__) && __GNUC__>= 7
+        C4_SUPPRESS_WARNING_GCC("-Wduplicated-branches")
+        #endif
         // inf
         ConstNodeRef inf = type == is_yaml ? t["inf"] : t[".inf"];
         EXPECT_EQ(inf[0].val(), type == is_yaml ? "inf" : ".inf"); checkinf(inf[0]);
@@ -596,6 +988,7 @@ TEST(number, github_312_535)
         EXPECT_EQ(t["normal"][0].val(), "0.1");
         EXPECT_EQ(t["normal"][1].val(), "0.2e3");
         EXPECT_EQ(t["normal"][2].val(), "4.e5");
+        C4_SUPPRESS_WARNING_GCC_POP
     };
     C4_SUPPRESS_WARNING_GCC_POP
     #define checktree(...) do { SCOPED_TRACE("here"); checktree_(__VA_ARGS__); } while(0)

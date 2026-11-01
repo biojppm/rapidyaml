@@ -1,37 +1,16 @@
 # rapidyaml
 
-* Begin by looking at the [project's README](https://github.com/biojppm/rapidyaml/blob/v0.15.2/README.md)
-* [Documentation page](https://rapidyaml.readthedocs.org)
-* Next, skim the docs for the @ref doc_quickstart sample.
-* Good! Now the main ryml topics:
-  * @ref doc_parse - how to parse YAML/JSON into a tree
-  * @ref doc_emit - how to emit YAML/JSON from an existing tree
-  * How to visit and create ryml trees:
-    * @ref doc_node_type
-    * @ref doc_tree
-    * @ref doc_node_classes
-  * For serialization/deserialization, see @ref doc_serialization.
-  * @ref doc_ref_utils - how to resolve references to anchors
-  * @ref doc_tag_utils - how to resolve tags
-  * @ref doc_callbacks - how to set up error/allocation/deallocation
-    callbacks either globally for the library, or for specific objects
-    such as @ref c4::yml::Tree or @ref c4::yml::Parser 
-* rapidyaml uses these facilities from [c4core](https://github.com/biojppm/c4core), so their documentation is also shown here:
-  * @ref doc_substr
-  * @ref doc_charconv
-  * @ref doc_format_utils
-  * @ref doc_base64
-  
-You should also be aware that the @ref doc_charconv facilities in
-[c4core](https://github.com/biojppm/c4core) are extremely fast, and
-generally outperform the fastest equivalent facilities in the standard
-library by a significant margin; refer to the documentation of @ref
-doc_charconv for further details. For example:
+* [project's README](https://github.com/biojppm/rapidyaml/blob/v0.16.0/README.md)
+* [readthedocs page](https://rapidyaml.readthedocs.org)
+* To start exploring ryml's API:
+  1. locate the navigation side bar, to the left of this text
+  2. expand to Topics -> Quickstart-> Overview and click there to open (direct link: @ref doc_quickstart_overview)
+  3. scroll through the overview
+  4. from the start you will likely be interested in one or more of the following topics:
+     - quickstart @ref doc_quickstart_parse, follow-up with @ref doc_parse for the API docs
+     - quickstart @ref doc_quickstart_tree, follow-up with @ref doc_tree for the API docs
+     - quickstart @ref doc_quickstart_emit, follow-up with @ref doc_emit for the API docs
+     - quickstart @ref doc_quickstart_serialization, follow-up with @ref doc_serialization for the API docs
+  5. read the remaining topics as required by your work
 
-<table>
-<caption id="xtoa-i64">xtoa,int64_t</caption>
-<tr><th>g++12, linux <th>Visual Studio 2019
-<tr><td> \image html linux-x86_64-gxx12.1-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png <td> \image html windows-x86_64-vs2019-Release-c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png
-</table>
-
-
+Happy ryml'ing!

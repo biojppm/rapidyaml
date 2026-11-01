@@ -1,4 +1,4 @@
-!yamlscript/v0:
+!ys-0:
 
 :use common: :all
 :: workflow-setup()
@@ -21,10 +21,9 @@ jobs:
         include:
         - {std: 17, comp: gcc14  , os: ubuntu-24.04, cmkflags: -DCMAKE_CXX_COMPILER=g++-14     -DCMAKE_C_COMPILER=gcc-14}
         - {std: 17, comp: clang18, os: ubuntu-24.04, cmkflags: -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_C_COMPILER=clang-18}
-        #- {std: 17, comp: vs2019 , os: windows-2019, cmkflags: -G 'Visual Studio 16 2019' -A x64}
-        - {std: 17, comp: vs2022 , os: windows-2022, cmkflags: -G 'Visual Studio 17 2022' -A x64}
-        - {std: 17, comp: xcode15, os: macos-15-intel, xcver: 16, cmkflags: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64}
-    env:: -{'BM' 'ON'} + load('share/env.yaml')
+        - {std: 17, comp: vs2026 , os: windows-2025, cmkflags: -G 'Visual Studio 18 2026' -A x64}
+        - {std: 17, comp: xcode16, os: macos-15-intel, xcver: 16, cmkflags: -G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64}
+    env:: +{'BM' 'ON'} + load('share/env.yaml')
     steps:
     - :: checkout-action
     - :: version-get-vars
@@ -33,13 +32,15 @@ jobs:
     - name: show info
       run: source .github/setenv.sh && c4_show_info
     - :: install-python-action
+    - name: checkout c4core
+      run: make -C ext c4core
     - name: install benchmark plotting dependencies
       run: |
         which python
         which pip
         python --version
         pip --version
-        pip install -v -r ext/c4core/cmake/bm-xp/requirements.txt
+        pip install -v -r proj/c4proj/bm-xp/requirements.txt
         python -c 'import munch ; print("ok!") ; exit(0)'
         echo $?
     - name: configure-------------------------------------------------
@@ -47,8 +48,8 @@ jobs:
         cmake -S . -B build \
             ${{matrix.cmkflags}} \
             -DPython_EXECUTABLE="$(which python)" \
-            -DC4_CXX_STANDARD=${{matrix.std}} \
-            -DRYML_CXX_STANDARD=${{matrix.std}} \
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+            -DCMAKE_BUILD_TYPE=Release \
             -DRYML_BUILD_BENCHMARKS=ON
     - name: build
       run: cmake --build build --config Release --parallel --verbose --target ryml-bm-build
@@ -58,19 +59,14 @@ jobs:
       run: cmake --build build --config Release --verbose --target ryml-bm-plot
     - name: gather benchmark results-------------------------------------------
       run: |
-        set -x
-        source vars.sh
-        echo SRC_TAG=$SRC_TAG
-        echo SRC_VERSION=$SRC_VERSION
-        desc=$SRC_TAG
-        for bl in ${{matrix.bitlinks}} ; do
-          dst=$(echo ryml-benchmark_results/$desc/x86_64/${{matrix.cxx}}-${{matrix.bt}}-c++${{matrix.std}}-$bl | sed 's:++-:xx:g' | sed 's:+:x:g')
-          mkdir -p $dst
-          find build -name bm-results
-          mv -vf build/$bl/bm/bm-results/* $dst/.
-        done
+        set -xe
+        desc=`cd proj/ ; make describe`
+        dst=ryml-benchmark-results/$desc/x86_64/
+        name=${{matrix.comp}}-Release-cxx${{matrix.std}}
+        mkdir -p $dst
+        mv -vf build/bm/bm-results/ $dst/$name
     - name: upload benchmark result artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
-        name: ryml-benchmark_results-${{strategy.job-index}}
-        path: ryml-benchmark_results/
+        name: ryml-benchmark-results-${{matrix.comp}}
+        path: ryml-benchmark-results/

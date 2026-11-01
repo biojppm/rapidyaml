@@ -192,7 +192,10 @@ TEST_P(TestNonFirstDashBOM, success_prevline)
     csubstr fmt("{}\n"
                 "- a\n"
                 "- b\n");
-    test_non_first_dash_bom_success(fmt, p.bom);
+    if(p.supported)
+        test_non_first_dash_bom_success(fmt, p.bom);
+    else
+        test_non_first_dash_bom_error(fmt, p.bom, Location(1, 1));
 }
 
 TEST_P(TestNonFirstDashBOM, success_before_no_spaces)
@@ -201,7 +204,10 @@ TEST_P(TestNonFirstDashBOM, success_before_no_spaces)
     SCOPED_TRACE(p.name);
     csubstr fmt("{}- a\n"
                 "- b\n");
-    test_non_first_dash_bom_success(fmt, p.bom);
+    if(p.supported)
+        test_non_first_dash_bom_success(fmt, p.bom);
+    else
+        test_non_first_dash_bom_error(fmt, p.bom, Location(1, 1));
 }
 
 TEST_P(TestNonFirstDashBOM, success_before_interleaved_spaces)
@@ -210,7 +216,10 @@ TEST_P(TestNonFirstDashBOM, success_before_interleaved_spaces)
     SCOPED_TRACE(p.name);
     csubstr fmt("{}   - a\n"
                 "   - b\n");
-    test_non_first_dash_bom_success(fmt, p.bom);
+    if(p.supported)
+        test_non_first_dash_bom_success(fmt, p.bom);
+    else
+        test_non_first_dash_bom_error(fmt, p.bom, Location(1, 1));
 }
 
 TEST_P(TestNonFirstDashBOM, err_after)
@@ -221,8 +230,15 @@ TEST_P(TestNonFirstDashBOM, err_after)
     SCOPED_TRACE(p.name);
     csubstr fmt("   - b\n"
                 "{}   - a\n");
-    size_t expected_col = p.name == "UTF8" ? 7 : 1; // FIXME
-    test_non_first_dash_bom_error(fmt, p.bom, Location(2, expected_col));
+    if(p.supported)
+    {
+        size_t expected_col = p.name == "UTF8" ? 7 : 1; // FIXME
+        test_non_first_dash_bom_error(fmt, p.bom, Location(2, expected_col));
+    }
+    else
+    {
+        test_non_first_dash_bom_error(fmt, p.bom, Location(2, 1));
+    }
 }
 
 TEST_P(TestNonFirstDashBOM, err_before)
@@ -231,7 +247,7 @@ TEST_P(TestNonFirstDashBOM, err_before)
     SCOPED_TRACE(p.name);
     csubstr fmt("{}&a - a\n"
                 "   - b\n");
-    size_t expected_col = p.bom.len + 4; // FIXME
+    size_t expected_col = p.supported ? p.bom.len + 4 : 1; // FIXME
     test_non_first_dash_bom_error(fmt, p.bom, Location(1, expected_col));
 }
 

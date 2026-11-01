@@ -1,7 +1,7 @@
-#ifndef _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
 #include "c4/yml/node_type.hpp"
 #endif
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include "c4/yml/error.hpp"
 #endif
 
@@ -9,9 +9,9 @@
 namespace c4 {
 namespace yml {
 
-const char* NodeType::type_str(NodeType_e ty) noexcept
+const char* NodeType::type_str(type_bits ty) noexcept
 {
-    switch(ty & _TYMASK)
+    switch(ty & TYMASK_)
     {
     case KEYVAL:
         return "KEYVAL";
@@ -66,302 +66,63 @@ const char* NodeType::type_str(NodeType_e ty) noexcept
     }
 }
 
-size_t NodeType::type_str(substr buf, NodeType_e flags) noexcept
-{
-    size_t pos = 0;
-    bool gotone = false;
-
-    #define _prflag(fl, txt)                                    \
-    do {                                                        \
-        if((flags & (fl)) == (fl))                              \
-        {                                                       \
-            if(gotone)                                          \
-            {                                                   \
-                if(pos + 1 < buf.len)                           \
-                    buf[pos] = '|';                             \
-                ++pos;                                          \
-            }                                                   \
-            csubstr fltxt = txt;                                \
-            if(pos + fltxt.len <= buf.len)                      \
-                memcpy(buf.str + pos, fltxt.str, fltxt.len);    \
-            pos += fltxt.len;                                   \
-            gotone = true;                                      \
-            flags = (flags & ~(fl)); /*remove the flag*/        \
-        }                                                       \
-    } while(0)
-
-    _prflag(STREAM, "STREAM");
-    _prflag(DOC, "DOC");
+namespace {
+struct type_and_name { const char* str; type_bits bits; };
+constexpr const type_and_name type_names[] = {
+    {"STREAM", STREAM},
+    {"DOC", DOC},
     // key properties
-    _prflag(KEY, "KEY");
-    _prflag(KEYNIL, "KNIL");
-    _prflag(KEYTAG, "KTAG");
-    _prflag(KEYANCH, "KANCH");
-    _prflag(KEYREF, "KREF");
-    _prflag(KEY_LITERAL, "KLITERAL");
-    _prflag(KEY_FOLDED, "KFOLDED");
-    _prflag(KEY_SQUO, "KSQUO");
-    _prflag(KEY_DQUO, "KDQUO");
-    _prflag(KEY_PLAIN, "KPLAIN");
-    _prflag(KEY_UNFILT, "KUNFILT");
+    {"KEY", KEY},
+    {"KNIL", KEYNIL},
+    {"KTAG", KEYTAG},
+    {"KANCH", KEYANCH},
+    {"KREF", KEYREF},
+    {"KLITERAL", KEY_LITERAL},
+    {"KFOLDED", KEY_FOLDED},
+    {"KSQUO", KEY_SQUO},
+    {"KDQUO", KEY_DQUO},
+    {"KPLAIN", KEY_PLAIN},
+    {"KUNFILT", KEY_UNFILT},
     // val properties
-    _prflag(VAL, "VAL");
-    _prflag(VALNIL, "VNIL");
-    _prflag(VALTAG, "VTAG");
-    _prflag(VALANCH, "VANCH");
-    _prflag(VALREF, "VREF");
-    _prflag(VAL_UNFILT, "VUNFILT");
-    _prflag(VAL_LITERAL, "VLITERAL");
-    _prflag(VAL_FOLDED, "VFOLDED");
-    _prflag(VAL_SQUO, "VSQUO");
-    _prflag(VAL_DQUO, "VDQUO");
-    _prflag(VAL_PLAIN, "VPLAIN");
-    _prflag(VAL_UNFILT, "VUNFILT");
+    {"VAL", VAL},
+    {"VNIL", VALNIL},
+    {"VTAG", VALTAG},
+    {"VANCH", VALANCH},
+    {"VREF", VALREF},
+    {"VLITERAL", VAL_LITERAL},
+    {"VFOLDED", VAL_FOLDED},
+    {"VSQUO", VAL_SQUO},
+    {"VDQUO", VAL_DQUO},
+    {"VPLAIN", VAL_PLAIN},
+    {"VUNFILT", VAL_UNFILT},
     // container properties
-    _prflag(MAP, "MAP");
-    _prflag(SEQ, "SEQ");
-    _prflag(FLOW_SL, "FLOWSL");
-    _prflag(FLOW_ML1, "FLOWML1");
-    _prflag(FLOW_MLN, "FLOWMLN");
-    _prflag(FLOW_SPC, "FLOWSPC");
-    _prflag(BLOCK, "BLCK");
-    if(pos == 0)
-        _prflag(NOTYPE, "NOTYPE");
-
-    #undef _prflag
-
-    return pos;
-}
-
-
-//-----------------------------------------------------------------------------
-
-// see https://www.yaml.info/learn/quote.html#noplain
-bool scalar_style_query_squo(csubstr s) noexcept
-{
-    // cannot have leading whitespace after a newline
-    for(size_t i = 0; i < s.len; ++i)
-    {
-        if(s.str[i] == '\n' && i + 1 < s.len)
-        {
-            char next = s.str[i + 1];
-            if(next == ' ' || next == '\t')
-                return false;
-        }
-    }
-    return true;
-}
-
-namespace {
-bool _is_wsnl(char c) noexcept
-{
-    return c == ' ' || c == '\n' || c == '\t' || c == '\r';
-}
-bool _is_valid_bulk(csubstr s, size_t i)
-{
-    C4_ASSERT(i >= 1 && i+1 < s.len);
-    C4_ASSERT(s.str[i] == ':' || s.str[i] == '#');
-    switch(s.str[i])
-    {
-    case ':': return !_is_wsnl(s.str[i+1]);
-    case '#': return !_is_wsnl(s.str[i-1]);
-    }
-    C4_UNREACHABLE(); // LCOV_EXCL_LINE
-}
+    {"MAP", MAP},
+    {"SEQ", SEQ},
+    {"FLOWSL", FLOW_SL},
+    {"FLOWML1", FLOW_ML1},
+    {"FLOWMLN", FLOW_MLN},
+    {"FLOWSPC", FLOW_SPC},
+    {"BLCK", BLOCK},
+};
 } // namespace
-// see https://www.yaml.info/learn/quote.html#noplain
-bool scalar_style_query_plain_flow(csubstr s) noexcept
+size_t NodeType::type_str(substr buf, type_bits flags) noexcept
 {
-    if(!s.len)
-        return !s.str;
-    // first
-    switch(s.str[0])
+    detail::SubstrWriter_ writer(buf);
+    for(type_and_name const tn : type_names)
     {
-    case ' ': case '\n': case '\t': case '\r':
-    case '!': case '&': case '*': case ',':
-    case '"': case '\'': case '|': case '>':
-    case '{': case '}': case '[': case ']':
-    case '#': case '`': case '%': case '@':
-        return false;
-    case '-': case ':': case '?':
-        if(s.len == 1 || (s.str[1] == ' ' || s.str[1] == '\t'))
-            return false;
-        break;
-    }
-    // bulk
-    for(size_t i = 1; i + 1 < s.len; ++i)
-    {
-        switch(s.str[i])
+        if((flags & tn.bits) == tn.bits)
         {
-        case ',': case '{': case '}': case '[': case ']':
-            return false;
-        case ':': case '#':
-            if(!_is_valid_bulk(s, i))
-                return false;
-            break;
+            if(writer.pos)
+                writer.append('|');
+            writer.append(tn.str);
+            flags = flags & ~tn.bits; // remove the flag
         }
     }
-    // last
-    if(s.len > 1)
-    {
-        switch(s.back())
-        {
-        case ' ': case '\n': case '\t': case '\r':
-        case ',':
-        case '{': case '}':
-        case '[': case ']':
-        case '#':
-        case ':':
-            return false;
-        }
-    }
-    return true;
-}
-
-bool scalar_style_query_plain_block(csubstr s) noexcept
-{
-    if(!s.len)
-        return !s.str;
-    // first
-    switch(s.str[0])
-    {
-    case ' ': case '\n': case '\t': case '\r':
-    case '!': case '&': case '*': case ',':
-    case '"': case '\'': case '|': case '>':
-    case '{': case '}': case '[': case ']':
-    case '#': case '`': case '%': case '@':
-        return false;
-    case '-': case ':': case '?':
-        if (s.len == 1 || (s.str[1] == ' ' || s.str[1] == '\t'))
-            return false;
-        break;
-    }
-    // bulk
-    for(size_t i = 1; i + 1 < s.len; ++i)
-    {
-        switch(s.str[i])
-        {
-        case ':': case '#':
-            if(!_is_valid_bulk(s, i))
-                return false;
-            break;
-        }
-    }
-    // last
-    if(s.len > 1)
-    {
-        switch(s.back())
-        {
-        case ' ': case '\n': case '\t': case '\r':
-        case '#':
-        case ':':
-            return false;
-        }
-    }
-    return true;
-}
-
-NodeType_e scalar_style_choose_flow(csubstr s) noexcept
-{
-    if(s.len)
-    {
-        if(scalar_style_query_plain_flow(s))
-            return SCALAR_PLAIN;
-        else if(scalar_style_query_squo(s))
-            return SCALAR_SQUO;
-        return SCALAR_DQUO;
-    }
-    return s.str ? SCALAR_SQUO : SCALAR_PLAIN;
-}
-
-NodeType_e scalar_style_choose_block(csubstr s) noexcept
-{
-    if(s.len)
-    {
-        if(scalar_style_query_plain_block(s))
-            return SCALAR_PLAIN;
-        _RYML_ASSERT_BASIC(scalar_style_query_squo(s)
-                           && "if this assertion fires, please submit an issue!");
-        return SCALAR_SQUO;
-    }
-    return s.str ? SCALAR_SQUO : SCALAR_PLAIN;
-}
-
-
-bool scalar_is_null(csubstr s) noexcept
-{
-    return s.str == nullptr ||
-        (s.len == 1 && (s.str[0] == '~')) ||
-        (s.len == 4 && ((0 == memcmp("null", s.str, 4))
-                        || (0 == memcmp("Null", s.str, 4))
-                        || (0 == memcmp("NULL", s.str, 4))));
-}
-
-
-//-----------------------------------------------------------------------------
-
-namespace {
-
-#define rest_is(c1, c2) ((s.str[1] == (c1)) && (s.str[2] == (c2)))
-bool is_inf_or_nan(csubstr s) noexcept
-{
-    _RYML_ASSERT_BASIC(!s.begins_with("-."));
-    _RYML_ASSERT_BASIC(!s.begins_with("+."));
-    _RYML_ASSERT_BASIC(!s.begins_with("."));
-    _RYML_ASSERT_BASIC(s.len == 3);
-    switch(s.str[0])
-    {
-    case 'i': return rest_is('n', 'f');
-    case 'I': return rest_is('n', 'f') || rest_is('N', 'F');
-    case 'n': return rest_is('a', 'n');
-    case 'N': return rest_is('a', 'n') || rest_is('A', 'N') || rest_is('a', 'N');
-    }
-    return false;
-}
-bool is_inf(csubstr s) noexcept
-{
-    _RYML_ASSERT_BASIC(!s.begins_with("-."));
-    _RYML_ASSERT_BASIC(!s.begins_with("+."));
-    _RYML_ASSERT_BASIC(!s.begins_with("."));
-    _RYML_ASSERT_BASIC(s.len == 3);
-    switch(s.str[0])
-    {
-    case 'i': return rest_is('n', 'f');
-    case 'I': return rest_is('n', 'f') || rest_is('N', 'F');
-    }
-    return false;
-}
-#undef rest_is
-
-bool json_is_plain_number(csubstr s) noexcept
-{
-    return s.is_number()
-        &&
-        (
-            // quote integral numbers if they have a leading 0
-            // https://github.com/biojppm/rapidyaml/issues/291
-            (!(s.len > 1 && s.begins_with('0')))
-            // do not quote reals with leading 0
-            // https://github.com/biojppm/rapidyaml/issues/313
-            || (s.find('.') != csubstr::npos)
-        );
-}
-bool json_is_special_scalar(csubstr s)  noexcept
-{
-    if(s.len == 4)
-        return 0 == memcmp("true", s.str, 4)
-            || 0 == memcmp("null", s.str, 4)
-            || (s[0] == '.' && is_inf_or_nan(s.sub(1)));
-    else if(s.len == 5)
-        return 0 == memcmp("false", s.str, 5)
-            || ((s[0] == '-' || s[0] == '+') && s[1] == '.' && is_inf(s.sub(2)));
-    return false;
-}
-} // namespace
-NodeType_e scalar_style_choose_json(csubstr s) noexcept
-{
-    // do not quote numbers or special scalars
-    return json_is_plain_number(s) || json_is_special_scalar(s) ? SCALAR_PLAIN : SCALAR_DQUO;
+    if(!writer.pos)
+        writer.append("NOTYPE");
+    if(writer.pos < buf.len)
+        buf[writer.pos] = '\0';
+    return writer.pos;
 }
 
 } // namespace yml

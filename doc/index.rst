@@ -55,12 +55,13 @@ Table of contents
 .. toctree::
    :maxdepth: 3
 
-   Doxygen docs <doxygen/index.html#http://>
-   YAML playground <https://play.yaml.io/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>
+   Doxygen docs <doxygen/index.html#https://>
+   YAML playground <https://play.yaml.com/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>
    ./sphinx_quicklinks
    ./sphinx_is_it_rapid
    ./sphinx_yaml_standard
    ./sphinx_using
+   ./sphinx_cmake_build_settings
    ./sphinx_other_languages
    ./sphinx_alternative_libraries
 
@@ -72,7 +73,7 @@ API teaser
 Here's a short teaser from the API quickstart overview (`see on
 doxygen <doxygen/group__doc__quickstart.html>`_ / `see full code on
 github
-<https://github.com/biojppm/rapidyaml/blob/v0.15.2/samples/quickstart.cpp>`_):
+<https://github.com/biojppm/rapidyaml/blob/v0.16.0/samples/quickstart.cpp>`_):
 
 .. code-block:: c++
 
@@ -89,39 +90,40 @@ github
 
     // deserializing:
     int bar0 = 0, bar1 = 0;
-    bar[0] >> bar0;
-    bar[1] >> bar1;
+    bar[0].load(&bar0); // also checks the node is readable, and conversion succeeded
+    bar[1].load(&bar1); // see also .deserialize()
     CHECK(bar0 == 2);
     CHECK(bar1 == 3);
 
     // serializing:
-    bar[0] << 10; // creates a string in the tree's arena
-    bar[1] << 11;
+    bar[0].save(10); // creates a string in the tree's arena
+    bar[1].save(11); // see also .set_serialized()
     CHECK(bar[0].val() == "10");
     CHECK(bar[1].val() == "11");
 
     // add nodes
-    bar.append_child() << 12; // see also operator= (explanation below)
+    tree["new"].set_val("node");
+    bar.append_child().save(12);
     CHECK(bar[2].val() == "12");
 
     // emit tree
-    // to std::string
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
-    bar:
-      - 10
-      - 11
-      - 12
-    john: doe
-    )");
-    std::cout << tree; // emit to stdout
-    ryml::emit_yaml(tree, stdout); // emit to file
+    std::string expected = "{foo: 1,bar: [10,11,12],john: doe,new: node}";
+    // emit tree to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == expected);
+    // emit tree to FILE*
+    ryml::emit_yaml(tree, stdout); printf("\n");
+    // emit tree to ostream
+    std::cout << tree << "\n";
 
     // emit node
     ryml::ConstNodeRef foo = tree["foo"];
-    // to std::string
-    CHECK(ryml::emitrs_yaml<std::string>(foo) == "foo: 1\n");
-    std::cout << foo; // emit node to stdout
-    ryml::emit_yaml(foo, stdout); // emit node to file
+    expected = "foo: 1\n";
+    // emit node to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(foo) == expected);
+    // emit node to FILE*
+    ryml::emit_yaml(foo, stdout);
+    // emit node to ostream
+    std::cout << foo;
 
 
 .. note::

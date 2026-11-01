@@ -1,6 +1,7 @@
 #ifdef RYML_SAVE_TEST_YAML
 
 #include <c4/yml/common.hpp>
+#include <c4/yml/file.hpp>
 #include <c4/yml/error.hpp>
 #include <c4/error.hpp>
 #include <c4/format.hpp>
@@ -17,7 +18,8 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 namespace c4 {
 namespace yml {
 
-static char savedir[] = "./yamldump\0";
+static char savedir[] = "./yamldump";
+static bool next_test_expects_failure_ = false;
 
 struct savehelper
 {
@@ -25,12 +27,13 @@ struct savehelper
     std::vector<char> basename;
     std::vector<char> fullname;
     size_t indexpos;
-    void reset_from_notest(csubstr filename)
+    void reset_from_no_test(csubstr filename)
     {
         char buf[1024];
+        // get the executable name
         ssize_t ret = readlink("/proc/self/exe", buf, sizeof(buf)-1);
-        _RYML_CHECK_BASIC(ret > 0);
-        _RYML_CHECK_BASIC(ret < (int)sizeof(buf));
+        RYML_CHECK_BASIC_(ret > 0);
+        RYML_CHECK_BASIC_(ret < (int)sizeof(buf));
         csubstr exe = {buf, (size_t)ret};
         exe = exe.basename();
         static size_t count = 0;
@@ -52,13 +55,13 @@ struct savehelper
         {
             filename = suitename;
             size_t pos = filename.find('/');
-            _RYML_ASSERT_BASIC(pos != npos);
+            RYML_ASSERT_BASIC_(pos != npos);
             filename = filename.first(pos);
             suitename = suitename.sub(pos + 1);
             if(suitename.begins_with("YmlTestCase"))
             {
                 pos = testname.last_of('/');
-                _RYML_ASSERT_BASIC(pos != npos);
+                RYML_ASSERT_BASIC_(pos != npos);
                 suitename = testname.sub(pos+1);
             }
         }
@@ -73,8 +76,14 @@ struct savehelper
     }
     void prepare_fullname()
     {
-        printf("new test! %.*s\n", (int)basename.size(), &basename.front());
-        c4::formatrs(&fullname, "{}/{}--", savedir, basename);
+        printf("new test! %.*s[%zu]\n", (int)basename.size(), basename.data(), basename.size());
+        c4::csubstr expfail = "";
+        if(next_test_expects_failure_)
+        {
+            next_test_expects_failure_ = false;
+            expfail = "expectsfail--";
+        }
+        c4::formatrs(&fullname, "{}/{}--{}", savedir, basename, expfail);
         indexpos = fullname.size();
         fullname.resize(fullname.size() + 32);
         sources.clear();
@@ -94,7 +103,7 @@ static void save_impl(csubstr filename, csubstr extension, csubstr src)
         if(curr)
             h.reset_from_gtest(curr);
         else
-            h.reset_from_notest(filename);
+            h.reset_from_no_test(filename);
     }
     if(to_csubstr(h.basename).find("FilterTest_filter") != npos)
         return; // this case is not interesting, and very noisy
@@ -107,15 +116,19 @@ static void save_impl(csubstr filename, csubstr extension, csubstr src)
     h.sources.emplace_back(src.begin(), src.end());
     // now form the savename
     substr buf = to_substr(h.fullname).sub(h.indexpos);
-    _RYML_ASSERT_BASIC(buf.len > 0);
+    RYML_ASSERT_BASIC_(buf.len > 0);
     size_t len = c4::cat(buf, c4::fmt::zpad(index, 3), extension, '\0');
-    _RYML_ASSERT_BASIC(len < buf.len);
+    RYML_ASSERT_BASIC_(len < buf.len);
     csubstr savename = to_substr(h.fullname).first(h.indexpos + len);
     // done! dump the file
     printf("saving %.*s\n", (int)savename.len, savename.str);
-    ryml::file_put_contents(src, savename.str);
+    file_put_contents(src, savename.str);
 }
 
+void ryml_save_test_expfail()
+{
+    next_test_expects_failure_ = true;
+}
 void ryml_save_test_yaml(csubstr filename, csubstr src)
 {
     save_impl(filename, ".yaml", src);

@@ -574,17 +574,17 @@ ENGINE_TEST(ContainerKey3Block4_C2SP_0, HAS_CONTAINER_KEYS,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST_ERRLOC_(ContainerKey3Block4_C2SP_0_scalar_plain, HAS_CONTAINER_KEYS,
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_scalar_plain,
                     Location(2,8),
                     "multiline\n"
                     " scalar: 42\n"
                     "")
-ENGINE_TEST_ERRLOC_(ContainerKey3Block4_C2SP_0_scalar_squo, HAS_CONTAINER_KEYS,
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_scalar_squo,
                     Location(2,11),
                     "'multiline\n"
                     " scalar': 42\n"
                     "")
-ENGINE_TEST_ERRLOC_(ContainerKey3Block4_C2SP_0_scalar_dquo, HAS_CONTAINER_KEYS,
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_scalar_dquo,
                     Location(2,11),
                     "\"multiline\n"
                     " scalar\": 42\n"
@@ -592,6 +592,49 @@ ENGINE_TEST_ERRLOC_(ContainerKey3Block4_C2SP_0_scalar_dquo, HAS_CONTAINER_KEYS,
 ENGINE_TEST_ERRLOC_(ContainerKey3Block4_C2SP_0, HAS_CONTAINER_KEYS,
                     Location(2,4),
                     "[23\n"
+                    "]: 42\n"
+                    "")
+
+// ensure the second line starts to the left of the scalar start column
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_anch_scalar_plain,
+                    Location(2,3),
+                    "&anch multiline\n"
+                    " s: 42\n"
+                    "")
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_anch_scalar_squo,
+                    Location(2,6),
+                    "&anch 'multiline\n"
+                    " s': 42\n"
+                    "")
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_anch_scalar_dquo,
+                    Location(2,6),
+                    "&anch \"multiline\n"
+                    " s\": 42\n"
+                    "")
+ENGINE_TEST_ERRLOC_(ContainerKey3Block4_C2SP_0_anch, HAS_CONTAINER_KEYS,
+                    Location(2,4),
+                    "&anch [23\n"
+                    "]: 42\n"
+                    "")
+
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_tag_scalar_plain,
+                    Location(2,3),
+                    "!tag multiline\n"
+                    " s: 42\n"
+                    "")
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_tag_scalar_squo,
+                    Location(2,6),
+                    "!tag 'multiline\n"
+                    " s': 42\n"
+                    "")
+ENGINE_TEST_ERRLOC(ContainerKey3Block4_C2SP_0_tag_scalar_dquo,
+                    Location(2,6),
+                    "!tag \"multiline\n"
+                    " s\": 42\n"
+                    "")
+ENGINE_TEST_ERRLOC_(ContainerKey3Block4_C2SP_0_tag, HAS_CONTAINER_KEYS,
+                    Location(2,4),
+                    "!tag [23\n"
                     "]: 42\n"
                     "")
 

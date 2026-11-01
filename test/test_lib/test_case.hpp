@@ -1,10 +1,9 @@
-#ifndef _TEST_CASE_HPP_
-#define _TEST_CASE_HPP_
+#ifndef TEST_CASE_HPP_
+#define TEST_CASE_HPP_
 
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
-#include "c4/span.hpp"
 #include "c4/std/vector.hpp"
 #include "c4/std/string.hpp"
 #include "c4/format.hpp"
@@ -13,6 +12,7 @@
 #include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
+#include "c4/span.hpp"
 
 #include <gtest/gtest.h>
 #include <functional>
@@ -24,6 +24,9 @@
 #   pragma clang diagnostic ignored "-Wold-style-cast"
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
 #endif
 
 
@@ -60,8 +63,8 @@
         {                                                               \
             char ltypebuf[256];                                         \
             char rtypebuf[256];                                         \
-            csubstr ltype = NodeType::type_str_sub(ltypebuf, (NodeType_e)lhs); \
-            csubstr rtype = NodeType::type_str_sub(rtypebuf, (NodeType_e)rhs); \
+            csubstr ltype = NodeType::type_str_sub(ltypebuf, (type_bits)lhs); \
+            csubstr rtype = NodeType::type_str_sub(rtypebuf, (type_bits)rhs); \
             EXPECT_##testop(lhs, rhs);                                  \
             std::cout << __FILE__  << ":" << __LINE__ << ": ...\n";     \
             if(ltype.str && rtype.str)                                  \
@@ -95,7 +98,7 @@ inline void PrintTo(NodeType ty, ::std::ostream* os)
 {
     *os << ty.type_str();
 }
-inline void PrintTo(NodeType_e ty, ::std::ostream* os)
+inline void PrintTo(NodeTypeBits ty, ::std::ostream* os)
 {
     *os << NodeType::type_str(ty);
 }
@@ -124,16 +127,21 @@ struct CaseData;
 Case const* get_case(csubstr name);
 CaseData* get_data(csubstr name);
 
+
+void test_compare(ConstNodeRef const& actual, ConstNodeRef const& expected,
+                  const char *actual_name="actual", const char *expected_name="expected",
+                  type_bits cmp_mask=TYMASK_);
 void test_compare(Tree const& actual, Tree const& expected,
                   const char *actual_name="actual", const char *expected_name="expected",
-                  type_bits cmp_mask=_TYMASK);
+                  type_bits cmp_mask=TYMASK_);
 void test_compare(Tree const& actual, id_type node_actual,
                   Tree const& expected, id_type node_expected,
                   id_type level=0, const char *actual_name="actual", const char *expected_name="expected",
-                  type_bits cmp_mask=_TYMASK);
+                  type_bits cmp_mask=TYMASK_);
 
 void test_arena_not_shared(Tree const& a, Tree const& b);
 
+void test_invariants(NodeType ty);
 void test_invariants(Tree const& t);
 void test_invariants(ConstNodeRef const& n);
 
@@ -238,14 +246,14 @@ void test_check_emit_check(csubstr yaml, CheckFn &&check_fn)
 
 inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
 {
-    _RYML_CHECK_BASIC(!subject.overlaps(to_csubstr(*dst)));
+    RYML_CHECK_BASIC_(!subject.overlaps(to_csubstr(*dst)));
     size_t ret = subject.replace_all(to_substr(*dst), pattern, repl);
     if(ret != dst->size())
     {
         dst->resize(ret);
         ret = subject.replace_all(to_substr(*dst), pattern, repl);
     }
-    _RYML_CHECK_BASIC(ret == dst->size());
+    RYML_CHECK_BASIC_(ret == dst->size());
     return c4::to_substr(*dst);
 }
 
@@ -255,6 +263,12 @@ inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr
 //-----------------------------------------------------------------------------
 
 enum class ExpectedErrorType : int { err_none = 0, err_basic = 1, err_parse = 2, err_visit = 3, err_any = 7 };
+
+#define RYML_EXPECT_ERROR(...)                  \
+    do {                                        \
+        SCOPED_TRACE("call");                   \
+        ExpectError:: __VA_ARGS__ ;             \
+    } while(0)
 
 struct ExpectError
 {
@@ -280,23 +294,26 @@ struct ExpectError
     static void check_assert(ExpectedErrorType errtype,             fntestref fn, Location const& loc={}) { check_error(errtype, nullptr, fn, loc); };
     static void check_assert(ExpectedErrorType errtype, Tree *tree, fntestref fn, Location const& loc={});
 
-    static void check_error_basic(            fntestref fn, bool only_basic=true) { check_error_basic((const Tree*)nullptr, fn, only_basic); }
+    static void check_error_basic(            fntestref fn, bool only_basic=true) { check_error_basic((Tree*)nullptr, fn, only_basic); }
     static void check_error_basic(Tree *tree, fntestref fn, bool only_basic=true);
     static void check_error_basic(Tree const *tree, fntestref fn, bool only_basic=true);
-    static void check_assert_basic(            fntestref fn, bool only_basic=true) { check_assert_parse(nullptr, fn, only_basic); }
+    static void check_assert_basic(            fntestref fn, bool only_basic=true) { check_assert_parse((Tree*)nullptr, fn, only_basic); }
     static void check_assert_basic(Tree *tree, fntestref fn, bool only_basic=true);
+    static void check_assert_basic(Tree const* tree, fntestref fn, bool only_basic=true);
 
-    static void check_error_parse(            fntestref fn, Location const& expected={}) { check_error_parse((const Tree*)nullptr, fn, expected); }
+    static void check_error_parse(            fntestref fn, Location const& expected={}) { check_error_parse((Tree*)nullptr, fn, expected); }
     static void check_error_parse(Tree *tree, fntestref fn, Location const& expected={});
     static void check_error_parse(Tree const *tree, fntestref fn, Location const& expected={});
-    static void check_assert_parse(            fntestref fn, Location const& expected={}) { check_assert_parse(nullptr, fn, expected); }
+    static void check_assert_parse(            fntestref fn, Location const& expected={}) { check_assert_parse((Tree*)nullptr, fn, expected); }
     static void check_assert_parse(Tree *tree, fntestref fn, Location const& expected={});
+    static void check_assert_parse(Tree const *tree, fntestref fn, Location const& expected={});
 
-    static void check_error_visit(            fntestref fn, id_type id=npos) { check_error_visit((const Tree*)nullptr, fn, id); }
-    static void check_error_visit(Tree *tree, fntestref fn, id_type id=npos);
-    static void check_error_visit(Tree const *tree, fntestref fn, id_type id=npos);
-    static void check_assert_visit(            fntestref fn, id_type id=npos) { check_assert_visit(nullptr, fn, id); }
-    static void check_assert_visit(Tree *tree, fntestref fn, id_type id=npos);
+    static void check_error_visit(            fntestref fn, id_type id=NONE) { check_error_visit((Tree*)nullptr, fn, id); }
+    static void check_error_visit(Tree *tree, fntestref fn, id_type id=NONE);
+    static void check_error_visit(Tree const *tree, fntestref fn, id_type id=NONE);
+    static void check_assert_visit(            fntestref fn, id_type id=NONE) { check_assert_visit((Tree*)nullptr, fn, id); }
+    static void check_assert_visit(Tree *tree, fntestref fn, id_type id=NONE);
+    static void check_assert_visit(Tree const *tree, fntestref fn, id_type id=NONE);
 };
 
 
@@ -350,9 +367,6 @@ struct CaseDataLineEndings
 
     Tree parsed_tree{0};
 
-    size_t numbytes_stdout;
-    size_t numbytes_stdout_json;
-
     std::string emit_buf;
     csubstr emitted_yml;
 
@@ -393,6 +407,7 @@ struct bomspec
 {
     csubstr name;
     Encoding_e encoding;
+    bool supported;
     csubstr bom;
 };
 extern const cspan<bomspec> bomspecs;
@@ -417,4 +432,4 @@ inline std::string namefor(bomspec const& param)
 #   pragma warning(pop)
 #endif
 
-#endif /* _TEST_CASE_HPP_ */
+#endif /* TEST_CASE_HPP_ */

@@ -1,10 +1,10 @@
-#ifndef _C4_YML_FILE_HPP_
-#define _C4_YML_FILE_HPP_
+#ifndef C4_YML_FILE_HPP_
+#define C4_YML_FILE_HPP_
 
 /** @name file.hpp Helpers to read/write files from disk */
 
 
-#ifndef _C4_YML_ERROR_HPP_
+#ifndef C4_YML_ERROR_HPP_
 #include <c4/yml/error.hpp>
 #endif
 #include <stddef.h>
@@ -26,7 +26,7 @@ struct ScopedFILE
     {
         file = std::fopen(filename, access); // NOLINT
         if(file == nullptr)
-            _RYML_ERR_BASIC("{}: could not open file", filename);
+            RYML_ERR_BASIC_("{}: could not open file", filename);
     }
     inline ~ScopedFILE() noexcept // NOLINT
     {
@@ -54,12 +54,27 @@ struct ScopedFILE
  */
 
 /** save a contiguous buffer into a file */
+inline void file_put_contents(void const* buf, size_t sz, FILE *file, const char* filename=nullptr)
+{
+    size_t written = std::fwrite(buf, 1, sz, file); // NOLINT
+    if C4_UNLIKELY(written != sz)
+        RYML_ERR_BASIC_("{}: failed file write: expected={}B actual={}B", filename ? filename : "file", sz, written); // LCOV_EXCL_LINE
+}
+
+/** save a contiguous buffer into a file */
+template<class ContiguousContainer>
+void file_put_contents(ContiguousContainer const& v, FILE *file, const char *filename=nullptr)
+{
+    size_t vsz = static_cast<size_t>(v.size()) * sizeof(typename ContiguousContainer::value_type);
+    void const* vbuf = v.empty() ? nullptr : &v[0];
+    file_put_contents(vbuf, vsz, file, filename);
+}
+
+/** save a contiguous buffer into a file */
 inline void file_put_contents(void const* buf, size_t sz, const char *filename, const char* access="wb")
 {
     detail::ScopedFILE f(filename, access);
-    size_t written = std::fwrite(buf, 1, sz, f.file); // NOLINT
-    if(C4_UNLIKELY(written != sz))
-        _RYML_ERR_BASIC("{}: failed file write: expected={}B actual={}B", filename, sz, written); // LCOV_EXCL_LINE
+    file_put_contents(buf, sz, f.file, filename);
 }
 
 /** save a contiguous buffer into a file */
@@ -90,10 +105,10 @@ void file_put_contents(ContiguousContainer const& v, const char *filename, const
  */
 inline void file_get_contents(const char *filename, FILE *fp, size_t filesz, void *buf, size_t bufsz)
 {
-    _RYML_ASSERT_BASIC(filesz <= bufsz);(void)bufsz;
-    size_t read = std::fread(buf, 1, filesz, fp);
-    if(C4_UNLIKELY(read != filesz))
-        _RYML_ERR_BASIC("{}: failed file read: expected={}B actual={}B", filename, filesz, read); // LCOV_EXCL_LINE
+    RYML_ASSERT_BASIC_(filesz <= bufsz);(void)bufsz;
+    size_t read = std::fread(buf, 1, filesz, fp); // NOLINT(clang-analyzer-unix.Errno)
+    if C4_UNLIKELY(read != filesz)
+        RYML_ERR_BASIC_("{}: failed file read: expected={}B actual={}B", filename, filesz, read); // LCOV_EXCL_LINE
 }
 
 
@@ -136,8 +151,8 @@ void file_get_contents(ContiguousContainer *v, const char *filename, const char 
     size_t vsz = static_cast<size_t>(v->size());
     size_t fsz = file_get_contents(filename, f.file, dat, vsz);
     size_t num_elms = fsz / sizeof(value_type);
-    if(C4_UNLIKELY(fsz != num_elms * sizeof(value_type)))
-        _RYML_ERR_BASIC("{}: file size ({}B) not a multiple of element size ({}B)", filename, fsz, sizeof(value_type));
+    if C4_UNLIKELY(fsz != num_elms * sizeof(value_type))
+        RYML_ERR_BASIC_("{}: file size ({}B) not a multiple of element size ({}B)", filename, fsz, sizeof(value_type));
     v->resize(static_cast<size_type>(num_elms));
     if(fsz > vsz * sizeof(value_type))
         file_get_contents(filename, f.file, fsz, &(*v)[0], fsz);
@@ -203,7 +218,7 @@ void stdin_get_contents(ContiguousContainer *cont, FILE *f=stdin)
     cont->resize(pos / sizeof(T));
     return;
 errsize:
-    _RYML_ERR_BASIC("file size is not multiple of element size");
+    RYML_ERR_BASIC_("file size is not multiple of element size");
 }
 
 /** load a file from stdin and return a newly created
@@ -225,4 +240,4 @@ C4_SUPPRESS_WARNING_MSVC_POP
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_FILE_HPP_ */
+#endif /* C4_YML_FILE_HPP_ */

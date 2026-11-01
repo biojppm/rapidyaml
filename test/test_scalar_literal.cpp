@@ -736,6 +736,41 @@ TEST(block_literal, trailing_newlines_5_6)
 }
 
 
+TEST(block_literal, empty_block_before_doc_token)
+{
+    test_check_emit_check(R"(--- |
+--- |
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        EXPECT_EQ(t.docref(0).val(), csubstr(""));
+        EXPECT_EQ(t.docref(1).val(), csubstr(""));
+    });
+    test_check_emit_check(R"(|
+
+---
+a
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        EXPECT_EQ(t.docref(0).val(), csubstr(""));
+        EXPECT_EQ(t.docref(1).val(), csubstr("a"));
+    });
+    test_check_emit_check(R"(|+
+...
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(""));
+    });
+    test_check_emit_check(R"(|-
+...
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(""));
+    });
+}
+
+
 //-----------------------------------------------------------------------------
 
 TEST(block_literal, empty_block_as_container_member)
@@ -844,13 +879,13 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1_0)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r |= SEQ|BLOCK;
+    r.set_seq(BLOCK);
     csubstr v0 = "\n";
     csubstr v1 = "\n";
     csubstr v2 = "last";
-    r.append_child() = v0;
-    r.append_child() = v1;
-    r.append_child() = v2;
+    r.append_child().set_val(v0);
+    r.append_child().set_val(v1);
+    r.append_child().set_val(v2);
     test_check_emit_check(t, [&](Tree const& out){
         EXPECT_EQ(out[0].val(), v0);
         EXPECT_EQ(out[1].val(), v1);
@@ -862,13 +897,13 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
 {
     Tree t;
     NodeRef r = t.rootref();
-    r |= SEQ|BLOCK;
+    r.set_seq(BLOCK);
     csubstr v0 = "\n\n";
     csubstr v1 = "\n\n";
     csubstr v2 = "last";
-    r.append_child() = v0;
-    r.append_child() = v1;
-    r.append_child() = v2;
+    r.append_child().set_val(v0);
+    r.append_child().set_val(v1);
+    r.append_child().set_val(v2);
     test_check_emit_check(t, [&](Tree const& out){
         EXPECT_EQ(out[0].val(), v0);
         EXPECT_EQ(out[1].val(), v1);
@@ -1160,6 +1195,19 @@ TEST(block_literal, indentation_indicator_1)
         Tree t = parse_in_arena("--- | # comment\n  a");
         EXPECT_EQ(t.docref(0).val(), "a\n");
     }
+    for(csubstr yaml : {csubstr("--- |2zza"), csubstr("--- |2 zza"), csubstr("--- |2-zza"), csubstr("--- |-2 zza"), csubstr("--- >2+ zza"), csubstr("--- |2#")})
+    {
+        SCOPED_TRACE(yaml);
+        Tree t;
+        ExpectError::check_error_parse(&t, [&t, yaml]{
+            t = parse_in_arena(yaml);
+        });
+    }
+    {
+        SCOPED_TRACE("here");
+        Tree t = parse_in_arena("--- |2- # comment\n  a");
+        EXPECT_EQ(t.docref(0).val(), "a");
+    }
     {
         SCOPED_TRACE("here");
         Tree t;
@@ -1206,6 +1254,28 @@ TEST(block_literal, indentation_indicator_1)
         Tree t = parse_in_arena("--- |9");
         EXPECT_EQ(t.docref(0).val(), "");
     }
+}
+
+TEST(block_literal, empty_block_with_explicit_indentation)
+{
+    test_check_emit_check(R"(a: |2
+b: c
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        EXPECT_EQ(t["a"].val(), csubstr(""));
+        EXPECT_EQ(t["b"].val(), csubstr("c"));
+    });
+    test_check_emit_check(R"(- |1-
+- |2+
+- x
+)", [](Tree const& t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 3u);
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("x"));
+    });
 }
 
 

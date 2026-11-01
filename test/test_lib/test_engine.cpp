@@ -8,20 +8,20 @@ namespace yml {
 
 
 #ifdef RYML_DBG
-void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
+void print_handler_info_(EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
 {
     if(ps.m_parent)
-        _dbg_printf("{}:{}: parent.id={} curr.id={}  {}\n",
+        dbg_printf_("{}:{}: parent.id={} curr.id={}  {}\n",
                     file, line, ps.m_parent->node_id, ps.m_curr->node_id, stmt);
     else
-        _dbg_printf("{}:{}: parent.id=-- curr.id={}  {}\n",
+        dbg_printf_("{}:{}: parent.id=-- curr.id={}  {}\n",
                     file, line, ps.m_curr->node_id, stmt);
     print_tree(*ps.m_tree);
 }
 
-void _print_handler_info(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line)
+void print_handler_info_(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line)
 {
-    _dbg_printf("{}:{}: {}\n", file, line, stmt);
+    dbg_printf_("{}:{}: {}\n", file, line, stmt);
     (void)ps;
 }
 #endif
@@ -42,7 +42,7 @@ public:
 
     void prepare_yaml(extra::EventHandlerInts &handler,
                       EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
-                      extra::ievt::DataType ints_size=-1, size_t arena_size=npos)
+                      extra::ievt::evt_bits ints_size=-1, size_t arena_size=npos)
     {
         if(ints_size == -1)
             ints_size = extra::estimate_events_ints_size(to_csubstr(parsed_yaml));
@@ -73,7 +73,7 @@ public:
 
     void prepare_events(EventHandlerIntsTr &handler_tr,
                         EngineEvtTestCase const& test_case, std::string const& parsed_yaml,
-                        extra::ievt::DataType ints_size=-1, size_t arena_size=npos)
+                        extra::ievt::evt_bits ints_size=-1, size_t arena_size=npos)
     {
         prepare_yaml(handler_tr.handler, test_case, parsed_yaml, ints_size, arena_size);
         handler_tr.transformer.src = to_csubstr(src);
@@ -559,7 +559,7 @@ csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalSca
     if(tokens.begins_with('<'))
     {
         size_t pos = tokens.find('>');
-        _RYML_ASSERT_BASIC(pos != (size_t)csubstr::npos);
+        RYML_ASSERT_BASIC_(pos != (size_t)csubstr::npos);
         *tag = tokens.first(pos + 1);
         tokens = tokens.right_of(pos).triml(' ');
         _c4dbgpf("tag: {}", tag->maybe_get());

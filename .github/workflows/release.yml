@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/release.ys
+# DO NOT EDIT - GENERATED FROM release.ys
 
 name: release
 defaults:
@@ -15,7 +15,7 @@ defaults:
     - master
   pull_request:
     branches:
-    - '*'
+    - '**'
 env:
   PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
@@ -29,10 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Variables (from tag)
       if: contains(github.ref, 'tags/v')
       run: |
@@ -67,7 +68,7 @@ jobs:
         export SRC_VERSION=$SRC_VERSION
         EOF
     - name: Save vars.sh
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vars.sh
         path: ./vars.sh
@@ -97,12 +98,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Download vars.sh
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: vars.sh
         path: ./
@@ -132,21 +134,9 @@ jobs:
     - name: Install requirements
       run: sudo -E pip install git-archive-all
     - name: Create source packages
-      run: |
-        pwd
-        ls -lFhp
-        source vars.sh
-        echo SRC_TAG=$SRC_TAG
-        echo SRC_VERSION=$SRC_VERSION
-        id=${PROJ_PKG_NAME}${SRC_VERSION}
-        name=${id}-src
-        mkdir -p assets
-        git-archive-all --prefix $name assets/$name.tgz
-        git-archive-all --prefix $name assets/$name.zip
-        python --version
-        python tools/amalgamate.py assets/$id.hpp
+      run: make -C proj src
     - name: Save source artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: assets-src
         path: assets/
@@ -172,34 +162,15 @@ jobs:
           gen: DEB
           mime: vnd.debian.binary-package
           os: ubuntu-24.04
-        - name: Ubuntu 22.04 deb
-          sfxg: unix64.deb
-          sfxp: ubuntu-22.04.deb
-          gen: DEB
-          mime: vnd.debian.binary-package
-          os: ubuntu-22.04
-        - name: Windows VS2022 zip
-          sfxg: win64.zip
-          sfxp: windows-vs2022.zip
-          gen: ZIP
-          mime: zip
-          os: windows-2022
-          cxx: vs2022
-        - name: MacOSX sh
-          sfxg: apple64.sh
-          sfxp: macosx-xcode.sh
-          gen: STGZ
-          mime: x-sh
-          os: macos-latest
-          cxx: xcode
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Download vars.sh
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: vars.sh
         path: ./
@@ -242,7 +213,7 @@ jobs:
         [ ! -f $asset_src ] && exit 1
         cp -fav $asset_src $asset_dst
     - name: Save artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: assets-${{matrix.config.sfxp}}
         path: assets/
@@ -255,7 +226,7 @@ jobs:
     - cpp
     steps:
     - name: Merge assets artifacts
-      uses: actions/upload-artifact/merge@v4
+      uses: actions/upload-artifact/merge@v7
       with:
         name: assets
         pattern: assets-*
@@ -269,12 +240,13 @@ jobs:
     - merge_artifacts
     steps:
     - name: checkout (action)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - name: Download vars.sh
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: vars.sh
         path: ./
@@ -302,28 +274,24 @@ jobs:
         ls -lFhp .
         ls -lFhp assets*/ || echo 'none found'
     - name: Gather artifacts - ./assets
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         pattern: assets
-    - name: Gather artifacts - ./dist
-      uses: actions/download-artifact@v4
-      with:
-        pattern: dist
     - name: Verify existing artifacts
       run: |
+        mkdir -p assets
         ls -lFhp .
         ls -lFhp assets*/ || echo 'none found'
         ( \
-          cd assets ; \
-          for asset in assets-*/ ; do \
-            ls -lFhpA $asset/ ; \
-            mv -v $asset/* . ; \
-            rmdir $asset ; \
+          for a in assets-*/ ; do \
+            ls -lFhpA $a/ ; \
+            mv -v $a/* assets/. ; \
+            rmdir $a ; \
           done ;
         )
         ls -lFhp assets*/ || echo 'none found'
     - name: Download vars.sh
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: vars.sh
         path: ./

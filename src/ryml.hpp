@@ -1,5 +1,5 @@
-#ifndef _RYML_HPP_
-#define _RYML_HPP_
+#ifndef RYML_HPP_
+#define RYML_HPP_
 
 #include "c4/yml/yml.hpp"
 
@@ -8,4 +8,4 @@ using namespace c4::yml;
 using namespace c4;
 }
 
-#endif /* _RYML_HPP_ */
+#endif /* RYML_HPP_ */

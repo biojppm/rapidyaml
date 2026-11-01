@@ -12,14 +12,15 @@
 
 #include <gtest/gtest.h>
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4389) // signed/unsigned mismatch
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
+
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_CLANG("-Wdollar-in-identifier-extension")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
+C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+C4_SUPPRESS_WARNING_MSVC(4389) // signed/unsigned mismatch
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
 #endif
 
 RYML_DEFINE_TEST_MAIN()
@@ -33,38 +34,50 @@ TEST(NodeRef, general)
 
     NodeRef root(&t);
 
-    //using S = csubstr;
-    //using V = NodeScalar;
-    using N = NodeInit;
-
-    root = N{MAP};
-    root.append_child({"a", "0"});
-    root.append_child({MAP, "b"});
-    root["b"].append_child({SEQ, "seq"});
-    root["b"]["seq"].append_child({"0"});
-    root["b"]["seq"].append_child({"1"});
-    root["b"]["seq"].append_child({"2"});
-    root["b"]["seq"].append_child({NodeScalar{"!!str", "3"}});
-    auto ch4 = root["b"]["seq"][3].append_sibling({"4"});
+    root.set_map();
+    { NodeRef ch = root.append_child(); ch.set_key("a"); ch.set_val("0"); }
+    root["b"].set_map();
+    root["b"]["seq"].set_seq();
+    root["b"]["seq"][0].set_val("0");
+    root["b"]["seq"][1].set_val("1");
+    root["b"]["seq"][2].set_val("2");
+    { NodeRef ch = root["b"]["seq"][3]; ch.set_val("3"); ch.set_val_tag("!!str"); }
+    { NodeRef ch = root["b"]["seq"][3]; ch.set_val("3"); ch.set_val_tag("!!str"); }
+    NodeRef ch4 = root["b"]["seq"][3].append_sibling();
+    ch4.set_val("4");
     EXPECT_EQ(ch4.id(), root["b"]["seq"][4].id());
     EXPECT_EQ(ch4.get(), root["b"]["seq"][4].get());
+    {
+        const NodeRef constch4 = ch4;
+        auto *nd = constch4.get();
+        EXPECT_EQ(nd, ch4.get());
+        static_assert(std::is_same<decltype(nd), NodeData const*>::value, "must be const");
+    }
     EXPECT_EQ((type_bits)root["b"]["seq"][4].type(), (type_bits)VAL);
     EXPECT_EQ(root["b"]["seq"][4].val(), "4");
-    root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaa"}, NodeScalar{"!!int", "0"}});
+    NodeRef aaa = root["b"]["seq"].append_sibling();
+    aaa.set_key("aaa");
+    aaa.set_key_tag("!!str");
+    aaa.set_val("0");
+    aaa.set_val_tag("!!int");
     EXPECT_EQ((type_bits)root["b"]["seq"][4].type(), (type_bits)VAL);
-    EXPECT_EQ(root["b"]["seq"][4].val(), "4");
+    EXPECT_EQ((type_bits)aaa.type(), (type_bits)(KEY|VAL|KEYTAG|VALTAG));
+    aaa.set_val("0", VAL_DQUO);
+    EXPECT_EQ((type_bits)aaa.type(), (type_bits)(KEY|VAL|KEYTAG|VALTAG|VAL_DQUO));
+    aaa.set_key("aaa", KEY_SQUO);
+    EXPECT_EQ((type_bits)aaa.type(), (type_bits)(KEY|VAL|KEYTAG|VALTAG|KEY_SQUO|VAL_DQUO));
 
-    root["b"]["key"] = "val";
-    auto seq = root["b"]["seq"];
-    auto seq2 = root["b"]["seq2"];
+    root["b"]["key"].set_val("val");
+    NodeRef seq = root["b"]["seq"];
+    NodeRef seq2 = root["b"]["seq2"];
     EXPECT_TRUE(seq2.is_seed());
-    root["b"]["seq2"] = N(SEQ);
+    root["b"]["seq2"].set_seq();
     seq2 = root["b"]["seq2"];
     EXPECT_FALSE(seq2.is_seed());
     EXPECT_TRUE(seq2.is_seq());
     EXPECT_EQ(seq2.num_children(), 0);
     EXPECT_EQ(root["b"]["seq2"].get(), seq2.get());
-    auto seq20 = seq2[0];
+    NodeRef seq20 = seq2[0];
     EXPECT_TRUE(seq20.is_seed());
     EXPECT_TRUE(seq2[0].is_seed());
     EXPECT_EQ(seq2.num_children(), 0);
@@ -73,31 +86,35 @@ TEST(NodeRef, general)
     EXPECT_NE(seq.get(), seq2.get());
     seq20 = root["b"]["seq2"][0];
     EXPECT_TRUE(seq20.is_seed());
-    root["b"]["seq2"][0] = "00";
+    root["b"]["seq2"][0].set_val("00");
     seq20 = root["b"]["seq2"][0];
     EXPECT_FALSE(seq20.is_seed());
     NodeRef before = root["b"]["key"];
     EXPECT_EQ(before.key(), "key");
     EXPECT_EQ(before.val(), "val");
-    root["b"]["seq2"][1] = "01";
+    root["b"]["seq2"][1].set_val("01");
     NodeRef after = root["b"]["key"];
     EXPECT_EQ(before.key(), "key");
     EXPECT_EQ(before.val(), "val");
     EXPECT_EQ(after.key(), "key");
     EXPECT_EQ(after.val(), "val");
-    root["b"]["seq2"][2] = "02";
-    root["b"]["seq2"][3] = "03";
+    root["b"]["seq2"][2].set_val("02");
+    root["b"]["seq2"][3].set_val("03");
     int iv = 0;
-    root["b"]["seq2"][4] << 55; root["b"]["seq2"][4] >> iv;
+    root["b"]["seq2"][4].save(55);
+    root["b"]["seq2"][4].load(&iv);
     EXPECT_EQ(iv, 55);
     size_t zv = 0;
-    root["b"]["seq2"][5] << size_t(55); root["b"]["seq2"][5] >> zv;
+    root["b"]["seq2"][5].save(size_t(55));
+    root["b"]["seq2"][5].load(&zv);
     EXPECT_EQ(zv, size_t(55));
     float fv = 0;
-    root["b"]["seq2"][6] << 2.0f; root["b"]["seq2"][6] >> fv;
+    root["b"]["seq2"][6].save(2.0f);
+    root["b"]["seq2"][6].load(&fv);
     EXPECT_EQ(fv, 2.f);
-    float dv = 0;
-    root["b"]["seq2"][7] << 2.0; root["b"]["seq2"][7] >> dv;
+    double dv = 0;
+    root["b"]["seq2"][7].save(2.0);
+    root["b"]["seq2"][7].load(&dv);
     EXPECT_EQ(dv, 2.0);
 
     EXPECT_EQ(root["b"]["key"].key(), "key");
@@ -132,16 +149,16 @@ TEST(NodeRef, general)
     int tv;
     EXPECT_EQ(root["b"]["key"].key(), "key");
     EXPECT_EQ(root["b"]["key"].val(), "val");
-    EXPECT_EQ(root["b"]["seq2"][0].val(), "00"); root["b"]["seq2"][0] >> tv; EXPECT_EQ(tv, 0);
-    EXPECT_EQ(root["b"]["seq2"][1].val(), "01"); root["b"]["seq2"][1] >> tv; EXPECT_EQ(tv, 1);
-    EXPECT_EQ(root["b"]["seq2"][2].val(), "02"); root["b"]["seq2"][2] >> tv; EXPECT_EQ(tv, 2);
-    EXPECT_EQ(root["b"]["seq2"][3].val(), "03"); root["b"]["seq2"][3] >> tv; EXPECT_EQ(tv, 3);
+    EXPECT_EQ(root["b"]["seq2"][0].val(), "00"); root["b"]["seq2"][0].load(&tv); EXPECT_EQ(tv, 0);
+    EXPECT_EQ(root["b"]["seq2"][1].val(), "01"); root["b"]["seq2"][1].load(&tv); EXPECT_EQ(tv, 1);
+    EXPECT_EQ(root["b"]["seq2"][2].val(), "02"); root["b"]["seq2"][2].load(&tv); EXPECT_EQ(tv, 2);
+    EXPECT_EQ(root["b"]["seq2"][3].val(), "03"); root["b"]["seq2"][3].load(&tv); EXPECT_EQ(tv, 3);
     EXPECT_EQ(root["b"]["seq2"][4].val(), "55"); EXPECT_EQ(iv, 55);
     EXPECT_EQ(root["b"]["seq2"][5].val(), "55"); EXPECT_EQ(zv, size_t(55));
     EXPECT_EQ(root["b"]["seq2"][6].val(), "2"); EXPECT_EQ(fv, 2.f);
     EXPECT_EQ(root["b"]["seq2"][6].val(), "2"); EXPECT_EQ(dv, 2.);
 
-    root["b"]["seq"][2].set_val_serialized(22);
+    root["b"]["seq"][2].set_serialized(22);
 
     emit_yaml(t);
 
@@ -225,30 +242,73 @@ TEST(NodeRef, valid_vs_seed_vs_readable)
     EXPECT_FALSE(none.readable());
 }
 
+namespace {
 const auto errbasic = ExpectedErrorType::err_basic;
 const auto errvisit = ExpectedErrorType::err_visit;
 const auto errany = ExpectedErrorType::err_any;
 
+// define these functions here to minimize the binary size
+using errfn = std::function<void()>;
+C4_NO_INLINE void check_error(ExpectedErrorType errty, Tree *tree, errfn const& fn) noexcept
+{
+    ExpectError::check_error(errty, tree, fn);
+}
+C4_NO_INLINE void check_assert(ExpectedErrorType errty, Tree *tree, errfn const& fn) noexcept
+{
+    ExpectError::check_assert(errty, tree, fn);
+}
+C4_NO_INLINE void check_success(Tree *tree, errfn const& fn) noexcept
+{
+    ExpectError::check_success(tree, fn);
+}
+#define _TEST_ERRR_(errtype, tree, method_expr) \
+    {                                           \
+        SCOPED_TRACE(#method_expr);             \
+        check_error(errtype, tree, [&]{         \
+            auto ret = (method_expr);           \
+            (void)ret;                          \
+        });                                     \
+    }
+#define _TEST_ERR__(errtype, tree, method_expr) \
+    {                                           \
+        SCOPED_TRACE(#method_expr);             \
+        check_error(errtype, tree, [&]{         \
+            (method_expr);                      \
+        });                                     \
+    }
 #define _TEST_FAIL_(errtype, tree, method_expr) \
     {                                           \
         SCOPED_TRACE(#method_expr);             \
-        ExpectError::check_assert(errtype, tree, [&]{ \
-            auto ret = (method_expr);           \
-            C4_DONT_OPTIMIZE(ret);              \
+        check_assert(errtype, tree, [&]{        \
+            (method_expr);                      \
         });                                     \
     }
-#define _TEST_FAIL(tree, method_expr) _TEST_FAIL_(errbasic)
+#define _TEST_FAILR(errtype, tree, method_expr) \
+    {                                           \
+        SCOPED_TRACE(#method_expr);             \
+        check_assert(errtype, tree, [&]{        \
+            auto ret = (method_expr);           \
+            (void)ret;                          \
+        });                                     \
+    }
 #define _TEST_SUCCEED(tree, method_expr)        \
     {                                           \
         SCOPED_TRACE(#method_expr);             \
-        ExpectError::check_success(tree, [&]{   \
+        check_success(tree, [&]{                \
+            (method_expr);                      \
+        });                                     \
+    }
+#define _TEST_SUCCEEDR(tree, method_expr)       \
+    {                                           \
+        SCOPED_TRACE(#method_expr);             \
+        check_success(tree, [&]{                \
             auto ret = (method_expr);           \
-            C4_DONT_OPTIMIZE(ret);              \
+            (void)ret;                          \
         });                                     \
     }
 
-template<class NodeT>
-void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype)
+template<class NodeOutT, class NodeT>
+C4_NO_INLINE void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype) noexcept
 {
     _TEST_SUCCEED(tree, node.get())
     _TEST_FAIL_(errtype, tree, node.type())
@@ -296,6 +356,8 @@ void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype)
     _TEST_FAIL_(errtype, tree, node.is_flow_mln())
     _TEST_FAIL_(errtype, tree, node.is_flow_mlx())
     _TEST_FAIL_(errtype, tree, node.has_flow_space())
+    _TEST_FAIL_(errtype, tree, node.key_style())
+    _TEST_FAIL_(errtype, tree, node.val_style())
     _TEST_FAIL_(errtype, tree, node.is_key_styled())
     _TEST_FAIL_(errtype, tree, node.is_val_styled())
     _TEST_FAIL_(errtype, tree, node.is_key_literal())
@@ -325,26 +387,50 @@ void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype)
     _TEST_FAIL_(errtype, tree, node.last_child())
     _TEST_FAIL_(errtype, tree, node.child(0))
     _TEST_FAIL_(errtype, tree, node.find_child("key"))
+    NodeOutT n;
+    ReadResult res;
+    _TEST_FAIL_(errtype, tree, res = node.child_r(0, &n))
+    _TEST_FAIL_(errtype, tree, res = node.find_child_r("key", &n))
     _TEST_FAIL_(errtype, tree, node.prev_sibling())
     _TEST_FAIL_(errtype, tree, node.next_sibling())
     _TEST_FAIL_(errtype, tree, node.first_sibling())
     _TEST_FAIL_(errtype, tree, node.last_sibling())
     _TEST_FAIL_(errtype, tree, node.sibling(0))
     _TEST_FAIL_(errtype, tree, node.find_sibling("key"))
+    _TEST_FAIL_(errtype, tree, res = node.sibling_r(0, &n))
+    _TEST_FAIL_(errtype, tree, res = node.find_sibling_r("key", &n))
     _TEST_FAIL_(errtype, tree, node.num_children())
     _TEST_FAIL_(errtype, tree, node.num_siblings())
     _TEST_FAIL_(errtype, tree, node.num_other_siblings())
+    _TEST_FAIL_(errtype, tree, node.depth_asc())
+    _TEST_FAIL_(errtype, tree, node.depth_desc())
     _TEST_FAIL_(errtype, tree, node["key"])
     _TEST_FAIL_(errtype, tree, node[0])
     _TEST_FAIL_(errtype, tree, node.at("key"))
     _TEST_FAIL_(errtype, tree, node.at(0))
-    int val;
-    _TEST_FAIL_(errtype, tree, node >> val)
-    _TEST_FAIL_(errtype, tree, node >> key(val))
-    _TEST_FAIL_(errtype, tree, node >> fmt::base64(val))
-    _TEST_FAIL_(errtype, tree, node >> key(fmt::base64(val)))
+    int val, fallback = 0;
+    _TEST_ERR__(errtype, tree, node.load(&val))
+    _TEST_ERR__(errtype, tree, node.load(fmt::base64(val)))
+    _TEST_ERR__(errtype, tree, node.load_key(&val))
+    _TEST_ERR__(errtype, tree, node.load_key(fmt::base64(val)))
+    _TEST_FAIL_(errtype, tree, node.load(&val, /*check_readable*/false))
+    _TEST_FAIL_(errtype, tree, node.load(fmt::base64(val), /*check_readable*/false))
+    _TEST_FAIL_(errtype, tree, node.load_key(&val, /*check_readable*/false))
+    _TEST_FAIL_(errtype, tree, node.load_key(fmt::base64(val), /*check_readable*/false))
+    _TEST_FAILR(errtype, tree, node.deserialize(&val))
+    _TEST_FAILR(errtype, tree, node.deserialize(fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, node.deserialize_key(&val))
+    _TEST_FAILR(errtype, tree, node.deserialize_key(fmt::base64(val)))
     _TEST_FAIL_(errtype, tree, node.get_if("key", &val));
     _TEST_FAIL_(errtype, tree, node.get_if("key", &val, 0));
+    _TEST_FAIL_(errtype, tree, node.get_if(0, &val));
+    _TEST_FAIL_(errtype, tree, node.get_if(1, &val, 0));
+    _TEST_FAILR(errtype, tree, node.deserialize_child("key", &val))
+    _TEST_FAILR(errtype, tree, node.deserialize_child("key", &val, fallback))
+    _TEST_FAILR(errtype, tree, node.deserialize_child("key", fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, node.deserialize_child(0, &val))
+    _TEST_FAILR(errtype, tree, node.deserialize_child(0, &val, fallback))
+    _TEST_FAILR(errtype, tree, node.deserialize_child(0, fmt::base64(val)))
     const NodeT const_node = node;
     _TEST_FAIL_(errtype, tree, node.begin());
     _TEST_FAIL_(errtype, tree, node.cbegin());
@@ -364,66 +450,202 @@ void test_fail_read(Tree *tree, NodeT node, ExpectedErrorType errtype)
     _TEST_FAIL_(errtype, tree, const_node.siblings());
     //_TEST_FAIL(tree, node.visit([](NodeT &n, size_t level){ (void)n; (void)level; return false; }));
     //_TEST_FAIL(tree, const_node.visit([](const NodeT &n, size_t level){ (void)n; (void)level; return false; }));
-    _TEST_SUCCEED(tree, const_node == node);
-    _TEST_SUCCEED(tree, const_node != node);
+    _TEST_SUCCEEDR(tree, const_node == node);
+    _TEST_SUCCEEDR(tree, const_node != node);
     if(std::is_same<NodeT, NodeRef>::value)
     {
         ConstNodeRef other;
-        _TEST_SUCCEED(tree, node == other);
-        _TEST_SUCCEED(tree, node != node);
+        _TEST_SUCCEEDR(tree, node == other);
+        _TEST_SUCCEEDR(tree, node != node);
     }
 }
 template<class NodeT>
-void test_fail_read_subject(Tree *tree, NodeT node, NodeT subject, ExpectedErrorType errtype)
+C4_NO_INLINE void test_fail_read_subject(Tree *tree, NodeT node, NodeT subject, ExpectedErrorType errtype) noexcept
 {
     SCOPED_TRACE("here");
     if(node.readable())
     {
         _TEST_SUCCEED(tree, node.has_child(subject))
         _TEST_SUCCEED(tree, node.has_sibling(subject))
+        _TEST_SUCCEED(tree, node.is_ancestor(subject))
     }
     else
     {
         _TEST_FAIL_(errtype, tree, node.has_child(subject))
         _TEST_FAIL_(errtype, tree, node.has_sibling(subject))
+        _TEST_FAIL_(errtype, tree, node.is_ancestor(subject))
     }
     _TEST_FAIL_(errtype, tree, node.child_pos(subject))
     _TEST_FAIL_(errtype, tree, node.sibling_pos(subject))
 }
-#undef _TEST_FAIL_READ
-#undef _TEST_SUCCEED_READ
+C4_NO_INLINE void test_fail_write(Tree *tree, NodeRef node, ExpectedErrorType errtype)
+{
+    int val;
+    std::string str;
+    NodeType style = {};
+    _TEST_ERR__(errtype, tree, node.save(val))
+    _TEST_ERR__(errtype, tree, node.save(val, style))
+    _TEST_ERR__(errtype, tree, node.save(str))
+    _TEST_ERR__(errtype, tree, node.save(str, style))
+    _TEST_ERR__(errtype, tree, node.save(fmt::base64(str)))
+    _TEST_ERR__(errtype, tree, node.save(fmt::base64(str), style))
+    _TEST_ERR__(errtype, tree, node.save(fmt::base64(val)))
+    _TEST_ERR__(errtype, tree, node.save(fmt::base64(val), style))
+    _TEST_ERR__(errtype, tree, node.save_key(val))
+    _TEST_ERR__(errtype, tree, node.save_key(val, style))
+    _TEST_ERR__(errtype, tree, node.save_key(str))
+    _TEST_ERR__(errtype, tree, node.save_key(str, style))
+    _TEST_ERR__(errtype, tree, node.save_key(fmt::base64(val)))
+    _TEST_ERR__(errtype, tree, node.save_key(fmt::base64(val), style))
+    _TEST_ERR__(errtype, tree, node.save_key(fmt::base64(str)))
+    _TEST_ERR__(errtype, tree, node.save_key(fmt::base64(str), style))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(val))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(val, style))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(str))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(str, style))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(fmt::base64(val)))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(fmt::base64(val), style))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(fmt::base64(str)))
+    _TEST_FAIL_(errtype, tree, node.set_serialized(fmt::base64(str), style))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(val))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(val, style))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(str))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(str, style))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(fmt::base64(val)))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(fmt::base64(val), style))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(fmt::base64(str)))
+    _TEST_FAIL_(errtype, tree, node.set_key_serialized(fmt::base64(str), style))
+}
+C4_NO_INLINE void test_succeed_write(Tree *tree, NodeRef node)
+{
+    int val = 0;
+    std::string str;
+    NodeType style = {};
+    _TEST_SUCCEED(tree, node.save(val))
+    _TEST_SUCCEED(tree, node.save(val, style))
+    _TEST_SUCCEED(tree, node.save(str))
+    _TEST_SUCCEED(tree, node.save(str, style))
+    _TEST_SUCCEED(tree, node.save(fmt::base64(str)))
+    _TEST_SUCCEED(tree, node.save(fmt::base64(str), style))
+    _TEST_SUCCEED(tree, node.save(fmt::base64(val)))
+    _TEST_SUCCEED(tree, node.save(fmt::base64(val), style))
+    _TEST_SUCCEED(tree, node.save_key(val))
+    _TEST_SUCCEED(tree, node.save_key(val, style))
+    _TEST_SUCCEED(tree, node.save_key(str))
+    _TEST_SUCCEED(tree, node.save_key(str, style))
+    _TEST_SUCCEED(tree, node.save_key(fmt::base64(val)))
+    _TEST_SUCCEED(tree, node.save_key(fmt::base64(val), style))
+    _TEST_SUCCEED(tree, node.save_key(fmt::base64(str)))
+    _TEST_SUCCEED(tree, node.save_key(fmt::base64(str), style))
+    _TEST_SUCCEED(tree, node.set_serialized(val))
+    _TEST_SUCCEED(tree, node.set_serialized(val, style))
+    _TEST_SUCCEED(tree, node.set_serialized(str))
+    _TEST_SUCCEED(tree, node.set_serialized(str, style))
+    _TEST_SUCCEED(tree, node.set_serialized(fmt::base64(val)))
+    _TEST_SUCCEED(tree, node.set_serialized(fmt::base64(val), style))
+    _TEST_SUCCEED(tree, node.set_serialized(fmt::base64(str)))
+    _TEST_SUCCEED(tree, node.set_serialized(fmt::base64(str), style))
+    _TEST_SUCCEED(tree, node.set_key_serialized(val))
+    _TEST_SUCCEED(tree, node.set_key_serialized(val, style))
+    _TEST_SUCCEED(tree, node.set_key_serialized(str))
+    _TEST_SUCCEED(tree, node.set_key_serialized(str, style))
+    _TEST_SUCCEED(tree, node.set_key_serialized(fmt::base64(val)))
+    _TEST_SUCCEED(tree, node.set_key_serialized(fmt::base64(val), style))
+    _TEST_SUCCEED(tree, node.set_key_serialized(fmt::base64(str)))
+    _TEST_SUCCEED(tree, node.set_key_serialized(fmt::base64(str), style))
+}
+// this is actually testing the tree, but we keep it here because it's
+// very similar and we want to ensure it's kept in sync
+C4_NO_INLINE void test_fail_read_tree(Tree *tree, id_type id, ExpectedErrorType errtype)
+{
+    int val = 0;
+    _TEST_ERR__(errtype, tree, tree->load(id, &val))
+    _TEST_ERR__(errtype, tree, tree->load(id, fmt::base64(val)))
+    _TEST_ERR__(errtype, tree, tree->load_key(id, &val))
+    _TEST_ERR__(errtype, tree, tree->load_key(id, fmt::base64(val)))
+    _TEST_FAIL_(errtype, tree, tree->load(id, &val                , /*check_readable*/false))
+    _TEST_FAIL_(errtype, tree, tree->load(id, fmt::base64(val)    , /*check_readable*/false))
+    _TEST_FAIL_(errtype, tree, tree->load_key(id, &val            , /*check_readable*/false))
+    _TEST_FAIL_(errtype, tree, tree->load_key(id, fmt::base64(val), /*check_readable*/false))
+    _TEST_FAILR(errtype, tree, tree->deserialize(id, &val))
+    _TEST_FAILR(errtype, tree, tree->deserialize(id, fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, tree->deserialize_key(id, &val))
+    _TEST_FAILR(errtype, tree, tree->deserialize_key(id, fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, "key", &val))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, "key", &val, 0))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, "key", fmt::base64(val)))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, 0, &val))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, 0, &val, 0))
+    _TEST_FAILR(errtype, tree, tree->deserialize_child(id, 0, fmt::base64(val)))
+}
+C4_NO_INLINE void test_fail_write_tree(Tree *tree, id_type id, ExpectedErrorType errtype)
+{
+    int val = 0;
+    NodeType style = {};
+    _TEST_ERR__(errtype, tree, tree->save(id, val))
+    _TEST_ERR__(errtype, tree, tree->save(id, val, style))
+    _TEST_ERR__(errtype, tree, tree->save(id, fmt::base64(val)))
+    _TEST_ERR__(errtype, tree, tree->save(id, fmt::base64(val), style))
+    _TEST_ERR__(errtype, tree, tree->save_key(id, val))
+    _TEST_ERR__(errtype, tree, tree->save_key(id, val, style))
+    _TEST_ERR__(errtype, tree, tree->save_key(id, fmt::base64(val)))
+    _TEST_ERR__(errtype, tree, tree->save_key(id, fmt::base64(val), style))
+    _TEST_FAIL_(errtype, tree, tree->save(id, val                 ))
+    _TEST_FAIL_(errtype, tree, tree->save(id, val             , style    ))
+    _TEST_FAIL_(errtype, tree, tree->save(id, fmt::base64(val)    ))
+    _TEST_FAIL_(errtype, tree, tree->save(id, fmt::base64(val), style    ))
+    _TEST_FAIL_(errtype, tree, tree->save_key(id, val             ))
+    _TEST_FAIL_(errtype, tree, tree->save_key(id, val             , style))
+    _TEST_FAIL_(errtype, tree, tree->save_key(id, fmt::base64(val)))
+    _TEST_FAIL_(errtype, tree, tree->save_key(id, fmt::base64(val), style))
+    _TEST_FAIL_(errtype, tree, tree->set_serialized(id, val))
+    _TEST_FAIL_(errtype, tree, tree->set_serialized(id, fmt::base64(val)))
+    _TEST_FAIL_(errtype, tree, tree->set_key_serialized(id, val))
+    _TEST_FAIL_(errtype, tree, tree->set_key_serialized(id, fmt::base64(val)))
+}
+
+#undef _TEST_FAIL_
+#undef _TEST_SUCCEED
+} // namespace
+
 
 TEST(NodeRef, cannot_read_from_invalid)
 {
     NodeRef none;
-    SCOPED_TRACE("here");
+    SCOPED_TRACE("test");
     ASSERT_EQ(none.tree(), nullptr);
     ASSERT_EQ(none.id(), NONE);
     EXPECT_TRUE(none.invalid());
     EXPECT_FALSE(none.is_seed());
     EXPECT_FALSE(none.readable());
-    test_fail_read(nullptr, none, errbasic);
+    test_fail_read<NodeRef,NodeRef>(nullptr, none, errbasic);
     test_fail_read_subject(nullptr, none, none, errbasic);
+    test_fail_write(nullptr, none, errbasic);
 }
 
 TEST(NodeRef, cannot_read_from_invalid_subject)
 {
-    SCOPED_TRACE("here");
+    SCOPED_TRACE("test");
     NodeRef none;
     Tree tree = parse_in_arena("foo: bar");
     test_fail_read_subject(&tree, tree["foo"], none, errany);
+    test_succeed_write(&tree, tree["not there"]);
 }
 
 TEST(ConstNodeRef, cannot_read_from_invalid)
 {
-    SCOPED_TRACE("here");
+    SCOPED_TRACE("test");
     ConstNodeRef const_none;
     ASSERT_EQ(const_none.tree(), nullptr);
     ASSERT_EQ(const_none.id(), NONE);
     EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_FALSE(const_none.readable());
-    test_fail_read(nullptr, const_none, errbasic);
+    test_fail_read<ConstNodeRef, ConstNodeRef>(nullptr, const_none, errbasic);
+    test_fail_read<NodeRef, NodeRef>(nullptr, NodeRef{}, errbasic);
+    const NodeRef nnone;
+    test_fail_read<NodeRef, NodeRef>(nullptr, nnone, errbasic);
+    test_fail_read<ConstNodeRef, const NodeRef>(nullptr, nnone, errbasic);
     test_fail_read_subject(nullptr, const_none, const_none, errany);
     Tree tree = parse_in_arena("foo: bar");
     ConstNodeRef foo = tree["foo"];
@@ -432,7 +654,7 @@ TEST(ConstNodeRef, cannot_read_from_invalid)
 
 TEST(ConstNodeRef, cannot_read_from_invalid_subject)
 {
-    SCOPED_TRACE("here");
+    SCOPED_TRACE("test");
     Tree tree = parse_in_arena("foo: bar");
     ConstNodeRef foo = tree["foo"];
     ConstNodeRef const_none;
@@ -441,7 +663,7 @@ TEST(ConstNodeRef, cannot_read_from_invalid_subject)
 
 TEST(NodeRef, cannot_read_from_seed)
 {
-    SCOPED_TRACE("here");
+    SCOPED_TRACE("test");
     Tree tree = parse_in_arena("foo: bar");
     NodeRef none = tree["none"];
     ASSERT_EQ(none.tree(), &tree);
@@ -449,13 +671,45 @@ TEST(NodeRef, cannot_read_from_seed)
     EXPECT_FALSE(none.invalid());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
-    test_fail_read(&tree, none, errvisit);
+    test_fail_read<NodeRef, NodeRef>(&tree, none, errvisit);
     test_fail_read_subject(&tree, none, none, errvisit);
+}
+
+TEST(Tree, cannot_read_tree)
+{
+    SCOPED_TRACE("test");
+    Tree tree = parse_in_arena("foo: bar");
+    {
+        SCOPED_TRACE("none");
+        test_fail_read_tree(&tree, NONE, errvisit);
+    }
+    {
+        SCOPED_TRACE("cap");
+        test_fail_read_tree(&tree, tree.capacity(), errvisit);
+    }
+    {
+        SCOPED_TRACE("novalnokey");
+        NodeRef novalnokey = tree.rootref().append_child();
+        test_fail_read_tree(&tree, novalnokey.id(), errvisit);
+    }
+}
+TEST(Tree, cannot_write_tree)
+{
+    SCOPED_TRACE("test");
+    Tree tree = parse_in_arena("foo: bar");
+    {
+        SCOPED_TRACE("none");
+        test_fail_write_tree(&tree, NONE, errvisit);
+    }
+    {
+        SCOPED_TRACE("cap");
+        test_fail_write_tree(&tree, tree.capacity(), errvisit);
+    }
 }
 
 TEST(NodeRef, cannot_read_from_seed_subject)
 {
-    SCOPED_TRACE("here");
+    SCOPED_TRACE("test");
     Tree tree = parse_in_arena("foo: bar");
     NodeRef none = tree["none"];
     ASSERT_EQ(none.tree(), &tree);
@@ -463,13 +717,13 @@ TEST(NodeRef, cannot_read_from_seed_subject)
     EXPECT_FALSE(none.invalid());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
-    test_fail_read(&tree, none, errvisit);
+    test_fail_read<NodeRef,NodeRef>(&tree, none, errvisit);
     test_fail_read_subject(&tree, none, none, errvisit);
 }
 
 TEST(ConstNodeRef, cannot_read_from_seed_subject)
 {
-    SCOPED_TRACE("here");
+    SCOPED_TRACE("test");
     Tree tree = parse_in_arena("foo: bar");
     ConstNodeRef const_none = tree["none"];
     ASSERT_EQ(const_none.tree(), &tree);
@@ -477,15 +731,10 @@ TEST(ConstNodeRef, cannot_read_from_seed_subject)
     EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_FALSE(const_none.readable());
-    test_fail_read(&tree, const_none, errvisit);
+    test_fail_read<ConstNodeRef,ConstNodeRef>(&tree, const_none, errvisit);
     ConstNodeRef foo = tree["foo"];
     test_fail_read_subject(&tree, foo, const_none, errvisit);
 }
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
 void noderef_check_tree(ConstNodeRef const& root)
 {
@@ -514,13 +763,13 @@ TEST(NodeRef, append_child_1)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
-    root.append_child({"0"});
-    root.append_child({"1"});
-    root.append_child({"2"});
-    root.append_child({"3"});
-    root.append_child({"4"});
-    root.append_child({"5"});
+    root.set_seq();
+    root.append_child().set_val("0");
+    root.append_child().set_val("1");
+    root.append_child().set_val("2");
+    root.append_child().set_val("3");
+    root.append_child().set_val("4");
+    root.append_child().set_val("5");
     noderef_check_tree(root);
 }
 
@@ -528,13 +777,13 @@ TEST(NodeRef, append_child_2)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
-    root.append_child() = "0";
-    root.append_child() = "1";
-    root.append_child() = "2";
-    root.append_child() = "3";
-    root.append_child() = "4";
-    root.append_child() = "5";
+    root.set_seq();
+    root.append_child().save("0");
+    root.append_child().save("1");
+    root.append_child().save("2");
+    root.append_child().save("3");
+    root.append_child().save("4");
+    root.append_child().save("5");
     noderef_check_tree(root);
 }
 
@@ -542,13 +791,14 @@ TEST(NodeRef, append_sibling_1)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
-    NodeRef first = root.append_child({"0"});
-    first.append_sibling({"1"});
-    first.append_sibling({"2"});
-    first.append_sibling({"3"});
-    first.append_sibling({"4"});
-    first.append_sibling({"5"});
+    root.set_seq();
+    NodeRef first = root.append_child();
+    first.set_val("0");
+    first.append_sibling().set_val("1");
+    first.append_sibling().set_val("2");
+    first.append_sibling().set_val("3");
+    first.append_sibling().set_val("4");
+    first.append_sibling().set_val("5");
     noderef_check_tree(root);
 }
 
@@ -556,13 +806,14 @@ TEST(NodeRef, append_sibling_2)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
-    NodeRef first = root.append_child() << "0";
-    first.append_sibling() << "1";
-    first.append_sibling() << "2";
-    first.append_sibling() << "3";
-    first.append_sibling() << "4";
-    first.append_sibling() << "5";
+    root.set_seq();
+    NodeRef first = root.append_child();
+    first.save("0");
+    first.append_sibling().save("1");
+    first.append_sibling().save("2");
+    first.append_sibling().save("3");
+    first.append_sibling().save("4");
+    first.append_sibling().save("5");
     noderef_check_tree(root);
 }
 
@@ -570,13 +821,13 @@ TEST(NodeRef, prepend_child_1)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
-    root.prepend_child({"5"});
-    root.prepend_child({"4"});
-    root.prepend_child({"3"});
-    root.prepend_child({"2"});
-    root.prepend_child({"1"});
-    root.prepend_child({"0"});
+    root.set_seq();
+    root.prepend_child().save("5");
+    root.prepend_child().save("4");
+    root.prepend_child().save("3");
+    root.prepend_child().save("2");
+    root.prepend_child().save("1");
+    root.prepend_child().save("0");
     noderef_check_tree(root);
 }
 
@@ -584,13 +835,13 @@ TEST(NodeRef, prepend_child_2)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
-    root.prepend_child() << "5";
-    root.prepend_child() << "4";
-    root.prepend_child() << "3";
-    root.prepend_child() << "2";
-    root.prepend_child() << "1";
-    root.prepend_child() << "0";
+    root.set_seq();
+    root.prepend_child().save("5");
+    root.prepend_child().save("4");
+    root.prepend_child().save("3");
+    root.prepend_child().save("2");
+    root.prepend_child().save("1");
+    root.prepend_child().save("0");
     noderef_check_tree(root);
 }
 
@@ -598,13 +849,14 @@ TEST(NodeRef, prepend_sibling_1)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
-    NodeRef last = root.prepend_child({"5"});
-    last.prepend_sibling({"4"});
-    last.prepend_sibling({"3"});
-    last.prepend_sibling({"2"});
-    last.prepend_sibling({"1"});
-    last.prepend_sibling({"0"});
+    root.set_seq();
+    NodeRef last = root.prepend_child();
+    last.set_val("5");
+    last.prepend_sibling().set_val("4");
+    last.prepend_sibling().set_val("3");
+    last.prepend_sibling().set_val("2");
+    last.prepend_sibling().set_val("1");
+    last.prepend_sibling().set_val("0");
     noderef_check_tree(root);
 }
 
@@ -612,14 +864,14 @@ TEST(NodeRef, prepend_sibling_2)
 {
     Tree t;
     NodeRef root(&t);
-    root |= SEQ;
+    root.set_seq();
     NodeRef last = root.prepend_child();
-    last = "5";
-    last.prepend_sibling() = "4";
-    last.prepend_sibling() = "3";
-    last.prepend_sibling() = "2";
-    last.prepend_sibling() = "1";
-    last.prepend_sibling() = "0";
+    last.save("5");
+    last.prepend_sibling().save("4");
+    last.prepend_sibling().save("3");
+    last.prepend_sibling().save("2");
+    last.prepend_sibling().save("1");
+    last.prepend_sibling().save("0");
     noderef_check_tree(root);
 }
 
@@ -628,13 +880,13 @@ TEST(NodeRef, insert_child_1)
     Tree t;
     NodeRef root(&t);
     NodeRef none(&t, NONE);
-    root |= SEQ;
-    root.insert_child({"3"}, none);
-    root.insert_child({"4"}, root[0]);
-    root.insert_child({"0"}, none);
-    root.insert_child({"5"}, root[2]);
-    root.insert_child({"1"}, root[0]);
-    root.insert_child({"2"}, root[1]);
+    root.set_seq();
+    root.insert_child(none).set_val("3");
+    root.insert_child(root[0]).set_val("4");
+    root.insert_child(none).set_val("0");
+    root.insert_child(root[2]).set_val("5");
+    root.insert_child(root[0]).set_val("1");
+    root.insert_child(root[1]).set_val("2");
     noderef_check_tree(root);
 }
 
@@ -643,13 +895,13 @@ TEST(NodeRef, insert_child_2)
     Tree t;
     NodeRef root(&t);
     NodeRef none(&t, NONE);
-    root |= SEQ;
-    root.insert_child(none) << "3";
-    root.insert_child(root[0]) << "4";
-    root.insert_child(none) << "0";
-    root.insert_child(root[2]) << "5";
-    root.insert_child(root[0]) << "1";
-    root.insert_child(root[1]) << "2";
+    root.set_seq();
+    root.insert_child(none).save("3");
+    root.insert_child(root[0]).save("4");
+    root.insert_child(none).save("0");
+    root.insert_child(root[2]).save("5");
+    root.insert_child(root[0]).save("1");
+    root.insert_child(root[1]).save("2");
     noderef_check_tree(root);
 }
 
@@ -658,13 +910,14 @@ TEST(NodeRef, insert_sibling_1)
     Tree t;
     NodeRef root(&t);
     NodeRef none(&t, NONE);
-    root |= SEQ;
-    NodeRef first = root.insert_child({"3"}, none);
-    first.insert_sibling({"4"}, root[0]);
-    first.insert_sibling({"0"}, none);
-    first.insert_sibling({"5"}, root[2]);
-    first.insert_sibling({"1"}, root[0]);
-    first.insert_sibling({"2"}, root[1]);
+    root.set_seq();
+    NodeRef first = root.insert_child(none);
+    first.set_val("3");
+    first.insert_sibling(root[0]).set_val("4");
+    first.insert_sibling(none).set_val("0");
+    first.insert_sibling(root[2]).set_val("5");
+    first.insert_sibling(root[0]).set_val("1");
+    first.insert_sibling(root[1]).set_val("2");
     noderef_check_tree(root);
 }
 
@@ -673,13 +926,14 @@ TEST(NodeRef, insert_sibling_2)
     Tree t;
     NodeRef root(&t);
     NodeRef none(&t, NONE);
-    root |= SEQ;
-    NodeRef first = root.insert_child(none) << "3";
-    first.insert_sibling(root[0]) << "4";
-    first.insert_sibling(none) << "0";
-    first.insert_sibling(root[2]) << "5";
-    first.insert_sibling(root[0]) << "1";
-    first.insert_sibling(root[1]) << "2";
+    root.set_seq();
+    NodeRef first = root.insert_child(none);
+    first.save("3");
+    first.insert_sibling(root[0]).save("4");
+    first.insert_sibling(none).save("0");
+    first.insert_sibling(root[2]).save("5");
+    first.insert_sibling(root[0]).save("1");
+    first.insert_sibling(root[1]).save("2");
     noderef_check_tree(root);
 }
 
@@ -690,21 +944,21 @@ TEST(NodeRef, remove_child)
     NodeRef root(&t);
     NodeRef none(&t, NONE);
 
-    root |= SEQ;
-    root.insert_child({"3"}, none);
-    root.insert_child({"4"}, root[0]);
-    root.insert_child({"0"}, none);
-    root.insert_child({"5"}, root[2]);
-    root.insert_child({"1"}, root[0]);
-    root.insert_child({"2"}, root[1]);
+    root.set_seq();
+    root.insert_child(none).set_val("3");
+    root.insert_child(root[0]).set_val("4");
+    root.insert_child(none).set_val("0");
+    root.insert_child(root[2]).set_val("5");
+    root.insert_child(root[0]).set_val("1");
+    root.insert_child(root[1]).set_val("2");
 
     std::vector<int> vec({10, 20, 30, 40, 50, 60, 70, 80, 90});
-    root.insert_child(root[0]) << vec; // 1
-    root.insert_child(root[2]) << vec; // 3
-    root.insert_child(root[4]) << vec; // 5
-    root.insert_child(root[6]) << vec; // 7
-    root.insert_child(root[8]) << vec; // 9
-    root.append_child() << vec;        // 10
+    root.insert_child(root[0]).save(vec); // 1
+    root.insert_child(root[2]).save(vec); // 3
+    root.insert_child(root[4]).save(vec); // 5
+    root.insert_child(root[6]).save(vec); // 7
+    root.insert_child(root[8]).save(vec); // 9
+    root.append_child().save(vec);        // 10
 
     root.remove_child(11);
     root.remove_child(9);
@@ -716,13 +970,13 @@ TEST(NodeRef, remove_child)
     noderef_check_tree(root);
 
     std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    root.prepend_child() << vec2; // 0
-    root.insert_child(root[1]) << vec2; // 2
-    root.insert_child(root[3]) << vec2; // 4
-    root.insert_child(root[5]) << vec2; // 6
-    root.insert_child(root[7]) << vec2; // 8
-    root.insert_child(root[9]) << vec2; // 10
-    root.append_child() << vec2;        // 12
+    root.prepend_child().save(vec2); // 0
+    root.insert_child(root[1]).save(vec2); // 2
+    root.insert_child(root[3]).save(vec2); // 4
+    root.insert_child(root[5]).save(vec2); // 6
+    root.insert_child(root[7]).save(vec2); // 8
+    root.insert_child(root[9]).save(vec2); // 10
+    root.append_child().save(vec2);        // 12
 
     root.remove_child(12);
     root.remove_child(10);
@@ -735,6 +989,81 @@ TEST(NodeRef, remove_child)
     noderef_check_tree(root);
 }
 
+TEST(NodeRef, clear_key)
+{
+    Tree tree = parse_in_arena("foo: bar");
+    ASSERT_TRUE(tree[0].type().has_key());
+    EXPECT_EQ(tree[0].key(), "foo");
+    tree[0].clear_key();
+    ASSERT_FALSE(tree[0].type().has_key());
+    {
+        NodeRef n;
+        ExpectError::check_assert_basic(&tree, [&] { n.clear_key(); });
+    }
+    {
+        NodeRef n = tree["not there"];
+        ExpectError::check_assert_visit(&tree, [&] { n.clear_key(); });
+    }
+}
+
+TEST(NodeRef, clear_val)
+{
+    Tree tree = parse_in_arena("foo: bar");
+    ASSERT_TRUE(tree[0].type().has_val());
+    EXPECT_EQ(tree[0].val(), "bar");
+    tree[0].clear_val();
+    ASSERT_FALSE(tree[0].type().has_val());
+    {
+        NodeRef n;
+        ExpectError::check_assert_basic(&tree, [&] { n.clear_val(); });
+    }
+    {
+        NodeRef n = tree["not there"];
+        ExpectError::check_assert_visit(&tree, [&] { n.clear_val(); });
+    }
+}
+
+TEST(NodeRef, clear_children)
+{
+    Tree tree = parse_in_arena("[0, 1, 2, 3, [4, 5, 6], 7]");
+    ASSERT_TRUE(tree[4].type().is_seq());
+    EXPECT_TRUE(tree[4].has_children());
+    EXPECT_EQ(tree[4].num_children(), 3);
+    tree[4].clear_children();
+    ASSERT_TRUE(tree[4].type().is_seq());
+    EXPECT_FALSE(tree[4].has_children());
+    EXPECT_EQ(tree[4].num_children(), 0);
+    {
+        NodeRef n;
+        ExpectError::check_assert_basic(&tree, [&] { n.clear_children(); });
+    }
+    {
+        NodeRef n = tree[21];
+        ExpectError::check_assert_visit(&tree, [&] { n.clear_children(); });
+    }
+}
+
+TEST(NodeRef, to_arena)
+{
+    csubstr yaml = "foo: bar";
+    Tree tree = parse_in_arena(yaml);
+    EXPECT_EQ(tree.arena(), yaml);
+    EXPECT_NE(tree.arena().str, yaml.str);
+    {
+        NodeRef n = tree;
+        n.to_arena(123);
+        EXPECT_EQ(tree.arena(), "foo: bar123");
+    }
+    {
+        NodeRef n;
+        ExpectError::check_assert_basic(&tree, [&] { n.to_arena(456); });
+    }
+    {
+        NodeRef n = tree["not there"];
+        ExpectError::check_success(&tree, [&] { n.to_arena(456); });
+        EXPECT_EQ(tree.arena(), "foo: bar123456");
+    }
+}
 
 TEST(NodeRef, remove_child__issue_356)
 {
@@ -779,11 +1108,11 @@ TEST(NodeRef, move_in_same_parent)
     std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
     std::map<std::string, int> map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
 
-    r |= SEQ;
-    r.append_child() << vec2;
-    r.append_child() << map2;
-    r.append_child() << "elm2";
-    r.append_child() << "elm3";
+    r.set_seq();
+    r.append_child().save(vec2);
+    r.append_child().save(map2);
+    r.append_child().save("elm2");
+    r.append_child().save("elm3");
 
     auto s = r[0];
     auto m = r[1];
@@ -792,7 +1121,7 @@ TEST(NodeRef, move_in_same_parent)
     EXPECT_EQ(s.num_children(), vec2.size());
     EXPECT_EQ(m.num_children(), map2.size());
     //printf("fonix"); print_tree(t); emit_yaml(r);
-    r[0].move(r[1]);
+    r[0].move(r, r[1]);
     //printf("fonix"); print_tree(t); emit_yaml(r);
     EXPECT_EQ(r[0].get(), m.get());
     EXPECT_EQ(r[0].num_children(), map2.size());
@@ -811,21 +1140,21 @@ TEST(NodeRef, move_in_same_parent_to_first_position)
     EXPECT_TRUE(r[2].val() == "3");
     EXPECT_TRUE(r[3].val() == "0");
     EXPECT_TRUE(r[4].val() == "4");
-    r[3].move({});
+    r[3].move(r, {});
     EXPECT_TRUE(r[0].val() == "0");
     EXPECT_TRUE(r[1].val() == "1");
     EXPECT_TRUE(r[2].val() == "2");
     EXPECT_TRUE(r[3].val() == "3");
     EXPECT_TRUE(r[4].val() == "4");
     test_invariants(t);
-    r[0].move({}); // should have no effect
+    r[0].move(r, {}); // should have no effect
     EXPECT_TRUE(r[0].val() == "0");
     EXPECT_TRUE(r[1].val() == "1");
     EXPECT_TRUE(r[2].val() == "2");
     EXPECT_TRUE(r[3].val() == "3");
     EXPECT_TRUE(r[4].val() == "4");
     test_invariants(t);
-    r[4].move({});
+    r[4].move(r, {});
     EXPECT_TRUE(r[0].val() == "4");
     EXPECT_TRUE(r[1].val() == "0");
     EXPECT_TRUE(r[2].val() == "1");
@@ -842,11 +1171,11 @@ TEST(NodeRef, move_to_other_parent)
     std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
     std::map<std::string, int> map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
 
-    r |= SEQ;
-    r.append_child() << vec2;
-    r.append_child() << map2;
-    r.append_child() << "elm2";
-    r.append_child() << "elm3";
+    r.set_seq();
+    r.append_child().save(vec2);
+    r.append_child().save(map2);
+    r.append_child().save("elm2");
+    r.append_child().save("elm3");
 
     NodeData *elm2 = r[2].get();
     EXPECT_EQ(r[2].val(), "elm2");
@@ -994,108 +1323,275 @@ TEST(NodeRef, move_to_other_tree_to_first_position)
     test_invariants(t1);
 }
 
+namespace {
+template<class Fn>
+C4_NO_INLINE void test_duplicate(ConstNodeRef orig, Fn const& fn, std::string const& expected_yaml) noexcept
+{
+    ConstNodeRef copy = fn();
+    test_compare(copy, orig, "copy", "orig");
+    EXPECT_EQ(emitrs_yaml<std::string>(*copy.tree()), expected_yaml);
+    if(testing::Test::HasFailure())
+    {
+        print_tree("orig node", *orig.tree(), orig.id());
+        print_tree("copy node", *copy.tree(), copy.id());
+        if(orig.tree() == copy.tree())
+        {
+            print_tree("full tree", *orig.tree());
+        }
+        else
+        {
+            print_tree("orig tree", *orig.tree());
+            print_tree("copy tree", *copy.tree());
+        }
+    }
+}
+} // namespace
+
+
 TEST(NodeRef, duplicate_to_same_tree)
 {
-    Tree t = parse_in_arena("[{a0: [b0, c0], a1: [b1, c1], a2: [b2, c2], a3: [b3, c3]}]");
-    auto checkseq = [](ConstNodeRef const& s){
-        ASSERT_EQ(s.num_children(), 4u);
-        ASSERT_EQ(s[0].num_children(), 2u);
-        ASSERT_EQ(s[1].num_children(), 2u);
-        ASSERT_EQ(s[2].num_children(), 2u);
-        ASSERT_EQ(s[3].num_children(), 2u);
-        EXPECT_EQ(s[0].key(), "a0");
-        EXPECT_EQ(s[0][0].val(), "b0");
-        EXPECT_EQ(s[0][1].val(), "c0");
-        EXPECT_EQ(s[1].key(), "a1");
-        EXPECT_EQ(s[1][0].val(), "b1");
-        EXPECT_EQ(s[1][1].val(), "c1");
-        EXPECT_EQ(s[2].key(), "a2");
-        EXPECT_EQ(s[2][0].val(), "b2");
-        EXPECT_EQ(s[2][1].val(), "c2");
-        EXPECT_EQ(s[3].key(), "a3");
-        EXPECT_EQ(s[3][0].val(), "b3");
-        EXPECT_EQ(s[3][1].val(), "c3");
-    };
+    csubstr yaml = "[{a0: [b0,c0]},{a1: [b1,c1]}]";
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("at the beginning");
-        t[0].duplicate({});
-        test_check_emit_check(t, [&checkseq](ConstNodeRef r){
-            checkseq(r[0]);
-            checkseq(r[1]);
-        });
+        {
+            SCOPED_TRACE("seq");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(t, {}); },
+                           "[[b0,c0],{a0: [b0,c0]},{a1: [b1,c1]}]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("seq, but tree");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return NodeRef{&t, t.duplicate(orig.id(), t.root_id(), NONE)}; },
+                           "[[b0,c0],{a0: [b0,c0]},{a1: [b1,c1]}]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(t, {}); },
+                           "[{a0: [b0,c0]},{a0: [b0,c0]},{a1: [b1,c1]}]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map, but tree");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0];
+            test_duplicate(orig,
+                           [&]{ return NodeRef{&t, t.duplicate(orig.id(), t.root_id(), NONE)}; },
+                           "[{a0: [b0,c0]},{a0: [b0,c0]},{a1: [b1,c1]}]");
+        }
     }
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("at the end");
-        t[0].duplicate(t.rootref().last_child());
-        test_check_emit_check(t, [&checkseq](ConstNodeRef r){
-            checkseq(r[0]);
-            checkseq(r[1]);
-            checkseq(r[2]);
-        });
+        {
+            SCOPED_TRACE("seq");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(t, t.rootref().last_child()); },
+                           "[{a0: [b0,c0]},{a1: [b1,c1]},[b0,c0]]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("seq, but tree");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return NodeRef{&t, t.duplicate(orig.id(), t.root_id(), t.last_child(t.root_id()))}; },
+                           "[{a0: [b0,c0]},{a1: [b1,c1]},[b0,c0]]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map");
+            Tree t = parse_in_arena(yaml);
+            test_duplicate(t[0],
+                           [&]{ return t[0].duplicate(t, t.rootref().last_child()); },
+                           "[{a0: [b0,c0]},{a1: [b1,c1]},{a0: [b0,c0]}]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map, but tree");
+            Tree t = parse_in_arena(yaml);
+            test_duplicate(t[0],
+                           [&]{ return NodeRef{&t, t.duplicate(t[0].id(), t.root_id(), t.last_child(t.root_id()))}; },
+                           "[{a0: [b0,c0]},{a1: [b1,c1]},{a0: [b0,c0]}]");
+        }
     }
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("in the middle");
-        t[0].duplicate(t.rootref().first_child());
-        test_check_emit_check(t, [&checkseq](ConstNodeRef r){
-            checkseq(r[0]);
-            checkseq(r[1]);
-            checkseq(r[2]);
-        });
+        {
+            SCOPED_TRACE("seq");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(t, t[0]); },
+                           "[{a0: [b0,c0]},[b0,c0],{a1: [b1,c1]}]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("seq, but tree");
+            Tree t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return NodeRef{&t, t.duplicate(orig.id(), t.root_id(), t[0].id())}; },
+                           "[{a0: [b0,c0]},[b0,c0],{a1: [b1,c1]}]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map");
+            Tree t = parse_in_arena(yaml);
+            test_duplicate(t[0],
+                           [&]{ return t[0].duplicate(t, t[0]); },
+                           "[{a0: [b0,c0]},{a0: [b0,c0]},{a1: [b1,c1]}]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map, but tree");
+            Tree t = parse_in_arena(yaml);
+            test_duplicate(t[0],
+                           [&]{ return NodeRef{&t, t.duplicate(t[0].id(), t.root_id(), t[0].id())}; },
+                           "[{a0: [b0,c0]},{a0: [b0,c0]},{a1: [b1,c1]}]");
+        }
     }
 }
 
 TEST(NodeRef, duplicate_to_different_tree)
 {
-    Tree t = parse_in_arena("[{a0: [b0, c0], a1: [b1, c1], a2: [b2, c2], a3: [b3, c3]}]");
-    auto checkseq = [](ConstNodeRef const& s){
-        ASSERT_EQ(s.num_children(), 4u);
-        ASSERT_EQ(s[0].num_children(), 2u);
-        ASSERT_EQ(s[1].num_children(), 2u);
-        ASSERT_EQ(s[2].num_children(), 2u);
-        ASSERT_EQ(s[3].num_children(), 2u);
-        EXPECT_EQ(s[0].key(), "a0");
-        EXPECT_EQ(s[0][0].val(), "b0");
-        EXPECT_EQ(s[0][1].val(), "c0");
-        EXPECT_EQ(s[1].key(), "a1");
-        EXPECT_EQ(s[1][0].val(), "b1");
-        EXPECT_EQ(s[1][1].val(), "c1");
-        EXPECT_EQ(s[2].key(), "a2");
-        EXPECT_EQ(s[2][0].val(), "b2");
-        EXPECT_EQ(s[2][1].val(), "c2");
-        EXPECT_EQ(s[3].key(), "a3");
-        EXPECT_EQ(s[3][0].val(), "b3");
-        EXPECT_EQ(s[3][1].val(), "c3");
-    };
-    auto check_orig = [&checkseq](ConstNodeRef const& r){
-        ASSERT_TRUE(r.is_seq());
-        ASSERT_GE(r.num_children(), 1u);
-        checkseq(r[0]);
-    };
-    Tree d = parse_in_arena("[]");
+    csubstr yaml = "[{a0: [b0,c0]},{a1: [b1,c1]}]";
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("at the beginning");
-        t[0].duplicate(d, {});
-        test_check_emit_check(t, check_orig);
-        test_check_emit_check(d, check_orig);
+        {
+            SCOPED_TRACE("seq");
+            Tree dst = parse_in_arena("[1,2]"), t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(dst, {}); },
+                           "[[b0,c0],1,2]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map");
+            Tree dst = parse_in_arena("[1,2]"), t = parse_in_arena(yaml);
+            NodeRef orig = t[0];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(dst, {}); },
+                           "[{a0: [b0,c0]},1,2]");
+        }
     }
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("at the end");
-        t[0].duplicate(d, d.rootref().last_child());
-        test_check_emit_check(t, check_orig);
-        test_check_emit_check(d, check_orig);
-        test_check_emit_check(d, [&checkseq](ConstNodeRef r){
-            checkseq(r[1]);
-        });
+        {
+            SCOPED_TRACE("seq");
+            Tree dst = parse_in_arena("[1,2]"), t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(dst, dst.rootref().last_child()); },
+                           "[1,2,[b0,c0]]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map");
+            Tree dst = parse_in_arena("[1,2]"), t = parse_in_arena(yaml);
+            test_duplicate(t[0],
+                           [&]{ return t[0].duplicate(dst, dst.rootref().last_child()); },
+                           "[1,2,{a0: [b0,c0]}]");
+        }
     }
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("in the middle");
-        t[0].duplicate(d, d.rootref().first_child());
-        test_check_emit_check(t, check_orig);
-        test_check_emit_check(d, check_orig);
-        test_check_emit_check(d, [&checkseq](ConstNodeRef r){
-            checkseq(r[1]);
-            checkseq(r[2]);
-        });
+        {
+            SCOPED_TRACE("seq");
+            Tree dst = parse_in_arena("[1,2]"), t = parse_in_arena(yaml);
+            NodeRef orig = t[0]["a0"];
+            test_duplicate(orig,
+                           [&]{ return orig.duplicate(dst, dst[0]); },
+                           "[1,[b0,c0],2]");
+        }
+        if(!testing::Test::HasFailure())
+        {
+            SCOPED_TRACE("map");
+            Tree dst = parse_in_arena("[1,2]"), t = parse_in_arena(yaml);
+            test_duplicate(t[0],
+                           [&]{ return t[0].duplicate(dst, dst[0]); },
+                           "[1,{a0: [b0,c0]},2]");
+        }
+    }
+}
+
+namespace {
+C4_NO_INLINE void test_duplicate_children(ConstNodeRef orig, ConstNodeRef dstparent, ConstNodeRef after, std::string const& expected_yaml) noexcept
+{
+    ASSERT_TRUE(after.readable() || dstparent.readable());
+    for(id_type src_id = orig.first_child().id(),
+            dst_id = after.readable() ? after.next_sibling().id() : dstparent.first_child().id();
+        src_id != NONE && dst_id != NONE;
+        src_id = orig.tree()->next_sibling(src_id),
+        dst_id = dstparent.tree()->next_sibling(dst_id))
+    {
+        ConstNodeRef orig_child = {orig.tree(), src_id};
+        ConstNodeRef copy = {dstparent.tree(), dst_id};
+        test_compare(copy, orig_child, "copy", "orig");
+    }
+    EXPECT_EQ(emitrs_yaml<std::string>(*dstparent.tree()), expected_yaml);
+    if(testing::Test::HasFailure())
+    {
+        if(orig.tree() == after.tree())
+        {
+            print_tree("full tree", *orig.tree());
+        }
+        else
+        {
+            print_tree("orig tree", *orig.tree());
+            print_tree("copy tree", *dstparent.tree());
+        }
+    }
+}
+} // namespace
+
+
+TEST(NodeRef, duplicate_children_to_same_tree)
+{
+    csubstr yaml = "[{a0: [b0,c0]},{a1: [b1,c1]}]";
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("at the beginning");
+        ConstNodeRef after = {};
+        Tree t = parse_in_arena(yaml);
+        NodeRef orig = t[0]["a0"];
+        orig.duplicate_children(t, after);
+        test_duplicate_children(orig, t, after, "[b0,c0,{a0: [b0,c0]},{a1: [b1,c1]}]");
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("at the end");
+        Tree t = parse_in_arena(yaml);
+        NodeRef orig = t[0]["a0"];
+        ConstNodeRef after = t.rootref().last_child();
+        orig.duplicate_children(t, after);
+        test_duplicate_children(orig, t, after, "[{a0: [b0,c0]},{a1: [b1,c1]},b0,c0]");
+    }
+    if(!testing::Test::HasFailure())
+    {
+        SCOPED_TRACE("in the middle");
+        Tree t = parse_in_arena(yaml);
+        NodeRef orig = t[0]["a0"];
+        ConstNodeRef after = t[0];
+        orig.duplicate_children(t, after);
+        test_duplicate_children(orig, t, after, "[{a0: [b0,c0]},b0,c0,{a1: [b1,c1]}]");
     }
 }
 
@@ -1104,8 +1600,8 @@ TEST(NodeRef, intseq)
     Tree t = parse_in_arena("iseq: [8, 10]");
     NodeRef n = t["iseq"];
     int a, b;
-    n[0] >> a;
-    n[1] >> b;
+    n[0].load(&a);
+    n[1].load(&b);
     EXPECT_EQ(a, 8);
     EXPECT_EQ(b, 10);
     test_invariants(t);
@@ -1139,6 +1635,12 @@ TEST(NodeRef, vsConstNodeRef)
 }
 
 
+namespace {
+bool is_const_ref(NodeRef const&) { return false; }
+bool is_const_ref(ConstNodeRef const&) { return true; }
+} /// namespace
+
+
 // see https://github.com/biojppm/rapidyaml/issues/294
 TEST(NodeRef, overload_sets)
 {
@@ -1150,189 +1652,322 @@ TEST(NodeRef, overload_sets)
         ConstNodeRef const cn = t;
         EXPECT_EQ(n.doc(0), nc.doc(0));
         EXPECT_EQ(n.doc(0), cn.doc(0));
+        EXPECT_EQ(is_const_ref(n.doc(0)), false);
+        EXPECT_EQ(is_const_ref(cn.doc(0)), true);
     }
     Tree t = parse_in_arena("{iseq: [8, 10], imap: {a: b, c: d}}");
     NodeRef n = t;
     NodeRef const nc = t;
     ConstNodeRef const cn = t;
+    NodeRef n_iseq = n["iseq"];
+    NodeRef const nc_iseq = n["iseq"];
+    ConstNodeRef const cn_iseq = n["iseq"];
+    NodeRef n_imap = n["imap"];
+    NodeRef const nc_imap = n["imap"];
+    ConstNodeRef const cn_imap = n["imap"];
     // get()
     {
-        EXPECT_EQ(n["iseq"].get(), nc["iseq"].get());
-        EXPECT_EQ(n["iseq"].get(), cn["iseq"].get());
+        EXPECT_EQ(n_iseq.get(), nc_iseq.get());
+        EXPECT_EQ(n_iseq.get(), cn_iseq.get());
     }
     // parent()
     {
-        EXPECT_EQ(n["iseq"].parent(), nc["iseq"].parent());
-        EXPECT_EQ(n["iseq"].parent(), cn["iseq"].parent());
+        EXPECT_EQ(n_iseq.parent(), nc_iseq.parent());
+        EXPECT_EQ(n_iseq.parent(), cn_iseq.parent());
+        EXPECT_EQ(is_const_ref(n_iseq.parent()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.parent()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.parent()), true);
     }
     // child_pos()
     {
-        EXPECT_EQ(n["iseq"].child_pos(n["iseq"][0]), nc["iseq"].child_pos(n["iseq"][0]));
-        EXPECT_EQ(n["iseq"].child_pos(n["iseq"][0]), cn["iseq"].child_pos(n["iseq"][0]));
+        EXPECT_EQ(n_iseq.child_pos(n_iseq[0]), nc_iseq.child_pos(n_iseq[0]));
+        EXPECT_EQ(n_iseq.child_pos(n_iseq[0]), cn_iseq.child_pos(n_iseq[0]));
     }
     // num_children()
     {
-        EXPECT_EQ(n["iseq"].num_children(), nc["iseq"].num_children());
-        EXPECT_EQ(n["iseq"].num_children(), cn["iseq"].num_children());
+        EXPECT_EQ(n_iseq.num_children(), nc_iseq.num_children());
+        EXPECT_EQ(n_iseq.num_children(), cn_iseq.num_children());
     }
     // first_child()
     {
-        EXPECT_EQ(n["iseq"].first_child(), nc["iseq"].first_child());
-        EXPECT_EQ(n["iseq"].first_child(), cn["iseq"].first_child());
+        EXPECT_EQ(n_iseq.first_child(), nc_iseq.first_child());
+        EXPECT_EQ(n_iseq.first_child(), cn_iseq.first_child());
+        EXPECT_EQ(is_const_ref(n_iseq.first_child()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.first_child()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.first_child()), true);
     }
     // last_child()
     {
-        EXPECT_EQ(n["iseq"].last_child(), nc["iseq"].last_child());
-        EXPECT_EQ(n["iseq"].last_child(), cn["iseq"].last_child());
+        EXPECT_EQ(n_iseq.last_child(), nc_iseq.last_child());
+        EXPECT_EQ(n_iseq.last_child(), cn_iseq.last_child());
+        EXPECT_EQ(is_const_ref(n_iseq.last_child()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.last_child()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.last_child()), true);
     }
     // child()
     {
-        EXPECT_EQ(n["iseq"].child(0), nc["iseq"].child(0));
-        EXPECT_EQ(n["iseq"].child(0), cn["iseq"].child(0));
+        EXPECT_EQ(n_iseq.child(0), nc_iseq.child(0));
+        EXPECT_EQ(n_iseq.child(0), cn_iseq.child(0));
+        EXPECT_EQ(is_const_ref(n_iseq.child(0)), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.child(0)), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.child(0)), true);
     }
     // find_child()
     {
         EXPECT_EQ(n.find_child("iseq"), nc.find_child("iseq"));
         EXPECT_EQ(n.find_child("iseq"), cn.find_child("iseq"));
+        EXPECT_EQ(n_imap.find_child("a"), nc_imap.find_child("a"));
+        EXPECT_EQ(n_imap.find_child("a"), cn_imap.find_child("a"));
+        EXPECT_EQ(is_const_ref(n_imap.find_child("a")), false);
+        EXPECT_EQ(is_const_ref(cn_imap.find_child("a")), true);
+        EXPECT_EQ(is_const_ref(nc_imap.find_child("a")), true);
+    }
+    // child_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_iseq.child_r(0, &r)); EXPECT_EQ(r.id(), n_iseq.child(0).id());
+        EXPECT_TRUE(n_iseq.child_r(0, &cr)); EXPECT_EQ(cr.id(), n_iseq.child(0).id());
+        EXPECT_TRUE(nc_iseq.child_r(0, &cr)); EXPECT_EQ(cr.id(), nc_iseq.child(0).id());
+        EXPECT_TRUE(cn_iseq.child_r(0, &cr)); EXPECT_EQ(cr.id(), cn_iseq.child(0).id());
+        EXPECT_TRUE(n_imap.child_r(0, &r)); EXPECT_EQ(r.id(), n_imap.child(0).id());
+        EXPECT_TRUE(n_imap.child_r(0, &cr)); EXPECT_EQ(cr.id(), n_imap.child(0).id());
+        EXPECT_TRUE(nc_imap.child_r(0, &cr)); EXPECT_EQ(cr.id(), nc_imap.child(0).id());
+        EXPECT_TRUE(cn_imap.child_r(0, &cr)); EXPECT_EQ(cr.id(), cn_imap.child(0).id());
+    }
+    // find_child()
+    {
+        EXPECT_EQ(n.find_child("iseq"), nc.find_child("iseq"));
+        EXPECT_EQ(n.find_child("iseq"), cn.find_child("iseq"));
+        EXPECT_EQ(n_imap.find_child("a"), nc_imap.find_child("a"));
+        EXPECT_EQ(n_imap.find_child("a"), cn_imap.find_child("a"));
+        EXPECT_EQ(is_const_ref(n_imap.find_child("a")), false);
+        EXPECT_EQ(is_const_ref(cn_imap.find_child("a")), true);
+        EXPECT_EQ(is_const_ref(nc_imap.find_child("a")), true);
+    }
+    // find_child_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_imap.find_child_r("a", &r)); EXPECT_EQ(r.id(), n_imap.find_child("a").id());
+        EXPECT_TRUE(n_imap.find_child_r("a", &cr)); EXPECT_EQ(cr.id(), n_imap.find_child("a").id());
+        EXPECT_TRUE(nc_imap.find_child_r("a", &cr)); EXPECT_EQ(cr.id(), nc_imap.find_child("a").id());
+        EXPECT_TRUE(cn_imap.find_child_r("a", &cr)); EXPECT_EQ(cr.id(), cn_imap.find_child("a").id());
     }
     // prev_sibling()
     {
-        EXPECT_EQ(n["iseq"][1].prev_sibling(), nc["iseq"][1].prev_sibling());
-        EXPECT_EQ(n["iseq"][1].prev_sibling(), cn["iseq"][1].prev_sibling());
+        EXPECT_EQ(n_iseq[1].prev_sibling(), nc_iseq[1].prev_sibling());
+        EXPECT_EQ(n_iseq[1].prev_sibling(), cn_iseq[1].prev_sibling());
+        EXPECT_EQ(is_const_ref(n_iseq.prev_sibling()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.prev_sibling()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.prev_sibling()), true);
     }
     // next_sibling()
     {
-        EXPECT_EQ(n["iseq"][0].next_sibling(), nc["iseq"][0].next_sibling());
-        EXPECT_EQ(n["iseq"][0].next_sibling(), cn["iseq"][0].next_sibling());
+        EXPECT_EQ(n_iseq[0].next_sibling(), nc_iseq[0].next_sibling());
+        EXPECT_EQ(n_iseq[0].next_sibling(), cn_iseq[0].next_sibling());
+        EXPECT_EQ(is_const_ref(n_iseq.next_sibling()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.next_sibling()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.next_sibling()), true);
     }
     // first_sibling()
     {
-        EXPECT_EQ(n["iseq"][1].first_sibling(), nc["iseq"][1].first_sibling());
-        EXPECT_EQ(n["iseq"][1].first_sibling(), cn["iseq"][1].first_sibling());
+        EXPECT_EQ(n_iseq[1].first_sibling(), nc_iseq[1].first_sibling());
+        EXPECT_EQ(n_iseq[1].first_sibling(), cn_iseq[1].first_sibling());
+        EXPECT_EQ(is_const_ref(n_iseq.first_sibling()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.first_sibling()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.first_sibling()), true);
     }
     // last_sibling()
     {
-        EXPECT_EQ(n["iseq"][0].last_sibling(), nc["iseq"][0].last_sibling());
-        EXPECT_EQ(n["iseq"][0].last_sibling(), cn["iseq"][0].last_sibling());
+        EXPECT_EQ(n_iseq[0].last_sibling(), nc_iseq[0].last_sibling());
+        EXPECT_EQ(n_iseq[0].last_sibling(), cn_iseq[0].last_sibling());
+        EXPECT_EQ(is_const_ref(n_iseq.last_sibling()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.last_sibling()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.last_sibling()), true);
     }
     // sibling()
     {
-        EXPECT_EQ(n["iseq"][1].sibling(0), nc["iseq"][1].sibling(0));
-        EXPECT_EQ(n["iseq"][1].sibling(0), cn["iseq"][1].sibling(0));
+        EXPECT_EQ(n_iseq[1].sibling(0), nc_iseq[1].sibling(0));
+        EXPECT_EQ(n_iseq[1].sibling(0), cn_iseq[1].sibling(0));
+        EXPECT_EQ(is_const_ref(n_iseq.sibling(0)), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.sibling(0)), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.sibling(0)), true);
+    }
+    // sibling_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_iseq.sibling_r(0, &r)); EXPECT_EQ(r.id(), n_iseq.sibling(0).id());
+        EXPECT_TRUE(n_iseq.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), n_iseq.sibling(0).id());
+        EXPECT_TRUE(nc_iseq.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), nc_iseq.sibling(0).id());
+        EXPECT_TRUE(cn_iseq.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), cn_iseq.sibling(0).id());
+        EXPECT_TRUE(n_imap.sibling_r(0, &r)); EXPECT_EQ(r.id(), n_imap.sibling(0).id());
+        EXPECT_TRUE(n_imap.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), n_imap.sibling(0).id());
+        EXPECT_TRUE(nc_imap.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), nc_imap.sibling(0).id());
+        EXPECT_TRUE(cn_imap.sibling_r(0, &cr)); EXPECT_EQ(cr.id(), cn_imap.sibling(0).id());
     }
     // find_sibling()
     {
-        EXPECT_EQ(n["iseq"].find_sibling("imap"), nc["iseq"].find_sibling("imap"));
-        EXPECT_EQ(n["iseq"].find_sibling("imap"), cn["iseq"].find_sibling("imap"));
+        EXPECT_EQ(n_iseq.find_sibling("imap"), nc_iseq.find_sibling("imap"));
+        EXPECT_EQ(n_iseq.find_sibling("imap"), cn_iseq.find_sibling("imap"));
+        EXPECT_EQ(n_imap.find_sibling("a"), nc_imap.find_sibling("a"));
+        EXPECT_EQ(n_imap.find_sibling("a"), cn_imap.find_sibling("a"));
+        EXPECT_EQ(is_const_ref(n_imap.find_sibling("a")), false);
+        EXPECT_EQ(is_const_ref(cn_imap.find_sibling("a")), true);
+        EXPECT_EQ(is_const_ref(nc_imap.find_sibling("a")), true);
+    }
+    // sibling_r()
+    {
+        NodeRef r;
+        ConstNodeRef cr;
+        EXPECT_TRUE(n_iseq.find_sibling_r("imap", &r)); EXPECT_EQ(r.id(), n_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(n_iseq.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), n_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(nc_iseq.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), nc_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(cn_iseq.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), cn_iseq.find_sibling("imap").id());
+        EXPECT_TRUE(n_imap.find_sibling_r("imap", &r)); EXPECT_EQ(r.id(), n_imap.find_sibling("imap").id());
+        EXPECT_TRUE(n_imap.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), n_imap.find_sibling("imap").id());
+        EXPECT_TRUE(nc_imap.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), nc_imap.find_sibling("imap").id());
+        EXPECT_TRUE(cn_imap.find_sibling_r("imap", &cr)); EXPECT_EQ(cr.id(), cn_imap.find_sibling("imap").id());
+    }
+    // ancestor_doc()
+    {
+        EXPECT_EQ(n_iseq[1].ancestor_doc(), nc_iseq[1].ancestor_doc());
+        EXPECT_EQ(n_iseq[1].ancestor_doc(), cn_iseq[1].ancestor_doc());
+        EXPECT_EQ(is_const_ref(n_iseq.ancestor_doc()), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.ancestor_doc()), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.ancestor_doc()), true);
     }
     // operator[](csubstr)
     {
         EXPECT_EQ(n["iseq"].id(), nc["iseq"].id());
         EXPECT_EQ(n["iseq"].id(), cn["iseq"].id());
+        EXPECT_EQ(is_const_ref(n["iseq"]), false);
+        EXPECT_EQ(is_const_ref(cn["iseq"]), true);
+        EXPECT_EQ(is_const_ref(nc["iseq"]), true);
     }
     // operator[](size_t)
     {
-        EXPECT_EQ(n["iseq"][0].id(), nc["iseq"][0].id());
-        EXPECT_EQ(n["iseq"][0].id(), cn["iseq"][0].id());
+        EXPECT_EQ(n_iseq[0].id(), nc_iseq[0].id());
+        EXPECT_EQ(n_iseq[0].id(), cn_iseq[0].id());
+        EXPECT_EQ(is_const_ref(n_iseq[0]), false);
+        EXPECT_EQ(is_const_ref(cn_iseq[0]), true);
+        EXPECT_EQ(is_const_ref(nc_iseq[0]), true);
+    }
+    // at(csubstr)
+    {
+        EXPECT_EQ(n.at("iseq").id(), nc.at("iseq").id());
+        EXPECT_EQ(n.at("iseq").id(), cn.at("iseq").id());
+        EXPECT_EQ(is_const_ref(n.at("iseq")), false);
+        EXPECT_EQ(is_const_ref(cn.at("iseq")), true);
+        EXPECT_EQ(is_const_ref(nc.at("iseq")), true);
+    }
+    // at(size_t)
+    {
+        EXPECT_EQ(n_iseq.at(0).id(), nc_iseq.at(0).id());
+        EXPECT_EQ(n_iseq.at(0).id(), cn_iseq.at(0).id());
+        EXPECT_EQ(is_const_ref(n_iseq.at(0)), false);
+        EXPECT_EQ(is_const_ref(cn_iseq.at(0)), true);
+        EXPECT_EQ(is_const_ref(nc_iseq.at(0)), true);
     }
     // begin()
     {
-        EXPECT_EQ(n["iseq"].begin().m_child_id, nc["iseq"].begin().m_child_id);
-        EXPECT_EQ(n["iseq"].begin().m_child_id, cn["iseq"].begin().m_child_id);
+        EXPECT_EQ(n_iseq.begin().m_child_id, nc_iseq.begin().m_child_id);
+        EXPECT_EQ(n_iseq.begin().m_child_id, cn_iseq.begin().m_child_id);
     }
     // end()
     {
-        EXPECT_EQ(n["iseq"].end().m_child_id, nc["iseq"].end().m_child_id);
-        EXPECT_EQ(n["iseq"].end().m_child_id, cn["iseq"].end().m_child_id);
+        EXPECT_EQ(n_iseq.end().m_child_id, nc_iseq.end().m_child_id);
+        EXPECT_EQ(n_iseq.end().m_child_id, cn_iseq.end().m_child_id);
     }
     // cbegin()
     {
-        EXPECT_EQ(n["iseq"].cbegin().m_child_id, nc["iseq"].cbegin().m_child_id);
-        EXPECT_EQ(n["iseq"].cbegin().m_child_id, cn["iseq"].cbegin().m_child_id);
-        EXPECT_EQ(n["iseq"].cbegin().m_child_id, n["iseq"].begin().m_child_id);
-        EXPECT_EQ(nc["iseq"].cbegin().m_child_id, nc["iseq"].begin().m_child_id);
-        EXPECT_EQ(cn["iseq"].cbegin().m_child_id, cn["iseq"].begin().m_child_id);
+        EXPECT_EQ(n_iseq.cbegin().m_child_id, nc_iseq.cbegin().m_child_id);
+        EXPECT_EQ(n_iseq.cbegin().m_child_id, cn_iseq.cbegin().m_child_id);
+        EXPECT_EQ(n_iseq.cbegin().m_child_id, n_iseq.begin().m_child_id);
+        EXPECT_EQ(nc_iseq.cbegin().m_child_id, nc_iseq.begin().m_child_id);
+        EXPECT_EQ(cn_iseq.cbegin().m_child_id, cn_iseq.begin().m_child_id);
     }
     // cend()
     {
-        EXPECT_EQ(n["iseq"].cend().m_child_id, nc["iseq"].cend().m_child_id);
-        EXPECT_EQ(n["iseq"].cend().m_child_id, cn["iseq"].cend().m_child_id);
-        EXPECT_EQ(n["iseq"].cend().m_child_id, n["iseq"].end().m_child_id);
-        EXPECT_EQ(nc["iseq"].cend().m_child_id, nc["iseq"].end().m_child_id);
-        EXPECT_EQ(cn["iseq"].cend().m_child_id, cn["iseq"].end().m_child_id);
+        EXPECT_EQ(n_iseq.cend().m_child_id, nc_iseq.cend().m_child_id);
+        EXPECT_EQ(n_iseq.cend().m_child_id, cn_iseq.cend().m_child_id);
+        EXPECT_EQ(n_iseq.cend().m_child_id, n_iseq.end().m_child_id);
+        EXPECT_EQ(nc_iseq.cend().m_child_id, nc_iseq.end().m_child_id);
+        EXPECT_EQ(cn_iseq.cend().m_child_id, cn_iseq.end().m_child_id);
     }
     // children()
     {
-        EXPECT_EQ(n["iseq"].children().b.m_child_id, nc["iseq"].children().b.m_child_id);
-        EXPECT_EQ(n["iseq"].children().b.m_child_id, cn["iseq"].children().b.m_child_id);
-        EXPECT_EQ(n["iseq"].children().e.m_child_id, nc["iseq"].children().e.m_child_id);
-        EXPECT_EQ(n["iseq"].children().e.m_child_id, cn["iseq"].children().e.m_child_id);
+        EXPECT_EQ(n_iseq.children().b, nc_iseq.children().b);
+        EXPECT_EQ(n_iseq.children().b, cn_iseq.children().b);
+        EXPECT_EQ(n_iseq.children().e, nc_iseq.children().e);
+        EXPECT_EQ(n_iseq.children().e, cn_iseq.children().e);
     }
     // cchildren()
     {
-        EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, nc["iseq"].cchildren().b.m_child_id);
-        EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, cn["iseq"].cchildren().b.m_child_id);
-        EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, n["iseq"].children().b.m_child_id);
-        EXPECT_EQ(nc["iseq"].cchildren().b.m_child_id, nc["iseq"].children().b.m_child_id);
-        EXPECT_EQ(cn["iseq"].cchildren().b.m_child_id, cn["iseq"].children().b.m_child_id);
-        EXPECT_EQ(n["iseq"].cchildren().e.m_child_id, nc["iseq"].cchildren().e.m_child_id);
-        EXPECT_EQ(n["iseq"].cchildren().e.m_child_id, cn["iseq"].cchildren().e.m_child_id);
-        EXPECT_EQ(n["iseq"].cchildren().e.m_child_id, n["iseq"].children().e.m_child_id);
-        EXPECT_EQ(nc["iseq"].cchildren().e.m_child_id, nc["iseq"].children().e.m_child_id);
-        EXPECT_EQ(cn["iseq"].cchildren().e.m_child_id, cn["iseq"].children().e.m_child_id);
+        EXPECT_EQ(n_iseq.cchildren().b, nc_iseq.cchildren().b);
+        EXPECT_EQ(n_iseq.cchildren().b, cn_iseq.cchildren().b);
+        EXPECT_EQ(n_iseq.cchildren().b, n_iseq.children().b);
+        EXPECT_EQ(nc_iseq.cchildren().b, nc_iseq.children().b);
+        EXPECT_EQ(cn_iseq.cchildren().b, cn_iseq.children().b);
+        EXPECT_EQ(n_iseq.cchildren().e, nc_iseq.cchildren().e);
+        EXPECT_EQ(n_iseq.cchildren().e, cn_iseq.cchildren().e);
+        EXPECT_EQ(n_iseq.cchildren().e, n_iseq.children().e);
+        EXPECT_EQ(nc_iseq.cchildren().e, nc_iseq.children().e);
+        EXPECT_EQ(cn_iseq.cchildren().e, cn_iseq.children().e);
     }
     // siblings()
     {
-        EXPECT_EQ(n["iseq"][0].siblings().b.m_child_id, nc["iseq"][0].siblings().b.m_child_id);
-        EXPECT_EQ(n["iseq"][0].siblings().b.m_child_id, cn["iseq"][0].siblings().b.m_child_id);
-        EXPECT_EQ(n.siblings().b.m_child_id, nc.siblings().b.m_child_id);
-        EXPECT_EQ(n.siblings().b.m_child_id, cn.siblings().b.m_child_id);
-        EXPECT_EQ(n["iseq"][0].siblings().e.m_child_id, nc["iseq"][0].siblings().e.m_child_id);
-        EXPECT_EQ(n["iseq"][0].siblings().e.m_child_id, cn["iseq"][0].siblings().e.m_child_id);
-        EXPECT_EQ(n.siblings().e.m_child_id, nc.siblings().e.m_child_id);
-        EXPECT_EQ(n.siblings().e.m_child_id, cn.siblings().e.m_child_id);
+        EXPECT_EQ(n_iseq[0].siblings().b, nc_iseq[0].siblings().b);
+        EXPECT_EQ(n_iseq[0].siblings().b, cn_iseq[0].siblings().b);
+        EXPECT_EQ(n.siblings().b, nc.siblings().b);
+        EXPECT_EQ(n.siblings().b, cn.siblings().b);
+        EXPECT_EQ(n_iseq[0].siblings().e, nc_iseq[0].siblings().e);
+        EXPECT_EQ(n_iseq[0].siblings().e, cn_iseq[0].siblings().e);
+        EXPECT_EQ(n.siblings().e, nc.siblings().e);
+        EXPECT_EQ(n.siblings().e, cn.siblings().e);
     }
     // csiblings()
     {
-        EXPECT_EQ(n["iseq"][0].csiblings().b.m_child_id, nc["iseq"][0].csiblings().b.m_child_id);
-        EXPECT_EQ(n["iseq"][0].csiblings().b.m_child_id, cn["iseq"][0].csiblings().b.m_child_id);
-        EXPECT_EQ(n.csiblings().b.m_child_id, nc.csiblings().b.m_child_id);
-        EXPECT_EQ(n.csiblings().b.m_child_id, cn.csiblings().b.m_child_id);
-        EXPECT_EQ(n["iseq"][0].csiblings().e.m_child_id, nc["iseq"][0].csiblings().e.m_child_id);
-        EXPECT_EQ(n["iseq"][0].csiblings().e.m_child_id, cn["iseq"][0].csiblings().e.m_child_id);
-        EXPECT_EQ(n.csiblings().e.m_child_id, nc.csiblings().e.m_child_id);
-        EXPECT_EQ(n.csiblings().e.m_child_id, cn.csiblings().e.m_child_id);
-        EXPECT_EQ(n["iseq"][0].csiblings().b.m_child_id, n["iseq"][0].siblings().b.m_child_id);
-        EXPECT_EQ(cn["iseq"][0].csiblings().b.m_child_id, cn["iseq"][0].siblings().b.m_child_id);
-        EXPECT_EQ(nc["iseq"][0].csiblings().b.m_child_id, nc["iseq"][0].siblings().b.m_child_id);
-        EXPECT_EQ(n.csiblings().b.m_child_id, n.siblings().b.m_child_id);
-        EXPECT_EQ(nc.csiblings().b.m_child_id, nc.siblings().b.m_child_id);
-        EXPECT_EQ(cn.csiblings().b.m_child_id, cn.siblings().b.m_child_id);
-        EXPECT_EQ(n["iseq"][0].csiblings().e.m_child_id, n["iseq"][0].siblings().e.m_child_id);
-        EXPECT_EQ(nc["iseq"][0].csiblings().e.m_child_id, nc["iseq"][0].siblings().e.m_child_id);
-        EXPECT_EQ(cn["iseq"][0].csiblings().e.m_child_id, cn["iseq"][0].siblings().e.m_child_id);
-        EXPECT_EQ(n.csiblings().e.m_child_id, n.siblings().e.m_child_id);
-        EXPECT_EQ(nc.csiblings().e.m_child_id, nc.siblings().e.m_child_id);
-        EXPECT_EQ(cn.csiblings().e.m_child_id, cn.siblings().e.m_child_id);
+        EXPECT_EQ(n_iseq[0].csiblings().b, nc_iseq[0].csiblings().b);
+        EXPECT_EQ(n_iseq[0].csiblings().b, cn_iseq[0].csiblings().b);
+        EXPECT_EQ(n.csiblings().b, nc.csiblings().b);
+        EXPECT_EQ(n.csiblings().b, cn.csiblings().b);
+        EXPECT_EQ(n_iseq[0].csiblings().e, nc_iseq[0].csiblings().e);
+        EXPECT_EQ(n_iseq[0].csiblings().e, cn_iseq[0].csiblings().e);
+        EXPECT_EQ(n.csiblings().e, nc.csiblings().e);
+        EXPECT_EQ(n.csiblings().e, cn.csiblings().e);
+        EXPECT_EQ(n_iseq[0].csiblings().b, n_iseq[0].siblings().b);
+        EXPECT_EQ(cn_iseq[0].csiblings().b, cn_iseq[0].siblings().b);
+        EXPECT_EQ(nc_iseq[0].csiblings().b, nc_iseq[0].siblings().b);
+        EXPECT_EQ(n.csiblings().b, n.siblings().b);
+        EXPECT_EQ(nc.csiblings().b, nc.siblings().b);
+        EXPECT_EQ(cn.csiblings().b, cn.siblings().b);
+        EXPECT_EQ(n_iseq[0].csiblings().e, n_iseq[0].siblings().e);
+        EXPECT_EQ(nc_iseq[0].csiblings().e, nc_iseq[0].siblings().e);
+        EXPECT_EQ(cn_iseq[0].csiblings().e, cn_iseq[0].siblings().e);
+        EXPECT_EQ(n.csiblings().e, n.siblings().e);
+        EXPECT_EQ(nc.csiblings().e, nc.siblings().e);
+        EXPECT_EQ(cn.csiblings().e, cn.siblings().e);
     }
     // iter begin-end
     const std::vector<csubstr> expected = {"8", "10"};
     {
         {
             std::vector<csubstr> actual;
-            for(auto it = n["iseq"].begin(); it != n["iseq"].end(); ++it)
+            for(auto it = n_iseq.begin(); it != n_iseq.end(); ++it)
                 actual.push_back((*it).val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto it = nc["iseq"].begin(); it != nc["iseq"].end(); ++it)
+            for(auto it = nc_iseq.begin(); it != nc_iseq.end(); ++it)
                 actual.push_back((*it).val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto it = cn["iseq"].begin(); it != cn["iseq"].end(); ++it)
+            for(auto it = cn_iseq.begin(); it != cn_iseq.end(); ++it)
                 actual.push_back((*it).val());
             EXPECT_EQ(expected, actual);
         }
@@ -1341,19 +1976,19 @@ TEST(NodeRef, overload_sets)
     {
         {
             std::vector<csubstr> actual;
-            for(auto it = n["iseq"].cbegin(); it != n["iseq"].cend(); ++it)
+            for(auto it = n_iseq.cbegin(); it != n_iseq.cend(); ++it)
                 actual.push_back((*it).val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto it = nc["iseq"].cbegin(); it != nc["iseq"].cend(); ++it)
+            for(auto it = nc_iseq.cbegin(); it != nc_iseq.cend(); ++it)
                 actual.push_back((*it).val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto it = cn["iseq"].cbegin(); it != cn["iseq"].cend(); ++it)
+            for(auto it = cn_iseq.cbegin(); it != cn_iseq.cend(); ++it)
                 actual.push_back((*it).val());
             EXPECT_EQ(expected, actual);
         }
@@ -1362,19 +1997,19 @@ TEST(NodeRef, overload_sets)
     {
         {
             std::vector<csubstr> actual;
-            for(auto r : n["iseq"].children())
+            for(auto r : n_iseq.children())
                 actual.push_back(r.val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto r : n["iseq"].children())
+            for(auto r : n_iseq.children())
                 actual.push_back(r.val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto r : n["iseq"].children())
+            for(auto r : n_iseq.children())
                 actual.push_back(r.val());
             EXPECT_EQ(expected, actual);
         }
@@ -1383,19 +2018,19 @@ TEST(NodeRef, overload_sets)
     {
         {
             std::vector<csubstr> actual;
-            for(auto r : n["iseq"].cchildren())
+            for(auto r : n_iseq.cchildren())
                 actual.push_back(r.val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto r : n["iseq"].cchildren())
+            for(auto r : n_iseq.cchildren())
                 actual.push_back(r.val());
             EXPECT_EQ(expected, actual);
         }
         {
             std::vector<csubstr> actual;
-            for(auto r : n["iseq"].cchildren())
+            for(auto r : n_iseq.cchildren())
                 actual.push_back(r.val());
             EXPECT_EQ(expected, actual);
         }
@@ -1433,10 +2068,4 @@ Case const* get_case(csubstr /*name*/)
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_PUSH

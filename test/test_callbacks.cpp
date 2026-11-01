@@ -191,7 +191,7 @@ C4_NORETURN void test_error_basic_impl(csubstr msg, ErrorDataBasic const& errdat
     #ifndef C4_EXCEPTIONS
     std::longjmp(s_jmp_env_expect_error, 1);
     #else
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionBasic(msg, errdata);
     #else
     throw std::runtime_error(stored_msg);
@@ -213,7 +213,7 @@ C4_NORETURN void test_error_parse_impl(csubstr msg, ErrorDataParse const& errdat
     #ifndef C4_EXCEPTIONS
     std::longjmp(s_jmp_env_expect_error, 1);
     #else
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionParse(msg, errdata);
     #else
     throw std::runtime_error(stored_msg);
@@ -236,7 +236,7 @@ C4_NORETURN void test_error_visit_impl(csubstr msg, ErrorDataVisit const& errdat
     #ifndef C4_EXCEPTIONS
     std::longjmp(s_jmp_env_expect_error, 1);
     #else
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionVisit(msg, errdata);
     #else
     throw std::runtime_error(stored_msg);
@@ -689,7 +689,7 @@ void test_full_msg_args(Location const& loc, csubstr msg, std::string const& exp
 
 //-----------------------------------------------------------------------------
 
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
 #define RYML_IF_EXC(...) __VA_ARGS__
 #else
 #define RYML_IF_EXC(...)
@@ -760,7 +760,7 @@ void test_error_basic(Location const& cpploc, const char* errmsg, Args const& ..
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     //
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     reset_stored();
     {
         SCOPED_TRACE("default handler exceptions");
@@ -867,19 +867,19 @@ TEST(check, basic)
     bool disregard_this_message = false;
     csubstr msg = "disregard_this_message";
     csubstr fmsg = "disregard_this_message: extra args: 1,2";
-    test_check_basic([&]{ _RYML_CHECK_BASIC(disregard_this_message); }, msg);
-    test_check_basic([&]{ _RYML_CHECK_BASIC_(get_callbacks(), disregard_this_message); }, msg);
-    test_check_basic([&]{ _RYML_CHECK_BASIC_MSG(disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
-    test_check_basic([&]{ _RYML_CHECK_BASIC_MSG_(get_callbacks(), disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
+    test_check_basic([&]{ RYML_CHECK_BASIC_(disregard_this_message); }, msg);
+    test_check_basic([&]{ RYML_CHECK_BASIC_CB_(get_callbacks(), disregard_this_message); }, msg);
+    test_check_basic([&]{ RYML_CHECK_BASIC_CB_MSG_(disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
+    test_check_basic([&]{ RYML_CHECK_BASIC_MSG_CB_(get_callbacks(), disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
     #if RYML_USE_ASSERT
-    test_check_basic([&]{ _RYML_ASSERT_BASIC(disregard_this_message); }, msg);
-    test_check_basic([&]{ _RYML_ASSERT_BASIC_(get_callbacks(), disregard_this_message); }, msg);
-    test_check_basic([&]{ _RYML_ASSERT_BASIC_MSG(disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
-    test_check_basic([&]{ _RYML_ASSERT_BASIC_MSG_(get_callbacks(), disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
+    test_check_basic([&]{ RYML_ASSERT_BASIC_(disregard_this_message); }, msg);
+    test_check_basic([&]{ RYML_ASSERT_BASIC_CB_(get_callbacks(), disregard_this_message); }, msg);
+    test_check_basic([&]{ RYML_ASSERT_BASIC_MSG_(disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
+    test_check_basic([&]{ RYML_ASSERT_BASIC_MSG_CB_(get_callbacks(), disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
     #endif
 }
 
-#ifdef _RYML_WITH_EXCEPTIONS
+#ifdef RYML_WITH_EXCEPTIONS_
 template<class T, class ...Args>
 void testmsg(Args const& ...args)
 {
@@ -1100,7 +1100,7 @@ void test_error_parse(Location const& cpploc, Location const& ymlloc, const char
         EXPECT_NE(get_callbacks().m_error_parse, &test_error_parse_impl);
     }
     //
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     reset_stored();
     {
         SCOPED_TRACE("default handler exceptions");
@@ -1239,36 +1239,36 @@ TEST(check, parse)
     Location ymlloc = {};
     {
         SCOPED_TRACE("here 0");
-        test_check_parse([&]{ _RYML_CHECK_PARSE(disregard_this_message, ymlloc); }, msg);
+        test_check_parse([&]{ RYML_CHECK_PARSE_(disregard_this_message, ymlloc); }, msg);
     }
     {
         SCOPED_TRACE("here 1");
-        test_check_parse([&]{ _RYML_CHECK_PARSE_(get_callbacks(), disregard_this_message, ymlloc); }, msg);
+        test_check_parse([&]{ RYML_CHECK_PARSE_CB_(get_callbacks(), disregard_this_message, ymlloc); }, msg);
     }
     {
         SCOPED_TRACE("here 2");
-        test_check_parse([&]{ _RYML_CHECK_PARSE_MSG(disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_parse([&]{ RYML_CHECK_PARSE_CB_MSG_(disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
     }
     {
         SCOPED_TRACE("here 3");
-        test_check_parse([&]{ _RYML_CHECK_PARSE_MSG_(get_callbacks(), disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_parse([&]{ RYML_CHECK_PARSE_MSG_CB_(get_callbacks(), disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
     }
     #if RYML_USE_ASSERT
     {
         SCOPED_TRACE("here 4");
-        test_check_parse([&]{ _RYML_ASSERT_PARSE(disregard_this_message, ymlloc); }, msg);
+        test_check_parse([&]{ RYML_ASSERT_PARSE_(disregard_this_message, ymlloc); }, msg);
     }
     {
         SCOPED_TRACE("here 5");
-        test_check_parse([&]{ _RYML_ASSERT_PARSE_(get_callbacks(), disregard_this_message, ymlloc); }, msg);
+        test_check_parse([&]{ RYML_ASSERT_PARSE_CB_(get_callbacks(), disregard_this_message, ymlloc); }, msg);
     }
     {
         SCOPED_TRACE("here 6");
-        test_check_parse([&]{ _RYML_ASSERT_PARSE_MSG(disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_parse([&]{ RYML_ASSERT_PARSE_MSG_(disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
     }
     {
         SCOPED_TRACE("here 7");
-        test_check_parse([&]{ _RYML_ASSERT_PARSE_MSG_(get_callbacks(), disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_parse([&]{ RYML_ASSERT_PARSE_MSG_CB_(get_callbacks(), disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
     }
     #endif
 }
@@ -1418,7 +1418,7 @@ void test_error_visit(Location const& cpploc, Tree const* t, id_type id, const c
         EXPECT_NE(get_callbacks().m_error_visit, &test_error_visit_impl);
     }
     //
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     reset_stored();
     {
         SCOPED_TRACE("default handler exceptions");
@@ -1558,36 +1558,36 @@ TEST(check, visit)
     id_type id = tree.root_id();
     {
         SCOPED_TRACE("here 0");
-        test_check_visit([&]{ _RYML_CHECK_VISIT(disregard_this_message, &tree, id); }, msg);
+        test_check_visit([&]{ RYML_CHECK_VISIT_(disregard_this_message, &tree, id); }, msg);
     }
     {
         SCOPED_TRACE("here 1");
-        test_check_visit([&]{ _RYML_CHECK_VISIT_(get_callbacks(), disregard_this_message, &tree, id); }, msg);
+        test_check_visit([&]{ RYML_CHECK_VISIT_CB_(get_callbacks(), disregard_this_message, &tree, id); }, msg);
     }
     {
         SCOPED_TRACE("here 2");
-        test_check_visit([&]{ _RYML_CHECK_VISIT_MSG(disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_visit([&]{ RYML_CHECK_VISIT_CB_MSG_(disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
     }
     {
         SCOPED_TRACE("here 3");
-        test_check_visit([&]{ _RYML_CHECK_VISIT_MSG_(get_callbacks(), disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_visit([&]{ RYML_CHECK_VISIT_MSG_CB_(get_callbacks(), disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
     }
     #if RYML_USE_ASSERT
     {
         SCOPED_TRACE("here 4");
-        test_check_visit([&]{ _RYML_ASSERT_VISIT(disregard_this_message, &tree, id); }, msg);
+        test_check_visit([&]{ RYML_ASSERT_VISIT_(disregard_this_message, &tree, id); }, msg);
     }
     {
         SCOPED_TRACE("here 5");
-        test_check_visit([&]{ _RYML_ASSERT_VISIT_(get_callbacks(), disregard_this_message, &tree, id); }, msg);
+        test_check_visit([&]{ RYML_ASSERT_VISIT_CB_(get_callbacks(), disregard_this_message, &tree, id); }, msg);
     }
     {
         SCOPED_TRACE("here 6");
-        test_check_visit([&]{ _RYML_ASSERT_VISIT_MSG(disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_visit([&]{ RYML_ASSERT_VISIT_MSG_(disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
     }
     {
         SCOPED_TRACE("here 7");
-        test_check_visit([&]{ _RYML_ASSERT_VISIT_MSG_(get_callbacks(), disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
+        test_check_visit([&]{ RYML_ASSERT_VISIT_MSG_CB_(get_callbacks(), disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
     }
     #endif
 }
@@ -1601,7 +1601,7 @@ TEST(RYML_CHECK, basic)
     const size_t the_line = (size_t)(__LINE__ + 3); // careful
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
-        _RYML_CHECK_BASIC(false);  // keep both statements in the same line
+        RYML_CHECK_BASIC_(false);  // keep both statements in the same line
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
@@ -1627,7 +1627,7 @@ TEST(RYML_ASSERT, basic)
     const size_t the_line = (size_t)(__LINE__ + 3); // careful
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
-        _RYML_ASSERT_BASIC(false);
+        RYML_ASSERT_BASIC_(false);
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
@@ -1666,7 +1666,7 @@ size_t to_chars(substr buf, CustomLengthArg const& arg)
 struct Dumper
 {
     char errmsg[RYML_ERRMSG_SIZE] = {0};
-    detail::_SubstrWriter writer{errmsg};
+    detail::SubstrWriter_ writer{errmsg};
     void operator()(csubstr s)
     {
         writer.append(s);

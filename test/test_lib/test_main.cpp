@@ -4,6 +4,10 @@
 #else
 #include <ryml_all.hpp>
 #endif
+#ifdef RYML_NO_DEFAULT_CALLBACKS
+#include <stdlib.h>
+#include <stdio.h>
+#endif
 
 
 namespace c4 {
@@ -16,7 +20,7 @@ namespace {
 #ifdef RYML_NO_DEFAULT_CALLBACKS
 [[noreturn]] void error_basic_impl(csubstr msg, ErrorDataBasic const& errdata, void * /*user_data*/)
 {
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionBasic(msg, errdata);
     #else
     (void)msg;
@@ -26,7 +30,7 @@ namespace {
 }
 [[noreturn]] void error_parse_impl(csubstr msg, ErrorDataParse const& errdata, void * /*user_data*/)
 {
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionParse(msg, errdata);
     #else
     (void)msg;
@@ -36,7 +40,7 @@ namespace {
 }
 [[noreturn]] void error_visit_impl(csubstr msg, ErrorDataVisit const& errdata, void * /*user_data*/)
 {
-    #ifdef _RYML_WITH_EXCEPTIONS
+    #ifdef RYML_WITH_EXCEPTIONS_
     throw ExceptionVisit(msg, errdata);
     #else
     (void)msg;

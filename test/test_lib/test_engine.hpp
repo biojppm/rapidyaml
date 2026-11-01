@@ -1,5 +1,5 @@
-#ifndef _C4_YML_TEST_TEST_ENGINE_HPP_
-#define _C4_YML_TEST_TEST_ENGINE_HPP_
+#ifndef C4_YML_TEST_TEST_ENGINE_HPP_
+#define C4_YML_TEST_TEST_ENGINE_HPP_
 
 #ifdef RYML_SINGLE_HEADER
 #include "ryml_all.hpp"
@@ -16,6 +16,9 @@
 #include "c4/yml/extra/ints_to_testsuite.hpp"
 #include "c4/yml/extra/event_handler_ints.hpp"
 
+#if defined(__clang__) && (__clang_major__ >= 13)
+C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
+#endif
 
 namespace c4 {
 namespace yml {
@@ -30,7 +33,7 @@ struct OptionalScalar
     operator csubstr() const { return get(); }
     operator bool() const { return was_set; }
     void operator= (csubstr v) { val = v; was_set = true; } // NOLINT
-    csubstr get() const { _RYML_ASSERT_BASIC(was_set); return val; }
+    csubstr get() const { RYML_ASSERT_BASIC_(was_set); return val; }
     csubstr maybe_get() const { return was_set ? val : csubstr(""); }
 };
 
@@ -85,13 +88,13 @@ private:
 
 //-----------------------------------------------------------------------------
 
-#define ENGINE_TEST_ERR(name, refyaml)                              ENGINE_TEST_ERRLOC__(name, ParserOptions{}, TestCaseFlags_e{}, Location{}, refyaml)
-#define ENGINE_TEST_ERR_(name, testcaseflags, refyaml)              ENGINE_TEST_ERRLOC__(name, ParserOptions{}, testcaseflags    , Location{}, refyaml)
-#define ENGINE_TEST_ERRLOC(name, location, refyaml)                 ENGINE_TEST_ERRLOC__(name, ParserOptions{}, TestCaseFlags_e{}, location  , refyaml)
-#define ENGINE_TEST_ERRLOC_(name, testcaseflags, location, refyaml) ENGINE_TEST_ERRLOC__(name, ParserOptions{}, testcaseflags    , location  , refyaml)
-#define ENGINE_TEST_ERROPT(name, parseoptions, refyaml)             ENGINE_TEST_ERRLOC__(name, parseoptions   , TestCaseFlags_e{}, Location{}, refyaml)
-#define ENGINE_TEST_ERROPT_(name, parseoptions, location, refyaml)  ENGINE_TEST_ERRLOC__(name, parseoptions   , TestCaseFlags_e{}, location  , refyaml)
-#define ENGINE_TEST_ERRLOC__(name, parseoptions, testcaseflags, location, refyaml) \
+#define ENGINE_TEST_ERR(name, refyaml)                              ENGINE_TEST_ERRLOCOPT_(name, ParserOptions{}, TestCaseFlags_e{}, Location{}, refyaml)
+#define ENGINE_TEST_ERR_(name, testcaseflags, refyaml)              ENGINE_TEST_ERRLOCOPT_(name, ParserOptions{}, testcaseflags    , Location{}, refyaml)
+#define ENGINE_TEST_ERRLOC(name, location, refyaml)                 ENGINE_TEST_ERRLOCOPT_(name, ParserOptions{}, TestCaseFlags_e{}, location  , refyaml)
+#define ENGINE_TEST_ERRLOC_(name, testcaseflags, location, refyaml) ENGINE_TEST_ERRLOCOPT_(name, ParserOptions{}, testcaseflags    , location  , refyaml)
+#define ENGINE_TEST_ERROPT(name, parseoptions, refyaml)             ENGINE_TEST_ERRLOCOPT_(name, parseoptions   , TestCaseFlags_e{}, Location{}, refyaml)
+#define ENGINE_TEST_ERROPT_(name, parseoptions, location, refyaml)  ENGINE_TEST_ERRLOCOPT_(name, parseoptions   , TestCaseFlags_e{}, location  , refyaml)
+#define ENGINE_TEST_ERRLOCOPT_(name, parseoptions, testcaseflags, location, refyaml) \
                                                                         \
                                                                         \
 static const EngineEvtTestCase test_case_err_##name(                    \
@@ -131,7 +134,7 @@ static const EngineEvtTestCase test_case_##name(                \
                                                                 \
 /* declare a function producing the sequence of events */       \
 template<class EvtHandlerClass>                                 \
-void events_##name(EvtHandlerClass &handler);
+static void events_##name(EvtHandlerClass &handler);
 
 
 
@@ -145,7 +148,7 @@ template void events_##name<EventHandlerTree>(EventHandlerTree&);       \
                                                                         \
 /* define the event producer template */                                \
 template<class EvtHandlerClass>                                         \
-void events_##name(EvtHandlerClass &ps)
+static void events_##name(EvtHandlerClass &ps)
 
 
 
@@ -285,19 +288,19 @@ void test_engine_roundtrip_from_yaml_with_comments(EngineEvtTestCase const& test
     do                                                      \
     {                                                       \
        stmt;                                                \
-       _print_handler_info(ps, #stmt, __FILE__, __LINE__);  \
+       print_handler_info_(ps, #stmt, __FILE__, __LINE__);  \
     } while(0)
 
 
-void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *file, int line);
-void _print_handler_info(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line);
+void print_handler_info_(EventHandlerTree const& ps, csubstr stmt, const char *file, int line);
+void print_handler_info_(extra::EventHandlerInts const& ps, csubstr stmt, const char *file, int line);
 
 template<class Handler, class ArgTransformer>
 struct EventTransformer;
 template<class Handler, class Transformer>
-void _print_handler_info(EventTransformer<Handler, Transformer> const& ps, csubstr stmt, const char *file, int line)
+void print_handler_info_(EventTransformer<Handler, Transformer> const& ps, csubstr stmt, const char *file, int line)
 {
-    _print_handler_info(ps.handler, stmt, file, line);
+    print_handler_info_(ps.handler, stmt, file, line);
 }
 
 #endif
@@ -385,13 +388,18 @@ struct TransformToSourceBufferOrArena
         size_t pos = src.find(s);
         if(pos != csubstr::npos)
         {
-            _RYML_ASSERT_BASIC(pos + s.len <= src.len);
+            RYML_ASSERT_BASIC_(pos + s.len <= src.len);
             return src.sub(pos, s.len);
         }
         substr dst = handler->alloc_arena(s.len);
-        _RYML_CHECK_BASIC(dst.str != nullptr && dst.len == s.len);
+        RYML_CHECK_BASIC_(dst.str != nullptr && dst.len == s.len);
+        C4_SUPPRESS_WARNING_GCC_PUSH
+        #if defined(__GNUC__) && (__GNUC__ >= 6)
+        C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+        #endif
         if(s.len)
             memcpy(dst.str, s.str, s.len);
+        C4_SUPPRESS_WARNING_GCC_POP
         return dst;
     }
 };
@@ -400,4 +408,4 @@ struct TransformToSourceBufferOrArena
 } // namespace c4
 
 
-#endif // _C4_YML_TEST_TEST_ENGINE_HPP_
+#endif // C4_YML_TEST_TEST_ENGINE_HPP_

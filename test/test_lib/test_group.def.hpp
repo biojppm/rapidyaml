@@ -1,5 +1,5 @@
-#ifndef _C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_
-#define _C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_
+#ifndef C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_
+#define C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_
 
 namespace c4 {
 namespace yml {
@@ -236,4 +236,4 @@ TEST_P(YmlTestCase, windows_recreate_from_ref)
 } // namespace c4
 } // namespace yml
 
-#endif // _C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_
+#endif // C4_YML_TEST_TEST_GROUP_TEST_GROUP_DEF_HPP_

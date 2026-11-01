@@ -6,6 +6,7 @@
 #include "c4/span.hpp"
 #include "c4/yml/std/std.hpp"
 #include "c4/yml/detail/print.hpp"
+#include "c4/yml/detail/dbgprint.hpp"
 #include "c4/yml/detail/checks.hpp"
 #endif
 
@@ -39,24 +40,24 @@ namespace yml {
 
 const bomspec bomspecs_[] = {
     //                        bare string causes problems in gcc5 and earlier
-    {"NOBOM"       , UTF8   , csubstr("", size_t(0))},
-    {"UTF8"        , UTF8   , csubstr("\xef\xbb\xbf", 3)},
-    {"UTF16BE"     , UTF16BE, csubstr("\xfe\xff", 2)},
-    {"!UTF16BE-a"  , UTF16BE, csubstr("\x00""a", 2)},
-    {"!UTF16BE-b"  , UTF16BE, csubstr("\x00""b", 2)},
-    {"!UTF16BE-0"  , UTF16BE, csubstr("\x00""0", 2)},
-    {"UTF16LE"     , UTF16LE, csubstr("\xff\xfe", 2)},
-    {"!UTF16LE-a"  , UTF16LE, csubstr("a""\x00" , 2)},
-    {"!UTF16LE-b"  , UTF16LE, csubstr("b""\x00" , 2)},
-    {"!UTF16LE-0"  , UTF16LE, csubstr("0""\x00" , 2)},
-    {"UTF32BE"     , UTF32BE, csubstr("\x00\x00\xfe\xff", 4)},
-    {"!UTF32BE-a"  , UTF32BE, csubstr("\x00\x00\x00""a" , 4)},
-    {"!UTF32BE-b"  , UTF32BE, csubstr("\x00\x00\x00""b" , 4)},
-    {"!UTF32BE-0"  , UTF32BE, csubstr("\x00\x00\x00""0" , 4)},
-    {"UTF32LE"     , UTF32LE, csubstr("\xff\xfe\x00\x00", 4)},
-    {"!UTF32LE-a"  , UTF32LE, csubstr("a""\x00\x00\x00" , 4)},
-    {"!UTF32LE-b"  , UTF32LE, csubstr("b""\x00\x00\x00" , 4)},
-    {"!UTF32LE-0"  , UTF32LE, csubstr("0""\x00\x00\x00" , 4)},
+    {"NOBOM"       , UTF8   , true , csubstr("", size_t(0))},
+    {"UTF8"        , UTF8   , true , csubstr("\xef\xbb\xbf", 3)},
+    {"UTF16BE"     , UTF16BE, false, csubstr("\xfe\xff", 2)},
+    {"!UTF16BE-a"  , UTF16BE, false, csubstr("\x00""a", 2)},
+    {"!UTF16BE-b"  , UTF16BE, false, csubstr("\x00""b", 2)},
+    {"!UTF16BE-0"  , UTF16BE, false, csubstr("\x00""0", 2)},
+    {"UTF16LE"     , UTF16LE, false, csubstr("\xff\xfe", 2)},
+    {"!UTF16LE-a"  , UTF16LE, false, csubstr("a""\x00" , 2)},
+    {"!UTF16LE-b"  , UTF16LE, false, csubstr("b""\x00" , 2)},
+    {"!UTF16LE-0"  , UTF16LE, false, csubstr("0""\x00" , 2)},
+    {"UTF32BE"     , UTF32BE, false, csubstr("\x00\x00\xfe\xff", 4)},
+    {"!UTF32BE-a"  , UTF32BE, false, csubstr("\x00\x00\x00""a" , 4)},
+    {"!UTF32BE-b"  , UTF32BE, false, csubstr("\x00\x00\x00""b" , 4)},
+    {"!UTF32BE-0"  , UTF32BE, false, csubstr("\x00\x00\x00""0" , 4)},
+    {"UTF32LE"     , UTF32LE, false, csubstr("\xff\xfe\x00\x00", 4)},
+    {"!UTF32LE-a"  , UTF32LE, false, csubstr("a""\x00\x00\x00" , 4)},
+    {"!UTF32LE-b"  , UTF32LE, false, csubstr("b""\x00\x00\x00" , 4)},
+    {"!UTF32LE-0"  , UTF32LE, false, csubstr("0""\x00\x00\x00" , 4)},
 };
 const cspan<bomspec> bomspecs = bomspecs_;
 
@@ -70,6 +71,21 @@ id_type _num_leaves(Tree const& t, id_type node)
 }
 
 
+void test_compare(ConstNodeRef const& actual, ConstNodeRef const& expected,
+                  const char *actual_name, const char *expected_name,
+                  type_bits cmp_mask)
+{
+    if(actual.is_root() && expected.is_root())
+        test_compare(*actual.tree(), *expected.tree(),
+                     actual_name, expected_name,
+                     cmp_mask);
+    else
+        test_compare(*actual.tree(), actual.id(),
+                     *expected.tree(), expected.id(),
+                     0,
+                     actual_name, expected_name,
+                     cmp_mask);
+}
 void test_compare(Tree const& actual, Tree const& expected,
                   const char *actual_name, const char *expected_name,
                   type_bits cmp_mask)
@@ -79,7 +95,11 @@ void test_compare(Tree const& actual, Tree const& expected,
         return;
     EXPECT_EQ(actual.size(), expected.size());
     EXPECT_EQ(_num_leaves(actual, actual.root_id()), _num_leaves(expected, expected.root_id()));
-    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0, actual_name, expected_name, cmp_mask);
+    test_compare(actual, actual.root_id(),
+                 expected, expected.root_id(),
+                 0,
+                 actual_name, expected_name,
+                 cmp_mask);
 }
 
 
@@ -120,9 +140,7 @@ void test_compare(Tree const& actual, id_type node_actual,
     EXPECT_EQ(actual.has_val_tag(node_actual), expected.has_val_tag(node_expected));
     if(actual.has_val_tag(node_actual) && expected.has_val_tag(node_expected))
     {
-        csubstr actual_tag = actual.val_tag(node_actual);
-        csubstr expected_tag = expected.val_tag(node_expected);
-        EXPECT_EQ(actual_tag, expected_tag);
+        EXPECT_EQ(actual.val_tag(node_actual), expected.val_tag(node_expected));
     }
 
     EXPECT_EQ(actual.has_key_anchor(node_actual), expected.has_key_anchor(node_expected));
@@ -273,8 +291,8 @@ C4_IF_EXCEPTIONS_(
 {
     _c4dbgp("called basic error callback! from here:");
     #ifdef RYML_DBG
-    _dbg_printf("{}:{}: cpploc\n", errdata.location.name, errdata.location.line);
-    _dbg_printf("{}:{}: {}\n", errdata.location.name, errdata.location.line, msg);
+    dbg_printf_("{}:{}: cpploc\n", errdata.location.name, errdata.location.line);
+    dbg_printf_("{}:{}: {}\n", errdata.location.name, errdata.location.line, msg);
     #endif
     ((ExpectError*)this_)->m_error = ExpectedErrorType::err_basic; // assign in here to ensure the exception was thrown here
     C4_IF_EXCEPTIONS(
@@ -290,8 +308,8 @@ C4_IF_EXCEPTIONS_(
 {
     _c4dbgpf("called parse error callback! (withlocation={})", bool(errdata.ymlloc));
     #ifdef RYML_DBG
-    _dbg_printf("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
-    _dbg_printf("{}:{}: {}\n", errdata.ymlloc.name, errdata.ymlloc.line, msg);
+    dbg_printf_("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
+    dbg_printf_("{}:{}: {}\n", errdata.ymlloc.name, errdata.ymlloc.line, msg);
     #endif
     ((ExpectError*)this_)->m_error = ExpectedErrorType::err_parse; // assign in here to ensure the exception was thrown here
     C4_IF_EXCEPTIONS(
@@ -307,8 +325,8 @@ C4_IF_EXCEPTIONS_(
 {
     _c4dbgp("called visit error callback!");
     #ifdef RYML_DBG
-    _dbg_printf("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
-    _dbg_printf("{}:{}: {}\n", errdata.cpploc.name, errdata.cpploc.line, msg);
+    dbg_printf_("{}:{}: cpploc\n", errdata.cpploc.name, errdata.cpploc.line);
+    dbg_printf_("{}:{}: {}\n", errdata.cpploc.name, errdata.cpploc.line, msg);
     #endif
     ((ExpectError*)this_)->m_error = ExpectedErrorType::err_visit; // assign in here to ensure the exception was thrown here
     C4_IF_EXCEPTIONS(
@@ -404,7 +422,7 @@ void ExpectError::check_success(Tree *tree, fntestref fn)
     {
         FAIL() << "check expected success: failed!";
     }
-    ASSERT_EQ(context.m_error, ExpectedErrorType::err_none);
+    EXPECT_EQ(context.m_error, ExpectedErrorType::err_none);
 }
 
 void ExpectError::check_error_basic(Tree const* tree, fntestref fn, bool only_basic)
@@ -422,8 +440,24 @@ void ExpectError::check_error_visit(Tree const* tree, fntestref fn, id_type expe
     check_error_visit(const_cast<Tree*>(tree), fn, expected_id);
 }
 
+void ExpectError::check_assert_basic(Tree const* tree, fntestref fn, bool only_basic)
+{
+    check_assert_basic(const_cast<Tree*>(tree), fn, only_basic);
+}
+
+void ExpectError::check_assert_parse(Tree const* tree, fntestref fn, Location const& expected_location)
+{
+    check_assert_parse(const_cast<Tree*>(tree), fn, expected_location);
+}
+
+void ExpectError::check_assert_visit(Tree const* tree, fntestref fn, id_type expected_id)
+{
+    check_assert_visit(const_cast<Tree*>(tree), fn, expected_id);
+}
+
 void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
 {
+    RYML_SAVE_TEST_EXPFAIL_();
     auto context = ExpectError(ExpectedErrorType::err_basic, tree);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
@@ -435,7 +469,7 @@ void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorBasic const& e = s_jmp_err_basic);
         (void)e;
-        #if defined(_RYML_WITH_EXCEPTIONS)
+        #if defined(RYML_WITH_EXCEPTIONS_)
         _c4dbgpf("---------------------\n""got an expected exception: {}""---------------------\n", e.what());
         #endif
     }
@@ -459,6 +493,7 @@ void ExpectError::check_error_basic(Tree *tree, fntestref fn, bool only_basic)
 
 void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& expected_location)
 {
+    RYML_SAVE_TEST_EXPFAIL_();
     ExpectError context(ExpectedErrorType::err_parse, tree, expected_location);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
@@ -470,7 +505,7 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorParse const& e = s_jmp_err_parse);
         (void)e;
-        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
+        #if defined(RYML_DBG) && defined(RYML_WITH_EXCEPTIONS_)
         std::cout << "---------------\n";
         std::cout << "got an expected parse error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
@@ -495,24 +530,25 @@ void ExpectError::check_error_parse(Tree *tree, fntestref fn, Location const& ex
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
     {
-        FAIL() << "got an unexpected exception:" << exc.what() << "\n";
+        FAIL() << "got an unexpected exception: " << exc.what() << "\n";
     }, )
     C4_IF_EXCEPTIONS_(catch(...)
     {
         FAIL() << "got an unexpected exception";
     }, )
-    if(context.m_error == ExpectedErrorType::err_none)
+    if(context.m_error != ExpectedErrorType::err_none)
     {
-        FAIL() << "no error occurred";
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
     }
     else
     {
-        EXPECT_EQ(context.m_error, ExpectedErrorType::err_parse);
+        FAIL() << "no error occurred";
     }
 }
 
 void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
 {
+    RYML_SAVE_TEST_EXPFAIL_();
     auto context = ExpectError(ExpectedErrorType::err_visit, tree);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
@@ -524,7 +560,7 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
     {
         C4_IF_EXCEPTIONS_( , ExpectedErrorVisit const& e = s_jmp_err_visit);
         (void)e;
-        #if defined(RYML_DBG) && defined(_RYML_WITH_EXCEPTIONS)
+        #if defined(RYML_DBG) && defined(RYML_WITH_EXCEPTIONS_)
         std::cout << "---------------\n";
         std::cout << "got an expected visit error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
@@ -537,19 +573,19 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const& exc)
     {
-        FAIL() << "got an unexpected exception:" << exc.what() << "\n";
+        FAIL() << "got an unexpected exception:\n" << exc.what() << "\n";
     }, )
     C4_IF_EXCEPTIONS_(catch(...)
     {
         FAIL() << "got an unexpected exception";
     }, )
-    if(context.m_error == ExpectedErrorType::err_none)
+    if(context.m_error != ExpectedErrorType::err_none)
     {
-        FAIL() << "no error occurred";
+        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
     }
     else
     {
-        EXPECT_EQ(context.m_error, ExpectedErrorType::err_visit);
+        FAIL() << "no error occurred";
     }
 }
 
@@ -615,7 +651,7 @@ void print_path(ConstNodeRef const& n)
         else
         {
             int ret = snprintf(buf, sizeof(buf), "/%zu", p.has_parent() ? (size_t)p.parent().child_pos(p) : (size_t)0);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             len += static_cast<size_t>(ret);
         }
         p = p.parent();
@@ -629,18 +665,18 @@ void print_path(ConstNodeRef const& n)
         {
             size_t tl = p.key().len;
             int ret = snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             pos -= static_cast<size_t>(ret);
         }
         else if(p.has_parent())
         {
             pos = (size_t)p.parent().child_pos(p);
             int ret = snprintf(buf, 0, "/%zu", pos);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             size_t tl = static_cast<size_t>(ret);
-            _RYML_ASSERT_BASIC(pos >= tl);
+            RYML_ASSERT_BASIC_(pos >= tl);
             ret = snprintf(buf + static_cast<size_t>(pos - tl), tl, "/%zu", pos);
-            _RYML_ASSERT_BASIC(ret >= 0);
+            RYML_ASSERT_BASIC_(ret >= 0);
             pos -= static_cast<size_t>(ret);
         }
         p = p.parent();
@@ -732,29 +768,185 @@ void print_test_tree(const char *message, TestCaseNode const& t)
     printf("--------------------------------------\n");
 }
 
+void test_invariants(NodeType ty)
+{
+    #define EXPECT_ALL(v, flags) EXPECT_EQ(((v) & (flags)), flags)
+    #define EXPECT_ONE(v, flags, one) EXPECT_EQ(((v) & (flags)), one)
+    #define EXPECT_ANY(v, flags) EXPECT_NE(((v) & (flags)), 0)
+    #define EXPECT_NONE(v, flags) EXPECT_EQ(((v) & (flags)), 0)
+    type_bits STREAMONLY = (STREAM & ~SEQ);
+    if(ty & (KEYNIL|KEYREF|KEY_STYLE))
+    {
+        EXPECT_ALL(ty, KEY);
+    }
+    if(ty & (VALNIL|VALREF|VAL_STYLE))
+    {
+        EXPECT_ALL(ty, VAL);
+    }
+    if(ty & (KEYTAG|KEYANCH))
+    {
+        EXPECT_ALL(ty, KEY);
+    }
+    if(ty & (VALTAG|VALANCH))
+    {
+        EXPECT_ANY(ty, VAL|SEQ|MAP);
+    }
+    if(ty & KEYREF)
+    {
+        EXPECT_NONE(ty, KEYTAG|KEYANCH|KEY_STYLE);
+    }
+    if(ty & VALREF)
+    {
+        EXPECT_NONE(ty, VALTAG|VALANCH|VAL_STYLE|CONTAINER_STYLE);
+    }
+    if(ty & VAL)
+    {
+        EXPECT_NONE(ty, MAP|SEQ|STREAM|CONTAINER_STYLE);
+    }
+    if(ty & MAP)
+    {
+        EXPECT_NONE(ty, VAL|SEQ|STREAM|VAL_STYLE);
+    }
+    if(ty & SEQ)
+    {
+        EXPECT_NONE(ty, VAL|MAP|VAL_STYLE);
+    }
+    if(ty & DOC)
+    {
+        EXPECT_NONE(ty, STREAMONLY|KEY);
+    }
+    if(ty & STREAMONLY)
+    {
+        EXPECT_NONE(ty, DOC|MAP|KEY);
+    }
+    if(ty & (MAP|SEQ|VAL))
+    {
+        if(ty & MAP)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, MAP);
+        }
+        if(ty & SEQ)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, SEQ);
+        }
+        if(ty & VAL)
+        {
+            EXPECT_ONE(ty, MAP|SEQ|VAL, VAL);
+        }
+    }
+    if(ty & CONTAINER_STYLE)
+    {
+        EXPECT_NONE(ty, VAL);
+        if(ty & FLOW_SL)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_SL);
+        }
+        if(ty & FLOW_ML1)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_ML1);
+        }
+        if(ty & FLOW_MLN)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, FLOW_MLN);
+        }
+        if(ty & FLOW_SPC)
+        {
+            EXPECT_ANY(ty, FLOW_MLX);
+        }
+        if(ty & BLOCK)
+        {
+            EXPECT_ONE(ty, CONTAINER_STYLE, BLOCK);
+        }
+    }
+    if(ty & KEY_STYLE)
+    {
+        if(ty & KEY_PLAIN)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_PLAIN);
+        }
+        if(ty & KEY_SQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_SQUO);
+        }
+        if(ty & KEY_DQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_DQUO);
+        }
+        if(ty & KEY_LITERAL)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_LITERAL);
+        }
+        if(ty & KEY_FOLDED)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_FOLDED);
+        }
+    }
+    if(ty & VAL_STYLE)
+    {
+        if(ty & KEY_PLAIN)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_PLAIN);
+        }
+        if(ty & KEY_SQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_SQUO);
+        }
+        if(ty & KEY_DQUO)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_DQUO);
+        }
+        if(ty & KEY_LITERAL)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_LITERAL);
+        }
+        if(ty & KEY_FOLDED)
+        {
+            EXPECT_ONE(ty, KEY_STYLE, KEY_FOLDED);
+        }
+    }
+}
+
 void test_invariants(ConstNodeRef const& n)
 {
     SCOPED_TRACE(n.id());
+    test_invariants(n.type());
     if(n.is_root())
     {
         EXPECT_FALSE(n.has_other_siblings());
     }
+    NodeType ty = n.type();
     // vals cannot be containers
-    if( ! n.empty() && ! n.is_doc())
+    if( ! n.empty() && ! ty.is_doc())
     {
-        EXPECT_NE(n.has_val(), n.is_container());
+        EXPECT_NE(ty.has_val(), ty.is_container());
     }
     if(n.has_children())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_val());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_val());
+    }
+    if(ty.has_key())
+    {
+        EXPECT_TRUE(n.parent().readable());
+        if(n.parent().readable())
+        {
+            EXPECT_TRUE(n.parent().type().is_map());
+        }
+    }
+    if(n.has_key())
+    {
+        EXPECT_TRUE(n.parent().readable());
+        if(n.parent().readable())
+        {
+            EXPECT_TRUE(n.parent().is_map());
+        }
     }
     // check sibling reciprocity
     for(ConstNodeRef s : n.siblings())
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        if(n.has_key() && s.has_key())
+        if(ty.has_key() && ty.has_key())
         {
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
@@ -769,30 +961,38 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_EQ(n.parent().num_children(), n.num_siblings());
         EXPECT_EQ(n.parent().num_children(), n.num_other_siblings()+id_type(1));
         // doc parent must be a seq and a stream
-        if(n.is_doc())
+        if(ty.is_doc())
         {
             EXPECT_TRUE(n.parent().is_seq());
             EXPECT_TRUE(n.parent().is_stream());
+        }
+        if(n.parent().type().is_map())
+        {
+            EXPECT_TRUE(ty.has_key());
+        }
+        if(n.parent().is_map())
+        {
+            EXPECT_TRUE(n.has_key());
         }
     }
     else
     {
         EXPECT_TRUE(n.is_root());
     }
-    if(n.is_seq())
+    if(ty.is_seq())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_map());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_map());
         for(ConstNodeRef ch : n.children())
         {
             EXPECT_FALSE(ch.is_keyval());
             EXPECT_FALSE(ch.has_key());
         }
     }
-    if(n.is_map())
+    if(ty.is_map())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_seq());
+        EXPECT_TRUE(ty.is_container());
+        EXPECT_FALSE(ty.is_seq());
         for(ConstNodeRef ch : n.children())
         {
             if(ch.type() != NOTYPE)
@@ -801,46 +1001,56 @@ void test_invariants(ConstNodeRef const& n)
             }
         }
     }
+    if(n.is_stream() && !n.is_seq())
+    {
+        for(ConstNodeRef ch : n.children())
+        {
+            if(ch.type() != NOTYPE)
+            {
+                EXPECT_TRUE(ch.is_doc());
+            }
+        }
+    }
     if(n.has_key_anchor())
     {
         EXPECT_FALSE(n.key_anchor().empty());
-        EXPECT_FALSE(n.is_key_ref());
+        EXPECT_FALSE(ty.is_key_ref());
     }
-    if(n.has_val_anchor())
+    if(ty.has_val_anchor())
     {
         EXPECT_FALSE(n.val_anchor().empty());
-        EXPECT_FALSE(n.is_val_ref());
+        EXPECT_FALSE(ty.is_val_ref());
     }
-    if(n.is_key_ref())
+    if(ty.is_key_ref())
     {
         EXPECT_FALSE(n.key_ref().empty());
-        EXPECT_FALSE(n.has_key_anchor());
+        EXPECT_FALSE(ty.has_key_anchor());
     }
-    if(n.is_val_ref())
+    if(ty.is_val_ref())
     {
         EXPECT_FALSE(n.val_ref().empty());
-        EXPECT_FALSE(n.has_val_anchor());
+        EXPECT_FALSE(ty.has_val_anchor());
     }
-    if(n.has_key())
+    if(ty.has_key())
     {
-        if(n.is_key_quoted())
+        if(ty.is_key_quoted())
         {
-            EXPECT_FALSE(n.key_is_null());
+            EXPECT_FALSE(ty.key_is_null());
         }
         if(n.key_is_null())
         {
-            EXPECT_FALSE(n.is_key_quoted());
+            EXPECT_FALSE(ty.is_key_quoted());
         }
     }
-    if(n.has_val() && n.is_val_quoted())
+    if(ty.has_val() && ty.is_val_quoted())
     {
-        if(n.is_val_quoted())
+        if(ty.is_val_quoted())
         {
             EXPECT_FALSE(n.val_is_null());
         }
-        if(n.val_is_null())
+        if(ty.val_is_null())
         {
-            EXPECT_FALSE(n.is_val_quoted());
+            EXPECT_FALSE(ty.is_val_quoted());
         }
     }
     // ... add more tests here
@@ -850,8 +1060,6 @@ void test_invariants(ConstNodeRef const& n)
     {
         test_invariants(ch);
     }
-
-    #undef _MORE_INFO
 }
 
 
@@ -914,8 +1122,8 @@ void test_invariants(Tree const& t)
     size_t count = test_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());
 
-    check_invariants(t);
     test_invariants(t.rootref());
+    check_invariants(t);
 
     if(!testing::UnitTest::GetInstance()->current_test_info()->result()->Passed())
     {
@@ -984,7 +1192,7 @@ CaseData* get_data(csubstr name)
     {
         cd = &m[name];
         Case const* c = get_case(name);
-        _RYML_CHECK_BASIC(c->src.find("\n\r") == csubstr::npos);
+        RYML_CHECK_BASIC_(c->src.find("\n\r") == csubstr::npos);
         {
             std::string tmp;
             replace_all("\r", "", c->src, &tmp);

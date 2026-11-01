@@ -1,4 +1,4 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows/clang.ys
+# DO NOT EDIT - GENERATED FROM clang.ys
 
 name: clang
 defaults:
@@ -11,7 +11,7 @@ defaults:
     - master
   pull_request:
     branches:
-    - '*'
+    - '**'
 env:
   PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
@@ -39,10 +39,11 @@ jobs:
           bitlinks: shared64 static32
     steps:
     - name: checkout (action + docker)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -112,10 +113,11 @@ jobs:
           bitlinks: shared64 static32
     steps:
     - name: checkout (action + docker)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -186,10 +188,11 @@ jobs:
           bitlinks: shared64 static32
     steps:
     - name: checkout (action + docker)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -260,10 +263,11 @@ jobs:
           bitlinks: shared64 static32
     steps:
     - name: checkout (action + docker)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails
@@ -329,36 +333,43 @@ jobs:
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 23
           cxx: 22
           bits: 32
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 20
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 17
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 14
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 11
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 11
           cxx: 22
           bits: 32
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -409,7 +420,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -425,8 +435,8 @@ jobs:
         || c4core-install clang++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
-        echo "Debug ::: -m${{matrix.bits}}"
-    - name: 'configure Debug ::: -m${{matrix.bits}}'
+        echo "Debug ::: -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Debug ::: -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Debug
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -434,8 +444,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_FLAGS_DEBUG="-m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_DEBUG="-m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_DEBUG="-m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_DEBUG="-m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -443,7 +453,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Debug ::: -m${{matrix.bits}}'
+    - name: 'build Debug ::: -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -456,15 +466,15 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Debug --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Debug ::: -m${{matrix.bits}}'
+    - name: 'run Debug ::: -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Debug --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -472,8 +482,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -481,7 +491,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -494,15 +504,15 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -510,8 +520,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -519,7 +529,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -532,7 +542,7 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
@@ -552,36 +562,43 @@ jobs:
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 23
           cxx: 22
           bits: 32
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 20
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 17
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 14
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 11
           cxx: 22
           bits: 64
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 11
           cxx: 22
           bits: 32
           vg: 'ON'
           img: 24.04
+          flags: ' -Wreserved-identifier '
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}
@@ -632,7 +649,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -648,8 +664,8 @@ jobs:
         || c4core-install clang++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -O2 -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -657,8 +673,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -666,7 +682,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -679,15 +695,15 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -O3 -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -695,8 +711,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -704,7 +720,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -717,7 +733,7 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
@@ -877,7 +893,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -893,8 +908,8 @@ jobs:
         || c4core-install clang++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
-        echo "Debug ::: -m${{matrix.bits}}"
-    - name: 'configure Debug ::: -m${{matrix.bits}}'
+        echo "Debug ::: -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Debug ::: -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Debug
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -902,8 +917,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_FLAGS_DEBUG="-m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_DEBUG="-m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_DEBUG="-m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_DEBUG="-m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -911,7 +926,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Debug ::: -m${{matrix.bits}}'
+    - name: 'build Debug ::: -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -924,15 +939,15 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Debug --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Debug ::: -m${{matrix.bits}}'
+    - name: 'run Debug ::: -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Debug --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -940,8 +955,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -949,7 +964,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -962,15 +977,15 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -Os -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -978,8 +993,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -987,7 +1002,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -1000,7 +1015,7 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -O1 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
@@ -1160,7 +1175,6 @@ jobs:
         git remote add origin $repo
         git fetch origin $branch
         git reset --hard FETCH_HEAD
-        git submodule update --init --recursive
         # show the log
         git log --graph --date=relative --date-order --color=always \
                 --pretty='%C(yellow)%h %C(cyan)%cd %Cblue%aN%C(auto)%d %Creset%s' \
@@ -1176,8 +1190,8 @@ jobs:
         || c4core-install clang++-${{matrix.cxx}}
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -O2 -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -1185,8 +1199,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -1194,7 +1208,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -1207,15 +1221,15 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -O2 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run
     - name: '---------------------------------------------------------'
       run: |
-        echo "Release ::: -O3 -DNDEBUG -m${{matrix.bits}}"
-    - name: 'configure Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+        echo "Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}"
+    - name: 'configure Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         rm -rf build/Release
         export C4_EXTERN_DIR=`pwd`/build/extern
@@ -1223,8 +1237,8 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-${{matrix.cxx}} \
           -DCMAKE_C_COMPILER=clang-${{matrix.cxx}} \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
-          -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}}" \
+          -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
+          -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}" \
           -DC4_CXX_STANDARD=${{matrix.std}} \
           -DRYML_CXX_STANDARD=${{matrix.std}} \
           -DRYML_BUILD_TESTS=ON \
@@ -1232,7 +1246,7 @@ jobs:
           -DRYML_DEV=ON \
           -DRYML_BUILD_BENCHMARKS=OFF \
           -DRYML_DBG=OFF
-    - name: 'build Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'build Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         numprocs=`_c4getnumcores`
@@ -1245,7 +1259,7 @@ jobs:
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
         cmake --build build/Release --target ryml-test-build --parallel $numprocs --verbose
-    - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}}'
+    - name: 'run Release ::: -O3 -DNDEBUG -m${{matrix.bits}} ${{matrix.flags}}'
       run: |
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
@@ -1303,10 +1317,11 @@ jobs:
       OS: ${{matrix.os}}
     steps:
     - name: checkout (action + docker)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        submodules: recursive
         fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
     - run: git config --system --add safe.directory '*'
     - run: |
         # retry if it fails

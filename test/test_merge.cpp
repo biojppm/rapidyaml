@@ -223,6 +223,28 @@ TEST(merge, map_to_val)
     );
 }
 
+TEST(merge, map_to_seq)
+{
+    test_merge(
+        {
+            "{a: {k: v}, b: 1}",
+            "{a: [1, 2]}"
+        },
+        "{a: [1, 2], b: 1}"
+    );
+}
+
+TEST(merge, seq_to_map)
+{
+    test_merge(
+        {
+            "{a: [1, 2], b: 1}",
+            "{a: {k: v}}",
+        },
+        "{a: {k: v}, b: 1}"
+    );
+}
+
 TEST(merge, seq_no_overlap)
 {
     test_merge(

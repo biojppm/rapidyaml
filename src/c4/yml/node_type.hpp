@@ -1,7 +1,7 @@
-#ifndef _C4_YML_NODE_TYPE_HPP_
-#define _C4_YML_NODE_TYPE_HPP_
+#ifndef C4_YML_NODE_TYPE_HPP_
+#define C4_YML_NODE_TYPE_HPP_
 
-#ifndef _C4_YML_COMMON_HPP_
+#ifndef C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
 
@@ -21,10 +21,6 @@ namespace yml {
  * @{
  */
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 
 /** the integral type necessary to cover all the bits for NodeType_e */
 using type_bits = uint32_t;
@@ -32,32 +28,32 @@ using type_bits = uint32_t;
 
 /** a bit mask for marking node types and styles */
 typedef enum : type_bits { // NOLINT
-    #define __(v) (type_bits(1) << v) // a convenience define, undefined below // NOLINT
+    #define b_(v) (type_bits(1) << v) // a convenience define, undefined below // NOLINT
     NOTYPE  = 0,         ///< no node type or style is set
-    KEY     = __(0),     ///< the scalar to the left of `:` in a map's member
-    VAL     = __(1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ
-    MAP     = __(2),     ///< a map: a parent of KEYVAL/KEYSEQ/KEYMAP nodes
-    SEQ     = __(3),     ///< a seq: a parent of VAL/SEQ/MAP nodes
-    DOC     = __(4),     ///< a document
-    STREAM  = __(5)|SEQ, ///< a stream: a seq of docs
-    KEYREF  = __(6),     ///< a *reference: the key references an &anchor
-    VALREF  = __(7),     ///< a *reference: the val references an &anchor
-    KEYANCH = __(8),     ///< the key has an &anchor
-    VALANCH = __(9),     ///< the val has an &anchor
-    KEYTAG  = __(10),    ///< the key has a tag
-    VALTAG  = __(11),    ///< the val has a tag
-    KEYNIL  = __(12),    ///< the key is null (eg `{ : b}` results in a null key)
-    VALNIL  = __(13),    ///< the val is null (eg `{a : }` results in a null val)
-    _TYMASK = __(14)-1,  ///< all the bits up to here
+    KEY     = b_(0),     ///< the scalar to the left of `:` in a map's member
+    VAL     = b_(1),     ///< a scalar: has a scalar (ie string) value, possibly empty. must be a leaf node, and cannot be MAP or SEQ
+    MAP     = b_(2),     ///< a map: a parent of KEYVAL/KEYSEQ/KEYMAP nodes
+    SEQ     = b_(3),     ///< a seq: a parent of VAL/SEQ/MAP nodes
+    DOC     = b_(4),     ///< a document
+    STREAM  = b_(5)|SEQ, ///< a stream: a seq of docs
+    KEYREF  = b_(6),     ///< a *reference: the key references an &anchor
+    VALREF  = b_(7),     ///< a *reference: the val references an &anchor
+    KEYANCH = b_(8),     ///< the key has an &anchor
+    VALANCH = b_(9),     ///< the val has an &anchor
+    KEYTAG  = b_(10),    ///< the key has a tag
+    VALTAG  = b_(11),    ///< the val has a tag
+    KEYNIL  = b_(12),    ///< the key is null (eg `{ : b}` results in a null key)
+    VALNIL  = b_(13),    ///< the val is null (eg `{a : }` results in a null val)
+    TYMASK_ = b_(14)-1,  ///< all the bits up to here
     //
     // unfiltered flags:
     //
-    KEY_UNFILT  = __(14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
-    VAL_UNFILT  = __(15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
+    KEY_UNFILT  = b_(14), ///< the key scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
+    VAL_UNFILT  = b_(15), ///< the val scalar was left unfiltered; the parser was set not to filter. @see @ref ParserOptions::scalar_filtering()
     //
     // style flags:
     //
-    FLOW_SL     = __(16), ///< mark container with single-line flow style
+    FLOW_SL     = b_(16), ///< mark container with single-line flow style
                           ///<  - seqs as
                           ///<    @code{yaml}
                           ///<    [val1,val2]
@@ -76,7 +72,7 @@ typedef enum : type_bits { // NOLINT
                           ///<    {key1: val1, key2: val2}
                           ///<    @endcode
                           ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
-    FLOW_ML1    = __(17), ///< mark container with multi-line flow style, 1 element per line
+    FLOW_ML1    = b_(17), ///< mark container with multi-line flow style, 1 element per line
                           ///<  - seqs as
                           ///<    @code{yaml}
                           ///<    [
@@ -91,7 +87,7 @@ typedef enum : type_bits { // NOLINT
                           ///<      key2: val2
                           ///<    }
                           ///<    @endcode
-    FLOW_MLN    = __(18), ///< mark container with multi-line flow style, n elements per line,
+    FLOW_MLN    = b_(18), ///< mark container with multi-line flow style, n elements per line,
                           ///< wrapped (as set by @ref EmitOptions::max_cols()):
                           ///<  - seqs as
                           ///<    @code{yaml}
@@ -133,11 +129,11 @@ typedef enum : type_bits { // NOLINT
                           ///<    }
                           ///<    @endcode
                           ///<    when @ref FLOW_SPC is set (or @ref EmitOptions::force_flow_spc() is set)
-    FLOW_SPC    = __(19), ///< mark container with spaces after comma when in flow mode.
+    FLOW_SPC    = b_(19), ///< mark container with spaces after comma when in flow mode.
                           ///< Applies to both @ref FLOW_SL and @ref FLOW_MLN (but not
                           ///< to @ref FLOW_ML1), and can be overriden globally by
                           ///< @ref EmitOptions::force_flow_spc().
-    BLOCK       = __(20), ///< mark container with block style
+    BLOCK       = b_(20), ///< mark container with block style
                           ///<  - seqs as
                           ///<    @code{yaml}
                           ///<    - val1
@@ -148,16 +144,16 @@ typedef enum : type_bits { // NOLINT
                           ///<    key1: val1
                           ///<    key2: val2
                           ///<    @endcode
-    KEY_LITERAL = __(21), ///< mark key scalar as multiline, block literal |
-    VAL_LITERAL = __(22), ///< mark val scalar as multiline, block literal |
-    KEY_FOLDED  = __(23), ///< mark key scalar as multiline, block folded >
-    VAL_FOLDED  = __(24), ///< mark val scalar as multiline, block folded >
-    KEY_SQUO    = __(25), ///< mark key scalar as single quoted '
-    VAL_SQUO    = __(26), ///< mark val scalar as single quoted '
-    KEY_DQUO    = __(27), ///< mark key scalar as double quoted "
-    VAL_DQUO    = __(28), ///< mark val scalar as double quoted "
-    KEY_PLAIN   = __(29), ///< mark key scalar as plain scalar (unquoted, even when multiline)
-    VAL_PLAIN   = __(30), ///< mark val scalar as plain scalar (unquoted, even when multiline)
+    KEY_LITERAL = b_(21), ///< mark key scalar as multiline, block literal |
+    VAL_LITERAL = b_(22), ///< mark val scalar as multiline, block literal |
+    KEY_FOLDED  = b_(23), ///< mark key scalar as multiline, block folded >
+    VAL_FOLDED  = b_(24), ///< mark val scalar as multiline, block folded >
+    KEY_SQUO    = b_(25), ///< mark key scalar as single quoted '
+    VAL_SQUO    = b_(26), ///< mark val scalar as single quoted '
+    KEY_DQUO    = b_(27), ///< mark key scalar as double quoted "
+    VAL_DQUO    = b_(28), ///< mark val scalar as double quoted "
+    KEY_PLAIN   = b_(29), ///< mark key scalar as plain scalar (unquoted, even when multiline)
+    VAL_PLAIN   = b_(30), ///< mark val scalar as plain scalar (unquoted, even when multiline)
     //
     // type combination masks:
     //
@@ -185,90 +181,98 @@ typedef enum : type_bits { // NOLINT
     CONTAINER_STYLE_BLOCK = BLOCK, ///< alias to @ref BLOCK
     CONTAINER_STYLE       = CONTAINER_STYLE_FLOW|CONTAINER_STYLE_BLOCK, ///< mask of @ref CONTAINER_STYLE_FLOW|@ref CONTAINER_STYLE_BLOCK : all container style flags
     STYLE          = SCALAR_STYLE | CONTAINER_STYLE, ///< mask of @ref SCALAR_STYLE | @ref CONTAINER_STYLE : all style flags
-    /** @cond dev */
     //
     // mixed masks
-    _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
-    _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
-    #undef __
-    #if C4_CPP >= 17                                  \
-        || (defined(__GNUC__) && __GNUC__ >= 6)       \
-        || (defined(_MSC_VER) && !defined(__clang__))
-    #define RYML_HAS_DEPRECATED_ENUMS__
+    /** @cond dev */
+    KEYMASK_ = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
+    VALMASK_ = VAL | VALQUO | VALANCH | VALREF | VALTAG,
+    #undef b_
+    #ifdef RYML_HAS_DEPRECATED_ENUMS_
     FLOW_ML RYML_DEPRECATED("use one of FLOW_ML{1,N,X}") = FLOW_ML1,
     #endif
     /** @endcond */
-} NodeType_e;
+} NodeTypeBits;
+
 /** @cond dev */
-#if !defined(RYML_HAS_DEPRECATED_ENUMS__)
+using NodeType_e RYML_DEPRECATED("use NodeTypeBits") = NodeTypeBits;
+#ifndef RYML_HAS_DEPRECATED_ENUMS_
 // defined here because the current c++ standard / compiler cannot
 // handle deprecated enums
 RYML_DEPRECATED("use one of FLOW_ML{1,N,X}")
-constexpr const NodeType_e FLOW_ML = FLOW_ML1;
+constexpr const type_bits FLOW_ML = FLOW_ML1;
 #endif
 /** @endcond */
 
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator|  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) | ((type_bits)rhs)); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator&  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) & ((type_bits)rhs)); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator>> (NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) >> n); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator<< (NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) << n); }
-constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator~  (NodeType_e bits) noexcept { return (NodeType_e)(~(type_bits)bits); }
-C4_ALWAYS_INLINE NodeType_e& operator&= (NodeType_e &subject, NodeType_e bits) noexcept { subject = (NodeType_e)((type_bits)subject & (type_bits)bits); return subject; }
-C4_ALWAYS_INLINE NodeType_e& operator|= (NodeType_e &subject, NodeType_e bits) noexcept { subject = (NodeType_e)((type_bits)subject | (type_bits)bits); return subject; }
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** wraps a NodeType_e element with some syntactic sugar and predicates */
+/** Wraps a @ref type_bits mask of @ref NodeTypeBits flags with some
+ * syntactic sugar and predicates. */
 struct RYML_EXPORT NodeType
 {
 public:
 
-    NodeType_e type;
+    type_bits m_bits;
 
 public:
 
-    C4_ALWAYS_INLINE NodeType() noexcept : type(NOTYPE) {}
-    C4_ALWAYS_INLINE NodeType(NodeType_e t) noexcept : type(t) {}
-    C4_ALWAYS_INLINE NodeType(type_bits t) noexcept : type((NodeType_e)t) {}
+    /** @name auto convert to type_bits
+     * @{ */
 
-    C4_ALWAYS_INLINE bool has_any(NodeType_e t) const noexcept { return (type & t) != 0u; }
-    C4_ALWAYS_INLINE bool has_all(NodeType_e t) const noexcept { return (type & t) == t; }
-    C4_ALWAYS_INLINE bool has_none(NodeType_e t) const noexcept { return (type & t) == 0; }
+    C4_ALWAYS_INLINE operator type_bits      & ()       noexcept { return m_bits; }
+    C4_ALWAYS_INLINE operator type_bits const& () const noexcept { return m_bits; }
 
-    C4_ALWAYS_INLINE void set(NodeType_e t) noexcept { type = t; }
-    C4_ALWAYS_INLINE void add(NodeType_e t) noexcept { type = (type|t); }
-    C4_ALWAYS_INLINE void rem(NodeType_e t) noexcept { type = (type & ~t); }
-    C4_ALWAYS_INLINE void addrem(NodeType_e bits_to_add, NodeType_e bits_to_remove) noexcept { type |= bits_to_add; type &= ~bits_to_remove; }
-
-    C4_ALWAYS_INLINE void clear() noexcept { type = NOTYPE; }
+    /** @} */
 
 public:
 
-    C4_ALWAYS_INLINE operator NodeType_e      & C4_RESTRICT ()       noexcept { return type; }
-    C4_ALWAYS_INLINE operator NodeType_e const& C4_RESTRICT () const noexcept { return type; }
+    /** @name ctor
+     * @{ */
+
+    C4_ALWAYS_INLINE NodeType() noexcept : m_bits(NOTYPE) {}
+    C4_ALWAYS_INLINE NodeType(type_bits t) noexcept : m_bits(t) {}
+
+    /** @} */
 
 public:
 
-    /** @name node type queries
+    /** @name query / set
+     * @{ */
+
+    C4_ALWAYS_INLINE bool has_any(type_bits t) const noexcept { return (m_bits & t) != 0u; }
+    C4_ALWAYS_INLINE bool has_all(type_bits t) const noexcept { return (m_bits & t) == t; }
+    C4_ALWAYS_INLINE bool has_none(type_bits t) const noexcept { return (m_bits & t) == 0; }
+
+    C4_ALWAYS_INLINE void set(type_bits t) noexcept { m_bits = t; }
+    C4_ALWAYS_INLINE void add(type_bits t) noexcept { m_bits |= t; }
+    C4_ALWAYS_INLINE void rem(type_bits t) noexcept { m_bits &= ~t; }
+    C4_ALWAYS_INLINE void addrem(type_bits bits_to_add, type_bits bits_to_remove) noexcept { m_bits |= bits_to_add; m_bits &= ~bits_to_remove; }
+
+    C4_ALWAYS_INLINE void clear() noexcept { m_bits = NOTYPE; }
+
+    /** @} */
+
+public:
+
+    /** @name convert to string
      * @{ */
 
     /** return a preset string based on the node type */
-    C4_ALWAYS_INLINE const char *type_str() const noexcept { return type_str(type); }
+    C4_ALWAYS_INLINE const char *type_str() const noexcept { return type_str(m_bits); }
     /** return a preset string based on the node type */
-    static const char* type_str(NodeType_e t) noexcept;
+    static const char* type_str(type_bits t) noexcept;
 
     /** fill a string with the node type flags. */
-    C4_ALWAYS_INLINE size_t type_str(substr buf) const noexcept { return type_str(buf, type); }
+    C4_ALWAYS_INLINE size_t type_str(substr buf) const noexcept { return type_str(buf, m_bits); }
     /** fill a string with the node type flags. */
-    static size_t type_str(substr buf, NodeType_e t) noexcept;
+    static size_t type_str(substr buf, type_bits t) noexcept;
 
     /** fill a string with the node type flags. If the string is small, returns {null, len} */
-    C4_ALWAYS_INLINE csubstr type_str_sub(substr buf) const noexcept { return type_str_sub(buf, type); }
+    C4_ALWAYS_INLINE csubstr type_str_sub(substr buf) const noexcept { return type_str_sub(buf, m_bits); }
     /** fill a string with the node type flags. If the string is small, returns {null, len}  */
-    static csubstr type_str_sub(substr buf, NodeType_e t) noexcept
+    static csubstr type_str_sub(substr buf, type_bits t) noexcept
     {
         csubstr ret;
         ret.len = type_str(buf, t);
@@ -276,74 +280,76 @@ public:
         return ret;
     }
 
+    /** @} */
+
 public:
 
-    /** @name node type queries
+    /** @name node type predicates
      * @{ */
 
-    C4_ALWAYS_INLINE bool is_notype()         const noexcept { return type == NOTYPE; }
-    C4_ALWAYS_INLINE bool is_stream()         const noexcept { return ((type & STREAM) == STREAM) != 0; }
-    C4_ALWAYS_INLINE bool is_doc()            const noexcept { return (type & DOC) != 0; }
-    C4_ALWAYS_INLINE bool is_container()      const noexcept { return (type & (MAP|SEQ|STREAM)) != 0; }
-    C4_ALWAYS_INLINE bool is_map()            const noexcept { return (type & MAP) != 0; }
-    C4_ALWAYS_INLINE bool is_seq()            const noexcept { return (type & SEQ) != 0; }
-    C4_ALWAYS_INLINE bool has_key()           const noexcept { return (type & KEY) != 0; }
-    C4_ALWAYS_INLINE bool has_val()           const noexcept { return (type & VAL) != 0; }
-    C4_ALWAYS_INLINE bool is_val()            const noexcept { return (type & KEYVAL) == VAL; }
-    C4_ALWAYS_INLINE bool is_keyval()         const noexcept { return (type & KEYVAL) == KEYVAL; }
-    C4_ALWAYS_INLINE bool key_is_null()       const noexcept { return (type & KEYNIL) != 0; }
-    C4_ALWAYS_INLINE bool val_is_null()       const noexcept { return (type & VALNIL) != 0; }
-    C4_ALWAYS_INLINE bool has_key_tag()       const noexcept { return (type & KEYTAG) != 0; }
-    C4_ALWAYS_INLINE bool has_val_tag()       const noexcept { return (type & VALTAG) != 0; }
-    C4_ALWAYS_INLINE bool has_key_anchor()    const noexcept { return (type & KEYANCH) != 0; }
-    C4_ALWAYS_INLINE bool has_val_anchor()    const noexcept { return (type & VALANCH) != 0; }
-    C4_ALWAYS_INLINE bool has_anchor()        const noexcept { return (type & (KEYANCH|VALANCH)) != 0; }
-    C4_ALWAYS_INLINE bool is_key_ref()        const noexcept { return (type & KEYREF) != 0; }
-    C4_ALWAYS_INLINE bool is_val_ref()        const noexcept { return (type & VALREF) != 0; }
-    C4_ALWAYS_INLINE bool is_ref()            const noexcept { return (type & (KEYREF|VALREF)) != 0; }
+    C4_ALWAYS_INLINE bool is_notype()         const noexcept { return m_bits == NOTYPE; }
+    C4_ALWAYS_INLINE bool is_stream()         const noexcept { return ((m_bits & STREAM) == STREAM) != 0; }
+    C4_ALWAYS_INLINE bool is_doc()            const noexcept { return (m_bits & DOC) != 0; }
+    C4_ALWAYS_INLINE bool is_container()      const noexcept { return (m_bits & (MAP|SEQ|STREAM)) != 0; }
+    C4_ALWAYS_INLINE bool is_map()            const noexcept { return (m_bits & MAP) != 0; }
+    C4_ALWAYS_INLINE bool is_seq()            const noexcept { return (m_bits & SEQ) != 0; }
+    C4_ALWAYS_INLINE bool has_key()           const noexcept { return (m_bits & KEY) != 0; }
+    C4_ALWAYS_INLINE bool has_val()           const noexcept { return (m_bits & VAL) != 0; }
+    C4_ALWAYS_INLINE bool is_val()            const noexcept { return (m_bits & KEYVAL) == VAL; }
+    C4_ALWAYS_INLINE bool is_keyval()         const noexcept { return (m_bits & KEYVAL) == KEYVAL; }
+    C4_ALWAYS_INLINE bool key_is_null()       const noexcept { return (m_bits & KEYNIL) != 0; }
+    C4_ALWAYS_INLINE bool val_is_null()       const noexcept { return (m_bits & VALNIL) != 0; }
+    C4_ALWAYS_INLINE bool has_key_tag()       const noexcept { return (m_bits & KEYTAG) != 0; }
+    C4_ALWAYS_INLINE bool has_val_tag()       const noexcept { return (m_bits & VALTAG) != 0; }
+    C4_ALWAYS_INLINE bool has_key_anchor()    const noexcept { return (m_bits & KEYANCH) != 0; }
+    C4_ALWAYS_INLINE bool has_val_anchor()    const noexcept { return (m_bits & VALANCH) != 0; }
+    C4_ALWAYS_INLINE bool has_anchor()        const noexcept { return (m_bits & (KEYANCH|VALANCH)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_ref()        const noexcept { return (m_bits & KEYREF) != 0; }
+    C4_ALWAYS_INLINE bool is_val_ref()        const noexcept { return (m_bits & VALREF) != 0; }
+    C4_ALWAYS_INLINE bool is_ref()            const noexcept { return (m_bits & (KEYREF|VALREF)) != 0; }
 
-    C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { return (type & (KEY_UNFILT)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { return (type & (VAL_UNFILT)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { return (m_bits & (KEY_UNFILT)) != 0; }
+    C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { return (m_bits & (VAL_UNFILT)) != 0; }
 
     /** @} */
 
 public:
 
-    /** @name style functions
+    /** @name node style predicates
      * @{ */
 
-    C4_ALWAYS_INLINE bool is_container_styled() const noexcept { return (type & (CONTAINER_STYLE)) != 0; }
-    C4_ALWAYS_INLINE bool is_block() const noexcept { return (type & (BLOCK)) != 0; }
-    C4_ALWAYS_INLINE bool is_flow_sl() const noexcept { return (type & (FLOW_SL)) != 0; }
-    C4_ALWAYS_INLINE bool is_flow_ml1() const noexcept { return (type & (FLOW_ML1)) != 0; }
-    C4_ALWAYS_INLINE bool is_flow_mln() const noexcept { return (type & (FLOW_MLN)) != 0; }
-    C4_ALWAYS_INLINE bool is_flow_mlx() const noexcept { return (type & (FLOW_ML1|FLOW_MLN)) != 0; }
-    C4_ALWAYS_INLINE bool is_flow() const noexcept { return (type & (FLOW_ML1|FLOW_MLN|FLOW_SL)) != 0; }
-    C4_ALWAYS_INLINE bool has_flow_space() const noexcept { return (type & (FLOW_SPC)) != 0; }
+    C4_ALWAYS_INLINE bool is_container_styled() const noexcept { return (m_bits & (CONTAINER_STYLE)) != 0; }
+    C4_ALWAYS_INLINE bool is_block() const noexcept { return (m_bits & (BLOCK)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow_sl() const noexcept { return (m_bits & (FLOW_SL)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow_ml1() const noexcept { return (m_bits & (FLOW_ML1)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow_mln() const noexcept { return (m_bits & (FLOW_MLN)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow_mlx() const noexcept { return (m_bits & (FLOW_ML1|FLOW_MLN)) != 0; }
+    C4_ALWAYS_INLINE bool is_flow() const noexcept { return (m_bits & (FLOW_ML1|FLOW_MLN|FLOW_SL)) != 0; }
+    C4_ALWAYS_INLINE bool has_flow_space() const noexcept { return (m_bits & (FLOW_SPC)) != 0; }
 
-    C4_ALWAYS_INLINE bool is_key_styled() const noexcept { return (type & (KEY_STYLE)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_styled() const noexcept { return (type & (VAL_STYLE)) != 0; }
-    C4_ALWAYS_INLINE bool is_key_literal() const noexcept { return (type & (KEY_LITERAL)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_literal() const noexcept { return (type & (VAL_LITERAL)) != 0; }
-    C4_ALWAYS_INLINE bool is_key_folded() const noexcept { return (type & (KEY_FOLDED)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_folded() const noexcept { return (type & (VAL_FOLDED)) != 0; }
-    C4_ALWAYS_INLINE bool is_key_squo() const noexcept { return (type & (KEY_SQUO)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_squo() const noexcept { return (type & (VAL_SQUO)) != 0; }
-    C4_ALWAYS_INLINE bool is_key_dquo() const noexcept { return (type & (KEY_DQUO)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_dquo() const noexcept { return (type & (VAL_DQUO)) != 0; }
-    C4_ALWAYS_INLINE bool is_key_plain() const noexcept { return (type & (KEY_PLAIN)) != 0; }
-    C4_ALWAYS_INLINE bool is_val_plain() const noexcept { return (type & (VAL_PLAIN)) != 0; }
-    C4_ALWAYS_INLINE bool is_key_quoted() const noexcept { return (type & KEYQUO) != 0; }
-    C4_ALWAYS_INLINE bool is_val_quoted() const noexcept { return (type & VALQUO) != 0; }
-    C4_ALWAYS_INLINE bool is_quoted() const noexcept { return (type & (KEYQUO|VALQUO)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_styled() const noexcept { return (m_bits & (KEY_STYLE)) != 0; }
+    C4_ALWAYS_INLINE bool is_val_styled() const noexcept { return (m_bits & (VAL_STYLE)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_literal() const noexcept { return (m_bits & (KEY_LITERAL)) != 0; }
+    C4_ALWAYS_INLINE bool is_val_literal() const noexcept { return (m_bits & (VAL_LITERAL)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_folded() const noexcept { return (m_bits & (KEY_FOLDED)) != 0; }
+    C4_ALWAYS_INLINE bool is_val_folded() const noexcept { return (m_bits & (VAL_FOLDED)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_squo() const noexcept { return (m_bits & (KEY_SQUO)) != 0; }
+    C4_ALWAYS_INLINE bool is_val_squo() const noexcept { return (m_bits & (VAL_SQUO)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_dquo() const noexcept { return (m_bits & (KEY_DQUO)) != 0; }
+    C4_ALWAYS_INLINE bool is_val_dquo() const noexcept { return (m_bits & (VAL_DQUO)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_plain() const noexcept { return (m_bits & (KEY_PLAIN)) != 0; }
+    C4_ALWAYS_INLINE bool is_val_plain() const noexcept { return (m_bits & (VAL_PLAIN)) != 0; }
+    C4_ALWAYS_INLINE bool is_key_quoted() const noexcept { return (m_bits & KEYQUO) != 0; }
+    C4_ALWAYS_INLINE bool is_val_quoted() const noexcept { return (m_bits & VALQUO) != 0; }
+    C4_ALWAYS_INLINE bool is_quoted() const noexcept { return (m_bits & (KEYQUO|VALQUO)) != 0; }
 
-    C4_ALWAYS_INLINE NodeType key_style() const noexcept { return (type & (KEY_STYLE)); }
-    C4_ALWAYS_INLINE NodeType val_style() const noexcept { return (type & (VAL_STYLE)); }
+    C4_ALWAYS_INLINE NodeType key_style() const noexcept { return (m_bits & (KEY_STYLE)); }
+    C4_ALWAYS_INLINE NodeType val_style() const noexcept { return (m_bits & (VAL_STYLE)); }
 
-    C4_ALWAYS_INLINE void set_container_style(NodeType_e style) noexcept { type = ((style & CONTAINER_STYLE) | (type & ~CONTAINER_STYLE)); }
-    C4_ALWAYS_INLINE void set_key_style(NodeType_e style) noexcept { type = ((style & KEY_STYLE) | (type & ~KEY_STYLE)); }
-    C4_ALWAYS_INLINE void set_val_style(NodeType_e style) noexcept { type = ((style & VAL_STYLE) | (type & ~VAL_STYLE)); }
-    C4_ALWAYS_INLINE void clear_style() noexcept { type &= ~STYLE; }
+    C4_ALWAYS_INLINE void set_container_style(type_bits style) noexcept { m_bits = ((style & CONTAINER_STYLE) | (m_bits & ~CONTAINER_STYLE)); }
+    C4_ALWAYS_INLINE void set_key_style(type_bits style) noexcept { m_bits = ((style & KEY_STYLE) | (m_bits & ~KEY_STYLE)); }
+    C4_ALWAYS_INLINE void set_val_style(type_bits style) noexcept { m_bits = ((style & VAL_STYLE) | (m_bits & ~VAL_STYLE)); }
+    C4_ALWAYS_INLINE void clear_style() noexcept { m_bits &= ~STYLE; }
 
     /** @} */
 
@@ -354,87 +360,9 @@ public: // deprecated methods
     RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor() const noexcept { return has_val_anchor(); }
     RYML_DEPRECATED("use has_anchor()")        bool is_anchor() const noexcept { return has_anchor(); }
     RYML_DEPRECATED("use has_anchor() || is_ref()") bool is_anchor_or_ref() const noexcept { return has_anchor() || is_ref(); }
-
-    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()")
-    bool is_flow_ml() const noexcept { return (type & (FLOW_ML1)) != 0; }
+    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()") bool is_flow_ml() const noexcept { return (m_bits & (FLOW_ML1)) != 0; }
     /** @endcond */ // LCOV_EXCL_STOP
 };
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-/** @name scalar style helpers
- * @{ */
-
-/** choose a YAML scalar style based on the scalar's contents, while
- * in flow mode. Plain scalars [have more constraints in flow mode
- * than in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_choose_block() is the block mode analogous
- * function. */
-RYML_EXPORT NodeType_e scalar_style_choose_flow(csubstr scalar) noexcept;
-/** choose a YAML scalar style based on the scalar's contents, while
- * in block mode. Plain scalars [have more constraints in flow mode
- * than in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_choose_block() is the flow mode analogous function. */
-RYML_EXPORT NodeType_e scalar_style_choose_block(csubstr scalar) noexcept;
-/** choose a YAML emitting style based on the scalar's
- * contents. Legacy compatibility function: assumes flow mode which is
- * more constraining, and delegates to either @ref
- * scalar_style_choose_flow() or @ref scalar_style_choose_block(). */
-inline NodeType_e scalar_style_choose(csubstr s, bool flow=true) noexcept
-{
-    return flow ? scalar_style_choose_flow(s) : scalar_style_choose_block(s);
-}
-
-
-/** choose a json scalar style based on the scalar's contents */
-RYML_EXPORT NodeType_e scalar_style_choose_json(csubstr scalar) noexcept;
-/** @cond dev */ // LCOV_EXCL_START
-RYML_DEPRECATED("use scalar_style_choose_json()")
-inline NodeType_e scalar_style_json_choose(csubstr scalar) noexcept
-{
-    return scalar_style_choose_json(scalar);
-}
-/** @endcond */ // LCOV_EXCL_STOP
-
-
-/** query whether a scalar can be encoded using single quotes.
- * It may not be possible, notably when there is leading
- * whitespace after a newline. */
-RYML_EXPORT bool scalar_style_query_squo(csubstr s) noexcept;
-
-/** query whether a scalar can be encoded using plain style while in
- * flow mode. Plain scalars [have more constraints in flow mode than
- * in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_query_plain_block() is the block mode analogous function.*/
-RYML_EXPORT bool scalar_style_query_plain_flow(csubstr s) noexcept;
-/** query whether a scalar can be encoded using plain style while in
- * block mode. Plain scalars [have more constraints in flow mode than
- * in block
- * mode](https://www.yaml.info/learn/quote.html#noplain). @ref
- * scalar_style_query_plain_flow() is the flow mode analogous function.*/
-RYML_EXPORT bool scalar_style_query_plain_block(csubstr s) noexcept;
-/** query whether a scalar can be encoded using plain style. Legacy
- * compatibility function: assumes flow mode which is more
- * constraining, and delegates to either @ref
- * scalar_style_query_plain_flow() or @ref
- * scalar_style_query_plain_block(). */
-inline bool scalar_style_query_plain(csubstr s, bool flow=true) noexcept
-{
-    return flow ? scalar_style_query_plain_flow(s) : scalar_style_query_plain_block(s);
-}
-
-/** YAML-sense query of nullity. returns true if the scalar points
- * to `nullptr` or is otherwise equal to one of the strings
- * `"~"`,`"null"`,`"Null"`,`"NULL"` */
-RYML_EXPORT bool scalar_is_null(csubstr s) noexcept;
-
-/** @} */
 
 /** @} */
 
@@ -445,4 +373,4 @@ RYML_EXPORT bool scalar_is_null(csubstr s) noexcept;
 C4_SUPPRESS_WARNING_MSVC_POP
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
-#endif /* _C4_YML_NODE_TYPE_HPP_ */
+#endif /* C4_YML_NODE_TYPE_HPP_ */

@@ -1,5 +1,13 @@
 c4_setup_testing(GTEST)
 
+# Check that the scalar conversion header does not rely on fast_float's includes.
+c4_add_library(ryml-test-scalar-charconv-no-fast-float LIBRARY_TYPE OBJECT
+    SOURCES test_scalar_charconv_no_fast_float.cpp
+    LIBS ryml
+    FOLDER test)
+target_compile_definitions(ryml-test-scalar-charconv-no-fast-float PRIVATE C4CORE_NO_FAST_FLOAT)
+add_dependencies(ryml-test-build ryml-test-scalar-charconv-no-fast-float)
+
 function(ryml_get_target_exe target_name target_file)
     if(CMAKE_CROSSCOMPILING)
         set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
@@ -13,6 +21,11 @@ function(ryml_setup_test_target_props target_name)
     c4_target_compile_flags(${target_name} PUBLIC GCC -Wno-useless-cast)
     if(RYML_DBG)
         target_compile_definitions(${target_name} PUBLIC RYML_DBG)
+    endif()
+    if(DEFINED RYML_DEFAULT_CALLBACKS)
+        if(NOT RYML_DEFAULT_CALLBACKS)
+            target_compile_definitions(${target_name} PUBLIC RYML_NO_DEFAULT_CALLBACKS)
+        endif()
     endif()
     if(RYML_SAVE_TEST_YAML)
         target_compile_definitions(${target_name} PUBLIC RYML_SAVE_TEST_YAML)
@@ -35,27 +48,62 @@ function(ryml_add_test_no_lib test_name)
     c4_add_test(${test_name})
 endfunction()
 
+
 # quickstart tests
-ryml_add_test_no_lib(ryml-test-quickstart-ints SOURCES ../samples/quickstart-ints.cpp)
 ryml_add_test_exe_no_lib(ryml-test-quickstart  SOURCES ../samples/quickstart.cpp)
-function(ryml_add_quickstart_test targetname testname)
+ryml_add_test_exe_no_lib(ryml-test-quickstart-ints SOURCES ../samples/quickstart-ints.cpp)
+function(ryml_add_quickstart_test targetname suffix)
+    set(testname ${targetname}-${suffix})
+    cmake_parse_arguments("" "STDIN;LOCK;WILL_FAIL" "" "ARGS" ${ARGN})
     ryml_get_target_exe(${targetname} exe)
-    separate_arguments(_vg_opts UNIX_COMMAND "${RYML_VALGRIND_OPTIONS}")
     # c4_add_test() cannot be used with multiple tests from the same
     # exe, so we use explicit add_test()+valgrind. Also, use
-    # RESOURCE_LOCK to prevent the tests from running simultaneously
-    add_test(NAME ${testname} COMMAND ${exe} ${ARGN})
-    set(lockid quickstart-lock)
-    set_tests_properties(${testname} PROPERTIES RESOURCE_LOCK ${lockid})
+    # RESOURCE_LOCK to prevent the tests from running simultaneously,
+    # because they write/read to the same file.
+    if(NOT _STDIN)
+        add_test(NAME ${testname} COMMAND ${CMAKE_COMMAND} -E env ${exe} ${_ARGS})
+    else()
+        if(NOT UNIX)
+            return()
+        endif()
+        add_test(NAME ${testname} COMMAND ${CMAKE_COMMAND} -E env echo "foo: bar" | ${exe} ${_ARGS})
+    endif()
+    if(_LOCK)
+        set(lockid ${targetname}-lock)
+        set_tests_properties(${testname} PROPERTIES RESOURCE_LOCK ${lockid})
+    endif()
+    if(_WILL_FAIL)
+        set_tests_properties(${testname} PROPERTIES WILL_FAIL TRUE)
+    endif()
     if(RYML_VALGRIND)
+        separate_arguments(_vg_opts UNIX_COMMAND "${RYML_VALGRIND_OPTIONS}")
         add_test(NAME ${testname}-valgrind
-            COMMAND valgrind ${_vg_opts} $<TARGET_FILE:${targetname}> ${ARGN}
+            COMMAND valgrind ${_vg_opts} $<TARGET_FILE:${targetname}> ${_ARGS}
             COMMAND_EXPAND_LISTS)
-        set_tests_properties(${testname}-valgrind PROPERTIES RESOURCE_LOCK ${lockid})
+        if(_LOCK)
+            set_tests_properties(${testname}-valgrind PROPERTIES RESOURCE_LOCK ${lockid})
+        endif()
+        if(_WILL_FAIL)
+            set_tests_properties(${testname}-valgrind PROPERTIES WILL_FAIL TRUE)
+        endif()
     endif()
 endfunction()
-ryml_add_quickstart_test(ryml-test-quickstart ryml-test-quickstart)
-ryml_add_quickstart_test(ryml-test-quickstart ryml-test-quickstart-quiet --quiet)
+ryml_add_quickstart_test(ryml-test-quickstart noargs LOCK)
+ryml_add_quickstart_test(ryml-test-quickstart quiet ARGS --quiet LOCK)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-help ARGS --help)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-quiet ARGS --quiet)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-zero ARGS -e 0 -a 0)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-stdin STDIN ARGS -)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-stdin2 STDIN ARGS stdin)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-noretry ARGS -n)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-noretry-fail WILL_FAIL ARGS -n -e 0)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-file ARGS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-too-many WILL_FAIL ARGS a b c)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-missing_events WILL_FAIL ARGS -e)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-missing_arena WILL_FAIL ARGS -a)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-bad_events WILL_FAIL ARGS -e bad)
+ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-bad_arena WILL_FAIL ARGS -a bad)
 
 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
@@ -74,16 +122,12 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     LIBS ryml c4fs gtest
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testlib)
+ryml_testbm_link_with_c4core(ryml-_testlib)
 c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
     SOURCES test_lib/test_main.cpp test_lib/test_main.hpp
     LIBS ryml
     FOLDER test
 )
-if(DEFINED RYML_DEFAULT_CALLBACKS)
-    if(NOT RYML_DEFAULT_CALLBACKS)
-        target_compile_definitions(ryml-_testmain PUBLIC RYML_NO_DEFAULT_CALLBACKS)
-    endif()
-endif()
 
 function(ryml_add_test test_name)
     cmake_parse_arguments("" "BIG" "" "LIBS" ${ARGN})
@@ -92,6 +136,7 @@ function(ryml_add_test test_name)
         SOURCES test_${test_name}.cpp
         LIBS ryml-_testlib ryml-_testmain
         FOLDER test)
+    ryml_testbm_link_with_c4core(${t})
     if(RYML_SAVE_TEST_YAML)
         target_sources(${t} PRIVATE test_lib/test_save.cpp)
     endif()
@@ -110,11 +155,16 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testgroup)
+ryml_testbm_link_with_c4core(ryml-_testgroup)
 function(ryml_add_test_case_group name)
     ryml_add_test(${name} ${ARGN})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
 endfunction()
 
+
+# some subjects have to be split over several files because gtest
+# causes some amount of bloat and some compilers (VS) or platforms
+# (mips) choke on the large binary
 
 ryml_add_test(engine_1_doc_1 BIG)
 ryml_add_test(engine_1_doc_2 BIG)
@@ -147,18 +197,21 @@ ryml_add_test(filter)
 ryml_add_test(parser)
 ryml_add_test(node_type)
 ryml_add_test(tree)
+ryml_add_test(tree_build)
 ryml_add_test(noderef)
 ryml_add_test(emit)
 ryml_add_test(style)
-ryml_add_test(serialize)
+ryml_add_test(serialize_1)
+ryml_add_test(serialize_2)
+ryml_add_test(serialize_3)
 ryml_add_test(basic)
 ryml_add_test(json)
-ryml_add_test(preprocess)
 ryml_add_test(merge)
 ryml_add_test(location)
 ryml_add_test(bom_1)
 ryml_add_test(bom_2)
 ryml_add_test(escape_scalar)
+ryml_add_test(print_tree)
 ryml_add_test(file)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(doc)
@@ -202,6 +255,37 @@ endif()
 
 
 #-------------------------------------------------------------------------
+# test errors on default callbacks (calls abort)
+
+if(RYML_DEFAULT_CALLBACKS AND NOT WIN32) # windows does like the abort call
+    function(ryml_add_test_error name)
+        set(tgt ryml-test-error-${name})
+        set(src test_error_${name}.cpp)
+        add_executable(${tgt} ${src} test_error_dump_gcov_on_error.hpp)
+        ryml_maybe_dump_test_yaml(${tgt})
+        add_dependencies(ryml-test-build ${tgt})
+        set_target_properties(${tgt} PROPERTIES FOLDER test)
+        target_link_libraries(${tgt} PRIVATE ryml)
+        # ensure lcov data is dumped on abort
+        if("${CMAKE_BUILD_TYPE}" STREQUAL "Coverage")
+            target_compile_definitions(${tgt} PRIVATE RYML_COVERAGE)
+        endif()
+        # get the exe to run the test
+        ryml_get_target_exe(${tgt} exe)
+        # when abort() is called, cmake fails the test even if
+        # WILL_FAIL is set to true for it. To be able to pass the
+        # test, it has to be wrapped in a cmake command to run the
+        # executable. See the cmake help for WILL_FAIL.
+        add_test(NAME ${tgt} COMMAND ${CMAKE_COMMAND} -E env ${exe})
+        set_tests_properties(${tgt} PROPERTIES WILL_FAIL TRUE)
+    endfunction()
+    ryml_add_test_error(basic)
+    ryml_add_test_error(parse)
+    ryml_add_test_error(visit)
+endif()
+
+
+#-------------------------------------------------------------------------
 # test the tools as well
 
 if(NOT EMSCRIPTEN)
@@ -213,75 +297,85 @@ if(RYML_TEST_TOOLS)
         add_subdirectory(../tools tools)
     endif()
     add_dependencies(ryml-test-build ryml-parse-emit)
-    add_dependencies(ryml-test-build ryml-yaml-events)
+    function(ryml_create_file name contents subdir fileout basenameout)
+        set(dir ${CMAKE_CURRENT_BINARY_DIR}/${subdir})
+        if(NOT EXISTS ${dir})
+            file(MAKE_DIRECTORY ${dir})
+        endif()
+        set(filename ${dir}/${name})
+        file(WRITE "${filename}" "${contents}
+")
+        set("${fileout}" "${filename}" PARENT_SCOPE)
+        set("${basenameout}" "${name}" PARENT_SCOPE)
+    endfunction()
     #
     # parse & emit
     if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
         c4_err("could not find test file")
     endif()
     ryml_get_target_exe(ryml-parse-emit RYML_TGT_PARSE_EMIT)
-    add_test(NAME ryml-test-tool-parse_emit COMMAND ${RYML_TGT_PARSE_EMIT} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
-    #
-    # events emitter
-    function(ryml_create_file name contents fileout)
-        set(filename ${CMAKE_CURRENT_BINARY_DIR}/${name})
-        file(WRITE "${filename}" "${contents}
-")
-        set("${fileout}" "${filename}" PARENT_SCOPE)
-    endfunction()
-    function(ryml_add_event_tool_test_ name expect_success args contents)
+    set(parseemit_dir testfiles-parse_emit)
+    function(ryml_add_parse_emit_tool_test_ name expect_success args file)
         string(REPLACE " " ";" args "${args}")
-        add_test(NAME ryml-test-tool-events-${name} COMMAND ${RYML_TGT_EVENTS} ${args} ${file})
+        add_test(NAME ryml-test-tool-parse_emit-${name}
+            COMMAND ${CMAKE_COMMAND} -E env ${RYML_TGT_PARSE_EMIT} ${args} ${file}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${parseemit_dir})
         if(NOT expect_success)
-            set_tests_properties(ryml-test-tool-events-${name} PROPERTIES WILL_FAIL TRUE)
+            set_tests_properties(ryml-test-tool-parse_emit-${name} PROPERTIES WILL_FAIL TRUE)
         endif()
     endfunction()
-    function(ryml_add_event_tool_test name expect_success args contents)
-        ryml_create_file(${name}.yml "${contents}" file)
-        ryml_add_event_tool_test_(${name} ${expect_success} "${args}" "${contents}")
+    function(ryml_add_parse_emit_tool_test name expect_success args contents)
+        ryml_create_file(${name}.yml "${contents}" ${parseemit_dir} file basename)
+        ryml_add_parse_emit_tool_test_(${name} ${expect_success} "${args}" ${basename})
     endfunction()
-    function(ryml_add_event_tool_test_all_ name expect_success args contents with_tree)
-        ryml_create_file(${name}.yml "${contents}" file)
-        if(${with_tree})
-            ryml_add_event_tool_test_(${name}-tree ${expect_success} "tst ${args}" "${contents}")
-        endif()
-        ryml_add_event_tool_test_(${name}-ints ${expect_success} "tsi ${args}" "${contents}")
-        ryml_add_event_tool_test_(${name}-rymlints ${expect_success} "ri ${args}" "${contents}")
-    endfunction()
-    function(ryml_add_event_tool_test_all name expect_success args contents)
-        ryml_add_event_tool_test_all_(${name} ${expect_success} "${args}" "${contents}" TRUE)
-    endfunction()
-    function(ryml_add_event_tool_test_tsonly name expect_success args contents)
-        ryml_add_event_tool_test_all_(${name} ${expect_success} "${args}" "${contents}" FALSE)
-    endfunction()
-    ryml_get_target_exe(ryml-yaml-events RYML_TGT_EVENTS)
-    ryml_add_event_tool_test(success_help TRUE "--help" "{foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(success_help2 TRUE "--help" "{foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test(fail_nocmd FALSE "" "foo")
-    ryml_add_event_tool_test(fail_badcmd FALSE "barbar" "foo")
-    ryml_add_event_tool_test_all(success TRUE "" "{foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(success_timing TRUE " --timing" "{foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(success_quiet TRUE " --quiet" "{foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_tsonly(success_contkeys TRUE "" "{{this: is, a: keymap}: [seq,val]}")
-    ryml_add_event_tool_test(success_evts_ints_resize TRUE "tsi --ints-size 1" "{{this: is, a: keymap}: [seq,val]}")
-    ryml_add_event_tool_test(fail_evts_ints_resize FALSE "tsi --ints-size" "{{this: is, a: keymap}: [seq,val]}")
-    ryml_add_event_tool_test(fail_evts_ints_resize2 FALSE "tsi --ints-size xyz" "{{this: is, a: keymap}: [seq,val]}")
-    ryml_add_event_tool_test(fail_evts_ints_no_resize FALSE "tsi --ints-size 1 --ints-size-force" "{{this: is, a: keymap}: [seq,val]}")
-    ryml_add_event_tool_test_all(fail_squo FALSE "" "foo: 'bar")
-    ryml_add_event_tool_test_all(fail_dquo FALSE "" "foo: \"bar")
-    ryml_add_event_tool_test_all(fail_seq1 FALSE "" "[ [a, b, c ]")
-    ryml_add_event_tool_test_all(fail_seq2 FALSE "" "[ a, b, c ] ]")
-    ryml_add_event_tool_test_all(success_custom_tag1 TRUE "  "                "{ !footag foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(success_custom_tag2 TRUE " --resolve-tags "  "{ !footag foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(success_noresolvetags TRUE ""                "{ !m!tag foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(fail_unresolved_tag FALSE " --resolve-tags " "{ !m!tag foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(fail_unresolved_tag_short FALSE " -rt "      "{ !m!tag foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test_all(success_resolvetags TRUE " --resolve-tags"   "%TAG !m! my-\n---\n{ !m!tag foo: bar, baz: [exactly]}")
     if(UNIX)
-        add_test(NAME ryml-test-tool-events-stdin COMMAND echo foo | ${RYML_TGT_EVENTS} tsi -)
+        add_test(NAME ryml-test-tool-parse_emit-stdin COMMAND echo foo | ${RYML_TGT_PARSE_EMIT} -t -p -)
     endif()
-    add_test(NAME ryml-test-tool-events-nofile COMMAND ${RYML_TGT_EVENTS} tsi no_file)
-    set_tests_properties(ryml-test-tool-events-nofile PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME ryml-test-tool-parse_emit-appveyor COMMAND ${RYML_TGT_PARSE_EMIT} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
+    set(yaml "[abc,a,b,c]")
+    ryml_add_parse_emit_tool_test_(args_none        FALSE "" "")
+    ryml_add_parse_emit_tool_test_(args_help        TRUE "--help" "")
+    ryml_add_parse_emit_tool_test(args_reserve      TRUE "-e 10" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_reserve_long TRUE "--reserve 10" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_reserve_estimate TRUE "-e 1" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_reserve_noval FALSE "--reserve" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_reserve_badval FALSE "--reserve not-int" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_resolve      TRUE "-r" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_resolve_long TRUE "--resolve" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_resolve_keep TRUE "-r -k" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_resolve_keep_long TRUE "--resolve --keep-refs" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_quiet_long   TRUE "-q" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_print_tree   TRUE "-p" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_print_tree_long TRUE "--print-tree" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_testsuite    TRUE "--testsuite" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_testsuite_ints TRUE "--testsuite --ints" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_quiet        TRUE "--quiet" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_json         TRUE "-j" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_json_long    TRUE "--json" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_string       TRUE "-s" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_string_long  TRUE "--string" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_timed        TRUE "-t" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_timed_long   TRUE "--timed" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_output       TRUE "-o peoutput" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_output_long  TRUE "--output peoutput_long" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_output_noval FALSE "-o" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_output_invalid FALSE "-o invalid/dir/file.out" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_unknown      FALSE "--asdlkjsadlj file" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_all_yaml     TRUE "-e 1 -t -p -r" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_all_json     TRUE "-e 1 -t -p -r -j" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_all_yaml_str TRUE "-e 1 -t -p -s" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_all_json_str TRUE "-e 1 -t -p -s -j" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_all_yaml_out TRUE "-e 1 -t -p -o outyaml.tpe" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_all_json_out TRUE "-e 1 -t -p -o outjson.tpe -j" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_ints         TRUE "-i" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_ints_long    TRUE "--ints" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_ints_noreserve TRUE "--ints -e 0" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_ints_estimate TRUE "--ints -e 1" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_ints_reserve_fixed TRUE "--ints -e 2" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_ints_reserve_large TRUE "--ints -e 30" "${yaml}")
+    ryml_add_parse_emit_tool_test(args_ints_all     TRUE "--ints -e 30 -p -t" "${yaml}")
+    ryml_add_parse_emit_tool_test(error_parse       FALSE "" "{foo: bar")
+    ryml_add_parse_emit_tool_test(error_visit       FALSE "--resolve" "[&a b,*c]")
 endif()
 
 
@@ -313,6 +407,7 @@ if(RYML_TEST_SUITE)
         LIBS ryml-_testlib ryml-_testmain c4log
         INC_DIRS ${CMAKE_CURRENT_LIST_DIR}/../src_extra
         FOLDER test)
+    ryml_testbm_link_with_c4core(ryml-test-suite)
     add_dependencies(ryml-test-build ryml-test-suite)
 
     ryml_get_target_exe(ryml-test-suite tgt)
@@ -373,49 +468,141 @@ set(fuzzdefault ON)
 if(EMSCRIPTEN)
     set(fuzzdefault OFF)
 endif()
-option(RYML_TEST_FUZZ "Enable tests for known problematic fuzz cases." ${fuzzdefault})
 
-if(RYML_TEST_FUZZ)
+option(RYML_FUZZ_TEST "Add tests for known fuzz failure cases." ${fuzzdefault})
+if(RYML_FUZZ_TEST)
+    option(RYML_FUZZ_TEST_INDIVIDUAL "Run one unit test per fuzz case (uses many tests)." OFF)
+endif()
+
+
+if(RYML_FUZZ_TEST OR RYML_FUZZ_DRIVERS)
+    if(RYML_FUZZ_DRIVERS)
+        set(ryml_fuzz_umbrella_cmds)
+    endif()
+    function(ryml_add_fuzz_variant name fuzz_mk_target fuzzdir faildir)
+        function(ryml_add_fuzz_exe exename)
+            cmake_parse_arguments("" "" "" "SRC;LIBS" ${ARGN})
+            c4_add_executable(${exename}
+                SOURCES ${_SRC}
+                INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
+                LIBS ryml ${_LIBS}
+                FOLDER test/fuzz)
+            if(RYML_DBG)
+                target_compile_definitions(${exename} PUBLIC RYML_DBG)
+            endif()
+        endfunction()
+        #
+        # add unit test
+        #
+        ryml_add_fuzz_exe(ryml-test-fuzz-${name}
+            SRC test_fuzz/test_fuzz_main.cpp
+                test_fuzz/test_fuzz_${name}.cpp
+                test_fuzz/test_fuzz_common.hpp
+            LIBS ryml-_testmain c4fs
+        )
+        add_dependencies(ryml-test-build ryml-test-fuzz-${name})
+        ryml_get_target_exe(ryml-test-fuzz-${name} testexe)
+        if(RYML_FUZZ_TEST_INDIVIDUAL)
+            # run tests individually. this would create many thousands of
+            # unit tests, so we only run the fail dir, which has ~1000
+            file(GLOB_RECURSE fuzz_cases RELATIVE "${fuzzdir}/${faildir}" "${fuzzdir}/${faildir}/*")
+            foreach(file ${fuzz_cases})
+                string(REPLACE "/" "_" fuzz_name "${file}")
+                add_test(NAME ryml-test-fuzz-${name}-${fuzz_name}
+                    COMMAND ${testexe} ${fuzzdir}/${faildir}/${file})
+                set_tests_properties(ryml-test-fuzz-${name}-${fuzz_name} PROPERTIES TIMEOUT 10)
+            endforeach()
+        else()
+            # pass the directory as argument to the test exe, which
+            # will then iterate over the files. this generates only a
+            # handful of unit tests, so we can run everything.
+            foreach(corpus_dir ${faildir} ${ARGN})
+                add_test(NAME ryml-test-fuzz-${name}-${corpus_dir}
+                    COMMAND ${testexe} ${fuzzdir}/${corpus_dir}
+                )
+                set_tests_properties(ryml-test-fuzz-${name}-${corpus_dir} PROPERTIES TIMEOUT 1000)
+            endforeach()
+        endif()
+        #
+        # add a fuzz driver?
+        #
+        if(RYML_FUZZ_DRIVERS)
+            if(NOT CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+                message(FATAL_ERROR "Fuzz binaries require Clang. id=${CMAKE_CXX_COMPILER_ID}")
+            endif()
+            # add the executable
+            ryml_add_fuzz_exe(ryml-fuzz-${name}
+                SRC test_fuzz/test_fuzz_${name}.cpp
+                    test_fuzz/test_fuzz_common.hpp
+            )
+            if(NOT TARGET ryml-fuzz-drivers-build)
+                add_custom_target(ryml-fuzz-drivers-build)
+            endif()
+            add_dependencies(ryml-fuzz-drivers-build ryml-fuzz-${name})
+            # copy the executable to fuzzdir/bin
+            add_custom_command(TARGET ryml-fuzz-${name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     $<TARGET_FILE:ryml-fuzz-${name}>
+                     ${fuzzdir}/bin/ryml-fuzz-${name}
+                COMMENT "${name}: placing at ${fuzzdir}/bin/ryml-fuzz-${name}"
+            )
+            # this is the fuzz command.
+            # it is better to run by hand (see the options in the
+            # makefile), but this command is enough to get going:
+            set(cmd
+                # use the makefile
+                ${CMAKE_MAKE_PROGRAM} -C ${fuzzdir}
+                ${fuzz_mk_target}
+                FUZZBIN=bin/ryml-fuzz-${name}
+                ${RYML_FUZZ_ARGS}
+            )
+            string(REPLACE ";" " " cmd_spc "${cmd}")
+            # add the fuzz run target
+            add_custom_target(ryml-fuzz-${name}-run
+                COMMAND ${CMAKE_COMMAND} -E echo ${cmd_spc}
+                COMMAND ${cmd}
+                COMMENT "${cmd_spc}"
+                DEPENDS ryml-fuzz-${name}
+            )
+            # append to the umbrella list
+            set(all ${ryml_fuzz_umbrella_cmds})
+            list(APPEND all
+                COMMAND ${CMAKE_COMMAND}
+                    --build ${CMAKE_BINARY_DIR}
+                    --target ryml-fuzz-${name}-run
+            )
+            set(ryml_fuzz_umbrella_cmds ${all} PARENT_SCOPE)
+        endif()
+    endfunction()
+
+    # get the fuzz repo
     c4_download_remote_proj(rapidyaml-data rapidyaml_data_dir
         GIT_REPOSITORY https://github.com/biojppm/rapidyaml-data
-        GIT_TAG master)
+        GIT_TAG 20260816)
     if(NOT EXISTS ${rapidyaml_data_dir}/fuzz/yaml.dict)
-        c4_err("cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
+        message(FATAL_ERROR "cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
     endif()
-
-    set(corpus_suite_dir ${rapidyaml_data_dir}/fuzz/yaml_test_suite)
-    set(corpus_generated_dir ${rapidyaml_data_dir}/fuzz/yaml_generated)
-    set(corpus_artifacts_dir ${rapidyaml_data_dir}/fuzz/yaml_artifacts)
-    set(corpus_merged_dir ${rapidyaml_data_dir}/fuzz/yaml_merged)
-    set(yaml_dict ${rapidyaml_data_dir}/fuzz/yaml.dict)
-    file(GLOB_RECURSE fuzz_files RELATIVE "${corpus_artifacts_dir}" "${corpus_artifacts_dir}/*")
-    file(GLOB_RECURSE suite_files RELATIVE "${corpus_suite_dir}" "${corpus_suite_dir}/*")
-
-    # add individual tests for problematic fuzz files
-    function(ryml_add_fuzz_test name)
-        c4_add_executable(ryml-test-fuzz-${name}
-            SOURCES
-                test_fuzz/test_fuzz_common.hpp
-                test_fuzz/test_fuzz_${name}.cpp
-                test_fuzz/test_fuzz_main.cpp
-                ${ARGN}
-            INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
-            LIBS ryml ryml-_testmain c4fs
-            FOLDER test/fuzz)
-        if(RYML_DBG)
-            target_compile_definitions(ryml-test-fuzz-${name} PUBLIC RYML_DBG)
-        endif()
-        add_dependencies(ryml-test-build ryml-test-fuzz-${name})
-        ryml_get_target_exe(ryml-test-fuzz-${name} tgtexe)
-        function(ryml_add_fuzz_test_file name_ dir file)
-            string(REPLACE "/" "_" fuzz_name "${file}")
-            add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name} COMMAND ${tgtexe} ${dir}/${file})
-            set_tests_properties(ryml-test-fuzz-${name_}-${fuzz_name} PROPERTIES TIMEOUT 10)
-        endfunction()
-        foreach(fuzz_file ${fuzz_files})
-            ryml_add_fuzz_test_file(${name} ${corpus_artifacts_dir} ${fuzz_file})
-        endforeach()
-    endfunction()
-    ryml_add_fuzz_test(parse_emit)
-    ryml_add_fuzz_test(events_ints)
+    # add all the fuzzes
+    if(RYML_FUZZ_TEST_INDIVIDUAL)
+        set(srlz_dirs srlz_fails)
+        set(json_dirs json_fails)
+        set(yaml_dirs yaml_fails ${json_dirs})
+    else()
+        set(srlz_dirs srlz_fails srlz_merged)
+        set(json_dirs json_fails json_merged json_rapidyamldump)
+        set(yaml_dirs yaml_fails yaml_merged yaml_rapidyamldump yaml_test_suite
+                      ${json_dirs})
+    endif()
+    ryml_add_fuzz_variant(srlz      srlz ${rapidyaml_data_dir}/fuzz ${srlz_dirs})
+    ryml_add_fuzz_variant(yaml_tree yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(yaml_ints yaml ${rapidyaml_data_dir}/fuzz ${yaml_dirs})
+    ryml_add_fuzz_variant(json_tree json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    ryml_add_fuzz_variant(json_ints json ${rapidyaml_data_dir}/fuzz ${json_dirs})
+    # umbrella runner
+    if(RYML_FUZZ_DRIVERS)
+        add_custom_target(ryml-fuzz-drivers-run
+            ${ryml_fuzz_umbrella_cmds}
+            DEPENDS ryml-fuzz-drivers-build
+        )
+    endif()
 endif()

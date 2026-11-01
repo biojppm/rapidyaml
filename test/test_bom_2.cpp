@@ -22,30 +22,41 @@ static std::string namefor(testing::TestParamInfo<T> const& pinfo) // NOLINT
     return namefor(pinfo.param);
 }
 
-static void test_bom_formatted_error_(bomspec spec, Location loc, csubstr fmt)
+static void test_bom_formatted_error_(bomspec spec, Location loc, csubstr fmt, bool mistaken_as_scalar=false)
 {
     RYML_TRACE_FMT("bom={}", spec.name);
     std::string src = formatrs<std::string>(fmt, spec.bom);
     Tree t;
-    ExpectError::check_error_parse(&t, [&]{
+    if(!spec.supported && !mistaken_as_scalar)
+        loc.col = 1;
+    RYML_EXPECT_ERROR(check_error_parse(&t, [&]{
         parse_in_place(to_substr(src), &t);
-    }, loc);
+    }, loc));
     if(testing::Test::HasFailure())
         print_tree(t);
 }
 
 template<class Fn>
-static void test_bom_formatted_success_(bomspec spec, Fn &&check, csubstr fmt)
+static void test_bom_formatted_success_(bomspec spec, Fn &&check, csubstr fmt, bool mistaken_as_scalar_=false)
 {
     RYML_TRACE_FMT("bom={}", spec.name);
     std::string src = formatrs<std::string>(fmt, spec.bom);
     Tree t;
-    ExpectError::check_success(&t, [&]{
-        parse_in_place(to_substr(src), &t);
-    });
-    if(!testing::Test::HasFailure())
+    if(spec.supported || mistaken_as_scalar_)
     {
-        std::forward<Fn>(check)(t, spec);
+        RYML_EXPECT_ERROR(check_success(&t, [&]{
+            parse_in_place(to_substr(src), &t);
+        }));
+        if(!testing::Test::HasFailure())
+        {
+            std::forward<Fn>(check)(t, spec);
+        }
+    }
+    else
+    {
+        RYML_EXPECT_ERROR(check_error_parse(&t, [&]{
+            parse_in_place(to_substr(src), &t);
+        }, Location(1,1)));
     }
     if(testing::Test::HasFailure())
         print_tree(t);
@@ -142,6 +153,7 @@ TEST_P(SeqBlock, err_doc_0)
                              "");
 }
 
+static const bool mistaken_as_scalar = true;
 TEST_P(SeqBlock, err_doc_1)
 {
     if(GetParam().bom.empty())
@@ -154,7 +166,8 @@ TEST_P(SeqBlock, err_doc_1)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} - a\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(SeqBlock, err_doc_2)
@@ -170,7 +183,8 @@ TEST_P(SeqBlock, err_doc_2)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "--- {} - a\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 
@@ -276,7 +290,8 @@ TEST_P(Qmrk, err_doc_1)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} ? a\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(Qmrk, err_doc_2)
@@ -288,7 +303,8 @@ TEST_P(Qmrk, err_doc_2)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "--- {} ? a\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 
@@ -539,7 +555,8 @@ TEST_P(MapBlock, err_doc_1)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} a: b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlock, err_doc_1_tag)
@@ -551,7 +568,8 @@ TEST_P(MapBlock, err_doc_1_tag)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} !t a: b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlock, err_doc_1_anchor)
@@ -563,7 +581,8 @@ TEST_P(MapBlock, err_doc_1_anchor)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} &h a: b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlock, err_doc_1_tag_anchor)
@@ -575,7 +594,8 @@ TEST_P(MapBlock, err_doc_1_tag_anchor)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} &h !t a: b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlock, err_doc_2)
@@ -583,7 +603,8 @@ TEST_P(MapBlock, err_doc_2)
     size_t expected_col = GetParam().bom.len + 9; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
                              "--- {} a: b\n"
-                             "");
+                             "",
+                             mistaken_as_scalar);
 }
 
 
@@ -709,7 +730,8 @@ TEST_P(MapBlockNoKey, err_doc_1)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} : b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlockNoKey, err_doc_1_tag)
@@ -721,7 +743,8 @@ TEST_P(MapBlockNoKey, err_doc_1_tag)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} !t : b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlockNoKey, err_doc_1_anchor)
@@ -733,7 +756,8 @@ TEST_P(MapBlockNoKey, err_doc_1_anchor)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} &h : b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlockNoKey, err_doc_1_tag_anchor)
@@ -745,7 +769,8 @@ TEST_P(MapBlockNoKey, err_doc_1_tag_anchor)
     };
     test_bom_formatted_success(GetParam(), check_as_scalar,
                                "---{} &h !t: b\n"
-                               "");
+                               "",
+                               mistaken_as_scalar);
 }
 
 TEST_P(MapBlockNoKey, err_doc_2)
@@ -755,7 +780,27 @@ TEST_P(MapBlockNoKey, err_doc_2)
     size_t expected_col = GetParam().bom.len + 8; // FIXME
     test_bom_formatted_error(GetParam(), Location(1, expected_col),
                              "--- {} : b\n"
-                             "");
+                             "",
+                             mistaken_as_scalar);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+INSTANTIATE_BOM_TESTS(FuzzFail);
+
+TEST_P(FuzzFail, case0)
+{
+    bomspec spec = GetParam();
+    csubstr src =
+        "{}- "   "\n"
+        " -"     "\n"
+        ">"      "\n"
+        " \x85"  "\n";
+    Location loc = Location(spec.supported ? 3 : 1, 1);
+    test_bom_formatted_error(spec, loc, src);
 }
 
 } // namespace yml

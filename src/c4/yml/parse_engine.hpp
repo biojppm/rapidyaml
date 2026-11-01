@@ -1,13 +1,13 @@
-#ifndef _C4_YML_PARSE_ENGINE_HPP_
-#define _C4_YML_PARSE_ENGINE_HPP_
+#ifndef C4_YML_PARSE_ENGINE_HPP_
+#define C4_YML_PARSE_ENGINE_HPP_
 
-#ifndef _C4_YML_PARSER_STATE_HPP_
+#ifndef C4_YML_PARSER_STATE_HPP_
 #include "c4/yml/parser_state.hpp"
 #endif
-#ifndef _C4_YML_PARSE_OPTIONS_HPP_
+#ifndef C4_YML_PARSE_OPTIONS_HPP_
 #include "c4/yml/parse_options.hpp"
 #endif
-#ifndef _C4_YML_FWD_HPP_
+#ifndef C4_YML_FWD_HPP_
 #include "c4/yml/fwd.hpp"
 #endif
 
@@ -25,7 +25,7 @@ namespace yml {
 /** @addtogroup doc_parse
  * @{ */
 
-/** @defgroup doc_event_handlers Event Handlers
+/** @addtogroup doc_event_handlers Event Handlers
  *
  * @brief rapidyaml implements its parsing logic with a two-level
  * model, where a @ref ParseEngine object reads through the YAML
@@ -108,8 +108,8 @@ namespace yml {
  * cases. They are called by the parser when a just-handled
  * value/container is actually the first key of a new map:
  *
- *   - `actually_val_is_first_key_of_new_map_flow()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerTree" / @ref EventHandlerInts::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerInts")
- *   - `actually_val_is_first_key_of_new_map_block()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerTree" / @ref EventHandlerInts::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerInts")
+ *   - `actually_val_is_first_key_of_new_map_flow()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerTree" / @ref extra::EventHandlerInts::actually_val_is_first_key_of_new_map_flow() "see implementation in EventHandlerInts")
+ *   - `actually_val_is_first_key_of_new_map_block()` (@ref EventHandlerTree::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerTree" / @ref extra::EventHandlerInts::actually_val_is_first_key_of_new_map_block() "see implementation in EventHandlerInts")
  *
  * For example, consider an implicit map inside a seq: `[a: b, c:
  * d]` which is parsed as `[{a: b}, {c: d}]`. The standard event
@@ -203,18 +203,9 @@ namespace yml {
  * handler.end_seq();
  * handler.end_map();
  * ```
+ * @{
+ * @}
  */
-
-
-/** @cond dev */
-struct FilterResult;
-struct FilterResultExtending;
-typedef enum BlockChomp_ { // NOLINT
-    CHOMP_CLIP,    //!< single newline at end (default)
-    CHOMP_STRIP,   //!< no newline at end     (-)
-    CHOMP_KEEP     //!< all newlines from end (+)
-} BlockChomp_e;
-/** @endcond */
 
 
 /** Quickly inspect the source to estimate the number of nodes the
@@ -229,8 +220,45 @@ typedef enum BlockChomp_ { // NOLINT
  * is approximate. The result may be actually smaller than the
  * resulting number of nodes, notably if the YAML uses implicit
  * maps as flow seq members as in `[these: are, individual:
- * maps]`. */
+ * maps]`.
+ */
 RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-redundant-declaration)
+
+
+
+/** @cond dev */
+struct FilterResult;
+struct FilterResultExtending;
+typedef enum BlockChomp_ { // NOLINT
+    CHOMP_CLIP,    //!< single newline at end (default)
+    CHOMP_STRIP,   //!< no newline at end     (-)
+    CHOMP_KEEP     //!< all newlines from end (+)
+} BlockChomp_e;
+struct ScannedBlock
+{
+    substr scalar;
+    size_t indentation;
+    BlockChomp_e chomp;
+};
+struct ScannedScalar
+{
+    substr scalar;
+    bool needs_filter;
+};
+/** store pending tag or anchor/ref annotations */
+struct Annotation
+{
+    struct Entry
+    {
+        csubstr str;
+        size_t indentation;
+        size_t line;
+        csubstr orig;
+    };
+    Entry annotations[2];
+    uint8_t num_entries;
+};
+/** @endcond */
 
 
 //-----------------------------------------------------------------------------
@@ -246,13 +274,13 @@ RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT(readability-r
  * There are two implemented handlers (see @ref doc_event_handlers,
  * which has important notes about the event model):
  *
- * - @ref EventHandlerTree is the handler responsible for creating the
- *   ryml @ref Tree
+ * - @ref EventHandlerTree (see @ref doc_event_handlers_tree) is the
+ *   handler responsible for creating the ryml @ref Tree
  *
- * - @ref extra::EventHandlerInts is the handler responsible for
- *   emitting integer-coded events. It is intended for implementing
- *   fully-conformant parsing in other programming languages
- *   (integration is currently under work for
+ * - @ref extra::EventHandlerInts (see @ref doc_event_handlers_ints)
+ *   is the handler responsible for emitting integer-coded events. It
+ *   is intended for implementing fully-conformant parsing in other
+ *   programming languages (integration is currently under work for
  *   [YamlScript](https://github.com/yaml/yamlscript) and
  *   [go-yaml](https://github.com/yaml/go-yaml/)). It is not part of
  *   the library and is not installed.
@@ -270,8 +298,8 @@ public:
     /** @name construction and assignment */
     /** @{ */
 
-    ParseEngine(EventHandler *evt_handler, ParserOptions opts={});
-    ~ParseEngine();
+    ParseEngine(EventHandler *evt_handler, ParserOptions const& opts={});
+    ~ParseEngine() noexcept;
 
     ParseEngine(ParseEngine &&) noexcept;
     ParseEngine(ParseEngine const&);
@@ -304,7 +332,7 @@ public:
      * should) also be reserved. */
     void reserve_stack(id_type capacity)
     {
-        _RYML_ASSERT_BASIC(m_evt_handler);
+        RYML_ASSERT_BASIC_(m_evt_handler);
         m_evt_handler->m_stack.reserve(capacity);
     }
 
@@ -326,7 +354,7 @@ public:
     ParserOptions const& options() const { return m_options; }
 
     /** Get the current callbacks in the parser. */
-    Callbacks const& callbacks() const { _RYML_ASSERT_BASIC(m_evt_handler); return m_evt_handler->m_stack.m_callbacks; }
+    Callbacks const& callbacks() const { RYML_ASSERT_BASIC_(m_evt_handler); return m_evt_handler->m_stack.m_callbacks; }
 
     /** Get the name of the latest file parsed by this object. */
     csubstr filename() const { return m_evt_handler->m_curr ? m_evt_handler->m_curr->pos.name : csubstr{}; }
@@ -338,7 +366,7 @@ public:
      * If no encoding was specified, UTF8 is assumed as per the YAML standard. */
     Encoding_e encoding() const { return m_encoding != NOBOM ? m_encoding : UTF8; }
 
-    id_type stack_capacity() const { _RYML_ASSERT_BASIC(m_evt_handler); return m_evt_handler->m_stack.capacity(); }
+    id_type stack_capacity() const { RYML_ASSERT_BASIC_(m_evt_handler); return m_evt_handler->m_stack.capacity(); }
     size_t locations_capacity() const { return m_newline_offsets_capacity; }
 
     /** @} */
@@ -403,21 +431,6 @@ public:
     FilterResult filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp);
 
     /** @} */
-
-private:
-
-    struct ScannedScalar
-    {
-        substr scalar;
-        bool needs_filter;
-    };
-
-    struct ScannedBlock
-    {
-        substr scalar;
-        size_t indentation;
-        BlockChomp_e chomp;
-    };
 
 private:
 
@@ -636,20 +649,6 @@ private:
 
 private:
 
-    /** store pending tag or anchor/ref annotations */
-    struct Annotation
-    {
-        struct Entry
-        {
-            csubstr str;
-            size_t indentation;
-            size_t line;
-            csubstr orig;
-        };
-        Entry annotations[2];
-        uint8_t num_entries;
-    };
-
     void _handle_colon();
     void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line);
     void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line, csubstr orig);
@@ -750,8 +749,29 @@ public:
 
 };
 
-
 /** @} */
+
+/** @cond dev */
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wattributes")
+C4_NO_INLINE inline size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
+{
+    if(indentation + 1 > s.len)
+        return npos;
+    for(size_t i = s.len-indentation-1; i != size_t(-1); --i) // NOLINT
+    {
+        if(s.str[i] == '\n')
+        {
+            csubstr rem = s.sub(i + 1);
+            size_t first = rem.first_not_of(' ');
+            first = (first != npos) ? first : rem.len;
+            if(first > indentation)
+                return i;
+        }
+    }
+    return npos;
+}
+C4_SUPPRESS_WARNING_GCC_POP
+/** @endcond */
 
 } // namespace yml
 } // namespace c4
@@ -762,4 +782,4 @@ public:
 #   pragma warning(pop)
 #endif
 
-#endif /* _C4_YML_PARSE_ENGINE_HPP_ */
+#endif /* C4_YML_PARSE_ENGINE_HPP_ */

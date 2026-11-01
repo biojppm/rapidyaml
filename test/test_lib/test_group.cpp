@@ -19,7 +19,7 @@ namespace yml {
 void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 {
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
         printf("---------------\n%.*s\n---------------\n", (int)c->src.len, c->src.str);
     #endif
 
@@ -38,7 +38,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
 
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
     {
         print_test_tree("REF TREE", c->root);
         _c4dbg_tree("PARSED TREE", cd->parsed_tree);
@@ -112,7 +112,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 static void _parse_events_ints(csubstr name, substr src, std::vector<int> *ints, std::vector<char> *arena)
 {
     SCOPED_TRACE("parse_ints");
-    using I = extra::ievt::DataType;
+    using I = extra::ievt::evt_bits;
     using Handler = extra::EventHandlerInts;
     int estimated_size = extra::estimate_events_ints_size(src);
     ints->resize((size_t)estimated_size);
@@ -132,7 +132,7 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
     SCOPED_TRACE("test_parse_ints");
 
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
         printf("---------------\n%.*s\n---------------\n", (int)c->src.len, c->src.str);
     #endif
 
@@ -154,7 +154,7 @@ void YmlTestCase::_test_parse_using_ints(CaseDataLineEndings *cd)
     _parse_events_ints(c->fileline, s, &cd->parsed_ints, &cd->arena_ints);
 
     #ifdef RYML_DBG
-    if(_dbg_enabled())
+    if(dbg_enabled_())
         printints();
     #endif
 
@@ -172,8 +172,7 @@ void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
-    cd->numbytes_stdout = emit_yaml(cd->parsed_tree);
-    EXPECT_EQ(cd->numbytes_stdout, cd->emitted_yml.size());
+    emit_yaml(cd->parsed_tree);
 }
 
 //-----------------------------------------------------------------------------
@@ -185,8 +184,7 @@ void YmlTestCase::_test_emit_json_stdout(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
-    cd->numbytes_stdout_json = emit_json(cd->parsed_tree);
-    EXPECT_EQ(cd->numbytes_stdout_json, cd->emitted_json.size());
+    emit_json(cd->parsed_tree);
 }
 
 //-----------------------------------------------------------------------------
@@ -327,7 +325,6 @@ void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
     _ensure_emit(cd);
     csubstr emitted = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
     EXPECT_EQ(emitted.len, cd->emit_buf.size());
-    EXPECT_EQ(emitted.len, cd->numbytes_stdout);
     #ifdef RYML_DBG
     printf("%.*s", (int)emitted.len, emitted.str);
     #endif
@@ -344,7 +341,6 @@ void YmlTestCase::_test_emit_json_string(CaseDataLineEndings *cd)
     _ensure_emit_json(cd);
     auto emitted = emitrs_json(cd->parsed_tree, &cd->emit_buf);
     EXPECT_EQ(emitted.len, cd->emitjson_buf.size());
-    EXPECT_EQ(emitted.len, cd->numbytes_stdout_json);
     #ifdef RYML_DBG
     printf("%.*s", (int)emitted.len, emitted.str);
     #endif

@@ -1472,14 +1472,15 @@ TEST(tags, setting)
 {
     Tree t;
     id_type rid = t.root_id();
-    t.to_map(rid);
+    t.set_map(rid);
     t.set_val_tag(rid, "!valtag");
     EXPECT_EQ(t.val_tag(rid), "!valtag");
 
     // a keymap
     {
         id_type child = t.append_child(rid);
-        t.to_seq(child, "key2");
+        t.set_seq(child);
+        t.set_key(child, "key2");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag2");
         EXPECT_TRUE(t.has_key(child));
@@ -1492,7 +1493,8 @@ TEST(tags, setting)
     // a keyseq
     {
         id_type child = t.append_child(rid);
-        t.to_seq(child, "key2");
+        t.set_seq(child);
+        t.set_key(child, "key2");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag2");
         EXPECT_TRUE(t.has_key(child));
@@ -1505,7 +1507,8 @@ TEST(tags, setting)
     // a keyval
     {
         id_type child = t.append_child(rid);
-        t.to_keyval(child, "key", "val");
+        t.set_key(child, "key");
+        t.set_val(child, "val");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag");
         EXPECT_TRUE(t.has_key(child));
@@ -1521,7 +1524,7 @@ TEST(tags, setting)
         id_type seqid = t[1].id();
         ASSERT_TRUE(t.is_seq(seqid));
         id_type child = t.append_child(seqid);
-        t.to_val(child, "val");
+        t.set_val(child, "val");
         t.set_val_tag(child, "!valtag");
         EXPECT_FALSE(t.has_key(child));
         EXPECT_TRUE(t.has_val(child));
