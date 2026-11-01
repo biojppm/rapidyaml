@@ -81,13 +81,14 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
 
 evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
+    RYML_ASSERT_BASIC_(evts[pos] & (ievt::KEY_|ievt::VAL_));
     evt_bits accum = {};
-    const evt_bits stop = (evts[pos] & ievt::KEY_) ? ievt::VAL_ : ievt::KEY_;
+    const evt_bits start = evts[pos] & (ievt::KEY_|ievt::VAL_);
     for( ; pos < evts_size; pos = ievt::nextpos(evts, pos))
     {
-        if(evts[pos] & stop)
-            break;
         accum |= evts[pos];
+        if((evts[pos] & start) && detail::isentry(evts[pos]))
+            break;
     }
     return accum;
 }

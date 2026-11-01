@@ -349,17 +349,18 @@ static void test_billion_laughs_roundtrip(
     std::string const& roundtrip_no_clear_anchors)
 {
     {
-        SCOPED_TRACE("no resolve");
         TreeAndInts ti(to_csubstr(yaml));
-        SCOPED_CALL(test_emit_yaml, (ti, yaml));
-    }
-    {
-        SCOPED_TRACE("resolve clear anchors (defaults)");
-        ResolveOptions opts = {};
-        ASSERT_TRUE(opts.clear_anchors());
-        TreeAndInts ti(to_csubstr(yaml));
-        SCOPED_CALL(test_resolve, (ti, opts));
-        SCOPED_CALL(test_emit_yaml, (ti, roundtrip));
+        {
+            SCOPED_TRACE("no resolve");
+            SCOPED_CALL(test_emit_yaml, (ti, yaml));
+        }
+        {
+            SCOPED_TRACE("resolve clear anchors (defaults)");
+            ResolveOptions opts = {};
+            ASSERT_TRUE(opts.clear_anchors());
+            SCOPED_CALL(test_resolve, (ti, opts));
+            SCOPED_CALL(test_emit_yaml, (ti, roundtrip));
+        }
     }
     {
         SCOPED_TRACE("resolve keep anchors");

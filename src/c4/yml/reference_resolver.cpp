@@ -216,6 +216,7 @@ printf("merge[%zu]: ... !done\n", node);
                         {
                             m_tree->remove_children(kv.val.id);
                             m_tree->duplicate_contents(selected->id, kv.val.id);
+                            m_branch_size.resize(m_tree->capacity());
                             after = kv.val.id;
                         }
                     }
@@ -239,6 +240,7 @@ visit_count = resolve_(selected->id, visit_count);
         if(!done)
         {
             after = m_tree->duplicate(selected->id, node, after);
+            m_branch_size.resize(m_tree->capacity());
         }
 print_tree("after merge key", *m_tree, node);
     }
@@ -335,6 +337,7 @@ void ReferenceResolver::handle_val_ref_(id_type ref_node, AnchorData const& anch
             | (aty.m_bits & (VAL_STYLE|CONTAINER_STYLE|VAL|SEQ|MAP));
         m_tree->duplicate_contents(anchor.node, ref_node);
         m_tree->_p(ref_node)->m_type = next;
+        m_branch_size.resize(m_tree->capacity());
     }
     else
     {
