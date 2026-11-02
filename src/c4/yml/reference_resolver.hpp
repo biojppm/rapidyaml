@@ -78,6 +78,7 @@ public:
     id_type branch_size_(id_type node);
     void check_size_limit_(id_type node);
 
+    bool has_merge_elms_(id_type map) const;
     bool requires_merge_(id_type dst_map, id_type visit_count);
     bool maybe_merge_keys_(id_type dst_map, id_type visit_count);
     bool insert_without_merge_(id_type dst_map, id_type visit_count);

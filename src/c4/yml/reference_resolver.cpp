@@ -176,19 +176,7 @@ bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
 {
 printf("requires_merge[%zu]---- vcount=%zu\n", node, visit_count);
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(node), m_tree, node);
-    bool has_merge_elms = false;
-    for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
-    {
-printf("requires_merge[%zu]: has_merge(%zu)?", node, ch);
-        if(is_merge_elm_(ch))
-        {
-printf(" yes!\n");
-            has_merge_elms = true;
-            break;
-        }
-printf("\n");
-    }
-    if(!has_merge_elms && !m_opts.merge_always())
+    if(!m_opts.merge_always() && !has_merge_elms_(node))
     {
         return false;
     }
@@ -234,6 +222,15 @@ printf("... %zu: -> %zu.   vcount=%zu\n", ch, gch, visit_count);
         m_known_keys.adding_is_complete();
 printf("requires_merge[%zu]: %s\n", node, req ? "yes" : "no");
     return req;
+}
+
+bool ReferenceResolver::has_merge_elms_(id_type node) const
+{
+    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(node), m_tree, node);
+    for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
+        if(is_merge_elm_(ch))
+            return true;
+    return false;
 }
 
 bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
@@ -290,14 +287,10 @@ printf("merge[%zu]: ... !selected !done mergedin\n", node);
                             after = dst;
                         }
                     }
-                    else
+                    else // !selected and !done
                     {
 printf("merge[%zu]: ... !selected done\n", node);
-                        if(selected->status & KNK::ORIGINAL)
-                        {
-printf("merge[%zu]: ... !selected merge original\n", node);
-                            m_tree->remove(kv.val.id);
-                        }
+                        m_tree->remove(kv.val.id);
                     }
                 }
                 else if( ! done) // selected, but not done
