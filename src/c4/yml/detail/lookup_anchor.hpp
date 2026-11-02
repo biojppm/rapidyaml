@@ -8,8 +8,6 @@
 #include <c4/yml/resolve_options.hpp>
 #endif
 
-#include <cstdio>
-
 namespace c4 {
 namespace yml {
 
@@ -25,12 +23,10 @@ lookup_anchor(AnchorMap const& anchors, id_type visit_count, csubstr ref, Resolv
     auto r = anchors.equal_range(ref);
     RYML_ASSERT_BASIC_CB_(anchors.m_arr.m_callbacks, r.hi >= r.lo);
     id_type num_anchors = static_cast<id_type>(r.hi - r.lo);
-printf("lookup_anchor[%.*s]: visit_count=%zu #anchors=%zu\n", static_cast<int>(ref.len), ref.str, visit_count, num_anchors);
     if C4_LIKELY (!!num_anchors)
     {
         if(num_anchors == 1)
         {
-printf("lookup_anchor[%.*s]: 1: visit_count=%zu vs %zu=anchor\n", static_cast<int>(ref.len), ref.str, visit_count, r.lo->val.visit_count);
             if(visit_count >= r.lo->val.visit_count || opts.whole_scope())
                 return &r.lo->val;
         }

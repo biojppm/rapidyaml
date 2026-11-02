@@ -163,18 +163,8 @@ auto KnownKeys::select(csubstr key, KnownKeyRange_ *out) const RYML_NOEXCEPT
     -> Entry const*
 {
     KnownKeyRange_ rng = known_keys.equal_range(key);
-printf("entry[%d] key=%.*s numentries=%zd\n", rng.lo != rng.hi ? rng.lo->val.unqcount : -1, static_cast<int>(key.len), key.str, rng.hi - rng.lo);
-for(auto const& kv : rng)
-{
-printf("... ");
-prkv(kv);
-printf("\n");
-}
     RYML_ASSERT_BASIC_(check_(*this, rng));
     Entry const* selected = select_(rng, opts);
-printf("-------> selected: ");
-prv((*selected));
-printf("\n");
     if(out)
         *out = rng;
     return selected;

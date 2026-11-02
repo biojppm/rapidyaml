@@ -88,7 +88,6 @@ inline void test_resolve_tree(Tree &tree, ResolveOptions const& opts={})
     RYML_EXPECT_ERROR(check_success(&tree, [&]{
         tree.resolve(opts);
     }));
-print_tree("after resolve", tree);
     {
         SCOPED_TRACE("invariants after");
         test_invariants(tree);

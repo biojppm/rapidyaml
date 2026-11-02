@@ -160,12 +160,9 @@ void test_ints_resolve_(std::string & src,
         TestBuffers expected;
         if(exp)
             expected = mkevts(actual, evts_resolved);
-actual.print();
         RYML_EXPECT_ERROR(check_success([&]{
             actual.resolve();
         }));
-printf("CRLCRLCRLCRLCRL!!!!!------------------\n");
-actual.print();
         if(exp)
             SCOPED_CALL(expected.test_invariants, ());
         SCOPED_CALL(actual.test_invariants, ());
