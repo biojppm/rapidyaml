@@ -27,6 +27,13 @@ TEST(anchors, ReferenceResolver)
 }
 
 
+TEST(anchors, errs_on_missing_anchors)
+{
+    SCOPED_CALL(test_resolve_err, ("a: *b"));
+    SCOPED_CALL(test_resolve, (ResolveOptions{}.ignore_missing_anchors(true),
+                               "a: *b\n"));
+}
+
 TEST(anchors, errs_on_inheritance_0_scalar)
 {
     SCOPED_CALL(test_resolve, ("<<: \n"));
@@ -65,6 +72,24 @@ TEST(anchors, errs_on_inheritance_3_ok)
         "inherit:\n"
         "  c: d\n"
         "  e: f\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_3_ignore_missing)
+{
+    SCOPED_CALL(test_resolve, (ResolveOptions{}.ignore_missing_anchors(true),
+        "scalar: a\n"
+        "seq: [b]\n"
+        "map1:\n  c: d\n"
+        "map2:\n  e: f\n"
+        "inherit:\n  <<: [*map1,*map2]\n"
+        ""
+        ,
+        ""
+        "scalar: a\n"
+        "seq: [b]\n"
+        "map1:\n  c: d\n"
+        "map2:\n  e: f\n"
+        "inherit:\n  <<: [*map1,*map2]\n"
         ""));
 }
 TEST(anchors, errs_on_inheritance_4_err_on_map_then_scalar)
@@ -300,6 +325,25 @@ TEST(anchors, err_on_cyclic_reference_6)
         "}\n"
         ""));
 }
+
+TEST(anchors, err_on_keyref_to_seq)
+{
+    TreeAndInts ti("a: &a [0, 1]\n"
+                   "*a : b\n");
+    SCOPED_CALL(test_resolve_err_tree, (ti.tree));
+    SCOPED_CALL(test_resolve_ints, (ti.ints));
+    SCOPED_CALL(test_emit_yaml_ints, (ti.ints, 0, "a: [0,1]\n? [0,1]\n: b\n"));
+}
+
+TEST(anchors, err_on_keyref_to_map)
+{
+    TreeAndInts ti("a: &a {0: 1}\n"
+                   "*a : b\n");
+    SCOPED_CALL(test_resolve_err_tree, (ti.tree));
+    SCOPED_CALL(test_resolve_ints, (ti.ints));
+    SCOPED_CALL(test_emit_yaml_ints, (ti.ints, 0, "a: {0: 1}\n? {0: 1}\n: b\n"));
+}
+
 
 
 csubstr billion_laughs = R"(
@@ -687,19 +731,19 @@ TEST(anchors, merge0)
     SCOPED_CALL(test_resolve, (
         "- &LEFT {x: 0,y: 2}\n- &BIG {r: 10}\n- &SMALL {r: 1}\n"
         "- m0:\n    <<: [*BIG,*LEFT,*SMALL]\n    x: 1\n"
-        //"- m1:\n    <<: [*BIG,*SMALL,*LEFT]\n    x: 1\n"
-        //"- m2:\n    <<: [*LEFT,*BIG,*SMALL]\n    x: 1\n"
-        //"- m3:\n    x: 1\n    <<: [*BIG,*LEFT,*SMALL]\n"
-        //"- m4:\n    x: 1\n    <<: [*LEFT,*BIG,*SMALL]\n"
-        //"- m5:\n    x: 1\n    <<: [*LEFT,*BIG,*SMALL]\n"
+        "- m1:\n    <<: [*BIG,*SMALL,*LEFT]\n    x: 1\n"
+        "- m2:\n    <<: [*LEFT,*BIG,*SMALL]\n    x: 1\n"
+        "- m3:\n    x: 1\n    <<: [*BIG,*LEFT,*SMALL]\n"
+        "- m4:\n    x: 1\n    <<: [*LEFT,*BIG,*SMALL]\n"
+        "- m5:\n    x: 1\n    <<: [*LEFT,*BIG,*SMALL]\n"
         ,
         "- {x: 0,y: 2}\n- {r: 10}\n- {r: 1}\n"
         "- m0:\n    r: 10\n    x: 1\n    y: 2\n"
-        //"- m1:\n    r: 10\n    y: 2\n    x: 1\n"
-        //"- m2:\n    y: 2\n    r: 10\n    x: 1\n"
-        //"- m3:\n    x: 1\n    r: 10\n    y: 2\n"
-        //"- m4:\n    x: 1\n    y: 2\n    r: 10\n"
-        //"- m5:\n    x: 1\n    y: 2\n    r: 10\n"
+        "- m1:\n    r: 10\n    x: 1\n    y: 2\n"
+        "- m2:\n    x: 1\n    y: 2\n    r: 10\n"
+        "- m3:\n    x: 1\n    r: 10\n    y: 2\n"
+        "- m4:\n    x: 1\n    y: 2\n    r: 10\n"
+        "- m5:\n    x: 1\n    y: 2\n    r: 10\n"
         ""));
 }
 

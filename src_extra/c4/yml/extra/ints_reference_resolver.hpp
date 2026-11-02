@@ -119,6 +119,7 @@ private:
     void rem_anchor_from_map_(evt_size pos);
     bool is_merge_elm_(evt_size pos) const;
     bool is_merge_elm_(evt_size pos, csubstr key) const;
+    bool ignore_missing_merge_elm_entries_(evt_size pos) const;
     void handle_merge_elm_(evt_size child, bool key_conflict);
     void merge_map_single_(evt_size pos, bool key_conflict);
     void merge_map_multiple_(evt_size pos, bool key_conflict);

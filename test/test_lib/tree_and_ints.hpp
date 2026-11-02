@@ -129,11 +129,11 @@ inline void test_resolve_err_tree(Tree &tree, ResolveOptions const& opts={})
 {
     SCOPED_TRACE("test_resolve_err_tree");
     bool failed = false;
-    RYML_EXPECT_ERROR(check_error_visit(&tree, [&]{
+    RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{
         tree.resolve(opts);
         // if we reach this, it's a failure
         failed = true;
-    }));
+    }, /*only_basic*/false));
     if(failed)
         print_tree(tree);
 }

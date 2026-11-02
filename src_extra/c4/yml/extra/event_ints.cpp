@@ -59,6 +59,48 @@ RYML_EXPORT evt_size estimate_events_size(csubstr src)
     return count;
 }
 
+/*
+evt_size reorder(evt_bits const* evts, evt_size sz, ReorderOptions const& opts)
+{
+    RYML_ASSERT_BASIC_((evts[0] & ievt::END_) && (evts[0] & (detail::mask_open_close & ~ievt::END_)));
+    RYML_ASSERT_BASIC_((evts[0] & detail::mask_begend) != detail::mask_begend);
+    const evt_bits open = evts[0] & detail::mask_open_close;
+    const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
+    evt_size wpos = 0;
+    evt_size rpos = ievt::nextstep(evts[0]); // don't count the starting close token
+    evt_size rprv = 0; // read previous (last copied position)
+    auto cprng = [&](evt_size beg, evt_size end){
+    };
+    auto cpref = [&](evt_size beg, evt_size end){
+    };
+    uint32_t count = 0;
+    while(rpos < sz)
+    {
+        evt_size evt = evts[rpos];
+        if((evt & open) == open)
+        {
+            ++count;
+        }
+        else if((evt & close) == close)
+        {
+            if(!(count--))
+                return rpos;
+        }
+        else if(evt == 0 || evt == ievt::PEX2)
+        {
+            flush();
+            do {
+                ++rprv;
+            } while(evts[rprv] == 0 || evt == ievt::PEX2);
+            rpos = rprv;
+            continue;
+        }
+        rpos += ievt::nextstep(evt);
+    }
+    RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
+}
+*/
+
 
 namespace detail {
 

@@ -73,7 +73,9 @@ id_type ReferenceResolver::branch_size_(id_type node)
 void ReferenceResolver::check_size_limit_(id_type node_to_dup)
 {
     if(!m_size_limit)
+{abort();
         return;
+}
     const id_type next_size = m_tree->size() + branch_size_(node_to_dup);
     _c4dbgpf("tree_size={} target={} branch_size={} next_size={} limit={} mult={}",
              m_tree->size(), node_to_dup, branch_size_(node_to_dup), next_size, m_size_limit, m_opts.max_size_multiplier());
@@ -112,28 +114,27 @@ id_type ReferenceResolver::insert_merge_node_(id_type dst_map, id_type ref_node,
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_val_ref(ref_node), m_tree, ref_node);
     AnchorData const* anchor = lookup_anchor_(ref_node, visit_count, m_tree->val_ref(ref_node));
     if(!anchor)
+{abort();
         return NONE;
-    if C4_LIKELY (m_tree->is_map(anchor->node))
-    {
-        check_size_limit_(anchor->node);
-        id_type last_inserted = m_tree->duplicate_children(anchor->node, dst_map, after);
-        grow_branch_size_mem_();
-        return last_inserted;
-    }
-    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, anchor->node, "merge elements must be maps");
+}
+    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(anchor->node), m_tree, anchor->node);
+    check_size_limit_(anchor->node);
+    id_type last_inserted = m_tree->duplicate_children(anchor->node, dst_map, after);
+    grow_branch_size_mem_();
+    return last_inserted;
 }
 
-void ReferenceResolver::add_keys_mergedin_(id_type ref_node, id_type visit_count)
+bool ReferenceResolver::add_keys_mergedin_(id_type ref_node, id_type visit_count)
 {
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_val_ref(ref_node), m_tree, ref_node);
     AnchorData const* anchor = lookup_anchor_(ref_node, visit_count, m_tree->val_ref(ref_node));
     if(!anchor)
-        return;
+        return false;
     if C4_LIKELY (m_tree->is_map(anchor->node))
     {
         for(id_type ch = m_tree->first_child(anchor->node); ch != NONE; ch = m_tree->next_sibling(ch))
             m_known_keys.add(m_tree->key(ch), ch, detail::KnownKeys::MERGEDIN);
-        return;
+        return true;
     }
     RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, anchor->node, "merge elements must be maps");
 }
@@ -145,13 +146,12 @@ bool ReferenceResolver::insert_without_merge_(id_type node, id_type visit_count)
     // merge element targets in place
     bool changed = false;
     id_type after = NONE;
-    for(id_type ch = m_tree->first_child(node);
-        ch != NONE;
-        ch = m_tree->next_sibling(ch), ++visit_count)
+    for(id_type ch = m_tree->first_child(node); ch != NONE; ++visit_count)
     {
         if(!is_merge_elm_(ch))
         {
             visit_count += branch_size_(ch);
+            ch = m_tree->next_sibling(ch);
         }
         else
         {
@@ -198,21 +198,36 @@ bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
         else
         {
             NodeType ty = m_tree->type(ch);
+            bool has_all_anchors = true;
             if(ty.has_val()) // it's a merge node `<<: *a`
             {
-                add_keys_mergedin_(ch, visit_count);
+                has_all_anchors = add_keys_mergedin_(ch, visit_count);
             }
             else // it's a merge node `<<: [*a,*b]`
             {
                 RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, ty.is_seq(), m_tree, ch);
                 for(id_type gch = m_tree->first_child(ch); gch != NONE; gch = m_tree->next_sibling(gch))
-                    add_keys_mergedin_(gch, ++visit_count);
+                {
+                    if(!add_keys_mergedin_(gch, ++visit_count))
+                    {
+                        has_all_anchors = false;
+                        break;
+                    }
+                }
             }
-            // finally, remove the merge element.
-            // but watchout the loop continuation!
-            id_type to_remove = ch;
-            ch = m_tree->next_sibling(ch);
-            m_tree->remove(to_remove);
+            if(has_all_anchors)
+            {
+                // finally, remove the merge element.
+                // but watchout the loop continuation!
+                id_type to_remove = ch;
+                ch = m_tree->next_sibling(ch);
+                m_tree->remove(to_remove);
+            }
+            else // this can only happen with ignore_missing_anchors
+            {
+                RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_opts.ignore_missing_anchors(), m_tree, node);
+                ch = m_tree->next_sibling(ch);
+            }
         }
     }
     bool req = m_known_keys.requires_merge();

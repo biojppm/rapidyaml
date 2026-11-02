@@ -3420,8 +3420,10 @@ function(c4_setup_coverage)
     if(${_c4_uprefix}COVERAGE_LCOV_IGNORE_ERR)
         string(APPEND lcov_flags " --ignore-errors gcov,gcov")
         # this is only available in recent lcov versions:
-        #string(APPEND lcov_flags " --ignore-errors mismatch,mismatch")
-        #string(APPEND lcov_flags " --ignore-errors unused,unused")
+        string(APPEND lcov_flags " --ignore-errors mismatch,mismatch")
+        string(APPEND lcov_flags " --ignore-errors unused,unused")
+        string(APPEND lcov_flags " --ignore-errors source,source")
+        string(APPEND lcov_flags " --ignore-errors inconsistent,inconsistent")
     endif()
     c4_log("Coverage:
     gcov: ${GCOV}   ${GCOV_VERSION}

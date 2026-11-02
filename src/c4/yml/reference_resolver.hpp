@@ -86,7 +86,7 @@ public:
     id_type insert_merge_node_(id_type dst_map, id_type ref_node, id_type after, id_type visit_count);
 
     bool is_merge_elm_(id_type child) const;
-    void add_keys_mergedin_(id_type node, id_type visit_count);
+    C4_NODISCARD bool add_keys_mergedin_(id_type node, id_type visit_count);
     id_type gather_anchors_(id_type node, id_type count, bool *hasrefs);
     void add_anchor_(csubstr anch, id_type node, id_type count, bool val_anchor)
     {

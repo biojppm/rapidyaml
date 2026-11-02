@@ -297,7 +297,16 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
         else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
         {
             if(is_merge_elm_(pos))
-                handle_merge_elm_(pos, /*key_conflict*/false);
+            {
+                if(ignore_missing_merge_elm_entries_(pos))
+                {
+                    ;
+                }
+                else
+                {
+                    handle_merge_elm_(pos, /*key_conflict*/false);
+                }
+            }
         }
         else if(descend_(pos))
         {
@@ -319,15 +328,17 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool k
         {
             AnchorData const* anch = lookup_anchor_(pos);
             if(anch)
-{
                 set_rref_(pos, anch->rng.beg, anch->rng.end);
-}
         }
         else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
         {
             if(is_merge_elm_(pos))
             {
-                if( ! key_conflict)
+                if(ignore_missing_merge_elm_entries_(pos))
+                {
+                    ;
+                }
+                else if( ! key_conflict)
                 {
                     handle_merge_elm_(pos, key_conflict);
                 }
@@ -394,6 +405,10 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
         if( ! is_merge_elm_(ch, key))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
         {
             known_keys.add(key, static_cast<id_type>(ch), KnownKeys::ORIGINAL);
+        }
+        else if(ignore_missing_merge_elm_entries_(ch))
+        {
+            ;
         }
         else
         {
@@ -802,6 +817,36 @@ bool ReferenceResolver::is_merge_elm_(evt_size pos, csubstr key) const
     }
     return false;
 }
+bool ReferenceResolver::ignore_missing_merge_elm_entries_(evt_size pos) const
+{
+    RYML_ASSERT_BASIC_(is_merge_elm_(pos));
+    if(!opts.ignore_missing_anchors())
+        return false;
+    pos += 3;
+    if(detail::hasall(evts.ptr[pos], ievt::VAL_|ievt::ALIA))
+    {
+        if( ! lookup_anchor_(pos))
+            return true;
+    }
+    else if(detail::hasall(evts.ptr[pos], ievt::VAL_|ievt::BSEQ))
+    {
+        ++pos;
+        while(true)
+        {
+            if(evts.ptr[pos] & ievt::ALIA)
+            {
+                if( ! lookup_anchor_(pos))
+                    return true;
+            }
+            else if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
+            {
+                break;
+            }
+        }
+    }
+    return false;
+}
+
 
 void ReferenceResolver::handle_merge_elm_(evt_size child, bool key_conflict)
 {
