@@ -2352,7 +2352,7 @@ TEST(anchors, issue_484_1)
                                "k1:\n  a: a1\n  b: b2\n"
                                "k2:\n  b: b2\n  a: a1\n"
                                "k3:\n  a: ak3\n  b: b2\n"
-                               "k4:\n  b: b2\n  a: ak4\n"
+                               "k4:\n  a: ak4\n  b: b2\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
                                "base_1:\n  a: a1\n"
@@ -2360,7 +2360,7 @@ TEST(anchors, issue_484_1)
                                "k1:\n  a: a1\n  b: b2\n"
                                "k2:\n  b: b2\n  a: a1\n"
                                "k3:\n  a: ak3\n  b: b2\n"
-                               "k4:\n  b: b2\n  a: ak4\n"
+                               "k4:\n  a: ak4\n  b: b2\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
                                "base_1:\n  a: a1\n"
@@ -2384,7 +2384,7 @@ TEST(anchors, issue_484_1)
                                "k1:\n  a: a1\n  b: b2\n"
                                "k2:\n  b: b2\n  a: a1\n"
                                "k3:\n  a: ak3\n  b: b2\n"
-                               "k4:\n  b: b2\n  a: ak4\n"
+                               "k4:\n  a: ak4\n  b: b2\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "base_1:\n  a: a1\n"
@@ -2400,7 +2400,7 @@ TEST(anchors, issue_484_1)
                                "k1:\n  a: a1\n  b: b2\n"
                                "k2:\n  b: b2\n  a: a1\n"
                                "k3:\n  a: a1\n  b: b2\n"
-                               "k4:\n  b: b2\n  a: ak4\n"
+                               "k4:\n  a: ak4\n  b: b2\n"
                                "");
 }
 
@@ -2423,7 +2423,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k1: {a: a1,b: b2}},\n"
                                "  {k2: {b: b2,a: a1}},\n"
                                "  {k3: {a: ak3,b: b2}},\n"
-                               "  {k4: {b: b2,a: ak4}}\n"
+                               "  {k4: {a: ak4,b: b2}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
@@ -2433,7 +2433,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k1: {a: a1,b: b2}},\n"
                                "  {k2: {b: b2,a: a1}},\n"
                                "  {k3: {a: ak3,b: b2}},\n"
-                               "  {k4: {b: b2,a: ak4}}\n"
+                               "  {k4: {a: ak4,b: b2}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
@@ -2463,7 +2463,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k1: {a: a1,b: b2}},\n"
                                "  {k2: {b: b2,a: a1}},\n"
                                "  {k3: {a: ak3,b: b2}},\n"
-                               "  {k4: {b: b2,a: ak4}}\n"
+                               "  {k4: {a: ak4,b: b2}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
@@ -2483,7 +2483,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k1: {a: a1,b: b2}},\n"
                                "  {k2: {b: b2,a: a1}},\n"
                                "  {k3: {a: a1,b: b2}},\n"
-                               "  {k4: {b: b2,a: ak4}}\n"
+                               "  {k4: {a: ak4,b: b2}}\n"
                                "]\n"
                                "");
 }
@@ -2507,7 +2507,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
                                "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b2\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "  {\n    k4: {\n      a: ak4,\n      b: b2\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
@@ -2517,7 +2517,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
                                "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b2\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "  {\n    k4: {\n      a: ak4,\n      b: b2\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
@@ -2547,7 +2547,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
                                "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b2\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "  {\n    k4: {\n      a: ak4,\n      b: b2\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
@@ -2567,7 +2567,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b2\n    }\n  },\n"
                                "  {\n    k2: {\n      b: b2,\n      a: a1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: a1,\n      b: b2\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
+                               "  {\n    k4: {\n      a: ak4,\n      b: b2\n    }\n  }\n"
                                "]\n"
                                "");
 }
@@ -2588,7 +2588,7 @@ TEST(anchors, issue_484_2)
                                "k1:\n  a: a1\n  b: b1\n"
                                "k2:\n  a: a2\n  b: b1\n"
                                "k3:\n  a: ak3\n  b: b1\n"
-                               "k4:\n  b: b1\n  a: ak4\n" // FIXME a should be first
+                               "k4:\n  a: ak4\n  b: b1\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
                                "base_1:\n  a: a1\n  b: b1\n"
@@ -2596,7 +2596,7 @@ TEST(anchors, issue_484_2)
                                "k1:\n  a: a1\n  b: b1\n"
                                "k2:\n  a: a2\n  b: b1\n"
                                "k3:\n  a: ak3\n  b: b1\n"
-                               "k4:\n  b: b1\n  a: ak4\n" // FIXME a should be first
+                               "k4:\n  a: ak4\n  b: b1\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
                                "base_1:\n  a: a1\n  b: b1\n"
@@ -2620,7 +2620,7 @@ TEST(anchors, issue_484_2)
                                "k1:\n  a: a2\n  b: b1\n"
                                "k2:\n  a: a1\n  b: b1\n"
                                "k3:\n  a: ak3\n  b: b1\n"
-                               "k4:\n  b: b1\n  a: ak4\n" // FIXME a should be first
+                               "k4:\n  a: ak4\n  b: b1\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "base_1:\n  a: a1\n  b: b1\n"
@@ -2636,7 +2636,7 @@ TEST(anchors, issue_484_2)
                                "k1:\n  a: a2\n  b: b1\n"
                                "k2:\n  a: a1\n  b: b1\n"
                                "k3:\n  a: a2\n  b: b1\n"
-                               "k4:\n  b: b1\n  a: ak4\n" // FIXME a should be first
+                               "k4:\n  a: ak4\n  b: b1\n"
                                "");
 }
 
@@ -2659,7 +2659,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k1: {a: a1,b: b1}},\n"
                                "  {k2: {a: a2,b: b1}},\n"
                                "  {k3: {a: ak3,b: b1}},\n"
-                               "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
+                               "  {k4: {a: ak4,b: b1}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
@@ -2669,7 +2669,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k1: {a: a1,b: b1}},\n"
                                "  {k2: {a: a2,b: b1}},\n"
                                "  {k3: {a: ak3,b: b1}},\n"
-                               "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
+                               "  {k4: {a: ak4,b: b1}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
@@ -2699,7 +2699,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k1: {a: a2,b: b1}},\n"
                                "  {k2: {a: a1,b: b1}},\n"
                                "  {k3: {a: ak3,b: b1}},\n"
-                               "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
+                               "  {k4: {a: ak4,b: b1}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
@@ -2719,7 +2719,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k1: {a: a2,b: b1}},\n"
                                "  {k2: {a: a1,b: b1}},\n"
                                "  {k3: {a: a2,b: b1}},\n"
-                               "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
+                               "  {k4: {a: ak4,b: b1}}\n"
                                "]\n"
                                "");
 }
@@ -2743,7 +2743,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    k2: {\n      a: a2,\n      b: b1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
+                               "  {\n    k4: {\n      a: ak4,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
@@ -2753,7 +2753,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    k2: {\n      a: a2,\n      b: b1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
+                               "  {\n    k4: {\n      a: ak4,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
@@ -2783,7 +2783,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k1: {\n      a: a2,\n      b: b1\n    }\n  },\n"
                                "  {\n    k2: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
+                               "  {\n    k4: {\n      a: ak4,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
@@ -2803,7 +2803,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k1: {\n      a: a2,\n      b: b1\n    }\n  },\n"
                                "  {\n    k2: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: a2,\n      b: b1\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
+                               "  {\n    k4: {\n      a: ak4,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
 }
@@ -2827,8 +2827,8 @@ TEST(anchors, issue_484_3)
                                "k1:\n  a: a1\n  b: b1\n"
                                "k2:\n  b: b3\n  a: a2\n"
                                "k3:\n  a: ak3\n  b: b1\n"
-                               "k4:\n  b: b1\n  a: ak4\n" // FIXME! 'a' must be first
-                               "k5:\n  b: b1\n  a: ak5\n" // FIXME! 'a' must be first
+                               "k4:\n  a: ak4\n  b: b1\n"
+                               "k5:\n  a: ak5\n  b: b1\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
                                "base_1:\n  a: a1\n  b: b1\n"
@@ -2837,8 +2837,8 @@ TEST(anchors, issue_484_3)
                                "k1:\n  a: a1\n  b: b1\n"
                                "k2:\n  b: b3\n  a: a2\n"
                                "k3:\n  a: ak3\n  b: b1\n"
-                               "k4:\n  b: b1\n  a: ak4\n" // FIXME! 'a' must be first
-                               "k5:\n  b: b1\n  a: ak5\n" // FIXME! 'a' must be first
+                               "k4:\n  a: ak4\n  b: b1\n"
+                               "k5:\n  a: ak5\n  b: b1\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
                                "base_1:\n  a: a1\n  b: b1\n"
@@ -2867,8 +2867,8 @@ TEST(anchors, issue_484_3)
                                "k1:\n  a: a2\n  b: b3\n"
                                "k2:\n  b: b1\n  a: a1\n"
                                "k3:\n  a: ak3\n  b: b3\n"
-                               "k4:\n  b: b3\n  a: ak4\n" // FIXME! 'a' must be first
-                               "k5:\n  b: b3\n  a: ak5\n" // FIXME! 'a' must be first
+                               "k4:\n  a: ak4\n  b: b3\n"
+                               "k5:\n  a: ak5\n  b: b3\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "base_1:\n  a: a1\n  b: b1\n"
@@ -2888,7 +2888,7 @@ TEST(anchors, issue_484_3)
                                "k2:\n  b: b1\n  a: a1\n"
                                "k3:\n  a: a2\n  b: b3\n"
                                "k4:\n  a: a2\n  b: b3\n"
-                               "k5:\n  b: b3\n  a: ak5\n"
+                               "k5:\n  a: ak5\n  b: b3\n"
                                "");
 }
 
@@ -2914,8 +2914,8 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k1: {a: a1,b: b1}},\n"
                                "  {k2: {b: b3,a: a2}},\n"
                                "  {k3: {a: ak3,b: b1}},\n"
-                               "  {k4: {b: b1,a: ak4,}},\n" // FIXME! 'a' must be first // FIXME comma
-                               "  {k5: {b: b1,a: ak5}}\n" // FIXME! 'a' must be first
+                               "  {k4: {a: ak4,b: b1}},\n"
+                               "  {k5: {a: ak5,b: b1}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
@@ -2926,8 +2926,8 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k1: {a: a1,b: b1}},\n"
                                "  {k2: {b: b3,a: a2}},\n"
                                "  {k3: {a: ak3,b: b1}},\n"
-                               "  {k4: {b: b1,a: ak4,}},\n" // FIXME! 'a' must be first // FIXME comma
-                               "  {k5: {b: b1,a: ak5}}\n" // FIXME! 'a' must be first
+                               "  {k4: {a: ak4,b: b1}},\n"
+                               "  {k5: {a: ak5,b: b1}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
@@ -2962,8 +2962,8 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k1: {a: a2,b: b3}},\n"
                                "  {k2: {b: b1,a: a1}},\n"
                                "  {k3: {a: ak3,b: b3}},\n"
-                               "  {k4: {b: b3,a: ak4,}},\n" // FIXME! 'a' must be first // FIXME comma
-                               "  {k5: {b: b3,a: ak5}}\n" // FIXME! 'a' must be first
+                               "  {k4: {a: ak4,b: b3}},\n"
+                               "  {k5: {a: ak5,b: b3}}\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
@@ -2987,7 +2987,7 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k2: {b: b1,a: a1}},\n"
                                "  {k3: {a: a2,b: b3}},\n"
                                "  {k4: {a: a2,b: b3}},\n"
-                               "  {k5: {b: b3,a: ak5}}\n"
+                               "  {k5: {a: ak5,b: b3}}\n"
                                "]\n"
                                "");
 }
@@ -3014,8 +3014,8 @@ TEST(anchors, issue_484_3_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    k2: {\n      b: b3,\n      a: a2\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b1,\n      a: ak4,\n    }\n  },\n" // FIXME! 'a' must be first // FIXME comma
-                               "  {\n    k5: {\n      b: b1,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
+                               "  {\n    k4: {\n      a: ak4,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k5: {\n      a: ak5,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_orig,
@@ -3026,8 +3026,8 @@ TEST(anchors, issue_484_3_flow_ml)
                                "  {\n    k1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    k2: {\n      b: b3,\n      a: a2\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b1\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b1,\n      a: ak4,\n    }\n  },\n" // FIXME! 'a' must be first // FIXME comma
-                               "  {\n    k5: {\n      b: b1,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
+                               "  {\n    k4: {\n      a: ak4,\n      b: b1\n    }\n  },\n"
+                               "  {\n    k5: {\n      a: ak5,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg,
@@ -3062,8 +3062,8 @@ TEST(anchors, issue_484_3_flow_ml)
                                "  {\n    k1: {\n      a: a2,\n      b: b3\n    }\n  },\n"
                                "  {\n    k2: {\n      b: b1,\n      a: a1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: ak3,\n      b: b3\n    }\n  },\n"
-                               "  {\n    k4: {\n      b: b3,\n      a: ak4,\n    }\n  },\n" // FIXME! 'a' must be first // FIXME comma
-                               "  {\n    k5: {\n      b: b3,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
+                               "  {\n    k4: {\n      a: ak4,\n      b: b3\n    }\n  },\n"
+                               "  {\n    k5: {\n      a: ak5,\n      b: b3\n    }\n  }\n"
                                "]\n"
                                "");
     test_resolve_with_options_(yaml, opts_pri_merg_last,
@@ -3087,7 +3087,7 @@ TEST(anchors, issue_484_3_flow_ml)
                                "  {\n    k2: {\n      b: b1,\n      a: a1\n    }\n  },\n"
                                "  {\n    k3: {\n      a: a2,\n      b: b3\n    }\n  },\n"
                                "  {\n    k4: {\n      a: a2,\n      b: b3\n    }\n  },\n"
-                               "  {\n    k5: {\n      b: b3,\n      a: ak5\n    }\n  }\n"
+                               "  {\n    k5: {\n      a: ak5,\n      b: b3\n    }\n  }\n"
                                "]\n"
                                "");
 }

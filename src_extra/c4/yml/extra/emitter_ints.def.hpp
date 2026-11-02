@@ -842,19 +842,26 @@ void EmitterInts<Writer>::flow_pws::start(evt_bits evt, size_t max_cols_) noexce
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_sl_(evt_size pos, Pws_e pend_after)
+evt_size EmitterInts<Writer>::flow_close_entry_sl_(evt_size pos, Pws_e pend_after)
 {
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    while(0 == (m_evts[pos] & ~ievt::PEX2))
+        ++pos;
     RYML_ASSERT_BASIC_(pos < m_evts_size);
     if(!(m_evts[pos] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
         write_(',');
     }
+    return pos;
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
+evt_size EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
 {
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    while(0 == (m_evts[pos] & ~ievt::PEX2))
+        ++pos;
     RYML_ASSERT_BASIC_(pos < m_evts_size);
     if(!(m_evts[pos] & ievt::END_))
     {
@@ -865,6 +872,7 @@ void EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
     {
         pend_newl_();
     }
+    return pos;
 }
 
 
@@ -936,7 +944,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_seq_(evt_size pos)
     nextval:
         if(rref_handler.active)
             pos = rref_check_(pos, &rref_handler);
-        flow_close_entry_sl_(pos, pws.next_pws(m_col));
+        pos = flow_close_entry_sl_(pos, pws.next_pws(m_col));
     }
     write_(']');
     return pos;
@@ -1014,7 +1022,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_seq_(evt_size pos)
     nextval:
         if(rref_handler.active)
             pos = rref_check_(pos, &rref_handler);
-        flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
+        pos = flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
     }
     if(stop_at_end)
         m_flow_pws.stop();
@@ -1112,8 +1120,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
         if(rref_handler.active)
             pos = rref_check_(pos, &rref_handler);
         if(!statekey)
-            // pos is already at the next event
-            flow_close_entry_sl_(pos, pws.next_pws(m_col));
+            pos = flow_close_entry_sl_(pos, pws.next_pws(m_col));
         statenew = true;
         statekey = !statekey;
     }
@@ -1214,7 +1221,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
         if(rref_handler.active)
             pos = rref_check_(pos, &rref_handler);
         if(!statekey)
-            flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
+            pos = flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
         statenew = true;
         statekey = !statekey;
     }

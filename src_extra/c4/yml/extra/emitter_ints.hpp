@@ -149,8 +149,8 @@ private:
 
     void blck_write_scalar_(csubstr str, evt_bits type);
 
-    void flow_close_entry_sl_(evt_size pos, Pws_e pend_after);
-    void flow_close_entry_ml_(evt_size pos, Pws_e pend_after);
+    C4_NODISCARD evt_size flow_close_entry_sl_(evt_size pos, Pws_e pend_after);
+    C4_NODISCARD evt_size flow_close_entry_ml_(evt_size pos, Pws_e pend_after);
     void flow_write_scalar_(csubstr str, evt_bits type);
 
 private:

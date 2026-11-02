@@ -339,7 +339,7 @@ struct RYML_EXPORT evtbuf
     evt_size              cap = {};
 
     // auto convert to cevtbuf
-    C4_ALWAYS_INLINE operator cevtbuf const& () noexcept { return reinterpret_cast<cevtbuf const&>(*this); } // NOLINT
+    C4_ALWAYS_INLINE operator cevtbuf const& () const noexcept { return reinterpret_cast<cevtbuf const&>(*this); } // NOLINT
 };
 
 
@@ -365,10 +365,6 @@ struct RYML_EXPORT Buffers
 };
 C4_SUPPRESS_WARNING_MSVC_POP
 
-
-
-RYML_EXPORT evt_size lookup_anchor(Buffers const& evts, evt_size pos);
-RYML_EXPORT Buffers resolve_refs(Buffers *evts, bool allow_resize, ResolveOptions const& opts={});
 
 
 
