@@ -101,7 +101,7 @@ public:
 
     bool requires_merge() const noexcept
     {
-        return (all_entries & MERGEDIN) || ((all_entries & CONFLICT) && opts.merge_repeated_keys());
+        return (all_entries & MERGEDIN) || ((all_entries & CONFLICT) && !opts.keep_repeated_keys());
     }
 
     id_type num_unique_keys() const noexcept

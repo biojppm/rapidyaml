@@ -63,14 +63,6 @@ public:
 
     /** @cond dev */
 
-    struct RefData
-    {
-        NodeType type;
-        id_type node;
-        id_type prev_anchor;
-        id_type target;
-        id_type parent_ref;
-    };
     struct AnchorData
     {
         id_type node;
@@ -79,6 +71,8 @@ public:
     };
     using key_status = detail::KnownKeys::status_bits;
 
+public:
+
     void reset_(Tree *t_, ResolveOptions const& opts);
     id_type resolve_(id_type node, id_type count);
     id_type branch_size_(id_type node);
@@ -86,6 +80,8 @@ public:
 
     bool requires_merge_(id_type dst_map, id_type visit_count);
     bool maybe_merge_keys_(id_type dst_map, id_type visit_count);
+    bool insert_without_merge_(id_type dst_map, id_type visit_count);
+    id_type insert_merge_node_(id_type dst_map, id_type ref_node, id_type after, id_type visit_count);
 
     bool is_merge_elm_(id_type child) const;
     void add_keys_mergedin_(id_type node, id_type visit_count);
@@ -103,9 +99,11 @@ public:
     void handle_val_ref_(id_type ref_node, AnchorData const& anchor);
     void clear_anchors_(id_type node);
 
+public:
+
     detail::small_map<csubstr, AnchorData> m_anchors;
-    detail::stack<uint32_t> m_branch_size;
-    detail::KnownKeys m_known_keys;
+    detail::stack<uint32_t> m_branch_size; // memoize branch size
+    detail::KnownKeys m_known_keys; // to merge map keys
     Tree *C4_RESTRICT m_tree;
     ResolveOptions m_opts;
     id_type m_size_limit;

@@ -1559,109 +1559,56 @@ a5: &a5
 
 
 static const ResolveOptions opts_pri_orig = {};
+static const ResolveOptions opts_keep = ResolveOptions{}.keep_repeated_keys(true);
 static const ResolveOptions opts_pri_merg = ResolveOptions{}.priority_original(false).priority_mergedin(true);
 static const ResolveOptions opts_pri_none = ResolveOptions{}.priority_original(false);
 static const ResolveOptions opts_pri_both = ResolveOptions{}.priority_mergedin(true);
+static const ResolveOptions opts_pri_orig_all = ResolveOptions{opts_pri_orig}.merge_always(true);
+static const ResolveOptions opts_pri_merg_all = ResolveOptions{opts_pri_merg}.merge_always(true);
+static const ResolveOptions opts_pri_none_all = ResolveOptions{opts_pri_none}.merge_always(true);
+static const ResolveOptions opts_pri_both_all = ResolveOptions{opts_pri_both}.merge_always(true);
+
 static const ResolveOptions opts_pri_orig_last = ResolveOptions{opts_pri_orig}.pick_last(true);
 static const ResolveOptions opts_pri_merg_last = ResolveOptions{opts_pri_merg}.pick_last(true);
 static const ResolveOptions opts_pri_none_last = ResolveOptions{opts_pri_none}.pick_last(true);
 static const ResolveOptions opts_pri_both_last = ResolveOptions{opts_pri_both}.pick_last(true);
-
-static const ResolveOptions opts_pri_orig_mrep = ResolveOptions{opts_pri_orig}.merge_repeated_keys(true);
-static const ResolveOptions opts_pri_merg_mrep = ResolveOptions{opts_pri_merg}.merge_repeated_keys(true);
-static const ResolveOptions opts_pri_none_mrep = ResolveOptions{opts_pri_none}.merge_repeated_keys(true);
-static const ResolveOptions opts_pri_both_mrep = ResolveOptions{opts_pri_both}.merge_repeated_keys(true);
-static const ResolveOptions opts_pri_orig_last_mrep = ResolveOptions{opts_pri_orig_last}.merge_repeated_keys(true);
-static const ResolveOptions opts_pri_merg_last_mrep = ResolveOptions{opts_pri_merg_last}.merge_repeated_keys(true);
-static const ResolveOptions opts_pri_none_last_mrep = ResolveOptions{opts_pri_none_last}.merge_repeated_keys(true);
-static const ResolveOptions opts_pri_both_last_mrep = ResolveOptions{opts_pri_both_last}.merge_repeated_keys(true);
+static const ResolveOptions opts_pri_orig_all_last = ResolveOptions{opts_pri_orig_all}.pick_last(true);
+static const ResolveOptions opts_pri_merg_all_last = ResolveOptions{opts_pri_merg_all}.pick_last(true);
+static const ResolveOptions opts_pri_none_all_last = ResolveOptions{opts_pri_none_all}.pick_last(true);
+static const ResolveOptions opts_pri_both_all_last = ResolveOptions{opts_pri_both_all}.pick_last(true);
 
 
-TEST(anchors, resolve_options_1)
+TEST(anchors, resolve_options)
 {
-    EXPECT_TRUE(opts_pri_orig.priority_original());
-    EXPECT_FALSE(opts_pri_orig.priority_mergedin());
-    EXPECT_FALSE(opts_pri_orig.pick_last());
-    EXPECT_FALSE(opts_pri_orig.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_merg.priority_original());
-    EXPECT_TRUE(opts_pri_merg.priority_mergedin());
-    EXPECT_FALSE(opts_pri_merg.pick_last());
-    EXPECT_FALSE(opts_pri_merg.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_none.priority_original());
-    EXPECT_FALSE(opts_pri_none.priority_mergedin());
-    EXPECT_FALSE(opts_pri_none.pick_last());
-    EXPECT_FALSE(opts_pri_none.merge_repeated_keys());
-    //
-    EXPECT_TRUE(opts_pri_both.priority_original());
-    EXPECT_TRUE(opts_pri_both.priority_mergedin());
-    EXPECT_FALSE(opts_pri_both.pick_last());
-    EXPECT_FALSE(opts_pri_both.merge_repeated_keys());
-    //
-    //
-    EXPECT_TRUE(opts_pri_orig_last.priority_original());
-    EXPECT_FALSE(opts_pri_orig_last.priority_mergedin());
-    EXPECT_TRUE(opts_pri_orig_last.pick_last());
-    EXPECT_FALSE(opts_pri_orig_last.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_merg_last.priority_original());
-    EXPECT_TRUE(opts_pri_merg_last.priority_mergedin());
-    EXPECT_TRUE(opts_pri_merg_last.pick_last());
-    EXPECT_FALSE(opts_pri_merg_last.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_none_last.priority_original());
-    EXPECT_FALSE(opts_pri_none_last.priority_mergedin());
-    EXPECT_TRUE(opts_pri_none_last.pick_last());
-    EXPECT_FALSE(opts_pri_none_last.merge_repeated_keys());
-    //
-    EXPECT_TRUE(opts_pri_both_last.priority_original());
-    EXPECT_TRUE(opts_pri_both_last.priority_mergedin());
-    EXPECT_TRUE(opts_pri_both_last.pick_last());
-    EXPECT_FALSE(opts_pri_both_last.merge_repeated_keys());
-    //
-    //
-    //
-    EXPECT_TRUE(opts_pri_orig_mrep.priority_original());
-    EXPECT_FALSE(opts_pri_orig_mrep.priority_mergedin());
-    EXPECT_FALSE(opts_pri_orig_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_orig_mrep.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_merg_mrep.priority_original());
-    EXPECT_TRUE(opts_pri_merg_mrep.priority_mergedin());
-    EXPECT_FALSE(opts_pri_merg_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_merg_mrep.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_none_mrep.priority_original());
-    EXPECT_FALSE(opts_pri_none_mrep.priority_mergedin());
-    EXPECT_FALSE(opts_pri_none_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_none_mrep.merge_repeated_keys());
-    //
-    EXPECT_TRUE(opts_pri_both_mrep.priority_original());
-    EXPECT_TRUE(opts_pri_both_mrep.priority_mergedin());
-    EXPECT_FALSE(opts_pri_both_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_both_mrep.merge_repeated_keys());
-    //
-    //
-    EXPECT_TRUE(opts_pri_orig_last_mrep.priority_original());
-    EXPECT_FALSE(opts_pri_orig_last_mrep.priority_mergedin());
-    EXPECT_TRUE(opts_pri_orig_last_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_orig_last_mrep.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_merg_last_mrep.priority_original());
-    EXPECT_TRUE(opts_pri_merg_last_mrep.priority_mergedin());
-    EXPECT_TRUE(opts_pri_merg_last_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_merg_last_mrep.merge_repeated_keys());
-    //
-    EXPECT_FALSE(opts_pri_none_last_mrep.priority_original());
-    EXPECT_FALSE(opts_pri_none_last_mrep.priority_mergedin());
-    EXPECT_TRUE(opts_pri_none_last_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_none_last_mrep.merge_repeated_keys());
-    //
-    EXPECT_TRUE(opts_pri_both_last_mrep.priority_original());
-    EXPECT_TRUE(opts_pri_both_last_mrep.priority_mergedin());
-    EXPECT_TRUE(opts_pri_both_last_mrep.pick_last());
-    EXPECT_TRUE(opts_pri_both_last_mrep.merge_repeated_keys());
+    #define TEST_RESOLVE_OPTIONS(opts, priority_original_, priority_mergedin_, pick_last_, keep_repeated_keys_, merge_always_) \
+        EXPECT_##priority_original_((opts).priority_original());        \
+        EXPECT_##priority_mergedin_((opts).priority_mergedin());        \
+        EXPECT_##pick_last_((opts).pick_last());                        \
+        EXPECT_##keep_repeated_keys_((opts).keep_repeated_keys());      \
+        EXPECT_##merge_always_((opts).merge_always())
+
+    TEST_RESOLVE_OPTIONS(opts_keep, TRUE,  FALSE, FALSE, TRUE, FALSE);
+
+    TEST_RESOLVE_OPTIONS(opts_pri_orig, TRUE,  FALSE, FALSE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_merg, FALSE, TRUE,  FALSE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_none, FALSE, FALSE, FALSE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_both, TRUE,  TRUE,  FALSE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_orig_all, TRUE,  FALSE, FALSE, FALSE, TRUE);
+    TEST_RESOLVE_OPTIONS(opts_pri_merg_all, FALSE, TRUE,  FALSE, FALSE, TRUE);
+    TEST_RESOLVE_OPTIONS(opts_pri_none_all, FALSE, FALSE, FALSE, FALSE, TRUE);
+    TEST_RESOLVE_OPTIONS(opts_pri_both_all, TRUE,  TRUE,  FALSE, FALSE, TRUE);
+
+    TEST_RESOLVE_OPTIONS(opts_pri_orig_last, TRUE,  FALSE, TRUE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_merg_last, FALSE, TRUE,  TRUE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_none_last, FALSE, FALSE, TRUE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_both_last, TRUE,  TRUE,  TRUE, FALSE, FALSE);
+    TEST_RESOLVE_OPTIONS(opts_pri_orig_all_last, TRUE,  FALSE, TRUE, FALSE, TRUE);
+    TEST_RESOLVE_OPTIONS(opts_pri_merg_all_last, FALSE, TRUE,  TRUE, FALSE, TRUE);
+    TEST_RESOLVE_OPTIONS(opts_pri_none_all_last, FALSE, FALSE, TRUE, FALSE, TRUE);
+    TEST_RESOLVE_OPTIONS(opts_pri_both_all_last, TRUE,  TRUE,  TRUE, FALSE, TRUE);
+
+
+    #undef TEST_RESOLVE_OPTIONS
 }
 
 #define test_resolve_with_options0(yaml, resolved)              \
@@ -1671,168 +1618,197 @@ TEST(anchors, resolve_options_1)
         test_resolve_(ti);                                      \
         test_emit_yaml_(ti, resolved);                          \
     }
-#define test_resolve_with_options_(optsname, yaml, resolved)    \
+#define test_resolve_with_options_(yaml, optsname, resolved)    \
     {                                                           \
         SCOPED_TRACE(#optsname);                                \
         TreeAndInts ti(to_csubstr(yaml));                       \
         test_resolve_(ti, optsname);                            \
         test_emit_yaml_(ti, resolved);                          \
     }
-#define test_resolve_with_options2(optsname1, optsname2, yaml, resolved) \
+#define test_resolve_with_options2(yaml, optsname1, optsname2, resolved) \
     {                                                           \
-        test_resolve_with_options_(optsname1, yaml, resolved);  \
-        test_resolve_with_options_(optsname2, yaml, resolved);  \
+        test_resolve_with_options_(yaml, optsname1, resolved);  \
+        test_resolve_with_options_(yaml, optsname2, resolved);  \
+    }
+#define test_resolve_with_options4(yaml, optsname1, optsname2, optsname3, optsname4, resolved) \
+    {                                                           \
+        test_resolve_with_options_(yaml, optsname1, resolved);  \
+        test_resolve_with_options_(yaml, optsname2, resolved);  \
+        test_resolve_with_options_(yaml, optsname3, resolved);  \
+        test_resolve_with_options_(yaml, optsname4, resolved);  \
     }
 
-TEST(anchors, repeated_children_doc_0)
+TEST(anchors, repeated_doc)
 {
-    std::string yaml = R"(
-foo: 0
-foo: 1
-)";
-    test_resolve_with_options0(               yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_orig, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_merg, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_none, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_both, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_last, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_last, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_none_last, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_both_last, yaml, "foo: 0\nfoo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_mrep, yaml, "foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_mrep, yaml, "foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_mrep, yaml, "foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_mrep, yaml, "foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_last_mrep, yaml, "foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_last_mrep, yaml, "foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_last_mrep, yaml, "foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_last_mrep, yaml, "foo: 1\n");
+    std::string yaml = ""
+        "--- &merg1\nrep: m11\nrep: m12\n"
+        "--- &merg2\nrep: m21\nrep: m22\n"
+        "---\nrep: O1\nbar: a\nrep: O2\nrep: O3\n"
+        "---\n<<: *merg1\nrep: o1\nbar: a00\nrep: o2\nrep: o3\n<<: *merg2\n"
+        "---\nrep: o1\n<<: *merg1\nbar: a01\nrep: o2\n<<: *merg2\nrep: o3\n"
+        "---\nrep: o1\nbar: a02\n<<: *merg1\n<<: *merg2\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a03\n<<: *merg2\nrep: o2\n<<: *merg1\nrep: o3\n"
+        "---\nrep: o1\n<<: *merg2\nbar: a04\nrep: o2\nrep: o3\n<<: *merg1\n"
+        "---\n<<: [*merg1,*merg2]\nrep: o1\nbar: a05\nrep: o2\nrep: o3\n"
+        "---\n<<: [*merg2,*merg1]\nrep: o1\nbar: a06\nrep: o2\nrep: o3\n"
+        "---\n<<: *merg1\n<<: *merg2\nrep: o1\nbar: a07\nrep: o2\nrep: o3\n"
+        "---\n<<: *merg2\n<<: *merg1\nrep: o1\nbar: a08\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\n<<: [*merg1,*merg2]\nbar: a09\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\n<<: [*merg2,*merg1]\nbar: a10\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\n<<: *merg1\n<<: *merg2\nbar: a11\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\n<<: *merg2\n<<: *merg1\nbar: a12\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a13\n<<: [*merg1,*merg2]\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a14\n<<: [*merg2,*merg1]\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a15\n<<: *merg1\n<<: *merg2\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a16\n<<: *merg2\n<<: *merg1\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a17\nrep: o2\n<<: [*merg1,*merg2]\nrep: o3\n"
+        "---\nrep: o1\nbar: a18\nrep: o2\n<<: [*merg2,*merg1]\nrep: o3\n"
+        "---\nrep: o1\nbar: a19\nrep: o2\n<<: *merg1\n<<: *merg2\nrep: o3\n"
+        "---\nrep: o1\nbar: a20\nrep: o2\n<<: *merg2\n<<: *merg1\nrep: o3\n"
+        "---\nrep: o1\nbar: a21\nrep: o2\nrep: o3\n<<: [*merg1,*merg2]\n"
+        "---\nrep: o1\nbar: a22\nrep: o2\nrep: o3\n<<: [*merg2,*merg1]\n"
+        "---\nrep: o1\nbar: a23\nrep: o2\nrep: o3\n<<: *merg1\n<<: *merg2\n"
+        "---\nrep: o1\nbar: a24\nrep: o2\nrep: o3\n<<: *merg2\n<<: *merg1\n"
+        "";
+    test_resolve_with_options_(yaml, opts_keep,
+        "---\nrep: m11\nrep: m12\n"
+        "---\nrep: m21\nrep: m22\n"
+        "---\nrep: O1\nbar: a\nrep: O2\nrep: O3\n"
+        "---\nrep: m11\nrep: m12\nrep: o1\nbar: a00\nrep: o2\nrep: o3\nrep: m21\nrep: m22\n"
+        "---\nrep: o1\nrep: m11\nrep: m12\nbar: a01\nrep: o2\nrep: m21\nrep: m22\nrep: o3\n"
+        "---\nrep: o1\nbar: a02\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a03\nrep: m21\nrep: m22\nrep: o2\nrep: m11\nrep: m12\nrep: o3\n"
+        "---\nrep: o1\nrep: m21\nrep: m22\nbar: a04\nrep: o2\nrep: o3\nrep: m11\nrep: m12\n"
+        "---\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nrep: o1\nbar: a05\nrep: o2\nrep: o3\n"
+        "---\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nrep: o1\nbar: a06\nrep: o2\nrep: o3\n"
+        "---\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nrep: o1\nbar: a07\nrep: o2\nrep: o3\n"
+        "---\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nrep: o1\nbar: a08\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nbar: a09\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nbar: a10\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nbar: a11\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nbar: a12\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a13\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a14\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a15\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a16\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nrep: o2\nrep: o3\n"
+        "---\nrep: o1\nbar: a17\nrep: o2\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nrep: o3\n"
+        "---\nrep: o1\nbar: a18\nrep: o2\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nrep: o3\n"
+        "---\nrep: o1\nbar: a19\nrep: o2\nrep: m11\nrep: m12\nrep: m21\nrep: m22\nrep: o3\n"
+        "---\nrep: o1\nbar: a20\nrep: o2\nrep: m21\nrep: m22\nrep: m11\nrep: m12\nrep: o3\n"
+        "---\nrep: o1\nbar: a21\nrep: o2\nrep: o3\nrep: m11\nrep: m12\nrep: m21\nrep: m22\n"
+        "---\nrep: o1\nbar: a22\nrep: o2\nrep: o3\nrep: m21\nrep: m22\nrep: m11\nrep: m12\n"
+        "---\nrep: o1\nbar: a23\nrep: o2\nrep: o3\nrep: m11\nrep: m12\nrep: m21\nrep: m22\n"
+        "---\nrep: o1\nbar: a24\nrep: o2\nrep: o3\nrep: m21\nrep: m22\nrep: m11\nrep: m12\n"
+        "");
+
+    {
+        std::string expected =
+            ""
+            "---\nrep: m11\nrep: m12\n"
+            "---\nrep: m21\nrep: m22\n"
+            "---\nrep: O1\nbar: a\nrep: O2\nrep: O3\n"
+            "---\nrep: o1\nbar: a00\n"
+            "---\nrep: o1\nbar: a01\n"
+            "---\nrep: o1\nbar: a02\n"
+            "---\nrep: o1\nbar: a03\n"
+            "---\nrep: o1\nbar: a04\n"
+            "---\nrep: o1\nbar: a05\n"
+            "---\nrep: o1\nbar: a06\n"
+            "---\nrep: o1\nbar: a07\n"
+            "---\nrep: o1\nbar: a08\n"
+            "---\nrep: o1\nbar: a09\n"
+            "---\nrep: o1\nbar: a10\n"
+            "---\nrep: o1\nbar: a11\n"
+            "---\nrep: o1\nbar: a12\n"
+            "---\nrep: o1\nbar: a13\n"
+            "---\nrep: o1\nbar: a14\n"
+            "---\nrep: o1\nbar: a15\n"
+            "---\nrep: o1\nbar: a16\n"
+            "---\nrep: o1\nbar: a17\n"
+            "---\nrep: o1\nbar: a18\n"
+            "---\nrep: o1\nbar: a19\n"
+            "---\nrep: o1\nbar: a20\n"
+            "---\nrep: o1\nbar: a21\n"
+            "---\nrep: o1\nbar: a22\n"
+            "---\nrep: o1\nbar: a23\n"
+            "---\nrep: o1\nbar: a24\n"
+            "";
+        test_resolve_with_options0(yaml, expected);
+        test_resolve_with_options_(yaml, opts_pri_orig, expected);
+    }
+
+    test_resolve_with_options_(yaml, opts_pri_merg,
+        "---\nrep: m11\nrep: m12\n"
+        "---\nrep: m21\nrep: m22\n"
+        "---\nrep: O1\nbar: a\nrep: O2\nrep: O3\n"
+        "---\nrep: m11\nbar: a00\n"
+        "---\nrep: m11\nbar: a01\n"
+        "---\nrep: m11\nbar: a02\n"
+        "---\nrep: m21\nbar: a03\n"
+        "---\nrep: m21\nbar: a04\n"
+        "---\nrep: m11\nbar: a05\n"
+        "---\nrep: m21\nbar: a06\n"
+        "---\nrep: m11\nbar: a07\n"
+        "---\nrep: m21\nbar: a08\n"
+        "---\nrep: m11\nbar: a09\n"
+        "---\nrep: m21\nbar: a10\n"
+        "---\nrep: m11\nbar: a11\n"
+        "---\nrep: m21\nbar: a12\n"
+        "---\nrep: m11\nbar: a13\n"
+        "---\nrep: m21\nbar: a14\n"
+        "---\nrep: m11\nbar: a15\n"
+        "---\nrep: m21\nbar: a16\n"
+        "---\nrep: m11\nbar: a17\n"
+        "---\nrep: m21\nbar: a18\n"
+        "---\nrep: m11\nbar: a19\n"
+        "---\nrep: m21\nbar: a20\n"
+        "---\nrep: m11\nbar: a21\n"
+        "---\nrep: m21\nbar: a22\n"
+        "---\nrep: m11\nbar: a23\n"
+        "---\nrep: m21\nbar: a24\n"
+        "");
+return;
+
+    test_resolve_with_options2(yaml, opts_pri_none, opts_pri_both, "");
+    test_resolve_with_options_(yaml, opts_pri_orig_all, "");
+    test_resolve_with_options_(yaml, opts_pri_merg_all, "");
+    test_resolve_with_options2(yaml, opts_pri_none_all, opts_pri_both_all, "");
+    test_resolve_with_options_(yaml, opts_pri_orig_last, "");
+    test_resolve_with_options_(yaml, opts_pri_merg_last, "");
+    test_resolve_with_options2(yaml, opts_pri_none_last, opts_pri_both_last, "");
+    test_resolve_with_options_(yaml, opts_pri_orig_all_last, "");
+    test_resolve_with_options_(yaml, opts_pri_merg_all_last, "");
+    test_resolve_with_options2(yaml, opts_pri_none_all_last, opts_pri_both_all_last, "");
 }
 
-TEST(anchors, repeated_children_doc_1)
-{
-    std::string yaml = R"(
-foo: 1
-foo: 0
-)";
-    test_resolve_with_options0(               yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_orig, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_merg, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_none, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_both, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_last, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_last, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_none_last, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_both_last, yaml, "foo: 1\nfoo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_mrep, yaml, "foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_mrep, yaml, "foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_mrep, yaml, "foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_mrep, yaml, "foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_last_mrep, yaml, "foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_last_mrep, yaml, "foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_last_mrep, yaml, "foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_last_mrep, yaml, "foo: 0\n");
-}
-
-TEST(anchors, repeated_children_map_0)
+TEST(anchors, repeated_map)
 {
     std::string yaml = R"(map:
   foo: 0
   foo: 1
 )";
-    test_resolve_with_options0(               yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_none, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_both, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_last, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_last, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_last, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_last, yaml, "map:\n  foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_mrep, yaml, "map:\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_mrep, yaml, "map:\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_mrep, yaml, "map:\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_mrep, yaml, "map:\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_last_mrep, yaml, "map:\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_last_mrep, yaml, "map:\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_last_mrep, yaml, "map:\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_last_mrep, yaml, "map:\n  foo: 1\n");
+    test_resolve_with_options0(yaml,                "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_orig, "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_merg, "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_none, "map:\n  foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_both, "map:\n  foo: 0\n  foo: 1\n");
 }
 
-TEST(anchors, repeated_children_map_1)
-{
-    std::string yaml = R"(map:
-  foo: 1
-  foo: 0
-)";
-    test_resolve_with_options0(               yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_none, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_both, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_last, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_last, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_last, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_last, yaml, "map:\n  foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_mrep, yaml, "map:\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_mrep, yaml, "map:\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_mrep, yaml, "map:\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_mrep, yaml, "map:\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_last_mrep, yaml, "map:\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_last_mrep, yaml, "map:\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_last_mrep, yaml, "map:\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_last_mrep, yaml, "map:\n  foo: 0\n");
-}
-
-TEST(anchors, repeated_children_seq_1)
-{
-    std::string yaml = R"(-
-  foo: 1
-  foo: 0
-)";
-    test_resolve_with_options0(               yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_none, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_both, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_last, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_last, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_last, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_last, yaml, "- foo: 1\n  foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_mrep, yaml, "- foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_mrep, yaml, "- foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_mrep, yaml, "- foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_mrep, yaml, "- foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_last_mrep, yaml, "- foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_last_mrep, yaml, "- foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_last_mrep, yaml, "- foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_last_mrep, yaml, "- foo: 0\n");
-}
-
-TEST(anchors, repeated_children_seq_0)
+TEST(anchors, repeated_seq)
 {
     std::string yaml = R"(-
   foo: 0
   foo: 1
 )";
-    test_resolve_with_options0(               yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_none, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_both, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_last, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_last, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_last, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_last, yaml, "- foo: 0\n  foo: 1\n");
-    test_resolve_with_options_(opts_pri_orig_mrep, yaml, "- foo: 0\n");
-    test_resolve_with_options_(opts_pri_merg_mrep, yaml, "- foo: 0\n");
-    test_resolve_with_options_(opts_pri_none_mrep, yaml, "- foo: 0\n");
-    test_resolve_with_options_(opts_pri_both_mrep, yaml, "- foo: 0\n");
-    test_resolve_with_options_(opts_pri_orig_last_mrep, yaml, "- foo: 1\n");
-    test_resolve_with_options_(opts_pri_merg_last_mrep, yaml, "- foo: 1\n");
-    test_resolve_with_options_(opts_pri_none_last_mrep, yaml, "- foo: 1\n");
-    test_resolve_with_options_(opts_pri_both_last_mrep, yaml, "- foo: 1\n");
+    test_resolve_with_options0(yaml,                "- foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_orig, "- foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_merg, "- foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_none, "- foo: 0\n  foo: 1\n");
+    test_resolve_with_options_(yaml, opts_pri_both, "- foo: 0\n  foo: 1\n");
 }
+
+
+//-----------------------------------------------------------------------------
 
 TEST(anchors, issue_484_0)
 {
@@ -2070,7 +2046,7 @@ TEST(anchors, issue_484_1)
                                "k3:\n  a: ak3\n  b: b2\n"
                                "k4:\n  b: b2\n  a: ak4\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "base_1:\n  a: a1\n"
                                "base_2:\n  b: b2\n"
                                "k1:\n  a: a1\n  b: b2\n"
@@ -2078,7 +2054,7 @@ TEST(anchors, issue_484_1)
                                "k3:\n  a: ak3\n  b: b2\n"
                                "k4:\n  b: b2\n  a: ak4\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "base_1:\n  a: a1\n"
                                "base_2:\n  b: b2\n"
                                "k1:\n  a: a1\n  b: b2\n"
@@ -2086,7 +2062,7 @@ TEST(anchors, issue_484_1)
                                "k3:\n  a: a1\n  b: b2\n"
                                "k4:\n  a: a1\n  b: b2\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "base_1:\n  a: a1\n"
                                "base_2:\n  b: b2\n"
                                "k1:\n  a: a1\n  b: b2\n"
@@ -2094,7 +2070,7 @@ TEST(anchors, issue_484_1)
                                "k3:\n  a: ak3\n  b: b2\n"
                                "k4:\n  a: a1\n  b: b2\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "base_1:\n  a: a1\n"
                                "base_2:\n  b: b2\n"
                                "k1:\n  a: a1\n  b: b2\n"
@@ -2102,7 +2078,7 @@ TEST(anchors, issue_484_1)
                                "k3:\n  a: ak3\n  b: b2\n"
                                "k4:\n  b: b2\n  a: ak4\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "base_1:\n  a: a1\n"
                                "base_2:\n  b: b2\n"
                                "k1:\n  a: a1\n  b: b2\n"
@@ -2110,7 +2086,7 @@ TEST(anchors, issue_484_1)
                                "k3:\n  a: a1\n  b: b2\n"
                                "k4:\n  a: a1\n  b: b2\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "base_1:\n  a: a1\n"
                                "base_2:\n  b: b2\n"
                                "k1:\n  a: a1\n  b: b2\n"
@@ -2142,7 +2118,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k4: {b: b2,a: ak4}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "[\n"
                                "  {base_1: {a: a1}},\n"
                                "  {base_2: {b: b2}},\n"
@@ -2152,7 +2128,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k4: {b: b2,a: ak4}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "[\n"
                                "  {base_1: {a: a1}},\n"
                                "  {base_2: {b: b2}},\n"
@@ -2162,7 +2138,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k4: {a: a1,b: b2}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "[\n"
                                "  {base_1: {a: a1}},\n"
                                "  {base_2: {b: b2}},\n"
@@ -2172,7 +2148,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k4: {a: a1,b: b2}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "[\n"
                                "  {base_1: {a: a1}},\n"
                                "  {base_2: {b: b2}},\n"
@@ -2182,7 +2158,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k4: {b: b2,a: ak4}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "[\n"
                                "  {base_1: {a: a1}},\n"
                                "  {base_2: {b: b2}},\n"
@@ -2192,7 +2168,7 @@ TEST(anchors, issue_484_1_flow_sl)
                                "  {k4: {a: a1,b: b2}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "[\n"
                                "  {base_1: {a: a1}},\n"
                                "  {base_2: {b: b2}},\n"
@@ -2226,7 +2202,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
                                "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
@@ -2236,7 +2212,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
                                "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
@@ -2246,7 +2222,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k4: {\n      a: a1,\n      b: b2\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
                                "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
@@ -2256,7 +2232,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k4: {\n      a: a1,\n      b: b2\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
                                "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
@@ -2266,7 +2242,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k4: {\n      b: b2,\n      a: ak4\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
                                "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
@@ -2276,7 +2252,7 @@ TEST(anchors, issue_484_1_flow_ml)
                                "  {\n    k4: {\n      a: a1,\n      b: b2\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1\n    }\n  },\n"
                                "  {\n    base_2: {\n      b: b2\n    }\n  },\n"
@@ -2306,7 +2282,7 @@ TEST(anchors, issue_484_2)
                                "k3:\n  a: ak3\n  b: b1\n"
                                "k4:\n  b: b1\n  a: ak4\n" // FIXME a should be first
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "k1:\n  a: a1\n  b: b1\n"
@@ -2314,7 +2290,7 @@ TEST(anchors, issue_484_2)
                                "k3:\n  a: ak3\n  b: b1\n"
                                "k4:\n  b: b1\n  a: ak4\n" // FIXME a should be first
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "k1:\n  a: a1\n  b: b1\n"
@@ -2322,7 +2298,7 @@ TEST(anchors, issue_484_2)
                                "k3:\n  a: a1\n  b: b1\n"
                                "k4:\n  a: a1\n  b: b1\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "k1:\n  a: a1\n  b: b1\n"
@@ -2330,7 +2306,7 @@ TEST(anchors, issue_484_2)
                                "k3:\n  a: ak3\n  b: b1\n"
                                "k4:\n  a: a1\n  b: b1\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "k1:\n  a: a2\n  b: b1\n"
@@ -2338,7 +2314,7 @@ TEST(anchors, issue_484_2)
                                "k3:\n  a: ak3\n  b: b1\n"
                                "k4:\n  b: b1\n  a: ak4\n" // FIXME a should be first
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "k1:\n  a: a2\n  b: b1\n"
@@ -2346,7 +2322,7 @@ TEST(anchors, issue_484_2)
                                "k3:\n  a: a2\n  b: b1\n"
                                "k4:\n  a: a2\n  b: b1\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "k1:\n  a: a2\n  b: b1\n"
@@ -2378,7 +2354,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2388,7 +2364,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2398,7 +2374,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k4: {a: a1,b: b1}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2408,7 +2384,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k4: {a: a1,b: b1}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2418,7 +2394,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k4: {b: b1,a: ak4}}\n" // FIXME a should be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2428,7 +2404,7 @@ TEST(anchors, issue_484_2_flow_sl)
                                "  {k4: {a: a2,b: b1}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2462,7 +2438,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2472,7 +2448,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2482,7 +2458,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k4: {\n      a: a1,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2492,7 +2468,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k4: {\n      a: a1,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2502,7 +2478,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k4: {\n      b: b1,\n      a: ak4\n    }\n  }\n" // FIXME a should be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2512,7 +2488,7 @@ TEST(anchors, issue_484_2_flow_ml)
                                "  {\n    k4: {\n      a: a2,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2546,7 +2522,7 @@ TEST(anchors, issue_484_3)
                                "k4:\n  b: b1\n  a: ak4\n" // FIXME! 'a' must be first
                                "k5:\n  b: b1\n  a: ak5\n" // FIXME! 'a' must be first
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "base_3:\n  b: b3\n"
@@ -2556,7 +2532,7 @@ TEST(anchors, issue_484_3)
                                "k4:\n  b: b1\n  a: ak4\n" // FIXME! 'a' must be first
                                "k5:\n  b: b1\n  a: ak5\n" // FIXME! 'a' must be first
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "base_3:\n  b: b3\n"
@@ -2566,7 +2542,7 @@ TEST(anchors, issue_484_3)
                                "k4:\n  a: a1\n  b: b1\n"
                                "k5:\n  a: a1\n  b: b1\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "base_3:\n  b: b3\n"
@@ -2576,7 +2552,7 @@ TEST(anchors, issue_484_3)
                                "k4:\n  a: a1\n  b: b1\n"
                                "k5:\n  a: a1\n  b: b1\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "base_3:\n  b: b3\n"
@@ -2586,7 +2562,7 @@ TEST(anchors, issue_484_3)
                                "k4:\n  b: b3\n  a: ak4\n" // FIXME! 'a' must be first
                                "k5:\n  b: b3\n  a: ak5\n" // FIXME! 'a' must be first
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "base_3:\n  b: b3\n"
@@ -2596,7 +2572,7 @@ TEST(anchors, issue_484_3)
                                "k4:\n  a: a2\n  b: b3\n"
                                "k5:\n  a: a2\n  b: b3\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "base_1:\n  a: a1\n  b: b1\n"
                                "base_2:\n  a: a2\n"
                                "base_3:\n  b: b3\n"
@@ -2634,7 +2610,7 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k5: {b: b1,a: ak5}}\n" // FIXME! 'a' must be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2646,7 +2622,7 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k5: {b: b1,a: ak5}}\n" // FIXME! 'a' must be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2658,7 +2634,7 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k5: {a: a1,b: b1}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2670,7 +2646,7 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k5: {a: a1,b: b1}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2682,7 +2658,7 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k5: {b: b3,a: ak5}}\n" // FIXME! 'a' must be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2694,7 +2670,7 @@ TEST(anchors, issue_484_3_flow_sl)
                                "  {k5: {a: a2,b: b3}}\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "[\n"
                                "  {base_1: {a: a1,b: b1}},\n"
                                "  {base_2: {a: a2}},\n"
@@ -2735,7 +2711,7 @@ TEST(anchors, issue_484_3_flow_ml)
                                "]\n"
                                "");
 return;
-    test_resolve_with_options_(opts_pri_orig, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2747,7 +2723,7 @@ return;
                                "  {\n    k5: {\n      b: b1,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2759,7 +2735,7 @@ return;
                                "  {\n    k5: {\n      a: a1,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both, opts_pri_none, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both, opts_pri_none,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2771,7 +2747,7 @@ return;
                                "  {\n    k5: {\n      a: a1,\n      b: b1\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_orig_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_orig_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2783,7 +2759,7 @@ return;
                                "  {\n    k5: {\n      b: b3,\n      a: ak5\n    }\n  }\n" // FIXME! 'a' must be first
                                "]\n"
                                "");
-    test_resolve_with_options_(opts_pri_merg_last, yaml,
+    test_resolve_with_options_(yaml, opts_pri_merg_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"
@@ -2795,7 +2771,7 @@ return;
                                "  {\n    k5: {\n      a: a2,\n      b: b3\n    }\n  }\n"
                                "]\n"
                                "");
-    test_resolve_with_options2(opts_pri_both_last, opts_pri_none_last, yaml,
+    test_resolve_with_options2(yaml, opts_pri_both_last, opts_pri_none_last,
                                "[\n"
                                "  {\n    base_1: {\n      a: a1,\n      b: b1\n    }\n  },\n"
                                "  {\n    base_2: {\n      a: a2\n    }\n  },\n"

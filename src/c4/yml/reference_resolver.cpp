@@ -99,6 +99,22 @@ bool ReferenceResolver::is_merge_elm_(id_type child) const
     return false;
 }
 
+id_type ReferenceResolver::insert_merge_node_(id_type dst_map, id_type ref_node, id_type after, id_type visit_count)
+{
+    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_val_ref(ref_node), m_tree, ref_node);
+    AnchorData const* anchor = lookup_anchor_(ref_node, visit_count, m_tree->val_ref(ref_node));
+    if(!anchor)
+        return NONE;
+    if C4_LIKELY (m_tree->is_map(anchor->node))
+    {
+        check_size_limit_(anchor->node);
+        id_type last_inserted = m_tree->duplicate_children(anchor->node, dst_map, after);
+        m_branch_size.resize(m_tree->capacity());
+        return last_inserted;
+    }
+    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, anchor->node, "merge elements must be maps");
+}
+
 void ReferenceResolver::add_keys_mergedin_(id_type ref_node, id_type visit_count)
 {
 printf("add_keys_merged_in: vcount=%zu\n", visit_count);
@@ -113,6 +129,47 @@ printf("add_keys_merged_in: vcount=%zu\n", visit_count);
         return;
     }
     RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, anchor->node, "merge elements must be maps");
+}
+
+bool ReferenceResolver::insert_without_merge_(id_type node, id_type visit_count)
+{
+    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(node), m_tree, node);
+    // when set to keep all keys, it's simpler: just insert the full
+    // merge element targets in place
+    bool changed = false;
+    id_type after = NONE;
+    for(id_type ch = m_tree->first_child(node);
+        ch != NONE;
+        ch = m_tree->next_sibling(ch), ++visit_count)
+    {
+        if(!is_merge_elm_(ch))
+        {
+            visit_count += branch_size_(ch);
+        }
+        else
+        {
+            changed = true;
+            after = ch;
+            if(m_tree->has_val(ch))
+            {
+                after = insert_merge_node_(node, ch, after, visit_count);
+            }
+            else
+            {
+                RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_seq(ch), m_tree, ch);
+                for(id_type gch = m_tree->first_child(ch); gch != NONE; gch = m_tree->next_sibling(gch))
+                {
+                    after = insert_merge_node_(node, gch, after, visit_count);
+                }
+            }
+            // now remove the merge element
+            // but watchout the loop continuation!
+            id_type to_remove = ch;
+            ch = m_tree->next_sibling(ch);
+            m_tree->remove(to_remove);
+        }
+    }
+    return changed;
 }
 
 bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
@@ -131,7 +188,7 @@ printf(" yes!\n");
         }
 printf("\n");
     }
-    if(!has_merge_elms && !m_opts.merge_repeated_keys())
+    if(!has_merge_elms && !m_opts.merge_always())
     {
         return false;
     }
@@ -140,7 +197,6 @@ printf("requires_merge[%zu]: fill\n", node);
     for(id_type ch = m_tree->first_child(node); ch != NONE; ++visit_count)
     {
 printf("requires_merge[%zu]: child=%zu vcount=%zu\n", node, ch, visit_count);
-        NodeType ty = m_tree->type(ch);
         if(!is_merge_elm_(ch))
         {
 printf("... %zu is vanilla key vcount=%zu\n", ch, visit_count);
@@ -150,6 +206,7 @@ printf("... %zu is vanilla key vcount=%zu\n", ch, visit_count);
         }
         else
         {
+            NodeType ty = m_tree->type(ch);
             if(ty.has_val()) // it's a merge node `<<: *a`
             {
 printf("... %zu is_merge val vcount=%zu\n", ch, visit_count);
@@ -172,16 +229,21 @@ printf("... %zu: -> %zu.   vcount=%zu\n", ch, gch, visit_count);
             m_tree->remove(to_remove);
         }
     }
-    m_known_keys.adding_is_complete();
-    return m_known_keys.requires_merge();
+    bool req = m_known_keys.requires_merge();
+    if(req)
+        m_known_keys.adding_is_complete();
+printf("requires_merge[%zu]: %s\n", node, req ? "yes" : "no");
+    return req;
 }
 
 bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
 {
-    using KNK = detail::KnownKeys;
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(node), m_tree, node);
+    if(m_opts.keep_repeated_keys())
+        return insert_without_merge_(node, visit_count);
     if(!requires_merge_(node, visit_count))
         return false;
+    using KNK = detail::KnownKeys;
     KNK::KnownKeyRange_ rng;
     id_type after = NONE; // keep track where to insert nodes
     id_type num_unique = m_known_keys.num_unique_keys();
@@ -192,14 +254,12 @@ printf("merge[%zu]: #unique_keys=%zu\n", node, num_unique);
 printf("merge[%zu]: ... unique_key[%zu]\n", node, i);
         KNK::Entry const* selected = m_known_keys.select(i, &rng);
         RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, rng.hi > rng.lo, m_tree, node);
-printf("merge[%zu]: ... unique_key[%zu]: %.*s #selected=%zd\n", node, i, static_cast<int>(rng.lo->key.len), rng.lo->key.str, rng.hi - rng.lo);
-        // clear all unselected original keys in the range; but do not
-        // clear keys from aliases, which must remain there (in the
-        // anchored elements).
+printf("merge[%zu]: ... unique_key[%zu]: %.*s #keys=%zd\n", node, i, static_cast<int>(rng.lo->key.len), rng.lo->key.str, rng.hi - rng.lo);
         bool done = false;
+id_type ik = 0;
         for(auto const& kv : rng)
         {
-printf("merge[%zu]: ... after=%zu ", node, after);
+printf("merge[%zu]: ... [%s] rangekey=%zu  after=%zu ", node, (&kv.val == selected ? "sel" : "  "), ik, after);
 prkv(kv);
 printf("\n");
             if(kv.val.status & KNK::ORIGINAL)
@@ -208,24 +268,39 @@ printf("merge[%zu]: ... original\n", node);
                 if(&kv.val != selected)
                 {
 printf("merge[%zu]: ... !selected\n", node);
-                    if(!done)
+                    if( ! done)
                     {
-printf("merge[%zu]: ... !done\n", node);
+printf("merge[%zu]: ... !selected !done\n", node);
                         done = true;
-                        if(!(selected->status & KNK::ORIGINAL))
+                        id_type dst = kv.val.id;
+                        if(selected->status & KNK::ORIGINAL)
                         {
-                            m_tree->remove_children(kv.val.id);
-                            m_tree->duplicate_contents(selected->id, kv.val.id);
+printf("merge[%zu]: ... !selected !done original\n", node);
+                            m_tree->move(selected->id, m_tree->prev_sibling(dst));
+                            m_tree->remove(dst);
+                            after = dst;
+                        }
+                        else
+                        {
+printf("merge[%zu]: ... !selected !done mergedin\n", node);
+                            m_tree->remove_children(dst);
+                            check_size_limit_(selected->id);
+                            m_tree->duplicate_contents(selected->id, dst);
                             m_branch_size.resize(m_tree->capacity());
-                            after = kv.val.id;
+                            after = dst;
                         }
                     }
                     else
                     {
-                        m_tree->remove(kv.val.id);
+printf("merge[%zu]: ... !selected done\n", node);
+                        if(selected->status & KNK::ORIGINAL)
+                        {
+printf("merge[%zu]: ... !selected merge original\n", node);
+                            m_tree->remove(kv.val.id);
+                        }
                     }
                 }
-                else if(!done)
+                else if( ! done) // selected, but not done
                 {
 printf("merge[%zu]: ... selected\n", node);
                     done = true;
@@ -234,11 +309,13 @@ printf("merge[%zu]: ... selected\n", node);
 visit_count = resolve_(selected->id, visit_count);
                 }
             }
+++ik;
         }
         RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, !(selected->status & KNK::ORIGINAL) || done, m_tree, node);
         // enforce the selected key
-        if(!done)
+        if( ! done)
         {
+            check_size_limit_(selected->id);
             after = m_tree->duplicate(selected->id, node, after);
             m_branch_size.resize(m_tree->capacity());
         }
@@ -394,7 +471,7 @@ void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts)
 
     bool has_refs = false;
     gather_anchors_(m_tree->root_id(), 0, &has_refs);
-    if(has_refs || m_opts.merge_repeated_keys())
+    if(has_refs || !m_opts.keep_repeated_keys())
     {
         m_anchors.sort();
         resolve_(m_tree->root_id(), 0);

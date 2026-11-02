@@ -64,7 +64,22 @@ private:
     KnownKeys known_keys;
     vec<evt_size, 32> parents;
     vec<evt_size, 32> siblings;
-    vec<evt_size, 32> scratch;
+
+private:
+
+    vec<evt_size, 32> mapw_scratch;
+    evt_size mapw_firstslot;
+    evt_size mapw_lastslot;
+    evt_size mapw_wslot = 0; // current write slot
+    evt_size mapw_posref;
+
+    void mapw_reset_(evt_size map);
+    void mapw_cpkeyval_original_(evt_size id, bool is_last_entry);
+    void mapw_cpkeyval_mergedin_(evt_size id, bool is_last_entry);
+    evt_size mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_size beg, evt_size end, bool is_last_entry);
+
+private:
+
     bool can_resize;
 
 private:
@@ -85,6 +100,8 @@ private:
     C4_NODISCARD bool descend_(evt_size &pos);
     C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
+    C4_NODISCARD evt_size resolve_map_merge_(evt_size parent, bool key_conflict);
+    C4_NODISCARD evt_size resolve_map_repeat_(evt_size parent);
     C4_NODISCARD bool requires_merge_(evt_size map);
     C4_NODISCARD evt_size merge_map_keys_(evt_size map);
     void add_anchor_(evt_size pos);
