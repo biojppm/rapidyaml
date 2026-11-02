@@ -88,7 +88,7 @@ size_t to_str(substr buf, evt_bits flags) noexcept
         }
     }
     if(!writer.pos)
-        writer.append("NONE");
+        writer.append('0');
     if(writer.pos < buf.len)
         buf[writer.pos] = '\0';
     return writer.pos;

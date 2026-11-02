@@ -9,6 +9,17 @@
 #include "c4/yml/detail/lookup_anchor.hpp"
 #endif
 
+#define c4dbgrri_(...)                          \
+    do {                                        \
+        printf("%s:%d: ", __FILE__, __LINE__);  \
+        printf(__VA_ARGS__);                    \
+        printf("\n");                           \
+    } while(0)
+#define c4dbgrri__(...)                         \
+    do {                                        \
+        printf("%s:%d: ", __FILE__, __LINE__);  \
+        printf(__VA_ARGS__);                    \
+    } while(0)
 #include "c4/yml/extra/ints_utils.hpp"
 #define print____(...)                                  \
     do {                                                \
@@ -131,8 +142,11 @@ print____("before resolve");
 print____("before clear anchors");
         for(auto const& entry : anchor_map.m_arr)
         {
-            clear_str_(static_cast<evt_size>(entry.val.visit_count));
+            if(!entry.val.removed)
+            {
+                clear_str_(static_cast<evt_size>(entry.val.visit_count));
 print____("after clear anchor at %zu", entry.val.visit_count);
+            }
         }
     }
     // adjust for the sentinel
@@ -249,7 +263,7 @@ C4_NODISCARD bool ReferenceResolver::descend_(evt_size &pos)
         pos = resolve_children_map_(pos);
         ret = true;
     }
-printf("after descend. pos=%d\n", pos);
+c4dbgrri_("after descend. pos=%d", pos);
     parents.pop();
     return ret;
 }
@@ -280,8 +294,8 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
 C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
-printf("-------------------------\n");
-printf("merge id=%d: enter\n", parent);
+c4dbgrri_("-------------------------\n");
+c4dbgrri_("merge id=%d: enter", parent);
     if(opts.keep_repeated_keys())
     {
         return resolve_map_repeat_(parent);
@@ -291,7 +305,7 @@ printf("merge id=%d: enter\n", parent);
     evt_size pos = resolve_map_merge_(parent, key_conflict);
     if(do_merge && key_conflict)
     {
-printf("merge id=%d: do_merge=%d key_conflict=%d\n", parent, do_merge, key_conflict);
+c4dbgrri_("merge id=%d: do_merge=%d key_conflict=%d", parent, do_merge, key_conflict);
         return merge_map_keys_(parent);
     }
     return pos;
@@ -331,7 +345,7 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool k
     {
         if(evts.ptr[pos] & ievt::ALIA)
         {
-printf("merge id=%d: resolve %d: ALIA\n", pos, pos);(void)fflush(nullptr);
+c4dbgrri_("merge id=%d: resolve %d: ALIA", pos, pos);(void)fflush(nullptr);
             AnchorData const* anch = lookup_anchor_(pos);
             if(anch)
 {
@@ -341,20 +355,22 @@ print____("merge id=%d: after resolve %d: ALIA", pos, pos);
         }
         else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
         {
-printf("merge id=%d: resolve %d: key\n", pos, pos);
+c4dbgrri_("merge id=%d: resolve %d: key", pos, pos);
             if(is_merge_elm_(pos))
             {
-printf("merge id=%d: resolve %d: merge_elm\n", pos, pos);
+c4dbgrri_("merge id=%d: resolve %d: merge_elm", pos, pos);
                 if( ! key_conflict)
                 {
-printf("merge id=%d: resolve %d: noconflict\n", pos, pos);
+c4dbgrri_("merge id=%d: resolve %d: noconflict", pos, pos);
                     handle_merge_elm_(pos, key_conflict);
                 }
                 else
                 {
-printf("merge id=%d: resolve %d: conflict\n", pos, pos);
+c4dbgrri_("merge id=%d: resolve %d: conflict", pos, pos);
                     maybe_clear_anchtag_(pos);
+print____("merge id=%d: resolve %d: conflict", pos, pos);
                     clear_keyval_(pos);
+print____("merge id=%d: resolve %d: conflict", pos, pos);
                 }
             }
         }
@@ -394,11 +410,11 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
         if(!has_merge_elms && !opts.merge_always())
             return false;
     }
-printf("populate(%d): enter\n", pos);
+c4dbgrri_("populate(%d): enter", pos);
     known_keys.start_adding();
     for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
     {
-printf("wtf 0 ch=%d\n", ch);
+c4dbgrri_("wtf 0 ch=%d", ch);
         if(detail::hasall(evts.ptr[ch], ievt::EMAP))
         {
             break;
@@ -413,47 +429,48 @@ printf("wtf 0 ch=%d\n", ch);
             continue;
         }
         csubstr key = getstr(ch);
-printf("wtf 0.0.1 ch=%d, key=%.*s\n", ch, static_cast<int>(key.len), key.str);
+c4dbgrri_("wtf 0.0.1 ch=%d, key=%.*s", ch, static_cast<int>(key.len), key.str);
         if( ! is_merge_elm_(ch, key))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
         {
-printf("wtf 0.1 ch=%d\n", ch);
+c4dbgrri_("wtf 0.1 ch=%d", ch);
             known_keys.add(key, static_cast<id_type>(ch), KnownKeys::ORIGINAL);
         }
         else
         {
-printf("wtf 1 ch=%d\n", ch);
+c4dbgrri_("wtf 1 ch=%d", ch);
             Range_ rng = keyval_range_val_(ch);
-printf("wtf 2 ch=%d rng=(%d,%d)\n", ch, rng.beg, rng.end);
+c4dbgrri_("wtf 2 ch=%d rng=(%d,%d)", ch, rng.beg, rng.end);
             if(detail::hasall(evts.ptr[rng.beg], ievt::VAL_|ievt::ALIA))
             {
-printf("wtf 3 ch=%d\n", ch);
+c4dbgrri_("wtf 3 ch=%d", ch);
                 add_to_known_keys_(rng.beg, KnownKeys::MERGEDIN);
             }
             else
             {
-printf("wtf 4 ch=%d\n", ch);
+c4dbgrri_("wtf 4 ch=%d", ch);
                 RYML_ASSERT_BASIC_(rng.beg == ch + 3);
                 RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[ch + 3], ievt::BSEQ));
                 ++rng.beg;
-printf("wtf 4.1 ch=%d rng.beg=%d\n", ch, rng.beg);
+c4dbgrri_("wtf 4.1 ch=%d rng.beg=%d", ch, rng.beg);
                 while(true)
                 {
                     RYML_ASSERT_BASIC_(evts.ptr[rng.beg] & ievt::ALIA);
-printf("wtf 4.2 ch=%d rng.beg=%d\n", ch, rng.beg);
+c4dbgrri_("wtf 4.2 ch=%d rng.beg=%d", ch, rng.beg);
                     add_to_known_keys_(rng.beg, KnownKeys::MERGEDIN);
-printf("wtf 4.3 ch=%d rng.beg=%d\n", ch, rng.beg);
+c4dbgrri_("wtf 4.3 ch=%d rng.beg=%d", ch, rng.beg);
                     rng.beg = nextpos(evts.ptr, rng.beg);
-printf("wtf 4.4 ch=%d rng.beg=%d\n", ch, rng.beg);
+c4dbgrri_("wtf 4.4 ch=%d rng.beg=%d", ch, rng.beg);
                     if(detail::hasall(evts.ptr[rng.beg], ievt::ESEQ))
                         break;
                 }
             }
-printf("wtf 5 ch=%d rng.beg=%d\n", ch, rng.beg);
+c4dbgrri_("wtf 5 ch=%d rng.beg=%d", ch, rng.beg);
         }
     }
     bool req = known_keys.requires_merge();
     if(req)
         known_keys.adding_is_complete();
+c4dbgrri_("populate(%d): exit", pos);
     return req;
 }
 
@@ -490,30 +507,30 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
     // we're ready. iterate by unique key
     for(id_type i = 0; i < known_keys.num_unique_keys(); ++i)
     {
-        // iterate all the key's candidates
-printf("merge[%d]: unique_key=%zu  wslot=%d -------\n", parent, i, mapw_wslot);
+c4dbgrri_("merge[%d]: unique_key=%zu  wslot=%d -------", parent, i, mapw_wslot);
         KnownKeys::KnownKeyRange_ keyentries;
         KnownKeys::Entry const* selected = known_keys.select(i, &keyentries);
         RYML_ASSERT_BASIC_(keyentries.lo < keyentries.hi);
 evt_size eidx = 0;
+        // iterate all the key's candidates
         for(auto const& kv : keyentries)
         {
             evt_size id = static_cast<evt_size>(kv.val.id);
             bool is_last = (&kv + 1 == keyentries.hi);
-printf("merge[%d]: unique_key=%zu ... rng[%d] id=%d ...", parent, i, eidx++, id);
+c4dbgrri__("merge[%d]: unique_key=%zu ... rng[%d] id=%d ...", parent, i, eidx++, id);
 prkv(kv);
 printf("\n");
             if(&kv.val == selected)
             {
                 if(kv.val.status & KnownKeys::ORIGINAL)
                 {
-printf("merge[%d]: unique_key=%zu ...... original, selected! copy! wslot=%d\n", parent, i, mapw_wslot);
+c4dbgrri_("merge[%d]: unique_key=%zu ...... original, selected! copy! wslot=%d", parent, i, mapw_wslot);
                     mapw_cpkeyval_original_(id, is_last);
 print____("after cp original");
                 }
                 else
                 {
-printf("merge[%d]: unique_key=%zu ...... mergedin, selected. copy! wslot=%d\n", parent, i, mapw_wslot);
+c4dbgrri_("merge[%d]: unique_key=%zu ...... mergedin, selected. copy! wslot=%d", parent, i, mapw_wslot);
                     mapw_cpkeyval_mergedin_(id, is_last);
 print____("after cp mergedin");
                 }
@@ -528,10 +545,10 @@ print____("after cp mergedin");
         }
     }
     newrng.end = wpos;
-printf("aki 5.1 newrng=(%d,%d)\n", newrng.beg, newrng.end);
+c4dbgrri_("aki 5.1 newrng=(%d,%d)", newrng.beg, newrng.end);
     if(newrng.end > newrng.beg)
     {
-printf("aki 5.2 merging to %d: newrng=(%d,%d)\n", mapw_posref, newrng.beg, newrng.end);
+c4dbgrri_("aki 5.2 merging to %d: newrng=(%d,%d)", mapw_posref, newrng.beg, newrng.end);
         RYML_ASSERT_BASIC_(mapw_posref != -1);
         RYML_ASSERT_BASIC_(mapw_posref + 3 <= mapw_lastslot);
         replace_with_ref_(mapw_posref, newrng.beg, newrng.end);
@@ -541,7 +558,7 @@ print____("add ref to wpos");
     }
     else if(mapw_firstslot + mapw_wslot < mapw_lastslot)
     {
-printf("aki 5.2 clear (%d,%d)\n", mapw_firstslot + mapw_wslot, mapw_lastslot);
+c4dbgrri_("aki 5.2 clear (%d,%d)", mapw_firstslot + mapw_wslot, mapw_lastslot);
         clear_range_(mapw_firstslot + mapw_wslot, mapw_lastslot);
 print____("after clear range");
     }
@@ -579,16 +596,16 @@ evt_size ReferenceResolver::mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_s
     // leave room for a RREF before spilling to past ESTR
     evt_size extra = is_last_entry ? 0 : 3;
     evt_size dstpos = mapw_firstslot + mapw_wslot;
-printf("copydata:  slot=%d:%d  dstpos=%d  wslot=%d/%d  sz=%d  extra=%d\n", mapw_firstslot, mapw_lastslot, dstpos, mapw_wslot, mapw_lastslot-mapw_firstslot, sz, extra);
+c4dbgrri_("copydata:  slot=%d:%d  dstpos=%d  wslot=%d/%d  sz=%d  extra=%d", mapw_firstslot, mapw_lastslot, dstpos, mapw_wslot, mapw_lastslot-mapw_firstslot, sz, extra);
     if(dstpos + sz + extra < mapw_lastslot)
     {
         RYML_ASSERT_BASIC_(data != tmp || static_cast<size_t>(beg) < mapw_scratch.size());
         // we only need to copy if the data is going to end up
         // in a different position
-printf("copyinplace:  beg=%d wslot=%d/%d\n", beg, mapw_wslot, mapw_lastslot-mapw_firstslot);
+c4dbgrri_("copyinplace:  beg=%d wslot=%d/%d", beg, mapw_wslot, mapw_lastslot-mapw_firstslot);
         if(!(data == tmp && beg == mapw_wslot))
         {
-printf("copyinplace:  overwrite  sz=%d  %d:%d  <--  %d:%d  (%d:%d)\n", sz, dstpos, dstpos+sz, beg, end, beg+mapw_firstslot, end+mapw_firstslot);
+c4dbgrri_("copyinplace:  overwrite  sz=%d  %d:%d  <--  %d:%d  (%d:%d)", sz, dstpos, dstpos+sz, beg, end, beg+mapw_firstslot, end+mapw_firstslot);
             RYML_ASSERT_BASIC_(dstpos > 2);
             RYML_ASSERT_BASIC_(dstpos + sz < evts.len);
             const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
@@ -601,18 +618,18 @@ printf("copyinplace:  overwrite  sz=%d  %d:%d  <--  %d:%d  (%d:%d)\n", sz, dstpo
         }
 else
 {
-    printf("copyinplace:  nothing to do\n");
+    c4dbgrri_("copyinplace:  nothing to do\n");
 }
     }
     else
     {
         if(mapw_posref == -1)
         {
-printf("copytoend:  markref=%d\n", dstpos);
+c4dbgrri_("copytoend:  markref=%d", dstpos);
             mapw_posref = dstpos;
         }
         dstpos = wpos;
-printf("copytoend:  sz=%d  %d:%d  <--  %d:%d  (%d:%d)\n", sz, wpos, wpos+sz, beg, end, beg+mapw_firstslot, end+mapw_firstslot);
+c4dbgrri_("copytoend:  sz=%d  %d:%d  <--  %d:%d  (%d:%d)", sz, wpos, wpos+sz, beg, end, beg+mapw_firstslot, end+mapw_firstslot);
         copy_range_to_end_(data, beg, end);
     }
     mapw_wslot += sz;
@@ -626,7 +643,7 @@ void ReferenceResolver::mapw_cpkeyval_original_(evt_size id, bool is_last_entry)
     const Range_ r = keyval_range_scratch_(id - mapw_firstslot);
     evt_size wpos0 = wpos;(void)wpos0;
     evt_size copy_pos = mapw_cpdata_(tmp, r.beg, r.end, is_last_entry);
-printf("copyorig:   %d <-- %d\n", copy_pos, id);
+c4dbgrri_("copyorig:   %d <-- %d", copy_pos, id);
     // copy_pos maybe inplace or at the end
     evt_size shift = copy_pos - (mapw_firstslot + r.beg);
     // update cached anchor data
@@ -636,18 +653,18 @@ printf("copyorig:   %d <-- %d\n", copy_pos, id);
         {
             evt_size origpos = mapw_firstslot + scratchpos;
             evt_size next = origpos + shift;
-printf("copyorig:   anchor! scratchpos=%d origpos=%d next=%d shift=%d\n", scratchpos, origpos, next, shift);
+c4dbgrri_("copyorig:   anchor! scratchpos=%d origpos=%d next=%d shift=%d", scratchpos, origpos, next, shift);
             RYML_ASSERT_BASIC_(!(tmp[scratchpos] & ievt::AREN));
             csubstr anch = src.sub(static_cast<size_t>(tmp[scratchpos + 1]),
                                    static_cast<size_t>(tmp[scratchpos + 2]));
-printf("copyorig:   anchor=%.*s\n", static_cast<int>(anch.len), anch.str);
+c4dbgrri_("copyorig:   anchor=%.*s", static_cast<int>(anch.len), anch.str);
             auto rng = anchor_map.equal_range(anch);
             for(auto &entry : rng)
             {
                 if(entry.val.visit_count == static_cast<id_type>(origpos))
                 {
-printf("copyorig:   anchor! origpos=%d shift=%d next=%d wpos=%d\n", origpos, shift, next, wpos);
-printf("copyorig:   anchor! copy_pos=%d evts.len=%d\n", copy_pos, evts.len);
+c4dbgrri_("copyorig:   anchor! origpos=%d shift=%d next=%d wpos=%d", origpos, shift, next, wpos);
+c4dbgrri_("copyorig:   anchor! copy_pos=%d evts.len=%d", copy_pos, evts.len);
                     RYML_ASSERT_BASIC_(copy_pos < wpos0 ?
                                        (next >= mapw_firstslot && next < mapw_lastslot) :
                                        (next >= wpos0 && next < wpos));
@@ -684,6 +701,26 @@ void ReferenceResolver::add_anchor_(evt_size pos)
         r.rng.end = next_sibling_memoized_(r.rng.beg); // END_ must be part of the range, so extend beyond it
     }
     r.visit_count = static_cast<id_type>(pos);
+    r.removed = false;
+}
+
+void ReferenceResolver::rem_anchor_from_map_(evt_size pos)
+{
+    RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ANCH);
+    csubstr anch = getstr(pos);
+    auto rng = anchor_map.equal_range(anch);
+    RYML_ASSERT_BASIC_(rng.hi > rng.lo);
+    bool gotit = false;
+    for(auto &kv : rng)
+    {
+        if(static_cast<evt_size>(kv.val.visit_count) == pos)
+        {
+            kv.val.removed = true;
+            gotit = true;
+            break;
+        }
+    }
+    RYML_ASSERT_BASIC_(gotit);(void)gotit;
 }
 
 auto ReferenceResolver::lookup_anchor_(evt_size pos) const
@@ -739,51 +776,19 @@ bool ReferenceResolver::maybe_clear_anchtag_(evt_size pos)
             if(detail::hasall(evts.ptr[pos - 3], ievt::TAG_|ievt::PEX2)
                &&
                (evts.ptr[pos - 6] & ievt::ANCH))
+            {
+                rem_anchor_from_map_(pos - 6);
                 clear_str2_(pos - 6);
+            }
             else
+            {
+                if(evts.ptr[pos - 3] & ievt::ANCH)
+                    rem_anchor_from_map_(pos - 3);
                 clear_str_(pos - 3);
+            }
         }
     }
     return false;
-}
-
-void ReferenceResolver::rem_entry_(evt_size pos)
-{
-    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[pos]));
-    evt_bits clr = maybe_clear_anchtag_(pos) ? 0 : ievt::PEX2;
-    if(evts.ptr[pos] & ievt::WSTR)
-    {
-        evts.ptr[pos] = clr; // don't clear before the if
-        clear_str_(pos);
-    }
-    else
-    {
-        RYML_ASSERT_BASIC_(detail::seqormap(evts.ptr[pos]));
-        evt_size sib = next_sibling_memoized_(pos);
-        evts.ptr[pos] = clr; // don't clear before the if
-        // cannot use memset because there may be RREF elements inside
-        for(evt_size i = pos + 1, next = i; i != sib; i = next)
-        {
-            evt_size evt = evts.ptr[i];
-            evts.ptr[i] = 0;
-            next = i + 1;
-            if(evt & ievt::EXT2)
-            {
-                evts.ptr[i + 1] = 0;
-                evts.ptr[i + 2] = 0;
-                next = i + 3;
-            }
-        }
-        evts.ptr[sib] &= ~ievt::PEX2;
-    }
-}
-
-void ReferenceResolver::rem_keyval_(evt_size pos_key)
-{
-    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos_key], ievt::KEY_|ievt::SCLR));
-    evt_size pos_val = detail::find_next_entry_(evts.ptr, evts.len, pos_key, ievt::VAL_);
-    rem_entry_(pos_key);
-    rem_entry_(pos_val);
 }
 
 void ReferenceResolver::set_noref_(evt_size pos)
@@ -834,7 +839,8 @@ void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
 // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
 bool ReferenceResolver::is_merge_elm_(evt_size pos) const
 {
-    return is_merge_elm_(pos, getstr(pos));
+    return detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR)
+        && is_merge_elm_(pos, getstr(pos));
 }
 bool ReferenceResolver::is_merge_elm_(evt_size pos, csubstr key) const
 {
@@ -922,33 +928,33 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos, bool key_conflict)
 
 void ReferenceResolver::apply_merge_ref_(evt_size pos, bool key_conflict)
 {
-printf("aki 0 merging %d: conflict=%d\n", pos, key_conflict);
+c4dbgrri_("aki 0 merging %d: conflict=%d", pos, key_conflict);
     AnchorData const* anch = lookup_anchor_(pos);
     if(!anch)
         return;
     Range_ rng = anch->rng;
-printf("aki 1 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
+c4dbgrri_("aki 1 merging %d: rng=(%d,%d)", pos, rng.beg, rng.end);
     if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
     {
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.end - 1], ievt::EMAP));
         ++rng.beg; // skip BMAP
         --rng.end; // skip EMAP
-printf("aki 2 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
+c4dbgrri_("aki 2 merging %d: rng=(%d,%d)", pos, rng.beg, rng.end);
         if(rng.beg == rng.end) // src map is empty?
         {
-printf("aki 3 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
+c4dbgrri_("aki 3 merging %d: rng=(%d,%d)", pos, rng.beg, rng.end);
             set_noref_(pos);
         }
         else if(!key_conflict || !has_key_conflict_(rng.beg, rng.end))
         {
-printf("aki 4 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
+c4dbgrri_("aki 4 merging %d: rng=(%d,%d)", pos, rng.beg, rng.end);
             set_rref_(pos, rng.beg, rng.end);
         }
         else
         {
             RYML_ERR_BASIC_("do this elsewhere");
         }
-printf("aki 6 merging %d: rng=(%d,%d)\n", pos, rng.beg, rng.end);
+c4dbgrri_("aki 6 merging %d: rng=(%d,%d)", pos, rng.beg, rng.end);
     }
     else
     {
@@ -1004,11 +1010,11 @@ void ReferenceResolver::overwrite_keyval_(evt_size orig, evt_size dst)
     RYML_ASSERT_BASIC_(evts.ptr[srcrng.beg] & ievt::VAL_);
     RYML_ASSERT_BASIC_(evts.ptr[dstrng.beg] & ievt::VAL_);
     RYML_ASSERT_BASIC_((srcrng.beg != dstrng.beg) && (srcrng.end != dstrng.end));
-printf("aki 0: %d->%d\n", orig, dst);
+c4dbgrri_("aki 0: %d->%d", orig, dst);
     if((evts.ptr[srcrng.beg] & ievt::SCLR) &&
        (evts.ptr[dstrng.beg] & ievt::SCLR))
     {
-printf("aki 1: %d->%d\n", orig, dst);
+c4dbgrri_("aki 1: %d->%d", orig, dst);
         // if both are scalars, copy the src scalar and its style
         RYML_ASSERT_BASIC_(srcrng.end == srcrng.beg + 3);
         RYML_ASSERT_BASIC_(dstrng.end == dstrng.beg + 3);
@@ -1018,14 +1024,14 @@ printf("aki 1: %d->%d\n", orig, dst);
     }
     else if(dstrng.end >= dstrng.beg + 3)
     {
-printf("aki 2: %d->%d\n", orig, dst);
+c4dbgrri_("aki 2: %d->%d", orig, dst);
         // dst length is large enough to accomodate the ref
         replace_with_ref_(dstrng.beg, srcrng.beg, srcrng.end);
         clear_range_(dstrng.beg + 3, dstrng.end); // clear the rest of dst
     }
     else // the ref does not fit in the val. but it fits the keyval!
     {
-printf("aki 3: %d->%d\n", orig, dst);
+c4dbgrri_("aki 3: %d->%d", orig, dst);
         // set the dst key as ref to the src keyval
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[srcrng.beg - 3], ievt::KEY_|ievt::SCLR));
         RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[dstrng.beg - 3], ievt::KEY_|ievt::SCLR));

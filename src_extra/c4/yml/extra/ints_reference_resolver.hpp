@@ -41,6 +41,7 @@ public:
     {
         id_type  visit_count; /// the pos of the anchor
         Range_   rng;         /// range of the anchored data
+        bool     removed;
     };
     template<class T, size_t N> using vec = yml::detail::stack<T, N>;
     template<class K, class V> using map = yml::detail::small_map<K, V, 32>;
@@ -115,8 +116,7 @@ private:
     void clear_range_(evt_size beg, evt_size end) noexcept;
     void clear_keyval_(evt_size src) noexcept;
     bool maybe_clear_anchtag_(evt_size pos);
-    void rem_entry_(evt_size pos);
-    void rem_keyval_(evt_size pos_key);
+    void rem_anchor_from_map_(evt_size pos);
     bool is_merge_elm_(evt_size pos) const;
     bool is_merge_elm_(evt_size pos, csubstr key) const;
     void handle_merge_elm_(evt_size child, bool key_conflict);

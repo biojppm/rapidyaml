@@ -137,6 +137,22 @@ void format_ints_as_c_data(Writer &writer,
                 ++level;
         }
         writer.append(ievt::to_str_sub(buf, evt));
+        if(!(evt & ~ievt::PEX2))
+        {
+            evt_size count = 1;
+            while(true)
+            {
+                writer.append(',');
+                evt = evts[evtpos + count];
+                if((evt & ~ievt::PEX2) || count == 20)
+                    break;
+                ++count;
+                writer.append(ievt::to_str_sub(buf, evt));
+            }
+            writer.append('\n');
+            evtpos += count - 1;
+            continue;
+        }
         if(evt & ievt::WSTR)
         {
             evt_size offs = evts[evtpos + 1];
