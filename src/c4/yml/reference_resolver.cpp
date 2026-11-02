@@ -44,9 +44,16 @@ void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts)
     m_opts = opts;
     m_size_limit = m_opts.max_size(m_tree->size());
     m_known_keys.reset(m_opts);
-    m_branch_size.resize(m_tree->capacity());
-    for(uint32_t & v : m_branch_size)
-        v = 0;
+    grow_branch_size_();
+}
+
+void ReferenceResolver::grow_branch_size_()
+{
+    id_type curr = m_branch_size.size();
+    id_type next = m_tree->capacity();
+    m_branch_size.resize(next);
+    for(id_type i = curr; i < next; ++i)
+        m_branch_size[i] = 0;
 }
 
 id_type ReferenceResolver::branch_size_(id_type node)
@@ -69,6 +76,8 @@ void ReferenceResolver::check_size_limit_(id_type node_to_dup)
         return;
     const id_type next_size = m_tree->size() + branch_size_(node_to_dup);
     _c4dbgpf("tree_size={} target={} branch_size={} next_size={} limit={} mult={}",
+             m_tree->size(), node_to_dup, branch_size_(node_to_dup), next_size, m_size_limit, m_opts.max_size_multiplier());
+printf("tree_size=%zu target=%zu branch_size=%zu next_size=%zu limit=%zu mult=%zu\n",
              m_tree->size(), node_to_dup, branch_size_(node_to_dup), next_size, m_size_limit, m_opts.max_size_multiplier());
     if C4_UNLIKELY(next_size > m_size_limit)
          RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, node_to_dup, "aliasing would exceed max size limit");
@@ -110,7 +119,7 @@ id_type ReferenceResolver::insert_merge_node_(id_type dst_map, id_type ref_node,
     {
         check_size_limit_(anchor->node);
         id_type last_inserted = m_tree->duplicate_children(anchor->node, dst_map, after);
-        m_branch_size.resize(m_tree->capacity());
+        grow_branch_size_();
         return last_inserted;
     }
     RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, anchor->node, "merge elements must be maps");
@@ -260,7 +269,7 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
                             m_tree->remove_children(dst);
                             check_size_limit_(selected->id);
                             m_tree->duplicate_contents(selected->id, dst);
-                            m_branch_size.resize(m_tree->capacity());
+                            grow_branch_size_();
                             after = dst;
                         }
                     }
@@ -273,8 +282,6 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
                 {
                     done = true;
                     after = selected->id;
-// descend into the original selected key
-visit_count = resolve_(selected->id, visit_count);
                 }
             }
         }
@@ -284,7 +291,7 @@ visit_count = resolve_(selected->id, visit_count);
         {
             check_size_limit_(selected->id);
             after = m_tree->duplicate(selected->id, node, after);
-            m_branch_size.resize(m_tree->capacity());
+            grow_branch_size_();
         }
     }
     return true;
@@ -375,7 +382,7 @@ void ReferenceResolver::handle_val_ref_(id_type ref_node, AnchorData const& anch
             | (aty.m_bits & (VAL_STYLE|CONTAINER_STYLE|VAL|SEQ|MAP));
         m_tree->duplicate_contents(anchor.node, ref_node);
         m_tree->_p(ref_node)->m_type = next;
-        m_branch_size.resize(m_tree->capacity());
+        grow_branch_size_();
     }
     else
     {
