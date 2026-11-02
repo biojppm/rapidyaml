@@ -2170,14 +2170,14 @@ TEST(anchors, issue_484_0)
         test_resolve_(ti);
         if(testing::Test::HasFailure()) break;
         test_emit_yaml_(ti,
-                        "base_1:\n" "  a: 10\n" "  b: 10\n"
-                        "base_2:\n" "  b: 20\n"
-                        "k1:\n" "  a: 10\n" "  b: 10\n"
-                        "k2:\n" "  b: 20\n" "  a: 10\n"
-                        "k3:\n" "  a: 100\n" "  b: 10\n"
-                        "k4:\n" "  b: 10\n" "  a: 100\n"
-                        "k5:\n" "  a: 100\n" "  b: 20\n"
-                        "k6:\n" "  b: 20\n" "  a: 100\n"
+                        "base_1:\n  a: 10\n  b: 10\n"
+                        "base_2:\n  b: 20\n"
+                        "k1:\n  a: 10\n  b: 10\n"
+                        "k2:\n  b: 20\n  a: 10\n"
+                        "k3:\n  a: 100\n  b: 10\n"
+                        "k4:\n  a: 100\n  b: 10\n"
+                        "k5:\n  a: 100\n  b: 20\n"
+                        "k6:\n  b: 20\n  a: 100\n"
                         "");
         if(testing::Test::HasFailure()) break;
     }
@@ -2250,7 +2250,7 @@ TEST(anchors, issue_484_0_flow_sl)
                         "  {k1: {a: 10,b: 10}},\n"
                         "  {k2: {b: 20,a: 10}},\n"
                         "  {k3: {a: 100,b: 10}},\n"
-                        "  {k4: {b: 10,a: 100}},\n"
+                        "  {k4: {a: 100,b: 10}},\n"
                         "  {k5: {a: 100,b: 20}},\n"
                         "  {k6: {b: 20,a: 100}}\n"
                         "]\n"
@@ -2326,7 +2326,7 @@ TEST(anchors, issue_484_0_flow_ml)
                         "  {\n    k1: {\n      a: 10,\n      b: 10\n    }\n  },\n"
                         "  {\n    k2: {\n      b: 20,\n      a: 10\n    }\n  },\n"
                         "  {\n    k3: {\n      a: 100,\n      b: 10\n    }\n  },\n"
-                        "  {\n    k4: {\n      b: 10,\n      a: 100\n    }\n  },\n"
+                        "  {\n    k4: {\n      a: 100,\n      b: 10\n    }\n  },\n"
                         "  {\n    k5: {\n      a: 100,\n      b: 20\n    }\n  },\n"
                         "  {\n    k6: {\n      b: 20,\n      a: 100\n    }\n  }\n"
                         "]\n"
