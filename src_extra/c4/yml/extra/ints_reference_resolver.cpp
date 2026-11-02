@@ -914,52 +914,6 @@ void ReferenceResolver::clear_keyval_(evt_size keyval) noexcept
     clear_range_(r.beg, r.end);
 }
 
-void ReferenceResolver::overwrite_keyval_(evt_size orig, evt_size dst)
-{
-    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[dst], ievt::KEY_|ievt::SCLR));
-    RYML_ASSERT_BASIC_(orig != dst);
-    RYML_ASSERT_BASIC_(evts.ptr[orig + 3] & ievt::VAL_);
-    const Range_ srcrng = keyval_range_val_(orig);
-    const Range_ dstrng = keyval_range_val_(dst);
-    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[srcrng.beg]));
-    RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[dstrng.beg]));
-    RYML_ASSERT_BASIC_(evts.ptr[srcrng.beg] & ievt::VAL_);
-    RYML_ASSERT_BASIC_(evts.ptr[dstrng.beg] & ievt::VAL_);
-    RYML_ASSERT_BASIC_((srcrng.beg != dstrng.beg) && (srcrng.end != dstrng.end));
-    if((evts.ptr[srcrng.beg] & ievt::SCLR) &&
-       (evts.ptr[dstrng.beg] & ievt::SCLR))
-    {
-        // if both are scalars, copy the src scalar and its style
-        RYML_ASSERT_BASIC_(srcrng.end == srcrng.beg + 3);
-        RYML_ASSERT_BASIC_(dstrng.end == dstrng.beg + 3);
-        evts.ptr[dstrng.beg    ] = evts.ptr[srcrng.beg];
-        evts.ptr[dstrng.beg + 1] = evts.ptr[srcrng.beg + 1];
-        evts.ptr[dstrng.beg + 2] = evts.ptr[srcrng.beg + 2];
-    }
-    else if(dstrng.end >= dstrng.beg + 3)
-    {
-        // dst length is large enough to accomodate the ref
-        replace_with_ref_(dstrng.beg, srcrng.beg, srcrng.end);
-        clear_range_(dstrng.beg + 3, dstrng.end); // clear the rest of dst
-    }
-    else // the ref does not fit in the val. but it fits the keyval!
-    {
-        // set the dst key as ref to the src keyval
-        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[srcrng.beg - 3], ievt::KEY_|ievt::SCLR));
-        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[dstrng.beg - 3], ievt::KEY_|ievt::SCLR));
-        replace_with_ref_(dstrng.beg - 3, srcrng.beg - 3, srcrng.end);
-        clear_range_(dstrng.beg, dstrng.end); // clear the rest of dst
-    }
-}
-
-void ReferenceResolver::copy_keyval_to_end_(evt_size keyval)
-{
-    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[keyval], ievt::KEY_|ievt::SCLR));
-    const Range_ rng = keyval_range_val_(keyval);
-    RYML_ASSERT_BASIC_(evts.ptr[rng.beg] & ievt::VAL_);
-    copy_range_to_end_(evts.ptr, rng.beg, rng.end);
-}
-
 void ReferenceResolver::copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end)
 {
     const evt_size num = end - beg;

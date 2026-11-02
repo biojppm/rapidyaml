@@ -126,8 +126,6 @@ private:
     void add_to_known_keys_(evt_size beg, evt_size end, uint32_t status);
     void add_to_known_keys_(evt_size alia, uint32_t status);
     bool has_key_conflict_(evt_size beg, evt_size end);
-    void overwrite_keyval_(evt_size src, evt_size dst);
-    void copy_keyval_to_end_(evt_size keyval);
     void copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end);
     bool grow_evts_to_add_(evt_size extra);
 
