@@ -304,7 +304,7 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
                 }
                 else
                 {
-                    handle_merge_elm_(pos, /*key_conflict*/false);
+                    handle_merge_elm_(pos);
                 }
             }
         }
@@ -340,7 +340,7 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool k
                 }
                 else if( ! key_conflict)
                 {
-                    handle_merge_elm_(pos, key_conflict);
+                    handle_merge_elm_(pos);
                 }
                 else
                 {
@@ -848,30 +848,30 @@ bool ReferenceResolver::ignore_missing_merge_elm_entries_(evt_size pos) const
 }
 
 
-void ReferenceResolver::handle_merge_elm_(evt_size child, bool key_conflict)
+void ReferenceResolver::handle_merge_elm_(evt_size child)
 {
     // clear any anchors or tags immediately preceding the << scalar
     maybe_clear_anchtag_(child);
     if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::ALIA))
     {
-        merge_map_single_(child, key_conflict);
+        merge_map_single_(child);
     }
     else if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::BSEQ))
     {
-        merge_map_multiple_(child, key_conflict);
+        merge_map_multiple_(child);
     }
 }
 
-void ReferenceResolver::merge_map_single_(evt_size pos, bool key_conflict)
+void ReferenceResolver::merge_map_single_(evt_size pos)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::ALIA));
     RYML_ASSERT_BASIC_("<<" == getstr(pos));
     clear_str_(pos); // clear the << scalar
-    apply_merge_ref_(pos + 3, key_conflict);
+    apply_merge_ref_(pos + 3);
 }
 
-void ReferenceResolver::merge_map_multiple_(evt_size pos, bool key_conflict)
+void ReferenceResolver::merge_map_multiple_(evt_size pos)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR));
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos + 3], ievt::VAL_|ievt::BSEQ));
@@ -884,7 +884,7 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos, bool key_conflict)
     {
         RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
         evt_size next = nextpos(evts.ptr, pos);
-        apply_merge_ref_(pos, key_conflict);
+        apply_merge_ref_(pos);
         pos = next;
         if(detail::hasall(evts.ptr[next], ievt::ESEQ))
             break;
@@ -893,7 +893,7 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos, bool key_conflict)
     evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
 }
 
-void ReferenceResolver::apply_merge_ref_(evt_size pos, bool key_conflict)
+void ReferenceResolver::apply_merge_ref_(evt_size pos)
 {
     AnchorData const* anch = lookup_anchor_(pos);
     if(!anch)
@@ -908,31 +908,15 @@ void ReferenceResolver::apply_merge_ref_(evt_size pos, bool key_conflict)
         {
             set_noref_(pos);
         }
-        else if(!key_conflict || !has_key_conflict_(rng.beg, rng.end))
-        {
-            set_rref_(pos, rng.beg, rng.end);
-        }
         else
         {
-            RYML_ERR_BASIC_("do this elsewhere");
+            set_rref_(pos, rng.beg, rng.end);
         }
     }
     else
     {
         RYML_ERR_BASIC_("invalid merge reference at pos={}", pos);
     }
-}
-
-bool ReferenceResolver::has_key_conflict_(evt_size beg, evt_size end)
-{
-    while(beg < end)
-    {
-        if(detail::hasall(evts.ptr[beg], ievt::KEY_|ievt::SCLR))
-            if(known_keys.exists_with_conflict(getstr(beg)))
-                return true;
-        beg = next_sibling_memoized_(beg);
-    }
-    return false;
 }
 
 

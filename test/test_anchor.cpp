@@ -371,7 +371,7 @@ TEST(anchors, billion_laughs_large_limit)
     EXPECT_NE(opts.max_size_multiplier(), mult);
     opts.max_size_multiplier(mult);
     EXPECT_EQ(opts.max_size_multiplier(), mult);
-    SCOPED_CALL(test_resolve, (ti));
+    SCOPED_CALL(test_resolve, (ti, opts));
 }
 TEST(anchors, billion_laughs_no_limit)
 {
@@ -380,9 +380,11 @@ TEST(anchors, billion_laughs_no_limit)
     ResolveOptions opts{};
     id_type mult = 0;
     EXPECT_NE(opts.max_size_multiplier(), mult);
+    EXPECT_NE(opts.max_size(ti.tree.size()), 0);
     opts.max_size_multiplier(mult);
     EXPECT_EQ(opts.max_size_multiplier(), mult);
-    SCOPED_CALL(test_resolve, (ti));
+    EXPECT_EQ(opts.max_size(ti.tree.size()), 0);
+    SCOPED_CALL(test_resolve, (ti, opts));
 }
 
 
@@ -744,6 +746,17 @@ TEST(anchors, merge0)
         "- m3:\n    x: 1\n    r: 10\n    y: 2\n"
         "- m4:\n    x: 1\n    y: 2\n    r: 10\n"
         "- m5:\n    x: 1\n    y: 2\n    r: 10\n"
+        ""));
+}
+
+TEST(anchors, merge1_conflict_in_one_only)
+{
+    SCOPED_CALL(test_resolve, (
+        "- &conflict {a: 1,c: 3}\n- &noproblem {d: 4}\n"
+        "- {a: 10,b: 20,<<: [*conflict,*noproblem]}\n"
+        ,
+        "- {a: 1,c: 3}\n- {d: 4}\n"
+        "- {a: 10,b: 20,c: 3,d: 4}\n"
         ""));
 }
 

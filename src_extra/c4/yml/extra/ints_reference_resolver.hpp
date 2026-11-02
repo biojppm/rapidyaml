@@ -120,13 +120,12 @@ private:
     bool is_merge_elm_(evt_size pos) const;
     bool is_merge_elm_(evt_size pos, csubstr key) const;
     bool ignore_missing_merge_elm_entries_(evt_size pos) const;
-    void handle_merge_elm_(evt_size child, bool key_conflict);
-    void merge_map_single_(evt_size pos, bool key_conflict);
-    void merge_map_multiple_(evt_size pos, bool key_conflict);
-    void apply_merge_ref_(evt_size pos, bool key_conflict);
+    void handle_merge_elm_(evt_size child);
+    void merge_map_single_(evt_size pos);
+    void merge_map_multiple_(evt_size pos);
+    void apply_merge_ref_(evt_size pos);
     void add_to_known_keys_(evt_size beg, evt_size end, uint32_t status);
     void add_to_known_keys_(evt_size alia, uint32_t status);
-    bool has_key_conflict_(evt_size beg, evt_size end);
     void copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end);
     bool grow_evts_to_add_(evt_size extra);
 

@@ -73,9 +73,7 @@ id_type ReferenceResolver::branch_size_(id_type node)
 void ReferenceResolver::check_size_limit_(id_type node_to_dup)
 {
     if(!m_size_limit)
-{abort();
         return;
-}
     const id_type next_size = m_tree->size() + branch_size_(node_to_dup);
     _c4dbgpf("tree_size={} target={} branch_size={} next_size={} limit={} mult={}",
              m_tree->size(), node_to_dup, branch_size_(node_to_dup), next_size, m_size_limit, m_opts.max_size_multiplier());
@@ -113,10 +111,7 @@ id_type ReferenceResolver::insert_merge_node_(id_type dst_map, id_type ref_node,
 {
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_val_ref(ref_node), m_tree, ref_node);
     AnchorData const* anchor = lookup_anchor_(ref_node, visit_count, m_tree->val_ref(ref_node));
-    if(!anchor)
-{abort();
-        return NONE;
-}
+    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, anchor, m_tree, ref_node); // this must have been checked before
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(anchor->node), m_tree, anchor->node);
     check_size_limit_(anchor->node);
     id_type last_inserted = m_tree->duplicate_children(anchor->node, dst_map, after);
