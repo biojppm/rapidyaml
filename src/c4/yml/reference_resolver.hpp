@@ -76,7 +76,7 @@ public:
     void reset_(Tree *t_, ResolveOptions const& opts);
     id_type resolve_(id_type node, id_type count);
     id_type branch_size_(id_type node);
-    void grow_branch_size_();
+    void grow_branch_size_mem_();
     void check_size_limit_(id_type node);
 
     bool has_merge_elms_(id_type map) const;

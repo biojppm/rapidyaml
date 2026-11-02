@@ -895,17 +895,21 @@ notref: {}
     t["notcopy"]["<<"].set_val_ref("orig");
     t["notref"]["<<"].set_val("*orig");
     _c4dbg_tree(t);
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: &orig {foo: bar,baz: bat}
-copy: {<<: *orig}
-notcopy: {test: *orig,<<: *orig}
-notref: {<<: '*orig'}
-)");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: {foo: bar,baz: bat}
-copy: {foo: bar,baz: bat}
-notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}
-notref: {<<: '*orig'}
-)");
+    test_emit_yaml_tree_(
+        t,
+        "orig: &orig {foo: bar,baz: bat}\n"
+        "copy: {<<: *orig}\n"
+        "notcopy: {test: *orig,<<: *orig}\n"
+        "notref: {<<: '*orig'}\n"
+        "");
+    test_resolve_tree_(t);
+    test_emit_yaml_tree_(
+        t,
+        "orig: {foo: bar,baz: bat}\n"
+        "copy: {foo: bar,baz: bat}\n"
+        "notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}\n"
+        "notref: {<<: '*orig'}\n"
+        "");
 }
 
 TEST(anchors, programatic_multiple_inheritance)
