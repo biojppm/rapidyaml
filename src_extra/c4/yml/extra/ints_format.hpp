@@ -20,9 +20,32 @@ namespace yml {
 namespace extra {
 namespace ievt {
 
+
 C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 // NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
+
+namespace detail {
+template<class Writer>
+C4_NO_INLINE
+void format_zeros(Writer &writer, evt_bits const* evts, evt_size &evtpos, evt_size &evtnumber, substr buf)
+{
+    RYML_ASSERT_BASIC_(!(evts[evtpos] & ~ievt::PEX2));
+    evt_size count = 0;
+    while(true)
+    {
+        evt_bits evt = evts[evtpos + count];
+        if((evt & ~ievt::PEX2) || count == 20)
+            break;
+        ++count;
+        writer.append(ievt::to_str_sub(buf, evt));
+        writer.append(',');
+    }
+    writer.append('\n');
+    evtpos += count - 1;
+    evtnumber += count - 1;
+}
+} // namespace detail
 
 
 template<class Writer>
@@ -56,6 +79,11 @@ void format_ints(Writer &writer,
             writer.append(' ', (size_t)(2*level)); // NOLINT
             if(evt & ievt::BEG_)
                 ++level;
+        }
+        if(!(evt & ~ievt::PEX2))
+        {
+            detail::format_zeros(writer, evts, evtpos, evtnumber, buf);
+            continue;
         }
         writer.append(ievt::to_str_sub(buf, evt));
         writer.append('(');
@@ -136,23 +164,12 @@ void format_ints_as_c_data(Writer &writer,
             if(evt & ievt::BEG_)
                 ++level;
         }
-        writer.append(ievt::to_str_sub(buf, evt));
         if(!(evt & ~ievt::PEX2))
         {
-            evt_size count = 1;
-            while(true)
-            {
-                writer.append(',');
-                evt = evts[evtpos + count];
-                if((evt & ~ievt::PEX2) || count == 20)
-                    break;
-                ++count;
-                writer.append(ievt::to_str_sub(buf, evt));
-            }
-            writer.append('\n');
-            evtpos += count - 1;
+            detail::format_zeros(writer, evts, evtpos, evtnumber, buf);
             continue;
         }
+        writer.append(ievt::to_str_sub(buf, evt));
         if(evt & ievt::WSTR)
         {
             evt_size offs = evts[evtpos + 1];

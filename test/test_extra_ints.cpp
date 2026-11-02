@@ -71,7 +71,7 @@ TEST(flags, to_chars)
         ASSERT_LE(r.len, buf.len);                          \
         EXPECT_EQ(r, actual);                               \
     }
-    _(0, "NONE");
+    _(0, "0");
     _(KEY_, "KEY_");
     _(VAL_, "VAL_");
     _(KEY_|VAL_, "KEY_|VAL_");
@@ -114,6 +114,7 @@ static void test_format(ievt::TestBuffers const& ints,
     cmpstr(expected_unindented, actual_unindented);
     #undef cmpstr
 }
+
 
 TEST(ints_resolve, emit_empty)
 {
@@ -203,25 +204,19 @@ TEST(ints, format_with_rref)
                  "[1][1]   BDOC(0x44)\n"
                  "[2][2]     VAL_|BMAP|BLCK(0x26)\n"
                  "[3][3]       KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
-                 "[4][6]       PEX2(0x4000000)\n"
-                 "[5][7]       NONE(0x0)\n"
-                 "[6][8]       NONE(0x0)\n"
+                 "[4][6]       PEX2,0,0,\n"
                  "[7][9]       VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[8][10]         VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
                  "[9][13]         VAL_|SCLR|PLAI|PEX2(0x4008102): 11 [1]~~~x~~~\n"
                  "[10][16]       ESEQ|PEX2(0x4000018)\n"
                  "[11][17]       KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
-                 "[12][20]       PEX2(0x4000000)\n"
-                 "[13][21]       NONE(0x0)\n"
-                 "[14][22]       NONE(0x0)\n"
+                 "[12][20]       PEX2,0,0,\n"
                  "[15][23]       VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[16][24]         RREF(0x800000): 9:17\n"
                  "[17][27]         RREF|PEX2(0x4800000): 9:17\n"
                  "[18][30]       ESEQ|PEX2(0x4000018)\n"
                  "[19][31]       KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
-                 "[20][34]       PEX2(0x4000000)\n"
-                 "[21][35]       NONE(0x0)\n"
-                 "[22][36]       NONE(0x0)\n"
+                 "[20][34]       PEX2,0,0,\n"
                  "[23][37]       VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[24][38]         RREF(0x800000): 23:31\n"
                  "[25][41]         RREF|PEX2(0x4800000): 23:31\n"
@@ -236,25 +231,19 @@ TEST(ints, format_with_rref)
                  "[1][1] BDOC(0x44)\n"
                  "[2][2] VAL_|BMAP|BLCK(0x26)\n"
                  "[3][3] KEY_|SCLR|PLAI(0x8101): 0 [2]~~~l0~~~\n"
-                 "[4][6] PEX2(0x4000000)\n"
-                 "[5][7] NONE(0x0)\n"
-                 "[6][8] NONE(0x0)\n"
+                 "[4][6] PEX2,0,0,\n"
                  "[7][9] VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[8][10] VAL_|SCLR|PLAI(0x8102): 9 [1]~~~x~~~\n"
                  "[9][13] VAL_|SCLR|PLAI|PEX2(0x4008102): 11 [1]~~~x~~~\n"
                  "[10][16] ESEQ|PEX2(0x4000018)\n"
                  "[11][17] KEY_|SCLR|PLAI(0x8101): 14 [2]~~~l1~~~\n"
-                 "[12][20] PEX2(0x4000000)\n"
-                 "[13][21] NONE(0x0)\n"
-                 "[14][22] NONE(0x0)\n"
+                 "[12][20] PEX2,0,0,\n"
                  "[15][23] VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[16][24] RREF(0x800000): 9:17\n"
                  "[17][27] RREF|PEX2(0x4800000): 9:17\n"
                  "[18][30] ESEQ|PEX2(0x4000018)\n"
                  "[19][31] KEY_|SCLR|PLAI(0x8101): 32 [2]~~~l2~~~\n"
-                 "[20][34] PEX2(0x4000000)\n"
-                 "[21][35] NONE(0x0)\n"
-                 "[22][36] NONE(0x0)\n"
+                 "[20][34] PEX2,0,0,\n"
                  "[23][37] VAL_|BSEQ|FLOW|FSL_(0x8200016)\n"
                  "[24][38] RREF(0x800000): 23:31\n"
                  "[25][41] RREF|PEX2(0x4800000): 23:31\n"
