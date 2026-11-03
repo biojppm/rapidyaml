@@ -9,8 +9,9 @@ namespace c4 {
 namespace yml {
 
 
-/** Options to control reference resolving. See @ref ReferenceResolver
- * and @ref IntsReferenceResolver */
+/** Options to control anchor/reference resolving and map key
+ * merging. See @ref c4::yml::ReferenceResolver (for tree) and @ref
+ * c4::yml::extra::ievt::ReferenceResolver (for ints) */
 struct ResolveOptions
 {
 private:
@@ -24,7 +25,9 @@ private:
         PRIORITY_MERGEDIN = 1u << 5u,
         PRIORITY_ORIGINAL = 1u << 6u,
         KEEP_REPEATED_KEYS = 1u << 7u,
-        MERGE_ALWAYS = 1u << 8u,
+        MERGE_ALWAYS = 1u << 10u,
+        ERR_ON_REPEATED_KEYS_ORIGINAL = 1u << 8u|MERGE_ALWAYS,
+        ERR_ON_REPEATED_KEYS_MERGEDIN = 1u << 9u,
         DEFAULT_FLAGS = CLEAR_ANCHORS|PRIORITY_ORIGINAL,
     } Flags_e;
 
@@ -93,6 +96,25 @@ public:
 
     ResolveOptions& keep_repeated_keys(bool clear) noexcept { set_flag_(clear, KEEP_REPEATED_KEYS); return *this; }
     C4_ALWAYS_INLINE bool keep_repeated_keys() const noexcept { return (m_flags & KEEP_REPEATED_KEYS) != 0; }
+
+    /** @} */
+
+public:
+
+    /** @name extension: error on repeated keys
+     *
+     * Controls whether an error should be thrown when a map has
+     * repeated keys. Defaults to false (the non-standard behavior).
+     *
+     * @{
+     *
+     */
+
+    ResolveOptions& err_on_repeated_keys_original(bool clear) noexcept { set_flag_(clear, ERR_ON_REPEATED_KEYS_ORIGINAL); return *this; }
+    C4_ALWAYS_INLINE bool err_on_repeated_keys_original() const noexcept { return (m_flags & ERR_ON_REPEATED_KEYS_ORIGINAL) == ERR_ON_REPEATED_KEYS_ORIGINAL; }
+
+    ResolveOptions& err_on_repeated_keys_mergedin(bool clear) noexcept { set_flag_(clear, ERR_ON_REPEATED_KEYS_MERGEDIN); return *this; }
+    C4_ALWAYS_INLINE bool err_on_repeated_keys_mergedin() const noexcept { return (m_flags & ERR_ON_REPEATED_KEYS_MERGEDIN) != 0; }
 
     /** @} */
 

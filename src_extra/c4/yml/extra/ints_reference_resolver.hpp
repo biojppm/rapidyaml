@@ -61,12 +61,12 @@ private:
     evt_size newsz;
     evt_size sz_limit;
     ResolveOptions opts;
-    map<csubstr, AnchorData> anchor_map;
-    KnownKeys known_keys;
-    vec<evt_size, 32> parents;
-    vec<evt_size, 32> siblings;
+    map<csubstr, AnchorData> anchor_map; // anchor lookup helper
+    KnownKeys known_keys;       // key map, used to merge keys within a map
+    vec<evt_size, 32> parents;  // stack structure to to keep track of visiting parents
+    vec<evt_size, 32> siblings; // memoization of siblings
 
-private:
+private: // mapw: map-writing helpers to merge keys
 
     vec<evt_size, 32> mapw_scratch;
     evt_size mapw_firstslot;

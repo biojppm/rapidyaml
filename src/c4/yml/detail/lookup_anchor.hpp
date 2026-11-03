@@ -15,7 +15,8 @@ namespace detail {
 /** @cond dev */
 // lookup for an anchor in an anchor map. This is extracted to a
 // function because the logic is made tricky by all the relevant
-// ResolveOptions
+// ResolveOptions .
+// callers must deal with anchor not found / ignore_missing_anchors
 template<class AnchorMap>
 typename AnchorMap::mapped_type const*
 lookup_anchor(AnchorMap const& anchors, id_type visit_count, csubstr ref, ResolveOptions const& opts)
@@ -71,9 +72,8 @@ lookup_anchor(AnchorMap const& anchors, id_type visit_count, csubstr ref, Resolv
             RYML_ERR_BASIC_CB_(anchors.m_arr.m_callbacks, "multiple anchors: {}", ref);
         }
     }
-    if(opts.ignore_missing_anchors())
-        return nullptr;
-    RYML_ERR_BASIC_CB_(anchors.m_arr.m_callbacks, "anchor not found: {}", ref);
+    // callers must deal with anchor not found / ignore_missing_anchors
+    return nullptr;
 }
 /** @endcond */
 

@@ -62,16 +62,8 @@ public:
 
     void add(csubstr key, id_type id, status_bits status) noexcept;
 
-    bool adding_is_complete()
-    {
-        bool ret = requires_merge();
-        if(ret)
-        {
-            unique_keys.sort();
-            known_keys.sort();
-        }
-        return ret;
-    }
+    // return the first conflicting key triggering an error according to opts
+    Entry const* adding_is_complete();
 
 public:
 
@@ -92,13 +84,6 @@ public:
 
     Entry const* select(id_type unique_key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
     Entry const* select(csubstr key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
-
-    bool exists_with_conflict(csubstr key) const noexcept
-    {
-        Entry const* existing = known_keys.lookup(key);
-        return existing && (existing->status & CONFLICT);
-    }
-
 };
 
 } // namespace detail

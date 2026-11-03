@@ -398,6 +398,10 @@ inline void test_resolve_err(std::string const& yaml, ResolveOptions opts={})
     TreeAndInts ti(to_csubstr(yaml));
     SCOPED_CALL(test_resolve_err, (ti, opts));
 }
+inline void test_resolve_err(ResolveOptions opts, std::string const& yaml)
+{
+    test_resolve_err(yaml, opts);
+}
 inline void test_emit_resolve_err(std::string const& yaml, std::string const& json, ResolveOptions opts={})
 {
     TreeAndInts ti(to_csubstr(yaml));

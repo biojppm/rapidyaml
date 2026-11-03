@@ -435,10 +435,14 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
             }
         }
     }
+    // branches are organized to put happy path first
     bool req = known_keys.requires_merge();
-    if(req)
-        known_keys.adding_is_complete();
-    return req;
+    if(!req)
+        return false;
+    KnownKeys::Entry const* first_badkey = known_keys.adding_is_complete();
+    if C4_UNLIKELY (!first_badkey)
+        return true;
+    RYML_ERR_BASIC_("map at pos={} has repeated keys. first={}", pos, getstr(static_cast<evt_size>(first_badkey->id)));
 }
 
 void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end, uint32_t status)
@@ -660,15 +664,26 @@ auto ReferenceResolver::lookup_anchor_(evt_size pos) const
     -> AnchorData const*
 {
     RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ALIA);
-    csubstr ref = getstr(pos);
-    AnchorData const* r = yml::detail::lookup_anchor(anchor_map, static_cast<size_t>(pos), ref, opts);
-    if(!r)
+    AnchorData const* anchor = yml::detail::lookup_anchor(anchor_map, static_cast<id_type>(pos), getstr(pos), opts);
+    // reject cyclic references to prevent a blowout:
+    bool cyclic = anchor && is_cyclic_ref_(static_cast<evt_size>(anchor->visit_count));
+    // the branches are organized to keep happy cases first
+    if C4_LIKELY (anchor && !cyclic)
+    {
+        return anchor;
+    }
+    else if(( !anchor) && opts.ignore_missing_anchors())
+    {
         return nullptr;
-    evt_size apos = static_cast<evt_size>(r->visit_count);
-    RYML_ASSERT_BASIC_(getstr(apos) == ref);
-    if C4_LIKELY (!is_cyclic_ref_(apos))
-        return r;
-    RYML_ERR_BASIC_("cyclic reference: '{}' at ALIA[{}]: ANCH at {}", ref, apos, pos);
+    }
+    else if( !anchor)
+    {
+        RYML_ERR_BASIC_("missing anchor: '{}' at ALIA[{}]", getstr(pos), pos);
+    }
+    else
+    {
+        RYML_ERR_BASIC_("cyclic reference: '{}' at ALIA[{}]: ANCH at {}", getstr(pos), anchor->visit_count, pos);
+    }
 }
 
 evt_size ReferenceResolver::count_extra(evt_size beg, evt_size end) const noexcept

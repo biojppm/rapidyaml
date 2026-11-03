@@ -34,6 +34,88 @@ TEST(anchors, errs_on_missing_anchors)
                                "a: *b\n"));
 }
 
+static const ResolveOptions opts_ws = ResolveOptions{}.whole_scope(true);
+TEST(anchors, whole_scope_1_seq)
+{
+    SCOPED_CALL(test_resolve_err, ("[*a,&a b]"));
+    SCOPED_CALL(test_resolve, (opts_ws, "[*a,&a b]", "[b,b]"));
+}
+
+TEST(anchors, whole_scope_2_map_1)
+{
+    SCOPED_CALL(test_resolve_err, ("{*a : c,&a b: d}"));
+    SCOPED_CALL(test_resolve, (opts_ws, "{*a : c,&a b: d}", "{b: c,b: d}"));
+}
+
+TEST(anchors, whole_scope_2_map_2)
+{
+    {
+        TreeAndInts ti("{*a : &a b}");
+        // there is a difference in behavior between tree and ints due
+        // to how the visiting is counted:
+        //
+        // key and val have different visit id (the position in the array)
+        test_resolve_err_ints_(ti.ints);
+        // key and val have same visit id (the node id)
+        SCOPED_CALL(test_resolve_tree, (ti.tree));
+        SCOPED_CALL(test_emit_yaml_tree, (ti.tree, "{b: b}"));
+    }
+    SCOPED_CALL(test_resolve, (opts_ws, "{*a : &a b}", "{b: b}"));
+}
+
+
+//-----------------------------------------------------------------------------
+
+static const ResolveOptions opts_norep_merg = ResolveOptions{}.err_on_repeated_keys_mergedin(true);
+static const ResolveOptions opts_norep_orig = ResolveOptions{}.err_on_repeated_keys_original(true);
+static const ResolveOptions opts_norep_any = ResolveOptions{}.err_on_repeated_keys_mergedin(true)
+                                                             .err_on_repeated_keys_original(true);
+TEST(anchors, err_on_repeated_keys_0)
+{
+    test_resolve_("{a: 0,b: 1}");
+    test_resolve_(opts_norep_orig, "{a: 0,b: 1}");
+    test_resolve_(opts_norep_any,  "{a: 0,b: 1}");
+    test_resolve_(opts_norep_merg, "{a: 0,b: 1}");
+}
+TEST(anchors, err_on_repeated_keys_1)
+{
+    test_resolve_("{a: 0,a: 1}");
+    test_resolve_err_(opts_norep_orig, "{a: 0,a: 1}");
+    test_resolve_err_(opts_norep_any, "{a: 0,a: 1}");
+    test_resolve_(opts_norep_merg, "{a: 0,a: 1}");
+}
+TEST(anchors, err_on_repeated_keys_2)
+{
+    test_resolve_(                 "{_: &m {a: 1,b: 1},orig: {c: 2,<<: *m}}", "{_: {a: 1,b: 1},orig: {c: 2,a: 1,b: 1}}");
+    test_resolve_(opts_norep_orig, "{_: &m {a: 1,b: 1},orig: {c: 2,<<: *m}}", "{_: {a: 1,b: 1},orig: {c: 2,a: 1,b: 1}}");
+    test_resolve_(opts_norep_merg, "{_: &m {a: 1,b: 1},orig: {c: 2,<<: *m}}", "{_: {a: 1,b: 1},orig: {c: 2,a: 1,b: 1}}");
+    test_resolve_(opts_norep_any,  "{_: &m {a: 1,b: 1},orig: {c: 2,<<: *m}}", "{_: {a: 1,b: 1},orig: {c: 2,a: 1,b: 1}}");
+}
+TEST(anchors, err_on_repeated_keys_3)
+{
+    test_resolve_(                     "{_: &m {a: 1,b: 1},orig: {a: 2,<<: *m}}", "{_: {a: 1,b: 1},orig: {a: 2,b: 1}}");
+    test_resolve_(opts_norep_orig,     "{_: &m {a: 1,b: 1},orig: {a: 2,<<: *m}}", "{_: {a: 1,b: 1},orig: {a: 2,b: 1}}");
+    test_resolve_err_(opts_norep_merg, "{_: &m {a: 1,b: 1},orig: {a: 2,<<: *m}}");
+    test_resolve_err_(opts_norep_any,  "{_: &m {a: 1,b: 1},orig: {a: 2,<<: *m}}");
+}
+TEST(anchors, err_on_repeated_keys_4)
+{
+    test_resolve_(                     "{_: &m {a: 1,a: 2},orig: {a: 3,<<: *m}}", "{_: {a: 1,a: 2},orig: {a: 3}}");
+    test_resolve_err_(opts_norep_orig, "{_: &m {a: 1,a: 2},orig: {a: 3,<<: *m}}");
+    test_resolve_err_(opts_norep_merg, "{_: &m {a: 1,a: 2},orig: {a: 3,<<: *m}}");
+    test_resolve_err_(opts_norep_any,  "{_: &m {a: 1,a: 2},orig: {a: 3,<<: *m}}");
+}
+TEST(anchors, err_on_repeated_keys_5)
+{
+    test_resolve_(                     "{_: &m {a: 1},orig: {a: 2,a: 3,<<: *m}}", "{_: {a: 1},orig: {a: 2}}");
+    test_resolve_err_(opts_norep_orig, "{_: &m {a: 1},orig: {a: 2,a: 3,<<: *m}}");
+    test_resolve_err_(opts_norep_merg, "{_: &m {a: 1},orig: {a: 2,a: 3,<<: *m}}");
+    test_resolve_err_(opts_norep_any,  "{_: &m {a: 1},orig: {a: 2,a: 3,<<: *m}}");
+}
+
+
+//-----------------------------------------------------------------------------
+
 TEST(anchors, errs_on_inheritance_0_scalar)
 {
     SCOPED_CALL(test_resolve, ("<<: \n"));
@@ -249,6 +331,7 @@ TEST(anchors, errs_on_inheritance_5_err_on_ref_then_map)
 }
 
 
+//-----------------------------------------------------------------------------
 
 TEST(anchors, cyclic_roundtrips_ok)
 {
@@ -388,6 +471,7 @@ TEST(anchors, err_on_keyref_to_map)
 }
 
 
+//-----------------------------------------------------------------------------
 
 csubstr billion_laughs = R"(
 l0: &l0 [x,x]     # 3

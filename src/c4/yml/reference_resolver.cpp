@@ -160,9 +160,7 @@ bool ReferenceResolver::insert_without_merge_(id_type node, id_type visit_count)
             {
                 RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_seq(ch), m_tree, ch);
                 for(id_type gch = m_tree->first_child(ch); gch != NONE; gch = m_tree->next_sibling(gch))
-                {
                     after = insert_merge_node_(node, gch, after, visit_count);
-                }
             }
             // now remove the merge element
             // but watchout the loop continuation!
@@ -226,9 +224,12 @@ bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
         }
     }
     bool req = m_known_keys.requires_merge();
-    if(req)
-        m_known_keys.adding_is_complete();
-    return req;
+    if(!req)
+        return false;
+    detail::KnownKeys::Entry const* first_badkey = m_known_keys.adding_is_complete();
+    if C4_UNLIKELY (!first_badkey)
+        return true;
+    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, node, "repeated keys. first={}", m_tree->key(first_badkey->id));
 }
 
 bool ReferenceResolver::has_merge_elms_(id_type node) const
@@ -371,13 +372,26 @@ auto ReferenceResolver::lookup_anchor_(id_type ref_node, id_type visit_count, cs
     -> ReferenceResolver::AnchorData const*
 {
     AnchorData const* anchor = detail::lookup_anchor(m_anchors, visit_count, ref, m_opts);
-    if(!anchor)
-        return nullptr;
-    if C4_LIKELY (!m_tree->is_ancestor(ref_node, anchor->node))
-        return anchor;
     // reject cyclic references to prevent a blowout:
-    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, ref_node,
-                       "cyclic reference: reference to ancestor node={}", anchor->node);
+    bool ancestor = anchor && m_tree->is_ancestor(ref_node, anchor->node);
+    // the branches are organized to keep happy cases first
+    if C4_LIKELY (anchor && ( ! ancestor))
+    {
+        return anchor;
+    }
+    else if(( ! anchor) && m_opts.ignore_missing_anchors())
+    {
+        return nullptr;
+    }
+    else if( ! anchor)
+    {
+        RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, ref_node, "missing anchor: {}", ref);
+    }
+    else
+    {
+        RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, ref_node,
+                           "cyclic reference: anchor '{}' is on ancestor node={}", ref, anchor->node);
+    }
 }
 
 void ReferenceResolver::handle_val_ref_(id_type ref_node, AnchorData const& anchor)

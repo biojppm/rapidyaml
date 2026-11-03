@@ -36,29 +36,29 @@ bool check_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
 #endif // RYML_USE_ASSERT
 
 KnownKeys::Entry const* select_prio_(
-    KnownKeys::Entry const* which_orig,
-    KnownKeys::Entry const* which_rest,
+    KnownKeys::Entry const* orig,
+    KnownKeys::Entry const* rest,
     ResolveOptions opts) RYML_NOEXCEPT
 {
-    RYML_ASSERT_BASIC_(which_orig || which_rest);
+    RYML_ASSERT_BASIC_(orig || rest);
     bool prio_orig = opts.priority_original();
     bool prio_rest = opts.priority_mergedin();
     if(prio_orig != prio_rest)
     {
         if(prio_orig)
-            return which_orig ? which_orig : which_rest;
+            return orig ? orig : rest;
         else
-            return which_rest ? which_rest : which_orig;
+            return rest ? rest : orig;
     }
-    else if(which_rest && which_orig) // 2 candidates, same prio
+    else if(rest && orig) // 2 candidates, same prio
     {
-        RYML_ASSERT_BASIC_(which_orig->count != which_rest->count);
+        RYML_ASSERT_BASIC_(orig->count != rest->count);
         if(opts.pick_last())
-            return which_orig->count > which_rest->count ? which_orig : which_rest;
+            return orig->count > rest->count ? orig : rest;
         else
-            return which_orig->count < which_rest->count ? which_orig : which_rest;
+            return orig->count < rest->count ? orig : rest;
     }
-    return which_orig ? which_orig : which_rest;
+    return orig ? orig : rest;
 }
 
 KnownKeys::Entry const* select_earliest_(KnownKeys::KnownKeyRange_ r, ResolveOptions opts) RYML_NOEXCEPT
@@ -178,6 +178,35 @@ auto KnownKeys::select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXC
     return select(key, rng);
 }
 
+auto KnownKeys::adding_is_complete()
+    -> Entry const*
+{
+    if(!requires_merge())
+        return nullptr;
+    unique_keys.sort();
+    known_keys.sort();
+    Entry const* first_key_causing_err = nullptr;
+    for(auto const& uk : unique_keys.m_arr)
+    {
+        count_type noriginal = 0;
+        count_type nmergedin = 0;
+        for(auto const& kk : known_keys.equal_range(uk.val))
+        {
+            if(kk.val.status & CONFLICT)
+            {
+                noriginal += !!(kk.val.status & ORIGINAL);
+                nmergedin += !!(kk.val.status & MERGEDIN);
+                if(((noriginal > 1) && opts.err_on_repeated_keys_original()) ||
+                   ((nmergedin > 1 || (nmergedin && noriginal)) && opts.err_on_repeated_keys_mergedin()))
+                {
+                    first_key_causing_err = &kk.val;
+                    break;
+                }
+            }
+        }
+    }
+    return first_key_causing_err;
+}
 
 } // namespace detail
 } // namespace yml
