@@ -12,11 +12,13 @@
 #include <c4/yml/event_handler_tree.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #include <c4/yml/writer_buf.hpp>
+#include <c4/yml/resolve_options.hpp>
 #endif
 #include <testsuite/testsuite_events.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
+#include <c4/yml/extra/ints_reference_resolver.hpp>
 #include <cstdio>
 
 #ifdef C4_EXCEPTIONS

@@ -46,6 +46,7 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
     using I = typename HandlerInts<resize_buffers>::value_type;
     HandlerInts<resize_buffers> handler{};
     ParserInts<resize_buffers> parser(&handler);
+    extra::ievt::ReferenceResolver resolver;
     std::string str(src.begin(), src.end());
     std::string emitted;
     _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
@@ -58,6 +59,8 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
             ASSERT_FUZZ(handler.fits_buffers());
             extra::ievt::Buffers ints{};
             handler.get_buffers(&ints, /*transfer_ownership*/true);
+            emit_ints(is_yaml, ints, &emitted);
+            resolver.resolve_resize(&ints);
             emit_ints(is_yaml, ints, &emitted);
             destroy_ints(&ints);
         }
@@ -91,6 +94,8 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
             extra::ievt::Buffers ints{};
             handler.get_buffers(&ints, /*transfer_ownership*/false);
             emit_ints(is_yaml, ints, &emitted);
+            //resolver.resolve_noresize(&ints);
+            //emit_ints(is_yaml, ints, &emitted);
         }
         C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
         {
