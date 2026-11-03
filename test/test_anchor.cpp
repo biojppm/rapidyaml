@@ -74,7 +74,50 @@ TEST(anchors, errs_on_inheritance_3_ok)
         "  e: f\n"
         ""));
 }
-TEST(anchors, errs_on_inheritance_3_ignore_missing)
+TEST(anchors, errs_on_inheritance_3_ignore_missing_0)
+{
+    SCOPED_CALL(test_resolve, (ResolveOptions{}.ignore_missing_anchors(true),
+        "scalar: &scalar a\n"
+        "seq: &seq [b]\n"
+        "map1: &map1\n"
+        "  c: d\n"
+        "map2: &map2\n"
+        "  e: f\n"
+        "inherit:\n"
+        "  <<: [*map1,*map2]\n"
+        ""
+        ,
+        ""
+        "scalar: a\n"
+        "seq: [b]\n"
+        "map1:\n"
+        "  c: d\n"
+        "map2:\n"
+        "  e: f\n"
+        "inherit:\n"
+        "  c: d\n"
+        "  e: f\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_3_ignore_missing_1)
+{
+    SCOPED_CALL(test_resolve, (ResolveOptions{}.ignore_missing_anchors(true),
+        "scalar: a\n"
+        "seq: [b]\n"
+        "map1:\n  c: d\n"
+        "map2:\n  e: f\n"
+        "inherit:\n  <<: *map1\n"
+        ""
+        ,
+        ""
+        "scalar: a\n"
+        "seq: [b]\n"
+        "map1:\n  c: d\n"
+        "map2:\n  e: f\n"
+        "inherit:\n  <<: *map1\n"
+        ""));
+}
+TEST(anchors, errs_on_inheritance_3_ignore_missing_2)
 {
     SCOPED_CALL(test_resolve, (ResolveOptions{}.ignore_missing_anchors(true),
         "scalar: a\n"
@@ -757,6 +800,51 @@ TEST(anchors, merge1_conflict_in_one_only)
         ,
         "- {a: 1,c: 3}\n- {d: 4}\n"
         "- {a: 10,b: 20,c: 3,d: 4}\n"
+        ""));
+}
+
+TEST(anchors, exit_early1)
+{
+    SCOPED_CALL(test_resolve, (ResolveOptions{}.keep_repeated_keys(true),
+        "no: anchors\n"
+        "no: refs\n"
+        ,
+        "no: anchors\n"
+        "no: refs\n"
+        ""));
+}
+
+TEST(anchors, exit_early2)
+{
+    SCOPED_CALL(test_resolve, (ResolveOptions{}.merge_always(true),
+        "no: anchors\n"
+        "no: refs\n"
+        ,
+        "no: anchors\n"
+        ""));
+}
+
+TEST(anchors, alia_at_doc_level)
+{
+    SCOPED_CALL(test_resolve, (
+        "--- &a a\n"
+        "--- *a\n"
+        ,
+        "--- a\n"
+        "--- a\n"
+        ""));
+}
+
+TEST(anchors, alia_with_keep_repeated)
+{
+    SCOPED_CALL(test_resolve, (ResolveOptions{}.keep_repeated_keys(true),
+        "key: &val val\n"
+        "key: *val\n"
+        "*val : key\n"
+        ,
+        "key: val\n"
+        "key: val\n"
+        "val: key\n"
         ""));
 }
 

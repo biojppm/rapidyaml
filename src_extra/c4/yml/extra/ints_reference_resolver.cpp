@@ -79,24 +79,26 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
     if(!evts_->evts.len)
         return;
     reset_(*evts_, can_resize, opts_);
-    evt_size startlen = evts.len;
-    // gather all the anchors
-    bool has_refs = false;
-    anchor_map.clear();
-    for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
     {
-        if(evts.ptr[pos] & ievt::ANCH)
-            add_anchor_(pos);
-        else if(evts.ptr[pos] & ievt::ALIA)
-            has_refs = true;
+        // gather all the anchors
+        bool has_refs = false;
+        anchor_map.clear();
+        for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+        {
+            if(evts.ptr[pos] & ievt::ANCH)
+                add_anchor_(pos);
+            else if(evts.ptr[pos] & ievt::ALIA)
+                has_refs = true;
+        }
+        // exit early if there's nothing to do
+        if(!has_refs &&
+           opts.keep_repeated_keys() &&
+           !opts.merge_always() &&
+           (!opts.clear_anchors() || anchor_map.m_arr.empty()))
+            return;
     }
-    // exit early if there's nothing to do
-    if(!has_refs &&
-       opts.keep_repeated_keys() &&
-       !opts.merge_always() &&
-       (!opts.clear_anchors() || anchor_map.m_arr.empty()))
-        return;
     anchor_map.sort();
+    evt_size startlen = evts.len;
     // now go to all refs, and resolve them
     for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
     {
@@ -298,7 +300,7 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
         {
             if(is_merge_elm_(pos))
             {
-                if(ignore_missing_merge_elm_entries_(pos))
+                if(is_any_merge_elm_alia_missing_(pos))
                 {
                     ;
                 }
@@ -334,7 +336,7 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool k
         {
             if(is_merge_elm_(pos))
             {
-                if(ignore_missing_merge_elm_entries_(pos))
+                if(is_any_merge_elm_alia_missing_(pos))
                 {
                     ;
                 }
@@ -406,7 +408,7 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
         {
             known_keys.add(key, static_cast<id_type>(ch), KnownKeys::ORIGINAL);
         }
-        else if(ignore_missing_merge_elm_entries_(ch))
+        else if(is_any_merge_elm_alia_missing_(ch))
         {
             ;
         }
@@ -462,6 +464,7 @@ void ReferenceResolver::add_to_known_keys_(evt_size alia, uint32_t status)
 C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
+    RYML_ASSERT_BASIC_(!opts.keep_repeated_keys());
     // prepare to overwrite the map:
     mapw_reset_(parent);
     // this is the range of new members added at the end (past the
@@ -489,13 +492,6 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
                 else
                 {
                     mapw_cpkeyval_mergedin_(id, is_last);
-                }
-            }
-            else if(opts.keep_repeated_keys())
-            {
-                if(kv.val.status & KnownKeys::ORIGINAL)
-                {
-                    mapw_cpkeyval_original_(id, is_last);
                 }
             }
         }
@@ -817,7 +813,7 @@ bool ReferenceResolver::is_merge_elm_(evt_size pos, csubstr key) const
     }
     return false;
 }
-bool ReferenceResolver::ignore_missing_merge_elm_entries_(evt_size pos) const
+bool ReferenceResolver::is_any_merge_elm_alia_missing_(evt_size pos) const
 {
     RYML_ASSERT_BASIC_(is_merge_elm_(pos));
     if(!opts.ignore_missing_anchors())
@@ -831,17 +827,12 @@ bool ReferenceResolver::ignore_missing_merge_elm_entries_(evt_size pos) const
     else if(detail::hasall(evts.ptr[pos], ievt::VAL_|ievt::BSEQ))
     {
         ++pos;
-        while(true)
+        while(!detail::hasall(evts.ptr[pos], ievt::ESEQ))
         {
             if(evts.ptr[pos] & ievt::ALIA)
-            {
                 if( ! lookup_anchor_(pos))
                     return true;
-            }
-            else if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
-            {
-                break;
-            }
+            pos = nextpos(evts.ptr, pos);
         }
     }
     return false;
@@ -896,26 +887,19 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos)
 void ReferenceResolver::apply_merge_ref_(evt_size pos)
 {
     AnchorData const* anch = lookup_anchor_(pos);
-    if(!anch)
-        return;
+    RYML_ASSERT_BASIC_(anch); // we require this has been checked before
     Range_ rng = anch->rng;
-    if C4_LIKELY (detail::hasall(evts.ptr[rng.beg], ievt::BMAP))
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.beg], ievt::BMAP)); // ditto
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.end - 1], ievt::EMAP));
+    ++rng.beg; // skip BMAP
+    --rng.end; // skip EMAP
+    if(rng.beg == rng.end) // src map is empty?
     {
-        RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[rng.end - 1], ievt::EMAP));
-        ++rng.beg; // skip BMAP
-        --rng.end; // skip EMAP
-        if(rng.beg == rng.end) // src map is empty?
-        {
-            set_noref_(pos);
-        }
-        else
-        {
-            set_rref_(pos, rng.beg, rng.end);
-        }
+        set_noref_(pos);
     }
     else
     {
-        RYML_ERR_BASIC_("invalid merge reference at pos={}", pos);
+        set_rref_(pos, rng.beg, rng.end);
     }
 }
 
