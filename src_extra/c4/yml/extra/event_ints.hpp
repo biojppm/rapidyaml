@@ -427,7 +427,6 @@ RYML_EXPORT evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, 
 RYML_EXPORT evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos);
 RYML_EXPORT evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
 RYML_EXPORT evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
-RYML_EXPORT evt_size find_prev_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
 RYML_EXPORT evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
 RYML_EXPORT evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;

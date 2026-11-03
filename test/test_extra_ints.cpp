@@ -79,28 +79,34 @@ TEST(flags, to_chars)
 }
 
 
-static std::string to_str(ievt::TestBuffers const& ints, bool indent)
+static std::string to_str(ievt::TestBuffers const& ints, bool indent, bool as_c_data)
 {
     std::string result;
+    auto doit = [&](WriterBuf &writer){
+        if(as_c_data)
+            ievt::format_ints_as_c_data(writer, ints.src, ints.arena, ints.evts.ptr, ints.evts.len, indent);
+        else
+            ievt::format_ints(writer, ints.src, ints.arena, ints.evts.ptr, ints.evts.len, indent);
+    };
     {
         WriterBuf writer(to_substr(result));
-        ievt::format_ints(writer, ints.src, ints.arena, ints.evts.ptr, ints.evts.len, indent);
+        doit(writer);
         RYML_ASSERT_BASIC_(writer.m_pos >= result.size());
         result.resize(writer.m_pos);
     }
     {
         WriterBuf writer(to_substr(result));
-        ievt::format_ints(writer, ints.src, ints.arena, ints.evts.ptr, ints.evts.len, indent);
+        doit(writer);
         RYML_ASSERT_BASIC_(writer.m_pos <= result.size());
     }
     return result;
 }
 static void test_format(ievt::TestBuffers const& ints,
                         std::string const& expected_indented,
-                        std::string const& expected_unindented)
+                        std::string const& expected_unindented,
+                        std::string const& expected_cdata_indented,
+                        std::string const& expected_cdata_unindented)
 {
-    std::string actual_indented = to_str(ints, true);
-    std::string actual_unindented = to_str(ints, false);
     #define cmpstr(exp, actual)                                     \
         if((exp) != (actual))                                       \
                      {                                              \
@@ -110,8 +116,18 @@ static void test_format(ievt::TestBuffers const& ints,
             printf("------------------------\n%s:%d: %s:\n%s\n",    \
                    __FILE__, __LINE__, #actual, (actual).c_str());  \
         }
-    cmpstr(expected_indented, actual_indented);
-    cmpstr(expected_unindented, actual_unindented);
+    {
+        std::string actual_indented = to_str(ints, true, false);
+        std::string actual_unindented = to_str(ints, false, false);
+        cmpstr(expected_indented, actual_indented);
+        cmpstr(expected_unindented, actual_unindented);
+    }
+    {
+        std::string actual_cdata_indented = to_str(ints, true, true);
+        std::string actual_cdata_unindented = to_str(ints, false, true);
+        cmpstr(expected_cdata_indented, actual_cdata_indented);
+        cmpstr(expected_cdata_unindented, actual_cdata_unindented);
+    }
     #undef cmpstr
 }
 
@@ -129,7 +145,7 @@ TEST(ints, format_empty)
     ievt::TestBuffers ints;
     ASSERT_EQ(ints.evts.ptr, nullptr);
     ASSERT_EQ(ints.evts.len, 0);
-    SCOPED_CALL(test_format, (ints, "", ""));
+    SCOPED_CALL(test_format, (ints, "", "", "", ""));
 }
 TEST(ints, format_with_rref)
 {
@@ -195,6 +211,58 @@ TEST(ints, format_with_rref)
                  "[22][46] EDOC(0x48)\n"
                  "[23][47] ESTR(0x88)\n"
                  "src.len=50 arena.len(unused)=0\n"
+                 "",
+                 ""
+                 "/*[0][0]*/ BSTR,\n"
+                 "/*[1][1]*/   BDOC,\n"
+                 "/*[2][2]*/     VAL_|BMAP|BLCK,\n"
+                 "/*[3][3]*/       KEY_|SCLR|PLAI, 0,2,/*l0*/\n"
+                 "/*[4][6]*/       VAL_|ANCH|PEX2, 5,2,/*l0*/\n"
+                 "/*[5][9]*/       VAL_|BSEQ|FLOW|FSL_|PEX2,\n"
+                 "/*[6][10]*/         VAL_|SCLR|PLAI, 9,1,/*x*/\n"
+                 "/*[7][13]*/         VAL_|SCLR|PLAI|PEX2, 11,1,/*x*/\n"
+                 "/*[8][16]*/       ESEQ|PEX2,\n"
+                 "/*[9][17]*/       KEY_|SCLR|PLAI, 14,2,/*l1*/\n"
+                 "/*[10][20]*/       VAL_|ANCH|PEX2, 19,2,/*l1*/\n"
+                 "/*[11][23]*/       VAL_|BSEQ|FLOW|FSL_|PEX2,\n"
+                 "/*[12][24]*/         VAL_|ALIA, 24,2,/*l0*/\n"
+                 "/*[13][27]*/         VAL_|ALIA|PEX2, 28,2,/*l0*/\n"
+                 "/*[14][30]*/       ESEQ|PEX2,\n"
+                 "/*[15][31]*/       KEY_|SCLR|PLAI, 32,2,/*l2*/\n"
+                 "/*[16][34]*/       VAL_|ANCH|PEX2, 37,2,/*l2*/\n"
+                 "/*[17][37]*/       VAL_|BSEQ|FLOW|FSL_|PEX2,\n"
+                 "/*[18][38]*/         VAL_|ALIA, 42,2,/*l1*/\n"
+                 "/*[19][41]*/         VAL_|ALIA|PEX2, 46,2,/*l1*/\n"
+                 "/*[20][44]*/       ESEQ|PEX2,\n"
+                 "/*[21][45]*/     EMAP,\n"
+                 "/*[22][46]*/   EDOC,\n"
+                 "/*[23][47]*/ ESTR,\n"
+                 "",
+                 ""
+                 "/*[0][0]*/ BSTR,\n"
+                 "/*[1][1]*/ BDOC,\n"
+                 "/*[2][2]*/ VAL_|BMAP|BLCK,\n"
+                 "/*[3][3]*/ KEY_|SCLR|PLAI, 0,2,/*l0*/\n"
+                 "/*[4][6]*/ VAL_|ANCH|PEX2, 5,2,/*l0*/\n"
+                 "/*[5][9]*/ VAL_|BSEQ|FLOW|FSL_|PEX2,\n"
+                 "/*[6][10]*/ VAL_|SCLR|PLAI, 9,1,/*x*/\n"
+                 "/*[7][13]*/ VAL_|SCLR|PLAI|PEX2, 11,1,/*x*/\n"
+                 "/*[8][16]*/ ESEQ|PEX2,\n"
+                 "/*[9][17]*/ KEY_|SCLR|PLAI, 14,2,/*l1*/\n"
+                 "/*[10][20]*/ VAL_|ANCH|PEX2, 19,2,/*l1*/\n"
+                 "/*[11][23]*/ VAL_|BSEQ|FLOW|FSL_|PEX2,\n"
+                 "/*[12][24]*/ VAL_|ALIA, 24,2,/*l0*/\n"
+                 "/*[13][27]*/ VAL_|ALIA|PEX2, 28,2,/*l0*/\n"
+                 "/*[14][30]*/ ESEQ|PEX2,\n"
+                 "/*[15][31]*/ KEY_|SCLR|PLAI, 32,2,/*l2*/\n"
+                 "/*[16][34]*/ VAL_|ANCH|PEX2, 37,2,/*l2*/\n"
+                 "/*[17][37]*/ VAL_|BSEQ|FLOW|FSL_|PEX2,\n"
+                 "/*[18][38]*/ VAL_|ALIA, 42,2,/*l1*/\n"
+                 "/*[19][41]*/ VAL_|ALIA|PEX2, 46,2,/*l1*/\n"
+                 "/*[20][44]*/ ESEQ|PEX2,\n"
+                 "/*[21][45]*/ EMAP,\n"
+                 "/*[22][46]*/ EDOC,\n"
+                 "/*[23][47]*/ ESTR,\n"
                  ""));
     ints.resolve();
     SCOPED_CALL(test_format,
@@ -252,6 +320,58 @@ TEST(ints, format_with_rref)
                  "[28][46] EDOC(0x48)\n"
                  "[29][47] ESTR(0x88)\n"
                  "src.len=50 arena.len(unused)=0\n"
+                 "",
+                 ""
+                 "/*[0][0]*/ BSTR,\n"
+                 "/*[1][1]*/   BDOC,\n"
+                 "/*[2][2]*/     VAL_|BMAP|BLCK,\n"
+                 "/*[3][3]*/       KEY_|SCLR|PLAI, 0,2,/*l0*/\n"
+                 "/*[4][6]*/       PEX2,0,0,\n"
+                 "/*[7][9]*/       VAL_|BSEQ|FLOW|FSL_,\n"
+                 "/*[8][10]*/         VAL_|SCLR|PLAI, 9,1,/*x*/\n"
+                 "/*[9][13]*/         VAL_|SCLR|PLAI|PEX2, 11,1,/*x*/\n"
+                 "/*[10][16]*/       ESEQ|PEX2,\n"
+                 "/*[11][17]*/       KEY_|SCLR|PLAI, 14,2,/*l1*/\n"
+                 "/*[12][20]*/       PEX2,0,0,\n"
+                 "/*[15][23]*/       VAL_|BSEQ|FLOW|FSL_,\n"
+                 "/*[16][24]*/         RREF,9,17,\n"
+                 "/*[17][27]*/         RREF|PEX2,9,17,\n"
+                 "/*[18][30]*/       ESEQ|PEX2,\n"
+                 "/*[19][31]*/       KEY_|SCLR|PLAI, 32,2,/*l2*/\n"
+                 "/*[20][34]*/       PEX2,0,0,\n"
+                 "/*[23][37]*/       VAL_|BSEQ|FLOW|FSL_,\n"
+                 "/*[24][38]*/         RREF,23,31,\n"
+                 "/*[25][41]*/         RREF|PEX2,23,31,\n"
+                 "/*[26][44]*/       ESEQ|PEX2,\n"
+                 "/*[27][45]*/     EMAP,\n"
+                 "/*[28][46]*/   EDOC,\n"
+                 "/*[29][47]*/ ESTR,\n"
+                 "",
+                 ""
+                 "/*[0][0]*/ BSTR,\n"
+                 "/*[1][1]*/ BDOC,\n"
+                 "/*[2][2]*/ VAL_|BMAP|BLCK,\n"
+                 "/*[3][3]*/ KEY_|SCLR|PLAI, 0,2,/*l0*/\n"
+                 "/*[4][6]*/ PEX2,0,0,\n"
+                 "/*[7][9]*/ VAL_|BSEQ|FLOW|FSL_,\n"
+                 "/*[8][10]*/ VAL_|SCLR|PLAI, 9,1,/*x*/\n"
+                 "/*[9][13]*/ VAL_|SCLR|PLAI|PEX2, 11,1,/*x*/\n"
+                 "/*[10][16]*/ ESEQ|PEX2,\n"
+                 "/*[11][17]*/ KEY_|SCLR|PLAI, 14,2,/*l1*/\n"
+                 "/*[12][20]*/ PEX2,0,0,\n"
+                 "/*[15][23]*/ VAL_|BSEQ|FLOW|FSL_,\n"
+                 "/*[16][24]*/ RREF,9,17,\n"
+                 "/*[17][27]*/ RREF|PEX2,9,17,\n"
+                 "/*[18][30]*/ ESEQ|PEX2,\n"
+                 "/*[19][31]*/ KEY_|SCLR|PLAI, 32,2,/*l2*/\n"
+                 "/*[20][34]*/ PEX2,0,0,\n"
+                 "/*[23][37]*/ VAL_|BSEQ|FLOW|FSL_,\n"
+                 "/*[24][38]*/ RREF,23,31,\n"
+                 "/*[25][41]*/ RREF|PEX2,23,31,\n"
+                 "/*[26][44]*/ ESEQ|PEX2,\n"
+                 "/*[27][45]*/ EMAP,\n"
+                 "/*[28][46]*/ EDOC,\n"
+                 "/*[29][47]*/ ESTR,\n"
                  ""));
 }
 
@@ -303,6 +423,38 @@ TEST(ints, format_with_arena_usage)
                  "[12][28] EDOC|PEX2(0x4000048)\n"
                  "[13][29] ESTR(0x88)\n"
                  "src.len=103 arena.len=256\n"
+                 "",
+                 ""
+                 "/*[0][0]*/ BSTR,\n"
+                 "/*[1][1]*/   TAGH, 5,3,/*!m!*/\n"
+                 "/*[2][4]*/   TAGP|PEX2, 9,4,/*!my-*/\n"
+                 "/*[3][7]*/   BDOC|EXPL|PEX2,\n"
+                 "/*[4][8]*/     VAL_|TAG_|AREN, 0,11,/*<!my-light>*/\n"
+                 "/*[5][11]*/     VAL_|SCLR|PLAI|PEX2, 39,11,/*fluorescent*/\n"
+                 "/*[6][14]*/   EDOC|EXPL|PEX2,\n"
+                 "/*[7][15]*/   TAGH, 60,3,/*!m!*/\n"
+                 "/*[8][18]*/   TAGP|PEX2, 64,6,/*!meta-*/\n"
+                 "/*[9][21]*/   BDOC|EXPL|PEX2,\n"
+                 "/*[10][22]*/     VAL_|TAG_|AREN, 11,13,/*<!meta-light>*/\n"
+                 "/*[11][25]*/     VAL_|SCLR|PLAI|PEX2, 97,5,/*green*/\n"
+                 "/*[12][28]*/   EDOC|PEX2,\n"
+                 "/*[13][29]*/ ESTR,\n"
+                 "",
+                 ""
+                 "/*[0][0]*/ BSTR,\n"
+                 "/*[1][1]*/ TAGH, 5,3,/*!m!*/\n"
+                 "/*[2][4]*/ TAGP|PEX2, 9,4,/*!my-*/\n"
+                 "/*[3][7]*/ BDOC|EXPL|PEX2,\n"
+                 "/*[4][8]*/ VAL_|TAG_|AREN, 0,11,/*<!my-light>*/\n"
+                 "/*[5][11]*/ VAL_|SCLR|PLAI|PEX2, 39,11,/*fluorescent*/\n"
+                 "/*[6][14]*/ EDOC|EXPL|PEX2,\n"
+                 "/*[7][15]*/ TAGH, 60,3,/*!m!*/\n"
+                 "/*[8][18]*/ TAGP|PEX2, 64,6,/*!meta-*/\n"
+                 "/*[9][21]*/ BDOC|EXPL|PEX2,\n"
+                 "/*[10][22]*/ VAL_|TAG_|AREN, 11,13,/*<!meta-light>*/\n"
+                 "/*[11][25]*/ VAL_|SCLR|PLAI|PEX2, 97,5,/*green*/\n"
+                 "/*[12][28]*/ EDOC|PEX2,\n"
+                 "/*[13][29]*/ ESTR,\n"
                  ""));
 }
 
