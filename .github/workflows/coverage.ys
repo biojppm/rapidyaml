@@ -25,7 +25,7 @@ jobs:
       GCC_VERSION: 13 # the default compiler
       LCOV_ARGS: -v --ignore-errors mismatch,mismatch --ignore-errors unused,unused
       BUILD_ID: cpp${{matrix.std}}_${{matrix.namesfx}}
-      CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+    permissions: {id-token: write} # needed for codecov with OIDC
     steps:
     - :: checkout-action
     - name: install compiler
@@ -83,9 +83,19 @@ jobs:
         path: |
           build/${{env.BUILD_ID}}/lcov-tmp
           build/${{env.BUILD_ID}}/lcov-tmp/result.lcov
+    #-------------------------------------------------------
+    #- name: upload codecov
+    #  run: |
+    #    cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
     - name: upload codecov
-      run: |
-        cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
+      uses: codecov/codecov-action@v7
+      with:
+        files: build/${{env.BUILD_ID}}/lcov-tmp/result.lcov
+        disable_search: true # send only the files we specify
+        fail_ci_if_error: true # optional (default = false)
+        use_oidc: true # token is not available for forks!
+        verbose: true # optional (default = false)
+    #-------------------------------------------------------
     ## https://docs.coveralls.io/parallel-builds
     #- name: upload coveralls
     #  uses: coverallsapp/github-action@v2
