@@ -37,13 +37,13 @@ TEST(anchors, errs_on_missing_anchors)
 static const ResolveOptions opts_ws = ResolveOptions{}.whole_scope(true);
 TEST(anchors, whole_scope_1_seq)
 {
-    SCOPED_CALL(test_resolve_err, ("[*a,&a b]"));
+    SCOPED_CALL(test_resolve_err, (     "[*a,&a b]"));
     SCOPED_CALL(test_resolve, (opts_ws, "[*a,&a b]", "[b,b]"));
 }
 
 TEST(anchors, whole_scope_2_map_1)
 {
-    SCOPED_CALL(test_resolve_err, ("{*a : c,&a b: d}"));
+    SCOPED_CALL(test_resolve_err, (     "{*a : c,&a b: d}"));
     SCOPED_CALL(test_resolve, (opts_ws, "{*a : c,&a b: d}", "{b: c,b: d}"));
 }
 
@@ -111,6 +111,18 @@ TEST(anchors, err_on_repeated_keys_5)
     test_resolve_err_(opts_norep_orig, "{_: &m {a: 1},orig: {a: 2,a: 3,<<: *m}}");
     test_resolve_err_(opts_norep_merg, "{_: &m {a: 1},orig: {a: 2,a: 3,<<: *m}}");
     test_resolve_err_(opts_norep_any,  "{_: &m {a: 1},orig: {a: 2,a: 3,<<: *m}}");
+}
+
+
+//-----------------------------------------------------------------------------
+
+static const ResolveOptions opts_multianch = ResolveOptions{}.accept_multiple_anchors(true);
+static const ResolveOptions opts_multianch_ws = ResolveOptions{}.accept_multiple_anchors(true).whole_scope(true);
+TEST(anchors, err_on_repeated_anchors)
+{
+    test_resolve_err_(               "[&a 0,*a,&a 1,*a,&a 2,*a,*a,*a,&a 3]");
+    test_resolve_(opts_multianch,    "[&a 0,*a,&a 1,*a,&a 2,*a,*a,*a,&a 3]", "[0,0,1,1,2,2,2,2,3]");
+    test_resolve_(opts_multianch_ws, "[&a 0,*a,&a 1,*a,&a 2,*a,*a,*a,&a 3,*b,&b 4,&b 5]", "[0,0,1,1,2,2,2,2,3,4,4,5]");
 }
 
 

@@ -9,8 +9,8 @@ namespace c4 {
 namespace yml {
 
 
-/** Options to control anchor/reference resolving and map key
- * merging. See @ref c4::yml::ReferenceResolver (for tree) and @ref
+/** Options to control map key merging and anchor/reference
+ * resolving. See @ref c4::yml::ReferenceResolver (for tree) and @ref
  * c4::yml::extra::ievt::ReferenceResolver (for ints) */
 struct ResolveOptions
 {
@@ -25,9 +25,9 @@ private:
         PRIORITY_MERGEDIN = 1u << 5u,
         PRIORITY_ORIGINAL = 1u << 6u,
         KEEP_REPEATED_KEYS = 1u << 7u,
-        MERGE_ALWAYS = 1u << 10u,
-        ERR_ON_REPEATED_KEYS_ORIGINAL = 1u << 8u|MERGE_ALWAYS,
-        ERR_ON_REPEATED_KEYS_MERGEDIN = 1u << 9u,
+        MERGE_ALWAYS = 1u << 8u,
+        ERR_ON_REPEATED_KEYS_ORIGINAL = 1u << 9u|MERGE_ALWAYS,
+        ERR_ON_REPEATED_KEYS_MERGEDIN = 1u << 10u,
         DEFAULT_FLAGS = CLEAR_ANCHORS|PRIORITY_ORIGINAL,
     } Flags_e;
 
