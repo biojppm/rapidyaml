@@ -219,16 +219,7 @@ public:
     void resolve(ResolveOptions const& opts={})
     {
         ReferenceResolver res;
-        if(owned)
-        {
-            res.resolve_resize(this, opts);
-        }
-        else
-        {
-            Buffers& this_ = *this;
-            evt_size reqsize = res.resolve_noresize(this_, opts);
-            ASSERT_EQ(evts.len, reqsize);
-        }
+        res.resolve_resize(this, opts);
     }
 
 public:

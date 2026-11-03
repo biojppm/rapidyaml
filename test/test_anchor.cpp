@@ -495,7 +495,7 @@ TEST(anchors, billion_laughs_small_limit)
     SCOPED_TRACE("small limit should cause an error");
     TreeAndInts ti(billion_laughs);
     ResolveOptions opts{};
-    id_type mult = 2;
+    uint32_t mult = 2;
     EXPECT_NE(opts.max_size_multiplier(), mult);
     opts.max_size_multiplier(mult);
     EXPECT_EQ(opts.max_size_multiplier(), mult);
@@ -506,7 +506,7 @@ TEST(anchors, billion_laughs_large_limit)
     SCOPED_TRACE("large limit should accept resolve");
     TreeAndInts ti(billion_laughs);
     ResolveOptions opts{};
-    id_type mult = 10000;
+    uint32_t mult = 10000;
     EXPECT_NE(opts.max_size_multiplier(), mult);
     opts.max_size_multiplier(mult);
     EXPECT_EQ(opts.max_size_multiplier(), mult);
@@ -517,7 +517,7 @@ TEST(anchors, billion_laughs_no_limit)
     SCOPED_TRACE("no limit should accept resolve");
     TreeAndInts ti(billion_laughs);
     ResolveOptions opts{};
-    id_type mult = 0;
+    uint32_t mult = 0;
     EXPECT_NE(opts.max_size_multiplier(), mult);
     EXPECT_NE(opts.max_size(ti.tree.size()), 0);
     opts.max_size_multiplier(mult);

@@ -33,32 +33,17 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     , known_keys(cb)
     , parents(cb)
     , siblings(cb)
-    , can_resize()
 {
 }
 
-void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_)
-{
-    can_resize = true;
-    resolve_(evts_, opts_);
-}
-
-C4_NODISCARD evt_size ReferenceResolver::resolve_noresize(Buffers evts_, ResolveOptions const& opts_)
-{
-    can_resize = false;
-    resolve_(&evts_, opts_);
-    return wpos;
-}
-
-void ReferenceResolver::reset_(Buffers evts_, bool can_resize_, ResolveOptions opts_)
+void ReferenceResolver::reset_(Buffers evts_, ResolveOptions opts_)
 {
     Buffers::operator=(evts_);
     wpos = evts.len;
     newsz = evts.len;
-    sz_limit = static_cast<evt_size>(opts_.max_size(static_cast<id_type>(evts.len)));
+    sz_limit = opts_.max_size(evts.len);
     opts = opts_;
     known_keys.reset(opts_);
-    can_resize = can_resize_;
     parents.clear();
     siblings.resize(static_cast<id_type>(evts.cap));
     reset_siblings_range_(0, evts.cap);
@@ -74,31 +59,59 @@ void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
         siblings[sbeg] = nosibling;
 }
 
+void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_)
+{
+    resolve_(evts_, opts_);
+}
+
 void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
 {
     if(!evts_->evts.len)
         return;
-    reset_(*evts_, can_resize, opts_);
-    {
-        // gather all the anchors
-        bool has_refs = false;
-        anchor_map.clear();
-        for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
-        {
-            if(evts.ptr[pos] & ievt::ANCH)
-                add_anchor_(pos);
-            else if(evts.ptr[pos] & ievt::ALIA)
-                has_refs = true;
-        }
-        // exit early if there's nothing to do
-        if(!has_refs &&
-           opts.keep_repeated_keys() &&
-           !opts.merge_always() &&
-           (!opts.clear_anchors() || anchor_map.m_arr.empty()))
-            return;
-    }
-    anchor_map.sort();
+    reset_(*evts_, opts_);
+    if(!gather_anchors_())
+        return;  // exit early if there's nothing to do
     evt_size startlen = evts.len;
+    iter_elms_();
+    // finally:
+    if(opts.clear_anchors())
+    {
+        for(auto const& entry : anchor_map.m_arr)
+        {
+            if(!entry.val.removed)
+            {
+                clear_str_(static_cast<evt_size>(entry.val.visit_count));
+            }
+        }
+    }
+    // adjust for the sentinel
+    wpos += (wpos > startlen);
+    evts.len = wpos;
+    evts_->operator=(*this);
+}
+
+bool ReferenceResolver::gather_anchors_()
+{
+    bool has_refs = false;
+    anchor_map.clear();
+    for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+    {
+        if(evts.ptr[pos] & ievt::ANCH)
+            add_anchor_(pos);
+        else if(evts.ptr[pos] & ievt::ALIA)
+            has_refs = true;
+    }
+    bool do_resolve = has_refs ||
+       opts.keep_repeated_keys() ||
+       opts.merge_always() ||
+       (opts.clear_anchors() && anchor_map.m_arr.empty());
+    if(do_resolve)
+        anchor_map.sort();
+    return do_resolve;
+}
+
+void ReferenceResolver::iter_elms_()
+{
     // now go to all refs, and resolve them
     for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
     {
@@ -116,24 +129,64 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
                 set_rref_(pos, anch->rng.beg, anch->rng.end);
         }
     }
-    // finally:
-    if(opts.clear_anchors())
+}
+
+C4_NODISCARD bool ReferenceResolver::descend_(evt_size &pos)
+{
+    bool ret = false;
+    parents.emplace_top() = pos;
+    if(detail::hasall(evts.ptr[pos], ievt::BSEQ))
     {
-        for(auto const& entry : anchor_map.m_arr)
+        pos = resolve_children_seq_(pos);
+        ret = true;
+    }
+    else if(detail::hasall(evts.ptr[pos], ievt::BMAP))
+    {
+        pos = resolve_children_map_(pos);
+        ret = true;
+    }
+    parents.pop();
+    return ret;
+}
+
+C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BSEQ));
+    for(++pos; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+    {
+        if(evts.ptr[pos] & ievt::ALIA)
         {
-            if(!entry.val.removed)
-            {
-                clear_str_(static_cast<evt_size>(entry.val.visit_count));
-            }
+            AnchorData const* anch = lookup_anchor_(pos);
+            if(anch)
+                set_rref_(pos, anch->rng.beg, anch->rng.end);
+        }
+        else if(descend_(pos))
+        {
+            ;
+        }
+        else if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
+        {
+            break;
         }
     }
-    // adjust for the sentinel
-    wpos += (wpos > startlen);
-    if(can_resize)
+    return pos;
+}
+
+C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size map_pos)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[map_pos], ievt::BMAP));
+    if(opts.keep_repeated_keys())
     {
-        evts.len = wpos;
-        evts_->operator=(*this);
+        return resolve_map_repeat_(map_pos);
     }
+    bool do_merge = requires_merge_(map_pos);
+    bool key_conflict = known_keys.has_key_conflict();
+    evt_size pos = resolve_map_merge_(map_pos, key_conflict);
+    if(do_merge && key_conflict)
+    {
+        return merge_map_keys_(map_pos);
+    }
+    return pos;
 }
 
 C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_(evt_size pos)
@@ -225,64 +278,6 @@ C4_NODISCARD auto ReferenceResolver::keyval_range_val_(evt_size beg) -> Range_
     RYML_ASSERT_BASIC_(evts.ptr[beg] & ievt::KEY_);
     RYML_ASSERT_BASIC_(detail::isentry(evts.ptr[beg]));
     return elm_range_(detail::find_next_entry_(evts.ptr, evts.len, beg, ievt::VAL_));
-}
-
-C4_NODISCARD bool ReferenceResolver::descend_(evt_size &pos)
-{
-    bool ret = false;
-    parents.emplace_top() = pos;
-    if(detail::hasall(evts.ptr[pos], ievt::BSEQ))
-    {
-        pos = resolve_children_seq_(pos);
-        ret = true;
-    }
-    else if(detail::hasall(evts.ptr[pos], ievt::BMAP))
-    {
-        pos = resolve_children_map_(pos);
-        ret = true;
-    }
-    parents.pop();
-    return ret;
-}
-
-C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
-{
-    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BSEQ));
-    for(++pos; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
-    {
-        if(evts.ptr[pos] & ievt::ALIA)
-        {
-            AnchorData const* anch = lookup_anchor_(pos);
-            if(anch)
-                set_rref_(pos, anch->rng.beg, anch->rng.end);
-        }
-        else if(descend_(pos))
-        {
-            ;
-        }
-        else if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
-        {
-            break;
-        }
-    }
-    return pos;
-}
-
-C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size parent)
-{
-    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[parent], ievt::BMAP));
-    if(opts.keep_repeated_keys())
-    {
-        return resolve_map_repeat_(parent);
-    }
-    bool do_merge = requires_merge_(parent);
-    bool key_conflict = known_keys.has_key_conflict();
-    evt_size pos = resolve_map_merge_(parent, key_conflict);
-    if(do_merge && key_conflict)
-    {
-        return merge_map_keys_(parent);
-    }
-    return pos;
 }
 
 C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
@@ -508,6 +503,7 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
         replace_with_ref_(mapw_posref, newrng.beg, newrng.end);
         mapw_wslot += 3;
         clear_range_(mapw_posref + 3, mapw_lastslot);
+
     }
     else if(mapw_firstslot + mapw_wslot < mapw_lastslot)
     {
@@ -828,6 +824,7 @@ bool ReferenceResolver::is_merge_elm_(evt_size pos, csubstr key) const
     }
     return false;
 }
+
 bool ReferenceResolver::is_any_merge_elm_alia_missing_(evt_size pos) const
 {
     RYML_ASSERT_BASIC_(is_merge_elm_(pos));
@@ -970,7 +967,7 @@ bool ReferenceResolver::grow_evts_to_add_(evt_size extra)
     {
         return true;
     }
-    else if(can_resize)
+    else /*if(can_resize)*/ // NOLINT
     {
         evt_size newcap = wpos + extra + 1;
         evt_size nextcap = (3 * evts.cap) / 2; // do not grow too quick
@@ -979,7 +976,7 @@ bool ReferenceResolver::grow_evts_to_add_(evt_size extra)
         siblings.resize(static_cast<id_type>(evts.cap));
         return true;
     }
-    return false;
+    return false; // to be implemented later
 }
 
 } // namespace ievt

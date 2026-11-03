@@ -57,9 +57,16 @@ public:
      *
      */
 
-    ResolveOptions& max_size_multiplier(id_type mult) noexcept { m_max_size_multiplier = mult; return *this; }
-    C4_ALWAYS_INLINE id_type max_size_multiplier() const noexcept { return m_max_size_multiplier; }
-    C4_ALWAYS_INLINE id_type max_size(id_type size_orig) const noexcept { return m_max_size_multiplier > 1 ? m_max_size_multiplier * size_orig : 0u; } /// get the max size based on a starting size
+    ResolveOptions& max_size_multiplier(uint32_t mult) noexcept { m_max_size_multiplier = mult; return *this; }
+    C4_ALWAYS_INLINE uint32_t max_size_multiplier() const noexcept { return m_max_size_multiplier; }
+
+    /// get the max size based on a starting size
+    template<class T>
+    C4_ALWAYS_INLINE T max_size(T size_orig) const noexcept { return size_orig * static_cast<T>(m_max_size_multiplier); }
+
+    /** @cond dev */
+    RYML_DEPRECATED("use the uint32_t overload") ResolveOptions& max_size_multiplier(size_t mult) noexcept { m_max_size_multiplier = static_cast<uint32_t>(mult); return *this; }
+    /** @endcond */
 
     /** @} */
 
@@ -244,7 +251,7 @@ public:
 
 private:
 
-    id_type m_max_size_multiplier = 50;
+    uint32_t m_max_size_multiplier = 50;
     uint32_t m_flags = DEFAULT_FLAGS;
 
 };

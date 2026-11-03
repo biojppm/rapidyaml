@@ -26,9 +26,6 @@ public:
     ReferenceResolver(Callbacks const& cb) noexcept;
 
     void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={});
-    C4_NODISCARD evt_size resolve_noresize(Buffers evts_, ResolveOptions const& opts_={});
-
-    void clear_data() { anchor_map.clear(); }
 
 public:
 
@@ -41,7 +38,7 @@ public:
     {
         id_type  visit_count; /// the pos of the anchor
         Range_   rng;         /// range of the anchored data
-        bool     removed;
+        bool     removed;     /// mark as removed (to avoid clearing when at the end)
     };
     template<class T, size_t N> using vec = yml::detail::stack<T, N>;
     template<class K, class V> using map = yml::detail::small_map<K, V, 32>;
@@ -81,13 +78,11 @@ private: // mapw: map-writing helpers to merge keys
 
 private:
 
-    bool can_resize;
-
-private:
-
     void resolve_(Buffers *evts_, ResolveOptions const& opts_);
-    void reset_(Buffers evts_, bool can_resize_, ResolveOptions opts_);
+    void reset_(Buffers evts_, ResolveOptions opts_);
     void reset_siblings_range_(evt_size beg, evt_size end);
+    bool gather_anchors_();
+    void iter_elms_();
 
     C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
