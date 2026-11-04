@@ -190,7 +190,7 @@ TEST(github, 268)
     ConstNodeRef root = tree.crootref();
     ASSERT_TRUE(root["map"].is_map());
     ASSERT_TRUE(root["map"].has_child("node"));
-    ASSERT_EQ(root["map"]["node"], "bar");
+    ASSERT_EQ(root["map"]["node"].val(), "bar");
 }
 
 TEST(github, 277)

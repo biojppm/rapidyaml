@@ -21,8 +21,8 @@ TEST(qmrk, test_suite_5WE3)
         ASSERT_NE(t.find_child(t.root_id(), "block key\n"), (size_t)NONE);
         EXPECT_EQ(t["explicit key"].val(), csubstr{});
         EXPECT_TRUE(t["block key\n"].is_seq());
-        EXPECT_EQ(t["block key\n"][0], csubstr("one"));
-        EXPECT_EQ(t["block key\n"][1], csubstr("two"));
+        EXPECT_EQ(t["block key\n"][0].val(), csubstr("one"));
+        EXPECT_EQ(t["block key\n"][1].val(), csubstr("two"));
     });
 }
 TEST(qmrk, test_suite_5WE3_with_leading_space)
@@ -66,7 +66,7 @@ TEST(qmrk, test_suite_652Z)
         EXPECT_EQ(r["?foo"].val(), "bar");
         EXPECT_EQ(r["?bar"].val(), "42");
         ASSERT_TRUE(r["?baz"].has_child("?bat"));
-        ASSERT_EQ(r["?baz"]["?bat"], "24");
+        ASSERT_EQ(r["?baz"]["?bat"].val(), "24");
     });
 }
 
