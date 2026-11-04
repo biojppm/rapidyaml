@@ -255,7 +255,8 @@ struct Annotation
         size_t line;
         csubstr orig;
     };
-    Entry annotations[2];
+    #define RYML_NUMANNOT_ (2)
+    Entry annotations[RYML_NUMANNOT_];
     uint8_t num_entries;
 };
 /** @endcond */

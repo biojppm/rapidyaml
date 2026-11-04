@@ -4,6 +4,7 @@
   2. [PR#658](https://github.com/biojppm/rapidyaml/pull/658) anchors: add node expansion limit to defend against exponential attacks such as [Billion Laughs](https://en.wikipedia.org/wiki/Billion_laughs_attack):
     - Add struct `ResolveOptions` to pass to `resolve()` methods.
     - Deprecate `resolve()` methods accepting `bool clear_anchors`
+- [PR#682](https://github.com/biojppm/rapidyaml/pull/682): ensure error and not assert on excess tags/anchors. Fixes [#680](https://github.com/biojppm/rapidyaml/issues/680).
 
 
 ### Thanks
