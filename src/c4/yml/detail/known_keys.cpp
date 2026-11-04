@@ -7,7 +7,7 @@ namespace yml {
 namespace detail {
 
 namespace {
-#ifdef RYML_USE_ASSERT
+#if RYML_USE_ASSERT
 bool check_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
 {
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")

@@ -264,10 +264,9 @@ C4_NODISCARD auto ReferenceResolver::keyval_range_(evt_size beg) -> Range_
 
 C4_NODISCARD auto ReferenceResolver::keyval_range_scratch_(evt_size beg) -> Range_
 {
-    id_type sbeg = static_cast<id_type>(beg);
-    RYML_ASSERT_BASIC_(beg >= 0 && sbeg < mapw_scratch.size());
-    RYML_ASSERT_BASIC_(mapw_scratch[sbeg] & ievt::KEY_);
-    RYML_ASSERT_BASIC_(detail::isentry(mapw_scratch[sbeg]));
+    RYML_ASSERT_BASIC_(beg >= 0 && static_cast<id_type>(beg) < mapw_scratch.size());
+    RYML_ASSERT_BASIC_(mapw_scratch[static_cast<id_type>(beg)] & ievt::KEY_);
+    RYML_ASSERT_BASIC_(detail::isentry(mapw_scratch[static_cast<id_type>(beg)]));
     Range_ r = elm_range_scratch_(detail::find_next_entry_(&mapw_scratch[0], static_cast<evt_size>(mapw_scratch.size()), beg, ievt::VAL_));
     r.beg = beg;
     return r;
