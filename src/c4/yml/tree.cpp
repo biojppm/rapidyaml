@@ -127,6 +127,7 @@ Tree::Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb)
     , m_size(0)
     , m_free_head(NONE)
     , m_free_tail(NONE)
+    , m_first_unused(0)
     , m_arena()
     , m_arena_pos(0)
     , m_callbacks(cb)
@@ -206,6 +207,7 @@ void Tree::_clear()
     m_size = 0;
     m_free_head = 0;
     m_free_tail = 0;
+    m_first_unused = 0;
     m_arena = {};
     m_arena_pos = 0;
     m_tag_directives.clear();
@@ -219,12 +221,13 @@ void Tree::_copy(Tree const& that)
     if(that.m_cap)
     {
         m_buf = RYML_CB_ALLOC_HINT_(m_callbacks, NodeData, (size_t)that.m_cap, that.m_buf);
-        memcpy(m_buf, that.m_buf, (size_t)that.m_cap * sizeof(NodeData));
+        memcpy(m_buf, that.m_buf, (size_t)that.m_first_unused * sizeof(NodeData));
     }
     m_cap = that.m_cap;
     m_size = that.m_size;
     m_free_head = that.m_free_head;
     m_free_tail = that.m_free_tail;
+    m_first_unused = that.m_first_unused;
     m_arena_pos = that.m_arena_pos;
     m_arena = that.m_arena;
     m_tag_directives = that.m_tag_directives;
@@ -249,6 +252,7 @@ void Tree::_move(Tree & that) noexcept
     m_size = that.m_size;
     m_free_head = that.m_free_head;
     m_free_tail = that.m_free_tail;
+    m_first_unused = that.m_first_unused;
     m_arena = that.m_arena;
     m_arena_pos = that.m_arena_pos;
     m_tag_directives = that.m_tag_directives;
@@ -263,7 +267,7 @@ void Tree::_relocate(substr next_arena)
     {
         memcpy(next_arena.str, m_arena.str, m_arena_pos);
     }
-    for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_cap; n != e; ++n)
+    for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_first_unused; n != e; ++n)
     {
         if(in_arena(n->m_key.scalar))
             n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
@@ -291,35 +295,30 @@ void Tree::_relocate(substr next_arena)
 //-----------------------------------------------------------------------------
 void Tree::reserve(id_type cap)
 {
+    if(cap <= m_cap)
+        return;
+    _reserve_untouched(cap);
+    // fault in the new pages now, as before, so the parse does not pay for them
+    char *unused = reinterpret_cast<char*>(m_buf + m_first_unused);
+    const size_t len = (size_t)(m_cap - m_first_unused) * sizeof(NodeData);
+    for(size_t i = 0; i < len; i += 4096)
+        unused[i] = 0;
+    if(len)
+        unused[len - 1] = 0;
+}
+
+void Tree::_reserve_untouched(id_type cap)
+{
     if(cap > m_cap)
     {
         NodeData *buf = RYML_CB_ALLOC_HINT_(m_callbacks, NodeData, (size_t)cap, m_buf);
         if(m_buf)
         {
-            memcpy(buf, m_buf, (size_t)m_cap * sizeof(NodeData));
+            memcpy(buf, m_buf, (size_t)m_first_unused * sizeof(NodeData));
             RYML_CB_FREE_(m_callbacks, m_buf, NodeData, (size_t)m_cap);
         }
-        id_type first = m_cap, del = cap - m_cap;
         m_cap = cap;
         m_buf = buf;
-        _clear_range(first, del);
-        if(m_free_head != NONE)
-        {
-            RYML_ASSERT_VISIT_CB_(m_callbacks, m_buf != nullptr, this, NONE);
-            RYML_ASSERT_VISIT_CB_(m_callbacks, m_free_tail != NONE, this, NONE);
-            m_buf[m_free_tail].m_next_sibling = first;
-            m_buf[first].m_prev_sibling = m_free_tail;
-            m_free_tail = cap-1;
-        }
-        else
-        {
-            RYML_ASSERT_VISIT_CB_(m_callbacks, m_free_tail == NONE, this, NONE);
-            m_free_head = first;
-            m_free_tail = cap-1;
-        }
-        RYML_ASSERT_VISIT_CB_(m_callbacks, m_free_head == NONE || (m_free_head >= 0 && m_free_head < cap), this, NONE);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, m_free_tail == NONE || (m_free_tail >= 0 && m_free_tail < cap), this, NONE);
-
         if( ! m_size)
             _claim_root();
     }
@@ -329,19 +328,14 @@ void Tree::reserve(id_type cap)
 //-----------------------------------------------------------------------------
 void Tree::clear()
 {
-    _clear_range(0, m_cap);
     m_size = 0;
+    m_free_head = NONE;
+    m_free_tail = NONE;
+    m_first_unused = 0;
     if(m_buf)
     {
         RYML_ASSERT_VISIT_CB_(m_callbacks, m_cap >= 0, this, NONE);
-        m_free_head = 0;
-        m_free_tail = m_cap-1;
         _claim_root();
-    }
-    else
-    {
-        m_free_head = NONE;
-        m_free_tail = NONE;
     }
     m_tag_directives.clear();
 }
@@ -355,22 +349,6 @@ void Tree::_claim_root()
 
 
 //-----------------------------------------------------------------------------
-void Tree::_clear_range(id_type first, id_type num)
-{
-    if(num == 0)
-        return; // prevent overflow when subtracting
-    RYML_ASSERT_VISIT_CB_(m_callbacks, first >= 0 && first + num <= m_cap, this, first);
-    memset(m_buf + first, 0, (size_t)num * sizeof(NodeData)); // TODO we should not need this
-    for(id_type i = first, e = first + num; i < e; ++i)
-    {
-        _clear(i);
-        NodeData *n = m_buf + i;
-        n->m_prev_sibling = i - 1;
-        n->m_next_sibling = i + 1;
-    }
-    m_buf[first + num - 1].m_next_sibling = NONE;
-}
-
 C4_SUPPRESS_WARNING_GCC_POP
 
 
@@ -413,29 +391,34 @@ void Tree::_free_list_rem(id_type i)
 //-----------------------------------------------------------------------------
 id_type Tree::_claim()
 {
-    if(m_free_head == NONE || m_buf == nullptr)
+    id_type ichild;
+    if(m_free_head != NONE)
     {
-        id_type sz = 2 * m_cap;
-        sz = sz ? sz : 16;
-        reserve(sz);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, m_free_head != NONE, this, NONE);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, m_free_head >= 0 && m_free_head < m_first_unused, this, NONE);
+        ichild = m_free_head;
+        m_free_head = m_buf[ichild].m_next_sibling;
+        if(m_free_head == NONE)
+            m_free_tail = NONE;
+        else
+            m_buf[m_free_head].m_prev_sibling = NONE;
+    }
+    else
+    {
+        if(m_first_unused == m_cap || m_buf == nullptr)
+        {
+            id_type sz = 2 * m_cap;
+            sz = sz ? sz : 16;
+            _reserve_untouched(sz);
+            RYML_ASSERT_VISIT_CB_(m_callbacks, m_first_unused < m_cap, this, NONE);
+        }
+        ichild = m_first_unused++;
     }
 
     RYML_ASSERT_VISIT_CB_(m_callbacks, m_size < m_cap, this, NONE);
-    RYML_ASSERT_VISIT_CB_(m_callbacks, m_free_head >= 0 && m_free_head < m_cap, this, NONE);
-
-    id_type ichild = m_free_head;
-    NodeData *child = m_buf + ichild;
-
     ++m_size;
-    m_free_head = child->m_next_sibling;
-    if(m_free_head == NONE)
-    {
-        m_free_tail = NONE;
-        RYML_ASSERT_VISIT_CB_(m_callbacks, m_size == m_cap, this, NONE);
-    }
-
     _clear(ichild);
+    m_buf[ichild].m_prev_sibling = NONE;
+    m_buf[ichild].m_next_sibling = NONE;
 
     return ichild;
 }
@@ -862,7 +845,7 @@ void Tree::set_root_as_stream()
     bool empty_root = ((type(root) & (SEQ|MAP|VAL)) == 0);
     for(TagDirective &C4_RESTRICT td : m_tag_directives)
     {
-        if(td.doc_id >= m_cap || _p(td.doc_id)->m_parent == NONE)
+        if(td.doc_id >= m_first_unused || _p(td.doc_id)->m_parent == NONE)
         {
             _c4dbgpf("tagd[{}]: id={}->NONE", &td-m_tag_directives.m_directives, td.doc_id);
             td.doc_id = NONE;
@@ -906,7 +889,7 @@ void Tree::set_root_as_stream()
     _p(root)->m_type = STREAM;
     for(TagDirective &C4_RESTRICT td : m_tag_directives)
     {
-        id_type id = (td.doc_id != NONE) ? next_doc : (empty_root ? first_child(root) : m_free_head);
+        id_type id = (td.doc_id != NONE) ? next_doc : (empty_root ? first_child(root) : (m_free_head != NONE ? m_free_head : m_first_unused));
         _c4dbgpf("tagd[{}]: id={}->{}", &td-m_tag_directives.m_directives, td.doc_id, id);
         td.doc_id = id;
     }

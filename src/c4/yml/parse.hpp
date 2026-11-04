@@ -15,6 +15,10 @@ class Tree;
 class NodeRef;
 template<class EventHandler> class ParseEngine;
 struct EventHandlerTree;
+#ifndef RYML_RESERVE_FROM_SOURCE_MIN
+#define RYML_RESERVE_FROM_SOURCE_MIN (128 * 1024)
+#endif
+
 RYML_EXPORT id_type estimate_tree_capacity(csubstr src); // NOLINT
 
 
