@@ -1389,6 +1389,27 @@ ENGINE_TEST_ERRLOC(SU74_TagAndAliasAsBlockSeqImapVal_2_key, Location(2,8), ""
                    "[&alias value1: foo,\n"
                    "*alias !t : foo]\n")
 
+
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsSeqFlow0, Location(1, 11), ""
+                   "[&a &b &c x]")
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsSeqFlow1, Location(1, 11), ""
+                   "[&a &b &c [x]]")
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsSeqBlock0, Location(1, 9), ""
+                   "- &a &b &c x\n")
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsSeqBlock1, Location(1, 9), ""
+                   "- &a &b &c\n"
+                   "  - x")
+
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsMapValFlow0, Location(1, 16), ""
+                   "{val: &a &b &c x}")
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsMapValFlow1, Location(1, 16), ""
+                   "{val: &a &b &c [x]}")
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsMapValBlock0, Location(1, 12), ""
+                   "val: &a &b &c x\n")
+ENGINE_TEST_ERRLOC(Github680TooManyAnchorsMapValBlock1, Location(1, 12), ""
+                   "val: &a &b &c\n"
+                   "  - x")
+
 } // namespace yml
 } // namespace c4
 

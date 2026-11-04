@@ -4332,44 +4332,56 @@ template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str)
 {
     _c4dbgpf("store annotation[{}]: {}", dst->num_entries, prs_(str));
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
-    dst->annotations[dst->num_entries].str = str;
-    dst->annotations[dst->num_entries].indentation = {};
-    dst->annotations[dst->num_entries].line = {};
-    dst->annotations[dst->num_entries].orig = {};
-    ++dst->num_entries;
+    if C4_LIKELY (dst->num_entries < RYML_NUMANNOT_)
+    {
+        dst->annotations[dst->num_entries].str = str;
+        dst->annotations[dst->num_entries].indentation = {};
+        dst->annotations[dst->num_entries].line = {};
+        dst->annotations[dst->num_entries].orig = {};
+        ++dst->num_entries;
+    }
+    else
+    {
+        _c4err("parse error: too many tags/anchors");
+    }
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line)
 {
     _c4dbgpf("store annotation[{}]: '{}' indentation={} line={}", dst->num_entries, maybe_null_str_(str), indentation, line);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
-    if C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line)
+    if C4_LIKELY ((dst->num_entries < RYML_NUMANNOT_)
+        && !(dst->num_entries && dst->annotations[0].line == line))
     {
-        _c4err("parse error");
+        dst->annotations[dst->num_entries].str = str;
+        dst->annotations[dst->num_entries].indentation = indentation;
+        dst->annotations[dst->num_entries].line = line;
+        dst->annotations[dst->num_entries].orig = {};
+        ++dst->num_entries;
     }
-    dst->annotations[dst->num_entries].str = str;
-    dst->annotations[dst->num_entries].indentation = indentation;
-    dst->annotations[dst->num_entries].line = line;
-    dst->annotations[dst->num_entries].orig = {};
-    ++dst->num_entries;
+    else
+    {
+        _c4err("parse error: too many tags/anchors");
+    }
 }
 
 template<class EventHandler>
 void ParseEngine<EventHandler>::_add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line, csubstr orig)
 {
     _c4dbgpf("store annotation[{}]: '{}'->'{}' indentation={} line={}", dst->num_entries, orig, maybe_null_str_(str), indentation, line);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, dst->num_entries < C4_COUNTOF(dst->annotations), m_evt_handler->m_curr->pos); // NOLINT(bugprone-sizeof-expression)
-    if C4_UNLIKELY(dst->num_entries && dst->annotations[0].line == line)
+    if C4_LIKELY ((dst->num_entries < RYML_NUMANNOT_)
+        && !(dst->num_entries && dst->annotations[0].line == line))
     {
-        _c4err("parse error");
+        dst->annotations[dst->num_entries].str = str;
+        dst->annotations[dst->num_entries].indentation = indentation;
+        dst->annotations[dst->num_entries].line = line;
+        dst->annotations[dst->num_entries].orig = orig;
+        ++dst->num_entries;
     }
-    dst->annotations[dst->num_entries].str = str;
-    dst->annotations[dst->num_entries].indentation = indentation;
-    dst->annotations[dst->num_entries].line = line;
-    dst->annotations[dst->num_entries].orig = orig;
-    ++dst->num_entries;
+    else
+    {
+        _c4err("parse error: too many tags/anchors");
+    }
 }
 
 template<class EventHandler>
