@@ -23,7 +23,7 @@ namespace ievt {
 
 C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
-// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
+// NOLINTBEGIN(*-signed-bitwise,*avoid-c-style-cast)
 
 namespace detail {
 template<class Writer>
@@ -209,7 +209,7 @@ void format_ints_as_c_data(Writer &writer,
 }
 
 C4_SUPPRESS_WARNING_POP
-// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
+// NOLINTEND(*-signed-bitwise,*avoid-c-style-cast)
 
 } // namespace ievt
 } // namespace extra

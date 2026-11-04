@@ -48,7 +48,7 @@ struct small_map
 {
 public:
 
-    enum : size_t {
+    enum : size_t { // NOLINT
         sso_size = SSO_SIZE,
         small_limit_default = 64,
     };
@@ -66,7 +66,7 @@ public:
 
 public:
 
-    small_map(Callbacks const& cb={}) : m_arr(cb) {}
+    small_map(Callbacks const& cb={}) : m_arr(cb) {} // NOLINT
 
     void clear()
     {

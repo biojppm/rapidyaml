@@ -23,7 +23,14 @@ struct RYML_EXPORT ReferenceResolver : private Buffers
 public:
 
     ReferenceResolver() noexcept : ReferenceResolver(get_callbacks()) {}
-    ReferenceResolver(Callbacks const& cb) noexcept;
+    ReferenceResolver(Callbacks const& cb) noexcept; // NOLINT
+    ReferenceResolver(ReferenceResolver&&) = delete;
+    ReferenceResolver(ReferenceResolver const&) = delete;
+    ReferenceResolver& operator= (ReferenceResolver&&) = delete;
+    ReferenceResolver& operator= (ReferenceResolver const&) = delete;
+    ~ReferenceResolver() noexcept = default;
+
+public:
 
     void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={});
 
@@ -123,14 +130,6 @@ private:
     void add_to_known_keys_(evt_size alia, uint32_t status);
     void copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end);
     bool grow_evts_to_add_(evt_size extra);
-
-public:
-
-    ~ReferenceResolver() noexcept = default;
-    ReferenceResolver(ReferenceResolver&) = delete;
-    ReferenceResolver(ReferenceResolver const&) = delete;
-    ReferenceResolver& operator= (ReferenceResolver&) = delete;
-    ReferenceResolver& operator= (ReferenceResolver const&) = delete;
 
 };
 
