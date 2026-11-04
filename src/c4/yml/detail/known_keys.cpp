@@ -10,6 +10,7 @@ namespace {
 #ifdef RYML_USE_ASSERT
 bool check_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
 {
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
     #define docheck(cond) RYML_ASSERT_BASIC_(cond); if(!(cond)) return false
     docheck(r.hi);
     docheck(r.lo);
@@ -32,6 +33,7 @@ bool check_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
     }
     return true;
     #undef docheck
+    C4_SUPPRESS_WARNING_GCC_POP
 }
 #endif // RYML_USE_ASSERT
 

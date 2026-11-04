@@ -65,7 +65,9 @@ public:
     C4_ALWAYS_INLINE T max_size(T size_orig) const noexcept { return size_orig * static_cast<T>(m_max_size_multiplier); }
 
     /** @cond dev */
+    #if (C4_WORDSIZE == 8)
     RYML_DEPRECATED("use the uint32_t overload") ResolveOptions& max_size_multiplier(size_t mult) noexcept { m_max_size_multiplier = static_cast<uint32_t>(mult); return *this; }
+    #endif
     /** @endcond */
 
     /** @} */

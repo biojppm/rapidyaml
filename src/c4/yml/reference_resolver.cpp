@@ -55,6 +55,7 @@ void ReferenceResolver::grow_branch_size_mem_()
 
 id_type ReferenceResolver::branch_size_(id_type node)
 {
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
     RYML_ASSERT_BASIC_CB_(m_tree->m_callbacks, node < m_branch_size.size());
     uint32_t sz = m_branch_size[node];
     if(!sz)
@@ -65,6 +66,7 @@ id_type ReferenceResolver::branch_size_(id_type node)
         m_branch_size[node] = sz;
     }
     return static_cast<id_type>(sz);
+    C4_SUPPRESS_WARNING_GCC_POP
 }
 
 void ReferenceResolver::check_size_limit_(id_type node_to_dup)
@@ -435,7 +437,7 @@ void ReferenceResolver::handle_key_ref_(id_type ref_node, AnchorData const& anch
         }
         else
         {
-            _c4dbgpf("instance[{}:node{}] don't inherit container flags", i, ref_node);
+            _c4dbgpf("node[{}] don't inherit container flags", ref_node);
             RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->key_anchor(anchor.node) == m_tree->key_ref(ref_node), m_tree, anchor.node);
             m_tree->_p(ref_node)->m_key.scalar = m_tree->key(anchor.node);
             // keys cannot be containers, so don't inherit container flags
