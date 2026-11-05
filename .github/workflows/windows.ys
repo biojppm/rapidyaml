@@ -97,12 +97,12 @@ jobs:
         #
         # mingw release builds are failing the tests:
         # see https://github.com/biojppm/rapidyaml/issues/603
-        - {std: 11, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
-        - {std: 11, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
-        #- {std: 11, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
-        - {std: 20, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
-        - {std: 20, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
-        #- {std: 20, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc}
+        - {std: 11, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
+        - {std: 11, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
+        #- {std: 11, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
+        - {std: 20, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
+        - {std: 20, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
+        #- {std: 20, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
     steps:
     - :: checkout-action
     - name: config
@@ -117,7 +117,15 @@ jobs:
               -DRYML_BUILD_BENCHMARKS=OFF
     - name: build
       run: |
-        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel --verbose
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        if [ -n "${{matrix.heavybuild}}" ] ; then
+            if (( $numprocs > 1 )) ; then
+                numprocs=$(($numprocs / 2))
+            fi
+        fi
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
+        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel
     - name: test
       run: |
         source .github/setenv.sh
