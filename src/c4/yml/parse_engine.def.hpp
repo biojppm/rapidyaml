@@ -1958,11 +1958,21 @@ void ParseEngine<EventHandler>::_start_doc_suddenly()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_end_stream()
 {
+    const char *errmsg = nullptr;
     _c4dbgpf("end_stream, level={} node_id={}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->node_id);
-    if C4_UNLIKELY(has_all(RSEQ|RFLOW))
-        _c4err("missing terminating ]");
-    else if C4_UNLIKELY(has_all(RMAP|RFLOW))
-        _c4err("missing terminating }");
+    if(has_any(RFLOW))
+    {
+        if C4_UNLIKELY(has_any(RMAP))
+        {
+            errmsg = "missing terminating }";
+            goto err; // NOLINT
+        }
+        else if C4_UNLIKELY(has_any(RSEQ|RSEQIMAP))
+        {
+            errmsg = "missing terminating ]";
+            goto err; // NOLINT
+        }
+    }
     if(m_evt_handler->m_stack.size() > 1)
         _handle_indentation_pop(m_evt_handler->m_stack.begin());
     if(has_all(RDOC))
@@ -1984,7 +1994,13 @@ void ParseEngine<EventHandler>::_end_stream()
     }
     m_evt_handler->end_stream();
     if C4_UNLIKELY(m_has_directives)
-        _c4err("directives cannot be used without a document");
+    {
+        errmsg = "directives cannot be used without a document";
+        goto err; // NOLINT
+    }
+    return;
+err:
+    _c4err(errmsg);
 }
 
 
