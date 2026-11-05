@@ -851,7 +851,7 @@ public:
     void actually_val_is_first_key_of_new_map_block()
     {
         _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_block", m_evt.len, m_evt.cap, m_evt_prev);
-        graft_as_map_key_(ievt::BLCK, c4::yml::MAP|c4::yml::BLOCK);
+        graft_as_map_key_(0, c4::yml::MAP|c4::yml::BLOCK);
     }
 
     /** @} */
@@ -1094,11 +1094,11 @@ public:
         }
         // start the map
         m_evt.ptr[pos] = ievt::VAL_|ievt::BMAP|sty;
-        // move PSTR to prev
-        if(m_evt.ptr[pos + 1] & ievt::PSTR)
+        // move PEX2 to prev
+        if(m_evt.ptr[pos + 1] & ievt::PEX2)
         {
-            m_evt.ptr[pos    ] |= ievt::PSTR;
-            m_evt.ptr[pos + 1] &= ~ievt::PSTR;
+            m_evt.ptr[pos    ] |= ievt::PEX2;
+            m_evt.ptr[pos + 1] &= ~ievt::PEX2;
         }
         return pos;
     }
@@ -1143,11 +1143,11 @@ public:
         // set the container as key, not val
         m_evt.ptr[posp1] |= ievt::KEY_;
         m_evt.ptr[posp1] &= ~ievt::VAL_;
-        // move PSTR to pos
-        if(m_evt.ptr[posp1] & ievt::PSTR)
+        // move PEX2 to pos
+        if(m_evt.ptr[posp1] & ievt::PEX2)
         {
-            m_evt.ptr[pos] |= ievt::PSTR;
-            m_evt.ptr[posp1] &= ~ievt::PSTR;
+            m_evt.ptr[pos] |= ievt::PEX2;
+            m_evt.ptr[posp1] &= ~ievt::PEX2;
         }
         return pos;
     }
