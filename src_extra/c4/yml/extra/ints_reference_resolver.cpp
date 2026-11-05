@@ -10,8 +10,6 @@
 #endif
 
 // NOLINTBEGIN(*-signed-bitwise)
-#include "c4/yml/writer_file.hpp"
-#include "c4/yml/extra/ints_format.hpp"
 
 namespace c4 {
 namespace yml {
@@ -21,17 +19,6 @@ namespace ievt {
 
 namespace {
 enum : evt_size { nosibling = -1 }; // NOLINT
-
-void pr(Buffers const* rr, evt_size pos=0)
-{
-    yml::WriterFile w;
-    format_ints_as_c_data(w,
-                          rr->src,
-                          rr->arena,
-                          rr->evts.ptr + pos,
-                          rr->evts.len - pos,
-                          true);
-}
 } // namespace
 
 
@@ -82,7 +69,6 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
     if(!evts_->evts.len)
         return;
     reset_(*evts_, opts_);
-pr(this);
     if(!gather_anchors_())
         return;  // exit early if there's nothing to do
     evt_size startlen = evts.len;
@@ -374,15 +360,12 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool k
 C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
 {
     // https://yamlvalidate.com/blog/yaml-anchors-aliases-merge-keys/
-printf("req? ok=%d  pos=%d len=%d cap=%d\n", pos+1<evts.len, pos, evts.len, evts.cap);
     RYML_ASSERT_BASIC_(pos + 1 < evts.len);
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BMAP));
     {
         bool has_merge_elms = false;
         for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
         {
-printf("req? ok=%d ch=%d pos=%d len=%d cap=%d\n", ch < evts.len, ch, pos, evts.len, evts.cap);
-if(!(ch < evts.len)) abort();
             RYML_ASSERT_BASIC_(ch < evts.len);
             if(detail::hasall(evts.ptr[ch], ievt::EMAP))
             {
