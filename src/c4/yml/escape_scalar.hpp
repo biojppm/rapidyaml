@@ -255,7 +255,7 @@ inline C4_NO_INLINE size_t escape_scalar(substr buffer, csubstr scalar, bool kee
 /** formatting helper to escape a scalar with @ref escape_scalar_fn() */
 struct escaped_scalar
 {
-    escaped_scalar(csubstr s, bool keep_newl=false) : scalar(s), keep_newlines(keep_newl) {}
+    escaped_scalar(csubstr s, bool keep_newl=false) : scalar(s), keep_newlines(keep_newl) {} // NOLINT
     csubstr scalar;
     bool keep_newlines;
 };

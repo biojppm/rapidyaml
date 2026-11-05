@@ -755,15 +755,15 @@ public:
     /** @{ */
 
     ConstNodeRef() noexcept : m_tree(nullptr), m_id(NONE) {}
-    ConstNodeRef(Tree const &t) noexcept : m_tree(&t), m_id(t .root_id()) {}
-    ConstNodeRef(Tree const *t) noexcept : m_tree(t ), m_id(t->root_id()) {}
-    ConstNodeRef(Tree const *t, id_type id) noexcept : m_tree(t), m_id(id) {}
+    ConstNodeRef(Tree const &t) noexcept : m_tree(&t), m_id(t .root_id()) {} // NOLINT
+    ConstNodeRef(Tree const *t) noexcept : m_tree(t ), m_id(t->root_id()) {} // NOLINT
+    ConstNodeRef(Tree const *t, id_type id) noexcept : m_tree(t), m_id(id) {} // NOLINT
 
     ConstNodeRef(ConstNodeRef const&) noexcept = default;
     ConstNodeRef(ConstNodeRef     &&) noexcept = default;
 
-    inline ConstNodeRef(NodeRef const&) noexcept;
-    inline ConstNodeRef(NodeRef     &&) noexcept;
+    inline ConstNodeRef(NodeRef const&) noexcept; // NOLINT
+    inline ConstNodeRef(NodeRef     &&) noexcept; // NOLINT
 
     /** @} */
 
@@ -1004,7 +1004,7 @@ public: // deprecated functions
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
 
-    RYML_DEPRECATED("use ConstNodeRef()") ConstNodeRef(std::nullptr_t) noexcept : m_tree(nullptr), m_id(NONE) {}
+    RYML_DEPRECATED("use ConstNodeRef()") ConstNodeRef(std::nullptr_t) noexcept : m_tree(nullptr), m_id(NONE) {} // NOLINT
     RYML_DEPRECATED("use node = {}") ConstNodeRef& operator= (std::nullptr_t) noexcept { m_tree = nullptr; m_id = NONE; return *this; }
 
     RYML_DEPRECATED("use one of readable(), is_seed() or !invalid()") bool valid() const noexcept { return m_tree != nullptr && m_id != NONE; }
@@ -1104,8 +1104,8 @@ public:
     /** @{ */
 
     NodeRef() noexcept : m_tree(nullptr), m_id(NONE), m_seed() { _clear_seed(); }
-    NodeRef(Tree &t) noexcept : m_tree(&t), m_id(t .root_id()), m_seed() { _clear_seed(); }
-    NodeRef(Tree *t) noexcept : m_tree(t ), m_id(t->root_id()), m_seed() { _clear_seed(); }
+    NodeRef(Tree &t) noexcept : m_tree(&t), m_id(t .root_id()), m_seed() { _clear_seed(); } // NOLINT
+    NodeRef(Tree *t) noexcept : m_tree(t ), m_id(t->root_id()), m_seed() { _clear_seed(); } // NOLINT
     NodeRef(Tree *t, id_type id) noexcept : m_tree(t), m_id(id), m_seed() { _clear_seed(); }
     NodeRef(Tree *t, id_type id, id_type seed_pos) noexcept : m_tree(t), m_id(id), m_seed() { m_seed.str = nullptr; m_seed.len = (size_t)seed_pos; }
     NodeRef(Tree *t, id_type id, csubstr seed_key) noexcept : m_tree(t), m_id(id), m_seed(seed_key) {}
@@ -1906,7 +1906,7 @@ public: // deprecated functions
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
-    RYML_DEPRECATED("use NodeRef()") NodeRef(std::nullptr_t) noexcept : m_tree(nullptr), m_id(NONE), m_seed() {}
+    RYML_DEPRECATED("use NodeRef()") NodeRef(std::nullptr_t) noexcept : m_tree(nullptr), m_id(NONE), m_seed() {} // NOLINT
 
     RYML_DEPRECATED("use one of readable(), is_seed() or !invalid()") inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
     RYML_DEPRECATED("use !readable()") bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }

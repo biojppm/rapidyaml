@@ -506,9 +506,9 @@ struct TestSequenceData
 {
     csubstr           casename;
     csubstr           filename;
-    TestSequenceLevel levels[NLEVELS] = {};
-    AllowedFailure    allowed_failure = {};
-    AllowedFailure    has_container_keys = {};
+    TestSequenceLevel levels[NLEVELS]{};
+    AllowedFailure    allowed_failure{};
+    AllowedFailure    has_container_keys{};
     bool              expect_error = false;
 
     void init(csubstr casename_, csubstr filename_, csubstr src_, bool immutable_, bool reuse_, bool expect_error_)

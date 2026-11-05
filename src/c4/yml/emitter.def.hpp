@@ -204,10 +204,9 @@ void Emitter<Writer>::visit_stream_(id_type id)
             if(ty.m_bits & VALNIL)
                 pend_newl_();
         }
-        else if(ty.is_container())
+        else if(ty.is_container() && ty.is_flow())
         {
-            if(ty.is_flow())
-                pend_newl_();
+            pend_newl_();
         }
         if(m_tree->next_sibling(child) != NONE)
         {

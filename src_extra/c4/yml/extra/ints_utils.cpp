@@ -13,9 +13,10 @@
 #endif
 
 
-C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wold-style-cast")
-C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wold-style-cast")
-// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC("-Wold-style-cast")
+C4_SUPPRESS_WARNING_CLANG("-Wold-style-cast")
+// NOLINTBEGIN(*-signed-bitwise,*avoid-c-style-cast)
 
 
 namespace c4 {
@@ -135,6 +136,5 @@ void events_ints_print(csubstr parsed_yaml, csubstr arena, ievt::evt_bits const*
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
-C4_SUPPRESS_WARNING_CLANG_POP
-C4_SUPPRESS_WARNING_GCC_POP
+// NOLINTEND(*-signed-bitwise,*avoid-c-style-cast)
+C4_SUPPRESS_WARNING_POP

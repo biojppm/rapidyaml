@@ -63,7 +63,7 @@ RYML_EXPORT evt_size estimate_events_ints_size(csubstr src)
     return count;
 }
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 // ensure the ievt flags work despite being signed
 static_assert((ievt::MASK & ievt::BSTR) == ievt::BSTR, "overflow?");
 static_assert((ievt::MASK & ievt::ESTR) == ievt::ESTR, "overflow?");
@@ -96,7 +96,7 @@ static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
 static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
 static_assert((ievt::MASK & ievt::PJUMP) == ievt::PJUMP, "overflow?");
 static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)
 
 } // namespace extra
 } // namespace yml

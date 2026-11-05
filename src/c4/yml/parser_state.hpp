@@ -5,7 +5,7 @@
 #include "c4/yml/error.hpp"
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -217,6 +217,6 @@ static_assert(std::is_standard_layout<ParserState>::value, "ParserState not stan
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)
 
 #endif /* C4_YML_PARSER_STATE_HPP_ */

@@ -189,7 +189,7 @@ typedef enum : type_bits { // NOLINT
     #undef b_
     #ifdef RYML_HAS_DEPRECATED_ENUMS_
     FLOW_ML RYML_DEPRECATED("use one of FLOW_ML{1,N,X}") = FLOW_ML1,
-    #endif
+    #endif // NOLINT
     /** @endcond */
 } NodeTypeBits;
 
@@ -221,8 +221,8 @@ public:
     /** @name auto convert to type_bits
      * @{ */
 
-    C4_ALWAYS_INLINE operator type_bits      & ()       noexcept { return m_bits; }
-    C4_ALWAYS_INLINE operator type_bits const& () const noexcept { return m_bits; }
+    C4_ALWAYS_INLINE operator type_bits      & ()       noexcept { return m_bits; } // NOLINT
+    C4_ALWAYS_INLINE operator type_bits const& () const noexcept { return m_bits; } // NOLINT
 
     /** @} */
 
@@ -232,7 +232,7 @@ public:
      * @{ */
 
     C4_ALWAYS_INLINE NodeType() noexcept : m_bits(NOTYPE) {}
-    C4_ALWAYS_INLINE NodeType(type_bits t) noexcept : m_bits(t) {}
+    C4_ALWAYS_INLINE NodeType(type_bits t) noexcept : m_bits(t) {} // NOLINT
 
     /** @} */
 

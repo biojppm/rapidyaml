@@ -182,8 +182,8 @@ public:
 
     /// initialize as an untagged scalar
     template<size_t N>
-    NodeScalar(const char (&s)[N]) noexcept : tag(), scalar(s), anchor() {}
-    NodeScalar(csubstr      s    ) noexcept : tag(), scalar(s), anchor() {}
+    NodeScalar(const char (&s)[N]) noexcept : tag(), scalar(s), anchor() {} // NOLINT
+    NodeScalar(csubstr      s    ) noexcept : tag(), scalar(s), anchor() {} // NOLINT
 
     /// initialize as a tagged scalar
     template<size_t N, size_t M>
@@ -232,9 +232,9 @@ public:
     /// initialize as an empty node
     NodeInit() : type(NOTYPE), key(), val() {}
     /// initialize as a typed node
-    NodeInit(type_bits t) : type(t), key(), val() {}
+    NodeInit(type_bits t) : type(t), key(), val() {} // NOLINT
     /// initialize as a sequence member
-    NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
+    NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); } // NOLINT
     /// initialize as a sequence member with explicit type
     NodeInit(NodeScalar const& v, type_bits t) : type(t|VAL), key(), val(v) { _add_flags(); }
     /// initialize as a mapping member
@@ -315,8 +315,8 @@ public:
     /** @{ */
 
     Tree() : Tree(get_callbacks()) {}
-    Tree(Callbacks const& cb);
-    Tree(id_type node_capacity, size_t arena_capacity=RYML_DEFAULT_TREE_ARENA_CAPACITY) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
+    Tree(Callbacks const& cb); // NOLINT
+    Tree(id_type node_capacity, size_t arena_capacity=RYML_DEFAULT_TREE_ARENA_CAPACITY) : Tree(node_capacity, arena_capacity, get_callbacks()) {} // NOLINT
     Tree(id_type node_capacity, size_t arena_capacity, Callbacks const& cb);
 
     ~Tree() noexcept;
@@ -1486,7 +1486,7 @@ public:
         size_t  path_pos;
         csubstr path;
 
-        operator bool() const { return target != NONE; }
+        operator bool() const { return target != NONE; } // NOLINT
 
         lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
         lookup_result(csubstr path_, id_type start) : target(NONE), closest(start), path_pos(0), path(path_) {}
@@ -1522,7 +1522,7 @@ private:
         NodeType type;
         _lookup_path_token() : value(), type() {} // LCOV_EXCL_LINE
         _lookup_path_token(csubstr v, NodeType t) : value(v), type(t) {}
-        operator bool() const { return type != NOTYPE; }
+        operator bool() const { return type != NOTYPE; } // NOLINT
         bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
     };
 
@@ -1725,12 +1725,9 @@ public:
         NodeData *n = _p(node);
         RYML_ASSERT_VISIT_CB_(m_callbacks, n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar, this, node);
         _add_flags(node, i.type);
-        if(n->m_key.scalar.empty())
+        if(n->m_key.scalar.empty() && ( ! i.key.scalar.empty()))
         {
-            if( ! i.key.scalar.empty())
-            {
-                set_key(node, i.key.scalar);
-            }
+            set_key(node, i.key.scalar);
         }
         n->m_key.tag = i.key.tag;
         n->m_val = i.val;

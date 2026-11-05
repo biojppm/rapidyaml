@@ -22,7 +22,7 @@ struct RYML_EXPORT WriterFile
 {
     FILE * m_file;
 
-    WriterFile(FILE *f = nullptr) noexcept : m_file(f ? f : stdout) {}
+    WriterFile(FILE *f = nullptr) noexcept : m_file(f ? f : stdout) {} // NOLINT
 
     template<size_t N>
     C4_ALWAYS_INLINE void append(const char (&a)[N]) noexcept // NOLINT(*-make-member-function-const)

@@ -20,7 +20,7 @@ struct WriterOStream
 {
     OStream* m_stream;
 
-    WriterOStream(OStream *s) noexcept : m_stream(s) {}
+    WriterOStream(OStream *s) noexcept : m_stream(s) {} // NOLINT
 
     template<size_t N>
     C4_ALWAYS_INLINE void append(const char (&a)[N]) noexcept

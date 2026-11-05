@@ -23,7 +23,7 @@
 #endif
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -139,6 +139,6 @@ protected:
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)
 
 #endif /* C4_YML_EVENT_HANDLER_STACK_HPP_ */

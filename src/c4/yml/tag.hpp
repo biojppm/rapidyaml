@@ -81,7 +81,7 @@ struct TagCache
     {
         csubstr resolved;
         const_iterator pos;
-        operator bool() const noexcept { return resolved.len > 0; }
+        operator bool() const noexcept { return resolved.len > 0; } // NOLINT
     };
 
 public:

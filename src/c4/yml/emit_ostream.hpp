@@ -45,9 +45,9 @@ struct as_json
     Tree const* tree;
     id_type node;
     EmitOptions options;
-    as_json(Tree const& t,             EmitOptions const& opts={}) noexcept : tree(&t), node(t.root_id_maybe()), options(opts) {}
-    as_json(Tree const& t, id_type id, EmitOptions const& opts={}) noexcept : tree(&t), node(id), options(opts) {}
-    as_json(ConstNodeRef const& n,     EmitOptions const& opts={}) noexcept : tree(n.tree()), node(n.id()), options(opts) {}
+    as_json(Tree const& t,             EmitOptions const& opts={}) noexcept : tree(&t), node(t.root_id_maybe()), options(opts) {} // NOLINT
+    as_json(Tree const& t, id_type id, EmitOptions const& opts={}) noexcept : tree(&t), node(id), options(opts) {} // NOLINT
+    as_json(ConstNodeRef const& n,     EmitOptions const& opts={}) noexcept : tree(n.tree()), node(n.id()), options(opts) {} // NOLINT
 };
 
 
@@ -67,9 +67,9 @@ struct as_yaml
     Tree const* tree;
     id_type node;
     EmitOptions options;
-    as_yaml(Tree const& t,             EmitOptions const& opts={}) noexcept : tree(&t), node(t.root_id_maybe()), options(opts) {}
-    as_yaml(Tree const& t, id_type id, EmitOptions const& opts={}) noexcept : tree(&t), node(id), options(opts) {}
-    as_yaml(ConstNodeRef const& n,     EmitOptions const& opts={}) noexcept : tree(n.tree()), node(n.id()), options(opts) {}
+    as_yaml(Tree const& t,             EmitOptions const& opts={}) noexcept : tree(&t), node(t.root_id_maybe()), options(opts) {} // NOLINT
+    as_yaml(Tree const& t, id_type id, EmitOptions const& opts={}) noexcept : tree(&t), node(id), options(opts) {} // NOLINT
+    as_yaml(ConstNodeRef const& n,     EmitOptions const& opts={}) noexcept : tree(n.tree()), node(n.id()), options(opts) {} // NOLINT
 };
 
 

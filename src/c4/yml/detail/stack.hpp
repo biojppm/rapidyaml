@@ -48,7 +48,7 @@ public:
 
     constexpr static bool is_contiguous() noexcept { return true; }
 
-    stack(Callbacks const& cb)
+    stack(Callbacks const& cb) // NOLINT
         : m_buf()
         , m_stack(m_buf)
         , m_size(0)

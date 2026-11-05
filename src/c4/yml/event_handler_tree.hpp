@@ -16,7 +16,7 @@ C4_SUPPRESS_WARNING_MSVC(4702) // unreachable code
 C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -74,7 +74,7 @@ public:
      * @{ */
 
     EventHandlerTree() noexcept : EventHandlerStack(), m_tree(), m_curr_doc() {}
-    EventHandlerTree(Callbacks const& cb) noexcept : EventHandlerStack(cb), m_tree(), m_curr_doc() {}
+    EventHandlerTree(Callbacks const& cb) noexcept : EventHandlerStack(cb), m_tree(), m_curr_doc() {} // NOLINT
     EventHandlerTree(Tree *tree, id_type id) /*except!*/ : EventHandlerStack(tree->callbacks()), m_tree(tree), m_curr_doc()
     {
         reset(tree, id);
@@ -792,7 +792,7 @@ public:
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)
 C4_SUPPRESS_WARNING_MSVC_POP
 C4_SUPPRESS_WARNING_GCC_POP
 

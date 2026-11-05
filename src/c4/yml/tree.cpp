@@ -1915,10 +1915,9 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
         }
     }
 
-    if(ty.is_container())
+    if(ty.is_container() && _location_from_cont(parser, node, loc))
     {
-        if(_location_from_cont(parser, node, loc))
-            return true;
+        return true;
     }
 
     if(type(node) != NOTYPE && level == 0)
@@ -1926,29 +1925,20 @@ bool Tree::_location_from_node(Parser const& parser, id_type node, Location *C4_
         // try the prev sibling
         {
             const id_type prev = prev_sibling(node);
-            if(prev != NONE)
-            {
-                if(_location_from_node(parser, prev, loc, level+1))
-                    return true;
-            }
+            if(prev != NONE && _location_from_node(parser, prev, loc, level+1))
+                return true;
         }
         // try the next sibling
         {
             const id_type next = next_sibling(node);
-            if(next != NONE)
-            {
-                if(_location_from_node(parser, next, loc, level+1))
-                    return true;
-            }
+            if(next != NONE && _location_from_node(parser, next, loc, level+1))
+                return true;
         }
         // try the parent
         {
             const id_type parent = this->parent(node);
-            if(parent != NONE)
-            {
-                if(_location_from_node(parser, parent, loc, level+1))
-                    return true;
-            }
+            if(parent != NONE && _location_from_node(parser, parent, loc, level+1))
+                return true;
         }
     }
     return false;

@@ -17,7 +17,7 @@
 #   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -232,7 +232,7 @@ struct FilterResultExtending;
 typedef enum BlockChomp_ { // NOLINT
     CHOMP_CLIP,    //!< single newline at end (default)
     CHOMP_STRIP,   //!< no newline at end     (-)
-    CHOMP_KEEP     //!< all newlines from end (+)
+    CHOMP_KEEP,    //!< all newlines from end (+)
 } BlockChomp_e;
 struct ScannedBlock
 {
@@ -299,7 +299,7 @@ public:
     /** @name construction and assignment */
     /** @{ */
 
-    ParseEngine(EventHandler *evt_handler, ParserOptions const& opts={});
+    ParseEngine(EventHandler *evt_handler, ParserOptions const& opts={}); // NOLINT
     ~ParseEngine() noexcept;
 
     ParseEngine(ParseEngine &&) noexcept;
@@ -777,7 +777,7 @@ C4_SUPPRESS_WARNING_GCC_POP
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)

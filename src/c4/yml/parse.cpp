@@ -116,17 +116,17 @@ struct TmpParser
     Handler handler;
     Parser  parser;
     // assumes checks above were done prior to instantiation
-    TmpParser(ParserOptions const& opts={})
+    TmpParser(ParserOptions const& opts={}) // NOLINT
         : handler(get_callbacks())
         , parser(&handler, opts)
     {
     }
-    TmpParser(Tree* tree, ParserOptions const& opts={})
+    TmpParser(Tree* tree, ParserOptions const& opts={}) // NOLINT
         : handler(tree->callbacks())
         , parser(&handler, opts)
     {
     }
-    TmpParser(NodeRef &node, ParserOptions const& opts={})
+    TmpParser(NodeRef &node, ParserOptions const& opts={}) // NOLINT
         : handler(node.tree()->callbacks())
         , parser(&handler, opts)
     {

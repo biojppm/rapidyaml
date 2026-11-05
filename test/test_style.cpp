@@ -13,6 +13,8 @@
 
 RYML_DEFINE_TEST_MAIN()
 
+// NOLINTBEGIN(*-signed-bitwise,*avoid-c-style-cast)
+
 namespace c4 {
 namespace yml {
 
