@@ -86,8 +86,8 @@ TEST(merge, dst_scalar_keeps_style)
 {
     Tree dst = parse_in_arena("a: b");
     const Tree src = parse_in_arena("'a': 'c'");
-    EXPECT_EQ(dst["a"], "b");
-    EXPECT_EQ(src["a"], "c");
+    EXPECT_EQ(dst["a"].val(), "b");
+    EXPECT_EQ(src["a"].val(), "c");
     EXPECT_TRUE(dst["a"].type().is_key_plain());
     EXPECT_TRUE(dst["a"].type().is_val_plain());
     EXPECT_TRUE(src["a"].type().is_key_squo());
@@ -96,8 +96,8 @@ TEST(merge, dst_scalar_keeps_style)
     _c4dbg_tree("dst", dst);
     dst.merge_with(&src);
     _c4dbg_tree("merged", dst);
-    EXPECT_EQ(dst["a"], "c");
-    EXPECT_EQ(src["a"], "c");
+    EXPECT_EQ(dst["a"].val(), "c");
+    EXPECT_EQ(src["a"].val(), "c");
     EXPECT_TRUE(dst["a"].type().is_key_plain());
     EXPECT_TRUE(dst["a"].type().is_val_plain());
 }

@@ -41,7 +41,7 @@ public:
      * @param args arguments to be forwarded to the constructor of the writer.
      */
     template<class ...WriterArgs>
-    Emitter(EmitOptions const& opts, WriterArgs &&...args) noexcept
+    Emitter(EmitOptions const& opts, WriterArgs &&...args) noexcept // NOLINT
         : Writer(std::forward<WriterArgs>(args)...)
         , m_tree()
         , m_opts(opts)

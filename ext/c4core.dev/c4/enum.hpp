@@ -28,7 +28,7 @@ typedef enum { // NOLINT(cert-int09-c,readability-enum-initial-value)
     EOFFS_NONE = 0,  ///< no offset
     EOFFS_CLS = 1,   ///< get the enum offset for the class name. @see eoffs_cls()
     EOFFS_PFX = 2,   ///< get the enum offset for the enum prefix. @see eoffs_pfx()
-    EOFFS_LAST_      ///< reserved
+    EOFFS_LAST_,     ///< reserved
 } EnumOffsetType;
 
 
@@ -59,7 +59,7 @@ public:
 public:
 
     template<size_t N>
-    EnumSymbols(Sym const (&p)[N]) : m_symbols(p), m_num(N) {}
+    EnumSymbols(Sym const (&p)[N]) : m_symbols(p), m_num(N) {} // NOLINT
     EnumSymbols(Sym const *p, size_t N) : m_symbols(p), m_num(N) {}
 
     size_t size() const { return m_num; }

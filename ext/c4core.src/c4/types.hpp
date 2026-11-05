@@ -97,7 +97,7 @@ struct cref_uses_val
         std::is_pod<T>::value
 #endif
         &&
-        sizeof(T) <= sizeof(size_t))) };
+        sizeof(T) <= sizeof(size_t))), };
 };
 /** utility macro to override the default behaviour for c4::fastcref<T>
  @see fastcref */
@@ -160,7 +160,7 @@ struct Padded : public T
 {
     using T::T;
     using T::operator=;
-    Padded(T const& val) : T(val) {}
+    Padded(T const& val) : T(val) {} // NOLINT
     Padded(T && val) : T(std::forward<T>(val)) {} // NOLINT
     char Padded_pad_space_[BytesToPadAtEnd];
 };
@@ -171,7 +171,7 @@ struct Padded<T, 0> : public T
 {
     using T::T;
     using T::operator=;
-    Padded(T const& val) : T(val) {}
+    Padded(T const& val) : T(val) {} // NOLINT
     Padded(T && val) : T(std::forward<T>(val)) {} // NOLINT
 };
 

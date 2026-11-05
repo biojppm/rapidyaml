@@ -166,7 +166,7 @@ struct RYML_EXPORT ReadResult
 public:
 
     /** convert to boolean to signify success/error */
-    operator bool() const noexcept { return node == VALID; }
+    operator bool() const noexcept { return node == VALID; } // NOLINT
 
 public:
 
@@ -232,10 +232,10 @@ struct RYML_EXPORT Location
     size_t col;    ///< column
     csubstr name;  ///< name of the file
 
-    operator bool () const noexcept { return !name.empty() || line != npos || offset != npos || col != npos; }
+    explicit operator bool () const noexcept { return !name.empty() || line != npos || offset != npos || col != npos; }
 
     C4_NO_INLINE Location() noexcept : offset(npos), line(npos), col(npos), name() {}
-    C4_NO_INLINE Location(                         size_t l          ) noexcept : offset(npos), line(l), col(npos), name() {}
+    C4_NO_INLINE Location(                         size_t l          ) noexcept : offset(npos), line(l), col(npos), name() {} // NOLINT
     C4_NO_INLINE Location(                         size_t l, size_t c) noexcept : offset(npos), line(l), col(c   ), name() {}
     C4_NO_INLINE Location(               size_t b, size_t l, size_t c) noexcept : offset(b   ), line(l), col(c   ), name() {}
     C4_NO_INLINE Location(    csubstr n,           size_t l          ) noexcept : offset(npos), line(l), col(npos), name(n) {}
@@ -260,7 +260,7 @@ struct RYML_EXPORT ErrorDataBasic
 {
     Location location; ///< location where the error was detected (may be from YAML or C++ source code)
     ErrorDataBasic() noexcept = default;
-    ErrorDataBasic(Location const& cpploc_) noexcept : location(cpploc_) {}
+    ErrorDataBasic(Location const& cpploc_) noexcept : location(cpploc_) {} // NOLINT
 };
 
 /** Data for a parse error.

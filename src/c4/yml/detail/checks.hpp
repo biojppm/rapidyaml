@@ -113,13 +113,10 @@ inline void check_invariants(Tree const& t, id_type node)
     }
     C4_CHECK(count == t.num_children(node));
 
-    if(n.m_prev_sibling == NONE && n.m_next_sibling == NONE)
+    if(n.m_prev_sibling == NONE && n.m_next_sibling == NONE && n.m_parent != NONE)
     {
-        if(n.m_parent != NONE)
-        {
-            C4_CHECK(t.num_children(n.m_parent) == 1);
-            C4_CHECK(t.num_siblings(node) == 1);
-        }
+        C4_CHECK(t.num_children(n.m_parent) == 1);
+        C4_CHECK(t.num_siblings(node) == 1);
     }
 
     if(node == t.root_id())

@@ -308,7 +308,7 @@ C4_NO_INLINE void location_format_with_context(DumpFn &&dumpfn,
             print_line_maybe_truncated(contents);
             pr("\n");
         }
-        assert(location.col == npos || location.col >= first_col_to_show);
+        assert(location.col == npos || location.col >= first_col_to_show); // NOLINT
         print_cursor(location.col - first_col_to_show);
     }
 }

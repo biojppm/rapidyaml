@@ -1,7 +1,7 @@
 #include "test_lib/test_case.hpp"
 #include "./test_events_ints_helpers.hpp"
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -471,4 +471,4 @@ void test_events_ints_invariants(csubstr parsed_yaml,
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)

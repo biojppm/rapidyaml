@@ -94,10 +94,10 @@ void test_ints()
             EXPECT_EQ(out, val);
             ++pos;
         }
-        EXPECT_EQ(parsed["versions"][0], "0.1");
-        EXPECT_EQ(parsed["versions"][1], "0.1.2");
-        EXPECT_EQ(parsed["versions"][2], "0.1.2.3");
-        EXPECT_EQ(parsed["versions"][3], "0.1.2.3.4");
+        EXPECT_EQ(parsed["versions"][0].val(), "0.1");
+        EXPECT_EQ(parsed["versions"][1].val(), "0.1.2");
+        EXPECT_EQ(parsed["versions"][2].val(), "0.1.2.3");
+        EXPECT_EQ(parsed["versions"][3].val(), "0.1.2.3.4");
     }
     {
         std::string emitted = emitrs_json<std::string>(t);
@@ -124,10 +124,10 @@ void test_ints()
             EXPECT_EQ(out, val);
             ++pos;
         }
-        EXPECT_EQ(parsed["versions"][0], "0.1");
-        EXPECT_EQ(parsed["versions"][1], "0.1.2");
-        EXPECT_EQ(parsed["versions"][2], "0.1.2.3");
-        EXPECT_EQ(parsed["versions"][3], "0.1.2.3.4");
+        EXPECT_EQ(parsed["versions"][0].val(), "0.1");
+        EXPECT_EQ(parsed["versions"][1].val(), "0.1.2");
+        EXPECT_EQ(parsed["versions"][2].val(), "0.1.2.3");
+        EXPECT_EQ(parsed["versions"][3].val(), "0.1.2.3.4");
     }
     C4_SUPPRESS_WARNING_GCC_POP
 }

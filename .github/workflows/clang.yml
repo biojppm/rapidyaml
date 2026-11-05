@@ -329,43 +329,43 @@ jobs:
       matrix:
         include:
         - std: 23
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 23
-          cxx: 22
+          cxx: 23
           bits: 32
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 20
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 17
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 14
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 11
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 11
-          cxx: 22
+          cxx: 23
           bits: 32
           vg: 'ON'
           img: 24.04
@@ -558,43 +558,43 @@ jobs:
       matrix:
         include:
         - std: 23
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 23
-          cxx: 22
+          cxx: 23
           bits: 32
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 20
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 17
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 14
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 11
-          cxx: 22
+          cxx: 23
           bits: 64
           vg: 'ON'
           img: 24.04
           flags: ' -Wreserved-identifier '
         - std: 11
-          cxx: 22
+          cxx: 23
           bits: 32
           vg: 'ON'
           img: 24.04
@@ -748,6 +748,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - std: 11
+          cxx: 22
+          bits: 64
+          vg: 'OFF'
+          img: 24.04
+          flags: ' -Wreserved-identifier '
         - std: 11
           cxx: 21
           bits: 64
@@ -1031,6 +1037,12 @@ jobs:
       matrix:
         include:
         - std: 11
+          cxx: 22
+          bits: 64
+          vg: 'OFF'
+          img: 24.04
+          flags: ' -Wreserved-identifier '
+        - std: 11
           cxx: 21
           bits: 64
           vg: 'OFF'
@@ -1276,35 +1288,35 @@ jobs:
         include:
         - bt: asan
           std: 11
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
         - bt: lsan
           std: 11
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
         - bt: tsan
           std: 11
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
         - bt: ubsan
           std: 11
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
         - bt: asan
           std: 23
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
         - bt: lsan
           std: 23
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
         - bt: tsan
           std: 23
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
         - bt: ubsan
           std: 23
-          cxx: clang++-22
+          cxx: clang++-23
           bitlinks: static64
     env:
       STD: ${{matrix.std}}

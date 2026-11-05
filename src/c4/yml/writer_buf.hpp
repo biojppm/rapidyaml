@@ -22,7 +22,7 @@ struct RYML_EXPORT WriterBuf
     substr m_buf;
     size_t m_pos;
 
-    WriterBuf(substr sp) noexcept : m_buf(sp), m_pos(0) {}
+    WriterBuf(substr sp) noexcept : m_buf(sp), m_pos(0) {} // NOLINT
 
 public:
 

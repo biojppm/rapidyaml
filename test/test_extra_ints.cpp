@@ -4,7 +4,7 @@
 
 RYML_DEFINE_TEST_MAIN()
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -707,4 +707,4 @@ Case const* get_case(csubstr)
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)

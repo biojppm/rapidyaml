@@ -73,7 +73,7 @@ C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
 C4_SUPPRESS_WARNING_GCC("-Wduplicated-branches")
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise,cppcoreguidelines-avoid-goto,hicpp-avoid-goto,hicpp-multiway-paths-covered,modernize-avoid-c-style-cast)
+// NOLINTBEGIN(*-signed-bitwise,*-avoid-goto,hicpp-multiway-paths-covered,modernize-avoid-c-style-cast,*-unhandled-code-path)
 
 namespace c4 {
 namespace yml {
@@ -1436,7 +1436,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
         {
             const char curr = s.str[i];
             //_c4dbgpf("[{}]='{}'", i, _c4prc(curr));
-            switch(curr)
+            switch(curr) // NOLINT
             {
             case ':':
                 _c4dbgpf("[{}]: got suspicious ':'", i);
@@ -1496,7 +1496,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
         else if(next_indentation == 0 && next_peeked.len > 0)
         {
             const char first = next_peeked.str[0];
-            switch(first)
+            switch(first) // NOLINT
             {
             case '-':
                 _c4dbgpf("doc begin? peeked={}", prs_(next_peeked, size_t(3)));
@@ -1958,7 +1958,7 @@ void ParseEngine<EventHandler>::_start_doc_suddenly()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_end_stream()
 {
-    const char *errmsg = nullptr;
+    const char *errmsg;
     _c4dbgpf("end_stream, level={} node_id={}", m_evt_handler->m_curr->level, m_evt_handler->m_curr->node_id);
     if(has_any(RFLOW))
     {
@@ -1981,15 +1981,12 @@ void ParseEngine<EventHandler>::_end_stream()
     }
     else if(has_all(RTOP|RUNK))
     {
-        if(m_pending_anchors.num_entries || m_pending_tags.num_entries)
+        if(m_doc_empty && (m_pending_anchors.num_entries || m_pending_tags.num_entries))
         {
-            if(m_doc_empty)
-            {
-                m_evt_handler->begin_doc();
-                _handle_annotations_before_blck_val_scalar();
-                m_evt_handler->set_val_scalar_plain_empty();
-                m_evt_handler->end_doc();
-            }
+            m_evt_handler->begin_doc();
+            _handle_annotations_before_blck_val_scalar();
+            m_evt_handler->set_val_scalar_plain_empty();
+            m_evt_handler->end_doc();
         }
     }
     m_evt_handler->end_stream();
@@ -3113,7 +3110,7 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
             {
                 const char curr = proc.curr();
                 _c4dbgchomp("curr='{}'", _c4prc(curr));
-                switch(curr)
+                switch(curr) // NOLINT
                 {
                 case '\n':
                     {
@@ -3166,7 +3163,7 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
         {
             const char curr = proc.curr();
             _c4dbgchomp("CLIP: '{}'", _c4prc(curr));
-            switch(curr)
+            switch(curr) // NOLINT
             {
             case '\n':
             {
@@ -3197,7 +3194,7 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
         {
             const char curr = proc.curr();
             _c4dbgchomp("KEEP: '{}'", _c4prc(curr));
-            switch(curr)
+            switch(curr) // NOLINT
             {
             case '\n':
                 _c4dbgchomp("copy newline!", curr);
@@ -8961,7 +8958,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise,cppcoreguidelines-avoid-goto,hicpp-avoid-goto,hicpp-multiway-paths-covered,modernize-avoid-c-style-cast)
+// NOLINTEND(*-signed-bitwise,*-avoid-goto,hicpp-multiway-paths-covered,modernize-avoid-c-style-cast,*-unhandled-code-path)
 
 #undef _c4dbgnextline
 #undef _c4assert

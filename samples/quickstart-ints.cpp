@@ -189,7 +189,7 @@ bool parse_args(int argc, const char **argv, Args *args, int &status)
 
 //-----------------------------------------------------------------------------
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 int main(int argc, const char *argv[])
 {
@@ -347,4 +347,4 @@ int main(int argc, const char *argv[])
     return success ? 0 : 1;
 }
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)

@@ -194,7 +194,21 @@
 #   error "please define CPU architecture macros when compiling with swig"
 
 #else
-#   error "unknown CPU architecture"
+/* These macros are defined on (other) architectures: m68k, c60x, etc */
+#   ifdef __SIZEOF_POINTER__
+#       define C4_WORDSIZE (__SIZEOF_POINTER__)
+#   elif defined(__LP64__) || defined(_LP64)
+#       define C4_WORDSIZE 8
+#   else
+#       define C4_WORDSIZE 4
+#   endif
+#   if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#       define C4_BYTE_ORDER C4EB_
+#   elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#       define C4_BYTE_ORDER C4EL_
+#   else
+#       error "unknown arch endianness"
+#   endif
 #endif
 
 #define C4_LITTLE_ENDIAN (C4_BYTE_ORDER == C4EL_)

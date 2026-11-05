@@ -10,7 +10,14 @@
 // NOLINTBEGIN(cert-dcl58-cpp)
 
 // forward declarations for std::vector
-#if defined(__GLIBCXX__) || defined(__GLIBCPP__) || defined(_MSC_VER)
+#if defined(_LIBCPP_ABI_NAMESPACE)
+namespace std {
+inline namespace _LIBCPP_ABI_NAMESPACE {
+template<typename> class allocator; // NOLINT
+template<typename T, typename Alloc> class vector; // NOLINT
+} // namespace _LIBCPP_ABI_NAMESPACE
+} // namespace std
+#elif defined(__GLIBCXX__) || defined(__GLIBCPP__) || defined(_MSC_VER)
 #if defined(_MSC_VER)
 __pragma(warning(push))
 __pragma(warning(disable : 4643))
@@ -28,13 +35,6 @@ template<typename T, typename Alloc> class vector; // NOLINT
 #if defined(_MSC_VER)
 __pragma(warning(pop))
 #endif
-#elif defined(_LIBCPP_ABI_NAMESPACE)
-namespace std {
-inline namespace _LIBCPP_ABI_NAMESPACE {
-template<typename> class allocator; // NOLINT
-template<typename T, typename Alloc> class vector; // NOLINT
-} // namespace _LIBCPP_ABI_NAMESPACE
-} // namespace std
 #else
 #error "unknown standard library"
 #endif

@@ -18,7 +18,7 @@
 #endif
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
+// NOLINTBEGIN(*-signed-bitwise,*avoid-c-style-cast)
 
 namespace c4 {
 namespace yml {
@@ -319,7 +319,7 @@ RYML_EXPORT evt_size estimate_events_ints_size(csubstr src);
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
@@ -493,7 +493,7 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerInts(c4::yml::Callbacks const& cb) noexcept
+    EventHandlerInts(c4::yml::Callbacks const& cb) noexcept // NOLINT
         : EventHandlerStack(cb)
     {
         reset(substr{}, substr{}, nullptr, 0);
@@ -502,6 +502,11 @@ public:
         : EventHandlerInts(c4::yml::get_callbacks())
     {
     }
+    ~EventHandlerInts() noexcept = default;
+    EventHandlerInts(EventHandlerInts &&) = default;
+    EventHandlerInts(EventHandlerInts const&) = delete;
+    EventHandlerInts& operator=(EventHandlerInts &&) = default;
+    EventHandlerInts& operator=(EventHandlerInts const&) = delete;
 
     void reset(substr str, substr arena, ievt::evt_bits *dst, evt_size dst_size)
     {
@@ -1318,7 +1323,7 @@ public:
 } // namespace c4
 
 
-// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
-C4_SUPPRESS_WARNING_GCC_CLANG_POP
+// NOLINTEND(*-signed-bitwise,*avoid-c-style-cast)
+C4_SUPPRESS_WARNING_POP
 
 #endif /* C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_ */

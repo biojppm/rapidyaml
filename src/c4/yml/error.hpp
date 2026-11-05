@@ -45,7 +45,7 @@ struct SubstrWriter_
 {
     substr buf;
     size_t pos;
-    SubstrWriter_(substr buf_, size_t pos_=0) noexcept : buf(buf_), pos(pos_) { C4_ASSERT(buf.str || !buf.len); }
+    SubstrWriter_(substr buf_, size_t pos_=0) noexcept : buf(buf_), pos(pos_) { C4_ASSERT(buf.str || !buf.len); } // NOLINT
     void append(csubstr s) RYML_NOEXCEPT
     {
         C4_ASSERT(!s.overlaps(buf));
