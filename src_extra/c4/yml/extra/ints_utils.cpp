@@ -63,7 +63,7 @@ size_t to_str(substr buf, ievt::evt_bits flags) noexcept
     detail::SubstrWriter_ writer(buf);
     for(const FlagSym sym : flag_syms_)
     {
-        if(flags & sym.flags)
+        if((flags & sym.flags) == sym.flags)
         {
             if(writer.pos)
                 writer.append('|');

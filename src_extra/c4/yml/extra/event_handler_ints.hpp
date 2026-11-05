@@ -1006,131 +1006,21 @@ public:
      * See the documentation for @ref doc_event_handlers, which
      * has important notes about this event.
      */
-    C4_NO_INLINE void actually_val_is_first_key_of_new_map_flow()
+    void actually_val_is_first_key_of_new_map_flow()
     {
         _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_flow", m_evt_pos, m_evt_size, m_evt_prev);
-        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_pos > 2);
-        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_prev > 0);
-        // BEFORE
-        // ... flag start len (free)
-        //     |              |
-        //     prev           curr
-        // AFTER
-        // ... BMAP flag start len (free)
-        //          |              |
-        //          prev           curr
-        if(m_evt_pos < m_evt_size)
-        {
-            if(m_evt[m_evt_prev] & ievt::WSTR)
-            {
-                _c4dbgpf("{}/{}: WSTR", m_evt_pos, m_evt_size);
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_prev > 0);
-                evt_size pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
-                if(m_evt_pos + 1 < m_evt_size)
-                {
-                    for(evt_size i = pos; i <= m_evt_prev; i = _next(i))
-                    {
-                        m_evt[i] |= ievt::KEY_;
-                        m_evt[i] &= ~ievt::VAL_;
-                    }
-                    evt_size num_move = m_evt_pos + 1 - pos;
-                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
-                    memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
-                }
-                m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
-                // move PSTR to prev
-                if(m_evt[pos + 1] & ievt::PSTR)
-                {
-                    m_evt[pos    ] |= ievt::PSTR;
-                    m_evt[pos + 1] &= ~ievt::PSTR;
-                }
-            }
-            else
-            {
-                _c4dbgpf("{}/{}: container key", m_evt_pos, m_evt_size);
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
-                evt_size pos;
-                _c4dbgpf("{}/{}: find matching open for {}", m_evt_pos, m_evt_size, m_evt_prev);
-                if((m_evt[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
-                {
-                    pos = _find_matching_open(ievt::BMAP, ievt::EMAP, m_evt_prev);
-                }
-                else
-                {
-                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::ESEQ));
-                    pos = _find_matching_open(ievt::BSEQ, ievt::ESEQ, m_evt_prev);
-                }
-                _c4dbgpf("{}/{}: matching open for {}={}", m_evt_pos, m_evt_size, m_evt_prev, pos);
-                RYML_CHECK_BASIC_CB_(m_stack.m_callbacks, pos >= 0); // internal error
-                RYML_CHECK_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_prev); // internal error
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::ESEQ) == (m_evt[m_evt_prev] & ievt::BSEQ));
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::EMAP) == (m_evt[m_evt_prev] & ievt::BMAP));
-                // shift the array one position to the right, starting at pos
-                evt_size posp1 = pos + 1;
-                if(m_evt_pos + 1 < m_evt_size)
-                {
-                    evt_size num_move = m_evt_pos + 1 - pos;
-                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
-                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
-                }
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, posp1 < m_evt_pos);
-                // start the map
-                m_evt[pos] = ievt::BMAP|ievt::FLOW|ievt::VAL_;
-                // set next as key, not val
-                m_evt[posp1] |= ievt::KEY_;
-                m_evt[posp1] &= ~ievt::VAL_;
-                // move PSTR to pos
-                if(m_evt[posp1] & ievt::PSTR)
-                {
-                    m_evt[pos] |= ievt::PSTR;
-                    m_evt[posp1] &= ~ievt::PSTR;
-                }
-            }
-        }
-        m_curr->evt_id = m_evt_pos - 2;
-        ++m_evt_prev;
-        ++m_evt_pos;
-        ryml_enable_(c4::yml::MAP|c4::yml::FLOW_SL);
-        _push();
+        actually_val_is_first_key_of_new_map_(ievt::FLOW, c4::yml::MAP|c4::yml::FLOW_SL);
     }
 
-    /** like its flow counterpart, but this function can only be
-     * called after the end of a flow-val at root or doc level.
+    /** like its flow counterpart, but with block style.
      *
      * See the documentation for @ref doc_event_handlers, which has
      * important notes about this event.
      */
-    C4_NO_INLINE void actually_val_is_first_key_of_new_map_block()
+    void actually_val_is_first_key_of_new_map_block()
     {
         _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_block", m_evt_pos, m_evt_size, m_evt_prev);
-        if(m_evt_pos < m_evt_size)
-        {
-            // interpolate BMAP|VAL|BLCK after the last BDOC
-            evt_size pos = _find_last_bdoc(m_evt_pos);
-            if(pos >= 0)
-            {
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size);
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_pos);
-                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::BDOC) == ievt::BDOC);
-                if(m_evt_pos < m_evt_size)
-                {
-                    ++pos; // add 1 to write after BDOC
-                    evt_size num_move = m_evt_pos - pos;
-                    evt_size posp1 = pos + 1;
-                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, ((m_evt[pos] & ievt::BSEQ) == ievt::BSEQ) || ((m_evt[pos] & ievt::BMAP) == ievt::BMAP));
-                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
-                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, 0 == (m_evt[posp1] & ievt::PSTR));
-                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
-                    m_evt[pos] = ievt::VAL_|ievt::BMAP|ievt::BLCK;
-                    m_evt[posp1] &= ~ievt::VAL_;
-                    m_evt[posp1] |= ievt::KEY_;
-                }
-            }
-        }
-        ++m_curr->evt_id;
-        ++m_evt_prev;
-        ++m_evt_pos;
-        _push();
+        actually_val_is_first_key_of_new_map_(ievt::BLCK, c4::yml::MAP|c4::yml::BLOCK);
     }
 
     /** @} */
@@ -1181,6 +1071,10 @@ public:
         _stack_pop();
     }
 
+    C4_ALWAYS_INLINE void enable_(c4::yml::type_bits bits) noexcept
+    {
+        m_curr->evt_type |= bits;
+    }
     template<c4::yml::type_bits bits> C4_ALWAYS_INLINE void enable_() noexcept
     {
         m_curr->evt_type |= bits;
@@ -1250,17 +1144,92 @@ public:
         return m_src.first(0);
     }
 
-    evt_size _find_last_bdoc(evt_size pos) const
+    C4_NO_INLINE void actually_val_is_first_key_of_new_map_(ievt::evt_bits sty, type_bits stack_bits)
     {
-        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_size); // it's safe to read from the array
-        while(pos >= 0)
+        _c4dbgpf("{}/{}: prev={} actually_val_is_first_key_of_new_map_flow", m_evt_pos, m_evt_size, m_evt_prev);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_pos > 2);
+        RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_prev > 0);
+        // BEFORE
+        // ... flag start len (free)
+        //     |              |
+        //     prev           curr
+        // AFTER
+        // ... BMAP flag start len (free)
+        //          |              |
+        //          prev           curr
+        if(m_evt_pos < m_evt_size)
         {
-            ievt::evt_bits e = m_evt[pos];
-            if((e & ievt::BDOC) == ievt::BDOC)
-                return pos;
-            pos -= (e & ievt::PSTR) ? 3 : 1;
+            if(m_evt[m_evt_prev] & ievt::WSTR)
+            {
+                _c4dbgpf("{}/{}: WSTR", m_evt_pos, m_evt_size);
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_evt_prev > 0);
+                evt_size pos = _extend_left_to_include_tag_and_or_anchor(m_evt_prev);
+                if(m_evt_pos + 1 < m_evt_size)
+                {
+                    for(evt_size i = pos; i <= m_evt_prev; i = _next(i))
+                    {
+                        m_evt[i] |= ievt::KEY_;
+                        m_evt[i] &= ~ievt::VAL_;
+                    }
+                    evt_size num_move = m_evt_pos + 1 - pos;
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
+                    memmove(m_evt + pos + 1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
+                }
+                m_evt[pos] = ievt::BMAP|sty|ievt::VAL_;
+                // move PSTR to prev
+                if(m_evt[pos + 1] & ievt::PSTR)
+                {
+                    m_evt[pos    ] |= ievt::PSTR;
+                    m_evt[pos + 1] &= ~ievt::PSTR;
+                }
+            }
+            else
+            {
+                _c4dbgpf("{}/{}: container key", m_evt_pos, m_evt_size);
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_evt_prev] & (ievt::EMAP|ievt::ESEQ)));
+                evt_size pos;
+                _c4dbgpf("{}/{}: find matching open for {}", m_evt_pos, m_evt_size, m_evt_prev);
+                if((m_evt[m_evt_prev] & ievt::EMAP) == ievt::EMAP)
+                {
+                    pos = _find_matching_open(ievt::BMAP, ievt::EMAP, m_evt_prev);
+                }
+                else
+                {
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[m_evt_prev] & ievt::ESEQ));
+                    pos = _find_matching_open(ievt::BSEQ, ievt::ESEQ, m_evt_prev);
+                }
+                _c4dbgpf("{}/{}: matching open for {}={}", m_evt_pos, m_evt_size, m_evt_prev, pos);
+                RYML_CHECK_BASIC_CB_(m_stack.m_callbacks, pos >= 0); // internal error
+                RYML_CHECK_BASIC_CB_(m_stack.m_callbacks, pos < m_evt_prev); // internal error
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::ESEQ) == (m_evt[m_evt_prev] & ievt::BSEQ));
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, (m_evt[pos] & ievt::EMAP) == (m_evt[m_evt_prev] & ievt::BMAP));
+                // shift the array one position to the right, starting at pos
+                evt_size posp1 = pos + 1;
+                if(m_evt_pos + 1 < m_evt_size)
+                {
+                    evt_size num_move = m_evt_pos + 1 - pos;
+                    RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, num_move > 0);
+                    memmove(m_evt + posp1, m_evt + pos, (size_t)num_move * sizeof(ievt::evt_bits));
+                }
+                RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, posp1 < m_evt_pos);
+                // start the map
+                m_evt[pos] = ievt::BMAP|sty|ievt::VAL_;
+                // set next as key, not val
+                m_evt[posp1] |= ievt::KEY_;
+                m_evt[posp1] &= ~ievt::VAL_;
+                // move PSTR to pos
+                if(m_evt[posp1] & ievt::PSTR)
+                {
+                    m_evt[pos] |= ievt::PSTR;
+                    m_evt[posp1] &= ~ievt::PSTR;
+                }
+            }
         }
-        return -1; // LCOV_EXCL_LINE
+        m_curr->evt_id = m_evt_pos - 2;
+        ++m_evt_prev;
+        ++m_evt_pos;
+        enable_(stack_bits);
+        _push();
     }
 
     evt_size _find_matching_open(ievt::evt_bits open, ievt::evt_bits close, evt_size pos) const
