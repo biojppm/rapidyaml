@@ -240,7 +240,7 @@ public:
     /// convert automatically from substr (of C) to csubstr (of const C)
     template<class U=C>
     C4_ALWAYS_INLINE operator
-    typename std::enable_if<!std::is_const<U>::value, ro_substr const&>::type () const noexcept
+    typename std::enable_if<!std::is_const<U>::value, ro_substr const&>::type () const noexcept // NOLINT
     {
         return *(ro_substr const*)this; // don't call the str+len ctor because it does a check
     }
@@ -256,7 +256,7 @@ public:
 
     C4_ALWAYS_INLINE basic_substring(basic_substring const&) noexcept = default;
     C4_ALWAYS_INLINE basic_substring(basic_substring     &&) noexcept = default;
-    C4_ALWAYS_INLINE basic_substring(std::nullptr_t) noexcept : str(nullptr), len(0) {}
+    C4_ALWAYS_INLINE basic_substring(std::nullptr_t) noexcept : str(nullptr), len(0) {} // NOLINT
 
     C4_ALWAYS_INLINE basic_substring& operator= (basic_substring const&) noexcept = default;
     C4_ALWAYS_INLINE basic_substring& operator= (basic_substring     &&) noexcept = default;
@@ -275,7 +275,7 @@ public:
      * @warning the input string need not be zero terminated, but the
      * length is taken as if the string was zero terminated */
     template<size_t N>
-    C4_ALWAYS_INLINE constexpr basic_substring(C (&s_)[N]) noexcept : str(s_), len(N-1) {}
+    C4_ALWAYS_INLINE constexpr basic_substring(C (&s_)[N]) noexcept : str(s_), len(N-1) {} // NOLINT
     /** Construct from a pointer and length.
      * @warning the input string need not be zero terminated. */
     C4_ALWAYS_INLINE basic_substring(C *s_, size_t len_) noexcept : str(s_), len(len_) { C4_ASSERT(str || !len_); }
@@ -290,7 +290,7 @@ public:
      * @see For a more detailed explanation on why the plain overloads cannot
      * coexist, see http://cplusplus.bordoon.com/specializeForCharacterArrays.html */
     template<class CharPtr, typename std::enable_if<can_borrow_char_ptr<CharPtr, C>::value, int>::type=0>
-    C4_ALWAYS_INLINE basic_substring(CharPtr s_) noexcept : str(s_), len(s_ ? strlen(s_) : 0) {}
+    C4_ALWAYS_INLINE basic_substring(CharPtr s_) noexcept : str(s_), len(s_ ? strlen(s_) : 0) {} // NOLINT
 
 
     /** Assign from an array.
@@ -788,7 +788,7 @@ public:
     {
         size_t which;
         size_t pos;
-        operator bool() const { return which != NONE && pos != npos; }
+        operator bool() const { return which != NONE && pos != npos; } // NOLINT
     };
 
     first_of_any_result first_of_any(ro_substr s0, ro_substr s1) const
@@ -1215,7 +1215,7 @@ public:
      * @note any leading or trailing whitespace will return false. */
     bool is_number() const
     {
-        if(empty() || (first_non_empty_span().empty()))
+        if(empty() || first_non_empty_span().empty())
             return false;
         if(first_uint_span() == *this)
             return true;
@@ -1230,7 +1230,7 @@ public:
      * @note any leading or trailing whitespace will return false. */
     bool is_real() const
     {
-        if(empty() || (first_non_empty_span().empty()))
+        if(empty() || first_non_empty_span().empty())
             return false;
         if(first_real_span() == *this)
             return true;
@@ -1241,7 +1241,7 @@ public:
      * @note any leading or trailing whitespace will return false. */
     bool is_integer() const
     {
-        if(empty() || (first_non_empty_span().empty()))
+        if(empty() || first_non_empty_span().empty())
             return false;
         if(first_uint_span() == *this)
             return true;
@@ -1254,7 +1254,7 @@ public:
      * @note any leading or trailing whitespace will return false. */
     bool is_unsigned_integer() const
     {
-        if(empty() || (first_non_empty_span().empty()))
+        if(empty() || first_non_empty_span().empty())
             return false;
         if(first_uint_span() == *this)
             return true;

@@ -22,7 +22,7 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wchar-subscripts")
 
 
-// NOLINTBEGIN(bugprone-signed-char-misuse,cert-str34-c,hicpp-signed-bitwise)
+// NOLINTBEGIN(bugprone-signed-char-misuse,cert-str34-c,*-signed-bitwise)
 
 namespace c4 {
 
@@ -262,7 +262,7 @@ void base64_encode_block32_term2_(const uint8_t *C4_RESTRICT data, char *C4_REST
 void base64_encode_block32_term1_(const uint8_t *C4_RESTRICT data, char *C4_RESTRICT encoded) noexcept
 {
     // MSB: |.|.|.|0| :LSB
-    const uint32_t val = ((uint32_t(data[0]) << 16));
+    const uint32_t val = (uint32_t(data[0]) << 16);
     encoded[0] = base64_sextet_to_char_[(val >> 18) & mask32];
     encoded[1] = base64_sextet_to_char_[(val >> 12) & mask32];
     encoded[2] = '=';
@@ -285,13 +285,13 @@ void base64_decode_block64_(const char *C4_RESTRICT encoded, dectype *C4_RESTRIC
         | (((uint64_t)base64_char_to_sextet_[encoded[4]]) << 18)
         | (((uint64_t)base64_char_to_sextet_[encoded[5]]) << 12)
         | (((uint64_t)base64_char_to_sextet_[encoded[6]]) <<  6)
-        | (((uint64_t)base64_char_to_sextet_[encoded[7]])      );
+        |  ((uint64_t)base64_char_to_sextet_[encoded[7]]);
     data[0] = (dectype)((val >> 40) & dmask64);
     data[1] = (dectype)((val >> 32) & dmask64);
     data[2] = (dectype)((val >> 24) & dmask64);
     data[3] = (dectype)((val >> 16) & dmask64);
     data[4] = (dectype)((val >>  8) & dmask64);
-    data[5] = (dectype)((val      ) & dmask64);
+    data[5] = (dectype)( val        & dmask64);
 }
 #endif
 C4_HOT void base64_decode_block32_(const char *C4_RESTRICT encoded, dectype *C4_RESTRICT data) noexcept
@@ -300,10 +300,10 @@ C4_HOT void base64_decode_block32_(const char *C4_RESTRICT encoded, dectype *C4_
           (((uint32_t)base64_char_to_sextet_[encoded[0]]) << 18)
         | (((uint32_t)base64_char_to_sextet_[encoded[1]]) << 12)
         | (((uint32_t)base64_char_to_sextet_[encoded[2]]) <<  6)
-        | (((uint32_t)base64_char_to_sextet_[encoded[3]])      );
+        |  ((uint32_t)base64_char_to_sextet_[encoded[3]]);
     data[0] = (dectype)((val >> 16) & dmask32);
     data[1] = (dectype)((val >>  8) & dmask32);
-    data[2] = (dectype)((val      ) & dmask32);
+    data[2] = (dectype)( val        & dmask32);
 }
 void base64_decode_block32_term1_(const char *C4_RESTRICT encoded, dectype *C4_RESTRICT data) noexcept
 {
@@ -500,6 +500,6 @@ bool base64_decode(char const* encoded_, size_t encoded_sz,
 
 } // namespace c4
 
-// NOLINTEND(bugprone-signed-char-misuse,cert-str34-c,hicpp-signed-bitwise)
+// NOLINTEND(bugprone-signed-char-misuse,cert-str34-c,*-signed-bitwise)
 
 C4_SUPPRESS_WARNING_POP

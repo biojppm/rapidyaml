@@ -103,7 +103,7 @@ void handle_error(srcloc where, const char *fmt, ...) // NOLINT
 #endif
     }
 
-    if(s_error_flags & ON_ERROR_CALLBACK)
+    if(s_error_flags & ON_ERROR_CALLBACK) // NOLINT
     {
         if(s_error_callback)
         {

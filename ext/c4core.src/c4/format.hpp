@@ -266,7 +266,7 @@ template<class T>
 struct overflow_checked_
 {
     static_assert(std::is_integral<T>::value, "range checking only for integral types");
-    C4_ALWAYS_INLINE overflow_checked_(T &val_) : val(&val_) {}
+    C4_ALWAYS_INLINE overflow_checked_(T &val_) : val(&val_) {} // NOLINT
     T *val;
 };
 template<class T>
@@ -355,7 +355,7 @@ struct real_
     T val;
     int precision;
     RealFormat_e fmt;
-    real_(T v, int prec=-1, RealFormat_e f=FTOA_FLOAT) : val(v), precision(prec), fmt(f)  {}
+    real_(T v, int prec=-1, RealFormat_e f=FTOA_FLOAT) : val(v), precision(prec), fmt(f)  {} // NOLINT
 };
 
 template<class T>

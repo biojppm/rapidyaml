@@ -639,7 +639,7 @@ typedef enum {
     tpc_both_empty,
     tpc_first_empty,
     tpc_second_empty,
-    tpc_general
+    tpc_general,
 } TightPairCase_e;
 
 template<class First, class Second>

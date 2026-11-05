@@ -33,15 +33,9 @@
 #       else
 #           if __has_include(<charconv>)
 #               include <charconv>
-#               if defined(__cpp_lib_to_chars)
-#                   define C4CORE_HAVE_STD_TOCHARS 1
-#                   define C4CORE_HAVE_STD_FROMCHARS 0 // glibc uses fast_float internally
-#                   define C4CORE_HAVE_FAST_FLOAT 1
-#               else
-#                   define C4CORE_HAVE_STD_TOCHARS 0
-#                   define C4CORE_HAVE_STD_FROMCHARS 0
-#                   define C4CORE_HAVE_FAST_FLOAT 1
-#               endif
+#               define C4CORE_HAVE_STD_TOCHARS 1
+#               define C4CORE_HAVE_STD_FROMCHARS 0 // prefer fast_float
+#               define C4CORE_HAVE_FAST_FLOAT 1
 #           else
 #               define C4CORE_HAVE_STD_TOCHARS 0
 #               define C4CORE_HAVE_STD_FROMCHARS 0
@@ -49,7 +43,7 @@
 #           endif
 #       endif
 #   else
-#       define C4CORE_HAVE_STD_TOCHARS 0
+#       define C4CORE_HAVE_STD_TOCHARS 0 // this will fall back to snprintf()
 #       define C4CORE_HAVE_STD_FROMCHARS 0
 #       define C4CORE_HAVE_FAST_FLOAT 1
 #   endif
@@ -126,7 +120,7 @@
 #define C4_NO_UBSAN_IOVRFLW
 #endif
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 
@@ -222,7 +216,7 @@ struct is_fixed_length
                        || std::is_same<T, uint32_t>::value
                        || std::is_same<T, uint64_t>::value)),
         /** true if T is one of the fixed length signed or unsigned types */
-        value = value_i || value_u
+        value = value_i || value_u,
     };
 };
 /** @endcond */
@@ -1023,7 +1017,7 @@ C4_NO_INLINE size_t _itoa2buf(substr buf, I radix) noexcept
     size_t pos = 0;
     if C4_LIKELY(buf.len > 0)
         buf.str[pos++] = '-';
-    switch(radix) // NOLINT(hicpp-multiway-paths-covered)
+    switch(radix) // NOLINT
     {
     case I(10):
         if C4_UNLIKELY(buf.len < digits_type::maxdigits_dec)
@@ -1062,7 +1056,7 @@ C4_NO_INLINE size_t _itoa2buf(substr buf, I radix, size_t num_digits) noexcept
     size_t needed_digits = 0;
     if C4_LIKELY(buf.len > 0)
         buf.str[pos++] = '-';
-    switch(radix) // NOLINT(hicpp-multiway-paths-covered)
+    switch(radix) // NOLINT
     {
     case I(10):
         // add 1 to account for -
@@ -1170,7 +1164,7 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix) noexcept
             ++pos;
         }
         unsigned digits = 0;
-        switch(radix) // NOLINT(hicpp-multiway-paths-covered)
+        switch(radix) // NOLINT
         {
         case T(10):
             digits = digits_dec(v);
@@ -1247,7 +1241,7 @@ C4_ALWAYS_INLINE size_t itoa(substr buf, T v, T radix, size_t num_digits) noexce
             ++pos;
         }
         unsigned total_digits = 0;
-        switch(radix) // NOLINT(hicpp-multiway-paths-covered)
+        switch(radix) // NOLINT
         {
         case T(10):
             total_digits = digits_dec(v);
@@ -1332,7 +1326,7 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix) noexcept
     C4_STATIC_ASSERT(std::is_unsigned<T>::value);
     C4_ASSERT(radix == 10 || radix == 16 || radix == 2 || radix == 8);
     unsigned digits = 0;
-    switch(radix) // NOLINT(hicpp-multiway-paths-covered)
+    switch(radix) // NOLINT
     {
     case T(10):
         digits = digits_dec(v);
@@ -1387,7 +1381,7 @@ C4_ALWAYS_INLINE size_t utoa(substr buf, T v, T radix, size_t num_digits) noexce
     C4_STATIC_ASSERT(std::is_unsigned<T>::value);
     C4_ASSERT(radix == 10 || radix == 16 || radix == 2 || radix == 8);
     unsigned total_digits = 0;
-    switch(radix) // NOLINT(hicpp-multiway-paths-covered)
+    switch(radix) // NOLINT
     {
     case T(10):
         total_digits = digits_dec(v);
@@ -2465,8 +2459,9 @@ C4_ALWAYS_INLINE size_t to_chars(substr buf, bool v) noexcept
 /** @ingroup doc_from_chars */
 inline bool from_chars(csubstr buf, bool * C4_RESTRICT v) noexcept
 {
-    if(buf.len == 1)
+    switch(buf.len) // NOLINT
     {
+    case 1:
         if(buf.str[0] == '0')
         {
             *v = false; return true;
@@ -2475,9 +2470,8 @@ inline bool from_chars(csubstr buf, bool * C4_RESTRICT v) noexcept
         {
             *v = true; return true;
         }
-    }
-    else if(buf.len == 4)
-    {
+        break;
+    case 4:
         if(((buf.str[0] == 't') && (0 == memcmp(buf.str + 1, "rue", 3)))
            ||
            ((buf.str[0] == 'T') && (0 == memcmp(buf.str + 1, "rue", 3) ||
@@ -2485,9 +2479,8 @@ inline bool from_chars(csubstr buf, bool * C4_RESTRICT v) noexcept
         {
             *v = true; return true;
         }
-    }
-    else if(buf.len == 5)
-    {
+        break;
+    case 5:
         if(((buf.str[0] == 'f') && (0 == memcmp(buf.str + 1, "alse", 4)))
            ||
            ((buf.str[0] == 'F') && (0 == memcmp(buf.str + 1, "alse", 4) ||
@@ -2495,6 +2488,7 @@ inline bool from_chars(csubstr buf, bool * C4_RESTRICT v) noexcept
         {
             *v = false; return true;
         }
+        break;
     }
     // fallback to c-style int bools
     int val = 0;
@@ -2698,7 +2692,7 @@ C4_ALWAYS_INLINE size_t to_chars(substr, std::nullptr_t) noexcept
 
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #   pragma warning(pop)

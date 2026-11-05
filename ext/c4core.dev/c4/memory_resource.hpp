@@ -38,7 +38,7 @@ C4CORE_EXPORT void set_memory_resource(MemoryResource* mr);
 struct C4CORE_EXPORT MemoryResource // NOLINT(*-member-functions)
 {
     const char *name = nullptr;
-    MemoryResource(const char *name_=nullptr) noexcept : name(name_) {}
+    MemoryResource(const char *name_=nullptr) noexcept : name(name_) {} // NOLINT
     virtual ~MemoryResource() noexcept = default;
 
     void* allocate(size_t sz, size_t alignment=alignof(max_align_t), void *hint=nullptr)
@@ -119,7 +119,7 @@ struct C4CORE_EXPORT DerivedMemoryResource : public MemoryResource
 {
 public:
 
-    DerivedMemoryResource(MemoryResource *mr_=nullptr) : m_local(mr_ ? mr_ : get_memory_resource()) {}
+    DerivedMemoryResource(MemoryResource *mr_=nullptr) : m_local(mr_ ? mr_ : get_memory_resource()) {} // NOLINT
 
 private:
 
@@ -154,10 +154,10 @@ struct C4CORE_EXPORT MemoryResourceSingleChunk_ : public DerivedMemoryResource
 
 public:
 
-    MemoryResourceSingleChunk_(MemoryResource *impl=nullptr) : DerivedMemoryResource(impl) { name = "linear_malloc"; }
+    MemoryResourceSingleChunk_(MemoryResource *impl=nullptr) : DerivedMemoryResource(impl) { name = "linear_malloc"; } // NOLINT
 
     /** initialize with owned memory, allocated from the given (or the global) memory resource */
-    MemoryResourceSingleChunk_(size_t sz, MemoryResource *impl=nullptr) : MemoryResourceSingleChunk_(impl) { acquire(sz); }
+    MemoryResourceSingleChunk_(size_t sz, MemoryResource *impl=nullptr) : MemoryResourceSingleChunk_(impl) { acquire(sz); } // NOLINT
     /** initialize with borrowed memory */
     MemoryResourceSingleChunk_(void *mem, size_t sz) : MemoryResourceSingleChunk_() { acquire(mem, sz); }
 
@@ -343,7 +343,7 @@ public:
         C4_ASSERT(m_resource != this);
         name = "MemoryResourceCounts";
     }
-    MemoryResourceCounts(MemoryResource *res) : m_resource(res)
+    MemoryResourceCounts(MemoryResource *res) : m_resource(res) // NOLINT
     {
         C4_ASSERT(m_resource != this);
         name = "MemoryResourceCounts";
@@ -389,7 +389,7 @@ struct C4CORE_EXPORT ScopedMemoryResource // NOLINT(*-member-functions)
 {
     MemoryResource *m_original;
 
-    ScopedMemoryResource(MemoryResource *r)
+    ScopedMemoryResource(MemoryResource *r) // NOLINT
     :
         m_original(get_memory_resource())
     {
@@ -414,7 +414,7 @@ struct C4CORE_EXPORT ScopedMemoryResourceCounts // NOLINT(*-member-functions)
     {
         set_memory_resource(&mr);
     }
-    ScopedMemoryResourceCounts(MemoryResource *m) : mr(m)
+    ScopedMemoryResourceCounts(MemoryResource *m) : mr(m) // NOLINT
     {
         set_memory_resource(&mr);
     }

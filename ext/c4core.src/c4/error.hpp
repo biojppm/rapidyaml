@@ -136,7 +136,7 @@ typedef enum : uint32_t {
      * Without effect otherwise. */
     ON_ERROR_THROW = 0x01u << 4u,
     /** the default flags. */
-    ON_ERROR_DEFAULTS = ON_ERROR_DEBUGBREAK|ON_ERROR_LOG|ON_ERROR_CALLBACK|ON_ERROR_ABORT
+    ON_ERROR_DEFAULTS = ON_ERROR_DEBUGBREAK|ON_ERROR_LOG|ON_ERROR_CALLBACK|ON_ERROR_ABORT,
 } ErrorFlags_e;
 using error_flags = uint32_t;
 C4CORE_EXPORT void set_error_flags(error_flags f);
@@ -194,7 +194,7 @@ struct C4CORE_EXPORT srcloc
     const char *file;
     const char *func;
     int line;
-    srcloc(const char *file_="", const char *func_="", int line_=0) noexcept : file(file_), func(func_), line(line_) {}
+    srcloc(const char *file_="", const char *func_="", int line_=0) noexcept : file(file_), func(func_), line(line_) {} // NOLINT
 };
 
 #ifdef __clang__

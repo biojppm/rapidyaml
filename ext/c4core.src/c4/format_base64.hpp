@@ -71,7 +71,7 @@ struct base64_wrapper_
 {
     blob_<CharOrConstChar> data;
     size_t *required_size;
-    base64_wrapper_(blob_<CharOrConstChar> blob, size_t *len_=nullptr) noexcept
+    base64_wrapper_(blob_<CharOrConstChar> blob, size_t *len_=nullptr) noexcept // NOLINT
         : data(blob)
         , required_size(len_)
     {}
@@ -83,7 +83,7 @@ struct base64_container_wrapper_
     using value_type = typename Container::value_type;
     Container *container;
     size_t *required_size;
-    base64_container_wrapper_(Container *c, size_t *len_=nullptr) noexcept
+    base64_container_wrapper_(Container *c, size_t *len_=nullptr) noexcept // NOLINT
         : container(c)
         , required_size(len_)
     {}
