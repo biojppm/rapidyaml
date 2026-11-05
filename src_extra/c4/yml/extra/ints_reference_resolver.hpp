@@ -106,6 +106,7 @@ private:
     C4_NODISCARD evt_size resolve_map_merge_(evt_size parent, bool key_conflict);
     C4_NODISCARD evt_size resolve_map_repeat_(evt_size parent);
     C4_NODISCARD bool requires_merge_(evt_size map);
+    C4_NODISCARD bool has_merge_elms_(evt_size map);
     C4_NODISCARD evt_size merge_map_keys_(evt_size map);
     void add_anchor_(evt_size pos);
     AnchorData const* lookup_anchor_(evt_size pos) const;

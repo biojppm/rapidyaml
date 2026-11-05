@@ -176,16 +176,12 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size map_pos)
 {
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[map_pos], ievt::BMAP));
     if(opts.keep_repeated_keys())
-    {
         return resolve_map_repeat_(map_pos);
-    }
     bool do_merge = requires_merge_(map_pos);
     bool key_conflict = known_keys.has_key_conflict();
     evt_size pos = resolve_map_merge_(map_pos, key_conflict);
     if(do_merge && key_conflict)
-    {
         return merge_map_keys_(map_pos);
-    }
     return pos;
 }
 
@@ -228,8 +224,7 @@ C4_NODISCARD auto ReferenceResolver::elm_range_(evt_size elm) -> Range_
     else // containers
     {
         RYML_ASSERT_BASIC_(detail::seqormap(evts.ptr[elm]));
-        rng.end = matching_close_memoized_(elm)
-            + 1/*include the end*/;
+        rng.end = matching_close_memoized_(elm) + 1/*include the end*/;
     }
     return rng;
 }
@@ -359,30 +354,11 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool k
 
 C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
 {
-    // https://yamlvalidate.com/blog/yaml-anchors-aliases-merge-keys/
-    RYML_ASSERT_BASIC_(pos + 1 < evts.len);
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BMAP));
-    {
-        bool has_merge_elms = false;
-        for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
-        {
-            RYML_ASSERT_BASIC_(ch < evts.len);
-            if(detail::hasall(evts.ptr[ch], ievt::EMAP))
-            {
-                break;
-            }
-            else if(detail::hasall(evts.ptr[ch], ievt::KEY_|ievt::SCLR)) // NOLINT
-            {
-                if(is_merge_elm_(ch))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
-                {
-                    has_merge_elms = true;
-                    break;
-                }
-            }
-        }
-        if(!has_merge_elms && !opts.merge_always())
-            return false;
-    }
+    RYML_ASSERT_BASIC_(pos + 1 < evts.len);
+    // try to exit early
+    if( ! opts.merge_always() && ! has_merge_elms_(pos))
+        return false;
     known_keys.start_adding();
     for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
     {
@@ -436,7 +412,7 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
     if(!req)
         return false;
     KnownKeys::Entry const* first_badkey = known_keys.adding_is_complete();
-    if C4_UNLIKELY (!first_badkey)
+    if C4_LIKELY (!first_badkey)
         return true;
     RYML_ERR_BASIC_("map at pos={} has repeated keys. first={}", pos, getstr(static_cast<evt_size>(first_badkey->id)));
 }
@@ -458,7 +434,12 @@ void ReferenceResolver::add_to_known_keys_(evt_size alia, uint32_t status)
     RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[alia], ievt::VAL_|ievt::ALIA));
     AnchorData const* anch = lookup_anchor_(alia);
     if(anch)
-        add_to_known_keys_(anch->rng.beg + 1, anch->rng.end - 1, status);
+    {
+        if C4_LIKELY (detail::hasall(evts.ptr[anch->rng.beg], ievt::BMAP))
+            add_to_known_keys_(anch->rng.beg + 1, anch->rng.end - 1, status);
+        else
+            RYML_ERR_BASIC_("merge element alias is not a map: '{}' at pos={}", getstr(alia), alia);
+    }
 }
 
 C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
@@ -486,13 +467,9 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
             if(&kv.val == selected)
             {
                 if(kv.val.status & KnownKeys::ORIGINAL)
-                {
                     mapw_cpkeyval_original_(id, is_last);
-                }
                 else
-                {
                     mapw_cpkeyval_mergedin_(id, is_last);
-                }
             }
         }
     }
@@ -779,6 +756,26 @@ void ReferenceResolver::set_rref_(evt_size pos, evt_size beg, evt_size end)
     {
         replace_with_ref_(pos, beg, end);
     }
+}
+
+C4_NODISCARD bool ReferenceResolver::has_merge_elms_(evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::hasall(evts.ptr[pos], ievt::BMAP));
+    RYML_ASSERT_BASIC_(pos + 1 < evts.len);
+    for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
+    {
+        RYML_ASSERT_BASIC_(ch < evts.len);
+        if(detail::hasall(evts.ptr[ch], ievt::EMAP))
+        {
+            break;
+        }
+        else if(detail::hasall(evts.ptr[ch], ievt::KEY_|ievt::SCLR)) // NOLINT
+        {
+            if(is_merge_elm_(ch))  // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
+                return true;
+        }
+    }
+    return false;
 }
 
 // is it an element like `<<: *ref` or `<<: [*ref1,*ref2]`?
