@@ -52,6 +52,10 @@ ENGINE_TEST_ERRLOC(SimpleSeqFlowErr7, Location(8,1,9), "[[a,b,c]")
 ENGINE_TEST_ERRLOC(SimpleSeqFlowErr10, Location(1,1,2), "[,]")
 ENGINE_TEST_ERRLOC(SimpleSeqFlowErr11, Location(3,1,4), "[a,,]")
 ENGINE_TEST_ERRLOC(SimpleSeqFlowErr12, Location(4,1,5), "[a, ,]")
+ENGINE_TEST_ERRLOC(SimpleSeqFlowErr13, Location(2,1,3), "[:")
+ENGINE_TEST_ERRLOC(SimpleSeqFlowErr14, Location(2,1,3), "[a:")
+ENGINE_TEST_ERRLOC(SimpleSeqFlowErr15, Location(5,1,6), "[a: ,")
+
 
 ENGINE_TEST(NestedSeqFlowEmpty,
             "[[]]"
