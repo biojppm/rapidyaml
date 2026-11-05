@@ -13,9 +13,7 @@
 #include <unordered_map>
 #include <vector>
 #if defined(C4_WIN)
-#ifndef RYML_SINGLE_HEADER // else it is in the single header
 #include <c4/windows.hpp>
-#endif
 #elif defined(C4_POSIX) || defined(C4_MACOS) || defined(C4_IOS) || defined(C4_ANDROID)
 #include <unistd.h>
 #endif
