@@ -32,7 +32,8 @@ retry:
         goto retry; //NOLINT
     }
     entries.sort();
-    printf("%s: %zu files found. entering directory...\n", dirname, entries.names.required_size);
+    num_files = entries.names.required_size;
+    printf("%s: %zu files found. entering directory...\n", dirname, num_files);
     for(const char *filename : entries)
         test_one_file(filename, buf);
     printf("%s: tested %zu files\n", dirname, entries.names.required_size);
