@@ -33,6 +33,8 @@ add_library(ryml-ints
     ${RAPIDYAML_DIR}/src_extra/c4/yml/extra/event_handler_ints.hpp
     ${RAPIDYAML_DIR}/src_extra/c4/yml/extra/event_handler_ints_no_resize.cpp
     ${RAPIDYAML_DIR}/src_extra/c4/yml/extra/event_handler_ints_resize.cpp
+    ${RAPIDYAML_DIR}/src_extra/c4/yml/extra/emitter_ints.hpp
+    ${RAPIDYAML_DIR}/src_extra/c4/yml/extra/emitter_ints.def.hpp
     #
     # files required from c4core
     ${C4CORE_DIR}/c4/charconv.hpp

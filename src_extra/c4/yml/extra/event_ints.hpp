@@ -415,14 +415,14 @@ struct MaybeParent
     evt_size pos;
 };
 RYML_EXPORT_TEST MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept;
-RYML_EXPORT_TEST bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT_TEST evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT      evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT_TEST evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT_TEST evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT;
-RYML_EXPORT_TEST evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
-RYML_EXPORT_TEST evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
-RYML_EXPORT_TEST evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;
+RYML_EXPORT      bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT      evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT      evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos);
+RYML_EXPORT_TEST evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
+RYML_EXPORT_TEST evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
+RYML_EXPORT      evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
+RYML_EXPORT      evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
+RYML_EXPORT      evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;
 
 
 inline evt_size find_next_sibling(evt_bits const* evts, evt_size sz, evt_size pos)
@@ -439,7 +439,7 @@ struct EmitKickoff
     evt_size keypos, valpos;
     bool emit_dash, emit_key;
 };
-RYML_EXPORT_TEST EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts);
+RYML_EXPORT EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts);
 
 
 } // namespace detail
