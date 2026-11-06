@@ -36,6 +36,8 @@ void emit_ints(EmitType_e is_yaml, extra::ievt::Buffers const& evts, std::string
     }
     dst->resize(sz);
 }
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC("-Wclobbered")
 template<bool resize_buffers> using HandlerInts = extra::ievt::EventHandlerInts<resize_buffers>;
 template<bool resize_buffers> using ParserInts = ParseEngine<HandlerInts<resize_buffers>>;
 template<bool resize_buffers, class FnParse>
@@ -104,6 +106,8 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
     C4_DONT_OPTIMIZE(emitted);
     return 0;
 }
+C4_SUPPRESS_WARNING_POP
+
 
 template<bool resize_buffers>
 inline int fuzztest_yaml_ints(uint32_t case_number, csubstr src)
