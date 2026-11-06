@@ -594,6 +594,7 @@ inline csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 #define RYML_HAS_DEPRECATED_ENUMS_
 #endif
 
+
 /// @endcond
 
 C4_SUPPRESS_WARNING_GCC_POP
