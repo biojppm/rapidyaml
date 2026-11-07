@@ -95,7 +95,7 @@ evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evt
 }
 
 
-evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::END_) && (evt & (mask_open_close & ~ievt::END_)));
@@ -122,7 +122,7 @@ evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYM
 }
 
 
-evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & (mask_open_close & ~ievt::BEG_)));
@@ -149,7 +149,7 @@ evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt
 }
 
 
-evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT
+evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val)
 {
     evt_bits evt = evts[pos];
     if(detail::seqormap(evt & ~ievt::STRM))
@@ -197,7 +197,6 @@ MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcep
     }
     return p;
 }
-
 
 EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
 {

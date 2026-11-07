@@ -331,13 +331,27 @@ C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_si
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+struct RYML_EXPORT cevtbuf
+{
+    evt_bits const* C4_RESTRICT ptr = {};
+    evt_size                    len = {};
+    evt_size                    cap = {};
+};
+
 struct RYML_EXPORT evtbuf
 {
     evt_bits *C4_RESTRICT ptr = {};
     evt_size              len = {};
     evt_size              cap = {};
+
+    // auto convert to cevtbuf
+    C4_ALWAYS_INLINE operator cevtbuf const& () const noexcept { return reinterpret_cast<cevtbuf const&>(*this); } // NOLINT
 };
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 struct RYML_EXPORT Buffers
@@ -356,6 +370,8 @@ struct RYML_EXPORT Buffers
     }
 };
 C4_SUPPRESS_WARNING_MSVC_POP
+
+
 
 
 /** Read YAML source and, without undergoing a full parse, estimate
