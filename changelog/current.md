@@ -16,6 +16,9 @@
 - [PR#683](https://github.com/biojppm/rapidyaml/pull/683): Parser: ensure error on unterminated seq+map `[:`
 - [PR#686](https://github.com/biojppm/rapidyaml/pull/686): Parser: fix parse of container keys in block mode, eg `- ? []:`
 - [PR#695](https://github.com/biojppm/rapidyaml/pull/695): Parser: fix assertion causing accidental quadratic complexity in single line flow (fixes [PR#694](https://github.com/biojppm/rapidyaml/issues/694)).
+- [PR#666](https://github.com/biojppm/rapidyaml/pull/666) extra ints events:
+  - parse: add option to parse into resizing (owning) buffers
+  - emit: implement fully round-trip enabled emitter, with behavior exactly equal to the tree emitter
 
 
 ### Thanks
