@@ -11,9 +11,11 @@
 - [PR#672](https://github.com/biojppm/rapidyaml/pull/672) Block scalar: fix empty scalar swallowing the next document marker, by @Wleeaf
 - [PR#673](https://github.com/biojppm/rapidyaml/pull/673) Block scalar: accept empty scalar with explicit indentation indicator, by @Wleeaf
 - [PR#674](https://github.com/biojppm/rapidyaml/pull/674) Block scalar: Reject text after the header indicators, by @Wleeaf
+- [PR#676](https://github.com/biojppm/rapidyaml/pull/676) Tree: touch only used nodes, by @calpeyser. **~10% parse time improv, kudos!**.
 - [PR#682](https://github.com/biojppm/rapidyaml/pull/682): Parser: ensure error on excess tags/anchors. Fixes [#680](https://github.com/biojppm/rapidyaml/issues/680).
 - [PR#683](https://github.com/biojppm/rapidyaml/pull/683): Parser: ensure error on unterminated seq+map `[:`
 - [PR#686](https://github.com/biojppm/rapidyaml/pull/686): Parser: fix parse of container keys in block mode, eg `- ? []:`
+- [PR#695](https://github.com/biojppm/rapidyaml/pull/695): Parser: fix assertion causing accidental quadratic complexity in single line flow (fixes [PR#694](https://github.com/biojppm/rapidyaml/issues/694)).
 
 
 ### Thanks
@@ -24,3 +26,4 @@
 - @fhgffy
 - @sjh9714
 - @Wleeaf
+- @calpeyser
