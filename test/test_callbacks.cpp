@@ -261,6 +261,18 @@ void test_free_impl(void *mem, size_t length, void * /*user_data*/)
     ::free(mem);
 }
 
+void * stored_resident_mem;
+size_t stored_resident_length;
+void * stored_resident_user_data;
+int num_make_resident_calls;
+void test_make_resident_impl(void *mem, size_t length, void *user_data)
+{
+    stored_resident_mem = mem;
+    stored_resident_length = length;
+    stored_resident_user_data = user_data;
+    ++num_make_resident_calls;
+}
+
 Callbacks mk_test_callbacks()
 {
     return Callbacks{}
@@ -315,6 +327,7 @@ TEST(Callbacks, ctor)
     EXPECT_NE(cb.m_error_basic, &test_error_basic_impl);
     EXPECT_NE(cb.m_error_parse, &test_error_parse_impl);
     EXPECT_NE(cb.m_error_visit, &test_error_visit_impl);
+    EXPECT_EQ(cb.m_make_resident, nullptr);
 #ifndef RYML_NO_DEFAULT_CALLBACKS
     EXPECT_EQ(cb.m_user_data, nullptr);
     EXPECT_NE(cb.m_allocate, nullptr);
@@ -342,6 +355,7 @@ TEST(Callbacks, ctor)
     EXPECT_EQ(cb2.m_allocate, &test_allocate_impl);
     EXPECT_EQ(cb2.m_free, &test_free_impl);
     EXPECT_EQ(cb2.m_error_basic, &test_error_basic_impl);
+    EXPECT_EQ(cb2.m_make_resident, nullptr);
 #ifndef RYML_NO_DEFAULT_CALLBACKS
     EXPECT_NE(cb2.m_error_parse, nullptr);
     EXPECT_NE(cb2.m_error_visit, nullptr);
@@ -429,6 +443,16 @@ TEST(Callbacks, set_error_visit)
 #else
     EXPECT_NE(cb.m_error_visit, nullptr);
 #endif
+}
+
+TEST(Callbacks, set_make_resident)
+{
+    Callbacks cb;
+    EXPECT_EQ(cb.m_make_resident, nullptr);
+    cb.set_make_resident(test_make_resident_impl);
+    EXPECT_EQ(cb.m_make_resident, test_make_resident_impl);
+    cb.set_make_resident(nullptr);
+    EXPECT_EQ(cb.m_make_resident, nullptr); // no default
 }
 
 
@@ -576,6 +600,19 @@ TEST(Callbacks, cmp_error_visit)
     EXPECT_FALSE(!(cb != before));
 }
 
+TEST(Callbacks, cmp_make_resident)
+{
+    Callbacks before = get_callbacks();
+    Callbacks cb = get_callbacks();
+    EXPECT_EQ(cb, before);
+    EXPECT_TRUE(cb == before);
+    EXPECT_FALSE(!(cb == before));
+    cb.set_make_resident(test_make_resident_impl);
+    EXPECT_NE(cb, before);
+    EXPECT_TRUE(cb != before);
+    EXPECT_FALSE(!(cb != before));
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -596,6 +633,35 @@ TEST(allocate_and_free, basic)
     EXPECT_EQ(stored_mem, mem);
     EXPECT_EQ(stored_length, 32u);
     set_callbacks(before); // DON'T FORGET!
+}
+
+TEST(allocate_and_make_resident, without_make_resident_only_allocates)
+{
+    Callbacks cb = mk_test_callbacks();
+    EXPECT_EQ(cb.m_make_resident, nullptr);
+    num_make_resident_calls = 0;
+    void *mem = cb.allocate_and_make_resident(32, /*hint*/nullptr);
+    EXPECT_EQ(stored_mem, mem);
+    EXPECT_EQ(stored_length, 32u);
+    EXPECT_EQ(num_make_resident_calls, 0);
+    cb.m_free(mem, 32u, cb.m_user_data);
+}
+
+TEST(allocate_and_make_resident, with_make_resident)
+{
+    int data = 1;
+    Callbacks cb = mk_test_callbacks()
+        .set_user_data(&data)
+        .set_make_resident(&test_make_resident_impl);
+    num_make_resident_calls = 0;
+    void *mem = cb.allocate_and_make_resident(32, /*hint*/nullptr);
+    EXPECT_EQ(stored_mem, mem);
+    EXPECT_EQ(stored_length, 32u);
+    EXPECT_EQ(num_make_resident_calls, 1);
+    EXPECT_EQ(stored_resident_mem, mem);
+    EXPECT_EQ(stored_resident_length, 32u);
+    EXPECT_EQ(stored_resident_user_data, &data);
+    cb.m_free(mem, 32u, cb.m_user_data);
 }
 
 void testloc(Location const& actual, Location const& expected)

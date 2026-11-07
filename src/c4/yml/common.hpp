@@ -328,6 +328,15 @@ using pfn_allocate = void* (*)(size_t len, void* hint, void *user_data);
 using pfn_free = void (*)(void* mem, size_t size, void *user_data);
 
 
+/** the type of the function used to make freshly allocated memory
+ * resident, for example by writing to each of its pages. ryml calls
+ * it only through @ref Callbacks::allocate_and_make_resident(), and
+ * only when it is set. ryml has no default implementation, because
+ * doing this needs the system's page size, and assumptions which
+ * only the user can make. */
+using pfn_make_resident = void (*)(void* mem, size_t len, void *user_data);
+
+
 /** the type of the function used to report basic errors.
  *
  * @warning Must not return. When implemented by the user, this
@@ -378,6 +387,7 @@ struct RYML_EXPORT Callbacks
     pfn_error_basic m_error_basic; ///< a pointer to a basic error handler function
     pfn_error_parse m_error_parse; ///< a pointer to a parse error handler function
     pfn_error_visit m_error_visit; ///< a pointer to a visit error handler function
+    pfn_make_resident m_make_resident; ///< a pointer to a function making allocated memory resident; null by default
 
 public:
 
@@ -420,6 +430,25 @@ public:
      * unless @ref RYML_NO_DEFAULT_CALLBACKS is defined. */
     Callbacks& set_error_visit(pfn_error_visit error_visit=nullptr);
 
+    /** Set or reset the make_resident callback. It has no default
+     * implementation: when the parameter is null, m_make_resident
+     * stays null, and @ref allocate_and_make_resident() only
+     * allocates. */
+    Callbacks& set_make_resident(pfn_make_resident make_resident=nullptr);
+
+public:
+
+    /** Allocate memory with m_allocate, then, if m_make_resident is
+     * set, call it on the whole allocated block. @ref Tree::reserve()
+     * allocates its nodes with this. */
+    void* allocate_and_make_resident(size_t len, void* hint) const
+    {
+        void *mem = m_allocate(len, hint, m_user_data);
+        if(m_make_resident && mem)
+            m_make_resident(mem, len, m_user_data);
+        return mem;
+    }
+
 public:
 
     bool operator!= (Callbacks const& that) const { return !operator==(that); }
@@ -430,7 +459,8 @@ public:
                 m_free == that.m_free &&
                 m_error_basic == that.m_error_basic &&
                 m_error_parse == that.m_error_parse &&
-                m_error_visit == that.m_error_visit);
+                m_error_visit == that.m_error_visit &&
+                m_make_resident == that.m_make_resident);
     }
 };
 

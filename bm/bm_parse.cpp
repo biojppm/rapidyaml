@@ -1,4 +1,9 @@
 #include "./bm_common.hpp"
+#if defined(C4_WIN)
+#include <c4/windows.hpp>
+#elif defined(C4_POSIX) || defined(C4_MACOS) || defined(C4_IOS) || defined(C4_ANDROID)
+#include <unistd.h>
+#endif
 
 
 /** this is used by the benchmarks.
@@ -30,6 +35,30 @@ ryml::id_type estimate_capacity(ryml::csubstr src)
 {
     return (3 * ryml::estimate_tree_capacity(src)) >> 1;
 }
+
+
+/** the _reserve benchmarks below reserve with this callback, so that
+ * the reserved pages are resident before the timed parse starts: one
+ * byte is written in each page. */
+void make_resident_one_byte_per_page(void *mem, size_t len, void * /*user_data*/)
+{
+    size_t page = 0;
+    #if defined(C4_WIN)
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    page = static_cast<size_t>(info.dwPageSize);
+    #elif defined(C4_POSIX) || defined(C4_MACOS) || defined(C4_IOS) || defined(C4_ANDROID)
+    const long sz = sysconf(_SC_PAGESIZE);
+    page = sz > 0 ? static_cast<size_t>(sz) : 0u;
+    #endif
+    if(!page) // no page size: do nothing
+        return;
+    char *bytes = static_cast<char*>(mem);
+    for(size_t i = 0; i < len; i += page)
+        bytes[i] = 0;
+}
+
+static const ryml::Callbacks s_resident_callbacks = ryml::Callbacks{}.set_make_resident(&make_resident_one_byte_per_page);
 
 
 void bm_rapidjson_arena(bm::State& st)
@@ -177,7 +206,7 @@ void bm_ryml_yaml_arena_reserve(bm::State& st)
     for(auto _ : st)
     {
         st.PauseTiming();
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_in_arena(s_bm_case->filename, src, &tree);
@@ -208,7 +237,7 @@ void bm_ryml_yaml_arena_nofilter_reserve(bm::State& st)
         st.PauseTiming();
         ryml::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_in_arena(&parser, s_bm_case->filename, src, &tree);
@@ -238,7 +267,7 @@ void bm_ryml_json_arena_reserve(bm::State& st)
     {
         ONLY_FOR_JSON;
         st.PauseTiming();
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_json_in_arena(s_bm_case->filename, src, &tree);
@@ -271,7 +300,7 @@ void bm_ryml_json_arena_nofilter_reserve(bm::State& st)
         st.PauseTiming();
         ryml::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_json_in_arena(&parser, s_bm_case->filename, src, &tree);
@@ -461,7 +490,7 @@ void bm_ryml_yaml_inplace_reserve(bm::State& st)
     {
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_in_place(s_bm_case->filename, src, &tree);
@@ -494,7 +523,7 @@ void bm_ryml_yaml_inplace_nofilter_reserve(bm::State& st)
         s_bm_case->prepare(kResetInPlace);
         ryml::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_in_place(&parser, s_bm_case->filename, src, &tree);
@@ -528,7 +557,7 @@ void bm_ryml_json_inplace_reserve(bm::State& st)
         ONLY_FOR_JSON;
         st.PauseTiming();
         s_bm_case->prepare(kResetInPlace);
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_json_in_place(s_bm_case->filename, src, &tree);
@@ -563,7 +592,7 @@ void bm_ryml_json_inplace_nofilter_reserve(bm::State& st)
         s_bm_case->prepare(kResetInPlace);
         ryml::EventHandlerTree evth;
         ryml::Parser parser(&evth, ryml::ParserOptions().scalar_filtering(false));
-        ryml::Tree tree;
+        ryml::Tree tree(s_resident_callbacks);
         tree.reserve(cap);
         st.ResumeTiming();
         ryml::parse_json_in_place(&parser, s_bm_case->filename, src, &tree);
