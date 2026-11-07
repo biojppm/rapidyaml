@@ -608,7 +608,12 @@ private:
 
 private:
 
+    /// get the full source buffer
     C4_ALWAYS_INLINE substr _buf() const noexcept { return m_evt_handler->m_src; }
+    /// get the full source buffer, starting at the current point
+    C4_ALWAYS_INLINE substr _buf_rem() const /*noexcept*/ { return m_evt_handler->m_src.sub(m_evt_handler->m_curr->pos.offset); } // NOLINT
+    /// get the full source buffer, starting at the current point plus `extra` slots
+    C4_ALWAYS_INLINE substr _buf_rem(size_t extra) const /*noexcept*/ { return m_evt_handler->m_src.sub(m_evt_handler->m_curr->pos.offset + extra); } // NOLINT
 
     C4_ALWAYS_INLINE bool has_all(ParserFlag_t f) const noexcept { return (m_evt_handler->m_curr->flags & f) == f; }
     C4_ALWAYS_INLINE bool has_any(ParserFlag_t f) const noexcept { return (m_evt_handler->m_curr->flags & f) != 0; }

@@ -1032,14 +1032,12 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
     if(!m_evt_handler->m_curr->line_contents.rem.len || !_is_valid_start_scalar_plain_flow(m_evt_handler->m_curr->line_contents.rem))
         return false;
 
-    substr s = _buf().sub(m_evt_handler->m_curr->pos.offset);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.begins_with(m_evt_handler->m_curr->line_contents.rem), m_evt_handler->m_curr->pos);
-
     _c4dbgp("scanning seqflow scalar...");
 
-    bool needs_filter = false;
+    substr s = _buf_rem(); // the full remaining string (not just current line)
     size_t col = 0; // zero-based column
     size_t offs = 0; // offset
+    bool needs_filter = false;
     for( ; offs < s.len; ++offs, ++col)
     {
         const char c = s.str[offs];
@@ -1155,14 +1153,12 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_map_flow(ScannedScalar *C4_RE
     if(!m_evt_handler->m_curr->line_contents.rem.len || !_is_valid_start_scalar_plain_flow(m_evt_handler->m_curr->line_contents.rem))
         return false;
 
-    substr s = _buf().sub(m_evt_handler->m_curr->pos.offset);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.begins_with(m_evt_handler->m_curr->line_contents.rem), m_evt_handler->m_curr->pos);
-
     _c4dbgp("scanning mapflow scalar...");
 
-    bool needs_filter = false;
+    substr s = _buf_rem(); // the full remaining string (not just current line)
     size_t col = 0; // zero-based column
     size_t offs = 0; // offset
+    bool needs_filter = false;
     for( ; offs < s.len; ++offs, ++col)
     {
         const char c = s.str[offs];
@@ -2142,10 +2138,10 @@ ScannedScalar ParseEngine<EventHandler>::_scan_scalar_squot()
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
 
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, _buf().sub(m_evt_handler->m_curr->pos.offset).begins_with('\''), m_evt_handler->m_curr->pos);
+    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, _buf_rem().begins_with('\''), m_evt_handler->m_curr->pos);
 
     // a span to the end of the file, skipping the opening quote
-    substr s = _buf().sub(m_evt_handler->m_curr->pos.offset + 1);
+    substr s = _buf_rem(1);
     _line_progressed(1); // advance over the opening quote
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, !m_evt_handler->m_curr->at_line_beginning(), m_evt_handler->m_curr->pos);
 
@@ -2208,10 +2204,10 @@ ScannedScalar ParseEngine<EventHandler>::_scan_scalar_dquot()
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
 
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, _buf().sub(m_evt_handler->m_curr->pos.offset).begins_with('"'), m_evt_handler->m_curr->pos);
+    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, _buf_rem().begins_with('"'), m_evt_handler->m_curr->pos);
 
     // a span to the end of the file, skipping the opening quote
-    substr s = _buf().sub(m_evt_handler->m_curr->pos.offset + 1);
+    substr s = _buf_rem(1);
     _line_progressed(1); // advance over the opening quote
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, !m_evt_handler->m_curr->at_line_beginning(), m_evt_handler->m_curr->pos);
 
