@@ -55,6 +55,39 @@ inline bool key_requires_qmark_flow(evt_bits const* C4_RESTRICT evts, evt_size e
 {
     return get_all_bits_key_or_val_(evts, evts_size, pos) & (detail::mask_seqmap);
 }
+inline bool isempty_rref(evt_bits const* C4_RESTRICT evts, evt_size pos)
+{
+    RYML_ASSERT_BASIC_(evts[pos] & ievt::RREF);
+    evt_size end = evts[pos + 2];
+    pos = evts[pos + 1];
+    pos += 3;
+    while(pos != end)
+    {
+        if(evts[pos] & (ievt::SCLR|ievt::BEG_|ievt::TAG_|ievt::ANCH|ievt::ALIA))
+            return false;
+        else if(evts[pos] & ievt::RREF)
+            return isempty_rref(evts, pos);
+        else if(evts[pos] & ievt::END_)
+            return true;
+        pos = nextpos(evts, pos);
+    }
+    return true;
+}
+inline bool isempty(evt_bits const* C4_RESTRICT evts, evt_size pos)
+{
+    RYML_ASSERT_BASIC_(detail::seqormap(evts[pos]));
+    ++pos;
+    while(true)
+    {
+        if(evts[pos] & (ievt::SCLR|ievt::BEG_|ievt::TAG_|ievt::ANCH|ievt::ALIA))
+            return false;
+        else if(evts[pos] & ievt::RREF)
+            return isempty_rref(evts, pos);
+        else if(evts[pos] & ievt::END_)
+            return true;
+        pos = nextpos(evts, pos);
+    }
+}
 } // namespace detail
 
 
@@ -561,6 +594,7 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
     ++pos;
     bool newval = true;
     bool has_tag_or_anchor = false;
+    RrefHandler rref_handler = {};
     evt_bits evt = {};
     while(pos < m_evts_size)
     {
@@ -625,6 +659,10 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
@@ -633,6 +671,8 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
     nextval:
         newval = true;
         has_tag_or_anchor = false;
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
     }
     return pos;
 }
@@ -648,6 +688,7 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
     RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BMAP));
     bool statenew = true;
     bool statekey = true;
+    RrefHandler rref_handler = {};
     ++pos;
     evt_bits evt = {};
     while(pos < m_evts_size)
@@ -658,7 +699,12 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
             ++pos;
             break;
         }
-        if(statenew)
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+            continue;
+        }
+        if(statenew && (evt & (~ievt::PEX2)))
         {
             if(statekey)
             {
@@ -737,6 +783,8 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
     statenext:
         statenew = true;
         statekey = !statekey;
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
     }
     return pos;
 }
@@ -794,19 +842,26 @@ void EmitterInts<Writer>::flow_pws::start(evt_bits evt, size_t max_cols_) noexce
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_sl_(evt_size pos, Pws_e pend_after)
+evt_size EmitterInts<Writer>::flow_close_entry_sl_(evt_size pos, Pws_e pend_after)
 {
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    while(0 == (m_evts[pos] & ~ievt::PEX2))
+        ++pos;
     RYML_ASSERT_BASIC_(pos < m_evts_size);
     if(!(m_evts[pos] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
         write_(',');
     }
+    return pos;
 }
 
 template<class Writer>
-void EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
+evt_size EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
 {
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    while(0 == (m_evts[pos] & ~ievt::PEX2))
+        ++pos;
     RYML_ASSERT_BASIC_(pos < m_evts_size);
     if(!(m_evts[pos] & ievt::END_))
     {
@@ -817,6 +872,7 @@ void EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
     {
         pend_newl_();
     }
+    return pos;
 }
 
 
@@ -828,6 +884,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_seq_(evt_size pos)
     RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BSEQ));
     RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
     const flow_pws pws = setup_flow_pws_sl_(pos);
+    RrefHandler rref_handler = {};
     ++pos;
     write_('[');
     while(pos < m_evts_size)
@@ -875,13 +932,19 @@ evt_size EmitterInts<Writer>::visit_flow_sl_seq_(evt_size pos)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     nextval:
-        flow_close_entry_sl_(pos, pws.next_pws(m_col));
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
+        pos = flow_close_entry_sl_(pos, pws.next_pws(m_col));
     }
     write_(']');
     return pos;
@@ -899,6 +962,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_seq_(evt_size pos)
     write_('[');
     pend_newl_();
     const bool stop_at_end = maybe_start_flow_pws_ml_(pos);
+    RrefHandler rref_handler = {};
     ++pos;
     while(pos < m_evts_size)
     {
@@ -946,14 +1010,19 @@ evt_size EmitterInts<Writer>::visit_flow_ml_seq_(evt_size pos)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
         continue;
     nextval:
-        // pos is already at the next event
-        flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
+        pos = flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
     }
     if(stop_at_end)
         m_flow_pws.stop();
@@ -974,6 +1043,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
     const flow_pws pws = setup_flow_pws_sl_(pos);
     bool statenew = true;
     bool statekey = true;
+    RrefHandler rref_handler = {};
     ++pos;
     write_('{');
     while(pos < m_evts_size)
@@ -984,7 +1054,12 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
             ++pos;
             break;
         }
-        if(statenew)
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+            continue;
+        }
+        if(statenew && (evt & (~ievt::PEX2)))
         {
             if(statekey)
             {
@@ -1042,9 +1117,10 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
         }
         continue;
     statenext:
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
         if(!statekey)
-            // pos is already at the next event
-            flow_close_entry_sl_(pos, pws.next_pws(m_col));
+            pos = flow_close_entry_sl_(pos, pws.next_pws(m_col));
         statenew = true;
         statekey = !statekey;
     }
@@ -1066,6 +1142,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
     const bool stop_at_end = maybe_start_flow_pws_ml_(pos);
     bool statenew = true;
     bool statekey = true;
+    RrefHandler rref_handler = {};
     ++pos;
     while(pos < m_evts_size)
     {
@@ -1075,7 +1152,12 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
             ++pos;
             break;
         }
-        if(statenew)
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+            continue;
+        }
+        if(statenew && (evt & (~ievt::PEX2)))
         {
             if(statekey)
             {
@@ -1136,9 +1218,10 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
         }
         continue;
     statenext:
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
         if(!statekey)
-            // pos is already at the next event
-            flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
+            pos = flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
         statenew = true;
         statekey = !statekey;
     }
@@ -1214,6 +1297,7 @@ template<class Writer>
 evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
 {
     evt_size numdocs = 0;
+    evt_size lastdoc = 0;
     bool has_expl = false;
     // count numdocs
     for(evt_size p = pos; p < m_evts_size; p += ievt::nextstep(m_evts[p]))
@@ -1221,7 +1305,8 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
         if(detail::hasall(m_evts[p], ievt::BDOC))
         {
             ++numdocs;
-            has_expl = has_expl || ((m_evts[p] & ievt::EXPL) != 0);
+            has_expl = has_expl || ((m_evts[p] & ievt::FLOW) != 0);
+            lastdoc = p;
         }
         else if(detail::hasall(m_evts[p], ievt::ESTR))
         {
@@ -1243,6 +1328,17 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
     {
         if(detail::hasall(m_evts[pos], ievt::BDOC))
         {
+            RYML_ASSERT_BASIC_(pos + 1 < m_evts_size);
+            const bool is_last_doc = pos == lastdoc;
+            bool has_anchor_or_tag = false;
+            ++pos; // advance past BDOC
+            while(m_evts[pos] & (ievt::ANCH|ievt::TAG_))
+            {
+                has_anchor_or_tag = true;
+                pos = json_check_anchor_tag_(pos);
+            }
+            pos = detail::find_next_entry_(m_evts, m_evts_size, pos, ievt::KEY_|ievt::VAL_);
+            RYML_ASSERT_BASIC_(!(m_evts[pos] & ievt::KEY_));
             bool isflowml = false;
             if(mldocs)
             {
@@ -1250,14 +1346,35 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
             }
             else
             {
-                isflowml = pos + 1 < m_evts_size && (m_evts[pos+1] & (ievt::FMLX|ievt::BLCK));
+                isflowml = detail::seqormap(m_evts[pos]) && detail::query_blck_cont_or_(m_evts[pos], ievt::FMLX);
             }
-            pos = json_visit_ml_(pos);
-            while(m_evts[pos] & (ievt::TAGH|ievt::TAGP))
-                pos += ievt::nextstep(m_evts[pos]); // LCOV_EXCL_LINE
+            if(detail::hasall(m_evts[pos], ievt::BSEQ))
+            {
+                write_('[');
+                pos = json_visit_container_(pos);
+                write_(']');
+            }
+            else if(detail::hasall(m_evts[pos], ievt::BMAP))
+            {
+                write_('{');
+                pos = json_visit_container_(pos);
+                write_('}');
+            }
+            else if(m_evts[pos] & ievt::SCLR)
+            {
+                pos = json_writev_(pos, m_evts[pos], has_anchor_or_tag);
+            }
+            else
+            {
+                RYML_ASSERT_BASIC_(m_evts[pos] & ievt::ALIA);
+                auto ignore = json_check_anchor_tag_(pos); (void)ignore;
+                pos = json_writev_(pos, m_evts[pos], false);
+            }
+            RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::EDOC));
+            ++pos; // add 1 to advance past EDOC
             if(mldocs)
             {
-                if(detail::hasall(m_evts[pos], ievt::BDOC))
+                if(!is_last_doc)
                     write_(',');
                 newl_();
             }
@@ -1269,11 +1386,12 @@ evt_size EmitterInts<Writer>::json_visit_stream_(evt_size pos)
         }
         else if(detail::hasall(m_evts[pos], ievt::ESTR))
         {
+            pos += 3;
             break;
         }
         else
         {
-            pos += ievt::nextstep(m_evts[pos]); // LCOV_EXCL_LINE
+            pos += ievt::nextstep(m_evts[pos]);
         }
     }
     write_pws_and_pend_(PWS_NONE_);
@@ -1349,73 +1467,86 @@ evt_size EmitterInts<Writer>::json_visit_nested_(evt_size pos)
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
         }
     }
-    if(ek.emit_key || (m_evts[ek.valpos] & (ievt::FMLX|ievt::BLCK)))
+    if(ek.emit_key || (detail::seqormap(m_evts[ek.valpos]) && detail::query_blck_cont_or_(m_evts[ek.valpos], ievt::FMLX)))
         pend_newl_();
     return pos;
 }
 
 
 template<class Writer>
+evt_size EmitterInts<Writer>::json_visit_container_sl_(evt_size pos)
+{
+    if(detail::hasall(m_evts[pos], ievt::BMAP))
+        return json_visit_seq_sl_(pos);
+    RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BMAP));
+    return json_visit_map_sl_(pos);
+}
+
+template<class Writer>
+evt_size EmitterInts<Writer>::json_visit_container_ml_(evt_size pos)
+{
+    if(detail::hasall(m_evts[pos], ievt::BMAP))
+        return json_visit_seq_ml_(pos);
+    RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BMAP));
+    return json_visit_map_ml_(pos);
+}
+
+template<class Writer>
 evt_size EmitterInts<Writer>::json_visit_container_(evt_size pos)
 {
-    if(m_evts[pos] & (ievt::BLCK|ievt::FMLX))
+    bool isseq = detail::hasall(m_evts[pos], ievt::BSEQ);
+    RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BMAP) || isseq);
+    if(detail::query_blck_cont_or_(m_evts[pos], ievt::FMLX))
     {
         if(m_opts.indent_flow_ml()) ++m_ilevel;
         pend_newl_();
-        pos = json_visit_ml_(pos);
+        if(isseq)
+            pos = json_visit_seq_ml_(pos);
+        else
+            pos = json_visit_map_ml_(pos);
         if(m_opts.indent_flow_ml()) --m_ilevel;
         write_pws_and_pend_(PWS_NONE_);
     }
     else
     {
-        pos = json_visit_sl_(pos);
+        if(isseq)
+            pos = json_visit_seq_sl_(pos);
+        else
+            pos = json_visit_map_sl_(pos);
     }
     return pos;
 }
 
 
 template<class Writer>
-evt_size EmitterInts<Writer>::json_visit_sl_(evt_size pos)
+evt_size EmitterInts<Writer>::json_visit_seq_sl_(evt_size pos)
 {
     if C4_UNLIKELY(m_depth++ > (evt_size)m_opts.max_depth())
         RYML_ERR_BASIC_("max depth exceeded");
     RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BEG_);
-    const evt_bits term = ((m_evts[pos] & ~ievt::BEG_) | ievt::END_) & detail::mask_open_close;
     const bool with_spc = (m_evts[pos] & ievt::FSPC) || m_opts.force_flow_spc();
     bool has_anchor_or_tag = false;
+    RrefHandler rref_handler = {};
     ++pos;
     while(pos < m_evts_size)
     {
         evt_bits evt = m_evts[pos];
         if(evt & ievt::SCLR)
         {
-            if(evt & ievt::KEY_)
-            {
-                pos = json_writek_(pos);
-                write_(": ");
-            }
-            else
-            {
-                RYML_ASSERT_BASIC_(evt & ievt::VAL_);
-                pos = json_writev_(pos, evt, has_anchor_or_tag);
-                goto next_entry; // NOLINT
-            }
+            pos = json_writev_(pos, evt, has_anchor_or_tag);
+            goto next_entry;
         }
         else if(detail::hasall(evt, ievt::BSEQ))
         {
-            if C4_UNLIKELY(evt & ievt::KEY_)
-                RYML_ERR_BASIC_("JSON does not accept seq keys");
             write_('[');
-            pos = json_visit_sl_(pos);
+            pos = json_visit_seq_sl_(pos);
             write_(']');
             goto next_entry; // NOLINT
         }
         else if(detail::hasall(evt, ievt::BMAP))
         {
-            if C4_UNLIKELY(evt & ievt::KEY_)
-                RYML_ERR_BASIC_("JSON does not accept map keys");
             write_('{');
-            pos = json_visit_sl_(pos);
+            pos = json_visit_map_sl_(pos);
             write_('}');
             goto next_entry; // NOLINT
         }
@@ -1427,24 +1558,21 @@ evt_size EmitterInts<Writer>::json_visit_sl_(evt_size pos)
             write_(getstr_(pos));
             write_('"');
             pos += 3;
-            if(evt & ievt::KEY_)
-                write_(": ");
-            else
-                goto next_entry; // NOLINT
+            goto next_entry; // NOLINT
         }
         else if(evt & (ievt::ANCH|ievt::TAG_))
         {
-            if C4_UNLIKELY((evt & ievt::ANCH) && m_opts.json_err_on_anchor())
-                RYML_ERR_BASIC_("JSON does not have anchors");
-            if C4_UNLIKELY((evt & ievt::TAG_) && m_opts.json_err_on_tag())
-                RYML_ERR_BASIC_("JSON does not have tags");
             has_anchor_or_tag = true;
-            pos += 3;
+            pos = json_check_anchor_tag_(pos);
         }
-        else if(detail::hasall(evt, term))
+        else if(detail::hasall(evt, ievt::ESEQ))
         {
             ++pos;
             break;
+        }
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
         }
         else
         {
@@ -1453,7 +1581,9 @@ evt_size EmitterInts<Writer>::json_visit_sl_(evt_size pos)
         continue;
     next_entry:
         RYML_ASSERT_BASIC_(pos < m_evts_size);
-        if(!detail::hasall(m_evts[pos], term)) // pos changed - don't use evt here
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
+        if(!detail::hasall(m_evts[pos], ievt::ESEQ)) // pos changed - don't use evt here
         {
             if(with_spc)
                 write_(", ");
@@ -1471,16 +1601,114 @@ evt_size EmitterInts<Writer>::json_visit_sl_(evt_size pos)
     return pos;
 }
 
-
 template<class Writer>
-evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
+evt_size EmitterInts<Writer>::json_visit_map_sl_(evt_size pos)
 {
     if C4_UNLIKELY(m_depth++ > (evt_size)m_opts.max_depth())
         RYML_ERR_BASIC_("max depth exceeded");
     RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BEG_);
-    const evt_bits open = m_evts[pos];
-    const evt_bits close = ((open & ~ievt::BEG_) | ievt::END_) & detail::mask_open_close;
+    const bool with_spc = (m_evts[pos] & ievt::FSPC) || m_opts.force_flow_spc();
     bool has_anchor_or_tag = false;
+    RrefHandler rref_handler = {};
+    bool statekey = true;
+    ++pos;
+    while(pos < m_evts_size)
+    {
+        evt_bits evt = m_evts[pos];
+        if(evt & ievt::SCLR)
+        {
+            if(statekey)
+                pos = json_writek_(pos);
+            else
+                pos = json_writev_(pos, evt, has_anchor_or_tag);
+            goto next_entry; // NOLINT
+        }
+        else if(detail::hasall(evt, ievt::BSEQ))
+        {
+            if C4_UNLIKELY(statekey)
+                RYML_ERR_BASIC_("JSON does not accept seq keys");
+            write_('[');
+            pos = json_visit_seq_sl_(pos);
+            write_(']');
+            goto next_entry; // NOLINT
+        }
+        else if(detail::hasall(evt, ievt::BMAP))
+        {
+            if C4_UNLIKELY(statekey)
+                RYML_ERR_BASIC_("JSON does not accept map keys");
+            write_('{');
+            pos = json_visit_map_sl_(pos);
+            write_('}');
+            goto next_entry; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            if C4_UNLIKELY(m_opts.json_err_on_anchor())
+                RYML_ERR_BASIC_("JSON does not have anchors");
+            write_("\"*");
+            write_(getstr_(pos));
+            write_('"');
+            pos += 3;
+            goto next_entry; // NOLINT
+        }
+        else if(evt & (ievt::ANCH|ievt::TAG_))
+        {
+            has_anchor_or_tag = true;
+            pos = json_check_anchor_tag_(pos);
+        }
+        else if(detail::hasall(evt, ievt::EMAP))
+        {
+            ++pos;
+            break;
+        }
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+        }
+        else
+        {
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
+        }
+        continue;
+    next_entry:
+        RYML_ASSERT_BASIC_(pos < m_evts_size);
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
+        if(statekey)
+        {
+            write_(": ");
+        }
+        else
+        {
+            if(!detail::hasall(m_evts[pos], ievt::EMAP)) // pos changed - don't use evt here
+            {
+                if(with_spc)
+                    write_(", ");
+                else
+                    write_(',');
+                has_anchor_or_tag = false;
+            }
+            else
+            {
+                ++pos;
+                break;
+            }
+        }
+        statekey = !statekey;
+    }
+    --m_depth;
+    return pos;
+}
+
+template<class Writer>
+evt_size EmitterInts<Writer>::json_visit_seq_ml_(evt_size pos)
+{
+    if C4_UNLIKELY(m_depth++ > (evt_size)m_opts.max_depth())
+        RYML_ERR_BASIC_("max depth exceeded");
+    RYML_ASSERT_BASIC_(detail::hasall(m_evts[pos], ievt::BEG_));
+    const evt_bits open = m_evts[pos];
+    bool has_anchor_or_tag = false;
+    RrefHandler rref_handler = {};
     ++pos;
     while(pos < m_evts_size)
     {
@@ -1488,22 +1716,11 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
         if(evt & ievt::SCLR)
         {
             write_pws_and_pend_(PWS_NONE_);
-            if(evt & ievt::KEY_)
-            {
-                pos = json_writek_(pos);
-                write_(": ");
-            }
-            else
-            {
-                RYML_ASSERT_BASIC_(evt & ievt::VAL_);
-                pos = json_writev_(pos, evt, has_anchor_or_tag);
-                goto next_entry; // NOLINT
-            }
+            pos = json_writev_(pos, evt, has_anchor_or_tag);
+            goto next_entry; // NOLINT
         }
         else if(detail::hasall(evt, ievt::BSEQ))
         {
-            if C4_UNLIKELY(evt & ievt::KEY_)
-                RYML_ERR_BASIC_("JSON does not accept seq keys");
             write_pws_and_pend_(PWS_NONE_);
             write_('[');
             pos = json_visit_container_(pos);
@@ -1512,8 +1729,6 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
         }
         else if(detail::hasall(evt, ievt::BMAP))
         {
-            if C4_UNLIKELY(evt & ievt::KEY_)
-                RYML_ERR_BASIC_("JSON does not accept map keys");
             write_pws_and_pend_(PWS_NONE_);
             write_('{');
             pos = json_visit_container_(pos);
@@ -1529,25 +1744,21 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
             write_(getstr_(pos));
             write_('"');
             pos += 3;
-            if(evt & ievt::KEY_)
-                write_(": ");
-            else
-                goto next_entry; // NOLINT
+            goto next_entry; // NOLINT
         }
         else if(evt & (ievt::ANCH|ievt::TAG_))
         {
-            if C4_UNLIKELY((evt & ievt::ANCH) && m_opts.json_err_on_anchor())
-                RYML_ERR_BASIC_("JSON does not have anchors");
-            if C4_UNLIKELY((evt & ievt::TAG_) && m_opts.json_err_on_tag())
-                RYML_ERR_BASIC_("JSON does not have tags");
-            write_pws_and_pend_(PWS_NONE_);
+            pos = json_check_anchor_tag_(pos);
             has_anchor_or_tag = true;
-            pos += 3;
         }
-        else if(detail::hasall(evt, close))
+        else if(detail::hasall(evt, ievt::ESEQ))
         {
             ++pos;
             break;
+        }
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
         }
         else
         {
@@ -1556,7 +1767,9 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
         continue;
     next_entry:
         RYML_ASSERT_BASIC_(pos < m_evts_size);
-        if(!detail::hasall(m_evts[pos], close)) // pos changed -- don't use evt here
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
+        if(!detail::hasall(m_evts[pos], ievt::ESEQ)) // pos changed -- don't use evt here
         {
             has_anchor_or_tag = false;
             write_(',');
@@ -1578,6 +1791,119 @@ evt_size EmitterInts<Writer>::json_visit_ml_(evt_size pos)
                 pend_newl_();
             break;
         }
+    }
+    --m_depth;
+    return pos;
+}
+
+
+template<class Writer>
+evt_size EmitterInts<Writer>::json_visit_map_ml_(evt_size pos)
+{
+    if C4_UNLIKELY(m_depth++ > (evt_size)m_opts.max_depth())
+        RYML_ERR_BASIC_("max depth exceeded");
+    RYML_ASSERT_BASIC_(m_evts[pos] & ievt::BEG_);
+    const evt_bits open = m_evts[pos];
+    bool has_anchor_or_tag = false;
+    RrefHandler rref_handler = {};
+    bool statekey = true;
+    ++pos;
+    while(pos < m_evts_size)
+    {
+        evt_bits evt = m_evts[pos];
+        if(evt & ievt::SCLR)
+        {
+            write_pws_and_pend_(PWS_NONE_);
+            if(statekey)
+                pos = json_writek_(pos);
+            else
+                pos = json_writev_(pos, evt, has_anchor_or_tag);
+            goto next_entry; // NOLINT
+        }
+        else if(detail::hasall(evt, ievt::BSEQ))
+        {
+            if C4_UNLIKELY(statekey)
+                RYML_ERR_BASIC_("JSON does not accept seq keys");
+            write_pws_and_pend_(PWS_NONE_);
+            write_('[');
+            pos = json_visit_container_(pos);
+            write_(']');
+            goto next_entry; // NOLINT
+        }
+        else if(detail::hasall(evt, ievt::BMAP))
+        {
+            if C4_UNLIKELY(statekey)
+                RYML_ERR_BASIC_("JSON does not accept map keys");
+            write_pws_and_pend_(PWS_NONE_);
+            write_('{');
+            pos = json_visit_container_(pos);
+            write_('}');
+            goto next_entry; // NOLINT
+        }
+        else if(evt & ievt::ALIA)
+        {
+            if C4_UNLIKELY(m_opts.json_err_on_anchor())
+                RYML_ERR_BASIC_("JSON does not have anchors");
+            write_pws_and_pend_(PWS_NONE_);
+            write_("\"*");
+            write_(getstr_(pos));
+            write_('"');
+            pos += 3;
+            goto next_entry; // NOLINT
+        }
+        else if(evt & (ievt::ANCH|ievt::TAG_))
+        {
+            pos = json_check_anchor_tag_(pos);
+            has_anchor_or_tag = true;
+        }
+        else if(detail::hasall(evt, ievt::EMAP))
+        {
+            ++pos;
+            break;
+        }
+        else if(evt & ievt::RREF)
+        {
+            pos = rref_start_(pos, &rref_handler);
+        }
+        else
+        {
+            pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
+        }
+        continue;
+    next_entry:
+        RYML_ASSERT_BASIC_(pos < m_evts_size);
+        if(rref_handler.active)
+            pos = rref_check_(pos, &rref_handler);
+        if(statekey)
+        {
+            write_(": ");
+        }
+        else
+        {
+            if(!detail::hasall(m_evts[pos], ievt::EMAP)) // pos changed -- don't use evt here
+            {
+                has_anchor_or_tag = false;
+                write_(',');
+                bool at_end = (m_col+1 >= m_opts.max_cols());
+                if((open & ievt::FMLN) && !at_end)
+                {
+                    if((open & ievt::FSPC) || m_opts.force_flow_spc())
+                        write_(' ');
+                }
+                else if(at_end || detail::query_blck_cont_or_(open, ievt::FML1))
+                {
+                    pend_newl_();
+                }
+            }
+            else
+            {
+                ++pos; // advance past the close event
+                if(detail::seqormap(open) && detail::query_blck_cont_or_(open, ievt::FMLX))
+                    pend_newl_();
+                break;
+            }
+        }
+        statekey = !statekey;
     }
     --m_depth;
     return pos;
