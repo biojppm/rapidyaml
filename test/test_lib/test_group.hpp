@@ -130,7 +130,7 @@ C4_SUPPRESS_WARNING_GCC_POP
 
 /** use this macro to add a case (of type @ref Case) to the test group. */
 #define ADD_CASE_TO_GROUP(...)                  \
-    group_cases__->emplace_back(csubstr(__FILE__), __LINE__+1, __VA_ARGS__)
+    group_cases_->emplace_back(csubstr(__FILE__), __LINE__+1, __VA_ARGS__)
 
 #else
 
@@ -148,7 +148,7 @@ struct CaseAdderGcc4_8
 
 
 /* all arguments are to the constructor of Case */
-#define ADD_CASE_TO_GROUP CaseAdderGcc4_8{group_cases__, csubstr(__FILE__), __LINE__+1}
+#define ADD_CASE_TO_GROUP CaseAdderGcc4_8{group_cases_, csubstr(__FILE__), __LINE__+1}
 
 #endif
 
@@ -214,7 +214,7 @@ Case const* get_case(csubstr name)                                      \
                                                                         \
                                                                         \
 /* finally, define the cases by calling ADD_CASE_TO_GROUP() */          \
-void add_cases_##group_name(std::vector<Case> *group_cases__)
+void add_cases_##group_name(std::vector<Case> *group_cases_)
 
 
 } // namespace yml

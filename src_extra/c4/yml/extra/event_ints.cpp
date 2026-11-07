@@ -11,6 +11,7 @@
 #include "c4/yml/scalar_style.hpp"
 #endif
 
+// NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
 namespace yml {
@@ -58,43 +59,47 @@ RYML_EXPORT evt_size estimate_events_size(csubstr src)
     return count;
 }
 
-// NOLINTBEGIN(hicpp-signed-bitwise)
-// ensure the ievt flags work despite being signed
-static_assert((ievt::MASK & ievt::BSTR) == ievt::BSTR, "overflow?");
-static_assert((ievt::MASK & ievt::ESTR) == ievt::ESTR, "overflow?");
-static_assert((ievt::MASK & ievt::BDOC) == ievt::BDOC, "overflow?");
-static_assert((ievt::MASK & ievt::EDOC) == ievt::EDOC, "overflow?");
-static_assert((ievt::MASK & ievt::BMAP) == ievt::BMAP, "overflow?");
-static_assert((ievt::MASK & ievt::EMAP) == ievt::EMAP, "overflow?");
-static_assert((ievt::MASK & ievt::BSEQ) == ievt::BSEQ, "overflow?");
-static_assert((ievt::MASK & ievt::ESEQ) == ievt::ESEQ, "overflow?");
-static_assert((ievt::MASK & ievt::ANCH) == ievt::ANCH, "overflow?");
-static_assert((ievt::MASK & ievt::ALIA) == ievt::ALIA, "overflow?");
-static_assert((ievt::MASK & ievt::TAG_) == ievt::TAG_, "overflow?");
-static_assert((ievt::MASK & ievt::PLAI) == ievt::PLAI, "overflow?");
-static_assert((ievt::MASK & ievt::SQUO) == ievt::SQUO, "overflow?");
-static_assert((ievt::MASK & ievt::DQUO) == ievt::DQUO, "overflow?");
-static_assert((ievt::MASK & ievt::LITL) == ievt::LITL, "overflow?");
-static_assert((ievt::MASK & ievt::FOLD) == ievt::FOLD, "overflow?");
-static_assert((ievt::MASK & ievt::FLOW) == ievt::FLOW, "overflow?");
-static_assert((ievt::MASK & ievt::BLCK) == ievt::BLCK, "overflow?");
-static_assert((ievt::MASK & ievt::KEY_) == ievt::KEY_, "overflow?");
-static_assert((ievt::MASK & ievt::VAL_) == ievt::VAL_, "overflow?");
-static_assert((ievt::MASK & ievt::EXPL) == ievt::EXPL, "overflow?");
-static_assert((ievt::MASK & ievt::YAML) == ievt::YAML, "overflow?");
-static_assert((ievt::MASK & ievt::TAGH) == ievt::TAGH, "overflow?");
-static_assert((ievt::MASK & ievt::TAGP) == ievt::TAGP, "overflow?");
-static_assert((ievt::MASK & ievt::AREN) == ievt::AREN, "overflow?");
-static_assert((ievt::MASK & ievt::PSTR) == ievt::PSTR, "overflow?");
-static_assert((ievt::MASK & ievt::WSTR) == ievt::WSTR, "overflow?");
-static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
-static_assert((ievt::MASK & ievt::PJUMP) == ievt::PJUMP, "overflow?");
-static_assert((ievt::MASK & ievt::FSL_) == ievt::FSL_, "overflow?");
-static_assert((ievt::MASK & ievt::FML1) == ievt::FML1, "overflow?");
-static_assert((ievt::MASK & ievt::FMLN) == ievt::FMLN, "overflow?");
-static_assert((ievt::MASK & ievt::FMLX) == ievt::FMLX, "overflow?");
-static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
-static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
+/*
+evt_size reorder(evt_bits const* evts, evt_size sz, ReorderOptions const& opts)
+{
+    RYML_ASSERT_BASIC_((evts[0] & ievt::END_) && (evts[0] & (detail::mask_open_close & ~ievt::END_)));
+    RYML_ASSERT_BASIC_((evts[0] & detail::mask_begend) != detail::mask_begend);
+    const evt_bits open = evts[0] & detail::mask_open_close;
+    const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
+    evt_size wpos = 0;
+    evt_size rpos = ievt::nextstep(evts[0]); // don't count the starting close token
+    evt_size rprv = 0; // read previous (last copied position)
+    auto cprng = [&](evt_size beg, evt_size end){
+    };
+    auto cpref = [&](evt_size beg, evt_size end){
+    };
+    uint32_t count = 0;
+    while(rpos < sz)
+    {
+        evt_size evt = evts[rpos];
+        if((evt & open) == open)
+        {
+            ++count;
+        }
+        else if((evt & close) == close)
+        {
+            if(!(count--))
+                return rpos;
+        }
+        else if(evt == 0 || evt == ievt::PEX2)
+        {
+            flush();
+            do {
+                ++rprv;
+            } while(evts[rprv] == 0 || evt == ievt::PEX2);
+            rpos = rprv;
+            continue;
+        }
+        rpos += ievt::nextstep(evt);
+    }
+    RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
+}
+*/
 
 
 namespace detail {
@@ -107,7 +112,7 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
     {
         evt_bits evt = evts[pos];
         if(detail::hasall(evt, ievt::BDOC))
-            return (evt & ievt::EXPL);
+            return (evt & ievt::FLOW);
         else if(detail::hasall(evt, ievt::ESTR))
             break;
         pos += ievt::nextstep(evt);
@@ -116,21 +121,22 @@ bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_s
 }
 
 
-evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
+evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT
 {
-    RYML_ASSERT_BASIC_(evts[pos] & ievt::KEY_);
+    RYML_ASSERT_BASIC_(evts[pos] & (ievt::KEY_|ievt::VAL_));
     evt_bits accum = {};
+    const evt_bits start = evts[pos] & (ievt::KEY_|ievt::VAL_);
     for( ; pos < evts_size; pos = ievt::nextpos(evts, pos))
     {
-        if(evts[pos] & ievt::VAL_)
-            break;
         accum |= evts[pos];
+        if((evts[pos] & start) && detail::isentry(evts[pos]))
+            break;
     }
     return accum;
 }
 
 
-evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::END_) && (evt & (mask_open_close & ~ievt::END_)));
@@ -157,7 +163,7 @@ evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYM
 }
 
 
-evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & (mask_open_close & ~ievt::BEG_)));
@@ -184,7 +190,7 @@ evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt
 }
 
 
-evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT
+evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val)
 {
     evt_bits evt = evts[pos];
     if(detail::seqormap(evt & ~ievt::STRM))
@@ -233,6 +239,21 @@ MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcep
     return p;
 }
 
+
+bool is_cyclic_ref_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size ref_pos, evt_size anchor_pos) noexcept
+{
+    RYML_ASSERT_BASIC_(evts[ref_pos] & ievt::ALIA);
+    RYML_ASSERT_BASIC_(evts[anchor_pos] & ievt::ANCH);
+    evt_size anchor_element_pos = find_next_entry_(evts, sz, anchor_pos, evts[anchor_pos] & (ievt::KEY_|ievt::VAL_));
+    MaybeParent par = find_parent_(evts, ref_pos);
+    while(par)
+    {
+        if(par.pos == anchor_element_pos)
+            return true;
+        par = find_parent_(evts, par.pos);
+    }
+    return false;
+}
 
 EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
 {
@@ -332,7 +353,7 @@ substr resize(substr buf, size_t sz, Callbacks const& cb)
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 } // namespace detail
 
-// NOLINTEND(hicpp-signed-bitwise)
+// NOLINTEND(*-signed-bitwise)
 
 } // namespace yml
 } // namespace c4

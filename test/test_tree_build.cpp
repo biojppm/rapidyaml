@@ -1,5 +1,11 @@
 #include "./test_lib/test_case.hpp"
 #include "gtest/gtest-spi.h"
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/parse.hpp"
+#include "c4/yml/parse_engine.hpp"
+#include "c4/yml/parse_engine.def.hpp"
+#include "c4/yml/event_handler_tree.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 

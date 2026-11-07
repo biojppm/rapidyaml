@@ -1,4 +1,7 @@
 #include "./test_lib/test_engine.hpp"
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/parse.hpp"
+#endif
 
 // WARNING: don't use raw string literals -- g++4.8 cannot accept them
 // as macro arguments

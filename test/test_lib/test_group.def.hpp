@@ -26,6 +26,7 @@ TEST_P(YmlTestCase, parse_yaml_tree_unix)
 {
     SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_parse_yaml_to_tree(&d->unix_style);
+    if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("redo parse to existing tree");
         SrcTree &tree = d->unix_style.tree;
