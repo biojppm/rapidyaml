@@ -10,8 +10,10 @@
 #include <c4/yml/parse_engine.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
+#include <c4/yml/extra/ints_format.hpp>
 #include <c4/yml/extra/emitter_ints.hpp>
 #include <c4/yml/extra/emitter_ints.def.hpp>
+#include <c4/yml/extra/ints_reference_resolver.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <c4/span.hpp>
 #endif
@@ -111,9 +113,9 @@ struct TestBuffers : public ievt::Buffers
         if(owned)
         {
             if(evts.ptr)
-                callbacks.m_free(evts.ptr, static_cast<size_t>(evts.cap) * sizeof(evts.ptr[0]), callbacks.m_user_data);
+                RYML_CB_FREE_(callbacks, evts.ptr, evt_size, static_cast<size_t>(evts.len));
             if(arena.str)
-                callbacks.m_free(arena.str, arena.len * sizeof(arena.str[0]), callbacks.m_user_data);
+                RYML_CB_FREE_(callbacks, arena.str, char, arena.len);
         }
         evts = {};
         src = {};
@@ -137,6 +139,16 @@ struct TestBuffers : public ievt::Buffers
         owned = that->owned;
         that->owned = false;
         that->destroy();
+    }
+
+    void copy_from(TestBuffers const& that)
+    {
+        destroy();
+        src = that.src;
+        evts = yml::detail::resize(evts, that.evts.len, that.callbacks);
+        arena = yml::detail::resize(arena, that.arena.len, that.callbacks);
+        callbacks = that.callbacks;
+        owned = true;
     }
 
 public:
@@ -206,28 +218,22 @@ public:
 
     void resolve(ResolveOptions const& opts={})
     {
-        resolve_refs(evts.ptr, evts.len, src, arena, opts);
+        ReferenceResolver res;
+        res.resolve_resize(this, opts);
     }
 
 public:
 
     void print(bool print_all=false) const
     {
-        evt_size sz = print_all ? evts.cap : num_ints();
-        ievt::events_ints_print(to_csubstr(src), to_csubstr(arena), evts.ptr, sz);
+        evt_size sz = print_all ? evts.cap : evts.len;
+        WriterFile writer;
+        format_ints_as_c_data(writer, src, arena, evts.ptr, sz, true);
     }
 
     evt_size num_ints() const
     {
-        evt_size sz = evts.len;
-        for(evt_size i = 0; i < sz; ++i)
-        {
-            if(evts.ptr[i] & extra::ievt::WSTR) // NOLINT
-                i += 2; // NOLINT
-            else if(!evts.ptr[i])
-                return i;
-        }
-        return sz;
+        return evts.len;
     }
 
 public:
