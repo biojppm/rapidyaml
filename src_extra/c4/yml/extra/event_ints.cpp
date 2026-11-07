@@ -224,7 +224,6 @@ MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcep
     return p;
 }
 
-
 EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOptions const& m_opts)
 {
     EmitKickoff ek = {};

@@ -15,7 +15,9 @@
 
 
 C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_MSVC(4146) // unary minus operator applied to unsigned
 C4_SUPPRESS_WARNING_MSVC(4251) // needs to have dll-interface to be used by clients
+C4_SUPPRESS_WARNING_MSVC(4307) // signed integral constant overflow
 // NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
 
 namespace c4 {
@@ -377,10 +379,10 @@ struct RYML_EXPORT evtbuf
 
 struct RYML_EXPORT Buffers
 {
+    evtbuf evts;
     substr src;
     substr arena;
-    evtbuf evts;
-    Buffers() noexcept : src(), arena(), evts() {}
+    Buffers() noexcept : evts(), src(), arena() {}
     C4_HOT C4_ALWAYS_INLINE csubstr getstr(evt_size pos) const RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(pos + 2 < evts.len);
@@ -440,10 +442,10 @@ struct MaybeParent
 };
 RYML_EXPORT_TEST MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept;
 RYML_EXPORT      bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT      evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT      evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT      evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos);
 RYML_EXPORT_TEST evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
-RYML_EXPORT_TEST evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
+RYML_EXPORT      evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val);
 RYML_EXPORT      evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept;
 RYML_EXPORT      evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept;
 RYML_EXPORT      evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept;
