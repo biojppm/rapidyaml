@@ -6,6 +6,7 @@
 #endif
 #include <stdexcept>
 #include <csetjmp>
+#include <cstring>
 #include "c4/yml/extra/event_handler_ints.hpp"
 
 
@@ -662,6 +663,64 @@ TEST(allocate_and_make_resident, with_make_resident)
     EXPECT_EQ(stored_resident_length, 32u);
     EXPECT_EQ(stored_resident_user_data, &data);
     cb.m_free(mem, 32u, cb.m_user_data);
+}
+
+TEST(make_resident, writes_one_zero_per_page)
+{
+    const size_t len = size_t(1) << 18; // 256 KiB
+    char *mem = static_cast<char*>(::malloc(len));
+    ASSERT_NE(mem, nullptr);
+    memset(mem, 'a', len);
+    make_resident(mem, len, nullptr);
+    size_t num_zeros = 0;
+    size_t first = len, second = len;
+    for(size_t i = 0; i < len; ++i)
+    {
+        if(mem[i] == '\0')
+        {
+            if(num_zeros == 0)
+                first = i;
+            else if(num_zeros == 1)
+                second = i;
+            ++num_zeros;
+        }
+        else
+        {
+            EXPECT_EQ(mem[i], 'a');
+        }
+    }
+    #if defined(C4_WIN) || defined(C4_UNIX) || defined(C4_LINUX) || defined(C4_MACOS) || defined(C4_IOS)
+    EXPECT_EQ(first, 0u);
+    ASSERT_GT(num_zeros, 1u);
+    const size_t page = second - first;
+    EXPECT_GE(page, 512u);
+    EXPECT_EQ(page & (page - 1u), 0u); // a power of two
+    EXPECT_EQ(num_zeros, (len + page - 1u) / page);
+    for(size_t i = 0; i < len; i += page)
+        EXPECT_EQ(mem[i], '\0');
+    #else
+    EXPECT_EQ(num_zeros, 0u);
+    #endif
+    ::free(mem);
+}
+
+TEST(make_resident, empty_or_null)
+{
+    char mem[4] = {'a', 'a', 'a', 'a'};
+    make_resident(mem, 0, nullptr);
+    EXPECT_EQ(mem[0], 'a');
+    make_resident(nullptr, 0, nullptr);
+    make_resident(nullptr, 100, nullptr);
+}
+
+TEST(make_resident, can_be_set)
+{
+    Callbacks cb = mk_test_callbacks().set_make_resident(&make_resident);
+    EXPECT_EQ(cb.m_make_resident, &make_resident);
+    void *mem = cb.allocate_and_make_resident(64, /*hint*/nullptr);
+    ASSERT_NE(mem, nullptr);
+    EXPECT_EQ(static_cast<char*>(mem)[0], '\0');
+    cb.m_free(mem, 64u, cb.m_user_data);
 }
 
 void testloc(Location const& actual, Location const& expected)

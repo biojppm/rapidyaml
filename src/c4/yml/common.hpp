@@ -329,12 +329,29 @@ using pfn_free = void (*)(void* mem, size_t size, void *user_data);
 
 
 /** the type of the function used to make freshly allocated memory
- * resident, for example by writing to each of its pages. ryml calls
- * it only through @ref Callbacks::allocate_and_make_resident(), and
- * only when it is set. ryml has no default implementation, because
- * doing this needs the system's page size, and assumptions which
- * only the user can make. */
+ * resident, for example by writing to each of its pages. When it is
+ * set, ryml calls it on every block that it allocates, through @ref
+ * Callbacks::allocate_and_make_resident(). It is null by default;
+ * @ref make_resident() is a ready-made implementation. */
 using pfn_make_resident = void (*)(void* mem, size_t len, void *user_data);
+
+
+/** A ready-made make_resident callback, to set with @ref
+ * Callbacks::set_make_resident(). It writes one zero byte in each
+ * page of the block, so that the system maps every page now, and
+ * not later at the first write to the page. It costs one write and
+ * one page fault per page, and makes the whole block resident even
+ * if only a part of it is used later.
+ *
+ * The page size comes from `GetSystemInfo()` on Windows, and from
+ * `sysconf(_SC_PAGESIZE)` on Linux, Unix, macOS and iOS.
+ * On other systems, or when the page size is not known, it does
+ * nothing.
+ *
+ * @warning It overwrites one byte in each page, so use it only on
+ * fresh memory, as @ref Callbacks::allocate_and_make_resident()
+ * does. */
+RYML_EXPORT void make_resident(void *mem, size_t len, void *user_data);
 
 
 /** the type of the function used to report basic errors.
@@ -378,7 +395,12 @@ using pfn_error RYML_DEPRECATED("use a more specific error type: `basic`, `parse
 
 /** A c-style callbacks class to customize behavior on errors or
  * allocation. Can be used globally by the library and/or locally by
- * @ref Tree and @ref Parser objects. */
+ * @ref Tree and @ref Parser objects.
+ *
+ * To make the memory that ryml allocates resident as soon as it is
+ * allocated, set a make_resident callback with @ref
+ * set_make_resident(), for example @ref make_resident(). It is null
+ * by default. */
 struct RYML_EXPORT Callbacks
 {
     void *          m_user_data;   ///< data to be forwarded in every call to a callback
@@ -434,13 +456,13 @@ public:
      * implementation: when the parameter is null, m_make_resident
      * stays null, and @ref allocate_and_make_resident() only
      * allocates. */
-    Callbacks& set_make_resident(pfn_make_resident make_resident=nullptr);
+    Callbacks& set_make_resident(pfn_make_resident make_resident_=nullptr);
 
 public:
 
     /** Allocate memory with m_allocate, then, if m_make_resident is
-     * set, call it on the whole allocated block. @ref Tree::reserve()
-     * allocates its nodes with this. */
+     * set, call it on the whole allocated block. ryml allocates all
+     * its memory with this. */
     void* allocate_and_make_resident(size_t len, void* hint) const
     {
         void *mem = m_allocate(len, hint, m_user_data);
@@ -506,7 +528,7 @@ C4_SUPPRESS_WARNING_POP
 
 /// @cond dev
 
-#define RYML_CB_ALLOC_HINT_(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
+#define RYML_CB_ALLOC_HINT_(cb, T, num, hint) (T*) (cb).allocate_and_make_resident((num) * sizeof(T), (hint))
 #define RYML_CB_ALLOC_(cb, T, num) RYML_CB_ALLOC_HINT_((cb), T, (num), nullptr)
 #define RYML_CB_FREE_(cb, buf, T, num)                              \
     do {                                                            \

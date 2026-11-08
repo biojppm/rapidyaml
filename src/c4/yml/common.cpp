@@ -9,6 +9,13 @@
 #ifdef _RYML_EXCEPTIONS
 #       include <stdexcept>
 #endif
+#if defined(C4_WIN)
+#   include "c4/windows.hpp"
+#elif defined(C4_UNIX) || defined(C4_LINUX) || defined(C4_MACOS) || defined(C4_IOS)
+// same condition as c4core's include of unistd.h, because the
+// amalgamation keeps only the first include of each header
+#   include <unistd.h>
+#endif
 
 
 namespace c4 {
@@ -194,10 +201,37 @@ Callbacks& Callbacks::set_error_visit(pfn_error_visit error_visit)
     return *this;
 }
 
-Callbacks& Callbacks::set_make_resident(pfn_make_resident make_resident)
+Callbacks& Callbacks::set_make_resident(pfn_make_resident make_resident_)
 {
-    m_make_resident = make_resident;
+    m_make_resident = make_resident_;
     return *this;
+}
+
+
+namespace {
+size_t page_size_() noexcept
+{
+    #if defined(C4_WIN)
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    return static_cast<size_t>(info.dwPageSize);
+    #elif defined(C4_UNIX) || defined(C4_LINUX) || defined(C4_MACOS) || defined(C4_IOS)
+    const auto sz = sysconf(_SC_PAGESIZE);
+    return sz > 0 ? static_cast<size_t>(sz) : 0u;
+    #else
+    return 0u;
+    #endif
+}
+} // namespace
+
+void make_resident(void *mem, size_t len, void * /*user_data*/)
+{
+    static const size_t page = page_size_();
+    if(!page || !mem) // no page size: do nothing
+        return;
+    char *bytes = static_cast<char*>(mem);
+    for(size_t i = 0; i < len; i += page)
+        bytes[i] = 0;
 }
 
 
