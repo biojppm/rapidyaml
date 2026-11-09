@@ -965,18 +965,36 @@ struct MakeResidentCall
 {
     void *mem;
     size_t len;
+    bool freed;
 };
 std::vector<MakeResidentCall> s_make_resident_calls;
+pfn_free s_free_before = nullptr;
 void make_resident_counting(void *mem, size_t len, void *user_data)
 {
-    s_make_resident_calls.push_back(MakeResidentCall{mem, len});
+    s_make_resident_calls.push_back(MakeResidentCall{mem, len, false});
     make_resident(mem, len, user_data);
+}
+// a freed block's address may be given to a later allocation, so
+// the calls on it must not be counted for the new block
+void free_counting(void *mem, size_t len, void *user_data)
+{
+    for(MakeResidentCall &call : s_make_resident_calls)
+        if(call.mem == mem)
+            call.freed = true;
+    s_free_before(mem, len, user_data);
+}
+Callbacks counting_callbacks(Callbacks cb)
+{
+    s_free_before = cb.m_free;
+    cb.set_make_resident(&make_resident_counting);
+    cb.set_free(&free_counting);
+    return cb;
 }
 size_t num_make_resident_calls_on(void const* mem)
 {
     size_t num = 0;
     for(MakeResidentCall const& call : s_make_resident_calls)
-        num += (call.mem == mem);
+        num += (call.mem == mem && !call.freed);
     return num;
 }
 } // namespace
@@ -994,8 +1012,7 @@ TEST(Tree, reserve_without_make_resident)
 TEST(Tree, reserve_calls_make_resident)
 {
     s_make_resident_calls.clear();
-    Callbacks cb = get_callbacks();
-    cb.set_make_resident(&make_resident_counting);
+    Callbacks cb = counting_callbacks(get_callbacks());
     Tree t(0, 0, cb);
     EXPECT_TRUE(s_make_resident_calls.empty());
     t.reserve(100);
@@ -1020,7 +1037,7 @@ TEST(Tree, reserve_calls_make_resident)
     EXPECT_GT(s_make_resident_calls.size(), before);
     bool found = false;
     for(MakeResidentCall const& call : s_make_resident_calls)
-        if(call.mem == static_cast<void*>(t.get(0)))
+        if(call.mem == static_cast<void*>(t.get(0)) && !call.freed)
             found = (call.len == static_cast<size_t>(t.capacity()) * sizeof(NodeData));
     EXPECT_TRUE(found);
     EXPECT_EQ(t.rootref().num_children(), 201);
@@ -1031,8 +1048,7 @@ TEST(Tree, reserve_calls_make_resident)
 TEST(Tree, arena_calls_make_resident)
 {
     s_make_resident_calls.clear();
-    Callbacks cb = get_callbacks();
-    cb.set_make_resident(&make_resident_counting);
+    Callbacks cb = counting_callbacks(get_callbacks());
     Tree t(0, 0, cb);
     t.reserve_arena(64);
     ASSERT_EQ(s_make_resident_calls.size(), 1u);
@@ -1044,8 +1060,7 @@ TEST(Tree, arena_calls_make_resident)
 TEST(Tree, copy_calls_make_resident)
 {
     s_make_resident_calls.clear();
-    Callbacks cb = get_callbacks();
-    cb.set_make_resident(&make_resident_counting);
+    Callbacks cb = counting_callbacks(get_callbacks());
     Tree t(cb);
     parse_in_arena("{a: b, c: [d, e]}", &t);
     s_make_resident_calls.clear();
@@ -1060,7 +1075,7 @@ TEST(Tree, global_callbacks_make_resident)
 {
     s_make_resident_calls.clear();
     const Callbacks before = get_callbacks();
-    set_callbacks(Callbacks(before).set_make_resident(&make_resident_counting));
+    set_callbacks(counting_callbacks(before));
     {
         // deep enough for the parser to grow its stack
         std::string src;
