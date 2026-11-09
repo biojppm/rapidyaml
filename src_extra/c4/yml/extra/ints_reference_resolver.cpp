@@ -187,12 +187,20 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size map_pos)
 
 C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_(evt_size pos)
 {
+printf("aqui 0.1: %d\n",pos);(void)fflush(nullptr);
     size_t spos = static_cast<size_t>(pos);
+printf("aqui 0.2: %d\n",pos);(void)fflush(nullptr);
+printf("aqui 0.2: %zu\n",spos);(void)fflush(nullptr);
+printf("aqui 0.2: %zu\n",siblings.size());(void)fflush(nullptr);
     RYML_ASSERT_BASIC_(spos < siblings.size());
+printf("aqui 0.3: %d\n",pos);(void)fflush(nullptr);
     evt_size sib = siblings[spos];
+printf("aqui 0.4: %d -> %d\n",pos,sib);(void)fflush(nullptr);
     if(sib != nosibling)
         return sib;
+printf("aqui 0.5: %d -> %d\n",pos,sib);(void)fflush(nullptr);
     siblings[spos] = sib = detail::find_next_sibling(evts.ptr, evts.len, pos);
+printf("aqui 0.6: %d -> %d\n",pos,sib);(void)fflush(nullptr);
     return sib;
 }
 
@@ -313,28 +321,40 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
 
 C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool key_conflict)
 {
+printf("---------------------------\n");(void)fflush(nullptr);
+printf("aqui 0: %d\n",pos);(void)fflush(nullptr);
     for(++pos; true; pos = next_sibling_memoized_(pos))
     {
-        if(evts.ptr[pos] & ievt::ALIA)
+printf("aqui 1: %d\n",pos);(void)fflush(nullptr);
+        evt_bits evt = evts.ptr[pos];
+printf("aqui 1: %d\n",evt);(void)fflush(nullptr);
+        if(evt & ievt::ALIA)
         {
+printf("aqui 1.1: %d\n",pos);(void)fflush(nullptr);
             AnchorData const* anch = lookup_anchor_(pos);
+printf("aqui 1.2: %d\n",pos);(void)fflush(nullptr);
             if(anch)
                 set_rref_(pos, anch->rng.beg, anch->rng.end);
         }
-        else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
+        else if(detail::hasall(evt, ievt::KEY_|ievt::SCLR))
         {
+printf("aqui 1.3: %d\n",pos);(void)fflush(nullptr);
             if(is_merge_elm_(pos))
             {
+printf("aqui 1.3.1: %d\n",pos);(void)fflush(nullptr);
                 if(is_any_merge_elm_alia_missing_(pos))
                 {
+printf("aqui 1.3.2: %d\n",pos);(void)fflush(nullptr);
                     ;
                 }
                 else if( ! key_conflict)
                 {
+printf("aqui 1.3.3: %d\n",pos);(void)fflush(nullptr);
                     handle_merge_elm_(pos);
                 }
                 else
                 {
+printf("aqui 1.3.4: %d\n",pos);(void)fflush(nullptr);
                     maybe_clear_anchtag_(pos);
                     clear_keyval_(pos);
                 }
@@ -342,13 +362,16 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool k
         }
         else if(descend_(pos))
         {
+printf("aqui 1.4: %d\n",pos);(void)fflush(nullptr);
             ;
         }
-        else if(detail::hasall(evts.ptr[pos], ievt::EMAP))
+        else if(detail::hasall(evt, ievt::EMAP))
         {
+printf("aqui 1.5: %d\n",pos);(void)fflush(nullptr);
             break;
         }
     }
+printf("aqui 2: %d\n",pos);(void)fflush(nullptr);
     return pos;
 }
 
