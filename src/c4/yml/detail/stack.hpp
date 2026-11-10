@@ -182,7 +182,7 @@ void stack<T, N>::reserve(id_type cap)
         return;
     id_type next = 2 * m_capacity;
     cap = cap > next ? cap : next;
-    T *ptr = (T*) m_callbacks.m_allocate((size_t)cap * sizeof(T), m_stack, m_callbacks.m_user_data);
+    T *ptr = RYML_CB_ALLOC_HINT_(m_callbacks, T, (size_t)cap, m_stack);
     RYML_ASSERT_BASIC_CB_(m_callbacks, ((uintptr_t)ptr % alignof(T)) == 0u);
     if(m_size)
         memcpy(ptr, m_stack, (size_t)m_size * sizeof(T));

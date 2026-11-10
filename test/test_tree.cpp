@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 #include <unordered_map>
+#include <vector>
 
 C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
@@ -957,6 +958,138 @@ TEST(Tree, reserve_empty_and_reused)
         EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
         test_invariants(t);
     }
+}
+
+namespace {
+struct MakeResidentCall
+{
+    void *mem;
+    size_t len;
+    bool freed;
+};
+std::vector<MakeResidentCall> s_make_resident_calls;
+pfn_free s_free_before = nullptr;
+void make_resident_counting(void *mem, size_t len, void *user_data)
+{
+    s_make_resident_calls.push_back(MakeResidentCall{mem, len, false});
+    make_resident(mem, len, user_data);
+}
+// a freed block's address may be given to a later allocation, so
+// the calls on it must not be counted for the new block
+void free_counting(void *mem, size_t len, void *user_data)
+{
+    for(MakeResidentCall &call : s_make_resident_calls)
+        if(call.mem == mem)
+            call.freed = true;
+    s_free_before(mem, len, user_data);
+}
+Callbacks counting_callbacks(Callbacks cb)
+{
+    s_free_before = cb.m_free;
+    cb.set_make_resident(&make_resident_counting);
+    cb.set_free(&free_counting);
+    return cb;
+}
+size_t num_make_resident_calls_on(void const* mem)
+{
+    size_t num = 0;
+    for(MakeResidentCall const& call : s_make_resident_calls)
+        num += (call.mem == mem && !call.freed);
+    return num;
+}
+} // namespace
+
+TEST(Tree, reserve_without_make_resident)
+{
+    Tree t(0, 0);
+    EXPECT_EQ(t.callbacks().m_make_resident, nullptr);
+    t.reserve(100);
+    EXPECT_EQ(t.capacity(), 100);
+    parse_in_arena("[a, b, c]", &t);
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
+}
+
+TEST(Tree, reserve_calls_make_resident)
+{
+    s_make_resident_calls.clear();
+    Callbacks cb = counting_callbacks(get_callbacks());
+    Tree t(0, 0, cb);
+    EXPECT_TRUE(s_make_resident_calls.empty());
+    t.reserve(100);
+    ASSERT_EQ(s_make_resident_calls.size(), 1u);
+    EXPECT_EQ(s_make_resident_calls[0].mem, static_cast<void*>(t.get(0)));
+    EXPECT_EQ(s_make_resident_calls[0].len, 100u * sizeof(NodeData));
+    t.reserve(50); // no allocation, no call
+    EXPECT_EQ(s_make_resident_calls.size(), 1u);
+    parse_in_arena("[a, b, c]", &t);
+    EXPECT_EQ(num_make_resident_calls_on(t.get(0)), 1u); // the nodes did not grow
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "[a,b,c]");
+    // growth inside the parse also goes through reserve()
+    std::string src = "[";
+    for(int i = 0; i < 200; ++i)
+        src += "x, ";
+    src += "y]";
+    t.clear();
+    t.clear_arena();
+    const size_t before = s_make_resident_calls.size();
+    parse_in_arena(to_csubstr(src), &t);
+    EXPECT_EQ(num_make_resident_calls_on(t.get(0)), 1u);
+    EXPECT_GT(s_make_resident_calls.size(), before);
+    bool found = false;
+    for(MakeResidentCall const& call : s_make_resident_calls)
+        if(call.mem == static_cast<void*>(t.get(0)) && !call.freed)
+            found = (call.len == static_cast<size_t>(t.capacity()) * sizeof(NodeData));
+    EXPECT_TRUE(found);
+    EXPECT_EQ(t.rootref().num_children(), 201);
+    test_invariants(t);
+    s_make_resident_calls.clear();
+}
+
+TEST(Tree, arena_calls_make_resident)
+{
+    s_make_resident_calls.clear();
+    Callbacks cb = counting_callbacks(get_callbacks());
+    Tree t(0, 0, cb);
+    t.reserve_arena(64);
+    ASSERT_EQ(s_make_resident_calls.size(), 1u);
+    EXPECT_EQ(s_make_resident_calls[0].mem, static_cast<void const*>(t.arena().str));
+    EXPECT_EQ(s_make_resident_calls[0].len, 64u);
+    s_make_resident_calls.clear();
+}
+
+TEST(Tree, copy_calls_make_resident)
+{
+    s_make_resident_calls.clear();
+    Callbacks cb = counting_callbacks(get_callbacks());
+    Tree t(cb);
+    parse_in_arena("{a: b, c: [d, e]}", &t);
+    s_make_resident_calls.clear();
+    Tree copy(t); // NOLINT(performance-unnecessary-copy-initialization)
+    EXPECT_EQ(num_make_resident_calls_on(copy.get(0)), 1u);
+    EXPECT_EQ(num_make_resident_calls_on(copy.arena().str), 1u);
+    EXPECT_EQ(emitrs_yaml<std::string>(copy), emitrs_yaml<std::string>(t));
+    s_make_resident_calls.clear();
+}
+
+TEST(Tree, global_callbacks_make_resident)
+{
+    s_make_resident_calls.clear();
+    const Callbacks before = get_callbacks();
+    set_callbacks(counting_callbacks(before));
+    {
+        // deep enough for the parser to grow its stack
+        std::string src;
+        for(int i = 0; i < 100; ++i)
+            src += "[";
+        for(int i = 0; i < 100; ++i)
+            src += "]";
+        Tree t = parse_in_arena(to_csubstr(src));
+        EXPECT_EQ(num_make_resident_calls_on(t.get(0)), 1u);
+        EXPECT_EQ(num_make_resident_calls_on(t.arena().str), 1u);
+        EXPECT_GT(s_make_resident_calls.size(), 2u); // the parser stack too
+    }
+    set_callbacks(before);
+    s_make_resident_calls.clear();
 }
 
 // https://github.com/biojppm/rapidyaml/issues/288

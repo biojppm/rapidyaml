@@ -334,6 +334,10 @@ public:
     /** @name memory and sizing */
     /** @{ */
 
+    /** ensure the node array can hold at least node_capacity nodes.
+     * When it grows, the new array is allocated with
+     * Callbacks::allocate_and_make_resident(), and only the nodes in
+     * use are copied. */
     void reserve(id_type node_capacity=RYML_DEFAULT_TREE_CAPACITY);
 
     /** clear the tree
