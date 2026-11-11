@@ -239,7 +239,7 @@ void iter_children(evt_bits const* evts, evt_size sz, evt_size pos, Fn const& fn
         fn(pos, evts[pos]);
         if(testing::Test::HasFailure())
             break;
-        pos = detail::find_next_sibling(evts, sz, pos);
+        pos = ievt::detail::find_next_sibling(evts, sz, pos);
     }
 }
 

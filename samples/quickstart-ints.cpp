@@ -432,6 +432,7 @@ int main(int argc, const char *argv[])
 
     // these are the events we expect from parsing the demo YAML
     auto PST_ = c4::yml::extra::ievt::PSTR; // PSTR does not work in windows
+    using namespace ievt;
     const int demo_expected[] = {
         BSTR,
         BDOC,

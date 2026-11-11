@@ -160,117 +160,17 @@ static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
                                          std::vector<char> &yaml)
 {
     SCOPED_TRACE("ints_from_events");
-    EventHandlerIntsTrNoResize events_tr;
+    EventHandlerIntsTr<resize_buffers> events_tr;
     yaml = {test_case.yaml.begin(), test_case.yaml.end()};
-    SCOPED_TRACE("noresize");
-    buffers.prepare_events(events_tr, to_substr(yaml), -1, test_case.expected_emitted.size());
-    EXPECT_TRUE(buffers.buf.owned);
-    event_producer(events_tr);
-    if(buffers.resize_post_events(events_tr, to_substr(yaml)))
+    if C4_IF_CONSTEXPR (resize_buffers)
     {
-        ASSERT_TRUE(events_tr.handler.fits_buffers());
-        EXPECT_TRUE(buffers.buf.owned);
+        SCOPED_TRACE("resize");
+        buffers.prepare_events<resize_buffers>(events_tr, to_substr(yaml), -1, test_case.expected_emitted.size());
         event_producer(events_tr);
-    }
-    EXPECT_TRUE(buffers.buf.owned);
-    buffers.test(test_case);
-}
-static void test_engine_ints_from_events(EngineEvtTestCase const& test_case,
-                                         EventProducerIntsNoResize event_producer)
-{
-    SCOPED_TRACE("ints_from_events");
-    EngineTestIntBuffers buffers;
-    std::vector<char> yaml;
-    test_engine_ints_from_events(test_case, event_producer, buffers, yaml);
-}
-void test_engine_ints_from_events_noresize(EngineEvtTestCase const& test_case, EventProducerIntsNoResize event_producer)
-{
-    SCOPED_TRACE("ints_from_events_noresize");
-    test_engine_ints_from_events(test_case, event_producer);
-}
-
-
-//-----------------------------------------------------------------------------
-
-static void test_expected_error_ints_from_yaml(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
-{
-    SCOPED_TRACE("error_ints_from_yaml");
-    EngineTestIntBuffers buffers;
-    std::vector<char> yaml(test_case.yaml.begin(), test_case.yaml.end());
-    RYML_EXPECT_ERROR(check_error(errtype, [&]{
-        extra::EventHandlerInts handler{};
-        ParseEngine<extra::EventHandlerInts> parser(&handler, test_case.opts);
-        buffers.prepare_parse(handler, to_substr(yaml));
-        parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
-    }, test_case.expected_error_location));
-    if(testing::Test::HasFailure())
-        buffers.buf.print();
-}
-void test_expected_error_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, ExpectedErrorType errtype)
-{
-    SCOPED_TRACE("error_ints_from_yaml_noresize");
-    test_expected_error_ints_from_yaml(test_case, errtype);
-}
-
-
-//-----------------------------------------------------------------------------
-
-static void test_engine_ints_from_yaml(EngineTestIntBuffers& buffers, substr parsed_yaml_buf,
-                                       EngineEvtTestCase const& test_case, std::string const& yaml_src,
-                                       bool ignore_doc_style=false)
-{
-    SCOPED_TRACE("test_engine_ints_from_yaml");
-    substr parsed_yaml;
-    auto reset_parsed_yaml = [&]{
-        ASSERT_GE(parsed_yaml_buf.len, yaml_src.size());
-        if(!yaml_src.empty())
-            memcpy(parsed_yaml_buf.str, yaml_src.data(), yaml_src.size());
-        parsed_yaml = parsed_yaml_buf.first(yaml_src.size());
-    };
-    extra::EventHandlerInts handler{};
-    ParseEngine<extra::EventHandlerInts> parser(&handler, test_case.opts);
-    SCOPED_TRACE("test_engine_ints_from_yaml[noresize]");
-    int size_estimated = extra::estimate_events_ints_size(to_csubstr(yaml_src));
-    int reqsz_evts = 0;
-    size_t reqsz_arena = 0;
-    reset_parsed_yaml();
-    {
-        SCOPED_TRACE("empty buffers");
-        buffers.prepare_parse(handler, to_substr(parsed_yaml), 0, 0);
-        ASSERT_EQ(buffers.buf.evts.len, 0);
-        ASSERT_EQ(buffers.buf.arena.len, 0);
-        parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
-        EXPECT_GE(size_estimated, handler.required_size_events());
-    }
-    reqsz_evts = handler.required_size_events();
-    reqsz_arena = handler.required_size_arena();
-    reset_parsed_yaml();
-    {
-        SCOPED_TRACE("small buffers");
-        buffers.prepare_parse(handler, parsed_yaml, reqsz_evts / 2, reqsz_arena / 2);
-        parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
-        EXPECT_EQ(handler.required_size_events(), reqsz_evts);
-        EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
-    }
-    if(test_case.expected_ints_enabled)
-    {
-        size_t size_reference = num_ints(test_case.expected_ints.data(), test_case.expected_ints.size());
-        EXPECT_EQ(size_reference, handler.required_size_events());
-    }
-    buffers.buf.owned = true;
-    buffers.buf.destroy();
-    reset_parsed_yaml();
-    EXPECT_TRUE(buffers.resize_post_parse(handler, to_substr(parsed_yaml)));
-    {
-        SCOPED_TRACE("buffers ok");
-        parser.parse_in_place_ev(to_csubstr(test_case.fileline), buffers.buf.src);
-        EXPECT_FALSE(buffers.resize_post_parse(handler, to_substr(parsed_yaml)));
-        buffers.buf.owned = true;
-        EXPECT_EQ(handler.required_size_events(), reqsz_evts);
-        EXPECT_EQ(handler.required_size_arena(), reqsz_arena);
-        ASSERT_TRUE(buffers.buf.owned);
-        ASSERT_TRUE(handler.fits_buffers());
-        buffers.test(test_case, ignore_doc_style);
+        ASSERT_TRUE(events_tr.handler.fits_buffers());
+        buffers.get_buffers(events_tr.handler, true);
+        EXPECT_TRUE(buffers.buf.owned);
+        buffers.test(test_case);
     }
     else
     {
@@ -433,17 +333,6 @@ void test_engine_ints_from_yaml_resize(EngineEvtTestCase const& test_case, std::
 void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style)
 {
     test_engine_ints_from_yaml<false>(test_case, parsed_yaml, ignore_doc_style);
-}
-
-static void test_engine_ints_from_yaml(EngineEvtTestCase const& test_case, std::string const& yaml_src, bool ignore_doc_style=false)
-{
-    EngineTestIntBuffers buffers;
-    std::vector<char> parsed_yaml{yaml_src.begin(), yaml_src.end()};
-    test_engine_ints_from_yaml(buffers, to_substr(parsed_yaml), test_case, yaml_src, ignore_doc_style);
-}
-void test_engine_ints_from_yaml_noresize(EngineEvtTestCase const& test_case, std::string const& parsed_yaml, bool ignore_doc_style)
-{
-    test_engine_ints_from_yaml(test_case, parsed_yaml, ignore_doc_style);
 }
 
 

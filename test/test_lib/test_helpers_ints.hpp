@@ -10,6 +10,8 @@
 #include <c4/yml/parse_engine.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
+#include <c4/yml/extra/emitter_ints.hpp>
+#include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <c4/span.hpp>
 #endif
@@ -75,9 +77,14 @@ void test_compare_emitted_yaml_ints(std::string const& emitted, std::string cons
 void verify_visit_seq(evt_bits const* evts, evt_size evts_sz,
                       evt_size const* expected, evt_size exsz);
 
-inline void verify_visit_seq(cspan<ievt::evt_bits> evts, cspan<evt_size> expected)
+inline void verify_visit_seq(cspan<ievt::evt_bits> evts, cspan<ievt::evt_size> expected)
 {
     verify_visit_seq(evts.data(), static_cast<evt_size>(evts.size()),
+                     expected.data(), static_cast<evt_size>(expected.size()));
+}
+inline void verify_visit_seq(ievt::evtbuf evts, cspan<ievt::evt_size> expected)
+{
+    verify_visit_seq(evts.ptr, evts.len,
                      expected.data(), static_cast<evt_size>(expected.size()));
 }
 
@@ -86,6 +93,10 @@ void verify_visit_seq(evt_bits const* evts, evt_size evts_sz);
 inline void verify_visit_seq(cspan<ievt::evt_bits> evts)
 {
     verify_visit_seq(evts.data(), static_cast<evt_size>(evts.size()));
+}
+inline void verify_visit_seq(ievt::evtbuf evts)
+{
+    verify_visit_seq(evts.ptr, evts.len);
 }
 
 
@@ -133,32 +144,46 @@ struct TestBuffers : public ievt::Buffers
 
 public:
 
-    void prepare_parse(EventHandlerInts &handler,
+    template<bool resize_buffers>
+    void get_buffers(extra::ievt::EventHandlerInts<resize_buffers> &handler, bool transfer_ownership)
+    {
+        handler.get_buffers(this, transfer_ownership);
+        owned = transfer_ownership;
+        callbacks = handler.m_stack.m_callbacks;
+    }
+
+public:
+
+    template<bool resize_buffers>
+    void prepare_parse(ievt::EventHandlerInts<resize_buffers> &handler,
                        substr parsed_yaml,
                        evt_size evts_cap=-1, size_t arena_size=npos)
     {
         if(evts_cap == -1)
-            evts_cap = estimate_events_ints_size(to_csubstr(parsed_yaml));
+            evts_cap = ievt::estimate_events_size(to_csubstr(parsed_yaml));
         if(arena_size == npos)
             arena_size = parsed_yaml.size();
         _c4dbgpf("ints: setting buffer sizes: src={} ints={} arena={}", parsed_yaml.size(), evts_cap, arena_size);
         resize_(evts_cap, arena_size, parsed_yaml);
-        RYML_ASSERT_BASIC_CB_(callbacks, parsed_yaml.str == src.str);
-        handler.reset(src, arena, evts.ptr, evts.cap);
+        handler.reset(*this);
     }
 
-    bool resize_post_parse(EventHandlerInts &handler, substr parsed_yaml)
+    template<bool resize_buffers>
+    bool resize_post_parse(ievt::EventHandlerInts<resize_buffers> &handler, substr parsed_yaml)
     {
         bool ret = false;
-        if(!handler.fits_buffers())
+        if C4_IF_CONSTEXPR (resize_buffers)
         {
-            resize_(handler.required_size_events(), handler.required_size_arena(), parsed_yaml);
-            handler.reset(src, arena, evts.ptr, evts.cap);
-            ret = true;
+            EXPECT_TRUE(handler.fits_buffers());
         }
         else
         {
-            evts.len = handler.required_size_events();
+            if(!handler.fits_buffers())
+            {
+                resize_(handler.required_size_events(), handler.required_size_arena(), parsed_yaml);
+                handler.reset(*this);
+                ret = true;
+            }
         }
         return ret;
     }
@@ -168,17 +193,16 @@ public:
         src = parsed_yaml;
         if(arena_size > arena.len)
         {
-            arena = detail::resize(arena, arena_size, get_callbacks());
+            arena = yml::detail::resize(arena, arena_size, get_callbacks());
         }
         ASSERT_GE(arena.len, arena_size);
         if(evts_cap > evts.len)
         {
             evt_size prev_len = evts.len;
-            evts = detail::resize(evts, evts_cap, get_callbacks());
+            evts = yml::detail::resize(evts, evts_cap, get_callbacks());
             EXPECT_EQ(prev_len, evts.len);
         }
         ASSERT_GE(evts.cap, evts_cap);
-        owned = true;
     }
 
 public:
@@ -232,18 +256,100 @@ public:
                             /*ignore_scalar_style*/false,
                             /*ignore_tag_normalization*/true);
     }
+
+public:
+
+    void emit_yaml(FILE* file, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ASSERT_TRUE(pos <= evts.len);
+        ievt::EmitterInts<WriterFile> emitter(opts, file);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
+    }
+    void emit_json(FILE* file, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ASSERT_TRUE(pos <= evts.len);
+        ievt::EmitterInts<WriterFile> emitter(opts, file);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
+    }
+
+    template<class Stream>
+    void emit_yaml_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, &stream);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
+    }
+    template<class Stream>
+    void emit_json_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, &stream);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
+    }
+
+    size_t emit_yaml(substr yaml, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterBuf> emitter(opts, yaml);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
+        return emitter.get_result(/*error_on_excess*/false).len;
+    }
+    size_t emit_json(substr json, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterBuf> emitter(opts, json);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
+        return emitter.get_result(/*error_on_excess*/false).len;
+    }
+
+    template<class CharContainer>
+    void emitrs_yaml(CharContainer *cont, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        const size_t cap = cont->capacity();
+        cont->resize(cap);
+        const size_t len = this->emit_yaml(to_substr(*cont), opts, pos);
+        cont->resize(len);
+        if(len > cap)
+        {
+            const size_t len2 = this->emit_yaml(to_substr(*cont), opts, pos);
+            ASSERT_EQ(len2, len);
+        }
+    }
+    template<class CharContainer>
+    void emitrs_json(CharContainer *cont, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        const size_t cap = cont->capacity();
+        cont->resize(cap);
+        const size_t len = this->emit_json(to_substr(*cont), opts, pos);
+        cont->resize(len);
+        if(len > cap)
+        {
+            const size_t len2 = this->emit_json(to_substr(*cont), opts, pos);
+            ASSERT_EQ(len2, len);
+        }
+    }
+
+    template<class CharContainer>
+    CharContainer emitrs_yaml(EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        CharContainer c;
+        this->emitrs_yaml(&c, opts, pos);
+        return c;
+    }
+    template<class CharContainer>
+    CharContainer emitrs_json(EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        CharContainer c;
+        this->emitrs_json(&c, opts, pos);
+        return c;
+    }
 };
 
 
 inline void parse_ints(substr src, TestBuffers *ints, ParserOptions const& opts={})
 {
-    using Handler = extra::EventHandlerInts;
+    using Handler = extra::ievt::EventHandlerInts<true>;
     Handler handler;
     ParseEngine<Handler> parser(&handler, opts);
-    ints->prepare_parse(handler, src);
+    handler.reset(src);
     parser.parse_in_place_ev("(testyaml)", src);
-    ASSERT_TRUE(handler.fits_buffers());
-    ints->evts.len = handler.required_size_events();
+    ints->get_buffers(handler, true);
 }
 
 
