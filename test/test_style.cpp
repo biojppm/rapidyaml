@@ -21,7 +21,7 @@ C4_SUPPRESS_WARNING_PUSH
 
 #include "./test_lib/tree_and_ints.hpp"
 #include "./test_lib/test_case.hpp"
-#include "./test_lib/test_events_ints_helpers.hpp"
+#include "./test_lib/test_helpers_ints.hpp"
 
 #include <gtest/gtest.h>
 

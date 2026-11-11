@@ -10,7 +10,7 @@
 #include <c4/yml/extra/event_ints.hpp>
 #endif
 #include "./test_lib/test_case.hpp"
-#include "./test_lib/test_events_ints_helpers.hpp"
+#include "./test_lib/test_helpers_ints.hpp"
 
 #include <gtest/gtest.h>
 #include "./test_lib/callbacks_tester.hpp"

@@ -737,13 +737,6 @@ TmpStyle mkflowmln(IntBufs &ti, IntBufs &, evt_size kpos, evt_size vpos, evt_bit
 
 //-----------------------------------------------------------------------------
 
-#define test_emit_yaml_(...) { SCOPED_TRACE("here"); test_emit_yaml(__VA_ARGS__); }
-#define test_emit_yaml_tree_(...) { SCOPED_TRACE("here"); test_emit_yaml_tree(__VA_ARGS__); }
-#define test_emit_yaml_ints_(...) { SCOPED_TRACE("here"); test_emit_yaml_ints(__VA_ARGS__); }
-#define test_emit_json_(...) { SCOPED_TRACE("here"); test_emit_json(__VA_ARGS__); }
-#define test_emit_json_tree_(...) { SCOPED_TRACE("here"); test_emit_json_tree(__VA_ARGS__); }
-#define test_emit_json_ints_(...) { SCOPED_TRACE("here"); test_emit_json_ints(__VA_ARGS__); }
-
 static const EmitOptions without_dash = {};
 static const EmitOptions with_dash = EmitOptions{}.emit_nonroot_dash(true);
 static const EmitOptions with_key = {};
