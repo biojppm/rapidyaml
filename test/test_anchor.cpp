@@ -1567,7 +1567,7 @@ TEST(anchors, resolve_works_on_a_tree_without_refs)
 {
     TreeAndInts ti("[a, b, c, d, e, f]");
     id_type size_before_tree = ti.tree.size();
-    extra::evt_size size_before_ints = ti.ints.evts.len;
+    extra::ievt::evt_size size_before_ints = ti.ints.evts.len;
     test_resolve_(ti);
     EXPECT_EQ(ti.tree.size(), size_before_tree);
     EXPECT_EQ(ti.ints.evts.len, size_before_ints);

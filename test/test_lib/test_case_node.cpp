@@ -254,6 +254,11 @@ void TestCaseNode::recreate(Tree *tree, id_type node) const
     for(TestCaseNode const& ch : children)
         ch.recreate(tree, tree->append_child(node));
 }
+void TestCaseNode::recreate(NodeRef n) const
+{
+    recreate(n.tree(), n.id());
+}
+
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 

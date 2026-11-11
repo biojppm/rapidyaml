@@ -798,7 +798,7 @@ struct IntEventsTestHelper
         {
             size_t reqsz = (size_t)handler.required_size_arena();
             size_t sz = actual.size() < reqsz ? actual.size() : reqsz;
-            extra::events_ints_print(src_copy, arena, actual.data(), (int)sz);
+            extra::ievt::events_ints_print(src_copy, arena, actual.data(), (int)sz);
         }
     }
 };
