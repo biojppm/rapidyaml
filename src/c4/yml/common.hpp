@@ -500,8 +500,6 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
 C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
 
-/** A tag type to select the key when building the tree, or when
- * (de)serializing with operator<< or operator>> */
 template<class K>
 struct RYML_LEGACY_OPERATOR("prefer .set_key() methods in the Tree and node")
 Key
@@ -509,8 +507,6 @@ Key
     K &&k; // NOLINT
 };
 
-/** A tag function to select the key when building the tree, or when
- * (de)serializing with operator<< or operator>> */
 template<class K>
 RYML_LEGACY_OPERATOR("prefer .set_key() methods in the Tree and node")
 C4_ALWAYS_INLINE Key<K> key(K && k)
@@ -535,6 +531,36 @@ C4_SUPPRESS_WARNING_POP
         (cb).m_free((buf), (num) * sizeof(T), (cb).m_user_data);    \
         (buf) = nullptr;                                            \
     } while(false)
+
+
+namespace detail {
+// resize a trivial buffer with length+capacity
+C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb);
+// resize a trivial buffer with length only
+inline C4_NODISCARD void* grow_buf_raw(void* buf, size_t len, size_t next_len, Callbacks const& cb)
+{
+    return grow_buf_raw(buf, len, len, next_len, cb);
+}
+
+// resize a trivial buffer with length+capacity
+template<class T>
+C4_NODISCARD T* grow_buf(T* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
+{
+    static_assert(std::is_trivial<T>::value, "must be mempcy-able");
+    return reinterpret_cast<T*>(grow_buf_raw(buf, sizeof(T) * len, sizeof(T) * cap, sizeof(T) * next_cap, cb)); // NOLINT
+}
+// resize a trivial buffer with length only
+template<class T>
+C4_NODISCARD T* grow_buf(T* buf, size_t len, size_t next_len, Callbacks const& cb)
+{
+    return grow_buf(buf, len, len, next_len, cb);
+}
+} // detail
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 namespace detail {
 template<int8_t signedval, uint8_t unsignedval>

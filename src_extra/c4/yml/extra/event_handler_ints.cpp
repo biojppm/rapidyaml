@@ -14,6 +14,8 @@
 #include "c4/yml/extra/event_handler_ints.hpp"
 #endif
 
+// NOLINTBEGIN(*-signed-bitwise)
+
 namespace c4 {
 namespace yml {
 
@@ -63,7 +65,6 @@ RYML_EXPORT evt_size estimate_events_ints_size(csubstr src)
     return count;
 }
 
-// NOLINTBEGIN(*-signed-bitwise)
 // ensure the ievt flags work despite being signed
 static_assert((ievt::MASK & ievt::BSTR) == ievt::BSTR, "overflow?");
 static_assert((ievt::MASK & ievt::ESTR) == ievt::ESTR, "overflow?");
@@ -96,8 +97,43 @@ static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
 static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
 static_assert((ievt::MASK & ievt::PJUMP) == ievt::PJUMP, "overflow?");
 static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
-// NOLINTEND(*-signed-bitwise)
+
+
+namespace ievt {
+namespace detail {
+
+
+evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos)
+{
+    evt_bits evt = evts[pos];
+    RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & (mask_open_close & ~ievt::BEG_)));
+    RYML_ASSERT_BASIC_((evt & mask_begend) != mask_begend);
+    const evt_bits open = evt & mask_open_close;
+    const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
+    pos += ievt::nextstep(evt); // don't count the starting close token
+    uint32_t count = 0;
+    while(pos < sz)
+    {
+        evt = evts[pos];
+        if((evt & open) == open)
+        {
+            ++count;
+        }
+        else if((evt & close) == close)
+        {
+            if(!(count--))
+                return pos;
+        }
+        pos += ievt::nextstep(evt);
+    }
+    RYML_ERR_BASIC_("evt error"); // LCOV_EXCL_LINE
+}
+
+} // namespace detail
+} // namespace ievt
 
 } // namespace extra
 } // namespace yml
 } // namespace c4
+
+// NOLINTEND(*-signed-bitwise)

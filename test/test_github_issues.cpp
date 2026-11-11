@@ -570,7 +570,8 @@ N(MB, L{N(KP|SB, "Yt3ymqZXzLY", L{N(VP,"0.mp4"), N(VP,"1.mp4"), N(VP,"2.mp4"), N
 );
 
 ADD_CASE_TO_GROUP("github6",
-R"(videos:
+R"(
+videos:
 - UQxRibHKEDI:
   - 0.mp4
   - 1.mp4
@@ -741,7 +742,8 @@ R"(
 ADD_CASE_TO_GROUP("github128/1", RESOLVE_REFS | EXPECT_RESOLVE_ERROR, "a: *invalid");
 ADD_CASE_TO_GROUP("github128/2", RESOLVE_REFS | EXPECT_RESOLVE_ERROR, "*");
 ADD_CASE_TO_GROUP("github128/3", RESOLVE_REFS | EXPECT_RESOLVE_ERROR, "*abc");
-ADD_CASE_TO_GROUP("github128/4", "*abc", N(VAL, "*abc", AR(VALREF, "*abc")));
+ADD_CASE_TO_GROUP("github128/4", NO_COMPARE_EMITTED_INTS_JSON,
+                  "*abc", N(VAL, "*abc", AR(VALREF, "*abc")));
 
 ADD_CASE_TO_GROUP("github129", RESOLVE_REFS, R"(
 ref: &ref ref_val

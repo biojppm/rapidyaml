@@ -8,7 +8,7 @@
 #endif
 #include "test_lib/test_case.hpp"
 #include "test_lib/test_engine.hpp"
-#include "test_lib/test_events_ints_helpers.hpp"
+#include "test_lib/test_helpers_ints.hpp"
 #include "testsuite/testsuite_common.hpp"
 #include "testsuite/testsuite_parts.hpp"
 #include "testsuite/testsuite_events.hpp"
@@ -347,7 +347,7 @@ struct TestSequenceLevel
         #ifdef RYML_DBG
         extra::events_ints_print(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         #endif
-        extra::test_events_ints_invariants(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
+        extra::ievt::test_events_ints_invariants(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         EXPECT_GT(evt_handler_ints.required_size_events(), 0);
         extra::events_ints_to_testsuite(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)buffer_ints.size(), &evts_test_suite_from_ints);
         events_ints_were_generated = true;

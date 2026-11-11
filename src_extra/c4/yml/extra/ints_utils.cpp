@@ -60,7 +60,7 @@ const FlagSym flag_syms_[] = {
 
 size_t to_str(substr buf, ievt::evt_bits flags) noexcept
 {
-    detail::SubstrWriter_ writer(buf);
+    yml::detail::SubstrWriter_ writer(buf);
     for(const FlagSym sym : flag_syms_)
     {
         if((flags & sym.flags) == sym.flags)
@@ -72,7 +72,7 @@ size_t to_str(substr buf, ievt::evt_bits flags) noexcept
         }
     }
     if(!writer.pos)
-        writer.append("NONE");
+        writer.append('0');
     if(buf.len > writer.pos)
         buf[writer.pos] = '\0';
     return writer.pos;

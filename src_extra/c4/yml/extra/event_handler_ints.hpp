@@ -276,6 +276,54 @@ using DataType RYML_DEPRECATED("use evt_bits") = evt_bits;
 using EventFlags RYML_DEPRECATED("use EventBits") = EventBits;
 /** @endcond */
 
+
+C4_HOT C4_ALWAYS_INLINE evt_size nextstep(evt_bits bits) noexcept
+{
+    return (bits & ievt::WSTR) ? 3 : 1;
+}
+
+C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
+{
+    return pos + ((arr[pos] & ievt::WSTR) ? 3 : 1);
+}
+
+
+/** @cond dev */
+namespace detail {
+
+enum : evt_bits { // NOLINT
+    mask_open_close = ievt::BEG_|ievt::END_|ievt::SEQ_|ievt::MAP_|ievt::DOC_|ievt::STRM,
+    mask_seqmap = ievt::SEQ_|ievt::MAP_,
+    mask_begend = ievt::BEG_|ievt::END_,
+    mask_sclralia = ievt::SCLR|ievt::ALIA,
+};
+
+C4_HOT C4_ALWAYS_INLINE bool hasall(evt_bits evt, evt_bits bits) noexcept
+{
+    return (evt & bits) == bits;
+}
+C4_HOT C4_ALWAYS_INLINE bool hasnone(evt_bits evt, evt_bits bits) noexcept
+{
+    return (evt & bits) == 0;
+}
+inline bool isentry(evt_bits mask) noexcept
+{
+    return (mask & ievt::detail::mask_sclralia) ||
+        ((mask & ievt::BEG_) && (mask & ievt::detail::mask_seqmap));
+}
+
+RYML_EXPORT_TEST evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
+
+inline evt_size find_next_sibling(evt_bits const* evts, evt_size sz, evt_size pos)
+{
+    if(evts[pos] & ievt::BEG_)
+        pos = ievt::detail::find_matching_close_(evts, sz, pos);
+    return ievt::nextpos(evts, pos);
+}
+
+} // namespace detail
+/** @endcond */
+
 } // namespace ievt
 
 /** @} */ // doc_event_handlers_ints
@@ -1213,7 +1261,8 @@ public:
                 }
                 RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, posp1 < m_evt_pos);
                 // start the map
-                m_evt[pos] = ievt::BMAP|sty|ievt::VAL_;
+                m_evt[pos] &= ievt::KEY_|ievt::VAL_;
+                m_evt[pos] |= ievt::BMAP|sty;
                 // set next as key, not val
                 m_evt[posp1] |= ievt::KEY_;
                 m_evt[posp1] &= ~ievt::VAL_;

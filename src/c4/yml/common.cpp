@@ -320,8 +320,24 @@ ExceptionVisit::ExceptionVisit(csubstr msg_, ErrorDataVisit const& errdata_) noe
 }
 #endif // RYML_WITH_EXCEPTIONS_
 
-
 namespace detail {
+
+void* grow_buf_raw(void* buf, size_t len, size_t cap, size_t next_cap, Callbacks const& cb)
+{
+    RYML_ASSERT_BASIC_CB_(cb, next_cap > cap);
+    RYML_ASSERT_BASIC_CB_(cb, len <= cap);
+    void *ptr = RYML_CB_ALLOC_HINT_(cb, uint8_t, next_cap, buf);
+    if C4_LIKELY(!!ptr)
+    {
+        if(len)
+            memcpy(ptr, buf, len);
+        RYML_CB_FREE_(cb, buf, uint8_t, cap);
+        return ptr;
+    }
+    RYML_ERR_BASIC_CB_(cb, "out of memory"); // LCOV_EXCL_LINE
+}
+
+
 RYML_EXPORT csubstr _get_text_region(csubstr text, size_t pos, size_t num_lines_before, size_t num_lines_after)
 {
     if(pos > text.len)

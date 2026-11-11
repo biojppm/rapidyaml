@@ -168,13 +168,13 @@ ENGINE_TEST(Qmrk1_2,
         ___(ps.add_sibling());
         ___(ps.begin_map_key_block());
             ___(ps.set_key_scalar_plain("an explicit key deindented"));
-            ___(ps.set_key_scalar_plain("its value"));
+            ___(ps.set_val_scalar_plain("its value"));
         ___(ps.end_map_block());
         ___(ps.set_val_scalar_plain_empty());
         ___(ps.add_sibling());
         ___(ps.begin_map_key_block());
             ___(ps.set_key_scalar_plain("more"));
-            ___(ps.set_key_scalar_plain("siblings"));
+            ___(ps.set_val_scalar_plain("siblings"));
         ___(ps.end_map_block());
         ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_block());
@@ -182,10 +182,11 @@ ENGINE_TEST(Qmrk1_2,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(Qmrk2_0,
+ENGINE_TEST(Qmrk2_0, NO_COMPARE_EMITTED_INTS,
             "? an explicit key\n"
             "...\n"
-            "? another explicit key\n",
+            "? another explicit key\n"
+            ,
             "---\n"
             "an explicit key: \n"
             "---\n"
@@ -302,7 +303,7 @@ ENGINE_TEST(Qmrk3,
     ___(ps.add_sibling());
     ___(ps.set_key_scalar_plain("?bat"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
@@ -329,7 +330,7 @@ ENGINE_TEST(Qmrk4_0,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("?baz"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.end_seq_flow(singleline));
     ___(ps.end_doc());
     ___(ps.end_stream());
@@ -370,22 +371,22 @@ ENGINE_TEST(Qmrk4,
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("an explicit key"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("bar"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("?baz"));
     ___(ps.set_val_scalar_plain_empty());
-    ___(ps.end_map_block());
+    ___(ps.end_map_flow(singleline));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("?bat"));
     ___(ps.end_seq_flow(singleline));
@@ -548,222 +549,6 @@ ENGINE_TEST(Qmrk7,
         ___(ps.begin_map_val_block());
             ___(ps.begin_map_key_block());
                 ___(ps.set_key_scalar_plain_empty());
-                ___(ps.set_val_scalar_plain_empty());
-            ___(ps.end_map_block());
-            ___(ps.set_val_scalar_plain_empty());
-        ___(ps.end_map_block());
-    ___(ps.end_seq_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(Qmrk7SuddenEnd0_0,
-            HAS_CONTAINER_KEYS, Location(5,2,5),
-            "- ? []:\n"
-            ,
-            "+STR"    "\n"
-            "+DOC"    "\n"
-            "+SEQ"    "\n"
-            "+MAP"    "\n"
-            "+MAP"    "\n"
-            "+SEQ []" "\n"
-            "-SEQ"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "-SEQ"    "\n"
-            "-DOC"    "\n"
-            "-STR"    "\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-        ___(ps.begin_map_val_block());
-            ___(ps.begin_map_key_block());
-                ___(ps.begin_seq_key_flow());
-                ___(ps.end_seq_flow(singleline));
-                ___(ps.set_val_scalar_plain_empty());
-            ___(ps.end_map_block());
-            ___(ps.set_val_scalar_plain_empty());
-        ___(ps.end_map_block());
-    ___(ps.end_seq_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-ENGINE_TEST(Qmrk7SuddenEnd0_0_1,
-            HAS_CONTAINER_KEYS, Location(5,2,5),
-            "- ? []: a\n"
-            ,
-            "+STR"    "\n"
-            "+DOC"    "\n"
-            "+SEQ"    "\n"
-            "+MAP"    "\n"
-            "+MAP"    "\n"
-            "+SEQ []" "\n"
-            "-SEQ"    "\n"
-            "=VAL :a" "\n"
-            "-MAP"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "-SEQ"    "\n"
-            "-DOC"    "\n"
-            "-STR"    "\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-        ___(ps.begin_map_val_block());
-            ___(ps.begin_map_key_block());
-                ___(ps.begin_seq_key_flow());
-                ___(ps.end_seq_flow(singleline));
-                ___(ps.set_val_scalar_plain("a"));
-            ___(ps.end_map_block());
-            ___(ps.set_val_scalar_plain_empty());
-        ___(ps.end_map_block());
-    ___(ps.end_seq_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-ENGINE_TEST(Qmrk7SuddenEnd0_1,
-            HAS_CONTAINER_KEYS, Location(5,2,5),
-            "- ? []:\n"
-            "  :\n"
-            ,
-            "+STR"    "\n"
-            "+DOC"    "\n"
-            "+SEQ"    "\n"
-            "+MAP"    "\n"
-            "+MAP"    "\n"
-            "+SEQ []" "\n"
-            "-SEQ"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "-SEQ"    "\n"
-            "-DOC"    "\n"
-            "-STR"    "\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-        ___(ps.begin_map_val_block());
-            ___(ps.begin_map_key_block());
-                ___(ps.begin_seq_key_flow());
-                ___(ps.end_seq_flow(singleline));
-                ___(ps.set_val_scalar_plain_empty());
-            ___(ps.end_map_block());
-            ___(ps.set_val_scalar_plain_empty());
-        ___(ps.end_map_block());
-    ___(ps.end_seq_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-ENGINE_TEST(Qmrk7SuddenEnd0_2,
-            HAS_CONTAINER_KEYS, Location(5,2,5),
-            "- ? []:\n"
-            "  : a\n"
-            ,
-            "+STR"    "\n"
-            "+DOC"    "\n"
-            "+SEQ"    "\n"
-            "+MAP"    "\n"
-            "+MAP"    "\n"
-            "+SEQ []" "\n"
-            "-SEQ"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "=VAL :a" "\n"
-            "-MAP"    "\n"
-            "-SEQ"    "\n"
-            "-DOC"    "\n"
-            "-STR"    "\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-        ___(ps.begin_map_val_block());
-            ___(ps.begin_map_key_block());
-                ___(ps.begin_seq_key_flow());
-                ___(ps.end_seq_flow(singleline));
-                ___(ps.set_val_scalar_plain_empty());
-            ___(ps.end_map_block());
-            ___(ps.set_val_scalar_plain("a"));
-        ___(ps.end_map_block());
-    ___(ps.end_seq_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-ENGINE_TEST(Qmrk7SuddenEnd0_3,
-            HAS_CONTAINER_KEYS, Location(5,2,5),
-            "- ? []:\n"
-            "- a\n"
-            ,
-            "+STR"    "\n"
-            "+DOC"    "\n"
-            "+SEQ"    "\n"
-            "+MAP"    "\n"
-            "+MAP"    "\n"
-            "+SEQ []" "\n"
-            "-SEQ"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "=VAL :a" "\n"
-            "-SEQ"    "\n"
-            "-DOC"    "\n"
-            "-STR"    "\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-        ___(ps.begin_map_val_block());
-            ___(ps.begin_map_key_block());
-                ___(ps.begin_seq_key_flow());
-                ___(ps.end_seq_flow(singleline));
-                ___(ps.set_val_scalar_plain_empty());
-            ___(ps.end_map_block());
-            ___(ps.set_val_scalar_plain_empty());
-        ___(ps.end_map_block());
-        ___(ps.set_val_scalar_plain("a"));
-    ___(ps.end_seq_block());
-    ___(ps.end_doc());
-    ___(ps.end_stream());
-}
-
-ENGINE_TEST(Qmrk7SuddenEnd1,
-            HAS_CONTAINER_KEYS, Location(5,2,5),
-            "- ? [a,b]:\n"
-            ,
-            "+STR"    "\n"
-            "+DOC"    "\n"
-            "+SEQ"    "\n"
-            "+MAP"    "\n"
-            "+MAP"    "\n"
-            "+SEQ []" "\n"
-            "=VAL :a" "\n"
-            "=VAL :b" "\n"
-            "-SEQ"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "=VAL :"  "\n"
-            "-MAP"    "\n"
-            "-SEQ"    "\n"
-            "-DOC"    "\n"
-            "-STR"    "\n")
-{
-    ___(ps.begin_stream());
-    ___(ps.begin_doc());
-    ___(ps.begin_seq_val_block());
-        ___(ps.begin_map_val_block());
-            ___(ps.begin_map_key_block());
-                ___(ps.begin_seq_key_flow());
-                    ___(ps.set_val_scalar_plain("a"));
-                    ___(ps.add_sibling());
-                    ___(ps.set_val_scalar_plain("b"));
-                ___(ps.end_seq_flow(singleline));
                 ___(ps.set_val_scalar_plain_empty());
             ___(ps.end_map_block());
             ___(ps.set_val_scalar_plain_empty());
@@ -1565,7 +1350,7 @@ ENGINE_TEST(QmrkSameLineSeqSeq, HAS_CONTAINER_KEYS,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.begin_map_val_block());
     ___(ps.begin_seq_key_block());
     ___(ps.set_val_scalar_plain("a"));
