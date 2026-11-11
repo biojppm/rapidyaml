@@ -1330,7 +1330,7 @@ TEST(emit, existing_map_node_flow)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "0: foo\n";
-            std::string expected_json = "\"0\": \"foo\""; // FIXME should have trailing newline
+            std::string expected_json = "\"0\": \"foo\"\n";
             test_all_emits(n, expected, expected_json);
         }
     }
@@ -1355,7 +1355,7 @@ TEST(emit, existing_map_node_flow)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "1: bar\n";
-            std::string expected_json = "\"1\": \"bar\""; // FIXME should have trailing newline
+            std::string expected_json = "\"1\": \"bar\"\n";
             test_all_emits(n, expected, expected_json);
         }
     }
@@ -1380,7 +1380,7 @@ TEST(emit, existing_map_node_flow)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "2: [nested,seq]\n";
-            std::string expected_json = "\"2\": [\"nested\",\"seq\"]"; // FIXME should have trailing newline
+            std::string expected_json = "\"2\": [\"nested\",\"seq\"]\n";
             test_all_emits(n, expected, expected_json);
         }
     }
@@ -1405,7 +1405,7 @@ TEST(emit, existing_map_node_flow)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "3: {nested: map}\n";
-            std::string expected_json = "\"3\": {\"nested\": \"map\"}"; // FIXME should have trailing newline
+            std::string expected_json = "\"3\": {\"nested\": \"map\"}\n";
             test_all_emits(n, expected, expected_json);
         }
     }
@@ -1529,7 +1529,7 @@ TEST(emit, existing_map_node_block)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "0: foo\n";
-            std::string expected_json = "\"0\": \"foo\""; // FIXME should have trailing newline
+            std::string expected_json = "\"0\": \"foo\"\n";
             test_all_emits(n, expected, expected_json);
         }
     }
@@ -1554,7 +1554,7 @@ TEST(emit, existing_map_node_block)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "1: bar\n";
-            std::string expected_json = "\"1\": \"bar\""; // FIXME should have trailing newline
+            std::string expected_json = "\"1\": \"bar\"\n";
             test_all_emits(n, expected, expected_json);
         }
     }
@@ -1579,7 +1579,7 @@ TEST(emit, existing_map_node_block)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "2: [nested,seq]\n";
-            std::string expected_json = "\"2\": [\"nested\",\"seq\"]"; // FIXME should have trailing newline
+            std::string expected_json = "\"2\": [\"nested\",\"seq\"]\n";
             test_all_emits(n, expected, expected_json);
         }
     }
@@ -1604,7 +1604,7 @@ TEST(emit, existing_map_node_block)
             SCOPED_TRACE("flow_sl");
             TmpContainerStyle tmp(n, FLOW_SL);
             std::string expected = "3: {nested: map}\n";
-            std::string expected_json = "\"3\": {\"nested\": \"map\"}"; // FIXME should have trailing newline
+            std::string expected_json = "\"3\": {\"nested\": \"map\"}\n";
             test_all_emits(n, expected, expected_json);
         }
     }
