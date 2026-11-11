@@ -1,5 +1,9 @@
 #include "./test_lib/test_group.hpp"
 #include "./test_lib/test_group.def.hpp"
+#include "./test_lib/tree_and_ints.hpp"
+#ifndef C4_YML_REFERENCE_RESOLVER_HPP_
+#include "c4/yml/reference_resolver.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -133,7 +137,8 @@ TEST(anchors, node_scalar_set_ref_when_non_empty)
 
 TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
 {
-    Tree t = parse_in_arena("{foo: &foo: 1, *foo: : 2, '*foo:': 3}");
+    TreeAndInts ti("{foo: &foo: 1, *foo: : 2, '*foo:': 3}");
+    Tree &t = ti.tree;
     EXPECT_TRUE(t[1].is_key_ref());
     EXPECT_FALSE(t[2].is_key_ref());
     EXPECT_FALSE(t[1].is_key_quoted());
@@ -141,14 +146,15 @@ TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
     EXPECT_EQ(t[1].key(), "*foo:");
     EXPECT_EQ(t[1].key_ref(), "foo:");
     EXPECT_EQ(t[2].key(), "*foo:");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo: 1,*foo: : 2,'*foo:': 3})");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: 1,1: 2,'*foo:': 3})");
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: &foo: 1,*foo: : 2,'*foo:': 3})"));
+    SCOPED_CALL(test_resolve, (ti));
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: 1,1: 2,'*foo:': 3})"));
 }
 
 TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
 {
-    Tree t = parse_in_arena("{foo: &foo: 1, ref: *foo:, quo: '*foo:'}");
+    TreeAndInts ti("{foo: &foo: 1, ref: *foo:, quo: '*foo:'}");
+    Tree &t = ti.tree;
     EXPECT_TRUE(t["ref"].is_val_ref());
     EXPECT_FALSE(t["quo"].is_val_ref());
     EXPECT_FALSE(t["ref"].is_val_quoted());
@@ -156,19 +162,20 @@ TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
     EXPECT_EQ(t["ref"].val_ref(), "foo:");
     EXPECT_EQ(t["ref"].val(), "*foo:");
     EXPECT_EQ(t["quo"].val(), "*foo:");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo: 1,ref: *foo:,quo: '*foo:'})");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: 1,ref: 1,quo: '*foo:'})");
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: &foo: 1,ref: *foo:,quo: '*foo:'})"));
+    SCOPED_CALL(test_resolve, (ti));
+    SCOPED_CALL(test_emit_yaml, (ti, R"({foo: 1,ref: 1,quo: '*foo:'})"));
 }
 
 TEST(anchors, no_ambiguity_with_inheritance)
 {
-    Tree t = parse_in_arena(R"({
+    TreeAndInts ti(R"({
 foo: &foo {a: 1, b: 2},
 bar: {<<: *foo},
  sq: {'<<': haha},
  dq: {"<<": hehe}
 })");
+    Tree const& t = ti.tree;
     _c4dbg_tree("parsed tree", t);
     EXPECT_TRUE(t["bar"].has_child("<<"));
     EXPECT_FALSE(t["bar"]["<<"].is_key_ref());
@@ -183,21 +190,23 @@ bar: {<<: *foo},
     EXPECT_EQ(t["bar"]["<<"].val(), "*foo");
     //EXPECT_EQ(t["bar"]["<<"].key_ref(), "<<"); // not a ref!
     EXPECT_EQ(t["bar"]["<<"].val_ref(), "foo");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({
-  foo: &foo {a: 1,b: 2},
-  bar: {<<: *foo},
-  sq: {'<<': haha},
-  dq: {"<<": hehe}
-}
-)");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({
-  foo: {a: 1,b: 2},
-  bar: {a: 1,b: 2},
-  sq: {'<<': haha},
-  dq: {"<<": hehe}
-}
-)");
+    SCOPED_CALL(test_emit_yaml, (ti, ""
+                                 "{\n"
+                                 "  foo: &foo {a: 1,b: 2},\n"
+                                 "  bar: {<<: *foo},\n"
+                                 "  sq: {'<<': haha},\n"
+                                 "  dq: {\"<<\": hehe}\n"
+                                 "}\n"
+                                 ""));
+    SCOPED_CALL(test_resolve, (ti));
+    SCOPED_CALL(test_emit_yaml, (ti,
+                                 "{\n"
+                                 "  foo: {a: 1,b: 2},\n"
+                                 "  bar: {a: 1,b: 2},\n"
+                                 "  sq: {'<<': haha},\n"
+                                 "  dq: {\"<<\": hehe}\n"
+                                 "}\n"
+                                 ""));
 }
 
 TEST(anchors, programatic_key_ref)
@@ -273,17 +282,21 @@ notref: {}
     t["notcopy"]["<<"].set_val_ref("orig");
     t["notref"]["<<"].set_val("*orig");
     _c4dbg_tree(t);
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: &orig {foo: bar,baz: bat}
-copy: {<<: *orig}
-notcopy: {test: *orig,<<: *orig}
-notref: {<<: '*orig'}
-)");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: {foo: bar,baz: bat}
-copy: {foo: bar,baz: bat}
-notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}
-notref: {<<: '*orig'}
-)");
+    test_emit_yaml_tree_(
+        t,
+        "orig: &orig {foo: bar,baz: bat}\n"
+        "copy: {<<: *orig}\n"
+        "notcopy: {test: *orig,<<: *orig}\n"
+        "notref: {<<: '*orig'}\n"
+        "");
+    test_resolve_tree_(t);
+    test_emit_yaml_tree_(
+        t,
+        "orig: {foo: bar,baz: bat}\n"
+        "copy: {foo: bar,baz: bat}\n"
+        "notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}\n"
+        "notref: {<<: '*orig'}\n"
+        "");
 }
 
 TEST(anchors, programatic_multiple_inheritance)
@@ -417,7 +430,7 @@ TEST(anchors, set_val_ref_replaces_existing_key)
 
 TEST(anchors, github529)
 {
-    csubstr unresolved = R"(
+    std::string unresolved = R"(
 dimensions: 3
 type: EXPRESSION
 variables:
@@ -431,7 +444,8 @@ tpl: &anchor
   it: works
 <<: *anchor
  )";
-    Tree tree = parse_in_arena(unresolved);
+    TreeAndInts ti(to_csubstr(unresolved));
+    Tree const& tree = ti.tree;
     //print_tree(tree);
     EXPECT_FALSE(tree["variables"]["<<"].is_val_ref());
     EXPECT_TRUE(tree["variables"]["<<"].is_key_quoted());
@@ -441,9 +455,11 @@ tpl: &anchor
     EXPECT_EQ(tree[7].key(), "<<");
     EXPECT_TRUE(tree[7].is_val_ref());
     EXPECT_FALSE(tree[7].is_key_quoted());
-    tree.resolve();
+    SCOPED_CALL(test_resolve, (ti));
     EXPECT_EQ(tree["variables"]["<<"][0].val(), "biomes/abstract/carving/carving_land.yml:carving.sampler.variables");
+    EXPECT_EQ(ti.ints.getstr(23), "biomes/abstract/carving/carving_land.yml:carving.sampler.variables");
     EXPECT_EQ(tree["<<"].val(), "not a reference");
+    EXPECT_EQ(ti.ints.getstr(49), "not a reference");
     EXPECT_EQ(tree["it"].val(), "works");
 }
 
@@ -551,14 +567,14 @@ TEST(anchors, github566_seq_FLOW_SL)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(weird_anchor_cases_from_suite, 2SXE)
+TEST(anchors, weird_anchor_cases_from_suite_2SXE)
 {
-    Tree t = parse_in_arena(R"(&a: key: &a value
+    TreeAndInts ti(R"(&a: key: &a value
 foo:
   *a:
 )");
-    t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: value
+    test_resolve_(ti);
+    test_emit_yaml(ti, R"(key: value
 foo: key
 )");
 }
@@ -677,24 +693,31 @@ TEST(CaseNode, anchors)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(simple_anchor, resolve_works_on_an_empty_tree)
+TEST(anchors, resolve_works_on_an_empty_tree)
 {
-    Tree t(0);
-    t.resolve();
-    EXPECT_TRUE(t.empty());
+    TreeAndInts ti;
+    ti.tree = Tree(0);
+    ASSERT_EQ(ti.tree.capacity(), 0);
+    test_resolve_(ti);
+    EXPECT_TRUE(ti.tree.empty());
+    ASSERT_EQ(ti.tree.capacity(), 0);
 }
 
-TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
+TEST(anchors, resolve_works_on_a_tree_without_refs)
 {
-    Tree t = parse_in_arena("[a, b, c, d, e, f]");
-    size_t size_before = t.size();
-    t.resolve();
-    EXPECT_EQ(t.size(), size_before);
+    TreeAndInts ti("[a, b, c, d, e, f]");
+    id_type size_before_tree = ti.tree.size();
+    extra::evt_size size_before_ints = ti.ints.evts.len;
+    test_resolve_(ti);
+    EXPECT_EQ(ti.tree.size(), size_before_tree);
+    EXPECT_EQ(ti.ints.evts.len, size_before_ints);
+    test_emit_yaml_(ti, "[a,b,c,d,e,f]");
 }
 
-TEST(simple_anchor, resolve_works_on_keyrefvalref)
+TEST(anchors, resolve_works_on_keyrefvalref)
 {
-    Tree t = parse_in_arena("{&a a: &b b, *b : *a}");
+    TreeAndInts ti("{&a a: &b b, *b : *a}");
+    Tree const& t = ti.tree;
     EXPECT_EQ(t["a"].has_key_anchor(), true);
     EXPECT_EQ(t["a"].has_val_anchor(), true);
     EXPECT_EQ(t["a"].key_anchor(), "a");
@@ -703,15 +726,14 @@ TEST(simple_anchor, resolve_works_on_keyrefvalref)
     EXPECT_EQ(t["*b"].is_val_ref(), true);
     EXPECT_EQ(t["*b"].key_ref(), "b");
     EXPECT_EQ(t["*b"].val_ref(), "a");
-    _c4dbg_tree(t);
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({&a a: &b b,*b : *a})");
-    t.resolve();
+    test_emit_yaml_(ti, "{&a a: &b b,*b : *a}");
+    test_resolve_(ti);
     EXPECT_EQ(t["a"].val(), "b");
     EXPECT_EQ(t["b"].val(), "a");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({a: b,b: a})");
+    test_emit_yaml_(ti, "{a: b,b: a}");
 }
 
-TEST(simple_anchor, anchors_of_first_child_key_implicit)
+TEST(anchors, anchors_of_first_child_key_implicit)
 {
     csubstr yaml = R"(&anchor0
 &anchor4 top4:
@@ -758,7 +780,7 @@ top62:
     ASSERT_EQ(t["top62"]["key62"].has_key_anchor(), false);
 }
 
-TEST(simple_anchor, merge_seqs)
+TEST(anchors, merge_seqs)
 {
     const Tree src = parse_in_arena(R"([0, 1])");
     {
@@ -778,88 +800,53 @@ TEST(simple_anchor, merge_seqs)
     }
 }
 
-TEST(simple_anchor, issue_400)
+TEST(anchors, issue_400)
 {
-    csubstr yaml = R"(
+    TreeAndInts ti(R"(
 a: &a
   x: 1
 b: &b
   ref: *a
 c:
   ref: *b
-)";
-    {
-        Tree t = parse_in_arena(yaml);
-        t.resolve();
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a:
-  x: 1
-b:
-  ref:
-    x: 1
-c:
-  ref:
-    ref:
-      x: 1
 )");
-    }
+    test_resolve_(ti);
+    test_emit_yaml_(ti,
+                    "a:\n"
+                    "  x: 1\n"
+                    "b:\n"
+                    "  ref:\n"
+                    "    x: 1\n"
+                    "c:\n"
+                    "  ref:\n"
+                    "    ref:\n"
+                    "      x: 1\n"
+                    "");
 }
 
-TEST(simple_anchor, billion_laughs)
+TEST(anchors, resolve_nested)
 {
-    // https://en.wikipedia.org/wiki/Billion_laughs_attack
-    csubstr yaml = R"(a: &a ["lol","lol"]
-b: &b [*a,*a]
-c: &c [*b,*b]
-)";
-    {
-        Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
-    }
-    {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(true));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: ["lol","lol"]
-b: [["lol","lol"],["lol","lol"]]
-c: [[["lol","lol"],["lol","lol"]],[["lol","lol"],["lol","lol"]]]
-)");
-    }
-    {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(false));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: &a ["lol","lol"]
-b: &b [&a ["lol","lol"],&a ["lol","lol"]]
-c: &c [&b [&a ["lol","lol"],&a ["lol","lol"]],&b [&a ["lol","lol"],&a ["lol","lol"]]]
-)");
-    }
-}
-
-TEST(simple_anchor, resolve_nested)
-{
-    csubstr yaml = R"(a: &a
+    std::string yaml = R"(a: &a
   b:
     <<: *a
 )";
     {
-        Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+        TreeAndInts ti(to_csubstr(yaml));
+        test_emit_yaml_(ti, yaml);
     }
     {
-        Tree t = parse_in_arena(yaml);
-        ExpectError::check_error_visit(&t, [&]{
-            t.resolve(ResolveOptions{}.clear_anchors(true));
-        });
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_err_(ti, ResolveOptions{}.clear_anchors(true));
     }
     {
-        Tree t = parse_in_arena(yaml);
-        ExpectError::check_error_visit(&t, [&]{
-            t.resolve(ResolveOptions{}.clear_anchors(false));
-        });
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve_err_(ti, ResolveOptions{}.clear_anchors(false));
     }
 }
 
-TEST(simple_anchor, resolve_nested_2)
+TEST(anchors, resolve_nested_2)
 {
-    csubstr yaml = R"(a0: &a0
+    std::string yaml = R"(a0: &a0
   b0: &b0
     c0: &c0 v0
 a1: &a1
@@ -874,84 +861,86 @@ a5: &a5
   ref: *a4
 )";
     {
-        Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+        TreeAndInts ti(to_csubstr(yaml));
+        test_emit_yaml_(ti, yaml);
     }
     {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(true));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0:
-  b0:
-    c0: v0
-a1:
-  ref:
-    b0:
-      c0: v0
-a2:
-  ref:
-    ref:
-      b0:
-        c0: v0
-a3:
-  ref:
-    ref:
-      ref:
-        b0:
-          c0: v0
-a4:
-  ref:
-    ref:
-      ref:
-        ref:
-          b0:
-            c0: v0
-a5:
-  ref:
-    ref:
-      ref:
-        ref:
-          ref:
-            b0:
-              c0: v0
-)");
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve(ti, ResolveOptions{}.clear_anchors(true));
+        test_emit_yaml_(ti,
+                        "a0:\n"
+                        "  b0:\n"
+                        "    c0: v0\n"
+                        "a1:\n"
+                        "  ref:\n"
+                        "    b0:\n"
+                        "      c0: v0\n"
+                        "a2:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      b0:\n"
+                        "        c0: v0\n"
+                        "a3:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        b0:\n"
+                        "          c0: v0\n"
+                        "a4:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        ref:\n"
+                        "          b0:\n"
+                        "            c0: v0\n"
+                        "a5:\n"
+                        "  ref:\n"
+                        "    ref:\n"
+                        "      ref:\n"
+                        "        ref:\n"
+                        "          ref:\n"
+                        "            b0:\n"
+                        "              c0: v0\n"
+                        "");
     }
     {
-        Tree t = parse_in_arena(yaml);
-        t.resolve(ResolveOptions{}.clear_anchors(false));
-        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a0: &a0
-  b0: &b0
-    c0: &c0 v0
-a1: &a1
-  ref: &a0
-    b0: &b0
-      c0: &c0 v0
-a2: &a2
-  ref: &a1
-    ref: &a0
-      b0: &b0
-        c0: &c0 v0
-a3: &a3
-  ref: &a2
-    ref: &a1
-      ref: &a0
-        b0: &b0
-          c0: &c0 v0
-a4: &a4
-  ref: &a3
-    ref: &a2
-      ref: &a1
-        ref: &a0
-          b0: &b0
-            c0: &c0 v0
-a5: &a5
-  ref: &a4
-    ref: &a3
-      ref: &a2
-        ref: &a1
-          ref: &a0
-            b0: &b0
-              c0: &c0 v0
-)");
+        TreeAndInts ti(to_csubstr(yaml));
+        test_resolve(ti, ResolveOptions{}.clear_anchors(false));
+        test_emit_yaml_(ti,
+                        "a0: &a0\n"
+                        "  b0: &b0\n"
+                        "    c0: &c0 v0\n"
+                        "a1: &a1\n"
+                        "  ref: &a0\n"
+                        "    b0: &b0\n"
+                        "      c0: &c0 v0\n"
+                        "a2: &a2\n"
+                        "  ref: &a1\n"
+                        "    ref: &a0\n"
+                        "      b0: &b0\n"
+                        "        c0: &c0 v0\n"
+                        "a3: &a3\n"
+                        "  ref: &a2\n"
+                        "    ref: &a1\n"
+                        "      ref: &a0\n"
+                        "        b0: &b0\n"
+                        "          c0: &c0 v0\n"
+                        "a4: &a4\n"
+                        "  ref: &a3\n"
+                        "    ref: &a2\n"
+                        "      ref: &a1\n"
+                        "        ref: &a0\n"
+                        "          b0: &b0\n"
+                        "            c0: &c0 v0\n"
+                        "a5: &a5\n"
+                        "  ref: &a4\n"
+                        "    ref: &a3\n"
+                        "      ref: &a2\n"
+                        "        ref: &a1\n"
+                        "          ref: &a0\n"
+                        "            b0: &b0\n"
+                        "              c0: &c0 v0\n"
+                        "");
     }
 }
 

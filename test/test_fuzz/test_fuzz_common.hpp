@@ -103,7 +103,7 @@ inline int fuzztest_tree(uint32_t case_number, csubstr src, FnParse fn_parse, Fn
         _if_dbg(print_tree("parsed tree", tree));
         if(resolve)
         {
-            tree.resolve(ResolveOptions{}.max_size_multiplier(2));
+            tree.resolve(ResolveOptions{}.max_size_multiplier(2u));
             _if_dbg(print_tree("resolved tree", tree));
         }
         _if_dbg(dbg_printf_("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));

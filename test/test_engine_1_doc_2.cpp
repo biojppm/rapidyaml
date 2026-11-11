@@ -299,7 +299,7 @@ ENGINE_TEST(DocStreamImplicitDocFirstMap,
 
 //-----------------------------------------------------------------------------
 
-ENGINE_TEST(SuddenDoc0,
+ENGINE_TEST(SuddenDoc0, NO_COMPARE_EMITTED_INTS,
             "- map:\n"
             "   foo: bar\n"
             "...\n"
@@ -364,7 +364,7 @@ ENGINE_TEST(SuddenDoc0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(SuddenDoc1,
+ENGINE_TEST(SuddenDoc1, NO_COMPARE_EMITTED_INTS,
             "map:\n"
             "  nested:\n"
             "    nested more:\n"

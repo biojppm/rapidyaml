@@ -69,6 +69,105 @@ static_assert(check_dump_directly<char(&&)[2]>(), "dump directly");
 static_assert(check_dump_directly<std::string>(), "dump directly");
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(cb, grow_buf)
+{
+    {
+        substr buf;
+        ASSERT_EQ(buf.len, 0);
+        ASSERT_EQ(buf.str, nullptr);
+    }
+    Callbacks cb = get_callbacks();
+    substr buf = {};
+    auto isall = [&buf](size_t first, size_t last, char c){
+        return buf.range(first, last).first_not_of(c) == csubstr::npos;
+    };
+    ASSERT_EQ(buf.len, 0);
+    ASSERT_EQ(buf.str, nullptr);
+    buf = detail::resize(buf, 10, cb);
+    ASSERT_EQ(buf.len, 10);
+    ASSERT_NE(buf.str, nullptr);
+    buf.fill('0');
+    ASSERT_TRUE(isall(0, 10, '0'));
+    ASSERT_EQ(buf, "0000000000");
+
+    char *prev = buf.str;
+    buf = detail::resize(buf, 9, cb);
+    ASSERT_EQ(buf.str, prev);
+    ASSERT_TRUE(isall(0, 10, '0'));
+    ASSERT_EQ(buf, "0000000000");
+
+    buf = detail::resize(buf, 10, cb);
+    ASSERT_EQ(buf.str, prev);
+    ASSERT_TRUE(isall(0, 10, '0'));
+    ASSERT_EQ(buf, "0000000000");
+
+    buf = detail::resize(buf, 11, cb);
+    ASSERT_NE(buf.str, prev);
+    ASSERT_TRUE(isall(0, 10, '0'));
+    buf.sub(10).fill('1');
+    ASSERT_TRUE(isall(10, 11, '1'));
+    ASSERT_EQ(buf, "00000000001");
+    prev = buf.str;
+
+    buf = detail::resize(buf, 16, cb);
+    ASSERT_NE(buf.str, prev);
+    ASSERT_TRUE(isall(0, 10, '0'));
+    ASSERT_TRUE(isall(10, 11, '1'));
+    buf.sub(11).fill('2');
+    ASSERT_TRUE(isall(11, 16, '2'));
+    ASSERT_EQ(buf, "0000000000122222");
+
+    buf = detail::destroy(buf, cb);
+    ASSERT_EQ(buf.len, 0);
+    ASSERT_EQ(buf.str, nullptr);
+}
+
+TEST(cb, grow_buf_cap)
+{
+    Callbacks cb = get_callbacks();
+    substr buf = {};
+    ASSERT_EQ(buf.len, 0);
+    ASSERT_EQ(buf.str, nullptr);
+    auto isall = [&buf](size_t first, size_t last, char c){
+        return buf.range(first, last).first_not_of(c) == csubstr::npos;
+    };
+    auto growcap = [&](size_t sz, size_t cap){
+        ASSERT_GT(cap, buf.len);
+        ASSERT_LE(sz, buf.len);
+        buf.str = detail::grow_buf(buf.str, sz, buf.len, cap, cb);
+        buf.len = cap;
+        buf.sub(sz).fill('-');
+    };
+    growcap(0, 10);
+    ASSERT_EQ(buf.len, 10);
+    ASSERT_NE(buf.str, nullptr);
+    ASSERT_EQ(buf, "----------");
+    buf.fill('0');
+    ASSERT_TRUE(isall(0, 10, '0'));
+    ASSERT_EQ(buf, "0000000000");
+    growcap(10, 20);
+    ASSERT_TRUE(isall(0, 10, '0'));
+    ASSERT_TRUE(isall(10, 20, '-'));
+    ASSERT_EQ(buf, "0000000000----------");
+    growcap(10, 24);
+    ASSERT_TRUE(isall(0, 10, '0'));
+    ASSERT_TRUE(isall(10, 24, '-'));
+    ASSERT_EQ(buf, "0000000000--------------");
+
+    buf = detail::destroy(buf, cb);
+    ASSERT_EQ(buf.len, 0);
+    ASSERT_EQ(buf.str, nullptr);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 std::string stored_msg;
 std::string stored_msg_full;
 Location stored_cpploc;

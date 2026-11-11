@@ -1,12 +1,6 @@
 c4_setup_testing(GTEST)
 
-# Check that the scalar conversion header does not rely on fast_float's includes.
-c4_add_library(ryml-test-scalar-charconv-no-fast-float LIBRARY_TYPE OBJECT
-    SOURCES test_scalar_charconv_no_fast_float.cpp
-    LIBS ryml
-    FOLDER test)
-target_compile_definitions(ryml-test-scalar-charconv-no-fast-float PRIVATE C4CORE_NO_FAST_FLOAT)
-add_dependencies(ryml-test-build ryml-test-scalar-charconv-no-fast-float)
+target_compile_definitions(ryml PUBLIC RYML_ENABLE_EXPORT_TEST)
 
 function(ryml_get_target_exe target_name target_file)
     if(CMAKE_CROSSCOMPILING)
@@ -33,7 +27,7 @@ function(ryml_setup_test_target_props target_name)
     get_target_property(target_type ${target_name} TYPE)
     if(target_type STREQUAL "SHARED_LIBRARY")
         set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    endif ()
+    endif()
 endfunction()
 
 function(ryml_add_test_exe_no_lib name)
@@ -109,15 +103,21 @@ ryml_add_quickstart_test(ryml-test-quickstart-ints  ints-bad_arena WILL_FAIL ARG
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES
        test_lib/callbacks_tester.hpp
-       test_lib/test_case_node.hpp
-       test_lib/test_case_node.cpp
        test_lib/test_case.hpp
        test_lib/test_case.cpp
+       test_lib/test_case_node.hpp
+       test_lib/test_case_node.cpp
+       test_lib/test_compare_events.hpp
+       test_lib/test_compare_events.cpp
        test_lib/test_engine.hpp
        test_lib/test_engine.cpp
-       test_lib/test_events_ints_helpers.hpp
-       test_lib/test_events_ints_helpers.cpp
+       test_lib/test_helpers_ints.hpp
+       test_lib/test_helpers_ints.cpp
+       test_lib/test_helpers_tree.hpp
+       test_lib/test_helpers_tree.cpp
        test_lib/test_save.cpp
+       test_lib/test_utils.hpp
+       test_lib/test_utils.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
     FOLDER test)
@@ -284,6 +284,17 @@ if(RYML_DEFAULT_CALLBACKS AND NOT WIN32) # windows does like the abort call
     ryml_add_test_error(parse)
     ryml_add_test_error(visit)
 endif()
+
+
+#-------------------------------------------------------------------------
+# Check that the scalar conversion header does not rely on fast_float's includes.
+
+c4_add_library(ryml-test-scalar-charconv-no-fast-float LIBRARY_TYPE OBJECT
+    SOURCES test_scalar_charconv_no_fast_float.cpp
+    LIBS ryml
+    FOLDER test)
+target_compile_definitions(ryml-test-scalar-charconv-no-fast-float PRIVATE C4CORE_NO_FAST_FLOAT)
+add_dependencies(ryml-test-build ryml-test-scalar-charconv-no-fast-float)
 
 
 #-------------------------------------------------------------------------

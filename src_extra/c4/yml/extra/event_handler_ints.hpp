@@ -276,6 +276,125 @@ using DataType RYML_DEPRECATED("use evt_bits") = evt_bits;
 using EventFlags RYML_DEPRECATED("use EventBits") = EventBits;
 /** @endcond */
 
+
+C4_HOT C4_ALWAYS_INLINE evt_size nextstep(evt_bits bits) noexcept
+{
+    return (bits & ievt::WSTR) ? 3 : 1;
+}
+
+C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
+{
+    return pos + ((arr[pos] & ievt::WSTR) ? 3 : 1);
+}
+
+
+/** @cond dev */
+namespace detail {
+
+enum : evt_bits { // NOLINT
+    mask_open_close = ievt::BEG_|ievt::END_|ievt::SEQ_|ievt::MAP_|ievt::DOC_|ievt::STRM,
+    mask_seqmap = ievt::SEQ_|ievt::MAP_,
+    mask_begend = ievt::BEG_|ievt::END_,
+    mask_sclralia = ievt::SCLR|ievt::ALIA,
+};
+
+C4_HOT C4_ALWAYS_INLINE bool hasall(evt_bits evt, evt_bits bits) noexcept
+{
+    return (evt & bits) == bits;
+}
+C4_HOT C4_ALWAYS_INLINE bool hasnone(evt_bits evt, evt_bits bits) noexcept
+{
+    return (evt & bits) == 0;
+}
+inline bool isentry(evt_bits mask) noexcept
+{
+    return (mask & ievt::detail::mask_sclralia) ||
+        ((mask & ievt::BEG_) && (mask & ievt::detail::mask_seqmap));
+}
+
+RYML_EXPORT_TEST evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos);
+
+inline evt_size find_next_sibling(evt_bits const* evts, evt_size sz, evt_size pos)
+{
+    if(evts[pos] & ievt::BEG_)
+        pos = ievt::detail::find_matching_close_(evts, sz, pos);
+    return ievt::nextpos(evts, pos);
+}
+
+} // namespace detail
+/** @endcond */
+
+//-----------------------------------------------------------------------------
+
+
+
+struct RYML_EXPORT cevtbuf
+{
+    evt_bits const* C4_RESTRICT ptr = {};
+    evt_size                    len = {};
+    evt_size                    cap = {};
+};
+
+struct RYML_EXPORT evtbuf
+{
+    evt_bits *C4_RESTRICT ptr = {};
+    evt_size              len = {};
+    evt_size              cap = {};
+
+    // auto convert to cevtbuf
+    C4_ALWAYS_INLINE operator cevtbuf const& () const noexcept { return reinterpret_cast<cevtbuf const&>(*this); } // NOLINT
+};
+
+namespace detail {
+inline evtbuf resize(evtbuf buf, evt_size cap, Callbacks const& cb)
+{
+    RYML_ASSERT_BASIC_CB_(cb, cap >= 0);
+    RYML_ASSERT_BASIC_CB_(cb, buf.len >= 0);
+    RYML_ASSERT_BASIC_CB_(cb, buf.len <= buf.cap);
+    if(cap > buf.cap)
+    {
+        C4_SUPPRESS_WARNING_PUSH
+        C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+        C4_SUPPRESS_WARNING_GCC_CLANG("-Wcast-qual")
+        C4_SUPPRESS_WARNING_GCC("-Wsign-conversion")
+        buf.ptr = yml::detail::grow_buf(buf.ptr, (size_t)buf.len, (size_t)buf.cap, (size_t)cap, cb); // NOLINT
+        buf.cap = cap;
+        // FIXME: don't do this:
+        memset(buf.ptr + buf.len, 0, sizeof(buf.ptr[0]) * (size_t)(buf.cap - buf.len)); // NOLINT
+        C4_SUPPRESS_WARNING_POP
+    }
+    return buf;
+}
+inline evtbuf destroy(evtbuf buf, Callbacks const& cb)
+{
+    if(buf.ptr)
+        cb.m_free(buf.ptr, static_cast<size_t>(buf.cap) * sizeof(evt_size), cb.m_user_data);
+    return {};
+}
+} // namespace detail
+
+
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
+struct RYML_EXPORT Buffers
+{
+    substr src;
+    substr arena;
+    evtbuf evts;
+    Buffers() noexcept : src(), arena(), evts() {}
+    C4_HOT C4_ALWAYS_INLINE csubstr getstr(evt_size pos) const RYML_NOEXCEPT
+    {
+        RYML_ASSERT_BASIC_(pos + 2 < evts.len);
+        RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::WSTR);
+        csubstr region = !(evts.ptr[pos] & ievt::AREN) ? src : arena;
+        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1]) <= region.len);
+        RYML_ASSERT_BASIC_(static_cast<size_t>(evts.ptr[pos + 1] + evts.ptr[pos + 2]) <= region.len);
+        region.str += evts.ptr[pos + 1];
+        region.len = static_cast<size_t>(evts.ptr[pos + 2]);
+        return region;
+    }
+};
+C4_SUPPRESS_WARNING_MSVC_POP
+
 } // namespace ievt
 
 /** @} */ // doc_event_handlers_ints
@@ -1213,7 +1332,8 @@ public:
                 }
                 RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, posp1 < m_evt_pos);
                 // start the map
-                m_evt[pos] = ievt::BMAP|sty|ievt::VAL_;
+                m_evt[pos] &= ievt::KEY_|ievt::VAL_;
+                m_evt[pos] |= ievt::BMAP|sty;
                 // set next as key, not val
                 m_evt[posp1] |= ievt::KEY_;
                 m_evt[posp1] &= ~ievt::VAL_;
