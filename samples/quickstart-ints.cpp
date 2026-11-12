@@ -211,20 +211,20 @@ int main(int argc, const char *argv[])
         "";
 
     // these are the events we expect from parsing the demo YAML
-    auto STR = c4::yml::extra::ievt::PSTR; // PSTR does not work in windows
+    auto PST_ = c4::yml::extra::ievt::PSTR; // PSTR does not work in windows
     const int demo_expected[] = {
         BSTR,
         BDOC,
         VAL_|BMAP|BLCK,
-        KEY_|SCLR|PLAI,      0,  3,  // "doe"
-        VAL_|SCLR|PLAI|STR,  5, 21,  // "a deer, a female deer"
-        KEY_|SCLR|PLAI|STR, 27,  3,  // "ray"
-        VAL_|SCLR|PLAI|STR, 32, 20,  // "a drop of golden sun"
-        KEY_|SCLR|PLAI|STR, 53,  2,  // "me"
-        VAL_|SCLR|PLAI|STR, 58, 20,  // "a name I call myself"
-        KEY_|SCLR|PLAI|STR, 79,  3,  // "far"
-        VAL_|SCLR|PLAI|STR, 84, 22,  // "a long long way to run"
-        EMAP|STR,
+        KEY_|SCLR|PLAI,       0,  3,  // "doe"
+        VAL_|SCLR|PLAI|PST_,  5, 21,  // "a deer, a female deer"
+        KEY_|SCLR|PLAI|PST_, 27,  3,  // "ray"
+        VAL_|SCLR|PLAI|PST_, 32, 20,  // "a drop of golden sun"
+        KEY_|SCLR|PLAI|PST_, 53,  2,  // "me"
+        VAL_|SCLR|PLAI|PST_, 58, 20,  // "a name I call myself"
+        KEY_|SCLR|PLAI|PST_, 79,  3,  // "far"
+        VAL_|SCLR|PLAI|PST_, 84, 22,  // "a long long way to run"
+        EMAP|PST_,
         EDOC,
         ESTR,
     };
