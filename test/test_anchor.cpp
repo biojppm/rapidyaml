@@ -1,6 +1,9 @@
 #include "./test_lib/test_group.hpp"
 #include "./test_lib/test_group.def.hpp"
 #include "./test_lib/tree_and_ints.hpp"
+#ifndef C4_YML_REFERENCE_RESOLVER_HPP_
+#include "c4/yml/reference_resolver.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -359,20 +362,6 @@ TEST(anchors, err_on_cyclic_reference_1)
     EXPECT_EQ(ti.tree.rootref().val_anchor(), "x");
     EXPECT_EQ(ti.tree[0].val_ref(), "x");
     SCOPED_CALL(test_emit_resolve_err, (yaml, "[\n  \"*x\"\n]\n"));
-}
-
-
-
-TEST(anchors, err_on_cyclic_reference_1)
-{
-    SCOPED_CALL(test_emit_resolve_err, (
-        "&x\n"
-        "- *x\n"
-        ,
-        "[\n"
-        "  \"*x\"\n"
-        "]\n"
-        ""));
 }
 
 TEST(anchors, err_on_cyclic_reference_2)
