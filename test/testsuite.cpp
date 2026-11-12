@@ -15,7 +15,6 @@
 #include "c4/yml/extra/event_handler_ints.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
 #include <c4/fs/fs.hpp>
-#include <c4/log/log.hpp>
 #include <gtest/gtest.h>
 
 
@@ -804,7 +803,7 @@ struct SuiteCase
 
         filename = catrs<std::string>(case_dir, '/', to_csubstr(input_file));
         C4_CHECK_MSG(fs::file_exists(filename.c_str()), "file not found: '%s'", filename.c_str());
-        log("testing suite case: {} {} ({})", case_title, filename, case_dir);
+        tslog_("testing suite case: {} {} ({})", case_title, filename, case_dir);
 
         std::string errfile = catrs<std::string>(to_csubstr(case_dir_), "/error");
         test_case_expects_error = fs::file_exists(errfile.c_str());
@@ -822,7 +821,7 @@ struct SuiteCase
         }
         events.init(to_csubstr(events_filename), to_csubstr(events_file_contents));
 
-        dump("~~~ case: "      , case_title    , "~~~\n",
+        tsdump_("~~~ case: "      , case_title    , "~~~\n",
              "~~~ file: "      , filename      , "~~~\n",
              "~~~ input:\n"    , to_csubstr(unix_in_arena.levels[0].src_tree), "~~~\n",
              "~~~ events:\n"   , events.reference_events    , "~~~\n");
@@ -1016,10 +1015,10 @@ Case const* get_case(csubstr /*name*/) { return nullptr; }
 int main(int argc, char* argv[])
 {
     c4::yml::ensure_callbacks(); // needed when RYML_NO_DEFAULT_CALLBACKS
-    c4::dump("$");
+    c4::yml::tsdump_("$");
     for(int i = 0; i < argc; ++i)
-        c4::dump(' ', c4::to_csubstr(argv[i]));
-    c4::dump("\n");
+        c4::yml::tsdump_(' ', c4::to_csubstr(argv[i]));
+    c4::yml::tsdump_("\n");
 
     // make gtest parse its args
     testing::InitGoogleTest(&argc, argv);
@@ -1027,7 +1026,7 @@ int main(int argc, char* argv[])
     // now we have only our args to consider
     if(argc != 4)
     {
-        log("usage:\n{} <test_name> <test-dir> <input-file>", c4::to_csubstr(argv[0]));
+        c4::yml::tslog_("usage:\n{} <test_name> <test-dir> <input-file>", c4::to_csubstr(argv[0]));
         return 1;
     }
 
