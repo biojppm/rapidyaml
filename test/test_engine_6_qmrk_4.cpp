@@ -1498,7 +1498,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
     ___(ps.end_map_flow(singleline));
@@ -1539,7 +1539,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1_colon,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
     ___(ps.end_map_flow(singleline));
@@ -1580,7 +1580,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1_colon_y,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
     ___(ps.end_map_flow(singleline));
@@ -1620,7 +1620,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_flow(singleline));
@@ -1661,7 +1661,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2_colon,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_flow(singleline));
@@ -1702,7 +1702,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2_colon_y,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain_empty());
     ___(ps.end_map_flow(singleline));
@@ -1743,7 +1743,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
     ___(ps.end_map_flow(singleline));
@@ -1784,7 +1784,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3_colon,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
     ___(ps.end_map_flow(singleline));
@@ -1825,7 +1825,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3_colon_y,
     ___(ps.begin_map_val_block());
     ___(ps.begin_map_key_block());
     ___(ps.begin_seq_key_flow());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("a"));
     ___(ps.set_val_scalar_plain("b"));
     ___(ps.end_map_flow(singleline));

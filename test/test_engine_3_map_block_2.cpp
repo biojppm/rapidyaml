@@ -37,8 +37,8 @@ ENGINE_TEST(ContainerKey1Block0_0,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
-    ___(ps.begin_map_val_flow());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
     ___(ps.add_sibling());
@@ -88,11 +88,11 @@ ENGINE_TEST(ContainerKey1Block0_1,
     ___(ps.begin_stream());
     ___(ps.begin_doc());
     ___(ps.begin_map_val_flow());
-    ___(ps.set_key_scalar_plain("this"));
-    ___(ps.set_val_scalar_plain("is"));
-    ___(ps.add_sibling());
-    ___(ps.set_key_scalar_plain("a"));
-    ___(ps.set_val_scalar_plain("keymap"));
+      ___(ps.set_key_scalar_plain("this"));
+      ___(ps.set_val_scalar_plain("is"));
+      ___(ps.add_sibling());
+      ___(ps.set_key_scalar_plain("a"));
+      ___(ps.set_val_scalar_plain("keymap"));
     ___(ps.end_map_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
     ___(ps.begin_seq_val_flow());
@@ -138,7 +138,7 @@ ENGINE_TEST(ContainerKey1Block1_0,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_val_block());
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("this"));
     ___(ps.add_sibling());
@@ -193,7 +193,7 @@ ENGINE_TEST(ContainerKey1Block1_1,
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
-    ___(ps.begin_seq_key_flow());
+    ___(ps.begin_seq_val_flow());
     ___(ps.set_val_scalar_plain("this"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("is"));
@@ -376,7 +376,7 @@ ENGINE_TEST(ContainerKey1Block3_0,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("SEQ"));
     ___(ps.end_seq_flow(singleline));
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
     ___(ps.end_map_flow(singleline));
@@ -440,7 +440,7 @@ ENGINE_TEST(ContainerKey1Block3_1,
     ___(ps.set_val_scalar_plain("SEQ"));
     ___(ps.end_seq_flow(singleline));
     ___(ps.actually_val_is_first_key_of_new_map_block());
-    ___(ps.begin_map_key_flow());
+    ___(ps.begin_map_val_flow());
     ___(ps.set_key_scalar_plain("A"));
     ___(ps.set_val_scalar_plain("MAP"));
     ___(ps.end_map_flow(singleline));
@@ -498,8 +498,8 @@ ENGINE_TEST(ContainerKey2Block_1,
     ___(ps.set_key_scalar_plain("foo"));
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.add_sibling());
-    ___(ps.set_key_tag("!maptag"));
     ___(ps.set_key_anchor("mapanchor"));
+    ___(ps.set_key_tag("!maptag"));
     ___(ps.begin_map_key_flow());
     ___(ps.set_key_scalar_plain("this"));
     ___(ps.set_val_scalar_plain("is"));
@@ -519,8 +519,8 @@ ENGINE_TEST(ContainerKey2Block_1,
     ___(ps.set_val_scalar_plain("val"));
     ___(ps.end_seq_flow(singleline));
     ___(ps.add_sibling());
-    ___(ps.set_key_tag("!seqtag"));
     ___(ps.set_key_anchor("seqanchor"));
+    ___(ps.set_key_tag("!seqtag"));
     ___(ps.begin_seq_key_flow());
     ___(ps.set_val_scalar_plain("now"));
     ___(ps.add_sibling());
@@ -954,7 +954,7 @@ ENGINE_TEST(SeqKeyBlock2_0,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_seq_block());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));
@@ -1006,7 +1006,7 @@ ENGINE_TEST(SeqKeyBlock3,
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bar"));
     ___(ps.end_seq_block());
-    ___(ps.begin_seq_key_block());
+    ___(ps.begin_seq_val_block());
     ___(ps.set_val_scalar_plain("baz"));
     ___(ps.add_sibling());
     ___(ps.set_val_scalar_plain("bat"));

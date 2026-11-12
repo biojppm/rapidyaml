@@ -1,6 +1,9 @@
 #include "test_lib/test_case.hpp"
-#include "test_lib/test_events_ints_helpers.hpp"
+#include "test_lib/test_helpers_ints.hpp"
+
+#ifndef C4_YML_EXTRA_EVENT_HANDLER_INTS_HPP_
 #include <c4/yml/extra/event_handler_ints.hpp>
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -10,6 +13,37 @@ namespace c4 {
 namespace yml {
 namespace extra {
 
+
+// ensure the ievt flags work despite being signed
+static_assert((ievt::MASK & ievt::BSTR) == ievt::BSTR, "overflow?");
+static_assert((ievt::MASK & ievt::ESTR) == ievt::ESTR, "overflow?");
+static_assert((ievt::MASK & ievt::BDOC) == ievt::BDOC, "overflow?");
+static_assert((ievt::MASK & ievt::EDOC) == ievt::EDOC, "overflow?");
+static_assert((ievt::MASK & ievt::BMAP) == ievt::BMAP, "overflow?");
+static_assert((ievt::MASK & ievt::EMAP) == ievt::EMAP, "overflow?");
+static_assert((ievt::MASK & ievt::BSEQ) == ievt::BSEQ, "overflow?");
+static_assert((ievt::MASK & ievt::ESEQ) == ievt::ESEQ, "overflow?");
+static_assert((ievt::MASK & ievt::ANCH) == ievt::ANCH, "overflow?");
+static_assert((ievt::MASK & ievt::ALIA) == ievt::ALIA, "overflow?");
+static_assert((ievt::MASK & ievt::TAG_) == ievt::TAG_, "overflow?");
+static_assert((ievt::MASK & ievt::PLAI) == ievt::PLAI, "overflow?");
+static_assert((ievt::MASK & ievt::SQUO) == ievt::SQUO, "overflow?");
+static_assert((ievt::MASK & ievt::DQUO) == ievt::DQUO, "overflow?");
+static_assert((ievt::MASK & ievt::LITL) == ievt::LITL, "overflow?");
+static_assert((ievt::MASK & ievt::FOLD) == ievt::FOLD, "overflow?");
+static_assert((ievt::MASK & ievt::FLOW) == ievt::FLOW, "overflow?");
+static_assert((ievt::MASK & ievt::EXPL) == ievt::EXPL, "overflow?");
+static_assert((ievt::MASK & ievt::UNFILT) == ievt::UNFILT, "overflow?");
+static_assert((ievt::MASK & ievt::KEY_) == ievt::KEY_, "overflow?");
+static_assert((ievt::MASK & ievt::VAL_) == ievt::VAL_, "overflow?");
+static_assert((ievt::MASK & ievt::YAML) == ievt::YAML, "overflow?");
+static_assert((ievt::MASK & ievt::TAGH) == ievt::TAGH, "overflow?");
+static_assert((ievt::MASK & ievt::TAGP) == ievt::TAGP, "overflow?");
+static_assert((ievt::MASK & ievt::AREN) == ievt::AREN, "overflow?");
+static_assert((ievt::MASK & ievt::WSTR) == ievt::WSTR, "overflow?");
+static_assert((ievt::MASK & ievt::JUMP) == ievt::JUMP, "overflow?");
+static_assert((ievt::MASK & ievt::PSTR) == ievt::PSTR, "overflow?");
+static_assert((ievt::MASK & ievt::LAST) == ievt::LAST, "overflow?");
 
 TEST(flags, to_chars)
 {
@@ -29,7 +63,7 @@ TEST(flags, to_chars)
         ASSERT_LE(r.len, buf.len);                          \
         EXPECT_EQ(r, actual);                               \
     }
-    _(0, "NONE");
+    _(0, "0");
     _(KEY_, "KEY_");
     _(VAL_, "VAL_");
     _(KEY_|VAL_, "KEY_|VAL_");
@@ -42,7 +76,7 @@ struct IntEventsCase
     const int line;
     ParserOptions opts;
     csubstr yaml;
-    const std::vector<IntEventWithScalar> evt;
+    const std::vector<extra::ievt::IntEventWithScalar> evt;
 
     void testeq(csubstr parsed_source, csubstr arena, ievt::evt_bits const* actual, size_t actual_size) const
     {
@@ -50,7 +84,7 @@ struct IntEventsCase
         #ifdef RYML_DBG
         events_ints_print(parsed_source, arena, actual, (extra::ievt::evt_bits)actual_size);
         #endif
-        test_events_ints_invariants(parsed_source, arena, actual, (ievt::evt_bits)actual_size);
+        extra::ievt::test_events_ints_invariants(parsed_source, arena, actual, (ievt::evt_bits)actual_size);
         test_events_ints(evt.data(), evt.size(), actual, actual_size, yaml, parsed_source, arena);
     }
 };
@@ -605,15 +639,16 @@ struct IntEventsTestHelper
     size_t required_size_actual;
     extra::EventHandlerInts handler;
     ParseEngine<extra::EventHandlerInts> parser;
-    std::string src_copy;
+    txtbuf src_copy;
+    txtbuf arena;
     std::vector<evt_bits> actual;
-    std::string arena;
     IntEventsTestHelper(IntEventsCase const& ec_)
         : ec(ec_)
         , required_size_expected(num_ints(ec.evt.data(), ec.evt.size()))
         , handler()
         , parser(&handler, ec_.opts)
         , src_copy()
+        , arena()
         , actual()
     {
     }
@@ -625,6 +660,15 @@ struct IntEventsTestHelper
         handler.reset(to_substr(src_copy), to_substr(arena), actual.data(), (int)actual.size());
         parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
         required_size_actual = (size_t)handler.required_size_events();
+    }
+    void maybe_print() const
+    {
+        if(testing::Test::HasFailure())
+        {
+            size_t reqsz = (size_t)handler.required_size_arena();
+            size_t sz = actual.size() < reqsz ? actual.size() : reqsz;
+            extra::events_ints_print(src_copy, arena, actual.data(), (int)sz);
+        }
     }
 };
 
@@ -654,6 +698,7 @@ TEST_P(IntEventsTest, size_large_enough)
     ASSERT_LT(h.handler.required_size_arena(), h.arena.size());
     ASSERT_TRUE(h.handler.fits_buffers());
     h.ec.testeq(to_csubstr(h.src_copy), to_csubstr(h.arena), h.actual.data(), h.required_size_actual);
+    h.maybe_print();
 }
 
 TEST_P(IntEventsTest, size_too_small)

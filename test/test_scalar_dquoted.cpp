@@ -4,6 +4,12 @@
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/parse_engine.def.hpp>
 #endif
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/parse.hpp"
+#include "c4/yml/parse_engine.hpp"
+#include "c4/yml/parse_engine.def.hpp"
+#include "c4/yml/event_handler_tree.hpp"
+#endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
