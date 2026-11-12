@@ -24,7 +24,7 @@ C4_SUPPRESS_WARNING_GCC("-Wdeprecated-enum-enum-conversion")
 #if defined(__clang__) && (__clang_major__ >= 10)
 C4_SUPPRESS_WARNING_CLANG("-Wdeprecated-anon-enum-enum-conversion")
 #endif
-// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast)
+// NOLINTBEGIN(hicpp-signed-bitwise,*avoid-c-style-cast,*avoid-goto)
 
 namespace c4 {
 namespace yml {
@@ -1638,7 +1638,7 @@ evt_size EmitterInts<Writer>::json_writev_(evt_size pos, evt_bits ty, bool has_a
 } // namespace yml
 } // namespace c4
 
-// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast)
+// NOLINTEND(hicpp-signed-bitwise,*avoid-c-style-cast,*avoid-goto)
 C4_SUPPRESS_WARNING_POP
 
 #endif /* C4_YML_EXTRA_EMITTER_INTS_DEF_HPP_ */

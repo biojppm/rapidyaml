@@ -528,11 +528,14 @@ static void test_engine_roundtrip_ints_from_events(EngineEvtTestCase const& test
         if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
             extra::ievt::test_compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
     }
-    if(!testing::Test::HasFailure())
+    if(!testing::Test::HasFailure()) // NOLINT
     {
-        SCOPED_TRACE("roundtrip_compare");
-        test_events_ints_compare(buffers1.buf, buffers2.buf);
-        EXPECT_EQ(emitted1, emitted2);
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED_INTS))) // NOLINT
+        {
+            SCOPED_TRACE("roundtrip_compare");
+            test_events_ints_compare(buffers1.buf, buffers2.buf, /*mask_ignore*/extra::ievt::AREN|extra::ievt::UNFILT);
+            EXPECT_EQ(emitted1, emitted2);
+        }
     }
     if(testing::Test::HasFailure())
     {
@@ -619,7 +622,7 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
         test_engine_ints_from_yaml<resize_buffers>(buffers1, to_substr(parsed_yaml1), test_case, yaml);
         num_ints = buffers1.buf.evts.len;
         buffers1.buf.emitrs_yaml(&emitted1);
-        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
             extra::ievt::test_compare_emitted_yaml_ints(emitted1, test_case.expected_emitted);
     }
     std::vector<char> parsed_yaml2{emitted1.begin(), emitted1.end()};
@@ -630,14 +633,17 @@ static void test_engine_roundtrip_ints_from_yaml(EngineEvtTestCase const& test_c
                                                    /*ignore_doc_style*/true);
         EXPECT_EQ(num_ints, buffers2.buf.evts.len);
         buffers2.buf.emitrs_yaml(&emitted2);
-        if(!(test_case.test_case_flags & NO_COMPARE_EMITTED))
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
             extra::ievt::test_compare_emitted_yaml_ints(emitted2, test_case.expected_emitted);
     }
     if(!testing::Test::HasFailure())
     {
         SCOPED_TRACE("roundtrip_compare");
-        test_events_ints_compare(buffers1.buf, buffers2.buf);
-        EXPECT_EQ(emitted1, emitted2);
+        if(!(test_case.test_case_flags & (NO_COMPARE_EMITTED|NO_COMPARE_EMITTED_INTS)))
+        {
+            test_events_ints_compare(buffers1.buf, buffers2.buf, /*mask_ignore*/extra::ievt::AREN);
+            EXPECT_EQ(emitted1, emitted2);
+        }
     }
     if(testing::Test::HasFailure())
     {

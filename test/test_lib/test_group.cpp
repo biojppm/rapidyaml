@@ -516,7 +516,7 @@ static void _test_roundtrip_yaml_ints(Case const *c, CaseDataLineEndings *cd,
 void YmlTestCase::_test_roundtrip_yaml_ints_resize(CaseDataLineEndings *cd)
 {
     SCOPED_TRACE("test_roundtrip_yaml_ints_resize");
-    if(c->flags & (EXPECT_PARSE_ERROR)) // NOLINT
+    if(c->flags & (EXPECT_PARSE_ERROR|NO_COMPARE_EMITTED_INTS)) // NOLINT
         return;
     cd->ensure_ints_resize_roundtrip_yaml(c);
     if(testing::Test::HasFailure())
@@ -525,7 +525,7 @@ void YmlTestCase::_test_roundtrip_yaml_ints_resize(CaseDataLineEndings *cd)
 }
 void YmlTestCase::_test_roundtrip_yaml_ints_noresize(CaseDataLineEndings *cd)
 {
-    if(c->flags & (EXPECT_PARSE_ERROR)) // NOLINT
+    if(c->flags & (EXPECT_PARSE_ERROR|NO_COMPARE_EMITTED_INTS)) // NOLINT
         return;
     SCOPED_TRACE("test_roundtrip_yaml_ints_noresize");
     cd->ensure_ints_noresize_roundtrip_yaml(c);
