@@ -231,6 +231,7 @@ add_custom_target(ryml-uninstall
 
 
 option(RYML_SAVE_TEST_YAML "(dev) save all the parsed yaml while testing" OFF)
+option(RYML_ENABLE_EXPORT_TEST "(dev) export test symbols even if tests are not built" OFF)
 if(RYML_SAVE_TEST_YAML)
     target_compile_definitions(ryml PUBLIC RYML_SAVE_TEST_YAML)
     set(RYML_FUZZ_TEST  OFF CACHE BOOL "" FORCE)
@@ -243,6 +244,10 @@ function(ryml_maybe_dump_test_yaml target)
         target_link_libraries(${target} PRIVATE c4fs gtest)
     endif()
 endfunction()
+
+if(RYML_BUILD_TESTS OR RYML_ENABLE_EXPORT_TEST)
+    target_compile_definitions(ryml PUBLIC RYML_ENABLE_EXPORT_TEST)
+endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     option(RYML_FUZZ_DRIVERS "Build fuzz driver binaries (other than unit tests from RYML_TEST_FUZZ)." OFF)

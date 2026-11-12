@@ -1,7 +1,5 @@
 c4_setup_testing(GTEST)
 
-target_compile_definitions(ryml PUBLIC RYML_ENABLE_EXPORT_TEST)
-
 function(ryml_get_target_exe target_name target_file)
     if(CMAKE_CROSSCOMPILING)
         set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
