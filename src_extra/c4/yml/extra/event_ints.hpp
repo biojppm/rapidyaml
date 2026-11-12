@@ -433,7 +433,7 @@ struct MaybeParent
 };
 RYML_EXPORT_TEST MaybeParent find_parent_(evt_bits const* C4_RESTRICT evts, evt_size pos) noexcept;
 RYML_EXPORT_TEST bool has_next_doc_and_is_expl_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
-RYML_EXPORT_TEST evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
+RYML_EXPORT_TEST evt_bits get_all_bits_key_or_val_(evt_bits const* C4_RESTRICT evts, evt_size evts_size, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT_TEST evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT_TEST evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT;
 RYML_EXPORT_TEST evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT;
