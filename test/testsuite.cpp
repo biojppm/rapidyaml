@@ -345,7 +345,7 @@ struct TestSequenceLevel
         ASSERT_LE(sz, buffer_ints.size());
         buffer_ints.resize(sz);
         #ifdef RYML_DBG
-        extra::events_ints_print(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
+        extra::ievt::events_ints_print(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         #endif
         extra::ievt::test_events_ints_invariants(to_csubstr(src_evts_ints), to_csubstr(arena_evts_ints), buffer_ints.data(), (I)sz);
         EXPECT_GT(evt_handler_ints.required_size_events(), 0);
