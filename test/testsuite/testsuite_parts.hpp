@@ -8,7 +8,6 @@
 #include <c4/yml/error.hpp>
 #include <c4/span.hpp>
 #endif
-#include <c4/log/log.hpp>
 
 namespace c4 {
 namespace yml {
