@@ -10,6 +10,8 @@
 #include <c4/yml/parse_engine.hpp>
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>
+#include <c4/yml/extra/emitter_ints.hpp>
+#include <c4/yml/extra/emitter_ints.def.hpp>
 #include <c4/yml/extra/ints_to_testsuite.hpp>
 #include <c4/span.hpp>
 #endif
@@ -64,6 +66,8 @@ void test_events_ints_invariants(
     csubstr arena,
     evt_bits const* evts_ints,
     evt_bits evts_ints_sz);
+
+void test_compare_emitted_yaml_ints(std::string const& emitted, std::string const& expected);
 
 
 
@@ -254,6 +258,89 @@ public:
                             /*ignore_container_style*/false,
                             /*ignore_scalar_style*/false,
                             /*ignore_tag_normalization*/true);
+    }
+
+public:
+
+    void emit_yaml(FILE* file, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ASSERT_TRUE(pos <= evts.len);
+        ievt::EmitterInts<WriterFile> emitter(opts, file);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
+    }
+    void emit_json(FILE* file, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ASSERT_TRUE(pos <= evts.len);
+        ievt::EmitterInts<WriterFile> emitter(opts, file);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
+    }
+
+    template<class Stream>
+    void emit_yaml_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, &stream);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
+    }
+    template<class Stream>
+    void emit_json_stream(Stream &stream, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterOStream<Stream>> emitter(opts, &stream);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
+    }
+
+    size_t emit_yaml(substr yaml, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterBuf> emitter(opts, yaml);
+        emitter.emit_as(EMIT_YAML, evts.ptr, evts.len, pos, src, arena);
+        return emitter.get_result(/*error_on_excess*/false).len;
+    }
+    size_t emit_json(substr json, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        ievt::EmitterInts<WriterBuf> emitter(opts, json);
+        emitter.emit_as(EMIT_JSON, evts.ptr, evts.len, pos, src, arena);
+        return emitter.get_result(/*error_on_excess*/false).len;
+    }
+
+    template<class CharContainer>
+    void emitrs_yaml(CharContainer *cont, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        const size_t cap = cont->capacity();
+        cont->resize(cap);
+        const size_t len = this->emit_yaml(to_substr(*cont), opts, pos);
+        cont->resize(len);
+        if(len > cap)
+        {
+            const size_t len2 = this->emit_yaml(to_substr(*cont), opts, pos);
+            ASSERT_EQ(len2, len);
+        }
+    }
+    template<class CharContainer>
+    void emitrs_json(CharContainer *cont, EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        const size_t cap = cont->capacity();
+        cont->resize(cap);
+        const size_t len = this->emit_json(to_substr(*cont), opts, pos);
+        cont->resize(len);
+        if(len > cap)
+        {
+            const size_t len2 = this->emit_json(to_substr(*cont), opts, pos);
+            ASSERT_EQ(len2, len);
+        }
+    }
+
+    template<class CharContainer>
+    CharContainer emitrs_yaml(EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        CharContainer c;
+        this->emitrs_yaml(&c, opts, pos);
+        return c;
+    }
+    template<class CharContainer>
+    CharContainer emitrs_json(EmitOptions const& opts={}, evt_size pos=0) const
+    {
+        CharContainer c;
+        this->emitrs_json(&c, opts, pos);
+        return c;
     }
 };
 

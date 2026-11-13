@@ -156,7 +156,7 @@ evt_bits get_all_bits_key(evt_bits const* C4_RESTRICT evts, evt_size evts_size, 
 }
 
 
-evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::END_) && (evt & (mask_open_close & ~ievt::END_)));
@@ -183,7 +183,7 @@ evt_size find_matching_open_(evt_bits const* C4_RESTRICT evts, evt_size pos) RYM
 }
 
 
-evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos) RYML_NOEXCEPT
+evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos)
 {
     evt_bits evt = evts[pos];
     RYML_ASSERT_BASIC_((evt & ievt::BEG_) && (evt & (mask_open_close & ~ievt::BEG_)));
@@ -210,7 +210,7 @@ evt_size find_matching_close_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt
 }
 
 
-evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val) RYML_NOEXCEPT
+evt_size find_next_entry_(evt_bits const* C4_RESTRICT evts, evt_size sz, evt_size pos, evt_bits key_or_val)
 {
     evt_bits evt = evts[pos];
     if(detail::seqormap(evt & ~ievt::STRM))
@@ -293,27 +293,27 @@ EmitKickoff kickoff_emit(evt_bits const* evts, evt_size sz, evt_size pos, EmitOp
 
 evt_bits scalar_style_choose_json_ievt(csubstr scalar) noexcept
 {
-    //see also NodeType implementation in scalar_style.cpp
+    // see also NodeType implementation in scalar_style.cpp
     // do not quote numbers or special scalars
     return scalar_is_plain_number_json(scalar)
         || scalar_is_special_json(scalar) ? ievt::PLAI : ievt::DQUO;
 }
 evt_bits scalar_style_choose_block_ievt(csubstr scalar) noexcept
 {
-    //see also NodeType implementation in scalar_style.cpp
+    // see also NodeType implementation in scalar_style.cpp
     if(scalar.len)
     {
         if(scalar_style_query_plain_block(scalar))
             return ievt::PLAI;
-        RYML_ASSERT_BASIC_(scalar_style_query_squo(scalar)
-                           && "if this assertion fires, please submit an issue!");
-        return ievt::SQUO;
+        else if(scalar_style_query_squo(scalar))
+            return ievt::SQUO;
+        return ievt::DQUO;
     }
     return scalar.str ? ievt::SQUO : ievt::PLAI;
 }
 evt_bits scalar_style_choose_flow_ievt(csubstr scalar) noexcept
 {
-    //see also NodeType implementation in scalar_style.cpp
+    // see also NodeType implementation in scalar_style.cpp
     if(scalar.len)
     {
         if(scalar_style_query_plain_flow(scalar))

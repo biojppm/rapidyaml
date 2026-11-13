@@ -2215,8 +2215,8 @@ ScannedScalar ParseEngine<EventHandler>::_scan_scalar_dquot()
     size_t pos = npos; // find the pos of the matching quote
     while( ! _finished_file())
     {
-        #if defined(__GNUC__) && (/*__GNUC__ == 12 || */__GNUC__ == 13)
-        C4_DONT_OPTIMIZE(m_evt_handler->m_curr->line_contents.rem); // prevent hoisting
+        #if defined(__GNUC__) && (/*__GNUC__ == 12 || */__GNUC__ >= 13 && __GNUC__ <= 16)
+        C4_DONT_OPTIMIZE(m_evt_handler->m_curr->line_contents.rem); // prevent erroneous hoisting
         #endif
         csubstr rem = m_evt_handler->m_curr->line_contents.rem;
         _c4dbgpf("scanning double quoted scalar @ line[{}]:  line='{}'", m_evt_handler->m_curr->pos.line, rem);
