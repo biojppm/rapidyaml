@@ -3,18 +3,33 @@
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *str, size_t len);
 
+namespace {
+
 using cvec = std::vector<char>;
+bool quiet = false;
+#define fuzzlog(...)                            \
+    do {                                        \
+        if(!quiet)                              \
+            printf(__VA_ARGS__);                \
+        (void)fflush(nullptr);                  \
+    } while(0)
+size_t num_files = 1;
+size_t curr_file = 0;
 
 
-static void test_one_file(const char *filename, cvec *buf)
+void test_one_file(const char *filename, cvec *buf)
 {
+    fuzzlog("%s: [%zu/%zu] ...\n", filename, curr_file, num_files);
     C4_CHECK(c4::fs::is_file(filename));
     c4::fs::file_get_contents(filename, buf);
-    (void)LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t*>(buf->data()), buf->size());
+    fuzzlog("... fuzz...\n");
+    int ret = LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t*>(buf->data()), buf->size());
+    fuzzlog("... done. exit=%d\n", ret);
+    ++curr_file;
 }
 
 
-static void test_directory_files(const char *dirname, cvec *buf)
+void test_directory_files(const char *dirname, cvec *buf)
 {
     std::vector<char*> names(256);
     cvec arena(names.size() * 256);
@@ -37,6 +52,7 @@ retry:
         test_one_file(filename, buf);
     printf("%s: tested %zu files\n", dirname, entries.names.required_size);
 }
+} // namespace
 
 
 int main(int argc, const char *argv[])

@@ -56,7 +56,7 @@ scalar
 CASE_GROUP(SIMPLE_DOC)
 {
 
-ADD_CASE_TO_GROUP("one empty doc",
+ADD_CASE_TO_GROUP("one empty doc", NO_COMPARE_EMITTED_INTS_JSON,
 R"(---
 )",
     N(STREAM, L{DOC|VN})
@@ -102,7 +102,7 @@ R"(...
     NOTYPE
 );
 
-ADD_CASE_TO_GROUP("three terminations and one explicit, v0",
+ADD_CASE_TO_GROUP("three terminations and one explicit, v0", NO_COMPARE_EMITTED_INTS_JSON,
 R"(...
 ...
 ...
@@ -111,7 +111,7 @@ R"(...
     N(STREAM, L{DOC|VN})
 );
 
-ADD_CASE_TO_GROUP("three terminations and one explicit, v1",
+ADD_CASE_TO_GROUP("three terminations and one explicit, v1", NO_COMPARE_EMITTED_INTS,
 R"(...
 ...
 ---
@@ -120,7 +120,7 @@ R"(...
     N(STREAM, L{DOC|VN})
 );
 
-ADD_CASE_TO_GROUP("three terminations and one explicit, v2",
+ADD_CASE_TO_GROUP("three terminations and one explicit, v2", NO_COMPARE_EMITTED_INTS,
 R"(...
 ---
 ...
@@ -129,7 +129,7 @@ R"(...
     N(STREAM, L{DOC|VN})
 );
 
-ADD_CASE_TO_GROUP("three terminations and one explicit, v3",
+ADD_CASE_TO_GROUP("three terminations and one explicit, v3", NO_COMPARE_EMITTED_INTS,
 R"(---
 ...
 ...
@@ -138,28 +138,28 @@ R"(---
     N(STREAM, L{DOC|VN})
 );
 
-ADD_CASE_TO_GROUP("one empty doc, explicit termination",
+ADD_CASE_TO_GROUP("one empty doc, explicit termination", NO_COMPARE_EMITTED_INTS,
 R"(---
 ...
 )",
     N(STREAM, L{DOC|VN})
 );
 
-ADD_CASE_TO_GROUP("one empty doc, explicit termination, first indented",
+ADD_CASE_TO_GROUP("one empty doc, explicit termination, first indented", NO_COMPARE_EMITTED_INTS,
 R"( ---
 ...
 )",
     N(VP, "---")
 );
 
-ADD_CASE_TO_GROUP("two empty docs",
+ADD_CASE_TO_GROUP("two empty docs", NO_COMPARE_EMITTED_INTS_JSON,
 R"(---
 ---
 )",
     N(STREAM, L{DOC|VN, DOC|VN})
 );
 
-ADD_CASE_TO_GROUP("two empty docs, with termination",
+ADD_CASE_TO_GROUP("two empty docs, with termination", NO_COMPARE_EMITTED_INTS,
 R"(---
 ...
 ---
@@ -179,7 +179,7 @@ R"(--- a scalar
 N(STREAM, L{N(DOC|VP, "a scalar")})
 );
 
-ADD_CASE_TO_GROUP("simple doc, empty docs",
+ADD_CASE_TO_GROUP("simple doc, empty docs", NO_COMPARE_EMITTED_INTS_JSON,
 R"(---
 ---
 ---
@@ -197,7 +197,7 @@ R"(    ---
     N(VP, "--- --- --- ---")
 );
 
-ADD_CASE_TO_GROUP("simple doc, empty docs, term",
+ADD_CASE_TO_GROUP("simple doc, empty docs, term", NO_COMPARE_EMITTED_INTS,
 R"(---
 ...
 
@@ -228,7 +228,7 @@ R"(
     N(VP, "---\n... --- ...\n--- ... --- ...")
 );
 
-ADD_CASE_TO_GROUP("simple doc, plain scalar, multiple docs, implicit 2nd doc",
+ADD_CASE_TO_GROUP("simple doc, plain scalar, multiple docs, implicit 2nd doc", NO_COMPARE_EMITTED_INTS,
 R"(---
 - a plain scalar
     with several lines
@@ -284,7 +284,7 @@ R"(    ---
     N(VP, "--- a scalar with some spaces inside")
 );
 
-ADD_CASE_TO_GROUP("simple doc, single scalar, explicit doc, explicit termination",
+ADD_CASE_TO_GROUP("simple doc, single scalar, explicit doc, explicit termination", NO_COMPARE_EMITTED_INTS,
 R"(---
 a scalar with some spaces inside
 ...
@@ -300,7 +300,7 @@ R"(    ---
     N(VP, "--- a scalar with some spaces inside ...")
 );
 
-ADD_CASE_TO_GROUP("simple doc, multi doc, seq-map",
+ADD_CASE_TO_GROUP("simple doc, multi doc, seq-map", NO_COMPARE_EMITTED_INTS,
 R"(---
 - a
 - b
@@ -329,7 +329,7 @@ R"(
 N(VP, "--- - a - b - c ... ---")
 );
 
-ADD_CASE_TO_GROUP("simple doc, 2XXW",
+ADD_CASE_TO_GROUP("simple doc, 2XXW", NO_COMPARE_EMITTED_INTS_JSON,
 R"(
 --- !!set
 ? Mark McGwire
@@ -385,7 +385,7 @@ R"(# the first : should cause a parse error
    Location(7, 6)
 );
 
-ADD_CASE_TO_GROUP("simple doc, multi doc, map-seq",
+ADD_CASE_TO_GROUP("simple doc, multi doc, map-seq", NO_COMPARE_EMITTED_INTS,
 R"(---
 a: 0
 b: 1
@@ -449,7 +449,7 @@ R"(
   Location(3, 6)
 );
 
-ADD_CASE_TO_GROUP("simple doc, multi doc, impl seq-map",
+ADD_CASE_TO_GROUP("simple doc, multi doc, impl seq-map", NO_COMPARE_EMITTED_INTS,
 R"(---
 [a, b, c]
 ...
@@ -497,7 +497,7 @@ R"(
   Location(5, 7)
 );
 
-ADD_CASE_TO_GROUP("simple doc, multi doc, impl map-seq",
+ADD_CASE_TO_GROUP("simple doc, multi doc, impl map-seq", NO_COMPARE_EMITTED_INTS,
 R"(---
 {a: 0, b: 1, c: 2}
 ...
@@ -577,21 +577,67 @@ R"(
 );
 
 
-ADD_CASE_TO_GROUP("simple doc, tags at global scope, 9WXW",
+ADD_CASE_TO_GROUP("multi doc vals",
+R"(---
+aaa
+---
+bbb
+---
+ccc
+)",
+N(STREAM, L{
+  N(DOC|VP, "aaa"),
+  N(DOC|VP, "bbb"),
+  N(DOC|VP, "ccc"),
+})
+);
+
+ADD_CASE_TO_GROUP("multi doc vals tag",
+R"(---
+!a aaa
+---
+!b bbb
+---
+!c ccc
+)",
+N(STREAM, L{
+  N(DOC|VP, TS("!a", "aaa")),
+  N(DOC|VP, TS("!b", "bbb")),
+  N(DOC|VP, TS("!c", "ccc")),
+})
+);
+
+ADD_CASE_TO_GROUP("multi doc cont",
+R"(---
+aaa
+---
+[bbb]
+---
+{ccc: ddd}
+)",
+N(STREAM, L{
+  N(DOC|VP, "aaa"),
+  N(DOC|SFS, L{N(VP, "bbb")}),
+  N(DOC|MFS, L{N(KP|VP, "ccc", "ddd")}),
+})
+);
+
+
+ADD_CASE_TO_GROUP("simple doc, tags at global scope, 9WXW", NO_COMPARE_EMITTED_INTS,
 R"(# Private
-!foo "bar"
+!foo "bar0"
 ...
 # Global
 %TAG ! tag:example.com,2000:app/
 ---
-!foo "bar"
+!foo "bar1"
 )",
 N(STREAM, L{
-  N(DOC|VD, TS("!foo", "bar")),
+  N(DOC|VD, TS("!foo", "bar0")),
   // strict YAML should result in this for the second doc:
   //N(DOC|VD, TS("<tag:example.com,2000:app/foo>", "bar")),
   // but since we don't do lookup, it should result in:
-  N(DOC|VD, TS("!foo", "bar")),
+  N(DOC|VD, TS("!foo", "bar1")),
 })
 );
 }

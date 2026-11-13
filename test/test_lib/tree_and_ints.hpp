@@ -54,6 +54,7 @@ struct TreeAndInts
 #define test_resolve_err_tree_(...) SCOPED_CALL(test_resolve_err_tree, (__VA_ARGS__))
 #define test_resolve_err_ints_(...) SCOPED_CALL(test_resolve_err_ints, (__VA_ARGS__))
 #define test_resolve_err_(...) SCOPED_CALL(test_resolve_err, (__VA_ARGS__))
+#define test_emit_resolve_err_(...) SCOPED_CALL(test_emit_resolve_err, (__VA_ARGS__))
 
 
 #define test_emit_yaml_(...) SCOPED_CALL(test_emit_yaml, (__VA_ARGS__))
@@ -149,10 +150,10 @@ inline void test_emit_yaml_tree(ConstNodeRef n, EmitOptions const& opts, std::st
 }
 
 
-inline void test_emit_yaml_ints(IntBufsCR, extra::evt_size, std::string const&, EmitOptions const& ={})
+inline void test_emit_yaml_ints(IntBufsCR, extra::ievt::evt_size, std::string const&, EmitOptions const& ={})
 {
 }
-inline void test_emit_yaml_ints(IntBufsCR ints, extra::evt_size pos, EmitOptions const& opts, std::string const& expected)
+inline void test_emit_yaml_ints(IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
 {
     test_emit_yaml_ints(ints, pos, expected, opts);
 }
@@ -170,15 +171,21 @@ inline void test_emit_yaml_same_ints(ConstNodeRef n, std::string const& expected
             print_tree(*n.tree());
             return;
         }
+        {
+            SCOPED_TRACE("here");
+            IntBufs ints;
+            parse_ints(to_substr(emitted_tree), &ints);
+            test_emit_yaml_ints(ints, 0, expected, opts);
+        }
     }
 }
 
-inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::evt_size pos, std::string const& expected, EmitOptions const& opts={})
+inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, std::string const& expected, EmitOptions const& opts={})
 {
-    SCOPED_CALL(test_emit_yaml_tree, (n, expected, opts));
-    (void)ints;(void)pos;//SCOPED_CALL(test_emit_yaml_ints, (ints, pos, expected, opts));
+    test_emit_yaml_tree(n, expected, opts);
+    test_emit_yaml_ints(ints, pos, expected, opts);
 }
-inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::evt_size pos, EmitOptions const& opts, std::string const& expected)
+inline void test_emit_yaml(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
 {
     test_emit_yaml(n, ints, pos, expected, opts);
 }
@@ -202,7 +209,7 @@ inline void test_emit_json_tree(ConstNodeRef n, std::string const& expected, Emi
             print_tree(*n.tree());
     }
 }
-inline void test_emit_json_ints(IntBufsCR, extra::evt_size, std::string const&, EmitOptions const& ={})
+inline void test_emit_json_ints(IntBufsCR, extra::ievt::evt_size, std::string const&, EmitOptions const& ={})
 {
 }
 inline void test_emit_json_same_ints(ConstNodeRef n, std::string const& expected, EmitOptions const& opts={})
@@ -217,22 +224,28 @@ inline void test_emit_json_same_ints(ConstNodeRef n, std::string const& expected
             print_tree(*n.tree());
             return;
         }
+        {
+            SCOPED_TRACE("here");
+            IntBufs ints;
+            parse_ints(to_substr(emitted_tree), &ints);
+            test_emit_json_ints(ints, 0, expected, opts);
+        }
     }
 }
 inline void test_emit_json_tree(ConstNodeRef n, EmitOptions const& opts, std::string const& expected)
 {
     test_emit_json_tree(n, expected, opts);
 }
-inline void test_emit_json(IntBufsCR ints, extra::evt_size pos, EmitOptions const& opts, std::string const& expected)
+inline void test_emit_json(IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
 {
     test_emit_json_ints(ints, pos, expected, opts);
 }
-inline void test_emit_json(ConstNodeRef n, IntBufsCR ints, extra::evt_size pos, std::string const& expected, EmitOptions const& opts={})
+inline void test_emit_json(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, std::string const& expected, EmitOptions const& opts={})
 {
     test_emit_json_tree(n, expected, opts);
     test_emit_json_ints(ints, pos, expected, opts);
 }
-inline void test_emit_json(ConstNodeRef n, IntBufsCR ints, extra::evt_size pos, EmitOptions const& opts, std::string const& expected)
+inline void test_emit_json(ConstNodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts, std::string const& expected)
 {
     test_emit_json(n, ints, pos, expected, opts);
 }
@@ -257,7 +270,7 @@ inline void test_emit_error_yaml_tree(NodeRef n, EmitOptions const& opts={})
         print_tree(*n.tree());
     }));
 }
-inline void test_emit_error_yaml_ints(IntBufsCR, extra::evt_size, EmitOptions const& ={})
+inline void test_emit_error_yaml_ints(IntBufsCR, extra::ievt::evt_size, EmitOptions const& ={})
 {
 }
 inline void test_emit_error_yaml_ints(IntBufsCR ints, EmitOptions const& opts={})
@@ -265,7 +278,7 @@ inline void test_emit_error_yaml_ints(IntBufsCR ints, EmitOptions const& opts={}
     test_emit_error_yaml_ints(ints, 0, opts);
 }
 
-inline void test_emit_error_yaml(NodeRef n, IntBufsCR ints, extra::evt_size pos, EmitOptions const& opts={})
+inline void test_emit_error_yaml(NodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts={})
 {
     test_emit_error_yaml_tree(n, opts);
     test_emit_error_yaml_ints(ints, pos, opts);
@@ -288,7 +301,7 @@ inline void test_emit_error_json_tree(NodeRef n, EmitOptions const& opts={})
         print_tree(*n.tree());
     }));
 }
-inline void test_emit_error_json_ints(IntBufsCR, extra::evt_size, EmitOptions const& ={})
+inline void test_emit_error_json_ints(IntBufsCR, extra::ievt::evt_size, EmitOptions const& ={})
 {
 }
 inline void test_emit_error_json_ints(IntBufsCR ints, EmitOptions const& opts={})
@@ -296,7 +309,7 @@ inline void test_emit_error_json_ints(IntBufsCR ints, EmitOptions const& opts={}
     test_emit_error_json_ints(ints, 0, opts);
 }
 
-inline void test_emit_error_json(NodeRef n, IntBufsCR ints, extra::evt_size pos, EmitOptions const& opts={})
+inline void test_emit_error_json(NodeRef n, IntBufsCR ints, extra::ievt::evt_size pos, EmitOptions const& opts={})
 {
     test_emit_error_json_tree(n, opts);
     test_emit_error_json_ints(ints, pos, opts);
@@ -321,9 +334,9 @@ inline void test_resolve(ResolveOptions opts, std::string const& yaml, std::stri
     SCOPED_CALL(test_emit_yaml, (ti, yaml));
     SCOPED_CALL(test_resolve, (ti, opts));
     if(!resolved.empty())
-        SCOPED_CALL(test_emit_yaml, (ti, resolved));
+        SCOPED_CALL(test_emit_yaml_tree, (ti.tree, resolved));
     else
-        SCOPED_CALL(test_emit_yaml, (ti, yaml));
+        SCOPED_CALL(test_emit_yaml_tree, (ti.tree, yaml));
 }
 inline void test_resolve(std::string const& yaml, std::string const& resolved={})
 {
@@ -349,8 +362,10 @@ inline void test_emit_resolve(std::string const& src, std::string const& yaml, s
 {
     TreeAndInts ti(to_csubstr(src));
     SCOPED_CALL(test_resolve, (ti, opts));
-    SCOPED_CALL(test_emit_yaml, (ti, yaml));
-    SCOPED_CALL(test_emit_json, (ti, json));
+    SCOPED_CALL(test_emit_yaml_tree, (ti.tree, yaml));
+    //SCOPED_CALL(test_emit_yaml_ints, (ti.ints, 0, yaml));
+    SCOPED_CALL(test_emit_json_tree, (ti.tree, json));
+    //SCOPED_CALL(test_emit_json_ints, (ti.ints, 0, json));
 }
 
 } // namespace yml
