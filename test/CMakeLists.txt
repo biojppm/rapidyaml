@@ -161,8 +161,15 @@ endfunction()
 
 
 # some subjects have to be split over several files because gtest
-# causes some amount of bloat and some compilers (VS) or platforms
-# (mips) choke on the large binary
+# causes some amount of code bloat and some compilers (VS) or
+# platforms (mips) choke on the large binary
+
+ryml_add_test(callbacks)
+ryml_add_test(stack)
+ryml_add_test(location)
+ryml_add_test(small_map)
+ryml_add_test(version)
+ryml_add_test(file)
 
 ryml_add_test(engine_1_doc_1 BIG)
 ryml_add_test(engine_1_doc_2 BIG)
@@ -189,9 +196,6 @@ ryml_add_test(engine_8_scalars_tokens BIG)
 ryml_add_test(engine_9_indentation BIG)
 ryml_add_test(engine_z_annot BIG)
 ryml_add_test(extra_ints)
-ryml_add_test(version)
-ryml_add_test(callbacks)
-ryml_add_test(stack)
 ryml_add_test(filter)
 ryml_add_test(parser)
 ryml_add_test(node_type)
@@ -206,12 +210,10 @@ ryml_add_test(serialize_3)
 ryml_add_test(basic)
 ryml_add_test(json)
 ryml_add_test(merge)
-ryml_add_test(location)
 ryml_add_test(bom_1)
 ryml_add_test(bom_2)
 ryml_add_test(escape_scalar)
 ryml_add_test(print_tree)
-ryml_add_test(file)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(doc)
 ryml_add_test_case_group(seq)
