@@ -558,8 +558,8 @@ C4_NODISCARD T* grow_buf(T* buf, size_t len, size_t next_len, Callbacks const& c
     return grow_buf(buf, len, len, next_len, cb);
 }
 
-RYML_EXPORT_TEST C4_NODISCARD substr resize(substr buf, size_t nextlen, Callbacks const& cb);
-RYML_EXPORT_TEST C4_NODISCARD substr destroy(substr buf, Callbacks const& cb);
+RYML_EXPORT C4_NODISCARD substr resize(substr buf, size_t nextlen, Callbacks const& cb);
+RYML_EXPORT C4_NODISCARD substr destroy(substr buf, Callbacks const& cb);
 } // detail
 
 
