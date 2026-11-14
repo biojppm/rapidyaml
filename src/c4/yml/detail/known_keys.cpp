@@ -8,7 +8,7 @@ namespace detail {
 
 namespace {
 #if RYML_USE_ASSERT
-bool check_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
+bool check_rng_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
 {
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
     #define ryml_docheck_(cond) RYML_ASSERT_BASIC_(cond); if(!(cond)) return false
@@ -163,7 +163,7 @@ auto KnownKeys::select(csubstr key, KnownKeyRange_ *out) const RYML_NOEXCEPT
     -> Entry const*
 {
     KnownKeyRange_ rng = known_keys.equal_range(key);
-    RYML_ASSERT_BASIC_(check_(*this, rng));
+    RYML_ASSERT_BASIC_(check_rng_(*this, rng));
     Entry const* selected = select_(rng, opts);
     if(out)
         *out = rng;
