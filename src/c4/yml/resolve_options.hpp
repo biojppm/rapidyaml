@@ -10,7 +10,8 @@ namespace yml {
 
 
 /** Options to control map key merging and anchor/reference
- * resolving. See @ref c4::yml::ReferenceResolver (for tree)  */
+ * resolving. See @ref c4::yml::ReferenceResolver (for tree) and @ref
+ * c4::yml::extra::ievt::ReferenceResolver (for ints) */
 struct ResolveOptions
 {
 private:

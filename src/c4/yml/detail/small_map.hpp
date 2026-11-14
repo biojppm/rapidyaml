@@ -1,14 +1,14 @@
 #ifndef C4_YML_DETAIL_SMALL_MAP_HPP_
 #define C4_YML_DETAIL_SMALL_MAP_HPP_
 
-
-#ifndef C4_YML_DETAIL_LOWER_BOUND_HPP_
-#include "c4/yml/detail/lower_bound.hpp"
-#endif
 #ifndef C4_YML_DETAIL_STACK_HPP_
 #include "c4/yml/detail/stack.hpp"
 #endif
+#ifndef C4_YML_DETAIL_LOWER_BOUND_HPP_
+#include "c4/yml/detail/lower_bound.hpp"
+#endif
 
+/** @cond dev */
 
 namespace c4 {
 namespace yml {
@@ -43,7 +43,7 @@ struct small_map_range
 };
 
 
-template<class K, class V, size_t SSO_SIZE=128>
+template<class K, class V, id_type SSO_SIZE=128>
 struct small_map
 {
 public:
@@ -60,14 +60,18 @@ public:
 
 public:
 
+    id_type m_small_limit;
+    id_type m_sorted_size;
     yml::detail::stack<value_type, SSO_SIZE> m_arr = {};
-    size_t m_small_limit = small_limit_default;
-    size_t m_sorted_size = 0;
 
 public:
 
     small_map() : small_map(get_callbacks()) {}
-    small_map(Callbacks const& cb) : m_arr(cb) {} // NOLINT
+    small_map(Callbacks const& cb) // NOLINT
+        : m_small_limit(small_limit_default)
+        , m_sorted_size()
+        , m_arr(cb)
+    {}
 
     void clear()
     {
@@ -163,5 +167,7 @@ private:
 } // namespace detail
 } // namespace yml
 } // namespace c4
+
+/** @endcond */
 
 #endif /* C4_YML_DETAIL_SMALL_MAP_HPP_ */

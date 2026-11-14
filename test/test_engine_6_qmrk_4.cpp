@@ -1139,6 +1139,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_3,
             HAS_CONTAINER_KEYS,
             "? [a, b]: x"
             ,
+            "?\n"
+            "  ? [a,b]\n"
+            "  : x\n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1176,6 +1181,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_3_colon,
             HAS_CONTAINER_KEYS,
             "? [a, b]: x"  "\n"
             ":"
+            ,
+            "?\n"
+            "  ? [a,b]\n"
+            "  : x"  "\n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1215,6 +1225,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_3_colon_y,
             "? [a, b]: x"  "\n"
             ": y"
             ,
+            "?\n"
+            "  ? [a,b]\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1251,6 +1266,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseq0_3_colon_y,
 ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_3,
             HAS_CONTAINER_KEYS,
             "? {a: b, c: d}: x"
+            ,
+            "?\n"
+            "  ? {a: b,c: d}\n"
+            "  : x\n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1294,6 +1314,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_3_colon,
             "? {a: b, c: d}: x"  "\n"
             ":"
             ,
+            "?\n"
+            "  ? {a: b,c: d}\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1335,6 +1360,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keymap0_3_colon_y,
             HAS_CONTAINER_KEYS,
             "? {a: b, c: d}: x"  "\n"
             ": y"
+            ,
+            "?\n"
+            "  ? {a: b,c: d}\n"
+            "  : x"  "\n"
+            ": y\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1380,6 +1410,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1,
             HAS_CONTAINER_KEYS,
             "? [a: b]: x"
             ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x\n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1420,6 +1455,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1_colon,
             HAS_CONTAINER_KEYS,
             "? [a: b]: x"  "\n"
             ":"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1462,6 +1502,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1_colon_y,
             "? [a: b]: x"  "\n"
             ": y"
             ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": y\n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1501,6 +1546,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_1_colon_y,
 ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2,
             HAS_CONTAINER_KEYS,
             "? [a: ]: x"
+            ,
+            "?\n"
+            "  ? [{a: }]\n"
+            "  : x\n"
+            ": \n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1543,6 +1593,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2_colon,
             "? [a: ]: x"  "\n"
             ":"
             ,
+            "?\n"
+            "  ? [{a: }]\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1581,8 +1636,10 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2_colon,
 
 ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_2_colon_y,
             HAS_CONTAINER_KEYS,
-            "? [a: ]: x"  "\n"
-            ": y"
+            "?\n"
+            "  ? [{a: }]\n"
+            "  : x"  "\n"
+            ": y\n"
             ,
             "+STR\n"
             "+DOC\n"
@@ -1625,6 +1682,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3,
             HAS_CONTAINER_KEYS,
             "? [a: b, ]: x"
             ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x\n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1666,6 +1728,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3_colon,
             "? [a: b, ]: x"  "\n"
             ":"
             ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": \n"
+            ,
             "+STR\n"
             "+DOC\n"
             "+MAP\n"
@@ -1706,6 +1773,11 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_keyseqmap0_3_colon_y,
             HAS_CONTAINER_KEYS,
             "? [a: b, ]: x"  "\n"
             ": y"
+            ,
+            "?\n"
+            "  ? [{a: b}]\n"
+            "  : x"  "\n"
+            ": y\n"
             ,
             "+STR\n"
             "+DOC\n"

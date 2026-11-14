@@ -8,11 +8,15 @@
 #include "c4/yml/detail/small_map.hpp"
 #endif
 
+#ifndef RYML_KNOWN_KEYS_SSO_SIZE
+#define RYML_KNOWN_KEYS_SSO_SIZE (32)
+#endif
+
+/** @cond dev */
 
 namespace c4 {
 namespace yml {
 namespace detail {
-
 
 struct KnownKeys
 {
@@ -33,7 +37,8 @@ struct KnownKeys
         status_bits status;
     };
 
-    template<class K, class V> using map = yml::detail::small_map<K, V, 32>;
+    template<class K, class V>
+    using map = yml::detail::small_map<K, V, RYML_KNOWN_KEYS_SSO_SIZE>;
 
 public:
 
@@ -46,7 +51,12 @@ public:
 
 public:
 
-    KnownKeys(Callbacks const& cb) noexcept : known_keys(cb), unique_keys(cb), opts() {}
+    KnownKeys(Callbacks const& cb)
+        : known_keys(cb)
+        , unique_keys(cb)
+        , all_entries()
+        , opts()
+    {}
 
     void reset(ResolveOptions opts_) noexcept { opts = opts_; }
 
@@ -73,7 +83,8 @@ public:
 
     bool requires_merge() const noexcept
     {
-        return (all_entries & MERGEDIN) || ((all_entries & CONFLICT) && !opts.keep_repeated_keys());
+        return (all_entries & MERGEDIN) ||
+            ((all_entries & CONFLICT) && !opts.keep_repeated_keys());
     }
 
     id_type num_unique_keys() const noexcept
@@ -88,5 +99,7 @@ public:
 } // namespace detail
 } // namespace yml
 } // namespace c4
+
+/** @endcond */
 
 #endif /* C4_YML_DETAIL_KNOWN_KEYS_HPP_ */

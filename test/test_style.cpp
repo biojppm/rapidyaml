@@ -35,7 +35,7 @@ namespace xievt = extra::ievt;
 
 using xievt::evt_size;
 using xievt::evt_bits;
-constexpr const xievt::evt_bits all_styles_container = xievt::BLCK|xievt::FLOW|xievt::FSL_|xievt::FML1|xievt::FMLN|xievt::FSPC; // NOLINT
+constexpr const xievt::evt_bits all_styles_container = xievt::FLOW|xievt::FSL_|xievt::FML1|xievt::FMLN|xievt::FSPC; // NOLINT
 constexpr const xievt::evt_bits all_styles_scalar = xievt::PLAI|xievt::SQUO|xievt::DQUO|xievt::LITL|xievt::FOLD; // NOLINT
 constexpr const xievt::evt_bits all_styles_ievt = all_styles_container|all_styles_scalar;
 constexpr const xievt::evt_bits all_styles_ievtkv = all_styles_ievt|xievt::SCLR|xievt::KEY_|xievt::VAL_;
@@ -129,7 +129,7 @@ inline void test_container_block(ConstNodeRef n)
 }
 inline void test_container_block(IntBufsCR buf, evt_size pos)
 {
-    EXPECT_EQ(buf.evts.ptr[pos] & (all_styles_ievt|xievt::BEG_), xievt::BLCK|xievt::BEG_);
+    EXPECT_EQ(buf.evts.ptr[pos] & (all_styles_ievt|xievt::BEG_), xievt::BEG_);
 }
 
 inline void test_container_flow_sl(ConstNodeRef n)
@@ -980,7 +980,7 @@ TEST(seq, block)
     check_same_emit4(ti, "[1,2,3,4,5,6]");
     NodeRef r = ti.tree;
     r.set_container_style(BLOCK);
-    (ti.ints.evts.ptr[2] &= ~all_styles_container) |= xievt::BLCK;
+    (ti.ints.evts.ptr[2] &= ~all_styles_container);
     check_same_emit4(ti, R"(- 1
 - 2
 - 3
@@ -994,7 +994,7 @@ TEST(seq, block_picks_default_style)
 {
     TreeAndInts ti("['ab', [2,3]]");
     check_same_emit1(ti, "['ab',[2,3]]");
-    set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
+    set_style(&ti, ti.tree, BLOCK, 2, 0);
     check_same_emit1(ti, R"(- 'ab'
 - [2,3]
 )");
@@ -1690,7 +1690,7 @@ TEST(keyseq, block)
     TreeAndInts ti("{foo: [1, 2, 3, 4, 5, 6]}");
     {
         SCOPED_TRACE("1");
-        set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
+        set_style(&ti, ti.tree, BLOCK, 2, 0);
         check_same_emit1(ti, R"(foo: [1,2,3,4,5,6]
 )");
     }
@@ -1702,7 +1702,7 @@ TEST(keyseq, block)
     }
     {
         SCOPED_TRACE("3");
-        set_style(&ti, ti.tree["foo"], BLOCK, 6, xievt::BLCK);
+        set_style(&ti, ti.tree["foo"], BLOCK, 6, 0);
         check_same_emit1(ti, R"(foo:
   - 1
   - 2
@@ -1719,7 +1719,7 @@ TEST(keyseq, block_nested)
     TreeAndInts ti("{foo: [1, [2, 3], 4, [5, 6]]}");
     {
         SCOPED_TRACE("1");
-        set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
+        set_style(&ti, ti.tree, BLOCK, 2, 0);
         check_same_emit1(ti, R"(foo: [1,[2,3],4,[5,6]]
 )");
     }
@@ -1744,7 +1744,7 @@ TEST(keyseq, block_nested)
     }
     {
         SCOPED_TRACE("4");
-        set_style(&ti, ti.tree["foo"], BLOCK, 6, xievt::BLCK);
+        set_style(&ti, ti.tree["foo"], BLOCK, 6, 0);
         check_same_emit1(ti, R"(foo:
   - 1
   - [2, 3]
@@ -1782,8 +1782,8 @@ TEST(keyseq, flow_sl_nested)
     }
     {
         SCOPED_TRACE("2");
-        set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
-        set_style(&ti, ti.tree["foo"], BLOCK, 6, xievt::BLCK);
+        set_style(&ti, ti.tree, BLOCK, 2, 0);
+        set_style(&ti, ti.tree["foo"], BLOCK, 6, 0);
         set_style(&ti, ti.tree["foo"][1], FLOW_SL, 10, xievt::FLOW|xievt::FSL_);
         set_style(&ti, ti.tree["foo"][3], FLOW_SL, 21, xievt::FLOW|xievt::FSL_);
         check_same_emit1(ti, R"(foo:
@@ -2134,8 +2134,8 @@ TEST(keyseq, flow_mln_nested)
     }
     {
         SCOPED_TRACE("6");
-        set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
-        set_style(&ti, ti.tree["foo"], BLOCK, 6, xievt::BLCK);
+        set_style(&ti, ti.tree, BLOCK, 2, 0);
+        set_style(&ti, ti.tree["foo"], BLOCK, 6, 0);
         set_style(&ti, ti.tree["foo"][1], FLOW_SL, 10, xievt::FLOW|xievt::FSL_);
         set_style(&ti, ti.tree["foo"][3], FLOW_SL, 21, xievt::FLOW|xievt::FSL_);
         check_same_emit1(ti, R"(foo:
@@ -2236,7 +2236,7 @@ TEST(keyseq, flow_mln_nested_2)
 TEST(map, block)
 {
     TreeAndInts ti("{1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}");
-    set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
+    set_style(&ti, ti.tree, BLOCK, 2, 0);
     check_same_emit1(ti, R"(1: 10
 2: 10
 3: 10
@@ -2417,13 +2417,13 @@ TEST(map, flow_ml_n)
 TEST(keymap, block)
 {
     TreeAndInts ti("{foo: {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}}");
-    set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
+    set_style(&ti, ti.tree, BLOCK, 2, 0);
     check_same_emit1(ti, ""
                      "foo: {1: 10,2: 10,3: 10,4: 10,5: 10,6: 10}\n");
     set_style(&ti, ti.tree["foo"], FLOW_SL|FLOW_SPC, 6, xievt::FLOW|xievt::FSL_|xievt::FSPC);
     check_same_emit1(ti, ""
                      "foo: {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}\n");
-    set_style(&ti, ti.tree["foo"], BLOCK, 6, xievt::BLCK);
+    set_style(&ti, ti.tree["foo"], BLOCK, 6, 0);
     check_same_emit1(ti, R"(foo:
   1: 10
   2: 10
@@ -2469,8 +2469,8 @@ TEST(keymap, flow_sl_nested)
     }
     {
         SCOPED_TRACE("2");
-        set_style(&ti, ti.tree, BLOCK, 2, xievt::BLCK);
-        set_style(&ti, ti.tree["foo"], BLOCK, 6, xievt::BLCK);
+        set_style(&ti, ti.tree, BLOCK, 2, 0);
+        set_style(&ti, ti.tree["foo"], BLOCK, 6, 0);
         set_style(&ti, ti.tree["foo"][1], FLOW_SL, 16, xievt::FLOW|xievt::FSL_);
         set_style(&ti, ti.tree["foo"][3], FLOW_SL, 39, xievt::FLOW|xievt::FSL_);
         check_same_emit1(ti, R"(foo:
