@@ -62,10 +62,11 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
     set_callbacks(create_custom_callbacks());
     HandlerInts<resize_buffers> handler{};
     ParserInts<resize_buffers> parser(&handler);
+    extra::ievt::ReferenceResolver resolver;
     extra::ievt::Buffers ints{};
     std::string srcbuf;
-    init_src(&ints, &srcbuf, src);
     std::string emitted;
+    init_src(&ints, &srcbuf, src);
     auto doemit = [&]{
         emit_ints(is_yaml, ints, &emitted);
         _if_dbg(dbg_printf_("emitted[{}]: [{}]~~~\n{}\n~~~\n", case_number, emitted.size(), to_csubstr(emitted)); fflush(NULL));
@@ -81,6 +82,8 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
             ASSERT_FUZZ(handler.fits_buffers());
             handler.get_buffers(&ints, /*transfer_ownership*/true);
             doemit();
+            resolver.resolve_resize(&ints);
+            doemit();
         }
         else
         {
@@ -94,6 +97,9 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
                 ASSERT_FUZZ(handler.fits_buffers());
             }
             doemit();
+            //resolver.resolve_noresize(&ints);
+            //doemit();
+            //emit_ints(is_yaml, ints, &emitted);
         }
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)  // if an exception leaks from here, it is likely because of a greedy noexcept
