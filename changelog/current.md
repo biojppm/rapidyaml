@@ -1,21 +1,49 @@
 - [PR#653](https://github.com/biojppm/rapidyaml/pull/653) cmake: fix tests with RYML_SYSTEM_C4CORE (fixes [#651](https://github.com/biojppm/rapidyaml/issues/651))
-- Fix [#656](https://github.com/biojppm/rapidyaml/issues/656):
-  1. [PR#657](https://github.com/biojppm/rapidyaml/pull/657) anchors: reject cyclic references, by @AlexandrKhromov2005
-  2. [PR#658](https://github.com/biojppm/rapidyaml/pull/658) anchors: add node expansion limit to defend against exponential attacks such as [Billion Laughs](https://en.wikipedia.org/wiki/Billion_laughs_attack):
-    - Add struct `ResolveOptions` to pass to `resolve()` methods.
-    - Deprecate `resolve()` methods accepting `bool clear_anchors`
+- Fix [#656](https://github.com/biojppm/rapidyaml/issues/656), Tree resolve:
+  - [PR#657](https://github.com/biojppm/rapidyaml/pull/657) reject cyclic references, by @AlexandrKhromov2005
+  - [PR#658](https://github.com/biojppm/rapidyaml/pull/658) add node expansion limit to defend against exponential attacks such as [Billion Laughs](https://en.wikipedia.org/wiki/Billion_laughs_attack):
+     - Add struct `ResolveOptions` to pass to `resolve()` methods.
+     - Deprecate `resolve()` methods accepting `bool clear_anchors`
+  - See also [PR#706](https://github.com/biojppm/rapidyaml/pull/706) and [PR#712](https://github.com/biojppm/rapidyaml/pull/712), described below.
 - [PR#663](https://github.com/biojppm/rapidyaml/pull/663) api: don't require `Development.Embed` for the Python module, by @chrisburr
 - [PR#662](https://github.com/biojppm/rapidyaml/pull/662) install: fix `c4_install_exports` call with system `c4core`, by @musicinmybrain
 - [PR#665](https://github.com/biojppm/rapidyaml/pull/665) `scalar_charconv.hpp`: add missing include of  math.h, by @sjh9714
 - [PR#668](https://github.com/biojppm/rapidyaml/pull/668) emit: double-quote scalars with whitespace next to a newline, by @fhgffy
-- [PR#672](https://github.com/biojppm/rapidyaml/pull/672) Block scalar: fix empty scalar swallowing the next document marker, by @Wleeaf
-- [PR#673](https://github.com/biojppm/rapidyaml/pull/673) Block scalar: accept empty scalar with explicit indentation indicator, by @Wleeaf
-- [PR#674](https://github.com/biojppm/rapidyaml/pull/674) Block scalar: Reject text after the header indicators, by @Wleeaf
-- [PR#676](https://github.com/biojppm/rapidyaml/pull/676) Tree: touch only used nodes, by @calpeyser. **~10% parse time improv, kudos!**.
+- [PR#672](https://github.com/biojppm/rapidyaml/pull/672) Parser: block scalar: fix empty scalar swallowing the next document marker, by @Wleeaf
+- [PR#673](https://github.com/biojppm/rapidyaml/pull/673) Parser: block scalar: accept empty scalar with explicit indentation indicator, by @Wleeaf
+- [PR#674](https://github.com/biojppm/rapidyaml/pull/674) Parser: block scalar: Reject text after the header indicators, by @Wleeaf
+- [PR#676](https://github.com/biojppm/rapidyaml/pull/676) Tree: touch only used nodes, by @calpeyser. **~10% parse time improv on benchhmarks, kudos!**.
 - [PR#682](https://github.com/biojppm/rapidyaml/pull/682): Parser: ensure error on excess tags/anchors. Fixes [#680](https://github.com/biojppm/rapidyaml/issues/680).
 - [PR#683](https://github.com/biojppm/rapidyaml/pull/683): Parser: ensure error on unterminated seq+map `[:`
 - [PR#686](https://github.com/biojppm/rapidyaml/pull/686): Parser: fix parse of container keys in block mode, eg `- ? []:`
-- [PR#695](https://github.com/biojppm/rapidyaml/pull/695): Parser: fix assertion causing accidental quadratic complexity in single line flow (fixes [PR#694](https://github.com/biojppm/rapidyaml/issues/694)).
+- [PR#695](https://github.com/biojppm/rapidyaml/pull/695): Parser: fix assertion causing accidental quadratic complexity in single line flow (fixes [#694](https://github.com/biojppm/rapidyaml/issues/694)).
+- [PR#696](https://github.com/biojppm/rapidyaml/pull/696): Callbacks: add optional callback to make memory resident, by @calpeyser
+- [PR#687](https://github.com/biojppm/rapidyaml/pull/687): Small fixes:
+  - src: add option structs to c4/yml/fwd.hpp
+  - src: fix `Tree::has_anchor()`, was ignoring NodeType
+  - src: extract emit scalar utilities to separate header
+  - src: fix use of `C4_UNLIKELY` in dbgprint.hpp
+  - src: move `EmitType_e` to emit_options.hpp
+  - Parser: workaround for gcc 13 optimizer problem in 32 bits >c++20
+  - Parser: ensure anchor events are triggered before tag events (important for ievt)
+  - detail: remove assertion requiring include in dbgprint.hpp
+  - internal: simplify checks in emit_container.hpp
+- [PR#702](https://github.com/biojppm/rapidyaml/pull/702): test: stopped using c4log
+- [PR#706](https://github.com/biojppm/rapidyaml/pull/706): resolve(): fix [#](https://github.com/biojppm/rapidyaml/issues/533) `ReferenceResolver`, adding fine-grained merge-controlling options for maps in `ResolveOptions`:
+  - `.keep_repeated_keys()`: do not merge, but keep all repeated keys
+  - `.merge_always()`: eliminate repeated keys even if the map has no merge elements
+  - `.priority_original()`: use standard behaviour to prioritize original map elements. also, add non-standard `.priority_mergedin()` to prioritize merged-in map elements
+  - `.pick_last()`: use standard behaviour to otherwise prioritize first value
+  - `.whole_scope()`: add whole-scope anchors (visible also above the node where the anchor is declared)
+  - `.ignore_missing_anchors()`: do not trigger an error on missing anchor; leave existing ref in place
+  - `.accept_multiple_anchors()`: do not trigger an error on multiple anchors; pick closest anchor
+  - behavior now defaults to standard merge behavior (eliminate repeated on merged maps, priority original, pick first) in merge elements;
+  - existing late-override behaviour was kept, now opt-in through `ResolveOptions{}.priority_original(false).pick_last(true)`.
+  - elimination of repeated keys on every map (standard behaviour) requires opt-in. 
+  - see also `.err_on_repeated_keys_original()` and `.err_on_repeated_keys_mergedin()`.
+- [PR#706](https://github.com/biojppm/rapidyaml/pull/706): ievt: add parse-time buffer resizing (tests separately in [PR#707](https://github.com/biojppm/rapidyaml/pull/707)). Saves the need for accurate estimation or parse retries!
+- [PR#709](https://github.com/biojppm/rapidyaml/pull/709): ievt: add emitter (tests separately in [PR#710](https://github.com/biojppm/rapidyaml/pull/710)), byte-equal to Tree emitter.
+- [PR#712](https://github.com/biojppm/rapidyaml/pull/712): ievt: add resolver (tests separately in [PR#714](https://github.com/biojppm/rapidyaml/pull/714)), adhering to existing `ResolveOptions`.
 
 
 ### Thanks
@@ -27,3 +55,4 @@
 - @sjh9714
 - @Wleeaf
 - @calpeyser
+- @TellowKrinkle
