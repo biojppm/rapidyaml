@@ -181,8 +181,7 @@ auto KnownKeys::select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXC
 auto KnownKeys::adding_is_complete()
     -> Entry const*
 {
-    if(!requires_merge())
-        return nullptr;
+    RYML_ASSERT_BASIC_(requires_merge());
     m_unique_keys.sort();
     m_known_keys.sort();
     Entry const* first_key_causing_err = nullptr;

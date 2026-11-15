@@ -67,11 +67,10 @@ inline bool isempty_rref(evt_bits const* C4_RESTRICT evts, evt_size pos)
             return false;
         else if(evts[pos] & ievt::RREF)
             return isempty_rref(evts, pos);
-        else if(evts[pos] & ievt::END_)
-            return true;
+        RYML_ASSERT_BASIC_(!(evts[pos] & ievt::END_));
         pos = nextpos(evts, pos);
     }
-    return true;
+    return true; // LCOV_EXCL_LINE
 }
 inline bool isempty(evt_bits const* C4_RESTRICT evts, evt_size pos)
 {

@@ -35,9 +35,11 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb)
 {
     #if RYML_USE_ASSERT
     ResolveParams p = {};
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
     RYML_ASSERT_BASIC_CB_(cb, m_anchors.m_small_limit == static_cast<id_type>(p.anchor_map_linear_threshold));
     RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
     RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_unique_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    C4_SUPPRESS_WARNING_GCC_POP
     #endif
 }
 
@@ -117,16 +119,21 @@ bool ReferenceResolver::is_merge_elm_(id_type child) const
 
 id_type ReferenceResolver::insert_merge_node_(id_type dst_map, id_type ref_node, id_type after, id_type visit_count)
 {
+    C4_SUPPRESS_WARNING_PUSH
+    C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+    #if defined(__GNUC__) && __GNUC__ >= 6
+    C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+    #endif
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_val_ref(ref_node), m_tree, ref_node);
     AnchorData const* anchor = lookup_anchor_(ref_node, visit_count, m_tree->val_ref(ref_node));
-    if(!anchor)
-        return after;
+    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, !!anchor, m_tree, ref_node);
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, anchor, m_tree, ref_node); // this must have been checked before
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(anchor->node), m_tree, anchor->node);
     check_size_limit_(anchor->node);
     id_type last_inserted = m_tree->duplicate_children(anchor->node, dst_map, after);
     grow_branch_size_mem_();
     return last_inserted;
+    C4_SUPPRESS_WARNING_POP
 }
 
 bool ReferenceResolver::add_keys_mergedin_(id_type ref_node, id_type visit_count)

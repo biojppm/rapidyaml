@@ -8,6 +8,7 @@
 #include "c4/yml/detail/lower_bound.hpp"
 #endif
 
+
 /** @cond dev */
 
 namespace c4 {
@@ -102,12 +103,12 @@ public:
 
     C4_ALWAYS_INLINE V const* lookup(K const& key) const noexcept
     {
-        return m_arr.size() <= m_small_limit ? lookup_linear_(key) : lookup_binary_(key);
+        return (m_arr.size() <= m_small_limit || m_sorted_size != m_arr.size()) ? lookup_linear_(key) : lookup_binary_(key);
     }
 
     C4_ALWAYS_INLINE V * lookup_modify(K const& key) noexcept
     {
-        return m_arr.size() <= m_small_limit ? lookup_linear_(key) : lookup_binary_(key);
+        return (m_arr.size() <= m_small_limit || m_sorted_size != m_arr.size()) ? lookup_linear_(key) : lookup_binary_(key);
     }
 
     small_map_range<value_type const*> equal_range(K const& key) const noexcept
