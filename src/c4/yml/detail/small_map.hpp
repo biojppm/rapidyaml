@@ -43,14 +43,14 @@ struct small_map_range
 };
 
 
-template<class K, class V, id_type SSO_SIZE=128>
+template<class K, class V, id_type SSO_SIZE>
 struct small_map
 {
 public:
 
     enum : size_t { // NOLINT
         sso_size = SSO_SIZE,
-        small_limit_default = 64,
+        small_limit_default = RYML_SMALL_MAP_LINEAR_THRESHOLD_DEFAULT,
     };
 
     using key_type = K;

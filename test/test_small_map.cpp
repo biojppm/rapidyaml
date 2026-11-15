@@ -17,8 +17,8 @@ C4_ALWAYS_INLINE bool operator<= (small_map_entry<K, V> const& lhs, small_map_en
     return lhs.key <= rhs.key;
 }
 
-template<class K, class V>
-void print(small_map<K,V> const& map, size_t num_per_line=10)
+template<class K, class V, id_type N>
+void print(small_map<K,V,N> const& map, size_t num_per_line=10)
 {
     for(size_t i = 0; i < map.m_arr.size(); ++i)
     {
@@ -35,8 +35,8 @@ void print(small_map<K,V> const& map, size_t num_per_line=10)
 }
 
 
-template<class K, class V>
-void test_sorted(small_map<K,V> const& map)
+template<class K, class V, id_type N>
+void test_sorted(small_map<K,V,N> const& map)
 {
     if(map.m_arr.size() > map.m_small_limit)
     {
@@ -53,10 +53,10 @@ void test_sorted(small_map<K,V> const& map)
 }
 
 
-template<class K>
+template<class K, id_type N>
 void test_basic(size_t num, size_t den)
 {
-    small_map<K, K> map;
+    small_map<K, K, N> map;
     size_t num_elms = map.small_limit_default * num / den;
     for(size_t i = 0; i < num_elms; ++i)
     {
@@ -88,13 +88,13 @@ void test_basic(size_t num, size_t den)
 
 TEST(small_map, small_mode)
 {
-    SCOPED_CALL(test_basic<int>, (1, 1));
-    SCOPED_CALL(test_basic<int>, (1, 2));
+    SCOPED_CALL(test_basic<int C4_COMMA 32>, (1, 1));
+    SCOPED_CALL(test_basic<int C4_COMMA 32>, (1, 2));
 }
 
 TEST(small_map, large_mode)
 {
-    SCOPED_CALL(test_basic<int>, (2, 1));
+    SCOPED_CALL(test_basic<int C4_COMMA 32>, (2, 1));
 }
 
 

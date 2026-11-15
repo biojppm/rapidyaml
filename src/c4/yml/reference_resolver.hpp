@@ -5,8 +5,11 @@
 #ifndef C4_YML_DETAIL_KNOWN_KEYS_HPP_
 #include "c4/yml/detail/known_keys.hpp"
 #endif
-#ifndef C4_YML_NODE_TYPE_HPP_
-#include "c4/yml/node_type.hpp"
+
+
+#ifndef RYML_TREE_RESOLVER_SSO_SIZE
+/// SSO size of the maps used in the
+#define RYML_TREE_RESOLVER_SSO_SIZE (32)
 #endif
 
 

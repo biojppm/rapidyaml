@@ -33,6 +33,14 @@
 #endif
 
 
+#ifndef RYML_SMALL_MAP_LINEAR_THRESHOLD_DEFAULT
+/// default starting threshold at which a map lookup will revert from
+/// linear to binary search. a value of 0 will cause binary search
+/// every time.
+#define RYML_SMALL_MAP_LINEAR_THRESHOLD_DEFAULT (64)
+#endif
+
+
 #ifndef RYML_LOCATIONS_SMALL_THRESHOLD
 /// threshold at which a location search will revert from linear to
 /// binary search.
