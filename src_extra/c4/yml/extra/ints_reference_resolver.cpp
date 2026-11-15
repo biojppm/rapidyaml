@@ -9,6 +9,8 @@
 #include "c4/yml/detail/lookup_anchor.hpp"
 #endif
 
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 // NOLINTBEGIN(*-signed-bitwise)
 
 namespace c4 {
@@ -39,16 +41,25 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     , m_mapw_wslot()
     , m_mapw_posref()
 {
+    #if RYML_USE_ASSERT
+    ResolveParams p = {};
+    RYML_ASSERT_BASIC_CB_(cb, m_anchor_map.m_small_limit == static_cast<id_type>(p.anchor_map_linear_threshold));
+    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.unique_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    #endif
 }
 
-void ReferenceResolver::reset_(Buffers evts_, ResolveOptions opts_)
+void ReferenceResolver::reset_(Buffers evts_, ResolveOptions const& opts_, ResolveParams const& params)
 {
     Buffers::operator=(evts_);
     m_wpos = evts.len;
     m_newsz = evts.len;
     m_sz_limit = opts_.max_size(evts.len);
     m_opts = opts_;
+    m_anchor_map.m_small_limit = static_cast<id_type>(params.anchor_map_linear_threshold);
     m_known_keys.reset(opts_);
+    m_known_keys.known_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
+    m_known_keys.unique_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
     m_parents.clear();
     m_siblings.resize(static_cast<id_type>(evts.cap));
     reset_siblings_range_(0, evts.cap);
@@ -64,16 +75,16 @@ void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
         m_siblings[sbeg] = nosibling;
 }
 
-void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_)
+void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
 {
-    resolve_(evts_, opts_);
+    resolve_(evts_, opts_, params);
 }
 
-void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_)
+void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
 {
     if(!evts_->evts.len)
         return;
-    reset_(*evts_, opts_);
+    reset_(*evts_, opts_, params);
     if(!gather_anchors_())
         return;  // exit early if there's nothing to do
     evt_size startlen = evts.len;
@@ -416,8 +427,7 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
         }
     }
     // branches are organized to put happy path first
-    bool req = m_known_keys.requires_merge();
-    if(!req)
+    if(!m_known_keys.requires_merge())
         return false;
     KnownKeys::Entry const* first_badkey = m_known_keys.adding_is_complete();
     if C4_LIKELY (!first_badkey)
@@ -999,3 +1009,4 @@ C4_SUPPRESS_WARNING_POP
 } // namespace c4
 
 // NOLINTEND(*-signed-bitwise)
+C4_SUPPRESS_WARNING_POP

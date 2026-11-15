@@ -1110,25 +1110,20 @@ public:
 
     /** Resolve references (aliases <- anchors), by forwarding to @ref
      * ReferenceResolver::resolve(). */
-    void resolve(ReferenceResolver *C4_RESTRICT rr, ResolveOptions const& opts={});
+    void resolve(ReferenceResolver *C4_RESTRICT rr, ResolveOptions const& opts={}, ResolveParams const& params={});
 
     /** Resolve references (aliases <- anchors), by forwarding to @ref
      * ReferenceResolver::resolve(). This overload
      * uses a throwaway resolver object. */
-    void resolve(ResolveOptions const& opts={});
+    void resolve(ResolveOptions const& opts={}, ResolveParams const& params={});
 
     /** @} */
+
     /** @cond dev */
     RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors)
-    {
-        resolve(rr, ResolveOptions{}.clear_anchors(clear_anchors));
-    }
+    void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors) { resolve(rr, ResolveOptions{}.clear_anchors(clear_anchors)); }
     RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(bool clear_anchors)
-    {
-        resolve(ResolveOptions{}.clear_anchors(clear_anchors));
-    }
+    void resolve(bool clear_anchors) { resolve(ResolveOptions{}.clear_anchors(clear_anchors)); }
     /** @endcond */
 
 public:

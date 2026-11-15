@@ -9,6 +9,16 @@ namespace c4 {
 namespace yml {
 
 
+/** Parameters influencing the performance of resolve algorithm. */
+struct ResolveParams
+{
+    /// small threshold of the anchor map
+    uint32_t anchor_map_linear_threshold = RYML_SMALL_MAP_LINEAR_THRESHOLD_DEFAULT;
+    /// small threshold of the known keys maps
+    uint32_t known_keys_linear_threshold = RYML_SMALL_MAP_LINEAR_THRESHOLD_DEFAULT;
+};
+
+
 /** Options to control map key merging and anchor/reference
  * resolving. See @ref c4::yml::ReferenceResolver (for tree) and @ref
  * c4::yml::extra::ievt::ReferenceResolver (for ints) */
@@ -30,6 +40,11 @@ private:
         ERR_ON_REPEATED_KEYS_MERGEDIN = 1u << 10u,
         DEFAULT_FLAGS = CLEAR_ANCHORS|PRIORITY_ORIGINAL,
     } Flags_e;
+
+private:
+
+    uint32_t m_flags = DEFAULT_FLAGS;
+    uint32_t m_max_size_multiplier = 50;
 
 private:
 
@@ -222,8 +237,8 @@ public:
     /** @name extension: ignore_missing_anchors
      *
      * Controls whether missing errors are ignored. When set to true,
-     * no error is reported when an anchor is not found. Defaults to
-     * false.
+     * no error is reported when an anchor is not found, and the
+     * reference is kept in place. Defaults to false.
      *
      * @{
      *
@@ -250,11 +265,6 @@ public:
     C4_ALWAYS_INLINE bool accept_multiple_anchors() const noexcept { return (m_flags & ACCEPT_MULTIPLE_ANCHORS) != 0; }
 
     /** @} */
-
-private:
-
-    uint32_t m_max_size_multiplier = 50;
-    uint32_t m_flags = DEFAULT_FLAGS;
 
 };
 

@@ -12,8 +12,8 @@
 #define RYML_IEVT_RESOLVER_SSO_SIZE (32)
 #endif
 
-C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 
 namespace c4 {
 namespace yml {
@@ -37,7 +37,7 @@ public:
 
 public:
 
-    void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={});
+    void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={}, ResolveParams const& params={});
 
 private:
 
@@ -82,8 +82,8 @@ private: // mapw: map-writing helpers to merge keys
 
 private:
 
-    void resolve_(Buffers *evts_, ResolveOptions const& opts_);
-    void reset_(Buffers evts_, ResolveOptions opts_);
+    void resolve_(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params);
+    void reset_(Buffers evts_, ResolveOptions const& opts_, ResolveParams const& params);
     void reset_siblings_range_(evt_size beg, evt_size end);
     bool gather_anchors_();
     void iter_elms_();

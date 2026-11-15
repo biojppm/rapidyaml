@@ -79,7 +79,7 @@ struct TreeAndInts
 //-----------------------------------------------------------------------------
 
 
-inline void test_resolve_tree(Tree &tree, ResolveOptions const& opts={})
+inline void test_resolve_tree(Tree &tree, ResolveOptions const& opts={}, ResolveParams const& params={})
 {
     SCOPED_TRACE("test_resolve_tree");
     {
@@ -87,7 +87,7 @@ inline void test_resolve_tree(Tree &tree, ResolveOptions const& opts={})
         test_invariants(tree);
     }
     RYML_EXPECT_ERROR(check_success(&tree, [&]{
-        tree.resolve(opts);
+        tree.resolve(opts, params);
     }));
     {
         SCOPED_TRACE("invariants after");
@@ -96,7 +96,7 @@ inline void test_resolve_tree(Tree &tree, ResolveOptions const& opts={})
     if(testing::Test::HasFailure())
         print_tree(tree);
 }
-inline void test_resolve_ints(IntBufs &ints, ResolveOptions const& opts={})
+inline void test_resolve_ints(IntBufs &ints, ResolveOptions const& opts={}, ResolveParams const& params={})
 {
     SCOPED_TRACE("test_resolve_ints");
     {
@@ -109,7 +109,7 @@ inline void test_resolve_ints(IntBufs &ints, ResolveOptions const& opts={})
         return;
     }
     RYML_EXPECT_ERROR(check_success([&]{
-        ints.resolve(opts);
+        ints.resolve(opts, params);
     }));
     if(!testing::Test::HasFailure())
     {
@@ -119,41 +119,41 @@ inline void test_resolve_ints(IntBufs &ints, ResolveOptions const& opts={})
     if(testing::Test::HasFailure())
         ints.print();
 }
-inline void test_resolve(TreeAndInts &ti, ResolveOptions const& opts={})
+inline void test_resolve(TreeAndInts &ti, ResolveOptions const& opts={}, ResolveParams const& params={})
 {
-    test_resolve_tree(ti.tree, opts);
-    test_resolve_ints(ti.ints, opts);
+    test_resolve_tree(ti.tree, opts, params);
+    test_resolve_ints(ti.ints, opts, params);
 }
 
 
-inline void test_resolve_err_tree(Tree &tree, ResolveOptions const& opts={})
+inline void test_resolve_err_tree(Tree &tree, ResolveOptions const& opts={}, ResolveParams const& params={})
 {
     SCOPED_TRACE("test_resolve_err_tree");
     bool failed = false;
     RYML_EXPECT_ERROR(check_error_basic(&tree, [&]{
-        tree.resolve(opts);
+        tree.resolve(opts, params);
         // if we reach this, it's a failure
         failed = true;
     }, /*only_basic*/false));
     if(failed)
         print_tree(tree);
 }
-inline void test_resolve_err_ints(IntBufs &ints, ResolveOptions const& opts={})
+inline void test_resolve_err_ints(IntBufs &ints, ResolveOptions const& opts={}, ResolveParams const& params={})
 {
     SCOPED_TRACE("test_resolve_err_ints");
     bool failed = false;
     RYML_EXPECT_ERROR(check_error_basic([&]{
-        ints.resolve(opts);
+        ints.resolve(opts, params);
         // if we reach this, it's a failure
         failed = true;
     }));
     if(failed)
         ints.print();
 }
-inline void test_resolve_err(TreeAndInts &ti, ResolveOptions const& opts={})
+inline void test_resolve_err(TreeAndInts &ti, ResolveOptions const& opts={}, ResolveParams const& params={})
 {
-    test_resolve_err_tree(ti.tree, opts);
-    test_resolve_err_ints(ti.ints, opts);
+    test_resolve_err_tree(ti.tree, opts, params);
+    test_resolve_err_ints(ti.ints, opts, params);
 }
 
 
@@ -380,42 +380,52 @@ inline void test_emit_error_json(TreeAndInts & ti, EmitOptions const& opts={})
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline void test_resolve(ResolveOptions opts, std::string const& yaml, std::string const& resolved={})
+inline void test_resolve(ResolveOptions opts, ResolveParams params, std::string const& yaml, std::string const& resolved={})
 {
     TreeAndInts ti(to_csubstr(yaml));
-    SCOPED_CALL(test_emit_yaml, (ti, yaml));
-    SCOPED_CALL(test_resolve, (ti, opts));
+    test_emit_yaml_(ti, yaml);
+    test_resolve_(ti, opts, params);
     if(!resolved.empty())
-        SCOPED_CALL(test_emit_yaml, (ti, resolved));
+        test_emit_yaml_(ti, resolved);
     else
-        SCOPED_CALL(test_emit_yaml, (ti, yaml));
+        test_emit_yaml_(ti, yaml);
+}
+inline void test_resolve(ResolveOptions opts, std::string const& yaml, std::string const& resolved={})
+{
+    test_resolve_(opts, ResolveParams{}, yaml, resolved);
 }
 inline void test_resolve(std::string const& yaml, std::string const& resolved={})
 {
-    test_resolve(ResolveOptions{}, yaml, resolved);
+    test_resolve_(ResolveOptions{}, ResolveParams{}, yaml, resolved);
 }
-inline void test_resolve_err(std::string const& yaml, ResolveOptions opts={})
+
+inline void test_resolve_err(std::string const& yaml, ResolveOptions opts={}, ResolveParams params={})
 {
     TreeAndInts ti(to_csubstr(yaml));
-    SCOPED_CALL(test_resolve_err, (ti, opts));
+    test_resolve_err_(ti, opts, params);
+}
+inline void test_resolve_err(ResolveOptions opts, ResolveParams params, std::string const& yaml)
+{
+    test_resolve_err(yaml, opts, params);
 }
 inline void test_resolve_err(ResolveOptions opts, std::string const& yaml)
 {
-    test_resolve_err(yaml, opts);
+    test_resolve_err(yaml, opts, ResolveParams{});
 }
-inline void test_emit_resolve_err(std::string const& yaml, std::string const& json, ResolveOptions opts={})
+
+inline void test_emit_resolve_err(std::string const& yaml, std::string const& json, ResolveOptions opts={}, ResolveParams params={})
 {
     TreeAndInts ti(to_csubstr(yaml));
-    SCOPED_CALL(test_emit_yaml, (ti, yaml));
-    SCOPED_CALL(test_emit_json, (ti, json));
-    SCOPED_CALL(test_resolve_err, (ti, opts));
+    test_emit_yaml_(ti, yaml);
+    test_emit_json_(ti, json);
+    test_resolve_err_(ti, opts, params);
 }
-inline void test_emit_resolve(std::string const& src, std::string const& yaml, std::string const& json, ResolveOptions opts={})
+inline void test_emit_resolve(std::string const& src, std::string const& yaml, std::string const& json, ResolveOptions opts={}, ResolveParams params={})
 {
     TreeAndInts ti(to_csubstr(src));
-    SCOPED_CALL(test_resolve, (ti, opts));
-    SCOPED_CALL(test_emit_yaml, (ti, yaml));
-    SCOPED_CALL(test_emit_json, (ti, json));
+    test_resolve_(ti, opts, params);
+    test_emit_yaml_(ti, yaml);
+    test_emit_json_(ti, json);
 }
 
 } // namespace yml

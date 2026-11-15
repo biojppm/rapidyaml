@@ -859,9 +859,18 @@ TEST(anchors, billion_laughs_roundtrip_map_block)
 
 //-----------------------------------------------------------------------------
 
+static ResolveParams always_binary_search()
+{
+    auto params = ResolveParams{};
+    params.anchor_map_linear_threshold = 0; // always binary
+    params.known_keys_linear_threshold = 0; // always binary
+    return params;
+}
+
 TEST(anchors, merge0)
 {
-    SCOPED_CALL(test_resolve, (
+    auto dotest = [](ResolveParams params){
+        test_resolve_(ResolveOptions{}, params,
         "- &LEFT {x: 0,y: 2}\n- &BIG {r: 10}\n- &SMALL {r: 1}\n"
         "- m0:\n    <<: [*BIG,*LEFT,*SMALL]\n    x: 1\n"
         "- m1:\n    <<: [*BIG,*SMALL,*LEFT]\n    x: 1\n"
@@ -877,7 +886,10 @@ TEST(anchors, merge0)
         "- m3:\n    x: 1\n    r: 10\n    y: 2\n"
         "- m4:\n    x: 1\n    y: 2\n    r: 10\n"
         "- m5:\n    x: 1\n    y: 2\n    r: 10\n"
-        ""));
+        "");
+    };
+    SCOPED_CALL(dotest, (ResolveParams{}));
+    SCOPED_CALL(dotest, (always_binary_search()));
 }
 
 TEST(anchors, merge1_conflict_in_one_only)

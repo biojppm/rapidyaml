@@ -33,14 +33,23 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb)
     , m_opts()
     , m_size_limit()
 {
+    #if RYML_USE_ASSERT
+    ResolveParams p = {};
+    RYML_ASSERT_BASIC_CB_(cb, m_anchors.m_small_limit == static_cast<id_type>(p.anchor_map_linear_threshold));
+    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_unique_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    #endif
 }
 
-void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts)
+void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts, ResolveParams const& p)
 {
     m_tree = t_;
     m_opts = opts;
     m_size_limit = m_opts.max_size(m_tree->size());
+    m_anchors.m_small_limit = static_cast<id_type>(p.anchor_map_linear_threshold);
     m_known_keys.reset(m_opts);
+    m_known_keys.m_known_keys.m_small_limit = static_cast<id_type>(p.known_keys_linear_threshold);
+    m_known_keys.m_unique_keys.m_small_limit = static_cast<id_type>(p.known_keys_linear_threshold);
     grow_branch_size_mem_();
 }
 
@@ -224,8 +233,7 @@ bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
             }
         }
     }
-    bool req = m_known_keys.requires_merge();
-    if(!req)
+    if(!m_known_keys.requires_merge())
         return false;
     detail::KnownKeys::Entry const* first_badkey = m_known_keys.adding_is_complete();
     if C4_UNLIKELY (!first_badkey)
@@ -455,11 +463,11 @@ void ReferenceResolver::handle_key_ref_(id_type ref_node, AnchorData const& anch
     }
 }
 
-void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts)
+void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts, ResolveParams const& params)
 {
     _c4dbgp("resolving references...");
 
-    reset_(tree, opts);
+    reset_(tree, opts, params);
     _c4dbg_tree("unresolved tree", *m_tree);
 
     bool has_refs = false;

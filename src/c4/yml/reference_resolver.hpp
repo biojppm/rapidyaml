@@ -18,48 +18,21 @@ namespace yml {
  */
 
 
-//-----------------------------------------------------------------------------
-
-/** Reusable object to resolve references/aliases in a @ref Tree. See
- * @ref ResolveOptions . */
+/** Reusable object to resolve references/aliases or merge map keys in
+ * a @ref Tree. See @ref ResolveOptions . */
 struct ReferenceResolver
 {
     ReferenceResolver() noexcept : ReferenceResolver(get_callbacks()) {}
     RYML_EXPORT ReferenceResolver(Callbacks const& cb);
 
-    /** Resolve references: for each reference, look for a matching
-     * anchor, and copy its contents to the ref node.
+    /** Resolve references and/or merge repeated map keys.
      *
      * @p tree the subject tree
      *
      * @p opts options to control resolve behavior: see @ref ResolveOptions
      *
-     * This method first does a full traversal of the tree to gather
-     * all anchors and references in a separate collection, then it
-     * goes through that collection to locate the names, which it does
-     * by obeying the YAML standard diktat that "an alias node refers
-     * to the most recent node in the serialization having the
-     * specified anchor"
-     *
-     * So, depending on the number of anchor/alias nodes, this is a
-     * potentially expensive operation, with a best-case linear
-     * complexity (from the initial traversal). This potential cost is
-     * one of the reasons for requiring an explicit call.
-     *
-     * The @ref Tree has a @ref Tree::resolve() overload set
-     * forwarding here. Previously this operation was done there,
-     * using a discarded object; using this separate class offers
-     * opportunity for reuse of the object.
-     *
-     * @warning resolving references opens an attack vector when the
-     * data is malicious or severely malformed, as the tree can expand
-     * exponentially. See for example the [Billion Laughs
-     * Attack](https://en.wikipedia.org/wiki/Billion_laughs_attack).
-     *
      */
-    RYML_EXPORT void resolve(Tree *tree, ResolveOptions const& opts={});
-
-public:
+    RYML_EXPORT void resolve(Tree *tree, ResolveOptions const& opts={}, ResolveParams const& params={});
 
     /** @cond dev */
 
@@ -69,11 +42,13 @@ public:
         id_type visit_count;
         bool val_anchor;
     };
+    using AnchorMap = detail::small_map<csubstr, AnchorData, RYML_TREE_RESOLVER_SSO_SIZE>;
+    using BranchSizeMem = detail::stack<uint32_t, 2>; // we always expect this to be large
     using key_status = detail::KnownKeys::status_bits;
 
-public:
+private:
 
-    void reset_(Tree *t_, ResolveOptions const& opts);
+    void reset_(Tree *t_, ResolveOptions const& opts, ResolveParams const& params);
     id_type resolve_(id_type node, id_type count);
     id_type branch_size_(id_type node);
     void grow_branch_size_mem_();
@@ -101,18 +76,18 @@ public:
     void handle_val_ref_(id_type ref_node, AnchorData const& anchor);
     void clear_anchors_(id_type node);
 
-public:
+public: // members exposed for testing. do not modify in client code!
 
-    detail::small_map<csubstr, AnchorData> m_anchors;
-    detail::stack<uint32_t> m_branch_size; // memoize branch size
+    AnchorMap         m_anchors;
+    BranchSizeMem     m_branch_size; // memoize branch size
     detail::KnownKeys m_known_keys; // to merge map keys
     Tree *C4_RESTRICT m_tree;
-    ResolveOptions m_opts;
-    id_type m_size_limit;
+    ResolveOptions    m_opts;
+    id_type           m_size_limit;
 
 public:
 
-    RYML_DEPRECATED("use the overload receiving ResolveOptions")
+    RYML_DEPRECATED("pass ResolveOptions instead of bool")
     void resolve(Tree *tree, bool clear_anchors)
     {
         resolve(tree, ResolveOptions{}.clear_anchors(clear_anchors));
