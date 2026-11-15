@@ -45,7 +45,7 @@ struct ReferenceResolver
         id_type visit_count;
         bool val_anchor;
     };
-    using AnchorMap = detail::small_map<csubstr, AnchorData, RYML_TREE_RESOLVER_SSO_SIZE>;
+    using AnchorMap = detail::small_map<csubstr, AnchorData, RYML_TREE_RESOLVER_SSO_SIZE, /*stable*/true>;
     using BranchSizeMem = detail::stack<uint32_t, 2>; // we always expect this to be large
     using key_status = detail::KnownKeys::status_bits;
 

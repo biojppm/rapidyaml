@@ -20,7 +20,7 @@ TEST(anchors, ReferenceResolver)
     EXPECT_EQ(r.m_anchors.m_arr.m_callbacks, tree1.callbacks());
     EXPECT_EQ(r.m_branch_size.m_callbacks, tree1.callbacks());
     EXPECT_EQ(r.m_known_keys.m_known_keys.m_arr.m_callbacks, tree1.callbacks());
-    EXPECT_EQ(r.m_known_keys.m_unique_keys.m_arr.m_callbacks, tree1.callbacks());
+    EXPECT_EQ(r.m_known_keys.m_unique_keys.m_callbacks, tree1.callbacks());
     RYML_EXPECT_ERROR(check_success([&]{
         Tree tree2;
         ASSERT_NE(tree2.callbacks(), tree1.callbacks());
@@ -28,7 +28,7 @@ TEST(anchors, ReferenceResolver)
         EXPECT_EQ(r.m_anchors.m_arr.m_callbacks, tree1.callbacks());
         EXPECT_EQ(r.m_branch_size.m_callbacks, tree1.callbacks());
         EXPECT_EQ(r.m_known_keys.m_known_keys.m_arr.m_callbacks, tree1.callbacks());
-        EXPECT_EQ(r.m_known_keys.m_unique_keys.m_arr.m_callbacks, tree1.callbacks());
+        EXPECT_EQ(r.m_known_keys.m_unique_keys.m_callbacks, tree1.callbacks());
     }));
 }
 
@@ -350,8 +350,77 @@ TEST(anchors, errs_on_inheritance_5_err_on_ref_then_map)
 
 
 //-----------------------------------------------------------------------------
+#ifdef TO_BE_FIXED
+TEST(anchors, parse_err_on_single_ampersand)
+{
+    test_parse_err_yaml_("&");
+}
+TEST(anchors, parse_err_on_single_star)
+{
+    test_parse_err_yaml_("*");
+}
+
+TEST(anchors, resolve_err_on_empty_ampersand_tree)
+{
+    Tree tree;
+    NodeRef r = tree;
+    r.set_val_anchor("");
+    r.set_val("val");
+    test_resolve_err_tree_(tree);
+}
+TEST(anchors, resolve_err_on_empty_ampersand_ints)
+{
+    using namespace extra::ievt;
+    evt_bits evts[] = {
+        BSTR,
+        BDOC,
+        VAL_|ANCH, 0, 0,
+        VAL_|SCLR|PLAI|PEX2, 0, 3,
+        EDOC,
+        ESTR,
+    };
+    char intsrc[] = "val";
+    IntBufs ints;
+    ints.evts.ptr = evts;
+    ints.evts.len = 10;
+    ints.evts.cap = 10;
+    ints.src = intsrc;
+    ints.arena = {};
+    test_resolve_err_ints_(ints);
+}
+
+TEST(anchors, resolve_err_on_empty_star_tree)
+{
+    Tree tree;
+    NodeRef r = tree;
+    csubstr ref = "*";
+    r.set_val_ref(ref.sub(1));
+    r.set_val(ref);
+    test_resolve_err_tree_(tree);
+}
+TEST(anchors, resolve_err_on_empty_star_ints)
+{
+    using namespace extra::ievt;
+    evt_bits evts[] = {
+        BSTR,
+        BDOC,
+        VAL_|ALIA, 0, 0,
+        EDOC,
+        ESTR,
+    };
+    char intsrc[] = "*";
+    IntBufs ints;
+    ints.evts.ptr = evts;
+    ints.evts.len = 7;
+    ints.evts.cap = 7;
+    ints.src = intsrc;
+    ints.arena = {};
+    test_resolve_err_ints_(ints);
+}
+#endif // TO_BE_FIXED
 
 
+//-----------------------------------------------------------------------------
 
 TEST(anchors, err_on_cyclic_reference_1)
 {

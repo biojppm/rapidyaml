@@ -38,7 +38,6 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb)
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
     RYML_ASSERT_BASIC_CB_(cb, m_anchors.m_small_limit == static_cast<id_type>(p.anchor_map_linear_threshold));
     RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
-    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_unique_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
     C4_SUPPRESS_WARNING_GCC_POP
     #endif
 }
@@ -51,7 +50,6 @@ void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts, ResolvePara
     m_anchors.m_small_limit = static_cast<id_type>(p.anchor_map_linear_threshold);
     m_known_keys.reset(m_opts);
     m_known_keys.m_known_keys.m_small_limit = static_cast<id_type>(p.known_keys_linear_threshold);
-    m_known_keys.m_unique_keys.m_small_limit = static_cast<id_type>(p.known_keys_linear_threshold);
     grow_branch_size_mem_();
 }
 
@@ -240,9 +238,10 @@ bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
             }
         }
     }
+    m_known_keys.adding_is_complete();
     if(!m_known_keys.requires_merge())
         return false;
-    detail::KnownKeys::Entry const* first_badkey = m_known_keys.adding_is_complete();
+    detail::KnownKeys::Entry const* first_badkey = m_known_keys.first_bad_key();
     if C4_UNLIKELY (!first_badkey)
         return true;
     RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, node, "repeated keys. first={}", m_tree->key(first_badkey->id));

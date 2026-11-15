@@ -54,7 +54,7 @@ private:
     };
 
     using KnownKeys = yml::detail::KnownKeys;
-    using AnchorMap = yml::detail::small_map<csubstr, AnchorData, RYML_IEVT_RESOLVER_SSO_SIZE>;
+    using AnchorMap = yml::detail::small_map<csubstr, AnchorData, RYML_IEVT_RESOLVER_SSO_SIZE, /*stable*/true>;
     template<class T> using vec = yml::detail::stack<T, RYML_IEVT_RESOLVER_SSO_SIZE>;
 
 private:

@@ -45,7 +45,6 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     ResolveParams p = {};
     RYML_ASSERT_BASIC_CB_(cb, m_anchor_map.m_small_limit == static_cast<id_type>(p.anchor_map_linear_threshold));
     RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
-    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_unique_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
     #endif
 }
 
@@ -59,7 +58,6 @@ void ReferenceResolver::reset_(Buffers evts_, ResolveOptions const& opts_, Resol
     m_anchor_map.m_small_limit = static_cast<id_type>(params.anchor_map_linear_threshold);
     m_known_keys.reset(opts_);
     m_known_keys.m_known_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
-    m_known_keys.m_unique_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
     m_parents.clear();
     m_siblings.resize(static_cast<id_type>(evts.cap));
     reset_siblings_range_(0, evts.cap);
@@ -426,10 +424,10 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
             }
         }
     }
-    // branches are organized to put happy path first
+    m_known_keys.adding_is_complete();
     if(!m_known_keys.requires_merge())
         return false;
-    KnownKeys::Entry const* first_badkey = m_known_keys.adding_is_complete();
+    KnownKeys::Entry const* first_badkey = m_known_keys.first_bad_key();
     if C4_LIKELY (!first_badkey)
         return true;
     RYML_ERR_BASIC_("map at pos={} has repeated keys. first={}", pos, getstr(static_cast<evt_size>(first_badkey->id)));
@@ -589,7 +587,7 @@ void ReferenceResolver::mapw_cpkeyval_original_(evt_size id, bool is_last_entry)
             RYML_ASSERT_BASIC_(!(tmp[scratchpos] & ievt::AREN));
             csubstr anch = src.sub(static_cast<size_t>(tmp[scratchpos + 1]),
                                    static_cast<size_t>(tmp[scratchpos + 2]));
-            auto rng = m_anchor_map.equal_range(anch);
+            auto rng = m_anchor_map.equal_range_mut(anch);
             for(auto &entry : rng)
             {
                 if(entry.val.visit_count == static_cast<id_type>(origpos))
@@ -637,7 +635,7 @@ void ReferenceResolver::rem_anchor_from_map_(evt_size pos)
 {
     RYML_ASSERT_BASIC_(evts.ptr[pos] & ievt::ANCH);
     csubstr anch = getstr(pos);
-    auto rng = m_anchor_map.equal_range(anch);
+    auto rng = m_anchor_map.equal_range_mut(anch);
     RYML_ASSERT_BASIC_(rng.hi > rng.lo);
     bool gotit = false;
     for(auto &kv : rng)
