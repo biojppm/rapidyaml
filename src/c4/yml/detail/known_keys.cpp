@@ -21,7 +21,7 @@ bool check_rng_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
     auto const* prev = r.lo;
     for(auto const& kv : r)
     {
-        ryml_docheck_(this_.unique_keys.lookup(kv.val.unqcount));
+        ryml_docheck_(this_.m_unique_keys.lookup(kv.val.unqcount));
         ryml_docheck_(!!(kv.val.status & KnownKeys::CONFLICT) == several);
         if(count++)
         {
@@ -138,12 +138,12 @@ KnownKeys::Entry const* select_(KnownKeys::KnownKeyRange_ r, ResolveOptions opts
 
 void KnownKeys::add(csubstr key, id_type id, status_bits status) noexcept
 {
-    count_type count = static_cast<count_type>(known_keys.m_arr.size());
-    count_type unq = static_cast<count_type>(unique_keys.m_arr.size());
-    Entry *existing = known_keys.lookup_modify(key);
+    count_type count = static_cast<count_type>(m_known_keys.m_arr.size());
+    count_type unq = static_cast<count_type>(m_unique_keys.m_arr.size());
+    Entry *existing = m_known_keys.lookup_modify(key);
     if( ! existing)
     {
-        unique_keys.insert(unq) = key;
+        m_unique_keys.insert(unq) = key;
     }
     else
     {
@@ -151,20 +151,20 @@ void KnownKeys::add(csubstr key, id_type id, status_bits status) noexcept
         existing->status |= CONFLICT;
         unq = existing->unqcount;
     }
-    Entry &entry = known_keys.insert(key);
+    Entry &entry = m_known_keys.insert(key);
     entry.id = id;
     entry.count = count;
     entry.unqcount = unq;
     entry.status = status;
-    all_entries |= status;
+    m_all_entries |= status;
 }
 
 auto KnownKeys::select(csubstr key, KnownKeyRange_ *out) const RYML_NOEXCEPT
     -> Entry const*
 {
-    KnownKeyRange_ rng = known_keys.equal_range(key);
+    KnownKeyRange_ rng = m_known_keys.equal_range(key);
     RYML_ASSERT_BASIC_(check_rng_(*this, rng));
-    Entry const* selected = select_(rng, opts);
+    Entry const* selected = select_(rng, m_opts);
     if(out)
         *out = rng;
     return selected;
@@ -173,8 +173,8 @@ auto KnownKeys::select(csubstr key, KnownKeyRange_ *out) const RYML_NOEXCEPT
 auto KnownKeys::select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXCEPT
     -> Entry const*
 {
-    RYML_ASSERT_BASIC_(unique_key < unique_keys.m_arr.size());
-    csubstr key = unique_keys.m_arr[unique_key].val;
+    RYML_ASSERT_BASIC_(unique_key < m_unique_keys.m_arr.size());
+    csubstr key = m_unique_keys.m_arr[unique_key].val;
     return select(key, rng);
 }
 
@@ -183,21 +183,21 @@ auto KnownKeys::adding_is_complete()
 {
     if(!requires_merge())
         return nullptr;
-    unique_keys.sort();
-    known_keys.sort();
+    m_unique_keys.sort();
+    m_known_keys.sort();
     Entry const* first_key_causing_err = nullptr;
-    for(auto const& uk : unique_keys.m_arr)
+    for(auto const& uk : m_unique_keys.m_arr)
     {
         count_type noriginal = 0;
         count_type nmergedin = 0;
-        for(auto const& kk : known_keys.equal_range(uk.val))
+        for(auto const& kk : m_known_keys.equal_range(uk.val))
         {
             if(kk.val.status & CONFLICT)
             {
                 noriginal += !!(kk.val.status & ORIGINAL);
                 nmergedin += !!(kk.val.status & MERGEDIN);
-                if(((noriginal > 1) && opts.err_on_repeated_keys_original()) ||
-                   ((nmergedin > 1 || (nmergedin && noriginal)) && opts.err_on_repeated_keys_mergedin()))
+                if(((noriginal > 1) && m_opts.err_on_repeated_keys_original()) ||
+                   ((nmergedin > 1 || (nmergedin && noriginal)) && m_opts.err_on_repeated_keys_mergedin()))
                 {
                     first_key_causing_err = &kk.val;
                     break;

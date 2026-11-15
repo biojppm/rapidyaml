@@ -42,31 +42,31 @@ struct KnownKeys
 
 public:
 
-    map<csubstr, Entry> known_keys;
-    map<count_type, csubstr> unique_keys;
-    status_bits all_entries;
-    ResolveOptions opts;
+    map<csubstr, Entry>      m_known_keys;
+    map<count_type, csubstr> m_unique_keys;
+    status_bits              m_all_entries;
+    ResolveOptions           m_opts;
 
-    using KnownKeyRange_ = decltype(known_keys)::range_type;
+    using KnownKeyRange_ = decltype(m_known_keys)::range_type;
 
 public:
 
     KnownKeys(Callbacks const& cb)
-        : known_keys(cb)
-        , unique_keys(cb)
-        , all_entries()
-        , opts()
+        : m_known_keys(cb)
+        , m_unique_keys(cb)
+        , m_all_entries()
+        , m_opts()
     {}
 
-    void reset(ResolveOptions opts_) noexcept { opts = opts_; }
+    void reset(ResolveOptions opts_) noexcept { m_opts = opts_; }
 
 public:
 
     void start_adding() noexcept
     {
-        known_keys.clear();
-        unique_keys.clear();
-        all_entries = {};
+        m_known_keys.clear();
+        m_unique_keys.clear();
+        m_all_entries = {};
     }
 
     void add(csubstr key, id_type id, status_bits status) noexcept;
@@ -78,18 +78,18 @@ public:
 
     bool has_key_conflict() const noexcept
     {
-        return (all_entries & CONFLICT);
+        return (m_all_entries & CONFLICT);
     }
 
     bool requires_merge() const noexcept
     {
-        return (all_entries & MERGEDIN) ||
-            ((all_entries & CONFLICT) && !opts.keep_repeated_keys());
+        return (m_all_entries & MERGEDIN) ||
+            ((m_all_entries & CONFLICT) && !m_opts.keep_repeated_keys());
     }
 
     id_type num_unique_keys() const noexcept
     {
-        return unique_keys.m_arr.size();
+        return m_unique_keys.m_arr.size();
     }
 
     Entry const* select(id_type unique_key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;

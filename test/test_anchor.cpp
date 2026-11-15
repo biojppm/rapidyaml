@@ -19,16 +19,16 @@ TEST(anchors, ReferenceResolver)
     r.resolve(&tree1);
     EXPECT_EQ(r.m_anchors.m_arr.m_callbacks, tree1.callbacks());
     EXPECT_EQ(r.m_branch_size.m_callbacks, tree1.callbacks());
-    EXPECT_EQ(r.m_known_keys.known_keys.m_arr.m_callbacks, tree1.callbacks());
-    EXPECT_EQ(r.m_known_keys.unique_keys.m_arr.m_callbacks, tree1.callbacks());
+    EXPECT_EQ(r.m_known_keys.m_known_keys.m_arr.m_callbacks, tree1.callbacks());
+    EXPECT_EQ(r.m_known_keys.m_unique_keys.m_arr.m_callbacks, tree1.callbacks());
     RYML_EXPECT_ERROR(check_success([&]{
         Tree tree2;
         ASSERT_NE(tree2.callbacks(), tree1.callbacks());
         r.resolve(&tree2);
         EXPECT_EQ(r.m_anchors.m_arr.m_callbacks, tree1.callbacks());
         EXPECT_EQ(r.m_branch_size.m_callbacks, tree1.callbacks());
-        EXPECT_EQ(r.m_known_keys.known_keys.m_arr.m_callbacks, tree1.callbacks());
-        EXPECT_EQ(r.m_known_keys.unique_keys.m_arr.m_callbacks, tree1.callbacks());
+        EXPECT_EQ(r.m_known_keys.m_known_keys.m_arr.m_callbacks, tree1.callbacks());
+        EXPECT_EQ(r.m_known_keys.m_unique_keys.m_arr.m_callbacks, tree1.callbacks());
     }));
 }
 

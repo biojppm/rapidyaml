@@ -44,8 +44,8 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     #if RYML_USE_ASSERT
     ResolveParams p = {};
     RYML_ASSERT_BASIC_CB_(cb, m_anchor_map.m_small_limit == static_cast<id_type>(p.anchor_map_linear_threshold));
-    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
-    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.unique_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_unique_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
     #endif
 }
 
@@ -58,8 +58,8 @@ void ReferenceResolver::reset_(Buffers evts_, ResolveOptions const& opts_, Resol
     m_opts = opts_;
     m_anchor_map.m_small_limit = static_cast<id_type>(params.anchor_map_linear_threshold);
     m_known_keys.reset(opts_);
-    m_known_keys.known_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
-    m_known_keys.unique_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
+    m_known_keys.m_known_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
+    m_known_keys.m_unique_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
     m_parents.clear();
     m_siblings.resize(static_cast<id_type>(evts.cap));
     reset_siblings_range_(0, evts.cap);
@@ -995,7 +995,7 @@ bool ReferenceResolver::grow_evts_to_add_(evt_size extra)
         evt_size newcap = m_wpos + extra + 1;
         evt_size nextcap = (3 * evts.cap) / 2; // do not grow too quick
         newcap = newcap > nextcap ? newcap : nextcap;
-        evts = detail::resize(evts, newcap, m_known_keys.known_keys.m_arr.m_callbacks);
+        evts = detail::resize(evts, newcap, m_known_keys.m_known_keys.m_arr.m_callbacks);
         m_siblings.resize(static_cast<id_type>(evts.cap));
         return true;
     }
