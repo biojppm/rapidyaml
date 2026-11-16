@@ -222,10 +222,10 @@ public:
 
 public:
 
-    void resolve(ResolveOptions const& opts={})
+    void resolve(ResolveOptions const& opts={}, ResolveParams const& params={})
     {
-        ReferenceResolver res;
-        res.resolve_resize(this, opts);
+        ievt::ReferenceResolver res;
+        res.resolve_resize(this, opts, params);
     }
 
 public:

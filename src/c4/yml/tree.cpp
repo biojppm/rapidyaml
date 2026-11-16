@@ -7,7 +7,7 @@
 #ifndef C4_YML_NODE_HPP_
 #include "c4/yml/node.hpp"
 #endif
-#ifndef C4_YML_REFERENCE_RESOLVERS_HPP_
+#ifndef C4_YML_REFERENCE_RESOLVER_HPP_
 #include "c4/yml/reference_resolver.hpp"
 #endif
 
@@ -1164,19 +1164,19 @@ void Tree::merge_with(Tree const *src, id_type src_node, id_type dst_node)
 
 //-----------------------------------------------------------------------------
 
-void Tree::resolve(ResolveOptions const& opts)
+void Tree::resolve(ResolveOptions const& opts, ResolveParams const& params)
 {
     if(m_size == 0)
         return;
     ReferenceResolver rr(callbacks());
-    resolve(&rr, opts);
+    resolve(&rr, opts, params);
 }
 
-void Tree::resolve(ReferenceResolver *C4_RESTRICT rr, ResolveOptions const& opts)
+void Tree::resolve(ReferenceResolver *C4_RESTRICT rr, ResolveOptions const& opts, ResolveParams const& params)
 {
     if(m_size == 0)
         return;
-    rr->resolve(this, opts);
+    rr->resolve(this, opts, params);
 }
 
 

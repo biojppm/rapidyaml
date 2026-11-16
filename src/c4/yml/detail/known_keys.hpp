@@ -18,6 +18,7 @@ namespace c4 {
 namespace yml {
 namespace detail {
 
+
 struct KnownKeys
 {
     using count_type = int32_t;
@@ -31,70 +32,80 @@ struct KnownKeys
 
     struct Entry
     {
-        id_type     id;       /// id of the key in the tree/evts arr
+        count_type  id;       /// id of the key in the tree/evts arr
         count_type  unqcount; /// count of unique keys when this was added
         count_type  count;    /// count of other keys when this was added
         status_bits status;
     };
 
-    template<class K, class V>
-    using map = yml::detail::small_map<K, V, RYML_KNOWN_KEYS_SSO_SIZE>;
+    using KnownKeysMap = small_map<csubstr, Entry, RYML_KNOWN_KEYS_SSO_SIZE, /*stable*/true>;
+    using UniqueKeys = stack<csubstr>;
 
 public:
 
-    map<csubstr, Entry> known_keys;
-    map<count_type, csubstr> unique_keys;
-    status_bits all_entries;
-    ResolveOptions opts;
+    KnownKeysMap   m_known_keys;
+    UniqueKeys     m_unique_keys;
+    status_bits    m_all_entries;
+    ResolveOptions m_opts;
 
-    using KnownKeyRange_ = decltype(known_keys)::range_type;
+    using KnownKeyRange_ = KnownKeysMap::const_range_type;
 
 public:
 
     KnownKeys(Callbacks const& cb)
-        : known_keys(cb)
-        , unique_keys(cb)
-        , all_entries()
-        , opts()
+        : m_known_keys(cb)
+        , m_unique_keys(cb)
+        , m_all_entries()
+        , m_opts()
     {}
 
-    void reset(ResolveOptions opts_) noexcept { opts = opts_; }
+    void reset(ResolveOptions opts_) noexcept { m_opts = opts_; }
 
 public:
 
     void start_adding() noexcept
     {
-        known_keys.clear();
-        unique_keys.clear();
-        all_entries = {};
+        m_known_keys.clear();
+        m_unique_keys.clear();
+        m_all_entries = {};
     }
 
     void add(csubstr key, id_type id, status_bits status) noexcept;
 
+    void adding_is_complete();
+
     // return the first conflicting key triggering an error according to opts
-    Entry const* adding_is_complete();
+    Entry const* first_bad_key() const noexcept;
 
 public:
 
     bool has_key_conflict() const noexcept
     {
-        return (all_entries & CONFLICT);
+        return (m_all_entries & CONFLICT);
     }
 
     bool requires_merge() const noexcept
     {
-        return (all_entries & MERGEDIN) ||
-            ((all_entries & CONFLICT) && !opts.keep_repeated_keys());
+        return (m_all_entries & MERGEDIN) ||
+            ((m_all_entries & CONFLICT) && !m_opts.keep_repeated_keys());
     }
 
     id_type num_unique_keys() const noexcept
     {
-        return unique_keys.m_arr.size();
+        return m_unique_keys.size();
     }
 
     Entry const* select(id_type unique_key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
     Entry const* select(csubstr key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
 };
+
+
+// extract pos to be used in the stable sort
+C4_ALWAYS_INLINE KnownKeys::count_type getpos(KnownKeys::Entry const& kk) noexcept
+{
+    return kk.count;
+}
+
 
 } // namespace detail
 } // namespace yml

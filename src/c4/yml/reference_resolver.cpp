@@ -33,14 +33,23 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb)
     , m_opts()
     , m_size_limit()
 {
+    #if RYML_USE_ASSERT
+    ResolveParams p = {};
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+    RYML_ASSERT_BASIC_CB_(cb, m_anchors.m_small_limit == static_cast<id_type>(p.anchor_map_linear_threshold));
+    RYML_ASSERT_BASIC_CB_(cb, m_known_keys.m_known_keys.m_small_limit == static_cast<id_type>(p.known_keys_linear_threshold));
+    C4_SUPPRESS_WARNING_GCC_POP
+    #endif
 }
 
-void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts)
+void ReferenceResolver::reset_(Tree *t_, ResolveOptions const& opts, ResolveParams const& p)
 {
     m_tree = t_;
     m_opts = opts;
     m_size_limit = m_opts.max_size(m_tree->size());
+    m_anchors.m_small_limit = static_cast<id_type>(p.anchor_map_linear_threshold);
     m_known_keys.reset(m_opts);
+    m_known_keys.m_known_keys.m_small_limit = static_cast<id_type>(p.known_keys_linear_threshold);
     grow_branch_size_mem_();
 }
 
@@ -108,16 +117,21 @@ bool ReferenceResolver::is_merge_elm_(id_type child) const
 
 id_type ReferenceResolver::insert_merge_node_(id_type dst_map, id_type ref_node, id_type after, id_type visit_count)
 {
+    C4_SUPPRESS_WARNING_PUSH
+    C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+    #if defined(__GNUC__) && __GNUC__ >= 6
+    C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+    #endif
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_val_ref(ref_node), m_tree, ref_node);
     AnchorData const* anchor = lookup_anchor_(ref_node, visit_count, m_tree->val_ref(ref_node));
-    if(!anchor)
-        return after;
+    RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, !!anchor, m_tree, ref_node);
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, anchor, m_tree, ref_node); // this must have been checked before
     RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(anchor->node), m_tree, anchor->node);
     check_size_limit_(anchor->node);
     id_type last_inserted = m_tree->duplicate_children(anchor->node, dst_map, after);
     grow_branch_size_mem_();
     return last_inserted;
+    C4_SUPPRESS_WARNING_POP
 }
 
 bool ReferenceResolver::add_keys_mergedin_(id_type ref_node, id_type visit_count)
@@ -224,13 +238,13 @@ bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
             }
         }
     }
-    bool req = m_known_keys.requires_merge();
-    if(!req)
+    m_known_keys.adding_is_complete();
+    if(!m_known_keys.requires_merge())
         return false;
-    detail::KnownKeys::Entry const* first_badkey = m_known_keys.adding_is_complete();
+    detail::KnownKeys::Entry const* first_badkey = m_known_keys.first_bad_key();
     if C4_UNLIKELY (!first_badkey)
         return true;
-    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, node, "repeated keys. first={}", m_tree->key(first_badkey->id));
+    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, node, "repeated keys. first={}", m_tree->key(static_cast<id_type>(first_badkey->id)));
 }
 
 bool ReferenceResolver::has_merge_elms_(id_type node) const
@@ -267,33 +281,33 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
                     if( ! done)
                     {
                         done = true;
-                        id_type dst = kv.val.id;
+                        id_type dst = static_cast<id_type>(kv.val.id);
                         if(selected->status & KNK::ORIGINAL)
                         {
-                            m_tree->move(selected->id, m_tree->prev_sibling(dst));
+                            m_tree->move(static_cast<id_type>(selected->id), m_tree->prev_sibling(dst));
                             m_tree->remove(dst);
                             after = dst;
                         }
                         else
                         {
                             m_tree->remove_children(dst);
-                            check_size_limit_(selected->id);
-                            m_tree->duplicate_contents(selected->id, dst);
+                            check_size_limit_(static_cast<id_type>(selected->id));
+                            m_tree->duplicate_contents(static_cast<id_type>(selected->id), dst);
                             grow_branch_size_mem_();
                             after = dst;
                         }
                     }
                     else // !selected and !done
                     {
-                        m_tree->remove(kv.val.id);
+                        m_tree->remove(static_cast<id_type>(kv.val.id));
                     }
                 }
                 else if( ! done) // selected, but not done
                 {
                     done = true;
-                    after = selected->id;
+                    after = static_cast<id_type>(selected->id);
                     // descend into the original selected key
-                    visit_count = resolve_(selected->id, visit_count);
+                    visit_count = resolve_(static_cast<id_type>(selected->id), visit_count);
                 }
             }
         }
@@ -301,8 +315,8 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
         // enforce the selected key
         if( ! done)
         {
-            check_size_limit_(selected->id);
-            after = m_tree->duplicate(selected->id, node, after);
+            check_size_limit_(static_cast<id_type>(selected->id));
+            after = m_tree->duplicate(static_cast<id_type>(selected->id), node, after);
             grow_branch_size_mem_();
         }
     }
@@ -455,11 +469,11 @@ void ReferenceResolver::handle_key_ref_(id_type ref_node, AnchorData const& anch
     }
 }
 
-void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts)
+void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts, ResolveParams const& params)
 {
     _c4dbgp("resolving references...");
 
-    reset_(tree, opts);
+    reset_(tree, opts, params);
     _c4dbg_tree("unresolved tree", *m_tree);
 
     bool has_refs = false;

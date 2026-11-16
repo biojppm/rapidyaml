@@ -21,7 +21,8 @@ bool check_rng_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
     auto const* prev = r.lo;
     for(auto const& kv : r)
     {
-        ryml_docheck_(this_.unique_keys.lookup(kv.val.unqcount));
+        ryml_docheck_(static_cast<id_type>(kv.val.unqcount) < this_.m_unique_keys.size());
+        ryml_docheck_(kv.key == this_.m_unique_keys[static_cast<id_type>(kv.val.unqcount)]);
         ryml_docheck_(!!(kv.val.status & KnownKeys::CONFLICT) == several);
         if(count++)
         {
@@ -133,79 +134,110 @@ KnownKeys::Entry const* select_(KnownKeys::KnownKeyRange_ r, ResolveOptions opts
 {
     return opts.pick_last() ? select_latest_(r, opts) : select_earliest_(r, opts);
 }
+
+enum : KnownKeys::count_type { NOCOUNT = -1 }; // NOLINT
 } // namespace
 
 
+//-----------------------------------------------------------------------------
+
 void KnownKeys::add(csubstr key, id_type id, status_bits status) noexcept
 {
-    count_type count = static_cast<count_type>(known_keys.m_arr.size());
-    count_type unq = static_cast<count_type>(unique_keys.m_arr.size());
-    Entry *existing = known_keys.lookup_modify(key);
-    if( ! existing)
-    {
-        unique_keys.insert(unq) = key;
-    }
-    else
-    {
-        status |= CONFLICT;
-        existing->status |= CONFLICT;
-        unq = existing->unqcount;
-    }
-    Entry &entry = known_keys.insert(key);
-    entry.id = id;
+    count_type count = static_cast<count_type>(m_known_keys.m_arr.size());
+    Entry &entry = m_known_keys.insert(key);
+    entry.id = static_cast<count_type>(id);
     entry.count = count;
-    entry.unqcount = unq;
+    entry.unqcount = NOCOUNT;
     entry.status = status;
-    all_entries |= status;
+    m_unique_keys.emplace_top() = key;
+    m_all_entries |= status;
 }
+
 
 auto KnownKeys::select(csubstr key, KnownKeyRange_ *out) const RYML_NOEXCEPT
     -> Entry const*
 {
-    KnownKeyRange_ rng = known_keys.equal_range(key);
+    KnownKeyRange_ rng = m_known_keys.equal_range(key);
     RYML_ASSERT_BASIC_(check_rng_(*this, rng));
-    Entry const* selected = select_(rng, opts);
+    Entry const* selected = select_(rng, m_opts);
     if(out)
         *out = rng;
     return selected;
 }
 
+
 auto KnownKeys::select(id_type unique_key, KnownKeyRange_ *rng) const RYML_NOEXCEPT
     -> Entry const*
 {
-    RYML_ASSERT_BASIC_(unique_key < unique_keys.m_arr.size());
-    csubstr key = unique_keys.m_arr[unique_key].val;
+    RYML_ASSERT_BASIC_(unique_key < m_unique_keys.size());
+    csubstr key = m_unique_keys[unique_key];
     return select(key, rng);
 }
 
-auto KnownKeys::adding_is_complete()
+
+void KnownKeys::adding_is_complete()
+{
+    if(m_known_keys.m_arr.empty())
+        return;
+    RYML_ASSERT_BASIC_(!m_unique_keys.empty());
+    m_known_keys.sort();
+    // finalize:
+    //   - remove repeats from unique_keys
+    //   - mark CONFLICT in repeated entries
+    //   - set the unique count in all entries
+    count_type unqcount = 0;
+    for(auto const& uk : m_unique_keys)
+    {
+        auto const rng = m_known_keys.equal_range_mut(uk);
+        RYML_ASSERT_BASIC_(rng.hi - rng.lo > 0);
+        const status_bits status = (rng.hi - rng.lo == 1) ? status_bits{} : CONFLICT;
+        count_type isnew = false;
+        for(auto & knownkey : rng)
+        {
+            // have we visited this range before?
+            if(knownkey.val.unqcount != NOCOUNT)
+                break;
+            RYML_ASSERT_BASIC_(uk == knownkey.key);
+            // it's the first time we see the range,
+            // so update all the entries in it
+            knownkey.val.unqcount = unqcount;
+            knownkey.val.status |= status;
+            // write once the unqcount value
+            if(!isnew)
+            {
+                m_unique_keys[static_cast<id_type>(unqcount)] = uk;
+                m_all_entries |= status;
+                isnew = true;
+            }
+        }
+        unqcount += isnew;
+    }
+    m_unique_keys.resize(static_cast<id_type>(unqcount));
+}
+
+
+auto KnownKeys::first_bad_key() const noexcept
     -> Entry const*
 {
-    if(!requires_merge())
-        return nullptr;
-    unique_keys.sort();
-    known_keys.sort();
-    Entry const* first_key_causing_err = nullptr;
-    for(auto const& uk : unique_keys.m_arr)
+    for(csubstr const& uk : m_unique_keys)
     {
         count_type noriginal = 0;
         count_type nmergedin = 0;
-        for(auto const& kk : known_keys.equal_range(uk.val))
+        for(auto const& kk : m_known_keys.equal_range(uk))
         {
             if(kk.val.status & CONFLICT)
             {
                 noriginal += !!(kk.val.status & ORIGINAL);
                 nmergedin += !!(kk.val.status & MERGEDIN);
-                if(((noriginal > 1) && opts.err_on_repeated_keys_original()) ||
-                   ((nmergedin > 1 || (nmergedin && noriginal)) && opts.err_on_repeated_keys_mergedin()))
+                if(((noriginal > 1) && m_opts.err_on_repeated_keys_original()) ||
+                   ((nmergedin > 1 || (nmergedin && noriginal)) && m_opts.err_on_repeated_keys_mergedin()))
                 {
-                    first_key_causing_err = &kk.val;
-                    break;
+                    return &kk.val;
                 }
             }
         }
     }
-    return first_key_causing_err;
+    return nullptr;
 }
 
 } // namespace detail

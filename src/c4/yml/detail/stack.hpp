@@ -35,6 +35,7 @@ class stack
 public:
 
     enum : id_type { sso_size = N }; // NOLINT
+    using value_type = T;
 
 public:
 

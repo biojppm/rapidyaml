@@ -118,6 +118,8 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
        test_lib/test_save.cpp
        test_lib/test_utils.hpp
        test_lib/test_utils.cpp
+       test_lib/tree_and_ints.hpp
+       test_lib/tree_and_ints.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../src_extra
     LIBS ryml c4fs gtest
     FOLDER test)

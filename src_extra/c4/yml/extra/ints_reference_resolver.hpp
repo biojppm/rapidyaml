@@ -12,8 +12,8 @@
 #define RYML_IEVT_RESOLVER_SSO_SIZE (32)
 #endif
 
-C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4251) // needs to have dll-interface to be used by clients
 
 namespace c4 {
 namespace yml {
@@ -37,15 +37,16 @@ public:
 
 public:
 
-    void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={});
+    void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={}, ResolveParams const& params={});
 
-private:
+public:
 
     struct Range_
     {
         evt_size beg; /// beginning pos of the range
         evt_size end; /// end pos of the range (past 1)
     };
+
     struct AnchorData
     {
         id_type  visit_count; /// the pos of the anchor
@@ -53,8 +54,10 @@ private:
         evt_size removed;     /// mark as removed (to avoid clearing when at the end)
     };
 
+private:
+
     using KnownKeys = yml::detail::KnownKeys;
-    using AnchorMap = yml::detail::small_map<csubstr, AnchorData, RYML_IEVT_RESOLVER_SSO_SIZE>;
+    using AnchorMap = yml::detail::small_map<csubstr, AnchorData, RYML_IEVT_RESOLVER_SSO_SIZE, /*stable*/true>;
     template<class T> using vec = yml::detail::stack<T, RYML_IEVT_RESOLVER_SSO_SIZE>;
 
 private:
@@ -82,8 +85,8 @@ private: // mapw: map-writing helpers to merge keys
 
 private:
 
-    void resolve_(Buffers *evts_, ResolveOptions const& opts_);
-    void reset_(Buffers evts_, ResolveOptions opts_);
+    void resolve_(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params);
+    void reset_(Buffers evts_, ResolveOptions const& opts_, ResolveParams const& params);
     void reset_siblings_range_(evt_size beg, evt_size end);
     bool gather_anchors_();
     void iter_elms_();
@@ -132,6 +135,14 @@ private:
 };
 
 /** @} */
+
+/** @cond dev */
+// extract pos to be used in the stable sort
+C4_ALWAYS_INLINE id_type getpos(ReferenceResolver::AnchorData const& val) noexcept
+{
+    return val.visit_count;
+}
+/** @endcond */
 
 } // namespace ievt
 } // namespace extra

@@ -295,7 +295,7 @@ typedef enum : evt_bits { // NOLINT
 
     /// the last flag defined above
     LAST = FSPC,
-
+                                                                     // LCOV_EXCL_LINE
     /// a mask of all bits in this enumeration
     /// dealing with two's complement sign quirks
     MASK = (LAST != (-0x80000000)) // same as (1<<31), without overflow
@@ -318,29 +318,19 @@ C4_HOT C4_ALWAYS_INLINE evt_size prevstep(evt_bits bits) noexcept
 }
 
 
-C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits bits, evt_size pos) noexcept
-{
-    return pos + ((bits & ievt::EXT2) ? 3 : 1);
-}
-C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits bits, evt_size pos) noexcept
-{
-    return pos - ((bits & ievt::PEX2) ? 3 : 1);
-}
-
-
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
     return pos + ((arr[pos] & ievt::EXT2) ? 3 : 1);
 }
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
-{
+{                                                                     // LCOV_EXCL_LINE
     return pos - ((arr[pos] & ievt::PEX2) ? 3 : 1);
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
+}                                                                     // LCOV_EXCL_LINE
+                                                                      // LCOV_EXCL_LINE
+                                                                      // LCOV_EXCL_LINE
+//----------------------------------------------------------------------------- // LCOV_EXCL_LINE
+//----------------------------------------------------------------------------- // LCOV_EXCL_LINE
+//----------------------------------------------------------------------------- // LCOV_EXCL_LINE
 
 /** Read YAML source and, without undergoing a full parse, estimate
  * the size of the integer buffer required for @ref
