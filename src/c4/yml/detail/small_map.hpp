@@ -19,6 +19,8 @@ namespace detail {
 // it purposely avoids using std headers to avoid the heavy machinery.
 
 
+//-----------------------------------------------------------------------------
+
 template<class K, class V>
 struct small_map_entry
 {
@@ -38,6 +40,8 @@ C4_ALWAYS_INLINE bool operator< (small_map_entry<K, V> const& lhs,
 }
 
 
+//-----------------------------------------------------------------------------
+
 // We cannot use std::stable_sort, because it allocates and
 // deallocates (!). We don't even use std::sort() to avoid the heavy
 // <algorithm> include.
@@ -53,12 +57,15 @@ C4_ALWAYS_INLINE bool operator< (small_map_entry<K, V> const& lhs,
 //
 //  - refactor the calling algorithm to do secondary sorts on
 //  - equal_ranges.
-template<class K, class V, class I=id_type>
+//
+// this allows using a stable sort, but without an explicit position
+// member. instead, a function getpos() must be available to extract
+// pos from the value.
+template<class K, class V>
 struct small_map_entry_stable
 {
     K key;
     V val;
-    I pos;
 };
 template<class K, class V>
 C4_ALWAYS_INLINE bool operator< (small_map_entry_stable<K, V> const& e, K const& key) noexcept
@@ -71,9 +78,11 @@ C4_ALWAYS_INLINE bool operator< (small_map_entry_stable<K, V> const& lhs,
 {
     // parentheses needed by gcc 4.8
     return ((lhs.key) < (rhs.key))
-        || (((lhs.key) == (rhs.key)) && (lhs.pos < rhs.pos));
+        || (((lhs.key) == (rhs.key)) && (getpos(lhs.val) < getpos(rhs.val)));
 }
 
+
+//-----------------------------------------------------------------------------
 
 // we use heapsort to order the map.
 template<class T, class I>
@@ -118,6 +127,8 @@ void heap_sort(T *C4_RESTRICT arr, I count) noexcept
 }
 
 
+//-----------------------------------------------------------------------------
+
 // a range type to use in small map
 template<class T>
 struct small_map_range
@@ -127,6 +138,8 @@ struct small_map_range
     C4_ALWAYS_INLINE T end() const noexcept { return hi; }
 };
 
+
+//-----------------------------------------------------------------------------
 
 template<class K, class V, id_type SSO_SIZE, bool stable=false>
 struct small_map
@@ -140,9 +153,8 @@ public:
 
     using key_type = K;
     using mapped_type = V;
-    using value_type = typename std::conditional<
-        stable,
-        small_map_entry_stable<K, V, id_type>,
+    using value_type = typename std::conditional<stable,
+        small_map_entry_stable<K, V>,
         small_map_entry<K, V>
         >::type;
     using range_type = small_map_range<value_type *>;
@@ -171,45 +183,12 @@ public:
 
 public:
 
-    #if C4_CPP >= 17
     C4_ALWAYS_INLINE V& insert(K const& key)
     {
-        if C4_IF_CONSTEXPR (stable)
-        {
-            id_type pos = m_arr.size();
-            value_type &e = m_arr.emplace_top();
-            e.key = key;
-            e.pos = pos;
-            return e.val;
-        }
-        else
-        {
-            value_type &e = m_arr.emplace_top();
-            e.key = key;
-            return e.val;
-        }
-    }
-    #else
-    template<bool S=stable>
-    C4_ALWAYS_INLINE auto insert(K const& key)
-        -> typename std::enable_if<S, V&>::type
-    {
-        id_type pos = m_arr.size();
-        value_type &e = m_arr.emplace_top();
-        e.key = key;
-        e.pos = pos;
-        return e.val;
-    }
-    template<bool S=stable>
-    C4_ALWAYS_INLINE auto insert(K const& key)
-        -> typename std::enable_if<!S, V&>::type
-    {
         value_type &e = m_arr.emplace_top();
         e.key = key;
         return e.val;
     }
-    #endif
-
 
     void sort() noexcept
     {

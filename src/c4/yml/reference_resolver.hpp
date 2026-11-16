@@ -101,6 +101,15 @@ public:
 
 /** @} */
 
+
+/** @cond dev */
+// extract pos to be used in the stable sort
+C4_ALWAYS_INLINE id_type getpos(ReferenceResolver::AnchorData const& val) noexcept
+{
+    return val.visit_count;
+}
+/** @endcond */
+
 } // namespace ryml
 } // namespace c4
 

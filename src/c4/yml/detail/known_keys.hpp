@@ -18,6 +18,7 @@ namespace c4 {
 namespace yml {
 namespace detail {
 
+
 struct KnownKeys
 {
     using count_type = int32_t;
@@ -31,19 +32,19 @@ struct KnownKeys
 
     struct Entry
     {
-        id_type     id;       /// id of the key in the tree/evts arr /// TODO: use 32bit
+        id_type  id;       /// id of the key in the tree/evts arr
         count_type  unqcount; /// count of unique keys when this was added
         count_type  count;    /// count of other keys when this was added
         status_bits status;
     };
 
-    using KnownKeysMap = small_map<csubstr, Entry, RYML_KNOWN_KEYS_SSO_SIZE, true>;
-    using UniqueKeysMap = stack<csubstr>;
+    using KnownKeysMap = small_map<csubstr, Entry, RYML_KNOWN_KEYS_SSO_SIZE, /*stable*/true>;
+    using UniqueKeys = stack<csubstr>;
 
 public:
 
     KnownKeysMap   m_known_keys;
-    UniqueKeysMap  m_unique_keys;
+    UniqueKeys     m_unique_keys;
     status_bits    m_all_entries;
     ResolveOptions m_opts;
 
@@ -97,6 +98,14 @@ public:
     Entry const* select(id_type unique_key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
     Entry const* select(csubstr key, KnownKeyRange_ *rng=nullptr) const RYML_NOEXCEPT;
 };
+
+
+// extract pos to be used in the stable sort
+C4_ALWAYS_INLINE KnownKeys::count_type getpos(KnownKeys::Entry const& kk) noexcept
+{
+    return kk.count;
+}
+
 
 } // namespace detail
 } // namespace yml
