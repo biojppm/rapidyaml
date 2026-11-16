@@ -244,7 +244,7 @@ bool ReferenceResolver::requires_merge_(id_type node, id_type visit_count)
     detail::KnownKeys::Entry const* first_badkey = m_known_keys.first_bad_key();
     if C4_UNLIKELY (!first_badkey)
         return true;
-    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, node, "repeated keys. first={}", m_tree->key(first_badkey->id));
+    RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, node, "repeated keys. first={}", m_tree->key(static_cast<id_type>(first_badkey->id)));
 }
 
 bool ReferenceResolver::has_merge_elms_(id_type node) const
@@ -281,33 +281,33 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
                     if( ! done)
                     {
                         done = true;
-                        id_type dst = kv.val.id;
+                        id_type dst = static_cast<id_type>(kv.val.id);
                         if(selected->status & KNK::ORIGINAL)
                         {
-                            m_tree->move(selected->id, m_tree->prev_sibling(dst));
+                            m_tree->move(static_cast<id_type>(selected->id), m_tree->prev_sibling(dst));
                             m_tree->remove(dst);
                             after = dst;
                         }
                         else
                         {
                             m_tree->remove_children(dst);
-                            check_size_limit_(selected->id);
-                            m_tree->duplicate_contents(selected->id, dst);
+                            check_size_limit_(static_cast<id_type>(selected->id));
+                            m_tree->duplicate_contents(static_cast<id_type>(selected->id), dst);
                             grow_branch_size_mem_();
                             after = dst;
                         }
                     }
                     else // !selected and !done
                     {
-                        m_tree->remove(kv.val.id);
+                        m_tree->remove(static_cast<id_type>(kv.val.id));
                     }
                 }
                 else if( ! done) // selected, but not done
                 {
                     done = true;
-                    after = selected->id;
+                    after = static_cast<id_type>(selected->id);
                     // descend into the original selected key
-                    visit_count = resolve_(selected->id, visit_count);
+                    visit_count = resolve_(static_cast<id_type>(selected->id), visit_count);
                 }
             }
         }
@@ -315,8 +315,8 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
         // enforce the selected key
         if( ! done)
         {
-            check_size_limit_(selected->id);
-            after = m_tree->duplicate(selected->id, node, after);
+            check_size_limit_(static_cast<id_type>(selected->id));
+            after = m_tree->duplicate(static_cast<id_type>(selected->id), node, after);
             grow_branch_size_mem_();
         }
     }

@@ -32,7 +32,7 @@ struct KnownKeys
 
     struct Entry
     {
-        id_type  id;       /// id of the key in the tree/evts arr
+        count_type  id;       /// id of the key in the tree/evts arr
         count_type  unqcount; /// count of unique keys when this was added
         count_type  count;    /// count of other keys when this was added
         status_bits status;

@@ -145,7 +145,7 @@ void KnownKeys::add(csubstr key, id_type id, status_bits status) noexcept
 {
     count_type count = static_cast<count_type>(m_known_keys.m_arr.size());
     Entry &entry = m_known_keys.insert(key);
-    entry.id = id;
+    entry.id = static_cast<count_type>(id);
     entry.count = count;
     entry.unqcount = NOCOUNT;
     entry.status = status;
