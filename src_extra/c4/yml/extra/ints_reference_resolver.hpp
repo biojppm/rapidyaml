@@ -91,6 +91,7 @@ private:
     void reset_siblings_range_(evt_size beg, evt_size end);
     bool gather_anchors_();
     void iter_elms_();
+    void clear_anchors_(evt_size beg, evt_size end);
 
     C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);

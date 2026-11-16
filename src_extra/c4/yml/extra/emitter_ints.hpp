@@ -202,6 +202,8 @@ private:
         RYML_ASSERT_BASIC_(id + 2 < m_evts_size);
         RYML_ASSERT_BASIC_(m_evts[id] & ievt::WSTR);
         csubstr region = (m_evts[id] & ievt::AREN) ? m_arena : m_src;
+        RYML_ASSERT_BASIC_(region.str + m_evts[id + 1] <= region.end());
+        RYML_ASSERT_BASIC_(region.str + (m_evts[id + 1] + m_evts[id + 2]) <= region.end());
         region.str = region.str + m_evts[id + 1];
         region.len = static_cast<size_t>(m_evts[id + 2]);
         return region;
