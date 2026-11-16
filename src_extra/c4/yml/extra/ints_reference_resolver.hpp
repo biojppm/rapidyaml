@@ -67,6 +67,7 @@ private:
     vec<evt_size> m_parents;       // parents in a call stack
     vec<evt_size> m_siblings;      // memoization of siblings
     vec<evt_size> m_mapw_scratch;  // map-writer scratch size
+    Buffers *m_subject;
     ResolveOptions m_opts;
     evt_size m_wpos;
     evt_size m_newsz;

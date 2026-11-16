@@ -32,6 +32,7 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     , m_parents(cb)
     , m_siblings(cb)
     , m_mapw_scratch(cb)
+    , m_subject()
     , m_opts()
     , m_wpos()
     , m_newsz()
@@ -75,7 +76,10 @@ void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
 
 void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
 {
+    m_subject = evts_;
     resolve_(evts_, opts_, params);
+    *m_subject = static_cast<Buffers const&>(*this);
+    m_subject = nullptr;
 }
 
 void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
@@ -993,7 +997,7 @@ bool ReferenceResolver::grow_evts_to_add_(evt_size extra)
         evt_size newcap = m_wpos + extra + 1;
         evt_size nextcap = (3 * evts.cap) / 2; // do not grow too quick
         newcap = newcap > nextcap ? newcap : nextcap;
-        evts = detail::resize(evts, newcap, m_known_keys.m_known_keys.m_arr.m_callbacks);
+        m_subject->evts = evts = detail::resize(evts, newcap, m_known_keys.m_known_keys.m_arr.m_callbacks);
         m_siblings.resize(static_cast<id_type>(evts.cap));
         return true;
     }
