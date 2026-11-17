@@ -8325,6 +8325,8 @@ uint32_t ParseEngine<EventHandler>::_get_annotations_same_line(csubstr token_sou
         for(size_t i = 0; i < m_pending_tags.num_entries; ++i)
             total += !!valid_if_same_line(&m_pending_tags.annotations[i]);
         _c4dbgpf("{} annotations on same line", total);
+        if(!total)
+            return 0;
         _c4assert(total > 0); // because this function is only called
                               // while not at the first token. That
                               // means we must have same-line
