@@ -241,7 +241,7 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
      * This is meant to allow enabling assertions even when NDEBUG is defined.
      * Defaults to undefined.
      * @ingroup error_checking */
-#   define C4_USE_ASSERT
+#   define C4_USE_ASSERT (0)
     /** assert that a condition is true; this is turned off when NDEBUG
      * is defined and C4_USE_ASSERT is not true.
      * @ingroup error_checking  */
@@ -258,16 +258,24 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
 
 #ifndef C4_USE_ASSERT
 #   ifdef NDEBUG
-#       define C4_USE_ASSERT 0
+#       define C4_USE_ASSERT (0)
 #   else
-#       define C4_USE_ASSERT 1
+#       define C4_USE_ASSERT (1)
 #   endif
 #endif
 
+#ifndef C4_ABORT_ON_ASSERT
+#   define C4_ABORT_ON_ASSERT (0)
+#endif
 
 #if C4_USE_ASSERT
-#   define C4_ASSERT(cond) C4_CHECK(cond)
-#   define C4_ASSERT_MSG(cond, /*fmt, */...) C4_CHECK_MSG(cond, ## __VA_ARGS__)
+#   if C4_ABORT_ON_ASSERT
+#       define C4_ASSERT(cond) do { if C4_UNLIKELY (!(cond)) std::abort(); } while(0)
+#       define C4_ASSERT_MSG(cond, /*fmt, */...) C4_ASSERT(cond)
+#   else
+#       define C4_ASSERT(cond) C4_CHECK(cond)
+#       define C4_ASSERT_MSG(cond, /*fmt, */...) C4_CHECK_MSG(cond, ## __VA_ARGS__)
+#   endif
 #   define C4_ASSERT_IF(predicate, cond) if(predicate) { C4_ASSERT(cond); }
 #   define C4_NOEXCEPT_A C4_NOEXCEPT
 #else
@@ -307,8 +315,8 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
 
 
 #if C4_USE_XASSERT
-#   define C4_XASSERT(cond) C4_CHECK(cond)
-#   define C4_XASSERT_MSG(cond, /*fmt, */...) C4_CHECK_MSG(cond, ## __VA_ARGS__)
+#   define C4_XASSERT(cond) C4_ASSERT(cond)
+#   define C4_XASSERT_MSG(cond, /*fmt, */...) C4_ASSERT_MSG(cond, ## __VA_ARGS__)
 #   define C4_XASSERT_IF(predicate, cond) if(predicate) { C4_XASSERT(cond); }
 #   define C4_NOEXCEPT_X C4_NOEXCEPT
 #else
@@ -450,6 +458,10 @@ C4CORE_EXPORT void handle_warning(srcloc s, const char *fmt, ...);
 
 #ifdef __clang__
 #   pragma clang diagnostic pop
+#endif
+
+#if C4_USE_ASSERT && C4_ABORT_ON_ASSERT
+#include <cstdlib>
 #endif
 
 #endif /* C4_ERROR_HPP_ */
