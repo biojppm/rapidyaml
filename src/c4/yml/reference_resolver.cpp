@@ -266,10 +266,10 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
     using KNK = detail::KnownKeys;
     KNK::KnownKeyRange_ rng;
     id_type after = NONE; // keep track where to insert nodes
-    id_type num_unique = m_known_keys.num_unique_keys();
-    for(id_type i = 0; i < num_unique; ++i, ++visit_count)
+    for(id_type i = 0; i < m_known_keys.m_unique_keys.m_size; ++i, ++visit_count)
     {
         KNK::Entry const* selected = m_known_keys.select(i, &rng);
+        RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, selected != nullptr, m_tree, node);
         RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, rng.hi > rng.lo, m_tree, node);
         bool done = false;
         for(auto const& kv : rng)
@@ -306,8 +306,6 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
                 {
                     done = true;
                     after = static_cast<id_type>(selected->id);
-                    // descend into the original selected key
-                    visit_count = resolve_(static_cast<id_type>(selected->id), visit_count);
                 }
             }
         }
@@ -318,6 +316,12 @@ bool ReferenceResolver::maybe_merge_keys_(id_type node, id_type visit_count)
             check_size_limit_(static_cast<id_type>(selected->id));
             after = m_tree->duplicate(static_cast<id_type>(selected->id), node, after);
             grow_branch_size_mem_();
+        }
+        // descend into the original selected key
+        if(selected->status & KNK::ORIGINAL)
+        {
+            visit_count = resolve_(static_cast<id_type>(selected->id), visit_count);
+            selected = nullptr; // watchout! the call above will clobber m_known_keys!
         }
     }
     return true;

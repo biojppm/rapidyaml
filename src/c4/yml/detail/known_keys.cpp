@@ -14,6 +14,10 @@ bool check_rng_(KnownKeys const& this_, KnownKeys::KnownKeyRange_ r)
     #define ryml_docheck_(cond) RYML_ASSERT_BASIC_(cond); if(!(cond)) return false
     ryml_docheck_(r.hi);
     ryml_docheck_(r.lo);
+    ryml_docheck_(r.lo >= this_.m_known_keys.m_arr.begin());
+    ryml_docheck_(r.hi >= this_.m_known_keys.m_arr.begin());
+    ryml_docheck_(r.lo <= this_.m_known_keys.m_arr.end());
+    ryml_docheck_(r.hi <= this_.m_known_keys.m_arr.end());
     KnownKeys::count_type num = static_cast<KnownKeys::count_type>(r.hi - r.lo);
     ryml_docheck_(num);
     KnownKeys::count_type count = 0;
