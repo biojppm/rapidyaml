@@ -356,6 +356,17 @@ id_type ReferenceResolver::gather_anchors_(id_type node, id_type visit_count, bo
     return visit_count;
 }
 
+void ReferenceResolver::clear_anchors_(id_type node)
+{
+    NodeType ty = m_tree->type(node);
+    if(ty.has_key_anchor())
+        m_tree->rem_key_anchor(node);
+    if(ty.has_val_anchor())
+        m_tree->rem_val_anchor(node);
+    for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
+        clear_anchors_(ch);
+}
+
 id_type ReferenceResolver::resolve_(id_type node, id_type visit_count)
 {
     NodeType ty = m_tree->type(node);
@@ -491,16 +502,7 @@ void ReferenceResolver::resolve(Tree *tree, ResolveOptions const& opts, ResolveP
 
     if(m_opts.clear_anchors() && !m_anchors.m_arr.empty())
     {
-        for(auto const& kv : m_anchors.m_arr)
-            m_tree->rem_anchor_ref(kv.val.node);
-        m_anchors.clear();
-        // some of the elements injected during the resolution may
-        // have nested anchors; these anchors will have been newly
-        // injected during the resolution; collect again, and clear
-        // again, to ensure those are also cleared:
-        gather_anchors_(m_tree->root_id(), 0, &has_refs);
-        for(auto const& kv : m_anchors.m_arr)
-            m_tree->rem_anchor_ref(kv.val.node);
+        clear_anchors_(m_tree->root_id());
         _c4dbg_tree("final resolved tree", *m_tree);
     }
 
