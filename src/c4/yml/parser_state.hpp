@@ -85,7 +85,6 @@ struct LineContents
         size_t pos = rem.last_not_of('\r');
         rem.len = (pos != npos) ? pos + 1 : 0;
         num_cols = rem.len;
-        RYML_ASSERT_BASIC_(rem.find('\r') == npos);
         // TODO move this to the parser state
         indentation = rem.first_not_of(' ');  // find the first column where the character is not a space
     }
