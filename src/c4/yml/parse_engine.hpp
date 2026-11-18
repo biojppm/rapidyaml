@@ -511,10 +511,10 @@ private:
     void   _handle_unk_begin_doc();
 
     size_t _handle_block_skip_leading_whitespace();
-    C4_ALWAYS_INLINE
-    size_t _handle_block_get_whitespace_mark() const noexcept { return m_evt_handler->m_curr->pos.offset; }
-    void   _handle_block_check_leading_tabs(size_t prev_mark) { return _handle_block_check_leading_tabs(prev_mark, m_evt_handler->m_curr->pos.offset); }
-    void   _handle_block_check_leading_tabs(size_t start_mark, size_t end_mark);
+    C4_ALWAYS_INLINE size_t _handle_block_get_whitespace_mark() const noexcept { return m_evt_handler->m_curr->pos.offset; }
+    C4_ALWAYS_INLINE void   _handle_block_check_leading_tabs(size_t prev_mark) const { return _handle_block_check_leading_tabs(prev_mark, m_evt_handler->m_curr->pos.offset); }
+    C4_ALWAYS_INLINE void   _handle_block_check_leading_tabs(size_t start_mark, size_t end_mark) const { _handle_block_check_leading_tabs(_buf().range(start_mark, end_mark)); };
+    void   _handle_block_check_leading_tabs(csubstr leading) const;
 
     void  _end_map_flow();
     void  _end_seq_flow();

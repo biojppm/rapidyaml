@@ -4324,14 +4324,13 @@ size_t ParseEngine<EventHandler>::_handle_block_skip_leading_whitespace()
 }
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::_handle_block_check_leading_tabs(size_t start_mark, size_t end_mark)
+void ParseEngine<EventHandler>::_handle_block_check_leading_tabs(csubstr leading) const
 {
-    _c4dbgpf("block: start_mark={}  end_mark={}", start_mark, end_mark);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, end_mark >= start_mark, m_evt_handler->m_curr->pos);
-    if(end_mark != start_mark)
+    _c4assert(leading.is_sub(_buf()));
+    _c4dbgpf("block: start_mark={}  end_mark={}", leading.begin()-_buf().begin(), leading.end()-_buf().begin());
+    if(leading.len)
     {
-        csubstr leading = _buf().range(start_mark, end_mark);
-        _c4dbgpf("block: leading[{}-{}]={}", start_mark, end_mark, prs_(leading, true));
+        _c4dbgpf("block: leading[{}-{}]={}", leading.begin()-_buf().begin(), leading.end()-_buf().begin(), prs_(leading, true));
         size_t pos = leading.find('\t');
         if(pos != npos)
         {
@@ -4339,7 +4338,6 @@ void ParseEngine<EventHandler>::_handle_block_check_leading_tabs(size_t start_ma
             if(fno == npos || pos < fno)
                 _c4err("invalid tab character to the left");
         }
-        (void)leading;
     }
 }
 
@@ -6198,7 +6196,7 @@ seqblck_start:
                 _c4dbgp("seqblck[RVAL]: smaller indentation than RVAL!");
                 if(m_evt_handler->m_curr->indentation_eq())
                 {
-                    _c4dbgp("seqblck[RVAL]: smaller indentation than RVAL!");
+                    _c4dbgp("seqblck[RVAL]: indentation == RVAL!");
                     _handle_annotations_before_blck_val_scalar();
                     m_evt_handler->set_val_scalar_plain_empty();
                     addrem_flags(RNXT, RVAL);
@@ -6460,35 +6458,32 @@ seqblck_start:
             _c4err("parse error");
         }
     }
-    else // RNXT
+    else // RNXT: expect
     {
-        RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, has_any(RNXT), m_evt_handler->m_curr->pos);
-        RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, has_none(RVAL), m_evt_handler->m_curr->pos);
+        _c4assert(has_any(RNXT));
+        _c4assert(has_none(RVAL));
         //
         // handle indentation
         //
         _c4dbgpf("seqblck[RNXT]: indref={} indentation={}", m_evt_handler->m_curr->indref, m_evt_handler->m_curr->line_contents.indentation);
-        if C4_LIKELY(m_evt_handler->m_curr->at_line_beginning())
+        if C4_LIKELY (m_evt_handler->m_curr->at_line_beginning())
         {
             _c4dbgp("seqblck[RNXT]: at line begin");
-            if(m_evt_handler->m_curr->indentation_ge())
+            if(!m_evt_handler->m_curr->line_contents.rem.len || m_evt_handler->m_curr->line_contents.indentation == npos)
             {
-                _c4dbgpf("seqblck[RNXT]: skip {} from indref", m_evt_handler->m_curr->indref);
-                _line_progressed(m_evt_handler->m_curr->indref);
-                if(!m_evt_handler->m_curr->line_contents.rem.len)
-                    goto seqblck_again;
+                _c4dbgpf("seqblck[RNXT]: blank line, len={}", m_evt_handler->m_curr->line_contents.rem);
+                _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
+                goto seqblck_again;
             }
-            else if(m_evt_handler->m_curr->indentation_lt())
+            else if(m_evt_handler->m_curr->indentation_lt_nonempty())
             {
                 _c4dbgp("seqblck[RNXT]: smaller indentation!");
                 _handle_indentation_pop_from_block_seq();
                 if(has_all(RSEQ|RBLCK))
                 {
                     _c4dbgp("seqblck[RNXT]: still seqblck!");
-                    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, has_any(RNXT), m_evt_handler->m_curr->pos);
-                    _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
-                    if(!m_evt_handler->m_curr->line_contents.rem.len)
-                        goto seqblck_again; // LCOV_EXCL_LINE
+                    _c4assert(has_any(RNXT));
+                    goto seqblck_again;
                 }
                 else
                 {
@@ -6496,56 +6491,51 @@ seqblck_start:
                     goto seqblck_finish;
                 }
             }
-            else if(m_evt_handler->m_curr->line_contents.indentation == npos)
+            else if(m_evt_handler->m_curr->indentation_gt_nonempty())
             {
-                _c4dbgpf("seqblck[RNXT]: blank line, len={}", m_evt_handler->m_curr->line_contents.rem);
-                _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
-                if(!m_evt_handler->m_curr->line_contents.rem.len)
-                    goto seqblck_again; // LCOV_EXCL_LINE
+                _c4dbgp("seqblck[RNXT]: larger indentation!");
+                _c4err("parse error");
             }
         }
         else
         {
             _c4dbgp("seqblck[RNXT]: NOT at line begin");
-            if(!m_evt_handler->m_curr->line_contents.rem.begins_with_any(" \t"))
+            if C4_LIKELY (m_evt_handler->m_curr->line_contents.rem.begins_with_any(" \t"))
+            {
+                _c4dbgp("seqblck[RNXT]: again");
+                _skipchars(" \t");
+                goto seqblck_again;
+            }
+            else
             {
                 _c4err("parse error");
             }
-            else
-            {
-                _skipchars(" \t");
-                if(!m_evt_handler->m_curr->line_contents.rem.len)
-                {
-                    _c4dbgp("seqblck[RNXT]: again");
-                    goto seqblck_again; // LCOV_EXCL_LINE
-                }
-            }
         }
         //
-        // now handle the tokens
+        // now handle the tokens. lots of assumptions here, so assert them.
         //
+        _c4assert(m_evt_handler->m_curr->at_line_beginning());
+        _c4assert(m_evt_handler->m_curr->indentation_eq_nonempty());
+        _c4assert(m_evt_handler->m_curr->indref != npos);
         _c4assert(m_evt_handler->m_curr->line_contents.rem.len > 0);
-        const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
-        _c4dbgpf("seqblck[RNXT]: '{}' node_id={}", _c4prc(first), m_evt_handler->m_curr->node_id);
-        if(first == '-')
+        _c4assert(m_evt_handler->m_curr->line_contents.rem.len >= m_evt_handler->m_curr->indref);
+        const size_t tabmark = _handle_block_get_whitespace_mark();
+        const csubstr payload = m_evt_handler->m_curr->line_contents.rem.sub(m_evt_handler->m_curr->indref);
+        _c4assert(payload.len);
+        _c4dbgpf("seqblck[RNXT]: '{}' at col={} node_id={}", _c4prc(payload[0]), m_evt_handler->m_curr->indref, m_evt_handler->m_curr->node_id);
+        if C4_LIKELY (_is_blck_seq_token_maybe(payload)) // this is what we expect
         {
-            if(m_evt_handler->m_curr->indref > 0
-               || m_evt_handler->m_curr->line_contents.indentation > 0
-               || !_is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem))
-            {
-                if C4_LIKELY(_is_blck_seq_token_maybe(m_evt_handler->m_curr->line_contents.rem))
-                {
-                    _c4dbgp("seqblck[RNXT]: expect next val");
-                    addrem_flags(RVAL, RNXT);
-                    m_evt_handler->add_sibling();
-                    _line_progressed(1);
-                }
-                else
-                {
-                    _c4err("parse error");
-                }
-            }
-            else
+            _c4dbgp("seqblck[RNXT]: expect next val");
+            addrem_flags(RVAL, RNXT);
+            _handle_block_check_leading_tabs(tabmark);
+            m_evt_handler->add_sibling();
+            _line_progressed(m_evt_handler->m_curr->indref + 1);
+            goto seqblck_again;
+        }
+        else if(m_evt_handler->m_curr->indref == 0 && _is_doc_token(payload))
+        {
+            _c4dbgp("seqblck[RNXT]: doc token!");
+            if(payload[0] == '-')
             {
                 _c4dbgp("seqblck[RNXT]: start doc");
                 _start_doc_suddenly();
@@ -6553,28 +6543,7 @@ seqblck_start:
                 _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
             }
-        }
-        else if(first == ':')
-        {
-            // This happens for example in `- [a: b]: c` (after
-            // terminating the seq, ie, after `]`). All other cases
-            // (ie colon after scalars) are caught elsewhere (ie, in
-            // RVAL state).
-            if C4_LIKELY(m_evt_handler->m_parent && (m_evt_handler->m_parent->flags & RMAP))
-            {
-                _c4dbgp("seqblck[RNXT]: actually this seq was '?' key of parent map");
-                m_evt_handler->end_seq_block();
-                goto seqblck_finish;
-            }
-            else
-            {
-                _c4err("parse error");
-            }
-        }
-        else if(first == '.')
-        {
-            _c4dbgp("seqblck[RNXT]: maybe doc?");
-            if(_is_doc_end_token(m_evt_handler->m_curr->line_contents.rem))
+            else if(payload[0] == '.')
             {
                 _c4dbgp("seqblck[RNXT]: end doc");
                 _end_doc_suddenly();
@@ -6583,37 +6552,28 @@ seqblck_start:
                 _check_doc_end_tokens();
                 goto seqblck_finish;
             }
-            else
-            {
-                _c4err("parse error");
-            }
         }
-        else
+        else if(has_all(INDL))
         {
-            // may be an indentless sequence nested in a map...
-            #ifdef RYML_DBG
-            _print_state_stack();
-            #endif
-            if(has_all(INDL))
-            {
-                _c4dbgpf("seqblck[RNXT]: end indentless seq, go to parent={}. node={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id);
-                RYML_ASSERT_PARSE_CB_(this->callbacks(), has_all(RMAP|RBLCK, m_evt_handler->m_parent), m_evt_handler->m_curr->pos);
-                RYML_ASSERT_PARSE_CB_(this->callbacks(), m_evt_handler->m_curr->indref == m_evt_handler->m_parent->indref, m_evt_handler->m_curr->pos);
-                RYML_ASSERT_PARSE_CB_(this->callbacks(), m_evt_handler->m_curr != m_evt_handler->m_parent, m_evt_handler->m_curr->pos);
-                _handle_indentation_pop(m_evt_handler->m_parent);
-                goto seqblck_finish;
-            }
-            else if(first == '\t')
-            {
-                size_t pos = m_evt_handler->m_curr->line_contents.rem.first_not_of('\t');
-                if(pos == npos)
-                {
-                    _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
-                    goto seqblck_again;
-                }
-            }
-            _c4err("parse error");
+            _c4dbgpf("seqblck[RNXT]: end indentless seq, go to parent={}. node={}", m_evt_handler->m_parent->node_id, m_evt_handler->m_curr->node_id);
+            _c4assert(has_all(RMAP|RBLCK, m_evt_handler->m_parent));
+            _c4assert(m_evt_handler->m_curr->indref == m_evt_handler->m_parent->indref);
+            _c4assert(m_evt_handler->m_curr != m_evt_handler->m_parent);
+            _handle_indentation_pop(m_evt_handler->m_parent);
+            // don't consume indentation characters here.
+            goto seqblck_finish;
         }
+        else if(payload.begins_with('\t'))
+        {
+            size_t pos = m_evt_handler->m_curr->line_contents.rem.first_not_of("\t ");
+            if(pos == npos)
+            {
+                _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
+                goto seqblck_again;
+            }
+        }
+        _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
+        _c4err("parse error");
     }
 
  seqblck_again:
@@ -6682,10 +6642,10 @@ mapblck_start:
                 _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
                 if(has_all(RMAP|RBLCK))
                 {
-                    _c4dbgp("mapblck[RKEY]: still mapblck!");
-                    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, has_any(RKEY), m_evt_handler->m_curr->pos);
+                    _c4dbgp("mapblck[RKEY]: still mapblck after pop!");
+                    _c4assert(has_any(RKEY));
                     if(!m_evt_handler->m_curr->line_contents.rem.len)
-                        goto mapblck_again;
+                        goto mapblck_again; // LCOV_EXCL_LINE
                 }
                 else
                 {
@@ -7201,13 +7161,15 @@ mapblck_start:
         //
         // handle indentation
         //
-        if(m_evt_handler->m_curr->at_line_beginning())
+        bool atbeg = m_evt_handler->m_curr->at_line_beginning();
+        if(atbeg || m_evt_handler->m_curr->at_first_token())
         {
             _c4dbgpf("mapblck[RNXT]: indref={} indentation={}", m_evt_handler->m_curr->indref, m_evt_handler->m_curr->line_contents.indentation);
             if(m_evt_handler->m_curr->indentation_eq())
             {
                 _c4dbgpf("mapblck[RNXT]: skip {} from indref", m_evt_handler->m_curr->indref);
-                _line_progressed(m_evt_handler->m_curr->indref);
+                if(atbeg)
+                    _line_progressed(m_evt_handler->m_curr->indref);
                 _c4dbgp("mapblck[RNXT]: speculatively expect next keyval");
                 m_evt_handler->add_sibling();
                 addrem_flags(RKEY, RNXT);
@@ -7219,7 +7181,8 @@ mapblck_start:
                 _handle_indentation_pop_from_block_map();
                 if(has_all(RMAP|RBLCK))
                 {
-                    _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
+                    if(atbeg)
+                        _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
                     if(!has_any(RKCL))
                     {
                         _c4dbgp("mapblck[RNXT]: speculatively expect next keyval");
