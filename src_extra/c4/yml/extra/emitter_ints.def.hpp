@@ -671,7 +671,7 @@ evt_size EmitterInts<Writer>::visit_blck_seq_(evt_size pos)
         newval = true;
         has_tag_or_anchor = false;
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
     }
     return pos;
 }
@@ -774,6 +774,10 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(0 == (evt & ~ievt::PEX2))
+        {
+            pos = skip_zeroes_(pos, &rref_handler);
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
@@ -783,7 +787,7 @@ evt_size EmitterInts<Writer>::visit_blck_map_(evt_size pos)
         statenew = true;
         statekey = !statekey;
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
     }
     return pos;
 }
@@ -841,12 +845,37 @@ void EmitterInts<Writer>::flow_pws::start(evt_bits evt, size_t max_cols_) noexce
 }
 
 template<class Writer>
+evt_size EmitterInts<Writer>::skip_zeroes_(evt_size pos, RrefHandler *h) const RYML_NOEXCEPT
+{
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    RYML_ASSERT_BASIC_(m_evts[pos] == 0 || m_evts[pos] == ievt::PEX2);
+    if(!h->active)
+    {
+        do {
+            ++pos;
+        } while(pos < m_evts_size && !m_evts[pos]);
+    }
+    else
+    {
+        pos = rref_check_skip_zeroes_(pos, h); // LCOV_EXCL_LINE
+    }
+    return pos;
+}
+
+template<class Writer>
+evt_size EmitterInts<Writer>::flow_maybe_skip_zeroes_(evt_size pos) const RYML_NOEXCEPT
+{
+    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    while(pos < m_evts_size && !(m_evts[pos] & ~ievt::PEX2))
+        ++pos;
+    return pos;
+}
+
+template<class Writer>
 evt_size EmitterInts<Writer>::flow_close_entry_sl_(evt_size pos, Pws_e pend_after)
 {
     RYML_ASSERT_BASIC_(pos < m_evts_size);
-    while(0 == (m_evts[pos] & ~ievt::PEX2))
-        ++pos;
-    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    RYML_ASSERT_BASIC_(m_evts[pos]); // must have skipped zeroes
     if(!(m_evts[pos] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
@@ -859,9 +888,7 @@ template<class Writer>
 evt_size EmitterInts<Writer>::flow_close_entry_ml_(evt_size pos, Pws_e pend_after)
 {
     RYML_ASSERT_BASIC_(pos < m_evts_size);
-    while(0 == (m_evts[pos] & ~ievt::PEX2))
-        ++pos;
-    RYML_ASSERT_BASIC_(pos < m_evts_size);
+    RYML_ASSERT_BASIC_(m_evts[pos]); // must have skipped zeroes
     if(!(m_evts[pos] & ievt::END_))
     {
         write_pws_and_pend_(pend_after);
@@ -942,7 +969,7 @@ evt_size EmitterInts<Writer>::visit_flow_sl_seq_(evt_size pos)
         continue;
     nextval:
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
         pos = flow_close_entry_sl_(pos, pws.next_pws(m_col));
     }
     write_(']');
@@ -1020,7 +1047,7 @@ evt_size EmitterInts<Writer>::visit_flow_ml_seq_(evt_size pos)
         continue;
     nextval:
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
         pos = flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
     }
     if(stop_at_end)
@@ -1110,6 +1137,10 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(0 == (evt & ~ievt::PEX2))
+        {
+            pos = skip_zeroes_(pos, &rref_handler);
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
@@ -1117,7 +1148,9 @@ evt_size EmitterInts<Writer>::visit_flow_sl_map_(evt_size pos)
         continue;
     statenext:
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
+        else
+            pos = flow_maybe_skip_zeroes_(pos);
         if(!statekey)
             pos = flow_close_entry_sl_(pos, pws.next_pws(m_col));
         statenew = true;
@@ -1211,6 +1244,10 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
             write_tag_(getstr_(pos));
             pos += 3;
         }
+        else if(0 == (evt & ~ievt::PEX2))
+        {
+            pos = skip_zeroes_(pos, &rref_handler);
+        }
         else
         {
             pos += ievt::nextstep(evt); // LCOV_EXCL_LINE
@@ -1218,7 +1255,9 @@ evt_size EmitterInts<Writer>::visit_flow_ml_map_(evt_size pos)
         continue;
     statenext:
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
+        else
+            pos = flow_maybe_skip_zeroes_(pos);
         if(!statekey)
             pos = flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
         statenew = true;
@@ -1581,7 +1620,7 @@ evt_size EmitterInts<Writer>::json_visit_seq_sl_(evt_size pos)
     next_entry:
         RYML_ASSERT_BASIC_(pos < m_evts_size);
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
         if(!detail::hasall(m_evts[pos], ievt::ESEQ)) // pos changed - don't use evt here
         {
             if(with_spc)
@@ -1672,7 +1711,7 @@ evt_size EmitterInts<Writer>::json_visit_map_sl_(evt_size pos)
     next_entry:
         RYML_ASSERT_BASIC_(pos < m_evts_size);
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
         if(statekey)
         {
             write_(": ");
@@ -1767,7 +1806,7 @@ evt_size EmitterInts<Writer>::json_visit_seq_ml_(evt_size pos)
     next_entry:
         RYML_ASSERT_BASIC_(pos < m_evts_size);
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
         if(!detail::hasall(m_evts[pos], ievt::ESEQ)) // pos changed -- don't use evt here
         {
             has_anchor_or_tag = false;
@@ -1872,7 +1911,7 @@ evt_size EmitterInts<Writer>::json_visit_map_ml_(evt_size pos)
     next_entry:
         RYML_ASSERT_BASIC_(pos < m_evts_size);
         if(rref_handler.active)
-            pos = rref_check_(pos, &rref_handler);
+            pos = rref_check_skip_zeroes_(pos, &rref_handler);
         if(statekey)
         {
             write_(": ");

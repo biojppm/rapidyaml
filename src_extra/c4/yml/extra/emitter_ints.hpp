@@ -255,7 +255,7 @@ private:
         bool active;
     };
 
-    evt_size rref_start_(evt_size pos, RrefHandler *h) RYML_NOEXCEPT
+    C4_NODISCARD evt_size rref_start_(evt_size pos, RrefHandler *h) RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(!h->active);
         RYML_ASSERT_BASIC_(m_evts[pos] & ievt::RREF);
@@ -267,16 +267,26 @@ private:
         return m_evts[pos + 1];
     }
 
-    static evt_size rref_check_(evt_size pos, RrefHandler *h) RYML_NOEXCEPT
+    C4_NODISCARD evt_size rref_check_skip_zeroes_(evt_size pos, RrefHandler *h) const RYML_NOEXCEPT
     {
         RYML_ASSERT_BASIC_(h->active);
-        if(pos == h->pos_refend)
+        while(pos < m_evts_size)
         {
-            pos = h->pos_resume;
-            h->active = false;
+            if(pos == h->pos_refend)
+            {
+                pos = h->pos_resume;
+                h->active = false;
+                RYML_ASSERT_BASIC_(pos < m_evts_size);
+            }
+            if(m_evts[pos] & ~ievt::PEX2) // nonzero
+                break;
+            ++pos;
         }
         return pos;
     }
+
+    C4_NODISCARD evt_size skip_zeroes_(evt_size pos, RrefHandler *h) const RYML_NOEXCEPT;
+    C4_NODISCARD evt_size flow_maybe_skip_zeroes_(evt_size pos) const RYML_NOEXCEPT;
 
     // NOLINTEND(hicpp-signed-bitwise)
 
