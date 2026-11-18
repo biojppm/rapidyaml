@@ -32,6 +32,7 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     , m_parents(cb)
     , m_siblings(cb)
     , m_mapw_scratch(cb)
+    , m_subject()
     , m_opts()
     , m_wpos()
     , m_newsz()
@@ -75,7 +76,10 @@ void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
 
 void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
 {
+    m_subject = evts_;
     resolve_(evts_, opts_, params);
+    *m_subject = static_cast<Buffers const&>(*this);
+    m_subject = nullptr;
 }
 
 void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
@@ -89,15 +93,7 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_, Re
     iter_elms_();
     // finally:
     if(m_opts.clear_anchors())
-    {
-        for(auto const& entry : m_anchor_map.m_arr)
-        {
-            if(!entry.val.removed)
-            {
-                clear_str_(static_cast<evt_size>(entry.val.visit_count));
-            }
-        }
-    }
+        clear_anchors_(0, evts.len);
     // adjust for the sentinel
     m_wpos += (m_wpos > startlen);
     evts.len = m_wpos;
@@ -122,6 +118,24 @@ bool ReferenceResolver::gather_anchors_()
     if(do_resolve)
         m_anchor_map.sort();
     return do_resolve;
+}
+
+void ReferenceResolver::clear_anchors_(evt_size beg, evt_size end)
+{
+    // go again through the evts array:
+    for(evt_size pos = beg; pos < end; pos = nextpos(evts.ptr, pos))
+    {
+        if(evts.ptr[pos] & ievt::ANCH)
+            clear_str_(pos);
+        else if(evts.ptr[pos] & ievt::RREF)
+            clear_anchors_(evts.ptr[pos + 1], evts.ptr[pos + 2]);
+        else if(detail::hasall(evts.ptr[pos], ievt::ESTR))
+            break;
+    }
+    m_anchor_map.clear();
+    // previously this was done by going through the anchor_map, but
+    // it's very tricky to avoid stale anchor data, and so clobbering
+    // relevant evts.
 }
 
 void ReferenceResolver::iter_elms_()
@@ -470,7 +484,7 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
     Range_ newrng;
     newrng.beg = m_wpos;
     // we're ready. iterate by unique key
-    for(id_type i = 0; i < m_known_keys.num_unique_keys(); ++i)
+    for(id_type i = 0; i < m_known_keys.m_unique_keys.m_size; ++i)
     {
         KnownKeys::KnownKeyRange_ keyentries;
         KnownKeys::Entry const* selected = m_known_keys.select(i, &keyentries);
@@ -573,36 +587,8 @@ void ReferenceResolver::mapw_cpkeyval_original_(evt_size id, bool is_last_entry)
     RYML_ASSERT_BASIC_(id >= m_mapw_firstslot && id < m_mapw_lastslot);
     evt_bits const* C4_RESTRICT tmp = &m_mapw_scratch[0];
     const Range_ r = keyval_range_scratch_(id - m_mapw_firstslot);
-    evt_size wpos0 = m_wpos;(void)wpos0;
     evt_size copy_pos = mapw_cpdata_(tmp, r.beg, r.end, is_last_entry);
-    // copy_pos maybe inplace or at the end
-    evt_size shift = copy_pos - (m_mapw_firstslot + r.beg);
-    // update cached anchor data
-    for(evt_size scratchpos = r.beg; scratchpos != r.end; scratchpos = nextpos(tmp, scratchpos))
-    {
-        if(tmp[scratchpos] & ievt::ANCH)
-        {
-            evt_size origpos = m_mapw_firstslot + scratchpos;
-            evt_size next = origpos + shift;
-            RYML_ASSERT_BASIC_(!(tmp[scratchpos] & ievt::AREN));
-            csubstr anch = src.sub(static_cast<size_t>(tmp[scratchpos + 1]),
-                                   static_cast<size_t>(tmp[scratchpos + 2]));
-            auto rng = m_anchor_map.equal_range_mut(anch);
-            for(auto &entry : rng)
-            {
-                if(entry.val.visit_count == static_cast<id_type>(origpos))
-                {
-                    RYML_ASSERT_BASIC_(copy_pos < wpos0 ?
-                                       (next >= m_mapw_firstslot && next < m_mapw_lastslot) :
-                                       (next >= wpos0 && next < m_wpos));
-                    RYML_ASSERT_BASIC_(evts.ptr[next] & ievt::ANCH);
-                    RYML_ASSERT_BASIC_(getstr(next) == anch);
-                    entry.val.visit_count = static_cast<id_type>(next);
-                    break;
-                }
-            }
-        }
-    }
+    (void)copy_pos;
 }
 
 void ReferenceResolver::mapw_cpkeyval_mergedin_(evt_size id, bool is_last_entry)
@@ -993,7 +979,7 @@ bool ReferenceResolver::grow_evts_to_add_(evt_size extra)
         evt_size newcap = m_wpos + extra + 1;
         evt_size nextcap = (3 * evts.cap) / 2; // do not grow too quick
         newcap = newcap > nextcap ? newcap : nextcap;
-        evts = detail::resize(evts, newcap, m_known_keys.m_known_keys.m_arr.m_callbacks);
+        m_subject->evts = evts = detail::resize(evts, newcap, m_known_keys.m_known_keys.m_arr.m_callbacks);
         m_siblings.resize(static_cast<id_type>(evts.cap));
         return true;
     }
