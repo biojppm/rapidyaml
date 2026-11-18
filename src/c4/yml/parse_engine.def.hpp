@@ -3079,7 +3079,9 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
     #define _c4dbgchomp(...)
     #endif
 
-    // advance to the last line having spaces beyond the indentation
+     _c4dbgchomp("tochomp={}", prs_(proc.rem(), /*escape*/true, /*newl*/false));
+
+     // advance to the last line having spaces beyond the indentation
     {
         size_t last = _find_last_newline_and_larger_indentation(proc.rem(), indentation);
         if(last != npos)
@@ -3127,6 +3129,9 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
                         }
                         break;
                     }
+                case ' ':
+                    proc.copy();
+                    break;
                 case '\r':
                     proc.skip();
                     break;
@@ -3759,7 +3764,7 @@ csubstr ParseEngine<EventHandler>::_move_scalar_left_and_add_newline(substr s)
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t indentation, BlockChomp_e chomp)
 {
-    _c4dbgpf("filtering block literal scalar: s={}", prs_(s));
+    _c4dbgpf("filtering block literal scalar: s={}", prs_(s, /*escape*/true));
     FilterResult r = this->filter_scalar_block_literal_in_place(s, s.len, indentation, chomp);
     csubstr result;
     if C4_LIKELY(r.valid())
@@ -3774,7 +3779,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t inden
         // so we shift left the scalar by one place
         result = _move_scalar_left_and_add_newline(s);
     }
-    _c4dbgpf("filtering block literal scalar: success! s={}", prs_(result));
+    _c4dbgpf("filtering block literal scalar: success! s={}", prs_(result, /*escape*/true));
     return result;
 }
 
