@@ -17,7 +17,7 @@
 - [PR#683](https://github.com/biojppm/rapidyaml/pull/683): Parser: ensure error on unterminated seq+map `[:`
 - [PR#686](https://github.com/biojppm/rapidyaml/pull/686): Parser: fix parse of container keys in block mode, eg `- ? []:`
 - [PR#695](https://github.com/biojppm/rapidyaml/pull/695): Parser: fix assertion causing accidental quadratic complexity in single line flow (fixes [#694](https://github.com/biojppm/rapidyaml/issues/694)).
-- [PR#696](https://github.com/biojppm/rapidyaml/pull/696): Callbacks: add optional callback to make memory resident, by @calpeyser
+- [PR#685](https://github.com/biojppm/rapidyaml/pull/685): Callbacks: add optional callback to make memory resident, by @calpeyser
 - [PR#687](https://github.com/biojppm/rapidyaml/pull/687): Small fixes:
   - src: add option structs to c4/yml/fwd.hpp
   - src: fix `Tree::has_anchor()`, was ignoring NodeType
@@ -44,6 +44,9 @@
 - [PR#706](https://github.com/biojppm/rapidyaml/pull/706): ievt: add parse-time buffer resizing (tests separately in [PR#707](https://github.com/biojppm/rapidyaml/pull/707)). Saves the need for accurate estimation or parse retries!
 - [PR#709](https://github.com/biojppm/rapidyaml/pull/709): ievt: add emitter (tests separately in [PR#710](https://github.com/biojppm/rapidyaml/pull/710)), byte-equal to Tree emitter.
 - [PR#712](https://github.com/biojppm/rapidyaml/pull/712): ievt: add resolver (tests separately in [PR#714](https://github.com/biojppm/rapidyaml/pull/714)), adhering to existing `ResolveOptions`.
+- [PR#716](https://github.com/biojppm/rapidyaml/pull/716): resolve + ievt emit: follow-up fixes.
+- [PR#717](https://github.com/biojppm/rapidyaml/pull/717): resolve + ievt emit: follow-up fixes.
+- [PR#718](https://github.com/biojppm/rapidyaml/pull/718): parser: ensure error on tokens trailing flow container docs (fixes [PR#696](https://github.com/biojppm/rapidyaml/issues/696)).
 
 
 ### Thanks
