@@ -29,7 +29,7 @@
   - detail: remove assertion requiring include in dbgprint.hpp
   - internal: simplify checks in emit_container.hpp
 - [PR#702](https://github.com/biojppm/rapidyaml/pull/702): test: stopped using c4log
-- [PR#706](https://github.com/biojppm/rapidyaml/pull/706): resolve(): fix [#](https://github.com/biojppm/rapidyaml/issues/533) `ReferenceResolver`, adding fine-grained merge-controlling options for maps in `ResolveOptions`:
+- [PR#703](https://github.com/biojppm/rapidyaml/pull/703): resolve(): fix [#533](https://github.com/biojppm/rapidyaml/issues/533) `ReferenceResolver`, adding fine-grained merge-controlling options for maps in `ResolveOptions` (tests in [PR#704](https://github.com/biojppm/rapidyaml/pull/704)):
   - `.keep_repeated_keys()`: do not merge, but keep all repeated keys
   - `.merge_always()`: eliminate repeated keys even if the map has no merge elements
   - `.priority_original()`: use standard behaviour to prioritize original map elements. also, add non-standard `.priority_mergedin()` to prioritize merged-in map elements
