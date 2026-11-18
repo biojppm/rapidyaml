@@ -8278,11 +8278,12 @@ void ParseEngine<EventHandler>::_handle_unk_get_first_non_pending_token_pos(csub
     }
     _c4assert(!s.sub(pos).begins_with_any(" \t"));
     _c4dbgpf("runk: after skip leading {} whitespace: {}", pos, prs_(s.sub(pos), true));
-    _c4dbgpf("runk: first annotation: {}", first);
+    _c4dbgpf("runk: first annotation: {}", prs_(first));
     _c4assert(first.len);
     _c4assert(first.is_sub(s));
     _c4assert(first.is_sub(s.sub(pos)));
-    _c4assert(s.sub(pos).begins_with(first));
+    if C4_UNLIKELY (!s.sub(pos).begins_with(first))
+        _c4err("parse error");
     *indent = pos;
     pos += first.len;
     _c4dbgpf("runk: after skip first annotation: pos={} {}", pos, prs_(s.sub(pos), true));
