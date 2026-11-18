@@ -541,6 +541,7 @@ private:
     void  _end_stream();
 
     void  _set_indentation(size_t indentation) noexcept;
+    void  _set_indentation_maybe_indentless(size_t indentation) noexcept;
     void  _save_indentation();
     void  _mark_seqflow_val_end() noexcept;
     void  _handle_indentation_pop_from_block_seq();

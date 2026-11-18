@@ -33,10 +33,11 @@ typedef enum : ParserFlag_t { // NOLINT
     NDOC = 0x01 << 15,   ///< no document mode. a document has ended and another has not started yet.
     USTY = 0x01 << 16,   ///< reading in unknown style mode - must determine FLOW or BLCK
     SDDN = 0x01 << 17,   ///< sudden ending of prev doc
+    INDL = 0x01 << 18,   ///< indentless seq in a map, eg `key:\n- val0\n- val1\n`
     //! reading an implicit map nested in an explicit seq.
     //! eg,          {key: [key2: value2, key3: value3]}
     //! is parsed as {key: [{key2: value2}, {key3: value3}]}
-    RSEQIMAP = 0x01 << 18,
+    RSEQIMAP = 0x01 << 19,
 } ParserState_e;
 
 
