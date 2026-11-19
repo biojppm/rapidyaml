@@ -850,7 +850,6 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow_check_block_to
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.len > 0, m_evt_handler->m_curr->pos);
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.begins_with_any(":-"), m_evt_handler->m_curr->pos);
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.count('\n') == 0, m_evt_handler->m_curr->pos);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.count('\r') == 0, m_evt_handler->m_curr->pos);
     if(s.len > 1)
     {
         switch(s.str[1])
@@ -860,6 +859,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow_check_block_to
         case '}':
         case ']':
         case '\t':
+        case '\r':
             if(s.str[0] == ':')
             {
                 _c4dbgpf("not a scalar: found non-scalar token '{}{}'", s.str[0], s.str[1]);
@@ -893,14 +893,14 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow_check_qmrk(csu
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.len > 0, m_evt_handler->m_curr->pos);
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s[0] == '?', m_evt_handler->m_curr->pos);
     RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.count('\n') == 0, m_evt_handler->m_curr->pos);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.count('\r') == 0, m_evt_handler->m_curr->pos);
     if(s.len > 1)
     {
         switch(s.str[1])
         {
         case ' ':
         case '\t':
-                _c4dbgpf("not a scalar: found non-scalar token '?{}'", _c4prc(s.str[1]));
+        case '\r':
+            _c4dbgpf("not a scalar: found non-scalar token '?{}'", _c4prc(s.str[1]));
             return false;
         case '{':
         case '}':
