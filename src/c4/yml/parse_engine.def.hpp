@@ -6642,7 +6642,6 @@ mapblck_start:
                 if(has_all(RMAP|RBLCK))
                 {
                     _c4dbgp("mapblck[RKEY]: still mapblck after pop!");
-                    _c4assert(has_any(RKEY));
                     if(!m_evt_handler->m_curr->line_contents.rem.len)
                         goto mapblck_again; // LCOV_EXCL_LINE
                 }
@@ -6661,6 +6660,7 @@ mapblck_start:
         //
         // now handle the tokens
         //
+        _c4assert(m_evt_handler->m_curr->line_contents.rem.len);
         const char first = m_evt_handler->m_curr->line_contents.rem.str[0];
         const size_t startline = m_evt_handler->m_curr->pos.line;
         const size_t startindent = m_evt_handler->m_curr->line_contents.current_col();
