@@ -2286,24 +2286,21 @@ found_close:
 template<class EventHandler>
 void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t indref)
 {
-    _c4dbgpf("blck: indref={}", indref);
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, indref != npos, m_evt_handler->m_curr->pos);
+    _c4dbgpf("blck: indref={} specs={}", indref, prs_(m_evt_handler->m_curr->line_contents.rem));
+    _c4assert(indref != npos);
 
     // nice explanation here: http://yaml-multiline.info/
-    csubstr s = m_evt_handler->m_curr->line_contents.rem;
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.begins_with('|') || s.begins_with('>'), m_evt_handler->m_curr->pos);
-
-    _c4dbgpf("blck: specs={}", prs_(s));
+    _c4assert(m_evt_handler->m_curr->line_contents.rem.begins_with('|') || m_evt_handler->m_curr->line_contents.rem.begins_with('>'));
 
     // parse the spec
     BlockChomp_e chomp = CHOMP_CLIP; // default to clip unless + or - are used
     size_t indentation = npos; // have to find out if no spec is given
-    if(s.len > 1)
+    if(m_evt_handler->m_curr->line_contents.rem.len > 1)
     {
-        RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, s.begins_with_any("|>"), m_evt_handler->m_curr->pos);
-        csubstr t = s.sub(1);
+        _c4assert(m_evt_handler->m_curr->line_contents.rem.begins_with_any("|>"));
+        csubstr t = m_evt_handler->m_curr->line_contents.rem.sub(1);
         _c4dbgpf("blck: spec is multichar: {}", prs_(t));
-        RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, t.len >= 1, m_evt_handler->m_curr->pos);
+        _c4assert(t.len >= 1);
         // the indicators can only be followed by whitespace, optionally
         // followed by a comment
         {
@@ -2361,16 +2358,16 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         }
     }
 
-    _c4dbgpf("blck: style={}  chomp={}  indentation={}", s.begins_with('>') ? "fold" : "literal", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
+    _c4dbgpf("blck: style={}  chomp={}  indentation={}", m_evt_handler->m_curr->line_contents.rem.begins_with('>') ? "fold" : "literal", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
 
-    // finish the current line
-    _line_progressed(s.len);
+    // finish the start line
+    _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
     _line_ended();
     _scan_line();
 
     // start with a zero-length block, already pointing at the right place
     substr raw_block(_buf().data() + m_evt_handler->m_curr->pos.offset, size_t(0));
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, raw_block.begin() == m_evt_handler->m_curr->line_contents.full.str, m_evt_handler->m_curr->pos);
+    _c4assert(raw_block.begin() == m_evt_handler->m_curr->line_contents.full.str);
 
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed.
@@ -2397,24 +2394,13 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
             // stop when the line is deindented and not empty
             if(lc.indentation < indentation && ( ! lc.rem.trim(" \t").empty()))
             {
-                if(raw_block.len)
-                {
-                    _c4dbgpf("blck: indentation decreased ref={} thisline={}", indentation, lc.indentation);
-                }
-                else
-                {
-                    _c4dbgp("blck: was empty, undo next line");
-                }
+                _c4dbgpf("blck: indentation decreased len={} ref={} thisline={}", raw_block.len, indentation, lc.indentation);
                 break;
             }
-            else if(indentation == 0)
+            else if(indentation == 0 && _is_doc_token(lc.rem))
             {
-                _c4dbgpf("blck: noindent. lc.rem={}", prs_(lc.rem));
-                if(_is_doc_token(lc.rem))
-                {
-                    _c4dbgp("blck: stop. indentation=0 and doc ended");
-                    break;
-                }
+                _c4dbgp("blck: stop. indentation=0 and doc ended");
+                break;
             }
         }
         else
@@ -2512,7 +2498,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         _line_ended();
         ++num_lines;
     }
-    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->pos.line == (first + num_lines) || (raw_block.len == 0), m_evt_handler->m_curr->pos);
+    _c4assert(m_evt_handler->m_curr->pos.line == (first + num_lines) || (raw_block.len == 0));
     C4_UNUSED(num_lines);
     C4_UNUSED(first);
 
