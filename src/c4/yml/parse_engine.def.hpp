@@ -5286,7 +5286,7 @@ seqimap_start:
             addrem_flags(RNXT, RVAL);
             _handle_annotations_before_blck_val_scalar();
             m_evt_handler->begin_seq_val_flow();
-            addrem_flags(RVAL, RNXT|RSEQIMAP);
+            addrem_flags(RSEQ|RVAL, RNXT|RSEQIMAP);
             _set_indentation(m_evt_handler->m_parent->indref);
             _line_progressed(1);
             goto seqimap_finish;
