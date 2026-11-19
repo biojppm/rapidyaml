@@ -6637,6 +6637,8 @@ mapblck_start:
             else if(m_evt_handler->m_curr->indentation_lt())
             {
                 _c4dbgp("mapblck[RKEY]: smaller indentation!");
+                if C4_UNLIKELY (m_pending_anchors.num_entries | m_pending_tags.num_entries)
+                    _c4err("parse error");
                 _handle_indentation_pop_from_block_map();
                 _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
                 if(has_all(RMAP|RBLCK))
