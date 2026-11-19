@@ -2404,7 +2404,6 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                 else
                 {
                     _c4dbgp("blck: was empty, undo next line");
-                    _line_ended_undo();
                 }
                 break;
             }
