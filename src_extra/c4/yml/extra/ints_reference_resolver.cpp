@@ -504,7 +504,7 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
         }
     }
     newrng.end = m_wpos;
-    if(newrng.end > newrng.beg)
+    if(newrng.end > newrng.beg) // did we spill the map to the end of the array?
     {
         RYML_ASSERT_BASIC_(m_mapw_posref != -1);
         RYML_ASSERT_BASIC_(m_mapw_posref + 3 <= m_mapw_lastslot);
@@ -513,7 +513,7 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
         clear_range_(m_mapw_posref + 3, m_mapw_lastslot);
 
     }
-    else if(m_mapw_firstslot + m_mapw_wslot < m_mapw_lastslot)
+    else if(m_mapw_firstslot + m_mapw_wslot < m_mapw_lastslot) // is there free space?
     {
         clear_range_(m_mapw_firstslot + m_mapw_wslot, m_mapw_lastslot);
     }
@@ -571,6 +571,18 @@ evt_size ReferenceResolver::mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_s
     }
     else
     {
+        // it there is no room to write the RREF, we need to shift
+        // elements to the end until we have room
+        if(dstpos + 3 >= m_mapw_lastslot)
+        {
+            evt_size prev = dstpos;
+            while(prev >= m_mapw_firstslot && prev + 3 >= m_mapw_lastslot)
+                prev = prevpos(evts.ptr, prev);
+            rymlassertb_(prev >= m_mapw_firstslot);
+            rymlassertb_(prev + 3 < m_mapw_lastslot);
+            copy_range_to_end_(evts.ptr, prev, dstpos);
+            dstpos = prev;
+        }
         if(m_mapw_posref == -1)
         {
             m_mapw_posref = dstpos;
