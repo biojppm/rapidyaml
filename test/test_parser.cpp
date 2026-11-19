@@ -700,6 +700,19 @@ TEST(Parser, reserve_then_parse)
     }
 }
 
+TEST(Parser, estimate_capacity_flag)
+{
+    EXPECT_FALSE(ParserOptions().estimate_capacity());
+    EXPECT_TRUE(ParserOptions().estimate_capacity(true).estimate_capacity());
+    EXPECT_FALSE(ParserOptions().estimate_capacity(true).estimate_capacity(false).estimate_capacity());
+    EXPECT_EQ(ParserOptions().estimate_capacity_min_size(), 128u * 1024u);
+    EXPECT_EQ(ParserOptions().estimate_capacity_min_size(1000).estimate_capacity_min_size(), 1000u);
+}
+
+// These tests parse sources of hundreds of KiB. With RYML_DBG the
+// parser prints a trace line for each event, about 1 GB per MB of
+// source, so they are left out of those builds.
+#ifndef RYML_DBG
 ParserOptions estimate_opts()
 {
     return ParserOptions().estimate_capacity(true);
@@ -752,8 +765,19 @@ TEST(Parser, reserve_from_source)
         t.rootref().set_seq();
         parse_in_arena(csrc, t.rootref().append_child(), estimate_opts());
         EXPECT_EQ(t.size(), num_nodes + 1);
-        EXPECT_GT(t.capacity(), num_nodes + 1);
-        EXPECT_EQ(t.capacity() & (t.capacity() - 1), 0);
+        expect_sampled_capacity(t, csrc);
+    }
+    {
+        Tree t(num_nodes);
+        parse_in_arena(csrc, &t, estimate_opts());
+        EXPECT_EQ(t.size(), num_nodes);
+        EXPECT_EQ(t.capacity(), num_nodes);
+    }
+    {
+        Tree t(100);
+        parse_in_arena(csrc, &t, estimate_opts());
+        EXPECT_EQ(t.size(), num_nodes);
+        expect_sampled_capacity(t, csrc);
     }
     {
         const std::string small = many_entries(1000);
@@ -782,10 +806,7 @@ std::string many_keys(size_t min_size)
 
 void expect_same_as_reserved(Tree const& t, csubstr src)
 {
-    const id_type cap = t.size() + RYML_DEFAULT_TREE_CAPACITY;
-    Tree ref(cap);
-    parse_in_arena(src, &ref, estimate_opts());
-    EXPECT_EQ(ref.capacity(), cap);
+    Tree ref = parse_in_arena(src);
     EXPECT_EQ(t.size(), ref.size());
     EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(ref));
 }
@@ -828,6 +849,56 @@ TEST(Parser, reserve_from_source_dense_tail)
     expect_same_as_reserved(t, csrc);
 }
 
+TEST(Parser, reserve_from_source_min_size)
+{
+    const std::string small = many_entries(1000);
+    const csubstr csmall = to_csubstr(small);
+    const id_type num_nodes = 1 + 3 * (small.size() / 19);
+    {
+        Tree t = parse_in_arena(csmall, estimate_opts().estimate_capacity_min_size(0));
+        EXPECT_EQ(t.size(), num_nodes);
+        const id_type est = estimate_tree_capacity(csmall);
+        EXPECT_EQ(t.capacity(), est + (est - 1) / 4);
+    }
+    {
+        const std::string src = many_entries(200 * 1024);
+        Tree t = parse_in_arena(to_csubstr(src), estimate_opts().estimate_capacity_min_size(src.size() + 1));
+        EXPECT_EQ(t.size(), 1 + 3 * (src.size() / 19));
+        EXPECT_EQ(t.capacity() & (t.capacity() - 1), 0);
+    }
+}
+
+TEST(Parser, reserve_from_source_into_tree_in_use)
+{
+    const std::string src = many_entries(130 * 1024);
+    const csubstr csrc = to_csubstr(src);
+    const id_type num_nodes = 1 + 3 * (src.size() / 19);
+    Tree ref = parse_in_arena(csrc);
+    const std::string ref_yaml = emitrs_yaml<std::string>(ref);
+    Tree t;
+    t.rootref().set_seq();
+    id_type num_reallocs = 0;
+    id_type prev_cap = t.capacity();
+    const id_type num_parses = 40;
+    for(id_type i = 0; i < num_parses; ++i)
+    {
+        parse_in_arena(csrc, t.rootref().append_child(), estimate_opts());
+        EXPECT_EQ(t.size(), 1 + (i + 1) * num_nodes);
+        num_reallocs += (t.capacity() != prev_cap);
+        prev_cap = t.capacity();
+    }
+    // each parse reserves at least twice the capacity, so the node
+    // array is reallocated a few times, not once per parse
+    EXPECT_LE(num_reallocs, 8);
+    EXPECT_LT(t.capacity(), 3 * t.size());
+    for(id_type i = 0; i < num_parses; ++i)
+    {
+        Tree child;
+        child.merge_with(&t, t.rootref()[i].id());
+        EXPECT_EQ(emitrs_yaml<std::string>(child), ref_yaml);
+    }
+}
+
 TEST(Parser, reserve_from_source_with_parser)
 {
     const std::string src = many_entries(200 * 1024);
@@ -842,9 +913,6 @@ TEST(Parser, reserve_from_source_with_parser)
 
 TEST(Parser, estimate_capacity_off_by_default)
 {
-    EXPECT_FALSE(ParserOptions().estimate_capacity());
-    EXPECT_TRUE(ParserOptions().estimate_capacity(true).estimate_capacity());
-    EXPECT_FALSE(ParserOptions().estimate_capacity(true).estimate_capacity(false).estimate_capacity());
     const std::string src = many_entries(200 * 1024);
     const csubstr csrc = to_csubstr(src);
     const id_type num_nodes = 1 + 3 * (src.size() / 19);
@@ -871,6 +939,8 @@ TEST(Parser, estimate_capacity_off_by_default)
         expect_doubled(parse_in_arena(&parser, csrc));
     }
 }
+
+#endif // RYML_DBG
 
 TEST(Parser, alloc_arena)
 {

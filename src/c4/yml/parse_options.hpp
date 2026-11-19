@@ -34,6 +34,7 @@ private:
 
     uint32_t m_flags = DEFAULTS;
     type_bits m_flow_ml_style = FLOW_ML1;
+    size_t m_estimate_capacity_min_size = 131072u; // 128 KiB
 
     ParserOptions& set_flags_(bool enabled, Flags_e f)
     {
@@ -130,16 +131,15 @@ public:
     /** @{ */
 
     /** enable/disable reserving the tree from an estimate before
-     * parsing. When enabled, a parse into a new tree (one that holds
-     * only an empty root, with the default capacity) first estimates
-     * the number of nodes from a sample of the source, and reserves
-     * them, so that the tree does not need to grow while parsing. This
-     * is done only for sources of at least 128 KiB; below that, the
-     * estimate costs about as much as the growth it saves. A tree
-     * reserved by the caller, or a parse into an existing tree or
-     * node, are not changed. The extra::EventHandlerInts handler
-     * ignores this option, because it writes into a buffer the caller
-     * provides: use extra::estimate_events_ints_size() to size it.
+     * parsing. When enabled, the parse first estimates the number of
+     * nodes from a sample of the source (see @ref
+     * estimate_tree_capacity()), and reserves room for them in the
+     * tree, so that the tree does not need to grow while parsing. This
+     * is done only for sources of at least @ref
+     * estimate_capacity_min_size() bytes. Only parses into a
+     * @ref Tree use this option; to size the buffer of the integer
+     * event handlers, see @ref
+     * extra::ievt::estimate_events_size().
      * Disabled by default. */
     ParserOptions& estimate_capacity(bool enabled) noexcept
     {
@@ -147,6 +147,18 @@ public:
     }
     /** query status of reserving the tree from an estimate */
     C4_ALWAYS_INLINE bool estimate_capacity() const noexcept { return (m_flags & ESTIMATE_CAPACITY); }
+
+    /** set the smallest source for which @ref estimate_capacity()
+     * reserves the tree. Below it, the estimate costs about as much
+     * as the growth it saves. Default is 128 KiB. */
+    ParserOptions& estimate_capacity_min_size(size_t num_bytes) noexcept
+    {
+        m_estimate_capacity_min_size = num_bytes;
+        return *this;
+    }
+    /** query the smallest source for which @ref estimate_capacity()
+     * reserves the tree */
+    C4_ALWAYS_INLINE size_t estimate_capacity_min_size() const noexcept { return m_estimate_capacity_min_size; }
 
     /** @} */
 
