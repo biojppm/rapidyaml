@@ -28,11 +28,13 @@ private:
         RESOLVE_TAGS_ALL = (1u << 2u),
         SCALAR_FILTERING = (1u << 3u),
         LOCATIONS = (1u << 4u),
-        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
+        ESTIMATE_CAPACITY = (1u << 5u),
+        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML|ESTIMATE_CAPACITY,
     } Flags_e;
 
     uint32_t m_flags = DEFAULTS;
     type_bits m_flow_ml_style = FLOW_ML1;
+    size_t m_estimate_capacity_min_size = 131072u; // 128 KiB
 
     ParserOptions& set_flags_(bool enabled, Flags_e f)
     {
@@ -120,6 +122,43 @@ public:
     }
     /** query source location tracking status */
     C4_ALWAYS_INLINE bool locations() const noexcept { return (m_flags & LOCATIONS); }
+
+    /** @} */
+
+public:
+
+    /** @name reserving the tree from the source */
+    /** @{ */
+
+    /** enable/disable reserving the tree from an estimate before
+     * parsing. When enabled, the parse first estimates the number of
+     * nodes from a sample of the source (see @ref
+     * estimate_tree_capacity()), and reserves room for them in the
+     * tree, so that the tree does not need to grow while parsing. This
+     * is done only for sources of at least @ref
+     * estimate_capacity_min_size() bytes. Only parses into a
+     * @ref Tree use this option; to size the buffer of the integer
+     * event handlers, see @ref
+     * extra::ievt::estimate_events_size().
+     * Enabled by default. */
+    ParserOptions& estimate_capacity(bool enabled) noexcept
+    {
+        return set_flags_(enabled, ESTIMATE_CAPACITY);
+    }
+    /** query status of reserving the tree from an estimate */
+    C4_ALWAYS_INLINE bool estimate_capacity() const noexcept { return (m_flags & ESTIMATE_CAPACITY); }
+
+    /** set the smallest source for which @ref estimate_capacity()
+     * reserves the tree. Below it, the estimate costs about as much
+     * as the growth it saves. Default is 128 KiB. */
+    ParserOptions& estimate_capacity_min_size(size_t num_bytes) noexcept
+    {
+        m_estimate_capacity_min_size = num_bytes;
+        return *this;
+    }
+    /** query the smallest source for which @ref estimate_capacity()
+     * reserves the tree */
+    C4_ALWAYS_INLINE size_t estimate_capacity_min_size() const noexcept { return m_estimate_capacity_min_size; }
 
     /** @} */
 

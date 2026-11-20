@@ -143,18 +143,79 @@ C4_ALWAYS_INLINE void reset_handler_(Parser *parser, Tree *tree, id_type node_id
     parser->m_evt_handler->reset(tree, node_id);
     RYML_ASSERT_BASIC_(parser->m_evt_handler->m_tree == tree);
 }
+enum : size_t { // NOLINT
+    kib_ = 1024,
+    /** the sampled estimate reads this many windows of the source:
+     * at the start, at one third, at two thirds and at the end */
+    est_num_windows_ = 4,
+    /** the bytes in each window. With 4 windows the sample is 64 KiB,
+     * which takes about 0.1 ms to count */
+    est_window_size_ = 16 * kib_,
+};
+/** estimate the nodes of src from a sample of it: count the nodes in
+ * each window, then scale the count to the size of src. */
+uint64_t estimate_tree_capacity_sampled_(csubstr src)
+{
+    const size_t sample_size = est_num_windows_ * est_window_size_;
+    if(src.len <= sample_size)
+        return estimate_tree_capacity(src);
+    id_type count = 0;
+    for(size_t k = 0; k < est_num_windows_; ++k)
+    {
+        const size_t pos = k * ((src.len - est_window_size_) / (est_num_windows_ - 1));
+        count += estimate_tree_capacity(src.sub(pos, est_window_size_)) - 1; // -1: each window counts a root
+    }
+    // count * src.len does not fit in 32 bits for a source of a few
+    // MB, so scale in 64 bits even where id_type is 32 bits
+    return 1u + ((static_cast<uint64_t>(count) * static_cast<uint64_t>(src.len)) / static_cast<uint64_t>(sample_size));
+}
+/** when the options ask for it, reserve the nodes that the source
+ * will add to the tree. This is called before the event handler is
+ * reset, because the handler keeps a pointer into the node array. */
+C4_ALWAYS_INLINE void reserve_from_source_(Parser const* parser, Tree *tree, csubstr src)
+{
+    if(parser->options().estimate_capacity()
+       && src.len >= parser->options().estimate_capacity_min_size())
+    {
+        // -1: the root of the source is the destination node, which
+        // is already in the tree
+        const uint64_t num_new = estimate_tree_capacity_sampled_(src) - 1u;
+        const uint64_t size = static_cast<uint64_t>(tree->size());
+        const uint64_t cap = static_cast<uint64_t>(tree->capacity());
+        // grow only if the tree has no room for the estimate. So a
+        // tree that the caller reserved for the source keeps its size.
+        if(size + num_new > cap)
+        {
+            // Add 25%: too many nodes costs only address space (the
+            // tree does not touch nodes it does not use), while too
+            // few makes the tree grow while parsing.
+            uint64_t next = size + num_new + (num_new / 4u);
+            // At least double, as the tree does when it grows by
+            // itself. Else many parses into one tree would each
+            // reallocate and copy the whole node array.
+            next = next > 2u * cap ? next : 2u * cap;
+            const uint64_t max_ids = static_cast<uint64_t>(std::numeric_limits<id_type>::max()) - 2u; // NONE, VALID
+            const uint64_t max_nodes = static_cast<uint64_t>(SIZE_MAX / sizeof(NodeData));
+            next = next < max_ids ? next : max_ids;
+            next = next < max_nodes ? next : max_nodes;
+            tree->reserve(static_cast<id_type>(next));
+        }
+    }
+}
 // assumes checks above were done prior to calling
 void parse_yaml_(Parser *parser, csubstr filename, substr yaml, Tree *tree, id_type node_id)
 {
-    reset_handler_(parser, tree, node_id);
     checksrc_(tree, yaml);
+    reserve_from_source_(parser, tree, yaml);
+    reset_handler_(parser, tree, node_id);
     parser->parse_in_place_ev(filename, yaml);
 }
 // assumes checks above were done prior to calling
 void parse_json_(Parser *parser, csubstr filename, substr json, Tree *tree, id_type node_id)
 {
-    reset_handler_(parser, tree, node_id);
     checksrc_(tree, json);
+    reserve_from_source_(parser, tree, json);
+    reset_handler_(parser, tree, node_id);
     parser->parse_json_in_place_ev(filename, json);
 }
 } // namespace
@@ -251,13 +312,89 @@ Tree parse_json_in_arena(                  csubstr json                         
 
 //-----------------------------------------------------------------------------
 
+namespace {
+// estimate_tree_capacity() reads the source one machine word at a
+// time, and tests all the bytes of a word at once. These helpers do
+// that. A "mark" is a word that has 0x80 in each byte that passed a
+// test, and 0 in each other byte. Nothing here depends on the byte
+// order, because each byte of a word is tested apart from the others,
+// and the marks are added up without regard to their position.
+
+#if C4_WORDSIZE == 8
+using est_word_type = uint64_t;
+#else
+using est_word_type = uint32_t;
+#endif
+static_assert(sizeof(est_word_type) == C4_WORDSIZE, "the loop steps by C4_WORDSIZE");
+
+/** a word with the byte b in each of its bytes */
+C4_ALWAYS_INLINE est_word_type est_bcast_(uint8_t b) noexcept
+{
+    return (~static_cast<est_word_type>(0) / static_cast<est_word_type>(0xff)) * b; // 0x0101...01 * b
+}
+
+/** mark the bytes of w that are equal to c. Any w and any c.
+ *
+ * How: x = w ^ bcast(c) has a zero byte where w has c. In each byte,
+ * (x & 0x7f) + 0x7f sets the high bit if one of the low 7 bits is
+ * set, and it cannot carry into the next byte. OR-ing x also sets the
+ * high bit when the high bit of x is set. So the high bit is clear
+ * only for a zero byte of x. OR-ing 0x7f and inverting keeps only
+ * that high bit. */
+C4_ALWAYS_INLINE est_word_type mark_bytes_eq_(est_word_type w, char c) noexcept
+{
+    const est_word_type lo7 = est_bcast_(0x7f);
+    const est_word_type x = w ^ est_bcast_(static_cast<uint8_t>(c));
+    return ~(((x & lo7) + lo7) | x | lo7);
+}
+
+/** add up the bytes of w, as numbers from 0 to 255. The sum is at
+ * most 8*255, so it fits in the 16-bit lane that the multiply fills */
+C4_ALWAYS_INLINE id_type sum_bytes_(est_word_type w) noexcept
+{
+    const est_word_type lo8 = (~static_cast<est_word_type>(0) / static_cast<est_word_type>(0xffff)) * 0xffu; // 0x00ff00ff...
+    const est_word_type pairs = (w & lo8) + ((w >> 8u) & lo8); // 16-bit lanes, each <= 510
+    // the multiply adds all the 16-bit lanes into the top lane
+    const est_word_type lanes = ~static_cast<est_word_type>(0) / static_cast<est_word_type>(0xffff); // 0x00010001...
+    return static_cast<id_type>((pairs * lanes) >> ((8u * sizeof(est_word_type)) - 16u));
+}
+} // namespace
+
 RYML_EXPORT id_type estimate_tree_capacity(csubstr src)
 {
     id_type num_nodes = 1; // root
-    for(size_t i = 0; i < src.len; ++i)
+    size_t i = 0;
+    // Each step loads two words: the word at i, and the word at i+1,
+    // to see the byte that follows each dash. Each byte adds at most 1
+    // to its byte of acc, so acc is added up every 255 words, before a
+    // byte can overflow.
+    while(i + C4_WORDSIZE < src.len)
+    {
+        const size_t words = (src.len - i - 1) / C4_WORDSIZE;
+        const size_t e = i + (C4_WORDSIZE * (words < 255u ? words : 255u));
+        est_word_type acc = 0;
+        for( ; i < e; i += C4_WORDSIZE)
+        {
+            est_word_type w;
+            est_word_type next;
+            memcpy(&w, src.str + i, C4_WORDSIZE);
+            memcpy(&next, src.str + i + 1, C4_WORDSIZE);
+            // '{' or '[': '[' | 0x20 == '{'
+            const est_word_type node = mark_bytes_eq_(w, '\n')
+                | mark_bytes_eq_(w, ',')
+                | mark_bytes_eq_(w | est_bcast_(0x20), '{');
+            // "- " or a dash at the end of a line
+            const est_word_type entry = mark_bytes_eq_(w, '-')
+                & (mark_bytes_eq_(next, ' ') | mark_bytes_eq_(next, '\n'));
+            acc += (node | entry) >> 7u;
+        }
+        num_nodes += sum_bytes_(acc);
+    }
+    for( ; i < src.len; ++i)
     {
         const char c = src.str[i];
         num_nodes += (c == '\n') || (c == ',') || (c == '[') || (c == '{');
+        num_nodes += (c == '-') && (i + 1 < src.len) && (src.str[i + 1] == ' ' || src.str[i + 1] == '\n');
     }
     return num_nodes;
 }

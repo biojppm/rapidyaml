@@ -221,7 +221,8 @@ void Tree::_copy(Tree const& that)
     if(that.m_cap)
     {
         m_buf = RYML_CB_ALLOC_HINT_(m_callbacks, NodeData, (size_t)that.m_cap, that.m_buf);
-        memcpy(m_buf, that.m_buf, (size_t)that.m_first_unused * sizeof(NodeData));
+        if(that.m_first_unused)
+            memcpy(m_buf, that.m_buf, (size_t)that.m_first_unused * sizeof(NodeData));
     }
     m_cap = that.m_cap;
     m_size = that.m_size;
@@ -300,7 +301,8 @@ void Tree::reserve(id_type cap)
         NodeData *buf = RYML_CB_ALLOC_HINT_(m_callbacks, NodeData, (size_t)cap, m_buf);
         if(m_buf)
         {
-            memcpy(buf, m_buf, (size_t)m_first_unused * sizeof(NodeData));
+            if(m_first_unused)
+                memcpy(buf, m_buf, (size_t)m_first_unused * sizeof(NodeData));
             RYML_CB_FREE_(m_callbacks, m_buf, NodeData, (size_t)m_cap);
         }
         m_cap = cap;
