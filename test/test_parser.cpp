@@ -711,8 +711,18 @@ TEST(Parser, estimate_capacity_flag)
 
 // These tests parse sources of hundreds of KiB. With RYML_DBG the
 // parser prints a trace line for each event, about 1 GB per MB of
-// source, so they are left out of those builds.
+// source, so they switch the trace off while they run.
 #ifndef RYML_DBG
+#define RYML_NODBG_SCOPED()
+#else
+#define RYML_NODBG_SCOPED() nodbg nodbg_{}
+struct nodbg
+{
+    nodbg() { dbg_set_enabled_(false); }
+    ~nodbg() { dbg_set_enabled_(true); }
+};
+#endif
+
 ParserOptions estimate_opts()
 {
     return ParserOptions().estimate_capacity(true);
@@ -727,6 +737,7 @@ void expect_sampled_capacity(Tree const& t, csubstr src)
 
 TEST(Parser, reserve_from_source)
 {
+    RYML_NODBG_SCOPED();
     const std::string src = many_entries(200 * 1024);
     const csubstr csrc = to_csubstr(src);
     const id_type num_nodes = 1 + 3 * (src.size() / 19);
@@ -813,6 +824,7 @@ void expect_same_as_reserved(Tree const& t, csubstr src)
 
 TEST(Parser, reserve_from_source_scalar)
 {
+    RYML_NODBG_SCOPED();
     const std::string src = "big: |\n" + block_lines(300 * 1024, 4000);
     const csubstr csrc = to_csubstr(src);
     Tree t = parse_in_arena(csrc, estimate_opts());
@@ -824,6 +836,7 @@ TEST(Parser, reserve_from_source_scalar)
 
 TEST(Parser, reserve_from_source_dense_between_windows)
 {
+    RYML_NODBG_SCOPED();
     std::string src = "a: |\n" + block_lines(30 * 1024, 4000);
     src += many_keys(50 * 1024);
     src += "z: |\n" + block_lines(220 * 1024, 4000);
@@ -839,6 +852,7 @@ TEST(Parser, reserve_from_source_dense_between_windows)
 
 TEST(Parser, reserve_from_source_dense_tail)
 {
+    RYML_NODBG_SCOPED();
     std::string src = "a: |\n" + block_lines(250 * 1024, 4000);
     src += many_keys(50 * 1024);
     const csubstr csrc = to_csubstr(src);
@@ -851,6 +865,7 @@ TEST(Parser, reserve_from_source_dense_tail)
 
 TEST(Parser, reserve_from_source_min_size)
 {
+    RYML_NODBG_SCOPED();
     const std::string small = many_entries(1000);
     const csubstr csmall = to_csubstr(small);
     const id_type num_nodes = 1 + 3 * (small.size() / 19);
@@ -870,6 +885,7 @@ TEST(Parser, reserve_from_source_min_size)
 
 TEST(Parser, reserve_from_source_into_tree_in_use)
 {
+    RYML_NODBG_SCOPED();
     const std::string src = many_entries(130 * 1024);
     const csubstr csrc = to_csubstr(src);
     const id_type num_nodes = 1 + 3 * (src.size() / 19);
@@ -901,6 +917,7 @@ TEST(Parser, reserve_from_source_into_tree_in_use)
 
 TEST(Parser, reserve_from_source_with_parser)
 {
+    RYML_NODBG_SCOPED();
     const std::string src = many_entries(200 * 1024);
     Parser::handler_type evt_handler = {};
     Parser parser(&evt_handler, estimate_opts());
@@ -913,6 +930,7 @@ TEST(Parser, reserve_from_source_with_parser)
 
 TEST(Parser, estimate_capacity_off_by_default)
 {
+    RYML_NODBG_SCOPED();
     const std::string src = many_entries(200 * 1024);
     const csubstr csrc = to_csubstr(src);
     const id_type num_nodes = 1 + 3 * (src.size() / 19);
@@ -939,8 +957,6 @@ TEST(Parser, estimate_capacity_off_by_default)
         expect_doubled(parse_in_arena(&parser, csrc));
     }
 }
-
-#endif // RYML_DBG
 
 TEST(Parser, alloc_arena)
 {

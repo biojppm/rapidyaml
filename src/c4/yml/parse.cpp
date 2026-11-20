@@ -325,6 +325,7 @@ using est_word_type = uint64_t;
 #else
 using est_word_type = uint32_t;
 #endif
+static_assert(sizeof(est_word_type) == C4_WORDSIZE, "the loop steps by C4_WORDSIZE");
 
 /** a word with the byte b in each of its bytes */
 C4_ALWAYS_INLINE est_word_type est_bcast_(uint8_t b) noexcept
@@ -347,7 +348,8 @@ C4_ALWAYS_INLINE est_word_type mark_bytes_eq_(est_word_type w, char c) noexcept
     return ~(((x & lo7) + lo7) | x | lo7);
 }
 
-/** add up the bytes of w, each of which must be at most 255 */
+/** add up the bytes of w, as numbers from 0 to 255. The sum is at
+ * most 8*255, so it fits in the 16-bit lane that the multiply fills */
 C4_ALWAYS_INLINE id_type sum_bytes_(est_word_type w) noexcept
 {
     const est_word_type lo8 = (~static_cast<est_word_type>(0) / static_cast<est_word_type>(0xffff)) * 0xffu; // 0x00ff00ff...
@@ -362,22 +364,21 @@ RYML_EXPORT id_type estimate_tree_capacity(csubstr src)
 {
     id_type num_nodes = 1; // root
     size_t i = 0;
-    const size_t wsz = sizeof(est_word_type);
-    // A word also reads the word that starts one byte later, to see
-    // the byte that follows each dash. Each byte adds at most 1 to its
-    // byte of acc, so acc is added up every 255 words, before a byte
-    // can overflow.
-    while(i + wsz < src.len)
+    // Each step loads two words: the word at i, and the word at i+1,
+    // to see the byte that follows each dash. Each byte adds at most 1
+    // to its byte of acc, so acc is added up every 255 words, before a
+    // byte can overflow.
+    while(i + C4_WORDSIZE < src.len)
     {
-        const size_t words = (src.len - i - 1) / wsz;
-        const size_t e = i + (wsz * (words < 255u ? words : 255u));
+        const size_t words = (src.len - i - 1) / C4_WORDSIZE;
+        const size_t e = i + (C4_WORDSIZE * (words < 255u ? words : 255u));
         est_word_type acc = 0;
-        for( ; i < e; i += wsz)
+        for( ; i < e; i += C4_WORDSIZE)
         {
             est_word_type w;
             est_word_type next;
-            memcpy(&w, src.str + i, wsz);
-            memcpy(&next, src.str + i + 1, wsz);
+            memcpy(&w, src.str + i, C4_WORDSIZE);
+            memcpy(&next, src.str + i + 1, C4_WORDSIZE);
             // '{' or '[': '[' | 0x20 == '{'
             const est_word_type node = mark_bytes_eq_(w, '\n')
                 | mark_bytes_eq_(w, ',')
