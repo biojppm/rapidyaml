@@ -29,7 +29,7 @@ private:
         SCALAR_FILTERING = (1u << 3u),
         LOCATIONS = (1u << 4u),
         ESTIMATE_CAPACITY = (1u << 5u),
-        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML,
+        DEFAULTS = SCALAR_FILTERING|DETECT_FLOW_ML|ESTIMATE_CAPACITY,
     } Flags_e;
 
     uint32_t m_flags = DEFAULTS;
@@ -140,7 +140,7 @@ public:
      * @ref Tree use this option; to size the buffer of the integer
      * event handlers, see @ref
      * extra::ievt::estimate_events_size().
-     * Disabled by default. */
+     * Enabled by default. */
     ParserOptions& estimate_capacity(bool enabled) noexcept
     {
         return set_flags_(enabled, ESTIMATE_CAPACITY);

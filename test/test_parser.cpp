@@ -702,9 +702,9 @@ TEST(Parser, reserve_then_parse)
 
 TEST(Parser, estimate_capacity_flag)
 {
-    EXPECT_FALSE(ParserOptions().estimate_capacity());
-    EXPECT_TRUE(ParserOptions().estimate_capacity(true).estimate_capacity());
-    EXPECT_FALSE(ParserOptions().estimate_capacity(true).estimate_capacity(false).estimate_capacity());
+    EXPECT_TRUE(ParserOptions().estimate_capacity());
+    EXPECT_FALSE(ParserOptions().estimate_capacity(false).estimate_capacity());
+    EXPECT_TRUE(ParserOptions().estimate_capacity(false).estimate_capacity(true).estimate_capacity());
     EXPECT_EQ(ParserOptions().estimate_capacity_min_size(), 128u * 1024u);
     EXPECT_EQ(ParserOptions().estimate_capacity_min_size(1000).estimate_capacity_min_size(), 1000u);
 }
@@ -928,32 +928,60 @@ TEST(Parser, reserve_from_source_with_parser)
     expect_sampled_capacity(t2, to_csubstr(src));
 }
 
-TEST(Parser, estimate_capacity_off_by_default)
+TEST(Parser, estimate_capacity_on_by_default)
 {
     RYML_NODBG_SCOPED();
     const std::string src = many_entries(200 * 1024);
     const csubstr csrc = to_csubstr(src);
     const id_type num_nodes = 1 + 3 * (src.size() / 19);
+    auto expect_sampled = [&](Tree const& t){
+        EXPECT_EQ(t.size(), num_nodes);
+        expect_sampled_capacity(t, csrc);
+    };
+    expect_sampled(parse_in_arena(csrc));
+    expect_sampled(parse_in_arena(csrc, ParserOptions{}));
+    {
+        Tree t;
+        parse_in_arena(csrc, &t);
+        expect_sampled(t);
+    }
+    {
+        std::string copy = src;
+        expect_sampled(parse_in_place(to_substr(copy)));
+    }
+    {
+        Parser::handler_type evt_handler = {};
+        Parser parser(&evt_handler);
+        expect_sampled(parse_in_arena(&parser, csrc));
+    }
+}
+
+TEST(Parser, estimate_capacity_off)
+{
+    RYML_NODBG_SCOPED();
+    const std::string src = many_entries(200 * 1024);
+    const csubstr csrc = to_csubstr(src);
+    const id_type num_nodes = 1 + 3 * (src.size() / 19);
+    const ParserOptions off = ParserOptions().estimate_capacity(false);
     auto expect_doubled = [&](Tree const& t){
         EXPECT_EQ(t.size(), num_nodes);
         EXPECT_GE(t.capacity(), num_nodes);
         EXPECT_LT(t.capacity(), 2 * num_nodes);
         EXPECT_EQ(t.capacity() & (t.capacity() - 1), 0);
     };
-    expect_doubled(parse_in_arena(csrc));
-    expect_doubled(parse_in_arena(csrc, ParserOptions{}));
+    expect_doubled(parse_in_arena(csrc, off));
     {
         Tree t;
-        parse_in_arena(csrc, &t);
+        parse_in_arena(csrc, &t, off);
         expect_doubled(t);
     }
     {
         std::string copy = src;
-        expect_doubled(parse_in_place(to_substr(copy)));
+        expect_doubled(parse_in_place(to_substr(copy), off));
     }
     {
         Parser::handler_type evt_handler = {};
-        Parser parser(&evt_handler);
+        Parser parser(&evt_handler, off);
         expect_doubled(parse_in_arena(&parser, csrc));
     }
 }
