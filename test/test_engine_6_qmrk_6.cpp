@@ -255,6 +255,102 @@ ENGINE_TEST(QmrkIndentSeq5, HAS_CONTAINER_KEYS,
 }
 
 
+ENGINE_TEST_ERRLOC(QmrkIndent00, Location(2, 2), "?\na")
+ENGINE_TEST_ERRLOC(QmrkIndent01_0, Location(2, 1), "?\n?a")
+ENGINE_TEST_ERRLOC(QmrkIndent01_1, Location(2, 1), "?\n?a?")
+ENGINE_TEST_ERRLOC(QmrkIndent01_2, Location(2, 1), "?\n-")
+ENGINE_TEST(QmrkIndent02,
+            "?\n? a"
+            ,
+            ": \n"
+            "a: \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :\n"
+            "=VAL :\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain_empty());
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(QmrkIndent03, HAS_CONTAINER_KEYS,
+            "?\n ? a"
+            ,
+            "?\n"
+            "  ? a\n"
+            "  : \n"
+            ": \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :\n"
+            "=VAL :\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+ENGINE_TEST(QmrkIndent04,
+            "?\n ?a"
+            ,
+            ": \n"
+            "a: \n"
+            ,
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :\n"
+            "=VAL :\n"
+            "=VAL :a\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("?a"));
+    ___(ps.set_val_scalar_plain_empty());
+    ___(ps.end_map_block());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 } // namespace yml
 } // namespace c4
 

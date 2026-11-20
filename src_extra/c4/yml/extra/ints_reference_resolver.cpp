@@ -8,6 +8,7 @@
 #ifndef C4_YML_DETAIL_LOOKUP_ANCHOR_HPP_
 #include "c4/yml/detail/lookup_anchor.hpp"
 #endif
+#include "c4/yml/extra/ints_utils.hpp"
 
 C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
@@ -18,13 +19,76 @@ namespace yml {
 namespace extra {
 namespace ievt {
 
+#define rymlassertb_(...) RYML_ASSERT_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, __VA_ARGS__)
 
 namespace {
 enum : evt_size { nosibling = -1 }; // NOLINT
+#if !RYML_USE_ASSERT
+#define rymlassert_not_recursive_(var)
+#else
+#define rymlassert_not_recursive_(var)              \
+    rymlassertb_(!var);/*NOLINT*/                   \
+    recursive_check_ reccheck_(&(var))
+struct recursive_check_ // NOLINT
+{
+    bool *var;
+    explicit recursive_check_(bool *var_) : var(var_) { *var = true; }
+    ~recursive_check_() noexcept { *var = false; }
+};
+#endif
 } // namespace
 
+#if 0
+#define prrng(mem, beg, end)
+#define pr38(parent)
+#define printall()
+#define wtf(...)
+#define wtfparents()
+#else
+#define wtf(...) \
+            do {                                        \
+                printf("%s:%d: ", __FILE__, __LINE__);  \
+                printf(__VA_ARGS__);                    \
+                printf("\n");                           \
+            } while(0)
+#define prrng(mem, beg, end)                          \
+    do {                                              \
+        printf("{\n  ");                              \
+        for(evt_size i_ = (beg); i_ < (end); ++i_)    \
+        {                                             \
+            printf("[%d]0x%x,", (i_), (mem)[i_]);     \
+            if((i_-(beg)) && !((i_-(beg)) % 5))       \
+                printf("\n  ");                       \
+        }                                             \
+        printf("\n}\n");                              \
+    } while(0)
+#define prrngsl(mem, beg, end)                          \
+    do {                                              \
+        printf("{\n  ");                              \
+        for(evt_size i_ = (beg); i_ < (end); ++i_)    \
+        {                                             \
+            printf("[%d]%d,", (i_), (mem)[i_]);     \
+            if((i_-(beg)) && !((i_-(beg)) % 10))      \
+                printf("\n  ");                       \
+        }                                             \
+        printf("}\n");                              \
+    } while(0)
+#define wtfparents()                            \
+    do {                                                \
+        printf("parents: {");                                           \
+        for(id_type i = 0; i < m_parents.size(); ++i)                   \
+            printf("%d,", m_parents[i]);                                \
+        printf("}\n");                                                  \
+    } while(0)
 
-#define rymlassertb_(...) RYML_ASSERT_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, __VA_ARGS__)
+#define printall()                                          \
+    {                                                       \
+        extra::ievt::events_ints_print(src,                 \
+                                       arena,               \
+                                       evts.ptr, evts.len); \
+    }
+#endif
+
 
 
 ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
@@ -36,13 +100,18 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
     , m_mapw_scratch(cb)
     , m_subject()
     , m_opts()
-    , m_wpos()
-    , m_newsz()
     , m_sz_limit()
-    , m_mapw_firstslot()
-    , m_mapw_lastslot()
-    , m_mapw_wslot()
+    , m_newsz()
+    , m_wpos()
+    , m_mapw_beg()
+    , m_mapw_end()
+    , m_mapw_count()
     , m_mapw_posref()
+    RYML_WITH_ASSERT_(
+    , m_guard_resolving()
+    , m_guard_merging()
+    , m_guard_keymap()
+    )
 {
     #if RYML_USE_ASSERT
     ResolveParams p = {};
@@ -54,26 +123,84 @@ ReferenceResolver::ReferenceResolver(Callbacks const& cb) noexcept
 void ReferenceResolver::reset_(Buffers evts_, ResolveOptions const& opts_, ResolveParams const& params)
 {
     Buffers::operator=(evts_);
-    m_wpos = evts.len;
-    m_newsz = evts.len;
-    m_sz_limit = opts_.max_size(evts.len);
     m_opts = opts_;
+    m_sz_limit = opts_.max_size(evts.len);
+    m_newsz = evts.len;
+    m_wpos = evts.len;
     m_anchor_map.m_small_limit = static_cast<id_type>(params.anchor_map_linear_threshold);
     m_known_keys.reset(opts_);
     m_known_keys.m_known_keys.m_small_limit = static_cast<id_type>(params.known_keys_linear_threshold);
     m_parents.clear();
     m_siblings.resize(static_cast<id_type>(evts.cap));
     reset_siblings_range_(0, evts.cap);
+    RYML_WITH_ASSERT_(m_guard_resolving = m_guard_merging = m_guard_keymap = false;)
 }
 
 void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
 {
     id_type sbeg = static_cast<id_type>(beg);
     id_type send = static_cast<id_type>(end);
+    rymlassertb_(sbeg <= send);
     rymlassertb_(sbeg <= m_siblings.size());
     rymlassertb_(send <= m_siblings.size());
     for( ; sbeg < send; ++sbeg)
         m_siblings[sbeg] = nosibling;
+}
+
+C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_(evt_size pos)
+{
+    id_type spos = static_cast<id_type>(pos);
+    evt_size sib = m_siblings[spos];
+    if(sib != nosibling)
+        return sib;
+    evt_bits evt = evts.ptr[pos];
+    if(!(evt & ievt::BEG_))
+    {
+        pos = ievt::nextpos(evts.ptr, pos);
+    }
+    else
+    {
+        const evt_bits open = evt & detail::mask_open_close;
+        const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
+        ++pos; // skip the start event
+        uint32_t count = 0;
+        while(pos < m_wpos)
+        {
+            sib = m_siblings[static_cast<id_type>(pos)];
+            if(sib != nosibling)
+            {
+                pos = sib;
+            }
+            else
+            {
+                evt = evts.ptr[pos];
+                if((evt & open) == open)
+                {
+                    ++count;
+                }
+                else if((evt & close) == close)
+                {
+                    if(!(count--))
+                    {
+                        m_siblings[static_cast<id_type>(pos)] = pos + 1;
+                        ++pos;
+                        break;
+                    }
+                }
+                evt_size next = ievt::nextpos(evts.ptr, pos);
+                m_siblings[static_cast<id_type>(pos)] = next;
+                pos = next;
+            }
+        }
+    }
+    m_siblings[spos] = pos;
+    return pos;
+}
+
+C4_NODISCARD evt_size ReferenceResolver::matching_close_memoized_(evt_size pos)
+{
+    rymlassertb_(detail::seqormap(evts.ptr[pos]));
+    return ievt::prevpos(evts.ptr, next_sibling_memoized_(pos));
 }
 
 void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
@@ -89,23 +216,55 @@ void ReferenceResolver::resolve_(Buffers *evts_, ResolveOptions const& opts_, Re
     if(!evts_->evts.len)
         return;
     reset_(*evts_, opts_, params);
-    if(!gather_anchors_())
-        return;  // exit early if there's nothing to do
-    evt_size startlen = evts.len;
-    iter_elms_();
+    m_anchor_map.clear();
+    // exit early if there's nothing to do
+    if(!(gather_anchors_and_check_has_refs_() ||
+         m_opts.keep_repeated_keys() ||
+         m_opts.merge_always() ||
+         (m_opts.clear_anchors() && m_anchor_map.m_arr.empty())))
+        return;
+    // we need to resolve
+    m_anchor_map.sort();
+    // now go to all refs, and resolve them
+    for(evt_size pos = 0; pos < evts.len; )
+    {
+wtf("root: %d", pos);
+        if(detail::seqormap(evts.ptr[pos]))
+        {
+wtf("root: %d descend", pos);
+            pos = descend_(pos);
+        }
+        else
+        {
+wtf("root: %d next", pos);
+            if(evts.ptr[pos] & ievt::ALIA)
+            {
+                resolve_alia_(pos);
+            }
+            else if(detail::hasall(evts.ptr[pos], ievt::ESTR))
+            {
+                break;
+            }
+            pos = ievt::nextpos(evts.ptr, pos);
+        }
+    }
     // finally:
     if(m_opts.clear_anchors())
+    {
         clear_anchors_(0, evts.len);
+        if(m_wpos > evts.len)
+            clear_anchors_(evts.len, m_wpos);
+        m_anchor_map.clear();
+    }
     // adjust for the sentinel
-    m_wpos += (m_wpos > startlen);
+    m_wpos += (m_wpos > evts_->evts.len);
     evts.len = m_wpos;
     evts_->operator=(*this);
 }
 
-bool ReferenceResolver::gather_anchors_()
+bool ReferenceResolver::gather_anchors_and_check_has_refs_()
 {
     bool has_refs = false;
-    m_anchor_map.clear();
     for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
     {
         if(evts.ptr[pos] & ievt::ANCH)
@@ -113,207 +272,112 @@ bool ReferenceResolver::gather_anchors_()
         else if(evts.ptr[pos] & ievt::ALIA)
             has_refs = true;
     }
-    bool do_resolve = has_refs ||
-       m_opts.keep_repeated_keys() ||
-       m_opts.merge_always() ||
-       (m_opts.clear_anchors() && m_anchor_map.m_arr.empty());
-    if(do_resolve)
-        m_anchor_map.sort();
-    return do_resolve;
+    return has_refs;
 }
 
 void ReferenceResolver::clear_anchors_(evt_size beg, evt_size end)
 {
-    // go again through the evts array:
+    // go again through the evts array. previously this was done by
+    // going through the anchor map, but it's very tricky to avoid
+    // stale anchor data, and so very likely to clobber relevant
+    // event data.
     for(evt_size pos = beg; pos < end; pos = nextpos(evts.ptr, pos))
     {
         if(evts.ptr[pos] & ievt::ANCH)
             clear_str_(pos);
-        else if(evts.ptr[pos] & ievt::RREF)
-            clear_anchors_(evts.ptr[pos + 1], evts.ptr[pos + 2]);
         else if(detail::hasall(evts.ptr[pos], ievt::ESTR))
             break;
     }
-    m_anchor_map.clear();
-    // previously this was done by going through the anchor_map, but
-    // it's very tricky to avoid stale anchor data, and so clobbering
-    // relevant evts.
 }
 
-void ReferenceResolver::iter_elms_()
+C4_NODISCARD evt_size ReferenceResolver::descend_(evt_size pos)
 {
-    // now go to all refs, and resolve them
-    for(evt_size pos = 0; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
-    {
-        if(detail::seqormap(evts.ptr[pos]))
-        {
-            if(descend_(pos))
-            {
-                ;
-            }
-        }
-        else if(evts.ptr[pos] & ievt::ALIA)
-        {
-            AnchorData const* anch = lookup_anchor_(pos);
-            if(anch)
-                set_rref_(pos, anch->rng.beg, anch->rng.end);
-        }
-    }
-}
-
-C4_NODISCARD bool ReferenceResolver::descend_(evt_size &pos)
-{
-    bool ret = false;
+    rymlassertb_(detail::seqormap(evts.ptr[pos]));
+    rymlassertb_(m_parents.empty() || m_parents.top() != pos);
     m_parents.emplace_top() = pos;
+wtf("descend[%d]: enter -- ", pos); wtfparents();
     if(detail::hasall(evts.ptr[pos], ievt::BSEQ))
     {
-        pos = resolve_children_seq_(pos);
-        ret = true;
+        pos = resolve_children_seq_recur_(pos);
     }
     else if(detail::hasall(evts.ptr[pos], ievt::BMAP))
     {
-        pos = resolve_children_map_(pos);
-        ret = true;
+        evt_size endpos = resolve_children_map_norecur_(pos);
+wtf("descend[%d]: map endpos=%d", pos, endpos);
+        for(evt_size ch = 1 + pos; ch < evts.len; )
+        {
+wtf("descend[%d]: visit map ch %d", pos, ch);
+            if(detail::seqormap(evts.ptr[ch]))
+            {
+                ch = descend_(ch);
+            }
+            else
+            {
+                if(detail::hasall(evts.ptr[ch], ievt::EMAP))
+                {
+                    break;
+                }
+                ch = next_sibling_memoized_(ch);
+            }
+        }
+        pos = endpos;
     }
+wtf("descend: exit %d at %d -- ", m_parents.top(), pos); wtfparents();
     m_parents.pop();
-    return ret;
+    return pos;
 }
 
-C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_(evt_size pos)
+C4_NODISCARD evt_size ReferenceResolver::resolve_children_seq_recur_(evt_size pos)
 {
     rymlassertb_(detail::hasall(evts.ptr[pos], ievt::BSEQ));
-    for(++pos; evts.ptr[pos] != ievt::ESTR; pos = nextpos(evts.ptr, pos))
+    for(++pos; pos < evts.len; )
     {
-        if(evts.ptr[pos] & ievt::ALIA)
+wtf("descend[%d]: visit seq ch %d", m_parents.top(), pos);
+        if(detail::seqormap(evts.ptr[pos]))
         {
-            AnchorData const* anch = lookup_anchor_(pos);
-            if(anch)
-                set_rref_(pos, anch->rng.beg, anch->rng.end);
+            pos = descend_(pos);
         }
-        else if(descend_(pos))
+        else
         {
-            ;
-        }
-        else if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
-        {
-            break;
+            if(evts.ptr[pos] & ievt::ALIA)
+            {
+                resolve_alia_(pos);
+            }
+            else if(detail::hasall(evts.ptr[pos], ievt::ESEQ))
+            {
+                ++pos;
+                break;
+            }
+            pos = next_sibling_memoized_(pos);
         }
     }
     return pos;
 }
 
-C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_(evt_size map_pos)
+C4_NODISCARD evt_size ReferenceResolver::resolve_children_map_norecur_(evt_size pos)
 {
-    rymlassertb_(detail::hasall(evts.ptr[map_pos], ievt::BMAP));
-    if(m_opts.keep_repeated_keys())
-        return resolve_map_repeat_(map_pos);
-    bool do_merge = requires_merge_(map_pos);
-    bool key_conflict = m_known_keys.has_key_conflict();
-    evt_size pos = resolve_map_merge_(map_pos, key_conflict);
-    if(do_merge && key_conflict)
-        return merge_map_keys_(map_pos);
+    rymlassertb_(detail::hasall(evts.ptr[pos], ievt::BMAP));
+    rymlassert_not_recursive_(m_guard_resolving);
+    // the call to requires_merge_() is expensive, so try to avoid it
+    if(m_opts.keep_repeated_keys() || !requires_merge_(pos))
+    {
+        pos = resolve_map_repeat_(pos);
+    }
+    else
+    {
+        pos = resolve_map_merge_(pos);
+    }
     return pos;
-}
-
-C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_(evt_size pos)
-{
-    size_t spos = static_cast<size_t>(pos);
-    rymlassertb_(spos < m_siblings.size());
-    evt_size sib = m_siblings[spos];
-    if(sib != nosibling)
-        return sib;
-    m_siblings[spos] = sib = detail::find_next_sibling(evts.ptr, evts.len, pos);
-    return sib;
-}
-
-C4_NODISCARD evt_size ReferenceResolver::matching_close_memoized_(evt_size pos)
-{
-    rymlassertb_(detail::seqormap(evts.ptr[pos]));
-    return ievt::prevpos(evts.ptr, next_sibling_memoized_(pos));
-}
-
-C4_NODISCARD bool ReferenceResolver::is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT
-{
-    rymlassertb_(detail::hasall(evts.ptr[anchor], ievt::ANCH));
-    evt_size elm = detail::find_next_entry_(evts.ptr, evts.len, anchor, ievt::KEY_|ievt::VAL_);
-    for(size_t i = 0; i < m_parents.size(); ++i)
-        if(elm == m_parents.top(i))
-            return true;
-    return false;
-}
-
-C4_NODISCARD auto ReferenceResolver::elm_range_(evt_size elm) -> Range_
-{
-    rymlassertb_(detail::isentry(evts.ptr[elm]));
-    Range_ rng;
-    rng.beg = elm;
-    if(evts.ptr[rng.beg] & (ievt::SCLR|ievt::ALIA)) // scalars
-    {
-        rng.end = rng.beg + 3;
-    }
-    else // containers
-    {
-        rymlassertb_(detail::seqormap(evts.ptr[elm]));
-        rng.end = matching_close_memoized_(elm) + 1/*include the end*/;
-    }
-    return rng;
-}
-
-C4_NODISCARD auto ReferenceResolver::elm_range_scratch_(evt_size elm) -> Range_
-{
-    id_type selm = static_cast<id_type>(elm);
-    rymlassertb_(detail::isentry(m_mapw_scratch[selm]));
-    Range_ rng;
-    rng.beg = elm;
-    if(m_mapw_scratch[selm] & (ievt::SCLR|ievt::ALIA)) // scalars
-    {
-        rng.end = rng.beg + 3;
-    }
-    else // containers. don't use the memoized matching close!
-    {
-        rymlassertb_(detail::seqormap(m_mapw_scratch[selm]));
-        rng.end = detail::find_matching_close_(&m_mapw_scratch[0], static_cast<evt_size>(m_mapw_scratch.size()), rng.beg)
-            + 1/*include the end*/;
-    }
-    return rng;
-}
-
-C4_NODISCARD auto ReferenceResolver::keyval_range_(evt_size beg) -> Range_
-{
-    rymlassertb_(evts.ptr[beg] & ievt::KEY_);
-    rymlassertb_(detail::isentry(evts.ptr[beg]));
-    Range_ r = elm_range_(detail::find_next_entry_(evts.ptr, evts.len, beg, ievt::VAL_));
-    r.beg = beg;
-    return r;
-}
-
-C4_NODISCARD auto ReferenceResolver::keyval_range_scratch_(evt_size beg) -> Range_
-{
-    rymlassertb_(beg >= 0 && static_cast<id_type>(beg) < m_mapw_scratch.size());
-    rymlassertb_(m_mapw_scratch[static_cast<id_type>(beg)] & ievt::KEY_);
-    rymlassertb_(detail::isentry(m_mapw_scratch[static_cast<id_type>(beg)]));
-    Range_ r = elm_range_scratch_(detail::find_next_entry_(&m_mapw_scratch[0], static_cast<evt_size>(m_mapw_scratch.size()), beg, ievt::VAL_));
-    r.beg = beg;
-    return r;
-}
-
-C4_NODISCARD auto ReferenceResolver::keyval_range_val_(evt_size beg) -> Range_
-{
-    rymlassertb_(evts.ptr[beg] & ievt::KEY_);
-    rymlassertb_(detail::isentry(evts.ptr[beg]));
-    return elm_range_(detail::find_next_entry_(evts.ptr, evts.len, beg, ievt::VAL_));
 }
 
 C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
 {
     rymlassertb_(detail::hasall(evts.ptr[pos], ievt::BMAP));
-    for(++pos; true; pos = next_sibling_memoized_(pos))
+    for(++pos; pos < evts.len; pos = next_sibling_memoized_(pos))
     {
         if(evts.ptr[pos] & ievt::ALIA)
         {
-            AnchorData const* anch = lookup_anchor_(pos);
-            if(anch)
-                set_rref_(pos, anch->rng.beg, anch->rng.end);
+            resolve_alia_(pos);
         }
         else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
         {
@@ -329,71 +393,25 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
                 }
             }
         }
-        else if(descend_(pos))
-        {
-            ;
-        }
         else if(detail::hasall(evts.ptr[pos], ievt::EMAP))
         {
+            ++pos;
             break;
         }
-    }
-    return pos;
-}
-
-evt_size ReferenceResolver::resolve_map_merge_(evt_size pos, bool key_conflict)
-{
-    rymlassertb_(detail::hasall(evts.ptr[pos], ievt::BMAP));
-    ++pos;
-    while(true)
-    {
-        if(evts.ptr[pos] & ievt::ALIA)
-        {
-            AnchorData const* anch = lookup_anchor_(pos);
-            if(anch)
-                set_rref_(pos, anch->rng.beg, anch->rng.end);
-        }
-        else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
-        {
-            if(is_merge_elm_(pos))
-            {
-                if(is_any_merge_elm_alia_missing_(pos))
-                {
-                    ;
-                }
-                else if( ! key_conflict)
-                {
-                    handle_merge_elm_(pos);
-                }
-                else
-                {
-                    maybe_clear_anchtag_(pos);
-                    clear_keyval_(pos);
-                }
-            }
-        }
-        else if(descend_(pos))
-        {
-            ;
-        }
-        else if(detail::hasall(evts.ptr[pos], ievt::EMAP))
-        {
-            break;
-        }
-        pos = next_sibling_memoized_(pos);
     }
     return pos;
 }
 
 C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
 {
+    rymlassert_not_recursive_(m_guard_keymap);
     rymlassertb_(detail::hasall(evts.ptr[pos], ievt::BMAP));
     rymlassertb_(pos + 1 < evts.len);
     // try to exit early
     if( ! m_opts.merge_always() && ! has_merge_elms_(pos))
         return false;
     m_known_keys.start_adding();
-    for(evt_size ch = pos + 1; true; ch = next_sibling_memoized_(ch))
+    for(evt_size ch = pos + 1; ch < evts.len; ch = next_sibling_memoized_(ch))
     {
         if(detail::hasall(evts.ptr[ch], ievt::EMAP))
         {
@@ -445,8 +463,8 @@ C4_NODISCARD bool ReferenceResolver::requires_merge_(evt_size pos)
         return false;
     KnownKeys::Entry const* first_badkey = m_known_keys.first_bad_key();
     if C4_LIKELY (!first_badkey)
-        return true;
-    RYML_ERR_BASIC_("map at pos={} has repeated keys. first={}", pos, getstr(static_cast<evt_size>(first_badkey->id)));
+        return m_known_keys.has_key_conflict();
+    RYML_ERR_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, "map at pos={} has repeated keys. first={}", pos, getstr(static_cast<evt_size>(first_badkey->id)));
 }
 
 void ReferenceResolver::add_to_known_keys_(evt_size beg, evt_size end, uint32_t status)
@@ -470,14 +488,25 @@ void ReferenceResolver::add_to_known_keys_(evt_size alia, uint32_t status)
         if C4_LIKELY (detail::hasall(evts.ptr[anch->rng.beg], ievt::BMAP))
             add_to_known_keys_(anch->rng.beg + 1, anch->rng.end - 1, status);
         else
-            RYML_ERR_BASIC_("merge element alias is not a map: '{}' at pos={}", getstr(alia), alia);
+            RYML_ERR_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, "merge element alias is not a map: '{}' at pos={}", getstr(alia), alia);
     }
 }
 
-C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
+
+C4_NODISCARD evt_size ReferenceResolver::resolve_map_merge_(evt_size parent)
 {
+wtf("----------------\n");
+wtf("wtf: merge %d", parent);
+printall();
+    rymlassert_not_recursive_(m_guard_merging);
     rymlassertb_(detail::hasall(evts.ptr[parent], ievt::BMAP));
     rymlassertb_(!m_opts.keep_repeated_keys());
+    // we'll copy the map data to a scratch space, and then overwrite
+    // it by selectively copy from the scratch to in-place at the
+    // map. if the merged data overflows the available space in the
+    // map, new elements are added at the end of the evts buffer,
+    // after the ESTR event.
+    //
     // prepare to overwrite the map:
     mapw_reset_(parent);
     // this is the range of new members added at the end (past the
@@ -488,6 +517,7 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
     // we're ready. iterate by unique key
     for(id_type i = 0; i < m_known_keys.m_unique_keys.m_size; ++i)
     {
+wtf("[%d]: merging uk[%zu] -- posref=%d", parent, i, m_mapw_posref);
         KnownKeys::KnownKeyRange_ keyentries;
         KnownKeys::Entry const* selected = m_known_keys.select(i, &keyentries);
         rymlassertb_(keyentries.lo < keyentries.hi);
@@ -495,72 +525,111 @@ C4_NODISCARD evt_size ReferenceResolver::merge_map_keys_(evt_size parent)
         for(auto const& kv : keyentries)
         {
             evt_size id = static_cast<evt_size>(kv.val.id);
+wtf("map=%d looking at id=%d", parent, id);
             bool is_last = (&kv + 1 == keyentries.hi);
+wtf("[%d]: merging uk[%zu] -- posref=%d ... entry=%d", parent, i, m_mapw_posref, id);
             if(&kv.val == selected)
             {
+wtf("[%d]: merging uk[%zu] -- posref=%d ... entry=%d selected", parent, i, m_mapw_posref, id);
                 if(kv.val.status & KnownKeys::ORIGINAL)
+{wtf("... selected, original ! %d", id);
                     mapw_cpkeyval_original_(id, is_last);
+}
                 else
+{wtf("... selected, mergedin ! %d", id);
                     mapw_cpkeyval_mergedin_(id, is_last);
+}
             }
         }
     }
     newrng.end = m_wpos;
-    if(newrng.end > newrng.beg) // did we spill the map to the end of the array?
+    // did we spill the map to the end of the array?
+    if(newrng.end > newrng.beg)
     {
+        // insert a reference BEFORE the map ends
+wtf("[%d]: posref=%d vs %d:%d", parent, m_mapw_posref, m_mapw_beg, m_mapw_end);
         rymlassertb_(m_mapw_posref != -1);
-        rymlassertb_(m_mapw_posref >= m_mapw_firstslot);
-        rymlassertb_(m_mapw_posref + 3 <= m_mapw_lastslot);
+        rymlassertb_(m_mapw_posref >= m_mapw_beg);
+        rymlassertb_(m_mapw_posref + 3 <= m_mapw_end);
         replace_with_ref_(m_mapw_posref, newrng.beg, newrng.end);
-        m_mapw_wslot += 3;
-        clear_range_(m_mapw_posref + 3, m_mapw_lastslot);
-
+        m_mapw_count += 3;
+        clear_range_(m_mapw_posref + 3, m_mapw_end);
     }
-    else if(m_mapw_firstslot + m_mapw_wslot < m_mapw_lastslot) // is there free space?
+    // is there free space? clear it.
+    else if(m_mapw_beg + m_mapw_count < m_mapw_end)
     {
-        clear_range_(m_mapw_firstslot + m_mapw_wslot, m_mapw_lastslot);
+wtf("reset[%d]:\n   %d:%d pos=%d/%d  clear  %d:%d,%d:%d(%d) wtf", parent,
+    m_mapw_beg, m_mapw_end,
+    m_mapw_count, m_mapw_beg+m_mapw_count,
+    m_mapw_beg+m_mapw_count, m_mapw_end,
+    m_mapw_count, (m_mapw_end-m_mapw_beg),
+    (m_mapw_end-m_mapw_beg)-m_mapw_count);
+printall();
+        clear_range_(m_mapw_beg + m_mapw_count, m_mapw_end);
+printall();
     }
-    reset_siblings_range_(m_mapw_firstslot, m_mapw_lastslot);
-    return m_mapw_lastslot;
+    reset_siblings_range_(m_mapw_beg, m_mapw_end);
+wtf("wtf: finished merge %d", parent);
+    return m_mapw_end;
 }
 
 
 void ReferenceResolver::mapw_reset_(evt_size parent)
 {
     rymlassertb_(detail::hasall(evts.ptr[parent], ievt::BMAP));
-    m_mapw_wslot = 0; // current write slot
+    m_mapw_count = 0; // current write slot
     m_mapw_posref = -1;
     // this is the number of slots we have to write
     // in-place, ie between BMAP and EMAP:
-    m_mapw_firstslot = parent + 1;
-    m_mapw_lastslot = matching_close_memoized_(parent);
-    rymlassertb_(m_mapw_lastslot - m_mapw_firstslot > 3);
-    // we'll copy the map data to a scratch space, and then
-    // selectively copy from the scratch to in-place at the
-    // map. once (if) the data overflows the available space in
-    // the map, new elements are added at the end of the evts
-    // buffer, after the ESTR event
-    rymlassertb_(m_mapw_lastslot - m_mapw_firstslot > 3);
+    m_mapw_beg = parent + 1;
+    m_mapw_end = matching_close_memoized_(parent);
+wtf("reset[%d]: %d:%d=%d wtf", parent, m_mapw_beg, m_mapw_end, m_mapw_end-m_mapw_beg);
+    rymlassertb_(m_mapw_end - m_mapw_beg > 3);
     // copy the data, +1 for including the sentinel event because of PEX2
-    m_mapw_scratch.resize(static_cast<size_t>((m_mapw_lastslot+1) - m_mapw_firstslot));
-    memcpy(&m_mapw_scratch[0], evts.ptr + m_mapw_firstslot, static_cast<size_t>((m_mapw_lastslot+1) - m_mapw_firstslot) * sizeof(evt_bits));
+    id_type sz = static_cast<id_type>((m_mapw_end + 1) - m_mapw_beg);
+    m_mapw_scratch.resize(sz);
+    memcpy(&m_mapw_scratch[0], evts.ptr + m_mapw_beg, sz * sizeof(evt_bits));
 }
 
-evt_size ReferenceResolver::mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_size beg, evt_size end, bool is_last_entry)
+void ReferenceResolver::mapw_cpkeyval_original_(evt_size id, bool is_last_entry)
 {
+    rymlassertb_(id >= m_mapw_beg && id < m_mapw_end);
+wtf("... orig id=%d(orig) / %d(scratch)", id, id - m_mapw_beg);
     evt_bits const* C4_RESTRICT tmp = &m_mapw_scratch[0];
+    const Range_ r = keyval_range_scratch_(id - m_mapw_beg);
+    evt_size copy_pos = mapw_cpdata_(tmp, static_cast<evt_size>(m_mapw_scratch.m_size), r.beg, r.end, is_last_entry);
+    (void)copy_pos;
+wtf("... orig copy_pos= %d:%d  -->  %d:%d [%d]", r.beg, r.end, copy_pos, copy_pos + r.end-r.beg, r.end-r.beg);
+}
+
+void ReferenceResolver::mapw_cpkeyval_mergedin_(evt_size id, bool is_last_entry)
+{
+    rymlassertb_(id < m_mapw_beg || id > m_mapw_end);
+    const Range_ r = keyval_range_(id);
+    mapw_cpdata_(evts.ptr, evts.cap, r.beg, r.end, is_last_entry);
+}
+
+evt_size ReferenceResolver::mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_size data_sz, evt_size beg, evt_size end, bool is_last_entry)
+{
+    rymlassertb_(beg < end);
+    rymlassertb_(beg < data_sz || beg == end);
+    rymlassertb_(end <= data_sz);(void)data_sz;
     evt_size sz = end - beg;
     rymlassertb_(sz);
     // leave room for a RREF before spilling to past ESTR
     evt_size extra = is_last_entry ? 0 : 3;
-    evt_size dstpos = m_mapw_firstslot + m_mapw_wslot;
-    if(dstpos + sz + extra < m_mapw_lastslot)
+    evt_size dstpos = m_mapw_beg + m_mapw_count;
+wtf("cp: %d:%d=%d  at  %d=%d, add %d=%d+%d", m_mapw_beg, m_mapw_end, m_mapw_end-m_mapw_beg, m_mapw_count, m_mapw_beg+m_mapw_count, sz+extra, sz, extra);
+    if(dstpos + sz + extra < m_mapw_end)
     {
-        rymlassertb_(data != tmp || static_cast<size_t>(beg) < m_mapw_scratch.size());
+wtf("cp: in-place");
+        rymlassertb_(data != &m_mapw_scratch[0] || static_cast<size_t>(beg) < m_mapw_scratch.size());
+wtf("... orig cpinplace dst=%d:%d", dstpos, dstpos+sz);
         // we only need to copy if the data is going to end up
         // in a different position
-        if(!(data == tmp && beg == m_mapw_wslot))
+        if(data != &m_mapw_scratch[0] || beg != m_mapw_count)
         {
+wtf("... orig cpinplace dst=%d:%d --- doit!", dstpos, dstpos+sz);
             rymlassertb_(dstpos > 2);
             rymlassertb_(dstpos + sz < evts.len);
             const evt_bits xbeg = evts.ptr[dstpos] & ievt::PEX2;
@@ -574,45 +643,96 @@ evt_size ReferenceResolver::mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_s
     }
     else
     {
-        // it there is no room to write the RREF, we need to shift
-        // elements to the end until we have room
-        if(dstpos + 3 >= m_mapw_lastslot)
+wtf("cp: spill! dstpos=%d posref=%d", dstpos, m_mapw_posref);
+        // if there is no room to write the RREF, we need to shift
+        // elements to the end until we have room.
+        if(dstpos + 3 >= m_mapw_end)
         {
             evt_size prev = dstpos;
-            while(prev >= m_mapw_firstslot && prev + 3 >= m_mapw_lastslot)
+            while(prev >= m_mapw_beg && prev + 3 >= m_mapw_end)
                 prev = prevpos(evts.ptr, prev);
-            rymlassertb_(prev >= m_mapw_firstslot);
-            rymlassertb_(prev + 3 < m_mapw_lastslot);
+            rymlassertb_(prev >= m_mapw_beg);
+            rymlassertb_(prev + 3 < m_mapw_end);
             copy_range_to_end_(evts.ptr, prev, dstpos);
+wtf("cp: shift! prev=%d dstpos=%d", prev, dstpos);
             dstpos = prev;
         }
+        // save the ref position
         if(m_mapw_posref == -1)
         {
+wtf("cp: posref=%d", dstpos);
             m_mapw_posref = dstpos;
         }
         dstpos = m_wpos;
         copy_range_to_end_(data, beg, end);
     }
-    m_mapw_wslot += sz;
+    m_mapw_count += sz;
     return dstpos;
 }
 
-void ReferenceResolver::mapw_cpkeyval_original_(evt_size id, bool is_last_entry)
+
+C4_NODISCARD auto ReferenceResolver::elm_range_(evt_size elm) -> Range_
 {
-    rymlassertb_(id >= m_mapw_firstslot && id < m_mapw_lastslot);
-    evt_bits const* C4_RESTRICT tmp = &m_mapw_scratch[0];
-    const Range_ r = keyval_range_scratch_(id - m_mapw_firstslot);
-    evt_size copy_pos = mapw_cpdata_(tmp, r.beg, r.end, is_last_entry);
-    (void)copy_pos;
+    rymlassertb_(detail::isentry(evts.ptr[elm]));
+    Range_ rng;
+    rng.beg = elm;
+    if(evts.ptr[rng.beg] & (ievt::SCLR|ievt::ALIA)) // scalars
+    {
+        rng.end = rng.beg + 3;
+    }
+    else // containers
+    {
+        rymlassertb_(detail::seqormap(evts.ptr[elm]));
+        rng.end = matching_close_memoized_(elm) + 1/*include the end*/;
+    }
+    return rng;
 }
 
-void ReferenceResolver::mapw_cpkeyval_mergedin_(evt_size id, bool is_last_entry)
+C4_NODISCARD auto ReferenceResolver::elm_range_scratch_(evt_size elm) -> Range_
 {
-    rymlassertb_(id < m_mapw_firstslot || id > m_mapw_lastslot);
-    const Range_ r = keyval_range_(id);
-    mapw_cpdata_(evts.ptr, r.beg, r.end, is_last_entry);
+    id_type selm = static_cast<id_type>(elm);
+    rymlassertb_(detail::isentry(m_mapw_scratch[selm]));
+    Range_ rng;
+    rng.beg = elm;
+    if(m_mapw_scratch[selm] & (ievt::SCLR|ievt::ALIA)) // scalars
+    {
+        rng.end = rng.beg + 3;
+    }
+    else // containers. don't use the memoized matching close!
+    {
+        rymlassertb_(detail::seqormap(m_mapw_scratch[selm]));
+        rng.end = detail::find_matching_close_(&m_mapw_scratch[0], static_cast<evt_size>(m_mapw_scratch.size()), rng.beg)
+            + 1/*include the end*/;
+    }
+    return rng;
 }
 
+C4_NODISCARD auto ReferenceResolver::keyval_range_(evt_size beg) -> Range_
+{
+    rymlassertb_(evts.ptr[beg] & ievt::KEY_);
+    rymlassertb_(detail::isentry(evts.ptr[beg]));
+    Range_ r = elm_range_(detail::find_next_entry_(evts.ptr, evts.len, beg, ievt::VAL_));
+    r.beg = beg;
+    return r;
+}
+
+C4_NODISCARD auto ReferenceResolver::keyval_range_scratch_(evt_size beg) -> Range_
+{
+wtf("beg=%d", beg);
+    rymlassertb_(beg >= 0 && static_cast<id_type>(beg) < m_mapw_scratch.size());
+    rymlassertb_(m_mapw_scratch[static_cast<id_type>(beg)] & ievt::KEY_);
+    rymlassertb_(detail::isentry(m_mapw_scratch[static_cast<id_type>(beg)]));
+    Range_ r = elm_range_scratch_(detail::find_next_entry_(&m_mapw_scratch[0], static_cast<evt_size>(m_mapw_scratch.size()), beg, ievt::VAL_));
+    r.beg = beg;
+    return r;
+}
+
+C4_NODISCARD auto ReferenceResolver::keyval_range_val_(evt_size beg) -> Range_
+{
+    rymlassertb_(evts.ptr[beg] & ievt::KEY_);
+    rymlassertb_(detail::isentry(evts.ptr[beg]));
+    return elm_range_(detail::find_next_entry_(evts.ptr, evts.len, beg, ievt::VAL_));
+}
 
 void ReferenceResolver::add_anchor_(evt_size pos)
 {
@@ -651,29 +771,51 @@ void ReferenceResolver::rem_anchor_from_map_(evt_size pos)
     rymlassertb_(gotit);(void)gotit;
 }
 
-auto ReferenceResolver::lookup_anchor_(evt_size pos) const
+C4_NODISCARD bool ReferenceResolver::is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT
+{
+    rymlassertb_(detail::hasall(evts.ptr[anchor], ievt::ANCH));
+    const evt_size elm = detail::find_next_entry_(evts.ptr, evts.len, anchor, ievt::KEY_|ievt::VAL_);
+    for(id_type i = 0; i < m_parents.size(); ++i)
+        if(elm == m_parents.top(i))
+            return true;
+    return false;
+}
+
+void ReferenceResolver::resolve_alia_(evt_size pos)
+{
+    rymlassertb_(evts.ptr[pos] & ievt::ALIA);
+    AnchorData const* anch = lookup_anchor_(pos);
+    if(anch)
+        set_rref_(pos, anch->rng.beg, anch->rng.end);
+}
+
+C4_NODISCARD auto ReferenceResolver::lookup_anchor_(evt_size pos) const
     -> AnchorData const*
 {
     rymlassertb_(evts.ptr[pos] & ievt::ALIA);
     AnchorData const* anchor = yml::detail::lookup_anchor(m_anchor_map, static_cast<id_type>(pos), getstr(pos), m_opts);
     // reject cyclic references to prevent a blowout:
     bool cyclic = anchor && is_cyclic_ref_(static_cast<evt_size>(anchor->visit_count));
-    // the branches are organized to keep happy cases first
-    if C4_LIKELY (anchor && !cyclic)
+    // the branches are organized to keep happy cases first,
+    // making this code a bit harder to read
+    if C4_LIKELY (anchor && !cyclic) // happy path, vanilla situation
     {
         return anchor;
     }
-    else if(( !anchor) && m_opts.ignore_missing_anchors())
+    else if(( ! anchor) && m_opts.ignore_missing_anchors()) // no anchor found, but that's ok
     {
         return nullptr;
     }
-    else if( !anchor)
+    else if( !anchor) // no anchor found, and that's bad
     {
-        RYML_ERR_BASIC_("missing anchor: '{}' at ALIA[{}]", getstr(pos), pos);
+        RYML_ERR_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, "missing anchor: '{}' at ALIA[{}]", getstr(pos), pos);
     }
-    else
+    else // anchor found, but it was cyclic
     {
-        RYML_ERR_BASIC_("cyclic reference: '{}' at ALIA[{}]: ANCH at {}", getstr(pos), anchor->visit_count, pos);
+wtf("cyclic reference\n"
+    "'%.*s' at ALIA[%zu]: ANCH at %d", static_cast<int>(getstr(pos).len), getstr(pos).str,
+    anchor->visit_count, pos);
+        RYML_ERR_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, "cyclic reference: '{}' at ALIA[{}]: ANCH at {}", getstr(pos), anchor->visit_count, pos);
     }
 }
 
@@ -754,7 +896,7 @@ void ReferenceResolver::replace_with_ref_(evt_size pos, evt_size beg, evt_size e
     }
     else
     {
-        RYML_ERR_BASIC_("aliasing would exceed max size limit");
+        RYML_ERR_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, "aliasing would exceed max size limit");
     }
 }
 
@@ -831,7 +973,7 @@ bool ReferenceResolver::is_merge_elm_(evt_size pos, csubstr key) const
                 if C4_LIKELY (!isref)
                     pos = nextpos(evts.ptr, pos);
                 else
-                    RYML_ERR_BASIC_("invalid reference at pos={}", pos);
+                    RYML_ERR_BASIC_CB_(m_anchor_map.m_arr.m_callbacks, "invalid reference at pos={}", pos);
 
             }
         }
@@ -869,6 +1011,8 @@ void ReferenceResolver::handle_merge_elm_(evt_size child)
 {
     // clear any anchors or tags immediately preceding the << scalar
     maybe_clear_anchtag_(child);
+    rymlassertb_(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR));
+    rymlassertb_("<<" == getstr(child));
     if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::ALIA))
     {
         merge_map_single_(child);
@@ -907,6 +1051,7 @@ void ReferenceResolver::merge_map_multiple_(evt_size pos)
             break;
     }
     rymlassertb_(detail::hasall(evts.ptr[pos], ievt::ESEQ));
+    // clear the ESEQ
     evts.ptr[pos] &= ievt::PEX2; // keep only these flags (no unary ~ operator)
 }
 
@@ -925,13 +1070,9 @@ void ReferenceResolver::apply_merge_ref_(evt_size pos)
     ++rng.beg; // skip BMAP
     --rng.end; // skip EMAP
     if(rng.beg == rng.end) // src map is empty?
-    {
         set_noref_(pos);
-    }
     else
-    {
         set_rref_(pos, rng.beg, rng.end);
-    }
     C4_SUPPRESS_WARNING_POP
 }
 
@@ -962,6 +1103,8 @@ void ReferenceResolver::clear_keyval_(evt_size keyval) noexcept
 void ReferenceResolver::copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end)
 {
     const evt_size num = end - beg;
+wtf("copy_range_to_end: %d | %d:%d <- %d:%d", evts.len, m_wpos, m_wpos+num, beg, end);
+prrng(evts.ptr, m_wpos, m_wpos+num);
     rymlassertb_(num);
     evt_bits const* orig = evts.ptr;
     if(grow_evts_to_add_(num))
@@ -976,6 +1119,7 @@ void ReferenceResolver::copy_range_to_end_(evt_bits const* mem, evt_size beg, ev
         evts.len += num;
         rymlassertb_(evts.cap > evts.len); // there must be room for the sentinel
         evts.ptr[evts.len] = xend;
+prrng(evts.ptr, m_wpos, m_wpos+num+1);
     }
     m_wpos += num;
 }
@@ -1003,6 +1147,7 @@ bool ReferenceResolver::grow_evts_to_add_(evt_size extra)
 C4_SUPPRESS_WARNING_POP
 
 #undef rymlassertb_
+#undef rymlassert_not_recursive_
 
 } // namespace ievt
 } // namespace extra

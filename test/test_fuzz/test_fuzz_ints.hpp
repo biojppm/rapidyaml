@@ -3,6 +3,7 @@
 #define TEST_FUZZ_INTS_HPP_
 
 #include "./test_fuzz_common.hpp"
+#include "c4/yml/extra/ints_utils.hpp"
 
 namespace c4 {
 namespace yml {
@@ -54,6 +55,10 @@ inline void emit_ints(EmitType_e is_yaml, extra::ievt::Buffers const& ints, std:
     }
     dst->resize(sz);
 }
+inline void pr(extra::ievt::Buffers const& ints)
+{
+    extra::ievt::events_ints_print(ints.src, ints.arena, ints.evts.ptr, ints.evts.len);
+}
 template<bool resize_buffers, class FnParse>
 inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_parse, EmitType_e is_yaml)
 {
@@ -81,8 +86,10 @@ inline int fuzztest_ints(uint32_t case_number, csubstr src, FnParse const& fn_pa
             fn_parse(parser, ints.src);
             ASSERT_FUZZ(handler.fits_buffers());
             handler.get_buffers(&ints, /*transfer_ownership*/true);
+pr(ints);
             doemit();
             resolver.resolve_resize(&ints);
+pr(ints);
             doemit();
         }
         else

@@ -6631,7 +6631,9 @@ mapblck_start:
                 {
                     _c4dbgp("mapblck[RKEY]: still mapblck after pop!");
                     if(!m_evt_handler->m_curr->line_contents.rem.len)
+{RYML_ASSERT_ABORT_(false);
                         goto mapblck_again; // LCOV_EXCL_LINE
+}
                 }
                 else
                 {
