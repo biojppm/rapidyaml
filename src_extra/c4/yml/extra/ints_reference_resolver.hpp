@@ -39,6 +39,8 @@ public:
 
     void resolve_resize(Buffers *evts_, ResolveOptions const& opts_={}, ResolveParams const& params={});
 
+    /** @cond dev */
+
 public:
 
     struct Range_
@@ -69,32 +71,40 @@ private:
     vec<evt_size> m_mapw_scratch;  // map-writer scratch size
     Buffers *m_subject;
     ResolveOptions m_opts;
-    evt_size m_wpos;
-    evt_size m_newsz;
-    evt_size m_sz_limit;
-    evt_size m_mapw_firstslot;
-    evt_size m_mapw_lastslot;
-    evt_size m_mapw_wslot; // current write slot
-    evt_size m_mapw_posref;
+    evt_size m_sz_limit;           // size limit computed from options
+    evt_size m_newsz;              // current logical size (ie counting contents all RREF entries)
+    evt_size m_wpos;               // write-position: including region added after ESTR
+    // map-writer helper members
+    evt_size m_mapw_beg;           // map range begin
+    evt_size m_mapw_end;           // map range end
+    evt_size m_mapw_count;         // current write slot into map range
+    evt_size m_mapw_posref;        // position where RREF should be inserted
+    RYML_WITH_ASSERT_(
+    // helpers for asserting non-recursive calls:
+    bool     m_guard_resolving;
+    bool     m_guard_merging;
+    bool     m_guard_keymap;
+    )
 
 private: // mapw: map-writing helpers to merge keys
 
     void mapw_reset_(evt_size map);
     void mapw_cpkeyval_original_(evt_size id, bool is_last_entry);
     void mapw_cpkeyval_mergedin_(evt_size id, bool is_last_entry);
-    evt_size mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_size beg, evt_size end, bool is_last_entry);
+    evt_size mapw_cpdata_(evt_bits const* C4_RESTRICT data, evt_size sz, evt_size beg, evt_size end, bool is_last_entry);
 
 private:
 
     void resolve_(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params);
     void reset_(Buffers evts_, ResolveOptions const& opts_, ResolveParams const& params);
     void reset_siblings_range_(evt_size beg, evt_size end);
-    bool gather_anchors_();
-    void iter_elms_();
+    bool gather_anchors_and_check_has_refs_();
     void clear_anchors_(evt_size beg, evt_size end);
 
     C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
+    C4_NODISCARD evt_size next_sibling_memoized_fill_(evt_size pos);
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
+    C4_NODISCARD evt_size matching_close_memoized_fill_(evt_size pos);
     C4_NODISCARD bool is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT;
     C4_NODISCARD Range_ elm_range_(evt_size keyval);
     C4_NODISCARD Range_ elm_range_scratch_(evt_size keyval);
@@ -102,16 +112,17 @@ private:
     C4_NODISCARD Range_ keyval_range_scratch_(evt_size keyval);
     C4_NODISCARD Range_ keyval_range_val_(evt_size keyval);
 
-    C4_NODISCARD bool descend_(evt_size &pos);
-    C4_NODISCARD evt_size resolve_children_seq_(evt_size pos);
-    C4_NODISCARD evt_size resolve_children_map_(evt_size parent);
-    evt_size resolve_map_merge_(evt_size parent, bool key_conflict);
+    C4_NODISCARD evt_size descend_(evt_size pos);
+    C4_NODISCARD evt_size resolve_children_seq_recur_(evt_size pos);
+    C4_NODISCARD evt_size resolve_children_map_recur_(evt_size pos);
+    C4_NODISCARD evt_size resolve_children_map_norecur_(evt_size parent);
     C4_NODISCARD evt_size resolve_map_repeat_(evt_size parent);
     C4_NODISCARD bool requires_merge_(evt_size map);
     C4_NODISCARD bool has_merge_elms_(evt_size map);
-    C4_NODISCARD evt_size merge_map_keys_(evt_size map);
+    C4_NODISCARD evt_size resolve_map_merge_(evt_size map);
     void add_anchor_(evt_size pos);
-    AnchorData const* lookup_anchor_(evt_size pos) const;
+    void resolve_alia_(evt_size pos);
+    C4_NODISCARD AnchorData const* lookup_anchor_(evt_size pos) const;
     C4_NODISCARD evt_size count_extra(evt_size beg, evt_size end) const noexcept;
     void set_noref_(evt_size pos);
     void replace_with_ref_(evt_size pos, evt_size beg, evt_size end);
@@ -133,6 +144,8 @@ private:
     void add_to_known_keys_(evt_size alia, uint32_t status);
     void copy_range_to_end_(evt_bits const* mem, evt_size beg, evt_size end);
     bool grow_evts_to_add_(evt_size extra);
+
+    /** @endcond */
 
 };
 

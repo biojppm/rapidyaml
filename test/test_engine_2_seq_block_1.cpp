@@ -712,9 +712,20 @@ ENGINE_TEST_ERRLOC(Deindent_err2_0,
                    "  - 0"  "\n"
                    "  -"    "\n"
                    "  b:"   "\n"
+                   "  - 1"  "\n"
+                   "  -"    "\n"
+                   "2 #"    "\n"
+                   )
+ENGINE_TEST_ERRLOC(Deindent_err2_0_evil,
+                   Location(8, 3),
+                   "map:\n"
+                   "  a:"   "\n"
                    "  - 0"  "\n"
                    "  -"    "\n"
-                   "0 #"    "\n"
+                   "  -evil!:"   "\n"
+                   "  - 1"  "\n"
+                   "  -"    "\n"
+                   "2 #"    "\n"
                    )
 ENGINE_TEST_ERRLOC(Deindent_err2_1,
                    Location(8, 1),
@@ -723,9 +734,9 @@ ENGINE_TEST_ERRLOC(Deindent_err2_1,
                    "  - 0"  "\n"
                    "  -"    "\n"
                    "  b:"   "\n"
-                   "  - 0"  "\n"
+                   "  - 1"  "\n"
                    "  -"    "\n"
-                   "\t0 #"  "\n"
+                   "\t2 #"  "\n"
                    )
 ENGINE_TEST_ERRLOC(Deindent_err2_1_0,
                    Location(8, 1),
@@ -734,9 +745,9 @@ ENGINE_TEST_ERRLOC(Deindent_err2_1_0,
                    "  - 0"  "\n"
                    "  -"    "\n"
                    "  b:"   "\n"
-                   "  - 0"  "\n"
+                   "  - 1"  "\n"
                    "  -"    "\n"
-                   " 0 #"  "\n"
+                   " 2 #"  "\n"
                    )
 ENGINE_TEST_ERRLOC(Deindent_err2_1_1,
                    Location(8, 5),
@@ -745,9 +756,9 @@ ENGINE_TEST_ERRLOC(Deindent_err2_1_1,
                    "  - 0"  "\n"
                    "  -"    "\n"
                    "  b:"   "\n"
-                   "  - 0"  "\n"
+                   "  - 1"  "\n"
                    "  -"    "\n"
-                   "  0 #"  "\n"
+                   "  2 #"  "\n"
                    )
 ENGINE_TEST(Deindent_err2_2,
             "map:"   "\n"
