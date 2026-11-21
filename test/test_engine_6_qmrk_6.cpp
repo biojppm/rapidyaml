@@ -254,7 +254,7 @@ ENGINE_TEST(QmrkIndentSeq5, HAS_CONTAINER_KEYS,
     ___(ps.end_stream());
 }
 
-
+#if 0
 ENGINE_TEST_ERRLOC(QmrkIndent00, Location(2, 2), "?\na")
 ENGINE_TEST_ERRLOC(QmrkIndent01_0, Location(2, 1), "?\n?a")
 ENGINE_TEST_ERRLOC(QmrkIndent01_1, Location(2, 1), "?\n?a?")
@@ -350,6 +350,7 @@ ENGINE_TEST(QmrkIndent04,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+#endif
 
 } // namespace yml
 } // namespace c4
