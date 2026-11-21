@@ -149,58 +149,68 @@ void ReferenceResolver::reset_siblings_range_(evt_size beg, evt_size end)
 
 C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_(evt_size pos)
 {
+    rymlassertb_(pos < evts.len);
     id_type spos = static_cast<id_type>(pos);
+    rymlassertb_(spos < m_siblings.m_size);
     evt_size sib = m_siblings[spos];
-    if(sib != nosibling)
-        return sib;
-    evt_bits evt = evts.ptr[pos];
-    if(!(evt & ievt::BEG_))
-    {
-        pos = ievt::nextpos(evts.ptr, pos);
-    }
-    else
-    {
-        const evt_bits open = evt & detail::mask_open_close;
-        const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
-        ++pos; // skip the start event
-        uint32_t count = 0;
-        while(pos < m_wpos)
-        {
-            sib = m_siblings[static_cast<id_type>(pos)];
-            if(sib != nosibling)
-            {
-                pos = sib;
-            }
-            else
-            {
-                evt = evts.ptr[pos];
-                if((evt & open) == open)
-                {
-                    ++count;
-                }
-                else if((evt & close) == close)
-                {
-                    if(!(count--))
-                    {
-                        m_siblings[static_cast<id_type>(pos)] = pos + 1;
-                        ++pos;
-                        break;
-                    }
-                }
-                evt_size next = ievt::nextpos(evts.ptr, pos);
-                m_siblings[static_cast<id_type>(pos)] = next;
-                pos = next;
-            }
-        }
-    }
-    m_siblings[spos] = pos;
-    return pos;
+    return sib != nosibling ? sib : next_sibling_memoized_fill_(pos, spos);
+}
+
+C4_NODISCARD evt_size ReferenceResolver::next_sibling_memoized_fill_(evt_size pos, id_type spos)
+{
+    return (m_siblings[spos] = (evts.ptr[pos] & ievt::BEG_) ?
+            (1 + matching_close_memoized_fill_(pos)) :
+            ievt::nextpos(evts.ptr, pos));
 }
 
 C4_NODISCARD evt_size ReferenceResolver::matching_close_memoized_(evt_size pos)
 {
-    rymlassertb_(detail::seqormap(evts.ptr[pos]));
-    return ievt::prevpos(evts.ptr, next_sibling_memoized_(pos));
+    rymlassertb_(pos < evts.len);
+    id_type spos = static_cast<id_type>(pos);
+    rymlassertb_(spos < m_siblings.m_size);
+    rymlassertb_(evts.ptr[pos] & ievt::BEG_);
+    evt_size sib = m_siblings[spos];
+    pos = (sib != nosibling) ? sib : next_sibling_memoized_fill_(pos, spos);
+    --pos; // because we have the sibling
+    rymlassertb_(evts.ptr[pos] & ievt::END_);
+    return pos;
+}
+
+C4_NODISCARD evt_size ReferenceResolver::matching_close_memoized_fill_(evt_size pos)
+{
+    rymlassertb_(evts.ptr[pos] & ievt::BEG_);
+    const evt_bits open = evts.ptr[pos] & detail::mask_open_close;
+    const evt_bits close = (open & ~ievt::BEG_) | ievt::END_;
+    ++pos; // skip the start event
+    uint32_t count = 0;
+    while(pos < m_wpos)
+    {
+        evt_size sib = m_siblings[static_cast<id_type>(pos)];
+        if(sib != nosibling)
+        {
+            pos = sib;
+        }
+        else
+        {
+            if(detail::hasall(evts.ptr[pos], open))
+            {
+                ++count;
+            }
+            else if(detail::hasall(evts.ptr[pos], close))
+            {
+                if(!(count--))
+                {
+                    m_siblings[static_cast<id_type>(pos)] = pos + 1;
+                    break;
+                }
+            }
+            evt_size next = ievt::nextpos(evts.ptr, pos);
+            m_siblings[static_cast<id_type>(pos)] = next;
+            pos = next;
+        }
+    }
+    rymlassertb_(detail::hasall(evts.ptr[pos], close));
+    return pos;
 }
 
 void ReferenceResolver::resolve_resize(Buffers *evts_, ResolveOptions const& opts_, ResolveParams const& params)
@@ -507,7 +517,7 @@ printall();
     // map, new elements are added at the end of the evts buffer,
     // after the ESTR event.
     //
-    // prepare to overwrite the map:
+    // prepare to overwrite the map: copy data to scratch
     mapw_reset_(parent);
     // this is the range of new members added at the end (past the
     // ESTR event), when (if) the data overflows the original
@@ -558,12 +568,7 @@ wtf("[%d]: posref=%d vs %d:%d", parent, m_mapw_posref, m_mapw_beg, m_mapw_end);
     // is there free space? clear it.
     else if(m_mapw_beg + m_mapw_count < m_mapw_end)
     {
-wtf("reset[%d]:\n   %d:%d pos=%d/%d  clear  %d:%d,%d:%d(%d) wtf", parent,
-    m_mapw_beg, m_mapw_end,
-    m_mapw_count, m_mapw_beg+m_mapw_count,
-    m_mapw_beg+m_mapw_count, m_mapw_end,
-    m_mapw_count, (m_mapw_end-m_mapw_beg),
-    (m_mapw_end-m_mapw_beg)-m_mapw_count);
+wtf("reset[%d]:\n   %d:%d pos=%d/%d  clear  %d:%d,%d:%d(%d) wtf", parent, m_mapw_beg, m_mapw_end, m_mapw_count, m_mapw_beg+m_mapw_count, m_mapw_beg+m_mapw_count, m_mapw_end, m_mapw_count, (m_mapw_end-m_mapw_beg), (m_mapw_end-m_mapw_beg)-m_mapw_count);
 printall();
         clear_range_(m_mapw_beg + m_mapw_count, m_mapw_end);
 printall();

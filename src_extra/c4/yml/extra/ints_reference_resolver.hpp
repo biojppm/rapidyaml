@@ -102,7 +102,9 @@ private:
     void clear_anchors_(evt_size beg, evt_size end);
 
     C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
+    C4_NODISCARD evt_size next_sibling_memoized_fill_(evt_size pos, id_type spos);
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
+    C4_NODISCARD evt_size matching_close_memoized_fill_(evt_size pos);
     C4_NODISCARD bool is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT;
     C4_NODISCARD Range_ elm_range_(evt_size keyval);
     C4_NODISCARD Range_ elm_range_scratch_(evt_size keyval);
