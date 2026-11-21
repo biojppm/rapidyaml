@@ -102,7 +102,7 @@ private:
     void clear_anchors_(evt_size beg, evt_size end);
 
     C4_NODISCARD evt_size next_sibling_memoized_(evt_size pos);
-    C4_NODISCARD evt_size next_sibling_memoized_fill_(evt_size pos, id_type spos);
+    C4_NODISCARD evt_size next_sibling_memoized_fill_(evt_size pos);
     C4_NODISCARD evt_size matching_close_memoized_(evt_size pos);
     C4_NODISCARD evt_size matching_close_memoized_fill_(evt_size pos);
     C4_NODISCARD bool is_cyclic_ref_(evt_size anchor) const RYML_NOEXCEPT;
@@ -114,6 +114,7 @@ private:
 
     C4_NODISCARD evt_size descend_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_seq_recur_(evt_size pos);
+    C4_NODISCARD evt_size resolve_children_map_recur_(evt_size pos);
     C4_NODISCARD evt_size resolve_children_map_norecur_(evt_size parent);
     C4_NODISCARD evt_size resolve_map_repeat_(evt_size parent);
     C4_NODISCARD bool requires_merge_(evt_size map);
