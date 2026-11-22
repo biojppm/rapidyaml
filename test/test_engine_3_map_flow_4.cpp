@@ -8,6 +8,11 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+
+ENGINE_TEST_ERRLOC(MapFlowScalarErr0, Location(1, 9), ""
+                   "{\"foo\":q]&\":1}")
+
+
 ENGINE_TEST_ERRLOC(MapFlowAndScalarDocVal0_a, Location(1, 7+3), ""
                    "{c: d} &a")
 ENGINE_TEST_ERRLOC(MapFlowAndScalarDocVal0_t, Location(1, 7+3), ""
@@ -221,6 +226,7 @@ ENGINE_TEST_ERRLOC(MapFlowAndScalarMapValFlow_1, Location(1, 11+3), ""
                    "{foo: {c: d} 'b'}")
 ENGINE_TEST_ERRLOC(MapFlowAndScalarMapValFlow_2, Location(1, 11+3), ""
                    "{foo: {c: d} \"b\"}")
+
 
 } // namespace yml
 } // namespace c4

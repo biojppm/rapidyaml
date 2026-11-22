@@ -1159,9 +1159,10 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_map_flow(ScannedScalar *C4_RE
     size_t col = 0; // zero-based column
     size_t offs = 0; // offset
     bool needs_filter = false;
+    char c;
     for( ; offs < s.len; ++offs, ++col)
     {
-        const char c = s.str[offs];
+        c = s.str[offs];
         switch(c)
         {
         case ',':
@@ -1196,11 +1197,10 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_map_flow(ScannedScalar *C4_RE
             break;
         case '{':
         case '[':
-            _line_progressed(col);
-            _c4err("invalid character: '{}'", c); // noreturn
-            break;
+            goto errchar;
         case ']':
-            RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, has_any(RSEQIMAP), m_evt_handler->m_curr->pos);
+            if (has_none(RSEQIMAP))
+                goto errchar;
             goto ended_scalar;
         default:
             ;
@@ -1217,6 +1217,10 @@ ended_scalar:
     _c4prscalar("scanned plain scalar", sc->scalar, /*keep_newlines*/true);
 
     return sc->scalar.len > 0u;
+
+errchar:
+    _line_progressed(col);
+    _c4err("invalid character: '{}'", c); // noreturn
 }
 
 template<class EventHandler>
