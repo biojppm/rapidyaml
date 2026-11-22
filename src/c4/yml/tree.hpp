@@ -522,11 +522,6 @@ public:
     /// unfiltered during the parsing (see ParserOptions)
     C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
 
-    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
-    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
-    RYML_DEPRECATED("use has_anchor()")        bool is_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
-    RYML_DEPRECATED("use has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { return _p(node)->m_type.has_anchor() || _p(node)->m_type.is_ref(); }
-
     /** @} */
 
 public:
@@ -636,8 +631,6 @@ public:
     C4_ALWAYS_INLINE bool is_container_styled(id_type node) const { return _p(node)->m_type.is_container_styled(); }
     C4_ALWAYS_INLINE bool is_block(id_type node) const { return _p(node)->m_type.is_block(); }
     C4_ALWAYS_INLINE bool is_flow_sl(id_type node) const { return _p(node)->m_type.is_flow_sl(); }
-    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()")
-    C4_ALWAYS_INLINE bool is_flow_ml(id_type node) const { return _p(node)->m_type.is_flow_ml1(); }
     C4_ALWAYS_INLINE bool is_flow_ml1(id_type node) const { return _p(node)->m_type.is_flow_ml1(); }
     C4_ALWAYS_INLINE bool is_flow_mln(id_type node) const { return _p(node)->m_type.is_flow_mln(); }
     C4_ALWAYS_INLINE bool is_flow_mlx(id_type node) const { return _p(node)->m_type.is_flow_mlx(); }
@@ -1123,13 +1116,6 @@ public:
 
     /** @} */
 
-    /** @cond dev */
-    RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors) { resolve(rr, ResolveOptions{}.clear_anchors(clear_anchors)); }
-    RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(bool clear_anchors) { resolve(ResolveOptions{}.clear_anchors(clear_anchors)); }
-    /** @endcond */
-
 public:
 
     /** @name tags and tag directives */
@@ -1166,11 +1152,6 @@ public:
     }
 
     c4::yml::TagDirectiveRange tag_directives() const { return m_tag_directives.directives(); }
-
-    /** @cond dev */
-    RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
-    RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
-    /** @endcond */
 
     /** @} */
 
@@ -1328,7 +1309,6 @@ public:
     size_t arena_capacity() const { return m_arena.len; }
     /** get the current slack of the tree's internal arena */
     size_t arena_slack() const { RYML_ASSERT_VISIT_CB_(m_callbacks, m_arena.len >= m_arena_pos, this, NONE); return m_arena.len - m_arena_pos; }
-    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
 
     /** get the current arena */
     csubstr arena() const { return m_arena.first(m_arena_pos); }
@@ -1674,7 +1654,12 @@ public:
 
     TagDirectives m_tag_directives;
 
-public:
+public: // deprecated functions
+
+    // these methods will be removed in future releases. If you
+    // disagree with a particular function being deprecated, let us
+    // know by opening a new issue at
+    // https://github.com/biojppm/rapidyaml/issues
 
     /** @cond dev */ // LCOV_EXCL_START
     C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
@@ -1682,6 +1667,16 @@ public:
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()") bool is_flow_ml(id_type node) const { return _p(node)->m_type.is_flow_ml1(); }
+    RYML_DEPRECATED("use the overload receiving ResolveOptions") void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors) { resolve(rr, ResolveOptions{}.clear_anchors(clear_anchors)); }
+    RYML_DEPRECATED("use the overload receiving ResolveOptions") void resolve(bool clear_anchors) { resolve(ResolveOptions{}.clear_anchors(clear_anchors)); }
+    RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
+    RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
+    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
+    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
+    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
+    RYML_DEPRECATED("use has_anchor()")        bool is_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
+    RYML_DEPRECATED("use has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { return _p(node)->m_type.has_anchor() || _p(node)->m_type.is_ref(); }
     RYML_DEPRECATED("use .type().type_str(buf)") const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
     RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
     RYML_DEPRECATED("use set_key()+set_val()") void to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags=0);
