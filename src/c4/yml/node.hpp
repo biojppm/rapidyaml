@@ -802,14 +802,14 @@ private:
     void assert_readable_() const
     {
         RYML_ASSERT_BASIC_(m_tree != nullptr);
-        RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_id != NONE && (m_id < m_tree->capacity()), m_tree, m_id);
+        RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_id != NONE && (m_id < m_tree->m_first_unused), m_tree, m_id);
     }
 
     void check_readable_() const
     {
         if C4_UNLIKELY(!m_tree)
             RYML_ERR_BASIC_("invalid node");
-        if C4_UNLIKELY(!m_tree || m_id == NONE || (m_id > m_tree->capacity()))
+        if C4_UNLIKELY(!m_tree || m_id == NONE || (m_id > m_tree->m_first_unused))
             RYML_ERR_VISIT_CB_(m_tree->m_callbacks, m_tree, m_id, "invalid node");
     }
 
@@ -956,7 +956,7 @@ public:
     ConstNodeRef at(id_type pos) const
     {
         check_readable_();
-        const id_type cap = m_tree->capacity();
+        const id_type cap = m_tree->m_first_unused;
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (pos >= 0 && pos < cap), m_tree, m_id);
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, m_tree->is_container(m_id), m_tree, m_id);
         const id_type ch = m_tree->child(m_id, pos);
@@ -1141,7 +1141,7 @@ public:
 
 private:
 
-    C4_ALWAYS_INLINE bool valid_id_() const noexcept { return m_id != NONE && m_id < m_tree->capacity(); }
+    C4_ALWAYS_INLINE bool valid_id_() const noexcept { return m_id != NONE && m_id < m_tree->m_first_unused; }
     C4_ALWAYS_INLINE bool has_seed_() const noexcept { return m_seed.str != nullptr || m_seed.len != (size_t)NONE; }
 
     void assert_readable_() const
@@ -1154,7 +1154,7 @@ private:
     {
         if C4_UNLIKELY(!m_tree)
             err_basic_("invalid node");
-        if C4_UNLIKELY((m_id == NONE || (m_id > m_tree->capacity()) ||
+        if C4_UNLIKELY((m_id == NONE || (m_id > m_tree->m_first_unused) ||
                        (m_seed.str != nullptr || m_seed.len != (size_t)NONE)))
             err_visit_(m_tree, m_id, "invalid node");
     }
@@ -1225,7 +1225,7 @@ public:
     void create()
     {
         RYML_ASSERT_BASIC_(m_tree != nullptr);
-        RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_id != NONE && m_id < m_tree->capacity(), m_tree, m_id);
+        RYML_ASSERT_VISIT_CB_(m_tree->m_callbacks, m_id != NONE && m_id < m_tree->m_first_unused, m_tree, m_id);
         if(m_seed.str) // we have a seed key: use it to create the new map child
         {
             m_id = m_tree->append_child(m_id);
@@ -1604,7 +1604,7 @@ public:
     C4_ALWAYS_INLINE NodeRef at(csubstr key)
     {
         RYML_CHECK_BASIC_(m_tree != nullptr);
-        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (m_id >= 0 && m_id < m_tree->capacity()), m_tree, m_id);
+        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (m_id >= 0 && m_id < m_tree->m_first_unused), m_tree, m_id);
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, readable(), m_tree, m_id);
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(m_id), m_tree, m_id);
         id_type ch = m_tree->find_child(m_id, key);
@@ -1660,7 +1660,7 @@ public:
     ConstNodeRef at(csubstr key) const
     {
         RYML_CHECK_BASIC_(m_tree != nullptr);
-        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (m_id >= 0 && m_id < m_tree->capacity()), m_tree, m_id);
+        RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (m_id >= 0 && m_id < m_tree->m_first_unused), m_tree, m_id);
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, readable(), m_tree, m_id);
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, m_tree->is_map(m_id), m_tree, m_id);
         id_type ch = m_tree->find_child(m_id, key);
@@ -1680,7 +1680,7 @@ public:
     ConstNodeRef at(id_type pos) const
     {
         RYML_CHECK_BASIC_(m_tree != nullptr);
-        const id_type cap = m_tree->capacity();
+        const id_type cap = m_tree->m_first_unused;
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (m_id >= 0 && m_id < cap), m_tree, m_id);
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, (pos >= 0 && pos < cap), m_tree, m_id);
         RYML_CHECK_VISIT_CB_(m_tree->m_callbacks, readable(), m_tree, m_id);
