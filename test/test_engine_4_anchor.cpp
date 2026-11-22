@@ -9,6 +9,7 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(AnchorDocVal,
@@ -1592,6 +1593,103 @@ ENGINE_TEST_ERRLOC(MapFlowAndAnchorMapFlowVal0_0, Location(1, 14), ""
                    "{foo: {d: c} &b}")
 ENGINE_TEST_ERRLOC(MapFlowAndRefMapFlowVal0_0, Location(1, 14), ""
                    "{foo: {d: c} *b}")
+
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_0, Location(1, 7), ""
+                   "[&a &b]")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_1, Location(1, 9), ""
+                   "[&a &b c]")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_2, Location(1, 7), ""
+                   "[&a &b,]")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_3, Location(1, 9), ""
+                   "[&a &b c,]")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_4, Location(1, 10), ""
+                   "[0, &a &b]")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_5, Location(1, 12), ""
+                   "[0, &a &b c]")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_6, Location(1, 10), ""
+                   "[0, &a &b,]")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqFlow0_7, Location(1, 12), ""
+                   "[0, &a &b c,]")
+
+
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_0, Location(1, 8), ""
+                   "- &a &b")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_1, Location(1, 9), ""
+                   "- &a &b c")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_2, Location(1, 8), ""
+                   "- &a &b\n-")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_3, Location(1, 9), ""
+                   "- &a &b c\n-")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_4, Location(2, 8), ""
+                   "- 0\n- &a &b")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_5, Location(2, 9), ""
+                   "- 0\n- &a &b c")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_6, Location(2, 8), ""
+                   "- 0\n- &a &b\n-")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_7, Location(2, 9), ""
+                   "- 0\n- &a &b c\n-")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_8, Location(1, 8), ""
+                   "- &a &b\n  - nested")
+ENGINE_TEST_ERRLOC(DoubleAnchorSeqBlck0_9, Location(1, 8), ""
+                   "- &a &b\n  nested: map")
+
+
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowKey0_0, Location(1, 12), ""
+                   "{&a &b: val}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowKey0_1, Location(1, 9), ""
+                   "{&a &b c: val}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowKey0_4, Location(1, 15), ""
+                   "{0, &a &b: val}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowKey0_5, Location(1, 12), ""
+                   "{0, &a &b c: val}")
+
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_0, Location(1, 12), ""
+                   "{key: &a &b}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_1, Location(1, 14), ""
+                   "{key: &a &b c}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_4, Location(1, 20), ""
+                   "{0: 1, key: &a &b c}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_5, Location(1, 20), ""
+                   "{0: 1, key: &a &b c}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_6, Location(1, 12), ""
+                   "{key: &a &b,}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_7, Location(1, 14), ""
+                   "{key: &a &b c,}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_8, Location(1, 20), ""
+                   "{0: 1, key: &a &b c,}")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapflowVal0_9, Location(1, 20), ""
+                   "{0: 1, key: &a &b c,}")
+
+
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckKey0_0, Location(1, 8), ""
+                   "&a &b: val")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckKey0_1, Location(1, 7), ""
+                   "&a &b c: val")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckKey0_4, Location(2, 6), ""
+                   "0\n&a &b: val")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckKey0_5, Location(2, 8), ""
+                   "0\n&a &b c: val")
+
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_0, Location(1, 11), ""
+                   "key: &a &b")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_1, Location(1, 12), ""
+                   "key: &a &b c")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_4, Location(2, 12), ""
+                   "0: 1\nkey: &a &b c")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_5, Location(2, 12), ""
+                   "0: 1\nkey: &a &b c")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_6, Location(1, 11), ""
+                   "key: &a &b\n")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_7, Location(1, 12), ""
+                   "key: &a &b c\n")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_8, Location(2, 12), ""
+                   "0: 1\nkey: &a &b c\n")
+ENGINE_TEST_ERRLOC(DoubleAnchorMapBlckVal0_9, Location(2, 12), ""
+                   "0: 1\nkey: &a &b c\n")
+
 
 } // namespace yml
 } // namespace c4
