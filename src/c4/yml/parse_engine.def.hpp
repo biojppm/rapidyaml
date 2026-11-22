@@ -7686,8 +7686,8 @@ bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
     else/* if(m_was_inside_qmrk) */
     {
         _c4dbgp("mapblck[RKCL]: missing :");
-        RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, first != ' ' && first != '\t', m_evt_handler->m_curr->pos);
-        if C4_LIKELY (m_evt_handler->m_curr->indentation_eq()
+        if C4_LIKELY (first != ' ' && first != '\t' &&
+                      m_evt_handler->m_curr->indentation_eq()
                       && m_evt_handler->m_curr->at_first_token())
         {
             m_evt_handler->set_val_scalar_plain_empty();
