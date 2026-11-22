@@ -970,6 +970,8 @@ evt_size EmitterInts<Writer>::visit_flow_sl_seq_(evt_size pos)
     nextval:
         if(rref_handler.active)
             pos = rref_check_skip_zeroes_(pos, &rref_handler);
+        else
+            pos = flow_maybe_skip_zeroes_(pos);
         pos = flow_close_entry_sl_(pos, pws.next_pws(m_col));
     }
     write_(']');
@@ -1048,6 +1050,8 @@ evt_size EmitterInts<Writer>::visit_flow_ml_seq_(evt_size pos)
     nextval:
         if(rref_handler.active)
             pos = rref_check_skip_zeroes_(pos, &rref_handler);
+        else
+            pos = flow_maybe_skip_zeroes_(pos);
         pos = flow_close_entry_ml_(pos, m_flow_pws.next_pws(m_col));
     }
     if(stop_at_end)
