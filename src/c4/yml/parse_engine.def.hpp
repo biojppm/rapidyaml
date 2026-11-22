@@ -7312,7 +7312,8 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
             RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_curr->line_contents.rem.len > 0, m_evt_handler->m_curr->pos);
             if(m_evt_handler->m_curr->indentation_eq()
                // defend against docs or indentless seqs
-               && m_evt_handler->m_curr->line_contents.rem.str[0] != '-')
+               && (m_evt_handler->m_curr->line_contents.rem.str[0] != '-' ||
+                   !_is_blck_token(m_evt_handler->m_curr->line_contents.rem)))
             {
                 _c4dbgp("mapblck[QMRK]: QMRK finished!");
                 _handle_annotations_before_blck_key_scalar();
@@ -7503,12 +7504,17 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
             _set_indentation_maybe_indentless(startindent);
             _line_progressed(1);
         }
-        else
+        else if(m_evt_handler->m_curr->indref == 0 &&
+                m_evt_handler->m_curr->at_first_token() &&
+                _is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem))
         {
             _c4dbgp("mapblck[QMRK]: end+start doc");
-            _c4assert(_is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem));
             _start_doc_suddenly();
             _line_progressed(3);
+        }
+        else
+        {
+            _c4err("parse error");
         }
         _maybe_skip_whitespace_tokens();
         return false; // finish mapblck
@@ -7625,7 +7631,7 @@ bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
     else if(first == '?')
     {
         _c4dbgp("mapblck[RKCL]: got '?'");
-        if C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token())
+        if C4_UNLIKELY(!m_evt_handler->m_curr->at_first_token() || !_is_blck_token(m_evt_handler->m_curr->line_contents.rem))
             _c4err("parse error");
         _c4dbgp("mapblck[RKCL]: got '?'. val was empty");
         m_evt_handler->set_val_scalar_plain_empty();
@@ -7653,7 +7659,6 @@ bool ParseEngine<EventHandler>::_handle_map_block_rkcl()
                       && m_evt_handler->m_curr->at_first_token())
         {
             _c4dbgp("mapblck[RKCL]: end+start doc");
-            RYML_CHECK_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem), m_evt_handler->m_curr->pos);
             _start_doc_suddenly();
             _line_progressed(3);
             _maybe_skip_whitespace_tokens();

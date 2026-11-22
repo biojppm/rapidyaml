@@ -3580,7 +3580,6 @@ TEST(ints_resolve, 11_inherit_merge_2_have_to_move_forward_seqs)
 
     };
     const evt_bits evts_resolved[] = {
-
         /*[0][0]*/ BSTR,
         /*[1][1]*/   BDOC,
         /*[2][2]*/     VAL_|BMAP,
