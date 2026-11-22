@@ -1840,7 +1840,7 @@ C4_ALWAYS_INLINE void write_key(Tree * tree, id_type id, T const& v)
  * @{
  */
 
-/** Deserialize a scalar node's val from a tree object, returning
+/** Deserialize a node's scalar val from a tree object, returning
  * false if the conversion failed.
  *
  * @return false if the conversion failed
@@ -1849,9 +1849,7 @@ C4_ALWAYS_INLINE void write_key(Tree * tree, id_type id, T const& v)
 template<class T>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, T * v)
 {
-    // caller only checks that type is one of VAL|MAP|SEQ (because it
-    // can't be more concrete than that). Here, we expect a VAL so now
-    // we can check for that:
+    // check VAL scalar, because the caller can omit the check.
     NodeData const* C4_RESTRICT nd = tree->_p(id);
     return ReadResult((nd->m_type & VAL) && scalar_deserialize(nd->m_val.scalar, v), id);
 }
@@ -1860,15 +1858,13 @@ C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, T * 
 template<class Wrapper>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, Wrapper const& w)
 {
-    // caller only checks that type is one of VAL|MAP|SEQ (because it
-    // can't be more concrete than that). Here, we expect a VAL so now
-    // we can check for that:
+    // check VAL scalar, because the caller can omit the check.
     NodeData const* C4_RESTRICT nd = tree->_p(id);
     return ReadResult((nd->m_type & VAL) && from_chars(nd->m_val.scalar, w), id);
 }
 
 
-/** Deserialize a node's key from a tree object, returning false if
+/** Deserialize a node's scalar key from a tree object, returning false if
  * the conversion failed
  *
  * @return false if the conversion failed
@@ -1876,16 +1872,18 @@ C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, Wrap
 template<class T>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, T * v)
 {
-    // caller already checks availability of key
-    return ReadResult(scalar_deserialize(tree->_p(id)->m_key.scalar, v), id);
+    // check KEY scalar, because the caller can omit the check.
+    NodeData const* C4_RESTRICT nd = tree->_p(id);
+    return ReadResult((nd->m_type & KEY) && scalar_deserialize(nd->m_key.scalar, v), id);
 }
 /** overload to enable use of wrapper tag-types like eg @ref
  * c4::fmt::base64() */
 template<class Wrapper>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, Wrapper const& w)
 {
-    // caller already checks availability of key
-    return ReadResult(from_chars(tree->_p(id)->m_key.scalar, w), id);
+    // check KEY scalar, because the caller can omit the check.
+    NodeData const* C4_RESTRICT nd = tree->_p(id);
+    return ReadResult((nd->m_type & KEY) && from_chars(nd->m_key.scalar, w), id);
 }
 
 /** @} */
