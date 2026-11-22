@@ -28,11 +28,11 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 namespace detail {
 template<class Writer>
 C4_NO_INLINE
-void format_zeros(Writer &writer, evt_bits const* evts, evt_size &evtpos, evt_size &evtnumber, substr buf)
+void format_zeros(Writer &writer, evt_bits const* evts, evt_size evts_sz, evt_size &evtpos, evt_size &evtnumber, substr buf)
 {
     RYML_ASSERT_BASIC_(!(evts[evtpos] & ~ievt::PEX2));
     evt_size count = 0;
-    while(true)
+    while(evtpos + count < evts_sz)
     {
         evt_bits evt = evts[evtpos + count];
         if((evt & ~ievt::PEX2) || count == 20)
@@ -82,7 +82,7 @@ void format_ints(Writer &writer,
         }
         if(!(evt & ~ievt::PEX2))
         {
-            detail::format_zeros(writer, evts, evtpos, evtnumber, buf);
+            detail::format_zeros(writer, evts, evts_sz, evtpos, evtnumber, buf);
             continue;
         }
         writer.append(ievt::to_str_sub(buf, evt));
@@ -166,7 +166,7 @@ void format_ints_as_c_data(Writer &writer,
         }
         if(!(evt & ~ievt::PEX2))
         {
-            detail::format_zeros(writer, evts, evtpos, evtnumber, buf);
+            detail::format_zeros(writer, evts, evts_sz, evtpos, evtnumber, buf);
             continue;
         }
         writer.append(ievt::to_str_sub(buf, evt));
