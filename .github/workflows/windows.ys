@@ -80,29 +80,31 @@ jobs:
   othercompilers:
     :: setup-job('windows' 'othercompilers')
     name: ${{matrix.name}}/${{matrix.bt}}/c++${{matrix.std}}
-    runs-on: windows-latest
+    runs-on: windows-${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
         include:
-        - {std: 11, name: clangcl/static, bt: Debug  , shared: OFF, cxx: -G "Visual Studio 18 2026" -T ClangCL}
-        - {std: 11, name: clangcl/shared, bt: Release, shared: ON , cxx: -G "Visual Studio 18 2026" -T ClangCL}
-        - {std: 20, name: clangcl/static, bt: Debug  , shared: OFF, cxx: -G "Visual Studio 18 2026" -T ClangCL}
-        - {std: 20, name: clangcl/shared, bt: Release, shared: ON , cxx: -G "Visual Studio 18 2026" -T ClangCL}
+        - {std: 11, name: clangcl/static, bt: Debug  , shared: OFF, cxx: -G "Visual Studio 18 2026" -T ClangCL, os: latest}
+        - {std: 11, name: clangcl/shared, bt: Release, shared: ON , cxx: -G "Visual Studio 18 2026" -T ClangCL, os: latest}
+        - {std: 20, name: clangcl/static, bt: Debug  , shared: OFF, cxx: -G "Visual Studio 18 2026" -T ClangCL, os: latest}
+        - {std: 20, name: clangcl/shared, bt: Release, shared: ON , cxx: -G "Visual Studio 18 2026" -T ClangCL, os: latest}
         #
-        - {std: 11, name: clang++/static, bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
-        - {std: 11, name: clang++/shared, bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
-        - {std: 20, name: clang++/static, bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
-        - {std: 20, name: clang++/shared, bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang}
+        # clang-20 on windows-2026 image is failing to compile; requires >clang22
+        # see https://github.com/biojppm/rapidyaml/actions/runs/45091372542/job/137421466636?pr=719
+        - {std: 11, name: clang++/static, bt: Debug  , shared: OFF, cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang, os: 2022}
+        - {std: 11, name: clang++/shared, bt: Release, shared: ON , cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang, os: 2022}
+        - {std: 20, name: clang++/static, bt: Debug  , shared: OFF, cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang, os: 2022}
+        - {std: 20, name: clang++/shared, bt: Release, shared: ON , cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang, os: 2022}
         #
         # mingw release builds are failing the tests:
         # see https://github.com/biojppm/rapidyaml/issues/603
-        - {std: 11, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
-        - {std: 11, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
-        #- {std: 11, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
-        - {std: 20, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
-        - {std: 20, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
-        #- {std: 20, name: g++/shared    , bt: Release, shared: ON , cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes}
+        - {std: 11, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes, os: latest}
+        - {std: 11, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes, os: latest}
+        #- {std: 11, name: g++/shared    , bt: Release, shared: ON , cxx: -G Ninja  -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes, os: latest}
+        - {std: 20, name: g++/static    , bt: Debug  , shared: OFF, cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes, os: latest}
+        - {std: 20, name: g++/shared    , bt: Debug  , shared: ON , cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes, os: latest}
+        #- {std: 20, name: g++/shared    , bt: Release, shared: ON , cxx: -G Ninja  -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc, heavybuild: yes, os: latest}
     steps:
     - :: checkout-action
     - name: config

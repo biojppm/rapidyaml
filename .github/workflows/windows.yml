@@ -497,7 +497,7 @@ jobs:
     if: always()
     continue-on-error: false
     name: ${{matrix.name}}/${{matrix.bt}}/c++${{matrix.std}}
-    runs-on: windows-latest
+    runs-on: windows-${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
@@ -507,65 +507,77 @@ jobs:
           bt: Debug
           shared: 'OFF'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 11
           name: clangcl/shared
           bt: Release
           shared: 'ON'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 20
           name: clangcl/static
           bt: Debug
           shared: 'OFF'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 20
           name: clangcl/shared
           bt: Release
           shared: 'ON'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 11
           name: clang++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 11
           name: clang++/shared
           bt: Release
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 20
           name: clang++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 20
           name: clang++/shared
           bt: Release
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 11
           name: g++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
         - std: 11
           name: g++/shared
           bt: Debug
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
         - std: 20
           name: g++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
         - std: 20
           name: g++/shared
           bt: Debug
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
     steps:
     - name: checkout (action)
       uses: actions/checkout@v6
