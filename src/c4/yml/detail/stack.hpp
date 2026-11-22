@@ -156,6 +156,9 @@ public:
     C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](id_type i) const { RYML_ASSERT_BASIC_CB_(m_callbacks, i < m_size); return m_stack[i]; }
     C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](id_type i)       { RYML_ASSERT_BASIC_CB_(m_callbacks, i < m_size); return m_stack[i]; }
 
+    template<class I> C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](I i) const { RYML_ASSERT_BASIC_CB_(m_callbacks, (id_type)i < m_size); return m_stack[i]; }
+    template<class I> C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](I i)       { RYML_ASSERT_BASIC_CB_(m_callbacks, (id_type)i < m_size); return m_stack[i]; }
+
 public:
 
     using       iterator = T       *;
