@@ -586,6 +586,7 @@ CharContainer format_exc(ExceptionT const& exc)
 
 
 #if !RYML_USE_ASSERT
+#   define RYML_WITH_ASSERT_(...)
 #   define RYML_ASSERT_ABORT_(cond)
 #   define RYML_ASSERT_BASIC_(cond)
 #   define RYML_ASSERT_BASIC_CB_(cb, cond)
@@ -600,6 +601,7 @@ CharContainer format_exc(ExceptionT const& exc)
 #   define RYML_ASSERT_VISIT_MSG_(cont, tree, node, ...)
 #   define RYML_ASSERT_VISIT_MSG_CB_(cb, cont, tree, node, ...)
 #else
+#   define RYML_WITH_ASSERT_(...) __VA_ARGS__
 #   if !RYML_ABORT_ON_ASSERT
 #       define RYML_ASSERT_ABORT_(cond)
 #       define RYML_ASSERT_BASIC_(cond) RYML_CHECK_BASIC_(cond)
