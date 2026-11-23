@@ -30,6 +30,9 @@ c4core-check-list: c4core-clone
 	$(SYNC_TOOL) check-list
 
 c4core-import: c4core-clone
+	@# amalgamate c4core to ensure fast_float_all.h is up to date
+	mkdir -p $(RYML_DIR)/build
+	python $(C4CORE_DIR_GIT)/tools/amalgamate.py > $(RYML_DIR)/build/_c4core.hpp
 	$(SYNC_TOOL) import
 
 c4core-export: c4core-clone

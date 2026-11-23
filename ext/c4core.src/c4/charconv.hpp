@@ -1982,9 +1982,9 @@ C4_ALWAYS_INLINE bool scan_rhex(csubstr s, T *C4_RESTRICT val) noexcept
         if(c >= '0' && c <= '9')
             *val = (*val * T(16)) + T(c - '0');
         else if(c >= 'a' && c <= 'f')
-            *val = (*val * T(16)) + T(c - 'a');
+            *val = (*val * T(16)) + T(c - 'a' + 10);
         else if(c >= 'A' && c <= 'F')
-            *val = (*val * T(16)) + T(c - 'A');
+            *val = (*val * T(16)) + T(c - 'A' + 10);
         else if(c == '.')
         {
             ++pos;
@@ -2009,9 +2009,9 @@ C4_ALWAYS_INLINE bool scan_rhex(csubstr s, T *C4_RESTRICT val) noexcept
             if(c >= '0' && c <= '9')
                 *val += digit * T(c - '0');
             else if(c >= 'a' && c <= 'f')
-                *val += digit * T(c - 'a');
+                *val += digit * T(c - 'a' + 10);
             else if(c >= 'A' && c <= 'F')
-                *val += digit * T(c - 'A');
+                *val += digit * T(c - 'A' + 10);
             else if(c == 'p' || c == 'P')
             {
                 ++pos;
