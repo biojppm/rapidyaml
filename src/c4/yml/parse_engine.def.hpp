@@ -2480,6 +2480,8 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                         }
                         break;
                     }
+                    _c4assert(!(lc.indentation == m_evt_handler->m_curr->indref && has_any(RSEQ|RMAP)));
+                    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
                     else if(lc.indentation == m_evt_handler->m_curr->indref)
                     {
                         if(has_any(RSEQ|RMAP))
@@ -2488,6 +2490,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                             break;
                         }
                     }
+                    #endif
                     _c4dbgsb("set indentation ref from this line: ref={}", lc.indentation);
                     indentation = lc.indentation;
                 }
@@ -6687,6 +6690,9 @@ mapblck_start:
                     _c4err("parse error");
                 _handle_indentation_pop_from_block_map();
                 _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
+                #ifndef RYML_NO_COVERAGE__TO_BE_DELETED
+                goto mapblck_finish;
+                #else
                 if(has_all(RMAP|RBLCK))
                 {
                     _c4dbgp("mapblck[RKEY]: still mapblck after pop!");
@@ -6698,6 +6704,7 @@ mapblck_start:
                     _c4dbgp("mapblck[RKEY]: no longer mapblck!");
                     goto mapblck_finish;
                 }
+                #endif
             }
             else
             {
@@ -7338,16 +7345,14 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
         {
             _c4dbgpf("mapblck[QMRK]: skip {} from indref", m_evt_handler->m_curr->indref + 1);
             _line_progressed(m_evt_handler->m_curr->indref + 1);
-            if(!m_evt_handler->m_curr->line_contents.rem.len)
-                return true; // go again
+            _c4assert(m_evt_handler->m_curr->line_contents.rem.len);
         }
         // indentation can be larger in QMRK state
         else if(m_evt_handler->m_curr->indentation_gt_extra())
         {
             _c4dbgp("mapblck[QMRK]: larger indentation !");
             _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
-            if(!m_evt_handler->m_curr->line_contents.rem.len)
-                return true; // go again
+            _c4assert(m_evt_handler->m_curr->line_contents.rem.len);
         }
         else
         {
@@ -7537,29 +7542,14 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
     }
     else if(first == '-')
     {
-        _c4dbgp("mapblck[QMRK]: maybe seq or doc?");
-        if(_is_blck_seq_token_maybe(m_evt_handler->m_curr->line_contents.rem))
-        {
-            _c4dbgp("mapblck[QMRK]: start child seqblck (!)");
-            addrem_flags(RKCL, QMRK);
-            _handle_annotations_before_blck_key_scalar();
-            m_evt_handler->begin_seq_key_block();
-            addrem_flags(RVAL|RSEQ, RMAP|RKCL);
-            _set_indentation_maybe_indentless(startindent);
-            _line_progressed(1);
-        }
-        else if(m_evt_handler->m_curr->indref == 0 &&
-                m_evt_handler->m_curr->at_first_token() &&
-                _is_doc_begin_token(m_evt_handler->m_curr->line_contents.rem))
-        {
-            _c4dbgp("mapblck[QMRK]: end+start doc");
-            _start_doc_suddenly();
-            _line_progressed(3);
-        }
-        else
-        {
-            _c4err("parse error");
-        }
+        _c4dbgp("mapblck[QMRK]: start child seqblck (!)");
+        _c4assert(_is_blck_token(m_evt_handler->m_curr->line_contents.rem));
+        addrem_flags(RKCL, QMRK);
+        _handle_annotations_before_blck_key_scalar();
+        m_evt_handler->begin_seq_key_block();
+        addrem_flags(RVAL|RSEQ, RMAP|RKCL);
+        _set_indentation_maybe_indentless(startindent);
+        _line_progressed(1);
         _maybe_skip_whitespace_tokens();
         return false; // finish mapblck
     }
@@ -7598,17 +7588,6 @@ bool ParseEngine<EventHandler>::_handle_map_block_qmrk()
         // indentation_lt() should be handled elsewhere
         _line_progressed(1);
         _maybe_skipchars(' ');
-        if(_is_blck_seq_token_maybe(m_evt_handler->m_curr->line_contents.rem))
-        {
-            _c4dbgp("mapblck[RVAL]: seqblck starts after ?");
-            addrem_flags(RKCL, QMRK);
-            m_evt_handler->begin_seq_key_block();
-            addrem_flags(RSEQ|RVAL, RMAP|RKCL);
-            _save_indentation();
-            _line_progressed(1);
-            _maybe_skipchars(' ');
-            return false;
-        }
     }
     else
     {
