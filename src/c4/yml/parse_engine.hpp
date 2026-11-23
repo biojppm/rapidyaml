@@ -458,6 +458,7 @@ private:
     ScannedScalar _scan_scalar_dquot();
 
     void    _scan_block(ScannedBlock *C4_RESTRICT sb, size_t indref);
+    void    _scan_block_specs(BlockChomp_e *chomp, size_t *indentation);
     csubstr _scan_anchor();
     csubstr _scan_ref_seq();
     csubstr _scan_ref_map();

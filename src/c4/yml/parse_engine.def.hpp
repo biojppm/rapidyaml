@@ -179,15 +179,17 @@ C4_ALWAYS_INLINE size_t _extend_from_combined_newline(char nl, char following)
 inline substr _from_next_line(substr rem)
 {
     size_t nlpos = rem.first_of("\r\n");
-    if(nlpos == csubstr::npos)
-        return {};
-    const char nl = rem[nlpos];
-    rem = rem.right_of(nlpos);
-    if(rem.empty())
-        return {};
-    if(_extend_from_combined_newline(nl, rem.front()))
-        rem = rem.sub(1);
-    return rem;
+    if C4_LIKELY (nlpos != csubstr::npos)
+    {
+        const char nl = rem[nlpos];
+        rem = rem.right_of(nlpos);
+        if(rem.empty())
+            return {};
+        if(_extend_from_combined_newline(nl, rem.front()))
+            rem = rem.sub(1);
+        return rem;
+    }
+    return {}; // LCOV_EXCL_LINE
 }
 
 
@@ -2287,82 +2289,122 @@ found_close:
 
 
 //-----------------------------------------------------------------------------
+/** @cond dev */
+
+// a debugging scaffold:
+#if 1
+#define _c4dbgsb(fmt, ...) _c4dbgpf("blcksclr: " fmt, __VA_ARGS__)
+#else
+#define _c4dbgsb(...)
+#endif
+
+namespace detail {
+C4_ALWAYS_INLINE BlockChomp_e blcksclr_getchomp_(char c) noexcept
+{
+    return c == '-' ? CHOMP_STRIP : CHOMP_KEEP;
+}
+inline void blcksclr_split_(csubstr *C4_RESTRICT number, csubstr *C4_RESTRICT rem) noexcept
+{
+    size_t fno = rem->first_not_of("0123456789");
+    if(fno == npos)
+    {
+        _c4dbgsb("all digits", 0);
+        *number = *rem;
+        rem->clear();
+    }
+    else
+    {
+        _c4dbgsb("more characters after number at {}", fno);
+        *number = rem->first(fno);
+        *rem = rem->sub(fno != npos ? fno : rem->len);
+    }
+}
+} // namespace detail
+
+/** @endcond */
+
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_scan_block_specs(BlockChomp_e *chomp, size_t *indentation)
+{
+    _c4dbgsb("spec is multichar: {}", prs_(m_evt_handler->m_curr->line_contents.rem));
+    _c4assert(m_evt_handler->m_curr->line_contents.rem.begins_with_any("|>"));
+    _c4assert(m_evt_handler->m_curr->line_contents.rem.len > 0);
+    csubstr rem = m_evt_handler->m_curr->line_contents.rem.sub(1);
+    csubstr number{};
+    // the chomp sign can be on the left or on the right
+    size_t signpos = rem.first_of("-+");
+    switch(signpos)
+    {
+    case npos:
+    {
+        _c4dbgp("spec: no chomp sign");
+        detail::blcksclr_split_(&number, &rem);
+        break;
+    }
+    case 0:
+    {
+        _c4dbgsb("spec: chomp sign before number[{}]: {}", signpos, _c4prc(rem[signpos]));
+        *chomp = detail::blcksclr_getchomp_(rem[0]);
+        rem = rem.sub(1);
+        detail::blcksclr_split_(&number, &rem);
+        break;
+    }
+    default:
+        _c4dbgsb("spec: chomp sign after number[{}]: {}", signpos, _c4prc(rem[signpos]));
+        *chomp = detail::blcksclr_getchomp_(rem[signpos]);
+        number = rem.first(signpos);
+        rem = rem.sub(signpos + 1);
+        break;
+    }
+    _c4dbgsb("spec: number={} rest={}{}", prs_(number), prs_(rem), (rem.len | number.len) ? ". nothing to do!" : "");
+    if(number.len)
+    {
+        _c4dbgsb("spec: parsing indentation value: {}", prs_(number));
+        if C4_LIKELY ((number.len == 1) && (number.str[0] != '0'))
+        {
+            _c4assert(number.str[0] > '0' && number.str[0] <= '9'); // because we checked above
+            *indentation = (size_t)(number.str[0] - '0');
+            _c4dbgsb("spec: indentation specified: {}. add {} from curr state -> {}", *indentation, m_evt_handler->m_curr->indref, *indentation+m_evt_handler->m_curr->indref);
+            _c4assert(m_evt_handler->m_curr->indref != npos);
+            *indentation += m_evt_handler->m_curr->indref;
+        }
+        else
+        {
+            _c4err("invalid indentation value"); // must be a single digit, nonzero
+        }
+    }
+    // if there are more characters:
+    if(rem.len)
+    {
+        _c4dbgsb("spec: rem={} trimmed={} iscomm={}", prs_(rem), prs_(rem.triml(" \t")), rem.triml(" \t").begins_with('#'));
+        // must begin with whitespace
+        if C4_UNLIKELY (!rem.begins_with_any(" \t") ||
+                        // ... followed by comments
+                        ((rem = rem.triml(" \t")).len && !rem.begins_with('#'))) // NOLINT
+        {
+            _c4err("invalid tokens");
+        }
+    }
+}
+
+
 template<class EventHandler>
 void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t indref)
 {
-    _c4dbgpf("blck: indref={} specs={}", indref, prs_(m_evt_handler->m_curr->line_contents.rem));
+    _c4dbgsb("indref={} specs={}", indref, prs_(m_evt_handler->m_curr->line_contents.rem));
     _c4assert(indref != npos);
 
     // nice explanation here: http://yaml-multiline.info/
-    _c4assert(m_evt_handler->m_curr->line_contents.rem.begins_with('|') || m_evt_handler->m_curr->line_contents.rem.begins_with('>'));
+    _c4assert(m_evt_handler->m_curr->line_contents.rem.begins_with_any("|>"));
 
     // parse the spec
     BlockChomp_e chomp = CHOMP_CLIP; // default to clip unless + or - are used
     size_t indentation = npos; // have to find out if no spec is given
     if(m_evt_handler->m_curr->line_contents.rem.len > 1)
-    {
-        _c4assert(m_evt_handler->m_curr->line_contents.rem.begins_with_any("|>"));
-        csubstr t = m_evt_handler->m_curr->line_contents.rem.sub(1);
-        _c4dbgpf("blck: spec is multichar: {}", prs_(t));
-        _c4assert(t.len >= 1);
-        // the indicators can only be followed by whitespace, optionally
-        // followed by a comment
-        {
-            const size_t indicators_end = t.first_not_of("0123456789+-");
-            if(indicators_end != npos)
-            {
-                csubstr after = t.sub(indicators_end);
-                csubstr trimmed = after.triml(" \t");
-                if C4_UNLIKELY(trimmed.len && (trimmed.str[0] != '#' || trimmed.str == after.str))
-                    _c4err("parse error: invalid token");
-            }
-        }
-        size_t pos = t.first_of("-+");
-        _c4dbgpf("blck: spec chomp char: pos={}", pos);
-        if(pos != npos)
-        {
-            _c4dbgpf("blck: spec chomp char: {}", _c4prc(t[pos]));
-            if(t[pos] == '-')
-            {
-                _c4dbgp("blck: chomp=STRIP");
-                chomp = CHOMP_STRIP;
-            }
-            else if(t[pos] == '+')
-            {
-                _c4dbgp("blck: chomp=KEEP");
-                chomp = CHOMP_KEEP;
-            }
-            if(pos == 0)
-                t = t.sub(1);
-            else
-                t = t.first(pos);
-            _c4dbgpf("blck: spec is now: {}", prs_(t));
-        }
-        // from here to the end, only digits are considered
-        pos = t.first_not_of("0123456789");
-        csubstr rest = t.first(pos);
-        if( ! rest.empty())
-        {
-            _c4dbgpf("blck: parse indentation digits: {}", prs_(rest));
-            if C4_UNLIKELY(rest.len > 1)
-                _c4err("parse error: invalid indentation");
-            if C4_UNLIKELY( ! c4::atou(rest, &indentation))
-                _c4err("parse error: could not read indentation as decimal"); // LCOV_EXCL_LINE
-            if C4_UNLIKELY( ! indentation)
-                _c4err("parse error: null indentation");
-            _c4dbgpf("blck: indentation specified: {}. add {} from curr state -> {}", indentation, m_evt_handler->m_curr->indref, indentation+indref);
-            indentation += m_evt_handler->m_curr->indref;
-        }
-        else
-        {
-            rest = t.triml(" \t");
-            _c4dbgpf("blck: digits empty. t={} trimmed={} iscomm={} t.iscomm={}", prs_(t), prs_(rest), rest.begins_with('#'), t.begins_with('#'));
-            if C4_UNLIKELY(rest.len && (rest.str[0] != '#' || t.str[0] == '#'))
-                _c4err("parse error: invalid token");
-        }
-    }
+        _scan_block_specs(&chomp, &indentation);
 
-    _c4dbgpf("blck: style={}  chomp={}  indentation={}", m_evt_handler->m_curr->line_contents.rem.begins_with('>') ? "fold" : "literal", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
+    _c4dbgsb("style={}  chomp={}  indentation={}", m_evt_handler->m_curr->line_contents.rem.begins_with('>') ? "fold" : "literal", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
 
     // finish the start line
     _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
@@ -2390,38 +2432,38 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         #if defined(__GNUC__) && (__GNUC__ == 12 || __GNUC__ == 13)
         C4_DONT_OPTIMIZE(lc.rem);
         #endif
-        _c4dbgpf("blck: peeking at {}", prs_(lc.rem.trimr("\r\n"), true));
+        _c4dbgsb("peeking at {}", prs_(lc.rem.trimr("\r\n"), true));
         // evaluate termination conditions
         if(indentation != npos)
         {
-            _c4dbgpf("blck: indentation={}", indentation);
+            _c4dbgsb("indentation={}", indentation);
             // stop when the line is deindented and not empty
             if(lc.indentation < indentation && ( ! lc.rem.trim(" \t").empty()))
             {
-                _c4dbgpf("blck: indentation decreased len={} ref={} thisline={}", raw_block.len, indentation, lc.indentation);
+                _c4dbgsb("indentation decreased len={} ref={} thisline={}", raw_block.len, indentation, lc.indentation);
                 break;
             }
             else if(indentation == 0 && _is_doc_token(lc.rem))
             {
-                _c4dbgp("blck: stop. indentation=0 and doc ended");
+                _c4dbgp("stop. indentation=0 and doc ended");
                 break;
             }
         }
         else
         {
             const size_t fns = lc.rem.first_not_of(' ');
-            _c4dbgpf("blck: indentation ref not set. firstnonws={}", fns);
+            _c4dbgsb("indentation ref not set. firstnonws={}", fns);
             if(fns != npos) // non-empty line
             {
-                _c4dbgpf("blck: line not empty. indref={} indprov={} indentation={}", indref, provisional_indentation, lc.indentation);
+                _c4dbgsb("line not empty. indref={} indprov={} indentation={}", indref, provisional_indentation, lc.indentation);
                 if C4_UNLIKELY(lc.full.begins_with('\t'))
                     _c4err("parse error");
                 if(lc.indentation == 0 && _is_doc_token(lc.rem))
                 {
-                    _c4dbgp("blck: stop. doc token before any content");
+                    _c4dbgp("stop. doc token before any content");
                     if(raw_block.len == 0)
                     {
-                        _c4dbgp("blck: was empty, undo next line");
+                        _c4dbgp("was empty, undo next line");
                         _line_ended_undo();
                     }
                     break;
@@ -2430,10 +2472,10 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                 {
                     if(lc.indentation < indref)
                     {
-                        _c4dbgpf("blck: block terminated indentation={} < indref={}", lc.indentation, indref);
+                        _c4dbgsb("block terminated indentation={} < indref={}", lc.indentation, indref);
                         if(raw_block.len == 0)
                         {
-                            _c4dbgp("blck: was empty, undo next line");
+                            _c4dbgp("was empty, undo next line");
                             _line_ended_undo();
                         }
                         break;
@@ -2442,18 +2484,18 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                     {
                         if(has_any(RSEQ|RMAP))
                         {
-                            _c4dbgpf("blck: block terminated. reading container and indentation={}==indref={}", lc.indentation, m_evt_handler->m_curr->indref);
+                            _c4dbgsb("block terminated. reading container and indentation={}==indref={}", lc.indentation, m_evt_handler->m_curr->indref);
                             break;
                         }
                     }
-                    _c4dbgpf("blck: set indentation ref from this line: ref={}", lc.indentation);
+                    _c4dbgsb("set indentation ref from this line: ref={}", lc.indentation);
                     indentation = lc.indentation;
                 }
                 else
                 {
                     if(lc.indentation >= provisional_indentation)
                     {
-                        _c4dbgpf("blck: set indentation ref from provisional indentation: provisional_ref={}, thisline={}", provisional_indentation, lc.indentation);
+                        _c4dbgsb("set indentation ref from provisional indentation: provisional_ref={}, thisline={}", provisional_indentation, lc.indentation);
                         //indentation = provisional_indentation ? provisional_indentation : lc.indentation;
                         indentation = lc.indentation;
                     }
@@ -2461,42 +2503,42 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
                     {
                         if(lc.indentation >= indref)
                             _c4err("parse error: first non-empty block line should have at least the original indentation");
-                        _c4dbgp("blck: finished");
+                        _c4dbgp("finished");
                         break;
                     }
                 }
             }
             else // empty line
             {
-                _c4dbgpf("blck: line empty or {} spaces. line_indentation={} prov_indentation={}", lc.rem.len, lc.indentation, provisional_indentation);
+                _c4dbgsb("line empty or {} spaces. line_indentation={} prov_indentation={}", lc.rem.len, lc.indentation, provisional_indentation);
                 if(provisional_indentation != npos)
                 {
                     if(lc.rem.len >= provisional_indentation)
                     {
-                        _c4dbgpf("blck: increase provisional_ref {} -> {}", provisional_indentation, lc.rem.len);
+                        _c4dbgsb("increase provisional_ref {} -> {}", provisional_indentation, lc.rem.len);
                         provisional_indentation = lc.rem.len;
                     }
                 }
                 else
                 {
                     provisional_indentation = lc.indentation ? lc.indentation : has_any(RSEQ|RVAL);
-                    _c4dbgpf("blck: initialize provisional_ref={}", provisional_indentation);
+                    _c4dbgsb("initialize provisional_ref={}", provisional_indentation);
                     if(provisional_indentation == npos)
                     {
                         provisional_indentation = lc.rem.len ? lc.rem.len : has_any(RSEQ|RVAL);
-                        _c4dbgpf("blck: initialize provisional_ref={}", provisional_indentation);
+                        _c4dbgsb("initialize provisional_ref={}", provisional_indentation);
                     }
                     if(provisional_indentation < indref)
                     {
                         provisional_indentation = indref;
-                        _c4dbgpf("blck: initialize provisional_ref={}", provisional_indentation);
+                        _c4dbgsb("initialize provisional_ref={}", provisional_indentation);
                     }
                 }
             }
         }
         // advance now that we know the folded scalar continues
         m_evt_handler->m_curr->line_contents = lc;
-        _c4dbgpf("blck: append '{}'", m_evt_handler->m_curr->line_contents.rem);
+        _c4dbgsb("append '{}'", m_evt_handler->m_curr->line_contents.rem);
         raw_block.len += m_evt_handler->m_curr->line_contents.full.len;
         _line_progressed(m_evt_handler->m_curr->line_contents.rem.len);
         _line_ended();
@@ -2508,7 +2550,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
 
     if(indentation == npos)
     {
-        _c4dbgpf("blck: set indentation from provisional: {}", provisional_indentation);
+        _c4dbgsb("set indentation from provisional: {}", provisional_indentation);
         indentation = provisional_indentation;
     }
 
@@ -2521,6 +2563,8 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
     sb->indentation = indentation;
     sb->chomp = chomp;
 }
+
+#undef _c4dbgsb
 
 
 //-----------------------------------------------------------------------------
