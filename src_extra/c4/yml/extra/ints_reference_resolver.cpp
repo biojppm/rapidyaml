@@ -335,17 +335,9 @@ C4_NODISCARD evt_size ReferenceResolver::resolve_map_repeat_(evt_size pos)
         }
         else if(detail::hasall(evts.ptr[pos], ievt::KEY_|ievt::SCLR))
         {
-            if(is_merge_elm_(pos))
-            {
-                if(is_any_merge_elm_alia_missing_(pos))
-                {
-                    ;
-                }
-                else
-                {
+            if(is_merge_elm_(pos)) // NOLINT
+                if(!is_any_merge_elm_alia_missing_(pos))
                     handle_merge_elm_(pos);
-                }
-            }
         }
         else if(detail::hasall(evts.ptr[pos], ievt::EMAP))
         {
@@ -931,10 +923,10 @@ bool ReferenceResolver::is_any_merge_elm_alia_missing_(evt_size pos) const
 
 void ReferenceResolver::handle_merge_elm_(evt_size child)
 {
-    // clear any anchors or tags immediately preceding the << scalar
-    maybe_clear_anchtag_(child);
     rymlassertb_(detail::hasall(evts.ptr[child], ievt::KEY_|ievt::SCLR));
     rymlassertb_("<<" == getstr(child));
+    // clear any anchors or tags immediately preceding the << scalar
+    maybe_clear_anchtag_(child);
     if(detail::hasall(evts.ptr[child + 3], ievt::VAL_|ievt::ALIA))
     {
         merge_map_single_(child);

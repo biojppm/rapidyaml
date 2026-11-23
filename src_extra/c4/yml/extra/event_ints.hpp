@@ -267,9 +267,11 @@ typedef enum : evt_bits { // NOLINT
     RREF = (1 << 23),
 
     /// unused: reserved for future use (to enable rope-like buffers)
+    /// TODO: remove
     JUMP = (1 << 24),
 
     /// unused: reserved for future use (to enable 64 bit integers)
+    /// TODO: remove
     QWRD = (1 << 25),
 
     /// Special flag to enable look-back in the event array. It
@@ -284,7 +286,7 @@ typedef enum : evt_bits { // NOLINT
     EXT2 = WSTR|RREF|JUMP,
 
     // flow style flags
-    FSL_ = (1 << 27), ///< same as @ref c4::yml::FLOW_SL
+    FSL_ = (1 << 27), ///< same as @ref c4::yml::FLOW_SL. TODO: remove
     FML1 = (1 << 28), ///< same as @ref c4::yml::FLOW_ML1
     FMLN = (1 << 29), ///< same as @ref c4::yml::FLOW_MLN
     FMLX = FML1|FMLN, ///< same as @ref c4::yml::FLOW_MLX
@@ -293,7 +295,7 @@ typedef enum : evt_bits { // NOLINT
     // if adding a (1<<31) flag here, don't use (1<<31)!
     // use instead -0x80000000 or -2147483648
 
-    /// the last flag defined above
+    /// the last flag defined above                                  // LCOV_EXCL_LINE
     LAST = FSPC,
                                                                      // LCOV_EXCL_LINE
     /// a mask of all bits in this enumeration
@@ -321,7 +323,7 @@ C4_HOT C4_ALWAYS_INLINE evt_size prevstep(evt_bits bits) noexcept
 C4_HOT C4_ALWAYS_INLINE evt_size nextpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {
     return pos + ((arr[pos] & ievt::EXT2) ? 3 : 1);
-}
+}                                                                     // LCOV_EXCL_LINE
 C4_HOT C4_ALWAYS_INLINE evt_size prevpos(evt_bits const *C4_RESTRICT arr, evt_size pos) noexcept
 {                                                                     // LCOV_EXCL_LINE
     return pos - ((arr[pos] & ievt::PEX2) ? 3 : 1);
