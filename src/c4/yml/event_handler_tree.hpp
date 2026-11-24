@@ -513,7 +513,6 @@ public:
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
         RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_tree);
         RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, !ryml_hasany_(KEYREF));
-        RYML_ASSERT_PARSE_CB_(m_tree->callbacks(), !anchor.begins_with('&'), m_curr->pos);
         ryml_enable_(KEYANCH);
         m_curr->tr_data->m_key.anchor = anchor;
     }
@@ -522,7 +521,6 @@ public:
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
         RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, m_tree);
         RYML_ASSERT_BASIC_CB_(m_stack.m_callbacks, !ryml_hasany_(VALREF));
-        RYML_ASSERT_PARSE_CB_(m_tree->callbacks(), !anchor.begins_with('&'), m_curr->pos);
         ryml_enable_(VALANCH);
         m_curr->tr_data->m_val.anchor = anchor;
     }
