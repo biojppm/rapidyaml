@@ -1551,7 +1551,7 @@ public:
     /** @cond dev*/
 
     #if ! RYML_USE_ASSERT
-    C4_ALWAYS_INLINE void _check_next_flags(id_type, type_bits) {}
+    C4_ALWAYS_INLINE static void _check_next_flags(id_type, type_bits) noexcept {}
     #else
     void _check_next_flags(id_type node, type_bits f)
     {

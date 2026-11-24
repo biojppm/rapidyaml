@@ -666,6 +666,7 @@ private:
     C4_ALWAYS_INLINE void _clear_annotations(Annotation *C4_RESTRICT dst) noexcept { dst->num_entries = 0; }
     bool _annotations_require_key_container() const;
     bool _handle_annotations_before_unexpected_flow_token_rkey();
+    void _handle_annotations_before_flow_key_scalar();
     void _handle_annotations_before_blck_key_scalar();
     void _handle_annotations_before_blck_val_scalar();
     void _handle_annotations_before_start_mapblck(size_t current_line);
