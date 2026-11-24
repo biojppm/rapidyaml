@@ -2361,9 +2361,8 @@ void ParseEngine<EventHandler>::_scan_block_specs(BlockChomp_e *chomp, size_t *i
     if(number.len)
     {
         _c4dbgsb("spec: parsing indentation value: {}", prs_(number));
-        if C4_LIKELY ((number.len == 1) && (number.str[0] != '0'))
+        if C4_LIKELY ((number.len == 1) && (number.str[0] != '0') && (number.str[0] <= '9'))
         {
-            _c4assert(number.str[0] > '0' && number.str[0] <= '9'); // because we checked above
             *indentation = (size_t)(number.str[0] - '0');
             _c4dbgsb("spec: indentation specified: {}. add {} from curr state -> {}", *indentation, m_evt_handler->m_curr->indref, *indentation+m_evt_handler->m_curr->indref);
             _c4assert(m_evt_handler->m_curr->indref != npos);
