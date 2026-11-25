@@ -103,10 +103,6 @@ ryml_add_quickstart_test(ryml-test-quickstart-ints  bad_arena WILL_FAIL ARGS -a 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES
        test_lib/callbacks_tester.hpp
-       test_lib/test_case.hpp
-       test_lib/test_case.cpp
-       test_lib/test_case_node.hpp
-       test_lib/test_case_node.cpp
        test_lib/test_compare_events.hpp
        test_lib/test_compare_events.cpp
        test_lib/test_engine.hpp
@@ -132,11 +128,11 @@ c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
 )
 
 function(ryml_add_test test_name)
-    cmake_parse_arguments("" "BIG" "" "LIBS" ${ARGN})
+    cmake_parse_arguments("" "BIG" "" "LIBS;SRC" ${ARGN})
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
-        SOURCES test_${test_name}.cpp
-        LIBS ryml-_testlib ryml-_testmain
+        SOURCES test_${test_name}.cpp ${_SRC}
+        LIBS ryml-_testlib ryml-_testmain ${_LIBS}
         FOLDER test)
     ryml_testbm_link_with_c4core(${t})
     if(RYML_SAVE_TEST_YAML)
@@ -151,6 +147,10 @@ endfunction()
 
 c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
     SOURCES
+       test_lib/test_case.hpp
+       test_lib/test_case.cpp
+       test_lib/test_case_node.hpp
+       test_lib/test_case_node.cpp
        test_lib/test_group.hpp
        test_lib/test_group.def.hpp
        test_lib/test_group.cpp
@@ -162,6 +162,15 @@ function(ryml_add_test_legacy name)
     ryml_add_test(${name} ${ARGN})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
 endfunction()
+
+c4_add_library(ryml-_emitscommon LIBRARY_TYPE OBJECT
+    SOURCES
+       test_emits/test_emits_common.hpp
+       test_emits/test_emits_common.cpp
+    LIBS ryml-_testlib c4fs
+    FOLDER test)
+ryml_setup_test_target_props(ryml-_emitscommon)
+ryml_testbm_link_with_c4core(ryml-_emitscommon)
 
 
 # some subjects have to be split over several files because gtest
@@ -208,6 +217,7 @@ ryml_add_test(engine_8_scalars_tokens_1 BIG)
 ryml_add_test(engine_8_scalars_tokens_2 BIG)
 ryml_add_test(engine_9_indentation BIG)
 ryml_add_test(engine_z_annot BIG)
+
 ryml_add_test(extra_ints)
 ryml_add_test(extra_ints_resolve)
 ryml_add_test(filter)
@@ -216,7 +226,10 @@ ryml_add_test(node_type)
 ryml_add_test(tree)
 ryml_add_test(tree_build)
 ryml_add_test(noderef)
-ryml_add_test(emit)
+ryml_add_test(emit_1 LIBS ryml-_emitscommon)
+ryml_add_test(emit_2 LIBS ryml-_emitscommon)
+ryml_add_test(emit_3 LIBS ryml-_emitscommon)
+ryml_add_test(emit_4 LIBS ryml-_emitscommon)
 ryml_add_test(style)
 ryml_add_test(serialize_1)
 ryml_add_test(serialize_2)

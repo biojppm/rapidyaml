@@ -43,19 +43,6 @@ struct Case
 
 //-----------------------------------------------------------------------------
 
-template<class T>
-struct src_and_val
-{
-    resultdep<txtbuf> orig; // original source
-    resultdep<txtbuf> src; // mutated by the parse
-    resultdep<T> val;
-    void reset() {  orig.done = src.done = val.done = false; }
-    void assign(csubstr src_)
-    {
-        if(src.ensure([&]{ src.result.assign(src_.begin(), src_.end()); }))
-            orig = src;
-    }
-};
 using SrcTree = src_and_val<Tree>;
 using SrcInts = src_and_val<extra::ievt::TestBuffers>;
 
