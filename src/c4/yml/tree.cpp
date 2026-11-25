@@ -195,11 +195,6 @@ void Tree::_free()
 }
 
 
-C4_SUPPRESS_WARNING_GCC_PUSH
-#if defined(__GNUC__) && __GNUC__>= 8
-    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wclass-memaccess") // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
-#endif
-
 void Tree::_clear()
 {
     m_buf = nullptr;
@@ -334,10 +329,6 @@ void Tree::_claim_root()
     RYML_ASSERT_VISIT_CB_(m_callbacks, r == 0, this, r);
     _set_hierarchy(r, NONE, NONE);
 }
-
-
-//-----------------------------------------------------------------------------
-C4_SUPPRESS_WARNING_GCC_POP
 
 
 //-----------------------------------------------------------------------------
