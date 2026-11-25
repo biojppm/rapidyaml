@@ -1860,6 +1860,42 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 }
 
 
+//-----------------------------------------------------------------------------
+
+#if RYML_USE_ASSERT
+void Tree::_check_next_flags(id_type node, type_bits f)
+{
+    NodeData *n = _p(node);
+    type_bits o = n->m_type; // old
+    C4_UNUSED(o);
+    if(f & MAP)
+    {
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & SEQ) == 0, this, node, "cannot mark simultaneously as map and seq");
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & VAL) == 0, this, node, "cannot mark simultaneously as map and val");
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & SEQ) == 0, this, node, "cannot turn a seq into a map; clear first");
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & VAL) == 0, this, node, "cannot turn a val into a map; clear first");
+    }
+    else if(f & SEQ)
+    {
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & MAP) == 0, this, node, "cannot mark simultaneously as seq and map");
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & VAL) == 0, this, node, "cannot mark simultaneously as seq and val");
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & MAP) == 0, this, node, "cannot turn a map into a seq; clear first");
+        RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & VAL) == 0, this, node, "cannot turn a val into a seq; clear first");
+    }
+    if(f & KEY)
+    {
+        RYML_ASSERT_VISIT_CB_(m_callbacks, !is_root(node), this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, is_map(parent(node)), this, node);
+    }
+    if((f & VAL) && !is_root(node))
+    {
+        auto pid = parent(node); C4_UNUSED(pid);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, is_map(pid) || is_seq(pid), this, node);
+    }
+}
+#endif // RYML_USE_ASSERT
+
+
 } // namespace yml
 } // namespace c4
 
