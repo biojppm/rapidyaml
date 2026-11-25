@@ -602,8 +602,12 @@ private:
     void _line_ended();
     void _line_ended_undo();
 
-    bool  _finished_file() const;
-    bool  _finished_line() const;
+    #ifdef RYML_DBG
+    C4_ALWAYS_INLINE bool _finished_file() const noexcept;
+    #else
+    C4_ALWAYS_INLINE bool _finished_file() const noexcept { return m_evt_handler->m_curr->pos.offset >= _buf().len; }
+    #endif
+    C4_HOT C4_ALWAYS_INLINE bool _finished_line() const noexcept { return !m_evt_handler->m_curr->line_contents.rem.len; }
 
     void   _scan_line();
     substr _peek_next_line(size_t pos=npos) const;

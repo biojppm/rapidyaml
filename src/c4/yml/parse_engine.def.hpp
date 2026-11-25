@@ -607,24 +607,17 @@ void ParseEngine<EventHandler>::_dbg(csubstr fmt, Args const& ...args) const
 
 
 //-----------------------------------------------------------------------------
+#ifdef RYML_DBG
 template<class EventHandler>
-bool ParseEngine<EventHandler>::_finished_file() const
+bool ParseEngine<EventHandler>::_finished_file() const noexcept
 {
-    bool ret = m_evt_handler->m_curr->pos.offset >= _buf().len;
     #ifdef RYML_DBG
-    if(ret)
-    {
+    if(m_evt_handler->m_curr->pos.offset >= _buf().len)
         _c4dbgp("finished file!!!");
-    }
     #endif
-    return ret;
+    return m_evt_handler->m_curr->pos.offset >= _buf().len;
 }
-
-template<class EventHandler>
-C4_HOT C4_ALWAYS_INLINE bool ParseEngine<EventHandler>::_finished_line() const // LCOV_EXCL_LINE
-{
-    return m_evt_handler->m_curr->line_contents.rem.empty();
-}
+#endif
 
 
 //-----------------------------------------------------------------------------
