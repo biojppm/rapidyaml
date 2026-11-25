@@ -258,7 +258,7 @@ ryml_add_test(anchor_1)
 ryml_add_test(anchor_2)
 ryml_add_test(anchor_3)
 ryml_add_test_legacy(anchor_legacy)
-ryml_add_test_legacy(indentation)
+ryml_add_test_legacy(indentation_legacy)
 ryml_add_test_legacy(number)
 ryml_add_test_legacy(github_issues)
 # workaround for a false positive warning in gcc14 --std=c++20 -O2
