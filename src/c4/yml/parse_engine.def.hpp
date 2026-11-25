@@ -4358,18 +4358,20 @@ size_t ParseEngine<EventHandler>::_handle_block_skip_leading_whitespace()
 }
 
 template<class EventHandler>
-void ParseEngine<EventHandler>::_handle_block_check_leading_tabs(csubstr leading) const
+void ParseEngine<EventHandler>::_handle_block_check_leading_tabs(size_t start_mark, size_t end_mark) const
 {
-    _c4assert(leading.is_sub(_buf()));
-    _c4dbgpf("block: start_mark={}  end_mark={}", leading.begin()-_buf().begin(), leading.end()-_buf().begin());
-    if(leading.len)
+    if(start_mark < end_mark)
     {
-        _c4dbgpf("block: leading[{}-{}]={}", leading.begin()-_buf().begin(), leading.end()-_buf().begin(), prs_(leading, true));
+        _c4assert(start_mark <= _buf().len);
+        _c4assert(end_mark <= _buf().len);
+        csubstr leading = _buf().range(start_mark, end_mark);
+        _c4dbgpf("block: leading[{}-{}]={}", start_mark, end_mark, prs_(leading, true));
+        _c4assert(leading.is_sub(_buf()));
         size_t pos = leading.find('\t');
         if(pos != npos)
         {
             size_t fno = leading.first_not_of(" \t");
-            if(fno == npos || pos < fno)
+            if C4_UNLIKELY (fno == npos || pos < fno)
                 _c4err("invalid tab character to the left");
         }
     }
@@ -8138,7 +8140,7 @@ void ParseEngine<EventHandler>::_handle_unk()
     }
     else
     {
-        RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks,  ! has_any(SSCL), m_evt_handler->m_curr->pos);
+        _c4assert( ! has_any(SSCL));
         const size_t startscalar = _handle_block_get_whitespace_mark();
         const size_t startline = m_evt_handler->m_curr->pos.line; // save
         auto beginmap = [&](size_t startindent_){
@@ -8973,7 +8975,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
         while( ! _finished_line())
         {
             _c4dbgnextline();
-            RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks,  ! m_evt_handler->m_curr->line_contents.rem.empty(), m_evt_handler->m_curr->pos);
+            _c4assert(m_evt_handler->m_curr->line_contents.rem.len);
             if(has_any(RFLOW))
             {
                 if(has_none(RSEQIMAP))
@@ -8984,7 +8986,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
                     }
                     else
                     {
-                        RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP), m_evt_handler->m_curr->pos);
+                        _c4assert(has_all(RMAP));
                         _handle_map_flow();
                     }
                 }
@@ -9001,7 +9003,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
                 }
                 else
                 {
-                    RYML_ASSERT_PARSE_CB_(m_evt_handler->m_stack.m_callbacks, has_all(RMAP), m_evt_handler->m_curr->pos);
+                    _c4assert(has_all(RMAP));
                     _handle_map_block();
                 }
             }
