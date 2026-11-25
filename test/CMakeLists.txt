@@ -168,7 +168,8 @@ endfunction()
 # causes some amount of code bloat and some compilers (VS) or
 # platforms (mips) choke on the large binary
 
-ryml_add_test(callbacks)
+ryml_add_test(callbacks_1)
+ryml_add_test(callbacks_2)
 ryml_add_test(stack)
 ryml_add_test(location)
 ryml_add_test(small_map)
