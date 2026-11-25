@@ -47,6 +47,12 @@ jobs:
       :: load('share/env.yaml')
       CMAKE_FLAGS: -DRYML_WITH_TAB_TOKENS=ON
 
+  abortonassert:
+    :: clang-short('abortonassert')
+    env:
+      :: load('share/env.yaml')
+      CMAKE_FLAGS: -DRYML_ABORT_ON_ASSERT=ON -DRYML_WITH_TAB_TOKENS=ON
+
   noexceptions:
     :: clang-short('noexceptions')
     env:

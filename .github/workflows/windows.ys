@@ -69,6 +69,10 @@ jobs:
     #                    name        cmkflags
     :: define-flavor-job('tabtokens' '-DRYML_WITH_TAB_TOKENS=ON')
 
+  abortonassert:
+    #                    name             cmkflags
+    :: define-flavor-job('abortonassert' '-DRYML_ABORT_ON_ASSERT=ON -DRYML_WITH_TAB_TOKENS=ON')
+
   nocallbacks:
     #                    name          cmkflags
     :: define-flavor-job('nocallbacks' '-DRYML_DEFAULT_CALLBACKS=ON')
