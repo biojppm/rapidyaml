@@ -409,6 +409,90 @@ jobs:
         source .github/setenv.sh
         export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
         cmake --build build/Release --target ryml-test-run --config Release
+  abortonassert:
+    if: always()
+    continue-on-error: false
+    name: abortonassert/${{matrix.name}}bit/c++${{matrix.std}}
+    runs-on: windows-${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - std: 11
+          name: vs2022/64
+          os: 2022
+          gen: Visual Studio 17 2022
+          arch: x64
+        - std: 11
+          name: vs2022/32
+          os: 2022
+          gen: Visual Studio 17 2022
+          arch: Win32
+    steps:
+    - name: checkout (action)
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        submodules: false
+        set-safe-directory: true
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON"
+    - name: 'configure Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
+      run: |
+        rm -rf build/Debug
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Debug \
+          -G "${{matrix.gen}}" -A ${{matrix.arch}} \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS_DEBUG=" /MDd /Zi /Ob0 /Od /RTC1 " \
+          -DCMAKE_C_FLAGS_DEBUG=" /MDd /Zi /Ob0 /Od /RTC1 " \
+          -DCMAKE_C_FLAGS=" " \
+          -DBUILD_SHARED_LIBS=ON \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_ABORT_ON_ASSERT=ON -DRYML_WITH_TAB_TOKENS=ON \
+          -DRYML_DBG=OFF
+    - name: 'build Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
+      run: |
+        cmake --build build/Debug --target ryml-test-build --config Debug --parallel --verbose
+    - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Debug --target ryml-test-run --config Debug
+    - name: '---------------------------------------------------------'
+      run: |
+        echo "Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON"
+    - name: 'configure Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
+      run: |
+        rm -rf build/Release
+        export C4_EXTERN_DIR=`pwd`/build/extern
+        cmake -S . -B build/Release \
+          -G "${{matrix.gen}}" -A ${{matrix.arch}} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS_RELEASE=" /MDd /O3 /Ob3 /DNDEBUG " \
+          -DCMAKE_C_FLAGS_RELEASE=" /MDd /O3 /Ob3 /DNDEBUG " \
+          -DCMAKE_C_FLAGS=" " \
+          -DBUILD_SHARED_LIBS=ON \
+          -DC4_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_CXX_STANDARD=${{matrix.std}} \
+          -DRYML_BUILD_TESTS=ON \
+          -DRYML_DEV=ON \
+          -DRYML_BUILD_BENCHMARKS=OFF \
+          -DRYML_ABORT_ON_ASSERT=ON -DRYML_WITH_TAB_TOKENS=ON \
+          -DRYML_DBG=OFF
+    - name: 'build Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
+      run: |
+        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+    - name: 'run Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
+      run: |
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-run --config Release
   nocallbacks:
     if: always()
     continue-on-error: false
@@ -497,7 +581,7 @@ jobs:
     if: always()
     continue-on-error: false
     name: ${{matrix.name}}/${{matrix.bt}}/c++${{matrix.std}}
-    runs-on: windows-latest
+    runs-on: windows-${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
@@ -507,65 +591,77 @@ jobs:
           bt: Debug
           shared: 'OFF'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 11
           name: clangcl/shared
           bt: Release
           shared: 'ON'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 20
           name: clangcl/static
           bt: Debug
           shared: 'OFF'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 20
           name: clangcl/shared
           bt: Release
           shared: 'ON'
           cxx: -G "Visual Studio 18 2026" -T ClangCL
+          os: latest
         - std: 11
           name: clang++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 11
           name: clang++/shared
           bt: Release
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 20
           name: clang++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 20
           name: clang++/shared
           bt: Release
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          os: 2022
         - std: 11
           name: g++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
         - std: 11
           name: g++/shared
           bt: Debug
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
         - std: 20
           name: g++/static
           bt: Debug
           shared: 'OFF'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
         - std: 20
           name: g++/shared
           bt: Debug
           shared: 'ON'
-          cxx: -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          cxx: -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
           heavybuild: 'yes'
+          os: latest
     steps:
     - name: checkout (action)
       uses: actions/checkout@v6

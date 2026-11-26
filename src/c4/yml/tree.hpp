@@ -370,7 +370,7 @@ public:
     {
         if(node == NONE)
             return nullptr;
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node >= 0 && node < m_cap, this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node);
         return m_buf + node;
     }
     //! get a pointer to a node's NodeData.
@@ -379,16 +379,16 @@ public:
     {
         if(node == NONE)
             return nullptr;
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node >= 0 && node < m_cap, this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node);
         return m_buf + node;
     }
 
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    NodeData       * _p(id_type node)       { RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_first_unused, this, node); return m_buf + node; } // NOLINT(readability-make-member-function-const)
+    NodeData       * _p(id_type node)       { RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node); return m_buf + node; } // NOLINT(readability-make-member-function-const)
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    NodeData const * _p(id_type node) const { RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_first_unused, this, node); return m_buf + node; }
+    NodeData const * _p(id_type node) const { RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node); return m_buf + node; }
 
     //! Get the id of the root node. The tree must not be empty. The tree can be empty only when constructed with explicitly zero-capacity.
     id_type root_id() const { RYML_ASSERT_VISIT_CB_(m_callbacks, m_size > 0, this, id_type(0)); return 0; }
@@ -522,11 +522,6 @@ public:
     /// unfiltered during the parsing (see ParserOptions)
     C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
 
-    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
-    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
-    RYML_DEPRECATED("use has_anchor()")        bool is_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
-    RYML_DEPRECATED("use has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { return _p(node)->m_type.has_anchor() || _p(node)->m_type.is_ref(); }
-
     /** @} */
 
 public:
@@ -636,8 +631,6 @@ public:
     C4_ALWAYS_INLINE bool is_container_styled(id_type node) const { return _p(node)->m_type.is_container_styled(); }
     C4_ALWAYS_INLINE bool is_block(id_type node) const { return _p(node)->m_type.is_block(); }
     C4_ALWAYS_INLINE bool is_flow_sl(id_type node) const { return _p(node)->m_type.is_flow_sl(); }
-    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()")
-    C4_ALWAYS_INLINE bool is_flow_ml(id_type node) const { return _p(node)->m_type.is_flow_ml1(); }
     C4_ALWAYS_INLINE bool is_flow_ml1(id_type node) const { return _p(node)->m_type.is_flow_ml1(); }
     C4_ALWAYS_INLINE bool is_flow_mln(id_type node) const { return _p(node)->m_type.is_flow_mln(); }
     C4_ALWAYS_INLINE bool is_flow_mlx(id_type node) const { return _p(node)->m_type.is_flow_mlx(); }
@@ -765,11 +758,30 @@ public:
 
 private:
 
+    /** @cond dev */
     C4_NORETURN C4_NO_INLINE C4_COLD
     void err_visit_(id_type node) const
     {
         RYML_ERR_VISIT_CB_(m_callbacks, this, node, "invalid node");
     }
+
+    // check helpers:
+    C4_ALWAYS_INLINE bool chkn_(id_type node) const noexcept
+    {
+        return node != NONE
+            && node < m_first_unused && node >= 0; // id_type may be #defined as signed type
+    }
+    C4_ALWAYS_INLINE bool chkr_(id_type node, type_bits bits) const noexcept
+    {
+        return node != NONE
+            && node < m_first_unused && node >= 0 // id_type may be #defined as signed type
+            && (_p(node)->m_type & bits);
+    }
+
+    // read type adapter:
+    static C4_ALWAYS_INLINE ReadResult to_result_(bool, id_type node) noexcept { return ReadResult(node); }
+    static C4_ALWAYS_INLINE ReadResult to_result_(ReadResult notlegacy, id_type) noexcept { return notlegacy; }
+    /** @endcond */
 
 public:
 
@@ -779,7 +791,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save(id_type node, T const& val)
     {
-        if C4_LIKELY(node != NONE && node < m_first_unused && node >= 0)
+        if C4_LIKELY(chkn_(node))
         {
             write(this, node, val);
             return;
@@ -789,7 +801,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save(id_type node, T const& val, NodeType more_flags)
     {
-        if C4_LIKELY(node != NONE && node < m_first_unused && node >= 0)
+        if C4_LIKELY(chkn_(node))
         {
             write(this, node, val);
             _p(node)->m_type |= more_flags;
@@ -801,7 +813,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save_key(id_type node, T const& key)
     {
-        if C4_LIKELY(node != NONE && node < m_first_unused && node >= 0)
+        if C4_LIKELY(chkn_(node))
         {
             write_key(this, node, key);
             return;
@@ -811,7 +823,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void save_key(id_type node, T const& key, NodeType more_flags)
     {
-        if C4_LIKELY(node != NONE && node < m_first_unused && node >= 0)
+        if C4_LIKELY(chkn_(node))
         {
             write_key(this, node, key);
             _p(node)->m_type |= more_flags;
@@ -830,13 +842,13 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void set_serialized(id_type node, T const& val) RYML_NOEXCEPT
     {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node);
         write(this, node, val);
     }
     template<class T>
     C4_ALWAYS_INLINE void set_serialized(id_type node, T const& val, NodeType more_flags) RYML_NOEXCEPT
     {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node);
         write(this, node, val);
         _p(node)->m_type |= more_flags;
     }
@@ -844,13 +856,13 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void set_key_serialized(id_type node, T const& key) RYML_NOEXCEPT
     {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node);
         write_key(this, node, key);
     }
     template<class T>
     C4_ALWAYS_INLINE void set_key_serialized(id_type node, T const& key, NodeType more_flags) RYML_NOEXCEPT
     {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkn_(node), this, node);
         write_key(this, node, key);
         _p(node)->m_type |= more_flags;
     }
@@ -866,9 +878,6 @@ public:
      */
     /** @{ */
 
-    static C4_ALWAYS_INLINE ReadResult to_result_(bool, id_type node) noexcept { return ReadResult(node); }
-    static C4_ALWAYS_INLINE ReadResult to_result_(ReadResult notlegacy, id_type) noexcept { return notlegacy; }
-
     /** (1) deserialize the node's contents (val or container) to the
      * given variable, forwarding to the user-overrideable @ref read()
      * function (see @ref doc_serialization_tree_read). This function
@@ -878,9 +887,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void load(id_type node, T * v, bool check_readable=true) const
     {
-        const bool can_read_val = (node != NONE && node < m_first_unused && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
-        RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_val, this, node);
-        if C4_LIKELY(!check_readable || can_read_val)
+        if C4_LIKELY(!check_readable || chkr_(node, VAL|MAP|SEQ))
         {
             const ReadResult result(read(this, node, v), node);
             if C4_LIKELY(result)
@@ -896,9 +903,7 @@ public:
     C4_ALWAYS_INLINE void load(id_type node, Wrapper const& w, bool check_readable=true) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
-        const bool can_read_val = (node != NONE && node < m_first_unused && node >= 0 && (_p(node)->m_type & (VAL|MAP|SEQ)));
-        RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_val, this, node);
-        if C4_LIKELY(!check_readable || can_read_val)
+        if C4_LIKELY(!check_readable || chkr_(node, VAL|MAP|SEQ))
         {
             const ReadResult result(read(this, node, w), node);
             if C4_LIKELY(result)
@@ -919,9 +924,7 @@ public:
     template<class T>
     C4_ALWAYS_INLINE void load_key(id_type node, T * k, bool check_readable=true) const
     {
-        const bool can_read_key = (node != NONE && node < m_first_unused && node >= 0 && (_p(node)->m_type & KEY));
-        RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_key, this, node);
-        if C4_LIKELY(!check_readable || can_read_key)
+        if C4_LIKELY(!check_readable || chkr_(node, KEY))
         {
             const ReadResult result(read_key(this, node, k), node);
             if C4_LIKELY(result)
@@ -937,9 +940,7 @@ public:
     C4_ALWAYS_INLINE void load_key(id_type node, Wrapper const& w, bool check_readable=true) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
-        bool can_read_key = (node != NONE && node < m_first_unused && node >= 0 && (_p(node)->m_type & KEY));
-        RYML_ASSERT_VISIT_CB_(m_callbacks, can_read_key, this, node);
-        if C4_LIKELY(!check_readable || can_read_key)
+        if C4_LIKELY(!check_readable || chkr_(node, KEY))
         {
             const ReadResult result(read_key(this, node, w), node);
             if C4_LIKELY(result)
@@ -961,8 +962,7 @@ public:
     template<class T>
     C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize(id_type node, T * v) const
     {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkr_(node, VAL|MAP|SEQ), this, node);
         // use the adapter ctor to accomodate legacy read() implementations
         return ReadResult(read(this, node, v), node);
     }
@@ -972,8 +972,7 @@ public:
     C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize(id_type node, Wrapper const& w) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, _p(node)->m_type & (VAL|MAP|SEQ), this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkr_(node, VAL|MAP|SEQ), this, node);
         // use the adapter ctor to accomodate legacy read() implementations
         return ReadResult(read(this, node, w), node);
     }
@@ -982,8 +981,7 @@ public:
     template<class T>
     C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, T * v) const
     {
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, has_key(node), this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkr_(node, KEY), this, node);
         // use the adapter ctor to accomodate legacy read_key() implementations
         return ReadResult(read_key(this, node, v), node);
     }
@@ -993,8 +991,7 @@ public:
     C4_NODISCARD C4_ALWAYS_INLINE ReadResult deserialize_key(id_type node, Wrapper const& w) const
     {
         RYML_CHECK_TYPE_IS_WRAPPER_LIKE_(Wrapper);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, node != NONE && node >= 0 && node < m_cap, this, node);
-        RYML_ASSERT_VISIT_CB_(m_callbacks, has_key(node), this, node);
+        RYML_ASSERT_VISIT_CB_(m_callbacks, chkr_(node, KEY), this, node);
         // use the adapter ctor to accomodate legacy read_key() implementations
         return ReadResult(read_key(this, node, w), node);
     }
@@ -1119,13 +1116,6 @@ public:
 
     /** @} */
 
-    /** @cond dev */
-    RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors) { resolve(rr, ResolveOptions{}.clear_anchors(clear_anchors)); }
-    RYML_DEPRECATED("use the overload receiving ResolveOptions")
-    void resolve(bool clear_anchors) { resolve(ResolveOptions{}.clear_anchors(clear_anchors)); }
-    /** @endcond */
-
 public:
 
     /** @name tags and tag directives */
@@ -1162,11 +1152,6 @@ public:
     }
 
     c4::yml::TagDirectiveRange tag_directives() const { return m_tag_directives.directives(); }
-
-    /** @cond dev */
-    RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
-    RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
-    /** @endcond */
 
     /** @} */
 
@@ -1324,7 +1309,6 @@ public:
     size_t arena_capacity() const { return m_arena.len; }
     /** get the current slack of the tree's internal arena */
     size_t arena_slack() const { RYML_ASSERT_VISIT_CB_(m_callbacks, m_arena.len >= m_arena_pos, this, NONE); return m_arena.len - m_arena_pos; }
-    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
 
     /** get the current arena */
     csubstr arena() const { return m_arena.first(m_arena_pos); }
@@ -1551,38 +1535,9 @@ public:
     /** @cond dev*/
 
     #if ! RYML_USE_ASSERT
-    C4_ALWAYS_INLINE void _check_next_flags(id_type, type_bits) {}
+    C4_ALWAYS_INLINE static void _check_next_flags(id_type, type_bits) noexcept {}
     #else
-    void _check_next_flags(id_type node, type_bits f)
-    {
-        NodeData *n = _p(node);
-        type_bits o = n->m_type; // old
-        C4_UNUSED(o);
-        if(f & MAP)
-        {
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & SEQ) == 0, this, node, "cannot mark simultaneously as map and seq");
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & VAL) == 0, this, node, "cannot mark simultaneously as map and val");
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & SEQ) == 0, this, node, "cannot turn a seq into a map; clear first");
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & VAL) == 0, this, node, "cannot turn a val into a map; clear first");
-        }
-        else if(f & SEQ)
-        {
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & MAP) == 0, this, node, "cannot mark simultaneously as seq and map");
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (f & VAL) == 0, this, node, "cannot mark simultaneously as seq and val");
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & MAP) == 0, this, node, "cannot turn a map into a seq; clear first");
-            RYML_ASSERT_VISIT_MSG_CB_(m_callbacks, (o & VAL) == 0, this, node, "cannot turn a val into a seq; clear first");
-        }
-        if(f & KEY)
-        {
-            RYML_ASSERT_VISIT_CB_(m_callbacks, !is_root(node), this, node);
-            RYML_ASSERT_VISIT_CB_(m_callbacks, is_map(parent(node)), this, node);
-        }
-        if((f & VAL) && !is_root(node))
-        {
-            auto pid = parent(node); C4_UNUSED(pid);
-            RYML_ASSERT_VISIT_CB_(m_callbacks, is_map(pid) || is_seq(pid), this, node);
-        }
-    }
+    void _check_next_flags(id_type node, type_bits f);
     #endif
 
     void _add_flags(id_type node, type_bits f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = fb; }
@@ -1699,7 +1654,12 @@ public:
 
     TagDirectives m_tag_directives;
 
-public:
+public: // deprecated functions
+
+    // these methods will be removed in future releases. If you
+    // disagree with a particular function being deprecated, let us
+    // know by opening a new issue at
+    // https://github.com/biojppm/rapidyaml/issues
 
     /** @cond dev */ // LCOV_EXCL_START
     C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
@@ -1707,6 +1667,16 @@ public:
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
     C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
     C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
+    RYML_DEPRECATED("use one of .is_flow_ml{1,n,x}()") bool is_flow_ml(id_type node) const { return _p(node)->m_type.is_flow_ml1(); }
+    RYML_DEPRECATED("use the overload receiving ResolveOptions") void resolve(ReferenceResolver *C4_RESTRICT rr, bool clear_anchors) { resolve(rr, ResolveOptions{}.clear_anchors(clear_anchors)); }
+    RYML_DEPRECATED("use the overload receiving ResolveOptions") void resolve(bool clear_anchors) { resolve(ResolveOptions{}.clear_anchors(clear_anchors)); }
+    RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
+    RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
+    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
+    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
+    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
+    RYML_DEPRECATED("use has_anchor()")        bool is_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
+    RYML_DEPRECATED("use has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { return _p(node)->m_type.has_anchor() || _p(node)->m_type.is_ref(); }
     RYML_DEPRECATED("use .type().type_str(buf)") const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
     RYML_DEPRECATED("use has_other_siblings()") static bool has_siblings(id_type /*node*/) { return true; }
     RYML_DEPRECATED("use set_key()+set_val()") void to_keyval(id_type node, csubstr key, csubstr val, type_bits more_flags=0);
@@ -1870,7 +1840,7 @@ C4_ALWAYS_INLINE void write_key(Tree * tree, id_type id, T const& v)
  * @{
  */
 
-/** Deserialize a scalar node's val from a tree object, returning
+/** Deserialize a node's scalar val from a tree object, returning
  * false if the conversion failed.
  *
  * @return false if the conversion failed
@@ -1879,9 +1849,7 @@ C4_ALWAYS_INLINE void write_key(Tree * tree, id_type id, T const& v)
 template<class T>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, T * v)
 {
-    // caller only checks that type is one of VAL|MAP|SEQ (because it
-    // can't be more concrete than that). Here, we expect a VAL so now
-    // we can check for that:
+    // check VAL scalar, because the caller can omit the check.
     NodeData const* C4_RESTRICT nd = tree->_p(id);
     return ReadResult((nd->m_type & VAL) && scalar_deserialize(nd->m_val.scalar, v), id);
 }
@@ -1890,15 +1858,13 @@ C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, T * 
 template<class Wrapper>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, Wrapper const& w)
 {
-    // caller only checks that type is one of VAL|MAP|SEQ (because it
-    // can't be more concrete than that). Here, we expect a VAL so now
-    // we can check for that:
+    // check VAL scalar, because the caller can omit the check.
     NodeData const* C4_RESTRICT nd = tree->_p(id);
     return ReadResult((nd->m_type & VAL) && from_chars(nd->m_val.scalar, w), id);
 }
 
 
-/** Deserialize a node's key from a tree object, returning false if
+/** Deserialize a node's scalar key from a tree object, returning false if
  * the conversion failed
  *
  * @return false if the conversion failed
@@ -1906,16 +1872,18 @@ C4_NODISCARD C4_ALWAYS_INLINE ReadResult read(Tree const* tree, id_type id, Wrap
 template<class T>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, T * v)
 {
-    // caller already checks availability of key
-    return ReadResult(scalar_deserialize(tree->_p(id)->m_key.scalar, v), id);
+    // check KEY scalar, because the caller can omit the check.
+    NodeData const* C4_RESTRICT nd = tree->_p(id);
+    return ReadResult((nd->m_type & KEY) && scalar_deserialize(nd->m_key.scalar, v), id);
 }
 /** overload to enable use of wrapper tag-types like eg @ref
  * c4::fmt::base64() */
 template<class Wrapper>
 C4_NODISCARD C4_ALWAYS_INLINE ReadResult read_key(Tree const* tree, id_type id, Wrapper const& w)
 {
-    // caller already checks availability of key
-    return ReadResult(from_chars(tree->_p(id)->m_key.scalar, w), id);
+    // check KEY scalar, because the caller can omit the check.
+    NodeData const* C4_RESTRICT nd = tree->_p(id);
+    return ReadResult((nd->m_type & KEY) && from_chars(nd->m_key.scalar, w), id);
 }
 
 /** @} */

@@ -358,13 +358,16 @@ id_type ReferenceResolver::gather_anchors_(id_type node, id_type visit_count, bo
 
 void ReferenceResolver::clear_anchors_(id_type node)
 {
+    _c4dbgpf("clearing anchors: {}", node);
     NodeType ty = m_tree->type(node);
     if(ty.has_key_anchor())
         m_tree->rem_key_anchor(node);
     if(ty.has_val_anchor())
         m_tree->rem_val_anchor(node);
     for(id_type ch = m_tree->first_child(node); ch != NONE; ch = m_tree->next_sibling(ch))
+    {
         clear_anchors_(ch);
+    }
 }
 
 id_type ReferenceResolver::resolve_(id_type node, id_type visit_count)

@@ -33,11 +33,15 @@ void check_(Tree *tree)
     if C4_UNLIKELY(tree->empty())
         tree->reserve();
 }
+void check_(Tree *tree, id_type id)
+{
+    check_(tree);
+    if C4_UNLIKELY(id == NONE || id >= tree->m_first_unused )
+        RYML_ERR_VISIT_CB_(tree->m_callbacks, tree, id, "invalid node");
+}
 void check_(NodeRef &node)
 {
-    check_(node.tree());
-    if C4_UNLIKELY(node.id() == NONE)
-        RYML_ERR_VISIT_CB_(node.tree()->m_callbacks, node.tree(), node.id(), "invalid node");
+    check_(node.tree(), node.id());
     node.create();
 }
 void check_(Parser *parser)

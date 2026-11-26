@@ -7237,7 +7237,7 @@ static std::string s_jmp_msg;
 template<class Fn>
 bool ErrorHandlerExample::check_assertion_occurs(Fn &&fn)
 {
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT
     return check_error_occurs(std::forward<Fn>(fn));
     #else
     (void)fn; // do nothing otherwise, as there would be undefined behavior

@@ -262,6 +262,11 @@ if(RYML_BUILD_TESTS OR RYML_ENABLE_EXPORT_TEST)
     target_compile_definitions(ryml PUBLIC RYML_ENABLE_EXPORT_TEST)
 endif()
 
+option(RYML_ABORT_ON_ASSERT "(dev) make asserts call abort() instead of ryml error. this exposes asserts masking as errors, and is very useful for fuzzing" OFF)
+if(RYML_ABORT_ON_ASSERT)
+    target_compile_definitions(ryml PUBLIC -DRYML_ABORT_ON_ASSERT=1 -DC4_ABORT_ON_ASSERT=1)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     option(RYML_FUZZ_DRIVERS "Build fuzz driver binaries (other than unit tests from RYML_TEST_FUZZ)." OFF)
     if(RYML_FUZZ_DRIVERS)

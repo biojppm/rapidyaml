@@ -33,10 +33,11 @@ typedef enum : ParserFlag_t { // NOLINT
     NDOC = 0x01 << 15,   ///< no document mode. a document has ended and another has not started yet.
     USTY = 0x01 << 16,   ///< reading in unknown style mode - must determine FLOW or BLCK
     SDDN = 0x01 << 17,   ///< sudden ending of prev doc
+    INDL = 0x01 << 18,   ///< indentless seq in a map, eg `key:\n- val0\n- val1\n`
     //! reading an implicit map nested in an explicit seq.
     //! eg,          {key: [key2: value2, key3: value3]}
     //! is parsed as {key: [{key2: value2}, {key3: value3}]}
-    RSEQIMAP = 0x01 << 18,
+    RSEQIMAP = 0x01 << 19,
 } ParserState_e;
 
 
@@ -85,7 +86,6 @@ struct LineContents
         size_t pos = rem.last_not_of('\r');
         rem.len = (pos != npos) ? pos + 1 : 0;
         num_cols = rem.len;
-        RYML_ASSERT_BASIC_(rem.find('\r') == npos);
         // TODO move this to the parser state
         indentation = rem.first_not_of(' ');  // find the first column where the character is not a space
     }
@@ -170,6 +170,12 @@ public:
         return line_contents.indentation != npos
             && line_contents.indentation == indref;
     }
+    C4_ALWAYS_INLINE bool indentation_eq_nonempty() const noexcept
+    {
+        RYML_ASSERT_BASIC_(indref != npos);
+        RYML_ASSERT_BASIC_(line_contents.indentation != npos);
+        return line_contents.indentation == indref;
+    }
     C4_ALWAYS_INLINE bool indentation_eq_extra() const noexcept
     {
         RYML_ASSERT_BASIC_(indref != npos);
@@ -181,6 +187,12 @@ public:
         RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos
             && line_contents.indentation >= indref;
+    }
+    C4_ALWAYS_INLINE bool indentation_ge_nonempty() const noexcept
+    {
+        RYML_ASSERT_BASIC_(indref != npos);
+        RYML_ASSERT_BASIC_(line_contents.indentation != npos);
+        return line_contents.indentation >= indref;
     }
     C4_ALWAYS_INLINE bool indentation_ge_extra() const noexcept
     {
@@ -194,6 +206,12 @@ public:
         return line_contents.indentation != npos
             && line_contents.indentation > indref;
     }
+    C4_ALWAYS_INLINE bool indentation_gt_nonempty() const noexcept
+    {
+        RYML_ASSERT_BASIC_(indref != npos);
+        RYML_ASSERT_BASIC_(line_contents.indentation != npos);
+        return line_contents.indentation > indref;
+    }
     C4_ALWAYS_INLINE bool indentation_gt_extra() const noexcept
     {
         RYML_ASSERT_BASIC_(indref != npos);
@@ -204,6 +222,12 @@ public:
     {
         RYML_ASSERT_BASIC_(indref != npos);
         return line_contents.indentation != npos && line_contents.indentation < indref;
+    }
+    C4_ALWAYS_INLINE bool indentation_lt_nonempty() const noexcept
+    {
+        RYML_ASSERT_BASIC_(indref != npos);
+        RYML_ASSERT_BASIC_(line_contents.indentation != npos);
+        return line_contents.indentation < indref;
     }
     C4_ALWAYS_INLINE bool indentation_lt_extra() const noexcept
     {

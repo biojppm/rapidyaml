@@ -84,10 +84,9 @@ jobs:
           build/${{env.BUILD_ID}}/lcov-tmp
           build/${{env.BUILD_ID}}/lcov-tmp/result.lcov
     #-------------------------------------------------------
-    #- name: upload codecov
-    #  run: |
-    #    cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
     - name: upload codecov
+      #run: |
+      #  cmake --build build/$BUILD_ID --target ryml-coverage-submit-codecov --verbose
       uses: codecov/codecov-action@v7
       with:
         files: build/${{env.BUILD_ID}}/lcov-tmp/result.lcov

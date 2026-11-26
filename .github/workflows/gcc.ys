@@ -18,10 +18,8 @@ jobs:
         # for canary use gcc13 because it's a lot faster than gcc14
         - ! item(11  13 'Debug'   '22.04')
         - ! item(11  13 'Release' '22.04')
-        - ! item(20  13 'Debug'   '22.04')
-        - ! item(20  13 'Release' '22.04')
-        - ! item(11   5 'Debug'   '18.04')
-        - ! item(11   5 'Release' '18.04')
+        - ! item(23  13 'Debug'   '22.04')
+        - ! item(23  13 'Release' '22.04')
         - ! item(11 4.8 'Debug'   '18.04')
         - ! item(11 4.8 'Release' '18.04')
     env:: load('share/env.yaml')
@@ -38,6 +36,19 @@ jobs:
       matrix:
         include: *include1
     env:: load('share/env.yaml') + {'CMAKE_FLAGS' '-DRYML_WITH_TAB_TOKENS=ON'}
+    steps:: checkout-manual + install-cxx + run-steps
+
+  #----------------------------------------------------------------------------
+  abortonassert:
+    :: setup-dependent-job('gcc' 'abortonassert')
+    name: abortonassert/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    :: runs-on-docker-c4core('${{matrix.img}}')
+    needs: canary
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+    env:: load('share/env.yaml') + {'CMAKE_FLAGS' '-DRYML_ABORT_ON_ASSERT=ON -DRYML_WITH_TAB_TOKENS=ON'}
     steps:: checkout-manual + install-cxx + run-steps
 
   #----------------------------------------------------------------------------

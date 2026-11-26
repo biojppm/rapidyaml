@@ -61,21 +61,21 @@ jobs:
           bt: Release
           args: -DBUILD_SHARED_LIBS=ON  -T ClangCL
         - name: win/clang++/static
-          os: windows-latest
+          os: windows-2022
           bt: Debug
-          args: -DBUILD_SHARED_LIBS=OFF -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          args: -DBUILD_SHARED_LIBS=OFF -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
         - name: win/clang++/shared
-          os: windows-latest
+          os: windows-2022
           bt: Release
-          args: -DBUILD_SHARED_LIBS=ON  -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+          args: -DBUILD_SHARED_LIBS=ON  -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
         - name: win/gcc/static
           os: windows-latest
           bt: Debug
-          args: -DBUILD_SHARED_LIBS=OFF -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          args: -DBUILD_SHARED_LIBS=OFF -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
         - name: win/gcc/shared
           os: windows-latest
           bt: Release
-          args: -DBUILD_SHARED_LIBS=ON  -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+          args: -DBUILD_SHARED_LIBS=ON  -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
     env:
       STD: ${{matrix.std}}
       CXX_: ${{matrix.cxx}}

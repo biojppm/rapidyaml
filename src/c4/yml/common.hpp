@@ -161,10 +161,9 @@ typedef enum Encoding_ { // NOLINT
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** A lightweight truthy type, used to enable reporting the offending
- * node when a deserializing error happens in nested reads. It reports
- * the innermost node causing the error, or true (empty-initialized)
- * when there is no error.
+/** A lightweight truthy type, used to enable reporting nested visit
+ * errors. It reports the innermost node causing the error, or true
+ * (empty-initialized) when there is no error.
  */
 struct RYML_EXPORT ReadResult
 {

@@ -33,6 +33,20 @@ TEST(anchors, ReferenceResolver)
 }
 
 
+TEST(anchors, key_anchor_error_json)
+{
+    TreeAndInts ti("{&k key: val}");
+    test_emit_json_(ti, "{\"key\": \"val\"}");
+    test_emit_error_json_(ti, EmitOptions{}.json_err_on_anchor(true));
+}
+
+TEST(anchors, val_anchor_error_json)
+{
+    TreeAndInts ti("{key: &v val}");
+    test_emit_json_(ti, "{\"key\": \"val\"}");
+    test_emit_error_json_(ti, EmitOptions{}.json_err_on_anchor(true));
+}
+
 TEST(anchors, errs_on_missing_anchors)
 {
     SCOPED_CALL(test_resolve_err, ("a: *b"));
@@ -2493,8 +2507,7 @@ TEST(anchors, issue_484_0)
                 "base_2: &base_2\n  b: 20\n"
                 "k1:\n  <<: [*base_1,*base_2]\n"
                 "k2:\n  <<: [*base_2,*base_1]\n"
-                "k3:\n  a: 100\n"
-                "  <<: [*base_1,*base_2]\n"
+                "k3:\n  a: 100\n  <<: [*base_1,*base_2]\n"
                 "k4:\n  <<: [*base_1,*base_2]\n  a: 100\n"
                 "k5:\n  a: 100\n  <<: [*base_2,*base_1]\n"
                 "k6:\n  <<: [*base_2,*base_1]\n  a: 100\n"
@@ -3461,19 +3474,79 @@ TEST(anchors, issue_484_3_flow_ml)
 }
 
 
-TEST(anchors, key_anchor_error_json)
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(anchors, keep_repeated_0)
 {
-    TreeAndInts ti("{&k key: val}");
-    test_emit_json_(ti, "{\"key\": \"val\"}");
-    test_emit_error_json_(ti, EmitOptions{}.json_err_on_anchor(true));
+    std::string yaml = ""
+        "{\n"
+        "  m0: &m0 {k0: 00,k1: 01,k2: 02,k3: 03},\n"
+        "  m1: &m1 {k0: 10,k1: 11,k2: 12,k3: 13},\n"
+        "  m2: &m2 {k0: 20,k1: 21,k2: 22,k3: 23},\n"
+        "  m3: &m3 {k0: 30,k1: 31,k2: 32,k3: 33},\n"
+        "  r0: {first: y,<<: *m0,foo: b,<<: *m1,bar: b,<<: *m2,baz: b,<<: *m3,last: y},\n"
+        "  r1: {first: y,<<: *m3,foo: b,<<: *m2,bar: b,<<: *m1,baz: b,<<: *m0,last: y},\n"
+        "  r2: {first: y,<<: [*m0,*m1,*m2,*m3],last: y},\n"
+        "  r3: {first: y,<<: [*m3,*m2,*m1,*m0],last: y},\n"
+        "}\n"
+        "";
+    test_resolve_with_options0(yaml,
+                               "{\n"
+                               "  m0: {k0: 00,k1: 01,k2: 02,k3: 03},\n"
+                               "  m1: {k0: 10,k1: 11,k2: 12,k3: 13},\n"
+                               "  m2: {k0: 20,k1: 21,k2: 22,k3: 23},\n"
+                               "  m3: {k0: 30,k1: 31,k2: 32,k3: 33},\n"
+                               "  r0: {first: y,k0: 00,k1: 01,k2: 02,k3: 03,foo: b,bar: b,baz: b,last: y},\n"
+                               "  r1: {first: y,k0: 30,k1: 31,k2: 32,k3: 33,foo: b,bar: b,baz: b,last: y},\n"
+                               "  r2: {first: y,k0: 00,k1: 01,k2: 02,k3: 03,last: y},\n"
+                               "  r3: {first: y,k0: 30,k1: 31,k2: 32,k3: 33,last: y}\n"
+                               "}\n"
+                               "");
+    test_resolve_with_options_(yaml, opts_keep,
+                               "{\n"
+                               "  m0: {k0: 00,k1: 01,k2: 02,k3: 03},\n"
+                               "  m1: {k0: 10,k1: 11,k2: 12,k3: 13},\n"
+                               "  m2: {k0: 20,k1: 21,k2: 22,k3: 23},\n"
+                               "  m3: {k0: 30,k1: 31,k2: 32,k3: 33},\n"
+                               "  r0: {first: y,k0: 00,k1: 01,k2: 02,k3: 03,foo: b,k0: 10,k1: 11,k2: 12,k3: 13,bar: b,k0: 20,k1: 21,k2: 22,k3: 23,baz: b,k0: 30,k1: 31,k2: 32,k3: 33,last: y},\n"
+                               "  r1: {first: y,k0: 30,k1: 31,k2: 32,k3: 33,foo: b,k0: 20,k1: 21,k2: 22,k3: 23,bar: b,k0: 10,k1: 11,k2: 12,k3: 13,baz: b,k0: 00,k1: 01,k2: 02,k3: 03,last: y},\n"
+                               "  r2: {first: y,k0: 00,k1: 01,k2: 02,k3: 03,k0: 10,k1: 11,k2: 12,k3: 13,k0: 20,k1: 21,k2: 22,k3: 23,k0: 30,k1: 31,k2: 32,k3: 33,last: y},\n"
+                               "  r3: {first: y,k0: 30,k1: 31,k2: 32,k3: 33,k0: 20,k1: 21,k2: 22,k3: 23,k0: 10,k1: 11,k2: 12,k3: 13,k0: 00,k1: 01,k2: 02,k3: 03,last: y}\n"
+                               "}\n"
+                               "");
 }
 
-TEST(anchors, val_anchor_error_json)
+TEST(anchors, keep_repeated_1_anch_tag)
 {
-    TreeAndInts ti("{key: &v val}");
-    test_emit_json_(ti, "{\"key\": \"val\"}");
-    test_emit_error_json_(ti, EmitOptions{}.json_err_on_anchor(true));
+    std::string yaml = ""
+        "[\n"
+        "  &m0 {k0: 0,k1: 1,k2: 2,k3: 3},\n"
+        "  {k0: y,&anc <<: *m0},\n"
+        "  {k0: y,!tag <<: *m0},\n"
+        "  {k0: y,&a2 !tag <<: *m0},\n"
+        "]\n"
+        "";
+    test_resolve_with_options0(yaml,
+                               "[\n"
+                               "  {k0: 0,k1: 1,k2: 2,k3: 3},\n"
+                               "  {k0: y,k1: 1,k2: 2,k3: 3},\n"
+                               "  {k0: y,k1: 1,k2: 2,k3: 3},\n"
+                               "  {k0: y,k1: 1,k2: 2,k3: 3}\n"
+                               "]\n"
+                               "");
+    test_resolve_with_options_(yaml, opts_keep,
+                               "[\n"
+                               "  {k0: 0,k1: 1,k2: 2,k3: 3},\n"
+                               "  {k0: y,k0: 0,k1: 1,k2: 2,k3: 3},\n"
+                               "  {k0: y,k0: 0,k1: 1,k2: 2,k3: 3},\n"
+                               "  {k0: y,k0: 0,k1: 1,k2: 2,k3: 3}\n"
+                               "]\n"
+                               "");
 }
+
+
 
 
 //-----------------------------------------------------------------------------

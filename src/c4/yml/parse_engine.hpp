@@ -458,6 +458,7 @@ private:
     ScannedScalar _scan_scalar_dquot();
 
     void    _scan_block(ScannedBlock *C4_RESTRICT sb, size_t indref);
+    void    _scan_block_specs(BlockChomp_e *chomp, size_t *indentation);
     csubstr _scan_anchor();
     csubstr _scan_ref_seq();
     csubstr _scan_ref_map();
@@ -511,10 +512,9 @@ private:
     void   _handle_unk_begin_doc();
 
     size_t _handle_block_skip_leading_whitespace();
-    C4_ALWAYS_INLINE
-    size_t _handle_block_get_whitespace_mark() const noexcept { return m_evt_handler->m_curr->pos.offset; }
-    void   _handle_block_check_leading_tabs(size_t prev_mark) { return _handle_block_check_leading_tabs(prev_mark, m_evt_handler->m_curr->pos.offset); }
-    void   _handle_block_check_leading_tabs(size_t start_mark, size_t end_mark);
+    C4_ALWAYS_INLINE size_t _handle_block_get_whitespace_mark() const noexcept { return m_evt_handler->m_curr->pos.offset; }
+    C4_ALWAYS_INLINE void   _handle_block_check_leading_tabs(size_t prev_mark) const { return _handle_block_check_leading_tabs(prev_mark, m_evt_handler->m_curr->pos.offset); }
+    C4_ALWAYS_INLINE void   _handle_block_check_leading_tabs(size_t start_mark, size_t end_mark) const;
 
     void  _end_map_flow();
     void  _end_seq_flow();
@@ -541,6 +541,7 @@ private:
     void  _end_stream();
 
     void  _set_indentation(size_t indentation) noexcept;
+    void  _set_indentation_maybe_indentless(size_t indentation) noexcept;
     void  _save_indentation();
     void  _mark_seqflow_val_end() noexcept;
     void  _handle_indentation_pop_from_block_seq();
@@ -600,8 +601,12 @@ private:
     void _line_ended();
     void _line_ended_undo();
 
-    bool  _finished_file() const;
-    bool  _finished_line() const;
+    #ifdef RYML_DBG
+    C4_ALWAYS_INLINE bool _finished_file() const noexcept;
+    #else
+    C4_ALWAYS_INLINE bool _finished_file() const noexcept { return m_evt_handler->m_curr->pos.offset >= _buf().len; }
+    #endif
+    C4_HOT C4_ALWAYS_INLINE bool _finished_line() const noexcept { return !m_evt_handler->m_curr->line_contents.rem.len; }
 
     void   _scan_line();
     substr _peek_next_line(size_t pos=npos) const;
@@ -664,6 +669,7 @@ private:
     C4_ALWAYS_INLINE void _clear_annotations(Annotation *C4_RESTRICT dst) noexcept { dst->num_entries = 0; }
     bool _annotations_require_key_container() const;
     bool _handle_annotations_before_unexpected_flow_token_rkey();
+    void _handle_annotations_before_flow_key_scalar();
     void _handle_annotations_before_blck_key_scalar();
     void _handle_annotations_before_blck_val_scalar();
     void _handle_annotations_before_start_mapblck(size_t current_line);

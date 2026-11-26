@@ -440,7 +440,7 @@ void ExpectError::check_error_visit(Tree *tree, fntestref fn, id_type id)
 
 void ExpectError::check_assert(ExpectedErrorType errtype, Tree *tree, fntestref fn, Location const& loc)
 {
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     ExpectError::check_error(errtype, tree, fn, loc);
     #else
     C4_UNUSED(errtype);
@@ -452,7 +452,7 @@ void ExpectError::check_assert(ExpectedErrorType errtype, Tree *tree, fntestref 
 
 void ExpectError::check_assert_basic(Tree *tree, fntestref fn, bool only_basic)
 {
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     ExpectError::check_error_basic(tree, fn, only_basic);
     #else
     C4_UNUSED(tree);
@@ -463,7 +463,7 @@ void ExpectError::check_assert_basic(Tree *tree, fntestref fn, bool only_basic)
 
 void ExpectError::check_assert_parse(Tree *tree, fntestref fn, Location const& expected_location)
 {
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     ExpectError::check_error_parse(tree, fn, expected_location);
     #else
     C4_UNUSED(tree);
@@ -474,7 +474,7 @@ void ExpectError::check_assert_parse(Tree *tree, fntestref fn, Location const& e
 
 void ExpectError::check_assert_visit(Tree *tree, fntestref fn, id_type id)
 {
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     ExpectError::check_error_visit(tree, fn, id);
     #else
     C4_UNUSED(tree);

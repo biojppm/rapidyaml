@@ -441,6 +441,102 @@ ENGINE_TEST_ERROPT_(TagTestSuiteQLJ7_2, resolve_all_tags, Location(8, 14),
                    "e: f\n"
                    "")
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_0, Location(1, 7), ""
+                   "[!t !u]")
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_1, Location(1, 9), ""
+                   "[!t !u c]")
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_2, Location(1, 7), ""
+                   "[!t !u,]")
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_3, Location(1, 9), ""
+                   "[!t !u c,]")
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_4, Location(1, 10), ""
+                   "[0, !t !u]")
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_5, Location(1, 12), ""
+                   "[0, !t !u c]")
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_6, Location(1, 10), ""
+                   "[0, !t !u,]")
+ENGINE_TEST_ERRLOC(DoubleTagSeqFlow0_7, Location(1, 12), ""
+                   "[0, !t !u c,]")
+
+
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_0, Location(1, 8), ""
+                   "- !t !u")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_1, Location(1, 9), ""
+                   "- !t !u c")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_2, Location(1, 8), ""
+                   "- !t !u\n-")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_3, Location(1, 9), ""
+                   "- !t !u c\n-")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_4, Location(2, 8), ""
+                   "- 0\n- !t !u")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_5, Location(2, 9), ""
+                   "- 0\n- !t !u c")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_6, Location(2, 8), ""
+                   "- 0\n- !t !u\n-")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_7, Location(2, 9), ""
+                   "- 0\n- !t !u c\n-")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_8, Location(1, 8), ""
+                   "- !t !u\n  - nested")
+ENGINE_TEST_ERRLOC(DoubleTagSeqBlck0_9, Location(1, 8), ""
+                   "- !t !u\n  nested: map")
+
+
+ENGINE_TEST_ERRLOC(DoubleTagMapflowKey0_0, Location(1, 12), ""
+                   "{!t !u: val}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowKey0_1, Location(1, 9), ""
+                   "{!t !u c: val}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowKey0_4, Location(1, 15), ""
+                   "{0, !t !u: val}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowKey0_5, Location(1, 12), ""
+                   "{0, !t !u c: val}")
+
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_0, Location(1, 12), ""
+                   "{key: !t !u}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_1, Location(1, 14), ""
+                   "{key: !t !u c}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_4, Location(1, 20), ""
+                   "{0: 1, key: !t !u c}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_5, Location(1, 20), ""
+                   "{0: 1, key: !t !u c}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_6, Location(1, 12), ""
+                   "{key: !t !u,}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_7, Location(1, 14), ""
+                   "{key: !t !u c,}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_8, Location(1, 20), ""
+                   "{0: 1, key: !t !u c,}")
+ENGINE_TEST_ERRLOC(DoubleTagMapflowVal0_9, Location(1, 20), ""
+                   "{0: 1, key: !t !u c,}")
+
+
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckKey0_0, Location(1, 8), ""
+                   "!t !u: val")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckKey0_1, Location(1, 7), ""
+                   "!t !u c: val")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckKey0_4, Location(2, 6), ""
+                   "0\n!t !u: val")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckKey0_5, Location(2, 8), ""
+                   "0\n!t !u c: val")
+
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_0, Location(1, 11), ""
+                   "key: !t !u")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_1, Location(1, 12), ""
+                   "key: !t !u c")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_4, Location(2, 12), ""
+                   "0: 1\nkey: !t !u c")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_5, Location(2, 12), ""
+                   "0: 1\nkey: !t !u c")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_6, Location(1, 11), ""
+                   "key: !t !u\n")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_7, Location(1, 12), ""
+                   "key: !t !u c\n")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_8, Location(2, 12), ""
+                   "0: 1\nkey: !t !u c\n")
+ENGINE_TEST_ERRLOC(DoubleTagMapBlckVal0_9, Location(2, 12), ""
+                   "0: 1\nkey: !t !u c\n")
+
 } // namespace yml
 } // namespace c4
 

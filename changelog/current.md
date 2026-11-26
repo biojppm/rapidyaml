@@ -46,7 +46,7 @@
 - [PR#712](https://github.com/biojppm/rapidyaml/pull/712): ievt: add resolver (tests separately in [PR#714](https://github.com/biojppm/rapidyaml/pull/714)), adhering to existing `ResolveOptions`.
 - [PR#716](https://github.com/biojppm/rapidyaml/pull/716): resolve + ievt emit: follow-up fixes.
 - [PR#717](https://github.com/biojppm/rapidyaml/pull/717): resolve + ievt emit: follow-up fixes.
-- [PR#718](https://github.com/biojppm/rapidyaml/pull/718): parser: ensure error on tokens trailing flow container docs (fixes [PR#696](https://github.com/biojppm/rapidyaml/issues/696)).
+- [PR#718](https://github.com/biojppm/rapidyaml/pull/718): parser: ensure error on tokens trailing flow container docs (fixes [#696](https://github.com/biojppm/rapidyaml/issues/696)).
 
 
 ### Thanks

@@ -13,8 +13,14 @@
 #include <cstdlib>
 
 /// @cond dev
+#ifndef RYML_ABORT_ON_ASSERT
+#   define RYML_ABORT_ON_ASSERT (0)
+#endif
+#if RYML_USE_ASSERT && RYML_ABORT_ON_ASSERT
+#   include <cstdio>
+#endif
 #if (defined(C4_EXCEPTIONS) && (!defined(RYML_NO_DEFAULT_CALLBACKS) && defined(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS))) || defined(__DOXYGEN__)
-#define RYML_WITH_EXCEPTIONS_
+#   define RYML_WITH_EXCEPTIONS_
 #endif
 #if defined(RYML_DBG) && !defined(NDEBUG) && !defined(C4_NO_DEBUG_BREAK)
 #   define RYML_DEBUG_BREAK()                               \
@@ -579,20 +585,9 @@ CharContainer format_exc(ExceptionT const& exc)
 /// @cond dev
 
 
-#if RYML_USE_ASSERT
-#   define RYML_ASSERT_BASIC_(cond) RYML_CHECK_BASIC_(cond)
-#   define RYML_ASSERT_BASIC_CB_(cb, cond) RYML_CHECK_BASIC_CB_((cb), cond)
-#   define RYML_ASSERT_BASIC_MSG_(cond, ...) RYML_CHECK_BASIC_CB_MSG_(cond, __VA_ARGS__)
-#   define RYML_ASSERT_BASIC_MSG_CB_(cb, cond, ...) RYML_CHECK_BASIC_MSG_CB_((cb), cond, __VA_ARGS__)
-#   define RYML_ASSERT_PARSE_(cond, ymlloc) RYML_CHECK_PARSE_(cond, (ymlloc))
-#   define RYML_ASSERT_PARSE_CB_(cb, cond, ymlloc) RYML_CHECK_PARSE_CB_((cb), cond, (ymlloc))
-#   define RYML_ASSERT_PARSE_MSG_(cond, ymlloc, ...) RYML_CHECK_PARSE_CB_MSG_(cond, (ymlloc), __VA_ARGS__)
-#   define RYML_ASSERT_PARSE_MSG_CB_(cb, cond, ymlloc, ...) RYML_CHECK_PARSE_MSG_CB_((cb), cond, (ymlloc), __VA_ARGS__)
-#   define RYML_ASSERT_VISIT_(cond, tree, node) RYML_CHECK_VISIT_(cond, (tree), (node))
-#   define RYML_ASSERT_VISIT_CB_(cb, cond, tree, node) RYML_CHECK_VISIT_CB_((cb), cond, (tree), (node))
-#   define RYML_ASSERT_VISIT_MSG_(cond, tree, node, ...) RYML_CHECK_VISIT_CB_MSG_(cond, (tree), (node), __VA_ARGS__)
-#   define RYML_ASSERT_VISIT_MSG_CB_(cb, cond, tree, node, ...) RYML_CHECK_VISIT_MSG_CB_((cb), cond, (tree), (node), __VA_ARGS__)
-#else
+#if !RYML_USE_ASSERT
+#   define RYML_WITH_ASSERT_(...)
+#   define RYML_ASSERT_ABORT_(cond)
 #   define RYML_ASSERT_BASIC_(cond)
 #   define RYML_ASSERT_BASIC_CB_(cb, cond)
 #   define RYML_ASSERT_BASIC_MSG_(cond, ...)
@@ -605,7 +600,39 @@ CharContainer format_exc(ExceptionT const& exc)
 #   define RYML_ASSERT_VISIT_CB_(cb, cont, tree, node)
 #   define RYML_ASSERT_VISIT_MSG_(cont, tree, node, ...)
 #   define RYML_ASSERT_VISIT_MSG_CB_(cb, cont, tree, node, ...)
+#else
+#   define RYML_WITH_ASSERT_(...) __VA_ARGS__
+#   if !RYML_ABORT_ON_ASSERT
+#       define RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_BASIC_(cond) RYML_CHECK_BASIC_(cond)
+#       define RYML_ASSERT_BASIC_CB_(cb, cond) RYML_CHECK_BASIC_CB_((cb), cond)
+#       define RYML_ASSERT_BASIC_MSG_(cond, ...) RYML_CHECK_BASIC_CB_MSG_(cond, __VA_ARGS__)
+#       define RYML_ASSERT_BASIC_MSG_CB_(cb, cond, ...) RYML_CHECK_BASIC_MSG_CB_((cb), cond, __VA_ARGS__)
+#       define RYML_ASSERT_PARSE_(cond, ymlloc) RYML_CHECK_PARSE_(cond, (ymlloc))
+#       define RYML_ASSERT_PARSE_CB_(cb, cond, ymlloc) RYML_CHECK_PARSE_CB_((cb), cond, (ymlloc))
+#       define RYML_ASSERT_PARSE_MSG_(cond, ymlloc, ...) RYML_CHECK_PARSE_CB_MSG_(cond, (ymlloc), __VA_ARGS__)
+#       define RYML_ASSERT_PARSE_MSG_CB_(cb, cond, ymlloc, ...) RYML_CHECK_PARSE_MSG_CB_((cb), cond, (ymlloc), __VA_ARGS__)
+#       define RYML_ASSERT_VISIT_(cond, tree, node) RYML_CHECK_VISIT_(cond, (tree), (node))
+#       define RYML_ASSERT_VISIT_CB_(cb, cond, tree, node) RYML_CHECK_VISIT_CB_((cb), cond, (tree), (node))
+#       define RYML_ASSERT_VISIT_MSG_(cond, tree, node, ...) RYML_CHECK_VISIT_CB_MSG_(cond, (tree), (node), __VA_ARGS__)
+#       define RYML_ASSERT_VISIT_MSG_CB_(cb, cond, tree, node, ...) RYML_CHECK_VISIT_MSG_CB_((cb), cond, (tree), (node), __VA_ARGS__)
+#   else
+#       define RYML_ASSERT_ABORT_(cond) do { if C4_UNLIKELY (!(cond)) { printf("\n%s:%d: fatal: %s\n", __FILE__, __LINE__, #cond); (void)fflush(stdout); abort(); } }  while(0)
+#       define RYML_ASSERT_BASIC_(cond) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_BASIC_CB_(cb, cond) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_BASIC_MSG_(cond, ...) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_BASIC_MSG_CB_(cb, cond, ...) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_PARSE_(cond, ymlloc) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_PARSE_CB_(cb, cond, ymlloc) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_PARSE_MSG_(cond, ymlloc, ...) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_PARSE_MSG_CB_(cb, cond, ymlloc, ...) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_VISIT_(cond, tree, node) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_VISIT_CB_(cb, cond, tree, node) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_VISIT_MSG_(cond, tree, node, ...) RYML_ASSERT_ABORT_(cond)
+#       define RYML_ASSERT_VISIT_MSG_CB_(cb, cond, tree, node, ...) RYML_ASSERT_ABORT_(cond)
+#   endif
 #endif
+
 
 #define RYML_ERR_BASIC_(...)                                            \
     do                                                                  \

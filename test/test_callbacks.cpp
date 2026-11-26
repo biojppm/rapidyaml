@@ -1095,7 +1095,7 @@ TEST(check, basic)
     test_check_basic([&]{ RYML_CHECK_BASIC_CB_(get_callbacks(), disregard_this_message); }, msg);
     test_check_basic([&]{ RYML_CHECK_BASIC_CB_MSG_(disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
     test_check_basic([&]{ RYML_CHECK_BASIC_MSG_CB_(get_callbacks(), disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     test_check_basic([&]{ RYML_ASSERT_BASIC_(disregard_this_message); }, msg);
     test_check_basic([&]{ RYML_ASSERT_BASIC_CB_(get_callbacks(), disregard_this_message); }, msg);
     test_check_basic([&]{ RYML_ASSERT_BASIC_MSG_(disregard_this_message, "extra args: {},{}", 1, 2); }, fmsg);
@@ -1477,7 +1477,7 @@ TEST(check, parse)
         SCOPED_TRACE("here 3");
         test_check_parse([&]{ RYML_CHECK_PARSE_MSG_CB_(get_callbacks(), disregard_this_message, ymlloc, "extra args: {},{}", 1, 2); }, fmsg);
     }
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     {
         SCOPED_TRACE("here 4");
         test_check_parse([&]{ RYML_ASSERT_PARSE_(disregard_this_message, ymlloc); }, msg);
@@ -1796,7 +1796,7 @@ TEST(check, visit)
         SCOPED_TRACE("here 3");
         test_check_visit([&]{ RYML_CHECK_VISIT_MSG_CB_(get_callbacks(), disregard_this_message, &tree, id, "extra args: {},{}", 1, 2); }, fmsg);
     }
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     {
         SCOPED_TRACE("here 4");
         test_check_visit([&]{ RYML_ASSERT_VISIT_(disregard_this_message, &tree, id); }, msg);
@@ -1848,16 +1848,18 @@ TEST(RYML_ASSERT, basic)
     set_callbacks(mk_test_callbacks());
     stored_msg = "";
     stored_cpploc = {};
-    const size_t the_line = (size_t)(__LINE__ + 3); // careful
+    const size_t the_line = (size_t)(__LINE__ + 4); // careful
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
+        #if !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
         RYML_ASSERT_BASIC_(false);
+        #endif
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
         ;
     }
-    #if RYML_USE_ASSERT
+    #if RYML_USE_ASSERT && !RYML_ABORT_ON_ASSERT && !C4_ABORT_ON_ASSERT
     EXPECT_TRUE(to_csubstr(stored_msg).begins_with("check failed"));
     EXPECT_EQ(stored_cpploc.name, __FILE__);
     EXPECT_EQ(stored_cpploc.offset, npos);
