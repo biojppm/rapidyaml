@@ -255,7 +255,13 @@ ryml_add_test(scalar_folded)
 ryml_add_test(scalar_plain)
 ryml_add_test(tag)
 ryml_add_test(qmrk)
+ryml_add_test(number)
 ryml_add_test(github_issues)
+
+# these legacy tests use the hand-rolled CaseNode structure initially
+# created to create reference results. This structure is heavy on the
+# compiler. The engine tests have since been added, and ideally these
+# legacy CaseNode tests should be migrated to engine tests.
 ryml_add_test_legacy(empty_file_legacy)
 ryml_add_test_legacy(doc_legacy)
 ryml_add_test_legacy(seq_legacy)
