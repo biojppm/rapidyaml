@@ -9,15 +9,15 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
 #include "./test_lib/callbacks_tester.hpp"
 
-#include <gtest/gtest.h>
 #include <unordered_map>
 #include <vector>
 
 C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wdeprecated-declarations")
 C4_SUPPRESS_WARNING_MSVC(4996) // deprecated
 C4_SUPPRESS_WARNING_MSVC(4389) // signed/unsigned mismatch
@@ -5657,14 +5657,6 @@ TEST(Tree, unfiltered)
     EXPECT_NE(tree2[3].val(), "literal val");
     EXPECT_NE(tree2[4].key(), "folded key");
     EXPECT_NE(tree2[4].val(), "folded val");
-}
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
 }
 
 } // namespace yml

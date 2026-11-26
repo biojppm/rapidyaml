@@ -1578,20 +1578,3 @@ TEST(Parser, parse_without_filtering_where_it_is_required)
 
 } // namespace yml
 } // namespace c4
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-// this is needed to use the test case library
-
-namespace c4 {
-namespace yml {
-struct Case;
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
-} // namespace yml
-} // namespace c4

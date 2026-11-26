@@ -1,4 +1,4 @@
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
 #include <c4/utf.hpp>
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/parse.hpp"
@@ -8,6 +8,8 @@
 #endif
 
 RYML_DEFINE_TEST_MAIN()
+
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 namespace c4 {
 namespace yml {
@@ -700,14 +702,6 @@ TEST_P(TestBOM2, bom_scalar_doc_bom_scalar_3)
     };
     test_bom2(GetParam(), mkyaml, test_bom_scalar_doc_bom_scalar_2_fn, bom2_err_none,
               not_mistaken_as_scalar, mistaken_as_scalar);
-}
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
 }
 
 } // namespace yml

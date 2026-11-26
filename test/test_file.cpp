@@ -1,7 +1,7 @@
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/file.hpp"
 #endif
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_utils.hpp"
 #include <gtest/gtest.h>
 #include <c4/fs/fs.hpp>
 
@@ -153,14 +153,6 @@ TEST(file, vecint)
 TEST(file, vecsize_t)
 {
     testvec<size_t>();
-}
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
 }
 
 } // namespace yml

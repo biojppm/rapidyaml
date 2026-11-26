@@ -1,10 +1,14 @@
-#include "./test_lib/test_group.hpp"
-#include "./test_lib/test_group.def.hpp"
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_utils.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/emit.hpp"
+#include "c4/yml/parse.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 
 C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_CLANG("-Wdollar-in-identifier-extension")
 #if defined(__clang_major__) && __clang_major__ >= 13
 C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")

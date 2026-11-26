@@ -2,7 +2,7 @@
 #define TEST_LIB_TEST_CASE_HPP_
 
 #include "test_lib/test_utils.hpp"
-#include "test_lib/test_case_node.hpp"
+#include "test_group/test_case_node.hpp"
 #include "test_lib/test_helpers_tree.hpp"
 #include "test_lib/test_helpers_ints.hpp"
 #ifndef RYML_SINGLE_HEADER

@@ -9,12 +9,12 @@
 #include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/extra/event_ints.hpp>
 #endif
-#include "./test_lib/test_case.hpp"
-
-#include <gtest/gtest.h>
-#include "./test_lib/callbacks_tester.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
 
 RYML_DEFINE_TEST_MAIN()
+
+
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 namespace c4 {
 namespace yml {

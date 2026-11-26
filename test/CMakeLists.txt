@@ -147,13 +147,13 @@ endfunction()
 
 c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
     SOURCES
-       test_lib/test_case.hpp
-       test_lib/test_case.cpp
-       test_lib/test_case_node.hpp
-       test_lib/test_case_node.cpp
-       test_lib/test_group.hpp
-       test_lib/test_group.def.hpp
-       test_lib/test_group.cpp
+       test_group/test_case.hpp
+       test_group/test_case.cpp
+       test_group/test_case_node.hpp
+       test_group/test_case_node.cpp
+       test_group/test_group.hpp
+       test_group/test_group.def.hpp
+       test_group/test_group.cpp
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testgroup)

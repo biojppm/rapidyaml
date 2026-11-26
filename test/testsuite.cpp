@@ -5,10 +5,10 @@
 #include <c4/yml/emit.hpp>
 #include <c4/yml/detail/print.hpp>
 #include <c4/yml/detail/checks.hpp>
+#include <c4/yml/event_handler_tree.hpp>
 #endif
-#include "test_lib/test_case.hpp"
-#include "test_lib/test_engine.hpp"
 #include "test_lib/test_helpers_ints.hpp"
+#include "test_lib/test_helpers_tree.hpp"
 #include "testsuite/testsuite_common.hpp"
 #include "testsuite/testsuite_parts.hpp"
 #include "testsuite/testsuite_events.hpp"
@@ -34,8 +34,9 @@
  * is named a processing level in this test. */
 
 
-C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_PUSH
 C4_SUPPRESS_WARNING_MSVC(4702) // unreachable code
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 #define NLEVELS 4
 #define SKIP_IF(condition)                              \
@@ -1326,10 +1327,6 @@ DEFINE_TESTS(windows_in_arena_reuse);
 DEFINE_TESTS(windows_in_place_reuse);
 
 
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/) { return nullptr; }
-
 } // namespace yml
 } // namespace c4
 
@@ -1364,4 +1361,4 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
-C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_PUSH

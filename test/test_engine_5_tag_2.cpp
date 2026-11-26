@@ -1322,24 +1322,3 @@ ENGINE_TEST_(TagEmptyMap2_all, resolve_all_tags,
 
 } // namespace yml
 } // namespace c4
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-// this is needed to use the test case library
-
-#ifndef RYML_SINGLE_HEADER
-#include "c4/substr.hpp"
-#endif
-
-namespace c4 {
-namespace yml {
-struct Case;
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
-} // namespace yml
-} // namespace c4

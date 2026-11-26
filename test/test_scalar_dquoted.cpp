@@ -1,8 +1,8 @@
-#include "./test_lib/test_case.hpp"
-#include "./test_lib/test_group.hpp"
-#include "./test_lib/test_group.def.hpp"
+#include "./test_lib/test_utils.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/parse_engine.def.hpp>
+#include <c4/yml/emit.hpp>
 #endif
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/parse.hpp"
@@ -13,6 +13,7 @@
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 RYML_DEFINE_TEST_MAIN()
 

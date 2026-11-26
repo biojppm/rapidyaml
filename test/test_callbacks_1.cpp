@@ -1,6 +1,6 @@
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_utils.hpp"
 #ifndef RYML_SINGLE_HEADER
-#include "c4/yml/common.hpp"
+#include "c4/yml/parse.hpp"
 #include "c4/yml/error.def.hpp"
 #include "c4/dump.hpp"
 #endif

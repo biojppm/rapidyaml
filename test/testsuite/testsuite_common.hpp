@@ -13,8 +13,7 @@
 
 #include <c4/fs/fs.hpp>
 
-#include "test_lib/test_case.hpp"
-#include <gtest/gtest.h>
+#include "test_lib/test_utils.hpp"
 #include <cstdio>
 
 #if defined(C4_MSVC) || defined(C4_MINGW)

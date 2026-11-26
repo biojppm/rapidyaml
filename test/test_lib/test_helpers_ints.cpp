@@ -1,4 +1,4 @@
-#include "test_lib/test_case.hpp"
+#include "test_lib/test_utils.hpp"
 #include "./test_helpers_ints.hpp"
 
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")

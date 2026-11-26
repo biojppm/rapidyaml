@@ -2,7 +2,7 @@
 #ifndef C4_RYML_TEST_GROUP_HPP_
 #define C4_RYML_TEST_GROUP_HPP_
 
-#include "./test_lib/test_case.hpp"
+#include "./test_group/test_case.hpp"
 #include "c4/span.hpp"
 #include <algorithm>
 

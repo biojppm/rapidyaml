@@ -7,20 +7,12 @@
 #include <c4/yml/detail/print.hpp>
 #include <c4/yml/parse_engine.def.hpp>
 #endif
+#include "test_lib/test_helpers_tree.hpp"
 
-#include "./test_lib/test_case.hpp"
 
-#include <gtest/gtest.h>
-
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4389) // signed/unsigned mismatch
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#endif
+C4_SUPPRESS_WARNING_PUSH
+C4_SUPPRESS_WARNING_MSVC(4389) // signed/unsigned mismatch
+C4_SUPPRESS_WARNING_CLANG("-Wdollar-in-identifier-extension")
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -325,21 +317,7 @@ TEST(general, _c4presc)
 }
 #endif
 
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
-
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_POP

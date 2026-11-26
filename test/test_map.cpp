@@ -1,5 +1,9 @@
-#include "./test_lib/test_group.hpp"
-#include "./test_lib/test_group.def.hpp"
+#include "./test_lib/test_utils.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/emit.hpp"
+#include "c4/yml/parse.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 

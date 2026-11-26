@@ -1,5 +1,5 @@
-#include "./test_lib/test_group.hpp"
-#include "./test_lib/test_group.def.hpp"
+#include "./test_group/test_group.hpp"
+#include "./test_group/test_group.def.hpp"
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else

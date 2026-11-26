@@ -8,7 +8,6 @@
 #include <c4/yml/detail/print.hpp>
 #endif
 
-#include "./test_lib/test_case.hpp"
 #include "./test_lib/tree_and_ints.hpp"
 
 #include <gtest/gtest.h>
@@ -860,14 +859,6 @@ const SpecialScalarError test_cases_special_scalar[] = {
 INSTANTIATE_TEST_SUITE_P(special_scalars,
                          TestSpecialScalarErrorF,
                          testing::ValuesIn(test_cases_special_scalar));
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
 
 } // namespace yml
 } // namespace c4

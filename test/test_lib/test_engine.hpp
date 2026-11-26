@@ -9,10 +9,7 @@
 #include "c4/yml/emit.hpp"
 #include "c4/yml/detail/print.hpp"
 #endif
-#include <gtest/gtest.h>
-#include "./test_lib/test_case.hpp"
 #include "./test_lib/test_helpers_ints.hpp"
-#include "c4/yml/extra/event_handler_ints.hpp"
 
 #if defined(__clang__) && (__clang_major__ >= 13)
 C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")

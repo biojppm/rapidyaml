@@ -1,5 +1,5 @@
-#include "./test_lib/test_group.hpp"
-#include "./test_lib/test_group.def.hpp"
+#include "./test_group/test_group.hpp"
+#include "./test_group/test_group.def.hpp"
 #include "./test_lib/tree_and_ints.hpp"
 #ifndef C4_YML_REFERENCE_RESOLVER_HPP_
 #include "c4/yml/reference_resolver.hpp"

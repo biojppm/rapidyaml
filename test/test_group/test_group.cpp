@@ -7,8 +7,8 @@
 #include "c4/yml/emit.hpp"
 #include "c4/yml/reference_resolver.hpp"
 #endif
-#include "test_lib/test_group.hpp"
-#include "test_lib/test_case.hpp"
+#include "test_group/test_group.hpp"
+#include "test_group/test_case.hpp"
 #include "test_lib/test_helpers_ints.hpp"
 #include <c4/yml/extra/event_handler_ints.hpp>
 #include <c4/yml/extra/ints_utils.hpp>

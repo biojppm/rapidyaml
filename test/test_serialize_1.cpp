@@ -7,10 +7,7 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
-
-#include "./test_lib/test_case.hpp"
-
-#include <gtest/gtest.h>
+#include "./test_lib/test_helpers_tree.hpp"
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -669,14 +666,6 @@ TEST(serialize, auto_plain)
     test_serialized_as_not_plain(csubstr, "");
     char buf[10];
     test_serialized_as_not_plain(substr, buf);
-}
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
 }
 
 } // namespace yml

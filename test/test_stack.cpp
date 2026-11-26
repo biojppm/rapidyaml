@@ -843,26 +843,4 @@ TEST(stack, push_top_to_large_twice)
 } // namespace yml
 } // namespace c4
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-// this is needed to use the test case library
-
-#ifndef RYML_SINGLE_HEADER
-#include "c4/substr.hpp"
-#endif
-
-namespace c4 {
-namespace yml {
-struct Case;
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
-
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
-
-} // namespace yml
-} // namespace c4

@@ -1,5 +1,5 @@
-#include "test_lib/test_case_node.hpp"
-#include "test_lib/test_case.hpp"
+#include "test_group/test_case_node.hpp"
+#include "test_group/test_case.hpp"
 #include <gtest/gtest.h>
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
