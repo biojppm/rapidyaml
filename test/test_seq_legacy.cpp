@@ -1612,6 +1612,42 @@ Location(3, 12)
 );
 #endif
 
+ADD_CASE_TO_GROUP("github35/expected_error11", EXPECT_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
+- key1: true1
+ MessageID1:          'MapRegion_HyrulePrairie1 '
+)",
+  Location(4, 1)
+);
+
+ADD_CASE_TO_GROUP("github35/expected_error12", EXPECT_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
+- key2: true2
+ MessageID2:          "MapRegion_HyrulePrairie2 "
+)",
+  Location(4, 1)
+);
+
+ADD_CASE_TO_GROUP("github35/expected_error21", EXPECT_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
+- key1: true1
+    MessageID1:          'MapRegion_HyrulePrairie1 '
+)",
+  Location(4, 15)
+);
+
+ADD_CASE_TO_GROUP("github35/expected_error22", EXPECT_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
+- key2: true2
+    MessageID2:          "MapRegion_HyrulePrairie2 "
+)",
+  Location(4, 15)
+);
+
 } // CASE_GROUP()
 
 

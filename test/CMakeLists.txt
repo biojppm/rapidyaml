@@ -254,6 +254,7 @@ ryml_add_test(scalar_literal)
 ryml_add_test(scalar_folded)
 ryml_add_test(scalar_plain)
 ryml_add_test(tag)
+ryml_add_test(github_issues)
 ryml_add_test_legacy(empty_file_legacy)
 ryml_add_test_legacy(doc_legacy)
 ryml_add_test_legacy(seq_legacy)
@@ -269,8 +270,7 @@ ryml_add_test_legacy(qmrk)
 ryml_add_test_legacy(scalar_names)
 ryml_add_test_legacy(anchor_legacy)
 ryml_add_test_legacy(indentation_legacy)
-ryml_add_test_legacy(number)
-ryml_add_test_legacy(github_issues)
+ryml_add_test_legacy(number_legacy)
 
 
 #-------------------------------------------------------------------------
