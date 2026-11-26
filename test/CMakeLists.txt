@@ -173,9 +173,9 @@ ryml_setup_test_target_props(ryml-_emitscommon)
 ryml_testbm_link_with_c4core(ryml-_emitscommon)
 
 
-# some subjects have to be split over several files because gtest
-# causes some amount of code bloat and some compilers (VS) or
-# platforms (mips) choke on the large binary
+# some subjects have to be split over several files because the
+# codegen is bloated, and some compilers (VS) or platforms (mips)
+# choke on the large binary
 
 ryml_add_test(callbacks_1)
 ryml_add_test(callbacks_2)
@@ -223,7 +223,10 @@ ryml_add_test(extra_ints_resolve)
 ryml_add_test(filter)
 ryml_add_test(parser)
 ryml_add_test(node_type)
-ryml_add_test(tree)
+ryml_add_test(node_scalar)
+ryml_add_test(tree_1_ctor)
+ryml_add_test(tree_2_hier)
+ryml_add_test(tree_3_type)
 ryml_add_test(tree_build)
 ryml_add_test(noderef)
 ryml_add_test(emit_1 LIBS ryml-_emitscommon)
