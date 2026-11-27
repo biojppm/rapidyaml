@@ -9,17 +9,16 @@
 #include <c4/yml/escape_scalar.hpp>
 #include <c4/yml/extra/event_ints.hpp>
 #endif
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
 #include "./test_lib/test_helpers_ints.hpp"
-
-#include <gtest/gtest.h>
 #include "./test_lib/callbacks_tester.hpp"
 
 RYML_DEFINE_TEST_MAIN()
+
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 #if defined(__clang__) && (__clang_major__ >= 13)
 C4_SUPPRESS_WARNING_CLANG("-Wreserved-identifier")
 #endif
-
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_MSVC_PUSH

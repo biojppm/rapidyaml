@@ -2,7 +2,7 @@
 #include "c4/yml/version.hpp"
 #include "c4/yml/detail/print.hpp"
 #endif
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_utils.hpp"
 #include <gtest/gtest.h>
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/parse.hpp"

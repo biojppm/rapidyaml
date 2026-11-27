@@ -7,10 +7,7 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
-
-#include "./test_lib/test_case.hpp"
-
-#include <gtest/gtest.h>
+#include "./test_lib/test_helpers_tree.hpp"
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -21,6 +18,8 @@
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #endif
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+
 
 // inf and nan are tested in test_number.cpp
 
@@ -1103,14 +1102,6 @@ TEST(serialize, issue477_map)
     EXPECT_EQ(map[0], 10); // modified
     EXPECT_EQ(map[2], 30); // modified
     EXPECT_EQ(map[4], 50);
-}
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
 }
 
 } // namespace yml

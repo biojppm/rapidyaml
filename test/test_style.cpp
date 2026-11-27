@@ -20,10 +20,6 @@ C4_SUPPRESS_WARNING_PUSH
 #endif
 
 #include "./test_lib/tree_and_ints.hpp"
-#include "./test_lib/test_case.hpp"
-#include "./test_lib/test_helpers_ints.hpp"
-
-#include <gtest/gtest.h>
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -2491,14 +2487,6 @@ TEST(keymap, flow_sl_nested)
   5: {5: 10, 6: 10}
 )");
     }
-}
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
 }
 
 } // namespace yml

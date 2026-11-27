@@ -1,7 +1,16 @@
 #include "./test_engine.hpp"
-#include "./test_utils.hpp"
+#ifdef RYML_SINGLE_HEADER
+#include "ryml_all.hpp"
+#else
+#include "c4/yml/event_handler_tree.hpp"
+#include "c4/yml/parse_engine.hpp"
+#include "c4/yml/emit.hpp"
+#include "c4/yml/detail/print.hpp"
+#endif
 #include "./test_helpers_ints.hpp"
+#include "./test_helpers_tree.hpp"
 #include "c4/yml/extra/ints_to_testsuite.hpp"
+#include "c4/yml/extra/event_handler_ints.hpp"
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else

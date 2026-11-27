@@ -103,10 +103,6 @@ ryml_add_quickstart_test(ryml-test-quickstart-ints  bad_arena WILL_FAIL ARGS -a 
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES
        test_lib/callbacks_tester.hpp
-       test_lib/test_case.hpp
-       test_lib/test_case.cpp
-       test_lib/test_case_node.hpp
-       test_lib/test_case_node.cpp
        test_lib/test_compare_events.hpp
        test_lib/test_compare_events.cpp
        test_lib/test_engine.hpp
@@ -132,11 +128,11 @@ c4_add_library(ryml-_testmain LIBRARY_TYPE OBJECT
 )
 
 function(ryml_add_test test_name)
-    cmake_parse_arguments("" "BIG" "" "LIBS" ${ARGN})
+    cmake_parse_arguments("" "BIG" "" "LIBS;SRC" ${ARGN})
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
-        SOURCES test_${test_name}.cpp
-        LIBS ryml-_testlib ryml-_testmain
+        SOURCES test_${test_name}.cpp ${_SRC}
+        LIBS ryml-_testlib ryml-_testmain ${_LIBS}
         FOLDER test)
     ryml_testbm_link_with_c4core(${t})
     if(RYML_SAVE_TEST_YAML)
@@ -151,24 +147,38 @@ endfunction()
 
 c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
     SOURCES
-       test_lib/test_group.hpp
-       test_lib/test_group.def.hpp
-       test_lib/test_group.cpp
+       test_group/test_case.hpp
+       test_group/test_case.cpp
+       test_group/test_case_node.hpp
+       test_group/test_case_node.cpp
+       test_group/test_group.hpp
+       test_group/test_group.def.hpp
+       test_group/test_group.cpp
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 ryml_setup_test_target_props(ryml-_testgroup)
 ryml_testbm_link_with_c4core(ryml-_testgroup)
-function(ryml_add_test_case_group name)
+function(ryml_add_test_legacy name)
     ryml_add_test(${name} ${ARGN})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
 endfunction()
 
+c4_add_library(ryml-_emitscommon LIBRARY_TYPE OBJECT
+    SOURCES
+       test_emits/test_emits_common.hpp
+       test_emits/test_emits_common.cpp
+    LIBS ryml-_testlib c4fs
+    FOLDER test)
+ryml_setup_test_target_props(ryml-_emitscommon)
+ryml_testbm_link_with_c4core(ryml-_emitscommon)
 
-# some subjects have to be split over several files because gtest
-# causes some amount of code bloat and some compilers (VS) or
-# platforms (mips) choke on the large binary
 
-ryml_add_test(callbacks)
+# some subjects have to be split over several files because the
+# codegen is bloated, and some compilers (VS) or platforms (mips)
+# choke on the large binary
+
+ryml_add_test(callbacks_1)
+ryml_add_test(callbacks_2)
 ryml_add_test(stack)
 ryml_add_test(location)
 ryml_add_test(small_map)
@@ -191,35 +201,52 @@ ryml_add_test(engine_3_map_flow_1 BIG)
 ryml_add_test(engine_3_map_flow_2 BIG)
 ryml_add_test(engine_3_map_flow_3 BIG)
 ryml_add_test(engine_3_map_flow_4 BIG)
-ryml_add_test(engine_4_anchor BIG)
+ryml_add_test(engine_3_map_flow_5 BIG)
+ryml_add_test(engine_4_anchor_1 BIG)
+ryml_add_test(engine_4_anchor_2 BIG)
 ryml_add_test(engine_5_tag_1 BIG)
 ryml_add_test(engine_5_tag_2 BIG)
 ryml_add_test(engine_5_tag_3 BIG)
+ryml_add_test(engine_5_tag_4 BIG)
+ryml_add_test(engine_5_tag_5 BIG)
+ryml_add_test(engine_5_tag_6 BIG)
+ryml_add_test(engine_6_qmrk_0 BIG)
 ryml_add_test(engine_6_qmrk_1 BIG)
 ryml_add_test(engine_6_qmrk_2 BIG)
 ryml_add_test(engine_6_qmrk_3 BIG)
 ryml_add_test(engine_6_qmrk_4 BIG)
 ryml_add_test(engine_6_qmrk_5 BIG)
 ryml_add_test(engine_6_qmrk_6 BIG)
+ryml_add_test(engine_6_qmrk_7 BIG)
+ryml_add_test(engine_6_qmrk_8 BIG)
+ryml_add_test(engine_6_qmrk_9 BIG)
 ryml_add_test(engine_7_seqimap_1 BIG)
 ryml_add_test(engine_7_seqimap_2 BIG)
 ryml_add_test(engine_8_scalars_tokens_1 BIG)
 ryml_add_test(engine_8_scalars_tokens_2 BIG)
 ryml_add_test(engine_9_indentation BIG)
 ryml_add_test(engine_z_annot BIG)
+
 ryml_add_test(extra_ints)
 ryml_add_test(extra_ints_resolve)
 ryml_add_test(filter)
 ryml_add_test(parser)
 ryml_add_test(node_type)
-ryml_add_test(tree)
+ryml_add_test(node_scalar)
+ryml_add_test(tree_1_ctor)
+ryml_add_test(tree_2_hier)
+ryml_add_test(tree_3_type)
 ryml_add_test(tree_build)
 ryml_add_test(noderef)
-ryml_add_test(emit)
+ryml_add_test(emit_1 LIBS ryml-_emitscommon)
+ryml_add_test(emit_2 LIBS ryml-_emitscommon)
+ryml_add_test(emit_3 LIBS ryml-_emitscommon)
+ryml_add_test(emit_4 LIBS ryml-_emitscommon)
 ryml_add_test(style)
 ryml_add_test(serialize_1)
 ryml_add_test(serialize_2)
 ryml_add_test(serialize_3)
+ryml_add_test(serialize_4)
 ryml_add_test(basic)
 ryml_add_test(json)
 ryml_add_test(merge)
@@ -228,45 +255,42 @@ ryml_add_test(bom_2)
 ryml_add_test(scalar_roundtrip)
 ryml_add_test(escape_scalar)
 ryml_add_test(print_tree)
-ryml_add_test_case_group(empty_file)
-ryml_add_test_case_group(doc)
-ryml_add_test_case_group(seq)
-ryml_add_test_case_group(seq_empty)
-ryml_add_test_case_group(seq_generic)
-ryml_add_test_case_group(map)
-ryml_add_test_case_group(map_empty)
-ryml_add_test_case_group(map_generic)
-ryml_add_test_case_group(map_set)
-ryml_add_test_case_group(seq_of_map)
-ryml_add_test_case_group(map_of_seq)
-ryml_add_test_case_group(scalar_null)
-ryml_add_test_case_group(scalar_squoted)
-ryml_add_test_case_group(scalar_dquoted)
-ryml_add_test_case_group(scalar_literal)
-ryml_add_test_case_group(scalar_folded)
-ryml_add_test_case_group(scalar_plain)
-ryml_add_test_case_group(tag)
-ryml_add_test_case_group(qmrk)
-ryml_add_test_case_group(map_nestedx2)
-ryml_add_test_case_group(seq_nestedx2)
-ryml_add_test_case_group(map_nestedx3)
-ryml_add_test_case_group(seq_nestedx3)
-ryml_add_test_case_group(map_nestedx4)
-ryml_add_test_case_group(seq_nestedx4)
-ryml_add_test_case_group(scalar_names)
-ryml_add_test_case_group(anchor)
-ryml_add_test_case_group(indentation)
-ryml_add_test_case_group(number)
-ryml_add_test_case_group(github_issues)
-# workaround for a false positive warning in gcc14 --std=c++20 -O2
-if(CMAKE_COMPILER_IS_GNUCXX
-        AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13)
-        AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15))
-    get_target_property(std ryml-test-scalar_plain CXX_STANDARD)
-    if(std EQUAL 20)
-        c4_target_compile_flags(ryml-test-scalar_plain PUBLIC GCC -Wno-array-bounds -Wno-stringop-overflow)
-    endif()
-endif()
+ryml_add_test(seq)
+ryml_add_test(map)
+ryml_add_test(anchor_1)
+ryml_add_test(anchor_2)
+ryml_add_test(anchor_3)
+ryml_add_test(scalar_null)
+ryml_add_test(scalar_squoted)
+ryml_add_test(scalar_dquoted)
+ryml_add_test(scalar_literal)
+ryml_add_test(scalar_folded)
+ryml_add_test(scalar_plain)
+ryml_add_test(tag)
+ryml_add_test(qmrk)
+ryml_add_test(number)
+ryml_add_test(github_issues)
+
+# these legacy tests use the hand-rolled CaseNode structure initially
+# created to create reference results. This structure is heavy on the
+# compiler. The engine tests have since been added, and ideally these
+# legacy CaseNode tests should be migrated to engine tests.
+ryml_add_test_legacy(empty_file_legacy)
+ryml_add_test_legacy(doc_legacy)
+ryml_add_test_legacy(seq_legacy)
+ryml_add_test_legacy(map_legacy)
+ryml_add_test_legacy(scalar_null_legacy)
+ryml_add_test_legacy(scalar_squoted_legacy)
+ryml_add_test_legacy(scalar_dquoted_legacy)
+ryml_add_test_legacy(scalar_literal_legacy)
+ryml_add_test_legacy(scalar_folded_legacy)
+ryml_add_test_legacy(scalar_plain_legacy)
+ryml_add_test_legacy(tag_legacy)
+ryml_add_test_legacy(qmrk_legacy)
+ryml_add_test_legacy(scalar_names)
+ryml_add_test_legacy(anchor_legacy)
+ryml_add_test_legacy(indentation_legacy)
+ryml_add_test_legacy(number_legacy)
 
 
 #-------------------------------------------------------------------------

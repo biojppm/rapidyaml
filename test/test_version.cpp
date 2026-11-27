@@ -1,8 +1,7 @@
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/version.hpp"
 #endif
-#include "./test_lib/test_case.hpp"
-#include <gtest/gtest.h>
+#include "./test_lib/test_utils.hpp"
 
 RYML_DEFINE_TEST_MAIN()
 

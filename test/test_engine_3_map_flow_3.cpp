@@ -8,6 +8,8 @@ RYML_DEFINE_TEST_MAIN()
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+
 ENGINE_TEST_ERRLOC(MapValNestedIndentKey0_0, Location(5, 1),
                    "k: {"    "\n"
                    " a"     "\n"
@@ -1164,26 +1166,5 @@ ENGINE_TEST_ERRLOC(SeqNestedIndentKeyTab, Location(3, 1),
                    )
 
 
-} // namespace yml
-} // namespace c4
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-// this is needed to use the test case library
-
-#ifndef RYML_SINGLE_HEADER
-#include "c4/substr.hpp"
-#endif
-
-namespace c4 {
-namespace yml {
-struct Case;
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
 } // namespace yml
 } // namespace c4

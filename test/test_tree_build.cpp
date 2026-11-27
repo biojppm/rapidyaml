@@ -1,11 +1,13 @@
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_utils.hpp"
 #include "gtest/gtest-spi.h"
 #ifndef RYML_SINGLE_HEADER
+#include "c4/yml/emit.hpp"
 #include "c4/yml/parse.hpp"
 #include "c4/yml/parse_engine.hpp"
 #include "c4/yml/parse_engine.def.hpp"
 #include "c4/yml/event_handler_tree.hpp"
 #endif
+#include "./test_lib/test_helpers_tree.hpp"
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -1160,14 +1162,6 @@ TEST(build, seq_nested_in_map)
         blk(add_to_seq(), all_children),
         blk(set_scalar_val("foo"), nothing_else),
     );
-}
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
 }
 
 } // namespace yml

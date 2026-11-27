@@ -1,5 +1,9 @@
-#include "./test_lib/test_group.hpp"
-#include "./test_lib/test_group.def.hpp"
+#include "./test_lib/test_utils.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
+#ifndef RYML_SINGLE_HEADER
+#include "c4/yml/emit.hpp"
+#include "c4/yml/parse.hpp"
+#endif
 
 RYML_DEFINE_TEST_MAIN()
 
@@ -236,888 +240,131 @@ TEST(simple_seq, unterminated_seqimap)
     }
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-
-CASE_GROUP(SIMPLE_SEQ)
+TEST(seq_of_map, with_anchors)
 {
-
-ADD_CASE_TO_GROUP("simple seq",
-R"(- 0
-- 1
-- 2
-- 3
-)",
-N(SB, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-
-ADD_CASE_TO_GROUP("simple seq, flow, single line",
-"[0, 1, 2, 3]",
-N(SFS, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-ADD_CASE_TO_GROUP("simple seq, flow, single line, trailcomma",
-"[0, 1, 2, 3,]",
-N(SFS, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"},})
-);
-
-ADD_CASE_TO_GROUP("simple seq, flow, multiline, unindented",
-R"([
-0,
-1,
-2,
-3
-])",
-N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"},})
-);
-
-ADD_CASE_TO_GROUP("simple seq, flow, multiline, unindented, trailcomma",
-R"([
-0,
-1,
-2,
-3,
-])",
-N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-ADD_CASE_TO_GROUP("simple seq, flow, multiline, comments inline",
-R"([
-0,  # bla0
-1,  # bla1
-2,  # bla2
-3   # bla3
-])",
-N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-ADD_CASE_TO_GROUP("simple seq, flow, multiline, comments prev line",
-R"([
-# bla0
-0,
-# bla1
-1,
-# bla2
-2,
-# bla3
-3
-])",
-N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-ADD_CASE_TO_GROUP("simple seq, flow, multiline, indented",
-R"([
-  0,
-  1,
-  2,
-  3
-])",
-N(SFM, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-ADD_CASE_TO_GROUP("simple seq, comments inline",
-R"(
-- 0   # this is a foo
-- 1   # this is a bar
-- 2   # this is a bar
-- 3   # this is a bar
-)",
-N(SB, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-ADD_CASE_TO_GROUP("simple seq, comments prev line",
-R"(
-# this is a foo
-- 0
-# this is a bar
-- 1
-# this is a baz
-- 2
-# this is a bat
-- 3
-)",
-N(SB, L{N{VP, "0"}, N{VP, "1"}, N{VP, "2"}, N{VP, "3"}})
-);
-
-ADD_CASE_TO_GROUP("simple seq, empty elements", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
-R"(-
--
-- 
--  
-- # with comments
-- # more comments
-)",
-N(SB, L{VN, VN, VN, VN, VN, VN})
-);
-
-ADD_CASE_TO_GROUP("simple seq, empty elements with non-empty first", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
-R"(
-- non-empty
--
-- 
--  
-- # with comments
-- # more comments
-)",
-N(SB, L{N{VP, "non-empty"}, VN, VN, VN, VN, VN})
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, comma",
-R"(
-- a,b
-- c,d
-- e,f
-- a, b
-- c, d
-- e, f
-- a , b
-- c , d
-- e , f
-- a ,b
-- c ,d
-- e ,f
-)",
-N(SB, L{N{VP, "a,b"}, N{VP, "c,d"}, N{VP, "e,f"},
-  N{VP, "a, b"}, N{VP, "c, d"}, N{VP, "e, f"},
-  N{VP, "a , b"}, N{VP, "c , d"}, N{VP, "e , f"},
-  N{VP, "a ,b"}, N{VP, "c ,d"}, N{VP, "e ,f"},
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, colon",
-R"(
-- a:b
-- "c:d"
-- 'e:f'
-- a :b
-- "c :d"
-- 'e :f'
-- a : b    # THIS IS A KEY-VAL!!!
-- "c : d"
-- 'e : f'
-- a: b     # THIS IS A KEY-VAL!!!
-- "c: d"
-- 'e: f'
-)",
-N(SB, L{
-  N(VP, "a:b"), N(VD, "c:d"), N(VS, "e:f"),
-  N(VP, "a :b"), N(VD, "c :d"), N(VS, "e :f"),
-  N(MB, L{N(KP|VP, "a", "b")}), N(VD, "c : d"), N(VS, "e : f"),
-  N(MB, L{N(KP|VP, "a", "b")}), N(VD, "c: d"), N(VS, "e: f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, cardinal",
-R"(
-- a#b
-- "a#b"
-- 'a#b'
-- a# b
-- "a# b"
-- 'a# b'
-- a # b
-- "a # b"
-- 'a # b'
-- a #b
-- "a #b"
-- 'a #b'
-)",
-N(SB, L{
-  N(VP, "a#b"), N(VD, "a#b"), N(VS, "a#b"),
-  N(VP, "a# b"), N(VD, "a# b"), N(VS, "a# b"),
-  N(VP, "a"), N(VD, "a # b"), N(VS, "a # b"),
-  N(VP, "a"), N(VD, "a #b"), N(VS, "a #b"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, dash",
-R"(
-- a-b
-- "a-b"
-- 'a-b'
-- a- b
-- "a- b"
-- 'a- b'
-- a - b
-- "a - b"
-- 'a - b'
-- a -b
-- "a -b"
-- 'a -b'
-)",
-N(SB, L{
- N(VP, "a-b"),   N(VD, "a-b"),   N(VS, "a-b"),
- N(VP, "a- b"),  N(VD, "a- b"),  N(VS, "a- b"),
- N(VP, "a - b"), N(VD, "a - b"), N(VS, "a - b"),
- N(VP, "a -b"),  N(VD, "a -b"),  N(VS, "a -b"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, left-curly",
-R"(
-- a{b
-- "a{b"
-- 'a{b'
-- a{ b
-- "a{ b"
-- 'a{ b'
-- a { b
-- "a { b"
-- 'a { b'
-- a {b
-- "a {b"
-- 'a {b'
-)",
-N(SB, L{
-  N(VP, "a{b"),   N(VD, "a{b"),   N(VS, "a{b"),
-  N(VP, "a{ b"),  N(VD, "a{ b"),  N(VS, "a{ b"),
-  N(VP, "a { b"), N(VD, "a { b"), N(VS, "a { b"),
-  N(VP, "a {b"),  N(VD, "a {b"),  N(VS, "a {b"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, right-curly",
-R"(
-- a}b
-- "a}b"
-- 'a}b'
-- a} b
-- "a} b"
-- 'a} b'
-- a } b
-- "a } b"
-- 'a } b'
-- a }b
-- "a }b"
-- 'a }b'
-)",
-N(SB, L{
-  N(VP, "a}b"),   N(VD, "a}b"),   N(VS, "a}b"),
-  N(VP, "a} b"),  N(VD, "a} b"),  N(VS, "a} b"),
-  N(VP, "a } b"), N(VD, "a } b"), N(VS, "a } b"),
-  N(VP, "a }b"),  N(VD, "a }b"),  N(VS, "a }b"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, left-bracket",
-R"(
-- a[b
-- "a[b"
-- 'a[b'
-- a[ b
-- "a[ b"
-- 'a[ b'
-- a [ b
-- "a [ b"
-- 'a [ b'
-- a [b
-- "a [b"
-- 'a [b'
-)",
-N(SB, L{
-  N(VP, "a[b"),   N(VD, "a[b"),   N(VS, "a[b"),
-  N(VP, "a[ b"),  N(VD, "a[ b"),  N(VS, "a[ b"),
-  N(VP, "a [ b"), N(VD, "a [ b"), N(VS, "a [ b"),
-  N(VP, "a [b"),  N(VD, "a [b"),  N(VS, "a [b"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq, scalars with special chars, right-bracket",
-R"(
-- a]b
-- "a]b"
-- 'a]b'
-- a] b
-- "a] b"
-- 'a] b'
-- a ] b
-- "a ] b"
-- 'a ] b'
-- a ]b
-- "a ]b"
-- 'a ]b'
-)",
-N(SB, L{
-  N(VP, "a]b"),   N(VD, "a]b"),   N(VS, "a]b"),
-  N(VP, "a] b"),  N(VD, "a] b"),  N(VS, "a] b"),
-  N(VP, "a ] b"), N(VD, "a ] b"), N(VS, "a ] b"),
-  N(VP, "a ]b"),  N(VD, "a ]b"),  N(VS, "a ]b"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, comma",
-R"([
- a,b,  "c,d",   'e,f',
- a, b,  "c, d",   'e, f',
- a , b,  "c , d",   'e , f',
- a ,b,  "c ,d",   'e ,f',
-])",
-N(SFM, L{
-  N(VP, "a"), N(VP, "b"), N(VD, "c,d"),   N(VS, "e,f"),
-  N(VP, "a"), N(VP, "b"), N(VD, "c, d"),  N(VS, "e, f"),
-  N(VP, "a"), N(VP, "b"), N(VD, "c , d"), N(VS, "e , f"),
-  N(VP, "a"), N(VP, "b"), N(VD, "c ,d"),  N(VS, "e ,f"),
-})
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, colon", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
-R"([
-    :a,
-    :0,
-    ::,
-    :-,
-    :*,
-    :@,
-    :%,
-    :^,
-    :$,
-    :`,
-    : ,    # this is a map
-    :	,  # this is a map (when tab tokens are enabled)
-    x:a,
-    x:0,
-    x::,
-    x:-,
-    x:*,
-    x:@,
-    x:%,
-    x:^,
-    x:$,
-    x:`,
-    x: ,   # this is a map
-    x:	,  # this is a map (when tab tokens are enabled)
-    :z:a,
-    :z:0,
-    :z::,
-    :z:-,
-    :z:*,
-    :z:@,
-    :z:%,
-    :z:^,
-    :z:$,
-    :z:`,
-    :z: ,   # this is a map
-    :z:	,  # this is a map (when tab tokens are enabled)
-]
-)",
-N(SFM, L{
-   N(VP, ":a"),
-   N(VP, ":0"),
-   N(MFS, L{N(KP|VN, ":", {})}),
-   N(VP, ":-"),
-   N(VP, ":*"),
-   N(VP, ":@"),
-   N(VP, ":%"),
-   N(VP, ":^"),
-   N(VP, ":$"),
-   N(VP, ":`"),
-   N(MFS, L{KN|VN}),
-   N(MFS, L{KN|VN}),
-   N(VP, "x:a"),
-   N(VP, "x:0"),
-   N(MFS, L{N(KP|VN, "x:", {})}),
-   N(VP, "x:-"),
-   N(VP, "x:*"),
-   N(VP, "x:@"),
-   N(VP, "x:%"),
-   N(VP, "x:^"),
-   N(VP, "x:$"),
-   N(VP, "x:`"),
-   N(MFS, L{N(KP|VN, "x", "")}),
-   RYML_WITH_OR_WITHOUT_TAB_TOKENS_(N(MFS, L{N(KP|VN, "x", "")}), N(VP, "x:\t")),
-   N(VP, ":z:a"),
-   N(VP, ":z:0"),
-   N(MFS, L{N(KP|VN, ":z:", {})}),
-   N(VP, ":z:-"),
-   N(VP, ":z:*"),
-   N(VP, ":z:@"),
-   N(VP, ":z:%"),
-   N(VP, ":z:^"),
-   N(VP, ":z:$"),
-   N(VP, ":z:`"),
-   N(MFS, L{N(KP|VN, ":z", {})}),
-   RYML_WITH_OR_WITHOUT_TAB_TOKENS_(N(MFS, L{N(KP|VN, ":z", "")}), N(VP, ":z:\t")),
- })
-);
-
-ADD_CASE_TO_GROUP("simple seq blck, scalars with special chars, colon", NO_COMPARE_EMITTED_INTS_JSON,//FIXME
-R"(- :a
-- :0
-- ::
-- :-
-- :*
-- :@
-- :%
-- :^
-- :$
-- :`
-- :   # this is a map
-#- :	  # this is a map (when tab tokens are enabled)
-- x:a
-- x:0
-- x::
-- x:-
-- x:*
-- x:@
-- x:%
-- x:^
-- x:$
-- x:`
-- x:      # this is a map
-#- x:	  # this is a map (when tab tokens are enabled)
-- :z:a
-- :z:0
-- :z::
-- :z:-
-- :z:*
-- :z:@
-- :z:%
-- :z:^
-- :z:$
-- :z:`
-- :z:      # this is a map
-#- :z:	  # this is a map (when tab tokens are enabled)
-)",
-N(SB, L{
- N(VP, ":a"),
- N(VP, ":0"),
- N(MB, L{N(KP|VN, ":", {})}),
- N(VP, ":-"),
- N(VP, ":*"),
- N(VP, ":@"),
- N(VP, ":%"),
- N(VP, ":^"),
- N(VP, ":$"),
- N(VP, ":`"),
- N(MB, L{KN|VN}),
-// RYML_WITH_OR_WITHOUT_TAB_TOKENS_(N(MB, L{KN|VN}),
-//                                  N(VP, ":")),
- N(VP, "x:a"),
- N(VP, "x:0"),
- N(MB, L{N(KP|VN, "x:", {})}),
- N(VP, "x:-"),
- N(VP, "x:*"),
- N(VP, "x:@"),
- N(VP, "x:%"),
- N(VP, "x:^"),
- N(VP, "x:$"),
- N(VP, "x:`"),
- N(MB, L{N(KP|VN, "x", {})}),
-// RYML_WITH_OR_WITHOUT_TAB_TOKENS_(N(MB, L{N(KP|VN, "x", "")}),
-//                                  N(VP, "x:")),
- N(VP, ":z:a"),
- N(VP, ":z:0"),
- N(MB, L{N(KP|VN, ":z:", {})}),
- N(VP, ":z:-"),
- N(VP, ":z:*"),
- N(VP, ":z:@"),
- N(VP, ":z:%"),
- N(VP, ":z:^"),
- N(VP, ":z:$"),
- N(VP, ":z:`"),
- N(MB, L{N(KP|VN, ":z", "")}),
-// RYML_WITH_OR_WITHOUT_TAB_TOKENS_(N(MB, L{N(KP|VN, ":z", "")}),
-//                                  N(VP, ":z:")),
-})
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, colon 2",
-R"([
- a:b, "c:d",   'e:f',
- a: b, "c: d",   'e: f',
- a : b,  "c : d",   'e : f',
- a :b,  "c :d",   'e :f',
-])",
-N(SFM, L{
-  N(VP, "a:b"), N(VD, "c:d"),   N(VS, "e:f"),
-  N(MFS, L{N(KP|VP, "a", "b")}), N(VD, "c: d"),  N(VS, "e: f"),
-  N(MFS, L{N(KP|VP, "a", "b")}), N(VD, "c : d"), N(VS, "e : f"),
-  N(VP, "a :b"), N(VD, "c :d"),  N(VS, "e :f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq block, scalars with special chars, colon 2",
-R"(- a:b
-- "c:d"
-- 'e:f'
-- a: b
-- "c: d"
-- 'e: f'
-- a : b
-- "c : d"
-- 'e : f'
-- a :b
-- "c :d"
-- 'e :f'
-)",
-N(SB, L{
-  N(VP, "a:b"), N(VD, "c:d"),   N(VS, "e:f"),
-  N(MB, L{N(KP|VP, "a", "b")}), N(VD, "c: d"),  N(VS, "e: f"),
-  N(MB, L{N(KP|VP, "a", "b")}), N(VD, "c : d"), N(VS, "e : f"),
-  N(VP, "a :b"), N(VD, "c :d"),  N(VS, "e :f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, cardinal",
-R"([
- a#b, "c#d",   'e#f',
- a# b, "c# d",   'e# f',
- a # b, "c # d",   'e # f',
-, # this is needed because of the comment above
- a #b, "c #d",   'e #f',
-])",
-N(SFM, L{
-  N(VP, "a#b"), N(VD, "c#d"), N(VS, "e#f"),
-  N(VP, "a# b"), N(VD, "c# d"), N(VS, "e# f"),
-  N(VP, "a"),
-  N(VP, "a"),
-})
-);
-
-ADD_CASE_TO_GROUP("simple seq block, scalars with special chars, cardinal",
-R"(- a#b
-- "c#d"
-- 'e#f'
-- a# b
-- "c# d"
-- 'e# f'
-- a # b
-- "c # d"
-- 'e # f'
-- a #b
-- "c #d"
-- 'e #f'
-)",
-N(SB, L{
-  N(VP, "a#b"), N(VD, "c#d"), N(VS, "e#f"),
-  N(VP, "a# b"), N(VD, "c# d"), N(VS, "e# f"),
-  N(VP, "a"), N(VD, "c # d"), N(VS, "e # f"),
-  N(VP, "a"), N(VD, "c #d"), N(VS, "e #f"),
-})
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, dash",
-R"([
- a-b, "c-d",   'e-f',
- a- b, "c- d",   'e- f',
- a - b, "c - d",   'e - f',
- a -b, "c -d",   'e -f',
-])",
-N(SFM, L{
-  N(VP, "a-b"),   N(VD, "c-d"),   N(VS, "e-f"),
-  N(VP, "a- b"),  N(VD, "c- d"),  N(VS, "e- f"),
-  N(VP, "a - b"), N(VD, "c - d"), N(VS, "e - f"),
-  N(VP, "a -b"),  N(VD, "c -d"),  N(VS, "e -f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq block, scalars with special chars, dash",
-R"(- a-b
-- "c-d"
-- 'e-f'
-- a- b
-- "c- d"
-- 'e- f'
-- a - b
-- "c - d"
-- 'e - f'
-- a -b
-- "c -d"
-- 'e -f'
-)",
-N(SB, L{
-  N(VP, "a-b"),   N(VD, "c-d"),   N(VS, "e-f"),
-  N(VP, "a- b"),  N(VD, "c- d"),  N(VS, "e- f"),
-  N(VP, "a - b"), N(VD, "c - d"), N(VS, "e - f"),
-  N(VP, "a -b"),  N(VD, "c -d"),  N(VS, "e -f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, left-bracket",
-R"([
- #a[b,
- "c[d",   'e[f',
- #a[ b,
- "c[ d",   'e[ f',
- #a [ b,
- "c [ d",   'e [ f',
- #a [b,
- "c [d",   'e [f',
-])",
-N(SFM, L{
-  /*N(VP, "a[b"),  */ N(VD, "c[d"),   N(VS, "e[f"),
-  /*N(VP, "a[ b"), */ N(VD, "c[ d"),  N(VS, "e[ f"),
-  /*N(VP, "a [ b"),*/ N(VD, "c [ d"), N(VS, "e [ f"),
-  /*N(VP, "a [b"), */ N(VD, "c [d"),  N(VS, "e [f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq block, scalars with special chars, left-bracket",
-R"(- a[b
-- "c[d"
-- 'e[f'
-- a[ b
-- "c[ d"
-- 'e[ f'
-- a [ b
-- "c [ d"
-- 'e [ f'
-- a [b
-- "c [d"
-- 'e [f'
-)",
-N(SB, L{
-  N(VP, "a[b"),   N(VD, "c[d"),   N(VS, "e[f"),
-  N(VP, "a[ b"),  N(VD, "c[ d"),  N(VS, "e[ f"),
-  N(VP, "a [ b"), N(VD, "c [ d"), N(VS, "e [ f"),
-  N(VP, "a [b"),  N(VD, "c [d"),  N(VS, "e [f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, right-bracket",
-R"([
-# a]b,
-   "c]d",   'e]f',
-# a] b,
-   "c] d",   'e] f',
-# a ] b,
-   "c ] d",   'e ] f',
-# a ]b,
-   "c ]d",   'e ]f',
-])",
-N(SFM, L{
-  /*N(VP, "a]b"), */  N(VD, "c]d"),   N(VS, "e]f"),
-  /*N(VP, "a] b"), */ N(VD, "c] d"),  N(VS, "e] f"),
-  /*N(VP, "a ] b"),*/ N(VD, "c ] d"), N(VS, "e ] f"),
-  /*N(VP, "a ]b"), */ N(VD, "c ]d"),  N(VS, "e ]f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq block, scalars with special chars, right-bracket",
-R"(- a]b
-- "c]d"
-- 'e]f'
-- a] b
-- "c] d"
-- 'e] f'
-- a ] b
-- "c ] d"
-- 'e ] f'
-- a ]b
-- "c ]d"
-- 'e ]f'
-)",
-N(SB, L{
-  N(VP, "a]b"),   N(VD, "c]d"),   N(VS, "e]f"),
-  N(VP, "a] b"),  N(VD, "c] d"),  N(VS, "e] f"),
-  N(VP, "a ] b"), N(VD, "c ] d"), N(VS, "e ] f"),
-  N(VP, "a ]b"),  N(VD, "c ]d"),  N(VS, "e ]f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, left-curly",
-R"([
-# a{b,
-   "c{d",   'e{f',
-# a{ b,
-   "c{ d",   'e{ f',
-# a { b,
-   "c { d",   'e { f',
-# a {b,
-   "c {d",   'e {f',
-])",
-N(SFM, L{
-  /*N(VP, "a{b"), */  N(VD, "c{d"),   N(VS, "e{f"),
-  /*N(VP, "a{ b"), */ N(VD, "c{ d"),  N(VS, "e{ f"),
-  /*N(VP, "a { b"),*/ N(VD, "c { d"), N(VS, "e { f"),
-  /*N(VP, "a {b"), */ N(VD, "c {d"),  N(VS, "e {f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq block, scalars with special chars, left-curly",
-R"(- a{b
-- "c{d"
-- 'e{f'
-- a{ b
-- "c{ d"
-- 'e{ f'
-- a { b
-- "c { d"
-- 'e { f'
-- a {b
-- "c {d"
-- 'e {f'
-)",
-N(SB, L{
-  N(VP, "a{b"),   N(VD, "c{d"),   N(VS, "e{f"),
-  N(VP, "a{ b"),  N(VD, "c{ d"),  N(VS, "e{ f"),
-  N(VP, "a { b"), N(VD, "c { d"), N(VS, "e { f"),
-  N(VP, "a {b"),  N(VD, "c {d"),  N(VS, "e {f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, scalars with special chars, right-curly",
-R"([
-# a}b,
-   "c}d",   'e}f',
-# a} b,
-   "c} d",   'e} f',
-# a } b,
-   "c } d",   'e } f',
-# a }b,
-   "c }d",   'e }f',
-])",
-N(SFM, L{
-  /*N(VP, "a}b"), */  N(VD, "c}d"),   N(VS, "e}f"),
-  /*N(VP, "a} b"), */ N(VD, "c} d"),  N(VS, "e} f"),
-  /*N(VP, "a } b"),*/ N(VD, "c } d"), N(VS, "e } f"),
-  /*N(VP, "a }b"), */ N(VD, "c }d"),  N(VS, "e }f"),
-    })
-);
-
-ADD_CASE_TO_GROUP("simple seq block, scalars with special chars, right-curly",
-R"(- a}b
-- "c}d"
-- 'e}f'
-- a} b
-- "c} d"
-- 'e} f'
-- a } b
-- "c } d"
-- 'e } f'
-- a }b
-- "c }d"
-- 'e }f'
-)",
-N(SB, L{
-  N(VP, "a}b"),   N(VD, "c}d"),   N(VS, "e}f"),
-  N(VP, "a} b"),  N(VD, "c} d"),  N(VS, "e} f"),
-  N(VP, "a } b"), N(VD, "c } d"), N(VS, "e } f"),
-  N(VP, "a }b"),  N(VD, "c }d"),  N(VS, "e }f"),
-    })
-);
-
-// see https://github.com/biojppm/rapidyaml/issues/28
-ADD_CASE_TO_GROUP("simple seq - indentless jumps",
-R"(enemy:
-- actors:
-  - {name: Enemy_Bokoblin_Junior, value: 4.0}
-  - {name: Enemy_Bokoblin_Middle, value: 16.0}
-  - {name: Enemy_Bokoblin_Senior, value: 32.0}
-  - {name: Enemy_Bokoblin_Dark, value: 48.0}
-  species: BokoblinSeries
-  more: attributes
-- wtf enemy
-enemy2:
-  - actors:
-      - {name: Enemy_Bokoblin_Junior, value: 4.0}
-      - {name: Enemy_Bokoblin_Middle, value: 16.0}
-      - {name: Enemy_Bokoblin_Senior, value: 32.0}
-      - {name: Enemy_Bokoblin_Dark, value: 48.0}
-    species: BokoblinSeries
-    more: attributes
-  - wtf enemy2
-)",
-N(MB, L{ // 0, map
-  N(KP|SB, "enemy", L{ // 1, keyseq
-    N(MB, L{ // 2, map
-      N(KP|SB, "actors", L{ // 3, keyseq
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Junior"), N(KP|VP, "value", "4.0"),}), // 4, map + 5,6
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Middle"), N(KP|VP, "value", "16.0"),}), // 7, map + 8,9
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Senior"), N(KP|VP, "value", "32.0"),}), // 10, map + 11,12
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Dark"), N(KP|VP, "value", "48.0"),}), // 13, map + 14,15
-      }),
-      N(KP|VP, "species", "BokoblinSeries"), // 16, keyval
-      N(KP|VP, "more", "attributes"), // 17, keyval
-    }),
-    N(VP, "wtf enemy"), // 18
-  }),
-  N(KP|SB, "enemy2", L{ // 19, keyseq
-    N(MB, L{ // 20, map
-      N(KP|SB, "actors", L{ // 21, keyseq
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Junior"), N(KP|VP, "value", "4.0"),}),
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Middle"), N(KP|VP, "value", "16.0"),}),
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Senior"), N(KP|VP, "value", "32.0"),}),
-        N(MFS, L{N(KP|VP, "name", "Enemy_Bokoblin_Dark"), N(KP|VP, "value", "48.0"),}),
-      }),
-      N(KP|VP, "species", "BokoblinSeries"),
-      N(KP|VP, "more", "attributes"),
-    }),
-    N(VP, "wtf enemy2"),
-  }),
-})
-);
-
-ADD_CASE_TO_GROUP("simple seq, invalid character 1", EXPECT_PARSE_ERROR,
-R"(- 0   # this is a foo
+    {
+        // this case is vanilla:
+        csubstr yaml = R"(- a0: v0
+  &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- a0: w0
+  *a1 : w1
+  *a2 : w2
+  *a3 : w3
+- &seq
+  a4: v4
+)";
+        Tree t = parse_in_arena(yaml);
+        std::string emitted = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(yaml, emitted);
+        ASSERT_EQ(t.rootref().num_children(), 3u);
+        ASSERT_EQ(t[2].has_val_anchor(), true);
+        ASSERT_EQ(t[2].val_anchor(), "seq");
+    }
+    {
+        // but this case may fail because the indentation
+        // may be set from the scalar instead of the tag:
+        csubstr yaml = R"(- &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- *a1 : w1
+  *a2 : w2
+  *a3 : w3
+)";
+        Tree t = parse_in_arena(yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+    }
 }
-)",
-  Location(2, 1)
-);
 
-ADD_CASE_TO_GROUP("simple seq, invalid character 2", EXPECT_PARSE_ERROR,
-R"(- 0   # this is a foo
-]
-)",
-  Location(2, 1)
-);
+TEST(seq_of_map, with_tags)
+{
+    {
+        // this case is vanilla:
+        csubstr yaml = R"(- a0: v0
+  !!str a1: v1
+  !!str a2: v2
+  !!str a3: v3
+- a0: w0
+  !!int a1: !!str w1
+  !!int a2: !!str w2
+  !!int a3: !!str w3
+- a0: v1
+  !foo a1: v1
+  !foo a2: v2
+  !foo a3: v3
+)";
+        Tree t = parse_in_arena(yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+    }
+    {
+        // but this case may fail because the indentation
+        // may be set from the scalar instead of the tag:
+        csubstr yaml = R"(- !!str a1: v1
+  !!str a2: v2
+  !!str a3: v3
+- !!int a1: !!str w1
+  !!int a2: !!str w2
+  !!int a3: !!str w3
+- !foo a1: v1
+  !foo a2: v2
+  !foo a3: v3
+)";
+        Tree t = parse_in_arena(yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
+    }
+}
 
-ADD_CASE_TO_GROUP("simple seq, invalid character 3", EXPECT_PARSE_ERROR,
-R"(- 0   # this is a foo
-:
-)",
-  Location(2, 1)
-);
+TEST(seq_of_map, missing_scalars_v1)
+{
+    Tree t = parse_in_arena(R"(a:
+  - ~: ~
+  - ~: ~
+)");
+    #ifdef RYML_DBG
+    print_tree(t);
+    #endif
+    ASSERT_EQ(t["a"].num_children(), 2u);
+    ASSERT_EQ(t["a"][0].num_children(), 1u);
+    EXPECT_EQ(t["a"][0].first_child().key(), "~");
+    EXPECT_EQ(t["a"][0].first_child().val(), "~");
+    ASSERT_EQ(t["a"][1].num_children(), 1u);
+    EXPECT_EQ(t["a"][1].first_child().key(), "~");
+    EXPECT_EQ(t["a"][1].first_child().val(), "~");
+}
 
-ADD_CASE_TO_GROUP("simple seq, invalid character 4", EXPECT_PARSE_ERROR,
-R"(- 0   # this is a foo
-abcdef!
-)",
-  Location(2, 1)
-);
+static void test_missing_scalars(csubstr src)
+{
+    Tree t = parse_in_arena(src);
+    #ifdef RYML_DBG
+    print_tree(t);
+    #endif
+    ASSERT_EQ(t["a"].num_children(), 2u);
+    ASSERT_EQ(t["a"][0].num_children(), 1u);
+    EXPECT_EQ(t["a"][0].first_child().key().len, 0);
+    EXPECT_EQ(t["a"][0].first_child().val().len, 0);
+    EXPECT_EQ(t["a"][0].first_child().key().str, nullptr);
+    EXPECT_EQ(t["a"][0].first_child().val().str, nullptr);
+    ASSERT_EQ(t["a"][1].num_children(), 1u);
+    EXPECT_EQ(t["a"][1].first_child().key().len, 0);
+    EXPECT_EQ(t["a"][1].first_child().val().len, 0);
+    EXPECT_EQ(t["a"][1].first_child().key().str, nullptr);
+    EXPECT_EQ(t["a"][1].first_child().val().str, nullptr);
+}
 
-ADD_CASE_TO_GROUP("simple seq flow, missing val, 1", EXPECT_PARSE_ERROR,
-R"([,]
-)",
-  Location(1, 2)
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, missing val, 2", EXPECT_PARSE_ERROR,
-R"([ ,]
-)",
-  Location(1, 3)
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, missing val, 3", EXPECT_PARSE_ERROR,
-R"([ , ]
-)",
-  Location(1, 3)
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, missing val, 4", EXPECT_PARSE_ERROR,
-R"([ , val]
-)",
-  Location(1, 3)
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, missing val, 5", EXPECT_PARSE_ERROR,
-R"([ , , ]
-)",
-  Location(1, 3)
-);
-
-ADD_CASE_TO_GROUP("simple seq flow, seqimap, at line end",
-R"([a: 
-
-b]
-)",
-N(SFM, L{N(MFM, L{N(KP|VP, "a", "b")})})
-);
-
+TEST(seq_of_map, missing_scalars_v2)
+{
+    test_missing_scalars(R"(a:
+  - : 
+  - : 
+)");
+}
+TEST(seq_of_map, missing_scalars_v3)
+{
+    test_missing_scalars(R"(a:
+  - :
+  - :
+)");
 }
 
 } // namespace yml

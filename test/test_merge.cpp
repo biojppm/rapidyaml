@@ -2,25 +2,13 @@
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
 #endif
-#include <gtest/gtest.h>
 
-#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_helpers_tree.hpp"
 
 RYML_DEFINE_TEST_MAIN()
 
 namespace c4 {
 namespace yml {
-
-// The other test executables are written to contain the declarative-style
-// YmlTestCases. This executable does not have any but the build setup
-// assumes it does, and links with the test lib, which requires an existing
-// get_case() function. So this is here to act as placeholder until (if?)
-// proper test cases are added here. This was detected in #47 (thanks
-// @cburgard).
-Case const* get_case(csubstr)
-{
-    return nullptr;
-}
 
 
 void test_merge(std::initializer_list<csubstr> li, csubstr expected)

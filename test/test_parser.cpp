@@ -1,14 +1,13 @@
-#ifdef RYML_SINGLE_HEADER
-#include "ryml_all.hpp"
-#else
+#include "./test_lib/test_utils.hpp"
+#include "./test_lib/tree_and_ints.hpp"
+#ifndef RYML_SINGLE_HEADER
 #include "c4/yml/event_handler_tree.hpp"
 #include "c4/yml/parse_engine.hpp"
 #include "c4/yml/parse.hpp"
 #include "c4/yml/node.hpp"
+#include "c4/yml/emit.hpp"
 #endif
-#include <gtest/gtest.h>
 #include "./test_lib/callbacks_tester.hpp"
-#include "./test_lib/test_case.hpp"
 
 
 RYML_DEFINE_TEST_MAIN()
@@ -3948,26 +3947,4 @@ TEST(ParseSetupError, on_bad_src)
 } // namespace yml
 } // namespace c4
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-// this is needed to use the test case library
-
-#ifndef RYML_SINGLE_HEADER
-#include "c4/substr.hpp"
-#endif
-
-namespace c4 {
-namespace yml {
-struct Case;
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
-
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
-
-} // namespace yml
-} // namespace c4

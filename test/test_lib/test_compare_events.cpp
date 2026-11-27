@@ -1,5 +1,5 @@
 #include "test_lib/test_compare_events.hpp"
-#include "test_lib/test_case.hpp"
+#include "test_lib/test_utils.hpp"
 
 namespace c4 {
 namespace yml {
