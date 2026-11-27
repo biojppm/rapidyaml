@@ -4,7 +4,9 @@ YAML standard conformance
 ryml is fully conformant and feature-complete with regards to the YAML
 specification, and it passes all of the cases in the YAML test
 suite. All the YAML features are well covered in the unit tests, and
-expected to work, unless in the exceptions noted below.
+expected to work, unless in the exceptions noted below. Note that
+passing every case of the test suite requires the build and parse
+settings described in `Configuration for full conformance`_ below.
 
 Of course, there are many dark corners in YAML, and there certainly
 can appear cases which ryml fails to parse. If you find any case where
@@ -41,7 +43,9 @@ following situations:
    ryml is compiled with the macro ``RYML_WITH_TAB_TOKENS``. This
    requirement exists because checking for tabs introduces branching
    into the parser’s hot code and in some cases costs as much as 10% in
-   parsing time.
+   parsing time. The test suite cases using tabs as separation
+   whitespace only pass when this macro is enabled; see
+   `Configuration for full conformance`_ below.
 -  ``%YAML`` directives have no effect and are ignored.
 -  ``%TAG`` directives are limited to a default maximum of 4 instances
    per ``Tree``. To increase this maximum, define the preprocessor
@@ -67,6 +71,33 @@ following situations:
    uniqueness adheres to the spirit of “don’t pay for what you don’t
    use”.
 
+
+
+Configuration for full conformance
+----------------------------------
+
+Out of the box, ryml favours parsing speed over accepting every corner
+of the specification. Passing every case of the YAML test suite
+therefore needs two settings:
+
+-  Compile with ``RYML_WITH_TAB_TOKENS`` to accept tabs as separation
+   whitespace after ``:`` and ``-``. This can be enabled with the CMake
+   option of the same name (``-DRYML_WITH_TAB_TOKENS=ON``) or by
+   defining the macro when compiling the sources. See the note about
+   its parsing cost in `Deliberate deviations`_ above.
+-  Enable tag resolution when parsing, with
+   ``ParserOptions{}.resolve_tags(true).resolve_tags_all(true)``.
+   ``resolve_tags()`` resolves the tags of the form
+   ``!handle!tag`` according to the existing tag directives, and
+   ``resolve_tags_all()`` additionally resolves the non-prefixed tags
+   (``!!tag`` and ``!tag!``). Both settings are disabled by default;
+   see ``src/c4/yml/parse_options.hpp`` for their exact semantics.
+
+This is the configuration used by the test-suite harness: it parses
+each case with
+``ParserOptions{}.resolve_tags(true).resolve_tags_all(true)``, and the
+tab-tokens jobs of the CI workflows build and run the tests with
+``-DRYML_WITH_TAB_TOKENS=ON``.
 
 
 YAML test suite
@@ -114,4 +145,8 @@ approach.
 Also, note that in `their own words <http://matrix.yaml.info/>`__, the
 tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
-the extreme focus of the test suite, ryml passes all of its test cases.
+the extreme focus of the test suite, ryml passes all of its test cases
+when built and configured as described in `Configuration for full
+conformance`_. The cases are part of the regular test build, and can
+be toggled with the ``RYML_TEST_SUITE`` CMake option (enabled by
+default).
