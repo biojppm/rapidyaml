@@ -266,7 +266,10 @@ jobs:
            ${{matrix.gen}}
     - name: build c4core
       run: |
-        cmake --build ext/c4core/build --target c4core --parallel
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
+        cmake --build ext/c4core/build --target c4core --parallel $numprocs
     - name: install c4core
       run: |
         cmake --build ext/c4core/build --target install
@@ -293,7 +296,7 @@ jobs:
             fi
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
-        cmake --build build --target ryml-test-build --parallel --config ${{matrix.bt}}
+        cmake --build build --target ryml-test-build --parallel $numprocs --config ${{matrix.bt}}
     - name: run tests
       run: |
         source .github/setenv.sh

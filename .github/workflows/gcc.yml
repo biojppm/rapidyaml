@@ -798,7 +798,8 @@ jobs:
           -DRYML_DBG=ON
     - name: build (issue \#${{matrix.issue}})
       run: |
-        numprocs=`nproc`
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
         if [[ "$cxxflags" == *"32"* ]] ; then
             if (( $numprocs > 1 )) ; then
                 numprocs=$(($numprocs / 2))
@@ -869,7 +870,8 @@ jobs:
           -DRYML_DBG=OFF
     - name: build (issue \#${{matrix.issue}})
       run: |
-        numprocs=`nproc`
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
         if (( $numprocs > 1 )) ; then
             numprocs=$(($numprocs / 2))
         fi

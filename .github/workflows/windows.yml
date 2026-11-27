@@ -108,7 +108,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Debug ::: /MDd /Zi /Ob0 /Od /RTC1 shared=ON'
       run: |
-        cmake --build build/Debug --target ryml-test-build --config Debug --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Debug --target ryml-test-build --config Debug --parallel $numprocs --verbose
     - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1 shared=ON'
       run: |
         source .github/setenv.sh
@@ -137,7 +139,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Debug ::: /MDd /Zi /Ob0 /Od /RTC1 shared=OFF'
       run: |
-        cmake --build build/Debug --target ryml-test-build --config Debug --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Debug --target ryml-test-build --config Debug --parallel $numprocs --verbose
     - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1 shared=OFF'
       run: |
         source .github/setenv.sh
@@ -166,7 +170,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Release ::: /MD /Os /DNDEBUG shared=ON'
       run: |
-        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-build --config Release --parallel $numprocs --verbose
     - name: 'run Release ::: /MD /Os /DNDEBUG shared=ON'
       run: |
         source .github/setenv.sh
@@ -261,7 +267,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Release ::: /MD /O1 /Ob1 /DNDEBUG shared=ON'
       run: |
-        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-build --config Release --parallel $numprocs --verbose
     - name: 'run Release ::: /MD /O1 /Ob1 /DNDEBUG shared=ON'
       run: |
         source .github/setenv.sh
@@ -290,7 +298,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Release ::: /MD /O2 /Ob2 /DNDEBUG shared=ON'
       run: |
-        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-build --config Release --parallel $numprocs --verbose
     - name: 'run Release ::: /MD /O2 /Ob2 /DNDEBUG shared=ON'
       run: |
         source .github/setenv.sh
@@ -319,7 +329,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Release ::: /MD /O3 /Ob3 /DNDEBUG shared=ON'
       run: |
-        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-build --config Release --parallel $numprocs --verbose
     - name: 'run Release ::: /MD /O3 /Ob3 /DNDEBUG shared=ON'
       run: |
         source .github/setenv.sh
@@ -374,7 +386,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
       run: |
-        cmake --build build/Debug --target ryml-test-build --config Debug --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Debug --target ryml-test-build --config Debug --parallel $numprocs --verbose
     - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
       run: |
         source .github/setenv.sh
@@ -403,7 +417,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
       run: |
-        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-build --config Release --parallel $numprocs --verbose
     - name: 'run Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
       run: |
         source .github/setenv.sh
@@ -458,7 +474,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
       run: |
-        cmake --build build/Debug --target ryml-test-build --config Debug --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Debug --target ryml-test-build --config Debug --parallel $numprocs --verbose
     - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
       run: |
         source .github/setenv.sh
@@ -487,7 +505,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
       run: |
-        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-build --config Release --parallel $numprocs --verbose
     - name: 'run Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
       run: |
         source .github/setenv.sh
@@ -542,7 +562,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
       run: |
-        cmake --build build/Debug --target ryml-test-build --config Debug --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Debug --target ryml-test-build --config Debug --parallel $numprocs --verbose
     - name: 'run Debug ::: /MDd /Zi /Ob0 /Od /RTC1  shared=ON'
       run: |
         source .github/setenv.sh
@@ -571,7 +593,9 @@ jobs:
           -DRYML_DBG=OFF
     - name: 'build Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
       run: |
-        cmake --build build/Release --target ryml-test-build --config Release --parallel --verbose
+        source .github/setenv.sh
+        export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+        cmake --build build/Release --target ryml-test-build --config Release --parallel $numprocs --verbose
     - name: 'run Release ::: /MDd /O3 /Ob3 /DNDEBUG  shared=ON'
       run: |
         source .github/setenv.sh
@@ -689,7 +713,7 @@ jobs:
             fi
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
-        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel
+        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel $numprocs
     - name: test
       run: |
         source .github/setenv.sh

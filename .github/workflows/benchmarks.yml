@@ -181,7 +181,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DRYML_BUILD_BENCHMARKS=ON
     - name: build
-      run: cmake --build build --config Release --parallel --verbose --target ryml-bm-build
+      run: |
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
+        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
+        cmake --build build --config Release --parallel $numprocs --verbose --target ryml-bm-build
     - name: run
       run: cmake --build build --config Release --verbose --target ryml-bm-run
     - name: plot

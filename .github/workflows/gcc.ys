@@ -118,7 +118,8 @@ jobs:
           -DRYML_DBG=ON
     - name: build (issue \#${{matrix.issue}})
       run: |
-        numprocs=`nproc`
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
         if [[ "$cxxflags" == *"32"* ]] ; then
             if (( $numprocs > 1 )) ; then
                 numprocs=$(($numprocs / 2))
@@ -166,7 +167,8 @@ jobs:
           -DRYML_DBG=OFF
     - name: build (issue \#${{matrix.issue}})
       run: |
-        numprocs=`nproc`
+        source .github/setenv.sh
+        numprocs=`_c4getnumcores`
         if (( $numprocs > 1 )) ; then
             numprocs=$(($numprocs / 2))
         fi
@@ -372,7 +374,9 @@ jobs:
   #           -DRYML_BUILD_BENCHMARKS=OFF \
   #           -DRYML_DBG=OFF \
   #           -DRYML_FANALYZER=ON
-  #    - name: build
-  #      run: cmake --build build --target ryml-test-build --parallel --verbose
+  #    - name: build|
+  #        numprocs=`_c4getnumcores`
+  #        export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
+  #        run: cmake --build build --target ryml-test-build --parallel $numprocs --verbose
   #    - name: run
   #      run: cmake --build build --target ryml-test-run --verbose
