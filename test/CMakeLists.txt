@@ -1,4 +1,8 @@
-c4_setup_testing(GTEST)
+c4_setup_testing()
+
+# speedup compilation by compiling gtest in Release mode
+include(../proj/gtest.cmake)
+ryml_import_gtest(BUILD_TYPE Release)
 
 function(ryml_get_target_exe target_name target_file)
     if(CMAKE_CROSSCOMPILING)
