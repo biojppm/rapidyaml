@@ -609,21 +609,21 @@ TEST(Parser, filename_and_buffer_are_stored)
 
 TEST(Parser, estimate_tree_capacity)
 {
-    EXPECT_EQ(2, estimate_tree_capacity(R"([])"));
-    EXPECT_EQ(2, estimate_tree_capacity(R"([a])"));
-    EXPECT_EQ(3, estimate_tree_capacity(R"([a, b])"));
-    EXPECT_EQ(4, estimate_tree_capacity(R"([a, b, c])"));
-    EXPECT_EQ(5, estimate_tree_capacity(R"([a, b, c, d])"));
-    EXPECT_EQ(2, estimate_tree_capacity(R"({})"));
-    EXPECT_EQ(2, estimate_tree_capacity(R"({a: 0})"));
-    EXPECT_EQ(3, estimate_tree_capacity(R"({a: 0, b: 1})"));
-    EXPECT_EQ(4, estimate_tree_capacity(R"({a: 0, b: 1, c: 2})"));
-    EXPECT_EQ(5, estimate_tree_capacity(R"({a: 0, b: 1, c: 2, d: 3})"));
-    EXPECT_EQ(13, estimate_tree_capacity(R"(- {a: 0, b: 1, c: 2, d: 3}
-- a
-- b
-- c
-)"));
+    EXPECT_EQ(2, estimate_tree_capacity("[]"));
+    EXPECT_EQ(2, estimate_tree_capacity("[a]"));
+    EXPECT_EQ(3, estimate_tree_capacity("[a, b]"));
+    EXPECT_EQ(4, estimate_tree_capacity("[a, b, c]"));
+    EXPECT_EQ(5, estimate_tree_capacity("[a, b, c, d]"));
+    EXPECT_EQ(2, estimate_tree_capacity("{}"));
+    EXPECT_EQ(2, estimate_tree_capacity("{a: 0}"));
+    EXPECT_EQ(3, estimate_tree_capacity("{a: 0, b: 1}"));
+    EXPECT_EQ(4, estimate_tree_capacity("{a: 0, b: 1, c: 2}"));
+    EXPECT_EQ(5, estimate_tree_capacity("{a: 0, b: 1, c: 2, d: 3}"));
+    EXPECT_EQ(13, estimate_tree_capacity("- {a: 0, b: 1, c: 2, d: 3}\n"
+                                         "- a\n"
+                                         "- b\n"
+                                         "- c\n"
+                                         ""));
     {
         csubstr src = R"(- name: foo
   x: 1
