@@ -356,7 +356,9 @@ defn run-vs-manual-with-flags(gen arch buildtype shared flags="" cmkflags="")::
       -DRYML_DBG=OFF
 - name:: "build $buildtype ::: $flags shared=$shared"
   run:: |
-    cmake --build build/$buildtype --target ryml-test-build --config $buildtype --parallel --verbose
+    source .github/setenv.sh
+    export CTEST_PARALLEL_LEVEL=`_c4getnumcores`
+    cmake --build build/$buildtype --target ryml-test-build --config $buildtype --parallel \$numprocs --verbose
 - name:: "run $buildtype ::: $flags shared=$shared"
   run:: |
     source .github/setenv.sh

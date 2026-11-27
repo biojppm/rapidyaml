@@ -131,7 +131,7 @@ jobs:
             fi
         fi
         export CMAKE_BUILD_PARALLEL_LEVEL=$numprocs
-        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel
+        cmake --build build --target ryml-test-build --config ${{matrix.bt}} --parallel $numprocs
     - name: test
       run: |
         source .github/setenv.sh
